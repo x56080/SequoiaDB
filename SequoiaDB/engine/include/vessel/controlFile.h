@@ -51,12 +51,6 @@ namespace vessel
    static const UINT32 CONTROL_FILE_SIZE = 512;
 
    static const UINT64 INVALID_COMMIT_VERSION = OSS_UINT64_MAX;
-   enum VESSEL_CF_STATUS
-   {
-      VESSEL_CF_STATUS_NORMAL = 0,
-      VESSEL_CF_STATUS_UNUSED = 1,
-      VESSEL_CF_STATUS_ABNORMAL = 2,
-   };
 
    class controlFile : public SDBObject
    {
@@ -107,7 +101,7 @@ namespace vessel
 #pragma pack()
 
       public:
-         INT32 open(const CHAR *path);
+         INT32 open(const CHAR *path, BOOLEAN createIfNotExists);
          void close();
 
          OSS_INLINE BOOLEAN isOpen()const
@@ -174,8 +168,8 @@ namespace vessel
          typedef ossPoolList<_fileObj *> _FILE_OBJ_LIST;
 
       private:
-         INT32 openFilesUnderPath(const strSlice &path);
-         INT32 initFileObj(const std::string &fullPath, _fileObj *obj);
+         INT32 openFilesUnderPath(const strSlice &path, BOOLEAN createIfNotExists);
+         INT32 initFileObj(const std::string &fullPath, _fileObj *obj, BOOLEAN createIfNotExists);
          void pushToUnusedListWhenOpen(_fileObj *obj);
          void pushToWorkshopWhenOpen(_fileObj *obj);
 

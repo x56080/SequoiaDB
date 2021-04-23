@@ -39,6 +39,8 @@
 #include "vessel/vessel.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
+#include "vessel/indexOptions.h"
+#include "vessel/indexKeyPattern.h"
 
 namespace engine
 {
@@ -97,8 +99,13 @@ namespace vessel
                                       collectionHandler &handler);
 
       public:
-         virtual INT32 pushMoreToCursor(ISession * session,
-                                        cursorKernal *cursor);
+         INT32 createIndex(ISession *session,
+                           const collectionHandle &handle,
+                           const strSlice &indexName,
+                           const indexKeyPattern &keyPattern,
+                           const createIndexOptions &options);
+      
+      public:
 
          INT32 insert(ISession *session,
                       const collectionHandle &handle,
@@ -112,7 +119,12 @@ namespace vessel
                               const collectionHandle &handle,
                               IQueryFilter *filter,
                               UINT64 &count);
+
+         public:
+            virtual INT32 pushMoreToCursor(ISession * session,
+                                           cursorKernal *cursor);
       private:
+         void close();
          INT32 flushWholeDirtyList(requestContext *context);
       private:
          BOOLEAN _open;

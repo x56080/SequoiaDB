@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,11 +36,14 @@
 #include "vessel/spaceManagementPage.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
+#include "dms.hpp"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   /*
    INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
                                      UINT32 maxSegmentCount,
                                      UINT32 pageCountOfSeg,
@@ -85,6 +85,43 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }*/
+
+   BOOLEAN getSMPCapacityAndCount(UINT32 pageSize,
+                                  UINT32 &capacity,
+                                  UINT32 *count)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 fileCapacity = 0;
+      UINT32 pageCapacity = 0;
+      UINT32 realCapacity = 0;
+
+      if (DMS_PAGE_SIZE8K != pageSize &&
+          DMS_PAGE_SIZE16K != pageSize &&
+          DMS_PAGE_SIZE32K != pageSize &&
+          DMS_PAGE_SIZE64K != pageSize)
+      {
+         goto done;
+      }
+
+      fileCapacity = STORAGE_FILE_SIZE / pageSize;
+      ///We want to set capacity as power of 2.
+      ///But because of page head and tail, only half page can be used.
+      pageCapacity = (pageSize << 2);/// pageCapacity = pageSize / 2 * 8;
+      realCapacity = fileCapacity <= pageCapacity ? fileCapacity : pageCapacity;
+      if (0 != (fileCapacity & (realCapacity - 1)))
+      {
+         goto done;
+      }
+      if (NULL != count)
+      {
+         *count = fileCapacity / realCapacity;
+      }
+      capacity = realCapacity;
+      r = TRUE;
+      
+   done:
+      return r;
    }
 
 }//namespace vessel

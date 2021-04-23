@@ -53,8 +53,6 @@ namespace vessel
 
       public:
          INT32 initSMP(requestContext *context,
-                       UINT32 maxSegmentCount,
-                       UINT32 pageCountOfSeg,
                        UINT32 pageOccupied);
 
          virtual PAGE_TYPE getPageType()const
@@ -62,19 +60,25 @@ namespace vessel
             return PAGE_TYPE_SMP;
          }
 
+         /// pid in "pids" must be global pid.
+         /// they will be saved in redo log.
          INT32 allocatePages(requestContext *context,
-                             UINT32 capacity,
                              PAGE_TYPE type,
                              UINT32 count,
                              const PAGE_ID *lpids,
                              const PAGE_ID *pids,
                              const slice &args);
 
-         INT32 dumpSMP(UINT32 bufferSize,
+         INT32 getFreeCount(requestContext *context,
+                            INT32 &free);
+
+         INT32 dumpSMP(requestContext *context,
+                       UINT32 bufferSize,
                        CHAR *buffer);
 
       private:
-         INT32 validatePidsToBeAllocated(UINT32 bitsCount,
+         INT32 validatePidsToBeAllocated(UINT32 capacity,
+                                         UINT32 bitsCount,
                                          UINT32 count,
                                          const PAGE_ID *pids);
          INT32 testPageFree(UINT32 bitsSlotNo, UINT32 bitNo, BOOLEAN &free);
@@ -83,16 +87,20 @@ namespace vessel
                            UINT32 count,
                            const PAGE_ID *pids);
          void setPagesNotFree(UINT32 bitsCount,
+                              UINT32 capacity,
                               UINT32 count,
                               const PAGE_ID *pids);
 
          INT32 prepareSMPAllocateLog(requestContext *context,
                                      logRecordContext *lrc,
                                      UINT32 count,
+                                     const PAGE_ID *lpids,
                                      const slice &args);
 
          INT32 commitSMPAllocateLog(requestContext *context,
                                     logRecordContext *lrc,
+                                    const spaceManagementPageHead *oldHead,
+                                    const spaceManagementPageHead *newHead,
                                     PAGE_TYPE type,
                                     UINT32 count,
                                     const PAGE_ID *lpids,

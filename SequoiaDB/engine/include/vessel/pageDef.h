@@ -60,6 +60,7 @@ namespace vessel
    const static PAGE_TYPE PAGE_TYPE_CS_META = 3;
    const static PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
    const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
+   const static PAGE_TYPE PAGE_TYPE_INDEX_DEF = 1000;
 
    OSS_INLINE void getEyeCatcher(PAGE_TYPE type, CHAR &e0, CHAR &e1)
    {

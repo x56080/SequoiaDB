@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -485,16 +482,16 @@ namespace vessel
          SDB_ASSERT(FALSE, "todo");
       }
 
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       rc = prepareInsertLog(context, &lrc, alignedSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
          goto error;
       }
 
@@ -576,14 +573,9 @@ namespace vessel
       /// 4. commit log
       rid.setPageID(lpid);
       rid.setSlotID(slotID);
-      rc = commitInsertLog(context, &lrc,
-                           rid, &backupHead,
-                           wHead, slot, recordHeadPtr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log:%d", rc);
-         goto error;
-      }
+      commitInsertLog(context, &lrc,
+                      rid, &backupHead,
+                      wHead, slot, recordHeadPtr);
       
       pageAccessor::commit(context, lrc.getLsn());
       context->setRid(rid);

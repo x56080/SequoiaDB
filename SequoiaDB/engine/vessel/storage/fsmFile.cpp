@@ -112,30 +112,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 fsmFile::initToWork(BOOLEAN sparse)
+   INT32 fsmFile::initToWork(ossSpinXLatch *latch, BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!_readyToWork, "do not reinit");
+      SDB_ASSERT(extentStorageFile::isOpen(), "must be open");
       ossValuePtr ptr = 0;
       UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
       UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp
       UINT32 nextFreePid = INVALID_PAGE_ID;
       UINT32 currentSegCount = 0;
-      BOOLEAN locked = FALSE;
-
-      if (!extentStorageFile::isOpen())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      _latch.get();
-      locked = TRUE;
-
-      if (_readyToWork)
-      {
-         goto done;
-      }
-
       currentSegCount = getSegmentCount();
 
       if (0 == currentSegCount)
@@ -170,26 +156,26 @@ namespace vessel
          }
       }
 
+      ///we will not care aboult if latch is null.
+      ///if latch is null, just do not hold latch.
       _readyToWork = TRUE;
+      _latch = latch;
    done:
-      if (locked)
-      {
-         _latch.release();
-      }
       return rc;
    error:
       _firstFree = -1;
       _readyToWork = FALSE;
+      _latch = NULL;
       goto done;
    }
 
    INT32 fsmFile::allocateNewPage(PAGE_ID &pid, BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock lock(&_latch);
-      if (OSS_UNLIKELY(!isOpen()))
+      ossScopedLock lock(_latch);
+      if (OSS_UNLIKELY(!_readyToWork))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -222,10 +208,10 @@ namespace vessel
    INT32 fsmFile::releasePages(UINT32 count, const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock lock(&_latch);
-      if (OSS_UNLIKELY(!isOpen()))
+      ossScopedLock lock(_latch);
+      if (OSS_UNLIKELY(!_readyToWork))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
       else if (0 == count || NULL == pids)
@@ -233,6 +219,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      SDB_ASSERT(FALSE, "TODO");
    done:
       return rc;
    error:
@@ -242,7 +229,7 @@ namespace vessel
    INT32 fsmFile::findFreePageFromSmp(PAGE_ID &pid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_readyToWork, "can not be closed");
       UINT32 totalCount = FSM_PAGE_SIZE >> 3;// dividec by 8
       PAGE_ID minFreePid = FSM_ENTRY_PAGE_COUNT + 1;/// 1 smp + all entry pages.
 
@@ -286,7 +273,7 @@ namespace vessel
    INT32 fsmFile::allocateFreePageFromSmp(PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_readyToWork, "can not be closed");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
       SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
@@ -327,7 +314,7 @@ namespace vessel
    INT32 fsmFile::releasePagesFromSmp(UINT32 count, const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_readyToWork, "can not be closed");
       SDB_ASSERT(0 < count && NULL != pids, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
       SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
@@ -395,7 +382,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_readyToWork, "can not be closed");
 
       const storageFileHead &head = getCommonHeadInMem();
       UINT32 segCount = pid / head.maxPageCountPerSeg + 1;

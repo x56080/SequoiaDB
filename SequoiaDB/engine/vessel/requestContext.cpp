@@ -73,6 +73,7 @@ namespace vessel
    {
       SDB_ASSERT(!_mbIDLocked, "should released by user");
       SDB_ASSERT(!_spaceIDLocked, "should released by user");
+      SDB_ASSERT(0 == _bufAllocated, "memory leak");
       _close();
    }
 

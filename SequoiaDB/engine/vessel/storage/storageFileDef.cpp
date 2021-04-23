@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/storageFileDef.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -42,7 +43,8 @@ namespace vessel
    BOOLEAN storageCoreArgs::isValid()const
    {
       BOOLEAN r = FALSE;
-      if (DMS_PAGE_SIZE8K != pageSize &&
+      if (DMS_PAGE_SIZE4K != pageSize &&
+          DMS_PAGE_SIZE8K != pageSize &&
           DMS_PAGE_SIZE16K != pageSize &&
           DMS_PAGE_SIZE32K != pageSize &&
           DMS_PAGE_SIZE64K != pageSize &&
@@ -67,5 +69,14 @@ namespace vessel
    done:
       return r;
    }
+
+   BOOLEAN isValidSegmentSize(UINT32 size)
+   {
+      return STORAGE_FILE_SEGMENT_SIZE_2MB == size ||
+             STORAGE_FILE_SEGMENT_SIZE_32MB == size ||
+             STORAGE_FILE_SEGMENT_SIZE_128MB == size ||
+             STORAGE_FILE_SEGMENT_SIZE_256MB == size;
+   }
+
 }//namespace vessel
 }//namespace engine

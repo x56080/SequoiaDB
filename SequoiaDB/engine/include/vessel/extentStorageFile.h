@@ -61,12 +61,17 @@ namespace vessel
          INT32 open(const CHAR *fullPath, const vesselFileName &fn);
 
          INT32 destroy();
-         INT32 close();
+         void close();
          BOOLEAN isOpen() const;
+
+         INT32 createFileDone();
 
          INT32 allocateNewSegment(BOOLEAN sparse=FALSE);
 
          INT32 ensureSegmentCount(UINT32 count, BOOLEAN sparse=FALSE);
+
+         INT32 allocateLastSegmentInReadonlyFile(UINT32 pageCount,
+                                                 BOOLEAN sparse=FALSE);
 
          INT32 getSegmentPtr(SEGMENT_ID seg, ossValuePtr &ptr);
 
@@ -117,7 +122,6 @@ namespace vessel
          {
             return SDB_VESSEL_INTERNAL_ERR;
          }
-
       private:
          INT32 createFileAndInitHead(const storageFileOptions &options,
                                      const void *userDefinedOptions);

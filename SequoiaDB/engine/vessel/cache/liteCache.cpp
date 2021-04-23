@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -315,10 +312,10 @@ namespace vessel
       if (newTagInBucket)
       {
          SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
-         rc = context->getEnv()->csContainer.getSUBySpaceID(gpid.space(), &su);
+         rc = context->getEnv()->csContainer.getStorageUnit(gpid.space(), &su);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            goto error;
+            goto newTagError;
          }
 
          rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
@@ -326,23 +323,15 @@ namespace vessel
          {
             PD_LOG(PDERROR, "failed to get page ptr of [%s], rc:%d",
                   gpid.toString().c_str(), rc);
-            goto error;
+            goto newTagError;
          }
 
          rc = loadDataFromDisk(context, holder.tag()->getPageSize(), ptr, holder);
          if (SDB_OK != rc)
          {
-            holder.tag()->decUsageCnt();
-            BOOLEAN removed = holder.tag()->tryToSetRemoved();
-            holder.unlock();
-            if (removed)
-            {
-               _buckets->releaseRemovedTag(holder.tag());
-            }
-            /// if failed to remove tag, just leave it in the bucket and wait to be recycled.
-            PD_LOG(PDSEVERE, "disk page crashed, gpid:%s", gpid.toString().c_str());
-            holder.reset(NULL);
-            goto error;
+            PD_LOG(PDSEVERE, "failed to load data from disk, gpid:%s, rc:%d",
+                   gpid.toString().c_str(), rc);
+            goto newTagError;
          }
 
          holder.unlock();
@@ -360,6 +349,25 @@ namespace vessel
       {
          SDB_ASSERT(LOCK_MODE_NONE == holder.getLockMode(), "can not holding lock");
          holder.tag()->decUsageCnt();
+         holder.reset(NULL);
+      }
+      goto done;
+   newTagError:
+      if (holder.valid())
+      {
+         SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must holding unique lock");
+         holder.tag()->decUsageCnt();
+         BOOLEAN removed = holder.tag()->tryToSetRemoved();
+         holder.unlock();
+         if (removed)
+         {
+            _buckets->releaseRemovedTag(holder.tag());
+         }
+         else
+         {
+            PD_LOG(PDWARNING, "failed to remove new tag[%s], rc:%d",
+                   gpid.toString().c_str(), rc);
+         }
          holder.reset(NULL);
       }
       goto done;
@@ -674,7 +682,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context->getEnv()->csContainer.getSUBySpaceID(gpid.space(), &su);
+      rc = context->getEnv()->csContainer.getStorageUnit(gpid.space(), &su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", gpid.space(), rc);

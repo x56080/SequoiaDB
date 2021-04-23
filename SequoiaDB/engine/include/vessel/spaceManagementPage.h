@@ -43,24 +43,39 @@ namespace engine
 namespace vessel
 {
    ///capacity is 64bit aligned.
-   INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
+   /*INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
                                      UINT32 maxSegmentCount,
                                      UINT32 pageCountOfSeg,
-                                     UINT32 &capacity);
+                                     UINT32 &capacity);*/
+
+   const UINT32 INVALID_SMP_VERSION = 0;
+   const UINT32 SMP_VERSION_1 = 1;
+   
+   const PAGE_ID SMP_PAGE_ID = 0;
+
+   BOOLEAN getSMPCapacityAndCount(UINT32 pageSize,
+                                  UINT32 &capacity,
+                                  UINT32 *count);
 
 #pragma pack(4)
    struct spaceManagementPageHead
    {
-      UINT16 version;
-      UINT16 flags;
-      CHAR pad[12];
+      spaceManagementPageHead &operator=(const spaceManagementPageHead &o)
+      {
+         version = o.version;
+         flags = o.flags;
+         free = o.free;
+         pad = o.pad;
+         return *this;
+      }
+      
+      UINT16 version = INVALID_SMP_VERSION;
+      UINT16 flags = 0;
+      INT32 free = 0;
+      UINT64 pad = 0;
    };
 #pragma pack()
-
-   const UINT32 INVALID_SMP_VERSION = 0;
-   const UINT32 SMP_VERSION_1 = 1;
    const UINT32 SMP_HEAD_LEN = sizeof(spaceManagementPageHead);
-   const PAGE_ID SMP_PAGE_ID = 0;
 }//namespace vessel
 }//namespace engine
 

@@ -131,7 +131,6 @@ namespace vessel
       UINT32 capacity = 0;
       PAGE_ID lpid = INVALID_PAGE_ID;
       const pageHead *head = NULL;
-      BOOLEAN rollback = FALSE;
       logRecordContext lrc;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -197,13 +196,6 @@ namespace vessel
          goto error;
       }
 
-      rc = prpareAppendLog(context, &lrc, count);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-         goto error;
-      }
-
       rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
@@ -211,7 +203,13 @@ namespace vessel
          goto error;
       }
 
-      rollback = TRUE;
+      rc = prpareAppendLog(context, &lrc, count);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
       lpid = head->pageID;
       old = *rHead;
 
@@ -228,15 +226,9 @@ namespace vessel
          PD_LOG(PDERROR, "failed to write slots, being[%d], rc:%d", slot, rc);
          goto error;
       }
-      rollback = TRUE;
       wHead->count += count;
 
-      rc = commitAppendLog(context, &lrc, lpid, old, *wHead, count, lpids);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
-         goto error;
-      }
+      commitAppendLog(context, &lrc, lpid, old, *wHead, count, lpids);
 
       pageAccessor::commit(context, lrc.getLsn());
       lrc.close();
@@ -247,15 +239,6 @@ namespace vessel
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
          logger->abort(context->getSession(), &lrc);
-      }
-      if (rollback)
-      {
-         wHead->count -= count;
-         for (UINT32 i = 0; i < count; ++i)
-         {
-            writeSlots(slot + i, 1, lpids + i);
-         }
-         abortToWrite();
       }
       if (fullAccessing())
       {

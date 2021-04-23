@@ -43,6 +43,37 @@ namespace engine
 {
 namespace vessel
 {
+   INT32 collectionHandler::createIndex(ISession *session,
+                                        const strSlice &indexName,
+                                        const indexKeyPattern &keyPattern,
+                                        const createIndexOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      if (NULL == session ||
+          indexName.empty() ||
+          !keyPattern.isValid() ||
+          !options.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _db->createIndex(session, _handle, indexName, keyPattern, options);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionHandler::insert(ISession *session,
                                    const recordData &record,
                                    const DPS_TRANS_ID &transID,

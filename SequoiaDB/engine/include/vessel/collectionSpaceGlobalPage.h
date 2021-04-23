@@ -51,8 +51,6 @@ namespace vessel
    const static UINT32 CMR_STATUS_ONLINE = 1;
    const static UINT32 CMR_STATUS_SNAPSHOT = 2;
 
-   const static PAGE_ID CS_GLOBAL_META_PAGE_ID = 1;
-
    const static UINT64 CSGP_UPDATE_MASK_STATUS = 0x01;
    const static UINT64 CSGP_UPDATE_MASK_FLAGS = 0x02;
    const static UINT64 CSGP_UPDATE_MASK_MAX_CLLID = 0x04;
@@ -65,7 +63,6 @@ namespace vessel
       UINT32 status;
       UINT32 flags;
       UINT32 uniqueID;
-      UINT32 csLogicalID;
       UINT32 maxCLLogicalID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1];
 
@@ -75,7 +72,6 @@ namespace vessel
          status = o.status;
          flags = o.flags;
          uniqueID = o.uniqueID;
-         csLogicalID = o.csLogicalID;
          maxCLLogicalID = o.maxCLLogicalID;
          ossMemcpy(name, o.name, sizeof(name));
          return *this;
@@ -86,7 +82,6 @@ namespace vessel
       status(0),
       flags(0),
       uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
-      csLogicalID(DMS_INVALID_LOGICCSID),
       maxCLLogicalID(DMS_INVALID_LOGICCLID)
       {
          ossMemset(name, 0, sizeof(name));
@@ -105,7 +100,6 @@ namespace vessel
          status = 0;
          flags = 0;
          uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
-         csLogicalID = DMS_INVALID_LOGICCSID;
          maxCLLogicalID = DMS_INVALID_LOGICCLID;
          ossMemset(name, 0, sizeof(name));
       }

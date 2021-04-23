@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,38 +36,59 @@
 #ifndef VESSEL_INDEX_DEF_PAGE_H_
 #define VESSEL_INDEX_DEF_PAGE_H_
 
-#include "vessel/vesselDef.h"
-#include "vessel/extentDef.h"
+#include "vessel/indexDef.h"
+#include "vessel/pageDef.h"
+#include "vessel/vesselIdDef.h"
+#include "dms.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   const static INVALID_INDEX_RECORD_VERSION = 0;
-   const static INDEX_RECORD_VERSION_1 = 1;
-   const static MAX_INDEX_NAME_LEN = 64;
+   const static UINT16 INDEX_DEF_RECORD_VERSION = 1;
 
-   const static INDEX_DEF_FLAG_UNIQUE = 1;
-   const static INDEX_DEF_FLAG_ENFORECE = 2;
-   const static INDEX_DEF_FLAG_NOT_NULL = 4;
-
+   const static UINT8 INDEX_STATUS_INVALID = 0;
+   const static UINT8 INDEX_STATUS_CREATING = 1;
+   const static UINT8 INDEX_STATUS_ONLINE = 2;
+   const static UINT8 INDEX_STATUS_OFFLINE = 3;
+   const static UINT8 INDEX_STATUS_REMOVING = 4;
+#pragma pack(4)
    struct indexDefRecord
    {
-      UINT16 version;
-      UINT16 type;
-      UINT32 indexLogicalID;
-      UINT32 clLogicalID;
-      UINT32 flags;
-      UINT32 ordering;
-      UINT32 fieldsCount;
+      indexDefRecord()
+      {
+      }
 
-      /// valid only when type is btree
-      UINT32 btreeFlags;
-      PAGE_ID btreeRoot;
+      ~indexDefRecord(){}
 
-      CHAR name[MAX_INDEX_NAME_LEN];
-      UINT32 keyPatternLen;
+      OSS_INLINE indexDefRecord &operator=(const indexDefRecord &o)
+      {
+         ossMemcpy(this, &o, sizeof(indexDefRecord));
+         return *this;
+      }
+
+      UINT16 version = 0;
+      UINT16 type = INVALID_INDEX_TYPE;
+      UINT32 indexLogicalID = INVALID_LOGICAL_INDEX_ID;
+      UINT32 clLogicalID = DMS_INVALID_LOGICCLID;
+      UINT64 flags = 0;
+      UINT32 ordering = 0;
+      UINT8 keyCount = 0;
+      UINT8 status = INDEX_STATUS_INVALID;
+      UINT8 btreePrefixCompressionColumns = 0;
+      UINT8 pad = 0;
+      UINT32 btreeRoot = INVALID_PAGE_ID;
+      UINT32 rebuiding = INVALID_CL_PAGE_SEQ;
+      UINT32 lsmCF = 0;
+      UINT32 indexNameLen = 0; /// \0 included in indexNameLen
+      UINT32 indexNameOffset = 0;
+      UINT32 keyPatternLen = 0;/// bsonobj len.
+      UINT32 keyPatternOffset = 0;
    };//struct indexDefRecord
+
+   static const UINT32 INDEX_DEF_RECORD_LEN = sizeof(indexDefRecord);
+
+#pragma pack()
 }//namespace vessel
 }//namespace engine
 

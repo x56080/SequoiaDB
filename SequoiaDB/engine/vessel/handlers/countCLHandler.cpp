@@ -38,6 +38,7 @@
 #include "vessel/collection.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
+#include "vessel/spaceIDLockHelper.h"
 
 namespace engine
 {
@@ -51,6 +52,7 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
+      spaceIDLockHelper lh(&context);
 
       if (OSS_UNLIKELY(!handle.isValid()))
       {
@@ -72,9 +74,14 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSBySpaceID(&context, handle.getSpaceID(),
-                                                handle.getCSLId(),
-                                                SHARED, &cs);
+      rc = lh.lock(handle.getSpaceID(), SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", handle.getSpaceID(), rc);
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context, handle.getCSLId(), &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -98,10 +105,7 @@ namespace vessel
       {
          context.unlockMB();
       }
-      if (NULL != cs)
-      {
-         context.unlockSpaceID();
-      }
+      lh.unlock();
       context.close();
       return rc;
    error:

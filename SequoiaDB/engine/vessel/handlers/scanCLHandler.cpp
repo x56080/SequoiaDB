@@ -40,6 +40,7 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/scanCLContext.h"
 #include "vessel/scanCLCursor.h"
+#include "vessel/spaceIDLockHelper.h"
 
 namespace engine
 {
@@ -51,6 +52,8 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       scanCLContext context;
+      spaceIDLockHelper lh(&context);
+      const collectionHandle *handle = NULL;
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -78,9 +81,18 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSBySpaceID(&context, cursor->getHandle().getSpaceID(),
-                                                cursor->getHandle().getCSLId(),
-                                                SHARED, &cs);
+      handle = &(cursor->getHandle());
+
+      rc = lh.lock(handle->getSpaceID(), SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle->getSpaceID(), rc);
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context,
+                                                      handle->getCSLId(),
+                                                      &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -104,10 +116,7 @@ namespace vessel
       {
          context.unlockMB();
       }
-      if (NULL != cs)
-      {
-         context.unlockSpaceID();
-      }
+      lh.unlock();
       context.close();
       return rc;
    error:

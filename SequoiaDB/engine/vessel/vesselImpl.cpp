@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -68,7 +65,7 @@ namespace vessel
 
    vesselImpl::~vesselImpl()
    {
-
+      close();
    }
 
    INT32 vesselImpl::initOuterResource(const outerResource &outer)
@@ -80,21 +77,20 @@ namespace vessel
    INT32 vesselImpl::open(ISession *session, const openDBOptions &options)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
+      SDB_ASSERT(!isOpen(), "do not reopen");
       requestContext context;
 
-      if (!_outerResource.isValid())
+      if (NULL == session)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (isOpen())
+      else if (!_outerResource.isValid())
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rollback = TRUE;
       rc = context.open(session, &_env, &_outerResource);
       if (SDB_OK != rc)
       {
@@ -114,10 +110,17 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.csContainer.open(&context);
+      rc = _env.csContainer.openStorageUnits(&context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open space container:%d", rc);
+         PD_LOG(PDERROR, "failed to open stoarge units:%d", rc);
+         goto error;
+      }
+
+      rc = _env.csContainer.openCollectionSpaces(&context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open collection spaces:%d", rc);
          goto error;
       }
 
@@ -125,17 +128,14 @@ namespace vessel
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         close(session, closeDBOptions());
-      }
+      close();
       goto done;
    }
 
    INT32 vesselImpl::close(ISession *session, const closeDBOptions &options)
    {
       INT32 rc = SDB_OK;
-      if (isOpen())
+      if (isOpen() && options.flushDirtyList)
       {
          requestContext context;
          rc = context.open(session, &_env, &_outerResource);
@@ -143,15 +143,11 @@ namespace vessel
          {
             goto error;
          }
-         rc = flushWholeDirtyList(&context);
-         _env.cache.fini();
-         _env.csContainer.close(&context);
-         _env.spaceLocker.fini();
-         _env.options = openDBOptions();
-         _open = FALSE;
+         flushWholeDirtyList(&context);
          context.close();
       }
    done:
+      close();
       return rc;
    error:
       goto done;
@@ -522,6 +518,43 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::createIndex(ISession *session,
+                                 const collectionHandle &handle,
+                                 const strSlice &indexName,
+                                 const indexKeyPattern &keyPattern,
+                                 const createIndexOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      createIndexHandler handler;
+      if (OSS_UNLIKELY(NULL == session))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = handler.init(&_env, session, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init handler:%d", rc);
+         goto error;
+      }
+
+      rc = handler.doit(handle, indexName, keyPattern, options);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::insert(ISession *session,
                             const collectionHandle &handle,
                             const recordData &record,
@@ -655,6 +688,16 @@ namespace vessel
    error:
       job.abortUndispatchedTasks();
       goto done;
+   }
+
+   void vesselImpl::close()
+   {
+      _env.cache.fini();
+      _env.csContainer.close();
+      _env.spaceLocker.fini();
+      _env.options = openDBOptions();
+      _open = FALSE;
+      return;
    }
 
 } // namespace vessel

@@ -40,7 +40,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 getCapacityOfIMP(UINT32 pageSize, UINT32 &capacity)
+   INT32 get64AlignedCapacityOfIMP(UINT32 pageSize, UINT32 &capacity)
    {
       INT32 rc = SDB_OK;
 
@@ -53,6 +53,7 @@ namespace vessel
 
       capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ID_MAP_PAGE_HEAD_LEN) /
                  sizeof(idMapSlot);
+      capacity &= 0xFFFFFFC0;
    done:
       return rc;
    error:

@@ -161,25 +161,17 @@ namespace vessel
    {
       public:
          OSS_INLINE createCSOptions():
-         flags(0),
          dataPageSize(DMS_PAGE_SIZE32K),
-         dataPageCountPerSegment(4096),
-         maxDataFileCount(UINT32(-1)),
+         dataSegSize(128),
          idxPageSize(DMS_PAGE_SIZE16K),
-         idxPageCountPerSegment(8192),
-         maxIdxFileCount(UINT32(-1))
-         {
-           
-         }
+         idxSegSize(128){}
+         OSS_INLINE ~createCSOptions(){}
+         BOOLEAN isValid()const;
 
-         UINT32 flags;
          UINT32 dataPageSize;
-         UINT32 dataPageCountPerSegment;
-         UINT32 maxDataFileCount;
-         
+         UINT32 dataSegSize;
          UINT32 idxPageSize;
-         UINT32 idxPageCountPerSegment;
-         UINT32 maxIdxFileCount;
+         UINT32 idxSegSize;
       
    };/// end of class createCSOptions
 
@@ -243,25 +235,6 @@ namespace vessel
       public:
    };
 
-   class indexOptions
-   {}; // class indexOptions
-
-   class createIndexOptions
-   {
-
-   }; /// end of class createIndexOptions
-
-   class alterIndexOptions
-   {
-      
-   }; // class alterIndexOptions
-
-   class dropIndexOptions
-   {
-
-   }; // class dropIndexOptions
-
-   
    class updateOptions
    {
 

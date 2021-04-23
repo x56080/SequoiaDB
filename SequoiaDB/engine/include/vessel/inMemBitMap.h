@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -42,8 +39,6 @@
 #include "ossLatch.hpp"
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
-
-#include <map>
 
 namespace engine
 {
@@ -134,6 +129,8 @@ namespace vessel
 
          INT32 allocateNewBitPage(UINT32 occupied=0);
 
+         INT32 allocateBitPages(const ossPoolVector<UINT32> &occupied);
+
          INT32 allocateBits(UINT32 count, UINT32 *buf);
 
          void releaseBits(UINT32 count, const UINT32 *buf);
@@ -142,7 +139,7 @@ namespace vessel
 
       public:
          INT32 mapNewBitPage(UINT32 count, const UINT64 *bits);
-         void incPageCount();
+         void incPageCount(UINT32 cnt = 1);
       private:
          INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
          INT32 allocateBitsFromLFC(UINT32 count, UINT32 *buf);

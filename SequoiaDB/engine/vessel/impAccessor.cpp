@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -73,7 +70,7 @@ namespace vessel
                      PAGE_ACCESSOR_FLAG_INIT_PAGE;
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
 
-      rc = getCapacityOfIMP(getPageSize(), capacity);
+      rc = get64AlignedCapacityOfIMP(getPageSize(), capacity);
       if (SDB_OK != rc)
       {
          goto error;
@@ -131,7 +128,7 @@ namespace vessel
       UINT32 pageSize = pageAccessor::getPageSize();
       UINT32 capacity = 0;
 
-      rc = getCapacityOfIMP(pageSize, capacity);
+      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
@@ -178,7 +175,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getCapacityOfIMP(pageSize, capacity);
+      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
@@ -352,7 +349,6 @@ namespace vessel
       IRedoLogger *logger = NULL;
       ISession *session = NULL;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      BOOLEAN rollback = FALSE;
       UINT32 pageSize = pageAccessor::getPageSize();
       UINT32 capacity = 0;
 
@@ -367,7 +363,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getCapacityOfIMP(pageSize, capacity);
+      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);
@@ -383,6 +379,12 @@ namespace vessel
       logger = context->getOuterResource()->logger;
       session = context->getSession();
 
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       rc = prepareMapLog(context, &lrc, count);
       if (SDB_OK != rc)
       {
@@ -390,25 +392,12 @@ namespace vessel
       }
 
       lsn = lrc.getLsn();
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
       mapLpids(capacity, count, lpids, pids, snap);
-      rollback = TRUE;
 
-      rc = commitMapLog(context, &lrc, count, lpids, pids, snap);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      commitMapLog(context, &lrc, count, lpids, pids, snap);
 
       pageAccessor::commit(context, lsn);
       lrc.close();
-      rollback = FALSE;
 
    done:
       return rc;
@@ -416,10 +405,6 @@ namespace vessel
       if (lrc.prepared())
       {
          logger->abort(session, &lrc);
-      }
-      if (rollback)
-      {
-         unmapLpids(capacity, count, lpids);
       }
       if (fullAccessing())
       {
@@ -442,7 +427,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getCapacityOfIMP(getPageSize(), capacity);
+      rc = get64AlignedCapacityOfIMP(getPageSize(), capacity);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);

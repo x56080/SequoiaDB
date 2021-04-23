@@ -386,11 +386,15 @@ namespace vessel
       }
 
       ossMemcpy((void *)headPtr, headBuf, STORAGE_FILE_HEAD_SIZE);
-      rc = ossMmapFile::flush(0, TRUE);
-      if (SDB_OK != rc)
+
+      if (!options.delayFlushHead)
       {
-         PD_LOG(PDERROR, "failed to fsync file:%d", rc);
-         goto error;
+         rc = ossMmapFile::flush(0, TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fsync file:%d", rc);
+            goto error;
+         }
       }
 
       _headInMem = *((const storageFileHead *)headBuf);
@@ -415,11 +419,14 @@ namespace vessel
       }
 
       ossMemcpy((void *)headPtr, headBuf, STORAGE_FILE_HEAD_SIZE);
-      rc = ossMmapFile::flush(1, TRUE);
-      if (SDB_OK != rc)
+      if (!options.delayFlushHead)
       {
-         PD_LOG(PDERROR, "failed to fsync file:%d", rc);
-         goto error;
+         rc = ossMmapFile::flush(1, TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fsync file:%d", rc);
+            goto error;
+         }
       }
       
    done:
@@ -445,7 +452,7 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 extentStorageFile::close()
+   void extentStorageFile::close()
    {
       
       if (isOpen())
@@ -455,7 +462,7 @@ namespace vessel
          ossMmapFile::close();
       }
      
-      return SDB_OK;
+      return;
    }
 
    INT32 extentStorageFile::getExtentPtr(PAGE_ID page, ossValuePtr &ptr)
@@ -667,6 +674,11 @@ namespace vessel
       head->maxSegmentCountPerFile = options.args->maxSegmentCountPerFile;
       head->maxPageCountPerSeg = options.args->maxPageCountPerSeg;
       head->userDefinedHeadLen = hasUserDefinedHead ? STORAGE_FILE_HEAD_SIZE : 0;
+
+      if (options.delayFlushHead)
+      {
+         OSS_BIT_SET(head->flags, STORAGE_FILE_HEAD_FLAG_IN_CREATING);
+      }
 
       rc = createChecksum(*head, checksum);
       if (SDB_OK != rc)
@@ -901,6 +913,13 @@ namespace vessel
       {
          PD_LOG(PDERROR, "invalid core args");
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         goto error;
+      }
+
+      if (OSS_BIT_TEST(suHead->flags, STORAGE_FILE_HEAD_FLAG_IN_CREATING))
+      {
+         PD_LOG(PDERROR, "file status is in-creating");
+         rc = SDB_VESSEL_CRASHED_WHEN_CREATING;
          goto error;
       }
    done:

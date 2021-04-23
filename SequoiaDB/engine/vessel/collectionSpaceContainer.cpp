@@ -46,6 +46,7 @@
 #include "vessel/IQueryFilter.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/vesselFileName.h"
+#include "vessel/storageUnit.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -56,8 +57,7 @@ namespace vessel
 {
    collectionSpaceContainer::collectionSpaceContainer()
    {
-      resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
-      setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
+
    }
 
    collectionSpaceContainer::~collectionSpaceContainer()
@@ -65,80 +65,191 @@ namespace vessel
       fini();
    }
 
-   INT32 collectionSpaceContainer::open(requestContext *context)
+   INT32 collectionSpaceContainer::openStorageUnits(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _slots, "do not reinit");
+      SDB_ASSERT(CLOSED == _status, "do not reinit");
       if (OSS_UNLIKELY(NULL == context))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _slots = SDB_OSS_NEW _spaceSlot[MAX_SPACE_COUNT];
-      if (NULL == _slots)
+      rc = _storageUnits.init(MAX_SPACE_COUNT, FALSE);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to init storage unit slots:%d", rc);
          goto error;
       }
-
+      
+      /// init slots of storageunit
       rc = loadStorageUnitsOnDisk(context);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = initObjects(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
+      _status = SU_LOADED;
    done:
       return rc;
    error:
-      close(context);
+      close();
       goto done;
    }
 
-   INT32 collectionSpaceContainer::close(requestContext *context)
+   INT32 collectionSpaceContainer::openCollectionSpaces(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(SU_LOADED == _status, "must be loaded");
+      BOOLEAN rollback = FALSE;
 
-      for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
+      if (NULL == context)
       {
-         if (_slots[i].isFree())
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (SU_LOADED != _status)
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rollback = TRUE;
+      rc = _collectionSpaces.init(MAX_SPACE_COUNT, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init collection space slots:%d", rc);
+         goto error;
+      }
+
+      for (SPACE_ID i = 0; i < MAX_SPACE_COUNT; ++i)
+      {
+         spaceIDLockHelper lh(context);
+         collectionSpace *cs = NULL;
+         storageUnit *su = _storageUnits.getObject(i);
+         if (NULL == su)
          {
+            _freeStorageUnits.push_back(i);
             continue;
          }
 
-         _slots[i].getCS()->close(context);
+         if (!su->isOpen())
+         {
+            PD_LOG(PDERROR, "storage unit[%d] has not been open", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = _collectionSpaces.allocateNewObj(i, &cs);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate new cs obj:%d", rc);
+            goto error;
+         }
+
+         /// unnecessary locking. just page accessor required.
+         rc = lh.lock(i, SHARED);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         rc = cs->open(context, su);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to open collection space[%d], rc:%d",
+                   i, rc);
+            goto error;
+         }
+
+         rc = addToIndex(strSlice(cs->getCSName()),
+                                  cs->getUniqueID(),
+                                  cs->getSpaceID(),
+                                  cs->getLogicalID());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to add cs[%s] to index when open:%d",
+                   cs->getCSName(), rc);
+            goto error;
+         }
+
+         if (_nextLogicalID <= cs->getLogicalID())
+         {
+            _nextLogicalID = cs->getLogicalID() + 1;
+         }
+
+         lh.unlock();
       }
 
-      fini();
+      _status = OPEN;
    done:
       return rc;
    error:
+      if (rollback)
+      {
+         _nameIndex.clear();
+         _uidIndex.clear();
+         _collectionSpaces.fini();
+         _freeStorageUnits.clear();
+         _nextLogicalID = VESSEL_MIN_CS_LID;
+      }
       goto done;
+   }
+
+   void collectionSpaceContainer::close()
+   {
+      if (_collectionSpaces.isInitialized())
+      {
+         for (UINT32 i = 0; i < _collectionSpaces.size(); ++i)
+         {
+            collectionSpace *cs = _collectionSpaces.getObject(i);
+            if (NULL == cs)
+            {
+               continue;
+            }
+            cs->close();
+         }
+      }
+      if (_storageUnits.isInitialized())
+      {
+         for (UINT32 i = 0; i < _storageUnits.size(); ++i)
+         {
+            storageUnit *su = _storageUnits.getObject(i);
+            if (NULL == su)
+            {
+               continue;
+            }
+            su->close();
+         }
+      }
+      fini();
+   done:
+      return;
    }
 
    void collectionSpaceContainer::fini()
    {
+      _status = CLOSED;
       _nextLogicalID = VESSEL_MIN_CS_LID;
-      _firstFreeBits = -1;
-      
-      if (NULL != _slots)
-      {
-         SDB_OSS_DEL []_slots;
-         _slots = NULL;
-         resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
-         setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
-      }
+      _freeStorageUnits.clear();
+      _storageUnits.fini();
+      _collectionSpaces.fini();
       _nameIndex.clear();
       _uidIndex.clear();
       _creatingCount = 0;
-      _objectsInited = FALSE;
+      return;
+   }
+
+   void collectionSpaceContainer::finiOpenCS()
+   {
+      SDB_ASSERT(_storageUnits.isInitialized(), "impossible");
+      SDB_ASSERT(0 == _creatingCount, "impossible");
+      _nextLogicalID = VESSEL_MIN_CS_LID;
+      _freeStorageUnits.clear();
+      _collectionSpaces.fini();
+      _nameIndex.clear();
+      _uidIndex.clear();
+      _status = SU_LOADED;
       return;
    }
 
@@ -151,9 +262,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SPACE_ID sid = INVALID_SPACE_ID;
-      BOOLEAN locked = FALSE;
-      collectionSpace *cs = NULL;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      storageUnit *su = NULL;
+      spaceIDLockHelper lh(context);
 
       if (OSS_UNLIKELY(NULL == context ||
                        context->getSpaceIDLocked() ||
@@ -162,7 +273,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_objectsInited))
+      else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -176,29 +287,29 @@ namespace vessel
       SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalID, "can not be invalid");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
 
-      rc = context->lockSpaceID(sid, EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      locked = TRUE;
-
-      rc = _slots[sid].allocate();
+      rc = lh.lock(sid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      cs = _slots[sid].getCS();
-
-      rc = cs->create(context, csName, uniqueID,
-                      logicalID, options);
+      rc = createSU(context, logicalID, options, &su);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to create storage unit on disk of cs[%s], rc:%d",
+                csName.str(), rc);
          goto error;
       }
 
-      context->unlockSpaceID();
+      rc = createCS(context, su, csName, uniqueID, options);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create cs obj[%s], rc:%d", csName.str(), rc);
+         goto error;
+      }
+
+      /// do not goto error from here.
+      lh.unlock();
       endToCreateCS(context, csName, uniqueID, logicalID, sid);
 
       if (NULL != outSid)
@@ -212,15 +323,12 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != cs)
+      if (NULL != su)
       {
-         cs->destroy(context);
-         _slots[sid].release();
+         su->destroy(context);
+         _storageUnits.releaseObject(sid);
       }
-      if (locked)
-      {
-         context->unlockSpaceID();
-      }
+      lh.unlock();
       if (INVALID_SPACE_ID != sid)
       {
          rollbackPrecreating(context, csName, uniqueID, logicalID, sid);
@@ -228,12 +336,123 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpaceContainer::createSU(requestContext *context,
+                                            UINT32 logicalID,
+                                            const createCSOptions &options,
+                                            storageUnit **out)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isSULoaded(), "must loaded");
+      SDB_ASSERT(_storageUnits.isInitialized(), "must be inited");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(context->getSpaceIDLockedMode() == EXCLUSIVE, "must holding lock");
+
+      SPACE_ID sid = context->getSpaceID();
+      storageUnit *su = NULL;
+      createSUOptions suOptions;
+      UINT32 segmentSize = 0;
+      rc = _storageUnits.allocateNewObj(sid, &su);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate su[%d], rc:%d", sid, rc);
+         goto error;
+      }
+
+      suOptions.sid = sid;
+      suOptions.logicalID = logicalID;
+      suOptions.metaArgs.pageSize = DMS_PAGE_SIZE32K;
+      suOptions.metaArgs.maxPageCountPerSeg = 64;
+      suOptions.metaArgs.maxSegmentCountPerFile = 2048;
+      suOptions.idxMetaArgs.pageSize = DMS_PAGE_SIZE32K;
+      suOptions.idxMetaArgs.maxPageCountPerSeg = 64;
+      suOptions.idxMetaArgs.maxSegmentCountPerFile = 2048;
+
+      segmentSize = options.dataSegSize;
+      segmentSize = (segmentSize << 20);
+      suOptions.dataArgs.pageSize = options.dataPageSize;
+      suOptions.dataArgs.maxPageCountPerSeg = segmentSize / options.dataPageSize;
+      suOptions.dataArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / segmentSize;
+
+      segmentSize = options.idxSegSize;
+      segmentSize = (segmentSize << 20);
+      suOptions.idxArgs.pageSize = options.idxPageSize;
+      suOptions.idxArgs.maxPageCountPerSeg = segmentSize / options.idxPageSize;
+      suOptions.idxArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / segmentSize;
+
+      rc = su->create(context, suOptions);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create storage unit[%d], rc:%d", sid, rc);
+         goto error;
+      }
+      
+      if (NULL != out)
+      {
+         *out = su;
+      }
+   done:
+      return rc;
+   error:
+      if (NULL != su)
+      {
+         _storageUnits.releaseObject(sid);
+      }
+      if (NULL != *out)
+      {
+         *out = NULL;
+      }
+      goto done;
+   }
+
+   INT32 collectionSpaceContainer::createCS(requestContext *context,
+                                            storageUnit *su,
+                                            const strSlice &csName,
+                                            utilCSUniqueID uniqueID,
+                                            const createCSOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(EXCLUSIVE == context->getSpaceIDLockedMode(), "must holding lock");
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(NULL != su && su->isOpen(), "can not be null");
+      SDB_ASSERT(_collectionSpaces.isInitialized(), "can not be invalid");
+      collectionSpace *cs = NULL;
+      SPACE_ID sid = context->getSpaceID();
+
+      rc = _collectionSpaces.allocateNewObj(sid, &cs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate new obj:%d", rc);
+         goto error;
+      }
+
+      rc = cs->create(context, csName, uniqueID, su, options);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create cs[%s], rc:%d",
+                csName.str(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      if (NULL != cs)
+      {
+         _collectionSpaces.releaseObject(sid);
+      }
+      goto done;
+   }
+
    UINT32 collectionSpaceContainer::getCSCount()
    {
       UINT32 cnt = 0;
-      ossScopedLock(&_latch, SHARED);
-      SDB_ASSERT(_creatingCount <= _nameIndex.size(), "can not be invalid");
-      cnt = _nameIndex.size() - _creatingCount;
+      if (isOpen())
+      {
+         ossScopedLock(&_latch, SHARED);
+         SDB_ASSERT(_creatingCount <= _nameIndex.size(), "can not be invalid");
+         cnt = _nameIndex.size() - _creatingCount;
+      }
       return cnt;
    }
 
@@ -244,6 +463,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       strSlice nameslice(csName);
       collectionSpace *cs = NULL;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
       rc = getCSByName(context, nameslice, SHARED, &cs);
       if (SDB_OK != rc)
       {
@@ -282,7 +507,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_objectsInited))
+      else if (!isOpen())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -389,6 +614,11 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
       if (UTIL_IS_VALID_CSUNIQUEID(uniqueID))
       {
@@ -439,20 +669,20 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _slots))
+      else if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
       sid = context->getSpaceID();
-      if (_slots[sid].isFree())
+      tmp = _collectionSpaces.getObject(sid);
+      if (NULL == tmp)
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
       }
 
-      tmp = _slots[sid].getCS();
       if (DMS_INVALID_LOGICCSID != logicalID &&
           logicalID != tmp->getLogicalID())
       {
@@ -477,8 +707,6 @@ namespace vessel
       SPACE_ID sid = INVALID_SPACE_ID;
       BOOLEAN locked = FALSE;
 
-      ossScopedLock(&_latch, SHARED);
-
       if (OSS_UNLIKELY(NULL == context ||
                        nameSlice.empty() ||
                        NULL == obj))
@@ -492,10 +720,13 @@ namespace vessel
          goto error;
       }
 
+      {
+      ossScopedLock guard(&_latch, SHARED);
       if (!getLIdAndSid(nameSlice, TRUE, logicalID, sid))
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
+      }
       }
 
       rc = context->lockSpaceID(sid, mode);
@@ -531,8 +762,6 @@ namespace vessel
       SPACE_ID sid = INVALID_SPACE_ID;
       BOOLEAN locked = FALSE;
 
-      ossScopedLock(&_latch, SHARED);
-
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == obj))
       {
@@ -545,10 +774,13 @@ namespace vessel
          goto error;
       }
 
+      {
+      ossScopedLock guard(&_latch, SHARED);
       if (!getLIdAndSid(uniqueID, TRUE, logicalID, sid))
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
+      }
       }
 
       rc = context->lockSpaceID(sid, mode);
@@ -574,71 +806,31 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpaceContainer::getCSBySpaceID(requestContext *context,
-                                                  SPACE_ID sid,
-                                                  UINT32 logicalID,
-                                                  OSS_LATCH_MODE mode,
-                                                  collectionSpace **obj)
-   {
-      INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
-      if (OSS_UNLIKELY(NULL == context ||
-                       INVALID_SPACE_ID == sid ||
-                       NULL == obj))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->lockSpaceID(sid, mode);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      locked = TRUE;
-
-      rc = getCSByLockedSpaceID(context, logicalID, obj);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (locked)
-      {
-         context->unlockSpaceID();
-      }
-      goto done;
-   }
-
-   INT32 collectionSpaceContainer::getSUBySpaceID(SPACE_ID sid,
+   INT32 collectionSpaceContainer::getStorageUnit(SPACE_ID sid,
                                                   storageUnit **su)
    {
       INT32 rc = SDB_OK;
+      storageUnit *tmp = NULL;
       if (OSS_UNLIKELY(INVALID_SPACE_ID == sid || NULL == su))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _slots))
+      else if (!isSULoaded())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (_slots[sid].isFree())
+      *su = NULL;
+      tmp = _storageUnits.getObject(sid);
+      if (NULL == tmp)
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
       }
-      else if (!_slots[sid].getCS()->suIsLoaded())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
 
-      *su = _slots[sid].getCS()->getSU();
+      *su = tmp;
    done:
       return rc;
    error:
@@ -727,97 +919,13 @@ namespace vessel
       return r;
    }
 
-   INT32 collectionSpaceContainer::initObjects(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _slots, "can not be null");
-      SDB_ASSERT(VESSEL_MIN_CS_LID == _nextLogicalID, "must be same");
 
-      for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
-      {
-         spaceIDLockHelper lhelper(context);
-         if (_slots[i].isFree())
-         {
-            if (_firstFreeBits < 0)
-            {
-               _firstFreeBits = (i >> 6);
-            }
-            continue;
-         }
-
-         if (!setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, i))
-         {
-            PD_LOG(PDERROR, "failed to register space in bit slots:%d", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         collectionSpace *cs = _slots[i].getCS();
-         if (!cs->suIsLoaded())
-         {
-            PD_LOG(PDERROR, "storage unit[%d] has not been loaded", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         /// unnecessary locking. just page accessor required.
-         rc = lhelper.lock(i, SHARED);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lock of space id[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         rc = cs->openAfterSULoaded(context);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init collection space[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         if (OSS_UNLIKELY(DMS_INVALID_LOGICCSID == cs->getLogicalID()))
-         {
-            PD_LOG(PDERROR, "invalid cs logical id found at space:%d", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         rc = addToIndex(strSlice(cs->getCSName()),
-                                  cs->getUniqueID(),
-                                  cs->getSpaceID(),
-                                  cs->getLogicalID());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to add index when open:%d", rc);
-            goto error;
-         }
-
-         if (_nextLogicalID <= cs->getLogicalID())
-         {
-            _nextLogicalID = cs->getLogicalID() + 1;
-         }
-
-         lhelper.unlock();
-      }
-
-      _objectsInited = TRUE;
-   done:
-      return rc;
-   error:
-      _firstFreeBits = -1;
-      _nameIndex.clear();
-      _uidIndex.clear();
-      _nextLogicalID = VESSEL_MIN_CS_LID;
-      _objectsInited = FALSE;
-      resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
-      setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
-      goto done;
-   }
 
    INT32 collectionSpaceContainer::loadStorageUnitsOnDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(_storageUnits.isInitialized(), "must be invalid");
       const storagePathOptions &path = context->getEnv()->options.path;
       fs::directory_iterator end_iter ;
       fs::path dataDir(path.dataPath);
@@ -835,7 +943,7 @@ namespace vessel
          std::string name = dir_iter->path().filename().string();
          strSlice nameSlice(name.c_str(), name.length());
          SPACE_ID sid = INVALID_SPACE_ID;
-         spaceIDLockHelper lhelper(context);
+         storageUnit *su = NULL;
          
          if (!fs::is_directory(dir_iter->status()))
          {
@@ -853,42 +961,29 @@ namespace vessel
             continue;
          }
 
-         /// unnecessary locking. just page accessor required.
-         rc = lhelper.lock(sid, SHARED);
+         rc = _storageUnits.allocateNewObj(sid, &su);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get lock of space id[%d], rc:%d", sid, rc);
+            PD_LOG(PDERROR, "failed to allocate su obj at[%d], rc:%d",
+                   sid, rc);
             goto error;
          }
 
-         if (!_slots[sid].isFree())
-         {
-            PD_LOG(PDERROR, "space id[%d] is not free", sid);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         rc = _slots[sid].allocate();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         rc = _slots[sid].getCS()->openSU(context, nameSlice);
+         rc = su->open(context, nameSlice);
          if (SDB_VESSEL_CRASHED_WHEN_CREATING == rc)
          {
+            PD_LOG(PDERROR, "storage unit[%d] crashed when creating", sid);
             rc = SDB_OK;
-            _slots[sid].release();
-            PD_LOG(PDERROR, "crashed when creating su:%s", name.c_str());
-             continue; /// recreate file when redo
+            /// TODO
+            _storageUnits.releaseObject(sid);
+            continue;
          }
          else if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to open cs[%s]:%d", name.c_str(), rc);
+            PD_LOG(PDERROR, "failed to open storage unit[%s], rc:%d",
+                   nameSlice.str(), rc);
             goto error;
          }
-
-         lhelper.unlock();
       }
    done:
       return rc;
@@ -974,6 +1069,7 @@ namespace vessel
       {
          --_nextLogicalID;
       }
+      --_creatingCount;
       return;
    }
 
@@ -1046,113 +1142,27 @@ namespace vessel
       return;
    }
 
-   INT32 collectionSpaceContainer::allocateSpaceID(SPACE_ID &sid)
+   BOOLEAN collectionSpaceContainer::allocateSpaceID(SPACE_ID &sid)
    {
-      INT32 rc = SDB_OK;
-      UINT32 offset = 0;
-      UINT32 nextFree = 0;
-      SDB_ASSERT(NULL != _slots, "must be init");
-
-      if (_firstFreeBits < 0)
+      BOOLEAN r = FALSE;
+      sid = INVALID_SPACE_ID;
+      if (_freeStorageUnits.empty())
       {
-         rc = SDB_DMS_SU_OUTRANGE;
-         goto error;
+         goto done;
       }
-
-      if (!findAndClearFirstFreeBitFromBit64(MAX_SPACE_SLOT_COUNT, _firstFreeBits, _slotBits, offset))
-      {
-         PD_LOG(PDERROR, "free slot should be found");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      SDB_ASSERT(offset < MAX_SPACE_COUNT, "impossible");
-
-      if (findFirstFreeBitFromBit64(MAX_SPACE_SLOT_COUNT, (offset >> 6), _slotBits, nextFree))
-      {
-         _firstFreeBits = (nextFree >> 6);
-      }
-      else
-      {
-         _firstFreeBits = -1;
-      }
-
-      sid = (SPACE_ID)offset;
+      sid = _freeStorageUnits.front();
+      _freeStorageUnits.pop_front();
    done:
-      return rc;
-   error:
-      goto done;
+      return r;
    }
 
    void collectionSpaceContainer::releaseSpaceID(SPACE_ID sid)
    {
-      SDB_ASSERT(NULL != _slots, "can not be null");
-      INT32 freeBits = sid;
-      freeBits = (freeBits >> 6);
       if (OSS_LIKELY(INVALID_SPACE_ID != sid))
       {
-         if (setFreeIfNotFree64(MAX_SPACE_SLOT_COUNT, _slotBits, sid))
-         {
-            if (_firstFreeBits < 0)
-            {
-               _firstFreeBits = freeBits;
-            }
-            else if (freeBits < _firstFreeBits)
-            {
-               _firstFreeBits = freeBits;
-            }
-         }
+         _freeStorageUnits.push_back(sid);
       }
       return;
    }
-
-//////////collectionSpace::_spaceSlot
-
-//   static const UINT32 SC_SPACE_SLOT_FLAG_NONE = 0;
-//   static const UINT32 SC_SPACE_SLOT_FLAG_CREATING = 1;
-//   static const UINT32 SC_SPACE_SLOT_FLAG_REMOVING = 2;
-
-   collectionSpaceContainer::_spaceSlot::_spaceSlot():
-   _cs(NULL)
-   {}
-
-   collectionSpaceContainer::_spaceSlot::~_spaceSlot()
-   {
-      release();
-   }
-
-   BOOLEAN collectionSpaceContainer::_spaceSlot::isFree()const
-   {
-      return NULL == _cs;
-   }
-
-   INT32 collectionSpaceContainer::_spaceSlot::allocate()
-   {
-      INT32 rc = SDB_OK;
-      if (!isFree())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _cs = SDB_OSS_NEW collectionSpace();
-      if (NULL == _cs)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void collectionSpaceContainer::_spaceSlot::release()
-   {
-      SAFE_OSS_DELETE(_cs);
-      return;
-   }
-
 }//namespace vessel
 }//namespace engine

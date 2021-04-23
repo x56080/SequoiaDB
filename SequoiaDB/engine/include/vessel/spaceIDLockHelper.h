@@ -106,8 +106,8 @@ namespace vessel
             return;
          }
       private:
-         requestContext *_context;
-         BOOLEAN _locked;
+         requestContext *_context = NULL;
+         BOOLEAN _locked = FALSE;
    };//class spaceIDLockHelper
 }//namespace vessel
 }//namespace engine

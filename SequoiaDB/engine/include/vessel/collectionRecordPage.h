@@ -41,6 +41,7 @@
 #include "dms.hpp"
 #include "vessel/pageDef.h"
 #include "utilCompression.hpp"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
@@ -91,11 +92,11 @@ namespace vessel
       nonUniqueIndexCount(0),
       uniqueIndexCount(0),
       indexPad(0),
-      nextIndexID(0),
-      indexSlots(0)
+      nextIndexID(0)
       {
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
+         ossMemset(indexSlots, 0xFF, sizeof(indexSlots));
       }
 
       OSS_INLINE collectionRecord &operator=(const collectionRecord &o)
@@ -116,7 +117,7 @@ namespace vessel
          uniqueIndexCount = o.uniqueIndexCount;
          indexPad = o.indexPad;
          nextIndexID = o.nextIndexID;
-         indexSlots = o.indexSlots;
+         ossMemcpy(indexSlots, o.indexSlots, sizeof(indexSlots));
          ossMemcpy(name, o.name, sizeof(name));
          ossMemcpy(routePages, o.routePages, sizeof(routePages));
          return *this;
@@ -142,7 +143,7 @@ namespace vessel
          nextIndexID = 0;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
-         indexSlots = 0;
+         ossMemset(indexSlots, 0xFF, sizeof(indexSlots));
       }
 
       UINT16 version;
@@ -168,7 +169,7 @@ namespace vessel
       UINT8 uniqueIndexCount;
       UINT16 indexPad;
       UINT32 nextIndexID;
-      UINT64 indexSlots;
+      UINT32 indexSlots[MAX_INDEX_COUNT_PER_CL];
       
       /// index end
    };//class collectionRecord

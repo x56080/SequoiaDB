@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -110,7 +107,6 @@ namespace vessel
       csMetaRecord *recordWPtr = NULL;
       logRecordContext lrc;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      BOOLEAN rollback = FALSE;
       slice adjuncts(sizeof(dataIDMapFileHead), &head);
       
       rc = getReadableUserHeadPtr<csMetaRecord>(&recordPtr);
@@ -134,6 +130,12 @@ namespace vessel
          goto error;
       }
 
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       rc = prepareUpdateLog(context, &lrc, LOG_TYPE_CS_CRT, FALSE, adjuncts);
       if (SDB_OK != rc)
       {
@@ -143,12 +145,6 @@ namespace vessel
 
       lsn = lrc.getLsn();
 
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
       rc = getWritableUserHeadPtr<csMetaRecord>(&recordWPtr);
       if (SDB_OK != rc)
       {
@@ -156,18 +152,12 @@ namespace vessel
          goto error;
       }
 
-      rollback = TRUE;
       recordWPtr->status = CMR_STATUS_ONLINE;
-       rc = commitUpdateLog(context, &lrc, LOG_TYPE_CS_CRT,
-                            0, NULL, *recordWPtr, adjuncts);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      commitUpdateLog(context, &lrc, LOG_TYPE_CS_CRT,
+                      0, NULL, *recordWPtr, adjuncts);
 
       pageAccessor::commit(context, lsn);
       lrc.close();
-      rollback = FALSE;
    done:
       return rc;
    error:
@@ -175,10 +165,6 @@ namespace vessel
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
          logger->abort(context->getSession(), &lrc);
-      }
-      if (rollback)
-      {
-         recordWPtr->status = CMR_STATUS_CREATING;
       }
       if (fullAccessing())
       {
@@ -223,7 +209,6 @@ namespace vessel
       csMetaRecord *recordWPtr = NULL;
       logRecordContext lrc;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      BOOLEAN rollback = FALSE;
       csMetaRecord old;
 
       rc = getReadPtrOfPageBody(0, CS_META_RECORD_LEN,  &ptr);
@@ -249,6 +234,12 @@ namespace vessel
 
       old = *recordPtr;
 
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       rc = prepareUpdateLog(context, &lrc, LOG_TYPE_DUMMY, TRUE, slice());
       if (SDB_OK != rc)
       {
@@ -258,25 +249,18 @@ namespace vessel
 
       lsn = lrc.getLsn();
 
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
       rc = getWritePtrOfPageBody(0, CS_META_RECORD_LEN, &wPtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rollback = TRUE;
       recordWPtr = (csMetaRecord *)wPtr;
       logicalID = ++(recordWPtr->maxCLLogicalID);
 
-      rc = commitUpdateLog(context, &lrc, LOG_TYPE_DUMMY,
-                           CSGP_UPDATE_MASK_MAX_CLLID,
-                           &old, *recordWPtr, slice());
+      commitUpdateLog(context, &lrc, LOG_TYPE_DUMMY,
+                      CSGP_UPDATE_MASK_MAX_CLLID,
+                      &old, *recordWPtr, slice());
       if (SDB_OK != rc)
       {
          goto error;
@@ -284,7 +268,6 @@ namespace vessel
 
       pageAccessor::commit(context, lsn);
       lrc.close();
-      rollback = FALSE;
    done:
       return rc;
    error:
@@ -292,10 +275,6 @@ namespace vessel
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
          logger->abort(context->getSession(), &lrc);
-      }
-      if (rollback)
-      {
-         --(recordWPtr->maxCLLogicalID);
       }
       if (fullAccessing())
       {

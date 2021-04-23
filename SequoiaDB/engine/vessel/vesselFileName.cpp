@@ -83,7 +83,7 @@ namespace vessel
    }
 
    INT32 vesselFileName::extract(const strSlice &fileName,
-                                 const SPACE_ID *sid)
+                                 SPACE_ID sid)
    {
       BOOLEAN r = FALSE;
       FILE_TYPE type = INVALID_FILE_TYPE;
@@ -100,7 +100,8 @@ namespace vessel
       }
 
       columns = utilStrSplit(fileName.str(), ".");
-      if (FILE_NAME_FORMAT_COLUMN_COUNT != columns.size())
+      if (FILE_NAME_FORMAT_COLUMN_COUNT != columns.size() &&
+          (FILE_NAME_FORMAT_COLUMN_COUNT) - 1 != columns.size())
       {
          goto done;
       }
@@ -116,7 +117,8 @@ namespace vessel
       {
          goto done;
       }
-      else if (!utilStrIsDigit(columns.at(3).c_str()))
+      else if (FILE_NAME_FORMAT_COLUMN_COUNT == columns.size() &&
+               !utilStrIsDigit(columns.at(3).c_str()))
       {
          goto done;
       }
@@ -126,18 +128,48 @@ namespace vessel
       {
          goto done;
       }
-      else if (NULL != sid && INVALID_SPACE_ID != *sid &&
-               space != (UINT32)(*sid))
+      else if (INVALID_SPACE_ID != sid &&
+               space != (UINT32)(sid))
       {
          goto done;
       }
 
       _space = space;
       _type = type;
-      _sequence = ossAtoll(columns.at(3).c_str());
+      _sequence = 0;
+      if (FILE_NAME_FORMAT_COLUMN_COUNT == columns.size())
+      {
+         _sequence = ossAtoll(columns.at(3).c_str());
+      }
       ossMemcpy(_name, fileName.str(), fileName.strLen() + 1);
       r = TRUE;
 
+   done:
+      return r;
+   }
+
+   BOOLEAN vesselFileName::build(SPACE_ID sid, FILE_TYPE type)
+   {
+      BOOLEAN r = FALSE;
+      reset();
+      const CHAR *suffix = NULL;
+      if (OSS_UNLIKELY(FILE_TYPE_SUFFIX_ARR_SIZE <= type))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+                            MAX_SPACE_ID < sid))
+      {
+         goto done;
+      }
+
+      suffix = FILE_TYPE_SUFFIX_ARRAY[type];
+      ossSnprintf(_name, MAX_FILE_NAME_LEN + 1, "%s.%d.%s",
+                  FILE_NAME_PREFIX, sid, suffix);
+      _space = sid;
+      _type = type;
+      _sequence = 0;
+      r = TRUE;
    done:
       return r;
    }

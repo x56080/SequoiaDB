@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -109,7 +106,7 @@ TEST_F(cftest, test0)
 {
    INT32 rc = SDB_OK;
    testControlFile f(1);
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    v::controlFile::head h;
    dummyContent content;
@@ -151,7 +148,7 @@ TEST_F(cftest, test1)
 {
    INT32 rc = SDB_OK;
    testControlFile f(16);
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    v::controlFile::head h;
    dummyContent content;
@@ -201,7 +198,7 @@ TEST_F(cftest, test2)
 {
    INT32 rc = SDB_OK;
    testControlFile f(16);
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    v::controlFile::head h;
    dummyContent content;
@@ -215,7 +212,7 @@ TEST_F(cftest, test2)
    }
 
    f.close();
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
@@ -255,7 +252,7 @@ TEST_F(cftest, test3)
 {
    INT32 rc = SDB_OK;
    testControlFile f(16);
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    v::controlFile::head h;
    dummyContent content;
@@ -273,7 +270,7 @@ TEST_F(cftest, test3)
 
    ossDelete(deletePath.c_str());
 
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
@@ -306,7 +303,7 @@ TEST_F(cftest, test4)
 {
    INT32 rc = SDB_OK;
    testControlFile f(16);
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    v::controlFile::head h;
    dummyContent content;
@@ -324,7 +321,7 @@ TEST_F(cftest, test4)
 
    ossDelete(deletePath.c_str());  
 
-   rc = f.open(TEST_PATH);
+   rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
    rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);

@@ -48,6 +48,8 @@ namespace vessel
    static const CHAR * const FILE_NAME_PREFIX = "_vessel";
    static const UINT32 FILE_NAME_PREFIX_LEN = 7;
 
+   static const UINT64 INVALID_FILE_SEQUENCE = OSS_UINT64_MAX;
+
    static const CHAR * const FILE_TYPE_SUFFIX_DATAM = "dm";
    static const CHAR * const FILE_TYPE_SUFFIX_DATAD = "dd";
    static const CHAR * const FILE_TYPE_SUFFIX_IDXM = "idxm";

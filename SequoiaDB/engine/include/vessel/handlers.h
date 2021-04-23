@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -47,5 +44,6 @@
 #include "vessel/openCLHandler.h"
 #include "vessel/scanCLHandler.h"
 #include "vessel/countCLHandler.h"
+#include "vessel/createIndexHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

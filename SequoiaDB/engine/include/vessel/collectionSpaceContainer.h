@@ -41,6 +41,7 @@
 #include "utilUniqueID.hpp"
 #include "vessel/vesselOptions.h"
 #include "ossMemPool.hpp"
+#include "vessel/objectSlots.h"
 
 namespace engine
 {
@@ -61,8 +62,9 @@ namespace vessel
          collectionSpaceContainer &operator=(const collectionSpaceContainer &) = delete;
 
       public:
-         INT32 open(requestContext *context);
-         INT32 close(requestContext *context);
+         INT32 openStorageUnits(requestContext *context);
+         INT32 openCollectionSpaces(requestContext *context);
+         void close();
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
@@ -100,15 +102,13 @@ namespace vessel
                                     UINT32 logicalID,
                                     collectionSpace **obj);
 
-         INT32 getCSBySpaceID(requestContext *context,
-                              SPACE_ID sid,
-                              UINT32 logicalID,
-                              OSS_LATCH_MODE mode,
-                              collectionSpace **obj);
-
          /// WRANING: you need to make sure that su has been created and will not be deleted.
-         INT32 getSUBySpaceID(SPACE_ID sid,
+         INT32 getStorageUnit(SPACE_ID sid,
                               storageUnit **su);
+
+      private:
+         void fini();
+         void finiOpenCS();
 
       private:
          INT32 precreateCS(requestContext *context,
@@ -123,15 +123,25 @@ namespace vessel
                             UINT32 logicalID,
                             SPACE_ID sid);
 
+         INT32 createSU(requestContext *context,
+                        UINT32 logicalID,
+                        const createCSOptions &options,
+                        storageUnit **su);
+
+         INT32 createCS(requestContext *context,
+                        storageUnit *su,
+                        const strSlice &csName,
+                        utilCSUniqueID uniqueID,
+                        const createCSOptions &options);
+
          void rollbackPrecreating(requestContext *context,
                                   const strSlice &csName,
                                   utilCSUniqueID uniqueID,
                                   UINT32 logicalID,
                                   SPACE_ID sid);
          INT32 loadStorageUnitsOnDisk(requestContext *context);
-         INT32 initObjects(requestContext *context);
-         void fini();
-         INT32 allocateSpaceID(SPACE_ID &sid);
+         
+         BOOLEAN allocateSpaceID(SPACE_ID &sid);
          void releaseSpaceID(SPACE_ID sid);
 
          INT32 addToIndex(const strSlice &csName,
@@ -166,24 +176,6 @@ namespace vessel
                                 SPACE_ID &nextSid);
 
       private:
-         class _spaceSlot : public SDBObject
-         {
-            public:
-               _spaceSlot();
-               ~_spaceSlot();
-
-            public:
-               INT32 allocate();
-               void release();
-               BOOLEAN isFree()const;
-               OSS_INLINE collectionSpace *getCS()
-               {
-                  return _cs;
-               }
-            private:
-               collectionSpace *_cs = NULL;
-         };//class _spaceSlot
-
          struct _LID_SID_PAIR
          {
             OSS_INLINE _LID_SID_PAIR():
@@ -210,21 +202,41 @@ namespace vessel
             SPACE_ID sid;
          };//struct _LID_SID_PAIR
 
-         //typedef std::map<std::string, _LID_SID_PAIR> NAME_INDEX;
          typedef ossPoolMap<ossPoolString, _LID_SID_PAIR> NAME_INDEX;
-         //typedef std::map<utilCSUniqueID, _LID_SID_PAIR> UID_INDEX;
          typedef ossPoolMap<utilCSUniqueID, _LID_SID_PAIR> UID_INDEX;
+         typedef ossPoolList<SPACE_ID> _SPACE_ID_POOL;
+
+         enum _CONTAINER_STATUS
+         {
+            CLOSED = 0,
+            SU_LOADED = 1,
+            OPEN = 2,
+         };
+
+      private:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return OPEN == _status;
+         }
+         OSS_INLINE BOOLEAN isSULoaded()const
+         {
+            return OPEN == _status || SU_LOADED == _status;
+         }
+         OSS_INLINE BOOLEAN isClosed()const
+         {
+            return CLOSED == _status;
+         }
 
       private:
          ossSpinSLatch _latch;
+         _CONTAINER_STATUS _status = CLOSED;
          UINT32 _nextLogicalID = VESSEL_MIN_CS_LID;
-         INT32 _firstFreeBits = -1;
-         UINT64 _slotBits[MAX_SPACE_SLOT_COUNT];
-         _spaceSlot *_slots = NULL;
+         _SPACE_ID_POOL _freeStorageUnits;
+         objectSlots<storageUnit> _storageUnits;
+         objectSlots<collectionSpace> _collectionSpaces;
          NAME_INDEX _nameIndex;
          UID_INDEX _uidIndex;
          UINT32 _creatingCount = 0;
-         BOOLEAN _objectsInited = FALSE;
    };//class collectionSpaceContainer
 
    typedef class collectionSpaceContainer CS_CONTAINER;

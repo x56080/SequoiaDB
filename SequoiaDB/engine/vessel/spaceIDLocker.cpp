@@ -56,11 +56,7 @@ namespace vessel
    INT32 spaceIDLocker::init(UINT32 count)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL != _mutexVec))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(NULL == _mutexVec, "do not reinit");
 
       if (OSS_UNLIKELY(0 == count))
       {

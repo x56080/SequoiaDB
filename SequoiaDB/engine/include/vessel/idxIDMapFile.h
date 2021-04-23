@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexStorageUnit.h
+   Source File Name = idxIDMapFile.h
 
    Descriptive Name =
 
@@ -33,39 +33,32 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_STORAGE_UNIT_H_
-#define VESSEL_INDEX_STORAGE_UNIT_H_
+#ifndef VESSEL_IDX_ID_MAP_FILE_H_
+#define VESSEL_IDX_ID_MAP_FILE_H_
 
-#include "ossMemPool.hpp"
-#include "ossLatch.hpp"
+#include "vessel/extentStorageFile.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexMetaFile;
-   class indexDataFile;
-   class cowSUDeltaLog;
-
-   class indexStorageUnit : public SDBObject
+   class idxIDMapFile : public extentStorageFile
    {
       public:
-         indexStorageUnit();
-         ~indexStorageUnit();
-
-         indexStorageUnit(const indexStorageUnit &) = delete;
-         indexStorageUnit &operator=(const indexStorageUnit &) = delete;
+         idxIDMapFile(){}
+         virtual ~idxIDMapFile(){}
 
       private:
-         typedef ossPoolVector<indexDataFile *> _INDEX_DATA_VEC;
-
-      private:
-         indexMetaFile *_idexMeta;
-         _INDEX_DATA_VEC _idx;
-         cowSUDeltaLog *_delta;
-
-   };//class indexStorageUnit
+         virtual FILE_TYPE getFileType()const
+         {
+            return FILE_TYPE_IDX_M;
+         }
+         virtual const CHAR *getMagicChars()const
+         {
+            return "SDBVIDXM";
+         }
+   };//class idxIDMapFile
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_STORAGE_UNIT_H_
+#endif//VESSEL_IDX_ID_MAP_FILE_H_

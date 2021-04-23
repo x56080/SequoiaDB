@@ -895,8 +895,12 @@ vesselFiles = [
       "vessel/handlers/openCLHandler.cpp",
       "vessel/handlers/scanCLHandler.cpp",
       "vessel/handlers/countCLHandler.cpp",
+      "vessel/handlers/createIndexHandler.cpp",
       "vessel/api/cursorHandler.cpp",
       "vessel/api/collectionHandler.cpp",
+      "vessel/index/indexConsole.cpp",
+      "vessel/index/indexKeyPattern.cpp",
+      "vessel/index/inMemIndexDefObj.cpp",
       "vessel/collectionSpaceContainer.cpp",
       "vessel/inMemBitMap.cpp",
       "vessel/controlFile.cpp",
@@ -914,6 +918,8 @@ vesselFiles = [
       "vessel/crpAccessor.cpp",
       "vessel/rdpAccessor.cpp",
       "vessel/routePageAccessor.cpp",
+      "vessel/indexPageAccessor.cpp",
+      "vessel/indexDefPageAccessor.cpp",
       "vessel/utils/redoLogUtil.cpp",
       "vessel/utils/bitMapUtils.cpp",
       "vessel/spaceManagementPage.cpp",
@@ -932,7 +938,9 @@ vesselFiles = [
       "vessel/fsmCandidateBuckets.cpp",
       "vessel/routePage.cpp",
       "vessel/vesselFileDef.cpp",
-      "vessel/vesselFileName.cpp"
+      "vessel/vesselFileName.cpp",
+      "vessel/vesselOptions.cpp",
+      "vessel/indexOptions.cpp"
 ]
 
 #vessel unit test

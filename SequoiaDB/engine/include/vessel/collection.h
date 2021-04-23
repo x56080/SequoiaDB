@@ -45,6 +45,9 @@
 #include "vessel/recordData.h"
 #include "utilInsertResult.hpp"
 #include "vessel/freeSpaceMap.h"
+#include "vessel/indexOptions.h"
+#include "vessel/indexKeyPattern.h"
+
 
 namespace engine
 {
@@ -99,6 +102,12 @@ namespace vessel
                             collectionSpace *cs);
 
          void fini();
+
+      public:
+         INT32 createIndex(requestContext *context,
+                           const strSlice &indexName,
+                           const indexKeyPattern &keyPattern,
+                           const createIndexOptions &options);
 
       public:
          INT32 dump(requestContext *context,
@@ -157,6 +166,7 @@ namespace vessel
                                  PAGE_ID &lpid);
 
          INT32 getPageCntOfRoutePage(requestContext *context,
+                                     BOOLEAN direct,
                                      UINT32 capacity,
                                      PAGE_ID lpid,
                                      UINT32 lvl,
@@ -166,6 +176,7 @@ namespace vessel
          /// user should always validate element when return SDB_OK.
          /// invalid element means non element exists in page.
          INT32 getLastElementInRoutePage(requestContext *context,
+                                         BOOLEAN direct,
                                          PAGE_ID lpid,
                                          PAGE_ID &element,
                                          UINT32 &slot);

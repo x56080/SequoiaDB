@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -234,6 +231,26 @@ namespace vessel
       _pageCntInRoutePages = 0;
       _fsm.close();
       return;
+   }
+
+   INT32 collection::createIndex(requestContext *context,
+                                 const strSlice &indexName,
+                                 const indexKeyPattern &keyPattern,
+                                 const createIndexOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      ossScopedLock guard(&_ddlSLatch, EXCLUSIVE);
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 collection::saveOnDiskWhenCreating(requestContext *context)
@@ -902,8 +919,7 @@ namespace vessel
       UINT32 pageSize = 0;
       UINT32 max = 0;
       UINT32 count = 0;
-
-      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = _collectionSpace->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -923,7 +939,7 @@ namespace vessel
       }
       else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_FIRST_ROOT_LVL1])
       {
-         rc = getPageCntOfRoutePage(context, capacity,
+         rc = getPageCntOfRoutePage(context, TRUE, capacity,
                                     _record.routePages[COLLECTION_ROOT_LVL0],
                                     COLLECTION_ROUTE_PAGE_LVL0,
                                     max, count);
@@ -935,7 +951,7 @@ namespace vessel
       }
       else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_SECOND_ROOT_LVL1])
       {
-         rc = getPageCntOfRoutePage(context, capacity,
+         rc = getPageCntOfRoutePage(context, TRUE, capacity,
                                     _record.routePages[COLLECTION_FIRST_ROOT_LVL1],
                                     COLLECTION_ROUTE_PAGE_LVL1,
                                     max, count);
@@ -950,7 +966,7 @@ namespace vessel
       else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL2])
       {
          UINT32 delta = (1 + capacity) * capacity;
-         rc = getPageCntOfRoutePage(context, capacity,
+         rc = getPageCntOfRoutePage(context, TRUE, capacity,
                                     _record.routePages[COLLECTION_SECOND_ROOT_LVL1],
                                     COLLECTION_ROUTE_PAGE_LVL1,
                                     max, count);
@@ -967,7 +983,7 @@ namespace vessel
       else
       {
          UINT32 delta = (1 + capacity + capacity) * capacity;
-         rc = getPageCntOfRoutePage(context, capacity,
+         rc = getPageCntOfRoutePage(context, TRUE, capacity,
                                     _record.routePages[COLLECTION_ROOT_LVL2],
                                     COLLECTION_ROUTE_PAGE_LVL2,
                                     max, count);
@@ -990,6 +1006,7 @@ namespace vessel
    }
 
    INT32 collection::getPageCntOfRoutePage(requestContext *context,
+                                           BOOLEAN direct,
                                            UINT32 capacity,
                                            PAGE_ID lpid,
                                            UINT32 lvl,
@@ -1017,7 +1034,7 @@ namespace vessel
          maxPageCnt = capacity;
       }
 
-      rc = getLastElementInRoutePage(context, lpid, last, slot);
+      rc = getLastElementInRoutePage(context, direct, lpid, last, slot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get last element:%d", rc);
@@ -1045,7 +1062,7 @@ namespace vessel
          count = max;
       }
 
-      rc = getPageCntOfRoutePage(context, capacity, last,
+      rc = getPageCntOfRoutePage(context, direct, capacity, last,
                                  lvl - 1, subMax, subCount);
       if (SDB_OK != rc)
       {
@@ -1215,6 +1232,7 @@ namespace vessel
    }
 
    INT32 collection::getLastElementInRoutePage(requestContext *context,
+                                               BOOLEAN direct,
                                                PAGE_ID lpid,
                                                PAGE_ID &element,
                                                UINT32 &slot)
@@ -1223,7 +1241,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-
+      UINT32 flags = direct ? PAGE_ACCESSOR_FLAG_DIRECT : 0;
       PAGE_ID pid = INVALID_PAGE_ID;
       routePageAccessor accessor;
 
@@ -1243,7 +1261,8 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, FILE_TYPE_DD, pid, flags,
+                         _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);

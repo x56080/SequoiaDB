@@ -43,6 +43,8 @@
 #include "dpsTransID.hpp"
 #include "vessel/scanCLOptions.h"
 #include "vessel/cursorHandler.h"
+#include "vessel/indexOptions.h"
+#include "vessel/indexKeyPattern.h"
 
 namespace engine
 {
@@ -91,6 +93,12 @@ namespace vessel
             _db = NULL;
             return;
          }
+
+      public:
+         INT32 createIndex(ISession *session,
+                           const strSlice &indexName,
+                           const indexKeyPattern &keyPattern,
+                           const createIndexOptions &options);
 
       public:
          INT32 insert(ISession *session,

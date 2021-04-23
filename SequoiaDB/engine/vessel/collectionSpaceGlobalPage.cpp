@@ -54,10 +54,6 @@ namespace vessel
       {
          goto done;
       }
-      else if (DMS_INVALID_LOGICCSID == record.csLogicalID)
-      {
-         goto done;
-      }
 
       r = TRUE;
    done:

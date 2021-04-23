@@ -44,8 +44,6 @@ namespace engine
 namespace vessel
 {
 #pragma pack(4)
-   const PAGE_ID SYSTEM_MAP_PAGE_ID = 2;
-
    const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
    struct idMapPageHead
    {
@@ -58,6 +56,26 @@ namespace vessel
 
    struct idMapSlot
    {
+      OSS_INLINE idMapSlot():
+      snapshot(INVALID_SNAPSHOT_ID),
+      page(INVALID_PAGE_ID){}
+      OSS_INLINE ~idMapSlot(){}
+      OSS_INLINE idMapSlot(const idMapSlot &o):
+      snapshot(o.snapshot),
+      page(o.page){}
+      OSS_INLINE idMapSlot &operator=(const idMapSlot &o)
+      {
+         snapshot = o.snapshot;
+         page = o.page;
+         return *this;
+      }
+      OSS_INLINE void reset()
+      {
+         snapshot = INVALID_SNAPSHOT_ID;
+         page = INVALID_PAGE_ID;
+      }
+
+
       SNAPSHOT_ID snapshot;
       PAGE_ID page;
 
@@ -67,7 +85,7 @@ namespace vessel
       }
    };// struct idMapExtentSlot
 #pragma pack()
-   INT32 getCapacityOfIMP(UINT32 pageSize, UINT32 &capacity);
+   INT32 get64AlignedCapacityOfIMP(UINT32 pageSize, UINT32 &capacity);
 }//namespace vessel
 }//namespace engine
 

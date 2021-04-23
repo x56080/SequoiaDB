@@ -46,6 +46,7 @@
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
 #include "vessel/slice.h"
+#include "vessel/storageUnit.h"
 
 namespace engine
 {
@@ -53,7 +54,6 @@ namespace vessel
 {
    class collection;
    class requestContext;
-   class storageUnit;
    class listCLCursor;
    class fsmFile;
 
@@ -69,18 +69,13 @@ namespace vessel
          enum CS_IN_MEM_STATUS
          {
             CLOSED = 0,
-            SU_LOADED = 1,
-            OPEN = 2,
+            OPEN = 1,
          };//enum CS_IN_MEM_STATUS
    
       public:
          OSS_INLINE BOOLEAN isClosed()const
          {
             return CLOSED == _status;
-         }
-         OSS_INLINE BOOLEAN suIsLoaded()const
-         {
-            return _status >= SU_LOADED;
          }
          OSS_INLINE BOOLEAN isOpen()const
          {
@@ -118,25 +113,23 @@ namespace vessel
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _recordInMem.csLogicalID;
+            if (NULL != _su)
+            {
+               return _su->getLogicalID();
+            }
+            return DMS_INVALID_LOGICCSID;
          }
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
                       utilCSUniqueID uniqueID,
-                      UINT32 logicalID,
+                      storageUnit *su,
                       const createCSOptions &options);
 
-         /// opening collection space should always
-         /// be in two steps: openSU and openAfterSULoaded
-         INT32 openSU(requestContext *context,
-                      const strSlice &dirName);
+         INT32 open(requestContext *context,
+                    storageUnit *su);
 
-         INT32 openAfterSULoaded(requestContext *context);
-
-         INT32 destroy(requestContext *context);
-
-         void close(requestContext *context);
+         void close();
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
@@ -235,7 +228,11 @@ namespace vessel
                                 const PAGE_ID *lpids,
                                 DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
       private:
-         PAGE_ID getDataSMPPId(PAGE_ID pid);
+         INT32 allocateIdMapPageOnSMP(requestContext *context,
+                                      PAGE_ID pid);
+         INT32 releaseIdMapPageOnSMP(requestContext *context,
+                                     PAGE_ID pid);
+
          INT32 allocateDataPagesOnSMP(requestContext *context,
                                       PAGE_TYPE type,
                                       UINT32 count,
@@ -299,10 +296,12 @@ namespace vessel
          INT32 initGMP(requestContext *context,
                        const csMetaRecord &record);
          INT32 initIMP(requestContext *context,
+                       UINT32 pageSize,
                        PAGE_ID pid);
 
          INT32 initDataSMP(requestContext *context,
-                           PAGE_ID pid);
+                           PAGE_ID pid,
+                           UINT32 occupied);
 
          ///can be used only when start.
          INT32 cacheGlobalMetaData(requestContext *context);
@@ -314,7 +313,7 @@ namespace vessel
 
          INT32 allocateCLLogicalID(requestContext *context,
                                    UINT32 &lid);
-         PAGE_ID getDataIMPPid(PAGE_ID lpid)const;
+         
 
          INT32 createNewDataFileAndExtendBitMap(requestContext *context,
                                                 const UINT32 *oldPageCount);
@@ -324,10 +323,17 @@ namespace vessel
 
          INT32 cacheKeyParametersAboutStorage();
          
-         BOOLEAN isInMemBitMapsReady()const;
          INT32 initInMemBitMaps(requestContext *context);
          INT32 initInMemLpidPool(requestContext *context);
          INT32 initInMemDataSMPBitMap(requestContext *context);
+
+      private:
+         PAGE_ID getCSGlobalMetaPid()const;
+         UINT32 getSystemPageCountInMetaFile()const;
+         PAGE_ID getDataIMPPid(PAGE_ID lpid)const;
+         PAGE_ID getSystemIdMapPid()const;
+         PAGE_ID getDataSMPPId(PAGE_ID pid)const;
+         PAGE_ID getMetaSMPPid(PAGE_ID pid)const;
 
       private:
          struct comp
@@ -379,29 +385,53 @@ namespace vessel
          typedef ossPoolSet<ossPoolString> CREATING_NAME_INDEX;
          typedef ossPoolSet<utilCLInnerID> CREATING_ID_INDEX;
 
+         struct _cachedParameters
+         {
+            OSS_INLINE _cachedParameters(){}
+            OSS_INLINE ~_cachedParameters(){}
+            OSS_INLINE void reset()
+            {
+               dataPageSize = 0;
+               metaPageSize = 0;
+               dataIDMapCapacity = 0;
+               dataSMPCapacity = 0;
+               dataSMPCountPerFile = 0;
+               metaSMPCapcacity = 0;
+               metaSMPCountPerFile = 0;
+               pageCountPerDataFile = 0;
+               pageCountPerMetaFile = 0;
+            }
+
+            UINT32 dataPageSize = 0;
+            UINT32 metaPageSize = 0;
+            UINT32 dataIDMapCapacity = 0;
+            UINT32 dataSMPCapacity = 0;
+            UINT32 dataSMPCountPerFile = 0;
+            UINT32 metaSMPCapcacity = 0;
+            UINT32 metaSMPCountPerFile = 0;
+            UINT32 pageCountPerDataFile = 0;
+            UINT32 pageCountPerMetaFile = 0;
+         };
+
          
       private:
          CS_IN_MEM_STATUS _status;
          storageUnit *_su;
          csMetaRecord _recordInMem;
 
-         UINT32 _capacityOfCLRecordPage;
-         UINT32 _idMapCapacity;
-         UINT32 _maxPageCountPerDataFile;
-         UINT32 _maxPageCountPerMetaFile;
+         _cachedParameters _parameters;
 
+         ossSpinXLatch _extendingDataSpaceLatch;
          inMemBitMap _inMemDataSMP;
          inMemBitMap _inMemLpidPool;
-         UINT32 _pageAllocatedInMetaSMP;
+         UINT32 _currentPageCountInMeta;
          collectionAllocator _collectionAllocator;
 
+         ossSpinSLatch _runtimeIndexLatch;
          NAME_INDEX _clNameIndex;
          ID_INDEX _clIdIndex;
          CREATING_NAME_INDEX _creatingNameIndex;
-         CREATING_ID_INDEX _creatingIdIndex;
-         
-         ossSpinXLatch _dataAndMetaSpaceLatch;
-         ossSpinSLatch _indexLatch;
+         CREATING_ID_INDEX _creatingIdIndex;    
    };//class collectionSpace
 }
 }

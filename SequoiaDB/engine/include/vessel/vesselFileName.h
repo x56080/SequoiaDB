@@ -84,8 +84,11 @@ namespace vessel
          void reset();
          /// if sid set as valid value, "extract" will also validate
          /// space id in file name.
-         BOOLEAN extract(const strSlice &fileName, const SPACE_ID *sid);
+         BOOLEAN extract(const strSlice &fileName, SPACE_ID sid=INVALID_SPACE_ID);
          BOOLEAN build(SPACE_ID sid, FILE_TYPE type, UINT64 sequence);
+         /// "build" with out sequence will set sequence as 0,
+         /// but ignore sequence in file name.
+         BOOLEAN build(SPACE_ID sid, FILE_TYPE type);
          static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
          static BOOLEAN buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
       private:

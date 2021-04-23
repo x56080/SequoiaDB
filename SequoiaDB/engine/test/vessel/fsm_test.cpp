@@ -86,7 +86,7 @@ TEST_F(fsm_test, test1)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::fsmCandidate candidate;
    const UINT32 recordSize = 1233;
@@ -158,7 +158,7 @@ TEST_F(fsm_test, diskmap_0)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -229,7 +229,7 @@ TEST_F(fsm_test, diskmap_1)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -320,7 +320,7 @@ TEST_F(fsm_test, diskmap_2)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -421,7 +421,7 @@ TEST_F(fsm_test, diskmap_3)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    UINT32 count = 65535;
    v::vesselFileName fn;
@@ -471,7 +471,7 @@ TEST_F(fsm_test, diskmap_4)
    options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initToWork(FALSE);
+   rc = file.initToWork(NULL, FALSE);
    ASSERT_EQ(SDB_OK, rc);
    UINT32 count = 65535;
 

@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -140,7 +137,6 @@ namespace vessel
       const collectionRecord *ptr = NULL;
       collectionRecord *wPtr = NULL;
       logRecordContext lrc;
-      BOOLEAN rollback = FALSE;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
    
       if (OSS_UNLIKELY(NULL == context ||
@@ -175,6 +171,12 @@ namespace vessel
       }
 
       ossMemcpy(&old, ptr, COLLECTION_RECORD_LEN);
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
+         goto error;
+      }
 
       rc = prepareUpdateLog(context, &lrc, ddlType, TRUE, adjuncts);
       if (SDB_OK != rc)
@@ -184,20 +186,12 @@ namespace vessel
 
       lsn = lrc.getLsn();
 
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
-         goto error;
-      }
-
       rc = getWritableRecordPtr(slot, &wPtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rollback = TRUE;
       if (0 == mask)
       {
          ossMemcpy(wPtr, &record, COLLECTION_RECORD_LEN);
@@ -233,7 +227,7 @@ namespace vessel
             wPtr->uniqueIndexCount = record.uniqueIndexCount;
             wPtr->indexPad = record.indexPad;
             wPtr->nextIndexID = record.nextIndexID;
-            wPtr->indexSlots = record.indexSlots;
+            ossMemcpy(wPtr->indexSlots, record.indexSlots, sizeof(wPtr->indexSlots));
          }
          if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_FS_RESERVED))
          {
@@ -247,17 +241,11 @@ namespace vessel
          }
       }
 
-      rc = commitUpdateLog(context, &lrc, ddlType,
-                           mask, &old, *wPtr, adjuncts);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to commit log[%lld]. rc:%d", lsn, rc);
-         goto error;
-      }
+      commitUpdateLog(context, &lrc, ddlType,
+                      mask, &old, *wPtr, adjuncts);
       
       pageAccessor::commit(context, lsn);
       lrc.close();
-      rollback = FALSE;
    done:
       return rc;
    error:
@@ -265,11 +253,6 @@ namespace vessel
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
          logger->abort(context->getSession(), &lrc);
-      }
-      if (rollback)
-      {
-         writeToSlot(slot, old);
-         abortToWrite();
       }
       if (fullAccessing())
       {
@@ -285,7 +268,6 @@ namespace vessel
       CL_MB_ID mbID = record.mbID;
       UINT32 slot = 0;
       logRecordContext lrContext;
-      BOOLEAN rollback = FALSE;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       const collectionRecord *recordPtr = NULL;
       UINT32 capacity;
@@ -323,19 +305,19 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT, FALSE, slice());
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      lsn = lrContext.getLsn();
-
       rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
          goto error;
       }
+
+      rc = prepareUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT, FALSE, slice());
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      lsn = lrContext.getLsn();
 
       r.version = record.version;
       r.type = record.type;
@@ -354,18 +336,11 @@ namespace vessel
       {
          goto error;
       }
-      rollback = TRUE;
 
-      rc = commitUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT,
-                           0, NULL, r, slice());
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
+      commitUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT,
+                      0, NULL, r, slice());
       pageAccessor::commit(context, lsn);
       lrContext.close();
-      rollback = FALSE;
 
    done:
       return rc;
@@ -374,12 +349,6 @@ namespace vessel
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
          logger->abort(context->getSession(), &lrContext);
-      }
-      if (rollback)
-      {
-         r.reset();
-         writeToSlot(slot, r);
-         abortToWrite();
       }
       if (fullAccessing())
       {

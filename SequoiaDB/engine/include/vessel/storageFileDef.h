@@ -51,6 +51,16 @@ namespace vessel
 
    const UINT32 INVALID_FILE_HEAD_VERSION = 0;
 
+   static const UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
+
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_2MB = 2;
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = 32;
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = 128;
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = 256;
+
+   BOOLEAN isValidSegmentSize(UINT32 size);
+   
+
 #pragma pack(4)
 
    struct storageCoreArgs
@@ -117,8 +127,10 @@ namespace vessel
          secretValue = o.secretValue;
          spaceID = o.spaceID;
          logicalID = o.logicalID;
+         sequence = o.sequence;
          args = o.args;
          replaceWhenCreate = o.replaceWhenCreate;
+         delayFlushHead = o.delayFlushHead;
          return *this;
       }
 
@@ -130,7 +142,15 @@ namespace vessel
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       const storageCoreArgs *args = NULL;
       BOOLEAN replaceWhenCreate = FALSE;
+
+      ///if "delayFlushHead" is false, file head will be flushed when created.
+      ///else, file's status will be "in creating" until user modify it.
+      ///WARNING: once open a file with flag "in creating", the file will be handled
+      /// as a crashed one.
+      BOOLEAN delayFlushHead = FALSE;
    }; // struct storageFileOptions
+
+   static const UINT64 STORAGE_FILE_HEAD_FLAG_IN_CREATING = 0x01;
 
    /// common head
    struct storageFileHead
@@ -167,7 +187,7 @@ namespace vessel
       CHAR name[MAX_FILE_NAME_LEN+1];
       UINT64 createTime;
       UINT32 secretValue;
-      UINT32 flags;
+      UINT64 flags;
       UINT32 spaceID;
       UINT32 logicalID;
       UINT32 fileType;

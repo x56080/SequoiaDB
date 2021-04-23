@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -122,14 +119,6 @@ namespace vessel
          goto error;
       }
 
-      if (0 == options.dataPageCountPerSegment ||
-          !ossIsPowerOf2(options.dataPageCountPerSegment))
-      {
-         rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid dataPageCountPerSegment of data file:%d", options.dataPageCountPerSegment);
-         goto error;
-      }
-
       if (DMS_PAGE_SIZE64K != options.idxPageSize &&
           DMS_PAGE_SIZE32K != options.idxPageSize &&
           DMS_PAGE_SIZE16K != options.idxPageSize &&
@@ -140,25 +129,17 @@ namespace vessel
          goto error;
       }
 
-      if (0 == options.idxPageCountPerSegment ||
-          !ossIsPowerOf2(options.idxPageCountPerSegment))
+      if (!isValidSegmentSize(options.dataSegSize))
       {
+         PD_LOG(PDERROR, "invalid data segment size:%d", options.dataSegSize);
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid idxPageCountPerSegment of data file:%d", options.idxPageCountPerSegment);
          goto error;
       }
 
-      if (0 == options.maxDataFileCount)
+      if (!isValidSegmentSize(options.idxSegSize))
       {
+         PD_LOG(PDERROR, "invalid index segment size:%d", options.idxSegSize);
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid maxDataFileCount:%d", options.maxDataFileCount);
-         goto error;
-      }
-
-      if (0 == options.maxIdxFileCount)
-      {
-         rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid maxDataFileCount:%d", options.maxIdxFileCount);
          goto error;
       }
    done:

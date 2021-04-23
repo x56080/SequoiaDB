@@ -50,7 +50,7 @@ namespace vessel
       close();
    }
 
-   INT32 controlFile::open(const CHAR *path)
+   INT32 controlFile::open(const CHAR *path, BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
       const CHAR *prefix = getFileNamePrefix();
@@ -66,7 +66,7 @@ namespace vessel
          goto error;
       }
 
-      rc = openFilesUnderPath(pathSlice);
+      rc = openFilesUnderPath(pathSlice, createIfNotExists);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init control files:%s, rc:%d", path, rc);
@@ -353,7 +353,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::openFilesUnderPath(const strSlice &path)
+   INT32 controlFile::openFilesUnderPath(const strSlice &path, BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!path.empty(), "can not be empty");
@@ -380,7 +380,7 @@ namespace vessel
          }
 
          obj->seq = i;
-         rc = initFileObj(fullPath, obj);
+         rc = initFileObj(fullPath, obj, createIfNotExists);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init file obj[%d], rc:%d", i, rc);
@@ -408,14 +408,21 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::initFileObj(const std::string &fullPath, _fileObj *obj)
+   INT32 controlFile::initFileObj(const std::string &fullPath,
+                                  _fileObj *obj,
+                                  BOOLEAN createIfNotExists)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!fullPath.empty(), "can not be empty");
       SDB_ASSERT(NULL != obj && !obj->file.isOpened(), "impossible");
       INT64 fileSize = 0;
+      UINT32 flags = OSS_CREATEONLY | OSS_READWRITE | OSS_EXCLUSIVE;
+      if (createIfNotExists)
+      {
+         flags |= OSS_REPLACE;
+      }
       rc = ossOpen(fullPath.c_str(),
-                   OSS_CREATE | OSS_READWRITE | OSS_EXCLUSIVE,
+                   flags,
                    OSS_DEFAULTFILE,
                    obj->file);
       if (SDB_OK != rc)

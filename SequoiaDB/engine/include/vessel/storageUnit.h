@@ -43,7 +43,7 @@
 #include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
 #include "vessel/vesselOptions.h"
-#include <vector>
+#include "vessel/strSlice.h"
 
 namespace engine
 {
@@ -53,6 +53,9 @@ namespace vessel
    class dataExtentFile;
    class requestContext;
    class fsmFile;
+   class deltaLogFile;
+   class idxIDMapFile;
+   class idxDataFile;
 
    class storageUnit : public SDBObject
    {
@@ -74,6 +77,7 @@ namespace vessel
 
       public:
          SPACE_ID getSpaceID()const;
+         UINT32 getLogicalID()const;
          UINT32 getMetaSegmentCount()const;
          INT32 getPagePtr(FILE_TYPE type,
                           PAGE_ID id,
@@ -107,21 +111,19 @@ namespace vessel
          INT32 create(requestContext *context,
                       const createSUOptions &options);
 
-         ///Whatever error code returns, su object will
-         ///be reset.
-         INT32 destroy(requestContext *context);
+         void destroy(requestContext *context);
 
          INT32 open(requestContext *context,
                     const strSlice &dirName);
                     
-         void close(requestContext *context);
+         void close();
 
       public:
          INT32 extendMetaFile(requestContext *context,
                               const UINT32 *segmentCount=NULL);
 
-         INT32 createDataFile(requestContext *context,
-                              UINT32 *sequenceOfNewFile);
+         INT32 createNewDataFile(requestContext *context,
+                                 UINT32 *sequenceOfNewFile = NULL);
 
          /// file must exist first.
          INT32 ensureDataFileSpace(requestContext *context,
@@ -130,13 +132,12 @@ namespace vessel
          /// WARNING: you should use this interface when init smp failed.
          INT32 removeLastDataFile(requestContext *context);
 
-         INT32 ensureSUNameFile(requestContext *context,
+         INT32 ensureCSNameFile(requestContext *context,
                                 const strSlice &csName);
 
-         INT32 createFsmFile(requestContext *context);
+         INT32 ensureFsmFile(requestContext *context, fsmFile **out);
 
       private:
-         void close();
          BOOLEAN validateSUOptions(const createSUOptions &options);
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
@@ -153,26 +154,20 @@ namespace vessel
                              const CHAR *dir,
                              BOOLEAN mustBeEmpty);
          INT32 createNecessaryFiles(requestContext *context,
-                                    const createSUOptions &options,
-                                    const storagePathOptions &path);
+                                    const createSUOptions &options);
+         
          INT32 createMetaFile(requestContext *context,
-                              const CHAR *dir,
                               const createSUOptions &options);
-         INT32 openMetaFile(const CHAR *storagePath,
-                            const strSlice &dirName,
-                            SPACE_ID sid);
 
          INT32 openOtherFilesUnderPath(const CHAR *path,
                                        const strSlice &dirName);
-         INT32 openFile(const CHAR *fullPath,
-                        const vesselFileName &fn);
          
-         INT32 removeSUNameFile(const CHAR *dataPath,
-                                SPACE_ID sid);
 
          INT32 getDataFile(UINT32 fileSequence, dataExtentFile **file);
 
          INT32 crossCheckFilesWhenOpenning();
+
+         INT32 removeCSNameFile(const strSlice &dataPath);
 
       private:
          INT32 extendDataFile(requestContext *context,
@@ -182,24 +177,50 @@ namespace vessel
          INT32 fsyncDataPages(PAGE_ID pid, UINT32 count);
 
       private:
+         INT32 openFile(const strSlice &fullPath,
+                        const vesselFileName &fn);
+         INT32 openMetaFile(const strSlice &fullPath,
+                            const vesselFileName &fn);
+         INT32 openDataFile(const strSlice &fullPath,
+                            const vesselFileName &fn);
+         INT32 openIdxMFile(const strSlice &fullPath,
+                            const vesselFileName &fn);
+         INT32 openIdxDFile(const strSlice &fullPath,
+                            const vesselFileName &fn);
+         INT32 openDeltaFile(const strSlice &fullPath,
+                             const vesselFileName &fn);
+         INT32 openFSMFile(const strSlice &fullPath,
+                           const vesselFileName &fn);
+      private:
+         INT32 buildFileFullPath(const strSlice &path,
+                                   const strSlice &dir,
+                                   const vesselFileName &fn,
+                                   UINT32 bufferSize,
+                                   CHAR *buffer);
+         
+      private:
          typedef ossPoolVector<dataExtentFile*> _DATA_VEC;
+         typedef ossPoolList<idxIDMapFile *> _INDEX_META_LIST;
+         typedef ossPoolVector<idxDataFile *> _INDEX_DATA_VEC;
+         typedef ossPoolList<deltaLogFile *> _DELTA_LIST;
+
 
       private:
          BOOLEAN _isOpen;
          CHAR _dirName[MAX_SPACE_DIR_LEN + 1];
          
-         ossSpinXLatch _extendingMetaLatch;
+         ossSpinXLatch _extendingDDAndDMLatch;
          dataExtentIDMapFile *_meta;
-
-         ossSpinXLatch _extendingDataLatch;
          ossSpinSLatch _dataFileAccessingMutex;
          _DATA_VEC _data;
 
-         extentStorageFile *_idxMeta;
-         std::vector<extentStorageFile *> _idx;
-
+         ossSpinXLatch _fsmLatch;
          fsmFile *_fsm;
-         
+
+         _INDEX_META_LIST _idxMetaList;
+         _INDEX_DATA_VEC _idxDataVec;
+
+         _DELTA_LIST _delta;
    };//class storageUnit
 }//namespace vessel
 }//namespace engine

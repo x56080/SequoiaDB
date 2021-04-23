@@ -117,7 +117,7 @@ namespace vessel
 
       if (NULL == obj)
       {
-         rc = context->getEnv()->csContainer.getSUBySpaceID(context->getSpaceID(), &obj);
+         rc = context->getEnv()->csContainer.getStorageUnit(context->getSpaceID(), &obj);
          if (SDB_OK != rc)
          {
             goto error;
@@ -946,7 +946,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(accessing(), "must be accessing");
-      SDB_ASSERT(!fullAccessing(), "can not write any thing before fulldump");
+      SDB_ASSERT(fullAccessing(), "should prepare writing first");
       SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "must be cache");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->needFullDump(), "can not be full dump");
