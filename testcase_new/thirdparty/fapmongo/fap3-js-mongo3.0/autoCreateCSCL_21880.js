@@ -44,19 +44,19 @@ function dbNotExist_dataOper ( db, cl, clName )
    assert.eq( cl.getIndexes().length, 2 );
 
    // find ---jira-7042
-   cl.dropDatabase();
+   db.dropDatabase();
    // assert.eq( cl.find().hasNext(), false )
 
    // count
-   cl.dropDatabase();
+   db.dropDatabase();
    assert.eq( cl.count(), 0 )
 
    // aggregate
-   cl.dropDatabase();
+   db.dropDatabase();
    assert.eq( cl.aggregate( { "$project": { "a": 1 } } ).hasNext(), false )
 
    // distinct
-   cl.dropDatabase();
+   db.dropDatabase();
    assert.eq( cl.distinct( "b" ), [] );
 }
 
