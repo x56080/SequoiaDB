@@ -1,8 +1,8 @@
-##所属集合空间##
+## 所属集合空间
 
 SYSCAT
 
-##概念##
+## 概念
 
 SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数据信息。每个数据源保存为一个文档。
 
@@ -18,11 +18,11 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
 | Address | 字符串 | 数据源服务地址列表，即作为数据源的 SequoiaDB 集群中所有或部分协调节点的地址，每个地址的格式为\<hostname:svcname\>或\<IP:svcname\> |
 | User | 字符串 | 数据源用户名 |
 | Password | 字符串 | 数据源用户对应的密码 |
-| ErrorControlLevel | 字符串 | 对使用了数据源的集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别 |
-| AccessModeDesc | 字符串 | 数据源的访问权限掩码描述，取值如下：<br> "READ"：允许进行只读操作 <br>  "WRITE"：允许进行写操作 <br>  "READ\|WRITE"：允许进行所有操作  <br>  "NONE"：不允许进行任何操作 |
-| AccessMode | 整数 | 数据源的访问权限掩码，取值如下：<br> 1：对应"READ"，允许进行只读操作 <br>  2：对应"WRITE"，允许进行写操作<br>  3：对应"ALL"或"READ\|WRITE"，允许进行所有操作  <br>  0：对应"NONE"，不允许进行任何操作 |
-| ErrorFilterMaskDesc | 字符串 | 数据源的错误过滤掩码描述，取值如下：<br> 	"READ"：过滤数据读错误  <br>   	"WRITE"：过滤数据写错误  <br> 	"READ\|WRITE"：过滤所有数据读写错误   <br>  "NONE"：不对任何错误进行过滤 |
-| ErrorFilterMask | 整数 | 数据源的错误过滤掩码，取值如下：<br> 	1：对应"READ"，过滤数据读错误  <br>   	2：对应"WRITE"，过滤数据写错误  <br> 	3：对应"ALL"或"READ\|WRITE"，过滤所有数据读写错误   <br>  0：对应"NONE"，不对任何错误进行过滤 |
+| ErrorControlLevel | 字符串 | 对使用了数据源的集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorControlLevel |
+| AccessModeDesc | 字符串 | 数据源的访问权限掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 AccessMode   |
+| AccessMode | 整数 | 数据源的访问权限掩码，与参数 AccessModeDesc 对应，取值如下：<br> 1：对应"READ" <br>  2：对应"WRITE"<br>  3：对应"ALL"或"READ\|WRITE"  <br>  0：对应"NONE"  |
+| ErrorFilterMaskDesc | 字符串 | 数据源的错误过滤掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorFilterMask |
+| ErrorFilterMask | 整数 | 数据源的错误过滤掩码，与参数 ErrorFilterMaskDesc 对应，取值如下：<br> 	1：对应"READ"  <br>   	2：对应"WRITE" <br> 	3：对应"ALL"或"READ\|WRITE" <br>  0：对应"NONE" |
 
 
 ##示例##
