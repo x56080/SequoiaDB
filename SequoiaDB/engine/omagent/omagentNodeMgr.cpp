@@ -45,6 +45,7 @@
 #include "ossPath.hpp"
 #include "omagentNodePathGuard.hpp"
 #include "stpOptions.hpp"
+#include "stpToolUtil.hpp"
 
 using namespace bson ;
 
@@ -1296,16 +1297,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to stop STP node [%s] before remove, "
                    "rc: %d", rc ) ;
 
-      // remove STP path
-      rc = ossDelete( stpPath ) ;
-      if ( SDB_OK != rc && SDB_FNE != rc )
-      {
-         PD_LOG( PDERROR, "Failed to remove STP path: %s, rc: %d",
-                 stpPath, rc ) ;
-         goto error ;
-      }
-
-      rc = SDB_OK ;
+      // remove STP files
+      rc = stpRemoveFiles( stpPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove files in STP path: %s, "
+                   "rc: %d", stpPath, rc ) ;
 
       // remove from process info
       delNodeProcessInfo( serviceName ) ;
