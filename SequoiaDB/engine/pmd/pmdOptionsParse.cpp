@@ -141,7 +141,9 @@ namespace engine
             else
             {
                PD_LOG( PDWARNING, "Invalid instance id[%d]. The range of "
-                       "instance id is [ 1, 255 ]", curPrefInstInt ) ;
+                       "instance id is [%d, %d]", curPrefInstInt,
+                       PMD_PREFER_INSTANCE_TYPE_MIN + 1,
+                       PMD_PREFER_INSTANCE_TYPE_MAX - 1 ) ;
             }
          }
          if( !hasParsed )
