@@ -22,7 +22,7 @@
 
    > **Note:**
    >
-   > Spark-SequoiaDB连接组件的环境要求：
+   > Spark-SequoiaDB 连接组件的环境要求：
    > - JDK 1.7+
    > - Scala 2.11+
    > - Spark 2.0.0+
