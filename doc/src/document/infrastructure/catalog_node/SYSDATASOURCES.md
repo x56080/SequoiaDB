@@ -10,22 +10,22 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
 
 | 字段名 | 类型 | 描述 |
 | ------ | ---- | ---- |
-| ID     | 整数 | 数据源 ID，从 1 开始递增 |
-| Name   | 字符串 | 数据源名称  |
-| Version | 整数 | 数据源的元数据版本号，从 0 开始递增，当数据源信息发生变化时改变 |
-| Type   | 字符串 | 数据源类型，当前仅支持 SequoiaDB |
-| DSVersion | 字符串 | 数据源软件版本号，从添加的数据源中获取 |
-| Address | 字符串 | 数据源服务地址列表，即作为数据源的 SequoiaDB 集群中所有或部分协调节点的地址，每个地址的格式为\<hostname:svcname\>或\<IP:svcname\> |
-| User | 字符串 | 数据源用户名 |
-| Password | 字符串 | 数据源用户对应的密码 |
-| ErrorControlLevel | 字符串 | 对使用了数据源的集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorControlLevel |
-| AccessModeDesc | 字符串 | 数据源的访问权限掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 AccessMode   |
-| AccessMode | 整数 | 数据源的访问权限掩码，与参数 AccessModeDesc 对应，取值如下：<br> 1：对应"READ" <br>  2：对应"WRITE"<br>  3：对应"ALL"或"READ\|WRITE"  <br>  0：对应"NONE"  |
-| ErrorFilterMaskDesc | 字符串 | 数据源的错误过滤掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorFilterMask |
-| ErrorFilterMask | 整数 | 数据源的错误过滤掩码，与参数 ErrorFilterMaskDesc 对应，取值如下：<br> 	1：对应"READ"  <br>   	2：对应"WRITE" <br> 	3：对应"ALL"或"READ\|WRITE" <br>  0：对应"NONE" |
+| ID     | number | 数据源 ID，从 1 开始递增 |
+| Name   | string | 数据源名称  |
+| Version | number | 数据源的元数据版本号，从 0 开始递增，当数据源信息发生变化时改变 |
+| Type   | string | 数据源类型，当前仅支持 SequoiaDB |
+| DSVersion | string | 数据源软件版本号，从添加的数据源中获取 |
+| Address | string | 数据源服务地址列表，即作为数据源的 SequoiaDB 集群中所有或部分协调节点的地址，每个地址的格式为\<hostname:svcname\>或\<IP:svcname\> |
+| User | string | 数据源用户名 |
+| Password | string | 数据源用户对应的密码 |
+| ErrorControlLevel | string | 对使用了数据源的集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorControlLevel |
+| AccessModeDesc | string | 数据源的访问权限掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 AccessMode  |
+| AccessMode | number | 数据源的访问权限掩码，与参数 AccessModeDesc 对应，取值如下：<br> 1：对应"READ" <br>  2：对应"WRITE"<br>  3：对应"ALL"或"READ\|WRITE"  <br>  0：对应"NONE" |
+| ErrorFilterMaskDesc | string | 数据源的错误过滤掩码描述，取值可参考 [createDataSoure()](reference/Sequoiadb_command/Sdb/createDataSource.md) 的参数 ErrorFilterMask |
+| ErrorFilterMask | number | 数据源的错误过滤掩码，与参数 ErrorFilterMaskDesc 对应，取值如下：<br> 	1：对应"READ"  <br>   	2：对应"WRITE" <br> 	3：对应"ALL"或"READ\|WRITE" <br>  0：对应"NONE" |
 
 
-##示例##
+## 示例
 
 一个典型的数据源元数据信息如下：
 
@@ -49,3 +49,8 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
   "ErrorFilterMaskDesc": "NONE"
 }
 ```
+
+
+[^_^]:
+     本文使用的所有引用及链接
+[create]:manual/Manual/Sequoiadb_Command/Sdb/createDataSource.md
