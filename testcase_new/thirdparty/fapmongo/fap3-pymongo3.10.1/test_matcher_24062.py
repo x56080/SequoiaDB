@@ -2,7 +2,7 @@
 Description   : seqDB-24062:匹配符测试
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.25
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestMatcher23062( utils.TestBase ):   
+class TestMatcher24062( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME

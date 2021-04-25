@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestFindOneAndXXX23074( utils.TestBase ):   
+class TestFindOneAndXXX24074( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName = 'pymongo_24074'

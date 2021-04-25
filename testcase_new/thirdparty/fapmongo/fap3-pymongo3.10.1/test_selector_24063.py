@@ -2,7 +2,7 @@
 Description   : seqDB-24063:选择符测试
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.25
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestSelector23063( utils.TestBase ):   
+class TestSelector24063( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME
@@ -85,7 +85,7 @@ class TestSelector23063( utils.TestBase ):
       try:
          self.cl.find( { "a": 1 }, { "_id": 0, "a": 1, "b": 0 } )
       except pymongo.errors.OperationFailure as e:
-         passs
+         pass
       except:
          raise
          

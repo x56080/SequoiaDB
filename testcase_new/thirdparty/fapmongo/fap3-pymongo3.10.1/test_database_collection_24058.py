@@ -2,7 +2,7 @@
 Description   : seqDB-24058:创建/删除/自动创建database/collection
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.25
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestDBCL23058( utils.TestBase ):   
+class TestDBCL24058( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName1 = 'pymongo_db_24058_1'

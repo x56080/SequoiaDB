@@ -2,7 +2,7 @@
 Description   : seqDB-24057:创建/列取索引
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.25
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestIndex23057( utils.TestBase ):   
+class TestIndex24057( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME
@@ -81,7 +81,7 @@ class TestIndex23057( utils.TestBase ):
       self.assertEqual( len( self.indexes ), 3 )
 
    def create_drop_indexes( self ): 
-      ''' jira-6976
+      ''' jira-6970
       # create_indexes
       print('\n[---create_indexes---]')
       cl.drop_index( 'idx2' )

@@ -2,7 +2,7 @@
 Description   : seqDB-24071:hint走索引
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.25
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -12,7 +12,7 @@ from pymongo import MongoClient
 import utils
 import unittest
 
-class TestHint23071( utils.TestBase ):   
+class TestHint24071( utils.TestBase ):   
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME
