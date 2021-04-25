@@ -2271,16 +2271,24 @@ INT32 _mongoQueryCommand::buildReply( const MsgOpReply &sdbReply,
                                        sdbReply.numReturned ) ;
    }
 
-   if ( sdbReply.flags != SDB_OK && sdbReply.flags != SDB_DMS_EOC )
+   if ( SDB_OK != sdbReply.flags )
    {
-      // reply: { $err: "xxx", code: 1234 }
-      BSONObj resObj( bodyBuf.data() ) ;
-      BSONObj newObj = BSON( FAP_MONGO_DOLLAR FAP_MONGO_FIELD_NAME_ERR <<
-                             resObj.getStringField(
-                             FAP_MONGO_FIELD_NAME_ERRMSG ) <<
-                             FAP_MONGO_FIELD_NAME_CODE <<
-                             resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) ) ;
-      bodyBuf = engine::rtnContextBuf( newObj ) ;
+      if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf() ;
+      }
+      else if ( SDB_DMS_EOC != sdbReply.flags )
+      {
+         // reply: { $err: "xxx", code: 1234 }
+         BSONObj resObj( bodyBuf.data() ) ;
+         BSONObj newObj = BSON( FAP_MONGO_DOLLAR FAP_MONGO_FIELD_NAME_ERR <<
+                                resObj.getStringField(
+                                FAP_MONGO_FIELD_NAME_ERRMSG ) <<
+                                FAP_MONGO_FIELD_NAME_CODE <<
+                                resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) ) ;
+         bodyBuf = engine::rtnContextBuf( newObj ) ;
+      }
    }
 
    // build header
