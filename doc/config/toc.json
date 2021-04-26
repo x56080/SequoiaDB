@@ -1081,6 +1081,12 @@
                ]
             },
             {
+               "id": 1617245375,
+               "file": "build_datasource",
+               "cn": "搭建数据源",
+               "en": "Build DataSource"
+            },
+            {
                "id": 1610960736,
                "file": "hot_spare",
                "cn": "热备节点",

@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-dropDataSource \- Drop data source
+dropDataSource \- drop data source
 .SH SYNOPSIS
 .PP
 \f[B]db.dropDataSource(< Name >)\f[]
@@ -15,13 +15,15 @@ Sdb
 .SH DESCRIPTION
 .PP
 This function is used to drop the specified data source.
-User need to ensure that no database objects are using the data source when
-dropping a data source.
+Users need to ensure that no database object are using the datasource when
+dropping it.
+That is, the datasource is not associated with any collection space or
+collection.
 .SH PARAMETERS
 .PP
-Name ( \f[I]string，required\f[] )
+Name ( \f[I]string, required\f[] )
 .PP
-Name of the data source
+Name of the data source.
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -125,7 +127,7 @@ For more details, refer to Troubleshooting.
 v3.2.8 and above
 .SH EXAMPLES
 .PP
-Drop the data source named "datasource"
+Drop the data source named "datasource".
 .IP
 .nf
 \f[C]

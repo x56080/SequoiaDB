@@ -1,6 +1,6 @@
 ##NAME##
 
-dropDataSource - Drop data source
+dropDataSource - drop data source
 
 ##SYNOPSIS##
 
@@ -12,13 +12,13 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to drop the specified data source. User need to ensure that no database objects are using the data source when dropping a data source.
+This function is used to drop the specified data source. Users need to ensure that no database object are using the datasource when dropping it. That is, the datasource is not associated with any collection space or collection. 
 
 ##PARAMETERS##
 
-Name ( *string，required* )
+Name ( *string, required* )
 
-Name of the data source
+Name of the data source.
 
 ##RETURN VALUE##
 
@@ -43,7 +43,7 @@ v3.2.8 and above
 
 ##EXAMPLES##
 
-Drop the data source named "datasource"
+Drop the data source named "datasource".
 
 ```lang-javascript
 > db.dropDataSource("datasource")
