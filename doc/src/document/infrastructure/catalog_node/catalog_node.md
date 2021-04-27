@@ -77,7 +77,7 @@
 
      >   **Note:**
      >
-     >   在 Sdb Shell 中用户可以使用 [Sdb.getCatalogRG()](reference/Sequoiadb_command/Sdb/getCatalogRG.md) 获取编目分区组。
+     >   在 Sdb Shell 中用户可以使用 [Sdb.getCatalogRG()](reference/Sequoiadb_command/Sdb/getCataRG.md) 获取编目分区组。
 
    2. 创建一个新的编目节点
 

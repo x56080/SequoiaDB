@@ -8,7 +8,7 @@
 
 ##描述##
 
-$+标识符是一种特殊的命令符，只作用于数组对象，用于代替数组元素的索引，并且可以把匹配到的第一个索引值传递到 [update][up] 的 rule 参数中。
+$+标识符是一种特殊的命令符，只作用于数组对象，用于代替数组元素的索引，并且可以把匹配到的第一个索引值传递到 [update](reference/Sequoiadb_command/SdbCollection/update.md) 的 rule 参数中。
 
 标识符相当于临时的存储，会将匹配成功的数组元素索引进行存储。标识符须为整数，错误的书写格式如 $5.4、$a2、$3c、$MA 等。  
 
@@ -146,7 +146,7 @@ $+标识符是一种特殊的命令符，只作用于数组对象，用于代替
    Return 2 row(s).
    ```
 
-- 操作 a 字段，使用 [$elemMatch][match] 匹配数组中存在{id:2}的记录，并将该记录的 id 修改为 100
+- 操作 a 字段，使用 [$elemMatch](reference/operator/match_operator/elemMatch.md) 匹配数组中存在{id:2}的记录，并将该记录的 id 修改为 100
 
    ```lang-javascript
    > db.sample.employee.update({$set:{"a.$1.id":100}},{"a.$1":{$elemMatch:{"id":2}}})
@@ -193,10 +193,3 @@ $+标识符是一种特殊的命令符，只作用于数组对象，用于代替
    ```
 
 
-
-
-
-[^_^]:
-     本文使用的所有引用及链接
-[up]:manual/Manual/Sequoiadb_Command/SdbCollection/update.md
-[match]:manual/Manual/Operator/Match_Operator/elemMatch.md
