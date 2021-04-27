@@ -1,16 +1,10 @@
 [^_^]:
     Spark-SequoiaDB 使用
-    作者：林友滨
-    时间：20190815
-    评审意见
-    林友滨：初稿完成；时间：20190815
-    市场部：时间：
 
 
 本文档将介绍存储类型与 SparkSQL 实例类型映射、SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性及 Spark-SequoiaDB 的使用
 
-存储类型与 SparkSQL 实例类型映射
-----
+##存储类型与SparkSQL实例类型映射##
 
 | 存储引擎类型 | SparkSQL 实例类型   | SQL 实例类型  |
 | ------------| ------------------ | ------------ |
@@ -28,8 +22,7 @@
 |BSON(嵌套对象)|StructType|struct\<field:type,…\>|
 |array|ArrayType|array\<type\>|
 
-SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性
-----
+##SequoiaDB存储引擎向SparkSQL实例类型转换的兼容性##
 
 Y 表示兼容，N 表示不兼容
 
@@ -58,8 +51,7 @@ Y 表示兼容，N 表示不兼容
 >- boolean 值转为数值类型时，true 为 1，false 为 0；
 >- 数值类型之间转换可能会溢出或损失精度。
 
-Spark-SequoiaDB 使用
-----
+##Spark-SequoiaDB使用##
 
 下述以通过 SparkSQL 创建 SequoiaDB 表为例，创建语句如下：
 
@@ -105,8 +97,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |autosplit|boolean|FALSE|create table as select 创建集合时指定是否自动切分，必须配合散列分区和域使用，且不能与 group 同时使用 |否|
 |group|string|-|create table as select 创建集合时指定创建在某个复制组，group 必须存在于集合空间所属的域中 |否|
 
-示例
-----
+##示例##
 
 1. 假设集合名为 test.data ，协调节点在 serverX 和 serverY 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
 
