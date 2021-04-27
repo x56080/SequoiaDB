@@ -21,7 +21,7 @@ This function is used to enumerate node information.
 | -------- | -------- | ------- | ----------- | --------------- |
 | options  | object     | display information about data nodes, coordination nodes and catalog nodes by default | display specified type node | not |
 | filter   | object     | display all information by default | Filtered conditions | not |
-| confRootPath | string   |  `<INSTALL_DIR>/conf` | Specify the root directory of the node's configuration file (only become effective when the mode is local) | 否       |
+| confRootPath | string   |  `<INSTALL_DIR>/conf` | Specify the root directory of the node's configuration file (only become effective when the mode is local) | not       |
 
 The detail description of 'options' parameter is as follow:
 

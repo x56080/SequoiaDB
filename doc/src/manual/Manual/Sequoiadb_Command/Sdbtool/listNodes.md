@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 listNodes - 显示节点信息
 
-## 语法
+##语法##
 
 **Sdbtool.listNodes([options],[filter],[confRootPath])**
 
-## 类别
+##类别##
 
 Sdbtool
 
-## 描述
+##描述##
 
 该函数用于显示节点的详细信息。
 
-## 参数
+##参数##
 
 | 参数名   | 参数类型 | 默认值               | 描述                | 是否必填 |
 | -------- | -------- | -------------------- | ------------------- | -------- |
@@ -41,7 +41,7 @@ options 选项：
 
 > 3. filter 参数支持对结果中的某些字段进行 and 、 or 、not 和精确匹配计算，对结果集进行筛选。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 BSONArray 类型的对象。通过该对象获取节点详细信息列表，字段说明如下：
 
@@ -61,89 +61,92 @@ options 选项：
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][general_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-## 版本
+##版本##
 
 v3.2 及以上版本
 
-## 示例
+##示例##
 
 * 显示节点信息
 
-  ```lang-javascript
-  > Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" } )
-  {
-      "svcname": "20000",
-      "type": "sequoiadb",
-      "role": "data",
-      "pid": 17390,
-      "groupid": 1000,
-      "nodeid": 1000,
-      "primary": 1,
-      "isalone": 0,
-      "groupname": "db1",
-      "starttime": "2019-05-31-17.14.14",
-      "dbpath": "/opt/trunk/database/20000/"
-  }
-  {
-      "svcname": "40000",
-      "type": "sequoiadb",
-      "role": "data",
-      "pid": 17399,
-      "groupid": 1001,
-      "nodeid": 1001,
-      "primary": 0,
-      "isalone": 0,
-      "groupname": "db2",
-      "starttime": "2019-05-31-17.14.14",
-      "dbpath": "/opt/trunk/database/40000/"
-  }
-  ```
+    ```lang-javascript
+    > Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" } )
+    {
+        "svcname": "20000",
+        "type": "sequoiadb",
+        "role": "data",
+        "pid": 17390,
+        "groupid": 1000,
+        "nodeid": 1000,
+        "primary": 1,
+        "isalone": 0,
+        "groupname": "db1",
+        "starttime": "2019-05-31-17.14.14",
+        "dbpath": "/opt/trunk/database/20000/"
+    }
+    {
+        "svcname": "40000",
+        "type": "sequoiadb",
+        "role": "data",
+        "pid": 17399,
+        "groupid": 1001,
+        "nodeid": 1001,
+        "primary": 0,
+        "isalone": 0,
+        "groupname": "db2",
+        "starttime": "2019-05-31-17.14.14",
+        "dbpath": "/opt/trunk/database/40000/"
+    }
+    ```
 
 * 显示节点信息后，对结果进行筛选
 
-  ```lang-javascript
-  > Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" }, { groupname: "db2" } )
-  {
-      "svcname": "40000",
-      "type": "sequoiadb",
-      "role": "data",
-      "pid": 17399,
-      "groupid": 1001,
-      "nodeid": 1001,
-      "primary": 0,
-      "isalone": 0,
-      "groupname": "db2",
-      "starttime": "2019-05-31-17.14.14",
-      "dbpath": "/opt/trunk/database/40000/"
-  }
-  ```
+    ```lang-javascript
+    > Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" }, { groupname: "db2" } )
+    {
+        "svcname": "40000",
+        "type": "sequoiadb",
+        "role": "data",
+        "pid": 17399,
+        "groupid": 1001,
+        "nodeid": 1001,
+        "primary": 0,
+        "isalone": 0,
+        "groupname": "db2",
+        "starttime": "2019-05-31-17.14.14",
+        "dbpath": "/opt/trunk/database/40000/"
+    }
+    ```
 
 * 显示节点信息，指定系统配置文件的根路径
 
-  ```lang-javascript
-  > Sdbtool.listNodes( { mode: "local", svcname: "40000" }, { groupname: "db2" }, "/opt/sequoiadb/conf" )
-  {
-      "svcname": "40000",
-      "type": "sequoiadb",
-      "role": "data",
-      "pid": 17399,
-      "groupid": 1001,
-      "nodeid": 1001,
-      "primary": 0,
-      "isalone": 0,
-      "groupname": "db2",
-      "starttime": "2019-05-31-17.14.14",
-      "dbpath": "/opt/trunk/database/40000/"
-  }
-  ```
+    ```lang-javascript
+    > Sdbtool.listNodes( { mode: "local", svcname: "40000" }, { groupname: "db2" }, "/opt/sequoiadb/conf" )
+    {
+        "svcname": "40000",
+        "type": "sequoiadb",
+        "role": "data",
+        "pid": 17399,
+        "groupid": 1001,
+        "nodeid": 1001,
+        "primary": 0,
+        "isalone": 0,
+        "groupname": "db2",
+        "starttime": "2019-05-31-17.14.14",
+        "dbpath": "/opt/trunk/database/40000/"
+    }
+    ```
 
 [^_^]:
      本文使用的所有引用及链接
-[getLastErrMsg]:reference/Sequoiadb_command/Global/getLastErrMsg.md
-[getLastError]:reference/Sequoiadb_command/Global/getLastError.md
-[error_code]:reference/Sequoiadb_error_code.md
-[general_guide]:troubleshooting/general/general_guide.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+
+[faq]:manual/FAQ/faq_sdb.md
+
+[error_code]:manual/Manual/Sequoiadb_error_code.md
