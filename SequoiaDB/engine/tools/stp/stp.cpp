@@ -46,6 +46,7 @@
 #include "pmdProc.hpp"
 #include "utilPidFile.hpp"
 #include "stpCB.hpp"
+#include "stpToolUtil.hpp"
 
 using namespace std ;
 
@@ -100,6 +101,7 @@ namespace engine
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       BOOLEAN daemonMode = FALSE ;
+      string daemonCommand ;
 
       pmdSetDBRole( SDB_ROLE_STP ) ;
 
@@ -113,7 +115,8 @@ namespace engine
 
       // initialize options, pre-check for version, help,
       // and change user
-      rc = options->initialize( argc, argv, currentPath, daemonMode ) ;
+      rc = options->initialize( argc, argv, currentPath, daemonMode,
+                                daemonCommand ) ;
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
          PMD_SHUTDOWN_DB( SDB_OK ) ;
@@ -127,6 +130,15 @@ namespace engine
       }
       if ( daemonMode )
       {
+         cout << "Start STP node with options: " << daemonCommand << endl ;
+         rc = stpStartNode( currentPath, options->getStpPath(),
+                            daemonCommand ) ;
+         if ( SDB_OK != rc )
+         {
+            cout << "Start STP node failed: " << rc << endl ;
+            PMD_SHUTDOWN_DB( rc ) ;
+            return utilRC2ShellRC( rc ) ;
+         }
          PMD_SHUTDOWN_DB( SDB_OK ) ;
          return 0 ;
       }

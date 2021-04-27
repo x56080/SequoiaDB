@@ -39,7 +39,6 @@
 #include "stpOptions.hpp"
 #include "ossVer.h"
 #include "pmdEnv.hpp"
-#include "stpToolUtil.hpp"
 
 namespace po = boost::program_options ;
 
@@ -108,9 +107,11 @@ namespace engine
             "default synchronize clients could be assigned to a " \
             "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
+            po::value<string>(), \
             "indicates whether to open all synchronize UDP ports during " \
             "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
+            po::value<string>(), \
             "indicates whether to allow synchronize only on system port, " \
             "default: true" ) \
       ( STP_OPTION_DIAGLEVEL, \
@@ -130,7 +131,8 @@ namespace engine
             "max number to save time mapping records,\n" \
             "default: 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_TESTMODE, \
-            "start STP in test mode" )
+            po::value<string>(), \
+            "start STP in test mode, default: false" )
 
    #define COMMANDS_OPTIONS \
       ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), \
@@ -169,7 +171,8 @@ namespace engine
       ( STP_OPTION_HELPFULL, \
             "help all configs" ) \
       ( STP_OPTION_TESTMODE, \
-            "start STP in test mode" ) \
+            po::value<string>(), \
+            "start STP in test mode, default: false" ) \
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
@@ -184,9 +187,11 @@ namespace engine
             "default synchronize clients could be assigned to a " \
             "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
+            po::value<string>(), \
             "indicates whether to open all synchronize UDP ports during " \
             "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
+            po::value<string>(), \
             "indicates whether to allow synchronize only on system port, " \
             "default: true" ) \
       ( STP_OPTION_WEIGHT, \
@@ -242,7 +247,8 @@ namespace engine
    INT32 _stpOptions::initialize( INT32 argc,
                                   CHAR **argv,
                                   const CHAR *rootPath,
-                                  BOOLEAN &daemonMode )
+                                  BOOLEAN &daemonMode,
+                                  std::string &daemonCommand )
    {
       INT32 rc = SDB_OK ;
 
@@ -296,18 +302,13 @@ namespace engine
 
       if ( vmCommand.count( STP_OPTION_DAEMON ) )
       {
-         string options ;
-
          // remove options should no saved into config file
          vmCommand.erase( STP_OPTION_CONFPATH ) ;
          vmCommand.erase( STP_OPTION_DAEMON ) ;
 
-         rc = _toCommandLine( vmCommand, options ) ;
+         rc = _toCommandLine( vmCommand, daemonCommand ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate command line for "
                       "daemon mode, rc: %d", rc ) ;
-
-         rc = stpStartNode( rootPath, _stpPath, options ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to start STP node, rc: %d", rc ) ;
 
          daemonMode = TRUE ;
 
@@ -751,10 +752,16 @@ namespace engine
       ossPrintVersion( "Serial Time Protocol version" ) ;
    }
 
-   INT32 _stpOptions::_toCommandLine( const po::variables_map &vm,
+   INT32 _stpOptions::_toCommandLine( po::variables_map &vm,
                                       string &options )
    {
       INT32 rc = SDB_OK ;
+
+      stpOptions tmpOptions ;
+
+      rc = tmpOptions.init( NULL, &vm ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize temporary options with "
+                   "command variable map, rc: %d", rc ) ;
 
       try
       {
@@ -765,7 +772,12 @@ namespace engine
                iter != vm.end() ;
                ++ iter )
          {
-            ss << " --" << iter->first << " " << iter->second.as<string>() ;
+            string fieldValue ;
+            if ( SDB_OK == tmpOptions.getFieldStr( iter->first.c_str(),
+                                                   fieldValue ) )
+            {
+               ss << " --" << iter->first << " " << fieldValue ;
+            }
          }
 
          options = ss.str() ;
