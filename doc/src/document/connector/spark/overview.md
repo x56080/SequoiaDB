@@ -17,7 +17,7 @@ Apache Spark提供了高级的Java、Scala和Python APIs，同时还拥有优化
 2.  Spark 对于下列的集群管理者是不可知的：只要Spark 能请求executor进程，且这些进程之间能互相通信，那么他就相对容易的去运行支持其他应用的集群管理器（如Mesos/YARN）。
 3.  因为驱动在集群中调度任务，它将在worker nodes（工作节点）附近运行，最好是在相同的局域网当中。如果你不喜欢远程向集群发送请求，那么最好为驱动打开一个RPC然后让其在附近提交操作而不是在远离worker nodes 处运行驱动。
 
-##Spark-SequoiaDB 连接组件##
+##Spark-SequoiaDB连接组件##
 
 通过使用Spark-SequoiaDB连接组件，SequoiaDB可以作为Spark的数据源，从而可以通过SparkSQL实例对SequoiaDB数据存储引擎的数据进行查询、统计操作。
 
