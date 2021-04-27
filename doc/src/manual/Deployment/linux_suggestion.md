@@ -135,13 +135,13 @@ SequoiaDB 推荐使用 ext4 格式的文件系统。同时，建议在 `/etc/fst
     # vi /etc/fstab
     ```
     
-    将块设备 `/dev/sdd` 挂载参数调整为如下内容：
+    将块设备 `/dev/sdb` 挂载参数调整为如下内容：
  
     ```lang-ini
     UUID=993c5bba-494f-44ae-b543-a109f3598777 /data/disk_ssd1 ext4 defaults,noatime 0 2
     ```
 
-3. 加载块设备
+3. 挂载块设备
 
     ```lang-bash
     # mount -a
@@ -161,7 +161,7 @@ SequoiaDB 推荐使用 ext4 格式的文件系统。同时，建议在 `/etc/fst
 1. 查看块设备情况
 
     ```lang-bash
-    # fdisk -l
+    # fdisk -l /dev/sdb
     ```
 
 2. 创建分区
@@ -179,7 +179,7 @@ SequoiaDB 推荐使用 ext4 格式的文件系统。同时，建议在 `/etc/fst
 4. 查看数据盘分区的 UUID 
 
     ```lang-bash
-    # lsblk -f
+    # lsblk -f /dev/sdb
     ```
 
     输出结果如下：
