@@ -287,4 +287,4 @@ SDB_SNAP_DATABASE
 
 [replicate_url]: manual/Distributed_Engine/Architecture/Replication/architecture.md
 [error_code_url]: manual/Manual/Sequoiadb_error_code.md
-[regular_bar]:manual/Distributed_Engine/Maintainance/Backup_Recovery/regular_bar.md
+[regular_bar]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md

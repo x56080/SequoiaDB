@@ -112,4 +112,4 @@ v2.0 及以上版本
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

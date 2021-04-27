@@ -249,4 +249,4 @@ v2.0 及以上版本
 [inc]:manual/Manual/Operator/Update_Operator/inc.md
 [exists]:manual/Manual/Operator/Match_Operator/exists.md
 [set]:manual/Manual/Operator/Update_Operator/set.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

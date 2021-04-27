@@ -66,5 +66,5 @@ SequoiaDB 的全局一致性时间点恢复是通过当前的同步日志，或�
 
 [^_^]:
     本文使用到的所有链接及引用。
-[sdbrestore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/regular_bar.md#数据恢复
+[sdbrestore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_restore.md
 [restoreToTime]:manual/Distributed_Engine/Maintainance/Backup_Recovery/PointInTimeRestore.md#时间点恢复

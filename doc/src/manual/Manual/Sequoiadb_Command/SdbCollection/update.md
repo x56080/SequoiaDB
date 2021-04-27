@@ -141,4 +141,4 @@ v2.0 及以上版本
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [inc]:manual/Manual/Operator/Update_Operator/inc.md
 [exists]:manual/Manual/Operator/Match_Operator/exists.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

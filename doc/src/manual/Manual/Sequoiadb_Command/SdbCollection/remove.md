@@ -79,4 +79,4 @@ v2.0 及以上版本
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md
