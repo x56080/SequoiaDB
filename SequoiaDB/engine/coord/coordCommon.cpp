@@ -1063,10 +1063,23 @@ namespace engine
 
       const CHAR *p = NULL ;
       const CHAR *pn = NULL ;
+      INT32 hostNameLen = 0 ;
+      INT32 svcNameLen = 0 ;
+
+      if( NULL == pHostName || NULL == pSvcName )
+      {
+         // not match
+         goto done ;
+      }
+
+      hostNameLen = ossStrlen( pHostName ) ;
+      svcNameLen = ossStrlen( pSvcName ) ;
 
       /// HostName match
       p = ossStrchr( pNodeName, ':' ) ;
-      if ( !p || 0 != ossStrncmp( pHostName, pNodeName, p - pNodeName ) )
+      if ( !p ||
+           hostNameLen != p - pNodeName ||
+           0 != ossStrncmp( pHostName, pNodeName, p - pNodeName ) )
       {
          goto done ;
       }
@@ -1076,7 +1089,8 @@ namespace engine
       pn = ossStrchr( p, ':' ) ;
       while( pn )
       {
-         if ( 0 == ossStrncmp( pSvcName, p, pn - p ) )
+         if ( svcNameLen == pn - p &&
+              0 == ossStrncmp( pSvcName, p, pn - p ) )
          {
             hasMatch = TRUE ;
             goto done ;
