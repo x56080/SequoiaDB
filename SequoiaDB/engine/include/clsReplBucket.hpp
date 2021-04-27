@@ -229,6 +229,7 @@ namespace engine
          INT32       waitForIDLSNComp( DPS_LSN_OFFSET nidRecLSN ) ;
          INT32       waitForNIDLSNComp( DPS_LSN_OFFSET idRecLSN ) ;
 
+         void        initUnqIdxLSN() ;
          void        resetUnqIdxLSN() ;
          DPS_LSN_OFFSET checkUnqIdxWaitLSN(
                                        dpsUnqIdxHashArray &newUnqIdxHashArray,
