@@ -1,32 +1,32 @@
-## 名称
+##名称##
 
 count - 统计当前集合符合条件的记录总数
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.count([cond])**
 
 **db.collectionspace.collection.count([cond]).hint([hint])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于统计当前集合符合条件的记录总数，可通过 hint 指定查询使用的索引。
 
-## 参数
+##参数##
 
 参数 `cond` 和 `hint` 的用法与 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/find.md) 的相同。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 CLCount 类型的对象。通过该对象获取符合条件的记录总数。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `count()`函数常见异常如下：
 
@@ -38,11 +38,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v1.0 及以上版本
 
-## 示例
+##示例##
 
 1. 统计集合 employee 所有的记录数，即不指定参数 cond。
 

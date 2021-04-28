@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 createLobID - 创建大对象ID
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.createLobID([Time])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于通过服务端生成大对象ID。
 
-## 参数
+##参数##
 
 * `Time`( *String*， *选填* )
   
@@ -22,13 +22,13 @@ SdbCollection
     
 * 无参时，将根据服务器上的时间来生成大对象ID。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 String 类型的对象。通过该对象获取生成的大对象 ID。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `createLobID()`函数常见异常如下：
 
@@ -40,11 +40,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v3.2 及以上版本
 
-## 示例
+##示例##
 
 * 在 sample.employee 中创建大对象ID
 

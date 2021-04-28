@@ -1,26 +1,26 @@
-## 名称
+##名称##
 
 disableCompression - 修改集合的属性关闭压缩功能
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.disableCompression()**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于修改集合的属性关闭压缩功能。
 
-## 返回值
+##返回值##
 
 函数执行成功时，无返回值。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `disableCompression()`函数常见异常如下：
 
@@ -30,11 +30,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.10 及以上版本。
 
-## 示例
+##示例##
 
 1. 创建一个压缩集合，然后将该集合的压缩功能关闭
 

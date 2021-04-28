@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 listIndexes - 枚举集合下的索引信息
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.listIndexes\(\)**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于枚举[索引](manual/Distributed_Engine/Architecture/Data_Model/index.md)，执行此方法会将指定集合下的索引信息全部显示出来。
 
-## 参数
+##参数##
 
 无
 
@@ -33,17 +33,17 @@ SdbCollection
 | Type      | string    | 索引类型 <br> "Positive"：正序索引 <br> "Reverse"：逆序索引 <br> "Text"：全文索引                                       |
 | NotArray| Boolean   | 索引的任意一个字段是否允许为数组 <br> "true"：不允许为数组 <br> "false"：允许为数组    |
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 SdbCursor 类型的对象。通过该对象获取集合详细信息列表，字段说明可参考[索引统计信息快照][SDB_SNAP_INDEXSTATS]。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 示例
+##示例##
 
 * 返回集合 employee 下的所有索引信息
 

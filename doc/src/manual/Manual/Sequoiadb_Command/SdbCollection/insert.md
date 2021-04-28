@@ -1,22 +1,22 @@
-## 名称
+##名称##
 
 insert - 将单条或者批量记录插入当前集合
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.insert(\<doc|docs\>,[flag])**
 
 **db.collectionspace.collection.insert(\<doc|docs\>,[options])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于将单条或者批量记录插入当前集合。
 
-## 参数
+##参数##
 
 * `doc|docs` ( *Object|Object of Array*， *必填* )
 
@@ -42,7 +42,7 @@ SdbCollection
 
 * 参数 `flag` 中的 SDB_INSERT_CONTONDUP 和 SDB_INSERT_REPLACEONDUP 选项不能同时组合使用。使用参数 `options` 时的情况与使用参数 `flag` 的一致。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 BSONObj 类型的对象，通过该对象获取成功插入的记录数信息，字段说明如下：
 
@@ -55,7 +55,7 @@ SdbCollection
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `insert()`函数常见异常如下：
 
@@ -68,11 +68,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v1.0 及以上版本。
 
-## 示例
+##示例##
 
 1. 不指定 _id 字段，插入一条记录。
 

@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 aggregate - 计算集合中数据的聚合值
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.aggregate( \<subOp1\>，[subOp2]，... )**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于计算集合中数据的聚合值。
 
-## 参数
+##参数##
 
 * `subOp`( *Object*， *必填* )
 
@@ -24,13 +24,13 @@ SdbCollection
     >
     > aggregate 方法会根据子操作的顺序从左到右依次执行每个子操作。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 SdbCursor 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `aggregate()`函数常见异常如下：
 
@@ -40,11 +40,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v1.0 及以上版本
 
-## 示例
+##示例##
 
 假设集合 collection 包含如下格式的记录：
 

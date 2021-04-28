@@ -1,22 +1,22 @@
-## 名称
+##名称##
 
 createIndex - 创建索引
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[isUnique\],\[enforced\],\[sortBufferSize\])**
 
 **db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[options\])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于为集合创建[索引][index]，提高查询速度。
 
-## 参数
+##参数##
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -44,21 +44,21 @@ options 选项：
 > * 在集合记录数据量较大时（大于1000万条记录）适当增大排序缓存大小可以提高创建索引的速度。
 > * 对于全文索引，参数 isUnique、enforced 及 sortBufferSize 无意义。
 
-## 返回值
+##返回值##
 
 函数执行成功时，无返回值。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 * 在集合 employee 下为字段名 age 创建名为 ageIndex 的唯一索引，记录按 age 字段值的升序排序。
 

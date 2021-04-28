@@ -1,16 +1,16 @@
-## 名称
+##名称##
 
 truncate - 删除集合内所有数据
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.truncate\(\)**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于删除集合内所有数据（包括普通文档和 LOB 数据），但不会影响其元数据。与 remove 需要按照条件筛选目标不同，truncate 会直接释放数据页，在清空集合（尤其是大数据量下）数据时效率比 remove 更加高效。
 
@@ -18,25 +18,25 @@ SdbCollection
 > 
 > 如有自增字段，truncate后字段序列值将会重置。
 
-## 参数
+##参数##
 
 无
 
-## 返回值
+##返回值##
 
 函数执行成功时，无返回值。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 * 我们在集合 sample.employee 中插入了普通数据和 LOB 数据。通过快照查看其数据页使用情况：
 

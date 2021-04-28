@@ -1,8 +1,8 @@
-## 名称
+##名称##
 
 findOne - 查询符合条件的一条记录
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.findOne\(\[cond\],\[sel\]\)**
 
@@ -12,25 +12,25 @@ findOne - 查询符合条件的一条记录
 
 **db.collectionspace.collection.find([SdbQueryOption])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于返回符合查询条件的一条记录，与 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/find.md) 方法用法相同。
 
-## 参数
+##参数##
 
 参数说明可参考 [find()](manual/Manual/Sequoiadb_Command/SdbCollection/find.md) 方法
 
-## 返回值
+##返回值##
   
 函数执行成功时，将返回一个 SdbQuery 的对象。通过该对象获取查询到的结果集。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `find()` 函数常见异常如下：
 
@@ -45,11 +45,11 @@ SdbCollection
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
 可以参考[常见错误处理指南][faq]了解更多内容。
 
-## 版本
+##版本##
 
 v1.0 及以上版本。
 
-## 示例
+##示例##
 
 - 查询所有记录，不指定 cond 和 sel 字段。
 

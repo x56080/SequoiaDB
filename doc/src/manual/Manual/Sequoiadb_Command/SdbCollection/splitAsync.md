@@ -1,22 +1,22 @@
-## 名称
+##名称##
 
 splitAsync - 异步切分数据记录
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)**
 
 **db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于将源分区组中的数据记录，按指定条件异步切分到目标分区组中。源分区组与目标分区组必须属于同一个域。
 
-## 参数
+##参数##
 
 ###范围切分###
 
@@ -48,21 +48,21 @@ db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percen
 >  1. Range分区需要保证源分区组中含有数据，即集合不为空；
 >  2. 百分比不能为0。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 Number 类型的对象。通过该对象获取返回的任务 ID，用户可使用任务 ID 对任务进行相关操作。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 * Hash 分区范围切分
 

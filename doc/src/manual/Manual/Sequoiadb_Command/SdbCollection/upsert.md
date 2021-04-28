@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 upsert - 更新集合记录
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.upsert\(\<rule\>,\[cond\],\[hint\],\[setOnInsert\],\[options\]\)**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于更新集合记录。upsert 方法跟 update 方法都是对记录进行更新，不同的是当使用 cond 参数在集合中匹配不到记录时，update 不做任何操作，而 upsert 方法会做一次插入操作。
 
-## 参数
+##参数##
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -41,7 +41,7 @@ options 选项：
 > 
 > * `JustOne`为 true 时，只能在单个分区、单个子表上执行。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取成功更新的记录数信息，字段说明如下：
 
@@ -53,7 +53,7 @@ options 选项：
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 错误信息记录在节点诊断日志（diaglog）中，可参考[错误码][error_code]。
   
@@ -64,11 +64,11 @@ options 选项：
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 假设集合 employee 中有两条记录：
 

@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 getIndex - 获取指定索引
 
-## 语法
+##语法##
 
 **db.collectionspace.collection.getIndex\(\<name\>\)**
 
-## 类别
+##类别##
 
 SdbCollection
 
-## 描述
+##描述##
 
 该函数用于获取当前集合中指定的索引信息。
 
-## 参数
+##参数##
 
 * name ( *string*， *必填* )
 
@@ -24,13 +24,13 @@ SdbCollection
 >
 > * 索引名不能是空串，含点（.）或者美元符号（$），且长度不超过127B。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取集合详细信息列表，字段说明可参考[索引统计信息快照][SDB_SNAP_INDEXSTATS]。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `getIndex()`函数常见异常如下：
 
@@ -40,11 +40,11 @@ SdbCollection
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
 
-## 版本
+##版本##
 
 v1.10 及以上版本
 
-## 示例
+##示例##
 
 * 获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在。
 
