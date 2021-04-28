@@ -362,7 +362,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 + 类型：boolean
 + 默认值：OFF
-+ 作用范围：Global
++ 作用范围：Global,Session
 + 是否支持在线修改生效：是
   
 
