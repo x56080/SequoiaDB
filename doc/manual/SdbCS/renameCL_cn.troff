@@ -165,5 +165,10 @@ v3.0.1 及以上版本
 .SH 示例
 .PP
 将集合 sample.employee，改名为 sample.employee_new
-.PP
-\f[C]lang\-javascript\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ \ \ //\ 连接协调节点\ \ >\ db.sample.renameCL(\ "employee",\ "employee_new"\ )\f[]
+.IP
+.nf
+\f[C]
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ \ \ //\ 连接协调节点
+>\ db.sample.renameCL(\ "employee",\ "employee_new"\ )
+\f[]
+.fi

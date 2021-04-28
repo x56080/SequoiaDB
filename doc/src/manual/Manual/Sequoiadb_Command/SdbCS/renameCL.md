@@ -55,8 +55,8 @@ v3.0.1 及以上版本
 
 将集合 sample.employee，改名为 sample.employee_new
 
- ```lang-javascript
- > db = new Sdb( "localhost", 11810 )    // 连接协调节点
- > db.sample.renameCL( "employee", "employee_new" )
- ```
+```lang-javascript
+> db = new Sdb( "localhost", 11810 )    // 连接协调节点
+> db.sample.renameCL( "employee", "employee_new" )
+```
 

@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 createCL - 创建一个新的集合
 
-## 语法
+##语法##
 
 **db.collectionspace.createCL(\<name\>,[options])**
 
-## 类别
+##类别##
 
 Collection Space
 
-## 描述
+##描述##
 
 该函数用于在指定集合空间下创建集合（Collection），集合是数据库中存放文档记录的逻辑对象，任何一条文档记录必须属于一个且仅属于一个集合。
 
-## 参数
+##参数##
 
 * name（ *string*， *必填* ）
 
@@ -147,13 +147,13 @@ Collection Space
 >     3. 集合的其他属性，如 `ShardingKey`、`Compressed`、`AutoIndexId` 等，子分区集合会使用自己的属性值而不是沿用主分区集合对应的属性值。
 > * DataSource 和 Mapping 参数的具体使用场景可参考[数据源][datasource]。
 
-## 返回值
+##返回值##
  
 函数执行成功时，返回一个新的 SdbCollection 对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `createCL()`函数常见异常如下：
 
@@ -168,11 +168,11 @@ Collection Space
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
 可以参考[常见错误处理指南][faq]了解更多内容。
 
-## 版本
+##版本##
 
 v1.0 及以上版本。
 
-## 示例
+##示例##
 
 1. 在集合空间 sample 下创建集合 employee，不指定分区键。
 
