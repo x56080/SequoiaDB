@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 createCS - 创建集合空间
 
-## 语法
+##语法##
 
 **db.createCS(\<name\>, [options])**
 
-## 类别
+##类别##
 
 Sdb
 
-## 描述
+##描述##
 
 该函数用于在数据库对象中创建集合空间。
 
-## 参数
+##参数##
 
 - name（ *string，必填* ）
 
@@ -57,21 +57,21 @@ Sdb
     > - DataSource 和 Mapping 参数的具体使用场景可参考[数据源][datasource]。
     > * 为兼容较早版本接口，`db.createCS(<name>, [PageSize])` 依旧可用。
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 SdbCS 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 * 创建名为“sample”的集合空间
 

@@ -1,19 +1,19 @@
 [^_^]:
    restorePrepare()
 
-## NAME
+##NAME##
 
 restorePrepare - enable Restore mode
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.restorePrepare()**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 This function is used to enable Restore mode in preparation for an online restore.
 
@@ -21,25 +21,25 @@ This function is used to enable Restore mode in preparation for an online restor
 >
 > Restore mode blocks both transactional data access and any changes to the cluster. User can still commit or rollback a transaction though.
 
-## PARAMETERS
+##PARAMETERS##
 
 None
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v5.0.2 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 Enable Restore mode for the cluster.
 

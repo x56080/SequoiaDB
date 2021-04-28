@@ -4,6 +4,7 @@
 traceOff -  Turn off the database engine program tracking and export tracking results to binary files.
 
 ##SYNOPSIS##
+
 ***db.traceOff()***
 
 ##CATEGORY##

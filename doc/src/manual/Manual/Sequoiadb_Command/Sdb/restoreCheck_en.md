@@ -1,23 +1,23 @@
 [^_^]:
      restoreCheck()
 
-## NAME
+##NAME##
 
 restoreCheck - check a time for restore
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.restoreCheck([options])**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 The SequoiaDB cluster will calculate the consistency time window for global recovery based on the current logs of each data node and the available log space. This function is used to check whether the specified time point is within the current time window, or check whether the cluster can be restored to the specified time point. At the same time, it can be used to obtain the latest consistent point in time.
 
-## PARAMETERS
+##PARAMETERS##
 
 options ( *object, optional* )
 
@@ -56,7 +56,7 @@ Set the time point to check, the available options are as follows.
 >     1609430400
 >     ```
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, it will return an object of type SdbCursor. Users can get a list of consistency point through this object, the field descriptions are as follows:
 
@@ -70,7 +70,7 @@ When the function executes successfully, it will return an object of type SdbCur
 
 When the function fails, an exception will be thrown and error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 The common exceptions of `restoreCheck()` function are as follows:
 
@@ -82,11 +82,11 @@ The common exceptions of `restoreCheck()` function are as follows:
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v5.0.2 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 - View the latest recoverable consistency point in time.
 

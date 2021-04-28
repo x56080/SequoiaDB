@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 createDataSource - 创建数据源
 
-## 语法
+##语法##
 
 **db.createDataSource( \<name\>, \<address\>, [user], [password], [type], [options] )**
 
-## 类别
+##类别##
 
 Sdb
 
-## 描述
+##描述##
 
 该函数用于创建数据源，以实现跨集群的数据访问。
 
-## 参数
+##参数##
 
 - name（ *string，必填* ）
  
@@ -72,13 +72,13 @@ Sdb
         格式：`ErrorControlLevel:"Low"`
 
 
-## 返回值
+##返回值##
 
 函数执行成功时，将返回一个 DataSource 对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 `createDataSource()` 函数常见异常如下：
 
@@ -88,11 +88,11 @@ Sdb
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-## 版本
+##版本##
 
 v3.2.8 及以上版本
 
-## 示例
+##示例##
 
 创建一个名为“datasource”的数据源，该数据源只允许进行只读操作
 

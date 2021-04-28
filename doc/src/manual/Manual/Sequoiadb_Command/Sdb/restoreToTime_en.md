@@ -1,23 +1,23 @@
 ﻿[^_^]:
    restoreToTime()
 
-## NAME
+##NAME##
 
 restoreToTime - restore the cluster to a consistent time
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.restoreToTime([options])**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 This function is used to restore the cluster with the Restore mode turned on to the specified time. All data changes committed after the time will be rolled back and currently uncommitted transactions will be terminated.
 
-## PARAMETERS
+##PARAMETERS##
 
 options ( *object, required* )
 
@@ -55,13 +55,13 @@ Set the time point to be restored, the available options are as follows.
 >     1609430400
 >     ```
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 The common exceptions of `restoreToTime()` function are as follows:
 
@@ -72,11 +72,11 @@ The common exceptions of `restoreToTime()` function are as follows:
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v5.0.2 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 - Restore to the latest consistency point.
 

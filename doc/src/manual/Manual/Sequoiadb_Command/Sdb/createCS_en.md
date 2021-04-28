@@ -1,20 +1,20 @@
-## NAME
+##NAME##
 
 createCS - create a collection space
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.createCS(\<name\>, [options])**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 This function is used to create a collection space in a database object.
 
-## PARAMETERS
+##PARAMETERS##
 
 - name ( *string, required* )
 
@@ -58,21 +58,21 @@ This function is used to create a collection space in a database object.
     > * In order to be compatible with earlier versions of the interface, `db.createCS(<name>, [PageSize])` is still available.
 
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, it will return an object of type SdbCS.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v2.0 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 * Create a collection space named "sample".
 

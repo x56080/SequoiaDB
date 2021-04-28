@@ -1,22 +1,22 @@
-## NAME
+##NAME##
 
 snapshot - get snapshot
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.snapshot(\<snapType\>,[cond],[sel],[sort])**
 
 **db.snapshot(\<snapType\>,[SdbSnapshotOption])**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 This function is used to get the specified snapshot and view the current system status. 
 
-## PARAMETERS
+##PARAMETERS##
 
 | Name    | Type   | Description    | Required or Not |
 |---------|--------|----------------|-----------------|
@@ -31,21 +31,21 @@ This function is used to get the specified snapshot and view the current system 
 >* sel parameter is a json structure,like:{Field name:Field value}，The field value is generally specified as an empty string.The field name specified in sel exists in the record,setting the field value does not take effect;return the field name and field value specified in the sel otherwise.
 >* The field value type in the record is an array.User can specify the field name in sel,and use "." operator with double marks ("") to refer to the array elements.
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, it will return an object of type SdbCursor.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v2.0 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 * Specify the value of snapType as SDB_LIST_CONTEXTS.
 

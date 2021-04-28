@@ -1,41 +1,41 @@
 [^_^]:
    restoreAbort()
 
-## NAME
+##NAME##
 
 restoreAbort - abort Restore mode
 
-## SYNOPSIS
+##SYNOPSIS##
 
 **db.restoreAbort()**
 
-## CATEGORY
+##CATEGORY##
 
 Sdb
 
-## DESCRIPTION
+##DESCRIPTION##
 
 Cluster is set to Restore mode after [restorePrepare()][restorePrepare] or an offline restore. The user can abort Restore mode through this function.
 
-## PARAMETERS
+##PARAMETERS##
 
 None
 
-## RETURN VALUE
+##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-## ERRORS
+##ERRORS##
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## VERSION
+##VERSION##
 
 v5.0.2 and above
 
-## EXAMPLES
+##EXAMPLES##
 
 Abort Restore mode for the cluster.
 
