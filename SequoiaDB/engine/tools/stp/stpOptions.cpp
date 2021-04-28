@@ -88,7 +88,8 @@ namespace engine
             "STP vote weight, default: 0" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default: 60" ) \
+            "STP synchronize interval in seconds, default: 60, " \
+            "value range: [ 10, 600 ]" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
             "STP max time error in microseconds, default: 50000, " \
@@ -148,7 +149,8 @@ namespace engine
             "default: \"server\"" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default: 60" ) \
+            "STP synchronize interval in seconds, default: 60, " \
+            "value range: [ 10, 600 ]" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
             "STP max time error in microseconds, default: 50000, " \
@@ -545,6 +547,8 @@ namespace engine
       // --syncinterval
       rdxUInt( ex, STP_OPTION_SYNCINTERVAL, _syncInterval, FALSE,
                PMD_CFG_CHANGE_RUN, _syncInterval ) ;
+      rdvMinMax( ex, _syncInterval, STP_MIN_SYNC_INTERVAL,
+                 STP_MAX_SYNC_INTERVAL, TRUE ) ;
 
       // --maxtimeerror
       rdxUInt( ex, STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,

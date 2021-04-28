@@ -9,7 +9,7 @@ stp 是 STP 提供逻辑时间的可执行程序。
 | --port | -p | 正整数 | - STP 监听端口<br/>- 默认：9622<br/>- 开启 TCP 和 UDP 协议的监听。 |
 | --serverlist | | 字符串 | - STP 配置 server 列表，配置后将向指定的 server 进行时间同步<br>- server 的格式为 "hostname:port"，多个 server 之间通过 "," 分隔<br>- 默认：空，表示以本节点作为 server |
 | --role | | 字符串 | - STP 节点的角色<br/>- 可选值为 "client" 和 "server"<br/>- 默认："server" |
-| --syncinterval | | 正整数 | - STP 节点进行时间同步的间隔，单位为秒<br/>- 默认：60 |
+| --syncinterval | | 正整数 | - STP 节点进行时间同步的间隔，单位为秒<br/>- 默认：60<br/>- 最小值为 10，最大值为 600 |
 | --maxtimeerror | | 正整数 | - STP 节点可以容忍的最大时间误差，单位为微秒</br>- 默认：50000</br>- 最小值为 1000，最大值为 10000000 |
 | --diaglevel | | 正整数 | - STP 节点打印诊断日志的级别<br/>- STP 诊断日志从 0 - 5 分别代表：SEVERE, ERROR, EVENT, WARNING, INFO, DEBUG<br/>- 默认：3，表示 WARNING |
 | --daemon | | | 使用后台模式运行 STP 节点 |
@@ -33,7 +33,7 @@ stp 是 STP 提供逻辑时间的可执行程序。
 | port | 正整数 | - STP 监听端口<br/>- 默认：9622<br/>- 开启 TCP 和 UDP 协议的监听。 |
 | serverlist | 字符串 | - STP 配置 server 列表，配置后将向指定的 server 进行时间同步<br>- server 的格式为 "hostname:port"，多个 server 之间通过 "," 分隔<br>- 默认：空，表示以本节点作为 server |
 | role | 字符串 | - STP 节点的角色<br/>- 可选值为 "client" 和 "server"<br/>- 默认："server" |
-| syncinterval | 正整数 | - STP 节点进行时间同步的间隔，单位为秒<br/>- 默认：60 |
+| syncinterval | 正整数 | - STP 节点进行时间同步的间隔，单位为秒<br/>- 默认：60<br/>- 最小值为 10，最大值为 600 |
 | maxtimeerror | 正整数 | - STP 节点可以容忍的最大时间误差，单位为微秒</br>- 默认：50000</br>- 最小值为 1000，最大值为 10000000 |
 | diaglevel | 正整数 | - STP 节点打印诊断日志的级别<br/>- STP 诊断日志从 0 - 5 分别代表：SEVERE, ERROR, EVENT, WARNING, INFO, DEBUG<br/>- 默认：3，表示 WARNING |
 

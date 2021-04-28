@@ -125,6 +125,10 @@ Config:
 | TimeError | STP 节点当前的时间容错误差，单位为纳秒 |
 | MetaLSN | STP 节点已完成同步的元数据 LSN，其中包含 offset（LSN 的偏移）和 version（当前 LSN 的版本号）信息 |
 
+> **Note:**
+>
+> * SyncHWTime 和 BaseHWTime 是基于系统的运行时间计算的，与逻辑时间和系统时间无关
+
 **示例**
 
 ```lang-bash
@@ -151,7 +155,7 @@ Meta:
 | 字段名 | 描述 |
 | ---- | ---- |
 | Version | STP server 组的版本号 |
-| Server | STP server 组的信息，一般格式是 "hostname:port" |
+| Server | STP server 组的信息，一般格式是 "hostname:port"<br/>当 STP server 组有多个 server 时，将显示多行 |
 | Primary | STP server 组的主节点 |
 
 **示例**
