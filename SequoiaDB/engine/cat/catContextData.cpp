@@ -148,6 +148,17 @@ namespace engine
       while ( iter != _execTasks.end() )
       {
          _catCtxTaskBase *subTask = (*iter) ;
+         rc = subTask->recheckTask( cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to recheck sub-task, rc: %d",
+                      rc ) ;
+
+         ++ iter ;
+      }
+
+      iter = _execTasks.begin() ;
+      while ( iter != _execTasks.end() )
+      {
+         _catCtxTaskBase *subTask = (*iter) ;
          rc = subTask->execute( cb, _pDmsCB, _pDpsCB, w ) ;
          if ( SDB_OK != rc && subTask->isIgnoredRC( rc ) )
          {

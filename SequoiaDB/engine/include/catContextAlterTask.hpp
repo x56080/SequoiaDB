@@ -275,7 +275,6 @@ namespace engine
       {}
       ~_catCtxAlterSequenceTask () {} ;
       virtual INT32 _checkInternal ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
-
       virtual INT32 _executeInternal ( _pmdEDUCB *cb,
                                        SDB_DMSCB *pDmsCB,
                                        SDB_DPSCB *pDpsCB,

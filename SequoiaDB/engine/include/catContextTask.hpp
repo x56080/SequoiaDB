@@ -69,6 +69,8 @@ namespace engine
 
       virtual INT32 checkTask ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
 
+      virtual INT32 recheckTask( _pmdEDUCB *cb ) ;
+
       virtual INT32 preExecute ( _pmdEDUCB *cb,
                                  SDB_DMSCB *pDmsCB,
                                  SDB_DPSCB *pDpsCB,
@@ -91,6 +93,11 @@ namespace engine
    protected :
       virtual INT32 _checkInternal ( _pmdEDUCB *cb,
                                      catCtxLockMgr &lockMgr ) = 0 ;
+
+      virtual INT32 _recheckInternal( _pmdEDUCB *cb )
+      {
+         return SDB_OK ;
+      }
 
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
                                           SDB_DMSCB *pDmsCB,
@@ -181,6 +188,8 @@ namespace engine
 
    protected :
       virtual INT32 _checkInternal ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
+
+      virtual INT32 _recheckInternal( _pmdEDUCB *cb ) ;
 
       virtual INT32 _preExecuteInternal ( _pmdEDUCB *cb,
                                           SDB_DMSCB *pDmsCB,

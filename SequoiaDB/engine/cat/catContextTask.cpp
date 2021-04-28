@@ -84,6 +84,35 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTASK_RECHECKTASK, "_catCtxTaskBase::recheckTask" )
+   INT32 _catCtxTaskBase::recheckTask( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXTASK_RECHECKTASK ) ;
+
+      try
+      {
+         rc = _recheckInternal( cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to recheck task, rc: %d",
+                      rc ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to recheck task, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXTASK_RECHECKTASK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXTASK_PREEXECUTE, "_catCtxTaskBase::preExecute" )
    INT32 _catCtxTaskBase::preExecute ( _pmdEDUCB *cb,
                                        SDB_DMSCB *pDmsCB,
@@ -311,6 +340,40 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXDROPCLTASK_CHECK_INT, rc ) ;
       return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCLTASK_RECHECK_INT, "_catCtxDropCLTask::_recheckInternal" )
+   INT32 _catCtxDropCLTask::_recheckInternal ( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_RECHECK_INT ) ;
+
+      INT32 curVersion = -1 ;
+
+      // recheck collection version
+      rc = catGetAndLockCollection( _dataName, _boData, cb, NULL, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get the collection [%s], rc: %d",
+                   _dataName.c_str(), rc ) ;
+
+      // Check version
+      rc = rtnGetIntElement( _boData, CAT_VERSION_NAME, curVersion ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get the field [%s], rc: %d",
+                   CAT_VERSION_NAME, rc ) ;
+
+      PD_CHECK( curVersion == _version, SDB_CLS_COORD_NODE_CAT_VER_OLD,
+                error, PDERROR, "Failed to check version of collection "
+                "[%s], current is [%d], expected is [%d]",
+                _dataName.c_str(), curVersion, _version ) ;
+
+      _version = curVersion ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCTXDROPCLTASK_RECHECK_INT, rc ) ;
+      return rc ;
+
    error :
       goto done ;
    }
