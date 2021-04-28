@@ -1,6 +1,6 @@
 ##NAME##
 
-unloadCS -  Load the specific collection space into memory.
+loadCS -  Load the specific collection space into memory.
 
 ##SYNOPSIS##
 

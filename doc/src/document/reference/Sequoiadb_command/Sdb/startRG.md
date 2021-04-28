@@ -20,7 +20,7 @@
 ##错误##
 常见错误可参考[错误码](reference/Sequoiadb_error_code.md)。
 
-## 示例##
+##示例##
 
 * 启动分区组的命令如下：
 
