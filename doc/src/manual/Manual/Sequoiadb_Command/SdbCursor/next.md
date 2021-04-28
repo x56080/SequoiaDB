@@ -1,24 +1,24 @@
-## 名称
+##名称##
 
 next - 获取当前游标指向的下一条记录
 
-## 语法
+##语法##
 
 **cursor.next()**
 
-## 类别
+##类别##
 
 SdbCursor
 
-## 描述
+##描述##
 
 该函数用于获取当前游标指向的下一条记录，更多查看 [cursor.current()](manual/Manual/Sequoiadb_Command/SdbCursor/current.md) 方法。
 
-## 参数
+##参数##
 
 无
 
-## 返回值
+##返回值##
 
 关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 函数执行成功时，如果游标有记录返回，返回值为 BSONObj 类型的对象；否则，返回值为 null 类型的对象。
@@ -26,7 +26,7 @@ SdbCursor
 函数执行失败时，将抛异常并输出错误信息。
 
 
-## 错误
+##错误##
 
 | 错误码 		| 错误类型 | 可能的原因 	| 解决方法					|
 | ------ 		| ------   | ------------	| ------					|
@@ -34,11 +34,11 @@ SdbCursor
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v3.0 及以上版本
 
-## 示例
+##示例##
 
 选择集合 employee 下 age 大于8的记录，返回当前游标指向的下一条记录
 
