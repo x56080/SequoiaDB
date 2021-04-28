@@ -441,14 +441,8 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 | collation_server       | string | Yes | Global,Session | utf8mb4_bin | 默认校对集 |
 | default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
 | lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
-| transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别 |
+| transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别，取值可参考 [MySQL 事务隔离级别配置][trans_isolation]<br>SequoiaDB v3.2.x/v3.4.x 版本不支持 RR 隔离级别，因此将 MySQL 实例的隔离级别配置为 REPEATABLE-READ 并连接至 SequoiaDB 时，隔离级别会自动降级为 READ-COMMITTED |
 
-**transaction_isolation**
-
-该参数可以配置 MySQL 实例的事务隔离级别，具体参数含义和取值可参考 [MySQL 事务隔离级别配置][trans_isolation]。
-MySQL 实例会话会自动读取该配置值，设置连接到 SequoiaDB 的会话属性，来保证两者事务隔离级别的一致。
-3.2.x/3.4.x 系列 SequoiaDB 版本不支持 RR 隔离级别，因此，如果 MySQL 实例配置为 REPEATABLE-READ 隔离级别，
-连接到 SequoiaDB 的会话会自动降级到 READ-COMMITTED 事务隔离级别；
 
 > **Note:**
 >
