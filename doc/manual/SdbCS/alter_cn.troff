@@ -112,8 +112,7 @@ v2.10 及以上版本。
 .nf
 \f[C]
 >\ db.createCS(\ \[aq]sample\[aq],\ {\ PageSize\ :\ 4096\ }\ )
->
->\ \ \ >\ db.sample.alter(\ {\ PageSize\ :\ 8192\ }\ )
+>\ db.sample.alter(\ {\ PageSize\ :\ 8192\ }\ )
 \f[]
 .fi
 .RE

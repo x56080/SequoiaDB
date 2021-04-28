@@ -73,8 +73,7 @@ v2.10 及以上版本。
 
 	```lang-javascript
  	> db.createCS( 'sample', { PageSize : 4096 } )
- 	>
- 	>  	> db.sample.alter( { PageSize : 8192 } )
+ 	> db.sample.alter( { PageSize : 8192 } )
 	```
 
 2. 创建一个集合空间，然后为该集合空间指定一个域
