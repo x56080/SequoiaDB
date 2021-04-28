@@ -440,7 +440,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 | character_set_server   | string | Yes | Global,Session | utf8mb4 | 默认字符集 |
 | collation_server       | string | Yes | Global,Session | utf8mb4_bin | 默认校对集 |
 | default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
-| lower_case_table_names | int32  | No  | Global          | 0       | 表名大小写策略，取 0 时，大小写敏感；取 1 时，所有表名均以小写存储；取 2 时，表名以原样存储，但以小写进行比较 |
+| lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
 | transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别 |
 
 **transaction_isolation**
@@ -454,7 +454,7 @@ MySQL 实例会话会自动读取该配置值，设置连接到 SequoiaDB 的会
 >
 > * 在系统最大文件句柄数不足时，max_connections 可能被自动调整。如果发现修改该配置没有生效，可检查系统 limit 设置和 MySQL 日志。
 > * SequoiaDB 不支持大小写敏感的校对集。
-> * 在 Linux 平台下，MySQL 默认表名大小写敏感。更改成大小写不敏感后有可能导致匹配不到原表，应谨慎使用。
+> * 在 Linux 平台下，需谨慎变更配置 lower_case_table_names。如果随意变更该配置，可能导致匹配不到原表。
 
 
 [^_^]:

@@ -385,7 +385,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 | character_set_server   | string | Yes | Global,Session | utf8mb4 | 默认字符集 |
 | collation_server       | string | Yes | Global,Session | utf8mb4_bin | 默认校对集 |
 | default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
-| lower_case_table_names | int32  | No  | Global          | 0       | 表名大小写策略，取 0 时，大小写敏感；取 1 时，所有表名均以小写存储；取 2 时，表名以原样存储，但以小写进行比较 |
+| lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
 | join_cache_level       | int32  | Yes | Global,Session  | 8       | 连接缓存级别，取值为 [0,8]；如果级别设置为 0，表示不使用任何级别的连接算法；如果级别设置为 4，表示使用 4 或 4 以下级别（即可以使用 [0,4] 级别）的连接算法，其它取值同理<br>各级别对应的连接算法如下：<br>1：表示 Flat BNL <br>2：表示 Incremental BNL <br>3：表示 Flat BNLH <br>4：表示 Incremental BNLH <br>5：表示 Flat BKA <br>6：表示 Incremental BKA <br>7：表示 Flat BKAH <br>8：表示 Incremental BKAH<br> 上述算法可参考 [MariaDB 连接算法][Block_based_join_algorithms] |
 | optimizer_switch       | flagset| Yes | Global,Session | mrr=on,mrr_cost_based=off,<br>join_cache_incremental=on,<br>join_cache_hashed=on,<br>join_cache_bka=on,<br>optimize_join_buffer_size=on| 优化器开关，取值意义可参考[MariaDB 优化器开关][optimizer_switch]   |
 | transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别 |
@@ -401,7 +401,7 @@ MySQL 实例会话会自动读取该配置值，设置连接到 SequoiaDB 的会
 >
 > * 在系统最大文件句柄数不足时，max_connections 可能被自动调整。如果发现修改该配置没有生效，可检查系统 limit 设置和 MariaDB 日志。
 > * SequoiaDB 不支持大小写敏感的校对集。
-> * 在 Linux 平台下，MariaDB 默认表名大小写敏感。更改成大小写不敏感后有可能导致匹配不到原表，应谨慎使用。
+> * 在 Linux 平台下，需谨慎变更配置 lower_case_table_names。如果随意变更该配置，可能导致匹配不到原表。
 
 
 [^_^]:
