@@ -719,20 +719,17 @@ function addResultBody()
 
 function getJobsParam()
 {
-   local rc=0
-   opt_jobs="$1"
-   if [ "$opt_jobs" = "" ]; then
-      opt_jobs=1
-   fi
-   expr $opt_jobs + 0 &> /dev/null
-   if [ $? -ne 0 ]; then
-      echo "[ERROR] Invalid --jobs value: $opt_jobs"
-      exit 1
-   fi
-   if [ $opt_jobs -le 0 ]; then
-      echo "[ERROR] Invalid --jobs value: $opt_jobs"
-      exit 1
-   fi
+    local rc=0
+    opt_jobs="$1"
+    expr $opt_jobs + 0 &> /dev/null
+    if [ $? -ne 0 ]; then
+        echo "[ERROR] Invalid --jobs value: $opt_jobs"
+        exit 1
+    fi
+    if [ $opt_jobs -le 0 ]; then
+        echo "[ERROR] Invalid --jobs value: $opt_jobs"
+        exit 1
+    fi
 }
 
 function exec_cmd()
@@ -769,6 +766,9 @@ function exportData()
     echo >&7
     buildExportCmd
 
+    if [ "$opt_jobs" = "" ]; then
+        opt_jobs=1
+    fi
     for ((i=0; i<$opt_jobs; i++)); do
         echo >&6
     done
