@@ -441,6 +441,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 | collation_server       | string | Yes | Global,Session | utf8mb4_bin | 默认校对集 |
 | default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
 | lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
+| optimizer_switch       | flagset| Yes | Global,Session | index_merge_intersection=off | 优化器开关，取值意义可参考 [MySQL 优化器开关][optimizer_switch] |
 | transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别，取值可参考 [MySQL 事务隔离级别配置][trans_isolation]<br>SequoiaDB v3.2.x/v3.4.x 版本不支持 RR 隔离级别，因此将 MySQL 实例的隔离级别配置为 REPEATABLE-READ 并连接至 SequoiaDB 时，隔离级别会自动降级为 READ-COMMITTED |
 
 
@@ -461,4 +462,5 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 [count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md
 [setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
 [sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
+[optimizer_switch]:https://dev.mysql.com/doc/refman/5.7/en/switchable-optimizations.html
 [trans_isolation]:https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html

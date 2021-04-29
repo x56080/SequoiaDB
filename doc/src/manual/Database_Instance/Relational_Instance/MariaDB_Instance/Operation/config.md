@@ -387,7 +387,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 | default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
 | lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
 | join_cache_level       | int32  | Yes | Global,Session  | 8       | 连接缓存级别，取值为 [0,8]；如果级别设置为 0，表示不使用任何级别的连接算法；如果级别设置为 4，表示使用 4 或 4 以下级别（即可以使用 [0,4] 级别）的连接算法，其它取值同理<br>各级别对应的连接算法如下：<br>1：表示 Flat BNL <br>2：表示 Incremental BNL <br>3：表示 Flat BNLH <br>4：表示 Incremental BNLH <br>5：表示 Flat BKA <br>6：表示 Incremental BKA <br>7：表示 Flat BKAH <br>8：表示 Incremental BKAH<br> 上述算法可参考 [MariaDB 连接算法][Block_based_join_algorithms] |
-| optimizer_switch       | flagset| Yes | Global,Session | mrr=on,mrr_cost_based=off,<br>join_cache_incremental=on,<br>join_cache_hashed=on,<br>join_cache_bka=on,<br>optimize_join_buffer_size=on| 优化器开关，取值意义可参考[MariaDB 优化器开关][optimizer_switch]   |
+| optimizer_switch       | flagset| Yes | Global,Session | mrr=on,mrr_cost_based=off,<br>join_cache_incremental=on,<br>join_cache_hashed=on,<br>join_cache_bka=on,<br>optimize_join_buffer_size=on,<br>index_merge_intersection=off | 优化器开关，取值意义可参考 [MariaDB 优化器开关][optimizer_switch]   |
 | transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别，取值可参考 [MariaDB 事务隔离级别配置][trans_isolation]<br>SequoiaDB v3.2.x/v3.4.x 版本不支持 RR 隔离级别，因此将 MariaDB 实例的隔离级别配置为 REPEATABLE-READ 并连接至 SequoiaDB 时，隔离级别会自动降级为 READ-COMMITTED |
 
 > **Note:** 
