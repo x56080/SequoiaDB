@@ -1470,6 +1470,9 @@ namespace engine
       currentLSN = _pDPSCB->getCurrentLsn() ;
       transLSN = _pTransCB->getOldestBeginLsn() ;
 
+      _metaHeader._endLSNOffset   = expectlsn.offset ;
+      _metaHeader._transLSNOffset = transLSN ;
+
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
          // if begin LSN in meta is invalid, means the last backup is
@@ -1529,9 +1532,6 @@ namespace engine
             _metaHeader._beginLSNOffset = currentLSN.offset ;
          }
       }
-
-      _metaHeader._endLSNOffset   = expectlsn.offset ;
-      _metaHeader._transLSNOffset = transLSN ;
 
    done:
       return rc ;
@@ -3480,7 +3480,7 @@ namespace engine
       _checkGroupName = checkGroupName ;
       _checkHostName = checkHostName ;
       _checkSvcName = checkSvcName ;
-      
+
    }
 
    _barBackupMgr::~_barBackupMgr ()
