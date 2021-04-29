@@ -1,20 +1,20 @@
-## 名称
+##名称##
 
 flags - 按指定的标志位遍历结果集
 
-## 语法
+##语法##
 
 **query.flags( \<flag\> )**
 
-## 类别
+##类别##
 
 SdbQuery
 
-## 描述
+##描述##
 
 按指定的标志位遍历结果集。
 
-## 参数
+##参数##
 
 | 参数名 | 参数类型 | 默认值 | 描述   | 是否必填 |
 | ------ | -------- | ------ | ------ | -------- |
@@ -34,51 +34,50 @@ flag 参数的可选值如下表：
 
 > 假设用户指定了集合中不存在的索引查询数据，那么查询会进行全表查询，而不是索引查询。如果用户指定了集合中不存在的索引查询数据，然后又指定了 SDB_FLG_QUERY_FORCE_HINT 标志位，因为该标志位是强制进行索引查询，所以用户执行该操作会报错。 
 
-## 返回值
+##返回值##
 
 返回查询结果集的游标。
 
-## 错误
+##错误##
 
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
 关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
-## 版本
+##版本##
 
 v3.2 及以上版本。
 
-## 示例
+##示例##
 
-* 强制使用指定的索引进行查询。
+强制使用指定的索引进行查询。
 
-   ```lang-javascript
-   > db.sample.employee.find().hint( { "": "ageIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
-   {
-      "_id": {
-        "$oid": "5d412cfa614afb5557b2b41d"
-      },
-      "name": "fang",
-      "age": 18
-   }
-   {
-      "_id": {
-        "$oid": "5d412cfa614afb5557b2b41c"
-      },
-      "name": "alice",
-      "age": 19
-   }
-   {
-      "_id": {
-        "$oid": "5d412cfa614afb5557b2b41b"
-      },
-      "name": "ben",
-      "age": 21
-   }
+```lang-javascript
+> db.sample.employee.find().hint( { "": "ageIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
+{
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41d"
+   },
+   "name": "fang",
+   "age": 18
+}
+{
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41c"
+   },
+   "name": "alice",
+   "age": 19
+}
+{
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41b"
+   },
+   "name": "ben",
+   "age": 21
+}
 
-   > db.sample.employee.find().hint( { "": "notExistIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
-   uncaught exception: -53
-   Invalid hint
-   Takes 0.003438s.
-   ```
+> db.sample.employee.find().hint( { "": "notExistIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
+uncaught exception: -53
+Invalid hint
+```
