@@ -128,6 +128,8 @@ namespace engine
          goto error ;
       }
 
+
+   retryCata :
       /************************************************************************
        * Phase 1
        * 1. Generate P1 message to Catalog
@@ -174,7 +176,7 @@ namespace engine
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
-   retry :
+   retryData :
       // Execute P1 on Data Groups
       rc = _doOnDataGroup( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
                            pArguments, groupLst, cataObjs, sucGroupLst ) ;
@@ -191,7 +193,7 @@ namespace engine
                  "command[%s, target: %s], retry",
                  rc, getName(), pArguments->_targetName.c_str() ) ;
          retryCount++ ;
-         goto retry ;
+         goto retryData ;
       }
       PD_RC_CHECK( rc, PDERROR, "Do phase 1 on data failed for command[%s, "
                    "target:%s, suc group size:%u], rc: %d",
@@ -210,6 +212,43 @@ namespace engine
       // Execute P2 on Catalog
       rc = _doOnCataGroupP2( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
                              pArguments, groupLst ) ;
+      if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
+           retryCount < COORD_CMD_RETRY_TIMES )
+      {
+         if ( NULL != pCoordCtxForCata )
+         {
+            pRtncb->contextDelete( pCoordCtxForCata->contextID(), cb ) ;
+            pCoordCtxForCata = NULL ;
+         }
+         if ( NULL != pCoordCtxForData )
+         {
+            pRtncb->contextDelete( pCoordCtxForData->contextID(), cb ) ;
+            pCoordCtxForData = NULL ;
+         }
+
+         if ( pCataMsgBuf )
+         {
+            _releaseCataMsg( pCataMsgBuf, cataMsgSize, cb ) ;
+            pCataMsgBuf = NULL ;
+            cataMsgSize = 0 ;
+         }
+         if ( pDataMsgBuf )
+         {
+            _releaseDataMsg( pDataMsgBuf, dataMsgSize, cb ) ;
+            pDataMsgBuf = NULL ;
+            dataMsgSize = 0 ;
+         }
+
+         groupLst.clear() ;
+         sucGroupLst.clear() ;
+
+         PD_LOG( PDWARNING, "Do phase 2 on cata failed[rc: %d] for "
+                 "command[%s, target: %s], retry",
+                 rc, getName(), pArguments->_targetName.c_str() ) ;
+
+         ++ retryCount ;
+         goto retryCata ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Do phase 2 on catalog failed for "
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;

@@ -595,7 +595,7 @@ namespace engine
             use coord cache but not use group list, because split
             will change the version and groups without lock
          */
-         virtual BOOLEAN _flagUseGrpLstInCoord () { return TRUE ; }
+         virtual BOOLEAN _flagUseGrpLstInCoord () { return FALSE ; }
 
    } ;
    typedef _coordCMDDropCollection coordCMDDropCollection ;
