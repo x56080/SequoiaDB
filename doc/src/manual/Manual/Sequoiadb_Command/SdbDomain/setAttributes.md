@@ -1,16 +1,16 @@
-## 名称
+##名称##
 
 setAttributes - 修改域的属性
 
-## 语法
+##语法##
 
 **domain.setAttributes( \<options\> )**
 
-## 类别
+##类别##
 
 SdbDomain
 
-## 描述
+##描述##
 
 该函数用于修改域的属性。
 
@@ -19,7 +19,7 @@ SdbDomain
    > - 删除复制组前必须保证组内不包含任何数据，否则操作将失败。
    > - 更改 AutoSplit 不会对之前创建的集合和集合空间产生影响。
 
-## 参数
+##参数##
 
 options ( *object，必填* )
 
@@ -34,13 +34,13 @@ options ( *object，必填* )
    格式：`AutoSplit:true|false`
 
 
-## 返回值
+##返回值##
 
 函数执行成功时，无返回值。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-## 错误
+##错误##
 
 | 错误码 | 可能的原因   | 解决方法              |
 | ------ | ------------ | --------------------- |
@@ -50,37 +50,37 @@ options ( *object，必填* )
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
-## 版本
+##版本##
 
 v2.0 及以上版本
 
-## 示例
+##示例##
 
 * 首先创建一个域，包含两个复制组，开启自动切分
 
-```lang-javascript
-> var domain = db.createDomain( 'mydomain', ['group1', 'group2'], { AutoSplit: true } )
-```
+    ```lang-javascript
+    > var domain = db.createDomain( 'mydomain', ['group1', 'group2'], { AutoSplit: true } )
+    ```
 
 * 从域中删除一个复制组 group2，添加另一个复制组 group3，最后域中包含 group1 和 group3 两个复制组
 
-```lang-javascript
-> domain.setAttributes( { Groups: ['group1', 'group3'] } )
-```
+    ```lang-javascript
+    > domain.setAttributes( { Groups: ['group1', 'group3'] } )
+    ```
 
 * 首先创建一个域，包含一个复制组，复制组中包含表 sample.employee。
 
-```lang-javascript
-> var domain = db.createDomain( 'mydomain', ['group1'] )
-```
+    ```lang-javascript
+    > var domain = db.createDomain( 'mydomain', ['group1'] )
+    ```
 
 * 从域中删除原复制组，添加另一个复制组，将因把拥有数据的 group1 从域中删除而报错
 
-```lang-javascript
-> domain.setAttributes( { Groups: ['group2'] } )
-(nofile):0 uncaught exception: -256
-Domain has been used
-```
+    ```lang-javascript
+    > domain.setAttributes( { Groups: ['group2'] } )
+    (nofile):0 uncaught exception: -256
+    Domain has been used
+    ```
 
 [^_^]:
      本文使用的所有引用及链接
