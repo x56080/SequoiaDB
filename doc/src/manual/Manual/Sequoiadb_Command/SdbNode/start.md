@@ -1,41 +1,41 @@
-## 名称
+##名称##
 
 start - 启动当前节点
 
-## 语法
+##语法##
 
 **node.start()**
 
-## 类别
+##类别##
 
 SdbNode
 
-## 描述
+##描述##
 
 启动当前节点。
 
-## 参数
+##参数##
 
 无
 
-## 返回值
+##返回值##
 
 无返回值，出错抛异常，并输出错误信息，可以通过
 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
 关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
-## 错误
+##错误##
 
 [错误码](manual/Manual/Sequoiadb_error_code.md)
 
-## 版本
+##版本##
 
 v2.0 及以上版本。
 
-## 示例
+##示例##
 
-* 启动 node 节点
+启动 node 节点
 
- ```lang-javascript
- > node.start()
- ```
+```lang-javascript
+> node.start()
+```
