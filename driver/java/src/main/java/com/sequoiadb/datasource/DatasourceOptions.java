@@ -46,6 +46,7 @@ public class DatasourceOptions implements Cloneable {
     private List<Object> _preferedInstance = null;
     private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+    private int _networkBlockTimeout = 6000; //network block timeout, default 6s
 
     /**
      * Clone the current options.
@@ -529,6 +530,26 @@ public class DatasourceOptions implements Cloneable {
      */
     public int getTimeout() {
         return 0;
+    }
+
+    /**
+     * Set the network block timeout, which is used to set the send and receive timeout of the connections
+     * inside the connection pool. After a connection get out from the connection pool, its send and receive
+     * timeout will be restored to the original state.
+     *
+     * @param networkBlockTimeout The network block timeout, default to be 6000ms, 0ms and means no timeout
+     */
+    public void setNetworkBlockTimeout(int networkBlockTimeout) {
+        this._networkBlockTimeout = networkBlockTimeout;
+    }
+
+    /**
+     * Get the network block timeout
+     *
+     * @return The network block timeout
+     */
+    public int getNetworkBlockTimeout() {
+        return _networkBlockTimeout;
     }
 
     BSONObject getSessionAttr() {

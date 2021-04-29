@@ -52,7 +52,8 @@ public class SequoiadbDatasource {
     // for creating connections
     private String _username = null;
     private String _password = null;
-    private ConfigOptions _nwOpt = null;
+    private ConfigOptions _insideNwOpt = null;
+    private ConfigOptions _userNwOpt = null;
     private DatasourceOptions _dsOpt = null;
     private long _currentSequenceNumber = 0;
     // for  thread
@@ -73,6 +74,7 @@ public class SequoiadbDatasource {
     private double MULTIPLE = 1.5;
     private volatile int _preDeleteInterval = 0;
     private static final int _deleteInterval = 180000; // 3min
+
     // finalizer guardian
     @SuppressWarnings("unused")
     private final Object finalizerGuardian = new Object() {
@@ -215,6 +217,7 @@ public class SequoiadbDatasource {
                 String addr = "";
                 nwOpt.setConnectTimeout(100); // 100ms
                 nwOpt.setMaxAutoConnectRetryTime(0);
+                nwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
                 while (abnormalAddrSetItr.hasNext()) {
                     addr = abnormalAddrSetItr.next();
                     try {
@@ -265,7 +268,7 @@ public class SequoiadbDatasource {
                 while (itr.hasNext()) {
                     String addr = itr.next();
                     try {
-                        sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
+                        sdb = new Sequoiadb(addr, _username, _password, _insideNwOpt);
                         break;
                     } catch (BaseException e) {
                         continue;
@@ -604,6 +607,10 @@ public class SequoiadbDatasource {
             if (!_isDatasourceOn) {
                 return;
             }
+
+            // update network block timeout
+            _insideNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
+
             // when _maxCount is set to 0, disable data source and return
             if (_dsOpt.getMaxCount() == 0) {
                 disableDatasource();
@@ -753,7 +760,10 @@ public class SequoiadbDatasource {
                 }
                 // when the pool is disabled
                 if (!_isDatasourceOn) {
-                    return _newConnByNormalAddr();
+                    sdb = _newConnByNormalAddr();
+                    // Use external network configuration when connection leaving the pool
+                    updateConnConf(sdb, _userNwOpt);
+                    return sdb;
                 }
                 if ((connItem = _strategy.pollConnItemForGetting()) != null) {
                     // when we still have connection in idle pool,
@@ -876,6 +886,8 @@ public class SequoiadbDatasource {
                 _usedConnPool.insert(connItem, sdb);
                 // tell strategy used pool had add a connection
                 _strategy.updateUsedConnItemCount(connItem, 1);
+                // Use external network configuration when connection leaving the pool
+                updateConnConf(sdb, _userNwOpt);
                 return sdb;
             }
         } finally {
@@ -915,6 +927,8 @@ public class SequoiadbDatasource {
                                     "the pool does't have item for the coming back connection");
                         }
                         _connItemMgr.releaseItem(item);
+                        // Use internal network configuration when connection back to the pool
+                        updateConnConf(sdb, _insideNwOpt);
                     }
                 }
                 try {
@@ -940,6 +954,8 @@ public class SequoiadbDatasource {
                     throw new BaseException(SDBError.SDB_INVALIDARG,
                             "the connection pool doesn't contain the offered connection");
                 }
+                // Use internal network configuration when connection back to the pool
+                updateConnConf(sdb, _insideNwOpt);
             }
             // we have decreased connection in used pool, let's update the strategy
             _strategy.updateUsedConnItemCount(item, -1);
@@ -1022,14 +1038,7 @@ public class SequoiadbDatasource {
         }
         _username = (username == null) ? "" : username;
         _password = (password == null) ? "" : password;
-        if (nwOpt == null) {
-            ConfigOptions temp = new ConfigOptions();
-            temp.setConnectTimeout(100);
-            temp.setMaxAutoConnectRetryTime(0);
-            _nwOpt = temp;
-        } else {
-            _nwOpt = nwOpt;
-        }
+
         if (dsOpt == null) {
             _dsOpt = new DatasourceOptions();
         } else {
@@ -1039,6 +1048,24 @@ public class SequoiadbDatasource {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "failed to clone connection pool options");
             }
         }
+        // check options
+        _checkDatasourceOptions(_dsOpt);
+
+        ConfigOptions temp = nwOpt;
+        if (temp == null){
+            temp = new ConfigOptions();
+            temp.setConnectTimeout(100);
+            temp.setMaxAutoConnectRetryTime(0);
+        }
+        try {
+            _insideNwOpt = (ConfigOptions) temp.clone();
+            _userNwOpt = (ConfigOptions) temp.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "failed to clone connection pool options");
+        }
+        // set the network block timeout inside the connection pool
+        // to avoid socket stuck due to network errors.
+        _insideNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
 
         // pick up local coord address
         List<String> localIPList = ConcreteLocalStrategy.getNetCardIPs();
@@ -1046,9 +1073,6 @@ public class SequoiadbDatasource {
         List<String> localCoordList =
                 ConcreteLocalStrategy.getLocalCoordIPs(_normalAddrs, localIPList);
         _localAddrs.addAll(localCoordList);
-
-        // check options
-        _checkDatasourceOptions(_dsOpt);
 
         // if connection is shutdown, return directly
         if (_dsOpt.getMaxCount() == 0) {
@@ -1236,6 +1260,11 @@ public class SequoiadbDatasource {
             }
             _sessionAttr = newOpt.getSessionAttr();
         }
+
+        // check networkBlockTimeout
+        if (newOpt.getNetworkBlockTimeout() < 0){
+            throw new BaseException(SDBError.SDB_INVALIDARG, "invalid networkBlockTimeout: " + newOpt.getNetworkBlockTimeout());
+        }
     }
 
     private Sequoiadb _newConnByNormalAddr() throws BaseException {
@@ -1256,7 +1285,7 @@ public class SequoiadbDatasource {
                 }
                 if (address != null) {
                     try {
-                        sdb = new Sequoiadb(address, _username, _password, _nwOpt);
+                        sdb = new Sequoiadb(address, _username, _password, _insideNwOpt);
                         // when success, let's return the connection
                         break;
                     } catch (BaseException e) {
@@ -1296,7 +1325,7 @@ public class SequoiadbDatasource {
             while (itr.hasNext()) {
                 String addr = itr.next();
                 try {
-                    retConn = new Sequoiadb(addr, _username, _password, _nwOpt);
+                    retConn = new Sequoiadb(addr, _username, _password, _insideNwOpt);
                 } catch (Exception e) {
                     if (e instanceof BaseException) {
                         _setLastException((BaseException) e);
@@ -1399,7 +1428,7 @@ public class SequoiadbDatasource {
                 }
                 // create connection
                 try {
-                    sdb = new Sequoiadb(addr, _username, _password, _nwOpt);
+                    sdb = new Sequoiadb(addr, _username, _password, _insideNwOpt);
                     break;
                 } catch (BaseException e) {
                     _setLastException(e);
@@ -1599,5 +1628,10 @@ public class SequoiadbDatasource {
         return retCoordAddr;
     }
 
+    private void updateConnConf(Sequoiadb sdb, ConfigOptions config){
+        // _insideNwOpt and _userNwOpt are different only in socketTimeout parameters,
+        // so only socketTimeout is updated
+        sdb.getConnProxy().setSoTimeout(config.getSocketTimeout());
+    }
 }
 

@@ -54,6 +54,7 @@ import com.sequoiadb.message.response.SysInfoResponse;
 import com.sequoiadb.net.IConnection;
 import com.sequoiadb.net.ServerAddress;
 import com.sequoiadb.net.TCPConnection;
+import com.sequoiadb.net.ConnectionProxy;
 
 /**
  * The connection with SequoiaDB server.
@@ -61,6 +62,7 @@ import com.sequoiadb.net.TCPConnection;
 public class Sequoiadb implements Closeable {
     private InetSocketAddress socketAddress;
     private IConnection connection;
+    private ConnectionProxy connProxy;
     private String userName;
     private String password;
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
@@ -490,6 +492,8 @@ public class Sequoiadb implements Closeable {
         socketAddress = new InetSocketAddress(host, port);
         connection = new TCPConnection(socketAddress, options);
         connection.connect();
+
+        connProxy = new ConnectionProxy(connection);
 
         byteOrder = getSysInfo();
         authenticate(username, password);
@@ -2797,6 +2801,16 @@ public class Sequoiadb implements Closeable {
         } finally {
             connection.close();
         }
+    }
+
+    /**
+     * Get the connection proxy object, which can be used to update the configuration
+     * of the connection object.
+     *
+     * @return The connection proxy object
+     */
+    public ConnectionProxy getConnProxy(){
+        return connProxy;
     }
 
     /**

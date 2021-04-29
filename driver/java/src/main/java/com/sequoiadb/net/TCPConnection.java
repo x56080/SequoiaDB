@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -243,6 +244,15 @@ public class TCPConnection implements IConnection {
         } catch (IOException e) {
             close();
             throw new BaseException(SDBError.SDB_NETWORK, remoteAddressInfo, e);
+        }
+    }
+
+    @Override
+    public void setSoTimeout(int timeout) throws BaseException {
+        try {
+            socket.setSoTimeout(timeout);
+        }catch (SocketException e){
+            throw new BaseException(SDBError.SDB_NETWORK, "failed to modify soTimeout, message: " + e.getMessage());
         }
     }
 }
