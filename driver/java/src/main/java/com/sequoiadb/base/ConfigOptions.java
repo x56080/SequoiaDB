@@ -22,7 +22,7 @@ import com.sequoiadb.exception.SDBError;
 /**
  * Database Connection Configuration Option
  */
-public class ConfigOptions {
+public class ConfigOptions implements Cloneable {
     private long maxAutoConnectRetryTime = 15000;
     private int connectTimeout = 10000;
     private int socketTimeout = 0;
@@ -58,7 +58,7 @@ public class ConfigOptions {
     }
 
     /**
-     * Get the socket timeout in milliseconds.
+     * Set the socket timeout in milliseconds.
      * It is used for I/O socket read operations {@link java.net.Socket#setSoTimeout(int)}
      *
      * @param socketTimeoutMillis The socket timeout in milliseconds. Default is 0ms and means no timeout.
@@ -157,4 +157,12 @@ public class ConfigOptions {
         return useSSL;
     }
 
+    /**
+     * Clone the current options.
+     *
+     * @since 3.4.3
+     */
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
 }
