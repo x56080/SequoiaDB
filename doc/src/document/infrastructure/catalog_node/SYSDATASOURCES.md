@@ -1,8 +1,8 @@
-## 所属集合空间
+##所属集合空间##
 
 SYSCAT
 
-## 概念
+##概念##
 
 SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数据信息。每个数据源保存为一个文档。
 
@@ -25,7 +25,7 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
 | ErrorFilterMask | number | 数据源的错误过滤掩码，与参数 ErrorFilterMaskDesc 对应，取值如下：<br> 	1：对应"READ"  <br>   	2：对应"WRITE" <br> 	3：对应"ALL"或"READ\|WRITE" <br>  0：对应"NONE" |
 
 
-## 示例
+##示例##
 
 一个典型的数据源元数据信息如下：
 
@@ -49,8 +49,3 @@ SYSCAT.SYSDATASOURCES 集合中包含了该集群中所有的数据源的元数�
   "ErrorFilterMaskDesc": "NONE"
 }
 ```
-
-
-[^_^]:
-     本文使用的所有引用及链接
-[create]:manual/Manual/Sequoiadb_Command/Sdb/createDataSource.md
