@@ -49,7 +49,6 @@ Sdb
 >          *   在节点配置了 instanceid 的情况下，按照 instanceid 进行获取。在节点没有配置 instanceid 的情况下，按照节点的 NodeID 在组内的排序序列（从1开始）作为 instanceid 来进行选取，例如 组 db1 中有3个节点 [ {NodeID:1001}, {NodeID:1004}, {NodeID:1002} ]，那么其节点的 instanceid 分别为 1, 3, 2。
 >       *   如果一个或多个实例取值和一个角色取值混合指定，则优先选择匹配实例 ID 的一组节点中符合角色的节点。如 ```[ 1, 2, "S" ]``` 表示优先选择实例 ID 为 1 或者 2 的节点中的备节点。
 >       *   混合指定时，可以通过 "-" 扩展角色取值，如 "-M"，"-S" 等，表示如果没有匹配实例 ID 的节点时，优先选择角色节点，如 ```[ 1, 2, "-S" ]``` 表示优先匹配实例 ID 为 1 或者 2 的节点，如果没有，则优先选择任意一个备节点。
->       *   混合指定时，如果指定多个角色取值实例，或者其扩展取值，则只有第一个生效。如 ```[ "M", "S" ]``` 中只生效 "M"。
 >       *   单独指定时，角色取值的扩展模式和角色取值的语义是相同的。如单独指定 "S" 和 "-S"，语义是一致的。
 >       *   如果同一个会话中，读请求前有写请求，写请求之后的一段时间内读请求将默认使用写请求使用的节点（可读写例）进行读取，可以通过设置 PreferedPeriod 来修改读请求复用写请求节点的有效期限。
 >       *   如果没有符合 PreferedInstance 的实例，之前也没有写请求，一般在数据组中随机选取节点进行。特殊情况是，为了兼容之前的版本，如果单独指定一个实例取值时，将按照实例 ID - 1 后对节点总数取模后在组内按照 NodeID 的升序排序顺序选取。
@@ -88,21 +87,21 @@ v2.0 及以上版本
 
 * 设置会话优先从“主”数据库实例获取数据
 
-   ```lang-javascript
-   > db.setSessionAttr( { PreferedInstance: "M" } )
-   ```
+    ```lang-javascript
+    > db.setSessionAttr( { PreferedInstance: "M" } )
+    ```
 
 * 设置会话优先从 1 和 3 的备实例读取数据
 
-   ```lang-javascript
-   > db.setSessionAttr( { PreferedInstance : [ 1, 3, "S" ] } )
-   ```
+    ```lang-javascript
+    > db.setSessionAttr( { PreferedInstance : [ 1, 3, "S" ] } )
+    ```
 
 * 设置会话的操作超时时间为 10 秒
 
-   ```lang-javascript
-   > db.setSessionAttr( { Timeout : 10000 } )
-   ```
+    ```lang-javascript
+    > db.setSessionAttr( { Timeout : 10000 } )
+    ```
 
 
 [^_^]:

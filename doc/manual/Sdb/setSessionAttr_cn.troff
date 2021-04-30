@@ -376,9 +376,6 @@ instanceid 来进行选取，例如 组 db1 中有3个节点 [ {NodeID:1001}, {N
 ID 的节点时，优先选择角色节点，如 \f[C][\ 1,\ 2,\ "\-S"\ ]\f[] 表示优先匹配实例
 ID 为 1 或者 2 的节点，如果没有，则优先选择任意一个备节点。
 .IP \[bu] 2
-混合指定时，如果指定多个角色取值实例，或者其扩展取值，则只有第一个生效。如
-\f[C][\ "M",\ "S"\ ]\f[] 中只生效 "M"。
-.IP \[bu] 2
 单独指定时，角色取值的扩展模式和角色取值的语义是相同的。如单独指定 "S" 和
 "\-S"，语义是一致的。
 .IP \[bu] 2
@@ -466,13 +463,31 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 设置会话优先从“主”数据库实例获取数据
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.setSessionAttr(\ {\ PreferedInstance:\ "M"\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.setSessionAttr(\ {\ PreferedInstance:\ "M"\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 设置会话优先从 1 和 3 的备实例读取数据
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.setSessionAttr(\ {\ PreferedInstance\ :\ [\ 1,\ 3,\ "S"\ ]\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.setSessionAttr(\ {\ PreferedInstance\ :\ [\ 1,\ 3,\ "S"\ ]\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 设置会话的操作超时时间为 10 秒
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.setSessionAttr(\ {\ Timeout\ :\ 10000\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.setSessionAttr(\ {\ Timeout\ :\ 10000\ }\ )
+\f[]
+.fi
+.RE
