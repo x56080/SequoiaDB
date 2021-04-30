@@ -135,7 +135,7 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Acquire the information of operating system configuration about virtual memory
 .IP
 .nf

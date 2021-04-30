@@ -46,37 +46,37 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * List the information of processes
 
-```lang-javascript
-> System.listProcess()
-{
-  "pid": "30571",
-  "cmd": "sequoiadb(50000) S"
-}
-{
-  "pid": "30834",
-  "cmd": "bin/sdb"
-}
-{
-  "pid": "30876",
-  "cmd": "/usr/sbin/rsyslogd -n"
-}
-...
-```
+    ```lang-javascript
+    > System.listProcess()
+    {
+      "pid": "30571",
+      "cmd": "sequoiadb(50000) S"
+    }
+    {
+      "pid": "30834",
+      "cmd": "bin/sdb"
+    }
+    {
+      "pid": "30876",
+      "cmd": "/usr/sbin/rsyslogd -n"
+    }
+    ...
+    ```
 
-* Filter the results:
+* Filter the results
 
-```lang-javascript
-> System.listProcess( { detail: true }, { "user": "sdbadmin" } )
-{
-  "user": "sdbadmin",
-  "pid": "20630",
-  "status": "S",
-  "cmd": "sleep 1"
-}
-{
-  "user": "sdbadmin",
-  "pid": "25681",
-  "status": "Sl",
-  "cmd": "sdbom(11780)"
-}
-```
+    ```lang-javascript
+    > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
+    {
+      "user": "sdbadmin",
+      "pid": "20630",
+      "status": "S",
+      "cmd": "sleep 1"
+    }
+    {
+      "user": "sdbadmin",
+      "pid": "25681",
+      "status": "Sl",
+      "cmd": "sdbom(11780)"
+    }
+    ```

@@ -40,26 +40,26 @@ options 参数详细说明如下：
 
 ##示例##
 
-* 列出所有用户的信息；
+* 列出所有用户的信息
+    
+    ```lang-javascript
+    > System.listAllUsers( )
+    {
+        "user": "sequoiadb"
+    }
+    {
+        "user": "sdbadmin"
+    }
+    ...
+    ```
 
-  ```lang-javascript
-  > System.listAllUsers( )
-  {
-      "user": "sequoiadb"
-  }
-  {
-      "user": "sdbadmin"
-  }
-  ...
-  ```
+* 对结果进行筛选
 
-* 对结果进行筛选:
-
-  ```lang-javascript
-  > System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
-  {
-      "user": "sequoiadb",
-      "gid": "1000",
-      "dir": "/home/sequoiadb"
-  }
-  ```
+    ```lang-javascript
+    > System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
+    {
+        "user": "sequoiadb",
+        "gid": "1000",
+        "dir": "/home/sequoiadb"
+    }
+    ```

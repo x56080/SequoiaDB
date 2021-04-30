@@ -27,9 +27,9 @@ System
 
 ##示例##
 
-* 返回操作系统的类别
+返回操作系统的类别
 
-  ```lang-javascript
-  > System.type()
-  LINUX
-  ```
+```lang-javascript
+> System.type()
+LINUX
+```

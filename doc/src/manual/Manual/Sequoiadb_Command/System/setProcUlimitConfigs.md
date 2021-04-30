@@ -31,8 +31,8 @@ configs 参数可修改的字段见[getProcUlimitConfigs](manual/Manual/Sequoiad
 
 ##示例##
 
-* 修改进程最大内存大小
+修改进程最大内存大小
 
-  ```lang-javascript
-  > System.setProcUlimitConfigs( { "max_memory_size": -1 } )
-  ```
+```lang-javascript
+> System.setProcUlimitConfigs( { "max_memory_size": -1 } )
+```

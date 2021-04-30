@@ -29,9 +29,9 @@ System
 
 ##示例##
 
-* 判断用户组是否存在：
+判断用户组是否存在
 
-  ```lang-javascript
-  > System.isGroupExist( "root" )
-  true
-  ```
+```lang-javascript
+> System.isGroupExist( "root" )
+true
+```

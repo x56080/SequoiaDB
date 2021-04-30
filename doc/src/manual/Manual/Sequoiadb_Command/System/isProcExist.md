@@ -36,16 +36,16 @@ options 参数详细说明如下：
 
 ##示例##
 
-* 通过指定pid判断：
+* 通过指定pid判断
 
-  ```lang-javascript
-  > System.isProcExist( { value: "31831", type: "pid" } )
-  true
-  ```
+    ```lang-javascript
+    > System.isProcExist( { value: "31831", type: "pid" } )
+    true
+    ```
 
-* 通过指定服务名判断：
+* 通过指定服务名判断
 
-  ```lang-javascript
-  > System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
-  true
-  ```
+    ```lang-javascript
+    > System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
+    true
+    ```

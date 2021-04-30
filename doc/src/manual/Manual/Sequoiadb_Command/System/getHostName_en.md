@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the hostname
+Acquire the hostname
 
 ```lang-javascript
 > System.getHostName()

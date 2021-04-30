@@ -42,14 +42,14 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * Judging by the specified pid：
 
-```lang-javascript
-> System.isProcExist( { value: "31831", type: "pid" } )
-true
-```
+    ```lang-javascript
+    > System.isProcExist( { value: "31831", type: "pid" } )
+    true
+    ```
 
 * Judging by the specified service name：
 
-```lang-javascript
-> System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
-true
-```
+    ```lang-javascript
+    > System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
+    true
+    ```

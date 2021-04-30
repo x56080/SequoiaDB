@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Determine whether a port is usable
+Determine whether a port is usable
 
 ```lang-javascript
 > System.sniffPort(50000)

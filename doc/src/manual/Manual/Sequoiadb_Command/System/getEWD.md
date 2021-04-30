@@ -27,9 +27,9 @@ System
 
 ##示例##
 
-* 获取当前 sdb shell 所在的目录
+获取当前 sdb shell 所在的目录
 
-  ```lang-javascript
-  > System.getEWD()
-  /opt/sequoiadb/bin
-  ```
+```lang-javascript
+> System.getEWD()
+/opt/sequoiadb/bin
+```

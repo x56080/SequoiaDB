@@ -41,39 +41,39 @@ options 参数详细说明如下：
 
 ##示例##
 
-* 列出所有进程的信息；
+* 列出所有进程的信息
 
-  ```lang-javascript
-  > System.listProcess()
-  {
-      "pid": "30571",
-      "cmd": "sequoiadb(50000) S"
-  }
-  {
-      "pid": "30834",
-      "cmd": "bin/sdb"
-  }
-  {
-      "pid": "30876",
-      "cmd": "/usr/sbin/rsyslogd -n"
-  }
-  ...
-  ```
+    ```lang-javascript
+    > System.listProcess()
+    {
+        "pid": "30571",
+        "cmd": "sequoiadb(50000) S"
+    }
+    {
+        "pid": "30834",
+        "cmd": "bin/sdb"
+    }
+    {
+        "pid": "30876",
+        "cmd": "/usr/sbin/rsyslogd -n"
+    }
+    ...
+    ```
 
-* 对结果进行筛选:
+* 对结果进行筛选
 
-  ```lang-javascript
-  > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
-  {
-      "user": "sdbadmin",
-      "pid": "20630",
-      "status": "S",
-      "cmd": "sleep 1"
-  }
-  {
-      "user": "sdbadmin",
-      "pid": "25681",
-      "status": "Sl",
-      "cmd": "sdbom(11780)"
-  }
-  ```
+    ```lang-javascript
+    > System.listProcess( { detail: true }, { "user": "sdbadmin" } )
+    {
+        "user": "sdbadmin",
+        "pid": "20630",
+        "status": "S",
+        "cmd": "sleep 1"
+    }
+    {
+        "user": "sdbadmin",
+        "pid": "25681",
+        "status": "Sl",
+        "cmd": "sdbom(11780)"
+    }
+    ```

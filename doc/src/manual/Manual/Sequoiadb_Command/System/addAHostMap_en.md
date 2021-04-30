@@ -35,7 +35,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Add a hostname to ip address mapping to the host file
+Add a hostname to ip address mapping to the host file
 
 ```lang-javascript
 > System.addAHostMap( "hostname", "1.1.1.1" )

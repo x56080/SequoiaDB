@@ -29,11 +29,11 @@ System
 
 ##示例##
 
-* 测试一个端口是否可用
+测试一个端口是否可用
 
-  ```lang-javascript
-  > System.sniffPort(50000)
-  {
-  	  "Usable": false
-  }
-  ```
+```lang-javascript
+> System.sniffPort(50000)
+{
+      "Usable": false
+}
+```

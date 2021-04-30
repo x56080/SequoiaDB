@@ -29,9 +29,9 @@ System
 
 ##示例##
 
-* 获取指定主机名在host文件中对应的IP地址
+获取指定主机名在host文件中对应的IP地址
 
-  ```lang-javascript
-  > System.getAHostMap( "localhost" )
-  127.0.0.1
-  ```
+```lang-javascript
+> System.getAHostMap( "localhost" )
+127.0.0.1
+```

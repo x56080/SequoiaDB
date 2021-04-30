@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Determine whether the host is reachable
+Determine whether the host is reachable
 
 ```lang-javascript
 > System.ping( "hostname" )

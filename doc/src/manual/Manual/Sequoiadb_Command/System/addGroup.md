@@ -36,8 +36,8 @@ groups 参数详细说明如下：
 
 ##示例##
 
-* 增加一个用户组
+增加一个用户组
 
-  ```lang-javascript
-  > System.addGroup( { "name": "newGroup" } )
-  ```
+```lang-javascript
+> System.addGroup( { "name": "newGroup" } )
+```

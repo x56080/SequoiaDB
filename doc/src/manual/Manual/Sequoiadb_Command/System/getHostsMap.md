@@ -27,17 +27,17 @@ System
 
 ##示例##
 
-* 获取 host 文件的 IP 与主机名的映射关系
+获取 host 文件的 IP 与主机名的映射关系
 
-	```lang-javascript
-  > System.getHostsMap()
-  {
-      "Hosts": [
-        {
-          "ip": "127.0.0.1",
-          "hostname": "localhost"
-        },
-        ...
-      ]
-  } 
-	```
+```lang-javascript
+> System.getHostsMap()
+{
+    "Hosts": [
+      {
+        "ip": "127.0.0.1",
+        "hostname": "localhost"
+      },
+      ...
+    ]
+} 
+```

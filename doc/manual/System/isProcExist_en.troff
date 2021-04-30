@@ -181,6 +181,7 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Judging by the specified pid：
+.RS 2
 .IP
 .nf
 \f[C]
@@ -188,8 +189,10 @@ Judging by the specified pid：
 true
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Judging by the specified service name：
+.RS 2
 .IP
 .nf
 \f[C]
@@ -197,3 +200,4 @@ Judging by the specified service name：
 true
 \f[]
 .fi
+.RE

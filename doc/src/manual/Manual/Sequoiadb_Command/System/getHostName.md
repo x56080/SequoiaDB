@@ -27,9 +27,9 @@ System
 
 ##示例##
 
-* 获取主机名
+获取主机名
 
-  ```lang-javascript
-  > System.getHostName()
-  hostname
-  ```
+```lang-javascript
+> System.getHostName()
+hostname
+```

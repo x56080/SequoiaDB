@@ -101,7 +101,7 @@ when exception happen, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Add a hostname to ip address mapping to the host file
 .IP
 .nf

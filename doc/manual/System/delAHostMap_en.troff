@@ -55,11 +55,11 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Delete a hostname to ip address mapping in the host file
 .IP
 .nf

@@ -27,9 +27,9 @@ System
 
 ##示例##
 
-* 获取运行 sdb shell 的进程ID
+获取运行 sdb shell 的进程ID
 
-  ```lang-javascript
-  > System.getPID()
-  16909
-  ```
+```lang-javascript
+> System.getPID()
+16909
+```

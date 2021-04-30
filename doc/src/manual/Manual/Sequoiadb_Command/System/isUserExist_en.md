@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Determine if a user exists
+Determine if a user exists
 
 ```lang-javascript
 > System.isUserExist( "root" )

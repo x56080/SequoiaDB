@@ -39,7 +39,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* kill the process
+kill the process
 
 ```lang-javascript
 > System.killProcess( { pid: 31831 } )

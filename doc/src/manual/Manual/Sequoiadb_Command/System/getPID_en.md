@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the process id of sdb shell
+Acquire the process id of sdb shell
 
 ```lang-javascript
 > System.getPID()

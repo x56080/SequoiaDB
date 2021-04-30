@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the type of operating system
+Acquire the type of operating system
 
 ```lang-javascript
 > System.type()

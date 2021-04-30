@@ -46,25 +46,25 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * List the information of all logged-in users
 
-```lang-javascript
-> System.listLoginUsers()
-{
-  "user": "sequoiadb"
-}
-{
-  "user": "username"
-}
-...
-```
+    ```lang-javascript
+    > System.listLoginUsers()
+    {
+      "user": "sequoiadb"
+    }
+    {
+      "user": "username"
+    }
+    ...
+    ```
 
 * Filter the results:
-
-```lang-javascript
-> System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
-{
-  "user": "sequoiadb",
-  "time": "2019-05-10 18:37",
-  "from": "",
-  "tty": "tty1"
-}
-```
+    
+    ```lang-javascript
+    > System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
+    {
+      "user": "sequoiadb",
+      "time": "2019-05-10 18:37",
+      "from": "",
+      "tty": "tty1"
+    }
+    ```

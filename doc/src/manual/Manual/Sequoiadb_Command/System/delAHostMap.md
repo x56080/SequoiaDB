@@ -29,8 +29,8 @@ System
 
 ##示例##
 
-* 删除host文件中的一条指定主机名的映射关系
+删除host文件中的一条指定主机名的映射关系
 
-  ```lang-javascript
-  > System.delAHostMap( "hostname" )
-  ```
+```lang-javascript
+> System.delAHostMap( "hostname" )
+```

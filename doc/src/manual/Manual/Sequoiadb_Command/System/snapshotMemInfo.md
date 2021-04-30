@@ -27,14 +27,14 @@ System
 
 ##示例##
 
-* 获取内存的基本信息
+获取内存的基本信息
 
-  ```lang-javascript
-  > System.snapshotMemInfo()
-  {
-      "Size": 5967,
-      "Used": 2919,
-      "Free": 384,
-      "Unit": "M"
-  }
-  ```
+```lang-javascript
+> System.snapshotMemInfo()
+{
+    "Size": 5967,
+    "Used": 2919,
+    "Free": 384,
+    "Unit": "M"
+}
+```

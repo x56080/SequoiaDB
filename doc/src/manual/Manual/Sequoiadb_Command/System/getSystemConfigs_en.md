@@ -46,7 +46,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the information of operating system configuration about virtual memory
+Acquire the information of operating system configuration about virtual memory
 
 ```lang-javascript
 > System.getSystemConfigs( "vm" )

@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Determine if a user group exists
+Determine if a user group exists
 
 ```lang-javascript
 > System.isGroupExist( "root" )

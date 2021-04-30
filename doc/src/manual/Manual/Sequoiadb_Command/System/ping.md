@@ -29,12 +29,12 @@ System
 
 ##示例##
 
-* 测试到达一个主机的网络是否连通
+测试到达一个主机的网络是否连通
 
-  ```lang-javascript
-  > System.ping( "hostname" )
-  {
-      "Target": "hostname",
-      "Reachable": true
-  }
-  ```
+```lang-javascript
+> System.ping( "hostname" )
+{
+    "Target": "hostname",
+    "Reachable": true
+}
+```

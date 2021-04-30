@@ -29,9 +29,9 @@ System
 
 ##示例##
 
-* 判断用户是否存在：
+判断用户是否存在
 
-  ```lang-javascript
-  > System.isUserExist( "root" )
-  true
-  ```
+```lang-javascript
+> System.isUserExist( "root" )
+true
+```

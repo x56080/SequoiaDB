@@ -1,7 +1,10 @@
+##名称##
+
+addUser - 新增操作系统用户
 
 ##语法##
 
-***System.addUser( \<users\> )***
+**System.addUser(\<users\>)**
 
 ##类别##
 
@@ -9,39 +12,67 @@ System
 
 ##描述##
 
-添加系统用户
+该函数用于新增操作系统用户。
 
 ##参数##
 
-| 参数名  | 参数类型 | 默认值       | 描述             | 是否必填 |
-| ------- | -------- | ------------ | ---------------- | -------- |
-| users     | JSON   | ---          | 用户信息       | 是       |
+users（ *object，必填* ）
 
-users 参数详细说明如下：
+通过参数 users 可以设置用户的属性：
 
-| 属性     | 值类型 | 是否<br>必填 | 格式 | 描述 |
-| -------- | ------ | -------- | -------------------- | ---------------------------------- |
-| name    | string |     是   | { "name": newUser }     | 用户名                        |
-| group    | string |     否   | { "group": groupname }     | 用户组                        |
+- name（ *string* ）：用户名，该参数必填
 
-> Note：
+    格式：`name: "username"`
 
-> group 参数必须是已存在的用户组，若不指定则默认创建与 name 参数同名的用户组
+- group（ *string* ）：指定用户组
+
+    该参数必须指定为已存在的用户组。如果不指定，则默认创建与参数 name 同名的用户组。
+
+    格式：`group: "groupName"`
+
+- additionGroup（ *string* ）：指定附加组
+
+    该参数必须指定为已存在的用户组。
+
+    格式：`additionGroup: "groupName"`
+
+- createDir（ *boolean* ）：是否创建用户目录，默认为 false
+
+    格式：`createDir: true`
+
+- dir（ *string* ）：指定用户目录，仅参数 createDir 为 true 时生效
+
+    该参数不能指定已存在的目录。如果不指定，将会在 `/home` 目录下创建与参数 name 同名的目录作为用户目录。
+
+    格式：`dir: "userHomeDir"`
+
 
 ##返回值##
 
-无返回值。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
-常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+##版本##
+
+v3.2 及以上版本
 
 ##示例##
 
-* 添加一个系统用户 
+新增名为“newUser”的系统用户，并指定用户组为 root，同时创建用户目录 `/home/newUser`
 
-  ```lang-javascript
-  > System.addUser( { "name": "newUser", "group": "root" } )
-  ```
+```lang-javascript
+> System.addUser({name: "newUser", group: "root", createDir: true, dir: "/home/newUser"})
+```
+
+
+[^_^]:
+    本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[faq]:manual/FAQ/faq_sdb.md

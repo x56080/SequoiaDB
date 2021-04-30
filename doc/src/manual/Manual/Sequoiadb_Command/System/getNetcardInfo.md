@@ -26,20 +26,20 @@ System
 
 ##示例##
 
-* 获取网卡的信息
+获取网卡的信息
 
-  ```lang-javascript
-  > System.getNetcardInfo()
-  {
-      "Netcards": [
-        {
-          "Name": "lo",
-          "Ip": "127.0.0.1"
-        },
-        {
-          "Name": "ens160",
-          "Ip": "192.168.20.62"
-        }
-      ]
-  }
-  ```
+```lang-javascript
+> System.getNetcardInfo()
+{
+    "Netcards": [
+      {
+        "Name": "lo",
+        "Ip": "127.0.0.1"
+      },
+      {
+        "Name": "ens160",
+        "Ip": "192.168.20.62"
+      }
+    ]
+}
+```

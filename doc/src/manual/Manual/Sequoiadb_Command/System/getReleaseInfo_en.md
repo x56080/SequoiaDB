@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the information of operating system release
+Acquire the information of operating system release
 
 ```lang-javascript
 > System.getReleaseInfo()

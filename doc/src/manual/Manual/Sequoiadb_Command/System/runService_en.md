@@ -35,7 +35,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* View ssh service information
+View ssh service information
 
 ```lang-javascript
 > System.runService( "ssh", "status", "" )

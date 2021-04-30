@@ -33,7 +33,7 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
 
 ##EXAMPLES##
 
-* Delete a hostname to ip address mapping in the host file
+Delete a hostname to ip address mapping in the host file
 
 ```lang-javascript
 > System.delAHostMap( "hostname" )

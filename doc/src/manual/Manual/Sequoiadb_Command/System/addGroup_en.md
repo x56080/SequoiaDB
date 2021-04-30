@@ -39,7 +39,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Add a user group
+Add a user group
 
 ```lang-javascript
 > System.addGroup( { "name": "newGroup" } )

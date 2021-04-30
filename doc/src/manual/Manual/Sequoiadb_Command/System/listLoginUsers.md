@@ -40,29 +40,29 @@ options 参数详细说明如下：
 
 ##示例##
 
-* 列出所有登录用户的信息；
+* 列出所有登录用户的信息
 
-  ```lang-javascript
-  > System.listLoginUsers()
-  {
-      "user": "sequoiadb"
-  }
-  {
-      "user": "username"
-  }
-  ...
-  ```
+    ```lang-javascript
+    > System.listLoginUsers()
+    {
+        "user": "sequoiadb"
+    }
+    {
+        "user": "username"
+    }
+    ...
+    ```
 
-* 对结果进行筛选:
+* 对结果进行筛选
 
-  ```lang-javascript
-  > System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
-  {
-      "user": "sequoiadb",
-      "time": "2019-05-10 18:37",
-      "from": "",
-      "tty": "tty1"
-  }
-  ```
+    ```lang-javascript
+    > System.listLoginUsers( { detail: true }, { "tty": "tty1" } )
+    {
+        "user": "sequoiadb",
+        "time": "2019-05-10 18:37",
+        "from": "",
+        "tty": "tty1"
+    }
+    ```
 
 

@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire a hostname to ip address mapping in the host file
+Acquire a hostname to ip address mapping in the host file
 
 ```lang-javascript
 > System.getAHostMap( "localhost" )

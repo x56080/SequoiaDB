@@ -33,7 +33,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Delete a user group
+Delete a user group
 
 ```lang-javascript
 > System.delGroup( "groupName" )

@@ -27,14 +27,14 @@ System
 
 ##示例##
 
-* 获取CPU的基本信息
+获取CPU的基本信息
 
-  ```lang-javascript
-  > System.snapshotCpuInfo()
-  {
-      "User": 47223380,
-      "Sys": 46662920,
-      "Idle": 3513293040,
-      "Other": 3023840
-  }
-  ```
+```lang-javascript
+> System.snapshotCpuInfo()
+{
+    "User": 47223380,
+    "Sys": 46662920,
+    "Idle": 3513293040,
+    "Other": 3023840
+}
+```

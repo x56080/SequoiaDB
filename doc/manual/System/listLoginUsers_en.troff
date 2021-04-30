@@ -138,6 +138,7 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 List the information of all logged\-in users
+.RS 2
 .IP
 .nf
 \f[C]
@@ -151,8 +152,10 @@ List the information of all logged\-in users
 \&...
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Filter the results:
+.RS 2
 .IP
 .nf
 \f[C]
@@ -165,3 +168,4 @@ Filter the results:
 }
 \f[]
 .fi
+.RE

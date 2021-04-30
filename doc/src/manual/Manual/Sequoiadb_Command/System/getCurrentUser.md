@@ -27,13 +27,13 @@ System
 
 ##示例##
 
-* 获取当前用户信息
+获取当前用户信息
 
-  ```lang-javascript
-  > System.getCurrentUser()
-  {
-      "user": "root",
-      "gid": "0",
-      "dir": "/root"
-  }
-  ```
+```lang-javascript
+> System.getCurrentUser()
+{
+    "user": "root",
+    "gid": "0",
+    "dir": "/root"
+}
+```

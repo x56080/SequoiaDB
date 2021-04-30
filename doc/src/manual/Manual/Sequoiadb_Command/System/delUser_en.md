@@ -1,11 +1,11 @@
 
 ##NAME##
 
-delUser - Delete a system user
+delUser - delete an operating system user
 
 ##SYNOPSIS##
 
-***System.delUser( \<users\> )***
+**System.delUser(\<users\>)**
 
 ##CATEGORY##
 
@@ -13,36 +13,49 @@ System
 
 ##DESCRIPTION##
 
-Delete a system user
+This function is used to delete an operating system users.
 
 ##PARAMETERS##
 
-| Name      | Type     | Default | Description         | Required or not |
-| ------- | -------- | ------------ | ---------------- | -------- |
-| users | JSON   | ---    |  user information  | yes   |
+users ( *object, required* )
 
-The detail description of 'users' parameter is as follow:
+Parameter users can be used to set the user to be deleted:
 
-| Attributes | Type    | Required or not | Format  | Description         |
-| ---------- | ------- |---------------- | ------- | ---------------- |
-| name    | string |   yes  | { "name": newUser }     | user name  |
-| group    | string |  not   | { "group": groupname }     | user group name  |
+- name ( *string* ): User name. This parameter is required.
+
+    Format: `name: "username"`
+
+- isRemoveDir ( *boolean* ): Whether to remove the user directory, the defual is false.
+
+    Format: `isRemoveDir: true`
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLES##
 
-* Delete a system user
+Delete the specified system user.
 
 ```lang-javascript
-> System.addUser( { "name": "newUser" } )
-> System.delUser( { "name": "newUser" } )
+> System.delUser({name: "newUser"})
 ```
+
+
+
+[^_^]:
+    links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[faq]:manual/FAQ/faq_sdb.md

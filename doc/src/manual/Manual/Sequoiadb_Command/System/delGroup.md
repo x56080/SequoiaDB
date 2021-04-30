@@ -29,8 +29,8 @@ System
 
 ##示例##
 
-* 删除一个用户组
+删除一个用户组
 
-  ```lang-javascript
-  > System.delGroup( "groupName" )
-  ```
+```lang-javascript
+> System.delGroup( "groupName" )
+```

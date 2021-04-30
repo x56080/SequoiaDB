@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire detailed network card information
+Acquire detailed network card information
 
 ```lang-javascript
 > System.snapshotNetcardInfo()

@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire firewall information
+Acquire firewall information
 
 ```lang-javascript
 > System.getIpTablesInfo()

@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire basic CPU information
+Acquire basic CPU information
 
 ```lang-javascript
 > System.snapshotCpuInfo()

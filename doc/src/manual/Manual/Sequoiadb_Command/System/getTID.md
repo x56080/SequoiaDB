@@ -27,9 +27,9 @@ System
 
 ##示例##
 
-* 获取运行 sdb shell 的线程ID
+获取运行 sdb shell 的线程ID
 
-  ```lang-javascript
-  > System.getTID()
-  11505
-  ```
+```lang-javascript
+> System.getTID()
+11505
+```

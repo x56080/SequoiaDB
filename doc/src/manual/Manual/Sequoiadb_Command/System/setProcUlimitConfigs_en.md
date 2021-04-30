@@ -35,7 +35,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Modify the maximum memory size of the process
+Modify the maximum memory size of the process
 
 ```lang-javascript
 > System.setProcUlimitConfigs( { "max_memory_size": -1 } )

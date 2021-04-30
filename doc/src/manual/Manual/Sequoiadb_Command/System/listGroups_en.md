@@ -46,29 +46,29 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * List the information of all user groups
 
-```lang-javascript
-> System.listGroups()
-{
-  "name": "sequoiadb"
-}
-{
-  "name": "lpadmin"
-}
-{
-  "name": "sambashare"
-}
-...
-```
+    ```lang-javascript
+    > System.listGroups()
+    {
+      "name": "sequoiadb"
+    }
+    {
+      "name": "lpadmin"
+    }
+    {
+      "name": "sambashare"
+    }
+    ...
+    ```
 
-* Filter the results:
+* Filter the results
 
-```lang-javascript
-> System.listGroups( { detail: true }, { "name": "sequoiadb" } )
-{
-  "name": "sequoiadb",
-  "gid": "1000",
-  "members": ""
-}
-```
+    ```lang-javascript
+    > System.listGroups( { detail: true }, { "name": "sequoiadb" } )
+    {
+      "name": "sequoiadb",
+      "gid": "1000",
+      "members": ""
+    }
+    ```
 
 

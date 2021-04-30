@@ -27,8 +27,8 @@ System
 
 ##示例##
 
-* 获取防火墙信息
+获取防火墙信息
 
-  ```lang-javascript
-  > System.getIpTablesInfo()
-  ```
+```lang-javascript
+> System.getIpTablesInfo()
+```

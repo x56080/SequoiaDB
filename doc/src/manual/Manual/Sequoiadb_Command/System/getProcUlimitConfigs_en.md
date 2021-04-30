@@ -31,7 +31,7 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 ##EXAMPLES##
 
-* Acquire the values of the process resource limit
+Acquire the values of the process resource limit
 
 ```lang-javascript
 > System.getProcUlimitConfigs()

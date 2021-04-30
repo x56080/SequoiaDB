@@ -28,26 +28,26 @@ System
 
 ##示例##
 
-* 获取CPU的信息
+获取CPU的信息
 
-	```lang-javascript
-  > System.getCpuInfo()
-  {
-      "Cpus": [
-        {
-          "Core": 1,
-          "Info": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
-          "Freq": "2.19999814GHz"
-        },
-        {
-          "Core": 1,
-          "Info": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
-          "Freq": "2.19999814GHz"
-        }
-      ],
-      "User": 47223380,
-      "Sys": 46662920,
-      "Idle": 3513293040,
-      "Other": 3023840
-  }
-	```
+```lang-javascript
+> System.getCpuInfo()
+{
+    "Cpus": [
+      {
+        "Core": 1,
+        "Info": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
+        "Freq": "2.19999814GHz"
+      },
+      {
+        "Core": 1,
+        "Info": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
+        "Freq": "2.19999814GHz"
+      }
+    ],
+    "User": 47223380,
+    "Sys": 46662920,
+    "Idle": 3513293040,
+    "Other": 3023840
+}
+```

@@ -40,34 +40,34 @@ options 参数详细说明如下：
 
 ##示例##
 
-* 列出所有用户组的信息；
+* 列出所有用户组的信息
 
-  ```lang-javascript
-  > System.listGroups()
-  {
-      "name": "sequoiadb"
-  }
-  {
-      "name": "lpadmin"
-  }
-  {
-      "name": "sambashare"
-  }
-  {
-      "name": "sdbadmin_group"
-  }
-  ...
-  ```
+    ```lang-javascript
+    > System.listGroups()
+    {
+        "name": "sequoiadb"
+    }
+    {
+        "name": "lpadmin"
+    }
+    {
+        "name": "sambashare"
+    }
+    {
+        "name": "sdbadmin_group"
+    }
+    ...
+    ```
 
-* 对结果进行筛选:
+* 对结果进行筛选
 
-  ```lang-javascript
-  > System.listGroups( { detail: true }, { "name": "sequoiadb" } )
-  {
-      "name": "sequoiadb",
-      "gid": "1000",
-      "members": ""
-  }
-  ```
+    ```lang-javascript
+    > System.listGroups( { detail: true }, { "name": "sequoiadb" } )
+    {
+        "name": "sequoiadb",
+        "gid": "1000",
+        "members": ""
+    }
+    ```
 
 
