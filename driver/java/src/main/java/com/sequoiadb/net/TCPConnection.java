@@ -250,7 +250,9 @@ public class TCPConnection implements IConnection {
     @Override
     public void setSoTimeout(int timeout) throws BaseException {
         try {
-            socket.setSoTimeout(timeout);
+            if (socket != null){
+                socket.setSoTimeout(timeout);
+            }
         }catch (SocketException e){
             throw new BaseException(SDBError.SDB_NETWORK, "failed to modify soTimeout, message: " + e.getMessage());
         }
