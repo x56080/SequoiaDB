@@ -30,32 +30,39 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Open a banary file and get a file descriptor.
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Read the contents of the file into the fileContent object( For more detail,
-please reference File::readContent ).
+refer to File::readContent ).
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ content\ =\ file.readContent(\ 10\ )
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Convert the binary stream in the fileContent to base64 encoded.
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ base64String\ =\ content.toBase64Code()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 You can write the string after conversion to a new file, so you can easily view
 the string.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -63,8 +70,10 @@ the string.
 >\ base64StringFile.write(\ base64String\ )
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Read the contents of the file.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -73,3 +82,4 @@ Read the contents of the file.
 BQAGAAgA8////w==
 \f[]
 .fi
+.RE

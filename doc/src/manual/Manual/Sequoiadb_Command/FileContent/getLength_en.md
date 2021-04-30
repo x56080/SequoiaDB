@@ -33,19 +33,19 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * Open a banary file and get a file descriptor.
 
-```lang-javascript
-> var file = new File( "/opt/sequoiadb/file.dump" )
-```
+    ```lang-javascript
+    > var file = new File( "/opt/sequoiadb/file.dump" )
+    ```
 
 * Read the contents of the file into the fileContent object( For more details, refer to [File::readContent](manual/Manual/Sequoiadb_Command/File/readContent) ).
 
-```lang-javascript
-> var content = file.readContent( 10000 )
-```
+    ```lang-javascript
+    > var content = file.readContent( 10000 )
+    ```
 
 * Get the size of the binary stream.
 
-```lang-javascript
-> content.getLength()
-10000
-```
+    ```lang-javascript
+    > content.getLength()
+    10000
+    ```

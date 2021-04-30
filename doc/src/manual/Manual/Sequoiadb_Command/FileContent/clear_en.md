@@ -33,18 +33,18 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 * Open a file and get a file descriptor.
 
-```lang-javascript
-> var file = new File( "/opt/sequoiadb/file.dump" )
-```
+    ```lang-javascript
+    > var file = new File( "/opt/sequoiadb/file.dump" )
+    ```
 
 * Read the contents of the file into the fileContent object( For more detail, refer to [File::readContent](manual/Manual/Sequoiadb_Command/File/readContent) ).
 
-```lang-javascript
-> var content = file.readContent( 10000 )
-```
+    ```lang-javascript
+    > var content = file.readContent( 10000 )
+    ```
 
 * Clear buffer content.
 
-```lang-javascript
-> content.clear()
-```
+    ```lang-javascript
+    > content.clear()
+    ```
