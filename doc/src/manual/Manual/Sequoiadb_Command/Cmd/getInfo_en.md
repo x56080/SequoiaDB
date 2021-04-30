@@ -33,19 +33,19 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 * Create a remote Command object.(For more detial on establishing a remote connection,please reference to [Remote](manual/Manual/Sequoiadb_command/Remote/Remote.md))
 
-```lang-javascript
-> var remoteObj = new Remote( "192.168.20.71", 11790 )
-> var cmd = remoteObj.getCmd()
-```
+    ```lang-javascript
+    > var remoteObj = new Remote( "192.168.20.71", 11790 )
+    > var cmd = remoteObj.getCmd()
+    ```
 
 * Get the object information of the Command object.
 
-```lang-javascript
-> cmd.getInfo()
-{
-  "type": "Cmd",
-  "hostname": "192.168.20.71",
-  "svcname": "11790",
-  "isRemote": true
-}
-```
+    ```lang-javascript
+    > cmd.getInfo()
+    {
+      "type": "Cmd",
+      "hostname": "192.168.20.71",
+      "svcname": "11790",
+      "isRemote": true
+    }
+    ```

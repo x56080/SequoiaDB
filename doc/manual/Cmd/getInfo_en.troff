@@ -31,6 +31,7 @@ For more detial, please reference to Troubleshooting.
 .IP \[bu] 2
 Create a remote Command object.(For more detial on establishing a remote
 connection,please reference to Remote)
+.RS 2
 .IP
 .nf
 \f[C]
@@ -38,8 +39,10 @@ connection,please reference to Remote)
 >\ var\ cmd\ =\ remoteObj.getCmd()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Get the object information of the Command object.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -52,3 +55,4 @@ Get the object information of the Command object.
 }
 \f[]
 .fi
+.RE

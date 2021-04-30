@@ -39,15 +39,15 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * Create a Command object.
 
-```lang-javascript
-> var cmd = new Cmd()
-```
+    ```lang-javascript
+    > var cmd = new Cmd()
+    ```
 
 * Execute the command.
 
-```lang-javascript
-> cmd.run( "ls", "/opt/trunk/test" )
-test1
-test2
-test3
-```
+    ```lang-javascript
+    > cmd.run( "ls", "/opt/trunk/test" )
+    test1
+    test2
+    test3
+    ```

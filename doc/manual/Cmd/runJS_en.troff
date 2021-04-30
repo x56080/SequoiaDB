@@ -15,8 +15,11 @@ Cmd
 .SH DESCRIPTION
 .PP
 Execute the JavaScript code remotely.
+.RS
 .PP
 \f[B]Note:\f[]
+.RE
+.RS
 .PP
 runJS() should be called by remote Command obj
 .RE
@@ -67,6 +70,7 @@ For more detial, please reference to Troubleshooting.
 .IP \[bu] 2
 Create a remote Command object.( For more detial on establishing a remote
 connection,please reference to Remote )
+.RS 2
 .IP
 .nf
 \f[C]
@@ -74,8 +78,10 @@ connection,please reference to Remote )
 >\ var\ cmd\ =\ remoteObj.getCmd()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Execute the JavaScript code remotely.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -83,3 +89,4 @@ Execute the JavaScript code remotely.
 7
 \f[]
 .fi
+.RE

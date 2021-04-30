@@ -33,22 +33,22 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * Create a Command object.
 
-```lang-javascript
-> var cmd = new Cmd()
-```
+    ```lang-javascript
+    > var cmd = new Cmd()
+    ```
 
 * Executed command(For more detial on Command Object executed command, please reference to [Cmd:run](manual/Manual/Sequoiadb_command/Cmd/run.md)).
 
-```lang-javascript
-> cmd.run( "ls", "/opt/trunk/test" )
-test1
-test2
-test3
-```
+    ```lang-javascript
+    > cmd.run( "ls", "/opt/trunk/test" )
+    test1
+    test2
+    test3
+    ```
 
 * Get the error code returned by the last command execution.
 
-```lang-javascript
-> cmd.getLastRet()
-0
-```
+    ```lang-javascript
+    > cmd.getLastRet()
+    0
+    ```

@@ -30,14 +30,17 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Create a Command object.
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ cmd\ =\ new\ Cmd()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Create a remote Command object.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -45,3 +48,4 @@ Create a remote Command object.
 >\ var\ cmd\ =\ remoteObj.getCmd()
 \f[]
 .fi
+.RE

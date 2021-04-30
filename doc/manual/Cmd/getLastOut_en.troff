@@ -30,15 +30,18 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Create a Command object.
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ cmd\ =\ new\ Cmd()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Executed command(For more detial on Command Object executed command, please
 reference to Cmd::run)
+.RS 2
 .IP
 .nf
 \f[C]
@@ -48,8 +51,10 @@ test2
 test3
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Get the result of the last command execution.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -59,3 +64,4 @@ test2
 test3
 \f[]
 .fi
+.RE

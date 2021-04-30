@@ -39,14 +39,14 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 
 * Create a remote Command object.( For more detial on establishing a remote connection,please reference to [Remote](manual/Manual/Sequoiadb_command/Remote/Remote.md) )
 
-```lang-javascript
-> var remoteObj = new Remote( "192.168.20.71", 11790 )
-> var cmd = remoteObj.getCmd()
-```
+    ```lang-javascript
+    > var remoteObj = new Remote( "192.168.20.71", 11790 )
+    > var cmd = remoteObj.getCmd()
+    ```
 
 * Execute the JavaScript code remotely.
 
-```lang-javascript
-> cmd.runJS( "1+2*3" )
-7
-```
+    ```lang-javascript
+    > cmd.runJS( "1+2*3" )
+    7
+    ```

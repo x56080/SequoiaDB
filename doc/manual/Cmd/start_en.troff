@@ -125,14 +125,17 @@ For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Create a Command object.
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ cmd\ =\ new\ Cmd()
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Execute the command.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -140,8 +143,10 @@ Execute the command.
 28340
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 Get the result of the command execution.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -151,3 +156,4 @@ test2
 test3\ 
 \f[]
 .fi
+.RE
