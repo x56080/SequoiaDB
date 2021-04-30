@@ -1022,7 +1022,7 @@ if os.path.isfile ( "gitbuild" ):
         with open(ver_file, 'r+') as f:
             f.write(data)
     else:
-        releaseVer = os.popen( "git rev-list --all | awk -v git_head=`git show-ref --head --hash HEAD` '$0==git_head {i=1;next};i' | wc -l" ).read().replace("\n","")
+        releaseVer = os.popen( "git rev-list --all | awk -v git_head=`git show-ref --head --hash HEAD | head -n1` '$0==git_head {i=1;next};i' | wc -l" ).read().replace("\n","")
         os.system( "sed 's/\$WCREV\$/" + releaseVer + "/g' misc/autogen/ver_conf.h.in > misc/autogen/ver_conf.h" )
         os.system( "sed -i 's/\$GITVER\$/" + gitVer + "/g' misc/autogen/ver_conf.h" )
 else:
