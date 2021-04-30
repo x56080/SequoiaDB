@@ -26,20 +26,23 @@ name（ \f[I]string\f[] ）：用户名，该参数必填
 格式：\f[C]name:\ "username"\f[]
 .RE
 .IP \[bu] 2
-group（ \f[I]string\f[] ）：指定用户组
+gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
 .RS 2
 .PP
-该参数必须指定为已存在的用户组。如果不指定，则默认创建与参数 name 同名的用户组。
+该参数可以是用户组的组名或组
+ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
 .PP
-格式：\f[C]group:\ "groupName"\f[]
+格式：\f[C]gid:\ "groupName"\f[] 或 \f[C]gid:\ "2003"\f[]
 .RE
 .IP \[bu] 2
-additionGroup（ \f[I]string\f[] ）：指定附加组
+groups（ \f[I]string\f[] ）：指定附加组
 .RS 2
 .PP
-该参数必须指定为已存在的用户组。
+该参数可以是用户组的组名或组
+ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
 .PP
-格式：\f[C]additionGroup:\ "groupName"\f[]
+格式：\f[C]groups:\ "groupName1,groupName2,groupName3"\f[] 或
+\f[C]groups:\ "2004,2005,2006"\f[]
 .RE
 .IP \[bu] 2
 createDir（ \f[I]boolean\f[] ）：是否创建用户目录，默认为 false
@@ -75,6 +78,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.addUser({name:\ "newUser",\ group:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+>\ System.addUser({name:\ "newUser",\ gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
 \f[]
 .fi

@@ -1,3 +1,4 @@
+
 ##名称##
 
 delUser - 删除操作系统用户
@@ -49,6 +50,7 @@ v3.2 及以上版本
 ```lang-javascript
 > System.delUser({name: "newUser"})
 ```
+
 
 
 [^_^]:

@@ -1,3 +1,4 @@
+
 ##名称##
 
 setUserConfigs - 修改操作系统用户的配置
@@ -24,21 +25,22 @@ options（ *object，必填* ）
 
     格式：`name: "username"`
 
-- group（ *string* ）：指定新的用户组
+- gid（ *string* ）：指定用户的初始组(主组)
 
-    该参数必须指定为已存在的用户组。
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
 
-    格式：`group: "groupName"`
+    格式：`gid: "groupName"` 或 `gid: "2003"`
 
-- additionGroup（ *string* ）：指定新的附加组
+- groups（ *string* ）：指定附加组
 
-    该参数必须指定为已存在的用户组。
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
 
-    格式：`additionGroup: "groupName"`
+    格式：`groups: "groupName1,groupName2,groupName3"` 或 `groups: "2004,2005,2006"`
+
 
 - isAppend（ *boolean* ）：指定是否追加附加组，默认为 false
 
-    该参数需要配合参数 additionGroup 使用。当指定了 additionGroup 且设置 isAppend 为 true，将会追加该用户的附加组；当指定了 additionGroup 且设置 isAppend 为 false，将会替换原有的附加组。
+    该参数需要配合参数 groups 使用。当指定了 groups 且设置 isAppend 为 true，将会追加该用户的附加组；当指定了 groups 且设置 isAppend 为 false，将会替换原有的附加组。
 
     格式：`isAppend: true`
 
@@ -53,7 +55,6 @@ options（ *object，必填* ）
     该参数不能指定已存在的目录。指定的新目录将保留原用户目录的数据，而原用户目录将会被移除。
 
     格式：`dir: "userHomeDir"`
-
 
 ##返回值##
 
@@ -74,9 +75,8 @@ v3.2 及以上版本
 修改指定用户组中 `newUser` 用户的 home 目录
 
 ```lang-javascript
-> System.setUserConfigs({name: "newUser", group: "groupName", dir: "/home/userName", isMove: true})
+> System.setUserConfigs({name: "newUser", gid: "groupName", dir: "/home/userName", isMove: true})
 ```
-
 
 [^_^]:
     本文使用的所有引用及链接

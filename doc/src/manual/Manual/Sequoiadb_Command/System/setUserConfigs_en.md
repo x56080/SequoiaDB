@@ -1,4 +1,3 @@
-
 ##NAME##
 
 setUserConfigs - set the configuration of operating system user
@@ -25,21 +24,21 @@ The user's attributes can be modified through the options parameter:
 
     Format: `name: "username"`
 
-- group ( *string* ): Specify a new user group.
+- gid ( *string* ): Specify the name or ID of the user primary group.
 
-    This parameter must be specified as an existing user group.
+    This parameter must be specified as an existing user group. If not specified, a user group with the same name as the parameter name will be created by default.
 
-    Format: `group: "groupName"`
+    Format: `gid: "groupName"` or `gid: "2003"`
 
-- additionGroup ( *string* ): Specify a new additional group.
+- groups ( *string* ): Specify the name or ID list of the user supplementary groups.
 
-    This parameter must be specified as an existing user group.
+    This parameter must be specified as an existing user group, each supplementary groups is separated by a comma.
 
-    Format: `additionGroup: "groupName"`
+    Format: `groups: "groupName1,groupName2,groupName3"` or `groups: "2004,2005,2006"`
 
 - isAppend ( *boolean* ): Specify whether to append additional groups, the default is false.
 
-    This parameter needs to be used with the additionGroup parameter. When additionGroup is specified and isAppend is set to true, the additional group of the user will be added. When additionGroup is specified and isAppend is set to false, the original group will be replaced.
+    This parameter needs to be used with the groups parameter. When groups is specified and isAppend is set to true, the supplementary group of the user will be added. When groups is specified and isAppend is set to false, the original group will be replaced.
 
     Format: `isAppend: true`
 
@@ -70,7 +69,7 @@ When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the err
 Modify the home directory of user `newUser` in the specified user group.
 
 ```lang-javascript
-> System.setUserConfigs({name: "newUser", group: "groupName", dir: "/home/userName", isMove: true})
+> System.setUserConfigs({name: "newUser", gid: "groupName", dir: "/home/userName", isMove: true})
 ```
 
 

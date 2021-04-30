@@ -1,4 +1,3 @@
-
 ##NAME##
 
 addUser - add an operating system user
@@ -25,17 +24,17 @@ The user's attributes can be set through the users parameter:
 
     Format: `name: "username"`
 
-- group ( *string* ): Specify user group.
+- gid ( *string* ): Specify the name or ID of the user primary group.
 
     This parameter must be specified as an existing user group. If not specified, a user group with the same name as the parameter name will be created by default.
 
-    Format: `group: "groupName"`
+    Format: `gid: "groupName"` or `gid: "2003"`
 
-- additionGroup ( *string* ): Specify additional groups.
+- groups ( *string* ): Specify the name or ID list of the user supplementary groups.
 
-    This parameter must be specified as an existing user group.
+    This parameter must be specified as an existing user group, each supplementary groups is separated by a comma.
 
-    Format: `additionGroup: "groupName"`
+    Format: `groups: "groupName1,groupName2,groupName3"` or `groups: "2004,2005,2006"`
 
 - createDir ( *boolean* ): Whether to create a user directory, the default is false.
 
@@ -66,7 +65,7 @@ v3.2 and above
 Add a new system user named "newUser". Specify the user group as root, and create a user directory `/home/newUser`.
 
 ```lang-javascript
-> System.addUser({name: "newUser", group: "root", createDir: true, dir: "/home/newUser"})
+> System.addUser({name: "newUser", gid: "root", createDir: true, dir: "/home/newUser"})
 ```
 
 

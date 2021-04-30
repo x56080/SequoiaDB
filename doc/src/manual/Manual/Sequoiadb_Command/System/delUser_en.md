@@ -1,4 +1,3 @@
-
 ##NAME##
 
 delUser - delete an operating system user
