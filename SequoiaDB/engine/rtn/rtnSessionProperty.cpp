@@ -238,6 +238,8 @@ namespace engine
                         prefInst, PMD_PREFER_INSTANCE_TYPE_MIN + 1,
                         PMD_PREFER_INSTANCE_TYPE_MAX - 1 ) ;
 
+      // Remove duplicate instance id.
+      _instanceList.remove( (UINT8)prefInst );
       _instanceList.push_back( (UINT8)prefInst ) ;
 
    done :
