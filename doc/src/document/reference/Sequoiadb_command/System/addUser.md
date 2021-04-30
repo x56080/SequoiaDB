@@ -1,6 +1,10 @@
+##名称##
+
+addUser - 新增操作系统用户
+
 ##语法##
 
-***System.addUser( \<users\> )***
+**System.addUser(\<users\>)**
 
 ##类别##
 
@@ -8,28 +12,46 @@ System
 
 ##描述##
 
-添加系统用户
+该函数用于新增操作系统用户。
 
 ##参数##
 
-| 参数名  | 参数类型 | 默认值       | 描述             | 是否必填 |
-| ------- | -------- | ------------ | ---------------- | -------- |
-| users     | JSON   | ---          | 用户信息       | 是       |
+users（ *object，必填* ）
 
-users 参数详细说明如下：
+通过参数 users 可以设置用户的属性：
 
-| 属性     | 值类型 | 是否<br>必填 | 格式 | 描述 |
-| -------- | ------ | -------- | -------------------- | ---------------------------------- |
-| name    | string |     是   | { "name": newUser }     | 用户名                        |
-| group    | string |     否   | { "group": groupname }     | 用户组                        |
+- name（ *string* ）：用户名，该参数必填
 
-> Note：
+    格式：`name: "username"`
 
-> group 参数必须是已存在的用户组，若不指定则默认创建与 name 参数同名的用户组
+- gid（ *string* ）：指定用户的初始组(主组)
+
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
+
+    格式：`gid: "groupName"` 或 `gid: "2003"`
+
+- groups（ *string* ）：指定附加组
+
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
+
+    格式：`groups: "groupName1,groupName2,groupName3"` 或 `groups: "2004,2005,2006"`
+
+- createDir（ *boolean* ）：是否创建用户目录，默认为 false
+
+    格式：`createDir: true`
+
+- dir（ *string* ）：指定用户目录，仅参数 createDir 为 true 时生效
+
+    该参数不能指定已存在的目录。如果不指定，将会在 `/home` 目录下创建与参数 name 同名的目录作为用户目录。
+
+    格式：`dir: "userHomeDir"`
+
 
 ##返回值##
 
-无返回值。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -40,8 +62,8 @@ users 参数详细说明如下：
 
 ##示例##
 
-* 添加一个系统用户 
+新增名为“newUser”的系统用户，并指定用户组为 root，同时创建用户目录 `/home/newUser`。
 
-  ```lang-javascript
-  > System.addUser( { "name": "newUser", "group": "root" } )
-  ```
+```lang-javascript
+> System.addUser({name: "newUser", gid: "root", createDir: true, dir: "/home/newUser"})
+```

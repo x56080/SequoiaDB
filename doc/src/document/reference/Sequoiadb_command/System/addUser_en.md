@@ -1,10 +1,10 @@
 ##NAME##
 
-addUser - Add a system user
+addUser - add an operating system user
 
 ##SYNOPSIS##
 
-***System.addUser( \<users\> )***
+**System.addUser(\<users\>)**
 
 ##CATEGORY##
 
@@ -12,30 +12,45 @@ System
 
 ##DESCRIPTION##
 
-Add a system user
+This function is used to add an operating system user.
 
 ##PARAMETERS##
 
-| Name      | Type     | Default | Description         | Required or not |
-| ------- | -------- | ------------ | ---------------- | -------- |
-| users | JSON   | ---    |  user information  | yes   |
+users ( *object, required* )
 
-The detail description of 'users' parameter is as follow:
+The user's attributes can be set through the users parameter:
 
-| Attributes | Type    | Required or not | Format  | Description         |
-| ---------- | ------- |---------------- | ------- | ---------------- |
-| name    | string |   yes  | { "name": newUser }     | user name  |
-| group    | string |  not   | { "group": groupname }     | user group name  |
+- name ( *string* ): User name. This parameter is required.
 
-**Note:**
+    Format: `name: "username"`
 
-The group parameter must be an existing user group. If not specified, a user group with the same name as the name parameter is created by default.
+- gid ( *string* ): Specify the name or ID of the user primary group.
+
+    This parameter must be specified as an existing user group. If not specified, a user group with the same name as the parameter name will be created by default.
+
+    Format: `gid: "groupName"` or `gid: "2003"`
+
+- groups ( *string* ): Specify the name or ID list of the user supplementary groups.
+
+    This parameter must be specified as an existing user group, each supplementary groups is separated by a comma.
+
+    Format: `groups: "groupName1,groupName2,groupName3"` or `groups: "2004,2005,2006"`
+
+- createDir ( *boolean* ): Whether to create a user directory, the default is false.
+
+    Format: `createDir: true`
+
+- dir ( *string* ): Specify the user directory, which takes effect only when the parameter createDir is true.
+
+    This parameter cannot specify an existing directory. If not specified, a directory with the same name as the parameter name will be created in the `/home` directory as the user directory.
+
+    Format: `dir: "userHomeDir"`
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
@@ -43,8 +58,8 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
 
 ##EXAMPLES##
 
-* Add a user
+Add a new system user named "newUser". Specify the user group as root, and create a user directory `/home/newUser`.
 
 ```lang-javascript
-> System.addUser( { "name": "newUser", "group": "root" } )
+> System.addUser({name: "newUser", gid: "root", createDir: true, dir: "/home/newUser"})
 ```
