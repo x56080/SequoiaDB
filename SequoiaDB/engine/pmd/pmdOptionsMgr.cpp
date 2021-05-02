@@ -3719,6 +3719,122 @@ done:
       return rc ;
    }
 
+   #define OPT_ERROR_OUTPUT_NUM ( 3 )
+
+   INT32 optBuildErrorReport( const BSONObj &returnObj,
+                              BOOLEAN &hasError,
+                              string &returnStr )
+   {
+      INT32 rc = SDB_OK ;
+
+      BOOLEAN rebootFirstEntry  = TRUE ;
+      BOOLEAN forbidFirstEntry  = TRUE ;
+      BSONElement rebootEle ;
+      BSONElement forbidEle ;
+      INT32 rebootCount = 0 ;
+      INT32 forbidCount = 0 ;
+
+      hasError = FALSE ;
+
+      try
+      {
+         rebootEle = returnObj.getField( "Reboot" ) ;
+         if ( Array == rebootEle.type() )
+         {
+            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == rebootFirstEntry )
+                  {
+                     returnStr += "Config '" ;
+                     returnStr +=  ele.valuestr() ;
+
+                     rebootFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  rebootCount++ ;
+               }
+               if ( OPT_ERROR_OUTPUT_NUM == rebootCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( rebootCount > 0 && rebootCount < OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += " require(s) restart to take effect." ;
+         }
+         else if ( rebootCount == OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += ", etc. require(s) restart to take effect." ;
+         }
+
+         forbidEle = returnObj.getField( "Forbidden" ) ;
+         if ( Array == forbidEle.type() )
+         {
+            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == forbidFirstEntry )
+                  {
+                     returnStr += " Config '" ;
+                     returnStr +=  ele.valuestr() ;
+                     forbidFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  forbidCount++ ;
+               }
+               if ( OPT_ERROR_OUTPUT_NUM == forbidCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( forbidCount > 0 && forbidCount < OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += " cannot be changed." ;
+         }
+         else if ( forbidCount == OPT_ERROR_OUTPUT_NUM )
+         {
+            returnStr += ", etc. cannot be changed." ;
+         }
+
+         hasError = rebootCount > 0 || forbidCount > 0 ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
+                 "info parsing: %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 
 

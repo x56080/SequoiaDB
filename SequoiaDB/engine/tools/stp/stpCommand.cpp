@@ -951,11 +951,13 @@ namespace engine
 
       try
       {
+         string returnStr;
+         BOOLEAN hasError = FALSE ;
          BSONObj errorObject ;
 
          // update options ( will notify config changed to all STPCB modules
          // internally )
-         rc = _stpCB->getOptions()->update( _configs, FALSE, result ) ;
+         rc = _stpCB->getOptions()->update( _configs, FALSE, errorObject ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update config options, "
                       "rc: %d", rc ) ;
 
@@ -963,6 +965,21 @@ namespace engine
          rc = _stpCB->getOptions()->save() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save config options, "
                       "rc: %d", rc ) ;
+
+         // build error report
+         if ( SDB_OK != optBuildErrorReport( errorObject,
+                                             hasError,
+                                             returnStr ) )
+         {
+            // ignore error
+            goto error ;
+         }
+
+         if ( hasError )
+         {
+            rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
+            PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
+         }
       }
       catch ( exception &e )
       {

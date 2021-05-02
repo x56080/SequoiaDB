@@ -906,7 +906,7 @@ Stp.prototype.updateConf = function( configs ) {
       setLastErrMsg( "configs is not given" ) ;
       throw SDB_INVALIDARG ;
    }
-   return this._runCommand( "stp update config", configs ) ;
+   this._runCommand( "stp update config", configs ) ;
 }
 
 Stp.prototype.setPDLevel = function( diagLevel ) {

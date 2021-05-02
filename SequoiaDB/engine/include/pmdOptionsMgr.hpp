@@ -837,6 +837,9 @@ namespace engine
    INT32 optString2LogMod( const CHAR *str, UINT32 &value ) ;
    INT32 optString2MonGroupMask( const CHAR *str, UINT32 &value ) ;
    INT32 optLogMod2String( UINT32 value, CHAR *str, INT32 len ) ;
+   INT32 optBuildErrorReport( const bson::BSONObj &returnObj,
+                              BOOLEAN &hasError,
+                              std::string &returnStr ) ;
 
 }
 

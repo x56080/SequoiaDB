@@ -2469,104 +2469,18 @@ namespace engine
    INT32 _configOprBase::_errorReport( BSONObj &returnObj )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasError = FALSE ;
       string returnStr;
-      INT32 rebootCount = 0 ;
-      BOOLEAN rebootFirstEntry  = TRUE ;
-      INT32 forbidCount = 0 ;
-      BOOLEAN forbidFirstEntry  = TRUE ;
-      BSONElement rebootEle ;
-      BSONElement forbidEle ;
 
-      try
+      if ( SDB_OK != optBuildErrorReport( returnObj,
+                                          hasError,
+                                          returnStr ) )
       {
-         rebootEle = returnObj.getField( "Reboot" ) ;
-         if ( Array == rebootEle.type() )
-         {
-            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == rebootFirstEntry )
-                  {
-                     returnStr += "Config '" ;
-                     returnStr +=  ele.valuestr() ;
-
-                     rebootFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  rebootCount++ ;
-               }
-               if ( 3 == rebootCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( rebootCount > 0 && rebootCount < 3 )
-         {
-            returnStr += " require(s) restart to take effect." ;
-         }
-         else if ( rebootCount == 3 )
-         {
-            returnStr += ", etc. require(s) restart to take effect." ;
-         }
-
-         forbidEle = returnObj.getField( "Forbidden" ) ;
-         if ( Array == forbidEle.type() )
-         {
-            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == forbidFirstEntry )
-                  {
-                     returnStr += " Config '" ;
-                     returnStr +=  ele.valuestr() ;
-                     forbidFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  forbidCount++ ;
-               }
-               if ( 3 == forbidCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( forbidCount > 0 && forbidCount < 3 )
-         {
-            returnStr += " cannot be changed." ;
-         }
-         else if ( forbidCount == 3 )
-         {
-            returnStr += ", etc. cannot be changed." ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
-                 "info parsing: %s",
-                 e.what() ) ;
+         // ignore error
          goto error ;
       }
 
-      if ( rebootCount > 0 || forbidCount > 0 )
+      if ( hasError )
       {
          rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
          PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
