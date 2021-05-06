@@ -9,8 +9,6 @@ var csNames = ["cs23288A", "cs23288B", "cs23288C"];
 var clNames = ["cl23288A1", "cl23288A2", "cl23288A3"];
 var docs = new Array();
 tmpFileDir += "/23288/";
-// SEQUOIADBMAINSTREAM-6639
-testConf.skipStandAlone = true;
 
 main( test );
 function test ( testPara )

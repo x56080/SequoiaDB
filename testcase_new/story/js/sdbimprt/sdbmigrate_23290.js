@@ -79,14 +79,11 @@ function prepareExportConf ()
    var filename = tmpFileDir + "export23290.conf";
    var file = fileInit( filename );
    file.write( "[collections]\n" );
-   file.write( "number=3\n" );
-   for( var i = 1; i <= subclNames.length; i++ )
-   {
-      file.write( "[collection" + i + "]\n" );
-      file.write( "name=" + subcsName + "." + subclNames[i - 1] + "\n" );
-      file.write( "type=json\n" );
-      file.write( "dir=" + tmpFileDir + "\n" );
-   }
+   file.write( "number=1\n" );
+   file.write( "[collection1]\n" );
+   file.write( "name=" + maincsName + "." + mainclName + "\n" );
+   file.write( "type=json\n" );
+   file.write( "dir=" + tmpFileDir + "\n" );
    return filename;
 }
 
@@ -95,13 +92,10 @@ function prepareImportConf ()
    var filename = tmpFileDir + "import23290.conf";
    var file = fileInit( filename );
    file.write( "[collections]\n" );
-   file.write( "number=3\n" );
-   for( var i = 1; i <= subclNames.length; i++ )
-   {
-      file.write( "[collection" + i + "]\n" );
-      file.write( "name=" + subcsName + "." + subclNames[i - 1] + "\n" );
-      file.write( "type=json\n" );
-      file.write( "file=" + tmpFileDir + subcsName + "." + subclNames[i - 1] + "." + "0.json\n" );
-   }
+   file.write( "number=1\n" );
+   file.write( "[collection1]\n" );
+   file.write( "name=" + maincsName + "." + mainclName + "\n" );
+   file.write( "type=json\n" );
+   file.write( "file=" + tmpFileDir + maincsName + "." + mainclName + "." + "0.json\n" );
    return filename;
 }
