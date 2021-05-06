@@ -85,12 +85,12 @@ v3.2.8 及以上版本
 
 1. 获取数据源 datasource 的引用
 
-   ```lang-javascript
-   > var ds = db.getDataSource("datasource")
-   ```
+    ```lang-javascript
+    > var ds = db.getDataSource("datasource")
+    ```
 
 2. 修改该数据源的访问权限为“WRITE”
 
-   ```lang-javascript
-   > ds.alter({AccessMode:"WRITE"})
-   ```
+    ```lang-javascript
+    > ds.alter({AccessMode:"WRITE"})
+    ```

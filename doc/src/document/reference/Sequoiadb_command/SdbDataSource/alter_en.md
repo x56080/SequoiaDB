@@ -85,12 +85,12 @@ v3.2.8 and above
 
 1. Get a reference to the datasource datasource
 
-   ```lang-javascript
-   > var ds = db.getDataSource("datasource")
-   ```
+    ```lang-javascript
+    > var ds = db.getDataSource("datasource")
+    ```
 
 2. Modify the access permission of the data source to "WRITE"
 
-   ```lang-javascript
-   > ds.alter({AccessMode:"WRITE"})
-   ```
+    ```lang-javascript
+    > ds.alter({AccessMode:"WRITE"})
+    ```

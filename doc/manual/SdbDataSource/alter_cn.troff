@@ -92,9 +92,17 @@ v3.2.8 及以上版本
 .SH 示例
 .IP "1." 3
 获取数据源 datasource 的引用
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ var\ ds\ =\ db.getDataSource("datasource")\f[]
+.nf
+\f[C]
+>\ var\ ds\ =\ db.getDataSource("datasource")
+\f[]
+.fi
+.RE
 .IP "2." 3
 修改该数据源的访问权限为“WRITE”
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ ds.alter({AccessMode:"WRITE"})\f[]
+.nf
+\f[C]
+>\ ds.alter({AccessMode:"WRITE"})
+\f[]
+.fi
+.RE
