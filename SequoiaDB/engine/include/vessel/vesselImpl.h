@@ -69,7 +69,6 @@ namespace vessel
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
-                                             utilCSUniqueID uniqueID,
                                              const createCSOptions &options);
 
          virtual INT32 dropCollectionSpace(ISession *session,

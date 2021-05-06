@@ -47,6 +47,9 @@
 #include "vessel/listCollectionsDef.h"
 #include "vessel/slice.h"
 #include "vessel/storageUnit.h"
+#include "vessel/mainDataSpace.h"
+#include "vessel/indexSpace.h"
+#include "vessel/copyOnWriteSpaceEnv.h"
 
 namespace engine
 {
@@ -66,11 +69,11 @@ namespace vessel
          collectionSpace &operator=(const collectionSpace &o) = delete;
 
       private:
-         enum CS_IN_MEM_STATUS
+         enum _CS_STATUS
          {
             CLOSED = 0,
             OPEN = 1,
-         };//enum CS_IN_MEM_STATUS
+         };//enum _CS_STATUS
    
       public:
          OSS_INLINE BOOLEAN isClosed()const
@@ -103,26 +106,27 @@ namespace vessel
          {
             return _recordInMem.version;
          }
-         OSS_INLINE storageUnit *getSU()
-         {
-            return _su;
-         }
          OSS_INLINE BOOLEAN isOnline()const
          {
             return _recordInMem.isOnline();
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            if (NULL != _su)
-            {
-               return _su->getLogicalID();
-            }
-            return DMS_INVALID_LOGICCSID;
+            return _recordInMem.logicalID;
+         }
+
+         OSS_INLINE mainDataSpace *getMainDataSpace()
+         {
+            return &_ms;
+         }
+         OSS_INLINE indexSpace *getIndexSpace()
+         {
+            return NULL;
          }
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
-                      utilCSUniqueID uniqueID,
+                      UINT32 logicalID,
                       storageUnit *su,
                       const createCSOptions &options);
 
@@ -135,9 +139,6 @@ namespace vessel
                         const strSlice &clName, 
                         utilCLInnerID clInnerId,
                         const createCLOptions &options);
-
-      public:
-         INT32 getDataPageSize(UINT32 &pageSize);
       public:
          SPACE_ID getSpaceID()const;
 
@@ -162,106 +163,15 @@ namespace vessel
 
          INT32 ensureFsmFile(requestContext *context,
                              fsmFile **file);
-
-      public:
-         INT32 getLpidOfClRecord(CL_MB_ID mbID, PAGE_ID &lpid)const;
-         INT32 getDataPhyPidInIdMapToRead(requestContext *context,
-                                          PAGE_ID lpid,
-                                          PAGE_ID &pid);
-         INT32 getDataPhyPidInIdMapToWrite(requestContext *context,
-                                           PAGE_ID lpid,
-                                           PAGE_ID &pid);
-
-         /// cs will read phy pid automatically if toBeCow set as invalid value 
-         INT32 copyOnWritePageInDFile(requestContext *context,
-                                      PAGE_ID lpid,
-                                      PAGE_ID toBeCow,
-                                      PAGE_ID &pid);         
-
-
-         /// preallocate physical pids in mem
-         INT32 preallocatePhyPagesInDFile(requestContext *context,
-                                          UINT32 count,
-                                          PAGE_ID *pids);
-         void releasePhyPagesPreallocated(requestContext *context,
-                                           UINT32 count,
-                                           const PAGE_ID *pids);
-
-         /// preallocate logical and physical pids in mem
-         INT32 preallocateDataPages(requestContext *context,
-                                    UINT32 count,
-                                    PAGE_ID *lpids,
-                                    PAGE_ID *pids);
-
-         void releaseDataPagesPreallocated(requestContext *context,
-                                           UINT32 count,
-                                           const PAGE_ID *lpids,
-                                           const PAGE_ID *pids);
-
-         /// preallocate logical pids in mem
-         INT32 preallocateLpids(requestContext *context,
-                                UINT32 count,
-                                PAGE_ID *lpids);
-         void releaseLpidsPreallocated(requestContext *context,
-                                       UINT32 count,
-                                       PAGE_ID *lpids);
-
-         /// allocate physical pids and map them to logical pids in disk.
-         INT32 allocateDataPages(requestContext *context,
-                                 PAGE_TYPE type,
-                                 UINT32 count,
-                                 const PAGE_ID *lpids,
-                                 const PAGE_ID *pids,
-                                 const slice &args,
-                                 DPS_LSN_OFFSET *oplist=NULL);
-
-         /// releaseDataPages will also release lpids in memory.
-         /// Physical pids' releasing depends on snapshot version.
-         /// If physical pid can be recycled, it will be released
-         /// in memory also.
-         /// In another word, you do not need to care about "releaseXXPrealloated"
-         /// any more if releaseDataPages returns ok.
-         /// But if it returns error and you are rollbacking oplist, remember to
-         /// abort oplist by logger's abortOplist.
-         INT32 releaseDataPages(requestContext *context,
-                                UINT32 count,
-                                const PAGE_ID *lpids,
-                                DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
       private:
-         INT32 allocateIdMapPageOnSMP(requestContext *context,
-                                      PAGE_ID pid);
-         INT32 releaseIdMapPageOnSMP(requestContext *context,
-                                     PAGE_ID pid);
+         INT32 precreateCL(const strSlice &clName,
+                           utilCLInnerID innerID,
+                           UINT32 &logicalID);
 
-         INT32 allocateDataPagesOnSMP(requestContext *context,
-                                      PAGE_TYPE type,
-                                      UINT32 count,
-                                      const PAGE_ID *lpids,
-                                      const PAGE_ID *pids,
-                                      const slice &extArgs,
-                                      DPS_LSN_OFFSET *oplist);
-         INT32 releaseDataPagesOnSMP(requestContext *context,
-                                     UINT32 count,
-                                     const PAGE_ID *pids,
-                                     DPS_LSN_OFFSET *oplist);
-         INT32 mapNewLpids(requestContext *context,
-                           UINT32 count,
-                           const PAGE_ID *lpids,
-                           const PAGE_ID *pids,
-                           DPS_LSN_OFFSET oplist,
-                           BOOLEAN oplistTail=FALSE);
 
-         /// under lpid exclusive latch.
-         /// you must remap lpid to a new physical page before writing if mustBeCow is TRUE.
-         INT32 getDataPhyPidInIdMapToWrite(requestContext *context,
-                                           PAGE_ID lpid,
-                                           PAGE_ID &pid,
-                                           BOOLEAN &mustBeCow);
-      private:
-         BOOLEAN addToCreatingIndex(const strSlice &clName,
-                                    utilCLInnerID innerID);
-         void rollbackCreatingIndex(const strSlice &clName,
-                                     utilCLInnerID innerID);
+         void rollbackPrecreating(const strSlice &clName,
+                                  utilCLInnerID innerID,
+                                  UINT32 logicalID);
 
          void moveToFormalIndex(collectionAllocator::collectionHolder *holder);
 
@@ -290,50 +200,12 @@ namespace vessel
 
       private:
          void fini();
-         INT32 initNecessaryPagesWhenCreating(requestContext *context);
-         INT32 updateStatusToOnlineWhenCreating(requestContext *context);
-         INT32 firstExtendMetaFile(requestContext *context);
-         INT32 initGMP(requestContext *context,
-                       const csMetaRecord &record);
-         INT32 initIMP(requestContext *context,
-                       UINT32 pageSize,
-                       PAGE_ID pid);
-
-         INT32 initDataSMP(requestContext *context,
-                           PAGE_ID pid,
-                           UINT32 occupied);
-
-         ///can be used only when start.
-         INT32 cacheGlobalMetaData(requestContext *context);
 
          INT32 initCollectionsFromDisk(requestContext *context);
 
          INT32 initCollectionsFromOneDiskPage(requestContext *context,
+                                              UINT32 capacity,
                                               PAGE_ID pid);
-
-         INT32 allocateCLLogicalID(requestContext *context,
-                                   UINT32 &lid);
-         
-
-         INT32 createNewDataFileAndExtendBitMap(requestContext *context,
-                                                const UINT32 *oldPageCount);
-
-         INT32 ensureNewIMPAndExtendPool(requestContext *context,
-                                         UINT32 oldPageAllocated);
-
-         INT32 cacheKeyParametersAboutStorage();
-         
-         INT32 initInMemBitMaps(requestContext *context);
-         INT32 initInMemLpidPool(requestContext *context);
-         INT32 initInMemDataSMPBitMap(requestContext *context);
-
-      private:
-         PAGE_ID getCSGlobalMetaPid()const;
-         UINT32 getSystemPageCountInMetaFile()const;
-         PAGE_ID getDataIMPPid(PAGE_ID lpid)const;
-         PAGE_ID getSystemIdMapPid()const;
-         PAGE_ID getDataSMPPId(PAGE_ID pid)const;
-         PAGE_ID getMetaSMPPid(PAGE_ID pid)const;
 
       private:
          struct comp
@@ -383,51 +255,19 @@ namespace vessel
          typedef ossPoolMap<const CHAR *, _UID_HOLDER_PAIR, comp> NAME_INDEX;
          typedef ossPoolMap<utilCLInnerID, _UID_HOLDER_PAIR> ID_INDEX;
          typedef ossPoolSet<ossPoolString> CREATING_NAME_INDEX;
-         typedef ossPoolSet<utilCLInnerID> CREATING_ID_INDEX;
-
-         struct _cachedParameters
-         {
-            OSS_INLINE _cachedParameters(){}
-            OSS_INLINE ~_cachedParameters(){}
-            OSS_INLINE void reset()
-            {
-               dataPageSize = 0;
-               metaPageSize = 0;
-               dataIDMapCapacity = 0;
-               dataSMPCapacity = 0;
-               dataSMPCountPerFile = 0;
-               metaSMPCapcacity = 0;
-               metaSMPCountPerFile = 0;
-               pageCountPerDataFile = 0;
-               pageCountPerMetaFile = 0;
-            }
-
-            UINT32 dataPageSize = 0;
-            UINT32 metaPageSize = 0;
-            UINT32 dataIDMapCapacity = 0;
-            UINT32 dataSMPCapacity = 0;
-            UINT32 dataSMPCountPerFile = 0;
-            UINT32 metaSMPCapcacity = 0;
-            UINT32 metaSMPCountPerFile = 0;
-            UINT32 pageCountPerDataFile = 0;
-            UINT32 pageCountPerMetaFile = 0;
-         };
-
-         
+         typedef ossPoolSet<utilCLInnerID> CREATING_ID_INDEX;         
       private:
-         CS_IN_MEM_STATUS _status;
-         storageUnit *_su;
+         _CS_STATUS _status = CLOSED;
          csMetaRecord _recordInMem;
-
-         _cachedParameters _parameters;
-
-         ossSpinXLatch _extendingDataSpaceLatch;
-         inMemBitMap _inMemDataSMP;
-         inMemBitMap _inMemLpidPool;
-         UINT32 _currentPageCountInMeta;
          collectionAllocator _collectionAllocator;
 
-         ossSpinSLatch _runtimeIndexLatch;
+         copyOnWriteSpaceEnv _cowEnv;
+         mainDataSpace _ms;
+         //indexSpace _is;
+
+
+         ossSpinSLatch _latch;
+         UINT32 _maxCLLogicalID = DMS_INVALID_LOGICCLID;
          NAME_INDEX _clNameIndex;
          ID_INDEX _clIdIndex;
          CREATING_NAME_INDEX _creatingNameIndex;

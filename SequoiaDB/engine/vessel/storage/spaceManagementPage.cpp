@@ -38,73 +38,40 @@
 #include "ossLikely.hpp"
 #include "dms.hpp"
 #include "vessel/storageFileDef.h"
+#include "vessel/bitMapUtils.h"
 
 namespace engine
 {
 namespace vessel
 {
-   /*
-   INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
-                                     UINT32 maxSegmentCount,
-                                     UINT32 pageCountOfSeg,
-                                     UINT32 &capacity)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 capacityOfPage = 0;
-      UINT32 userDefinedCapacity = maxSegmentCount * pageCountOfSeg;
-      SDB_ASSERT(0 < pageCountOfSeg && 0 < maxSegmentCount, "can not be zero");
-
-      if (OSS_UNLIKELY(pageSize < (PAGE_HEAD_LEN + PAGE_TAIL_LEN + SMP_HEAD_LEN)))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(0 == maxSegmentCount ||
-                            0 == pageCountOfSeg))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      capacityOfPage = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - SMP_HEAD_LEN) & 0xfffffff8; /// 8bytes aligned.
-      capacityOfPage = capacityOfPage << 3; /// capacityOfPage *= 8;
-
-      if (capacityOfPage < userDefinedCapacity)
-      {
-         PD_LOG(PDERROR, "max capacity is %d when page size is:%d", capacityOfPage, pageSize);
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else
-      {
-         capacityOfPage = userDefinedCapacity;
-      }
-
-      capacity = capacityOfPage;
-   done:
-      return rc;
-   error:
-      goto done;
-   }*/
-
-   BOOLEAN getSMPCapacityAndCount(UINT32 pageSize,
-                                  UINT32 &capacity,
-                                  UINT32 *count)
+   BOOLEAN getSMPCapacityOrCount(UINT32 pageSize,
+                                 UINT32 *capacity,
+                                 UINT32 *count)
    {
       BOOLEAN r = FALSE;
       UINT32 fileCapacity = 0;
       UINT32 pageCapacity = 0;
       UINT32 realCapacity = 0;
 
-      if (DMS_PAGE_SIZE8K != pageSize &&
-          DMS_PAGE_SIZE16K != pageSize &&
-          DMS_PAGE_SIZE32K != pageSize &&
-          DMS_PAGE_SIZE64K != pageSize)
+      switch (pageSize)
       {
+      case DMS_PAGE_SIZE8K:
+         fileCapacity = STORAGE_FILE_SIZE >> 13;
+         break;
+      case DMS_PAGE_SIZE16K:
+         fileCapacity = STORAGE_FILE_SIZE >> 14;
+         break;
+      case DMS_PAGE_SIZE32K:
+         fileCapacity = STORAGE_FILE_SIZE >> 15;
+         break;
+      case DMS_PAGE_SIZE64K:
+         fileCapacity = STORAGE_FILE_SIZE >> 16;
+         break;
+      default:
          goto done;
+         break;
       }
 
-      fileCapacity = STORAGE_FILE_SIZE / pageSize;
       ///We want to set capacity as power of 2.
       ///But because of page head and tail, only half page can be used.
       pageCapacity = (pageSize << 2);/// pageCapacity = pageSize / 2 * 8;
@@ -113,13 +80,61 @@ namespace vessel
       {
          goto done;
       }
+      if (NULL != capacity)
+      {
+         *capacity = realCapacity;
+      }
       if (NULL != count)
       {
          *count = fileCapacity / realCapacity;
       }
-      capacity = realCapacity;
       r = TRUE;
       
+   done:
+      return r;
+   }
+
+   BOOLEAN initSmp(UINT32 pageSize, PAGE_ID pid, UINT32 occupied, CHAR *buf)
+   {
+      BOOLEAN r = FALSE;
+      spaceManagementPageHead *head = NULL;
+      UINT32 capacity = 0;
+      UINT32 bitsCount = 0;
+
+      if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
+                       INVALID_PAGE_ID == pid ||
+                       NULL == buf))
+      {
+         goto done;
+      }
+
+      if (OSS_UNLIKELY(!getSMPCapacityOrCount(pageSize, &capacity, NULL)))
+      {
+         goto done;
+      }
+
+      if (OSS_UNLIKELY(capacity < occupied))
+      {
+         goto done;
+      }
+
+      initCommonPage(PAGE_TYPE_SMP, pageSize, pid, buf);
+      head = (spaceManagementPageHead *)(buf + PAGE_HEAD_LEN);
+      head->version = SMP_VERSION_1;
+      head->flags = 0;
+      head->free = capacity - occupied;
+      head->pad = 0;
+
+      bitsCount = capacity >> 6;
+      ossMemset((buf + PAGE_HEAD_LEN + SMP_HEAD_LEN), 0xFF, (capacity >> 3));
+      for (UINT32 i = 0; i < occupied; ++i)
+      {
+         if (!setNotFreeIfFree64(bitsCount, (UINT64 *)(buf + PAGE_HEAD_LEN + SMP_HEAD_LEN), i))
+         {
+            goto done;
+         }
+      }
+      r = TRUE;
    done:
       return r;
    }

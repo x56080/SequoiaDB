@@ -68,7 +68,6 @@ namespace vessel
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
-                        utilCSUniqueID uniqueID,
                         const createCSOptions &options,
                         SPACE_ID *sid = NULL,
                         UINT32 *logicalID = NULL);
@@ -131,7 +130,7 @@ namespace vessel
          INT32 createCS(requestContext *context,
                         storageUnit *su,
                         const strSlice &csName,
-                        utilCSUniqueID uniqueID,
+                        UINT32 logicalID,
                         const createCSOptions &options);
 
          void rollbackPrecreating(requestContext *context,

@@ -86,9 +86,9 @@ namespace vessel
                                  SPACE_ID sid)
    {
       BOOLEAN r = FALSE;
-      FILE_TYPE type = INVALID_FILE_TYPE;
-      UINT32 space = 0;
       std::vector<std::string> columns;
+      UINT32 space = 0;
+      reset();
       if (fileName.strLen() <= (FILE_NAME_PREFIX_LEN + 1) ||
           MAX_FILE_NAME_LEN < fileName.strLen())
       {
@@ -100,8 +100,8 @@ namespace vessel
       }
 
       columns = utilStrSplit(fileName.str(), ".");
-      if (FILE_NAME_FORMAT_COLUMN_COUNT != columns.size() &&
-          (FILE_NAME_FORMAT_COLUMN_COUNT) - 1 != columns.size())
+      if (columns.size() < FILE_NAME_FORMAT_MIN_COLUMNS ||
+          FILE_NAME_FORMAT_MAX_COLUMNS < columns.size())
       {
          goto done;
       }
@@ -113,14 +113,20 @@ namespace vessel
       {
          goto done;
       }
-      else if (!parseFileSuffix(columns.at(2).c_str(), type))
+      else if (!parseFileSuffix(columns.at(2).c_str(), _type))
       {
          goto done;
       }
-      else if (FILE_NAME_FORMAT_COLUMN_COUNT == columns.size() &&
-               !utilStrIsDigit(columns.at(3).c_str()))
+      else if ((FILE_NAME_FORMAT_MIN_COLUMNS + 1) == columns.size())
       {
-         goto done;
+         if (utilStrIsDigit(columns.at(3).c_str()))
+         {
+            _sequence = ossAtoll(columns.at(3).c_str());
+         }
+         else
+         {
+            goto done;
+         }
       }
 
       space = ossAtoi(columns.at(1).c_str());
@@ -133,22 +139,21 @@ namespace vessel
       {
          goto done;
       }
+      _space = (SPACE_ID)space;
 
-      _space = space;
-      _type = type;
-      _sequence = 0;
-      if (FILE_NAME_FORMAT_COLUMN_COUNT == columns.size())
-      {
-         _sequence = ossAtoll(columns.at(3).c_str());
-      }
-      ossMemcpy(_name, fileName.str(), fileName.strLen() + 1);
+      ossMemcpy(_name, fileName.str(), fileName.strLen());
       r = TRUE;
 
    done:
+      if (!r)
+      {
+         reset();
+      }
       return r;
    }
 
-   BOOLEAN vesselFileName::build(SPACE_ID sid, FILE_TYPE type)
+   BOOLEAN vesselFileName::build(SPACE_ID sid,
+                                 FILE_TYPE type)
    {
       BOOLEAN r = FALSE;
       reset();
@@ -174,7 +179,9 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN vesselFileName::build(SPACE_ID sid, FILE_TYPE type, UINT64 sequence)
+   BOOLEAN vesselFileName::build(SPACE_ID sid,
+                                 FILE_TYPE type,
+                                 UINT64 sequence)
    {
       BOOLEAN r = FALSE;
       reset();

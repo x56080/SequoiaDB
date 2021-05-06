@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = idMapPage.cpp
+   Source File Name = collectionRecordPage.cpp
 
    Descriptive Name =
 
@@ -33,31 +33,56 @@
 
 ******************************************************************************/
 
-#include "vessel/idMapPage.h"
-#include "dms.hpp"
+#include "vessel/collectionRecordPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 get64AlignedCapacityOfIMP(UINT32 pageSize, UINT32 &capacity)
+   INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity)
    {
       INT32 rc = SDB_OK;
-
-      if (DMS_PAGE_SIZE64K != pageSize &&
-          DMS_PAGE_SIZE32K != pageSize)
+      if (DMS_PAGE_SIZE32K != pageSize &&
+          DMS_PAGE_SIZE64K != pageSize)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ID_MAP_PAGE_HEAD_LEN) /
-                 sizeof(idMapSlot);
-      capacity &= 0xFFFFFFC0;
+      capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - COLLECTION_RECORD_PAGE_HEAD_LEN) / COLLECTION_DISK_RECORD_LEN;
    done:
       return rc;
    error:
       goto done;
+   }
+
+   BOOLEAN initCollectionRecordPage(UINT32 pageSize,
+                                    PAGE_ID lpid,
+                                    void *buf)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 capacity = 0;
+      CHAR *ptr = (CHAR *)buf;
+      collectionRecordPageHead *head = NULL;
+      collectionRecord record;
+      UINT32 offset = 0;
+      if (SDB_OK != getCapacityOfCLRecordPage(pageSize, capacity))
+      {
+         goto done;
+      }
+      initCommonPage(PAGE_TYPE_COLLECTION_RECORD, pageSize, lpid, buf);
+      head = (collectionRecordPageHead *)(ptr + PAGE_HEAD_LEN);
+      head->version = COLLECTION_RECORD_PAGE_VERSION_1;
+      
+      offset = PAGE_HEAD_LEN + COLLECTION_RECORD_PAGE_HEAD_LEN;
+      for (UINT32 i = 0; i < capacity; ++i)
+      {
+         collectionRecord *recordPtr = (collectionRecord *)(ptr + offset);
+         ossMemcpy(recordPtr, &record, COLLECTION_RECORD_LEN);
+      }
+      r = TRUE;
+   done:
+      return r;
    }
 }//namespace vessel
 }//namespace engine

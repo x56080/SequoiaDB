@@ -100,7 +100,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getDataPageSize(pageSize);
+      rc = cs->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -170,7 +170,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getDataPageSize(pageSize);
+      rc = cs->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -264,7 +264,7 @@ namespace vessel
       PAGE_ID pid = INVALID_PAGE_ID;
       lpidLockHelper lh;
 
-      rc = _collectionSpace->getLpidOfClRecord(getMBID(), lpid);
+      rc = _collectionSpace->getMainDataSpace()->getLpidOfCollectionRecord(getMBID(), lpid);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lpid");
@@ -285,7 +285,7 @@ namespace vessel
          goto error;
       }
 
-      rc = saveCLRecordWhenCreating(context, pid);
+      rc = saveCLRecordWhenCreating(context, lpid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -341,7 +341,7 @@ namespace vessel
 
       ossScopedLock guard(&_ddlSLatch, SHARED);
 
-      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -469,28 +469,14 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-
-      PAGE_ID pid = INVALID_PAGE_ID;
-      lpidLockHelper lh;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
       rdpAccessor accessor;
-
-      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
+      rc = accessor.init(context, lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lock of lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
-      if (SDB_OK != rc)
-      {
+         PD_LOG(PDERROR, "failed to init rdp accessor:%d", rc);
          goto error;
       }
 
@@ -509,12 +495,10 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
    done:
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
       count = 0;
       goto done;
    }
@@ -525,9 +509,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       rdpAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
       PAGE_ID lpid = INVALID_PAGE_ID;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      lpidLockHelper lh;
       lpid = cursor->getLpid();
 
       if (INVALID_PAGE_ID == lpid)
@@ -543,25 +527,11 @@ namespace vessel
          cursor->setLpid(lpid);
       }
 
-      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, pid,
-                         0, _collectionSpace->getSU());
+      rc = accessor.init(context, lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
-         PD_LOG(PDERROR, "failed to init accessor of pid[%d], rc:%d", pid, rc);
+         PD_LOG(PDERROR, "failed to init accessor of lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
 
@@ -656,46 +626,32 @@ namespace vessel
       SDB_ASSERT(candidate.isValid(), "must be valid");
       SDB_ASSERT(INVALID_PAGE_ID != candidate.lpid, "can not be invalid");
       rdpAccessor accessor;
-      lpidLockHelper lh;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      o.readOnly = FALSE;
 
-      rc = lh.lock(context, FILE_TYPE_DD, candidate.lpid, EXCLUSIVE);
+      rc = accessor.init(context, candidate.lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", candidate.lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, candidate.lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", candidate.lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, pid,
-                         flags, _collectionSpace->getSU());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init accessor of pid[%d], rc:%d", pid, rc);
+         PD_LOG(PDERROR, "failed to init accessor of lpid[%d], rc:%d",
+                candidate.lpid, rc);
          goto error;
       }
 
       rc = accessor.insertNormalRecord(context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert record to pid[%d], rc:%d", pid, rc);
+         PD_LOG(PDERROR, "failed to insert record to lpid[%d], rc:%d",
+                candidate.lpid, rc);
          goto error;
       }
 
-      accessor.fini(context);
-      lh.unlock();
+      
    done:
+      accessor.fini(context);
       return rc;
    error:
-      accessor.fini(context);
-      lh.unlock();
       goto done;
    }
 
@@ -785,12 +741,13 @@ namespace vessel
       BOOLEAN rollbackPages = FALSE;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       slice args;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_OPLIST_TAIL;
-      lpidLockHelper lh;
       routePageAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      o.readOnly = FALSE;
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
-      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -798,6 +755,7 @@ namespace vessel
       capacity = getCapacityOfRoutePage(pageSize);
       if (OSS_UNLIKELY(0 == capacity))
       {
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
@@ -821,7 +779,7 @@ namespace vessel
          }
       }
 
-      rc = _collectionSpace->preallocateDataPages(context, count, lpids, pids);
+      rc = ms->preallocatePages(context, count, lpids, pids);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to preallocate pages:%d", rc);
@@ -837,8 +795,8 @@ namespace vessel
       }
 
       args.reset(sizeof(_pageCntInRoutePages), (const CHAR *)(&_pageCntInRoutePages));
-      rc = _collectionSpace->allocateDataPages(context, PAGE_TYPE_RECORD,
-                                               count, lpids, pids, args, &lsn);
+      rc = ms->allocatePages(context, PAGE_TYPE_RECORD,
+                             count, lpids, pids, args, &lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate data pages:%d", rc);
@@ -848,22 +806,7 @@ namespace vessel
       rollbackPre = FALSE;
       rollbackPages = TRUE;
 
-      rc = lh.lock(context, FILE_TYPE_DD, lvl0Lpid, EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl0Lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, lvl0Lpid, lvl0Pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lvl0 pid of[%d], rc:%d", lvl0Lpid, lvl0Pid);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, lvl0Pid, flags,
-                         _collectionSpace->getSU(), lsn);
+      rc = accessor.init(context, lvl0Lpid, o, ms, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ini accessor:%d", rc);
@@ -881,7 +824,6 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
 
       firstSeq = _pageCntInRoutePages;
       _pageCntInRoutePages += count;
@@ -889,14 +831,13 @@ namespace vessel
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
       if (rollbackPre)
       {
-         _collectionSpace->releaseDataPagesPreallocated(context, count, lpids, pids);
+         ms->releasePagesPreallocated(context, count, lpids, pids);
       }
       if (rollbackPages)
       {
-         INT32 tmpRc = _collectionSpace->releaseDataPages(context, count, lpids, lsn);
+         INT32 tmpRc = ms->releasePages(context, count, lpids, lsn);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to rollback allocating, rc:%d", rc);
@@ -919,7 +860,8 @@ namespace vessel
       UINT32 pageSize = 0;
       UINT32 max = 0;
       UINT32 count = 0;
-      rc = _collectionSpace->getDataPageSize(pageSize);
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
+      rc = ms->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1091,11 +1033,9 @@ namespace vessel
       SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
       UINT32 pageSize = 0;
       ossValuePtr ptr = 0;
-      storageUnit *su = NULL;
-      rdpAccessor accessor;
+      storageUnit *su = _collectionSpace->getMainDataSpace()->getSU();
 
-      su = _collectionSpace->getSU();
-      rc = _collectionSpace->getDataPageSize(pageSize);
+      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1117,27 +1057,12 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.initWithDirectMode(context, FILE_TYPE_DD,
-                                          pids[i], pageSize, ptr, FALSE, FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init accessor:%d", rc);
-            goto error;
-         }
-
-         rc = accessor.initRdp(context, lpids[i], _record.logicalCLID, firstSeq + i);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init record data page[%d], rc:%d", pids[i], rc);
-            goto error;
-         }
-
-         accessor.fini(context);
+         initRecordDataPage(pageSize, lpids[i], getLogicalID(),
+                            firstSeq + i, (void *)ptr);
       }
    done:
       return rc;
    error:
-      accessor.fini(context);
       goto done;
    }
 
@@ -1153,9 +1078,10 @@ namespace vessel
       UINT32 capacity = 0;
       UINT32 lvl0Id = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
-      PAGE_ID lvl0Pid = INVALID_PAGE_ID;
       routePageAccessor accessor;
-      lpidLockHelper lh;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
       lpid = INVALID_PAGE_ID;
 
@@ -1167,7 +1093,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = ms->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1183,25 +1109,10 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, FILE_TYPE_DD, lvl0Lpid, SHARED);
+      rc = accessor.init(context, lvl0Lpid, o, ms);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl0Lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lvl0Lpid, lvl0Pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", lvl0Lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD,
-                         lvl0Pid, 0, _collectionSpace->getSU());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init route accessor of pid[%d], rc:%d", lvl0Pid, rc);
+         PD_LOG(PDERROR, "failed to init route accessor of lpid[%d], rc:%d", lvl0Lpid, rc);
          goto error;
       }
 
@@ -1213,21 +1124,11 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
-
-      if (INVALID_PAGE_ID == lpid)
-      {
-         PD_LOG(PDERROR, "sequence[%d] does not exist", sequence);
-         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
-         goto error;
-      }
-
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
    done:
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
-      
       goto done;
    }
 
@@ -1241,28 +1142,11 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      UINT32 flags = direct ? PAGE_ACCESSOR_FLAG_DIRECT : 0;
-      PAGE_ID pid = INVALID_PAGE_ID;
+      pageAccessor::options o;
+      o.cacheMode = !direct;
       routePageAccessor accessor;
-
-      lpidLockHelper lh;
-
-      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get phy id of lpid[%d], rc:%d", rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, pid, flags,
-                         _collectionSpace->getSU());
+      rc = accessor.init(context, lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1276,14 +1160,11 @@ namespace vessel
          goto error;
       }
       
-      accessor.fini(context);
-      lh.unlock();
-
+      
    done:
+      accessor.fini(context);
       return rc;
    error:
-      accessor.fini(context);
-      lh.unlock();
       goto done;
    }
 
@@ -1293,11 +1174,11 @@ namespace vessel
                                       PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
-      PAGE_ID lvl1Pid = INVALID_PAGE_ID;
-      lpidLockHelper lh;
-      PAGE_ID pid = INVALID_PAGE_ID;
+      PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
       UINT32 slot = 0;
       routePageAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
 
       lpid = INVALID_PAGE_ID;
       if (0 == lvl0No)
@@ -1312,9 +1193,14 @@ namespace vessel
       }
       else if (lvl0No < (1 + capacity + capacity))
       {
-         lvl1Pid = (lvl0No < (1 + capacity)) ?
+         lvl1Lpid = (lvl0No < (1 + capacity)) ?
                     _record.routePages[COLLECTION_FIRST_ROOT_LVL1] :
                     _record.routePages[COLLECTION_SECOND_ROOT_LVL1];
+         if (INVALID_PAGE_ID == lvl1Lpid)
+         {
+            rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+            goto error;
+         }
       }
       else if (lvl0No < getMaxLvl0Cnt(capacity))
       {
@@ -1325,22 +1211,8 @@ namespace vessel
             goto error;
          }
 
-         rc = lh.lock(context, FILE_TYPE_DD, lvl2Pid, SHARED);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl2Pid, rc);
-            goto error;
-         }
-
-         rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lvl2Pid, pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", lvl2Pid, pid);
-            goto error;
-         }
-
-         rc = accessor.init(context, FILE_TYPE_DD,
-                            pid, 0, _collectionSpace->getSU());
+         rc = accessor.init(context, lvl2Pid, o,
+                            _collectionSpace->getMainDataSpace());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1348,7 +1220,7 @@ namespace vessel
          }
 
          slot = (lvl0No - 1 - capacity - capacity) / capacity;
-         rc = accessor.readSlot(context, slot, lvl1Pid);
+         rc = accessor.readSlot(context, slot, lvl1Lpid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to read slot[%d] of lvl2:%d", slot, rc);
@@ -1356,7 +1228,6 @@ namespace vessel
          }
 
          accessor.fini(context);
-         lh.unlock();
       }
       else
       {
@@ -1364,28 +1235,8 @@ namespace vessel
          goto error;
       }
 
-      if (INVALID_PAGE_ID == lvl1Pid)
-      {
-         rc = SDB_VESSEL_PAGE_NOT_EXISTS;
-         goto error;
-      }
-
-      rc = lh.lock(context, FILE_TYPE_DD, lvl1Pid, SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl1Pid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lvl1Pid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", lvl1Pid, pid);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD,
-                           pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, lvl1Lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1401,18 +1252,10 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
-
-      if (INVALID_PAGE_ID == lpid)
-      {
-         rc = SDB_VESSEL_PAGE_NOT_EXISTS;
-         goto error;
-      }
    done:
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
       goto done;
    }
 
@@ -1429,8 +1272,7 @@ namespace vessel
       UINT32 lvl0Cnt = 0;
       UINT32 maxLvl0Cnt = 0;
       PAGE_ID newLvl0Lpid = INVALID_PAGE_ID;
-
-      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get page size:%d", rc);
@@ -1564,17 +1406,19 @@ namespace vessel
       SDB_ASSERT(0 == _maxPageCntInRoutePages, "must be zero");
       PAGE_ID lpidOfRP = INVALID_PAGE_ID;
       PAGE_ID crpLpid = INVALID_PAGE_ID;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      storageUnit *su = _collectionSpace->getSU();
+
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_OPLIST_TAIL;
-      lpidLockHelper lh;
+
       /// we are holding ddl s latch and page allocating x latch.
       /// all columns in _record are unchangeable now.
       collectionRecord record = _record;
       crpAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      o.readOnly = FALSE;
+      o.oplistTail = TRUE;
       UINT64 mask = COLLECTION_UPDATE_MASK_ROUTE_PAGES;
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
       if(OSS_UNLIKELY(rootSlot < COLLECTION_MIN_ROUTE_ROOT ||
                       COLLECTION_MAX_ROUTE_ROOT < rootSlot ||
@@ -1592,7 +1436,7 @@ namespace vessel
       }
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
-      rc = _collectionSpace->getLpidOfClRecord(getMBID(), crpLpid);
+      rc = ms->getLpidOfCollectionRecord(getMBID(), crpLpid);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lpid");
@@ -1600,23 +1444,8 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, FILE_TYPE_DD, crpLpid, EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", crpLpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, crpLpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure crp[%d] allocated:%d", crpLpid, rc);
-         goto error;
-      }
-
       record.routePages[rootSlot] = lpidOfRP;
-      rc = accessor.init(context, FILE_TYPE_DD, pid,
-                         flags, su, lsn);
+      rc = accessor.init(context, crpLpid, o, ms, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init crp accessor:%d", rc);
@@ -1631,16 +1460,14 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
       _record.routePages[rootSlot] = lpidOfRP;
    done:
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
       if (INVALID_PAGE_ID != lpidOfRP)
       {
-         INT32 tmpRc = _collectionSpace->releaseDataPages(context, 1, &lpidOfRP, lsn);
+         INT32 tmpRc = ms->releasePages(context, 1, &lpidOfRP, lsn);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to rollback allocating[%d], rc:%d", lpidOfRP, rc);
@@ -1662,11 +1489,11 @@ namespace vessel
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       PAGE_ID newLpid = INVALID_PAGE_ID;
       DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET;
-      lpidLockHelper lh;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_OPLIST_TAIL;
       routePageAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      o.readOnly = FALSE;
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
       rc = createNewRoutePage(context, newLpid, &oplist);
       if (SDB_OK != rc)
@@ -1675,24 +1502,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, FILE_TYPE_DD, lpid, EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, pid);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD,
-                         pid, flags,
-                         _collectionSpace->getSU(),
-                         oplist);
+      rc = accessor.init(context, newLpid, o, ms, oplist);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1708,16 +1518,14 @@ namespace vessel
       }
 
       accessor.fini(context);
-      lh.unlock();
       lpidOfRP = newLpid;
    done:
       return rc;
    error:
       accessor.fini(context);
-      lh.unlock();
       if (INVALID_PAGE_ID != newLpid)
       {
-         INT32 tmpRc = _collectionSpace->releaseDataPages(context, 1, &newLpid, oplist);
+         INT32 tmpRc = ms->releasePages(context, 1, &newLpid, oplist);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to rollback allocating[%d], rc:%d", newLpid, rc);
@@ -1735,31 +1543,20 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      lpidLockHelper lh;
-      PAGE_ID pid = INVALID_PAGE_ID;
       routePageAccessor accessor;
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+
       PAGE_ID lvl2Lpid = _record.routePages[COLLECTION_ROOT_LVL2];
       if (INVALID_PAGE_ID == lvl2Lpid)
       {
          PD_LOG(PDERROR, "lvl2 page does not exist");
          rc = SDB_INVALIDARG;
-      }
-
-      rc = lh.lock(context, FILE_TYPE_DD, lvl2Lpid, SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lvl2Lpid, rc);
          goto error;
       }
 
-      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lvl2Lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get pid of lvl2[%d], rc:%d", lvl2Lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, lvl2Lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1767,19 +1564,22 @@ namespace vessel
       }
 
       rc = accessor.readSlot(context, slot, lpid);
-      if (SDB_OK != rc)
+      if (SDB_OK == rc)
+      {
+         goto done;
+      }
+      else if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+      {
+         ///create new one.
+         rc = SDB_OK;
+      }
+      else
       {
          PD_LOG(PDERROR, "failed to read slot[%d] on route page:%d", slot, rc);
          goto error;
       }
 
       accessor.fini(context);
-      lh.unlock();
-
-      if (INVALID_PAGE_ID != lpid)
-      {
-         goto done;
-      }
 
       rc = createNonRootRoutePage(context, lvl2Lpid, slot, lpid);
       if (SDB_OK != rc)
@@ -1789,10 +1589,9 @@ namespace vessel
       }
 
    done:
+      accessor.fini(context);
       return rc;
    error:
-      accessor.fini(context);
-      lh.unlock();
       lpid = INVALID_PAGE_ID;
       goto done;
    }
@@ -1808,53 +1607,41 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       ossValuePtr ptr = 0;
       UINT32 pageSize = 0;
-      storageUnit *su = NULL;
       slice s;
       UINT32 logicalId = _record.logicalCLID;
-      routePageAccessor accessor;
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
-      su = _collectionSpace->getSU();
-      rc = su->getCoreArgs(FILE_TYPE_DD, &pageSize);
+      rc = ms->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
       }
 
-      rc = _collectionSpace->preallocateDataPages(context, 1, &lpid, &pid);
+      rc = ms->preallocatePages(context, 1, &lpid, &pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to preallocate data page:%d", rc);
          goto error;
       }
 
-      rc = su->getPagePtr(FILE_TYPE_DD, pid, ptr);
+      rc = ms->getSU()->getPagePtr(FILE_TYPE_DD, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", pid, rc);
          goto error;
       }
 
-      rc = accessor.initWithDirectMode(context, FILE_TYPE_DD,
-                                       pid, pageSize, ptr, FALSE, FALSE);
-      if (SDB_OK != rc)
+      if (!initRoutePage(pageSize, lpid, logicalId, (void *)ptr))
       {
-         PD_LOG(PDERROR, "failed to init page accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to init route page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-
-      rc = accessor.initPage(context, lpid, logicalId);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init route page:%d", rc);
-         goto error;
-      }
-
-      accessor.fini(context);
 
       s.reset(sizeof(logicalId), (const CHAR *)(&logicalId));
 
-      rc = _collectionSpace->allocateDataPages(context, PAGE_TYPE_ROUTE,
-                                               1, &lpid, &pid, s, lsn);
+      rc = ms->allocatePages(context, PAGE_TYPE_ROUTE,
+                             1, &lpid, &pid, s, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate pages:%d", rc);
@@ -1865,10 +1652,9 @@ namespace vessel
    done:
       return rc;
    error:
-      accessor.fini(context);
       if (INVALID_PAGE_ID != pid)
       {
-         _collectionSpace->releaseDataPagesPreallocated(context, 1, &lpid, &pid);
+         ms->releasePagesPreallocated(context, 1, &lpid, &pid);
       }
       goto done;
    }
@@ -1883,7 +1669,8 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE), "must holding lock");
 
-      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, lpid, pid);
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
+      rc = ms->getPhysicalPid(context, lpid, pid, NULL);
       if (SDB_OK == rc)
       {
          goto done;
@@ -1916,16 +1703,17 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE), "must holding lock");
-
+      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE),
+                 "must holding lock");
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
       rc = preallocateCLRecordPage(context, lpid, pid);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _collectionSpace->allocateDataPages(context, PAGE_TYPE_COLLECTION_RECORD,
-                                               1, &lpid, &pid, slice());
+      rc = ms->allocatePages(context, PAGE_TYPE_COLLECTION_RECORD,
+                             1, &lpid, &pid, slice(), NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate data pages:%d", rc);
@@ -1936,7 +1724,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != pid)
       {
-         _collectionSpace->releasePhyPagesPreallocated(context, 1, &pid);
+         ms->releasePhysicalPidsPreallocated(context, 1, &pid);
          pid = INVALID_PAGE_ID;
       }
       goto done;
@@ -1951,48 +1739,39 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
 
       UINT32 pageSize = 0;
-      ossValuePtr pagePtr = 0;
-      crpAccessor crp;
-      storageUnit *su = _collectionSpace->getSU();
-      
+      ossValuePtr ptr = 0;
       pid = INVALID_PAGE_ID;
-   
-      rc = su->getCoreArgs(FILE_TYPE_DD, &pageSize);
-      if (SDB_OK != rc)
+      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
+
+      rc = ms->getDataPageSize(pageSize);
+      if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
       }
 
-      rc = _collectionSpace->preallocatePhyPagesInDFile(context, 1, &pid);
+      rc = ms->preallocatePhysicalPids(context, 1, &pid);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to preallocate pid:%d", rc);
          goto error;
       }
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
-      rc = su->getPagePtr(FILE_TYPE_DD, pid, pagePtr);
+      rc = ms->getSU()->getPagePtr(FILE_TYPE_DD, pid, ptr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = crp.initWithDirectMode(context, FILE_TYPE_DD,
-                                  pid, pageSize, pagePtr, FALSE, FALSE);
-      if (SDB_OK != rc)
+      if (!initCollectionRecordPage(pageSize, lpid, (void *)ptr))
       {
+         PD_LOG(PDERROR, "failed to init crp page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rc = crp.initPage(context, lpid);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      crp.fini(context);
-
-      rc = su->fsync(FILE_TYPE_DD, pid, 1, TRUE);
+      rc = ms->getSU()->fsync(FILE_TYPE_DD, pid, 1, TRUE);
       if (SDB_OK != rc)
       {
          goto error;
@@ -2000,26 +1779,26 @@ namespace vessel
    done:
       return rc;
    error:
-      crp.fini(context);
       if (INVALID_PAGE_ID != pid)
       {
-         _collectionSpace->releasePhyPagesPreallocated(context, 1, &pid);
+         ms->releasePhysicalPidsPreallocated(context, 1, &pid);
          pid = INVALID_PAGE_ID;
       }
       goto done;
    }
 
-   INT32 collection::saveCLRecordWhenCreating(requestContext *context, PAGE_ID pid)
+   INT32 collection::saveCLRecordWhenCreating(requestContext *context, PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       crpAccessor accessor;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
-      rc = accessor.init(context,
-                          FILE_TYPE_DD,
-                          pid, flags, _collectionSpace->getSU());
+      pageAccessor::options o;
+      o.cacheMode = TRUE;
+      o.readOnly = FALSE;
+      rc = accessor.init(context, lpid, o,
+                         _collectionSpace->getMainDataSpace());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup crp accessor:%d", rc);

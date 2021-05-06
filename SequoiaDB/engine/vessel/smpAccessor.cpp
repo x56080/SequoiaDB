@@ -57,102 +57,6 @@ namespace vessel
    smpAccessor::~smpAccessor()
    {}
 
-   INT32 smpAccessor::initSMP(requestContext *context,
-                              UINT32 pageOccupied)
-   {
-      INT32 rc = SDB_OK;
-      spaceManagementPageHead *head = NULL;
-      UINT32 bitsCount = 0;
-      UINT64 *bits = NULL;
-      UINT32 capacity = 0;
-
-      UINT32 flags = PAGE_ACCESSOR_FLAG_INIT_PAGE | 
-                     PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-      if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!getSMPCapacityAndCount(getPageSize(), capacity, NULL))
-      {
-         PD_LOG(PDERROR, "failed to get capacity of page size:%d", getPageSize());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      SDB_ASSERT(0 == (capacity & 63), "must be 64 aligned");
-
-      if (OSS_UNLIKELY(capacity < pageOccupied))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      bitsCount = capacity >> 6; /// bitsCount = capacity / 64
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init common head:%d", rc);
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to memset page body:%d", rc);
-         goto error;
-      }
-
-      rc = getWritableUserHeadPtr<spaceManagementPageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
-      head->version = SMP_VERSION_1;
-      head->flags = 0;
-      head->free = capacity;
-      head->pad = 0;
-
-      rc = getWritePtrOfPageBody<UINT64>(SMP_HEAD_LEN, &bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      ossMemset(bits, 0xFF, (capacity >> 3)); /// size of memset is (capacity / 8)
-
-      for (UINT32 i = 0; i < pageOccupied; ++i)
-      {
-         if (!setNotFreeIfFree64(bitsCount, bits, i))
-         {
-            PD_LOG(PDERROR, "failed to occupy page offset:%d", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-      }
-      head->free -= pageOccupied;
-
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
-   }
-
    INT32 smpAccessor::allocatePages(requestContext *context,
                                     PAGE_TYPE type,
                                     UINT32 count,
@@ -161,7 +65,7 @@ namespace vessel
                                     const slice &args)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
+      SDB_ASSERT(isCacheMode(), "can not be mmap");
 
       logRecordContext lrContext;
       IRedoLogger *logger = NULL;
@@ -181,7 +85,7 @@ namespace vessel
          goto error;
       }
 
-      if (!getSMPCapacityAndCount(getPageSize(), capacity, NULL))
+      if (!getSMPCapacityOrCount(getPageSize(), &capacity, NULL))
       {
          PD_LOG(PDERROR, "failed to get capacity of smp");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -256,7 +160,7 @@ namespace vessel
          goto error;
       }
 
-      if (!getSMPCapacityAndCount(getPageSize(), capacity, NULL))
+      if (!getSMPCapacityOrCount(getPageSize(), &capacity, NULL))
       {
          PD_LOG(PDERROR, "failed to get smp capacity");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -286,10 +190,11 @@ namespace vessel
    }
 
    INT32 smpAccessor::getFreeCount(requestContext *context,
-                                   INT32 &free)
+                                   UINT32 &free)
    {
       INT32 rc = SDB_OK;
       free = 0;
+      UINT32 capacity = 0;
       const spaceManagementPageHead *head = NULL;
       rc = getReadableUserHeadPtr<spaceManagementPageHead>(&head);
       if (SDB_OK != rc)
@@ -298,6 +203,20 @@ namespace vessel
          goto error;
       }
 
+      if (!getSMPCapacityOrCount(getPageSize(), &capacity, NULL))
+      {
+         PD_LOG(PDERROR, "failed to get smp capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (capacity < head->free)
+      {
+         PD_LOG(PDERROR, "invalid free count[%d] in head, page[%s]",
+                head->free, getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
       free = head->free;
 
    done:
@@ -314,7 +233,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 != bitsCount, "can not be zero");
       SDB_ASSERT(0 != count && NULL != pids, "can not be invalid");
-      const GLOBAL_PAGE_ID &gpid = getGPID();
       const UINT64 *bits = NULL;
       const spaceManagementPageHead *head = NULL;
 
@@ -325,7 +243,7 @@ namespace vessel
          goto error;
       }
 
-      if (head->free < (INT32)count)
+      if (head->free < count)
       {
          PD_LOG(PDERROR, "free count[%d] is not enough in page", head->free);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -552,11 +470,11 @@ namespace vessel
 
       if (lrc->needFullDump())
       {
-         const CHAR *dumpBuf = getFullDumpBuffer();
+         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
          SDB_ASSERT(NULL != dumpBuf, "can not be null");
          rc = logger->pushLogRecordElement(session, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           getPageSize(), dumpBuf);
+                                           lrc->getFullDumpDataSize(), dumpBuf);
          if (SDB_OK != rc)
          {
             goto error;

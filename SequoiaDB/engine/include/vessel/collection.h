@@ -220,7 +220,7 @@ namespace vessel
                                        PAGE_ID lpid,
                                        PAGE_ID &pid);
 
-         INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID pid);
+         INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID lpid);
 
       private:
          OSS_INLINE UINT32 getMaxLvl0Cnt(UINT32 capacity)

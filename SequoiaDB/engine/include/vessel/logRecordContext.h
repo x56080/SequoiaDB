@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -49,15 +46,10 @@ namespace vessel
    class logRecordContext
    {
       public:
-         OSS_INLINE logRecordContext():
-         _originalLen(0),
-         _dpsBufLen(0),
-         _needFullDump(FALSE)
+         OSS_INLINE logRecordContext()
          {}
 
-         OSS_INLINE ~logRecordContext()
-         {
-         }
+         ~logRecordContext();
 
       public:
          OSS_INLINE void prepush(UINT32 len)
@@ -78,14 +70,7 @@ namespace vessel
             return;
          }
 
-         OSS_INLINE void close()
-         {
-            _head.clear();
-            _originalLen = 0;
-            _dpsBufLen = 0;
-            _needFullDump = FALSE;
-            return;
-         }
+         void close();
 
          OSS_INLINE BOOLEAN prepared()const
          {
@@ -116,20 +101,31 @@ namespace vessel
             return _head;
          }
 
-         OSS_INLINE void setNeedFullDump()
-         {
-            _needFullDump = TRUE;
-         }
-
          OSS_INLINE BOOLEAN needFullDump()const
          {
-            return _needFullDump;
+            return 0 < _fullDumpDataSize;
          }
+
+         INT32 fullDumpPage(UINT32 size, const void *data);
+
+         OSS_INLINE const CHAR *getFullDumpBuffer()const
+         {
+            return _fullDumpBuffer;
+         }
+         OSS_INLINE UINT32 getFullDumpDataSize()const
+         {
+            return _fullDumpDataSize;
+         }
+
+      private:
+         INT32 ensureBuffer(UINT32 size);
       private:
          dpsLogRecordHeader _head;
-         UINT32 _originalLen;
-         UINT32 _dpsBufLen;
-         BOOLEAN _needFullDump;
+         UINT32 _originalLen = 0;
+         UINT32 _dpsBufLen = 0;
+         CHAR *_fullDumpBuffer = NULL;
+         UINT32 _fullDumpBufferSize = 0;
+         UINT32 _fullDumpDataSize = 0;
 
    };//class logRecordContext
 }//namespace vessel

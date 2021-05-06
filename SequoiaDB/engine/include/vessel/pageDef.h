@@ -121,7 +121,7 @@ namespace vessel
 
       OSS_INLINE BOOLEAN inUsed()const
       {
-         return OSS_BIT_TEST(flags, PAGE_FLAG_IN_USED);
+         return 0 != OSS_BIT_TEST(flags, PAGE_FLAG_IN_USED);
       }
       OSS_INLINE void setInUsed()
       {
@@ -159,7 +159,16 @@ namespace vessel
    const UINT32 PAGE_HEAD_LEN = sizeof(pageHead);
    const UINT32 PAGE_TAIL_LEN = sizeof(UINT64);
 
+   UINT32 getPageBodySize(UINT32 pageSize);
+
+   BOOLEAN isValidPageSize(UINT32 pageSize);
+
    BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize);
+
+   void initCommonPage(UINT16 pageType,
+                       UINT32 pageSize,
+                       UINT32 pageID,
+                       void *buf);
 
 }/// end of namespace vessel
 } /// end of namespace engine

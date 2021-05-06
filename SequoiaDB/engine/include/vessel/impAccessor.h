@@ -53,8 +53,6 @@ namespace vessel
          virtual ~impAccessor();
       
       public:
-         INT32 initPage(requestContext *context);
-
          ///WARNING: will return the current actual stored value,
          /// regardless of whether the pid is valid
          INT32 getPidByOffset(UINT32 offset, PAGE_ID *pid, SNAPSHOT_ID *snapID);
@@ -70,6 +68,8 @@ namespace vessel
                    const PAGE_ID *lpids,
                    const PAGE_ID *pids,
                    SNAPSHOT_ID snap);
+
+         INT32 getFreeCount(requestContext *context, UINT32 &free);
 
          /// WARNING: size of bits should be enough.
          INT32 dumpAsBitMap(UINT64 *bits, UINT32 &free);

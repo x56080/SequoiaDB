@@ -47,11 +47,7 @@ namespace vessel
 {
    const static UINT16 INDEX_DEF_RECORD_VERSION = 1;
 
-   const static UINT8 INDEX_STATUS_INVALID = 0;
-   const static UINT8 INDEX_STATUS_CREATING = 1;
-   const static UINT8 INDEX_STATUS_ONLINE = 2;
-   const static UINT8 INDEX_STATUS_OFFLINE = 3;
-   const static UINT8 INDEX_STATUS_REMOVING = 4;
+
 #pragma pack(4)
    struct indexDefRecord
    {
@@ -65,6 +61,11 @@ namespace vessel
       {
          ossMemcpy(this, &o, sizeof(indexDefRecord));
          return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return INDEX_DEF_RECORD_VERSION == version;
       }
 
       UINT16 version = 0;
@@ -89,6 +90,10 @@ namespace vessel
    static const UINT32 INDEX_DEF_RECORD_LEN = sizeof(indexDefRecord);
 
 #pragma pack()
+
+   BOOLEAN initIndexDefPage(UINT32 pageSize, UINT32 lpid,
+                            const indexDefRecord &record,
+                            CHAR *buf);
 }//namespace vessel
 }//namespace engine
 

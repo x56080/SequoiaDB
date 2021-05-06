@@ -52,9 +52,6 @@ namespace vessel
          virtual ~smpAccessor();
 
       public:
-         INT32 initSMP(requestContext *context,
-                       UINT32 pageOccupied);
-
          virtual PAGE_TYPE getPageType()const
          {
             return PAGE_TYPE_SMP;
@@ -70,7 +67,7 @@ namespace vessel
                              const slice &args);
 
          INT32 getFreeCount(requestContext *context,
-                            INT32 &free);
+                            UINT32 &free);
 
          INT32 dumpSMP(requestContext *context,
                        UINT32 bufferSize,

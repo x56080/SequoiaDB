@@ -39,6 +39,7 @@
 #include "vessel/pageDef.h"
 #include "dms.hpp"
 #include "utilUniqueID.hpp"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
@@ -63,7 +64,7 @@ namespace vessel
       UINT32 status;
       UINT32 flags;
       UINT32 uniqueID;
-      UINT32 maxCLLogicalID;
+      UINT32 logicalID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1];
 
       csMetaRecord &operator=(const csMetaRecord &o)
@@ -72,7 +73,7 @@ namespace vessel
          status = o.status;
          flags = o.flags;
          uniqueID = o.uniqueID;
-         maxCLLogicalID = o.maxCLLogicalID;
+         logicalID = o.logicalID;
          ossMemcpy(name, o.name, sizeof(name));
          return *this;
       }
@@ -82,7 +83,7 @@ namespace vessel
       status(0),
       flags(0),
       uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
-      maxCLLogicalID(DMS_INVALID_LOGICCLID)
+      logicalID(DMS_INVALID_LOGICCSID)
       {
          ossMemset(name, 0, sizeof(name));
       }
@@ -100,7 +101,7 @@ namespace vessel
          status = 0;
          flags = 0;
          uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
-         maxCLLogicalID = DMS_INVALID_LOGICCLID;
+         logicalID = DMS_INVALID_LOGICCSID;
          ossMemset(name, 0, sizeof(name));
       }
    };//struct csMetaRecord
@@ -109,6 +110,13 @@ namespace vessel
 #pragma pack()
 
    BOOLEAN metaRecordIsValid(const csMetaRecord &record);
+
+   BOOLEAN initGmp(UINT32 pageSize,
+                   PAGE_ID pid,
+                   const strSlice &name,
+                   UINT32 uniqueID,
+                   UINT32 logicalID,
+                   CHAR *buf);
 }//namespace vessel
 }//namespace engine
 

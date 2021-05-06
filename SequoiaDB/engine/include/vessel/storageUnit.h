@@ -56,6 +56,7 @@ namespace vessel
    class deltaLogFile;
    class idxIDMapFile;
    class idxDataFile;
+   class idxMBackupFile;
 
    class storageUnit : public SDBObject
    {
@@ -85,7 +86,7 @@ namespace vessel
          INT32 getCoreArgs(FILE_TYPE type,
                            UINT32 *pageSize = NULL,
                            UINT32 *maxPageCountPerSeg = NULL,
-                           UINT32 *maxSegCountPerFile = NULL);
+                           UINT32 *maxSegCountPerFile = NULL)const;
          INT32 fsync(FILE_TYPE type,
                      PAGE_ID pid,
                      UINT32 count,
@@ -96,7 +97,7 @@ namespace vessel
                      const PAGE_ID *pids,
                      BOOLEAN sync=TRUE);
 
-         INT32 getMaxPageCountInFile(UINT32 &count);
+         INT32 getMaxPageCountInDDFile(UINT32 &count)const;
 
          UINT32 getDataFileCount();
 
@@ -123,7 +124,7 @@ namespace vessel
                               const UINT32 *segmentCount=NULL);
 
          INT32 createNewDataFile(requestContext *context,
-                                 UINT32 *sequenceOfNewFile = NULL);
+                                 UINT64 sequence=STORAGE_FILE_INVALID_SEQUENCE);
 
          /// file must exist first.
          INT32 ensureDataFileSpace(requestContext *context,
@@ -136,6 +137,21 @@ namespace vessel
                                 const strSlice &csName);
 
          INT32 ensureFsmFile(requestContext *context, fsmFile **out);
+
+      public:
+         idxIDMapFile *getIdxMetaFile()
+         {
+            return _idxMeta;
+         }
+         idxMBackupFile *getIdxMBackupFile()
+         {
+            return _idxMBackup;
+         }
+         INT32 destroyIdxMBackupFile();
+         void clearFilesOfCowSUWhenRestore();
+
+      private:
+         void destoryIdxMetaFile();
 
       private:
          BOOLEAN validateSUOptions(const createSUOptions &options);
@@ -191,6 +207,8 @@ namespace vessel
                              const vesselFileName &fn);
          INT32 openFSMFile(const strSlice &fullPath,
                            const vesselFileName &fn);
+         INT32 openIdxMetaBackupFile(const strSlice &fullPath,
+                                     const vesselFileName &fn);
       private:
          INT32 buildFileFullPath(const strSlice &path,
                                    const strSlice &dir,
@@ -200,7 +218,6 @@ namespace vessel
          
       private:
          typedef ossPoolVector<dataExtentFile*> _DATA_VEC;
-         typedef ossPoolList<idxIDMapFile *> _INDEX_META_LIST;
          typedef ossPoolVector<idxDataFile *> _INDEX_DATA_VEC;
          typedef ossPoolList<deltaLogFile *> _DELTA_LIST;
 
@@ -217,9 +234,10 @@ namespace vessel
          ossSpinXLatch _fsmLatch;
          fsmFile *_fsm;
 
-         _INDEX_META_LIST _idxMetaList;
+         ossSpinSLatch _cowFilesAccessingLatch;
+         idxIDMapFile *_idxMeta;
+         idxMBackupFile *_idxMBackup;
          _INDEX_DATA_VEC _idxDataVec;
-
          _DELTA_LIST _delta;
    };//class storageUnit
 }//namespace vessel

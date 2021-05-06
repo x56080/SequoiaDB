@@ -73,6 +73,10 @@ namespace vessel
          INT32 allocateLastSegmentInReadonlyFile(UINT32 pageCount,
                                                  BOOLEAN sparse=FALSE);
 
+         INT32 getFileHeadPtr(ossValuePtr &ptr);
+
+         INT32 getUserDefinedHeadPtr(ossValuePtr &ptr);
+
          INT32 getSegmentPtr(SEGMENT_ID seg, ossValuePtr &ptr);
 
          INT32 getExtentPtr(PAGE_ID page, ossValuePtr &ptr);
@@ -100,10 +104,6 @@ namespace vessel
          }
 
       protected:
-         INT32 getFileHeadPtr(ossValuePtr &ptr);
-
-         INT32 getUserDefinedHeadPtr(ossValuePtr &ptr);
-
          INT32 createChecksum(const storageFileHead &head, UINT32 &checksum);
       
          INT32 createChecksum(const void *buf, UINT32 len, UINT32 &checksum);

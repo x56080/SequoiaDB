@@ -61,8 +61,6 @@ namespace vessel
 
          INT32 readMetaRecord(csMetaRecord &record);
 
-         INT32 allocateCLLogicalID(requestContext *context, UINT32 &logicalID);
-
       private:
          virtual PAGE_TYPE getPageType()const
          {

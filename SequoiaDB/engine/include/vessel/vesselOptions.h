@@ -123,27 +123,35 @@ namespace vessel
          std::string indexPath;
          std::string lobPath;
          std::string lobMetaPath;
+
+      public:
+         const std::string &getIndexPath()const
+         {
+            return indexPath.empty() ? dataPath : indexPath;
+         }
    };// class storageOptions
 
    class openDBOptions : public SDBObject
    {
       public:
-      OSS_INLINE openDBOptions():
-      createIfNotExists(FALSE),
-      fullDumpPageLog(FALSE),
-      extendFileWithSparse(FALSE)
-      {}
+      OSS_INLINE openDBOptions(){}
+      OSS_INLINE ~openDBOptions(){}
 
       public:
          storagePathOptions path;
          std::string snapshotPath;
          std::string lsmPath;
 
-         BOOLEAN createIfNotExists;
-         BOOLEAN fullDumpPageLog;
-         BOOLEAN extendFileWithSparse;
+         BOOLEAN fullDumpPageLog = FALSE;
+         BOOLEAN extendFileWithSparse = FALSE;
 
          liteCacheOptions cacheOptions;
+         
+         ///invisible options.
+         UINT32 _cowsDeltaTableBucketCount = 128;
+         UINT32 _cowsDeltaTableLatchCount = 64;
+
+         
    }; /// end of class openDBOptions
 
    class closeDBOptions : public SDBObject
@@ -160,18 +168,15 @@ namespace vessel
    class createCSOptions : public SDBObject
    {
       public:
-         OSS_INLINE createCSOptions():
-         dataPageSize(DMS_PAGE_SIZE32K),
-         dataSegSize(128),
-         idxPageSize(DMS_PAGE_SIZE16K),
-         idxSegSize(128){}
+         OSS_INLINE createCSOptions(){}
          OSS_INLINE ~createCSOptions(){}
          BOOLEAN isValid()const;
 
-         UINT32 dataPageSize;
-         UINT32 dataSegSize;
-         UINT32 idxPageSize;
-         UINT32 idxSegSize;
+         UINT32 dataPageSize = DMS_PAGE_SIZE32K;
+         UINT32 dataSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
+         UINT32 idxPageSize = DMS_PAGE_SIZE16K;
+         UINT32 idxSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
+         utilCSUniqueID uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
       
    };/// end of class createCSOptions
 

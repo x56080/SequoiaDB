@@ -45,6 +45,7 @@
 #include "vessel/idxDataFile.h"
 #include "vessel/idxIDMapFile.h"
 #include "vessel/deltaLogFile.h"
+#include "vessel/idxMBackupFile.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -56,7 +57,9 @@ namespace vessel
    storageUnit::storageUnit():
    _isOpen(FALSE),
    _meta(NULL),
-   _fsm(NULL)
+   _fsm(NULL),
+   _idxMeta(NULL),
+   _idxMBackup(NULL)
    {
       ossMemset(_dirName, 0, sizeof(_dirName));
    }
@@ -157,7 +160,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::getMaxPageCountInFile(UINT32 &count)
+   INT32 storageUnit::getMaxPageCountInDDFile(UINT32 &count)const
    {
       INT32 rc = SDB_OK;
       if (!isOpen())
@@ -179,7 +182,7 @@ namespace vessel
       ossScopedLock(&_dataFileAccessingMutex, SHARED);
       return _data.size();
    }
-
+   
    void storageUnit::dumpIDMapFileHead(dataIDMapFileHead &head)
    {
       if (NULL != _meta)
@@ -197,7 +200,7 @@ namespace vessel
    INT32 storageUnit::getCoreArgs(FILE_TYPE type,
                                   UINT32 *pageSize,
                                   UINT32 *maxPageCountPerSeg,
-                                  UINT32 *maxSegCountPerFile)
+                                  UINT32 *maxSegCountPerFile)const
    {
       INT32 rc = SDB_OK;
       const dataIDMapFileHead *head = NULL;
@@ -404,21 +407,19 @@ namespace vessel
       }
       _idxDataVec.clear();
 
-      for (_INDEX_META_LIST::iterator itr = _idxMetaList.begin();
-           itr != _idxMetaList.end(); ++itr)
+      if (NULL != _idxMBackup)
       {
-         idxIDMapFile *file = *itr;
-         if (NULL != file)
-         {
-            rc = file->destroy();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to destory idx meta file:%d", rc);
-            }
-            SDB_OSS_DEL file;
-         }
+         _idxMBackup->destroy();
+         SDB_OSS_DEL _idxMBackup;
+         _idxMBackup = NULL;
       }
-      _idxMetaList.clear();
+
+      if (NULL != _idxMeta)
+      {
+         _idxMeta->destroy();
+         SDB_OSS_DEL _idxMeta;
+         _idxMeta = NULL;
+      }
 
       if (NULL != _fsm)
       {
@@ -791,7 +792,7 @@ namespace vessel
    }
 
    INT32 storageUnit::createNewDataFile(requestContext *context,
-                                        UINT32 *sequenceOfNewFile)
+                                        UINT64 sequence)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -804,7 +805,6 @@ namespace vessel
       const storageFileHead &commonHead = _meta->getCommonHeadInMem();
       const dataIDMapFileHead &metaHead = _meta->getHeadCache();
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
-      UINT32 sequence = 0;
       BOOLEAN sparse = FALSE;
 
       ossScopedLock lock(&_extendingDDAndDMLatch);
@@ -822,12 +822,22 @@ namespace vessel
 
       /// no one can update file vec now.
       /// no need to lock.
-      sequence = _data.size();
-      sparse = context->getEnv()->options.extendFileWithSparse;
-
-      if (sequence < _data.size())
+      if (STORAGE_FILE_INVALID_SEQUENCE == sequence)
       {
-         goto done;
+         sequence = _data.size();
+      }
+      else if (sequence < _data.size() &&
+               NULL != _data.at(sequence))
+      {
+         PD_LOG(PDERROR, "data file[%lld] has already been created", sequence);
+         rc = SDB_FE;
+         goto error;
+      }
+      else if (sequence != _data.size())
+      {
+         PD_LOG(PDERROR, "data file should be created serially");
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
       rc = utilBuildFullPath(context->getEnv()->options.path.dataPath.c_str(),
@@ -863,6 +873,7 @@ namespace vessel
          goto error;
       }
 
+      sparse = context->getEnv()->options.extendFileWithSparse;
       rc = file->allocateNewSegment(sparse);
       if (SDB_OK != rc)
       {
@@ -875,13 +886,7 @@ namespace vessel
       }
 
       /// from here, do not goto error.
-      /// or you must add code to rollback data file sequence.
-
-      if (NULL != sequenceOfNewFile)
-      {
-         *sequenceOfNewFile = sequence;
-      }
-      
+      /// or you must add code to rollback data file sequence.      
    done:
       return rc;
    error:
@@ -919,17 +924,19 @@ namespace vessel
       }
       _idxDataVec.clear();
 
-      for (_INDEX_META_LIST::iterator itr = _idxMetaList.begin();
-           itr != _idxMetaList.end(); ++itr)
+      if (NULL != _idxMBackup)
       {
-         idxIDMapFile *file = NULL;
-         if (NULL == file)
-         {
-            file->close();
-            SDB_OSS_DEL file;
-         }
+         _idxMBackup->close();
+         SDB_OSS_DEL _idxMBackup;
+         _idxMBackup = NULL;
       }
-      _idxMetaList.clear();
+
+      if (NULL != _idxMeta)
+      {
+         _idxMeta->close();
+         SDB_OSS_DEL _idxMeta;
+         _idxMeta = NULL;
+      }
 
       if (NULL != _fsm)
       {
@@ -1620,7 +1627,13 @@ namespace vessel
       SDB_ASSERT(!fullPath.empty(), "can not be empty");
       SDB_ASSERT(FILE_TYPE_IDX_M == fn.getType(), "must be dm");
       idxIDMapFile *file = NULL;
-      _INDEX_META_LIST::iterator itr = _idxMetaList.begin();
+
+      if (NULL != _idxMeta)
+      {
+         PD_LOG(PDERROR, "duplicate idx meta file");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       file = SDB_OSS_NEW idxIDMapFile();
       if (NULL == file)
@@ -1637,17 +1650,7 @@ namespace vessel
          goto error;
       }
 
-      for (; itr != _idxMetaList.end(); ++itr)
-      {
-         const storageFileHead &head = file->getCommonHeadInMem();
-         const storageFileHead &itrHead = (*itr)->getCommonHeadInMem();
-         if (head.sequence <= itrHead.sequence)
-         {
-            break;
-         }
-      }
-      _idxMetaList.insert(itr, file);
-      file = NULL;
+      _idxMeta = file;
    done:
       return rc;
    error:
@@ -1758,7 +1761,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!fullPath.empty(), "can not be empty");
-      SDB_ASSERT(FILE_TYPE_FSM == fn.getType(), "must be delta");
+      SDB_ASSERT(FILE_TYPE_FSM == fn.getType(), "must be fsm");
       fsmFile *file = NULL;
 
       if (NULL != _fsm)
@@ -1785,6 +1788,47 @@ namespace vessel
 
       _fsm = file;
       file = NULL;
+   done:
+      return rc;
+   error:
+      if (NULL != file)
+      {
+         file->close();
+         SDB_OSS_DEL file;
+      }
+      goto done;
+   }
+
+   INT32 storageUnit::openIdxMetaBackupFile(const strSlice &fullPath,
+                                            const vesselFileName &fn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!fullPath.empty(), "can not be empty");
+      SDB_ASSERT(FILE_TYPE_IDXM_BK == fn.getType(), "must be idxm bk");
+      idxMBackupFile *file = NULL;
+      if (NULL != _idxMBackup)
+      {
+         PD_LOG(PDERROR, "duplicated idx meta backup file");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      file = SDB_OSS_NEW idxMBackupFile();
+      if (NULL == file)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = file->open(fullPath.str(), fn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open file[%s], rc:%d", fullPath.str(), rc);
+         goto error;
+      }
+
+      _idxMBackup = file;
    done:
       return rc;
    error:
@@ -1904,6 +1948,9 @@ namespace vessel
          break;
       case FILE_TYPE_DELTA:
          rc = openDeltaFile(fullPath, fn);
+         break;
+      case FILE_TYPE_IDXM_BK:
+         rc = openIdxMetaBackupFile(fullPath, fn);
          break;
       default:
          PD_LOG(PDERROR, "unknown file type:%d", fn.getType());
@@ -2187,6 +2234,67 @@ namespace vessel
          PD_LOG(PDERROR, "file has not been open yet:%d", fileSequence);
          rc = SDB_FNE;
          goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void storageUnit::clearFilesOfCowSUWhenRestore()
+   {
+      if (NULL != _idxMBackup)
+      {
+         _idxMBackup->destroy();
+         SDB_OSS_DEL _idxMBackup;
+         _idxMBackup = NULL;
+      }
+
+      for (_INDEX_DATA_VEC::iterator itr = _idxDataVec.begin();
+           itr != _idxDataVec.end(); ++itr)
+      {
+         if (NULL != (*itr))
+         {
+            (*itr)->destroy();
+            SDB_OSS_DEL (*itr);
+         }
+      }
+      _idxDataVec.clear();
+
+      for (_DELTA_LIST::iterator itr = _delta.begin();
+           itr != _delta.end(); ++itr)
+      {
+         if (NULL != (*itr))
+         {
+            (*itr)->destroy();
+            SDB_OSS_DEL (*itr);
+         }
+      }
+      _delta.clear();
+
+      if (NULL != _idxMeta)
+      {
+         _idxMeta->destroy();
+         SDB_OSS_DEL _idxMeta;
+         _idxMeta = NULL;
+      }
+
+      return;
+   }
+   
+   INT32 storageUnit::destroyIdxMBackupFile()
+   {
+      INT32 rc = SDB_OK;
+      if (NULL != _idxMBackup)
+      {
+         rc = _idxMBackup->destroy();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to destroy idx m backup file:%d", rc);
+            goto error;
+         }
+         SDB_OSS_DEL _idxMBackup;
+         _idxMBackup = NULL;
       }
    done:
       return rc;

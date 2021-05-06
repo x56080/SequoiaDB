@@ -65,29 +65,11 @@ namespace vessel
    class requestContext : public SDBObject
    {
       public:
-         OSS_INLINE requestContext():
-         _session(NULL),
-         _env(NULL),
-         _outerResource(NULL),
-         _spaceID(INVALID_SPACE_ID),
-         _spaceIDLocked(FALSE),
-         _spaceIDLockMode(SHARED),
-         _mbID(INVALID_CL_MB_ID),
-         _mbIDLockMode(SHARED),
-         _mbIDLocked(FALSE),
-         _clLatch(NULL),
-         _bufAllocated(0)
+         OSS_INLINE requestContext()
          {}
-
+         requestContext(const requestContext &) = delete;
+         requestContext &operator=(const requestContext &) = delete;
          virtual ~requestContext();
-      private:
-         requestContext(const requestContext &)
-         {}
-
-         requestContext &operator=(const requestContext &)
-         {
-            return *this;
-         }
 
       public:
          INT32 open(ISession *session,
@@ -187,25 +169,25 @@ namespace vessel
             _mbIDLockMode = SHARED;
             _mbIDLocked = FALSE;
             _clLatch = NULL;
+            _lpidContext.reset();
             _bufAllocated = 0;
             return;
          }
 
       private:
-         ISession *_session;
-         instanceEnv *_env;
-         outerResource *_outerResource;
-         SPACE_ID _spaceID;
-         BOOLEAN _spaceIDLocked;
-         OSS_LATCH_MODE _spaceIDLockMode;
-         CL_MB_ID _mbID;
-         OSS_LATCH_MODE _mbIDLockMode;
-         BOOLEAN _mbIDLocked;
-         ossSpinSLatch *_clLatch;
+         ISession *_session = NULL;
+         instanceEnv *_env = NULL;
+         outerResource *_outerResource = NULL;
+         SPACE_ID _spaceID = INVALID_SPACE_ID;
+         BOOLEAN _spaceIDLocked = FALSE;
+         OSS_LATCH_MODE _spaceIDLockMode = SHARED;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         OSS_LATCH_MODE _mbIDLockMode = SHARED;
+         BOOLEAN _mbIDLocked = FALSE;
+         ossSpinSLatch *_clLatch = NULL;
          lpidContext _lpidContext;
-
+         UINT32 _bufAllocated = 0;
          CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];
-         UINT32 _bufAllocated;
          
    };//class requestContext
 }

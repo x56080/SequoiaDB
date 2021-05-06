@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionRecordPage.cpp
+   Source File Name = idxMBackupFile.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -35,24 +32,58 @@
    Last Changed =
 
 ******************************************************************************/
-
-#include "vessel/collectionRecordPage.h"
+#include "vessel/idxMBackupFile.h"
+#include "vessel/copyOnWriteSpaceCheckpoint.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity)
+   static const UINT32 BACKUP_HEAD_VERSION = 1;
+   INT32 idxMBackupFile::validateUserDefinedHead(const void *head)
    {
       INT32 rc = SDB_OK;
-      if (DMS_PAGE_SIZE32K != pageSize &&
-          DMS_PAGE_SIZE64K != pageSize)
+      const copyOnWriteSpaceCheckpoint *checkpoint = (const copyOnWriteSpaceCheckpoint *)head;
+      if (NULL == head)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - COLLECTION_RECORD_PAGE_HEAD_LEN) / COLLECTION_DISK_RECORD_LEN;
+      if (!checkpoint->isValid())
+      {
+         PD_LOG(PDERROR, "checkpoint is not valid");
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      if (0 == checkpoint->idxMFilePageCount)
+      {
+         PD_LOG(PDERROR, "idxMFilePageCount impossible to be zero");
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 idxMBackupFile::initUserDefinedHead(const void *userDefinedOptions,
+                                             CHAR *headBuf)
+   {
+      INT32 rc = SDB_OK;
+      copyOnWriteSpaceCheckpoint *checkpoint = NULL;
+      if (NULL == userDefinedOptions ||
+          NULL == headBuf)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      checkpoint = (copyOnWriteSpaceCheckpoint *)headBuf;
+      *checkpoint = *((const copyOnWriteSpaceCheckpoint *)userDefinedOptions);
    done:
       return rc;
    error:

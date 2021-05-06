@@ -35,13 +35,15 @@
 #ifndef VESSEL_INDEX_PAGE_ACCESSOR_H_
 #define VESSEL_INDEX_PAGE_ACCESSOR_H_
 
-#include "vessel/pageAccessor.h"
+#include "vessel/logicalPageAccessor.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexPageAccessor : public pageAccessor
+   class indexSpace;
+   
+   class indexPageAccessor : public logicalPageAccessor
    {
       public:
          indexPageAccessor();
@@ -49,10 +51,9 @@ namespace vessel
 
       public:
          INT32 init(requestContext *context,
-                    FILE_TYPE type,
-                    PAGE_ID pid,
-                    BOOLEAN readOnly,
-                    storageUnit *su);
+                    PAGE_ID lpid,
+                    indexSpace *space,
+                    BOOLEAN readOnly = TRUE);
    };//class indexPageAccessor
 }//namespace vessel
 }//namespace engine

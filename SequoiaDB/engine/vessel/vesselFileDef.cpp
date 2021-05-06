@@ -52,7 +52,8 @@ namespace vessel
       FILE_TYPE_SUFFIX_FSM,
       FILE_TYPE_SUFFIX_CSNAME,
       FILE_TYPE_SUFFIX_CONTROL,
-      FILE_TYPE_SUFFIX_DELTA
+      FILE_TYPE_SUFFIX_DELTA,
+      FILE_TYPE_SUFFIX_IDXMBK
    };
 
    BOOLEAN parseFileSuffix(const CHAR *suffix, FILE_TYPE &type)

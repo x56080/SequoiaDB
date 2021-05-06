@@ -101,8 +101,10 @@ namespace vessel
 #pragma pack()
 
       public:
+         INT32 create(const CHAR *path, BOOLEAN replace);
          INT32 open(const CHAR *path, BOOLEAN createIfNotExists);
          void close();
+         void destroy(const CHAR *path);
 
          OSS_INLINE BOOLEAN isOpen()const
          {
@@ -112,25 +114,33 @@ namespace vessel
          {
             return _workshop.size();
          }
+         OSS_INLINE UINT32 getAvailableVersionCount()const
+         {
+            return _workshop.size() + _unused.size();
+         }
 
          /// create a new version.
          INT32 commit(UINT32 size, const void *buf);
 
-         INT32 readLatestVersion(head &h, UINT32 bufSize, void *buf)const;
+         INT32 readLatestVersion(UINT64 &version,
+                                 UINT32 bufSize,
+                                 void *buf)const;
 
          /// if 0 == preCountOfLatest, return latest version.
          INT32 readPreVersion(UINT32 preCountOfLatest,
-                              head &h,
+                              UINT64 &version,
                               UINT32 bufSize,
                               void *buf)const;
 
-         INT32 readOldestVersion(head &h, UINT32 bufSize, void *buf)const;
+         INT32 readOldestVersion(UINT64 &version,
+                                 UINT32 bufSize,
+                                 void *buf)const;
       public:
          /// return file name prefix. final file name format: prefix.control.<num>
          virtual const CHAR *getFileNamePrefix()const = 0;
 
          /// return max alive version count. valid range is(0, 64];
-         /// which defines the max count if files.
+         /// which defines the max count of files.
          virtual UINT32 getMaxAliveVersionCount()const = 0;
 
       private:
@@ -168,8 +178,15 @@ namespace vessel
          typedef ossPoolList<_fileObj *> _FILE_OBJ_LIST;
 
       private:
+         INT32 createFilesUnderPath(const strSlice &path,
+                                    BOOLEAN replace);
          INT32 openFilesUnderPath(const strSlice &path, BOOLEAN createIfNotExists);
-         INT32 initFileObj(const std::string &fullPath, _fileObj *obj, BOOLEAN createIfNotExists);
+         INT32 openFileObj(const std::string &fullPath,
+                           _fileObj *obj,
+                           BOOLEAN createIfNotExists);
+         INT32 createFileObj(const std::string &fullPath,
+                             _fileObj *obj,
+                             BOOLEAN replace);
          void pushToUnusedListWhenOpen(_fileObj *obj);
          void pushToWorkshopWhenOpen(_fileObj *obj);
 

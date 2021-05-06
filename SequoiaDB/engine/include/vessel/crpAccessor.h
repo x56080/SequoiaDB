@@ -36,7 +36,7 @@
 #ifndef VESSEL_CRP_ACCESSOR_H_
 #define VESSEL_CRP_ACCESSOR_H_
 
-#include "vessel/pageAccessor.h"
+#include "vessel/logicalPageAccessor.h"
 #include "vessel/collectionRecordPage.h"
 #include "vessel/strSlice.h"
 #include "vessel/slice.h"
@@ -45,13 +45,17 @@ namespace engine
 {
 namespace vessel
 {
-   class crpAccessor : public pageAccessor
+   class crpAccessor : public logicalPageAccessor
    {
       public:
          crpAccessor();
          virtual ~crpAccessor();
       public:
-         INT32 initPage(requestContext *context, PAGE_ID lpid);
+         INT32 init(requestContext *context,
+                    PAGE_ID lpid,
+                    const pageAccessor::options &o,
+                    logicalPageSpace *space,
+                    DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
          INT32 createCL(requestContext *context,
                         const collectionRecord &record);

@@ -212,7 +212,6 @@ namespace vessel
 
    INT32 vesselImpl::createCollectionSpace(ISession *session,
                                            const CHAR *name,
-                                           utilCSUniqueID uniqueID,
                                            const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -237,7 +236,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.doit(name, uniqueID, options);
+      rc = handler.doit(name, options);
       if (SDB_OK != rc)
       {
          goto error;

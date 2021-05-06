@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/indexPageAccessor.h"
+#include "vessel/indexSpace.h"
 
 namespace engine
 {
@@ -46,27 +47,24 @@ namespace vessel
    {}
 
    INT32 indexPageAccessor::init(requestContext *context,
-                                 FILE_TYPE type,
-                                 PAGE_ID pid,
-                                 BOOLEAN readOnly,
-                                 storageUnit *su)
+                                 PAGE_ID lpid,
+                                 indexSpace *space,
+                                 BOOLEAN readOnly)
    {
       INT32 rc = SDB_OK;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT;
-      if (!readOnly)
-      {
-         flags |= PAGE_ACCESSOR_FLAG_NON_READONLY;
-      }
+      pageAccessor::options o;
+      o.cacheMode = FALSE;
+      o.readOnly = readOnly;
                      
       if (NULL == context ||
-          (FILE_TYPE_IDX_D != type && FILE_TYPE_IDX_M != type) ||
-          INVALID_PAGE_ID == pid)
+          INVALID_PAGE_ID == lpid ||
+          NULL == space)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = pageAccessor::init(context, type, pid, flags, su);
+      rc = logicalPageAccessor::init(context, FILE_TYPE_IDX_D, lpid, o, space);
       if (SDB_OK != rc)
       {
          goto error;

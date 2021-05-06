@@ -108,13 +108,13 @@ TEST_F(cftest, test0)
    testControlFile f(1);
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   v::controlFile::head h;
    dummyContent content;
+   UINT64 version = 0;
 
-   rc = f.readOldestVersion(h, sizeof(content), &content);
+   rc = f.readOldestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
-   rc = f.readLatestVersion(h, sizeof(content), &content);
+   rc = f.readLatestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
    for (UINT32 i = 0; i < 32; ++i)
@@ -123,20 +123,14 @@ TEST_F(cftest, test0)
       commit.a = i;
       rc = f.commit(sizeof(commit), &commit);
       ASSERT_EQ(SDB_OK, rc);
-      rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+      rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_TRUE(h.isValid());
-      ASSERT_FALSE(h.isUnused());
-      ASSERT_EQ(h.commitVersion, i);
-      ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+      ASSERT_EQ(version, i);
       ASSERT_EQ(content.a, i);
 
-      rc = f.readOldestVersion(h, sizeof(dummyContent), &content);
+      rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_TRUE(h.isValid());
-      ASSERT_FALSE(h.isUnused());
-      ASSERT_EQ(h.contentLen, sizeof(dummyContent));
-      ASSERT_EQ(h.commitVersion, i);
+      ASSERT_EQ(version, i);
       ASSERT_EQ(content.a, i);
    }
    
@@ -150,13 +144,13 @@ TEST_F(cftest, test1)
    testControlFile f(16);
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   v::controlFile::head h;
    dummyContent content;
+   UINT64 version = 0;
 
-   rc = f.readOldestVersion(h, sizeof(content), &content);
+   rc = f.readOldestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
-   rc = f.readLatestVersion(h, sizeof(content), &content);
+   rc = f.readLatestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
    for (UINT32 i = 0; i < 32; ++i)
@@ -165,27 +159,21 @@ TEST_F(cftest, test1)
       commit.a = i;
       rc = f.commit(sizeof(commit), &commit);
       ASSERT_EQ(SDB_OK, rc);
-      rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+      rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_TRUE(h.isValid());
-      ASSERT_FALSE(h.isUnused());
-      ASSERT_EQ(h.commitVersion, i);
-      ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+      ASSERT_EQ(version, i);
       ASSERT_EQ(content.a, i);
 
-      rc = f.readOldestVersion(h, sizeof(dummyContent), &content);
+      rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_TRUE(h.isValid());
-      ASSERT_FALSE(h.isUnused());
-      ASSERT_EQ(h.contentLen, sizeof(dummyContent));
       if (i < 16)
       {
-         ASSERT_EQ(h.commitVersion, 0);
+         ASSERT_EQ(version, 0);
          ASSERT_EQ(content.a, 0);
       }
       else
       {
-         ASSERT_EQ(h.commitVersion, i - 16 + 1);
+         ASSERT_EQ(version, i - 16 + 1);
          ASSERT_EQ(content.a, i - 16 + 1);
       }
    }
@@ -200,7 +188,7 @@ TEST_F(cftest, test2)
    testControlFile f(16);
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   v::controlFile::head h;
+   UINT64 version = 0;
    dummyContent content;
 
    for (UINT32 i = 0; i < 32; ++i)
@@ -214,34 +202,25 @@ TEST_F(cftest, test2)
    f.close();
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 31);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 31);
    ASSERT_EQ(content.a, 31);
 
-   rc = f.readOldestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 16);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 16);
    ASSERT_EQ(content.a, 16);
 
    for (UINT32 i = 0; i < 16 ; ++i)
    {
-      rc = f.readPreVersion(i, h, sizeof(dummyContent), &content);
+      rc = f.readPreVersion(i, version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_TRUE(h.isValid());
-      ASSERT_FALSE(h.isUnused());
-      ASSERT_EQ(h.commitVersion, 31 - i);
-      ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+      ASSERT_EQ(version, 31 - i);
       ASSERT_EQ(content.a, 31 - i);
    }
 
-   rc = f.readPreVersion(16, h, sizeof(dummyContent), &content);
+   rc = f.readPreVersion(16, version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
    f.close();
@@ -254,7 +233,7 @@ TEST_F(cftest, test3)
    testControlFile f(16);
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   v::controlFile::head h;
+   UINT64 version = 0;
    dummyContent content;
    std::string deletePath = std::string(TEST_PATH) + "/unit_test.control.15";
 
@@ -272,12 +251,9 @@ TEST_F(cftest, test3)
 
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 14);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 14);
    ASSERT_EQ(content.a, 14);
 
    ASSERT_EQ(f.getAliveVersionCount(), 15);
@@ -287,12 +263,9 @@ TEST_F(cftest, test3)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(f.getAliveVersionCount(), 16);
 
-   rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 15);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 15);
    ASSERT_EQ(content.a, 15);
 
    f.close();
@@ -305,7 +278,7 @@ TEST_F(cftest, test4)
    testControlFile f(16);
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   v::controlFile::head h;
+   UINT64 version = 0;
    dummyContent content;
    std::string deletePath = std::string(TEST_PATH) + "/unit_test.control.13";
 
@@ -323,12 +296,9 @@ TEST_F(cftest, test4)
 
    rc = f.open(TEST_PATH, TRUE);
    ASSERT_EQ(SDB_OK, rc);
-   rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 15);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 15);
    ASSERT_EQ(content.a, 15);
    ASSERT_EQ(f.getAliveVersionCount(), 15);
 
@@ -338,20 +308,14 @@ TEST_F(cftest, test4)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(f.getAliveVersionCount(), 16);
 
-   rc = f.readLatestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 16);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 16);
    ASSERT_EQ(content.a, 16);
 
-   rc = f.readOldestVersion(h, sizeof(dummyContent), &content);
+   rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(h.isValid());
-   ASSERT_FALSE(h.isUnused());
-   ASSERT_EQ(h.commitVersion, 0);
-   ASSERT_EQ(h.contentLen, sizeof(dummyContent));
+   ASSERT_EQ(version, 0);
    ASSERT_EQ(content.a, 0);
 
    f.close();

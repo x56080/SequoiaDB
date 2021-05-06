@@ -47,8 +47,11 @@ namespace vessel
 
    static const CHAR * const FILE_NAME_PREFIX = "_vessel";
    static const UINT32 FILE_NAME_PREFIX_LEN = 7;
+   static const CHAR * const FILE_NAME_TMP_SUFFIX = "tmp";
+   static const UINT32 FILE_NAME_TMP_SUFFIX_LEN = 3;
 
-   static const UINT64 INVALID_FILE_SEQUENCE = OSS_UINT64_MAX;
+
+   static const CHAR * const FILE_MAGIC_CHARS_IDXM_BK = "SDBVIMBK";
 
    static const CHAR * const FILE_TYPE_SUFFIX_DATAM = "dm";
    static const CHAR * const FILE_TYPE_SUFFIX_DATAD = "dd";
@@ -61,6 +64,7 @@ namespace vessel
    static const CHAR * const FILE_TYPE_SUFFIX_CSNAME = "csname";
    static const CHAR * const FILE_TYPE_SUFFIX_CONTROL = "control";
    static const CHAR * const FILE_TYPE_SUFFIX_DELTA = "delta";
+   static const CHAR * const FILE_TYPE_SUFFIX_IDXMBK = "idxmbk";
 
    extern const CHAR * const FILE_TYPE_SUFFIX_ARRAY[];
 
@@ -77,13 +81,15 @@ namespace vessel
    const FILE_TYPE FILE_TYPE_CS_NAME = 8;
    const FILE_TYPE FILE_TYPE_CONTROL = 9;
    const FILE_TYPE FILE_TYPE_DELTA = 10;
-   const FILE_TYPE FILE_TYPE_MAX = FILE_TYPE_DELTA;
+   const FILE_TYPE FILE_TYPE_IDXM_BK = 11;
+   const FILE_TYPE FILE_TYPE_MAX = FILE_TYPE_IDXM_BK;
 
    static const UINT32 FILE_TYPE_SUFFIX_ARR_SIZE = FILE_TYPE_MAX + 1;
 
    /// space dir name: _vessel_<space id>
-   /// file name: _vessel.<space id>.<file type suffix>.<sequence>
-   const UINT32 FILE_NAME_FORMAT_COLUMN_COUNT = 4;
+   /// file name: _vessel.<space id>.<file type suffix>.[sequence].[old]
+   const UINT32 FILE_NAME_FORMAT_MAX_COLUMNS = 4;
+   const UINT32 FILE_NAME_FORMAT_MIN_COLUMNS = 3;
 
    BOOLEAN parseFileSuffix(const CHAR *suffix, FILE_TYPE &type);
 }

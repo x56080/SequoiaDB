@@ -57,10 +57,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       CHAR * ptr = NULL;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_INIT_PAGE;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
+      SDB_ASSERT(0 == OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_CACHE_MODE), "impossible");
+      SDB_ASSERT(0 != OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_NON_READONLY), "impossible");
+      SDB_ASSERT(0 != OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION), "impossible");
 
       rc = prepareToWrite(context);
       if (SDB_OK != rc)
@@ -200,90 +199,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 csgpAccessor::allocateCLLogicalID(requestContext *context, UINT32 &logicalID)
-   {
-      INT32 rc = SDB_OK;
-      const CHAR *ptr = NULL;
-      const csMetaRecord *recordPtr = NULL;
-      CHAR *wPtr = NULL;
-      csMetaRecord *recordWPtr = NULL;
-      logRecordContext lrc;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      csMetaRecord old;
-
-      rc = getReadPtrOfPageBody(0, CS_META_RECORD_LEN,  &ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      recordPtr = (const csMetaRecord *)ptr;
-      if (!metaRecordIsValid(*recordPtr))
-      {
-         PD_LOG(PDERROR, "page crashed[%s]", getGPID().toString().c_str());
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
-
-      if (OSS_UNLIKELY(recordPtr->maxCLLogicalID == (DMS_INVALID_LOGICCLID - 1)))
-      {
-         PD_LOG(PDERROR, "logical id has hit the max value");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      old = *recordPtr;
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = prepareUpdateLog(context, &lrc, LOG_TYPE_DUMMY, TRUE, slice());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
-         goto error;
-      }
-
-      lsn = lrc.getLsn();
-
-      rc = getWritePtrOfPageBody(0, CS_META_RECORD_LEN, &wPtr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      recordWPtr = (csMetaRecord *)wPtr;
-      logicalID = ++(recordWPtr->maxCLLogicalID);
-
-      commitUpdateLog(context, &lrc, LOG_TYPE_DUMMY,
-                      CSGP_UPDATE_MASK_MAX_CLLID,
-                      &old, *recordWPtr, slice());
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      pageAccessor::commit(context, lsn);
-      lrc.close();
-   done:
-      return rc;
-   error:
-      if (lrc.prepared())
-      {
-         IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abort(context->getSession(), &lrc);
-      }
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      logicalID = DMS_INVALID_LOGICCLID;
-      goto done;
-   }
-
    INT32 csgpAccessor::prepareUpdateLog(requestContext *context,
                                         logRecordContext *lrc,
                                         DPS_LOG_TYPE ddlType,
@@ -406,11 +321,12 @@ namespace vessel
 
       if (lrc->needFullDump())
       {
-         const CHAR *dumpBuf = getFullDumpBuffer();
+         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
          SDB_ASSERT(NULL != dumpBuf, "can not be null");
+         SDB_ASSERT(0 < lrc->getFullDumpDataSize(), "impossible");
          rc = logger->pushLogRecordElement(session, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           getPageSize(), dumpBuf);
+                                           lrc->getFullDumpDataSize(), dumpBuf);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;

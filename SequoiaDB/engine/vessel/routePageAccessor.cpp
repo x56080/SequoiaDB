@@ -45,77 +45,13 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 routePageAccessor::initPage(requestContext *context,
-                                     PAGE_ID lpid,
-                                     UINT32 logicalId)
+   INT32 routePageAccessor::init(requestContext *context,
+                                 PAGE_ID lpid,
+                                 const pageAccessor::options &o,
+                                 logicalPageSpace *space,
+                                 DPS_LSN_OFFSET oplist)
    {
-      INT32 rc = SDB_OK;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_INIT_PAGE | 
-                     PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-      UINT32 capacity;
-      routePageHead *head = NULL;
-      CHAR *buffer = NULL;
-
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
-                       DMS_INVALID_LOGICCLID == logicalId))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      capacity = getCapacityOfRoutePage(pageAccessor::getPageSize());
-      if (OSS_UNLIKELY(0 == capacity))
-      {
-         PD_LOG(PDERROR, "failed to get capacity of route page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail(lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init common head:%d", rc);
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to memset page body:%d", rc);
-         goto error;
-      }
-
-      rc = getWritableUserHeadPtr<routePageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page head ptr:%d", rc);
-         goto error;
-      }
-
-      head->version = ROUTE_PAGE_VERSION;
-      head->logicalId = logicalId;
-      head->count = 0;
-      head->pad = 0;
-
-      buffer = (CHAR *)head + ROUTE_PAGE_HEAD_LEN;
-      ossMemset(buffer, 0xFF, capacity << 2);
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
+      return logicalPageAccessor::init(context, FILE_TYPE_DD, lpid, o, space, oplist);
    }
 
    INT32 routePageAccessor::appendSlots(requestContext *context,
@@ -252,6 +188,7 @@ namespace vessel
                                      PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
+      const routePageHead *head = NULL;
       UINT32 capacity = getCapacityOfRoutePage(pageAccessor::getPageSize());
       if (OSS_UNLIKELY(0 == capacity))
       {
@@ -260,10 +197,24 @@ namespace vessel
          goto error;
       }
 
+      rc = getReadableUserHeadPtr<routePageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get route page head:%d", rc);
+         goto error;
+      }
+
       if (capacity <= slot)
       {
          PD_LOG(PDERROR, "slot is out of valid range:%d", slot);
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (head->count <= slot)
+      {
+         PD_LOG(PDERROR, "current total count[%d] lower than slot[%d]",
+                head->count, slot);
+         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
          goto error;
       }
 

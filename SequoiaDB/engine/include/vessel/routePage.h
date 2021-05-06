@@ -68,6 +68,8 @@ namespace vessel
 #pragma pack()
 
    UINT32 getCapacityOfRoutePage(UINT32 pageSize);
+
+   BOOLEAN initRoutePage(UINT32 pageSize, PAGE_ID lpid, UINT32 logicalId, void *buf);
 }//namespace vessel
 }//namespace engine
 

@@ -37,18 +37,31 @@
 #define VESSEL_IDX_ID_MAP_FILE_H_
 
 #include "vessel/extentStorageFile.h"
+#include "vessel/copyOnWriteSpaceCheckpoint.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class idxMBackupFile;
    class idxIDMapFile : public extentStorageFile
    {
       public:
          idxIDMapFile(){}
          virtual ~idxIDMapFile(){}
 
+      public:
+         INT32 restoreFromBackup(idxMBackupFile *backupFile);
+         INT32 getCheckpointInHead(copyOnWriteSpaceCheckpoint &checkpoint);
+
       private:
+         virtual BOOLEAN hasUserDefinedHead()const
+         {
+            return TRUE;
+         }
+         virtual INT32 validateUserDefinedHead(const void *head);
+         virtual INT32 initUserDefinedHead(const void *userDefinedOptions,
+                                           CHAR *headBuf);
          virtual FILE_TYPE getFileType()const
          {
             return FILE_TYPE_IDX_M;

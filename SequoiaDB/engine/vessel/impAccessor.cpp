@@ -58,69 +58,6 @@ namespace vessel
 
    }
 
-   INT32 impAccessor::initPage(requestContext *context)
-   {
-      INT32 rc = SDB_OK;
-      idMapPageHead *head = NULL;
-      UINT32 capacity = 0;
-      CHAR *ptr = NULL;
-      UINT32 totalSlotSize = 0;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_INIT_PAGE;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-
-      rc = get64AlignedCapacityOfIMP(getPageSize(), capacity);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init common head:%d", rc);
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to memset page body:%d", rc);
-         goto error;
-      }
-
-      rc = getWritableUserHeadPtr<idMapPageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      ossMemset(head, 0, ID_MAP_PAGE_HEAD_LEN);
-      head->version = CURRENT_ID_MAP_PAGE_VERSION;
-
-      totalSlotSize = capacity * sizeof(idMapSlot);
-      getWritePtrOfPageBody(ID_MAP_PAGE_HEAD_LEN, totalSlotSize, &ptr);
-      ossMemset(ptr, 0xff, totalSlotSize);
-
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
-   }
-
    INT32 impAccessor::getPidByOffset(UINT32 offset, PAGE_ID *pid, SNAPSHOT_ID *snapID)
    {
       INT32 rc = SDB_OK;
@@ -128,10 +65,10 @@ namespace vessel
       UINT32 pageSize = pageAccessor::getPageSize();
       UINT32 capacity = 0;
 
-      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
-      if (SDB_OK != rc)
+      if (!get64AlignedIMPCapacity(pageSize, capacity))
       {
-         PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
+         PD_LOG(PDERROR, "failed to get imp capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
@@ -169,16 +106,22 @@ namespace vessel
       UINT32 capacity = 0;
       UINT32 offset = 0;
 
+      if (OSS_UNLIKELY(!isInitailized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
       if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
-      if (SDB_OK != rc)
+      if (!get64AlignedIMPCapacity(pageSize, capacity))
       {
-         PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
+         PD_LOG(PDERROR, "failed to get imp capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
@@ -213,6 +156,13 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < capacity, "can not be invalid");
+      const idMapPageHead *head = NULL;
+      rc = getReadableUserHeadPtr<idMapPageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get imp head:%d", rc);
+         goto error;
+      }
 
       if (0 == count)
       {
@@ -227,6 +177,11 @@ namespace vessel
       else if (INVALID_SNAPSHOT_ID == snap)
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (head->free < count)
+      {
+         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 
@@ -340,7 +295,7 @@ namespace vessel
                           SNAPSHOT_ID snap)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
+      SDB_ASSERT(isCacheMode(), "can not be mmap");
       SDB_ASSERT(0 != count, "can not be zero");
       SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
       SDB_ASSERT(INVALID_SNAPSHOT_ID != snap, "can not be invalid");
@@ -351,6 +306,7 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       UINT32 pageSize = pageAccessor::getPageSize();
       UINT32 capacity = 0;
+      idMapPageHead *head = NULL;
 
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -363,10 +319,10 @@ namespace vessel
          goto error;
       }
 
-      rc = get64AlignedCapacityOfIMP(pageSize, capacity);
-      if (SDB_OK != rc)
+      if (!get64AlignedIMPCapacity(pageSize, capacity))
       {
-         PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);
+         PD_LOG(PDERROR, "failed to get imp capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
@@ -385,6 +341,13 @@ namespace vessel
          goto error;
       }
 
+      rc = getWritableUserHeadPtr<idMapPageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get imp head:%d", rc);
+         goto error;
+      }
+
       rc = prepareMapLog(context, &lrc, count);
       if (SDB_OK != rc)
       {
@@ -393,6 +356,7 @@ namespace vessel
 
       lsn = lrc.getLsn();
       mapLpids(capacity, count, lpids, pids, snap);
+      head->free -= count;
 
       commitMapLog(context, &lrc, count, lpids, pids, snap);
 
@@ -413,6 +377,40 @@ namespace vessel
       goto done;
    }
 
+   INT32 impAccessor::getFreeCount(requestContext *context, UINT32 &free)
+   {
+      INT32 rc = SDB_OK;
+      const idMapPageHead *head = NULL;
+      UINT32 capacity = 0;
+      rc = getReadableUserHeadPtr<idMapPageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get imp head:%d", rc);
+         goto error;
+      }
+
+      if (!get64AlignedIMPCapacity(getPageSize(), capacity))
+      {
+         PD_LOG(PDERROR, "failed to get imp capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      } 
+
+      if (capacity < head->free)
+      {
+         PD_LOG(PDERROR, "free count[%d] int head is unexpected, page[%s] may crashed",
+                 head->free, getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      free = head->free;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 impAccessor::dumpAsBitMap(UINT64 *bits, UINT32 &free)
    {
       INT32 rc = SDB_OK;
@@ -427,10 +425,9 @@ namespace vessel
          goto error;
       }
 
-      rc = get64AlignedCapacityOfIMP(getPageSize(), capacity);
-      if (SDB_OK != rc)
+      if (!get64AlignedIMPCapacity(getPageSize(), capacity))
       {
-         PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);
+         PD_LOG(PDERROR, "failed to get imp capacity");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -546,11 +543,11 @@ namespace vessel
 
       if (lrc->needFullDump())
       {
-         const CHAR *dumpBuf = getFullDumpBuffer();
+         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
          SDB_ASSERT(NULL != dumpBuf, "can not be null");
          rc = logger->pushLogRecordElement(session, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           getPageSize(), dumpBuf);
+                                           lrc->getFullDumpDataSize(), dumpBuf);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;

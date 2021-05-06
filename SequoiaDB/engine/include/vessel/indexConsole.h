@@ -44,17 +44,17 @@ namespace engine
 namespace vessel
 {
    struct collectionRecord;
-   class collectionSpace;
+   class indexSpace;
    class requestContext;
 
    class indexConsole : public SDBObject
    {
       public:
-         indexConsole(){}
+         indexConsole() = delete;
          indexConsole(collectionRecord *record,
-                      collectionSpace *cs):
+                      indexSpace *is):
          _record(record),
-         _cs(cs){}
+         _is(is){}
          indexConsole(const indexConsole &) = delete;
          indexConsole &operator=(const indexConsole &) = delete;
          ~indexConsole(){}
@@ -62,7 +62,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isInitialized()const
          {
-            return NULL != _record && NULL != _cs;
+            return NULL != _record && NULL != _is;
          }
       public:
          INT32 createIndex(requestContext *context,
@@ -73,12 +73,12 @@ namespace vessel
       private:
          INT32 preallocateIndexIdAndSlot(UINT32 &logicalID, INT32 &slot);
 
-         INT32 validateIfDuplication(requestContext *context,
+         INT32 validateIfDuplicated(requestContext *context,
                                      const strSlice &indexName,
                                      const indexKeyPattern &pattern);
       private:
          collectionRecord *_record = NULL;
-         collectionSpace *_cs = NULL;
+         indexSpace *_is = NULL;
    };//class indexConsole
 }//namespace vessel
 }//namespace engine

@@ -67,7 +67,6 @@ namespace vessel
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
-                                             utilCSUniqueID uniqueID, 
                                              const createCSOptions &options) = 0;
 
          /// cursor's mem managed by user.

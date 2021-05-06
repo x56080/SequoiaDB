@@ -57,7 +57,6 @@ namespace vessel
    }
 
    INT32 createCSHandler::doit(const CHAR *name,
-                               utilCSUniqueID uniqueID,
                                const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -90,7 +89,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.createCS(&context, nameSlice, uniqueID, options);
+      rc = getEnv()->csContainer.createCS(&context, nameSlice, options);
       if (SDB_OK != rc)
       {
          goto error;

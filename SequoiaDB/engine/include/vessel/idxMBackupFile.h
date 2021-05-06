@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = logicalPageCache.cpp
+   Source File Name = idxMBackupFile.h
 
    Descriptive Name =
 
@@ -33,36 +33,39 @@
 
 ******************************************************************************/
 
-#include "vessel/logicalPageCache.h"
+#ifndef VESSEL_IDX_M_BACKUP_FILE_H_
+#define VESSEL_IDX_M_BACKUP_FILE_H_
+
+#include "vessel/extentStorageFile.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN logicalPageCache::findIndexPage(ossSpinSLatch *latch, PAGE_ID lpid, idMapSlot &slot)
+   class idxMBackupFile : public extentStorageFile
    {
-      SDB_ASSERT(ossIsPowerOf2(LOGICAL_PAGE_CACHE_BUCKET_COUNT), "must be power of 2");
-      BOOLEAN r = FALSE;
-      slot.reset();
-      ossScopedLock guard(latch, SHARED);
-      _cacheBucket &bucket = _buckets[(lpid & (LOGICAL_PAGE_CACHE_BUCKET_COUNT - 1))];
-      _cacheBucket::PAGE_CACHE::const_iterator itr = bucket.indexCache.find(lpid);
-      if (bucket.indexCache.end() != itr)
-      {
-         r = TRUE;
-         slot = itr->second;
-      }
-   done:
-      return r;
-   }
+      public:
+         idxMBackupFile(){}
+         virtual ~idxMBackupFile(){}
 
-   void logicalPageCache::upsertIndexPage(ossSpinSLatch *latch, PAGE_ID lpid, const idMapSlot &slot)
-   {
-      SDB_ASSERT(ossIsPowerOf2(LOGICAL_PAGE_CACHE_BUCKET_COUNT), "must be power of 2");
-      ossScopedLock guard(latch, EXCLUSIVE);
-      _cacheBucket &bucket = _buckets[(lpid & (LOGICAL_PAGE_CACHE_BUCKET_COUNT - 1))];
-      bucket.indexCache[lpid] = slot;
-      return;
-   }
+      private:
+         virtual FILE_TYPE getFileType()const
+         {
+            return FILE_TYPE_IDXM_BK;
+         }
+         virtual const CHAR *getMagicChars()const
+         {
+            return FILE_MAGIC_CHARS_IDXM_BK;
+         }
+         virtual BOOLEAN hasUserDefinedHead()const
+         {
+            return TRUE;
+         }
+         virtual INT32 validateUserDefinedHead(const void *head);
+         virtual INT32 initUserDefinedHead(const void *userDefinedOptions,
+                                           CHAR *headBuf);
+   };//class idxMBackupFile 
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_IDX_M_BACKUP_FILE_H_

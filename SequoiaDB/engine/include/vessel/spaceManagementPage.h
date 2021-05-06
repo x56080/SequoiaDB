@@ -53,8 +53,8 @@ namespace vessel
    
    const PAGE_ID SMP_PAGE_ID = 0;
 
-   BOOLEAN getSMPCapacityAndCount(UINT32 pageSize,
-                                  UINT32 &capacity,
+   BOOLEAN getSMPCapacityOrCount(UINT32 pageSize,
+                                  UINT32 *capacity,
                                   UINT32 *count);
 
 #pragma pack(4)
@@ -71,11 +71,13 @@ namespace vessel
       
       UINT16 version = INVALID_SMP_VERSION;
       UINT16 flags = 0;
-      INT32 free = 0;
+      UINT32 free = 0;
       UINT64 pad = 0;
    };
 #pragma pack()
    const UINT32 SMP_HEAD_LEN = sizeof(spaceManagementPageHead);
+
+   BOOLEAN initSmp(UINT32 pageSize, PAGE_ID pid, UINT32 occupied, CHAR *buf);
 }//namespace vessel
 }//namespace engine
 

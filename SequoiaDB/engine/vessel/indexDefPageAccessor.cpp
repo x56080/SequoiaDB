@@ -43,6 +43,64 @@ namespace vessel
                                          inMemIndexDefObj &obj)
    {
       INT32 rc = SDB_OK;
+      const indexDefRecord *record = NULL;
+      const CHAR *nameBuffer = NULL;
+      const CHAR *patternBuffer = NULL;
+      strSlice nameSlice;
+
+      if (NULL == context)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      
+      rc = getReadableUserHeadPtr<indexDefRecord>(&record);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get def obj:%d", rc);
+         goto error;
+      }
+
+      if (INDEX_DEF_RECORD_VERSION != record->version)
+      {
+         PD_LOG(PDERROR, "invalid record version");
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+      else if (record->indexNameLen <= 1||
+               record->keyPatternLen <= 5)
+      {
+         PD_LOG(PDERROR, "invalid index name len or pattern len");
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      rc = getReadPtrOfPageBody(record->indexNameOffset,
+                                record->indexNameLen,
+                                &nameBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index name buffer[%d,%d], rc:%d",
+                record->indexNameOffset, record->indexNameLen, rc);
+         goto error;
+      }
+      nameSlice.reset(nameBuffer, record->indexNameLen - 1);
+
+      rc = getReadPtrOfPageBody(record->keyPatternOffset,
+                                record->keyPatternLen,
+                                &patternBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index pattern buffer[%d,%d], rc:%d",
+                record->keyPatternOffset, record->keyPatternLen, rc);
+         goto error;
+      }
+
+      rc = obj.set(*record, nameSlice, bson::BSONObj(patternBuffer, FALSE));
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       return rc;
    error:

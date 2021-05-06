@@ -1,3 +1,4 @@
+
 /*******************************************************************************
 
 
@@ -255,7 +256,6 @@ namespace vessel
 
    INT32 collectionSpaceContainer::createCS(requestContext *context,
                                             const strSlice &csName,
-                                            utilCSUniqueID uniqueID,
                                             const createCSOptions &options,
                                             SPACE_ID *outSid,
                                             UINT32 *outLid)
@@ -279,7 +279,7 @@ namespace vessel
          goto error;
       }
 
-      rc = precreateCS(context, csName, uniqueID, logicalID, sid);
+      rc = precreateCS(context, csName, options.uniqueID, logicalID, sid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -301,7 +301,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createCS(context, su, csName, uniqueID, options);
+      rc = createCS(context, su, csName, logicalID, options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs obj[%s], rc:%d", csName.str(), rc);
@@ -310,7 +310,7 @@ namespace vessel
 
       /// do not goto error from here.
       lh.unlock();
-      endToCreateCS(context, csName, uniqueID, logicalID, sid);
+      endToCreateCS(context, csName, options.uniqueID, logicalID, sid);
 
       if (NULL != outSid)
       {
@@ -331,7 +331,7 @@ namespace vessel
       lh.unlock();
       if (INVALID_SPACE_ID != sid)
       {
-         rollbackPrecreating(context, csName, uniqueID, logicalID, sid);
+         rollbackPrecreating(context, csName, options.uniqueID, logicalID, sid);
       }
       goto done;
    }
@@ -407,7 +407,7 @@ namespace vessel
    INT32 collectionSpaceContainer::createCS(requestContext *context,
                                             storageUnit *su,
                                             const strSlice &csName,
-                                            utilCSUniqueID uniqueID,
+                                            UINT32 logicalID,
                                             const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -426,7 +426,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->create(context, csName, uniqueID, su, options);
+      rc = cs->create(context, csName, logicalID, su, options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs[%s], rc:%d",

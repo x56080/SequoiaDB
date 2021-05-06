@@ -57,6 +57,17 @@ namespace vessel
    static const UINT32 MAX_BUILDING_INDEX_SORT_BUF_SIZE = 256;
    static const UINT32 MAX_INDEX_KEY_COUNT = 32;
    static const UINT32 MAX_INDEX_SAVING_SIZE = 4096;
+
+   enum INDEX_STATUS
+   {
+      INDEX_STATUS_INVALID = 0,
+      INDEX_STATUS_CREATING = 1,
+      INDEX_STATUS_REBUIDING = 2,
+      INDEX_STATUS_ONLINE = 3,
+      INDEX_STATUS_OFFLINE = 4,
+      INDEX_STATUS_REMOVING = 5,
+   };// enum INDEX_STATUS
+
 }//namespace vessel
 }//namespace engine
 

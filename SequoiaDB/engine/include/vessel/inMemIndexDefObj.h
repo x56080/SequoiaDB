@@ -56,11 +56,32 @@ namespace vessel
          inMemIndexDefObj &operator=(const inMemIndexDefObj &) = delete;
 
       public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return !_indexName.empty();
+         }
+         OSS_INLINE const strSlice &getIndexName()const
+         {
+            return _indexName;
+         }
+         OSS_INLINE const indexKeyPattern &getKeyPattern()const
+         {
+            return _keyPattern;
+         }
+
+      public:
          /// estimate size needed on disk.
          static UINT32 estimate(const strSlice &indexName,
                                 const indexKeyPattern &keyPattern);
 
          void reset();
+
+         INT32 set(const indexDefRecord &record,
+                   const strSlice &indexName,
+                   const bson::BSONObj &pattern);
+
+      private:
+         INT32 ensureBuffer(UINT32 bufferSize);
       private:
          indexDefRecord _record;
          strSlice _indexName;

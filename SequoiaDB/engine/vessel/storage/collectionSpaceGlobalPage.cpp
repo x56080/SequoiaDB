@@ -49,11 +49,44 @@ namespace vessel
       {
          goto done;
       }
+      else if (DMS_INVALID_LOGICCSID == record.logicalID)
+      {
+         goto done;
+      }
       else if (0 == record.name[0] ||
                0 != record.name[DMS_COLLECTION_SPACE_NAME_SZ])
       {
          goto done;
       }
+
+      r = TRUE;
+   done:
+      return r;
+   }
+
+   BOOLEAN initGmp(UINT32 pageSize, PAGE_ID pid,
+                   const strSlice &name, UINT32 uniqueID,
+                   UINT32 logicalID, CHAR *buf)
+   {
+      BOOLEAN r = FALSE;
+      csMetaRecord *head = NULL;
+      if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
+                       INVALID_PAGE_ID == pid ||
+                       name.empty() ||
+                       DMS_INVALID_LOGICCSID == logicalID ||
+                       NULL == buf))
+      {
+         goto done;
+      }
+
+      initCommonPage(PAGE_TYPE_CS_META, pageSize, pid, buf);
+      head = (csMetaRecord *)(buf + PAGE_HEAD_LEN);
+      head->version = CMR_VERSION_1;
+      head->status = CMR_STATUS_CREATING;
+      head->flags = 0;
+      head->uniqueID = uniqueID;
+      head->logicalID = logicalID;
+      ossMemcpy(head->name, name.str(), name.strLen() + 1);
 
       r = TRUE;
    done:

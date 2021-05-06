@@ -131,6 +131,8 @@ namespace vessel
 
          INT32 allocateBitPages(const ossPoolVector<UINT32> &occupied);
 
+         INT32 allocateBitPages(UINT32 count, UINT32 occupied);
+
          INT32 allocateBits(UINT32 count, UINT32 *buf);
 
          void releaseBits(UINT32 count, const UINT32 *buf);

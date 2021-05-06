@@ -42,6 +42,14 @@ namespace engine
 {
 namespace vessel
 {
+   static const UINT32 DELTA_LOG_FILE_PAGESIZE = 4096;
+   static const UINT32 DELTA_LOG_FILE_PAGE_COUNT_IN_SEG = 256;
+   static const UINT32 DELTA_LOG_FILE_MAX_SEG = 32;
+   constexpr UINT32 DELTA_LOG_FILE_MAX_PAGE_COUNT = DELTA_LOG_FILE_PAGE_COUNT_IN_SEG *
+                                                    DELTA_LOG_FILE_MAX_SEG;
+   constexpr UINT32 DELTA_LOG_FILE_MAX_OFFSET = DELTA_LOG_FILE_MAX_PAGE_COUNT *
+                                                DELTA_LOG_FILE_PAGESIZE;
+
    class deltaLogFile : public extentStorageFile
    {
       public:

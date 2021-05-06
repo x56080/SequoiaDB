@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = logicalPageCache.h
+   Source File Name = result.h
 
    Descriptive Name =
 
@@ -33,50 +33,53 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LOGICAL_PAGE_CACHE_H_
-#define VESSEL_LOGICAL_PAGE_CACHE_H_
+#ifndef VESSEL_RESULT_H_
+#define VESSEL_RESULT_H_
 
-#include "pageDef.h"
-#include "ossLatch.hpp"
-#include "ossMemPool.hpp"
-#include "vessel/idMapPage.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   static const UINT32 LOGICAL_PAGE_CACHE_BUCKET_COUNT = 256;
-
-   class logicalPageCache : public SDBObject
+   class result : public SDBObject
    {
       public:
-         logicalPageCache(){}
-         ~logicalPageCache(){}
-         logicalPageCache(const logicalPageCache &) = delete;
-         logicalPageCache &operator=(const logicalPageCache &) = delete;
+         OSS_INLINE result(){}
+         OSS_INLINE ~result(){}
+         OSS_INLINE result(const result &o):
+         _rc(o._rc)
+         {}
+         OSS_INLINE result &operator=(const result &o)
+         {
+            _rc = o._rc;
+            return *this;
+         }
+         OSS_INLINE result &operator=(INT32 rc)
+         {
+            _rc = rc;
+            return *this;
+         }
 
       public:
-         BOOLEAN findIndexPage(ossSpinSLatch *latch, PAGE_ID lpid, idMapSlot &slot);
-         BOOLEAN findLobPage(ossSpinSLatch *latch, PAGE_ID lpid, idMapSlot &slot);
-         void upsertIndexPage(ossSpinSLatch *latch, PAGE_ID lpid, const idMapSlot &slot);
-
-      private:
-         class _cacheBucket
+         OSS_INLINE INT32 rc()const
          {
-            public:
-               _cacheBucket(){}
-               ~_cacheBucket(){}
-            public:
-               typedef ossPoolMap<PAGE_ID, idMapSlot> PAGE_CACHE;
-               PAGE_CACHE indexCache;
-               PAGE_CACHE lobCache;
+            return _rc;
+         }
+         OSS_INLINE BOOLEAN isOk()const
+         {
+            return SDB_OK == _rc;
+         }
+         OSS_INLINE void reset()
+         {
+            _rc = SDB_OK;
+         }
 
-         };//class _cacheBucket
-      
       private:
-         _cacheBucket _buckets[LOGICAL_PAGE_CACHE_BUCKET_COUNT];
-   };//class logicalPageCache
+         INT32 _rc = SDB_OK;
+   };//class result
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_LOGICAL_PAGE_CACHE_H_
+#endif//VESSEL_FUNC_RESULT_H_

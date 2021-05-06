@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,7 +36,7 @@
 #ifndef VESSEL_RDP_ACCESSOR_H_
 #define VESSEL_RDP_ACCESSOR_H_
 
-#include "vessel/pageAccessor.h"
+#include "vessel/logicalPageAccessor.h"
 #include "vessel/recordData.h"
 #include "vessel/strSlice.h"
 #include "utilCompression.hpp"
@@ -56,16 +53,17 @@ namespace vessel
    class scanCLCursor;
    class scanCLContext;
 
-   class rdpAccessor : public pageAccessor
+   class rdpAccessor : public logicalPageAccessor
    {
       public:
          rdpAccessor(){}
          virtual ~rdpAccessor(){}
       public:
-         INT32 initRdp(requestContext *context,
-                       PAGE_ID lpid,
-                       UINT32 logicalID,
-                       CL_PAGE_SEQ pageSeq);
+         INT32 init(requestContext *context,
+                    PAGE_ID lpid,
+                    const pageAccessor::options &o,
+                    logicalPageSpace *space,
+                    DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
          INT32 insertNormalRecord(insertContext *context);
 

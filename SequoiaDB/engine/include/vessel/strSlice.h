@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -89,15 +86,21 @@ namespace vessel
             return *this;
          }
 
+         OSS_INLINE BOOLEAN operator==(const strSlice &r)
+         {
+            return strLen() == r.strLen() &&
+                   0 == ossStrcmp(str(), r.str());
+         }
+
          OSS_INLINE UINT32 strLen()const
          {
-            return _strLen;
+            return empty() ? 0 : _strLen;
          }
 
          OSS_INLINE const CHAR *str()const
          {
             static const CHAR tmp = '\0';
-            return NULL == _str ? &tmp : _str;
+            return empty() ? &tmp : _str;
          }
 
          OSS_INLINE void reset(const CHAR *str = NULL)
@@ -124,7 +127,7 @@ namespace vessel
 
          OSS_INLINE BOOLEAN empty()const
          {
-            return 0 == _strLen;
+            return 0 == _strLen || NULL == _str;
          }
          
       private:

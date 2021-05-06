@@ -53,21 +53,7 @@ namespace vessel
 #pragma pack(4)
    struct recordDataPageHead
    {
-      OSS_INLINE recordDataPageHead():
-      version(INVALID_RDP_VERSION),
-      flags(0),
-      clLogcalID(DMS_INVALID_LOGICCLID),
-      pageSeq(INVALID_CL_PAGE_SEQ),
-      totalSlotCount(0),
-      firstFreeSlot(INVALID_RECORD_SLOT_ID),
-      dicSlot(INVALID_RECORD_SLOT_ID),
-      totalFreeSpace(0),
-      freeSpaceAfterLastSlot(0),
-      minStriping(INVALID_STRIPING_ID),
-      maxStriping(INVALID_STRIPING_ID),
-      transSN(DPS_INVALID_TRANSID_SN),
-      pad(0)
-      {}
+      OSS_INLINE recordDataPageHead(){}
 
       OSS_INLINE ~recordDataPageHead(){}
 
@@ -90,20 +76,20 @@ namespace vessel
          return *this;
       }
 
-      UINT16 version;
-      UINT16 flags;
-      UINT32 clLogcalID;
-      UINT32 pageSeq;
-      UINT16 totalSlotCount;
-      UINT16 firstFreeSlot;
-      UINT16 recordCount;
-      UINT16 dicSlot;
-      UINT32 totalFreeSpace;
-      UINT32 freeSpaceAfterLastSlot;
-      UINT16 minStriping;
-      UINT16 maxStriping;
-      UINT64 transSN;
-      UINT64 pad;
+      UINT16 version = INVALID_RDP_VERSION;
+      UINT16 flags = 0;
+      UINT32 clLogcalID = DMS_INVALID_LOGICCLID;
+      UINT32 pageSeq = INVALID_CL_PAGE_SEQ;
+      UINT16 totalSlotCount = 0;
+      UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
+      UINT16 recordCount = 0;
+      UINT16 dicSlot = INVALID_RECORD_SLOT_ID;
+      UINT32 totalFreeSpace = 0;
+      UINT32 freeSpaceAfterLastSlot = 0;
+      UINT16 minStriping = INVALID_STRIPING_ID;
+      UINT16 maxStriping = INVALID_STRIPING_ID;
+      UINT64 transSN = DPS_INVALID_TRANSID_SN;
+      UINT64 pad = 0;
    };//struct recordDataPageHead
    const static UINT32 RECORD_PAGE_HEAD_LEN = sizeof(recordDataPageHead);
 
@@ -304,7 +290,7 @@ namespace vessel
    OSS_INLINE UINT32 getMaxFreeSizeOfRdp(UINT32 pageSize)
    {
       SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
-      const static UINT32 len = PAGE_HEAD_LEN + PAGE_TAIL_LEN + RECORD_PAGE_HEAD_LEN;
+      static constexpr UINT32 len = PAGE_HEAD_LEN + PAGE_TAIL_LEN + RECORD_PAGE_HEAD_LEN;
       return pageSize - len;
    }
 
@@ -325,6 +311,12 @@ namespace vessel
       SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
       return getMaxSizeOfRecordInRdp(recordSize) > getMaxFreeSizeOfRdp(pageSize);
    }
+
+   void initRecordDataPage(UINT32 pageSize,
+                           PAGE_ID lpid,
+                           UINT32 logicalID,
+                           CL_PAGE_SEQ pageSeq,
+                           void *buf);
 }//namespace vessel
 }//namespace engine
 

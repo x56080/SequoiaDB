@@ -53,74 +53,13 @@ namespace vessel
    crpAccessor::~crpAccessor()
    {}
 
-   INT32 crpAccessor::initPage(requestContext *context,
-                               PAGE_ID lpid)
-   {
-      INT32 rc = SDB_OK;
-      collectionRecordPageHead *head = NULL;
-      pageHead *pageHead = NULL;
-      UINT32 capacity = 0;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY |
-                     PAGE_ACCESSOR_FLAG_INIT_PAGE;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-
-      if (OSS_UNLIKELY(NULL == context || INVALID_PAGE_ID == lpid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = getCapacityOfCLRecordPage(getPageSize(), capacity);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get capacity of page size:%d", getPageSize());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail(lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init common head:%d", rc);
-         goto error;
-      }
-
-      rc = getWritePtrOfHead(&pageHead);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = getWritableUserHeadPtr<collectionRecordPageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      head->version = COLLECTION_RECORD_PAGE_VERSION_1;
-
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
+   INT32 crpAccessor::init(requestContext *context,
+                           PAGE_ID lpid,
+                           const pageAccessor::options &o,
+                           logicalPageSpace *space,
+                           DPS_LSN_OFFSET oplist)
+   { 
+      return logicalPageAccessor::init(context, FILE_TYPE_DD, lpid, o, space, oplist);
    }
 
    INT32 crpAccessor::update(requestContext *context,
@@ -388,7 +327,7 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy(&record, ptr, COLLECTION_RECORD_LEN);
+      record = *ptr;
    done:
       return rc;
    error:
@@ -574,11 +513,11 @@ namespace vessel
 
       if (lrc->needFullDump())
       {
-         const CHAR *dumpBuf = getFullDumpBuffer();
+         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
          SDB_ASSERT(NULL != dumpBuf, "can not be null");
          rc = logger->pushLogRecordElement(session, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           getFullDumpSize(), dumpBuf);
+                                           lrc->getFullDumpDataSize(), dumpBuf);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;

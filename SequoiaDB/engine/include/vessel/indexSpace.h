@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = routePage.cpp
+   Source File Name = indexSpace.h
 
    Descriptive Name =
 
@@ -33,33 +33,40 @@
 
 ******************************************************************************/
 
-#include "vessel/routePage.h"
-#include "pdTrace.hpp"
-#include "ossLikely.hpp"
-#include "dms.hpp"
+#ifndef VESSEL_INDEX_SPACE_H_
+#define VESSEL_INDEX_SPACE_H_
+
+#include "vessel/logicalPageSpace.h"
 
 namespace engine
 {
 namespace vessel
-{
-   UINT32 getCapacityOfRoutePage(UINT32 pageSize)
+{  
+   class copyOnWriteSpaceEnv;
+
+   class indexSpace : public logicalPageSpace
    {
-      SDB_ASSERT(DMS_PAGE_SIZE32K == pageSize ||
-                 DMS_PAGE_SIZE64K == pageSize, "invalid page size");
-      UINT32 capacity = 0;
-      UINT32 freeSize = 0;
+      public:
+         indexSpace(){}
+         virtual ~indexSpace();
 
-      if (OSS_UNLIKELY(DMS_PAGE_SIZE32K != pageSize &&
-                       DMS_PAGE_SIZE64K != pageSize))
-      {
-         goto done;
-      }
+      private:
+         virtual UINT32 getSystemPageCount()const {return 0;}
+         virtual UINT32 getReservedImpCount()const {return 2;}
+         virtual FILE_TYPE getTypeOfMetaFile()const{return FILE_TYPE_IDX_M;}
+         virtual FILE_TYPE getTypeOfDataFile()const{return FILE_TYPE_IDX_D;}
+         virtual UINT32 getFreeBoundOfLpidPool()const{return 0;}
+         virtual UINT32 getFreeBoundOfPpidPool()const{return 0;}
 
-      freeSize = pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ROUTE_PAGE_HEAD_LEN;
-      freeSize = freeSize & 0xffffffe0;///32 bytes aligned
-      capacity = freeSize >> 2; /// capacity = freeSize / 4 
-   done:
-      return capacity;
-   }
+      private:
+         virtual INT32 allocateIdMapPagesOnDisk(requestContext *context,
+                                                PAGE_ID first,
+                                                UINT32 count);
+
+      private:
+         copyOnWriteSpaceEnv *_env = NULL;
+   };//class indexSpace
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_INDEX_SPACE_H_

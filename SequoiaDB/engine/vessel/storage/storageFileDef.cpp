@@ -35,6 +35,7 @@
 
 #include "vessel/storageFileDef.h"
 #include "pdTrace.hpp"
+#include "vessel/pageDef.h"
 
 namespace engine
 {
@@ -43,12 +44,7 @@ namespace vessel
    BOOLEAN storageCoreArgs::isValid()const
    {
       BOOLEAN r = FALSE;
-      if (DMS_PAGE_SIZE4K != pageSize &&
-          DMS_PAGE_SIZE8K != pageSize &&
-          DMS_PAGE_SIZE16K != pageSize &&
-          DMS_PAGE_SIZE32K != pageSize &&
-          DMS_PAGE_SIZE64K != pageSize &&
-          DMS_PAGE_SIZE256K != pageSize)
+      if (!isValidPageSize(pageSize))
       {
          goto done;
       }

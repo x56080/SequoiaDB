@@ -46,9 +46,9 @@ namespace engine
 namespace vessel
 {
    const UINT32 PAGE_ACCESSOR_FLAG_NONE = 0;
-   const UINT32 PAGE_ACCESSOR_FLAG_DIRECT = 0x01;  /// mmap accessing
+   const UINT32 PAGE_ACCESSOR_FLAG_CACHE_MODE = 0x01;  /// buffer pool accessing
    const UINT32 PAGE_ACCESSOR_FLAG_NON_READONLY = 0x02;
-   const UINT32 PAGE_ACCESSOR_FLAG_INIT_PAGE = 0x04;
+   const UINT32 PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION = 0x04;
    const UINT32 PAGE_ACCESSOR_FLAG_OPLIST_HEAD = 0x08;
    const UINT32 PAGE_ACCESSOR_FLAG_OPLIST_TAIL = 0x10;
 
@@ -58,23 +58,66 @@ namespace vessel
    class pageAccessor : public SDBObject
    {
       public:
-         OSS_INLINE pageAccessor():
-         _size(0),
-         _flags(0),
-         _status(0),
-         _ptr(0),
-         _su(NULL),
-         _fullDumpBuf(NULL),
-         _fullDumpSize(0),
-         _oplist(DPS_INVALID_LSN_OFFSET)
-         {
-
-         }
+         OSS_INLINE pageAccessor(){}
          virtual ~pageAccessor();
 
       public:
          pageAccessor(const pageAccessor &) = delete;
          pageAccessor &operator=(const pageAccessor &) = delete;
+
+      public:
+         struct options
+         {
+            OSS_INLINE options(){}
+            OSS_INLINE ~options(){}
+            OSS_INLINE options(const options &o):
+            cacheMode(o.cacheMode),
+            readOnly(o.readOnly),
+            pageValidation(o.pageValidation),
+            oplistHead(o.oplistHead),
+            oplistTail(o.oplistTail){}
+            options &operator=(const options &o)
+            {
+               cacheMode = o.cacheMode;
+               readOnly = o.readOnly;
+               pageValidation = o.pageValidation;
+               oplistHead = o.oplistHead;
+               oplistTail = o.oplistTail;
+               return *this;
+            }
+            OSS_INLINE UINT32 getFlags()const
+            {
+               UINT32 flags = 0;
+               if (cacheMode)
+               {
+                  OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_CACHE_MODE);
+               }
+               if (!readOnly)
+               {
+                  OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_NON_READONLY);
+               }
+               if (!pageValidation)
+               {
+                  OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION);
+               }
+               if (oplistHead)
+               {
+                  OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_OPLIST_HEAD);
+               }
+               if (oplistTail)
+               {
+                  OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_OPLIST_TAIL);
+               }
+               return flags;
+            }
+
+
+            BOOLEAN cacheMode = FALSE;
+            BOOLEAN readOnly = TRUE;
+            BOOLEAN pageValidation = TRUE;
+            BOOLEAN oplistHead = FALSE;
+            BOOLEAN oplistTail = FALSE;
+         };//struct options
 
       public:
          OSS_INLINE const GLOBAL_PAGE_ID &getGPID()const
@@ -83,18 +126,7 @@ namespace vessel
          }
          OSS_INLINE UINT32 getPageSize()const
          {
-            return _size;
-         }
-         OSS_INLINE UINT32 getPageBodySize()const
-         {
-            if (OSS_LIKELY((PAGE_HEAD_LEN + PAGE_TAIL_LEN) <= _size))
-            {
-               return _size - PAGE_TAIL_LEN - PAGE_HEAD_LEN;
-            }
-            else
-            {
-               return 0;
-            }
+            return _pageSize;
          }
 
          OSS_INLINE UINT32 getFlags()const
@@ -105,32 +137,50 @@ namespace vessel
          {
             return _oplist;
          }
+         OSS_INLINE BOOLEAN isCacheMode()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_CACHE_MODE);
+         }
+         OSS_INLINE BOOLEAN isReadOnly()const
+         {
+            return 0 == OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY);
+         }
+         UINT32 getPageBodySize()const;
+         OSS_INLINE BOOLEAN isInitailized()const
+         {
+            return !_gpid.invalid();
+         }
 
       public:
-         INT32 init(requestContext *context,
-                     FILE_TYPE type,
-                     PAGE_ID pid,
-                     UINT32 flags = 0,
-                     storageUnit *su = NULL,
-                     DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
+         ///init accessor by flags to choose mode.
+         INT32 initUniversally(requestContext *context,
+                               FILE_TYPE type,
+                               PAGE_ID pid,
+                               UINT32 flags = 0,
+                               storageUnit *su = NULL,
+                               DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
-         INT32 initWithDirectMode(requestContext *context,
-                                 FILE_TYPE type,
-                                 PAGE_ID pid,
-                                 UINT32 pageSize,
-                                 ossValuePtr ptr,
-                                 BOOLEAN pageTypeCheck = TRUE,
-                                 BOOLEAN readOnly = TRUE);
+         INT32 initWithOptions(requestContext *context,
+                               FILE_TYPE type,
+                               PAGE_ID pid,
+                               const options &o,
+                               storageUnit *su = NULL,
+                               DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET);
 
-         void abortToWrite();
-         INT32 prepareToWrite(requestContext *context);
-
-         void commit(requestContext *context, DPS_LSN_OFFSET lsn);
+         INT32 initWithMMapMode(requestContext *context,
+                                FILE_TYPE type,
+                                PAGE_ID pid,
+                                UINT32 pageSize,
+                                ossValuePtr ptr,
+                                BOOLEAN pageValidation = TRUE,/// set it as false when first init page.
+                                BOOLEAN readOnly = TRUE);
 
          void fini(requestContext *context);
 
          virtual PAGE_TYPE getPageType()const = 0;
 
+      protected:
+         virtual INT32 prepareToWrite(requestContext *context);
       protected:
          /// WARNING: will overwrite a initialized page head.
          INT32 initCommonPageHeadAndTail(PAGE_ID lpid=INVALID_PAGE_ID);
@@ -145,6 +195,11 @@ namespace vessel
          INT32 readPageBody(UINT32 offset, UINT32 len, CHAR *buf);
          INT32 writePageBody(UINT32 offset, UINT32 len, const CHAR *buf);
          INT32 getPidFromDisk(PAGE_ID &pid);
+
+         void abortToWrite();
+         void commit(requestContext *context, DPS_LSN_OFFSET lsn);
+         INT32 prepareLogDone(requestContext *context,
+                              logRecordContext *lrc);
 
       protected:
          template <typename T>
@@ -237,28 +292,14 @@ namespace vessel
          error:
             goto done;
          }
-
       protected:
-         INT32 prepareLogDone(requestContext *context,
-                              logRecordContext *lrc);
-
-      protected:
-         OSS_INLINE const CHAR *getFullDumpBuffer()const
-         {
-            return _fullDumpBuf;
-         }
-
-         OSS_INLINE UINT32 getFullDumpSize()const
-         {
-            return _fullDumpSize;
-         }
          OSS_INLINE BOOLEAN isInOplist()const
          {
             return DPS_INVALID_LSN_OFFSET != _oplist;
          }
          OSS_INLINE BOOLEAN isOplistHead()const
          {
-            return OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_OPLIST_HEAD);
+            return 0 != OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_OPLIST_HEAD);
          }
          OSS_INLINE BOOLEAN isOplistTail()const
          {
@@ -269,16 +310,12 @@ namespace vessel
          INT32 validateMMapPageHeadAndTail();
          BOOLEAN accessing()const;
 
-         INT32 beginToAccess(requestContext *context, UINT32 flags);
-         INT32 beginToAccessByMMap();
+         INT32 beginToAccess(requestContext *context,
+                             storageUnit *su);
+         INT32 beginToAccessByMMap(storageUnit *su);
          INT32 beginToAccessByCache(requestContext *context);
 
          INT32 prepareToWriteByCache(requestContext *context);
-
-         void endToAccess(requestContext *context);
-         void endToAccessByMMap();
-         void endToAccessByCache(requestContext *context);
-        
          INT32 getMMapWritePtrOfPage(UINT32 offset, UINT32 len, CHAR **ptr);
          INT32 getMMapReadPtrOfPage(UINT32 offset, UINT32 len, const CHAR **ptr);
 
@@ -286,21 +323,24 @@ namespace vessel
          INT32 readTail(UINT64 &value);
          OSS_INLINE BOOLEAN validMMapPtr(UINT32 offset, UINT32 len)
          {
-            return (offset + len) <= _size;
+            return (offset + len) <= _pageSize;
          }
+
+      private:
+         enum ACCESSOR_STATUS
+         {
+            ACCESSOR_STATUS_INVALID = 0,
+            ACCESSOR_STATUS_READONLY_ACCESSING = 1,
+            ACCESSOR_STATUS_FULL_ACCESSING = 2,
+         };//enum ACCESSOR_STATUS
       private:
          GLOBAL_PAGE_ID _gpid;
-         UINT32 _size;
-         /// if some one update flags to uint64, should
-         /// update isOplistHead. BOOLEAN is 4bytes.
-         UINT32 _flags;
-         UINT32 _status;
-         ossValuePtr _ptr;
+         UINT32 _pageSize = 0;
+         UINT32 _flags = 0;
+         UINT32 _status = 0;
+         ossValuePtr _ptr = 0;
          liteCacheTuple _lcTuple;
-         storageUnit *_su;
-         CHAR *_fullDumpBuf;  /// buffer size always be page size
-         UINT32 _fullDumpSize;/// data size dumped.
-         DPS_LSN_OFFSET _oplist;
+         DPS_LSN_OFFSET _oplist = DPS_INVALID_LSN_OFFSET;
    };//class pageAccessor
 }//namespace vessel
 }//namespace engine

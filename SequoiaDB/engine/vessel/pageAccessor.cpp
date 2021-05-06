@@ -50,49 +50,24 @@ namespace engine
 {
 namespace vessel
 {
-   UINT32 ACCESSOR_STATUS_INVALID = 0;
-   UINT32 ACCESSOR_STATUS_SETUP = 1;
-   UINT32 ACCESSOR_STATUS_READONLY_ACCESSING = 2;
-   UINT32 ACCESSOR_STATUS_FULL_ACCESSING = 4;
-
    pageAccessor::~pageAccessor()
    {
       SDB_ASSERT(!accessing(), "fini lost");
-      if (NULL != _fullDumpBuf)
-      {
-         SDB_THREAD_FREE(_fullDumpBuf);
-         _fullDumpBuf = NULL;
-      }
    }
 
-   INT32 pageAccessor::init(requestContext *context,
-                             FILE_TYPE type,
-                             PAGE_ID pid,
-                             UINT32 flags,
-                             storageUnit *su,
-                             DPS_LSN_OFFSET oplist)
+   INT32 pageAccessor::initUniversally(requestContext *context,
+                                       FILE_TYPE type,
+                                       PAGE_ID pid,
+                                       UINT32 flags,
+                                       storageUnit *su,
+                                       DPS_LSN_OFFSET oplist)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(ACCESSOR_STATUS_INVALID == _status, "do not reinit");
       storageUnit *obj = su;
-      UINT32 size = 0;
       fini(context);
 
-      if (OSS_UNLIKELY(ACCESSOR_STATUS_INVALID != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context))
+      if (OSS_UNLIKELY(NULL == context))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -101,6 +76,16 @@ namespace vessel
       { 
          rc = SDB_INVALIDARG;
          goto error;  
+      }
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
       }
       else if (OSS_BIT_TEST(flags, PAGE_ACCESSOR_FLAG_OPLIST_TAIL) &&
                DPS_INVALID_LSN_OFFSET == oplist)
@@ -129,7 +114,7 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->getCoreArgs(type, &size, NULL, NULL);
+      rc = obj->getCoreArgs(type, &_pageSize, NULL, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page size:%d", rc);
@@ -137,23 +122,17 @@ namespace vessel
       }
 
       _gpid.reset(context->getSpaceID(), type, pid);
-      _size = size;
-      _status = ACCESSOR_STATUS_SETUP;
-      _su = obj;
-
+      _flags = flags;
       if (DPS_INVALID_LSN_OFFSET != oplist)
       {
          _oplist = oplist;
       }
 
-      rc = beginToAccess(context, flags);
+      rc = beginToAccess(context, obj);
       if (SDB_OK != rc)
       {
          goto error;
       }
-
-      /// if some one add new code here,
-      /// should release resources got in beginToAccess
    done:
       return rc;
    error:
@@ -161,34 +140,31 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::initWithDirectMode(requestContext *context,
-                                          FILE_TYPE type,
-                                          PAGE_ID pid,
-                                          UINT32 pageSize,
-                                          ossValuePtr ptr,
-                                          BOOLEAN pageTypeCheck,
-                                          BOOLEAN readOnly)
+   INT32 pageAccessor::initWithOptions(requestContext *context,
+                                       FILE_TYPE type,
+                                       PAGE_ID pid,
+                                       const options &o,
+                                       storageUnit *su,
+                                       DPS_LSN_OFFSET oplist)
+   {
+      return initUniversally(context, type, pid,
+                             o.getFlags(), su, oplist);
+   }
+
+   INT32 pageAccessor::initWithMMapMode(requestContext *context,
+                                        FILE_TYPE type,
+                                        PAGE_ID pid,
+                                        UINT32 pageSize,
+                                        ossValuePtr ptr,
+                                        BOOLEAN pageValidation,
+                                        BOOLEAN readOnly)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT;
+      SDB_ASSERT(ACCESSOR_STATUS_INVALID == _status, "do not reinit");
+      fini(context);
+      UINT32 flags = 0;
 
-      if (OSS_UNLIKELY(ACCESSOR_STATUS_INVALID != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context))
+      if (OSS_UNLIKELY(NULL == context))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -198,7 +174,17 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;  
       }
-      else if (OSS_UNLIKELY(0 == pageSize))
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isValidPageSize(pageSize))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -209,32 +195,31 @@ namespace vessel
          goto error;
       }
 
-      rollback = TRUE;
-      _gpid.reset(context->getSpaceID(), type, pid);
-      _size = pageSize;
-      _status = ACCESSOR_STATUS_SETUP;
-      _ptr = ptr;
-
-      if (!pageTypeCheck)
+      if (!pageValidation)
       {
-         flags |= PAGE_ACCESSOR_FLAG_INIT_PAGE;
+         OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION);
       }
       if (!readOnly)
       {
-         flags |= PAGE_ACCESSOR_FLAG_NON_READONLY;
+         OSS_BIT_SET(flags, PAGE_ACCESSOR_FLAG_NON_READONLY);
       }
-      rc = beginToAccess(context, flags);
-      if (SDB_OK != rc)
+      _gpid.reset(context->getSpaceID(), type, pid);
+      _pageSize = pageSize;
+      _flags = flags;
+      _ptr = ptr;
+      _status = ACCESSOR_STATUS_READONLY_ACCESSING;
+      if (pageValidation)
       {
-         goto error;
+         rc = validateMMapPageHeadAndTail();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         fini(context);
-      }
+      fini(context);
       goto done;
    }
 
@@ -252,19 +237,21 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ACCESSOR_STATUS_READONLY_ACCESSING == _status, "impossible");
+      BOOLEAN readOnly = (0 == OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY));
+      BOOLEAN cacheMode =  (0 != OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_CACHE_MODE));
 
       if (OSS_UNLIKELY(ACCESSOR_STATUS_READONLY_ACCESSING != _status))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY)))
+      else if (OSS_UNLIKELY(readOnly))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      if (!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      if (cacheMode)
       {
          rc = prepareToWriteByCache(context);
          if (SDB_OK != rc)
@@ -277,41 +264,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   void pageAccessor::endToAccess(requestContext *context)
-   {
-      if (accessing())
-      {
-         if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
-         {
-            endToAccessByMMap();
-         }
-         else
-         {
-            endToAccessByCache(context);
-         }
-         _status = ACCESSOR_STATUS_SETUP;
-      }
-
-      return;
-   }
-
-   void pageAccessor::endToAccessByMMap()
-   {
-      SDB_ASSERT(OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "must be direct");
-      return;
-   }
-
-   void pageAccessor::endToAccessByCache(requestContext *context)
-   {
-      SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "can not be direct");
-      liteCache &cache = context->getEnv()->cache;
-      if (_lcTuple.valid())
-      {
-         cache.release(context, _lcTuple);
-      }
-      return;
    }
 
    void pageAccessor::commit(requestContext *context,
@@ -336,16 +288,11 @@ namespace vessel
          PD_LOG(PDSEVERE, "failed to update page[%s] tail:%d", _gpid.toString().c_str(), rc);
       }
 
-      if (!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      if (isCacheMode())
       {
          liteCache &cache = context->getEnv()->cache;
          cache.commit(context, lsn, _lcTuple);
       }
-      else
-      {
-         /// do nothing.
-      }
-
       _status = ACCESSOR_STATUS_READONLY_ACCESSING;
    done:
       return;
@@ -355,24 +302,22 @@ namespace vessel
    void pageAccessor::fini(requestContext *context)
    {
       SDB_ASSERT(!fullAccessing(), "writing prepared but no commit or abort");
+      SDB_ASSERT(NULL != context, "can not be null");
       
-      if (ACCESSOR_STATUS_INVALID != _status)
+      if (_lcTuple.valid())
       {
-         endToAccess(context);
-         if (NULL != _fullDumpBuf)
+         liteCache &cache = context->getEnv()->cache;
+         if (_lcTuple.valid())
          {
-            SDB_THREAD_FREE(_fullDumpBuf);
-            _fullDumpBuf = NULL;
+            cache.release(context, _lcTuple);
          }
-         _gpid.reset();
-         _size = 0;
-         _flags = 0;
-         _status = ACCESSOR_STATUS_INVALID;
-         _ptr = 0;
-         _su = NULL;
-         _fullDumpSize = 0;
-         _oplist = DPS_INVALID_LSN_OFFSET;
       }
+      _gpid.reset();
+      _pageSize = 0;
+      _flags = 0;
+      _status = ACCESSOR_STATUS_INVALID;
+      _ptr = 0;
+      _oplist = DPS_INVALID_LSN_OFFSET;
 
       return;
    }
@@ -412,27 +357,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::beginToAccess(requestContext *context, UINT32 flags)
+   INT32 pageAccessor::beginToAccess(requestContext *context,
+                                     storageUnit *su)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(ACCESSOR_STATUS_SETUP == _status, "impossible");
-
-      if (OSS_UNLIKELY(ACCESSOR_STATUS_SETUP != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _flags = flags;
-      if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
-      {
-         rc = beginToAccessByMMap();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      else
+      SDB_ASSERT(ACCESSOR_STATUS_INVALID == _status, "impossible");
+      SDB_ASSERT(NULL != su, "can not be null");
+      
+      if (isCacheMode())
       {
          rc = beginToAccessByCache(context);
          if (SDB_OK != rc)
@@ -440,22 +372,32 @@ namespace vessel
             goto error;
          }
       }
+      else
+      {
+         rc = beginToAccessByMMap(su);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
    done:
       return rc;
    error:
-      _flags = 0;
       goto done;
    }
 
-   INT32 pageAccessor::beginToAccessByMMap()
+   INT32 pageAccessor::beginToAccessByMMap(storageUnit *su)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(ACCESSOR_STATUS_SETUP == _status, "impossible");
-      SDB_ASSERT(OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "must be direct");
+      SDB_ASSERT(NULL != su, "can not be null");
+      SDB_ASSERT(ACCESSOR_STATUS_INVALID == _status, "impossible");
       ossValuePtr tmpPtr = 0;
+      BOOLEAN pageValidation = TRUE;
+
       if (0 == _ptr)
       {
-         rc = _su->getPagePtr(_gpid.type(), _gpid.page(), tmpPtr);
+         rc = su->getPagePtr(_gpid.type(), _gpid.page(), tmpPtr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -464,7 +406,8 @@ namespace vessel
       }
 
       _status = ACCESSOR_STATUS_READONLY_ACCESSING;
-      if (!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_INIT_PAGE))
+      pageValidation = (0 == OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION));
+      if (pageValidation)
       {
          rc = validateMMapPageHeadAndTail();
          if (SDB_OK != rc)
@@ -476,18 +419,20 @@ namespace vessel
    done:
       return rc;
    error:
-      _status = ACCESSOR_STATUS_SETUP;
-      _ptr = 0;
+      _status = ACCESSOR_STATUS_INVALID;
       goto done;
    }
 
    INT32 pageAccessor::beginToAccessByCache(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "can not be direct");
-      const pageHead *head = NULL;
+      SDB_ASSERT(isCacheMode(), "impossible");
+      SDB_ASSERT(!_lcTuple.valid(), "do not reinit");
+      SDB_ASSERT(ACCESSOR_STATUS_INVALID == _status, "must be invalid");
+
+      const CHAR *head = NULL;
       liteCacheAllocateOptions options;
-      options.readonly = !OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY);
+      options.readonly = (0 == OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY));
       liteCache &cache = context->getEnv()->cache;
       rc = cache.allocate(context, _gpid, options, _lcTuple);
       if (SDB_OK != rc)
@@ -495,30 +440,31 @@ namespace vessel
          goto error;
       }
 
-      _status = ACCESSOR_STATUS_READONLY_ACCESSING;
-
-      rc = getReadPtrOfHead(&head);
+      rc = _lcTuple.getReadPtr(0, PAGE_HEAD_LEN, &head);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
+      _status = ACCESSOR_STATUS_READONLY_ACCESSING;
+
       /// page checked when allocating tuple.
-      if (getPageType() !=  head->type)
+      if (getPageType() !=  ((const pageHead *)head)->type)
       {
          SDB_ASSERT(FALSE, "wrong type accessing");
-         PD_LOG(PDERROR, "wrong page type. accessor type:%d, page type:%d", getPageType(), head->type);
+         PD_LOG(PDERROR, "wrong page type. accessor type:%d, page type:%d",
+                getPageType(), ((const pageHead *)head)->type);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
    done:
       return rc;
    error:
-      _status = ACCESSOR_STATUS_SETUP;
       if (_lcTuple.valid())
       {
          cache.release(context, _lcTuple);
       }
+      _status = ACCESSOR_STATUS_INVALID;
       goto done;
    }
 
@@ -563,7 +509,7 @@ namespace vessel
       head->type = getPageType();
       head->flags = 0;
       head->setInUsed();
-      head->size = _size;
+      head->size = _pageSize;
       head->pageID = INVALID_PAGE_ID == lpid ? _gpid.page() : lpid;
       head->lsn = DPS_INVALID_LSN_OFFSET;
       head->pad = 0;
@@ -585,26 +531,24 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(fullAccessing(), "impossible");
-      if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      CHAR *tail = NULL;
+      if (!isCacheMode())
       {
-         CHAR *tmp = NULL;
-         rc = getMMapWritePtrOfPage(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tmp);
+         rc = getMMapWritePtrOfPage(_pageSize - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tail);
          if (SDB_OK != rc)
          {
             goto error;
          }
-         *((UINT64 *)tmp) = v;
       }
       else
       {
-         CHAR *tailPtr = NULL;
-         rc = _lcTuple.getWritePtr(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tailPtr);
+         rc = _lcTuple.getWritePtr(_pageSize - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tail);
          if (SDB_OK != rc)
          {
             goto error;
          }
-         *((UINT64 *)tailPtr) = v;
       }
+      *((UINT64 *)tail) = v;
       
    done:
       return rc;
@@ -616,27 +560,24 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(accessing(), "impossible");
-      if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      const CHAR *tail = NULL;
+      if (!isCacheMode())
       {
-         const CHAR *tmp = NULL;
-         rc = getMMapReadPtrOfPage(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tmp);
+         rc = getMMapReadPtrOfPage(_pageSize - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tail);
          if (SDB_OK != rc)
          {
             goto error;
          }
-         value = *((const UINT64 *)tmp);
       }
       else
       {
-         const CHAR *ptr = NULL;
-         rc = _lcTuple.getReadPtr(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &ptr);
+         rc = _lcTuple.getReadPtr(_pageSize - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tail);
           if (SDB_OK != rc)
          {
             goto error;
          }
-         value = *((const UINT64 *)ptr);
       }
-      
+      value = *((const UINT64 *)tail);
    done:
       return rc;
    error:
@@ -647,14 +588,19 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       const CHAR *ptr = NULL;
-      if (OSS_UNLIKELY(!accessing() || NULL == head))
+      if (OSS_UNLIKELY(!accessing()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == head))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
       {
-         rc = getMMapReadPtrOfPage(0, PAGE_HEAD_LEN, &ptr);
+         rc = _lcTuple.getReadPtr(0, PAGE_HEAD_LEN, &ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -662,12 +608,11 @@ namespace vessel
       }
       else
       {
-         rc = _lcTuple.getReadPtr(0, PAGE_HEAD_LEN, &ptr);
+         rc = getMMapReadPtrOfPage(0, PAGE_HEAD_LEN, &ptr);
          if (SDB_OK != rc)
          {
             goto error;
-         }
-         
+         }  
       }
 
       *head = (const pageHead *)ptr;
@@ -682,23 +627,28 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       CHAR *ptr = NULL;
-      if (OSS_UNLIKELY(!fullAccessing() || NULL == head))
+      if (OSS_UNLIKELY(!fullAccessing()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == head))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
       {
-         
-         rc = getMMapWritePtrOfPage(0, PAGE_HEAD_LEN, &ptr);
+         rc = _lcTuple.getWritePtr(0, PAGE_HEAD_LEN, &ptr);
          if (SDB_OK != rc)
          {
             goto error;
          }
+         
       }
       else
       {
-         rc = _lcTuple.getWritePtr(0, PAGE_HEAD_LEN, &ptr);
+         rc = getMMapWritePtrOfPage(0, PAGE_HEAD_LEN, &ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -716,14 +666,19 @@ namespace vessel
    INT32 pageAccessor::getWritePtrOfPageBody(UINT32 offset, UINT32 len, CHAR **ptr)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!fullAccessing() || NULL == ptr))
+      if (OSS_UNLIKELY(!fullAccessing()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == ptr))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
       {
-         rc = getMMapWritePtrOfPage(offset + PAGE_HEAD_LEN, len + PAGE_TAIL_LEN, ptr);
+         rc = _lcTuple.getWritePtr(offset + PAGE_HEAD_LEN, len, (CHAR **)ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -731,7 +686,7 @@ namespace vessel
       }
       else
       {
-         rc = _lcTuple.getWritePtr(offset + PAGE_HEAD_LEN, len, (CHAR **)ptr);
+         rc = getMMapWritePtrOfPage(offset + PAGE_HEAD_LEN, len + PAGE_TAIL_LEN, ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -747,14 +702,19 @@ namespace vessel
    INT32 pageAccessor::getReadPtrOfPageBody(UINT32 offset, UINT32 len, const CHAR **ptr)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!accessing() || NULL == ptr))
+      if (OSS_UNLIKELY(!accessing()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == ptr))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
       {
-         rc = getMMapReadPtrOfPage(PAGE_HEAD_LEN + offset, len + PAGE_TAIL_LEN, ptr);
+         rc = _lcTuple.getReadPtr(PAGE_HEAD_LEN + offset, len + PAGE_TAIL_LEN, ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -762,7 +722,7 @@ namespace vessel
       }
       else
       {
-         rc = _lcTuple.getReadPtr(PAGE_HEAD_LEN + offset, len + PAGE_TAIL_LEN, ptr);
+         rc = getMMapReadPtrOfPage(PAGE_HEAD_LEN + offset, len + PAGE_TAIL_LEN, ptr);
          if (SDB_OK != rc)
          {
             goto error;
@@ -780,10 +740,23 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!accessing()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if(OSS_UNLIKELY(NULL == buf))
+      {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
+      {
+         rc =_lcTuple.read(offset + PAGE_HEAD_LEN, len, buf);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      else
       {
          const CHAR *ptr = NULL;
          rc = getMMapReadPtrOfPage(offset + PAGE_HEAD_LEN, len + PAGE_TAIL_LEN, &ptr);
@@ -793,14 +766,6 @@ namespace vessel
          }
 
          ossMemcpy(buf, ptr, len);
-      }
-      else
-      {
-         rc =_lcTuple.read(offset + PAGE_HEAD_LEN, len, buf);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
       }
       
    done:
@@ -814,10 +779,23 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!accessing()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == buf))
+      {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      else if (isCacheMode())
+      {
+         rc = _lcTuple.write(PAGE_HEAD_LEN + offset, len, buf);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      else
       {
          CHAR *ptr = NULL;
          rc = getMMapWritePtrOfPage(PAGE_HEAD_LEN + offset, len + PAGE_TAIL_LEN, &ptr);
@@ -826,14 +804,6 @@ namespace vessel
             goto error;
          }
          ossMemcpy(ptr, buf, len);
-      }
-      else
-      {
-         rc = _lcTuple.write(PAGE_HEAD_LEN + offset, len, buf);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
       }
    done:
       return rc;
@@ -903,13 +873,18 @@ namespace vessel
       UINT32 pageBodySize = 0;
       if (OSS_UNLIKELY(!fullAccessing()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
       pageBodySize = getPageBodySize();
+      if (OSS_UNLIKELY(0 == pageBodySize))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
-      if (OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
+      if (!isCacheMode())
       {
          rc = getWritePtrOfPageBody(0, pageBodySize, &ptr);
          if (SDB_OK != rc)
@@ -921,7 +896,7 @@ namespace vessel
       }
       else
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
    done:
@@ -941,17 +916,21 @@ namespace vessel
       return ACCESSOR_STATUS_FULL_ACCESSING == _status;
    }
 
+   UINT32 pageAccessor::getPageBodySize()const
+   {
+      return engine::vessel::getPageBodySize(_pageSize);
+   }
+
    INT32 pageAccessor::prepareLogDone(requestContext *context,
                                       logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(accessing(), "must be accessing");
       SDB_ASSERT(fullAccessing(), "should prepare writing first");
-      SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "must be cache");
+      SDB_ASSERT(isCacheMode(), "must be cache mode");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->needFullDump(), "can not be full dump");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      SDB_ASSERT(NULL == _fullDumpBuf, "must be null");
 
       ISession *session = context->getSession();
       IRedoLogger *logger = context->getOuterResource()->logger;
@@ -997,21 +976,22 @@ namespace vessel
             checkpointer = &(context->getEnv()->checkpointer);
             if (lsn <= checkpointer->getLastCheckpointLSN())
             {
-               _fullDumpBuf = (CHAR*)SDB_THREAD_ALLOC(_size);
-               if (NULL == _fullDumpBuf)
-               {
-                  rc = SDB_OOM;
-                  goto error;
-               }
-               rc = _lcTuple.read(0, _size, _fullDumpBuf);
+               const CHAR *pagePtr = NULL;
+               rc = _lcTuple.getReadPtr(0, _pageSize, &pagePtr);
                if (SDB_OK != rc)
                {
+                  PD_LOG(PDERROR, "failed to get page ptr:%d", rc);
                   goto error;
                }
 
-               _fullDumpSize = _size;
-               lrc->setNeedFullDump();
-               lrc->prepush(_size);
+               rc = lrc->fullDumpPage(_pageSize, pagePtr);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to dump page to log:%d", rc);
+                  goto error;
+               }
+
+               lrc->prepush(_pageSize);
             }
          }
       }

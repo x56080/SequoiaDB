@@ -520,6 +520,68 @@ namespace vessel
       goto done;
    }
 
+   INT32 inMemBitMap::allocateBitPages(UINT32 count, UINT32 occupied)
+   {
+      INT32 rc = SDB_OK;
+      ossPoolVector<_inMemBitPage *> pages;
+      pages.resize(count, NULL);
+      ossScopedLock guard(&_mutex);
+      if (0 == count)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_bitCountInPage < occupied)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         pages[i] = SDB_OSS_NEW _inMemBitPage();
+         if (NULL == pages[i])
+         {
+            PD_LOG(PDERROR, "failed to allocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         rc = pages[i]->init(_pageCount, _bitCountInPage, FALSE, occupied);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
+      _pageCount += count;
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         if (_freeBound <= pages[i]->getFree())
+         {
+            _pagesWithHighFreeCount[pages[i]->getPageID()] = pages[i];
+         }
+         else if (0 < pages[i]->getFree())
+         {
+            _pagesWithLowFreeCount[pages[i]->getPageID()] = pages[i];
+         }
+      }
+
+      pages.clear();
+
+   done:
+      return rc;
+   error:
+      for (UINT32 i = 0; i < pages.size(); ++i)
+      {
+         if (NULL != pages[i])
+         {
+            SDB_OSS_DEL pages[i];
+         }
+      }
+      goto done;
+   }
+
 
    INT32 inMemBitMap::allocateBits(UINT32 count, UINT32 *buf)
    {

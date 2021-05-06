@@ -36,7 +36,7 @@
 #ifndef VESSEL_ROUTE_PAGE_ACCESSOR_H_
 #define VESSEL_ROUTE_PAGE_ACCESSOR_H_
 
-#include "vessel/pageAccessor.h"
+#include "vessel/logicalPageAccessor.h"
 #include "vessel/routePage.h"
 
 namespace engine
@@ -45,16 +45,18 @@ namespace vessel
 {
    class logRecordContext;
 
-   class routePageAccessor : public pageAccessor
+   class routePageAccessor : public logicalPageAccessor
    {
       public:
          routePageAccessor(){}
          virtual ~routePageAccessor(){}
 
       public:
-         INT32 initPage(requestContext *context,
-                        PAGE_ID lpid,
-                        UINT32 logicalId);
+         INT32 init(requestContext *context,
+                    PAGE_ID lpid,
+                    const pageAccessor::options &o,
+                    logicalPageSpace *space,
+                    DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET);
 
          INT32 appendSlots(requestContext *context,
                            UINT32 logicalId,
@@ -62,8 +64,7 @@ namespace vessel
                            UINT32 count,
                            const PAGE_ID *lpids);
 
-         ///WARNING: SDB_OK does means slot's value is valid.
-         /// users should always validate lpid by themselves.
+         /// users should ensure slot is lower than capacity and count.
          INT32 readSlot(requestContext *context,
                         UINT32 slot,
                         PAGE_ID &lpid);

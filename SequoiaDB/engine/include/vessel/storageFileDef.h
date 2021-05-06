@@ -58,6 +58,8 @@ namespace vessel
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = 128;
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = 256;
 
+   static const UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
+
    BOOLEAN isValidSegmentSize(UINT32 size);
    
 
@@ -164,12 +166,11 @@ namespace vessel
       spaceID(INVALID_SPACE_ID),
       logicalID(DMS_INVALID_LOGICCSID),
       fileType(INVALID_FILE_TYPE),
-      sequence(0),
+      sequence(STORAGE_FILE_INVALID_SEQUENCE),
       pageSize(0),
       maxPageCountPerSeg(0),
       maxSegmentCountPerFile(0),
-      userDefinedHeadLen(0),
-      pageCountInLastSeg(0)
+      userDefinedHeadLen(0)
       {
          ossMemset(magicChars, 0, sizeof(magicChars));
          ossMemset(name, 0, sizeof(name));
@@ -196,7 +197,6 @@ namespace vessel
       UINT32 maxPageCountPerSeg;
       UINT32 maxSegmentCountPerFile;
       UINT32 userDefinedHeadLen;
-      UINT32 pageCountInLastSeg;/// readonly file
    }; // struct storageFileHead
    static const UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
 

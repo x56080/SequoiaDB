@@ -104,7 +104,8 @@ namespace vessel
          INT32 init(UINT32 size, BOOLEAN delayInitY=FALSE)
          {
             INT32 rc = SDB_OK;
-            UINT32 x = 0;
+            UINT32 xSize = 0;
+            UINT32 matrixSize = 0;
             
             if (0 == size ||
                 !ossIsPowerOf2(size))
@@ -115,18 +116,19 @@ namespace vessel
 
             fini();
             _size = size;
-            x = getXSize(size);
-            _matrix = (_objectSlot<T>**)SDB_OSS_MALLOC(x * sizeof(_objectSlot<T>*));
+            xSize = getXSize(size);
+            matrixSize = xSize * sizeof(_objectSlot<T>*);
+            _matrix = (_objectSlot<T>**)SDB_OSS_MALLOC(matrixSize);
             if (NULL == _matrix)
             {
                rc = SDB_OOM;
                goto error;
             }
-            ossMemset(_matrix, 0, x * sizeof(_objectSlot<T>*));
+            ossMemset(_matrix, 0, matrixSize);
             
             if (!delayInitY)
             {
-               for (UINT32 i = 0; i < x; ++i)
+               for (UINT32 i = 0; i < xSize; ++i)
                {
                   rc = ensureYSpaceAtX(i);
                   if (SDB_OK != rc)
@@ -282,7 +284,7 @@ namespace vessel
             }
             else if ((size - 1) == x)
             {
-               UINT32 mod = size & (realY - 1);
+               UINT32 mod = (_size & (realY - 1));
                if (0 != mod)
                {
                   realY = mod;
@@ -304,7 +306,12 @@ namespace vessel
       private:
          OSS_INLINE UINT32 getXSize(UINT32 size)const
          {
-            return (size >> OBJECT_SLOT_Y_BITWISE) + 1;
+            UINT32 s = (size >> OBJECT_SLOT_Y_BITWISE);
+            if (0 != (size & (getYSize() - 1)))
+            {
+               ++s;
+            }
+            return s;
          }
          OSS_INLINE UINT32 getX(UINT32 slot)const
          {

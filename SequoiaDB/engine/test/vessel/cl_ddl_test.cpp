@@ -98,7 +98,8 @@ TEST_F(cl_ddl_test, test1)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -155,7 +156,8 @@ TEST_F(cl_ddl_test, test2)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -218,7 +220,8 @@ TEST_F(cl_ddl_test, test3)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < 65535; ++i)

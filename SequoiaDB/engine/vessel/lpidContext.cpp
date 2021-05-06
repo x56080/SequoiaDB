@@ -43,10 +43,22 @@ namespace vessel
 {
    lpidContext::~lpidContext()
    {
-      if (NULL != _slots && _slots != _statcBuf)
+      if (NULL != _slots && _slots != _staticBuf)
       {
          SDB_OSS_DEL []_slots;
       }
+   }
+
+   void lpidContext::reset()
+   {
+      SDB_ASSERT(0 == _size, "unlock missed");
+      _capacity = LPID_CONTEXT_STATIC_BUF_COUNT;
+      _size = 0;
+      if (_slots != _staticBuf)
+      {
+         SDB_OSS_DEL []_slots;
+      }
+      _slots = _staticBuf;
    }
 
    INT32 lpidContext::lock(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)
@@ -186,7 +198,7 @@ namespace vessel
          tmp[i] = _slots[i];
       }
 
-      if (_slots != _statcBuf)
+      if (_slots != _staticBuf)
       {
          SDB_OSS_DEL []_slots;
       }

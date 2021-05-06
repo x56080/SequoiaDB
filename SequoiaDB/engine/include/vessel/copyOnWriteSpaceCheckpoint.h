@@ -38,41 +38,67 @@
 
 #include "dpsDef.hpp"
 #include "vessel/vesselFileDef.h"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   static const UINT32 COW_SPACE_CHECKPOINT_VERSION = 1;
 #pragma pack(4)
    struct copyOnWriteSpaceCheckpoint
    {
       OSS_INLINE copyOnWriteSpaceCheckpoint(){}
       OSS_INLINE ~copyOnWriteSpaceCheckpoint(){}
       OSS_INLINE copyOnWriteSpaceCheckpoint(const copyOnWriteSpaceCheckpoint &o):
+      version(o.version),
+      flags(o.flags),
       lsn(o.lsn),
       minDeltaOffset(o.minDeltaOffset),
       maxDeltaOffset(o.maxDeltaOffset),
-      idxMetaSequence(o.idxMetaSequence),
       minIdxDataSequence(o.minIdxDataSequence),
-      maxIdxDataSequence(o.maxIdxDataSequence){}
+      maxIdxDataSequence(o.maxIdxDataSequence),
+      idxMFileFullyFlushedTimes(o.idxMFileFullyFlushedTimes),
+      idxMFilePageCount(o.idxMFilePageCount)
+      {}
+
       OSS_INLINE copyOnWriteSpaceCheckpoint &operator=(const copyOnWriteSpaceCheckpoint &o)
       {
+         version = o.version;
+         flags = o.flags;
          lsn = o.lsn;
          minDeltaOffset = o.minDeltaOffset;
          maxDeltaOffset = o.maxDeltaOffset;
-         idxMetaSequence = o.idxMetaSequence;
          minIdxDataSequence = o.minIdxDataSequence;
          maxIdxDataSequence = o.maxIdxDataSequence;
+         idxMFileFullyFlushedTimes = o.idxMFileFullyFlushedTimes;
+         idxMFilePageCount = o.idxMFilePageCount;
          return *this;
       }
 
+      OSS_INLINE BOOLEAN operator==(const copyOnWriteSpaceCheckpoint &o)const
+      {
+         return 0 == ossMemcmp(this, &o, sizeof(copyOnWriteSpaceCheckpoint));
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return COW_SPACE_CHECKPOINT_VERSION == version &&
+                DPS_INVALID_LSN_OFFSET != lsn;
+      }
+
+      UINT32 version = 0;
+      UINT32 flags = 0;
       UINT64 lsn = DPS_INVALID_LSN_OFFSET;
       UINT64 minDeltaOffset = DPS_INVALID_LSN_OFFSET;
       UINT64 maxDeltaOffset = DPS_INVALID_LSN_OFFSET;
-      UINT64 idxMetaSequence = INVALID_FILE_SEQUENCE;
-      UINT64 minIdxDataSequence = INVALID_FILE_SEQUENCE;
-      UINT64 maxIdxDataSequence = INVALID_FILE_SEQUENCE;
+      UINT64 minIdxDataSequence = STORAGE_FILE_INVALID_SEQUENCE;
+      UINT64 maxIdxDataSequence = STORAGE_FILE_INVALID_SEQUENCE;
+      UINT64 idxMFileFullyFlushedTimes = 0;
+      UINT32 idxMFilePageCount = 0;
    };//struct copyOnWriteSpaceCheckpoint
+
+   static const UINT32 COW_SPACE_CHECKPOINT_OBJ_SIZE = sizeof(copyOnWriteSpaceCheckpoint);
 #pragma pack()
 }//namespace vessel
 }//namespace engine

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = copyOnWriteDeltaLog.h
+   Source File Name = cowDeltaLogRecord.cpp
 
    Descriptive Name =
 
@@ -33,38 +33,59 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_COPY_ON_WRITE_DELTA_LOG_H_
-#define VESSEL_COPY_ON_WRITE_DELTA_LOG_H_
-
-#include "ossMemPool.hpp"
-#include "vessel/strSlice.h"
-#include "vessel/vesselFileName.h"
+#include "vessel/cowDeltaLogRecord.h"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   class copyOnWriteDeltaLogFile;
-
-   class copyOnWriteDeltaLog : public SDBObject
+   BOOLEAN cowDeltaLogRecord::setAsIdxMSmpAllocate(PAGE_ID pid, UINT32 count)
    {
-      public:
-         copyOnWriteDeltaLog();
-         ~copyOnWriteDeltaLog();
+      BOOLEAN r = FALSE;
+      reset();
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid || 0 == count))
+      {
+         goto done;
+      }
+      _version = DELTA_LOG_RECORD_VERSION;
+      _type = DELTA_LOG_TYPE_IDX_M_SMP_ALLOCATE;
+      _pid = pid;
+      _pad0 = count;
+      r = TRUE;
+   done:
+      return r;
+   }
 
-      public:
-         INT32 openFile(requestContext *context,
-                        const strSlice &fullPath,
-                        const vesselFileName &fn);
+   BOOLEAN cowDeltaLogRecord::getAsIdxMSmpAllocate(PAGE_ID *pid, UINT32 *count)const
+   {
+      BOOLEAN r = FALSE;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(DELTA_LOG_TYPE_IDX_M_SMP_ALLOCATE != _type))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == _pid ||
+                            0 == _pad0))
+      {
+         goto done;
+      }
 
-      private:
-         typedef ossPoolList<copyOnWriteDeltaLogFile*> _FILE_LIST;
-      
-      private:
-         _FILE_LIST _fileList;
-   };
+      if (NULL != pid)
+      {
+         *pid = _pid;
+      }
+      if (NULL != count)
+      {
+         *count = _pad0;
+      }
+      r = TRUE;
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_COPY_ON_WRITE_DELTA_LOG_H_

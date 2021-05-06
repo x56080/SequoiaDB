@@ -107,7 +107,7 @@ TEST_F(insert_test, test1)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCollectionSpace(&session, "foo", createCSOptions());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
@@ -181,7 +181,7 @@ TEST_F(insert_test, test2)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCollectionSpace(&session, "foo", createCSOptions());
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());

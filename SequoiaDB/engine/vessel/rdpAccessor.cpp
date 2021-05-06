@@ -50,69 +50,14 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 rdpAccessor::initRdp(requestContext *context,
-                              PAGE_ID lpid,
-                              UINT32 logicalID,
-                              CL_PAGE_SEQ pageSeq)
+   INT32 rdpAccessor::init(requestContext *context,
+                           PAGE_ID lpid,
+                           const pageAccessor::options &o,
+                           logicalPageSpace *space,
+                           DPS_LSN_OFFSET oplist)
    {
-      INT32 rc = SDB_OK;
-
-      recordDataPageHead *head = NULL;
-      UINT32 flags = PAGE_ACCESSOR_FLAG_INIT_PAGE | 
-                     PAGE_ACCESSOR_FLAG_DIRECT |
-                     PAGE_ACCESSOR_FLAG_NON_READONLY;
-      SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
-                       DMS_INVALID_LOGICCLID == logicalID ||
-                       INVALID_CL_PAGE_SEQ == pageSeq))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail(lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init common head:%d", rc);
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to memset page body:%d", rc);
-         goto error;
-      }
-
-      rc = getWritableUserHeadPtr<recordDataPageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      *head = recordDataPageHead();
-      head->version = RDP_VERSION;
-      head->clLogcalID = logicalID;
-      head->pageSeq = pageSeq;
-      head->totalFreeSpace = getPageBodySize() - RECORD_PAGE_HEAD_LEN;
-      head->freeSpaceAfterLastSlot = head->totalFreeSpace;
-
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
+      return logicalPageAccessor::init(context, FILE_TYPE_DD, lpid,
+                                       o, space, oplist);
    }
 
    INT32 rdpAccessor::getRdpPageHead(requestContext *context,
@@ -941,11 +886,11 @@ namespace vessel
 
       if (lrc->needFullDump())
       {
-         const CHAR *dumpBuf = getFullDumpBuffer();
+         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
          SDB_ASSERT(NULL != dumpBuf, "can not be null");
          rc = logger->pushLogRecordElement(session, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           getPageSize(), dumpBuf);
+                                           lrc->getFullDumpDataSize(), dumpBuf);
          if (SDB_OK != rc)
          {
             goto error;

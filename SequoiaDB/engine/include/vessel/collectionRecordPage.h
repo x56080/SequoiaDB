@@ -101,26 +101,16 @@ namespace vessel
 
       OSS_INLINE collectionRecord &operator=(const collectionRecord &o)
       {
-         version = o.version;
-         type = o.type;
-         innerID = o.innerID;
-         logicalCLID = o.logicalCLID;
-         mbID = o.mbID;
-         maxSGCount = o.maxSGCount;
-         flags = o.flags;
-         freeSizeReserved = o.freeSizeReserved;
-         minStriping = o.minStriping;
-         maxStriping = o.maxStriping;
-         compressionType = o.compressionType;
-         compressionDic = o.compressionDic;
-         nonUniqueIndexCount = o.nonUniqueIndexCount;
-         uniqueIndexCount = o.uniqueIndexCount;
-         indexPad = o.indexPad;
-         nextIndexID = o.nextIndexID;
-         ossMemcpy(indexSlots, o.indexSlots, sizeof(indexSlots));
-         ossMemcpy(name, o.name, sizeof(name));
-         ossMemcpy(routePages, o.routePages, sizeof(routePages));
+         ossMemcpy(this, &o, sizeof(collectionRecord));
          return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return COLLECTION_RECORD_VERSION == version &&
+                INVALID_COLLECTION_TYPE != type &&
+                DMS_INVALID_LOGICCLID != logicalCLID &&
+                INVALID_CL_MB_ID != mbID;
       }
 
       void reset()
@@ -201,6 +191,10 @@ namespace vessel
    const UINT32 COLLECTION_RECORD_PAGE_HEAD_LEN = sizeof(collectionRecordPageHead);
 
    INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
+
+   BOOLEAN initCollectionRecordPage(UINT32 pageSize,
+                                    PAGE_ID lpid,
+                                    void *buf);
 #pragma pack()
 
 }//namespace vessel

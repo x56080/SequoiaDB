@@ -52,7 +52,7 @@ namespace vessel
          OSS_INLINE lpidContext():
          _capacity(LPID_CONTEXT_STATIC_BUF_COUNT),
          _size(0),
-         _slots(_statcBuf)
+         _slots(_staticBuf)
          {}
 
          ~lpidContext();
@@ -71,6 +71,7 @@ namespace vessel
          };//struct _lpidLockSlot
 
       public:
+         void reset();
          /// exlusive lock with no timeout
          /// no recursive locking.
          INT32 lock(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
@@ -84,7 +85,7 @@ namespace vessel
          UINT32 _capacity;
          UINT32 _size;
          _lpidLockSlot *_slots;
-         _lpidLockSlot _statcBuf[LPID_CONTEXT_STATIC_BUF_COUNT];
+         _lpidLockSlot _staticBuf[LPID_CONTEXT_STATIC_BUF_COUNT];
    };//class lpidContext
 }//namespace vessel
 }//namespace engine

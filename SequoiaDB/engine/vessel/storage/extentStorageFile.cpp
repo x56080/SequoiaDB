@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -330,11 +327,14 @@ namespace vessel
       CHAR headBuf[STORAGE_FILE_HEAD_SIZE] = {0};
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
       ossValuePtr headPtr = 0;
-      UINT64 fileSize = 0;
-      UINT32 createFlags = OSS_CREATEONLY|OSS_READWRITE|OSS_EXCLUSIVE;
+      UINT32 createFlags = OSS_READWRITE|OSS_EXCLUSIVE;
       if (options.replaceWhenCreate)
       {
          createFlags |= OSS_REPLACE;
+      }
+      else
+      {
+         createFlags |= OSS_CREATEONLY;
       }
 
       rc = utilBuildFullPath(options.dir, options.name, OSS_MAX_PATHSIZE,
@@ -353,23 +353,6 @@ namespace vessel
       {
          PD_LOG ( PDERROR, "Failed to create new file %s, rc=%d", fullPath, rc) ;
          goto error ;
-      }
-
-      rc = ossMmapFile::size(fileSize);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get file size:%d", rc);
-         goto error;
-      }
-
-      if (0 != fileSize)
-      {
-         rc = ossTruncateFile(&_file, 0);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to truncate file to size 0");
-            goto error;
-         }
       }
 
       rc = initFileHead(options, headBuf, hasUserDefinedHead());

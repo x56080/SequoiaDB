@@ -47,9 +47,10 @@ namespace vessel
    const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
    struct idMapPageHead
    {
-      UINT32 version;
-      UINT32 flags;
-      CHAR pad[16];
+      UINT16 version = 0;
+      UINT16 flags = 0;
+      UINT32 free = 0;
+      UINT64 pad = 0;
    };// struct idMapPageHead
 
    const UINT32 ID_MAP_PAGE_HEAD_LEN = sizeof(idMapPageHead);
@@ -83,9 +84,11 @@ namespace vessel
       {
          return INVALID_PAGE_ID == page;
       }
-   };// struct idMapExtentSlot
+   };// struct idMapSlot
 #pragma pack()
-   INT32 get64AlignedCapacityOfIMP(UINT32 pageSize, UINT32 &capacity);
+   BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity);
+
+   BOOLEAN initIdMapPage(UINT32 pageSize, PAGE_ID pid, void *buf);
 }//namespace vessel
 }//namespace engine
 

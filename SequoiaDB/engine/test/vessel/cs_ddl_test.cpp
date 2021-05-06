@@ -89,7 +89,6 @@ TEST_F(cs_ddl_test, test1)
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
 
-   utilCSUniqueID uniqueID;
    cursorHandler cursor;
 
    UINT32 count = 0;
@@ -98,23 +97,23 @@ TEST_F(cs_ddl_test, test1)
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", uniqueID, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
-   uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "foo", uniqueID, csOptions);
+   csOptions.uniqueID = 2;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo1", uniqueID, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo1", csOptions);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "bar", uniqueID, csOptions); 
+   csOptions.uniqueID = 2;
+   rc = db.createCollectionSpace(&session, "bar", csOptions); 
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
@@ -149,7 +148,8 @@ TEST_F(cs_ddl_test, test2)
    {
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", i);
-      rc = db.createCollectionSpace(&session, buf, i, csOptions);
+      csOptions.uniqueID = i;
+      rc = db.createCollectionSpace(&session, buf, csOptions);
       if (SDB_OK == rc)
       {
          ++createdCount;
@@ -170,7 +170,8 @@ TEST_F(cs_ddl_test, test2)
    {
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", MAX_SPACE_COUNT);
-      rc = db.createCollectionSpace(&session, buf, MAX_SPACE_COUNT, csOptions);
+      csOptions.uniqueID = MAX_SPACE_COUNT;
+      rc = db.createCollectionSpace(&session, buf, csOptions);
       ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
    }
 
@@ -201,18 +202,17 @@ TEST_F(cs_ddl_test, test3)
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    UINT32 count = 0;
-   utilCSUniqueID uniqueID;
 
    db.initOuterResource(resource);
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", uniqueID, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "bar", uniqueID, csOptions);
+   csOptions.uniqueID = 2;
+   rc = db.createCollectionSpace(&session, "bar", csOptions);
    ASSERT_EQ(SDB_OK, rc);
    db.close(&session, closeDBOptions());
 
@@ -242,7 +242,6 @@ TEST_F(cs_ddl_test, test4)
    slice content;
    const listCollectionSpaceRecord *record = NULL;
    cursorHandler c;
-   utilCSUniqueID uniqueID;
 
    db.initOuterResource(resource);
    rc = db.open(&session, options);
@@ -255,16 +254,16 @@ TEST_F(cs_ddl_test, test4)
    ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
    c.close();
 
-   uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo1", uniqueID, csOptions);
+   csOptions.uniqueID = 1;
+   rc = db.createCollectionSpace(&session, "foo1", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "foo2", uniqueID, csOptions);
+   csOptions.uniqueID = 2;
+   rc = db.createCollectionSpace(&session, "foo2", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   uniqueID = 3;
-   rc = db.createCollectionSpace(&session, "foo3", uniqueID, csOptions);
+   csOptions.uniqueID = 3;
+   rc = db.createCollectionSpace(&session, "foo3", csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.listCollectionSpace(&session, NULL, c);
