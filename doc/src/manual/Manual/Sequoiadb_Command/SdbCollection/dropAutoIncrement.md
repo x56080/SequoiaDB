@@ -1,6 +1,6 @@
 ##名称##
 
-dropAutoIncre - 删除自增字段
+dropAutoIncrement - 删除自增字段
 
 ##语法##
 
