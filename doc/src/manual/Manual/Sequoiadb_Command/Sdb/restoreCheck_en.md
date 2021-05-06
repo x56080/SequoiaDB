@@ -29,7 +29,7 @@ Set the time point to check, the available options are as follows.
     When the value of this parameter is 0, the latest consistent time point will be checked. When the value is a string, the value filled in should conform to the ISO 8601 format.
 
     Format: `Time:0` or `Time:1609430400` or `Time:"2021-01-01T00:00:00+08:00"` or `Time:Timestamp("2021-01-01T00:00:00+08:00")`
-    
+
 > **Note:**
 >
 > On Unix-based machines use `date` to get or format timestamps.
@@ -37,7 +37,7 @@ Set the time point to check, the available options are as follows.
 > - Get the current time in ISO 8601 time.
 >
 >     ```lang-bash
->     $ date -Iseconds 
+>     $ date -Iseconds
 >     2021-01-01T00:00:00+08:00
 >     ```
 >
@@ -63,10 +63,8 @@ When the function executes successfully, it will return an object of type SdbCur
 | Name | Type | Descriptions |
 | ------ | ---- | ---- |
 | Time   | string | Consistent point in time available for recovery. |
-| MinRecoverableTime | string | The start time of the first transaction recorded in the currently used synchronization log.  |
-| MaxTransCommitTime | string | The last transaction commit time recorded in the currently used synchronization log.  |
-| LogLimitTime | string | The time of the last log recorded in the currently used synchronization log (this field is only displayed when the synchronization log space is insufficient) |
-| FailedGroups | string | The name of the replication group that cannot be restored (this field is only displayed when the synchronization log space is insufficient) |
+| MinRecoverableTime | string | The earliest recoverable consistency point, based on the available logs. |
+| MaxRecoverableTime | string | If the cluster entered recovery mode by executing [sdbrestore][restore], this value is the latest recoverable consistency point based on the backup; if the cluster entered recovery mode by executing [restorePrepare()][prepare], this value is the time that `restorePrepare()` was executed. |
 
 When the function fails, an exception will be thrown and error message will be printed.
 
@@ -76,7 +74,7 @@ The common exceptions of `restoreCheck()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 |---|---|---|---|
-| -6   | SDB_INVALIDARG | The specified time point exceeds the time range recorded in the current log. | The specified consistency time point value range is [MinRecoverableTime,MaxTransCommitTime]. |
+| -6   | SDB_INVALIDARG | The specified time point exceeds the time range recorded in the current log. | The specified consistency time point value range is [MinRecoverableTime,MaxRecoverableTime]. |
 | -359 | SDB_RESTORE_NOT_IN_PROGRESS | Cluster is not in Restore mode. | Run db.restorePrepare() to enter Restore mode. |
 | -360 | SDB_RESTORE_NO_CONSISTENT_PIT | No valid consistency point or the specified time cannot be reached by restore. | Restore a backup that covers the given time. |
 
@@ -93,14 +91,14 @@ v5.0.2 and above
     ```lang-javascript
     > db.restoreCheck({Time: 0})
     ```
-   
+
     The output is as follows:
 
     ```lang-json
     {
      Time: "2020-01-01T12:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
+     MaxRecoverableTime: "2020-01-01T12:00:00+00:00",
+     MinRecoverableTime: "2020-01-01T00:00:00+00:00",
     }
     ```
 
@@ -111,24 +109,49 @@ v5.0.2 and above
     ```
 
     The output is as follows:
-    
+
     ```lang-json
     {
      Time: "2020-01-01T03:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
+     MaxRecoverableTime: "2020-01-01T12:00:00+00:00",
+     MinRecoverableTime: "2020-01-01T00:00:00+00:00",
     }
     ```
 
-    If the synchronization log of a replication group in the cluster does not have enough space to write, even if the specified point in time is a recoverable consistent point in time, no recovery will be performed. The output is as follows:
+- If the synchronization log of a replication group in the cluster does not have enough space to write, even if the specified point in time is a recoverable consistent point in time, no recovery will be performed.
+
+    ```lang-javascript
+    > db.restoreCheck({Time:"2021-03-19-12.49.40.012277"})
+    ```
+
+    The output is as follows:
 
     ```lang-json
+    (shell):1 uncaught exception: -203
+    No writable log space:
+    Restore cannot reach 1620338773126102, limited to 1620338780935745
+    ```
+
+    Get detailed error information.
+
+    ```lang-javascript
+    > getLastErrObj()
     {
-     Time: "2020-01-01T03:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
-     LogLimitTime: "2020-01-01T06:00:00+00:00",
-     FailedGroups: ["db2"]
+     "errno": -203,
+     "description": "No writable log space",
+     "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745",
+     "ErrNodes": [
+       {
+         "NodeName": "sdbserver:20000",
+         "GroupName": "db1",
+         "Flag": -203,
+         "ErrInfo": {
+           "errno": -203,
+           "description": "No writable log space",
+           "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745"
+         }
+       }
+     ]
     }
     ```
 
@@ -179,7 +202,7 @@ v5.0.2 and above
     ```
 
     Get detailed error information.
-  
+
     ```lang-json
     > getLastErrObj()
     {
@@ -231,6 +254,8 @@ v5.0.2 and above
 
 [^_^]:
     links
+[restore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
+[prepare]:manual/Manual/Sequoiadb_Command/Sdb/restorePrepare.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

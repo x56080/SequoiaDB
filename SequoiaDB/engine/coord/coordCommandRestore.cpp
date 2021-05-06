@@ -1248,8 +1248,8 @@ INT32 coordCMDRestoreCheck::_summarize()
    /* Summary:
          {
             Time: TIMESTAMP,
-            MaxCommitTime: TIMESTAMP,
-            MinRecoveryTime: TIMESTAMP,
+            MaxRecoverableTime: TIMESTAMP,
+            MinRecoverableTime: TIMESTAMP,
          }
    */
    ossPoolString targetTime, minTime, maxTime, logLimitTime;

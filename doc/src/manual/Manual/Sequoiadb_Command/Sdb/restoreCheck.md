@@ -28,7 +28,7 @@ options（ *object，必填* ）
     该参数取值为 0 时，将获取最新的一致性时间点；取值为字符串时，填入值应符合 ISO 8601 格式。
 
     格式：`Time: 0` 或 `Time: 1609430400` 或 `Time: "2021-01-01T00:00:00+08:00"` 或 `Time: Timestamp("2021-01-01T00:00:00+08:00")`
-    
+
 > **Note:**
 >
 > 在基于 Unix 的机器中，用户可以使用 `date` 获取或格式化时间。
@@ -36,7 +36,7 @@ options（ *object，必填* ）
 > - 获取符合 ISO 8601 格式的当前时间
 >
 >     ```lang-bash
->     $ date -Iseconds 
+>     $ date -Iseconds
 >     2021-01-01T00:00:00+08:00
 >     ```
 >
@@ -61,10 +61,8 @@ options（ *object，必填* ）
 | 字段名 | 类型 | 描述 |
 | ------ | ---- | ---- |
 | Time   | string | 可用于恢复的一致性时间点 |
-| MinRecoverableTime | string | 当前使用的同步日志中，所记录的第一个事务开始时间 |
-| MaxTransCommitTime | string | 当前使用的同步日志中，所记录的最后一个事务提交时间  |
-| LogLimitTime | string | 当前使用的同步日志中，所记录的最后一条日志的时间（该字段仅同步日志空间不足时显示） |
-| FailedGroups | string | 不能执行恢复的复制组名（该字段仅同步日志空间不足时显示） |
+| MinRecoverableTime | string | 当前使用的同步日志中所记录的最早可恢复一致性时间点 |
+| MaxRecoverableTime | string | 如果集群通过执行 [sdbrestore][restore] 进入恢复模式，该字段值为备份中所记录的最新可恢复一致性时间点；如果集群通过执行 [restorePrepare()][prepare] 进入恢复模式，该字段值为执行 restorePrepare() 的时间 |
 
 函数执行失败时，将抛出异常并输出错误信息。
 
@@ -74,7 +72,7 @@ options（ *object，必填* ）
 
 | 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
 |---|---|---|---|
-| -6   | SDB_INVALIDARG | 所指定的时间点超出当前日志所记录的时间范围 | 所指定的一致性时间点取值范围为[MinRecoverableTime,MaxTransCommitTime] |
+| -6   | SDB_INVALIDARG | 所指定的时间点超出当前日志所记录的时间范围 | 所指定的一致性时间点取值范围为[MinRecoverableTime,MaxRecoverableTime] |
 | -359 | SDB_RESTORE_NOT_IN_PROGRESS | 集群未开启恢复模式 | 执行 `db.restorePrepare()` 命令开启集群的还原模式 |
 | -360 | SDB_RESTORE_NO_CONSISTENT_PIT | 没有有效的一致性时间点或无法恢复至指定时间点 | 还原包含指定时间点的备份 |
 
@@ -91,14 +89,14 @@ v5.0.2 及以上版本
     ```lang-javascript
     > db.restoreCheck({Time: 0})
     ```
-   
+
     输出结果如下：
 
     ```lang-json
     {
      Time: "2020-01-01T12:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
+     MaxRecoverableTime: "2020-01-01T12:00:00+00:00",
+     MinRecoverableTime: "2020-01-01T00:00:00+00:00",
     }
     ```
 
@@ -109,24 +107,49 @@ v5.0.2 及以上版本
     ```
 
     输出结果如下：
-    
+
     ```lang-json
     {
      Time: "2020-01-01T03:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
+     MaxRecoverableTime: "2020-01-01T12:00:00+00:00",
+     MinRecoverableTime: "2020-01-01T00:00:00+00:00",
     }
     ```
 
-    如果集群中某一复制组的同步日志没有足够的空间可以写入，即使指定的时间点为可恢复的一致性时间点，也不进行恢复，输出结果如下：
+- 如果集群中某一复制组的同步日志没有足够的空间可以写入，即使指定的时间点为可恢复的一致性时间点，也不进行恢复
+
+    ```lang-javascript
+    > db.restoreCheck({Time:"2021-03-19-12.49.40.012277"})
+    ```
+
+    输出结果如下：
 
     ```lang-json
+    (shell):1 uncaught exception: -203
+    No writable log space:
+    Restore cannot reach 1620338773126102, limited to 1620338780935745
+    ```
+
+    获取详细误信息
+
+    ```lang-javascript
+    > getLastErrObj()
     {
-     Time: "2020-01-01T03:00:00+00:00",
-     MaxCommitTime: "2020-01-01T12:00:00+00:00",
-     MinRecoveryTime: "2020-01-01T00:00:00+00:00",
-     LogLimitTime: "2020-01-01T06:00:00+00:00",
-     FailedGroups: ["db2"]
+     "errno": -203,
+     "description": "No writable log space",
+     "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745",
+     "ErrNodes": [
+       {
+         "NodeName": "sdbserver:20000",
+         "GroupName": "db1",
+         "Flag": -203,
+         "ErrInfo": {
+           "errno": -203,
+           "description": "No writable log space",
+           "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745"
+         }
+       }
+     ]
     }
     ```
 
@@ -176,7 +199,7 @@ v5.0.2 及以上版本
     ```
 
     获取详细错误信息
-  
+
     ```lang-json
     > getLastErrObj()
     {
@@ -228,9 +251,9 @@ v5.0.2 及以上版本
 
 [^_^]:
     本文使用的所有引用及链接
+[restore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
+[prepare]:manual/Manual/Sequoiadb_Command/Sdb/restorePrepare.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [faq]:manual/FAQ/faq_sdb.md
-
-
