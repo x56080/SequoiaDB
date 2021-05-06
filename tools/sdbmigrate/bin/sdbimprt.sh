@@ -16,15 +16,15 @@ faile_num=0
 start_time=""
 end_time=""
 result_head=""
-result_body=""
+result_body=()
 
 opt_list=("-h" "--help" "-V" "--version" "--debug" "-s" "--hostname" "-p" "--svcname" "--hosts" 
 "-u" "--user" "-w" "--password" "--cipherfile" "--cipher" "--token" "-c" "--csname" "-l" 
 "--clname" "--errorstop" "--ssl" "-v" "--verbose" "--file" "--exec" "--type" "--linepriority" 
 "-r" "--delrecord" "--force" "--unicode" "--decimalto" "-a" "--delchar" "-e" "--delfield" 
 "--fields" "--datefmt" "--timestampfmt" "--trim" "--headerline" "--sparse" "--extra" "--cast" 
-"--strictfieldnum" "--checkdelimeter" "-n" "--insertnum" "-j" "--jobs" "--coord" "--sharding" 
-"--transaction" "--allowkeydup" "--conf" "--autodelchar")
+"--strictfieldnum" "--checkdelimeter" "-n" "--insertnum" "-j" "--jobs" "--parsers" "--coord" 
+"--sharding" "--transaction" "--allowkeydup" "--replacekeydup" "--conf" "--autodelchar")
 
 opt_fields=""
 opt_csname=""
@@ -65,87 +65,97 @@ function getParamValue()
     if [ $# != 2 ]; then
         return 0
     fi
-    value=$(dealQuotes $1 "$2")
+    value=$(dealQuotes $1 "$2" "true")
     case $1 in
-        -c | --csname    ) repeatCheck "$1" "$opt_csname";         opt_csname=$value         ;;
-        -l | --clname    ) repeatCheck "$1" "$opt_clname";         opt_clname=$value         ;;
-        --file           ) repeatCheck "$1" "$opt_file";           opt_file=$value           ;;
-        --exec           ) repeatCheck "$1" "$opt_exec";           opt_exec=$value           ;;
-        --type           ) repeatCheck "$1" "$opt_type";           opt_type=$value           ;;
-        --linepriority   ) repeatCheck "$1" "$opt_linepriority";   opt_linepriority=$value   ;;
-        -r | --delrecord ) repeatCheck "$1" "$opt_delrecord";      opt_delrecord=$value      ;;
-        --force          ) repeatCheck "$1" "$opt_force";          opt_force=$value          ;;
-        --unicode        ) repeatCheck "$1" "$opt_unicode";        opt_unicode=$value        ;;
-        --decimalto      ) repeatCheck "$1" "$opt_decimalto";      opt_decimalto=$value      ;;
-        -a | --delchar   ) repeatCheck "$1" "$opt_delchar";        opt_delchar=$value        ;;
-        -e | --delfield  ) repeatCheck "$1" "$opt_delfield";       opt_delfield=$value       ;;
-        --fields         ) repeatCheck "$1" "$opt_fields";         opt_fields=$value         ;;
-        --datefmt        ) repeatCheck "$1" "$opt_datefmt";        opt_datefmt=$value        ;;
-        --timestampfmt   ) repeatCheck "$1" "$opt_timestampfmt";   opt_timestampfmt=$value   ;;
-        --trim           ) repeatCheck "$1" "$opt_trim";           opt_trim=$value           ;;
-        --headerline     ) repeatCheck "$1" "$opt_headerline";     opt_headerline=$value     ;;
-        --sparse         ) repeatCheck "$1" "$opt_sparse";         opt_sparse=$value         ;;
-        --extra          ) repeatCheck "$1" "$opt_extra";          opt_extra=$value          ;;
-        --cast           ) repeatCheck "$1" "$opt_cast";           opt_cast=$value           ;;
-        --strictfieldnum ) repeatCheck "$1" "$opt_strictfieldnum"; opt_strictfieldnum=$value ;;
-        --checkdelimeter ) repeatCheck "$1" "$opt_checkdelimeter"; opt_checkdelimeter=$value ;;
-        --conf           ) repeatCheck "$1" "$opt_conf";           opt_conf_file=$value      ;;
-        *                ) opt_general_params="${opt_general_params} $1 $value"              ;;
+        -c | --csname    ) repeatCheck "$1" "$opt_csname";         opt_csname="$value"         ;;
+        -l | --clname    ) repeatCheck "$1" "$opt_clname";         opt_clname="$value"         ;;
+        --file           ) repeatCheck "$1" "$opt_file";           opt_file="$value"           ;;
+        --exec           ) repeatCheck "$1" "$opt_exec";           opt_exec="$value"           ;;
+        --type           ) repeatCheck "$1" "$opt_type";           opt_type="$value"           ;;
+        --linepriority   ) repeatCheck "$1" "$opt_linepriority";   opt_linepriority="$value"   ;;
+        -r | --delrecord ) repeatCheck "$1" "$opt_delrecord";      opt_delrecord="$value"      ;;
+        --force          ) repeatCheck "$1" "$opt_force";          opt_force="$value"          ;;
+        --unicode        ) repeatCheck "$1" "$opt_unicode";        opt_unicode="$value"        ;;
+        --decimalto      ) repeatCheck "$1" "$opt_decimalto";      opt_decimalto="$value"      ;;
+        -a | --delchar   ) repeatCheck "$1" "$opt_delchar";        opt_delchar="$value"        ;;
+        -e | --delfield  ) repeatCheck "$1" "$opt_delfield";       opt_delfield="$value"       ;;
+        --fields         ) repeatCheck "$1" "$opt_fields";         opt_fields="$value"         ;;
+        --datefmt        ) repeatCheck "$1" "$opt_datefmt";        opt_datefmt="$value"        ;;
+        --timestampfmt   ) repeatCheck "$1" "$opt_timestampfmt";   opt_timestampfmt="$value"   ;;
+        --trim           ) repeatCheck "$1" "$opt_trim";           opt_trim="$value"           ;;
+        --headerline     ) repeatCheck "$1" "$opt_headerline";     opt_headerline="$value"     ;;
+        --sparse         ) repeatCheck "$1" "$opt_sparse";         opt_sparse="$value"         ;;
+        --extra          ) repeatCheck "$1" "$opt_extra";          opt_extra="$value"          ;;
+        --cast           ) repeatCheck "$1" "$opt_cast";           opt_cast="$value"           ;;
+        --strictfieldnum ) repeatCheck "$1" "$opt_strictfieldnum"; opt_strictfieldnum="$value" ;;
+        --checkdelimeter ) repeatCheck "$1" "$opt_checkdelimeter"; opt_checkdelimeter="$value" ;;
+        --conf           ) repeatCheck "$1" "$opt_conf";           opt_conf_file="$value"      ;;
+        *                ) opt_general_params="${opt_general_params} $1 $value"                ;;
     esac
 }
 
 function dealParamArr()
 {
-    local value=""
     local opt=""
-    while [ "$1" != "" ]; do
-        contains $1 "${opt_list[*]}"
-        if [ "$?" = 0 ]; then
-            opt=$1
-        else
-            echo "[ERROR] Unknown option: $1"
-            exit 1
-        fi
-        case $opt in
-            -h | --help    ) helpInfo                            ;;
-            -V | --version ) version $import_tool                ;;
-            --debug        ) opt_debug="true"; shift; continue   ;;
-            -v | --verbose ) opt_verbose="true"; shift; continue ;;
-        esac
-
-        while [ "$2" != "" ]; do
-            contains $2 "${opt_list[*]}"
-            if [ $? != 0 ]; then
-                value="$value$2 "
+    local value=""
+    local tmp=""
+    while [ $# != 0 ]; do
+        if [ "$opt" != "" ]; then
+            if [ "$1" = "" ]; then
+                getParamValue "$opt" "$1"
+                opt=""
                 shift
                 continue
-            elif [ "$value" = "" ]; then
-                echo "[ERROR] Option $opt does not specify a value!"
-                exit
             fi
-            break
-        done
-        if [ "$value" != "" ]; then
-            value=${value:0:${#value}-1}
-            getParamValue $opt "$value"
+            tmp=${1%%=*}
+            contains "$tmp" "${opt_list[*]}"
+            if [ "$?" -eq 0 ]; then
+               echo "[ERROR] Option $opt does not specify a value!"
+               exit 1
+            fi
+            tmp=""
+            value="$1"
+            shift
+        else
+            if [[ $1 = *=* ]] ; then
+                opt=${1%%=*}
+                value=${1#*=}
+            else
+                opt="$1"
+            fi
+            contains "$opt" "${opt_list[*]}"
+            if [ "$?" != 0 ]; then
+                echo "[ERROR] Unknown option: $1"
+                exit 1
+            fi
+            shift
+
+            case $opt in
+                -h | --help    ) helpInfo                             ;;
+                -V | --version ) version $import_tool                 ;;
+                --debug        ) opt_debug="true"; opt=""; continue   ;;
+                -v | --verbose ) opt_verbose="true"; opt=""; continue ;;
+            esac
+        fi
+
+        if [ "$opt" != "" -a "$value" != "" ]; then
+            getParamValue "$opt" "$value"
             opt=""
             value=""
-        else
-            echo "[ERROR] Option $opt does not specify a value!"
-            exit
         fi
-        shift
-    done
+        if [ "$opt" != "" -a $# -eq 0 ]; then
+            echo "[ERROR] Option $opt does not specify a value!"
+            exit 1
+        fi
+    done;
 }
 
 function parseParam()
 {
-    local params
     if [ $# = 0 ]; then
         helpInfo
     fi
-    params=(${@//=/ })
-    dealParamArr ${params[@]}
+    dealParamArr "$@"
     checkParams
 }
 
@@ -194,28 +204,29 @@ function parseGeneralParams()
         opt=${1%%=*}
         value=${1#*=}
         if [ "$value" = "" ]; then
+            shift
             continue
         fi
         value="${value//$REPLACE_STR/ }"
         value=$(dealQuotes $opt "$value")
         case $opt in
-            type           ) repeatCheck "$opt" "$cl_type";           cl_type=$value           ;;
-            linepriority   ) repeatCheck "$opt" "$cl_linepriority";   cl_linepriority=$value   ;;
-            delrecord      ) repeatCheck "$opt" "$cl_delrecord";      cl_delrecord=$value      ;;
-            force          ) repeatCheck "$opt" "$cl_force";          cl_force=$value          ;;
-            unicode        ) repeatCheck "$opt" "$cl_unicode";        cl_unicode=$value        ;;
-            decimalto      ) repeatCheck "$opt" "$cl_decimalto";      cl_decimalto=$value      ;;
-            delchar        ) repeatCheck "$opt" "$cl_delchar";        cl_delchar=$value        ;;
-            delfield       ) repeatCheck "$opt" "$cl_delfield";       cl_delfield=$value       ;;
-            datefmt        ) repeatCheck "$opt" "$cl_datefmt";        cl_datefmt=$value        ;;
-            timestampfmt   ) repeatCheck "$opt" "$cl_timestampfmt";   cl_timestampfmt=$value   ;;
-            trim           ) repeatCheck "$opt" "$cl_trim";           cl_trim=$value           ;;
-            headerline     ) repeatCheck "$opt" "$cl_headerline";     cl_headerline=$value     ;;
-            sparse         ) repeatCheck "$opt" "$cl_sparse";         cl_sparse=$value         ;;
-            extra          ) repeatCheck "$opt" "$cl_extra";          cl_extra=$value          ;;
-            cast           ) repeatCheck "$opt" "$cl_cast";           cl_cast=$value           ;;
-            strictfieldnum ) repeatCheck "$opt" "$cl_strictfieldnum"; cl_strictfieldnum=$value ;;
-            checkdelimeter ) repeatCheck "$opt" "$cl_checkdelimeter"; cl_checkdelimeter=$value ;;
+            type           ) repeatCheck "$opt" "$cl_type";           cl_type="$value"           ;;
+            linepriority   ) repeatCheck "$opt" "$cl_linepriority";   cl_linepriority="$value"   ;;
+            delrecord      ) repeatCheck "$opt" "$cl_delrecord";      cl_delrecord="$value"      ;;
+            force          ) repeatCheck "$opt" "$cl_force";          cl_force="$value"          ;;
+            unicode        ) repeatCheck "$opt" "$cl_unicode";        cl_unicode="$value"        ;;
+            decimalto      ) repeatCheck "$opt" "$cl_decimalto";      cl_decimalto="$value"      ;;
+            delchar        ) repeatCheck "$opt" "$cl_delchar";        cl_delchar="$value"        ;;
+            delfield       ) repeatCheck "$opt" "$cl_delfield";       cl_delfield="$value"       ;;
+            datefmt        ) repeatCheck "$opt" "$cl_datefmt";        cl_datefmt="$value"        ;;
+            timestampfmt   ) repeatCheck "$opt" "$cl_timestampfmt";   cl_timestampfmt="$value"   ;;
+            trim           ) repeatCheck "$opt" "$cl_trim";           cl_trim="$value"           ;;
+            headerline     ) repeatCheck "$opt" "$cl_headerline";     cl_headerline="$value"     ;;
+            sparse         ) repeatCheck "$opt" "$cl_sparse";         cl_sparse="$value"         ;;
+            extra          ) repeatCheck "$opt" "$cl_extra";          cl_extra="$value"          ;;
+            cast           ) repeatCheck "$opt" "$cl_cast";           cl_cast="$value"           ;;
+            strictfieldnum ) repeatCheck "$opt" "$cl_strictfieldnum"; cl_strictfieldnum="$value" ;;
+            checkdelimeter ) repeatCheck "$opt" "$cl_checkdelimeter"; cl_checkdelimeter="$value" ;;
         esac
         shift
     done
@@ -283,11 +294,11 @@ function buildCLParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        echo "[ERROR] ${cl_general_params[@]}"
+        echo "${cl_general_params[@]}"
         exit 1
     fi
 
-    cl_param=$(arrToStr $cl_name $cl_file "$cl_fields" $cl_exec "$cl_general_params")
+    cl_param=$(arrToStr "$cl_name" "$cl_file" "$cl_fields" "$cl_exec" "$cl_general_params")
     if [ "$cl_param" != ""  ]; then
         cl_params_list[${#cl_params_list[@]}]="$cl_param"
     fi
@@ -334,7 +345,7 @@ function buildCSParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        echo "[ERROR] ${cl_general_params[@]}"
+        echo "${cl_general_params[@]}"
         exit 1
     fi
 
@@ -355,7 +366,7 @@ function buildCSParams()
             cl_fields_param="--fields $cl_fields_param"
         fi
 
-        cl_param=$(arrToStr $cs_name_param $cl_name $cl_file $cl_fields_param $cl_general_params)
+        cl_param=$(arrToStr "$cs_name_param" "$cl_name" "$cl_file $cl_fields_param" "$cl_general_params")
         if [ "$cl_param" != "" ]; then
             cl_params_list[${#cl_params_list[@]}]="$cl_param"
         fi
@@ -545,17 +556,16 @@ function genResultHead()
     local str_5="Start time       : $start_time"
     local str_6="End time         : $end_time"
     local str_7="Spend time       : $spend_time"
-
-    result_head="$str_1\n$str_2\n$str_3\n$str_4\n$str_5\n$str_6\n$str_7\n"
+    local str_8=""
+    local str_9="---------- Import detail ----------"
+    result_head="$str_1\n$str_2\n$str_3\n$str_4\n$str_5\n$str_6\n$str_7\n$str_8\n$str_9\n"
 }
 
 function addResultBody()
 {
-    if [ "$result_body" = "" ]; then
-        result_body="---------- Import detail ----------"
-    fi
     if [ $# -ne 0 ]; then
-        result_body="$result_body\n[Import]\n$@"
+        result_body[${#result_body[@]}]="[Import]\n$1"
+        result_body[${#result_body[@]}]="$2"
         total_num=$[total_num+1]
     fi
 }
@@ -583,11 +593,11 @@ function importData()
         fi
 
         if [ $rc != 0 -o "$opt_debug" = "true" ]; then
-            msg="Collection:$cl\n$msg\nImport cmd: $import_cmd\n"
+            addResultBody "Collection:$cl\n$msg" "Import cmd: $import_cmd"
         else
-            msg="Collection:$cl\n$msg\n"
+            addResultBody "Collection:$cl\n$msg"
         fi
-        addResultBody "$msg"
+        msg=""
     done
 
     end_time=$(date +'%Y-%m-%d %H:%M:%S')
@@ -599,7 +609,16 @@ function importData()
     else
         # touch import.result
         genResultFile "$import_result_file"
-        echo -e "$result_head\n$result_body" >> $import_result_file
+        echo -e "$result_head" >> $import_result_file
+        for ((i=0; i<${#result_body[@]}; i++)); do
+            echo "${result_body[i]}" | grep "Import cmd" > /dev/null
+            if [ $? -eq 0 ]; then
+                echo "${result_body[i]}" >> $import_result_file
+                echo "" >> $import_result_file
+            else
+                echo -e "${result_body[i]}" >> $import_result_file
+            fi
+        done
         echo "Import finish, view the details from file $import_result_file"
     fi
     exit 0
@@ -614,9 +633,9 @@ function main()
         return 1
     fi
 
-    parseParam $@
+    parseParam "$@"
 
     importData
 }
 
-main $@
+main "$@"

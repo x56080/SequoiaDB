@@ -27,6 +27,7 @@ opt_list=("-h" "--help" "-V" "--version" "--debug" "-s" "--hostname" "-p" "--svc
 
 opt_hostname=""
 opt_svcname=""
+opt_hosts=""
 opt_user=""
 opt_password=""
 opt_cipher=""
@@ -87,108 +88,119 @@ function getParamValue()
     if [ $# != 2 ]; then
         return 0
     fi
-    value=$(dealQuotes $1 "$2")
+    value=$(dealQuotes $1 "$2" "true")
     case $1 in
-        -s | --hostname     ) repeatCheck "$1" "$opt_hostname";       opt_hostname=$value       ;;
-        -p | --svcname      ) repeatCheck "$1" "$opt_svcname";        opt_svcname=$value        ;;
-        --hosts             ) repeatCheck "$1" "$opt_hostname$opt_svcname"; dealHostsParam $value ;;
-        -u | --user         ) repeatCheck "$1" "$opt_user";           opt_user=$value           ;;
-        -w | --password     ) repeatCheck "$1" "$opt_password";       opt_password=$value       ;;
-        --cipher            ) repeatCheck "$1" "$opt_cipher";         opt_cipher=$value         ;;
-        --token             ) repeatCheck "$1" "$opt_token";          opt_token=$value          ;;
-        --cipherfile        ) repeatCheck "$1" "$opt_cipherfile";     opt_cipherfile=$value     ;;
-        -r | --delrecord    ) repeatCheck "$1" "$opt_delrecord";      opt_delrecord=$value      ;;
-        --filelimit         ) repeatCheck "$1" "$opt_filelimit";      opt_filelimit=$value      ;;
-        --type              ) repeatCheck "$1" "$opt_type";           opt_type=$value           ;;
-        --withid            ) repeatCheck "$1" "$opt_withid";         opt_withid=$value         ;;
-        --fields            ) repeatCheck "$1" "$opt_fields";         opt_fields=$value         ;;
-        --floatfmt          ) repeatCheck "$1" "$opt_floatfmt";       opt_floatfmt=$value       ;;
-        -c | --csname       ) repeatCheck "$1" "$opt_csname";         opt_csname=$value         ;;
-        -l | --clname       ) repeatCheck "$1" "$opt_clname";         opt_clname=$value         ;;
-        --select            ) repeatCheck "$1" "$opt_select";         opt_select=$value         ;;
-        --filter            ) repeatCheck "$1" "$opt_filter";         opt_filter=$value         ;;
-        --sort              ) repeatCheck "$1" "$opt_sort";           opt_sort=$value           ;;
-        --file              ) repeatCheck "$1" "$opt_file";           opt_file=$value           ;;
-        --skip              ) repeatCheck "$1" "$opt_skip";           opt_skip=$value           ;;
-        --limit             ) repeatCheck "$1" "$opt_limit";          opt_limit=$value          ;;
-        --cscl              ) repeatCheck "$1" "$opt_cscl";           opt_cscl=$value           ;;
-        --excludecscl       ) repeatCheck "$1" "$opt_excludecscl";    opt_excludecscl=$value    ;;
-        --dir               ) repeatCheck "$1" "$opt_dir";            opt_dir=$value            ;;
-        --strict            ) repeatCheck "$1" "$opt_strict";         opt_strict=$value         ;;
-        -a | --delchar      ) repeatCheck "$1" "$opt_delchar";        opt_delchar=$value        ;;
-        -e | --delfield     ) repeatCheck "$1" "$opt_delfield";       opt_delfield=$value       ;;
-        --included          ) repeatCheck "$1" "$opt_included";       opt_included=$value       ;;
-        --includebinary     ) repeatCheck "$1" "$opt_includebinary";  opt_includebinary=$value  ;;
-        --includeregex      ) repeatCheck "$1" "$opt_includeregex";   opt_includeregex=$value   ;;
-        --force             ) repeatCheck "$1" "$opt_force";          opt_force=$value          ;;
-        --kicknull          ) repeatCheck "$1" "$opt_kicknull";       opt_kicknull=$value       ;;
-        --checkdelimeter    ) repeatCheck "$1" "$opt_checkdelimeter"; opt_checkdelimeter=$value ;;
-        --conf              ) repeatCheck "$1" "$opt_conf_file";      opt_conf_file=$value      ;;
-        -j | --jobs         ) repeatCheck "$1" "$opt_jobs";           getJobsParam $value       ;;
+        -s | --hostname     ) repeatCheck "$1" "$opt_hostname";       opt_hostname="$value"       ;;
+        -p | --svcname      ) repeatCheck "$1" "$opt_svcname";        opt_svcname="$value"        ;;
+        --hosts             ) repeatCheck "$1" "$opt_hosts";          opt_hosts="$value"          ;;
+        -u | --user         ) repeatCheck "$1" "$opt_user";           opt_user="$value"           ;;
+        -w | --password     ) repeatCheck "$1" "$opt_password";       opt_password="$value"       ;;
+        --cipher            ) repeatCheck "$1" "$opt_cipher";         opt_cipher="$value"         ;;
+        --token             ) repeatCheck "$1" "$opt_token";          opt_token="$value"          ;;
+        --cipherfile        ) repeatCheck "$1" "$opt_cipherfile";     opt_cipherfile="$value"     ;;
+        -r | --delrecord    ) repeatCheck "$1" "$opt_delrecord";      opt_delrecord="$value"      ;;
+        --filelimit         ) repeatCheck "$1" "$opt_filelimit";      opt_filelimit="$value"      ;;
+        --type              ) repeatCheck "$1" "$opt_type";           opt_type="$value"           ;;
+        --withid            ) repeatCheck "$1" "$opt_withid";         opt_withid="$value"         ;;
+        --fields            ) repeatCheck "$1" "$opt_fields";         opt_fields="$value"         ;;
+        --floatfmt          ) repeatCheck "$1" "$opt_floatfmt";       opt_floatfmt="$value"       ;;
+        -c | --csname       ) repeatCheck "$1" "$opt_csname";         opt_csname="$value"         ;;
+        -l | --clname       ) repeatCheck "$1" "$opt_clname";         opt_clname="$value"         ;;
+        --select            ) repeatCheck "$1" "$opt_select";         opt_select="$value"         ;;
+        --filter            ) repeatCheck "$1" "$opt_filter";         opt_filter="$value"         ;;
+        --sort              ) repeatCheck "$1" "$opt_sort";           opt_sort="$value"           ;;
+        --file              ) repeatCheck "$1" "$opt_file";           opt_file="$value"           ;;
+        --skip              ) repeatCheck "$1" "$opt_skip";           opt_skip="$value"           ;;
+        --limit             ) repeatCheck "$1" "$opt_limit";          opt_limit="$value"          ;;
+        --cscl              ) repeatCheck "$1" "$opt_cscl";           opt_cscl="$value"           ;;
+        --excludecscl       ) repeatCheck "$1" "$opt_excludecscl";    opt_excludecscl="$value"    ;;
+        --dir               ) repeatCheck "$1" "$opt_dir";            opt_dir="$value"            ;;
+        --strict            ) repeatCheck "$1" "$opt_strict";         opt_strict="$value"         ;;
+        -a | --delchar      ) repeatCheck "$1" "$opt_delchar";        opt_delchar="$value"        ;;
+        -e | --delfield     ) repeatCheck "$1" "$opt_delfield";       opt_delfield="$value"       ;;
+        --included          ) repeatCheck "$1" "$opt_included";       opt_included="$value"       ;;
+        --includebinary     ) repeatCheck "$1" "$opt_includebinary";  opt_includebinary="$value"  ;;
+        --includeregex      ) repeatCheck "$1" "$opt_includeregex";   opt_includeregex="$value"   ;;
+        --force             ) repeatCheck "$1" "$opt_force";          opt_force="$value"          ;;
+        --kicknull          ) repeatCheck "$1" "$opt_kicknull";       opt_kicknull="$value"       ;;
+        --checkdelimeter    ) repeatCheck "$1" "$opt_checkdelimeter"; opt_checkdelimeter="$value" ;;
+        --conf              ) repeatCheck "$1" "$opt_conf_file";      opt_conf_file="$value"      ;;
+        -j | --jobs         ) repeatCheck "$1" "$opt_jobs";           getJobsParam "$value"       ;;
         # general params, like ssl
-        *                   ) opt_general_params="${opt_general_params} $1 $value"              ;;
+        *                   ) opt_general_params="${opt_general_params} $1 $value"                ;;
     esac
 }
 
 function dealParamArr()
 {
-    local value=""
     local opt=""
-    while [ "$1" != "" ]; do
-        contains $1 "${opt_list[*]}"
-        if [ "$?" = 0 ]; then
-            opt=$1
-        else
-            echo "[ERROR] Unknown option: $1"
-            exit 1
-        fi
-        case $opt in
-            -h | --help    ) helpInfo                          ;;
-            -V | --version ) version "$export_tool"            ;;
-            --debug        ) opt_debug="true"; shift; continue ;;
-            --replace      ) opt_general_params="$opt_general_params $opt";
-                             shift; continue                   ;;
-        esac
-
-        while [ "$2" != "" ]; do
-            contains $2 "${opt_list[*]}"
-            if [ $? != 0 ]; then
-                value="$value$2 "
+    local value=""
+    local tmp=""
+    while [ $# != 0 ]; do
+        if [ "$opt" != "" ]; then
+            if [ "$1" = "" ]; then
+                getParamValue "$opt" "$1"
+                opt=""
                 shift
                 continue
-            elif [ "$value" = "" ]; then
-                echo "[ERROR] Option $opt does not specify a value!"
-                exit
             fi
-            break
-        done
-        if [ "$value" != "" ]; then
-            value=${value:0:${#value}-1}
-            getParamValue $opt "$value"
+            tmp=${1%%=*}
+            contains "$tmp" "${opt_list[*]}"
+            if [ "$?" -eq 0 ]; then
+               echo "[ERROR] Option $opt does not specify a value!"
+               exit 1
+            fi
+            tmp=""
+            value="$1"
+            shift
+        else
+            if [[ $1 = *=* ]] ; then
+                opt=${1%%=*}
+                value=${1#*=}
+            else
+                opt="$1"
+            fi
+            contains "$opt" "${opt_list[*]}"
+            if [ "$?" != 0 ]; then
+                echo "[ERROR] Unknown option: $1"
+                exit 1
+            fi
+            shift
+
+            case $opt in
+                 -h | --help    ) helpInfo                                     ;;
+                 -V | --version ) version "$export_tool"                       ;;
+                 --debug        ) opt_debug="true";  opt=""; continue          ;;
+                 --replace      ) opt_general_params="$opt_general_params $opt";
+                                  opt=""; continue                             ;;
+            esac
+        fi
+
+        if [ "$opt" != "" -a "$value" != "" ]; then
+            getParamValue "$opt" "$value"
             opt=""
             value=""
-        else
-            echo "[ERROR] Option $opt does not specify a value!"
-            exit
         fi
-        shift
-    done
+        if [ "$opt" != "" -a $# -eq 0 ]; then
+            echo "[ERROR] Option $opt does not specify a value!"
+            exit 1
+        fi
+    done;
 }
 
 function parseParam()
 {
-    local params
     if [ $# = 0 ]; then
         helpInfo
     fi
-    params=(${@//=/ })
-    dealParamArr ${params[@]}
+    dealParamArr "$@"
     checkParams
     setDefualtValue
 }
 
 function setDefualtValue()
 {
+    dealHostsParam "$opt_hosts"
     if [ "$opt_hostname" = "" ]; then
         opt_hostname="$DEFAULT_HOSTNAME"
     fi
@@ -265,19 +277,19 @@ function parseGeneralParams()
         value="${value//$REPLACE_STR/ }"
         value=$(dealQuotes $opt "$value")
         case $opt in
-            delrecord      ) repeatCheck "$opt" "$cl_delrecord";      cl_delrecord=$value      ;;
-            filelimit      ) repeatCheck "$opt" "$cl_filelimit";      cl_filelimit=$value      ;;
-            withid         ) repeatCheck "$opt" "$cl_withid";         cl_withid=$value         ;;
-            floatfmt       ) repeatCheck "$opt" "$cl_floatfmt";       cl_floatfmt=$value       ;;
-            strict         ) repeatCheck "$opt" "$cl_strict";         cl_strict=$value         ;;
-            delchar        ) repeatCheck "$opt" "$cl_delchar";        cl_delchar=$value        ;;
-            delfield       ) repeatCheck "$opt" "$cl_delfield";       cl_delfield=$value       ;;
-            included       ) repeatCheck "$opt" "$cl_included";       cl_included=$value       ;;
-            includebinary  ) repeatCheck "$opt" "$cl_includebinary";  cl_includebinary=$value  ;;
-            includeregex   ) repeatCheck "$opt" "$cl_includeregex";   cl_includeregex=$value   ;;
-            force          ) repeatCheck "$opt" "$cl_force";          cl_force=$value          ;;
-            kicknull       ) repeatCheck "$opt" "$cl_kicknull";       cl_kicknull=$value       ;;
-            checkdelimeter ) repeatCheck "$opt" "$cl_checkdelimeter"; cl_checkdelimeter=$value ;;
+            delrecord      ) repeatCheck "$opt" "$cl_delrecord";      cl_delrecord="$value"      ;;
+            filelimit      ) repeatCheck "$opt" "$cl_filelimit";      cl_filelimit="$value"      ;;
+            withid         ) repeatCheck "$opt" "$cl_withid";         cl_withid="$value"         ;;
+            floatfmt       ) repeatCheck "$opt" "$cl_floatfmt";       cl_floatfmt="$value"       ;;
+            strict         ) repeatCheck "$opt" "$cl_strict";         cl_strict="$value"         ;;
+            delchar        ) repeatCheck "$opt" "$cl_delchar";        cl_delchar="$value"        ;;
+            delfield       ) repeatCheck "$opt" "$cl_delfield";       cl_delfield="$value"       ;;
+            included       ) repeatCheck "$opt" "$cl_included";       cl_included="$value"       ;;
+            includebinary  ) repeatCheck "$opt" "$cl_includebinary";  cl_includebinary="$value"  ;;
+            includeregex   ) repeatCheck "$opt" "$cl_includeregex";   cl_includeregex="$value"   ;;
+            force          ) repeatCheck "$opt" "$cl_force";          cl_force="$value"          ;;
+            kicknull       ) repeatCheck "$opt" "$cl_kicknull";       cl_kicknull="$value"       ;;
+            checkdelimeter ) repeatCheck "$opt" "$cl_checkdelimeter"; cl_checkdelimeter="$value" ;;
         esac
         shift
     done
@@ -334,9 +346,9 @@ function buildCLParams()
         fi
         value="${value//$REPLACE_STR/ }"
         value=$(dealQuotes $opt "$value")
-        case $opt in
+        case "$opt" in
             name     ) repeatCheck "$opt" "$cl_name";    cl_name="$(genCSCLParam $value)";
-                       cl_full_name=$value                                              ;;
+                       cl_full_name="$value"                                            ;;
             select   ) repeatCheck "$opt" "$cl_select";  cl_select=" --select $value"   ;;
             filter   ) repeatCheck "$opt" "$cl_filter";  cl_filter=" --filter $value"   ;;
             sort     ) repeatCheck "$opt" "$cl_sort";    cl_sort=" --sort $value"       ;;
@@ -345,7 +357,7 @@ function buildCLParams()
             skip     ) repeatCheck "$opt" "$cl_skip";    cl_skip=" --skip $value"       ;;
             limit    ) repeatCheck "$opt" "$cl_limit";   cl_limit=" --limit $value"     ;;
             fields   ) repeatCheck "$opt" "$cl_fields";  cl_fields=" --fields $value"   ;;
-            type     ) repeatCheck "$opt" "$cl_type";    cl_type=$value                 ;;
+            type     ) repeatCheck "$opt" "$cl_type";    cl_type="$value"               ;;
             *        ) other_params="$other_params $1"                                  ;;
         esac
         shift
@@ -378,7 +390,7 @@ function buildCLParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        safe_exit 1 "[ERROR] $cl_general_params"
+        safe_exit 1 "$cl_general_params"
     fi
     if [ "$cl_type" = "" ]; then
         cl_type="$opt_type"
@@ -396,7 +408,7 @@ function buildCLParams()
         cl_file_param=$(appendParam '--file'     "$cl_file_param")
         cl_type_param=$(appendParam '--type'     "$cl_type")
 
-        cl_params=$(arrToStr $cl_hostname $cl_svcname $cl_name $cl_file_param $cl_type_param $cl_select $cl_filter $cl_sort $cl_skip $cl_limit $cl_fields "$cl_general_params")
+        cl_params=$(arrToStr "$cl_hostname" "$cl_svcname" "$cl_name" "$cl_file_param" "$cl_type_param" "$cl_select" "$cl_filter" "$cl_sort" "$cl_skip" "$cl_limit" "$cl_fields" "$cl_general_params")
         if [ "$cl_params" != "" ]; then
             cl_params_list[${#cl_params_list[@]}]="$cl_params"
         fi
@@ -418,7 +430,7 @@ function buildCLParams()
             cl_file_param=$(appendParam '--file'     "$cl_file_param")
             cl_type_param=$(appendParam '--type'     "$cl_type")
 
-            cl_params=$(arrToStr $cl_hosts $cl_name $cl_file_param $cl_type_param $cl_select $cl_filter $cl_sort $cl_fields "$cl_general_params")
+            cl_params=$(arrToStr "$cl_hosts" "$cl_name" "$cl_file_param" "$cl_type_param" "$cl_select" "$cl_filter" "$cl_sort $cl_fields" "$cl_general_params")
             if [ "$cl_params" != "" ]; then
                 cl_params_list[${#cl_params_list[@]}]="$cl_params"
             fi
@@ -483,7 +495,7 @@ function buildCSParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        safe_exit 1 "[ERROR] $cl_general_params"
+        safe_exit 1 "$cl_general_params"
     fi
 
     if [ "$cl_type" = "" ]; then
@@ -522,7 +534,7 @@ function buildCSParams()
             cl_file_param=$(appendParam '--file'     "$cl_file")
             cl_type_param=$(appendParam '--type'     "$cl_type")
             cl_fields=$(appendParam     '--fields'   "$cl_fields_param")
-            cl_params=$(arrToStr $cl_hostname $cl_svcname $cs_name_param $cl_name_param $cl_file_param $cl_type_param $cl_fields "$cl_general_params")
+            cl_params=$(arrToStr "$cl_hostname" "$cl_svcname" "$cs_name_param" "$cl_name_param" "$cl_file_param" "$cl_type_param" "$cl_fields" "$cl_general_params")
             if [ "$cl_params" != "" ]; then
                 cl_params_list[${#cl_params_list[@]}]="$cl_params"
             fi
@@ -541,7 +553,7 @@ function buildCSParams()
             cl_file_param=$(appendParam '--file'     "$cl_file")
             cl_type_param=$(appendParam '--type'     "$cl_type")
             cl_fields=$(appendParam     '--fields'   "$cl_fields_param")
-            cl_params=$(arrToStr $cl_hosts $cs_name_param $cl_name_param $cl_file_param $cl_type_param $cl_fields "$cl_general_params")
+            cl_params=$(arrToStr "$cl_hosts" "$cs_name_param" "$cl_name_param" "$cl_file_param" "$cl_type_param" "$cl_fields" "$cl_general_params")
             if [ "$cl_params" != "" ]; then
                 cl_params_list[${#cl_params_list[@]}]="$cl_params"
             fi
@@ -676,7 +688,7 @@ function buildExportCmd()
     local token=$(appendParam      '--token'      "$opt_token")
     local cipherfile=$(appendParam '--cipherfile' "$opt_cipherfile")
 
-    opt_general_params=$(arrToStr $user $password $cipher $token $cipherfile $opt_general_params)
+    opt_general_params=$(arrToStr "$user" "$password" "$cipher" "$token" "$cipherfile" "$opt_general_params")
 
     setConnectParam "$opt_hostname" "$opt_svcname" "$opt_user" "$opt_password" "$opt_token" "$opt_cipherfile"
 
@@ -842,9 +854,9 @@ function main()
         return 1
     fi
 
-    parseParam $@
+    parseParam "$@"
 
     exportData
 }
 
-main $@
+main "$@"

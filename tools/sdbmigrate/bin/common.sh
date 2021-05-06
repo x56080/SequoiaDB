@@ -111,7 +111,7 @@ function readInIfile()
     fi
 
     if [ "${option}" = "" ];then
-        section_value=$(echo "$file_value" | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/\[/,$d' )
+        section_value=$(echo "$file_value" | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/^\[/,$d' )
         ini_options=(${section_value})
         echo ${ini_options[@]}
     elif [ "${section}" != "" ] && [ "${option}" != "" ];then
@@ -283,12 +283,18 @@ function getNodeList()
 
 function arrToStr()
 {
-    local str=""
-    for var in $@; do
-        str="$str $var"
+    local i
+    local result=""
+    local len=$#
+    for ((i=0; i<$len; i++)); do
+        if [ "$1" != "" ]; then
+            result="$result$1 "
+        fi
+        shift
     done
-    if [ ${#str} -gt 0 ]; then
-        echo "${str:1:${#str}-1}"
+
+    if [ ${#result} -gt 0 ]; then
+        echo "${result:0:${#result}-1}"
     else
         echo ""
     fi
@@ -351,22 +357,37 @@ function getOptionFCmd()
 
 function dealQuotes()
 {
-    local opt=$1
-    local value=$2
-    local first_str="${value:0:1}"
+    local opt="$1"
+    local value="$2"
+    local isCommadnLine="$3"
+    local firstStr
 
     if [ "$value" = "" ]; then
         return 0
     fi
-    case $opt in
-        *delrecord* | *delchar* | *delfield* | *floatfmt* |  *sort* | *select* | *filter* | *datefmt* | *timestampfmt* | *fields* | -r | -a | -e )
 
-         if [ "$first_str" != "'" ]; then
-             value="'$2'"
-         fi
-         ;;
+    case $opt in
+        *delrecord* | *delchar* | *delfield* | *floatfmt* | *datefmt* | *timestampfmt* | *fields* | *sort* | *select* | *filter* | -r | -a | -e )
+
+        if [ "$isCommadnLine" = "true" ]; then
+            # parameters in the command line
+            value="${value//\\/\\\\}"
+            value="${value//\"/\\\"}"
+            value="${value//\$/\\\$}"
+            value="${value//\`/\\\`}"
+            echo "\"$value\""
+        else
+            # parameters in the configuration file
+            firstStr="${value:0:1}"
+            if [ "$firstStr" = "'" -o "$firstStr" = "\"" ]; then
+                echo "$value"
+            else
+                echo "\"$value\""
+            fi
+        fi
+        ;;
+        * ) echo "$value" ;;
     esac
-    echo "$value"
 }
 
 function genResultFile()
