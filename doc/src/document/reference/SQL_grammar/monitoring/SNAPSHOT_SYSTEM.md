@@ -1,6 +1,8 @@
 ##描述##
 
-操作系统快照 $SNAPSHOT_SYSTEM 列出当前数据库节点所在操作系统中主要的状态与性能监控参数，输出一条记录。
+操作系统快照 $SNAPSHOT_SYSTEM 列出当前数据库节点所在操作系统中主要的状态与性能监控参数。
+
+通过协调节点查询快照，将返回所有节点的快照信息，每个数据节点或编目节点产生一条记录；通过数据节点或编目节点查询快照，将返回当前节点的快照信息。
 
 ##标示##
 
@@ -24,7 +26,7 @@ $SNAPSHOT_SYSTEM
 | CommittedLSN.Offset  | 长整型 | 已提交 LSN 的偏移                                              |
 | CommittedLSN.Version | 整型   | 已提交 LSN 的版本号                                            |
 | CompleteLSN          | 长整型 | 已完成 LSN 的偏移                                              |
-| LSNQueSize           | 整型   | 等待同步的LSN队列长度                                          |
+| LSNQueSize           | 整型   | 等待同步的 LSN 队列长度                                          |
 | TransInfo.TotalCount | 整型   | 正在执行的事务数量                                             |
 | TransInfo.BeginLSN   | 长整型 | 正在执行的事务的起始 LSN 的偏移                                |
 | NodeID               | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |

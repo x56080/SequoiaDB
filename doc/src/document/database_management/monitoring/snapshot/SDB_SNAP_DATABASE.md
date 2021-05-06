@@ -1,6 +1,10 @@
 ##描述##
 
-数据库快照 SDB_SNAP_DATABASE 列出当前数据库节点中主要的状态与性能监控参数，输出一条记录。
+数据库快照可以列出数据库的状态和监控信息。
+
+> Note:
+>
+> 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_DATABASE,{RawData:true})` 获取聚合前的数据。
 
 ##标示##
 
@@ -25,7 +29,7 @@ SDB_SNAP_DATABASE
 | CommittedLSN.Offset   | 长整型 | 已提交 LSN 的偏移                                                               |
 | CommittedLSN.Version  | 整型   | 已提交 LSN 的版本号                                                             |
 | CompleteLSN           | 长整型 | 已完成 LSN 的偏移                                                               |
-| LSNQueSize            | 整型   | 等待同步的LSN队列长度                                                           |
+| LSNQueSize            | 整型   | 等待同步的 LSN 队列长度                                                           |
 | TransInfo.TotalCount  | 整型  | 正在执行的事务数量                                                              |
 | TransInfo.BeginLSN    | 长整型 | 正在执行的事务的起始 LSN 的偏移                                                 |
 | NodeID                | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
@@ -35,7 +39,7 @@ SDB_SNAP_DATABASE
 | Version.Release       | 整型   | 数据库内部版本号                                                                |
 | Version.GitVersion    | 字符串 | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
-| Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
+| Editon                | 字符串 | “Enterprise”表示企业版（社区版中无该字段）                                |
 | CurrentActiveSessions | 整型   | 当前活动会话                                                                |
 | CurrentIdleSessions   | 整型   | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配               |
 | CurrentSystemSessions | 整型   | 当前系统会话，为当前活动用户 EDU 数量 |

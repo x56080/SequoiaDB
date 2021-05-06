@@ -1,12 +1,14 @@
 ##描述##
 
-数据库快照 $SNAPSHOT_DB 列出当前数据库节点中主要的状态与性能监控参数，输出一条记录。
+数据库快照 $SNAPSHOT_DB 列出当前数据库节点中主要的状态与性能监控参数。
+
+通过协调节点查询快照，将返回所有节点的快照信息，每个数据节点或编目节点产生一条记录；通过数据节点或编目节点查询快照，将返回当前节点的快照信息。
 
 ##标示##
 
 $SNAPSHOT_DB
 
-##非协调节点字段信息##
+##字段信息##
 
 | 字段名                | 类型   | 描述                                                                            |
 | --------------------- | ------ | ------------------------------------------------------------------------------- |
@@ -25,7 +27,7 @@ $SNAPSHOT_DB
 | CommittedLSN.Offset   | 长整型 | 已提交 LSN 的偏移                                                               |
 | CommittedLSN.Version  | 整型   | 已提交 LSN 的版本号                                                             |
 | CompleteLSN           | 长整型 | 已完成 LSN 的偏移                                                               |
-| LSNQueSize            | 整型   | 等待同步的LSN队列长度                                                           |
+| LSNQueSize            | 整型   | 等待同步的 LSN 队列长度                                                           |
 | TransInfo.TotalCount  | 整型  | 正在执行的事务数量                                                              |
 | TransInfo.BeginLSN    | 长整型 | 正在执行的事务的起始 LSN 的偏移                                                 |
 | NodeID                | 数组   | 节点的 ID，为“[ <分区组 ID>, <节点 ID> ]”<br>在 standalone 模式下，该字段为“[ 0，0 ]” |
@@ -35,7 +37,7 @@ $SNAPSHOT_DB
 | Version.Release       | 整型   | 数据库内部版本号                                                                |
 | Version.GitVersion    | 字符串 | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
-| Editon                | 字符串 | “Enterprise”表示企业版（备注：社区版中无该字段）                                |
+| Editon                | 字符串 | “Enterprise”表示企业版（社区版中无该字段）                                |
 | CurrentActiveSessions | 整型   | 当前活动会话                                                                |
 | CurrentIdleSessions   | 整型   | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配               |
 | CurrentSystemSessions | 整型   | 当前系统会话，为当前活动用户 EDU 数量 |
@@ -84,46 +86,6 @@ $SNAPSHOT_DB
 | SchdlrMgrEvtNum       | 整型   | 当前未分发的任务数量                                                            |
 | SchdlrTimes           | 长整型 | 统计时间范围内总的任务执行次数                                                  |
 | MemPoolSize           | 长整型 | Pool Memory 的大小（单位：字节）                                                |
-
-
-##协调节点字段信息##
-
-| 字段名            | 类型   | 描述                                          |
-| ----------------- | ------ | --------------------------------------------- |
-| TotalNumConnects  | 整型   | 数据库连接请求数量                            |
-| TotalDataRead     | 长整型 | 总数据读请求                                  |
-| TotalIndexRead    | 长整型 | 总索引读请求                                  |
-| TotalDataWrite    | 长整型 | 总数据写请求                                  |
-| TotalIndexWrite   | 长整型 | 总索引写请求                                  |
-| TotalUpdate       | 长整型 | 总更新记录数量                                |
-| TotalDelete       | 长整型 | 总删除记录数量                                |
-| TotalInsert       | 长整型 | 总插入记录数量                                |
-| ReplUpdate        | 长整型 | 复制更新记录数量                              |
-| ReplDelete        | 长整型 | 复制删除记录数量                              |
-| ReplInsert        | 长整型 | 复制插入记录数量                              |
-| TotalSelect       | 长整型 | 总选择记录数量                                |
-| TotalRead         | 长整型 | 总读取记录数量                                |
-| TotalReadTime     | 长整型 | 总读取时间（单位：毫秒）                      |
-| TotalWriteTime    | 长整型 | 总写入时间（单位：毫秒）                      |
-| freeLogSpace      | 长整型 | 空闲日志空间（单位：字节）                    |
-| vsize             | 长整型 | 虚拟内存使用量（单位：字节）                  |
-| rss               | 长整型 | 物理内存使用量（单位：字节）                  |
-| fault             | 长整型 | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
-| TotalMapped       | 长整型 | mmap 的总数据量（单位：字节）                 |
-| svcNetIn          | 长整型 | 本地服务端口收到的网络流量（单位：字节）      |
-| svcNetOut         | 长整型 | 本地服务端口发送的网络流量（单位：字节）      |
-| shardNetIn        | 长整型 | shard 平面端口收到的网络流量（单位：字节）    |
-| shardNetOut       | 长整型 | shard 平面端口发送的网络流量（单位：字节）    |
-| replNetIn         | 长整型 | 数据同步平面端口收到的网络流量（单位：字节）  |
-| replNetOut        | 长整型 | 数据同步平面端口发送的网络流量（单位：字节）  |
-| ErrNodes.NodeName | 字符串 | 返回异常节点名（主机名 + 端口）               |
-| ErrNodes.GroupName| 字符串 | 返回异常节点所属分区组名                      |
-| ErrNodes.Flag     | 整型   | 错误码，详细请参见：[错误码](reference/Sequoiadb_error_code.md) |
-| ErrNodes.ErrInfo  | 字符串 | 返回节点出错信息                              |
-
-> Note:
->
-> 存在异常节点时才显示ErrNodes字段。
 
 ##示例##
 
