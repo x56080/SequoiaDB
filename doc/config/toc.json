@@ -3664,6 +3664,12 @@
                            "file": "stop",
                            "cn": "stop()",
                            "en": "stop()"
+                        },
+                        {
+                           "id": 1612245521,
+                           "file": "updateConf",
+                           "cn": "updateConf()",
+                           "en": "updateConf()"
                         }
                      ]
                   },
