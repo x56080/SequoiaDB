@@ -2,7 +2,7 @@
 Description   : seqDB-24074:find_one_and_update/replace/delete操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.23
+LastEditTime  : 2021.04.30
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -29,6 +29,7 @@ class TestFindOneAndXXX24074( utils.TestBase ):
       self.find_one_and_update_with_return_document()
 
       self.find_one_and_replace()
+      self.find_one_and_replace_with_upsert()
       self.find_one_and_delete()
 
       self.notExist_db_find_one_and_xxx()
@@ -117,11 +118,8 @@ class TestFindOneAndXXX24074( utils.TestBase ):
       self.cl.delete_many({})  
       
       # 匹配不存在的记录，upsert = True
-      ''' SEQUOIADBMAINSTREAM-7054
-      # 匹配不存在的记录，upsert
-      self.result = self.cl.find_one_and_replace( {'a': 3}, {'_id': 3, 'b': 3}, upsert = True, return_document = True )
-      self.assertEqual( self.result, {'b': 1, 'a': 1, '_id': 1} )
-      '''
+      self.result = self.cl.find_one_and_replace( {'a': 1}, {'_id': 1, 'b': 1}, upsert = True, return_document = True )
+      self.assertEqual( self.result, {'_id': 1, 'b': 1} )
       
       # check docs
       self.cursor = self.cl.find().sort( '_id' )
@@ -156,15 +154,13 @@ class TestFindOneAndXXX24074( utils.TestBase ):
       self.cursor = self.cl.find().sort( '_id' )
       self.checkCursor( self.cursor, [{'b': 2, 'a': 2, '_id': 2}] )
       
-      ''' SEQUOIADBMAINSTREAM-7054
       # db不存在，find_one_and_replace
       self.client.drop_database(self.dbName)
       self.result = self.cl.find_one_and_replace( {'a': 3}, {'_id': 3, 'b': 3}, upsert = True, return_document = True )
-      self.assertEqual( self.result, {'b': 1, 'a': 1, '_id': 1} )
+      self.assertEqual( self.result, {'b': 3, '_id': 3} )
       # check docs
       self.cursor = self.cl.find().sort( '_id' )
-      self.checkCursor( self.cursor, [{'b': 2, 'a': 2, '_id': 2}] )
-      '''
+      self.checkCursor( self.cursor, [{'b': 3, '_id': 3}] )
       
       # db不存在，find_one_and_delete
       self.client.drop_database(self.dbName)
@@ -190,15 +186,13 @@ class TestFindOneAndXXX24074( utils.TestBase ):
       self.cursor = self.cl.find().sort( '_id' )
       self.checkCursor( self.cursor, [{'b': 2, 'a': 2, '_id': 2}] )
       
-      ''' SEQUOIADBMAINSTREAM-7054
       # db不存在，find_one_and_replace
       self.cl.drop()
       self.result = self.cl.find_one_and_replace( {'a': 3}, {'_id': 3, 'b': 3}, upsert = True, return_document = True )
-      self.assertEqual( self.result, {'b': 1, 'a': 1, '_id': 1} )
+      self.assertEqual( self.result, {'b': 3, '_id': 3} )
       # check docs
       self.cursor = self.cl.find().sort( '_id' )
-      self.checkCursor( self.cursor, [{'b': 2, 'a': 2, '_id': 2}] )
-      '''
+      self.checkCursor( self.cursor, [{'b': 3, '_id': 3}] )
       
       # db不存在，find_one_and_delete
       self.cl.drop()
