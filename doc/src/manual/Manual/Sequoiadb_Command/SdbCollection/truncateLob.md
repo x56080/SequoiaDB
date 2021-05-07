@@ -37,11 +37,11 @@ v3.0 及以上版本
 
 ##示例##
 
-* 截短一个描述符为'5435e7b69487faa663000897'的大对象的长度到0
+截短一个描述符为'5435e7b69487faa663000897'的大对象的长度到 0
 
- ```lang-javascript
- > db.sample.employee.truncateLob('5435e7b69487faa663000897', 0)
- ```
+```lang-javascript
+> db.sample.employee.truncateLob('5435e7b69487faa663000897', 0)
+```
 
 [^_^]:
      本文使用的所有引用及链接

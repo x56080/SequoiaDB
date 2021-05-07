@@ -74,71 +74,65 @@ v1.0 及以上版本。
 
 ##示例##
 
-1. 不指定 _id 字段，插入一条记录。
+- 不指定 _id 字段，插入一条记录
 
-	```lang-javascript
-	
- 	> db.sample.employee.insert( { name: "Tom", age: 20 } )
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert( { name: "Tom", age: 20 } )
+    ```
 
-2. 插入一条带有 _id 字段的记录。
+- 插入一条带有 _id 字段的记录
 
- 	```lang-javascript
- 	> db.sample.employee.insert( {_id: 10, age: 20 } )
- 	```
+    ```lang-javascript
+    > db.sample.employee.insert( {_id: 10, age: 20 } )
+    ```
 
-3. 插入多条记录，如下操作会在集合employee中插入两条记录。
+- 插入多条记录，如下操作会在集合 sample.employee 中插入两条记录
 
  	```lang-javascript
  	> db.sample.employee.insert( [ { _id: 20, name: "Mike", age: 15 }, { name: "John", age: 25, phone: 123 } ] )
  	```
 
-4. 插入拥有重复“_id”键的多条记录，如下操作将会在集合employee中插入两条记录。
+- 插入拥有重复 _id 键的多条记录，如下操作将会在集合 sample.employee 中插入两条记录
 
-	```lang-javascript
-	
- 	> db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
-
-	```
-		
-   ```lang-javascript
- 	> db.sample.employee.find()
- 	{
+    ```lang-javascript
+    
+    > db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
+    > db.sample.employee.find()
+    {
       "_id": 1,
       "a": 1,
- 	}
- 	{
+    }
+    {
       "_id": 3,
       "c": 3
- 	}
- 	```
+    }
+    ```
 
+- 插入记录，并以 json 对象的方式返回结果
 
-5. 插入记录，并以 Json 对象的方式返回结果。
-
- 	```lang-javascript
- 	> db.sample.employee.insert({a:1}, {ReturnOID:true})
- 	{
-   		"_id": {
+    ```lang-javascript
+    > db.sample.employee.insert({a:1}, {ReturnOID:true})
+    {
+    	"_id": {
      		"$oid": "5becec3d6404b9295a63caca"
-   		}
-		"InsertedNum": 1,
-  		"DuplicatedNum": 0
- 	}
-	>
- 	> db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true})
- 	{
-   		"_id": [
-     		{
-       			"$oid": "5bececdf6404b9295a63cacb"
-     		},
-     		{
-       			"$oid": "5bececdf6404b9295a63cacc"
-     		}
-   		]
-		"InsertedNum": 2,
-		"DuplicatedNum": 0
- 	}
+    	}
+    	"InsertedNum": 1,
+    	"DuplicatedNum": 0
+    }
+    >
+    > db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true})
+    {
+        "_id": [
+            {
+                "$oid": "5bececdf6404b9295a63cacb"
+            },
+            {
+                "$oid": "5bececdf6404b9295a63cacc"
+            }
+        ]
+        "InsertedNum": 2,
+        "DuplicatedNum": 0
+    }
     > db.sample.employee.createAutoIncrement({ Field: "ID" })
     > db.sample.employee.insert({ a: 1 })
     {
@@ -146,7 +140,7 @@ v1.0 及以上版本。
         "DuplicatedNum": 0,
         "LastGenerateID": 1
     }
- 	```
+    ```
     
 
 

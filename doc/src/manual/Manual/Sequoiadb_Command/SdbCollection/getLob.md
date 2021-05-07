@@ -43,11 +43,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 将标示符为 5435e7b69487faa663000897 的 lob 写入本地 /opt/newlob 文件
+将标示符为 5435e7b69487faa663000897 的 lob 写入本地 /opt/newlob 文件
 
- ```lang-javascript
- > db.sample.employee.getLob( '5435e7b69487faa663000897', '/opt/newlob' )
- ```
+```lang-javascript
+> db.sample.employee.getLob( '5435e7b69487faa663000897', '/opt/newlob' )
+```
 
 [^_^]:
      本文使用的所有引用及链接

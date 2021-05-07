@@ -41,11 +41,12 @@ v2.0 及以上版本
 
 ##示例##
 
-* 删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
+删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
 
- ```lang-javascript
- > db.sample.employee.dropIndex("ageIndex")
- ```
+```lang-javascript
+> db.sample.employee.dropIndex("ageIndex")
+```
+
 
 
 [^_^]:

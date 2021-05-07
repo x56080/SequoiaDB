@@ -50,10 +50,10 @@ v2.0及以上版本。
 
 ##示例##
 
-1. 假如目标机器 sdbserver1 上的 sdbcm 的服务端口为：11790，可以通过 getAOmaSvcName 方法获取这个服务端口。
+假如目标机器 sdbserver1 上的 sdbcm 的服务端口为：11790，可以通过 getAOmaSvcName 方法获取这个服务端口
 
-	```lang-javascript
-	> var oma = new Oma( "sdbserver1", 11790 )
-	> oma.getAOmaSvcName( "sdbserver1")
-    11790
- ```
+```lang-javascript
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.getAOmaSvcName( "sdbserver1")
+11790
+```

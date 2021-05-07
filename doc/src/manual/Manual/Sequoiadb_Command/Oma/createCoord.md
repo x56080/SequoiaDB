@@ -63,9 +63,9 @@ v2.0及以上版本。
 
 ##示例##
 
-1. 在本地创建一个端口号为11810的 coord 节点，将该节点关联到指定的 catalog 节点。
+在本地创建一个端口号为11810的 coord 节点，将该节点关联到指定的 catalog 节点。
 
-	```lang-javascript
-	> var oma = new Oma( "localhost", 11790 )
-	> oma.createCoord( 11810, "/opt/sequoiadb/database/coord/11810", { catalogaddr: "ubuntu1:11823, ubuntu2:11823" } )
- ```
+```lang-javascript
+> var oma = new Oma( "localhost", 11790 )
+> oma.createCoord( 11810, "/opt/sequoiadb/database/coord/11810", { catalogaddr: "ubuntu1:11823, ubuntu2:11823" } )
+```

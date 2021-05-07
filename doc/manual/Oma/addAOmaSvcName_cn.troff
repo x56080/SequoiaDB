@@ -8,7 +8,7 @@
 addAOmaSvcName \- 将目标机器为 sdbcm 设置的服务端口号写到该 sdbcm 的配置文件中。
 .SH 语法
 .PP
-\f[B]oma.addAOmaSvcName(<hostname>,<svcname>,[isReplace],[confFile])\f[]
+\f[B]Oma.addAOmaSvcName(<hostname>,<svcname>,[isReplace],[confFile])\f[]
 .SH 类别
 .PP
 Oma
@@ -95,13 +95,18 @@ v2.0及以上版本。
 .IP "1." 3
 为目标机器 sdbserver1 上的 sdbcm 配置一个新的服务端口号 "11780" 到其 sdbcm
 的配置文件中。
-.RS 4
-.PP
-\f[C]lang\-javascript\ >\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )\ >\ oma.addAOmaSvcName(\ "sdbserver1",\ 11780,\ false)\f[]
+.nf
+\f[C]
+>\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
+>\ oma.addAOmaSvcName(\ "sdbserver1",\ 11780,\ false)
+\f[]
+.fi
 .RE
 .IP "2." 3
 查看目标机器上 sdbcm 的配置文件 sdbcm.conf ，会发现多出如下一行：
-.RS 4
-.PP
-\f[C]lang\-javascript\ sdbserver1_Port=11780\f[]
+.nf
+\f[C]
+sdbserver1_Port=11780
+\f[]
+.fi
 .RE

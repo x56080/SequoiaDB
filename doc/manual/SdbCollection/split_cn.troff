@@ -185,13 +185,31 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 Hash 分区范围切分
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.split(\ "group1",\ \ "group2",\ {\ Partition:\ 10\ },\ {\ Partition:\ 20\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.split(\ "group1",\ \ "group2",\ {\ Partition:\ 10\ },\ {\ Partition:\ 20\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 Range 分区范围切分
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.split(\ "group1",\ \ "group2",\ {\ a:\ 10\ },\ \ {\ a:\ 10000\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.split(\ "group1",\ \ "group2",\ {\ a:\ 10\ },\ \ {\ a:\ 10000\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 百分比切分
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.split(\ "group1",\ \ "group2",\ \ 50\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.split(\ "group1",\ \ "group2",\ \ 50\ )\ 
+\f[]
+.fi
+.RE

@@ -38,17 +38,17 @@ v3.0 及以上版本
 
 ##示例##
 
-* 返回数组中下标为 0 的记录
+返回数组中下标为 0 的记录
 
- ```lang-javascript
+```lang-javascript
 > db.sample.employee.find().arrayAccess(0)
 {
-      "_id": {
-      "$oid": "581192bd6db4da2a23000009"
-      },
-      "a": 9
+   "_id": {
+   "$oid": "581192bd6db4da2a23000009"
+   },
+   "a": 9
 }
- ```
+```
 
 [^_^]:
      本文使用的所有引用及链接

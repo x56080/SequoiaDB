@@ -36,11 +36,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 从主分区集合中分离指定子分区
+从主分区集合中分离指定子分区
 
- ```lang-javascript
- > db.sample.year.detachCL("sample2.January")
- ```
+```lang-javascript
+> db.sample.year.detachCL("sample2.January")
+```
 
 [^_^]:
      本文使用的所有引用及链接

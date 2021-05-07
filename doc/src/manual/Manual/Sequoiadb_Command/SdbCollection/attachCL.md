@@ -43,11 +43,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 在主分区集合的指定区间下挂载子分区集合
+在主分区集合的指定区间下挂载子分区集合
 
- ```lang-javascript
- > db.sample.employee.attachCL( "sample2.January", { LowBound: { date: "20130101" }, UpBound: { date: "20130131" } } )
- ```
+```lang-javascript
+> db.sample.employee.attachCL( "sample2.January", { LowBound: { date: "20130101" }, UpBound: { date: "20130131" } } )
+```
 
 [^_^]:
      本文使用的所有引用及链接

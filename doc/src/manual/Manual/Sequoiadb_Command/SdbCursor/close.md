@@ -35,41 +35,41 @@ v3.0 及以上版本
 
 ##示例##
 
-* 插入10条记录
+* 插入 10 条记录
 
- ```lang-javascript
- > for(i = 0; i < 10; i++) { db.sample.employee.insert( {a: i} ) }
- ```
+    ```lang-javascript
+    > for(i = 0; i < 10; i++) { db.sample.employee.insert( {a: i} ) }
+    ```
 
 * 查询集合 sample.employee 的所有记录
 
- ```lang-javascript
- > var cur = db.sample.employee.find()
- ```
+    ```lang-javascript
+    > var cur = db.sample.employee.find()
+    ```
 
 * 使用游标取出一条记录
 
- ```lang-javascript
-> cur.next()
- {
-      "_id": {
-      "$oid": "53b3c2d7bb65d2f74c000000"
-      },
-      "a": 0
- }
- ```
+    ```lang-javascript
+    > cur.next()
+    {
+         "_id": {
+         "$oid": "53b3c2d7bb65d2f74c000000"
+         },
+         "a": 0
+    }
+    ```
 
 * 关闭游标
 
- ```lang-javascript
-> cur.close()
- ```
+    ```lang-javascript
+    > cur.close()
+    ```
 
 * 再次获取下一条记录，无结果返回
 
- ```lang-javascript
-> cur.next()
- ```
+    ```lang-javascript
+    > cur.next()
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

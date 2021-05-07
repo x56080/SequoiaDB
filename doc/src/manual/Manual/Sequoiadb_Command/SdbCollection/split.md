@@ -66,21 +66,21 @@ v2.0 及以上版本
 
 * Hash 分区范围切分
 
- ```lang-javascript
- > db.sample.employee.split( "group1",  "group2", { Partition: 10 }, { Partition: 20 } )
- ```
+    ```lang-javascript
+    > db.sample.employee.split( "group1",  "group2", { Partition: 10 }, { Partition: 20 } )
+    ```
 
 * Range 分区范围切分
 
- ```lang-javascript
- > db.sample.employee.split( "group1",  "group2", { a: 10 },  { a: 10000 } )
- ```
+    ```lang-javascript
+    > db.sample.employee.split( "group1",  "group2", { a: 10 },  { a: 10000 } )
+    ```
 
 * 百分比切分
 
- ```lang-javascript
- > db.sample.employee.split( "group1",  "group2",  50 ) 
- ```
+    ```lang-javascript
+    > db.sample.employee.split( "group1",  "group2",  50 ) 
+    ```
 
 
 [^_^]:

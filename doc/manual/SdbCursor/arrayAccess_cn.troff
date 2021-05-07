@@ -36,7 +36,17 @@ SdbCursor
 .PP
 v3.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-返回数组中下标为 0 的记录
 .PP
-\f[C]lang\-javascript\ >\ db.sample.employee.find().arrayAccess(0)\ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "581192bd6db4da2a23000009"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 9\ }\f[]
+返回数组中下标为 0 的记录
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.find().arrayAccess(0)
+{
+\ \ \ "_id":\ {
+\ \ \ "$oid":\ "581192bd6db4da2a23000009"
+\ \ \ },
+\ \ \ "a":\ 9
+}
+\f[]
+.fi

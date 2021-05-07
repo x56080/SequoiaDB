@@ -62,15 +62,15 @@ v2.0 及以上版本
 
 * 删除集合所有记录
 
- ```lang-javascript
- > db.sample.employee.remove()
- ```
+    ```lang-javascript
+    > db.sample.employee.remove()
+    ```
 
-* 按访问计划删除匹配 cond 条件的记录，如下操作按照索引名为“myIndex”的索引遍历集合中的记录，在遍历得到的记录中删除符合条件 age 字段值大于等于20的记录。
+* 按访问计划删除匹配 cond 条件的记录，如下操作按照索引名为“myIndex”的索引遍历集合中的记录，在遍历得到的记录中删除符合条件 age 字段值大于等于 20 的记录
 
- ```lang-javascript
- > db.sample.employee.remove( { age: { $gte: 20 } }, { "": "myIndex" } )
- ```
+    ```lang-javascript
+    > db.sample.employee.remove( { age: { $gte: 20 } }, { "": "myIndex" } )
+    ```
 
 
 [^_^]:

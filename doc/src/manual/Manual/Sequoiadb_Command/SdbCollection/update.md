@@ -70,67 +70,63 @@ v2.0 及以上版本
 
 * 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint 参数的内容。如下操作更新集合 employee 下的 age 字段，使用 [$inc][inc] 将 age 字段的值增加1。
 
- ```lang-javascript
- > db.sample.employee.update( { $inc: { age: 1 } } )
- ```
+    ```lang-javascript
+    > db.sample.employee.update( { $inc: { age: 1 } } )
+    ```
 
 * 选择符合匹配条件的记录，对这些记录按更新规则更新，即设定 rule 和 cond 参数。如下操作使用匹配符 [$exist][exists] 匹配更新集合 employee 中存在 age 字段而不存在 name 字段的记录，使用$unset将这些记录的 age 字段删除。
 
- ```lang-javascript
- > db.sample.employee.update( { $unset: { age: "" } }, { age: { $exists: 1 }, name: { $exists: 0 } } )
- ```
+    ```lang-javascript
+    > db.sample.employee.update( { $unset: { age: "" } }, { age: { $exists: 1 }, name: { $exists: 0 } } )
+    ```
 
 * 按访问计划更新记录，假设集合中存在指定的索引名。如下操作使用索引名为 testIndex 的索引访问集合 employee 中 age 字段值大于20的记录，将这些记录的 age 字段名加1。
 
- ```lang-javascript
- > db.sample.employee.update( { $inc: { age: 1 } }, { age: { $gt: 20 } }, { "": "testIndex" } )
- ```
+    ```lang-javascript
+    > db.sample.employee.update( { $inc: { age: 1 } }, { age: { $gt: 20 } }, { "": "testIndex" } )
+    ```
 
 * 分区集合 sample.employee，分区键为 { a: 1 }，含有以下记录
 
- ```lang-javascript
- > db.sample.employee.find()
- {
-   "_id": {
-     "$oid": "5c6f660ce700db6048677154"
-   },
-   "a": 1,
-   "b": 1
- }
- Return 1 row(s).
- ```
+    ```lang-javascript
+    > db.sample.employee.find()
+    {
+      "_id": {
+        "$oid": "5c6f660ce700db6048677154"
+      },
+      "a": 1,
+      "b": 1
+    }
+    Return 1 row(s).
+    ```
  
- 指定 KeepShardingKey 参数：不保留更新规则中的分区键字段。只更新了非分区键 b 字段，分区键 a 字段的值没有被更新。
+    指定 KeepShardingKey 参数：不保留更新规则中的分区键字段。只更新了非分区键 b 字段，分区键 a 字段的值没有被更新。
  
- ```lang-javascript
- > db.sample.employee.update( { $set: { a: 9, b: 9 } }, {}, {}, { KeepShardingKey: false } )
- {
-   "UpdatedNum": 1,
-   "ModifiedNum": 0,
-   "InsertedNum": 0
- }
- Takes 0.038184s.
- >
- > db.sample.employee.find()
- {
-   "_id": {
-     "$oid": "5c6f660ce700db6048677154"
-   },
-   "a": 1,
-   "b": 9
- }
- Return 1 row(s).
- Takes 0.006393s.
- ```
+    ```lang-javascript
+    > db.sample.employee.update( { $set: { a: 9, b: 9 } }, {}, {}, { KeepShardingKey: false } )
+    {
+      "UpdatedNum": 1,
+      "ModifiedNum": 0,
+      "InsertedNum": 0
+    }
+    > db.sample.employee.find()
+    {
+      "_id": {
+        "$oid": "5c6f660ce700db6048677154"
+      },
+      "a": 1,
+      "b": 9
+    }
+    Return 1 row(s).
+    ```
  
- 指定 KeepShardingKey 参数：保留更新规则中的分区键字段。因为目前不支持更新分区键，所以会报错。
+    指定 KeepShardingKey 参数：保留更新规则中的分区键字段。因为目前不支持更新分区键，所以会报错。
  
- ```lang-javascript
- > db.sample.employee.update( { $set: { a: 9 } }, {}, {}, { KeepShardingKey: true } )
- (nofile):0 uncaught exception: -178
- Sharding key cannot be updated
- Takes 0.002696s.
- ```
+    ```lang-javascript
+    > db.sample.employee.update( { $set: { a: 9 } }, {}, {}, { KeepShardingKey: true } )
+    (nofile):0 uncaught exception: -178
+    Sharding key cannot be updated
+    ```
 
 
 [^_^]:

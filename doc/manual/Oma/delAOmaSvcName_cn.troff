@@ -79,9 +79,12 @@ T}
 .PP
 v2.0及以上版本。
 .SH 示例
-.IP "1." 3
-将目标机器 sdbserver1 上 sdbcm 的服务端口号从其配置文件中删除。
-.RS 4
 .PP
-\f[C]lang\-javascript\ >\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )\ >\ oma.delAOmaSvcName(\ "sdbserver1")\f[]
-.RE
+将目标机器 sdbserver1 上 sdbcm 的服务端口号从其配置文件中删除。
+.IP
+.nf
+\f[C]
+>\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
+>\ oma.delAOmaSvcName(\ "sdbserver1")
+\f[]
+.fi

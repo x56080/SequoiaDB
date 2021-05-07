@@ -79,7 +79,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
 .PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.dropIndex("ageIndex")\f[]
+删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.dropIndex("ageIndex")
+\f[]
+.fi

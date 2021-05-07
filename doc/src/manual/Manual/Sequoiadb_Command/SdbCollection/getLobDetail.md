@@ -52,39 +52,39 @@ SdbCollection
 
 ##示例##
 
-* 列取 00005deb85c5350004743b09 的 lob 当前被访问的详细信息
+列取 00005deb85c5350004743b09 的 lob 当前被访问的详细信息
 
-   ```lang-javascript
-    > db.sample.employee.getLobDetail('00005deb85c5350004743b09')
-    {
-      "Oid": "00005deb85c5350004743b09",
-      "AccessInfo": {
-        "RefCount": 3,
-        "ReadCount": 0,
-        "WriteCount": 1,
-        "ShareReadCount": 2,
-        "LockSections": [
-          {
-            "Begin": 10,
-            "End": 30,
-            "LockType": "X",
-            "Contexts": [
-              11
-            ]
-          },
-          {
-            "Begin": 30,
-            "End": 50,
-            "LockType": "S",
-            "Contexts": [
-              12
-            ]
-          }
-        ]
-      },
-      "ContextID": 14
-    }
-   ```
+```lang-javascript
+ > db.sample.employee.getLobDetail('00005deb85c5350004743b09')
+ {
+   "Oid": "00005deb85c5350004743b09",
+   "AccessInfo": {
+     "RefCount": 3,
+     "ReadCount": 0,
+     "WriteCount": 1,
+     "ShareReadCount": 2,
+     "LockSections": [
+       {
+         "Begin": 10,
+         "End": 30,
+         "LockType": "X",
+         "Contexts": [
+           11
+         ]
+       },
+       {
+         "Begin": 30,
+         "End": 50,
+         "LockType": "S",
+         "Contexts": [
+           12
+         ]
+       }
+     ]
+   },
+   "ContextID": 14
+ }
+```
 
 [^_^]:
      本文使用的所有引用及链接

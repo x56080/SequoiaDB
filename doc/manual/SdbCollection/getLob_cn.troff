@@ -115,7 +115,11 @@ forced 默认为 false。
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-将标示符为 5435e7b69487faa663000897 的 lob 写入本地 /opt/newlob 文件
 .PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.getLob(\ \[aq]5435e7b69487faa663000897\[aq],\ \[aq]/opt/newlob\[aq]\ )\f[]
+将标示符为 5435e7b69487faa663000897 的 lob 写入本地 /opt/newlob 文件
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.getLob(\ \[aq]5435e7b69487faa663000897\[aq],\ \[aq]/opt/newlob\[aq]\ )
+\f[]
+.fi

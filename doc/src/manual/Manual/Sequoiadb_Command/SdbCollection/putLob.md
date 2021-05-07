@@ -39,26 +39,24 @@ v2.0 及以上版本
 
 * 创建集合空间与集合
 
- ```lang-javascript
- > db.createCS('sample' )
- > db.sample.createCL('employee')
- ```
+    ```lang-javascript
+    > db.createCS('sample' )
+    > db.sample.createCL('employee')
+    ```
 
 * 上传大对象文件 mylob.txt
 
- ```lang-javascript
- > db.sample.employee.putLob('/opt/mylob/mylob.txt')
- 0000604f989a390002db009e
- Takes 0.010776s.
- ```
+    ```lang-javascript
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt')
+    0000604f989a390002db009e
+    ```
 
 * 上传指定 oid 的大对象文件 mylob.txt
 
- ```lang-javascript
- > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
- 5bf3a024ed9954d596420256
- Takes 0.010756s.
- ```
+    ```lang-javascript
+    > db.sample.employee.putLob('/opt/mylob/mylob.txt', '5bf3a024ed9954d596420256')
+    5bf3a024ed9954d596420256
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

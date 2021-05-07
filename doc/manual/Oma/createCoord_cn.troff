@@ -179,14 +179,19 @@ T}
 .TE
 .PP
 当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。 可以参考常见错误处理指南了解更多内容。
+或通过getLastErrMsg()获取错误信息。
+.PP
+可以参考常见错误处理指南了解更多内容。
 .SH 版本
 .PP
 v2.0及以上版本。
 .SH 示例
-.IP "1." 3
-在本地创建一个端口号为11810的 coord 节点，将该节点关联到指定的 catalog 节点。
-.RS 4
 .PP
-\f[C]lang\-javascript\ >\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )\ >\ oma.createCoord(\ 11810,\ "/opt/sequoiadb/database/coord/11810",\ {\ catalogaddr:\ "ubuntu1:11823,\ ubuntu2:11823"\ }\ )\f[]
-.RE
+在本地创建一个端口号为11810的 coord 节点，将该节点关联到指定的 catalog 节点。
+.IP
+.nf
+\f[C]
+>\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
+>\ oma.createCoord(\ 11810,\ "/opt/sequoiadb/database/coord/11810",\ {\ catalogaddr:\ "ubuntu1:11823,\ ubuntu2:11823"\ }\ )
+\f[]
+.fi

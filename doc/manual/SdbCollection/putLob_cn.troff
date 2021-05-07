@@ -92,13 +92,34 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 创建集合空间与集合
-.PP
-\f[C]lang\-javascript\ \ >\ db.createCS(\[aq]sample\[aq]\ )\ \ >\ db.sample.createCL(\[aq]employee\[aq])\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.createCS(\[aq]sample\[aq]\ )
+>\ db.sample.createCL(\[aq]employee\[aq])
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 上传大对象文件 mylob.txt
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])\ \ 0000604f989a390002db009e\ \ Takes\ 0.010776s.\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
+0000604f989a390002db009e
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 上传指定 oid 的大对象文件 mylob.txt
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq],\ \[aq]5bf3a024ed9954d596420256\[aq])\ \ 5bf3a024ed9954d596420256\ \ Takes\ 0.010756s.\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq],\ \[aq]5bf3a024ed9954d596420256\[aq])
+5bf3a024ed9954d596420256
+\f[]
+.fi
+.RE

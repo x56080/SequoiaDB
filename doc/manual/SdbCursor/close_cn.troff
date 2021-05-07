@@ -31,22 +31,58 @@ SdbCursor
 v3.0 及以上版本
 .SH 示例
 .IP \[bu] 2
-插入10条记录
-.PP
-\f[C]lang\-javascript\ \ >\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {\ db.sample.employee.insert(\ {a:\ i}\ )\ }\f[]
+插入 10 条记录
+.RS 2
+.IP
+.nf
+\f[C]
+>\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {\ db.sample.employee.insert(\ {a:\ i}\ )\ }
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 查询集合 sample.employee 的所有记录
-.PP
-\f[C]lang\-javascript\ \ >\ var\ cur\ =\ db.sample.employee.find()\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ var\ cur\ =\ db.sample.employee.find()
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 使用游标取出一条记录
-.PP
-\f[C]lang\-javascript\ >\ cur.next()\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "53b3c2d7bb65d2f74c000000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 0\ \ }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ cur.next()
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "53b3c2d7bb65d2f74c000000"
+\ \ \ \ \ },
+\ \ \ \ \ "a":\ 0
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 关闭游标
-.PP
-\f[C]lang\-javascript\ >\ cur.close()\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ cur.close()
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 再次获取下一条记录，无结果返回
-.PP
-\f[C]lang\-javascript\ >\ cur.next()\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ cur.next()
+\f[]
+.fi
+.RE

@@ -235,7 +235,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-在主分区集合的指定区间下挂载子分区集合
 .PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.attachCL(\ "sample2.January",\ {\ LowBound:\ {\ date:\ "20130101"\ },\ UpBound:\ {\ date:\ "20130131"\ }\ }\ )\f[]
+在主分区集合的指定区间下挂载子分区集合
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.attachCL(\ "sample2.January",\ {\ LowBound:\ {\ date:\ "20130101"\ },\ UpBound:\ {\ date:\ "20130131"\ }\ }\ )
+\f[]
+.fi

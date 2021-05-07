@@ -50,9 +50,9 @@ v2.0及以上版本。
 
 ##示例##
 
-1. 将目标机器 sdbserver1 上 sdbcm 的服务端口号从其配置文件中删除。
+将目标机器 sdbserver1 上 sdbcm 的服务端口号从其配置文件中删除。
 
-	```lang-javascript
-	> var oma = new Oma( "sdbserver1", 11790 )
-	> oma.delAOmaSvcName( "sdbserver1")
- ```
+```lang-javascript
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.delAOmaSvcName( "sdbserver1")
+```

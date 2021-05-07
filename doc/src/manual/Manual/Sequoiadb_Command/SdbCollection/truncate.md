@@ -38,11 +38,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 我们在集合 sample.employee 中插入了普通数据和 LOB 数据。通过快照查看其数据页使用情况：
+1. 集合 sample.employee 中插入了普通数据和 LOB 数据，通过快照查看其数据页使用情况：
 
- ```lang-javascript
- > db.snapshot(SDB_SNAP_COLLECTIONS) ;
- {
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONS)
+    {
       "Name": "sample.employee",
       "Details": [
         {
@@ -65,19 +65,19 @@ v2.0 及以上版本
         }
       ]
     }
- ```
+    ```
 
-* 上例中可以看到其中数据页为33，索引页为7，LOB 页为36。下面执行 truncate 操作。
+2. 上例中可以看到其中数据页为33，索引页为7，LOB 页为36，下面执行 truncate 操作
 
- ```lang-javascript
- > db.sample.employee.truncate()
- ```
+    ```lang-javascript
+    > db.sample.employee.truncate()
+    ```
 
-* 再次通过快照查看数据页使用情况，可以查看除索引页为2（存储了索引的元数据信息）外，其余数据页已经全部被释放了。
+3. 再次通过快照查看数据页使用情况，可以查看除索引页为 2（存储了索引的元数据信息）外，其余数据页已经全部被释放了
 
- ```lang-javascript
- > db.snapshot(SDB_SNAP_COLLECTIONS) ;
- {
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_COLLECTIONS)
+    {
       "Name": "sample.employee",
       "Details": [
         {
@@ -100,7 +100,7 @@ v2.0 及以上版本
         }
       ]
     }
- ```
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

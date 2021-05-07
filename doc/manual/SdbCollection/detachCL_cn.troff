@@ -64,7 +64,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-从主分区集合中分离指定子分区
 .PP
-\f[C]lang\-javascript\ \ >\ db.sample.year.detachCL("sample2.January")\f[]
+从主分区集合中分离指定子分区
+.IP
+.nf
+\f[C]
+>\ db.sample.year.detachCL("sample2.January")
+\f[]
+.fi

@@ -66,27 +66,24 @@ v2.0 及以上版本
 
 * Hash 分区范围切分
 
- ```lang-javascript
- > db.sample.employee.splitAsync( "group1",  "group2", { Partition: 10 }, { Partition: 20 } )
- 3
- Takes 0.002565s.
- ```
+    ```lang-javascript
+    > db.sample.employee.splitAsync( "group1",  "group2", { Partition: 10 }, { Partition: 20 } )
+    3
+    ```
 
 * Range 分区范围切分
 
- ```lang-javascript
- > db.sample.employee.splitAsync( "group1",  "group2", { a: 10 },  { a: 10000 } )
- 2
- Takes 0.002765s.
- ```
+    ```lang-javascript
+    > db.sample.employee.splitAsync( "group1",  "group2", { a: 10 },  { a: 10000 } )
+    2
+    ```
 
 * 百分比切分
 
- ```lang-javascript
- > db.sample.employee.splitAsync( "group1",  "group2",  50 ) 
- 5
- Takes 0.002632s.
- ```
+    ```lang-javascript
+    > db.sample.employee.splitAsync( "group1",  "group2",  50 ) 
+    5
+    ```
 
 
 [^_^]:

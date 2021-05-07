@@ -467,38 +467,184 @@ v2.0 及以上版本
 参数的内容。如下操作等效于使用 update 方法，更新集合 employee 中的所有记录，使用
 \f[I]i\f[]\f[I]n\f[]\f[I]c\f[]\f[I]将\f[]\f[I]记\f[]\f[I]录\f[]\f[I]的\f[]\f[I]a\f[]\f[I]g\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]值\f[]\f[I]加\f[]1，\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]值\f[]\f[I]更\f[]\f[I]改\f[]\f[I]为\f[]“ \f[I]M\f[]\f[I]i\f[]\f[I]k\f[]\f[I]e\f[]” ，\f[I]对\f[]\f[I]不\f[]\f[I]存\f[]\f[I]在\f[]\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]的\f[]\f[I]记\f[]\f[I]录\f[]，set
 操作符会将 name 字段和其设定的值插入到记录中，可使用 find 方法查看更新结果。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ },\ $set:\ {\ name:\ "Mike"\ }\ }\ )\ \ {\ \ \ \ "UpdatedNum":\ 2,\ \ \ \ "ModifiedNum":\ 2,\ \ \ \ "InsertedNum":\ 0\ \ }\ \ >\ \ >\ db.sample.employee.find()\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "age":\ 11,\ \ \ \ \ \ \ "name":\ "Mike"\ \ }\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 10,\ \ \ \ \ \ \ "age":\ 22,\ \ \ \ \ \ \ "name":"Mike"\ \ }\ \ Return\ 2\ row(s).\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ },\ $set:\ {\ name:\ "Mike"\ }\ }\ )
+{
+\ \ "UpdatedNum":\ 2,
+\ \ "ModifiedNum":\ 2,
+\ \ "InsertedNum":\ 0
+}
+>
+>\ db.sample.employee.find()
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"
+\ \ \ \ \ },
+\ \ \ \ \ "age":\ 11,
+\ \ \ \ \ "name":\ "Mike"
+}
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
+\ \ \ \ \ },
+\ \ \ \ \ "a":\ 10,
+\ \ \ \ \ "age":\ 22,
+\ \ \ \ \ "name":"Mike"
+}
+Return\ 2\ row(s).
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 选择符合匹配条件的记录，对这些记录按更新规则更新，即设定 rule 和 cond
 参数。如下操作使用 $exists 匹配存在 type 字段的记录，使用 $inc 将这些记录的 age
 字段值加3。在上面给出的两条记录中，都没有 type 字段，此时，upsert
 操作会插入一条新的记录，新记录只有 _id 字段和 age 字段名，_id 字段值自动生成，而
 age 字段值为3。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 3\ }\ },\ {\ type:\ {\ $exists:\ 1\ }\ }\ )\ \ {\ \ \ \ "UpdatedNum":\ 0,\ \ \ \ "ModifiedNum":\ 0,\ \ \ \ "InsertedNum":\ 1\ \ }\ \ >\ \ >\ db.sample.employee.find()\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "age":\ 11,\ \ \ \ \ \ \ "name":\ "Mike"\ \ }\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 10,\ \ \ \ \ \ \ "age":\ 22,\ \ \ \ \ \ \ "name":"Mike"\ \ }\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516cfc334630a7f338c169b0"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "age":\ 3\ \ }\ \ Return\ 3\ row(s).\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 3\ }\ },\ {\ type:\ {\ $exists:\ 1\ }\ }\ )
+{
+\ \ "UpdatedNum":\ 0,
+\ \ "ModifiedNum":\ 0,
+\ \ "InsertedNum":\ 1
+}
+>
+>\ db.sample.employee.find()
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"
+\ \ \ \ \ },
+\ \ \ \ \ "age":\ 11,
+\ \ \ \ \ "name":\ "Mike"
+}
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
+\ \ \ \ \ },
+\ \ \ \ \ "a":\ 10,
+\ \ \ \ \ "age":\ 22,
+\ \ \ \ \ "name":"Mike"
+}
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516cfc334630a7f338c169b0"
+\ \ \ \ \ },
+\ \ \ \ \ "age":\ 3
+}
+Return\ 3\ row(s).
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 按访问计划更新记录，假设集合中存在指定的索引名 testIndex，此操作等效于使用
 update 方法，使用索引名为 testIndex 的索引访问集合 employee 中 age
 字段值大于20的记录，将这些记录的 age 字段名加1。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ "":\ "testIndex"\ }\ )\ \ {\ \ \ \ "UpdatedNum":\ 1,\ \ \ \ "ModifiedNum":\ 1,\ \ \ \ "InsertedNum":\ 0\ \ }\ \ >\ \ >\ db.sample.employee.find()\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "a":\ 10,\ \ \ \ \ \ \ "age":\ 23,\ \ \ \ \ \ \ "name":"Mike"\ \ }\ \ Return\ 1\ row(s).\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ "":\ "testIndex"\ }\ )
+{
+\ \ "UpdatedNum":\ 1,
+\ \ "ModifiedNum":\ 1,
+\ \ "InsertedNum":\ 0
+}
+>
+>\ db.sample.employee.find()
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
+\ \ \ \ \ },
+\ \ \ \ \ "a":\ 10,
+\ \ \ \ \ "age":\ 23,
+\ \ \ \ \ "name":"Mike"
+}
+Return\ 1\ row(s).
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 使用setOnInsert更新记录，由于集合 employee 中 age
 字段值大于30的记录为空，upsert在做插入操作时向插入的记录中追加字段{"name":"Mike"}。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 30\ }\ },\ {},\ {\ "name":\ "Mike"\ }\ )\ \ {\ \ \ \ "UpdatedNum":\ 0,\ \ \ \ "ModifiedNum":\ 0,\ \ \ \ "InsertedNum":\ 1\ \ }\ \ >\ \ >\ db.sample.employee.find(\ {\ "age"\ :\ 1,\ "name":\ "Mike"\ }\ )\ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "age":1,\ \ \ \ \ \ \ "name":"Mike"\ \ }\ \ \ Return\ 1\ row(s).\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 30\ }\ },\ {},\ {\ "name":\ "Mike"\ }\ )
+{
+\ \ "UpdatedNum":\ 0,
+\ \ "ModifiedNum":\ 0,
+\ \ "InsertedNum":\ 1
+}
+>
+>\ db.sample.employee.find(\ {\ "age"\ :\ 1,\ "name":\ "Mike"\ }\ )
+{
+\ \ \ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
+\ \ \ \ \ },
+\ \ \ \ \ "age":1,
+\ \ \ \ \ "name":"Mike"
+}\ 
+Return\ 1\ row(s).
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 分区集合 sample.employee，分区键为 { a: 1 }，含有以下记录
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.find()\ \ {\ \ \ \ "_id":\ {\ \ \ \ \ \ "$oid":\ "5c6f660ce700db6048677154"\ \ \ \ },\ \ \ \ "a":\ 1,\ \ \ \ "b":\ 1\ \ }\ \ Return\ 1\ row(s).\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.find()
+{
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
+\ \ },
+\ \ "a":\ 1,
+\ \ "b":\ 1
+}
+Return\ 1\ row(s).
+\f[]
+.fi
 .PP
 指定 KeepShardingKey 参数：不保留更新规则中的分区键字段。只更新了非分区键 b
 字段，分区键 a 字段的值没有被更新。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9,\ b:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ false\ }\ )\ \ {\ \ \ \ "UpdatedNum":\ 1,\ \ \ \ "ModifiedNum":\ 1,\ \ \ \ "InsertedNum":\ 0\ \ }\ \ >\ \ >\ db.sample.employee.find()\ \ {\ \ \ \ "_id":\ {\ \ \ \ \ \ "$oid":\ "5c6f660ce700db6048677154"\ \ \ \ },\ \ \ \ "a":\ 1,\ \ \ \ "b":\ 9\ \ }\ \ Return\ 1\ row(s).\f[]
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9,\ b:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ false\ }\ )
+{
+\ \ "UpdatedNum":\ 1,
+\ \ "ModifiedNum":\ 1,
+\ \ "InsertedNum":\ 0
+}
+>
+>\ db.sample.employee.find()
+{
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
+\ \ },
+\ \ "a":\ 1,
+\ \ "b":\ 9
+}
+Return\ 1\ row(s).
+\f[]
+.fi
 .PP
 指定 KeepShardingKey
 参数：保留更新规则中的分区键字段。因为目前不支持更新分区键，所以会报错。
-.PP
-\f[C]lang\-javascript\ \ >\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ true\ }\ )\ \ (nofile):0\ uncaught\ exception:\ \-178\ \ Sharding\ key\ cannot\ be\ updated\f[]
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ true\ }\ )
+(nofile):0\ uncaught\ exception:\ \-178
+Sharding\ key\ cannot\ be\ updated
+\f[]
+.fi
+.RE
