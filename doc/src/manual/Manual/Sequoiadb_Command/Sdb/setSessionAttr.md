@@ -16,26 +16,79 @@ Sdb
 
 ##参数##
 
-| 参数名    | 参数类型  | 描述          | 是否必填   |
-| --------- | --------- | ------------- | ---------- |
-| options   | Json 对象 | 会话属性选项  | 是         |
+options（ *object，必填* ）
 
-###options 格式###
+通过该参数可以设置会话的属性
 
-| 属性名 | 描述      | 格式      |
-| ------ | --------- | --------- |
-| PreferedInstance | 会话读操作优先选择的实例，取值列表："M"、"m"、"S"、"s"、"A"、"a"、1-255。可以使用数组指定多个取值。<br>"M", "m"：可读写实例（主实例）<br>"S", "s"：只读实例（备实例）<br>"A", "a"：任意实例<br>1-255：通过 instanceid 指定实例 ID  | ```PreferedInstance : "M"```<br>```PreferedInstance : [ 1, 10 ]``` |
-| PreferedInstanceMode | 指定会话当多个实例符合 PreferedInstance 的条件时的选择模式。<br>"random"：从候选的实例取值中随机选择。<br>"ordered"：从候选的实例取值中按照 PerferedInstance 的顺序进行选择。<br>PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 PreferedInstanceMode 取值无关。 | ```PreferedInstaceMode : "random"``` |
-| PreferedStrict   |  指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferedinstance 指定的 ID 中选取 |  ```PreferedStrict : true ``` |
-| PreferedPeriod   | 优先实例的有效周期，单位为秒。 | ```PreferedPeriod : 60``` |
-| Timeout | 指定会话执行操作的超时时间（单位：毫秒）。<br>-1 表示不进行超时检测。<br>最小值为 1000 毫秒。 | ```Timeout : 10000``` |
-| TransIsolation | 会话事务的隔离级别，0为RU级别，1为RC级别，2为RS级别。 | ```TransIsolation : 1``` |
-| TransTimeout   | 会话事务锁等待超时时间（单位：秒）。 | ```TransTimeout : 10``` |
-| TransLockWait  | 会话事务在 RC 隔离级别下是否需要等锁。 | ```TransLockWait : true``` |
-| TransUseRBS    | 会话事务是否使用回滚段。             | ```TransUseRBS : true``` |
-| TransAutoCommit| 会话事务是否支持自动事务提交。       | ```TransAutoCommit : true``` |
-| TransAutoRollback | 会话事务在操作失败时是否自动回滚。 | ```TransAutoRollback : true``` |
-| TransRCCount | 会话事务是否使用读已提交来处理 count() 查询。 | ```TransRCCount : true ``` |
+- PreferedInstance（ *string/array/number* ）：会话读操作优先选择的实例
+
+    用户可以使用数组指定多个取值，具体取值如下：
+    - "M", "m"：可读写实例（主实例）
+    - "S", "s"：只读实例（备实例）
+    - "A", "a"：任意实例
+    - 1-255：通过 instanceid 指定实例 ID
+
+    格式：`PreferedInstance : "M"` 或 `PreferedInstance : [ 1, 10 ]`
+
+- PreferedInstanceMode（ *string* ）：指定会话当多个实例符合 PreferedInstance 的条件时的选择模式
+
+    该参数取值如下：
+    - "random"：从候选的实例取值中随机选择
+    - "ordered"：从候选的实例取值中按照 PerferedInstance 的顺序进行选择
+    
+    PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 PreferedInstanceMode 取值无关。
+
+    格式：`PreferedInstaceMode : "random"`
+
+- PreferedStrict（ *boolean* ）：指定节点选择是否为严格模式
+
+    当指定为严格模式时，节点只能从 preferedinstance 指定的 ID 中选取。
+
+    格式：`PreferedStrict : true `
+
+- PreferedPeriod（ *number* ）：指定优先实例的有效周期，单位为秒
+
+    格式：`PreferedPeriod : 60`
+
+- Timeout（ *number* ）：指定会话执行操作的超时时间，单位为毫秒
+
+    该参数最小取值为 1000 毫秒；取值为 -1 表示不进行超时检测。
+
+    格式：`Timeout : 10000`
+
+- TransIsolation（ *number* ）：会话事务的隔离级别
+
+    该参数取值如下：
+    - 0：表示 RU 级别
+    - 1：表示 RR 级别
+    - 2：表示 RS 级别
+
+    格式：`TransIsolation : 1`
+
+- TransTimeout（ *number* ）：会话事务锁等待超时时间，单位为秒
+
+    格式：`TransTimeout : 10`
+
+- TransLockWait（ *boolean* ）：会话事务在 RC 隔离级别下是否需要等锁
+
+    格式：`TransLockWait : true`
+
+- TransUseRBS（ *boolean* ）：会话事务是否使用回滚段
+
+    格式：`TransUseRBS : true`
+
+- TransAutoCommit（ *boolean* ）：会话事务是否支持自动事务提交
+
+    格式：`TransAutoCommit : true`
+
+- TransAutoRollback（ *boolean* ）：会话事务在操作失败时是否自动回滚
+
+    格式：`TransAutoRollback : true`
+
+- TransRCCount（ *boolean* ）：会话事务是否使用读已提交来处理 count() 查询
+
+    格式：`TransRCCount : true`
+
 
 >   **Note:**
 >

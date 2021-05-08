@@ -17,321 +17,111 @@ Sdb
 该函数用于设置会话属性。
 .SH 参数
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-参数名
-T}@T{
-参数类型
-T}@T{
-描述
-T}@T{
-是否必填
-T}
-_
-T{
-1
-T}@T{
-options
-T}@T{
-Json 对象
-T}@T{
-会话属性选项
-T}@T{
-是
-T}
-.TE
-.SS options 格式
+options（ \f[I]object，必填\f[] ）
 .PP
-.TS
-tab(@);
-lw(3.5n) lw(6.1n) lw(8.8n) lw(8.8n).
-T{
-0
-T}@T{
-属性名
-T}@T{
-描述
-T}@T{
-格式
-T}
-_
-T{
-1
-T}@T{
-PreferedInstance
-T}@T{
-会话读操作优先
-T}@T{
-\f[C]PreferedInstance\ :\ "|\ |||选择的实例，取|M"\f[]\f[C]|\ |||值列表："M"、"m"|PreferedInstance\ :\ [\ 1,|\ |||、"S"、"s"、"A"、"a|\ 10\ ]\f[]
-T}
-T{
-T}@T{
-T}@T{
-"、1\-255。可以使
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-用数组指定多个
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-取值。"M", "m"
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-：可读写实例（
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-主实例）"S", "s
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-"：只读实例（备
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-实例）"A", "a"
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-：任意实例
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-1\-255：通过
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-instanceid 指定实例
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-ID
-T}@T{
-T}
-T{
-2
-T}@T{
-PreferedInstanceMode
-T}@T{
-指定会话当多个
-T}@T{
-\f[C]PreferedInstaceMode\ |\ |||实例符合\ |:\ "random"\f[]
-T}
-T{
-T}@T{
-T}@T{
-PreferedInstance 的条
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-件时的选择模式。
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-"random"：从候
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-选的实例取值中
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-随机选择。"
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-ordered"：从候选的
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-实例取值中按照
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-PerferedInstance 的顺
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-序进行选择。
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-PreferedInstance 中的
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-角色取值，根据
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-规则选择时优于
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-或者次于实例取
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-值，与
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-PreferedInstanceMode
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-取值无关。
-T}@T{
-T}
-T{
-3
-T}@T{
-PreferedStrict
-T}@T{
-指定节点选择是
-T}@T{
-\f[C]PreferedStrict\ :\ |\ |||否为严格模式，|true\f[]
-T}
-T{
-T}@T{
-T}@T{
-当为严格模式时，
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-节点只能从
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-preferedinstance 指定
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-的 ID 中选取
-T}@T{
-T}
-T{
-4
-T}@T{
-PreferedPeriod
-T}@T{
-优先实例的有效
-T}@T{
-\f[C]PreferedPeriod\ :\ 60`|\ |||周期，单位为秒。|``|\ |5|Timeout|指定会话执行操|\f[]Timeout
-:
-10000\f[C]|\ |||作的超时时间（||\ |||单位：毫秒）。<||\ |||br>\-1\ 表示不进行||\ |||超时检测。<br>最||\ |||小值为\ 1000\ 毫秒。||\ |6|TransIsolation|会话事务的隔离|\f[]TransIsolation
-:
-1\f[C]|\ |||级别，0为RU级别，|`|\ |||1为RC级别，2为RS||\ |||级别。||\ |7|TransTimeout|会话事务锁等待|```TransTimeout\ :\ 10```|\ |||超时时间（单位||\ |||：秒）。||\ |8|TransLockWait|会话事务在\ RC\ 隔|```TransLockWait\ :\ true|\ |||离级别下是否需|```|\ |||要等锁。||\ |9|TransUseRBS|会话事务是否使|```TransUseRBS\ :\ true\f[]
-T}
-T{
-T}@T{
-T}@T{
-用回滚段。
-T}@T{
-`
-T}
-T{
-10
-T}@T{
-TransAutoCommit
-T}@T{
-会话事务是否支
-T}@T{
-\f[C]TransAutoCommit\ :\ |\ |||持自动事务提交。|true\f[]
-T}
-T{
-11
-T}@T{
-TransAutoRollback
-T}@T{
-会话事务在操作
-T}@T{
-\f[C]TransAutoRollback\ :\ |\ |||失败时是否自动|true\f[]
-T}
-T{
-T}@T{
-T}@T{
-回滚。
-T}@T{
-T}
-T{
-12
-T}@T{
-TransRCCount
-T}@T{
-会话事务是否使
-T}@T{
-\f[C]TransRCCount\ :\ true\ |\ |||用读已提交来处|\f[]
-T}
-T{
-T}@T{
-T}@T{
-理 count() 查询。
-T}@T{
-T}
-.TE
+通过该参数可以设置会话的属性
+.IP \[bu] 2
+PreferedInstance（ \f[I]string/array/number\f[] ）：会话读操作优先选择的实例
+.RS 2
+用户可以使用数组指定多个取值，具体取值如下：
+.IP \[bu] 2
+"M", "m"：可读写实例（主实例）
+.IP \[bu] 2
+"S", "s"：只读实例（备实例）
+.IP \[bu] 2
+"A", "a"：任意实例
+.IP \[bu] 2
+1\-255：通过 instanceid 指定实例 ID
+.PP
+格式：\f[C]PreferedInstance\ :\ "M"\f[] 或
+\f[C]PreferedInstance\ :\ [\ 1,\ 10\ ]\f[]
+.RE
+.IP \[bu] 2
+PreferedInstanceMode（ \f[I]string\f[] ）：指定会话当多个实例符合
+PreferedInstance 的条件时的选择模式
+.RS 2
+该参数取值如下：
+.IP \[bu] 2
+"random"：从候选的实例取值中随机选择
+.IP \[bu] 2
+"ordered"：从候选的实例取值中按照 PerferedInstance 的顺序进行选择
+.PP
+PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与
+PreferedInstanceMode 取值无关。
+.PP
+格式：\f[C]PreferedInstaceMode\ :\ "random"\f[]
+.RE
+.IP \[bu] 2
+PreferedStrict（ \f[I]boolean\f[] ）：指定节点选择是否为严格模式
+.RS 2
+.PP
+当指定为严格模式时，节点只能从 preferedinstance 指定的 ID 中选取。
+.PP
+格式：\f[C]PreferedStrict\ :\ true\f[]
+.RE
+.IP \[bu] 2
+PreferedPeriod（ \f[I]number\f[] ）：指定优先实例的有效周期，单位为秒
+.RS 2
+.PP
+格式：\f[C]PreferedPeriod\ :\ 60\f[]
+.RE
+.IP \[bu] 2
+Timeout（ \f[I]number\f[] ）：指定会话执行操作的超时时间，单位为毫秒
+.RS 2
+.PP
+该参数最小取值为 1000 毫秒；取值为 \-1 表示不进行超时检测。
+.PP
+格式：\f[C]Timeout\ :\ 10000\f[]
+.RE
+.IP \[bu] 2
+TransIsolation（ \f[I]number\f[] ）：会话事务的隔离级别
+.RS 2
+该参数取值如下：
+.IP \[bu] 2
+0：表示 RU 级别
+.IP \[bu] 2
+1：表示 RR 级别
+.IP \[bu] 2
+2：表示 RS 级别
+.PP
+格式：\f[C]TransIsolation\ :\ 1\f[]
+.RE
+.IP \[bu] 2
+TransTimeout（ \f[I]number\f[] ）：会话事务锁等待超时时间，单位为秒
+.RS 2
+.PP
+格式：\f[C]TransTimeout\ :\ 10\f[]
+.RE
+.IP \[bu] 2
+TransLockWait（ \f[I]boolean\f[] ）：会话事务在 RC 隔离级别下是否需要等锁
+.RS 2
+.PP
+格式：\f[C]TransLockWait\ :\ true\f[]
+.RE
+.IP \[bu] 2
+TransUseRBS（ \f[I]boolean\f[] ）：会话事务是否使用回滚段
+.RS 2
+.PP
+格式：\f[C]TransUseRBS\ :\ true\f[]
+.RE
+.IP \[bu] 2
+TransAutoCommit（ \f[I]boolean\f[] ）：会话事务是否支持自动事务提交
+.RS 2
+.PP
+格式：\f[C]TransAutoCommit\ :\ true\f[]
+.RE
+.IP \[bu] 2
+TransAutoRollback（ \f[I]boolean\f[] ）：会话事务在操作失败时是否自动回滚
+.RS 2
+.PP
+格式：\f[C]TransAutoRollback\ :\ true\f[]
+.RE
+.IP \[bu] 2
+TransRCCount（ \f[I]boolean\f[] ）：会话事务是否使用读已提交来处理 count() 查询
+.RS 2
+.PP
+格式：\f[C]TransRCCount\ :\ true\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]
