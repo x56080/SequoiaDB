@@ -124,6 +124,16 @@ s3is.close();
 fos.close();
 ```
 
+复制对象
+----
+
+复制源对象到目标对象
+
+```lang-java
+CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceObject, destBucket, destObject);
+CopyObjectResult result = s3.copyObject(request);
+```
+
 获取指定版本的对象
 ----
 

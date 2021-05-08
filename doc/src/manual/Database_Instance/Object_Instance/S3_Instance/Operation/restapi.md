@@ -1825,7 +1825,7 @@ Date: date
 **请求语法**
 
 ```lang-rest
-POST /users/?Action=CreateUser&UserName=username&role=admin HTTP/1.1 
+POST /users/?Action=CreateUser&UserName=username&Role=admin HTTP/1.1 
 Host: ip:port
 Date: date 
 Authorization: authorization string
