@@ -644,6 +644,7 @@
 #define FIELD_NAME_ERRORCTLLEVEL             "ErrorControlLevel"
 #define FIELD_NAME_ERRORFILTERMASK           "ErrorFilterMask"
 #define FIELD_NAME_ERRORFILTERMASK_DESC      "ErrorFilterMaskDesc"
+#define FIELD_NAME_MESSAGE                   "Message"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -895,6 +896,7 @@
 #define CMD_NAME_STP_REELECT              CMD_NAME_STP_PREFIX "reelect"
 #define CMD_NAME_STP_CONV_TIME            CMD_NAME_STP_PREFIX "conv time"
 #define CMD_NAME_STP_GET_TIME_MAP         CMD_NAME_STP_PREFIX "get time map"
+#define CMD_NAME_STP_MSG                  CMD_NAME_STP_PREFIX "msg"
 
 #define CMD_VALUE_NAME_SET_CURR_VALUE        "set current value"
 #define CMD_VALUE_NAME_RENAME                "rename"

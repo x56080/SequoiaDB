@@ -1118,6 +1118,8 @@ namespace engine
          }
          else if ( _stpCB->isSecondaryServer() )
          {
+            PD_LOG( PDDEBUG, "Reelect target, set max weight" ) ;
+
             // it is not primary yet, set shadow weight to maximum
             _stpCB->getReplManager()->getVoteMachine()->
                   setShadowWeight( CLS_ELECTION_WEIGHT_MAX ) ;
@@ -1606,6 +1608,71 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   /*
+      _stpMsgCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpMsgCMD )
+
+   _stpMsgCMD::_stpMsgCMD( STPCB *stpCB )
+   : stpCommand( stpCB )
+   {
+   }
+
+   _stpMsgCMD::~_stpMsgCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMSGCMD_INITIALIZE, "_stpMsgCMD::initialize" )
+   INT32 _stpMsgCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMSGCMD_INITIALIZE ) ;
+
+      try
+      {
+         BSONObj boOption( option ) ;
+         BSONElement element = boOption.getField( FIELD_NAME_MESSAGE ) ;
+         PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], it is not a string",
+                   FIELD_NAME_MESSAGE ) ;
+         _message.assign( element.valuestr() ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse option for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMSGCMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMSGCMD_DOIT, "_stpMsgCMD::doit" )
+   INT32 _stpMsgCMD::doit( stpSession *session,
+                           MsgHeader *message,
+                           BSONObj &result,
+                           BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMSGCMD_DOIT ) ;
+
+      PD_LOG( getPDLevel(), "%s", _message.c_str() ) ;
+
+      finished = TRUE ;
+
+      PD_TRACE_EXITRC( SDB__STPMSGCMD_DOIT, rc ) ;
+
+      return rc ;
    }
 
 }

@@ -968,6 +968,21 @@ Stp.prototype.getTimeMap = function( option ) {
    return this._runCommand( "stp get time map", option ) ;
 }
 
+Stp.prototype.msg = function( message ) {
+   if ( undefined === message )
+   {
+      setLastErrMsg( "message is not given" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   else if ( "string" != typeof( message ) )
+   {
+      setLastErrMsg( "message should be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   var option = { "Message" : message } ;
+   this._runCommand( "stp msg", option ) ;
+}
+
 // end Stp
 
 // _Filter member function
