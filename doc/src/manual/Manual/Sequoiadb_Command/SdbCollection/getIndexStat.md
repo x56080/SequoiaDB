@@ -80,7 +80,7 @@ v3.4.2 及以上版本
 
 [^_^]:
     本文使用的引用及链接
-[INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
+[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
 [analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
