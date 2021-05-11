@@ -304,7 +304,7 @@ TEST_F( indexcoverTest, keya__null__a_include__null___false )
 {
    hint = BSON(""<< "a") ;
    select = BSON("a" << BSON("$include" << 1 ) );
-   indexCoverCheck( matcherNull, select, orderbyNull, hint,FALSE ) ;
+   indexCoverCheck( matcherNull, select, orderbyNull, hint,TRUE ) ;
 }
 
 // sdbshell run find( { },{ a: { $include:0 },a:"" } ).hint({"":"a"})
@@ -430,7 +430,7 @@ TEST_F( indexcoverTest, keyab__NULL__a_include__NULL___false )
 {
    hint = BSON(""<< "ab") ;
    select = BSON("a" << BSON("$include" << 1 ) );
-   indexCoverCheck( matcherNull, select, orderbyNull, hint,FALSE ) ;
+   indexCoverCheck( matcherNull, select, orderbyNull, hint,TRUE ) ;
 }
 
 TEST_F( indexcoverTest, keyab__a__a__NULL___true )
@@ -531,7 +531,7 @@ TEST_F( indexcoverTest, keyab__a$et__a__b___false )
    matcher = BSON("a" << BSON("$et" << 2) );
    select = BSON("a" << "" );
    orderby = BSON("b" << 1 );
-   indexCoverCheck( matcher, select, orderby, hint,FALSE ) ;
+   indexCoverCheck( matcher, select, orderby, hint,TRUE ) ;
 }
 
 TEST_F( indexcoverTest, keyab__a__a__b___false )
@@ -540,7 +540,7 @@ TEST_F( indexcoverTest, keyab__a__a__b___false )
    matcher = BSON("a" <<1 );
    select = BSON("a" << "" );
    orderby = BSON("b" << 1 );
-   indexCoverCheck( matcher, select, orderby, hint,FALSE ) ;
+   indexCoverCheck( matcher, select, orderby, hint,TRUE ) ;
 }
 
 TEST_F( indexcoverTest, keyab__a__b__b___true )
@@ -558,7 +558,7 @@ TEST_F( indexcoverTest, keyab__a__a__ab___false )
    matcher = BSON("a" <<1 );
    select = BSON("a" << "" );
    orderby = BSON("a" << 1 << "b" << 1 );
-   indexCoverCheck( matcher, select, orderby, hint,FALSE ) ;
+   indexCoverCheck( matcher, select, orderby, hint,TRUE ) ;
 }
 
 TEST_F( indexcoverTest, keyab__a__ab__b___true )

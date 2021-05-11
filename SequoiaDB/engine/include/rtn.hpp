@@ -610,9 +610,14 @@ namespace engine
                      SDB_RTNCB *rtnCB, INT64 &contextID,
                      rtnContextBase **ppContext = NULL ) ;
 
-   void rtnNeedResetSelector( const BSONObj &original,
+   void rtnGetMergedSelector( const BSONObj &original,
                               const BSONObj &orderBy,
-                              BOOLEAN &needReset ) ;
+                              BOOLEAN &needReset,
+                              BSONObj *mergedSelect = NULL ) ;
+
+   BOOLEAN rtnMergeSelector( BSONObjBuilder &builder,
+                             const BSONObj &select,
+                             BSONObj &mergedSelect ) ;
 
    /*
       syncType: =0 ->FALSE, >0 ->TRUE, <0 -> Use system config

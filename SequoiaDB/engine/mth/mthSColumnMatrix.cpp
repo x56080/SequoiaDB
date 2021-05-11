@@ -101,7 +101,11 @@ namespace engine
 
             if( NULL != pSelectSet )
             {
-               if( Object == e.type() )
+               static BSONObj objInclude = BSON( "$include" << 1 ) ;
+               // field is object and is not include, clear pSelectSet
+               // then follow proccess will set indexCover to FALSE if pSelectSet is empty
+               if( Object == e.type() &&
+                   !e.embeddedObject().shallowEqual( objInclude ) )
                {
                   pSelectSet->clear() ;
                   kownedType = FALSE ;

@@ -191,8 +191,11 @@ namespace bson {
        BSONObjIterator i(*this);
        while ( i.more() ) {
            BSONElement e = i.next();
-           if ( strncmp(e.fieldName(), name.data(), name.size()) == 0 )
+           const char *p = e.fieldName();
+           if ( strncmp(p, name.data(), name.size()) == 0 &&
+                '\0' == p[name.size()] ) {
                return e;
+           }
        }
        return BSONElement();
     }

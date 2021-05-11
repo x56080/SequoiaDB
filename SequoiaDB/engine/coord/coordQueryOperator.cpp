@@ -895,6 +895,7 @@ namespace engine
          else
          {
             BOOLEAN needResetSubQuery = FALSE ;
+            BSONObj mergedSelect ;
             rtnQueryOptions options ;
 
             if ( FLG_QUERY_STRINGOUT & pQueryMsg->flags )
@@ -903,14 +904,14 @@ namespace engine
             }
             else
             {
-               rtnNeedResetSelector( objSelector, objOrderby, needResetSubQuery ) ;
+               rtnGetMergedSelector( objSelector, objOrderby,
+                                     needResetSubQuery, &mergedSelect ) ;
             }
 
             // build new selector
             if ( needResetSubQuery )
             {
-               static BSONObj emptyObj = BSONObj() ;
-               rc = _buildNewMsg( (const CHAR*)pMsg, &emptyObj, NULL,
+               rc = _buildNewMsg( (const CHAR*)pMsg, &mergedSelect, NULL,
                                   pNewMsg, newMsgSize, cb ) ;
                if ( SDB_OK != rc )
                {

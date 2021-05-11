@@ -854,6 +854,7 @@ namespace engine
       INT64 contextID = -1 ;
       rtnContextCoord *pTmpContext = NULL ;
       BOOLEAN needReset = FALSE ;
+      BSONObj mergedSelect ;
 
       /// 1. extrace msg
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
@@ -1033,11 +1034,11 @@ namespace engine
             }
 
             // build new selector
-            rtnNeedResetSelector( srcSelector, queryOption.getOrderBy(),
-                                  needReset ) ;
+            rtnGetMergedSelector( srcSelector, queryOption.getOrderBy(),
+                                  needReset, &mergedSelect ) ;
             if ( needReset )
             {
-               queryOption.setSelector( BSONObj() ) ;
+               queryOption.setSelector( mergedSelect ) ;
             }
 
             contextOptions = queryOption ;

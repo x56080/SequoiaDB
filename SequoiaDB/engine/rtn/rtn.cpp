@@ -1808,62 +1808,137 @@ namespace engine
       return hasExclude ;
    }
 
-   void rtnNeedResetSelector( const BSONObj &original,
+   void rtnGetMergedSelector( const BSONObj &original,
                               const BSONObj &orderBy,
-                              BOOLEAN &needReset )
+                              BOOLEAN &needReset,
+                              BSONObj *mergedSelect )
    {
+      BSONObjBuilder builder ;
+      BSONObjIterator itr( orderBy ) ;
+
       needReset = FALSE ;
-      if ( !original.isEmpty() &&
-           !orderBy.isEmpty() )
+
+      if( original.isEmpty() || orderBy.isEmpty() )
       {
-         BSONObjIterator itr( orderBy ) ;
-         while ( itr.more() )
+         goto done ;
+      }
+
+      while ( itr.more() )
+      {
+         /// find({}, {a:null}).sort({a.b:1})
+         /// we do not want to clear it's selector when
+         /// query is like above. --yunwu
+         BSONElement ele = itr.next() ;
+         const CHAR *fieldName = ele.fieldName() ;
+         BSONElement select = original.getField( fieldName ) ;
+         if ( EOO == select.type() )
          {
-            /// find({}, {a:null}).sort({a.b:1})
-            /// we do not want to clear it's selector when
-            /// query is like above. --yunwu
-            BSONElement ele = itr.next() ;
-            const CHAR *fieldName = ele.fieldName() ;
-            BSONElement select = original.getField( fieldName ) ;
-            if ( EOO == select.type() )
+            const CHAR * subField = fieldName ;
+            while ( TRUE )
             {
-               const CHAR * subField = fieldName ;
-               while ( TRUE )
+               CHAR * c = (CHAR *)ossStrchr( subField, '.' ) ;
+               if ( NULL == c )
                {
-                  CHAR * c = (CHAR *)ossStrchr( subField, '.' ) ;
-                  if ( NULL == c )
+                  needReset = TRUE ;
+
+                  if( NULL == mergedSelect )
                   {
-                     needReset = TRUE ;
-                     break ;
+                     goto done ;
                   }
 
-                  *c = '\0' ;
-                  BSONElement select = original.getField( fieldName ) ;
-                  *c = '.' ;
-                  if ( EOO != select.type() )
+                  try
                   {
-                     if ( _rtnCheckExcludeSelector( select ) )
-                     {
-                        needReset = TRUE ;
-                     }
-                     break ;
+                     BSONObjBuilder sub( builder.subobjStart( ele.fieldName() ) ) ;
+                     sub.append( "$include", 1 ) ;
+                     sub.done() ;
                   }
-                  subField = (const CHAR *)( c + 1 ) ;
-               }
-               if ( needReset )
-               {
+                  catch ( std::exception &e )
+                  {
+                     PD_LOG( PDWARNING, "Append sort field to merge builder Occur exception: %s",
+                             e.what() ) ;
+                     builder.reset() ;
+                     goto error ;
+                  }
+                  // continue to merge next sort filed
                   break ;
                }
+
+               StringData name( fieldName, c - fieldName ) ;
+               BSONElement select = original.getField( name ) ;
+
+               if ( EOO != select.type() )
+               {
+                  if ( _rtnCheckExcludeSelector( select ) )
+                  {
+                     needReset = TRUE ;
+                     builder.reset() ;
+                     goto done ;
+                  }
+                  break ;
+               }
+               else
+               {
+                  subField = (const CHAR *)( c + 1 ) ;
+               }
             }
-            else if ( _rtnCheckExcludeSelector( select ) )
-            {
-               needReset = TRUE ;
-               break ;
-            }
+         }
+         else if ( _rtnCheckExcludeSelector( select ) )
+         {
+            needReset = TRUE ;
+            builder.reset() ;
+            goto done ;
          }
       }
 
+   done:
+      if( !builder.isEmpty() && mergedSelect )
+      {
+         // if merged failed then set mergedSelect to empty
+         if( !rtnMergeSelector( builder, original, *mergedSelect ) )
+         {
+            *mergedSelect = BSONObj() ;
+         }
+      }
       return ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN rtnMergeSelector( BSONObjBuilder &builder,
+                             const BSONObj &select,
+                             BSONObj &mergedSelect )
+   {
+      BOOLEAN rc = FALSE ;
+      try
+      {
+         BSONObjIterator itr( select ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            static BSONObj objInclude = BSON( "$include" << 1 ) ;
+            if( Object == ele.type() &&
+                !ele.embeddedObject().shallowEqual( objInclude ) )
+            {
+               //field is object and is not include, no need set merged select
+               goto done ;
+            }
+            builder.append( ele ) ;
+         }
+         mergedSelect = builder.obj() ;
+         rc = TRUE ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Append select to merge builder Occur exception: %s",
+                  e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSYNCDB, "rtnSyncDB" )
