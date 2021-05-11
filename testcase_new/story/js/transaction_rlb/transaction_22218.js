@@ -5,7 +5,15 @@
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 
-var group = commGetGroups( db )[0];
+var groups = commGetGroups( db );
+for( var i = 0; i < groups.length; i++ )
+{
+   var group = groups[i];
+   if( group.length > 2 )
+   {
+      break;
+   }
+}
 var groupName = group[0].GroupName;
 var rg = db.getRG( groupName );
 var primaryPos = group[0].PrimaryPos;
@@ -21,29 +29,29 @@ main( test );
 
 function test ( testPara )
 {
-    db.transBegin();
-    try
-    {
-        slaveNode.stop();
-        testPara.testCL.insert( { a: 1 } );
-        throw new Error( "need throw error: SDB_CLS_NODE_NOT_ENOUGH" );
-    } catch( e )
-    {
-        if( SDB_CLS_NODE_NOT_ENOUGH != parseInt( e.message ) )
-        {
-            println( "e:" + e );
-            throw e;
-        }
+   db.transBegin();
+   try
+   {
+      slaveNode.stop();
+      testPara.testCL.insert( { a: 1 } );
+      throw new Error( "need throw error: SDB_CLS_NODE_NOT_ENOUGH" );
+   } catch( e )
+   {
+      if( SDB_CLS_NODE_NOT_ENOUGH != parseInt( e.message ) )
+      {
+         println( "e:" + e );
+         throw e;
+      }
 
-    } finally
-    {
-        slaveNode.start();
-        db.transRollback();
-    }
+   } finally
+   {
+      slaveNode.start();
+      db.transRollback();
+   }
 
-    checkGroupBusiness( 120, COMMCSNAME, testConf.clName );
+   checkGroupBusiness( 120, COMMCSNAME, testConf.clName );
 
-    var cursor = testPara.testCL.find();
-    commCompareResults( cursor, [] );
+   var cursor = testPara.testCL.find();
+   commCompareResults( cursor, [] );
 }
 

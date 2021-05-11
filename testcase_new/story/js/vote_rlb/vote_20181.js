@@ -10,7 +10,7 @@ main( test );
 function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
-   if( groups.length === 0 )
+   if( groups.length < 2 )
    {
       return;
    }
