@@ -158,3 +158,28 @@ function checkIndexCover ( explain, expResult )
       assert.equal( expResult, actResult );
    }
 }
+
+function getConfig ( rgName, fieldName )
+{
+   var master = db.getRG( rgName ).getMaster();
+   var mstHostName = master.getHostName();
+   var mstSvcName = master.getServiceName();
+   var nodeName = mstHostName + ":" + mstSvcName;
+   var fieldValue = "";
+   if( fieldName === "indexcoveron" )
+   {
+      var cursor = db.snapshot( SDB_SNAP_CONFIGS, { NodeName: nodeName }, { indexcoveron: "" } );
+      fieldValue = cursor.next().toObj().indexcoveron;
+   }
+   else if( fieldName === "mvccon" )
+   {
+      var cursor = db.snapshot( SDB_SNAP_CONFIGS, { NodeName: nodeName }, { mvccon: "" } );
+      fieldValue = cursor.next().toObj().mvccon;
+   }
+   else if( fieldName === "transisolation" )
+   {
+      var cursor = db.snapshot( SDB_SNAP_CONFIGS, { NodeName: nodeName }, { transisolation: "" } );
+      fieldValue = cursor.next().toObj().transisolation;
+   }
+   return fieldValue;
+}
