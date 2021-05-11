@@ -933,43 +933,11 @@ namespace engine
 
       try
       {
-         BSONObj record ;
-         rc = catCheckCollectionExist( _name, exist, record, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Check collection[%s] existence failed[%d]",
+         BSONObj collection ;
+         rc = catGetAndLockCollection ( _name, collection, cb, NULL, SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "cat get collection[%s] failed[%d]",
                       _name, rc ) ;
-         if ( !exist )
-         {
-            // Need to check if it's in pure mapping cs.
-            BSONObj dummyObj ;
-            BSONObj csMetaRecord ;
-            BSONObj matcher ;
-            CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-            const CHAR *dot = ossStrchr( _name, '.' ) ;
-            SDB_ASSERT( dot, "The name is not a full name" ) ;
-            ossStrncpy( csName, _name, dot - _name ) ;
-
-            matcher = BSON( FIELD_NAME_NAME << csName ) ;
-            rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummyObj,
-                               matcher, dummyObj, cb, csMetaRecord ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               // For compatible reason, return SDB_DMS_NOTEXIST instead of
-               // SDB_DMS_CS_NOTEXIST.
-               rc = SDB_DMS_NOTEXIST ;
-               goto error ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Get collection space[%s] metadata from "
-                                "SYSCOLLECTIONSPACES failed[%d]", csName, rc ) ;
-               goto error ;
-            }
-            if ( !csMetaRecord.hasField( FIELD_NAME_DATASOURCE_ID ) )
-            {
-               rc = SDB_DMS_NOTEXIST ;
-            }
-            goto done ;
-         }
+         ctxBuf = rtnContextBuf( collection ) ;
       }
       catch ( std::exception &e )
       {

@@ -547,6 +547,7 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 // catalog version value define
    #define CATALOG_INVALID_VERSION      0
    #define CATALOG_DEFAULT_VERSION      1
+   #define CATALOG_NO_CHECK_VERSION    -1
 
 struct _MsgPacketReq
 {
@@ -729,6 +730,8 @@ struct _MsgOpReply
    //    RTN_CTX_PROCESSOR_END, it is the type of data dispatcher which is
    //    used to process "this" reply
    // 4. DDL reply, startFrom might be the new sdb metadata version
+   // 5. test collection cata reply to coord success,
+   //    startFrom might be the collection metadata version
    SINT32    startFrom ;
    // 40-43 bytes
    SINT32    numReturned ;// number of records returned in the reply

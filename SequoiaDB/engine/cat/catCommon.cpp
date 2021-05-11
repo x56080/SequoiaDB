@@ -6326,6 +6326,7 @@ namespace engine
                         DMS_COLLECTION_FULL_NAME_SZ ) ;
             grpList.push_back( SDB_DSID_2_GROUPID( dsID ) ) ;
             clInfo._dsUID = dsID ;
+            clInfo._version = CATALOG_NO_CHECK_VERSION ;
 
             rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpList,
                                         splitList, catalog, 1 ) ;

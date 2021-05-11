@@ -26,7 +26,7 @@ using namespace std ;
 #define FIELD_NAME_CHECK_CLIENT_CATA_VERSION "CheckClientCataVersion"
 #define SDB_ALTER_VERSION                     1
 
-#define CATALOG_INVALID_CHECK_VERSION        -1
+#define CATALOG_INVALID_CHECK_VERSION        -2
 
 
 class clVersionCheckTest : public testing::Test

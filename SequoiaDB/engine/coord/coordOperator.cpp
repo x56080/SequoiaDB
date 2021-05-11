@@ -466,7 +466,8 @@ namespace engine
          goto done;
       }
 
-      if( CATALOG_INVALID_VERSION == clientVer )
+      if( CATALOG_INVALID_VERSION == clientVer ||
+          CATALOG_NO_CHECK_VERSION == clientVer )
       {
          // no need  check
          goto done;

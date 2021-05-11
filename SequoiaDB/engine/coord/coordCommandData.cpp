@@ -1059,6 +1059,7 @@ namespace engine
                                            rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
+      rtnContextCoord *pContext = NULL ;
       PD_TRACE_ENTRY ( COORD_CMD_TESTCL_EXE ) ;
 
       contextID  = -1 ;
@@ -1066,7 +1067,7 @@ namespace engine
       // In early versions, test collection is done by a list command. Now we
       // first try with test command. If it failed with error of unknow nessage
       // (maybe the catalogue is old version), then try in the old way.
-      rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, NULL, NULL ) ;
+      rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, &pContext, NULL ) ;
       if ( rc )
       {
          if ( SDB_INVALIDARG == rc )
@@ -1078,8 +1079,53 @@ namespace engine
             goto error ;
          }
       }
+      else if( pContext )
+      {
+         try
+         {
+            rtnContextBuf buffObj ;
+            rc = pContext->getMore( -1, buffObj, cb ) ;
+            if ( rc )
+            {
+               if ( SDB_DMS_EOC == rc )
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG ( PDWARNING, "Test collection doesn't exist" ) ;
+               }
+               else
+               {
+                  PD_LOG ( PDERROR, "Test collection get more failed, rc: %d", rc ) ;
+               }
+            }
+            else
+            {
+               BSONObj obj = BSONObj( buffObj.data() ) ;
+               BSONElement ele = obj.getField( FIELD_NAME_VERSION ) ;
+               if( NumberInt == ele.type() || NumberLong == ele.type() )
+               {
+                  buf->setStartFrom( ele.numberInt() ) ;
+               }
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e )  ;
+            PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         SDB_ASSERT( NULL != pContext, "context should not be NULL" ) ;
+      }
 
    done:
+      if ( pContext )
+      {
+         INT64 delContextID = pContext->contextID() ;
+         pmdGetKRCB()->getRTNCB()->contextDelete( delContextID, cb ) ;
+         pContext = NULL ;
+      }
       PD_TRACE_EXITRC ( COORD_CMD_TESTCL_EXE, rc ) ;
       return rc ;
    error:
