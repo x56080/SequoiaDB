@@ -60,6 +60,7 @@ final class SdbConstants {
     final static String SDB_ALTER_CL = "collection";
     final static String SDB_ALTER_CS = "collection space";
     final static String SDB_ALTER_DOMAIN = "domain";
+    final static String SDB_ALTER_DATASOURCE = "data source";
     final static String SDB_ALTER_CRT_ID_INDEX = "create id index";
     final static String SDB_ALTER_DROP_ID_INDEX = "drop id index";
     final static String SDB_ALTER_ENABLE_SHARDING = "enable sharding";
@@ -100,6 +101,11 @@ final class SdbConstants {
 
     final static String FIELD_NAME_LOGICALID = "LogicalID";
     final static String FIELD_NAME_DIRECTION = "Direction";
+
+    final static String FIELD_NAME_ADDRESS = "Address";
+    final static String FIELD_NAME_USER = "User";
+    final static String FIELD_NAME_PASSWD = "Password";
+    final static String FIELD_NAME_TYPE = "Type";
 
     final static String IXM_NAME = "name";
     final static String IXM_KEY = "key";

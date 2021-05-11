@@ -78,6 +78,7 @@ final class AdminCommand {
     final static String LIST_SEQUENCES = PREFIX + "list sequences";
     final static String LIST_USERS = PREFIX + "list users";
     final static String LIST_BACKUPS = PREFIX + "list backups";
+    final static String LIST_DATASOURCES = PREFIX + "list datasources";
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
 
@@ -131,6 +132,10 @@ final class AdminCommand {
     final static String SHUTDOWN_NODE = PREFIX + "shutdown node";
     final static String CREATE_NODE = PREFIX + "create node";
     final static String REMOVE_NODE = PREFIX + "remove node";
+
+    final static String CREATE_DATASOURCE = PREFIX + "create datasource";
+    final static String DROP_DATASOURCE = PREFIX + "drop datasource";
+    final static String ALTER_DATASOURCE = PREFIX + "alter datasource";
 
     final static String INVALIDATE_CACHE = PREFIX + "invalidate cache";
 }
