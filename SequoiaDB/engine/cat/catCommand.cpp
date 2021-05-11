@@ -935,6 +935,11 @@ namespace engine
       {
          BSONObj collection ;
          rc = catGetAndLockCollection ( _name, collection, cb, NULL, SHARED ) ;
+         // compatible with old version
+         if( SDB_DMS_CS_NOTEXIST == rc )
+         {
+            rc = SDB_DMS_NOTEXIST ;
+         }
          PD_RC_CHECK( rc, PDERROR, "cat get collection[%s] failed[%d]",
                       _name, rc ) ;
          ctxBuf = rtnContextBuf( collection ) ;
