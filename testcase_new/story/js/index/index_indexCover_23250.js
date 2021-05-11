@@ -2,8 +2,8 @@
  * @Description   : seqDB-23250:索引不支持数组，非嵌套对象+复合索引，选择条件索引字段不包含排序索引字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.01.09
- * @LastEditors   : Xiaoni Huang
+ * @LastEditTime  : 2021.05.11
+ * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
 testConf.clOpt = { "ReplSize": -1 };
@@ -38,13 +38,7 @@ function test ( testPara )
       var hint = { "": idxName };
       db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + testConf.clName } );
       var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-      var expIndexCover = false;
-      // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
-      if( commIsStandalone( db ) )
-      {
-         expIndexCover = true;
-      }
-      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
+      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
       var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
@@ -73,13 +67,7 @@ function test ( testPara )
       var hint = { "": idxName };
       db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + testConf.clName } );
       var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-      // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
-      var expIndexCover = false;
-      if( commIsStandalone( db ) )
-      {
-         expIndexCover = true;
-      }
-      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
+      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
       var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
