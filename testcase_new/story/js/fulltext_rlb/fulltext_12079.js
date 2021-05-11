@@ -4,17 +4,28 @@
 *@createdate:  2019.08.21
 *@testlinkCase: seqDB-12079
 **************************************/
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
 // SEQUOIADBMAINSTREAM-5420
 // main( test );
 
 function test ()
 {
-   if( commIsStandalone( db ) ) { return; }
+   var groups = commGetGroups( db );
+   for( var i = 0; i < groups.length; i++ )
+   {
+      var group = groups[i];
+      if( group.length > 2 )
+      {
+         break;
+      }
+   }
+   var groupName = group[0].GroupName;
 
    var clName = COMMCLNAME + "_ES_12079";
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var dbcl = commCreateCL( db, COMMCSNAME, clName );
+   var dbcl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
 
    // 创建全文索引，插入数据
    var textIndexName = "textIndex_12079";
@@ -30,8 +41,7 @@ function test ()
    db.getCS( COMMCSNAME ).getCL( clName ).alter( { ReplSize: 3 } );
 
    // 停止其中一个节点，插入记录
-   var groups = commGetCLGroups( db, COMMCSNAME + "." + clName );
-   var preSlave = db.getRG( groups[0] ).getSlave();
+   var preSlave = db.getRG( groupName ).getSlave();
    try
    {
       preSlave.stop();
