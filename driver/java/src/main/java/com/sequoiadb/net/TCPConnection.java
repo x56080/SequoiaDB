@@ -254,7 +254,7 @@ public class TCPConnection implements IConnection {
                 socket.setSoTimeout(timeout);
             }
         }catch (SocketException e){
-            throw new BaseException(SDBError.SDB_NETWORK, "failed to modify soTimeout, message: " + e.getMessage());
+            throw new BaseException(SDBError.SDB_NETWORK, "failed to modify soTimeout", e);
         }
     }
 }
