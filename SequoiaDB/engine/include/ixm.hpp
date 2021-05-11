@@ -748,8 +748,7 @@ namespace engine
             }
             catch( std::exception &e )
             {
-               PD_LOG( PDERROR, __FUNC__, __FILE__, __LINE__,
-                       "Unable to extract unique from index pattern: %s",
+               PD_LOG( PDERROR, "Unable to extract unique from index pattern: %s",
                        e.what() ) ;
             }
             SET_UNIQUE_INITED() ;
@@ -790,8 +789,7 @@ namespace engine
             }
             catch( std::exception &e )
             {
-               PD_LOG( PDERROR, __FUNC__, __FILE__, __LINE__,
-                       "Unable to extract notNull from index pattern: %s",
+               PD_LOG( PDERROR, "Unable to extract notNull from index pattern: %s",
                        e.what() ) ;
             }
             SET_NOTNULL_INITED() ;

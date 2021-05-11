@@ -1402,8 +1402,7 @@ namespace engine
       }
       else
       {
-         rtnNeedResetSelector( options.getSelector(), options.getOrderBy(),
-                               needResetSubQuery ) ;
+         rtnGetMergedSelector( options.getSelector(), options.getOrderBy(), needResetSubQuery ) ;
       }
 
       // Will not process selector in coord context

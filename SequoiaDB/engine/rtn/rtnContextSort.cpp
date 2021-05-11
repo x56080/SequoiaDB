@@ -173,7 +173,7 @@ namespace engine
          }
          else
          {
-            rtnNeedResetSelector( selector, orderBy, needRebuild ) ;
+            rtnGetMergedSelector( selector, orderBy, needRebuild ) ;
          }
 
          if ( needRebuild )
