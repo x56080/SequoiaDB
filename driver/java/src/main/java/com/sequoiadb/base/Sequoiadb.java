@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -129,6 +130,7 @@ public class Sequoiadb implements Closeable {
     //public final static int SDB_LIST_RESERVED2 = 19 ;
     //public final static int SDB_LIST_RESERVED3 = 20 ;
     //public final static int SDB_LIST_RESERVED4 = 21 ;
+    public final static int SDB_LIST_DATASOURCES = 22;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -684,10 +686,14 @@ public class Sequoiadb implements Closeable {
      * @param options Contains configuration information for create collection space. The options are as
      *                below:
      *                <ul>
-     *                <li>PageSize : Assign how large the page size is for the collection created in
+     *                <li>PageSize(int) : Assign how large the page size is for the collection created in
      *                this collection space, default to be 64K
-     *                <li>Domain : Assign which domain does current collection space belong to, it will
+     *                <li>Domain(String) : Assign which domain does current collection space belong to, it will
      *                belongs to the system domain if not assign this option
+     *                <li>LobPageSize(int) : The Lob data page size, default value is 262144
+     *                and the unit is byte
+     *                <li>DataSource(String) : Assign which data source does current collection space belong to
+     *                <li>Mapping(String) : The name of the collection space mapped by the current collection space
      *                </ul>
      * @return the newly created collection space object
      * @throws BaseException If error happens.
@@ -1115,6 +1121,7 @@ public class Sequoiadb implements Closeable {
      *                   <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
      *                   <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
      *                   <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
+     *                   <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
      *                   </dl>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1169,6 +1176,7 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_LIST_SEQUENCES : Get the information of sequences
      *                 <dt>Sequoiadb.SDB_LIST_USERS : Get all the user information.
      *                 <dt>Sequoiadb.SDB_LIST_BACKUPS : Get all the backup information.
+     *                 <dt>Sequoiadb.SDB_LIST_DATASOURCES : Get all the data source information</dt>
      *                 </dl>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -2479,6 +2487,132 @@ public class Sequoiadb implements Closeable {
         throwIfError(response);
     }
 
+    /**
+     * Whether the data source exists or not.
+     *
+     * @param dataSourceName The data source name
+     * @throws BaseException If error happens.
+     */
+    public boolean isDataSourceExist(String dataSourceName) throws BaseException {
+        if (null == dataSourceName || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name cannot be empty or null");
+        }
+        return _checkIsExistByList(SDB_LIST_DATASOURCES, dataSourceName);
+    }
+
+    /**
+     * Create data source.
+     * @param dataSourceName The data source name
+     * @param addresses The list of coord addresses for the target sequoiadb cluster, spearated by ','
+     * @param user User name of the data source
+     * @param password User password of the data source
+     * @param type Data source type, default is "SequoiaDB"
+     * @param option Optional configuration option for create data source, as follows:
+     *                <ul>
+     *                  <li>AccessMode(String) : Configure access permissions for the data source, default is "ALL",
+     *                  the values are as follows:
+     *                  <ul>
+     *                    <li>"READ" : Allow read-only operation
+     *                    <li>"WRITE" : Allow write operation
+     *                    <li>"ALL" or "READ|WRITE" : Allow all operations
+     *                    <li>"NONE" : No operation allowed
+     *                  </ul>
+     *                  <li>ErrorFilterMask(String) : Configure error filtering for data operations on data sources,
+     *                  default is "NONE", the values are as follows:
+     *                  <ul>
+     *                    <li>"READ" : Filter data read errors
+     *                    <li>"WRITE" : Filter data write errors
+     *                    <li>"ALL" or "READ|WRITE" : Filter all data read and write errors
+     *                    <li>"NONE" : Do not filter any errors
+     *                  </ul>
+     *                  <li>ErrorControlLevel(String) : Configure the error level when performing unsupported data
+     *                  operations(such as DDL) on the mapping collection or collection space, default is "High",
+     *                  the values are as follows:
+     *                  <ul>
+     *                    <li>"High" : Report an error and output an error message
+     *                    <li>"Low" : Ignore unsupported data operations and do not execute
+     *                  </ul>
+     *                </ul>
+     * @return A data source object
+     * @throws BaseException If error happens.
+     */
+    public DataSource createDataSource(String dataSourceName, String addresses,
+                                       String user, String password,
+                                       String type, BSONObject option) throws BaseException {
+        if (dataSourceName == null || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name is empty or null");
+        }
+        if (addresses == null || addresses.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source address list is empty or null");
+        }
+        if ( type == null || type.equals("")){
+            type = "SequoiaDB";
+        }
+
+        BSONObject obj = new BasicBSONObject();
+        if ( option != null ) {
+            obj.putAllUnique(option);
+        }
+        obj.put(SdbConstants.FIELD_NAME_NAME, dataSourceName);
+        obj.put(SdbConstants.FIELD_NAME_ADDRESS, addresses);
+        obj.put(SdbConstants.FIELD_NAME_USER, user);
+        obj.put(SdbConstants.FIELD_NAME_PASSWD, Helper.md5(password));
+        obj.put(SdbConstants.FIELD_NAME_TYPE, type);
+
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_DATASOURCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DataSource(this, dataSourceName);
+    }
+
+    /**
+     * Drop data source.
+     *
+     * @param dataSourceName The data source name
+     * @throws BaseException If error happens.
+     */
+    public void dropDataSource(String dataSourceName) throws BaseException {
+        if (dataSourceName == null || dataSourceName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "data source name is empty or null");
+        }
+
+        BSONObject obj = new BasicBSONObject(SdbConstants.FIELD_NAME_NAME, dataSourceName);
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_DATASOURCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * List data source.
+     *
+     * @param matcher  The matching rule, return all the records if null
+     * @param selector The selective rule, return the whole records if null
+     * @param orderBy  The ordered rule, never sort if null
+     * @param hint  Reserved, please specify null
+     * @return Cursor of data source information
+     * @throws BaseException If error happens.
+     */
+    public DBCursor listDataSources(BSONObject matcher, BSONObject selector, BSONObject orderBy,
+                                    BSONObject hint) throws BaseException {
+        return getList(SDB_LIST_DATASOURCES, matcher, selector, orderBy);
+    }
+
+    /**
+     * Get data source.
+     *
+     * @param dataSourceName The data source name
+     * @return The data source object
+     * @throws BaseException If error happens.
+     */
+    public DataSource getDataSource(String dataSourceName) throws BaseException {
+        if (isDataSourceExist(dataSourceName)) {
+            return new DataSource(this, dataSourceName);
+        } else {
+            throw new BaseException(SDBError.SDB_CAT_DATASOURCE_NOTEXIST, dataSourceName);
+        }
+    }
+
+
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
@@ -2535,6 +2669,8 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_USERS;
             case SDB_LIST_BACKUPS:
                 return AdminCommand.LIST_BACKUPS;
+            case SDB_LIST_DATASOURCES:
+                return AdminCommand.LIST_DATASOURCES;
             case SDB_LIST_CL_IN_DOMAIN:
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:

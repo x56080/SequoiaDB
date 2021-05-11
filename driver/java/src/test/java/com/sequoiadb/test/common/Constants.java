@@ -53,6 +53,12 @@ public class Constants {
     // domain
     public final static String TEST_DOMAIN_NAME = "domain_java";
 
+    // data source
+    public final static String DATASOURCE_ADDRESS = TestConfig.getDatasourceAddress();
+    public final static String DATASOURCE_URLS = TestConfig.getDatasourceUrls();
+    public final static String DATASOURCE_NAME = "datasource_java";
+    public final static String DATASOURCE_TYPE = "SequoiaDB";
+
     public final static String IXM_INDEXDEF = "IndexDef";
     public final static String IXM_NAME = "name";
     public final static String OID = "_id";
