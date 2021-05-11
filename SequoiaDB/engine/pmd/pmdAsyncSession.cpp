@@ -205,9 +205,11 @@ namespace engine
       _identifyTID = cb->getTID() ;
       _identifyEDUID = cb->getID() ;
 
+      // reset all events before signal session manager to
+      // finish waiting attach
       _evtOut.reset() ;
-      _evtIn.signal() ;
       _detachEvent.reset() ;
+      _evtIn.signal() ;
 
       _onAttach () ;
 
