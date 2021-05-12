@@ -2,7 +2,7 @@
  * @Description   : seqDB-23249:索引不支持数组，非嵌套对象+复合索引，查询条/选择/排序字段均为多索引键字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.08
+ * @LastEditTime  : 2021.05.11
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23249";
@@ -14,16 +14,29 @@ function test ( testPara )
    var rgName = commGetCLGroups( db, COMMCSNAME + "." + testConf.clName )[0];
    var cl = testPara.testCL;
 
+   // 创建索引   
+   var idxName = "idx";
+   cl.createIndex( idxName, { "a": 1, "b": 1, "c": 1 }, { "NotArray": true } )
+
+   // 插入数据，recordsNum不能小于1000（查询条件限制）
+   var recordsNum = 2000;
+   var records = new Array();
+   for( var i = 0; i < recordsNum; i++ )
+   {
+      records.push( { "a": i, "b": i, "c": ( ( recordsNum - 1 ) - i ), "d": i } );
+   }
+   cl.insert( records );
+
    try
    {
       // 普通部署模式
-      testIndexCover( cl, testConf.clName );
+      testIndexCover( cl, testConf.clName, idxName );
 
       // SEQUOIADBMAINSTREAM-6926，RR隔离级别覆盖索引走的内部流程不同，需要跑此场景用例
       if( getConfig( rgName, "mvccon" ) === "TRUE" )
       {
          db.updateConf( { "transisolation": 3 } );
-         testIndexCover( cl, testConf.clName );
+         testIndexCover( cl, testConf.clName, idxName );
       }
    }
    finally
@@ -45,21 +58,8 @@ function test ( testPara )
    }
 }
 
-function testIndexCover ( cl, clName )
+function testIndexCover ( cl, clName, idxName )
 {
-   // 创建索引   
-   var idxName = "idx";
-   cl.createIndex( idxName, { "a": 1, "b": 1, "c": 1 }, { "NotArray": true } )
-
-   // 插入数据，recordsNum不能小于1000（查询条件限制）
-   var recordsNum = 2000;
-   var records = new Array();
-   for( var i = 0; i < recordsNum; i++ )
-   {
-      records.push( { "a": i, "b": i, "c": ( ( recordsNum - 1 ) - i ), "d": i } );
-   }
-   cl.insert( records );
-
    // 1）查询条件、选择条件、排序字段均为同一多索引字段，选择条件非object格式
    // 开启覆盖索引开关
    db.updateConf( { "indexcoveron": true } );
@@ -101,7 +101,4 @@ function testIndexCover ( cl, clName )
    var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
 
    commCompareObject( obj1, obj2 );
-
-   cl.dropIndex( idxName );
-   cl.remove();
 }

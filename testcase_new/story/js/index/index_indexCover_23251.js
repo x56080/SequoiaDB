@@ -2,7 +2,7 @@
  * @Description   : seqDB-23251:索引不支持数组，嵌套对象+嵌套索引（如{“a.b”:1}），测试覆盖索引
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.08
+ * @LastEditTime  : 2021.05.11
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
@@ -14,16 +14,29 @@ function test ( testPara )
    var rgName = commGetCLGroups( db, COMMCSNAME + "." + testConf.clName )[0];
    var cl = testPara.testCL;
 
+   // 创建索引   
+   var idxName = "idx";
+   cl.createIndex( idxName, { "a.b": 1 }, { "NotArray": true } )
+
+   // 插入数据，recordsNum不能小于1000（查询条件限制）
+   var recordsNum = 2000;
+   var records = new Array();
+   for( var i = 0; i < recordsNum; i++ )
+   {
+      records.push( { "a": { "b": i } } );
+   }
+   cl.insert( records );
+
    try
    {
       // 普通部署模式
-      testIndexCover( cl, testConf.clName );
+      testIndexCover( cl, testConf.clName, idxName );
 
       // SEQUOIADBMAINSTREAM-6926，RR隔离级别覆盖索引走的内部流程不同，需要跑此场景用例
       if( getConfig( rgName, "mvccon" ) === "TRUE" )
       {
          db.updateConf( { "transisolation": 3 } );
-         testIndexCover( cl, testConf.clName );
+         testIndexCover( cl, testConf.clName, idxName );
       }
    }
    finally
@@ -45,21 +58,8 @@ function test ( testPara )
    }
 }
 
-function testIndexCover ( cl, clName )
+function testIndexCover ( cl, clName, idxName )
 {
-   // 创建索引   
-   var idxName = "idx";
-   cl.createIndex( idxName, { "a.b": 1 }, { "NotArray": true } )
-
-   // 插入数据，recordsNum不能小于1000（查询条件限制）
-   var recordsNum = 2000;
-   var records = new Array();
-   for( var i = 0; i < recordsNum; i++ )
-   {
-      records.push( { "a": { "b": i } } );
-   }
-   cl.insert( records );
-
    // 1） 使用嵌套索引字段查询，子字段满足覆盖索引条件
    // 开启覆盖索引开关
    db.updateConf( { "indexcoveron": true } );
@@ -124,7 +124,4 @@ function testIndexCover ( cl, clName )
    var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
 
    commCompareObject( obj1, obj2 );
-
-   cl.dropIndex( idxName );
-   cl.remove();
 }

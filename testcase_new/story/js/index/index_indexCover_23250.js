@@ -2,7 +2,7 @@
  * @Description   : seqDB-23250:索引不支持数组，非嵌套对象+复合索引，选择条件索引字段不包含排序索引字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.08
+ * @LastEditTime  : 2021.05.11
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
@@ -15,16 +15,29 @@ function test ( testPara )
    var rgName = commGetCLGroups( db, COMMCSNAME + "." + testConf.clName )[0];
    var cl = testPara.testCL;
 
+   // 创建索引   
+   var idxName = "idx";
+   cl.createIndex( idxName, { "a": 1, "b": 1, "c": 1, "d": 1 }, { "NotArray": true } )
+
+   // 插入数据，recordsNum不能小于1000（查询条件限制）
+   var recordsNum = 2000;
+   var records = new Array();
+   for( var i = 0; i < recordsNum; i++ )
+   {
+      records.push( { "a": i, "b": i, "c": ( ( recordsNum - 1 ) - i ), "d": i } );
+   }
+   cl.insert( records );
+
    try
    {
       // 普通部署模式
-      testIndexCover( cl, testConf.clName );
+      testIndexCover( cl, testConf.clName, idxName );
 
       // SEQUOIADBMAINSTREAM-6926，RR隔离级别覆盖索引走的内部流程不同，需要跑此场景用例
       if( getConfig( rgName, "mvccon" ) === "TRUE" )
       {
          db.updateConf( { "transisolation": 3 } );
-         testIndexCover( cl, testConf.clName );
+         testIndexCover( cl, testConf.clName, idxName );
       }
    }
    finally
@@ -46,21 +59,8 @@ function test ( testPara )
    }
 }
 
-function testIndexCover ( cl, clName )
+function testIndexCover ( cl, clName, idxName )
 {
-   // 创建索引   
-   var idxName = "idx";
-   cl.createIndex( idxName, { "a": 1, "b": 1, "c": 1, "d": 1 }, { "NotArray": true } )
-
-   // 插入数据，recordsNum不能小于1000（查询条件限制）
-   var recordsNum = 2000;
-   var records = new Array();
-   for( var i = 0; i < recordsNum; i++ )
-   {
-      records.push( { "a": i, "b": i, "c": ( ( recordsNum - 1 ) - i ), "d": i } );
-   }
-   cl.insert( records );
-
    // 1）不等于（如：选择字段为a，排序字段为b）
    // 开启覆盖索引开关
    db.updateConf( { "indexcoveron": true } );
@@ -72,13 +72,7 @@ function testIndexCover ( cl, clName )
    var hint = { "": idxName };
    db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + clName } );
    var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-   var expIndexCover = false;
-   // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
-   if( commIsStandalone( db ) )
-   {
-      expIndexCover = true;
-   }
-   assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
+   assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
    // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
    var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
@@ -100,13 +94,7 @@ function testIndexCover ( cl, clName )
    var hint = { "": idxName };
    db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + clName } );
    var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-   // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
-   var expIndexCover = false;
-   if( commIsStandalone( db ) )
-   {
-      expIndexCover = true;
-   }
-   assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
+   assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
    // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
    var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();

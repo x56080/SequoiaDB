@@ -2,8 +2,8 @@
  * @Description   : seqDB-23245 :: 索引不支持数组，覆盖索引基本功能验证 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.01.11
- * @LastEditors   : Yu Fan
+ * @LastEditTime  : 2021.05.11
+ * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_23245";
 var indexName = "Index_23245";
@@ -12,6 +12,7 @@ main( test );
 function test ( testPara )
 {
    db.updateConf( { indexcoveron: true } );
+   var rgName = commGetCLGroups( db, COMMCSNAME + "." + testConf.clName )[0];
    var cl = testPara.testCL;
    // 创建索引
    cl.createIndex( indexName, { a: 1 }, { NotArray: true } )
@@ -24,6 +25,31 @@ function test ( testPara )
    }
    cl.insert( records )
 
+   try
+   {
+      // 普通部署模式
+      testIndexCover( cl, records );
+
+      // SEQUOIADBMAINSTREAM-6926，RR隔离级别覆盖索引走的内部流程不同，需要跑此场景用例
+      if( getConfig( rgName, "mvccon" ) === "TRUE" )
+      {
+         db.updateConf( { "transisolation": 3 } );
+         testIndexCover( cl, records );
+      }
+   }
+   finally
+   {
+      db.updateConf( { "transisolation": 0 } );
+      var transisolation = getConfig( rgName, "transisolation" );
+      if( transisolation !== 0 )
+      {
+         throw new Error( "Expect transisolation: " + "0, actual transisolation: " + transisolation );
+      }
+   }
+}
+
+function testIndexCover ( cl, records )
+{
    // 查询数据
    var cursor = cl.find( { a: { $gt: 0 } }, { a: "" } ).hint( { "": indexName } );
    commCompareObject( cursor.toArray(), records );
