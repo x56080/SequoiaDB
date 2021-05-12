@@ -995,12 +995,14 @@ namespace engine
          {
             if ( TBSCAN == _scanType() )
             {
+               ossScopedLock _lock( &_LSNlatch ) ;
                _curExtID = _context->lastExtLID() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %d",
                         sessionName(), _curExtID ) ;
             }
             else
             {
+               ossScopedLock _lock( &_LSNlatch ) ;
                _curScanKeyObj = _context->getIXScanner()->getSavedObj()->copy() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan cur key obj: %s",
                         sessionName(), _curScanKeyObj.toString().c_str() ) ;
