@@ -44,13 +44,13 @@ public class Split513 extends SdbTestBase {
     private void setUp() {
         try {
             commSdb = new Sequoiadb( coordUrl, "", "" );
-            ArrayList< String > groupNames = CommLib
-                    .getDataGroupNames( commSdb );
-
             // 跳过独立模式和小于2个组的模式
             if ( CommLib.isStandAlone( commSdb ) ) {
                 throw new SkipException( "skip standalone" );
             }
+            ArrayList< String > groupNames = CommLib
+                    .getDataGroupNames( commSdb );
+
             if ( groupNames.size() < 2 ) {
                 throw new SkipException( "skip less than tow groups" );
             }
