@@ -154,7 +154,7 @@ public class CollectionSpace {
      * Create collection by options.
      *
      * @param collectionName The collection name
-     * @param options        The {@see <a href=http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION>options</a>}
+     * @param options        The {@see <a href=//doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION target=new>options</a>}
      *                       for creating collection or null for not specified any options.
      * @return the newly created object of collection.
      * @throws BaseException If error happens.
