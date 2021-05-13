@@ -123,7 +123,7 @@ namespace engine
          _pmdEDUCB*           _pEDUCB ;
          bson::BSONObj        _authReturnedObj ; // object returned by authenticate
          BOOLEAN              _step1Done ;
-         CHAR                 _combineNonce[ UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN + 1 ] ;
+         string               _combineNonce ;
 
          UINT16               _localPort ;
          UINT16               _peerPort ;

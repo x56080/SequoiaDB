@@ -90,7 +90,6 @@ namespace engine
 #endif // SDB_ENGINE
 
          _step1Done = FALSE ;
-         ossMemset( _combineNonce, 0, sizeof( _combineNonce ) ) ;
       }
 
       _makeName() ;
@@ -158,7 +157,8 @@ namespace engine
                _step1Done = FALSE ;
 
                const CHAR* nonce = reqObj.getStringField( SDB_AUTH_NONCE ) ;
-               if ( 0 != ossStrcmp( nonce, _combineNonce ) )
+
+               if ( 0 != ossStrcmp( nonce, _combineNonce.c_str() ) )
                {
                   rc = SDB_INVALIDARG ;
                   PD_LOG( PDERROR, "Combine nonce[%s] of auth step2 msg is "
@@ -179,7 +179,10 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG ( PDERROR, "An exception occurred when processing auth "
+                  "request obj: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
       }
 
    done:
@@ -217,13 +220,14 @@ namespace engine
          {
             _step1Done = TRUE ;
 
-            const CHAR* nonce = NULL ;
-            nonce = _authReturnedObj.getStringField( SDB_AUTH_NONCE ) ;
+            _combineNonce = _authReturnedObj.getStringField( SDB_AUTH_NONCE ) ;
 
-            ossStrncpy( _combineNonce,
-                        nonce,
-                        UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN ) ;
-            _combineNonce[ UTIL_AUTH_SCRAMSHA_COMBINE_NONCE_LEN ] = 0 ;
+            if ( 0 == _combineNonce.length() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG ( PDERROR, "Combine nonce can't be empty, rc: %d", rc ) ;
+               goto error ;
+            }
          }
          else if ( SDB_AUTH_STEP_2 == step )
          {
@@ -250,7 +254,7 @@ namespace engine
                       SDB_AUTH_HASHCODE, hashLen, UTIL_AUTH_MD5SUM_LEN ) ;
 
             // get md5sum of password
-            nonceLen = ossStrlen( _combineNonce ) ;
+            nonceLen = _combineNonce.length() ;
             xorNum = hashLen > nonceLen ? hashLen : nonceLen ;
             ossMemcpy( xorRes, hashCode.c_str(), UTIL_AUTH_MD5SUM_LEN ) ;
 
