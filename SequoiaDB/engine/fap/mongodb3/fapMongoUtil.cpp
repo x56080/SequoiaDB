@@ -38,13 +38,16 @@
 #include "fapMongoUtil.hpp"
 #include "mthMatchTree.hpp"
 #include "mthModifier.hpp"
+#include "fapMongoMessage.hpp"
 
 using namespace bson ;
 
 namespace fap
 {
 
-INT32 msgBuffer::alloc( const UINT32 size )
+static _fapMongoErrorObjAssit errorObjAssit ;
+
+INT32 _msgBuffer::alloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
 
@@ -197,6 +200,18 @@ error:
    goto done ;
 }
 
+_fapMongoErrorObjAssit::_fapMongoErrorObjAssit()
+{
+   for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
+   {
+      BSONObjBuilder berror ;
+      berror.append ( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+      berror.append ( FAP_MONGO_FIELD_NAME_CODE, i ) ;
+      berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp ( i ) ) ;
+      _errorObjsArray[ i + SDB_MAX_ERROR ] = berror.obj() ;
+   }
+}
+
 // generate a new record based on matcher condition and update condition
 INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
                                  const BSONObj &updatorObj,
@@ -248,11 +263,33 @@ error:
    goto done ;
 }
 
-static _fapMongoErrorObjAssit errorObjAssit ;
-
 BSONObj fapMongoGetErrorBson( INT32 errorCode )
 {
    return errorObjAssit.getErrorObj( errorCode ) ;
+}
+
+CHAR* fapMongoGetOOMErrResHeader()
+{
+   static _fapMongoInnerHeader OOMResHeader( SDB_OOM ) ;
+   return (CHAR*)&OOMResHeader ;
+}
+
+BOOLEAN fapMongoCheckBigEndian()
+{
+   BOOLEAN bigEndian = FALSE ;
+   union
+   {
+      unsigned int i ;
+      unsigned char s[4] ;
+   } c ;
+
+   c.i = 0x12345678 ;
+   if ( 0x12 == c.s[0] )
+   {
+      bigEndian = TRUE ;
+   }
+
+   return bigEndian ;
 }
 
 }

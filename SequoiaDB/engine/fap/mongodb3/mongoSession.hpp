@@ -73,17 +73,18 @@ protected:
    INT32 _processMsg( const CHAR *pMsg, const _mongoCommand *pCommand,
                       BSONObj &errorObj ) ;
    INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj ) ;
-   INT32 _onMsgBegin( MsgHeader *msg ) ;
-   INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+   void  _onMsgBegin( MsgHeader *msg ) ;
+   void  _onMsgEnd( INT32 result, MsgHeader *msg ) ;
    INT32 _recvMsg( CHAR *&pMsg,
                    BOOLEAN &recvFromEvent,
                    engine::pmdEDUEvent &event ) ;
    INT32 _recvFromSocket( CHAR *&pMsg, BOOLEAN &recvSomething ) ;
    INT32 _buildResponse( _mongoCommand *pCommand,
                          CHAR *&pRes ) ;
-   INT32 _reply( _mongoCommand *pCommand, mongoSessionCtx &sessCtx ) ;
+   INT32 _reply( _mongoCommand *pCommand ) ;
    INT32 _reply( _mongoCommand *pCommand, const CHAR* pMsg,
-                 INT32 errCode, const string &sessionName, BSONObj &errObj ) ;
+                 INT32 errCode, BSONObj &errObj ) ;
+   INT32 _reply( engine::pmdEDUEvent &event ) ;
 
 private:
    void  _resetBuffers() ;
@@ -94,12 +95,20 @@ private:
                       BSONObj &errorObj ) ;
    BOOLEAN _isOwnedCursor( const _mongoCommand *pCommand,
                            UINT64 &ownedEDUID,
-                           BOOLEAN &needAuth ) ;
+                           BOOLEAN &needAuth,
+                           INT64 &cursorID ) ;
    INT32 _manageCursor( const _mongoCommand *pCommand,
                         const MsgOpReply &sdbReply ) ;
 
    BOOLEAN _shouldAutoCrtCS( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
+
+   INT32   _checkEDUCB( engine::_pmdEDUCB *cb, UINT64 eduIdOfCb ) ;
+   void    _postInnerErrorEvent( INT32 errorCode,
+                                 engine::pmdEDUEvent &event ) ;
+   void    _eduEventRelease( engine::pmdEDUEvent &event ) ;
+   void    _buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
+                                 INT32 &msgLen ) ;
 
 private:
    MsgOpReply              _replyHeader ;
@@ -115,6 +124,9 @@ private:
 
    BOOLEAN                 _isAuthed ;
    queue<engine::pmdEDUEvent> _tmpEventQue ;
+   INT32                   _requestIDOfPostEvent ;
+   INT32                   _opCodeOfPostEvent ;
+   INT64                   _cursorIdOfPostEvent ;
 } ;
 
 typedef _mongoSession mongoSession ;

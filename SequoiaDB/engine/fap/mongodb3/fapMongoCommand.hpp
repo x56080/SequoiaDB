@@ -569,10 +569,10 @@ class _mongoKillCursorCommand : public _mongoCommand
       virtual const CHAR* clFullName() const      { return NULL ; }
       virtual BOOLEAN needProcessByEngine() const { return TRUE ; }
       virtual BOOLEAN isInitialized() const       { return _isInitialized ; }
-      const vector<INT64>& cursorList() const     { return _cursorList ; }
+      const vector<INT64>& cursorList() const     { return _killCursorList ; }
 
    private:
-      vector<INT64> _cursorList ;
+      vector<INT64> _killCursorList ;
       INT32 _requestID ;
       BOOLEAN _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;

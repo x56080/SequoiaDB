@@ -763,6 +763,8 @@ INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
 
    try
    {
+      sdbMsg.zero() ;
+
       // build message
       rc = (*ppCommand)->buildSdbMsg( sdbMsg, sessCtx ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -770,11 +772,12 @@ INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
                    (*ppCommand)->name(), rc ) ;
 
       PD_LOG( PDDEBUG, "Init and build sdb msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %s ] down",
+              "command: %s, clFullName: %s, eduID: %llu ] done",
               ossGetCurrentThreadID(),
               sessCtx.sessionName.c_str(),
               (*ppCommand)->name() ? (*ppCommand)->name() : "",
-              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "" ) ;
+              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "",
+              sessCtx.eduID ) ;
    }
    catch( std::exception &e )
    {
@@ -987,10 +990,10 @@ INT32 mongoPostRunCommand( _mongoCommand *pCommand,
    }
    catch ( std::exception &e )
    {
+      rc = ossException2RC( &e ) ;
       PD_LOG ( PDERROR,
                "Post run command[%s] exception: %s",
                pCommand->name(), e.what() ) ;
-      rc = SDB_INVALIDARG ;
    }
 
 done:
@@ -2920,7 +2923,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
       const INT64 *pCursorID = pReq->cursorIDs() ;
       for( INT32 i = 0 ; i < pReq->numCursors() ; i++ )
       {
-         _cursorList.push_back( *pCursorID ) ;
+         _killCursorList.push_back( *pCursorID ) ;
          pCursorID += sizeof( INT64 ) ;
       }
 
@@ -2951,7 +2954,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
             PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                       "Invalid object[%s] in mongo %s request",
                       obj.toString().c_str(), name() ) ;
-            _cursorList.push_back( ele.numberLong() ) ;
+            _killCursorList.push_back( ele.numberLong() ) ;
          }
       }
 
@@ -2982,7 +2985,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
             PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
                       "Invalid object[%s] in mongo %s request",
                       obj.toString().c_str(), name() ) ;
-            _cursorList.push_back( ele.numberLong() ) ;
+            _killCursorList.push_back( ele.numberLong() ) ;
          }
       }
 
@@ -3010,7 +3013,7 @@ INT32 _mongoKillCursorCommand::buildSdbMsg( msgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpKillContexts *kill = NULL ;
 
-   if ( _cursorList.size() > 1 )
+   if ( _killCursorList.size() > 1 )
    {
       rc = SDB_OPTION_NOT_SUPPORT ;
       ctx.setError( rc, "Killing two or more cursors is not supported " ) ;
@@ -3026,10 +3029,10 @@ INT32 _mongoKillCursorCommand::buildSdbMsg( msgBuffer &sdbMsg,
    kill->header.routeID.value = 0 ;
    kill->header.requestID = _requestID ;
    kill->ZERO = 0 ;
-   kill->numContexts = _cursorList.size() ;
+   kill->numContexts = _killCursorList.size() ;
 
-   for( vector<INT64>::iterator it = _cursorList.begin() ;
-        it != _cursorList.end() ; it++ )
+   for( vector<INT64>::iterator it = _killCursorList.begin() ;
+        it != _killCursorList.end() ; it++ )
    {
       INT64 contextID = MGCURSOID_TO_SDBCTXID( *it ) ;
       if ( contextID != SDB_INVALID_CONTEXTID )

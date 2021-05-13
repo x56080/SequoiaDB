@@ -70,7 +70,7 @@ namespace engine
    */
    enum pmdEDUMemTypes
    {
-      PMD_EDU_MEM_NONE     = 0,   // Memory is not unknow
+      PMD_EDU_MEM_NONE     = 0,   // Memory is not unknown
       PMD_EDU_MEM_ALLOC    = 1,   // Memory is by SDB_OSS_MALLOC
       PMD_EDU_MEM_SELF     = 2,   // Memory is by pmdEDU::allocBuff
       PMD_EDU_MEM_THREAD   = 3    // thread alloc

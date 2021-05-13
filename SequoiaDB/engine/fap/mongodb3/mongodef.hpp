@@ -79,6 +79,7 @@ struct mongoSessionCtx
    string userName ;
    mongoAuthInfo authInfo ;
    string sessionName ;
+   UINT64 eduID ;
 
    mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) {}
 

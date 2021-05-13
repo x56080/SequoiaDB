@@ -44,6 +44,7 @@
 #include "../../bson/bson.hpp"
 #include "utilCommon.hpp"
 #include "fapMongoMessageDef.hpp"
+#include "fapMongoMessage.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 
@@ -134,17 +135,7 @@ typedef _msgBuffer msgBuffer ;
 class _fapMongoErrorObjAssit : public SDBObject
 {
 public:
-   _fapMongoErrorObjAssit()
-   {
-      for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
-      {
-         BSONObjBuilder berror ;
-         berror.append ( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-         berror.append ( FAP_MONGO_FIELD_NAME_CODE, i ) ;
-         berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp ( i ) ) ;
-         _errorObjsArray[ i + SDB_MAX_ERROR ] = berror.obj() ;
-      }
-   }
+   _fapMongoErrorObjAssit() ;
 
    ~_fapMongoErrorObjAssit(){}
 
@@ -163,6 +154,10 @@ INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
                                  BSONObj &target ) ;
 
 BSONObj fapMongoGetErrorBson( INT32 errorCode ) ;
+
+CHAR* fapMongoGetOOMErrResHeader() ;
+
+BOOLEAN fapMongoCheckBigEndian() ;
 
 }
 #endif
