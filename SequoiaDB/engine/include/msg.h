@@ -547,7 +547,6 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 // catalog version value define
    #define CATALOG_INVALID_VERSION      0
    #define CATALOG_DEFAULT_VERSION      1
-   #define CATALOG_NO_CHECK_VERSION    -1
 
 struct _MsgPacketReq
 {

@@ -1090,7 +1090,7 @@ namespace engine
                if ( SDB_DMS_EOC == rc )
                {
                   rc = SDB_DMS_NOTEXIST ;
-                  PD_LOG ( PDWARNING, "Test collection doesn't exist" ) ;
+                  PD_LOG ( PDINFO, "Test collection doesn't exist" ) ;
                }
                else
                {

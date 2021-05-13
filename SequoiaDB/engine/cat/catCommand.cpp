@@ -924,7 +924,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CATCMDTESTCOLLECTION_DOIT ) ;
-      BOOLEAN exist = FALSE ;
 
       if ( 0 == ossStrcmp( _name, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
       {
