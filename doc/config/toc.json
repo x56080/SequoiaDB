@@ -158,6 +158,12 @@
                                  "en": "Instance management tool"
                               },
                               {
+                                 "id": 1619750158,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
+                              },
+                              {
                                  "id": 1589347299,
                                  "file": "partition",
                                  "cn": "分区",
@@ -270,6 +276,12 @@
                                  "file": "sdb_maria_ctl",
                                  "cn": "实例管理工具",
                                  "en": "Instance management tool"
+                              },
+                              {
+                                 "id": 1619750356,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
                               },
                               {
                                  "id": 1608019035,
