@@ -98,6 +98,9 @@ public class Split513 extends SdbTestBase {
         if ( !insertThread.isSuccess() ) {
             Assert.fail( insertThread.getErrorMsg() );
         }
+        if ( !pubLobThread.isSuccess() ) {
+            Assert.fail( pubLobThread.getErrorMsg() );
+        }
 
         // 检查编目切分范围以及切分后的数据正确性
         checkCatalog();
