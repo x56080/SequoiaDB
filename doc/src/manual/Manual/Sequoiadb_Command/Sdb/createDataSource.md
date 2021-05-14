@@ -4,7 +4,7 @@ createDataSource - 创建数据源
 
 ##语法##
 
-**db.createDataSource( \<name\>, \<address\>, [user], [password], [type], [options] )**
+**db.createDataSource(\<name\>, \<address\>, [user], [password], [type], [options])**
 
 ##类别##
 
@@ -40,7 +40,7 @@ Sdb
 
     通过 options 参数可以设置其他选填参数
 
-    1. AccessMode（string）：配置对该数据源的访问权限，包括读写数据，默认值为"ALL"
+    1. AccessMode（ *string* ）：配置对该数据源的访问权限，包括读写数据，默认值为"ALL"
 
         取值如下：
 
@@ -51,7 +51,7 @@ Sdb
 
         格式：`AccessMode:"READ"`
 
-    2. ErrorFilterMask（string ）：配置对数据源进行数据操作的错误过滤，默认值为"NONE"
+    2. ErrorFilterMask（ *string* ）：配置对数据源进行数据操作的错误过滤，默认值为"NONE"
 
         取值如下：
 
@@ -62,7 +62,7 @@ Sdb
 
         格式：`ErrorFilterMask:"READ"`
 
-   3. ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"High"
+   3. ErrorControlLevel（ *string* ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"High"
 
         取值如下：
 
@@ -97,7 +97,7 @@ v3.2.8 及以上版本
 创建一个名为“datasource”的数据源，该数据源只允许进行只读操作
 
 ```lang-javascript
-> db.createDataSource("datasource","192.168.20.66:50000","","","SequoiaDB",{AccessMode:"READ"})
+> db.createDataSource("datasource", "192.168.20.66:50000", "", "", "SequoiaDB", {AccessMode: "READ"})
 ```
 
 

@@ -1,6 +1,6 @@
 ##NAME##
 
-createDataSource - Create data source
+createDataSource - create data source
 
 ##SYNOPSIS##
 
@@ -16,60 +16,60 @@ This function is used to create a data source to achieve cross-cluster data acce
 
 ##PARAMETERS##
 
-- name ( *string，required* )
+- name ( *string, required* )
 
- The name of data source, which is unique in the same database
+    The name of data source, which is unique in the same database.
 
-- address ( *string，required* )
+- address ( *string, required* )
 
- "Addresses" are all or some of the cluster coordinator node addresses of SequoiaDB data source. The addresses pointed by the coordinating nodes should be in the same cluster but the number of addresses must not exceed 7 when multiple addresses are configured.
+    "Addresses" are all or some of the cluster coordinator node addresses of SequoiaDB data source. The addresses pointed by the coordinating nodes should be in the same cluster but the number of addresses must not exceed 7 when multiple addresses are configured.
 
-- user ( *string，optional* )
+- user ( *string, optional* )
 
- Name of the data source
+    Name of the data source.
 
-- password ( *string，optional* )
+- password ( *string, optional* )
 
- Data source user password
+    Data source user password.
 
-- type ( *string，optional* )
+- type ( *string, optional* )
 
- Data source type, currently only supports SequoiaDB
+    Data source type, currently only supports SequoiaDB.
 
-- options ( *object，optional* )
+- options ( *object, optional* )
 
- Other optional parameters can be set through the options parameter
+    Other optional parameters can be set through the options parameter:
 
-   1. AccessMode (string): Configure access permissions for the data source, including reading and writing data,default is "ALL".
+    1. AccessMode ( *string* ): Configure access permissions for the data source, including reading and writing data, default is "ALL".
 
-     The values are as follows:
+        The values are as follows:
     
-        - "READ": Allow read-only operation
-        - "WRITE": Allow write operation
-        - "ALL"or "READ|WRITE": Allow all operations
-        - "NONE": It does not allow any operation
+        - "READ": Allow read-only operation.
+        - "WRITE": Allow write operation.
+        - "ALL" or "READ|WRITE": Allow all operations.
+        - "NONE": It does not allow any operation.
 
-     format: `AccessMode: "READ"`
+        Format: `AccessMode: "READ"`
 
-   2. ErrorFilterMask (string): Configure error filtering for data operations on data sources, default is "NONE".
+    2. ErrorFilterMask ( *string* ): Configure error filtering for data operations on data sources, default is "NONE".
 
-     The values are as follows:
+        The values are as follows:
     
-        - "READ": Filter data read errors
-        - "WRITE": Filter data write errors
-        - "ALL"or "READ|WRITE": Filter all data read and write errors
-        - "NONE": Do not filter any errors
+        - "READ": Filter data read errors.
+        - "WRITE": Filter data write errors.
+        - "ALL" or "READ|WRITE": Filter all data read and write errors.
+        - "NONE": Do not filter any errors.
 
-     format: `ErrorFilterMask: "READ"`
+        Format: `ErrorFilterMask: "READ"`
 
-   3. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "High".
+    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "High".
 
-     The values are as follows:
+        The values are as follows:
     
-        - "High": Report an error and output an error message
-        - "Low": Ignore unsupported data operations and do not execute
+        - "High": Report an error and output an error message.
+        - "Low": Ignore unsupported data operations and do not execute.
     
-     format: `ErrorControlLevel: "Low"`
+        Format: `ErrorControlLevel: "Low"`
 
 ##RETURN VALUE##
 
@@ -79,13 +79,13 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-`createDataSource()` Common exceptions of functions are as follows:
+The common exceptions of `createDataSource()` function are as follows:
 
-| error code | Error type | Possible reason | Solution |
+| Error Code | Error Type | Description | Solution |
 | ------ | -------- | -------------- | -------- |
-| -369 | SDB_CAT_DATASOURCE_EXIST | The specified data source already exists | Check if there is a data source with the same name |
+| -369 | SDB_CAT_DATASOURCE_EXIST | The specified data source already exists. | Check if there is a data source with the same name. |
 
-When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
 ##VERSION##
 
@@ -93,8 +93,18 @@ v3.2.8 and above
 
 ##EXAMPLES##
 
-Create a data source named "datasource" that only allows read-only operations
+Create a data source named "datasource" that only allows read-only operations.
 
 ```lang-javascript
-> db.createDataSource("datasource","192.168.20.66:50000","","","SequoiaDB",{AccessMode:"READ"})
+> db.createDataSource("datasource", "192.168.20.66:50000", "", "", "SequoiaDB", {AccessMode: "READ"})
 ```
+
+
+[^_^]:
+    Links
+[limitation]:manual/Manual/sequoiadb_limitation.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
