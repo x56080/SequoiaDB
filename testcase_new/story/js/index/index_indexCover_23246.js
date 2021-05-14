@@ -2,7 +2,7 @@
  * @Description   : seqDB-23246 :: 索引不支持数组，查询不满足覆盖索引必要条件 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
+ * @LastEditTime  : 2021.05.14
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_23246";
@@ -75,7 +75,8 @@ function testIndexCover ( cl, records )
    explainInfo = cl.find( { a: { $lt: 2 } }, { a: "" } ).sort( { b: 1 } ).hint( { "": indexName } ).explain().toArray();
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
 
-   // 选择条件为object格式（如：{a:{$include:1}}）；
+   // 选择条件为object格式（如：{a:{$include:1}}) ）;
+   // SEQUOIADBMAINSTREAM-6652 修改后走覆盖索引，修改优化，非bug
    cursor = cl.find( { a: 2 }, { a: { $include: 1 } } ).hint( { "": indexName } );
    commCompareResults( cursor, [{ a: 2 }] );
    explainInfo = cl.find( { a: 2 }, { a: { $include: 1 } } ).hint( { "": indexName } ).explain().toArray();

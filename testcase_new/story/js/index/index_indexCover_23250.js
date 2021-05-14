@@ -2,7 +2,7 @@
  * @Description   : seqDB-23250:索引不支持数组，非嵌套对象+复合索引，选择条件索引字段不包含排序索引字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
+ * @LastEditTime  : 2021.05.14
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
@@ -65,7 +65,7 @@ function testIndexCover ( cl, clName, idxName )
    // 开启覆盖索引开关
    db.updateConf( { "indexcoveron": true } );
 
-   // 检查索引访问回表
+   // 检查索引访问不回表，即走覆盖索引
    var cond = { "a": { "$gt": 100 }, "c": { "$lt": 1000 } };
    var sel = { "a": "", "b": "" };
    var sortCond = { "c": 1, "d": 1 };
@@ -87,7 +87,7 @@ function testIndexCover ( cl, clName, idxName )
    // 开启覆盖索引开关
    db.updateConf( { "indexcoveron": true } );
 
-   // 检查索引访问回表
+   // 检查索引访问不回表，即走覆盖索引
    var cond = { "a": { "$gt": 100 }, "b": { "$field": "a" } };
    var sel = { "a": "", "b": "" };
    var sortCond = { "a": 1, "b": 1, "c": 1 };
@@ -103,7 +103,4 @@ function testIndexCover ( cl, clName, idxName )
    var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
 
    commCompareObject( obj1, obj2 );
-
-   cl.dropIndex( idxName );
-   cl.remove();
 }
