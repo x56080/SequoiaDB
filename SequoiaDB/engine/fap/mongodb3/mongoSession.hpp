@@ -93,6 +93,8 @@ private:
    INT32 _autoInsert( const CHAR *clFullName, const BSONObj &matcher,
                       const BSONObj &updatorObj, BSONObj &target,
                       BSONObj &errorObj ) ;
+   INT32 _autoKillCursor( UINT64 requestID, INT64 contextID ) ;
+
    BOOLEAN _isOwnedCursor( const _mongoCommand *pCommand,
                            UINT64 &ownedEDUID,
                            BOOLEAN &needAuth,
@@ -102,6 +104,7 @@ private:
 
    BOOLEAN _shouldAutoCrtCS( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
+   BOOLEAN _shouldBuildGetMoreMsg( const _mongoCommand *pCommand ) ;
 
    INT32   _checkEDUCB( engine::_pmdEDUCB *cb, UINT64 eduIdOfCb ) ;
    void    _postInnerErrorEvent( INT32 errorCode,

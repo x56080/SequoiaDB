@@ -994,6 +994,79 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName, BSONObj &errorObj )
    return rc ;
 }
 
+INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpKillContexts *kill = NULL ;
+   BSONObj errorObj ;
+   BSONObj returnObjCpy ;
+   UINT64 requestIDCpy = _replyHeader.header.requestID ;
+   INT32 flagsCpy = _replyHeader.flags ;
+
+   try
+   {
+      // _contextBuff will be released in _processMsg,
+      // so we should call getOwned()
+      returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
+
+      _tmpBuffer.zero() ;
+      _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
+      _tmpBuffer.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
+         goto error ;
+      }
+      kill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
+      kill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+      kill->header.TID = 0 ;
+      kill->header.routeID.value = 0 ;
+      kill->header.requestID = requestID ;
+      kill->ZERO = 0 ;
+      kill->numContexts = 1 ;
+
+      rc = _tmpBuffer.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to write contextID, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      _tmpBuffer.doneLen() ;
+
+      rc = _processMsg( (CHAR*)kill, errorObj ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING,
+                 "Session[%s]: failed to kill cursor[cursorID: %lld] "
+                 "automatically, rc: %d",
+                 sessionName(), contextID, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Session[%s] kill cursor[cursorID: %lld] "
+                 "automatically", sessionName(), contextID ) ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when killing cursor: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   _replyHeader.flags = flagsCpy ;
+   _replyHeader.contextID = SDB_INVALID_CONTEXTID ;
+   _replyHeader.header.requestID = requestIDCpy ;
+   _contextBuff = engine::rtnContextBuf( returnObjCpy ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 BOOLEAN _mongoSession::_shouldAutoCrtCS( const _mongoCommand *pCommand )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
@@ -1041,6 +1114,32 @@ BOOLEAN _mongoSession::_shouldAutoCrtCL( const _mongoCommand *pCommand )
    }
 }
 
+BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand )
+{
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
+
+   MONGO_CMD_TYPE cmdType = pCommand->type() ;
+
+   if ( SDB_OK != _replyHeader.flags ||
+        SDB_INVALID_CONTEXTID == _replyHeader.contextID )
+   {
+      return FALSE ;
+   }
+
+   if ( CMD_COUNT     == cmdType || CMD_LIST_INDEX      == cmdType ||
+        CMD_AGGREGATE == cmdType || CMD_LIST_COLLECTION == cmdType ||
+        CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
+        CMD_LIST_USER == cmdType )
+   {
+      return TRUE ;
+   }
+   else
+   {
+      return FALSE ;
+   }
+
+}
+
 INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                                   const _mongoCommand *pCommand,
                                   BSONObj &errorObj )
@@ -1052,6 +1151,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
    BOOLEAN hasBuildGetMore = FALSE ;
    MONGO_CMD_TYPE cmdType = pCommand->type() ;
    BOOLEAN isNewCS = FALSE ;
+   BOOLEAN needKillCursor = FALSE ;
 
    while ( TRUE )
    {
@@ -1127,22 +1227,27 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          pCmd->setHasInsertRecord( TRUE ) ;
          break ;
       }
-      else if ( SDB_OK == _replyHeader.flags )
+      else if ( !hasBuildGetMore && _shouldBuildGetMoreMsg( pCommand ) )
       {
-         if ( CMD_COUNT     == cmdType || CMD_LIST_INDEX      == cmdType ||
-              CMD_AGGREGATE == cmdType || CMD_LIST_COLLECTION == cmdType ||
-              CMD_DISTINCT  == cmdType || CMD_LIST_DATABASE   == cmdType ||
-              CMD_LIST_USER == cmdType )
+         buildGetMoreSdbMsg( _replyHeader.header.requestID,
+                             _replyHeader.contextID, _inBuffer ) ;
+         hasBuildGetMore = TRUE ;
+         // In SequoiaDB, count command is executed in three steps:
+         // first: count, and return a cursor
+         // second: getMore, and return count number
+         // third: close cursor
+         if ( CMD_COUNT == cmdType )
          {
-            if ( SDB_INVALID_CONTEXTID != _replyHeader.contextID &&
-                 !hasBuildGetMore )
-            {
-               buildGetMoreSdbMsg( _replyHeader.header.requestID,
-                                   _replyHeader.contextID, _inBuffer ) ;
-               hasBuildGetMore = TRUE ;
-               continue ;
-            }
+            needKillCursor = TRUE ;
          }
+
+         continue ;
+      }
+      else if ( needKillCursor )
+      {
+         _autoKillCursor( _replyHeader.header.requestID,
+                          _replyHeader.contextID ) ;
+         break ;
       }
 
       break ;
