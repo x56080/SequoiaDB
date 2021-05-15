@@ -721,9 +721,6 @@ namespace import
       }
 
       result = FALSE ;
-      std::cout << "Warning: failed to get time zone information." << std::endl
-                << "You can set environment variable TZ to improve "
-                   "import performance." << std::endl ;
       PD_LOG( PDWARNING, "Failed to get time zone information, "
                          "you can set environment variable TZ to improve "
                          "import performance" ) ;
