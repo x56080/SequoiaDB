@@ -7435,40 +7435,11 @@ do                                                            \
             }
          }
 
-         if ( !options.hasField( FIELD_NAME_ALTER ) )
+         bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
+         rc = _appendOptions( bob, options ) ;
+         if ( rc )
          {
-            bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
-            rc = _appendOptions( bob, options ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-         }
-         else
-         {
-            bob.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_DATASOURCE ) ;
-            bob.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
-            bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
-            if ( Object == ele.type() || Array == ele.type() )
-            {
-               bob.append( ele ) ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            ele = options.getField( FIELD_NAME_OPTIONS ) ;
-            if ( Object == ele.type() )
-            {
-               bob.append( ele ) ;
-            }
-            else if ( EOO != ele.type() )
-            {
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
+            goto error ;
          }
          newObj = bob.obj() ;
       }
@@ -11619,13 +11590,13 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbImpl::createDataSource( const CHAR *pDataSourceName,
+   INT32 _sdbImpl::createDataSource( _sdbDataSource **dataSource,
+                                     const CHAR *pDataSourceName,
                                      const CHAR *addresses,
                                      const CHAR *user,
                                      const CHAR *password,
                                      const CHAR *type,
-                                     const bson::BSONObj *options,
-                                     _sdbDataSource **dataSource )
+                                     const bson::BSONObj *options )
    {
       INT32 rc = SDB_OK ;
       BSONObj newObj ;

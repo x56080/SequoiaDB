@@ -3349,7 +3349,7 @@ namespace sdbclient
           \brief Create the specified collection in current collection space with options
           \param [in] pCollection The collection name
           \param [in] options The options for creating collection or NULL for not specified any options.
-                              Please reference <a href="http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION">here</a>
+                              Please reference <a href="//doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION target=new">here</a>
                               for more detail.
           \param [out] collection The return collection object .
           \retval SDB_OK Operation Success
@@ -4632,9 +4632,12 @@ namespace sdbclient
       virtual ~_sdbDataSource() {}
 
       virtual INT32 alterDataSource( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
-      virtual const CHAR *getDSName() = 0 ;
+      virtual const CHAR *getName() = 0 ;
    } ;
 
+   /** \class sdbDataSource
+       \brief Database operation interfaces of data source
+   */
    class DLLEXPORT sdbDataSource
    {
    private:
@@ -4656,6 +4659,35 @@ namespace sdbclient
          }
       }
 
+      /** \fn INT32 alterDataSource( const bson::BSONObj &options )
+          \brief Modify the attributes of the current data source.
+          \param [in] options The options for setting data source attributes:
+
+              Name              : New name of current data source.
+              Address           : The list of coord addresses for the target sequoiadb cluster,
+                                  spearated by ','. eg: "sdbserver1:11810,sdbserver2:11820"
+              User              : User name of data source.
+              Password          : Data source password corresponding to User.
+              AccessMode        : Configure access permissions for the data source, default is "ALL":
+                                    "READ" means allow read-only operation.
+                                    "WRITE" means allow write operation.
+                                    "ALL" or "READ|WRITE" means allow all operations.
+                                    "NONE" means no operation allowed.
+              ErrorFilterMask   : Configure error filtering for data operations on data sources,
+                                  default is "NONE":
+                                    "READ" means filter data read errors.
+                                    "WRITE" means filter data write errors.
+                                    "ALL" or "READ|WRITE" means filter all data read and write errors
+                                    "NONE" means do not filter any errors.
+              ErrorControlLevel : Configure the error level when performing unsupported data operations
+                                  (such as DDL) on the mapping collection or collection space, default
+                                  is "High":
+                                    "High" means report an error and output an error message.
+                                    "Low" means ignore unsupported data operations and do not execute.
+          \param [out] A data source object
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
       INT32 alterDataSource( const bson::BSONObj &options )
       {
          if ( !pDataSource )
@@ -4665,13 +4697,17 @@ namespace sdbclient
          return pDataSource->alterDataSource( options ) ;
       }
 
-      const CHAR *getDSName()
+      /** \fn const CHAR *getName () ;
+          \brief Get the name of current data source.
+          \retval The name of current data source
+      */
+      const CHAR *getName()
       {
          if ( !pDataSource )
          {
             return NULL ;
          }
-         return pDataSource->getDSName() ;
+         return pDataSource->getName() ;
       }
    } ;
 
@@ -5077,13 +5113,13 @@ namespace sdbclient
 
       virtual INT32 dropSequence( const CHAR *pSequenceName ) = 0 ;
 
-      virtual INT32 createDataSource( const CHAR *pDataSourceName,
+      virtual INT32 createDataSource( _sdbDataSource **dataSource,
+                                      const CHAR *pDataSourceName,
                                       const CHAR *addresses,
                                       const CHAR *user = NULL,
                                       const CHAR *password = NULL,
                                       const CHAR *type = NULL,
-                                      const bson::BSONObj *options = NULL,
-                                      _sdbDataSource **dataSource = NULL
+                                      const bson::BSONObj *options = NULL
                                       ) = 0 ;
 
       virtual INT32 dropDataSource( const CHAR *pDataSourceName ) = 0 ;
@@ -5091,15 +5127,7 @@ namespace sdbclient
       virtual INT32 getDataSource( const CHAR *pDataSourceName,
                                    _sdbDataSource **dataSource ) = 0 ;
 
-      virtual INT32 getDataSource( const CHAR *pDataSourceName,
-                                   sdbDataSource &dataSource ) = 0 ;
-
       virtual INT32 listDataSources( _sdbCursor** cursor,
-                                     const bson::BSONObj &condition = _sdbStaticObject,
-                                     const bson::BSONObj &selector = _sdbStaticObject,
-                                     const bson::BSONObj &orderBy = _sdbStaticObject,
-                                     const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
-      virtual INT32 listDataSources( sdbCursor& cursor,
                                      const bson::BSONObj &condition = _sdbStaticObject,
                                      const bson::BSONObj &selector = _sdbStaticObject,
                                      const bson::BSONObj &orderBy = _sdbStaticObject,
@@ -5580,46 +5608,6 @@ namespace sdbclient
          return pSDB->resetSnapshot ( options ) ;
       }
 
-      /* \fn INT32 getList ( _sdbCursor **cursor,
-                             INT32 listType,
-                             const bson::BSONObj &condition,
-                             const bson::BSONObj &selector,
-                             const bson::BSONObj &orderBy,
-                             const bson::BSONObj &hint,
-                             INT64 numToSkip,
-                             INT64 numToReturn
-                           )
-          \brief Get the informations of specified type.
-          \param [in] listType The list type as below
-
-              SDB_LIST_CONTEXTS         : Get all contexts list
-              SDB_LIST_CONTEXTS_CURRENT : Get contexts list for the current session
-              SDB_LIST_SESSIONS         : Get all sessions list
-              SDB_LIST_SESSIONS_CURRENT : Get the current session
-              SDB_LIST_COLLECTIONS      : Get all collections list
-              SDB_LIST_COLLECTIONSPACES : Get all collecion spaces' list
-              SDB_LIST_STORAGEUNITS     : Get storage units list
-              SDB_LIST_GROUPS           : Get replicaGroup list ( only applicable in sharding env )
-              SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
-              SDB_LIST_DOMAINS          : Get all the domains list
-              SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
-              SDB_LIST_TRANSACTIONS     : Get all the transactions information.
-              SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-              SDB_LIST_SVCTASKS         : Get all the schedule task informations
-              SDB_LIST_SEQUENCES        : Get all the sequence informations
-              SDB_LIST_USERS            : Get all the user informations
-
-         \param [in] condition The matching rule, match all the documents if null.
-         \param [in] select The selective rule, return the whole document if null.
-         \param [in] orderBy The ordered rule, never sort if null.
-         \param [in] hint The options provided for specific list type. Reserved.
-         \param [in] numToSkip Skip the first numToSkip documents.
-         \param [in] numToReturn Only return numToReturn documents. -1 means return
-                     all matched results.
-         \param [out] cursor The return cursor handle of query.
-         \retval SDB_OK Operation Success
-         \retval Others Operation Fail
-      */
       INT32 getList ( _sdbCursor **cursor,
                       INT32 listType,
                       const bson::BSONObj &condition = _sdbStaticObject,
@@ -5667,6 +5655,7 @@ namespace sdbclient
               SDB_LIST_SVCTASKS         : Get all the schedule task informations
               SDB_LIST_SEQUENCES        : Get all the sequence informations
               SDB_LIST_USERS            : Get all the user informations
+              SDB_LIST_DATASOURCES      : Get all the data source informations
 
          \param [in] condition The matching rule, match all the documents if null.
          \param [in] select The selective rule, return the whole document if null.
@@ -5774,24 +5763,6 @@ namespace sdbclient
                                            cs, checkExist ) ;
       }
 
-      /* \fn INT32 createCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                          INT32 iPageSize,
-                                          _sdbCollectionSpace **cs
-                                        )
-          \brief Create collection space with specified pagesize.
-          \param [in] pCollectionSpaceName The name of collection space.
-          \param [in] iPageSize The Page Size as below
-
-              SDB_PAGESIZE_4K
-              SDB_PAGESIZE_8K
-              SDB_PAGESIZE_16K
-              SDB_PAGESIZE_32K
-              SDB_PAGESIZE_64K
-              SDB_PAGESIZE_DEFAULT
-          \param [out] cs The return collection space handle of creation.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 createCollectionSpace ( const CHAR *pCollectionSpaceName,
                                     INT32 iPageSize,
                                     _sdbCollectionSpace **cs
@@ -5859,8 +5830,11 @@ namespace sdbclient
           \param [in] pCollectionSpaceName The name of collection space.
           \param [in] options The options specified by user, e.g. {"PageSize": 4096, "Domain": "mydomain"}.
 
-              PageSize   : Assign the pagesize of the collection space
-              Domain     : Assign which domain does current collection space belong to
+              PageSize    : Assign the pagesize of the collection space
+              Domain      : Assign which domain does current collection space belong to
+              LobPageSize : The Lob data page size, default value is 262144 and the unit is byte
+              DataSource  : Assign which data source does current collection space belong to
+              Mapping     : The name of the collection space mapped by the current collection space
           \param [out] cs The return collection space object of creation.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
@@ -7552,22 +7526,66 @@ namespace sdbclient
          }
          return pSDB->dropSequence( pSequenceName ) ;
       }
-      INT32 createDataSource( const CHAR *pDataSourceName,
+
+      /** \fn INT32 createDataSource( sdbDataSource &dataSource,
+                              const CHAR *pDataSourceName,
                               const CHAR *addresses,
                               const CHAR *user = NULL,
                               const CHAR *password = NULL,
                               const CHAR *type = NULL,
-                              const bson::BSONObj *options = NULL,
-                              _sdbDataSource **dataSource = NULL )
+                              const bson::BSONObj *options = NULL )
+          \brief Create data source
+          \param [in] pDataSourceName The name of data source.
+          \param [in] addresses The list of coord addresses for the target sequoiadb cluster,
+                      spearated by ','. eg: "sdbserver1:11810,sdbserver2:11820"
+          \param [in] user The name of data source.
+          \param [in] password User password of the data source
+          \param [in] type Data source type
+          \param [in] options Optional configuration option for create data source:
+
+              AccessMode        : Configure access permissions for the data source, default is "ALL":
+                                    "READ" means allow read-only operation.
+                                    "WRITE" means allow write operation.
+                                    "ALL" or "READ|WRITE" means allow all operations.
+                                    "NONE" means no operation allowed.
+              ErrorFilterMask   : Configure error filtering for data operations on data sources,
+                                  default is "NONE":
+                                    "READ" means filter data read errors.
+                                    "WRITE" means filter data write errors.
+                                    "ALL" or "READ|WRITE" means filter all data read and write errors.
+                                    "NONE" means do not filter any errors.
+              ErrorControlLevel : Configure the error level when performing unsupported data operations
+                                  (such as DDL) on the mapping collection or collection space, default
+                                  is "High":
+                                    "High" means report an error and output an error message.
+                                    "Low" means ignore unsupported data operations and do not execute.
+          \param [out] dataSource A data source object
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 createDataSource( sdbDataSource &dataSource,
+                              const CHAR *pDataSourceName,
+                              const CHAR *addresses,
+                              const CHAR *user = NULL,
+                              const CHAR *password = NULL,
+                              const CHAR *type = NULL,
+                              const bson::BSONObj *options = NULL )
       {
          if ( !pSDB )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pSDB->createDataSource( pDataSourceName, addresses, user,
-                                        password, type, options, dataSource ) ;
+         RELEASE_INNER_HANDLE( dataSource.pDataSource ) ;
+         return pSDB->createDataSource( &dataSource.pDataSource, pDataSourceName, addresses,
+                                        user, password, type, options ) ;
       }
 
+      /** \fn INT32 dropDataSource( const CHAR *pDataSourceName )
+          \brief Drop the specified data source.
+          \param [in] pDataSourceName The name of data source.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
       INT32 dropDataSource( const CHAR *pDataSourceName )
       {
          if ( !pSDB )
@@ -7577,16 +7595,14 @@ namespace sdbclient
          return pSDB->dropDataSource( pDataSourceName ) ;
       }
 
-      INT32 getDataSource( const CHAR *pDataSourceName,
-                           _sdbDataSource **dataSource )
-      {
-         if ( !pSDB )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pSDB->getDataSource( pDataSourceName, dataSource ) ;
-      }
-
+      /** \fn INT32 getDataSource( const CHAR *pDataSourceName,
+                                   sdbDataSource &dataSource )
+          \brief Get data source.
+          \param [in]  pDataSourceName The name of data source.
+          \param [out] dataSource The return data source object.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
       INT32 getDataSource( const CHAR *pDataSourceName,
                            sdbDataSource &dataSource )
       {
@@ -7595,23 +7611,23 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          RELEASE_INNER_HANDLE( dataSource.pDataSource ) ;
-         return pSDB->getDataSource( pDataSourceName, dataSource ) ;
+         return pSDB->getDataSource( pDataSourceName, &dataSource.pDataSource ) ;
       }
 
-
-      INT32 listDataSources( _sdbCursor** cursor,
+      /** \fn INT32 listDataSources( sdbCursor& cursor,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject )
-      {
-         if ( !pSDB )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         return pSDB->listDataSources( cursor, condition, selector, orderBy, hint ) ;
-      }
-
+          \brief List data source.
+          \param [in] condition The matching rule, return all the record if null
+          \param [in] selector The selective rule, return the whole record if null
+          \param [in] orderBy The ordered rule, never sort if null
+          \param [in] hint Reserved, do not need to specify
+          \param [out] cursor The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
       INT32 listDataSources( sdbCursor& cursor,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &selector = _sdbStaticObject,
@@ -7623,7 +7639,7 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return pSDB->listDataSources( cursor, condition, selector, orderBy, hint ) ;
+         return pSDB->listDataSources( &cursor.pCursor, condition, selector, orderBy, hint ) ;
       }
    } ;
 
