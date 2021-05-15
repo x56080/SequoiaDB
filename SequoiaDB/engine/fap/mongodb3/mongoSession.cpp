@@ -633,6 +633,9 @@ INT32 _mongoSession::_recvMsg( CHAR *&pMsg,
             // GETMORE request to data node immediately. At this time we may
             // get GETMORE response, and we just ignore it.
             tmpEventQue.push( event ) ;
+            // event may be released by other threads using event in tmpEventQue,
+            // so we must reset event after pushing
+            event.reset() ;
             PD_LOG( PDDEBUG, "wait unexpected event" ) ;
             continue ;
          }
