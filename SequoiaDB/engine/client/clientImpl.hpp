@@ -1159,7 +1159,7 @@ namespace sdbclient
       ~_sdbDataSourceImpl() ;
 
       INT32 alterDataSource( const bson::BSONObj &options = _sdbStaticObject ) ;
-      const CHAR *getDSName()
+      const CHAR *getName()
       {
          return _dataSourceName ;
       }
@@ -1767,42 +1767,24 @@ namespace sdbclient
       INT32 getLastResultObj( bson::BSONObj &result,
                               BOOLEAN getOwned = FALSE ) const ;
 
-      INT32 createDataSource( const CHAR *pDataSourceName,
+      INT32 createDataSource( _sdbDataSource **dataSource,
+                              const CHAR *pDataSourceName,
                               const CHAR *addresses,
                               const CHAR *user = NULL,
                               const CHAR *password = NULL,
                               const CHAR *type = NULL,
-                              const bson::BSONObj *options = NULL,
-                              _sdbDataSource **dataSource = NULL ) ;
+                              const bson::BSONObj *options = NULL ) ;
 
       INT32 dropDataSource( const CHAR *pDataSourceName ) ;
 
       INT32 getDataSource( const CHAR *pDataSourceName,
                            _sdbDataSource **dataSource ) ;
 
-      INT32 getDataSource( const CHAR *pDataSourceName,
-                           sdbDataSource &dataSource )
-      {
-         RELEASE_INNER_HANDLE( dataSource.pDataSource ) ;
-         return getDataSource( pDataSourceName, &dataSource.pDataSource ) ;
-      }
-
       INT32 listDataSources( _sdbCursor **cursor,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
-
-      INT32 listDataSources( sdbCursor &cursor,
-                             const bson::BSONObj &condition = _sdbStaticObject,
-                             const bson::BSONObj &selector = _sdbStaticObject,
-                             const bson::BSONObj &orderBy = _sdbStaticObject,
-                             const bson::BSONObj &hint = _sdbStaticObject )
-      {
-         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return listDataSources( &cursor.pCursor, condition, selector,
-                                 orderBy, hint ) ;
-      }
    } ;
    typedef class _sdbImpl sdbImpl ;
 }

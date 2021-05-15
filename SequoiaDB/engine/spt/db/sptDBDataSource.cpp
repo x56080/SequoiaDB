@@ -80,7 +80,7 @@ namespace engine
                                       _sptReturnVal & rval,
                                       bson::BSONObj & detail )
    {
-      rval.getReturnVal().setValue( _dataSource.getDSName() ) ;
+      rval.getReturnVal().setValue( _dataSource.getName() ) ;
       return SDB_OK ;
    }
 }
