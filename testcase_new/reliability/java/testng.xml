@@ -72,6 +72,7 @@
             <package name="com.sequoiadb.faulttolerance.diskfull" />
             <package name="com.sequoiadb.faulttolerance.restartnode" />
             <package name="com.sequoiadb.faulttolerance.slownode" />
+            <package name="com.sequoiadb.datasource"/>
         </packages>
     </test>
 
