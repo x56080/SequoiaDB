@@ -36,15 +36,15 @@ v3.2 及以上版本
 
 * 新建一个远程连接对象。
 
-```lang-javascript
-> var remoteObj = new Remote( "192.168.20.71", 11790 )
-```
+    ```lang-javascript
+    > var remoteObj = new Remote( "192.168.20.71", 11790 )
+    ```
 
 * 新建一个远程 System 对象
 
-```lang-javascript
-> var system = remoteObj.getSystem()
-```
+    ```lang-javascript
+    > var system = remoteObj.getSystem()
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

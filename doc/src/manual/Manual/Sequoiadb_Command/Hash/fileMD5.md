@@ -1,3 +1,6 @@
+##名称##
+
+fileMD5 - 获取文件的 md5 值
 
 ##语法##
 
@@ -27,11 +30,15 @@ Hash
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 获取文件的 md5 值。
+获取文件的 md5 值。
 
-  ```lang-javascript
-  > Hash.fileMD5( "/opt/sequoiadb/file" )
-  e2c40f3a729dbe802f2295425d6da21c
-  ```
+```lang-javascript
+> Hash.fileMD5( "/opt/sequoiadb/file" )
+e2c40f3a729dbe802f2295425d6da21c
+```

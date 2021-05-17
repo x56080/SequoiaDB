@@ -1,3 +1,6 @@
+##名称##
+
+md5 - 获取字符串的 md5 值
 
 ##语法##
 
@@ -28,11 +31,15 @@ Hash
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 获取字符串的 md5 值。
+获取字符串的 md5 值。
 
-  ```lang-javascript
-  > Hash.md5( "SequoiaDB" )
-  151a2930a718d32f64141aabda45b3b3
-  ```
+```lang-javascript
+> Hash.md5( "SequoiaDB" )
+151a2930a718d32f64141aabda45b3b3
+```

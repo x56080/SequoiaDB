@@ -1,3 +1,6 @@
+##名称##
+
+Remote - 新建一个远程连接对象
 
 ##语法##
 
@@ -29,10 +32,14 @@ Remote
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 新建一个远程连接对象
+新建一个远程连接对象
 
-  ```lang-javascript
-  > var remoteObj = new Remote( "192.168.20.71", 11790 )
-  ```
+```lang-javascript
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
+```

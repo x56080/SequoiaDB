@@ -1,3 +1,6 @@
+##名称##
+
+getFile - 新建一个远程文件对象
 
 ##语法##
 
@@ -51,23 +54,27 @@ mode 参数的可选值如下表：
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 新建一个远程连接对象
 
-  ```lang-javascript
-  > var remoteObj = new Remote( "192.168.20.71", 11790 )
-  ```
+    ```lang-javascript
+    > var remoteObj = new Remote( "192.168.20.71", 11790 )
+    ```
 
 * 新建一个远程文件对象。
 
-  ```lang-javascript
-  > var file = remoteObj.getFile( "/opt/sequoiadb/file", 0777, SDB_FILE_READWRITE | SDB_FILE_CREATE )
-  ```
+    ```lang-javascript
+    > var file = remoteObj.getFile( "/opt/sequoiadb/file", 0777, SDB_FILE_READWRITE | SDB_FILE_CREATE )
+    ```
 
 * 读取文本文件内容。（详细可参考[read](manual/Manual/Sequoiadb_Command/File/read.md)）
 
-  ```lang-javascript
-  > file.read()
-  SquoiaDB
-  ```
+    ```lang-javascript
+    > file.read()
+    SquoiaDB
+    ```

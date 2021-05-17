@@ -1,3 +1,6 @@
+##名称##
+
+getCmd - 新建一个远程 Command 对象
 
 ##语法##
 
@@ -26,23 +29,27 @@ Remote
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 新建一个远程连接对象。
 
-  ```lang-javascript
-  > var remoteObj = new Remote( "192.168.20.71", 11790 )
-  ```
+    ```lang-javascript
+    > var remoteObj = new Remote( "192.168.20.71", 11790 )
+    ```
 
 * 新建一个远程 Command 对象（新建 Cmd 对象可参考[Cmd](manual/Manual/Sequoiadb_Command/Cmd/Cmd.md)）
-
-  ```lang-javascript
-  > var cmd = remoteObj.getCmd()
-  ```
+  
+    ```lang-javascript
+    > var cmd = remoteObj.getCmd()
+    ```
 
 * 执行 JavaScript 代码。（详细可参考[runJS](manual/Manual/Sequoiadb_Command/Cmd/runJS.md)）
 
-  ```lang-javascript
-  > cmd.runJS( "1+2*3" )
-  7
-  ```
+    ```lang-javascript
+    > cmd.runJS( "1+2*3" )
+    7
+    ```

@@ -32,17 +32,21 @@ v3.2 及以上版本
 .SH 示例
 .IP \[bu] 2
 新建一个远程连接对象。
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
 \f[]
 .fi
+.RE
 .IP \[bu] 2
 新建一个远程 System 对象
+.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ system\ =\ remoteObj.getSystem()
 \f[]
 .fi
+.RE

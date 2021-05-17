@@ -1,7 +1,10 @@
+##名称##
+
+getIniFile - 打开一个远程 INI 配置文件
 
 ##语法##
 
-***getIniFile( \<filename\>, \[flags\] )***
+**getIniFile( \<filename\>, \[flags\] )**
 
 ##类别##
 
@@ -49,16 +52,20 @@ flags 参数的可选值如下表：
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 创建一个远程连接对象
 
-   ```lang-javascript
-   > var remoteObj = new Remote( "sdbserver1", 11790 )
-   ```
+    ```lang-javascript
+    > var remoteObj = new Remote( "sdbserver1", 11790 )
+    ```
 
 * 创建一个远程 IniFile 对象。
 
-  ```lang-javascript
-  > var ini = remoteObj.getFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
-  ```
+    ```lang-javascript
+    > var ini = remoteObj.getFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
+    ```
