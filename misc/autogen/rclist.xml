@@ -1102,7 +1102,7 @@
          <name>SDB_CLS_UPDATE_CAT_FAILED</name>
          <description>
             <en>Failed to update catalog</en>
-            <cn>更新协调节点失败</cn>
+            <cn>更新编目节点失败</cn>
          </description>
       </code>
 
