@@ -1,7 +1,10 @@
+##名称##
+
+getLastComment - 获取尾部注释
 
 ##语法##
 
-***IniFile.getLastComment()***
+**IniFile.getLastComment()**
 
 ##类别##
 
@@ -27,17 +30,21 @@ IniFile
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 打开一个 INI 文件。
 
-  ```lang-javascript
-  > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
-  ```
+    ```lang-javascript
+    > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
+    ```
 
 * 获取尾部注释。
 
-  ```lang-javascript
-  > ini.getLastComment()
-  End of INI file
-  ```
+    ```lang-javascript
+    > ini.getLastComment()
+    End of INI file
+    ```

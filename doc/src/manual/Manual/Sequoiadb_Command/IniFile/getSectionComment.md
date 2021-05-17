@@ -1,7 +1,10 @@
+##名称##
+
+getSectionComment - 获取指定 section 的注释
 
 ##语法##
 
-***IniFile.getSectionComment( \<section\> )***
+**IniFile.getSectionComment( \<section\> )**
 
 ##类别##
 
@@ -30,17 +33,21 @@ IniFile
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 打开一个 INI 文件。
 
-  ```lang-javascript
-  > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
-  ```
+    ```lang-javascript
+    > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
+    ```
 
 * 获取指定 section 的注释。
 
-  ```lang-javascript
-  > ini.getSectionComment( "info" )
-  personal information
-  ```
+    ```lang-javascript
+    > ini.getSectionComment( "info" )
+    personal information
+    ```

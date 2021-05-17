@@ -1,7 +1,10 @@
+##名称##
+
+toString - 转换成文本
 
 ##语法##
 
-***IniFile.toString()***
+**IniFile.toString()**
 
 ##类别##
 
@@ -28,23 +31,26 @@ IniFile
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 打开一个 INI 文件。
 
-  ```lang-javascript
-  > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
-  ```
+    ```lang-javascript
+    > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
+    ```
 
 * 转换成对象。
 
-  ```lang-javascript
-  > ini.toString()
-  ; personal information
-  [info]
-  ; what's your name
-  name=Alan
-  age=23
-  ; End of INI file
-
-  ```
+    ```lang-javascript
+    > ini.toString()
+    ; personal information
+    [info]
+    ; what's your name
+    name=Alan
+    age=23
+    ; End of INI file
+    ```

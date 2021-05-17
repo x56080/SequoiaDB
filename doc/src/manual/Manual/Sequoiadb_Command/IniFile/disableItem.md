@@ -1,9 +1,12 @@
+##名称##
+
+disableItem - 注释指定的 item
 
 ##语法##
 
-***IniFile.disableItem( \<section\>, \<key\> )***
+**IniFile.disableItem( \<section\>, \<key\> )**
 
-***IniFile.disableItem( \<key\> )***
+**IniFile.disableItem( \<key\> )**
 
 ##类别##
 
@@ -11,7 +14,7 @@ IniFile
 
 ##描述##
 
-注释指定的 item 。
+注释指定的 item。
 
 ##参数##
 
@@ -31,16 +34,21 @@ IniFile
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 打开一个 INI 文件。
 
-  ```lang-javascript
-  > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
-  ```
+    ```lang-javascript
+    > var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
+    ```
 
 * 注释指定的 item 。
 
-  ```lang-javascript
-  > ini.disableItem( "info", "name" )
-  ```
+    ```lang-javascript
+    > ini.disableItem( "info", "name" )
+    ```
