@@ -8,8 +8,8 @@
 createDataSource \- 创建数据源
 .SH 语法
 .PP
-\f[B]db.createDataSource( <name>, <address>, [user], [password], [type],
-[options] )\f[]
+\f[B]db.createDataSource(<name>, <address>, [user], [password], [type],
+[options])\f[]
 .SH 类别
 .PP
 Sdb
@@ -43,7 +43,8 @@ options（ \f[I]object，选填\f[] ）
 .PP
 通过 options 参数可以设置其他选填参数
 .IP "1." 3
-AccessMode（string）：配置对该数据源的访问权限，包括读写数据，默认值为"ALL"
+AccessMode（ \f[I]string\f[]
+）：配置对该数据源的访问权限，包括读写数据，默认值为"ALL"
 .RS 4
 .PP
 取值如下：
@@ -60,7 +61,8 @@ AccessMode（string）：配置对该数据源的访问权限，包括读写数�
 格式：\f[C]AccessMode:"READ"\f[]
 .RE
 .IP "2." 3
-ErrorFilterMask（string ）：配置对数据源进行数据操作的错误过滤，默认值为"NONE"
+ErrorFilterMask（ \f[I]string\f[]
+）：配置对数据源进行数据操作的错误过滤，默认值为"NONE"
 .RS 4
 .PP
 取值如下：
@@ -77,7 +79,8 @@ ErrorFilterMask（string ）：配置对数据源进行数据操作的错误过�
 格式：\f[C]ErrorFilterMask:"READ"\f[]
 .RE
 .IP "3." 3
-ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如
+ErrorControlLevel（ \f[I]string\f[]
+）：配置对映射集合或集合空间进行不支持的数据操作（如
 DDL）时的报错级别，默认值为"High"
 .RS 4
 .PP
@@ -149,6 +152,6 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createDataSource("datasource","192.168.20.66:50000","","","SequoiaDB",{AccessMode:"READ"})
+>\ db.createDataSource("datasource",\ "192.168.20.66:50000",\ "",\ "",\ "SequoiaDB",\ {AccessMode:\ "READ"})
 \f[]
 .fi
