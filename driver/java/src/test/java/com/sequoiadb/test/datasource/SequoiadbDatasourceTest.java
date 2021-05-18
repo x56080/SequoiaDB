@@ -53,7 +53,7 @@ public class SequoiadbDatasourceTest {
         ConfigOptions configOptions = new ConfigOptions();
         DatasourceOptions options = new DatasourceOptions();
         options.setMaxCount(maxCount);
-        options.setPreferedInstance(Arrays.asList("M", "m", "1", "2", "012"));
+        options.setPreferedInstance(Arrays.asList("M", "1", "2", "012"));
         options.setPreferedInstanceMode("ordered");
         options.setSessionTimeout(100);
         SequoiadbDatasource sds = new SequoiadbDatasource(coords, "", "", configOptions, options);
