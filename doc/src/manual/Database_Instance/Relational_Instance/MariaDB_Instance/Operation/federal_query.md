@@ -137,7 +137,7 @@ SparkSQL 联邦查询具体操作步骤如下：
 12. 在 MariaDB 中指定关键词 /*+sql_pushdown=spark*/ 进行联邦
 
     ```lang-sql
-    MariaDB [company]> select /*+sql_pushdown=spark*/ count(t1.employee_id) as cnt from company.manager as t1 inner join company.employee as t2 on t1.employee_id = t2.id /*+ use_hash() */;
+    MariaDB [company]> select /*+sql_pushdown=spark*/ count(t1.employee_id) as cnt from company.manager as t1 inner join company.employee as t2 on t1.employee_id = t2.id;
     ```
 
   > **Note:**
