@@ -17,7 +17,6 @@ public class BsonEncodeDecodeHookTest {
     private static Sequoiadb sdb;
     private static CollectionSpace cs;
     private static DBCollection cl;
-    private static DBCursor cursor;
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
@@ -48,38 +47,43 @@ public class BsonEncodeDecodeHookTest {
         sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
-
     @Test
     public void testEncodeDecodeHook() {
-        BSON.addEncodingHook(GregorianCalendar.class, new Transformer() {
+        Transformer encodeTf = new Transformer() {
             @Override
             public Object transform(Object o) {
                 return ((GregorianCalendar)o).getTime();
             }
-        });
-
-        BSON.addDecodingHook(Date.class, new Transformer() {
+        };
+        Transformer decodeTf = new Transformer() {
             @Override
             public Object transform(Object o) {
                 Calendar calendar = new GregorianCalendar();
                 calendar.setTime((Date)o);
                 return calendar;
             }
-        });
+        };
+
+        BSON.addEncodingHook(GregorianCalendar.class, encodeTf);
+        BSON.addDecodingHook(Date.class, decodeTf);
 
         Calendar calendar = new GregorianCalendar();
         calendar.set(2018, 0,1);
         BSONObject object = new BasicBSONObject();
         object.put("calendar", calendar);
-        cl.insert(object);
-        DBCursor cursor = cl.query();
-        while(cursor.hasNext()) {
-            BSONObject record = cursor.getNext();
-            System.out.println("record is: " + record);
-            Object resultObject = record.get("calendar");
-            calendar.equals(resultObject);
-            Assert.assertTrue(resultObject instanceof GregorianCalendar);
+        try {
+            cl.insert(object);
+            DBCursor cursor = cl.query();
+            while(cursor.hasNext()) {
+                BSONObject record = cursor.getNext();
+                System.out.println("record is: " + record);
+                Object resultObject = record.get("calendar");
+                calendar.equals(resultObject);
+                Assert.assertTrue(resultObject instanceof GregorianCalendar);
+            }
+        }finally {
+            BSON.removeEncodingHook(GregorianCalendar.class, encodeTf);
+            BSON.removeDecodingHook(Date.class, decodeTf);
         }
     }
-
 }

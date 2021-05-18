@@ -1,6 +1,7 @@
 package com.sequoiadb.testdata;
 
 import java.util.Date;
+import org.bson.util.DateInterceptUtil;
 
 public class BasicClass {
     //	private ObjectId _id = ObjectId.get();
@@ -13,7 +14,7 @@ public class BasicClass {
     private Long idLong = 0L;
     private Double scodeDouble = 9999.001;
     private Float floatvalue = 012121.212f;
-    private Date date = new Date();
+    private Date date = DateInterceptUtil.interceptDate(new Date(), "yyyy-MM-dd");
 
 
 //	public ObjectId get_id() {
