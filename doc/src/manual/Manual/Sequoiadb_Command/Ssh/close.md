@@ -1,7 +1,10 @@
+##名称##
+
+close - 关闭 Ssh 连接
 
 ##语法##
 
-***close()***
+**close()**
 
 ##类别##
 
@@ -25,16 +28,20 @@ Ssh
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
 * 使用 SSH 方式连接主机。
 
-  ```lang-javascript
-  > var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
-  ```
+    ```lang-javascript
+    > var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
+    ```
 
 * 关闭连接。
 
-  ```lang-javascript
-  > ssh.close()
-  ```
+    ```lang-javascript
+    > ssh.close()
+    ```

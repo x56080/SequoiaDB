@@ -1,7 +1,10 @@
+##名称##
+
+getLastOut - 获取上次命令执行的返回结果
 
 ##语法##
 
-***getLastOut()***
+**getLastOut()**
 
 ##类别##
 
@@ -25,29 +28,32 @@ Ssh
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
 
 ##示例##
 
 * 使用 SSH 方式连接主机。
 
-  ```lang-javascript
-  > var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
-  ```
+    ```lang-javascript
+    > var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
+    ```
 
 * 执行命令。
 
-  ```lang-javascript
-  > ssh.exec( "ls /opt/sequoiadb/file" )
-  file1
-  file2
-  file3
-  ```
+    ```lang-javascript
+    > ssh.exec( "ls /opt/sequoiadb/file" )
+    file1
+    file2
+    file3
+    ```
 
 * 获取上次命令执行的返回结果。
 
-  ```lang-javascript
-  > ssh.getLastOut()
-  file1
-  file2
-  file3
-  ```
+    ```lang-javascript
+    > ssh.getLastOut()
+    file1
+    file2
+    file3
+    ```

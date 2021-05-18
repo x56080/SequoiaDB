@@ -1,7 +1,10 @@
+##名称##
+
+pull - 从远程主机复制文件到本地
 
 ##语法##
 
-***pull( \<remote_file\>, \<local_file\>, \[mode\] )***
+**pull( \<remote_file\>, \<local_file\>, \[mode\] )**
 
 ##类别##
 
@@ -31,20 +34,20 @@ Ssh
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
+##版本##
+
+v3.2 及以上版本
+
 ##示例##
 
-* 使用 SSH 方式连接主机。
+* 使用 SSH 方式连接主机，假设本地主机 IP 地址是“192.168.20.71”
 
- >**Note:**
-
- >假设本地主机 IP 地址是“192.168.20.71”。
-
-  ```lang-javascript
-  > var ssh = new Ssh( "192.168.20.72", "sdbadmin", "sdbadmin", 22 )
-  ```
+    ```lang-javascript
+    > var ssh = new Ssh( "192.168.20.72", "sdbadmin", "sdbadmin", 22 )
+    ```
 
 * 从远程主机复制文件到本地。
 
-  ```lang-javascript
-  > ssh.pull( "/opt/sequoiadb/remote_file", "/opt/sequoiadb/local_file" )
-  ```
+    ```lang-javascript
+    > ssh.pull( "/opt/sequoiadb/remote_file", "/opt/sequoiadb/local_file" )
+    ```
