@@ -763,7 +763,7 @@ namespace engine
          IRemoteMgrControl *pCtrl = _pSite->getMgrControl() ;
 
          if ( pCtrl )
-         {            
+         {
             pCtrl->checkSubSession( subSession.getNodeID(),
                                     &pAgent,
                                     &(subSession._pMsgConvertor),
@@ -1810,6 +1810,22 @@ namespace engine
    void _pmdRemoteSessionSite::setNodeVer( UINT64 nodeID, UINT64 ver )
    {
       _mapNode2Ver[ nodeID ] = ver ;
+   }
+
+   BOOLEAN _pmdRemoteSessionSite::existHandle( const NET_HANDLE &handle )
+   {
+      MAP_NODE2NET::iterator iter = _mapNode2Net.begin() ;
+      while ( iter != _mapNode2Net.end() )
+      {
+         if ( handle == iter->second )
+         {
+            return TRUE ;
+         }
+
+         ++iter ;
+      }
+
+      return FALSE ;
    }
 
    /**

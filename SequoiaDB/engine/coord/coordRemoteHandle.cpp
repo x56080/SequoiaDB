@@ -853,11 +853,15 @@ namespace engine
 
       if ( pPropSite && pPropSite->isTransNode( pReply->routeID ) )
       {
-         pSite->eduCB()->setTransRC( SDB_COORD_REMOTE_DISC ) ;
+         if ( pSite->existHandle( handle ) )
+         {
+            pSite->eduCB()->setTransRC( SDB_COORD_REMOTE_DISC ) ;
 
-         PD_LOG( PDERROR, "Session[%s] disconnect with node[%s] in "
-                 "transaction", pPropSite->getEDUCB()->toString().c_str(),
-                 routeID2String(pReply->routeID).c_str() ) ;
+            PD_LOG( PDERROR, "Session[%s] disconnect with node[%s] in "
+                    "transaction, Handle:%d",
+                    pPropSite->getEDUCB()->toString().c_str(),
+                    routeID2String(pReply->routeID).c_str(), handle ) ;
+         }
       }
    }
 
