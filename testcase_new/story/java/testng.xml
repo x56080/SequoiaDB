@@ -12,6 +12,10 @@
     <parameter name="ESHOSTNAME"     value="${ESHOSTNAME}" />
     <!--全文索引ES端端口号，CI默认传入9200-->
     <parameter name="ESSVCNAME"      value="${ESSVCNAME}" />
+    <!--数据源集群端主机名，CI默认传入localhost-->
+    <parameter name="DSHOSTNAME"     value="${DSHOSTNAME}" />
+    <!--数据源集群端端口号，CI默认传入11810-->
+    <parameter name="DSSVCNAME"      value="${DSSVCNAME}" />
     <!--全文索引前缀，CI传入与工程名相关，例如NORMALTESTG3D3-->
     <parameter name="FULLTEXTPREFIX" value="${FULLTEXTPREFIX}" />
     <!--公共CS名-->
@@ -43,6 +47,7 @@
             <package name="com.sequoiadb.crud.numoverflow" />
             <package name="com.sequoiadb.crud.truncate" />
             <package name="com.sequoiadb.crud.basicoperation" />
+            <package name="com.sequoiadb.datasrc" />
             <package name="com.sequoiadb.meta" />
             <package name="com.sequoiadb.split.basefunc"/>
             <package name="com.sequoiadb.metadataconsistency.data"/>
