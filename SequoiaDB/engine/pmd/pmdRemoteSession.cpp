@@ -1819,6 +1819,22 @@ namespace engine
       _mapNode2Ver[ nodeID ] = ver ;
    }
 
+   BOOLEAN _pmdRemoteSessionSite::existHandle( const NET_HANDLE &handle )
+   {
+      MAP_NODE2NET::iterator iter = _mapNode2Net.begin() ;
+      while ( iter != _mapNode2Net.end() )
+      {
+         if ( handle == iter->second )
+         {
+            return TRUE ;
+         }
+
+         ++iter ;
+      }
+
+      return FALSE ;
+   }
+
    /**
     * Called by remote session when it receives some reply.
     */

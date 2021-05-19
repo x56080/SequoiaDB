@@ -599,6 +599,8 @@ namespace engine
          BOOLEAN  getNodeVer( UINT64 nodeID, UINT64 &ver ) const ;
          void     setNodeVer( UINT64 nodeID, UINT64 ver ) ;
 
+         BOOLEAN  existHandle( const NET_HANDLE &handle ) ;
+
       public:
 
          pmdRemoteSession* addSession( INT64 timeout = -1, // ms
