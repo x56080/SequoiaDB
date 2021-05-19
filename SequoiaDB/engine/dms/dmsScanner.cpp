@@ -2178,6 +2178,7 @@ namespace engine
       dmsRecordData recordData ;
       dmsRecordID waitUnlockRID ;
       BOOLEAN skipRecord      = FALSE ;
+      BOOLEAN indexCover = FALSE ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -2309,15 +2310,16 @@ namespace engine
             continue ;
          }
 
+         indexCover = FALSE ;
+
          if( _scanner->isIndexCover() &&
              !_recordRW.isDirectMem() &&
              DMS_IS_READ_OPR( _accessType ) )
          {
-            BOOLEAN finished = FALSE ;
             // ignore return value
-            // if argout param finished is TRUE,we need to change _recordRW
-            _buildIndexRecord( finished );
-            if( finished )
+            // if argout param indexCover is TRUE,we need to change _recordRW
+            _buildIndexRecord( indexCover );
+            if( indexCover )
             {
                _recordRW = dmsIndexRecordRW( _scanner->getIndex().getBuf() );
             }
@@ -2360,7 +2362,7 @@ namespace engine
                      "record can't be deleted" ) ;
 
          recordID = _curRID ;
-         rc = _pSu->extractData( _context, _recordRW, cb, recordData ) ;
+         rc = _pSu->extractData( _context, _recordRW, cb, recordData, !indexCover ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;

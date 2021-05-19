@@ -292,7 +292,8 @@ namespace engine
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
-                                 dmsRecordData &recordData ) ;
+                                 dmsRecordData &recordData,
+                                 BOOLEAN needIncDataRead = TRUE ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 

@@ -1044,7 +1044,8 @@ namespace engine
    INT32 _dmsStorageData::extractData( const dmsMBContext *mbContext,
                                        const dmsRecordRW &recordRW,
                                        _pmdEDUCB *cb,
-                                       dmsRecordData &recordData )
+                                       dmsRecordData &recordData,
+                                       BOOLEAN needIncDataRead )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_EXTRACTDATA ) ;
@@ -1107,7 +1108,11 @@ namespace engine
          recordData.setData( pUncompressData, unCompressDataLen,
                              UTIL_COMPRESSOR_INVALID, FALSE ) ;
       }
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+      if( needIncDataRead )
+      {
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+      }
+
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
 
    done:

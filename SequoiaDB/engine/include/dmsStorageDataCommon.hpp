@@ -992,7 +992,8 @@ namespace engine
          virtual INT32 extractData( const dmsMBContext *mbContext,
                                     const dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
-                                    dmsRecordData &recordData ) = 0 ;
+                                    dmsRecordData &recordData,
+                                    BOOLEAN needIncDataRead = TRUE ) = 0 ;
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,
