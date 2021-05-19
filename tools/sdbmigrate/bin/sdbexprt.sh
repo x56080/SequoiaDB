@@ -312,6 +312,7 @@ function buildCLParams()
     local cl_skip
     local cl_limit
     local cl_dir
+    local cl_file
     local cl_fields
     local cl_hosts
     local cl_compress
@@ -340,6 +341,7 @@ function buildCLParams()
             filter   ) repeatCheck "$opt" "$cl_filter";  cl_filter=" --filter $value"   ;;
             sort     ) repeatCheck "$opt" "$cl_sort";    cl_sort=" --sort $value"       ;;
             dir      ) repeatCheck "$opt" "$cl_dir";     cl_dir="$value"                ;;
+            file     ) repeatCheck "$opt" "$cl_file";    cl_file="$value"               ;;
             skip     ) repeatCheck "$opt" "$cl_skip";    cl_skip=" --skip $value"       ;;
             limit    ) repeatCheck "$opt" "$cl_limit";   cl_limit=" --limit $value"     ;;
             fields   ) repeatCheck "$opt" "$cl_fields";  cl_fields=" --fields $value"   ;;
@@ -352,9 +354,26 @@ function buildCLParams()
     if [ "$cl_full_name" = "" ]; then
         safe_exit 1 "[ERROR] Collection name must be specified"
     fi
+    if [ "$cl_dir" != "" -a "$cl_file" != "" ]; then
+        safe_exit 1 "[ERROR] Collection $cl_full_name: Option dir and file cannot be used at the same time"
+    fi
+    if [ "$cl_dir" = "" -a "$cl_file" = "" ]; then
+        safe_exit 1 "[ERROR] Collection $cl_full_name: Option file or option dir must be specified"
+    fi
+    if [ "$cl_dir" != "" -a ! -d "$cl_dir" ]; then
+        safe_exit 1 "[ERROR] Collection $cl_full_name: Directory $cl_dir does not exist"
+    fi
 
-    if [ "$cl_dir" = "" ]; then
-        cl_dir="$CUR_PATH"
+    if [ "$opt_jobs" != "" ]; then
+        if [ "$cl_skip" != "" ]; then
+            safe_exit 1 "[ERROR] Collection $cl_full_name: Option skip cannot be used with --jobs"
+        fi
+        if [ "$cl_limit" != "" ]; then
+            safe_exit 1 "[ERROR] Collection $cl_full_name: Option limit cannot be used with --jobs"
+        fi
+        if [ "$cl_file" != "" ]; then
+            safe_exit 1 "[ERROR] Collection $cl_full_name: Option file cannot be used with --jobs"
+        fi
     fi
 
     cl_general_params=$(parseGeneralParams $other_params)
@@ -366,26 +385,22 @@ function buildCLParams()
     fi
 
     if [ "$opt_jobs" = "" ]; then
-        if [ -d "$cl_dir" ]; then
-            cl_file=$(jionPath $cl_dir $cl_full_name.$cl_type)
+        if [ "$cl_dir" != "" ]; then
+            cl_file_param=$(jionPath $cl_dir $cl_full_name.$cl_type)
         else
-            cl_file="$cl_dir"
+            cl_file_param="$cl_file"
         fi
 
         cl_hostname=$(appendParam   '--hostname' "$opt_hostname")
         cl_svcname=$(appendParam    '--svcname'  "$opt_svcname")
-        cl_file=$(appendParam       '--file'     "$cl_file")
+        cl_file_param=$(appendParam '--file'     "$cl_file_param")
         cl_type_param=$(appendParam '--type'     "$cl_type")
 
-        cl_params=$(arrToStr $cl_hostname $cl_svcname $cl_name $cl_file $cl_type_param $cl_select $cl_filter $cl_sort $cl_skip $cl_limit $cl_fields "$cl_general_params")
+        cl_params=$(arrToStr $cl_hostname $cl_svcname $cl_name $cl_file_param $cl_type_param $cl_select $cl_filter $cl_sort $cl_skip $cl_limit $cl_fields "$cl_general_params")
         if [ "$cl_params" != "" ]; then
             cl_params_list[${#cl_params_list[@]}]="$cl_params"
         fi
     else
-        # no support skip and limit
-        paramConflictCheck "--jobs" "$opt_jobs" "--skip"  "$cl_skip"
-        paramConflictCheck "--jobs" "$opt_jobs" "--limit" "$cl_limit"
-
         cl_node_list=$(getNodeList $cl_full_name)
         if [ $? -ne 0 ]; then
             safe_exit 1 "[ERROR] ${cl_node_list[@]}"
@@ -397,15 +412,10 @@ function buildCLParams()
             return 1
         fi
         for node in ${cl_node_list[@]}; do
-            cl_type_param=""
-
-            if [ "$cl_dir" != "" -a ! -d "$cl_dir" ]; then
-                exec_cmd "mkdir -p $cl_dir 2>&1"
-            fi
-            cl_file=$(jionPath $cl_dir $cl_full_name.$i.$cl_type)
+            cl_file_param=$(jionPath $cl_dir $cl_full_name.$i.$cl_type)
             i=$[i+1]
             cl_hosts=$(genHostsParam ${node})
-            cl_file_param=$(appendParam '--file'     "$cl_file")
+            cl_file_param=$(appendParam '--file'     "$cl_file_param")
             cl_type_param=$(appendParam '--type'     "$cl_type")
 
             cl_params=$(arrToStr $cl_hosts $cl_name $cl_file_param $cl_type_param $cl_select $cl_filter $cl_sort $cl_fields "$cl_general_params")
@@ -464,8 +474,11 @@ function buildCSParams()
         safe_exit 1 "[ERROR] CollectionSpace name must be specified"
     fi
 
-    if [ "$cl_dir" = "" ]; then
-        cl_dir="$CUR_PATH"
+    if [ "$dir" = "" ]; then
+        safe_exit 1 "[ERROR] CollectionSpace $cs_name: Option dir name must be specified"
+    fi
+    if [ ! -d "$dir" ]; then
+        safe_exit 1 "[ERROR] CollectionSpace $cs_name: Directory $dir does not exist"
     fi
 
     cl_general_params=$(parseGeneralParams $other_params)
@@ -498,10 +511,6 @@ function buildCSParams()
         cl_node_list=$(getNodeList $cl_full_name)
         if [ $? -ne 0 ]; then
             safe_exit 1 "[ERROR] ${cl_node_list[@]}"
-        fi
-
-        if [ "$dir" != "" -a ! -d "$dir" ]; then
-            exec_cmd "mkdir -p $dir 2>&1"
         fi
 
         if [ "$opt_jobs" = "" ]; then
@@ -639,12 +648,7 @@ function parseCmdParam()
 
     # cmd cl params
     if [ "$opt_csname" != "" -a "$opt_clname" != "" ]; then
-        if [ "$opt_file" != "" ]; then
-            dir=$opt_file
-        else
-            dir=$opt_dir
-        fi
-        buildCLParams "name=$opt_csname.$opt_clname" "dir=$dir" "select=$opt_select" "filter=$opt_filter" "sort=$opt_sort" "fields=$opt_fields" "skip=$opt_skip" "limit=$opt_limit"
+        buildCLParams "name=$opt_csname.$opt_clname" "dir=$opt_dir" "file=$opt_file" "select=$opt_select" "filter=$opt_filter" "sort=$opt_sort" "fields=$opt_fields" "skip=$opt_skip" "limit=$opt_limit"
     fi
 
     # cmd cscl params
