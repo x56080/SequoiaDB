@@ -36,6 +36,8 @@ public class SdbTestBase {
     protected static String coordUrl;
     protected static String hostName;
     protected static String serviceName;
+    public static String dsHostName;
+    public static String dsServiceName;
     protected static String csName;
     protected static int reservedPortBegin;
     protected static int reservedPortEnd;
@@ -183,7 +185,8 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
-            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX" })
+            "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
+            "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
@@ -191,7 +194,9 @@ public class SdbTestBase {
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
-            @Optional("") String FULLTEXTPREFIX ) {
+            @Optional("") String FULLTEXTPREFIX,
+            @Optional("localhost") String DSHOSTNAME,
+            @Optional("11810") String DSSVCNAME ) {
         System.out.println( "initSuite....." );
         hostName = HOSTNAME;
         serviceName = SVCNAME;
@@ -207,6 +212,8 @@ public class SdbTestBase {
         confToolScript = CONFTOOL;
         enableTransaction = ENABLETRANSACTION;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
+        dsHostName = DSHOSTNAME;
+        dsServiceName = DSSVCNAME;
 
         try {
             if ( enableTransaction.equals( "true" ) ) {
@@ -309,7 +316,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS } )
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS })
     public static synchronized void initTestGroups() {
         if ( testGroup == null )
             return;
