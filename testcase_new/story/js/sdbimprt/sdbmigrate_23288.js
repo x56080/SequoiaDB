@@ -110,6 +110,7 @@ function prepareExportConf ()
    file.write( "number=2\n" );
    for( var i = 1; i < csNames.length; i++ )
    {
+      cmd.run( "mkdir -p " + tmpFileDir + csNames[i] );
       file.write( "[collectionspace" + i + "]\n" );
       file.write( "name=" + csNames[i] + "\n" );
       file.write( "type=json\n" );
