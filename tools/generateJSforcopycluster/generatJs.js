@@ -26,6 +26,26 @@ function generatePublicVar(file)
    file.write("}\n\n");
 }
 
+// Get data source name by data source id.
+function getDSNameByID(dsSet, id)
+{
+   try
+   {
+      for (var i = 0; i < dsSet.length; ++i)
+      {
+         if (dsSet[i].ID === id)
+         {
+            return dsSet[i].Name;
+         }
+      }
+      throw "getDSNameByID: Data source of id " + id + " dose not exist";
+   }
+   catch (e)
+   {
+      throw "getDSNameByID " + e;
+   }
+}
+
 //获取组定义
 function getGroupDefine(db, jsFile)
 {
@@ -119,7 +139,7 @@ function getDomainDefine(db, jsFile)
          {
             domain.groups.push(obj.Groups[i].GroupName);
          }
-         if (true === obj.AutoSplit)
+         if (undefined !== obj.AutoSplit)
          {
             domain.option = {};
             domain.option.AutoSplit = obj.AutoSplit;
@@ -145,16 +165,69 @@ function getDomainDefine(db, jsFile)
    }
 }
 
-// 获取CS定义
-function getCSDefine(db, jsFile, csSet)
+// Get data source metadata.
+function getDSDefine(db, jsFile, dsSet)
 {
    try
    {
-      var cursor = db.SYSCAT.SYSCOLLECTIONSPACES.find();
+      var cursor = db.SYSCAT.SYSDATASOURCES.find();
+      jsFile.write("var dsSet = [");
+      var firsttime = true;
+      while (cursor.next())
+      {
+         var ds = {};
+         var obj = cursor.current().toObj();
+         if (!isContain(inDSNames, obj.Name))
+         {
+            continue;
+         }
+
+         ds.Name = obj.Name;
+         ds.Address = obj.Address;
+         ds.User = obj.User;
+         ds.Password = obj.Password;
+         ds.Type = obj.Type;
+         ds.option = {};
+         ds.option.AccessMode = obj.AccessModeDesc;
+         ds.option.ErrorFilterMask = obj.ErrorFilterMaskDesc;
+         ds.option.ErrorControlLevel = obj.ErrorControlLevel;
+         ds.option.TransPropagateMode = obj.TransPropagateModeDesc;
+
+         if (true === firsttime)
+         {
+            jsFile.write(JSON.stringify(ds) + ",");
+            firsttime = false;
+         }
+         else
+         {
+            jsFile.write("\n");
+            jsFile.write("             " + JSON.stringify(ds) + ",");
+         }
+         // We don't want to write the data source id in the file. So set it
+         // after writting other metadata.
+         ds.ID = obj.ID;
+         dsSet.push(ds);
+      }
+      jsFile.write("];\n\n");
+      println("getDSDefine success");
+   }
+   catch (e)
+   {
+      throw "getDSDefine " + e;
+   }
+}
+
+// 获取CS定义
+function getCSDefine(db, dbcata, jsFile, csSet, dsSet)
+{
+   try
+   {
+      var cursor = dbcata.SYSCAT.SYSCOLLECTIONSPACES.find();
       jsFile.write("var csSet = [");
       var firsttime = true;
       while(cursor.next())
       {
+         var useDataSource = false;
          var cs = {};
          var obj = cursor.current().toObj();
          // 该CS是否需要创建
@@ -165,22 +238,38 @@ function getCSDefine(db, jsFile, csSet)
 
          cs.name = obj.Name;
          cs.option = {};
-         var curDomainName = "";
-         if (undefined !== obj.Domain)
+         // First, let's check data source options. If data source is being
+         // used, other options should not appear in the metadata record.
+         // Otherwise it will fail when creating cs using the metadata.
+         if (undefined !== obj.DataSourceID)
          {
-            cs.option.Domain = obj.Domain;
-            curDomainName = obj.Domain;
+            cs.option.DataSource = getDSNameByID(dsSet, obj.DataSourceID);
+            useDataSource = true;
+         }
+         if (undefined !== obj.Mapping)
+         {
+            cs.option.Mapping = obj.Mapping;
          }
 
-         // 该domain是否需要创建，如果domain没有指定，则CS也排除
-         if (!isContain(inDomainNames, curDomainName))
+         if (false === useDataSource)
          {
-            csSet.push(cs.name);
-            continue;
-         }
+            var curDomainName = "";
+            if (undefined !== obj.Domain)
+            {
+               cs.option.Domain = obj.Domain;
+               curDomainName = obj.Domain;
+            }
 
-         cs.option.LobPageSize = obj.LobPageSize;
-         cs.option.PageSize = obj.PageSize
+            // 该domain是否需要创建，如果domain没有指定，则CS也排除
+            if (!isContain(inDomainNames, curDomainName))
+            {
+               csSet.push(cs.name);
+               continue;
+            }
+
+            cs.option.LobPageSize = obj.LobPageSize;
+            cs.option.PageSize = obj.PageSize;
+         }
 
          if (true === firsttime)
          {
@@ -204,7 +293,7 @@ function getCSDefine(db, jsFile, csSet)
 }
 
 // 获取CL定义
-function getCLDefine(db, jsFile, csSet)
+function getCLDefine(db, jsFile, csSet, dsSet, mappingCLSet)
 {
    try
    {
@@ -213,6 +302,7 @@ function getCLDefine(db, jsFile, csSet)
       var firsttime = true;
       while (cursor.next())
       {
+         var useDataSource = false;
          var cl = {};
          var obj = cursor.current().toObj();
 
@@ -237,102 +327,116 @@ function getCLDefine(db, jsFile, csSet)
 
          cl.name = obj.Name;
          cl.option = {};
-         if (undefined !== obj.ShardingType)
+         if (undefined !== obj.DataSourceID)
          {
-            cl.option.ShardingType = obj.ShardingType;
-            cl.option.ShardingKey = obj.ShardingKey;
+            cl.option.DataSource = getDSNameByID(dsSet, obj.DataSourceID);
+            useDataSource = true ;
+            mappingCLSet.push(obj.Name);
+         }
+         if (undefined !== obj.Mapping)
+         {
+            cl.option.Mapping = obj.Mapping;
          }
 
-         if (undefined !== obj.EnsureShardingIndex)
+         if (false === useDataSource)
          {
-            cl.option.EnsureShardingIndex = obj.EnsureShardingIndex
-         }
-
-         if (undefined === obj.AutoSplit &&
-             1 === obj.CataInfo.length)
-         {
-            cl.option.Group = obj.CataInfo[0].GroupName;
-         }
-
-         if (undefined !== obj.IsMainCL)
-         {
-            cl.option.IsMainCL = true;
-
-            cl.subcls = [];
-            for (var i = 0; i< obj.CataInfo.length; ++i)
+            if (undefined !== obj.ShardingType)
             {
-               var subcl = {};
-               subcl.name = obj.CataInfo[i].SubCLName;
-               subcl.attchOpt = {}
-
-               for (key in cl.option.ShardingKey)
-               {
-                  subcl.attchOpt.LowBound = {};
-                  subcl.attchOpt.LowBound[key] = obj.CataInfo[i].LowBound[""];
-                  subcl.attchOpt.UpBound = {};
-                  subcl.attchOpt.UpBound[key] = obj.CataInfo[i].UpBound[""];
-               }
-               cl.subcls.push(subcl);
+               cl.option.ShardingType = obj.ShardingType;
+               cl.option.ShardingKey = obj.ShardingKey;
             }
-         }
 
-         if (undefined !== obj.Partition)
-         {
-            cl.option.Partition = obj.Partition;
-         }
-
-         if (undefined !== obj.AutoIndexId)
-         {
-            cl.option.Partition = obj.AutoIndexId;
-         }
-
-         if (undefined !== obj.Attribute &&
-             0 !== obj.Attribute)
-         {
-            cl.option.Compressed = true;
-
-            if (undefined !== obj.CompressionType &&
-                1 === obj.CompressionType)
+            if (undefined !== obj.EnsureShardingIndex)
             {
-               cl.option.CompressionType = "lzw";
+               cl.option.EnsureShardingIndex = obj.EnsureShardingIndex
             }
-         }
 
-         if (undefined !== obj.ReplSize)
-         {
-            cl.option.ReplSize = obj.ReplSize;
-         }
-         
-         cl.CataInfo = [];
-         if (obj.CataInfo.length === 1)
-         {
-            cl.option.Group = obj.CataInfo[0].GroupName;
-         }
-         else
-         {
-            for(var i = 0; i< obj.CataInfo.length; ++i)
+            if (undefined === obj.AutoSplit &&
+                1 === obj.CataInfo.length)
             {
-               var cataItem = {};
-               cataItem.group = obj.CataInfo[i].GroupName;
-               if (cl.option.ShardingType === "hash")
+               cl.option.Group = obj.CataInfo[0].GroupName;
+            }
+
+            if (undefined !== obj.IsMainCL)
+            {
+               cl.option.IsMainCL = true;
+
+               cl.subcls = [];
+               for (var i = 0; i< obj.CataInfo.length; ++i)
                {
-                  cataItem.LowBound = obj.CataInfo[i].LowBound;
-                  for(var k in cataItem.LowBound) 
+                  var subcl = {};
+                  subcl.name = obj.CataInfo[i].SubCLName;
+                  subcl.attchOpt = {}
+
+                  for (key in cl.option.ShardingKey)
                   {
-                    if (k === "") cataItem.LowBound={'Partition':obj.CataInfo[i].LowBound[""]}
+                     subcl.attchOpt.LowBound = {};
+                     subcl.attchOpt.LowBound[key] = obj.CataInfo[i].LowBound[""];
+                     subcl.attchOpt.UpBound = {};
+                     subcl.attchOpt.UpBound[key] = obj.CataInfo[i].UpBound[""];
                   }
-                  cataItem.UpBound = obj.CataInfo[i].UpBound;
-                  for(var k in cataItem.UpBound) 
-                  {
-                    if (k === "") cataItem.UpBound={'Partition':obj.CataInfo[i].UpBound[""]}
-                  }
+                  cl.subcls.push(subcl);
                }
-               else
+            }
+
+            if (undefined !== obj.Partition)
+            {
+               cl.option.Partition = obj.Partition;
+            }
+
+            if (undefined !== obj.AutoIndexId)
+            {
+               cl.option.Partition = obj.AutoIndexId;
+            }
+
+            if (undefined !== obj.Attribute &&
+                0 !== obj.Attribute)
+            {
+               cl.option.Compressed = true;
+
+               if (undefined !== obj.CompressionType &&
+                   1 === obj.CompressionType)
                {
-                  cataItem.LowBound = obj.CataInfo[i].LowBound;
-                  cataItem.UpBound = obj.CataInfo[i].UpBound;
+                  cl.option.CompressionType = "lzw";
                }
-               cl.CataInfo.push(cataItem);
+            }
+
+            if (undefined !== obj.ReplSize)
+            {
+               cl.option.ReplSize = obj.ReplSize;
+            }
+
+            cl.CataInfo = [];
+            if (obj.CataInfo.length === 1)
+            {
+               cl.option.Group = obj.CataInfo[0].GroupName;
+            }
+            else
+            {
+               for(var i = 0; i< obj.CataInfo.length; ++i)
+               {
+                  var cataItem = {};
+                  cataItem.group = obj.CataInfo[i].GroupName;
+                  if (cl.option.ShardingType === "hash")
+                  {
+                     cataItem.LowBound = obj.CataInfo[i].LowBound;
+                     for(var k in cataItem.LowBound)
+                     {
+                       if (k === "") cataItem.LowBound={'Partition':obj.CataInfo[i].LowBound[""]}
+                     }
+                     cataItem.UpBound = obj.CataInfo[i].UpBound;
+                     for(var k in cataItem.UpBound)
+                     {
+                       if (k === "") cataItem.UpBound={'Partition':obj.CataInfo[i].UpBound[""]}
+                     }
+                  }
+                  else
+                  {
+                     cataItem.LowBound = obj.CataInfo[i].LowBound;
+                     cataItem.UpBound = obj.CataInfo[i].UpBound;
+                  }
+                  cl.CataInfo.push(cataItem);
+               }
             }
          }
 
@@ -358,7 +462,7 @@ function getCLDefine(db, jsFile, csSet)
 }
 
 // 获取索引定义
-function getIndexDefine(db, jsFile, csSet)
+function getIndexDefine(db, jsFile, csSet, excludeCLSet)
 {
    try
    {
@@ -369,6 +473,10 @@ function getIndexDefine(db, jsFile, csSet)
       {
          var obj = eval("(" + clSet[i] + ")");
          var fullname = obj.Name;
+         if (isContain(excludeCLSet, fullname))
+         {
+            continue;
+         }
          var names = fullname.split(".");
          // 该CL是否需要创建
          if (!isContain(inCLNames, names[1]))
@@ -488,6 +596,21 @@ function deployCluster(db, groups) \n\
    println("generatDeployFunction success");
 }
 
+function generatCreateDSFunction(file)
+{
+var functionContext = "\n\
+function createAllDS(db, dsSet)\n\
+{\n\
+   for (var i = 0; i < dsSet.length; ++i)\n\
+   {\n\
+      db.createDataSource(dsSet[i].Name, dsSet[i].Address, dsSet[i].User, dsSet[i].Password, dsSet[i].Type, dsSet[i].option);\n\
+      println('createDataSource(' + dsSet[i].Name + ',' + JSON.stringify(dsSet[i].option) + ') success');\n\
+   }\n\
+}";
+   file.write(functionContext + "\n");
+   println("generatCreateDSFunction success");
+}
+
 // 生成CS创建函数
 function generatCreateCSFunction(file)
 {
@@ -533,7 +656,7 @@ function splitCL(cl, srcGroup, cataInfo)\n\
     }\n\
 }"
    file.write(functionContext + "\n");
-   println("generatSplitCL success"); 
+   println("generatSplitCL success");
 }
 
 // 生成CL创建函数
@@ -554,7 +677,7 @@ function createAllCL(db, clSet)\n\
       {\n\
          mainCLSet.push(clSet[i]);\n\
       }\n\
-      else\n\
+      else if (undefined !== clSet[i].CataInfo)\n\
       {\n\
          var srcGroup = getSrcGroup(db, clSet[i].name);\n\
          splitCL(cl, srcGroup, clSet[i].CataInfo);\n\
@@ -584,7 +707,7 @@ function alterAllDomains(db, domains)\n\
 {\n\
    for (var i = 0; i < domains.length; ++i)\n\
    {\n\
-      if (domains[i].option.AutoSplit)\n\
+      if (undefined !== domains[i].option && domains[i].option.AutoSplit)\n\
       {\n\
          var dm = db.getDomain(domains[i].name);\n\
          dm.alter({AutoSplit:true});\n\
@@ -616,6 +739,7 @@ function main()\n\
       }\n\
       else if (step === 2)\n\
       {\n\
+         createAllDS(db, dsSet);\n\
          createAllCS(db,csSet);\n\
          createAllCL(db, clSet);\n\
       }\n\
@@ -657,10 +781,14 @@ function createAllDomains(db, domains)\n\
 {\n\
    for (var i = 0; i < domains.length; ++i)\n\
    {\n\
-      var autoSplit = domains[i].option.AutoSplit \n\
-      domains[i].option.AutoSplit = false;\n\
-      db.createDomain(domains[i].name, domains[i].groups, domains[i].option);\n\
-      domains[i].option.AutoSplit = autoSplit;\n\
+      if (undefined === domains[i].option)\n\
+      {\n\
+         db.createDomain(domains[i].name, domains[i].groups);\n\
+      }\n\
+      else\n\
+      {\n\
+         db.createDomain(domains[i].name, domains[i].groups, domains[i].option);\n\
+      }\n\
       println('createDomain ' + domains[i].name + ' success');\n\
    }\n\
 }";
@@ -744,6 +872,11 @@ if (undefined === generateFilePath)
    var generateFilePath = "./copyCluster.js";
 }
 
+if (undefined == inDSNames)
+{
+   var inDSNames = [];
+}
+
 if (undefined === inDomainNames)
 {
    var inDomainNames = [];
@@ -767,17 +900,21 @@ function main()
       var catadb = newDB(catalogHostName, catalogPort);
       var file = createFile(generateFilePath);
       var exceptCSSet = [];
+      var mappingCLSet = [];
+      var dsSet = [];
 
+      getDSDefine(catadb, file, dsSet);
       getGroupDefine(db,file);
       getDomainDefine(db,file);
-      getCSDefine(catadb, file, exceptCSSet);
-      getCLDefine(db, file, exceptCSSet);
-      getIndexDefine(db, file, exceptCSSet);
+      getCSDefine(db, catadb, file, exceptCSSet, dsSet);
+      getCLDefine(db, file, exceptCSSet, dsSet, mappingCLSet);
+      getIndexDefine(db, file, exceptCSSet, mappingCLSet);
       generatePublicVar(file);
-      
+
 
       generatDeployFunction(file);
       generatCreateDomainFunction(file);
+      generatCreateDSFunction(file);
       generatCreateCSFunction(file);
       generatGetSrcGroup(file);
       generatCreateCLFunction(file);
@@ -832,6 +969,7 @@ println("     -e 'var coordHostName= \"localhost\";" +
                  "var catalogHostName=\"localhost\" ;" +
                  "var catalogPort=11820 ;" +
                  "[ var inDomainNames=[\"name1\",\"name2\"];" +
+                 "var inDSNames = [\"name1\",\"name2\"];" +
                  "var inCSNames = [\"name1\",\"name2\"];" +
                  "var inCLNames = [\"name1\",\"name2\"]; ]" +
                  "var generateFilePath=./copyCluster.js '");
