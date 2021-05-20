@@ -9100,6 +9100,11 @@ do                                                            \
          *pHasRecv = FALSE ;
       }
 
+      _pErrorBuf = NULL ;
+      _errorBufSize = 0 ;
+      _pResultBuf = NULL ;
+      _resultBufSize = 0 ;
+
       rc = _recv ( ppBuffer, size ) ;
       if ( rc )
       {
@@ -9125,10 +9130,6 @@ do                                                            \
          *pRemoteErr = TRUE ;
       }
 
-      _pErrorBuf = NULL ;
-      _errorBufSize = 0 ;
-      _pResultBuf = NULL ;
-      _resultBufSize = 0 ;
       if ( SDB_OK != replyFlag && SDB_DMS_EOC != replyFlag )
       {
          INT32 dataOff     = 0 ;
