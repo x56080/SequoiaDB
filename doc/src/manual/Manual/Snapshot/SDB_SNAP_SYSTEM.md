@@ -150,7 +150,7 @@ SDB_SNAP_SYSTEM
    }
    ```
 
-- 通非协调节点查看快照
+- 通过协调节点查看快照
 
    ```lang-javascript
    > db.snapshot( SDB_SNAP_SYSTEM )
