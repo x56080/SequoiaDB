@@ -2,7 +2,7 @@
  * @Description   : seqDB-6960:upsert指定更新符删除已压缩记录中字段
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
+ * @LastEditTime  : 2021.05.20
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -25,7 +25,7 @@ function test ( testPara )
    cl.upsert( { $unset: { dtest: "abcdefg890abcdefg890abcdefg890" } } );
 
    // 检查结果，检查组内每个节点数据正确性
-   checkLzwAttributeByDataNode( rgName, csName, clName, true );
+   checkLzwAttributeByDataNode( rgName, csName, clName, false );
    checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
 }
 
