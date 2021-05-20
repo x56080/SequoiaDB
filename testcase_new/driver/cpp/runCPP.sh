@@ -10,6 +10,8 @@ hostname="localhost"
 svcname="50000"
 user=""
 passwd=""
+dshostname="localhost"
+dssvcname="50000"
 dbpath="/opt/sequoiadb/database/"
 useSSL=0
 transactionOn=0
@@ -35,6 +37,8 @@ function display()
    echo " -svcname svcname    : 指定节点端口号（独立模式或协调节点，默认50000）"
    echo " -user user          : 指定sdb登录用户名（默认为空）"
    echo " -passwd passwd      : 指定sdb登录用户密码（默认为空）"
+   echo " -dshostname dshost  : 指定数据源主机名（默认localhost）"
+   echo " -dssvcname dssvc    : 指定数据源节点端口号（协调节点，默认50000）"
    echo " -dbpath dbpath      : 指定节点路径（默认/opt/sequoiadb/database/）" 
    echo " -usessl             : 是否已开启SSL（默认未开启）"
    echo " -transactionOn      : 是否已开启事务（默认未开启）"
@@ -168,7 +172,7 @@ function autoTest()
       fi
    
       # run testcase
-      testCmd="build_test/${testcase} -n $hostname -s $svcname -d $dbpath"
+      testCmd="build_test/${testcase} -n $hostname -s $svcname -d $dbpath -o $dshostname -p $dssvcname"
       runTestcase "$testCmd"
    done
 }
@@ -193,6 +197,12 @@ while [ "$1" != "" ]; do
                         ;;
       -passwd )         shift
                         passwd=$1
+                        ;;
+      -dshostname )     shift
+                        dshostname=$1
+                        ;;
+      -dssvcname )      shift
+                        dssvcname=$1
                         ;;
       -dbpath )         shift
                         dbpath=$1
