@@ -66,6 +66,7 @@ public class AllDataType22419 extends MongodbTestBase {
         clName2 = javaDBNameWithVersion + "_cl22419B";
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test1() {
         MongoCollection< Document > cl = db.getCollection( clName1 );
@@ -90,9 +91,8 @@ public class AllDataType22419 extends MongodbTestBase {
                         new BsonDecimal128( Decimal128.parse( "10" ) ) )
                 .append( "decimalFiled9",
                         new BsonDecimal128( Decimal128.POSITIVE_ZERO ) )
-                // TODO:SEQUOIADBMAINSTREAM-6037
-                // .append( "decimalFiled10",
-                // new BsonDecimal128( Decimal128.NEGATIVE_ZERO ) )
+                .append( "decimalFiled10",
+                        new BsonDecimal128( Decimal128.NEGATIVE_ZERO ) )
                 .append( "decimalFiled11",
                         new BsonDecimal128(
                                 Decimal128.parse( "0.471447736024856578" ) ) )
@@ -133,7 +133,7 @@ public class AllDataType22419 extends MongodbTestBase {
         // 查询
         List< Document > list = cl.find().into( new ArrayList< Document >() );
         // 检查结果
-        // TODO:SEQUOIADBMAINSTREAM-6037
+        document.append( "decimalFiled10", Decimal128.parse( "0" ) );
         document.append( "decimalFiled15", Decimal128
                 .parse( "1.567778800000000000000000000000000E+999" ) );
         document.append( "decimalFiled16", Decimal128
@@ -148,8 +148,7 @@ public class AllDataType22419 extends MongodbTestBase {
         // 更新
         Bson query = Filters.and(
                 gte( "decimalFiled5", Decimal128.POSITIVE_INFINITY ),
-                // TODO:SEQUOIADBMAINSTREAM-6037
-                // gte( "decimalFiled7", Decimal128.NEGATIVE_NaN ),
+                gte( "decimalFiled7", Decimal128.NEGATIVE_NaN ),
                 gte( "decimalFiled9", Decimal128.POSITIVE_ZERO ),
                 gte( "decimalFiled11",
                         Decimal128.parse( "0.471447736024856578" ) ),
@@ -209,6 +208,7 @@ public class AllDataType22419 extends MongodbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test2() {
         MongoCollection< Document > cl = db.getCollection( clName2 );
