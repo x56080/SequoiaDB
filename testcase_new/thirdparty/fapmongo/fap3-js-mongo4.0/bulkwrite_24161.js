@@ -2,7 +2,7 @@
  * @Description   : seqDB-24161:bulkWrite批量执行多个操作bulkWrite
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.04.22
- * @LastEditTime  : 2021.05.07
+ * @LastEditTime  : 2021.05.20
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 main();
@@ -83,9 +83,9 @@ function bulkWrite02 ( cl )
       { '_id': 8, 'a': 8, 'b': 1 },
       { '_id': 9, 'a': 9, 'b': 1 },
       { '_id': 11, 'a': 11, 'b': 1 },
-      { 'updateOne': 1, 'updateOne2': 1, '_id': 12 },
-      { 'updateMany': 1, 'updateMany2': 1, '_id': 13 },
-      { 'replaceOne2': 2, '_id': 14 }];
+      { '_id': 12, 'updateOne': 1, 'updateOne2': 1 },
+      { '_id': 13, 'updateMany': 1, 'updateMany2': 1 },
+      { '_id': 14, 'replaceOne2': 2 }];
    checkResults( cursor, JSON.stringify( expDocs ) );
 }
 
@@ -121,11 +121,11 @@ function bulkWrite03 ( cl )
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
       { '_id': 1, 'a': 1, 'b': 2 },
-      { 'updateOne1': 1, '_id': 2, 'a': 2, 'b': 1 },
+      { '_id': 2, 'a': 2, 'b': 1, 'updateOne1': 1 },
       { '_id': 3, 'a': 3, 'b': 3 },
       { '_id': 4, 'a': 4, 'b': 3 },
-      { 'updateMany1': 1, '_id': 5, 'a': 5, 'b': 1 },
-      { 'updateMany1': 1, '_id': 6, 'a': 6, 'b': 1 },
+      { '_id': 5, 'a': 5, 'b': 1, 'updateMany1': 1 },
+      { '_id': 6, 'a': 6, 'b': 1, 'updateMany1': 1 },
       { '_id': 11, 'a': 11, 'b': 1 },
       { '_id': 12, 'a': 12, 'b': 1 },
       { '_id': 13, 'a': 13, 'b': 1 }];
@@ -164,17 +164,17 @@ function bulkWrite04 ( cl )
    var expDocs = [
       { '_id': 0, 'a': 0, 'b': 1 },
       { '_id': 1, 'a': 1, 'b': 2 },
-      { 'updateOne1': 1, '_id': 2, 'a': 2, 'b': 1 },
+      { '_id': 2, 'a': 2, 'b': 1, 'updateOne1': 1 },
       { '_id': 3, 'a': 3, 'b': 3 },
       { '_id': 4, 'a': 4, 'b': 3 },
-      { 'updateMany1': 1, '_id': 5, 'a': 5, 'b': 1 },
-      { 'updateMany1': 1, '_id': 6, 'a': 6, 'b': 1 },
+      { '_id': 5, 'a': 5, 'b': 1, 'updateMany1': 1 },
+      { '_id': 6, 'a': 6, 'b': 1, 'updateMany1': 1 },
       { '_id': 11, 'a': 11, 'b': 1 },
       { '_id': 12, 'a': 12, 'b': 1 },
       { '_id': 13, 'a': 13, 'b': 1 },
-      { 'updateOne': 1, 'updateOne2': 1, '_id': 14 },
-      { 'updateMany': 1, 'updateMany2': 1, '_id': 15 },
-      { 'replaceOne2': 2, '_id': 16 }];
+      { '_id': 14, 'updateOne': 1, 'updateOne2': 1 },
+      { '_id': 15, 'updateMany': 1, 'updateMany2': 1 },
+      { '_id': 16, 'replaceOne2': 2 }];
    checkResults( cursor, JSON.stringify( expDocs ) );
 }
 
@@ -242,7 +242,19 @@ function checkResults ( rc, expDocs )
    while( rc.hasNext() )
    {
       var doc = rc.next();
-      docs.push( doc );
+      docs.push( keysSort( doc ) );
    }
    assert.eq( JSON.stringify( docs ), expDocs );
+}
+
+function keysSort ( obj )
+{
+   var keysSorted = Object.keys( obj ).sort();
+   var newObj = {};
+   for( var k = 0; k < keysSorted.length; k++ )
+   {
+      var key = keysSorted[k];
+      newObj[key] = obj[key];
+   }
+   return newObj;
 }

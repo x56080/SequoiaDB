@@ -2,7 +2,7 @@
  * @Description   : seqDB - 24147: findOneAndUpdate / findOneAndReplace / findOneAndDelete操作
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.04.15
- * @LastEditTime  : 2021.05.17
+ * @LastEditTime  : 2021.05.19
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 main();
@@ -204,28 +204,28 @@ function testFindOneAndReplaceWithSort ( cl )
 {
    // returnNewDocument，True更新或插入后的文档，False返回原始文档
    cl.deleteMany( {} );
-   cl.insertMany( [{ '_id': 1, 'a': 1, 'b': 1 }, { '_id': 2, 'a': 1, 'b': 2 }] );
+   cl.insertMany( [{ '_id': 1, 'a': 1, 'b': 1 }, { '_id': 2, 'a': 2, 'b': 1 }, { '_id': 3, 'a': 3, 'b': 1 }] );
 
-   // 更新多条文档，sort为默认取值
-   var rc = cl.findOneAndReplace( { 'a': 1 }, { 'c': 1 }, { "returnNewDocument": true } );
-   assert.eq( rc, { "_id": 1, "c": 1 } );
+   // 更新文档，sort为默认取值
+   var rc = cl.findOneAndReplace( { 'a': 1 }, { 'b': 2 }, { "returnNewDocument": true } );
+   assert.eq( rc, { "_id": 1, "b": 2 } );
    // 检查结果
    var rc = cl.find().sort( { "_id": 1 } );
-   checkResults( rc, "[{\"_id\":1,\"c\":1},{\"_id\":2,\"a\":1,\"b\":2}]" );
+   checkResults( rc, "[{\"_id\":1,\"b\":2},{\"_id\":2,\"a\":2,\"b\":1},{\"_id\":3,\"a\":3,\"b\":1}]" );
 
    // 更新多条文档，sort:_id字段正序
-   var rc = cl.findOneAndReplace( { 'c': 1 }, { 'a': 2 }, { "sort": { "_id": 1 }, "returnNewDocument": true } );
-   assert.eq( rc, { "_id": 1, "a": 2 } );
+   var rc = cl.findOneAndReplace( { 'b': 1 }, { 'a': 4, 'b': 2 }, { "sort": { "_id": 1 }, "returnNewDocument": true } );
+   assert.eq( rc, { "_id": 2, "a": 4, "b": 2 } );
    // 检查结果
    var rc = cl.find().sort( { "_id": 1 } );
-   checkResults( rc, "[{\"_id\":1,\"a\":2},{\"_id\":2,\"a\":1,\"b\":2}]" );
+   checkResults( rc, "[{\"_id\":1,\"b\":2},{\"_id\":2,\"a\":4,\"b\":2},{\"_id\":3,\"a\":3,\"b\":1}]" );
 
    // 更新多条文档，sort:a字段逆序
-   var rc = cl.findOneAndReplace( { 'b': 2 }, { 'c': 3 }, { "sort": { "a": -1 }, "returnNewDocument": true } );
-   assert.eq( rc, { "_id": 2, "c": 3 } );
+   var rc = cl.findOneAndReplace( { 'b': 2 }, { 'a': 5 }, { "sort": { "a": -1 }, "returnNewDocument": true } );
+   assert.eq( rc, { "_id": 2, "a": 5 } );
    // 检查结果
    var rc = cl.find().sort( { "_id": 1 } );
-   checkResults( rc, "[{\"_id\":1,\"a\":2},{\"_id\":2,\"c\":3}]" );
+   checkResults( rc, "[{\"_id\":1,\"b\":2},{\"_id\":2,\"a\":5},{\"_id\":3,\"a\":3,\"b\":1}]" );
 
    // sort:b字段，b字段无索引
    try
@@ -239,7 +239,7 @@ function testFindOneAndReplaceWithSort ( cl )
    }
    // 检查结果
    var rc = cl.find().sort( { "_id": 1 } );
-   checkResults( rc, "[{\"_id\":1,\"a\":2},{\"_id\":2,\"c\":3}]" );
+   checkResults( rc, "[{\"_id\":1,\"b\":2},{\"_id\":2,\"a\":5},{\"_id\":3,\"a\":3,\"b\":1}]" );
 }
 
 function testFindOneAndDelete ( cl )
