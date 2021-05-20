@@ -4684,7 +4684,6 @@ namespace sdbclient
                                   is "High":
                                     "High" means report an error and output an error message.
                                     "Low" means ignore unsupported data operations and do not execute.
-          \param [out] A data source object
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
