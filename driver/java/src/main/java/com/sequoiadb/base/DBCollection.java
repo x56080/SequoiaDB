@@ -284,6 +284,7 @@ public class DBCollection {
                 result.put(SdbConstants.OID, oid);
             }
         }
+        sequoiadb.cleanRequestBuff();
         return result;
     }
 

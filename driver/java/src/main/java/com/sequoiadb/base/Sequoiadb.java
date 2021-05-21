@@ -83,7 +83,6 @@ public class Sequoiadb implements Closeable {
 
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
-    private ByteBuffer responseBuffer = null;
 
 
     /**
@@ -2647,14 +2646,11 @@ public class Sequoiadb implements Closeable {
         return response;
     }
 
-    private ByteBuffer receiveSdbResponse() {
-        ByteBuffer buffer;
+    private ByteBuffer receiveSdbResponse(ByteBuffer buffer) {
         try {
             byte[] lengthBytes = connection.receive(4);
             int length = ByteBuffer.wrap(lengthBytes).order(byteOrder).getInt();
-            //resetResponseBuffer(length);
-            buffer = ByteBuffer.allocate(length);
-            buffer.order(byteOrder);
+            buffer = Helper.resetBuff(buffer, length, byteOrder);
             System.arraycopy(lengthBytes, 0, buffer.array(), 0, lengthBytes.length);
             connection.receive(buffer.array(), 4, length - 4);
         }catch (Exception e){
@@ -2672,42 +2668,11 @@ public class Sequoiadb implements Closeable {
     }
 
     private void resetRequestBuff(int len) {
-        requestBuffer = resetBuff(requestBuffer, len);
+        requestBuffer = Helper.resetBuff(requestBuffer, len, byteOrder);
     }
 
-    private void resetResponseBuffer(int len) {
-        responseBuffer = resetBuff(responseBuffer, len);
-    }
-
-    private ByteBuffer resetBuff(ByteBuffer buff, int len) {
-        if (buff == null) {
-            buff = ByteBuffer.allocate(len);
-            buff.order(byteOrder);
-        }else if(buff.capacity() < len) {
-            buff = ByteBuffer.allocate(len);
-            buff.order(byteOrder);
-        }else if(buff.capacity() > len) {
-            buff.clear();
-            buff.limit(len);
-        }else {
-            buff.clear();
-        }
-        return buff;
-    }
-
-    protected void narrowBuff(){
-        narrowRequestBuff();
-        narrowRespondBuff();
-    }
-
-    protected void narrowRequestBuff(){
-        requestBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
-        requestBuffer.order(byteOrder);
-    }
-
-    protected void narrowRespondBuff(){
-        responseBuffer = ByteBuffer.allocate(DEFAULT_BUFF_LENGTH);
-        responseBuffer.order(byteOrder);
+    protected void cleanRequestBuff(){
+        requestBuffer = null;
     }
 
     private ByteBuffer encodeRequest(Request request) {
@@ -2738,11 +2703,11 @@ public class Sequoiadb implements Closeable {
         return response;
     }
 
-    private ByteBuffer sendAndReceive(ByteBuffer request) {
+    private ByteBuffer sendAndReceive(ByteBuffer request, ByteBuffer buff) {
         if (!isClosed()) {
             connection.send(request);
             lastUseTime = System.currentTimeMillis();
-            ByteBuffer response = receiveSdbResponse();
+            ByteBuffer response = receiveSdbResponse(buff);
             if (request.limit() > currentCacheSize) {
                 currentCacheSize = request.limit();
             }
@@ -2755,16 +2720,20 @@ public class Sequoiadb implements Closeable {
         }
     }
 
+    SdbReply requestAndResponse(SdbRequest request) {
+        return requestAndResponse(request, SdbReply.class);
+    }
+
     <T extends SdbResponse> T requestAndResponse(SdbRequest request, Class<T> tClass) {
+        return requestAndResponse(request, tClass, null);
+    }
+
+    <T extends SdbResponse> T requestAndResponse(SdbRequest request, Class<T> tClass, ByteBuffer buff) {
         ByteBuffer out = encodeRequest(request);
-        ByteBuffer in = sendAndReceive(out);
+        ByteBuffer in = sendAndReceive(out, buff);
         T response = decodeResponse(in, tClass);
         validateResponse(request, response);
         return response;
-    }
-
-    SdbReply requestAndResponse(SdbRequest request) {
-        return requestAndResponse(request, SdbReply.class);
     }
 
     private String getErrorDetail(BSONObject errorObj, Object errorMsg) {
@@ -2853,6 +2822,7 @@ public class Sequoiadb implements Closeable {
             DisconnectRequest request = new DisconnectRequest();
             sendRequest(request);
         } finally {
+            cleanRequestBuff();
             connection.close();
         }
     }

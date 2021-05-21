@@ -16,7 +16,6 @@ public class BasicClass {
     private Float floatvalue = 012121.212f;
     private Date date = DateInterceptUtil.interceptDate(new Date(), "yyyy-MM-dd");
 
-
 //	public ObjectId get_id() {
 //		return _id;
 //	}
