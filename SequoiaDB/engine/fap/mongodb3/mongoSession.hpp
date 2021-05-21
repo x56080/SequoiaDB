@@ -106,7 +106,6 @@ private:
    BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
    BOOLEAN _shouldBuildGetMoreMsg( const _mongoCommand *pCommand ) ;
 
-   INT32   _checkEDUCB( engine::_pmdEDUCB *cb, UINT64 eduIdOfCb ) ;
    void    _postInnerErrorEvent( INT32 errorCode,
                                  engine::pmdEDUEvent &event ) ;
    void    _eduEventRelease( engine::pmdEDUEvent &event ) ;

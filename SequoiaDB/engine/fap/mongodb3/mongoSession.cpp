@@ -143,44 +143,6 @@ BOOLEAN _mongoSession::preProcess( pmdEDUEvent &event )
    return processed ;
 }
 
-INT32 _mongoSession::_checkEDUCB( engine::_pmdEDUCB *cb, UINT64 eduIdOfCb )
-{
-   INT32 rc = SDB_OK ;
-
-   if ( NULL == cb )
-   {
-      rc = SDB_SYS ;
-      PD_LOG( PDERROR, "Current thread[ session: %s, edu: %llu, tid: %d ] "
-              "detects that edu[%llu] is invalid, rc: %d",
-              sessionName(), eduID(), ossGetCurrentThreadID(), eduIdOfCb, rc ) ;
-      goto error ;
-   }
-
-   if ( cb->isInterrupted() )
-   {
-      rc = SDB_APP_INTERRUPT ;
-      PD_LOG( PDERROR, "Current thread[ session: %s, edu: %llu, tid: %d ] "
-              "detects that edu[%llu] has interrupted, rc: %d",
-              sessionName(), eduID(), ossGetCurrentThreadID(),
-              cb->getID(), rc ) ;
-      goto error ;
-   }
-   else if ( cb->isDisconnected() )
-   {
-      rc = SDB_APP_DISCONNECT ;
-      PD_LOG( PDERROR, "Current thread[ session: %s, edu: %llu, tid: %d ] "
-              "detects that edu[%llu] has disconnected, rc: %d",
-              sessionName(), eduID(), ossGetCurrentThreadID(),
-              cb->getID(), rc ) ;
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
 /*
 eg:
             request event
@@ -208,53 +170,69 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
    UINT32 pResLen = sizeof( fapMongoInnerHeader ) ;
    fapMongoInnerHeader errResHeader ;
 
-   pmdEDUCB *cb = eduMgr->getEDUByID( sourceEDUID ) ;
-   rc = _checkEDUCB( cb, sourceEDUID ) ;
-   if ( rc )
-   {
-      // it means that the eduCB we will post is interrupted or disconnected,
-      // so we don't need to post response event
-      PD_LOG( PDWARNING, "Invalid edu[%llu], rc: %d", sourceEDUID, rc ) ;
-      goto done ;
-   }
-
    _eduEventRelease( event ) ;
 
+   // if it failed to post response event to another edu,
+   // it means that the edu we will post doesn't exist,
+   // so we don't need to post response event
    if ( SDB_OOM == errorCode )
    {
-      cb->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
-                                  PMD_EDU_MEM_NONE,
-                                  fapMongoGetOOMErrResHeader(),
-                                  SET_MONGO_MSG_FLAG( eduID() ) ) ) ;
+      rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                PMD_EDU_MEM_NONE,
+                                fapMongoGetOOMErrResHeader(),
+                                SET_MONGO_MSG_FLAG( eduID() ) ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
+                  "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+         goto done ;
+      }
    }
    else
    {
       pRes = (CHAR*)SDB_THREAD_ALLOC( pResLen ) ;
       if ( NULL == pRes )
       {
-         PD_LOG( PDERROR, "edu[%llu] want to post default error response "
-                 "header to edu[%llu], but edu[%llu] out of memory, rc: %d",
-                 eduID(), sourceEDUID, eduID(), rc ) ;
-         cb->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
-                                     PMD_EDU_MEM_NONE,
-                                     fapMongoGetOOMErrResHeader(),
-                                     SET_MONGO_MSG_FLAG( eduID() ) ) ) ;
-         goto done ;
+         PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
+                  "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+         rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                   PMD_EDU_MEM_NONE,
+                                   fapMongoGetOOMErrResHeader(),
+                                   SET_MONGO_MSG_FLAG( eduID() ) ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
+                     "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+            goto done ;
+         }
       }
-      ossMemset( pRes, 0, pResLen ) ;
+      else
+      {
+         ossMemset( pRes, 0, pResLen ) ;
 
-      errResHeader.errorCode = errorCode ;
-      ossMemcpy( pRes, (const CHAR*)&errResHeader, pResLen ) ;
+         errResHeader.errorCode = errorCode ;
+         ossMemcpy( pRes, (const CHAR*)&errResHeader, pResLen ) ;
 
-      cb->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
-                                  PMD_EDU_MEM_THREAD,
-                                  pRes,
-                                  SET_MONGO_MSG_FLAG( eduID() ) ) ) ;
+         rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                   PMD_EDU_MEM_THREAD, pRes,
+                                   SET_MONGO_MSG_FLAG( eduID() ) ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
+                     "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+            if ( pRes )
+            {
+               SDB_THREAD_FREE( pRes ) ;
+            }
+            goto done ;
+         }
+      }
    }
 
+   PD_LOG( PDDEBUG, "edu[%llu] post inner response to edu[%llu] successfully",
+           eduID(), sourceEDUID ) ;
+
 done:
-   PD_LOG( PDDEBUG, "edu[%llu] post default error response header to "
-           "edu[%llu] successfully", eduID(), sourceEDUID ) ;
    return ;
 }
 
@@ -413,15 +391,6 @@ next:
                   continue ;
                }
 
-               pmdEDUCB *cb = eduMgr->getEDUByID( ownedEDUID ) ;
-               rc = _checkEDUCB( cb, ownedEDUID ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Invalid edu[%llu], rc: %d",
-                          ownedEDUID, rc ) ;
-                  goto error ;
-               }
-
                pReq = (CHAR*)SDB_THREAD_ALLOC( msgLen ) ;
                if ( NULL == pReq )
                {
@@ -429,16 +398,38 @@ next:
                   PD_LOG( PDERROR, "edu[%llu] will post mongo request to "
                           "edu[%llu] but edu[%llu] failed to alloc memory, "
                           "rc: %d", eduID(), ownedEDUID, eduID(), rc ) ;
-                  goto error ;
+
+                  rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Session[%s] failed to reply, rc: %d",
+                               sessionName(), rc ) ;
+                  continue ;
                }
                ossMemcpy( pReq, pMsg, msgLen ) ;
 
-               cb->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
-                                           PMD_EDU_MEM_THREAD,
-                                           pReq,
-                                           SET_MONGO_MSG_FLAG( eduID() ) ) ) ;
-               PD_LOG( PDDEBUG, "edu[%llu] post mongo request to edu[%llu]",
-                       eduID(), ownedEDUID ) ;
+               rc = eduMgr->postEDUPost( ownedEDUID, PMD_EDU_EVENT_MSG,
+                                         PMD_EDU_MEM_THREAD,
+                                         pReq,
+                                         SET_MONGO_MSG_FLAG( eduID() ) ) ;
+               if ( rc )
+               {
+                  PD_LOG ( PDERROR, "edu[%llu] failed to post mongo request "
+                           "to edu[%llu], rc: %d", eduID(), ownedEDUID, rc ) ;
+
+                  if ( pReq )
+                  {
+                     SDB_THREAD_FREE( pReq ) ;
+                  }
+
+                  rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Session[%s] failed to reply, rc: %d",
+                               sessionName(), rc ) ;
+                  continue ;
+               }
+
+               PD_LOG( PDDEBUG, "edu[%llu] post mongo request to edu[%llu] "
+                       "successfully", eduID(), ownedEDUID ) ;
 
                // we need to wait for response event
                _needWaitResponse = TRUE ;
@@ -447,7 +438,7 @@ next:
 
                if ( MONGO_OP_KILL_CURSORS == ((mongoMsgHeader*)pMsg)->opCode )
                {
-                  _cursorIdOfPostEvent = SDB_INVALID_CONTEXTID ;
+                  _cursorIdOfPostEvent = MONGO_INVALID_CURSORID ;
                }
                else
                {
@@ -460,17 +451,6 @@ next:
             // receive message from event, it may be getMore command
             // or killCursor command
             UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ;
-            // post respose to source edu
-            pmdEDUCB *cb = eduMgr->getEDUByID( sourceEDUID ) ;
-            rc = _checkEDUCB( cb, sourceEDUID ) ;
-            if ( rc )
-            {
-               // it means that the eduCB we will post is interrupted or
-               // disconnected, so we don't need to post response event
-               PD_LOG( PDWARNING, "Invalid edu[%llu], rc: %d",
-                       sourceEDUID, rc ) ;
-               continue ;
-            }
 
             rc = _processMsg( _inBuffer.data(), pCommand, sessCtx.errorObj ) ;
 
@@ -479,9 +459,8 @@ next:
             rc = _buildResponse( pCommand, pRes ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "edu[%llu] will post mongo response to "
-                       "edu[%llu] but edu[%llu] failed to build response, "
-                       "rc: %d", eduID(), sourceEDUID, eduID(), rc ) ;
+               PD_LOG ( PDERROR, "edu[%llu] failed to build response of "
+                        "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
                _postInnerErrorEvent( rc, event ) ;
                if ( pRes )
                {
@@ -492,12 +471,23 @@ next:
 
             _eduEventRelease( event ) ;
 
-            cb->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
-                                        PMD_EDU_MEM_THREAD,
-                                        pRes,
-                                        SET_MONGO_MSG_FLAG(eduID()) ) ) ;
-            PD_LOG( PDDEBUG, "edu[%llu] post mongo response to edu[%llu]",
-                    eduID(), sourceEDUID ) ;
+            rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                      PMD_EDU_MEM_THREAD,
+                                      pRes,
+                                      SET_MONGO_MSG_FLAG( eduID() ) ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "edu[%llu] failed to post mongo response to "
+                        "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+               if ( pRes )
+               {
+                  SDB_THREAD_FREE( pRes ) ;
+               }
+               continue ;
+            }
+
+            PD_LOG( PDDEBUG, "edu[%llu] post mongo response to edu[%llu] "
+                    "successfully", eduID(), sourceEDUID ) ;
          }
       }
    }
@@ -584,14 +574,6 @@ INT32 _mongoSession::_recvMsg( CHAR *&pMsg,
    queue<pmdEDUEvent> tmpEventQue ;
    BOOLEAN recvSomething = FALSE ;
 
-   rc = _checkEDUCB( _pEDUCB, eduID() ) ;
-   if ( rc )
-   {
-      PD_LOG( PDERROR, "Invalid edu[%llu], rc: %d",
-              eduID(), rc ) ;
-      goto error ;
-   }
-
    while ( !_tmpEventQue.empty() )
    {
       _pEDUCB->postEvent( _tmpEventQue.front() ) ;
@@ -648,7 +630,6 @@ INT32 _mongoSession::_recvMsg( CHAR *&pMsg,
                     "edu[%llu] wait mongo request from edu[%llu]",
                     eduID(), UNSET_MONGO_MSG_FLAG( event._userData ) ) ;
             break ;
-
          }
          else if ( IS_MONGO_RESPONSE( event._Data ) )
          {
@@ -658,14 +639,6 @@ INT32 _mongoSession::_recvMsg( CHAR *&pMsg,
                          "rc: %d", sessionName(), rc ) ;
          }
       }
-   }
-
-   rc = _checkEDUCB( _pEDUCB, eduID() ) ;
-   if ( rc )
-   {
-      PD_LOG( PDERROR, "Invalid edu[%llu], rc: %d",
-              eduID(), rc ) ;
-      goto error ;
    }
 
    _pEDUCB->incEventCount() ;
@@ -1007,7 +980,10 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    {
       // _contextBuff will be released in _processMsg,
       // so we should call getOwned()
-      returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
+      if ( NULL != _contextBuff.data() )
+      {
+         returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
+      }
 
       _tmpBuffer.zero() ;
       _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
@@ -1574,7 +1550,11 @@ void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
       res.header.msgLen = sizeof( res ) + errorBson.objsize() ;
       res.header.responseTo = _requestIDOfPostEvent ;
       res.nReturned = 1 ;
-      res.cursorId = SDBCTXID_TO_MGCURSOID( _cursorIdOfPostEvent ) ;
+      // In MongoDB-Java-2.x driver, if we send cursorID that isn't 0,
+      // the driver will send request message based on this cursorID to
+      // fap again. But the context corresponding to this cursorID may have
+      // been closed in SequoiaDB.
+      res.cursorId = MONGO_INVALID_CURSORID ;
       msgLen = res.header.msgLen ;
 
       ossMemcpy( pMsg, (const CHAR*)&res, sizeof( res ) ) ;
@@ -1617,8 +1597,6 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to send response header, "
                    "rc: %d", sessionName(), rc ) ;
-
-      _eduEventRelease( event ) ;
    }
    // It means that the event isn't a normal MongoDB event.
    // It's a _fapMongoInnerHeader. For detail, see the comment of the
@@ -1628,9 +1606,20 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
       // The command must be getMore or killCursor
       CHAR resMsg[ FAP_MONGO_ERROR_RESPONSE_MAX_LEN ] ;
       INT32 sendDataLen = 0 ;
+      _mongoCursorMgr* cursorMgr = getMongoCursorMgr() ;
+
       ossMemset( resMsg, 0, FAP_MONGO_ERROR_RESPONSE_MAX_LEN ) ;
 
       _buildErrResponseMsg( resMsg, resHeader->errorCode, sendDataLen ) ;
+
+      _cursorList.erase( _cursorIdOfPostEvent ) ;
+      cursorMgr->remove( _cursorIdOfPostEvent ) ;
+      _autoKillCursor( _requestIDOfPostEvent,
+                       MGCURSOID_TO_SDBCTXID ( _cursorIdOfPostEvent ) ) ;
+
+      _requestIDOfPostEvent = 0 ;
+      _opCodeOfPostEvent = 0 ;
+      _cursorIdOfPostEvent = MONGO_INVALID_CURSORID ;
 
       if ( sendDataLen > 0 )
       {
@@ -1639,11 +1628,6 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
                       "Session[%s] failed to send response, rc: %d",
                       sessionName(), rc ) ;
       }
-
-      _cursorIdOfPostEvent = SDB_INVALID_CONTEXTID ;
-      _requestIDOfPostEvent = 0 ;
-      _opCodeOfPostEvent = 0 ;
-      _eduEventRelease( event ) ;
    }
    else
    {
@@ -1654,9 +1638,9 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
    }
 
 done:
+   _eduEventRelease( event ) ;
    return rc ;
 error:
-   _eduEventRelease( event ) ;
    goto done ;
 }
 
