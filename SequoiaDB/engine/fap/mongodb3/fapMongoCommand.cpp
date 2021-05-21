@@ -5357,6 +5357,14 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
          goto error ;
       }
 
+      if ( !isUpdate && !isRemove )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Either an update or remove = true must be "
+                       "specified" ) ;
+         goto error ;
+      }
+
       if ( isRemove && _isReturnNew )
       {
          rc = SDB_INVALIDARG ;
