@@ -247,6 +247,7 @@ namespace engine
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
+      DPS_LSN_OFFSET             _lastEndNtyOffset ;
 
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
