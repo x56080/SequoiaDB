@@ -215,7 +215,13 @@ namespace engine
       if ( created && NULL != tmpEH.get() )
       {
          // insert new handle into net frame
-         _frame->_addOpposite( tmpEH ) ;
+         rc = _frame->_addOpposite( tmpEH ) ;
+         if ( SDB_OK != rc )
+         {
+            tmpEH->close() ;
+            PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       eh = tmpEH ;

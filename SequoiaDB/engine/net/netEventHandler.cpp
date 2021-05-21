@@ -669,7 +669,11 @@ namespace engine
                if ( MSG_INVALID_ROUTEID != _header.routeID.value )
                {
                   _id = _header.routeID ;
-                  _evSuitPtr->getFrame()->_addRoute( _getSharedBase() ) ;
+                  if ( SDB_OK !=
+                        _evSuitPtr->getFrame()->_addRoute( _getSharedBase() ) )
+                  {
+                     goto error_close ;
+                  }
                }
             }
 
