@@ -182,7 +182,13 @@ namespace engine
          else if ( created )
          {
             // add to opposite map
-            _pFrame->_addOpposite( eh ) ;
+            rc = _pFrame->_addOpposite( eh ) ;
+            if ( SDB_OK != rc )
+            {
+               delEH( eh->handle() ) ;
+               eh->close() ;
+               PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+            }
          }
       }
 
@@ -201,6 +207,8 @@ namespace engine
       _mtx.get() ;
       if ( _vecEH.size() < _capacity )
       {
+         NET_EH tmpEH ;
+
          /// create a new socket
          pEH = SDB_OSS_NEW _netEventHandler( _pFrame->_getEvSuit( TRUE ),
                                              _pFrame->_handle.inc() ) ;
@@ -210,9 +218,22 @@ namespace engine
             goto done ;
          }
 
-         eh = NET_EH(pEH) ;
+         try
+         {
+            tmpEH = NET_EH( pEH ) ;
+            _vecEH.push_back( tmpEH ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add event handler, occur exception %s",
+                    e.what() ) ;
+            tmpEH->close() ;
+            goto done ;
+         }
+
+         eh = tmpEH ;
          eh->id( _id ) ;
-         _vecEH.push_back(eh) ;
+
          ret = TRUE ;
       }
       else
@@ -241,11 +262,28 @@ namespace engine
    // that the new connection has to be added into a container that has
    // already hit the capacity, in that case we will resize the container
    // by increasing the capacity
-   void _netEHSegment::addEH( NET_EH eh )
+   INT32 _netEHSegment::addEH( NET_EH eh )
    {
-      _mtx.get() ;
-      _vecEH.push_back(eh) ;
-      _mtx.release() ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _vecEH.push_back(eh) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save event handler to segment, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    void _netEHSegment::delEH( const NET_HANDLE& handle )
@@ -769,10 +807,22 @@ namespace engine
 
          /// add to map
          // addRoute will take latch inside the function
-         _addRoute(eh) ;
-         _mtx.get() ;
-         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-         _mtx.release() ;
+         rc = _addRoute( eh ) ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            PD_LOG( PDERROR, "Failed to save route, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         rc = _addOpposite( eh ) ;
+         if ( SDB_OK != rc )
+         {
+            _eraseRoute( eh ) ;
+            eh->close() ;
+            PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
+            goto error ;
+         }
 
          if ( pHandle )
          {
@@ -928,8 +978,20 @@ namespace engine
                goto error ;
             }
             ptr = netEHSegPtr(pSeg) ;
-            // insert the shared ptr into route table
-            _route.insert( make_pair(id.value, ptr) ) ;
+
+            try
+            {
+               // insert the shared ptr into route table
+               _route.insert( make_pair(id.value, ptr) ) ;
+            }
+            catch ( exception &e )
+            {
+               _mtx.release() ;
+               PD_LOG( PDERROR, "Failed to save route, occur exception %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
          _mtx.release() ;
       }
@@ -1492,11 +1554,19 @@ namespace engine
       timer = NET_TH( t ) ;
       t = NULL ;
 
-      /// lock
-      _mtx.get() ;
-      _timers.insert( std::make_pair( timer->id(), timer ) ) ;
-      /// release
-      _mtx.release() ;
+      try
+      {
+         /// lock
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _timers.insert( std::make_pair( timer->id(), timer ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save timer, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
 
       timerid = timer->id() ;
       timer->asyncWait() ;
@@ -1594,9 +1664,12 @@ namespace engine
 
    //TODO rewrite it later
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ADDRT, "_netFrame::_addRoute" )
-   void _netFrame::_addRoute( NET_EH eh )
+   INT32 _netFrame::_addRoute( NET_EH eh )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB__NETFRAME__ADDRT ) ;
+
       MAP_ROUTE_IT itr ;
       netEHSegPtr ptr ;
 
@@ -1606,7 +1679,9 @@ namespace engine
       if ( itr == _route.end() )
       {
          _mtx.release_shared() ;
-         _mtx.get() ;
+
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+
          // after we get the x latch, re-check if someone has already create
          // the netEHSegment
          itr = _route.find(eh->id().value) ;
@@ -1622,14 +1697,24 @@ namespace engine
             if ( !pSeg)
             {
                PD_LOG( PDERROR, "Allocate netEHSegment failed" ) ;
-               _mtx.release() ;
-               goto done ;
+               rc = SDB_OOM ;
+               goto error ;
             }
             ptr = netEHSegPtr(pSeg) ;
-            // insert the shared ptr into route table
-            _route.insert( make_pair(eh->id().value, ptr) ) ;
+
+            try
+            {
+               // insert the shared ptr into route table
+               _route.insert( make_pair(eh->id().value, ptr) ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save route, occur exception %s",
+                       e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
          }
-         _mtx.release() ;
       }
       else
       {
@@ -1638,10 +1723,38 @@ namespace engine
          _mtx.release_shared() ;
       }
       // get event handler
-      ptr->addEH(eh) ;
+      rc = ptr->addEH(eh) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to add event handler to event "
+                   "handler segment, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXIT ( SDB__NETFRAME__ADDRT );
+      PD_TRACE_EXITRC( SDB__NETFRAME__ADDRT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__ERASERT, "_netFrame::_eraseRoute" )
+   void _netFrame::_eraseRoute( NET_EH eh )
+   {
+      PD_TRACE_ENTRY( SDB__NETFRAME__ERASERT ) ;
+
+      ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+
+      MAP_ROUTE_IT routeItr = _route.find( eh->id().value ) ;
+      if ( routeItr != _route.end() )
+      {
+         routeItr->second->delEH( eh->handle() ) ;
+         /// when nobody used and is empty
+         if ( routeItr->second->isEmpty() &&
+              1 == routeItr->second.use_count() )
+         {
+            _route.erase( routeItr ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__NETFRAME__ERASERT ) ;
    }
 
    void _netFrame::_eraseSuit_i( netEvSuitPtr &ptr )
@@ -1658,11 +1771,28 @@ namespace engine
       }
    }
 
-   void _netFrame::_addOpposite( NET_EH eh )
+   INT32 _netFrame::_addOpposite( NET_EH eh )
    {
-     _mtx.get() ;
-     _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-     _mtx.release() ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
+         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save handle, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME__GETEVSUIT, "_netFrame::_getEvSuit" )
@@ -1813,14 +1943,18 @@ namespace engine
       eh->setOpt() ;
 
       /// add to map
-      _mtx.get() ;
-      _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-      _mtx.release() ;
+      if ( SDB_OK == _addOpposite( eh ) )
+      {
+         // callback: handleConnect
+         _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
+         eh->asyncRead() ;
+      }
+      else
+      {
+         // failed to add to map, close connection
+         eh->close() ;
+      }
 
-      // callback: handleConnect
-      _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
-
-      eh->asyncRead() ;
       _asyncAccept() ;
 
    done:

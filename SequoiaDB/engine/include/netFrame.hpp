@@ -113,7 +113,7 @@ namespace engine
 
          void close() ;
 
-         void addEH( NET_EH eh ) ;
+         INT32 addEH( NET_EH eh ) ;
 
          void delEH( const NET_HANDLE& handle ) ;
 
@@ -301,7 +301,7 @@ namespace engine
 
          NET_EH            _createEvHandler() ;
 
-         void              _addOpposite( NET_EH eh ) ;
+         INT32             _addOpposite( NET_EH eh ) ;
 
       private:
          INT32    _asyncAccept() ;
@@ -310,7 +310,8 @@ namespace engine
 
          void     _erase( const NET_HANDLE &handle ) ;
 
-         void     _addRoute( NET_EH eh ) ;
+         INT32    _addRoute( NET_EH eh ) ;
+         void     _eraseRoute( NET_EH eh ) ;
 
          void     _heartbeat( INT32 serviceType ) ;
 
