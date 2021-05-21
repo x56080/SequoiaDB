@@ -45,7 +45,7 @@ function test ()
    indexOprAndCheckResult( dbcl );
    metaOprAndCheckResult( csName, mainCLName, clName );
 
-   //集合空间级使用数据源   
+   //集合空间级使用数据源
    db.dropCS( csName );
    var cs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = db.getCS( csName ).getCL( clName );
@@ -73,10 +73,12 @@ function indexOprAndCheckResult ( dbcl )
       dbcl.dropIndex( "testa" );
    } );
 
+   /*
    assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.getDetail();
    } );
+   */
 
    var recordNum = 10000;
    var expRecs = insertBulkData( dbcl, recordNum, 0, 40000 );

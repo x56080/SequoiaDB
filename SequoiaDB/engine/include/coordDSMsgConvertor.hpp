@@ -55,7 +55,9 @@ namespace engine
 
    class _rtnCommand ;
    /**
-    * Data source message convertor.
+    * Data source message convertor. It's managed by the data source manager.
+    * It converts messages received by local * coordinator into expected format
+    * of the data source(actually, expected format of coordinator).
     */
    class _coordDSMsgConvertor : public _IRemoteMsgConvertor
    {

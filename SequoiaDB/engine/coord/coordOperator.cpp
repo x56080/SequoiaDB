@@ -334,8 +334,6 @@ namespace engine
       {
          options._groupLst.clear() ;
 
-         // If the collection is on external datasource, just do one that
-         // data source.
          rc = cataSel.getGroupLst( cb, result._sucGroupLst,
                                    options._groupLst, &objMatch ) ;
          if ( rc )

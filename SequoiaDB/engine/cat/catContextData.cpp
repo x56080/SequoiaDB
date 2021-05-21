@@ -2762,14 +2762,6 @@ namespace engine
             goto error ;
          }
 
-         if ( meta.hasField( FIELD_NAME_DATASOURCE_ID ) )
-         {
-            rc = SDB_OPERATION_INCOMPATIBLE ;
-            PD_LOG_MSG( PDERROR, "Not allowed to alter a collection which is "
-                        "using data source[%d]", rc ) ;
-            goto error ;
-         }
-
          rc = _alterJob.initialize( _targetName.c_str(), RTN_ALTER_COLLECTION,
                                     _boQuery ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to extract alter job, rc: %d",
@@ -2782,6 +2774,23 @@ namespace engine
          PD_CHECK( 1 >= _alterJob.getAlterTasks().size(),
                    SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                    "Failed to extract alter job: not support multiple tasks" ) ;
+
+         /*
+          * If altering collection which is using data source, the only allowed
+          * operation is to increase version of the table.
+          */
+         if ( meta.hasField( FIELD_NAME_DATASOURCE_ID ) &&
+              ( 1 == _alterJob.getAlterTasks().size() ) )
+         {
+            rtnAlterTask *task = _alterJob.getAlterTasks().front() ;
+            if ( RTN_ALTER_CL_INC_VERSION != task->getActionType() )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Not allowed to alter a collection which is"
+                           " using data source[%d]", rc ) ;
+               goto error ;
+            }
+         }
       }
       catch ( exception & e )
       {

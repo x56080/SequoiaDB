@@ -53,10 +53,12 @@ function indexOprAndCheckResult ( dbcl )
       dbcl.dropIndex( "testa" );
    } );
 
+   /*
    assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.getDetail();
    } );
+   */
 
    var recordNum = 10000;
    var expRecs = insertBulkData( dbcl, recordNum, 0, 40000 );

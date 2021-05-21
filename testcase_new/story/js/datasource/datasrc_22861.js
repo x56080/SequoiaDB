@@ -57,7 +57,7 @@ function createDataSourceAndCreateCL ( cs, dataSrcName, datasourceNum, srcCSName
    {
       var name = dataSrcName + "_" + i;
       var clNameSub = "cl_22861" + "_" + i;
-      db.createDataSource( name, datasrcUrl, "sdbadmin", "sdbadmin" );
+      db.createDataSource( name, datasrcUrl, userName, passwd );
       datasourceNames.push( name );
       cs.createCL( clNameSub, { DataSource: name, Mapping: srcCSName + "." + srcCLName } );
    }

@@ -242,6 +242,14 @@ namespace engine
       INT32 _checkTaskHWM() ;
 
       INT32 _checkAllCSCLUniqueID() ;
+
+      /**
+       * Check and update data source and collection information. It will only
+       * happen when upgrading from sequoiadb 3.2.8 to newer versions, and if
+       * data source is used.
+       */
+      INT32 _checkAndUpdateDSCLInfo() ;
+
    private:
       INT16 _majoritySize() ;
 

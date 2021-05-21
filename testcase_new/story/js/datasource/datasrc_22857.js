@@ -25,13 +25,13 @@ function test ()
 
    dataSource.alter( { "AccessMode": "READ", "ErrorFilterMask": "READ", "ErrorControlLevel": "Low" } );
    var explainObj = db.listDataSources( { "Name": dataSrcName } );
-   checkExplain( explainObj, dataSrcName, datasrcUrl, userName, "READ", "READ", "Low" );
+   checkExplain( explainObj, dataSrcName, datasrcUrl, userName, "READ", "READ", "low" );
 
-   // 创建索引，验证 "ErrorControlLevel": "Low"
+   // 创建索引，验证 "ErrorControlLevel": "low"
    dbcl.createIndex( indexName, { a: 1 } );
 
    // 插入数据，验证 "AccessMode": "READ"
-   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function() 
+   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function()
    {
       dbcl.insert( { a: 1 } );
    } );

@@ -203,7 +203,8 @@ utilFiles = [
       "util/utilCipher.c",
       "util/utilBSON.cpp",
       "util/utilAuthSCRAMSHA.cpp",
-      "util/utilAddress.cpp"
+      "util/utilAddress.cpp",
+      "util/utilDataSource.cpp"
       ]
 
 rtnFiles = [

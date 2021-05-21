@@ -18,7 +18,7 @@ function test ()
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, clName );
-   db.createDataSource( dataSrcName, datasrcUrl, "sdbadmin", "sdbadmin" )
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    dbcl.insert( { a: "test" } );

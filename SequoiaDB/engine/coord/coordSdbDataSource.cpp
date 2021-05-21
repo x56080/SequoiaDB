@@ -52,7 +52,8 @@ namespace engine
      _dsMajorVersion( 0 ),
      _dsMinorVersion( 0 ),
      _dsFixVersion( 0 ),
-     _errFilterMask( DS_ERR_FILTER_NONE )
+     _errFilterMask( DS_ERR_FILTER_NONE ),
+     _transPropagateMode( DS_TRANS_PROPAGATE_NEVER )
    {
       ossMemset( _name, 0, DATASOURCE_MAX_NAME_SZ + 1 ) ;
       ossMemset( _user, 0, SDB_MAX_USERNAME_LENGTH + 1 ) ;
@@ -128,6 +129,11 @@ namespace engine
                                       FIELD_NAME_ERRORFILTERMASK ) )
             {
                _errFilterMask = ele.numberInt() ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(),
+                                      FIELD_NAME_TRANS_PROPAGATE_MODE ) )
+            {
+               _transPropagateMode = (SDB_DS_TRANS_PROPAGATE_MODE)ele.Int() ;
             }
          }
 
@@ -224,6 +230,11 @@ namespace engine
       return _accessMode & DS_ACCESS_DATA_WRITEONLY ;
    }
 
+   SDB_DS_TRANS_PROPAGATE_MODE _coordSdbDataSource::getTransPropagateMode() const
+   {
+      return _transPropagateMode ;
+   }
+
    INT32 _coordSdbDataSource::_buildGroupInfo( BSONObj &objGroup )
    {
       INT32 rc = SDB_OK ;
@@ -296,7 +307,4 @@ namespace engine
    error:
       goto done ;
    }
-
-
 }
-
