@@ -28,7 +28,7 @@
 
 >   **Note:**
 >
->   用户可以通过 [Sdb.snapshot()][snapshot] 获取快照。
+>   用户可以通过 [snapshot()][snapshot] 获取快照。
 
 
 [^_^]:

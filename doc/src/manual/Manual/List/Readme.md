@@ -21,8 +21,12 @@
 
 >   **Note:**
 >
->   用户可以通过调用 [Sdb.list()][list] 获取列表。
+>   用户可以通过调用 [list()][list] 获取列表。
 
+
+
+[^_^]:
+     本文使用的所有引用及链接
 [SDB_LIST_CONTEXTS]:manual/Manual/List/SDB_LIST_CONTEXTS.md
 [SDB_LIST_CONTEXTS_CURRENT]:manual/Manual/List/SDB_LIST_CONTEXTS_CURRENT.md
 [SDB_LIST_SESSIONS]:manual/Manual/List/SDB_LIST_SESSIONS.md
