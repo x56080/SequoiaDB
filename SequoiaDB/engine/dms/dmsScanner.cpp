@@ -2085,7 +2085,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD, "_dmsIXSecScanner::_buildIndexRecord" )
-   INT32 _dmsIXSecScanner::_buildIndexRecord( BOOLEAN& finished )
+   const CHAR* _dmsIXSecScanner::_buildIndexRecord()
    {
       INT32 rc = SDB_OK ;
       dmsRecord *pNewRecord = NULL ;
@@ -2097,8 +2097,6 @@ namespace engine
       UINT32 extraSize = 0 ;
       UINT32 evalBufSize = 0 ;
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD );
-
-      finished = FALSE ;
 
       //1. pre caculte buf size
       rc = index.getExtraSize( extraSize ) ;
@@ -2138,8 +2136,6 @@ namespace engine
          pNewRecord->setNormal() ;
          pNewRecord->resetAttr() ;
          pNewRecord->setSize( DMS_RECORD_METADATA_SZ + builder.len() ) ;
-
-         finished = TRUE ;
       }
       catch( std::exception &e )
       {
@@ -2149,7 +2145,14 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_BUILDIDINDEXRECORD, rc );
-      return rc ;
+      if( SDB_OK == rc )
+      {
+         return ( const CHAR* )pNewRecord ;
+      }
+      else
+      {
+         return NULL ;
+      }
    error:
       goto done ;
    }
@@ -2178,7 +2181,7 @@ namespace engine
       dmsRecordData recordData ;
       dmsRecordID waitUnlockRID ;
       BOOLEAN skipRecord      = FALSE ;
-      BOOLEAN indexCover = FALSE ;
+      const CHAR* pRecord = NULL ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -2310,18 +2313,16 @@ namespace engine
             continue ;
          }
 
-         indexCover = FALSE ;
+         pRecord = NULL ;
 
          if( _scanner->isIndexCover() &&
              !_recordRW.isDirectMem() &&
              DMS_IS_READ_OPR( _accessType ) )
          {
-            // ignore return value
-            // if argout param indexCover is TRUE,we need to change _recordRW
-            _buildIndexRecord( indexCover );
-            if( indexCover )
+            pRecord = _buildIndexRecord() ;
+            if( NULL != pRecord )
             {
-               _recordRW = dmsIndexRecordRW( _scanner->getIndex().getBuf() );
+               _recordRW = dmsIndexRecordRW( pRecord ) ;
             }
          }
 
@@ -2362,7 +2363,7 @@ namespace engine
                      "record can't be deleted" ) ;
 
          recordID = _curRID ;
-         rc = _pSu->extractData( _context, _recordRW, cb, recordData, !indexCover ) ;
+         rc = _pSu->extractData( _context, _recordRW, cb, recordData, !pRecord ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Extract record data failed, rc: %d", rc ) ;

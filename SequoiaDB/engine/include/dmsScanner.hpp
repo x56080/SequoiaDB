@@ -415,7 +415,7 @@ namespace engine
                             IXM_ELE_RAWDATA_ARRAY& value,
                             SimpleBSONBuilder& builder ) ;
 
-         INT32 _buildIndexRecord( BOOLEAN& completed ) ;
+         const CHAR* _buildIndexRecord() ;
 
       private:
          INT64                _maxRecords ;
