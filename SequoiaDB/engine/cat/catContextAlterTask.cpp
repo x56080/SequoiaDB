@@ -1421,6 +1421,7 @@ namespace engine
             if( fieldList[i]->testArgumentMask( UTIL_CL_AUTOINC_GENERATED_FIELD ) )
             {
                const CHAR *generated = NULL ;
+               utilSequenceID seqID = field->sequenceID() ;
                generated = field->generated() ;
                PD_CHECK( generated, SDB_SYS, error, PDERROR,
                          "Invalid generated type[%d] in catalog sequence field"
@@ -1450,7 +1451,7 @@ namespace engine
                if( addRbk )
                {
                   fieldList[i]->setGenerated( generated ) ;
-                  fieldList[i]->setID( field->sequenceID() ) ;
+                  fieldList[i]->setID( seqID ) ;
                }
             }
          }
