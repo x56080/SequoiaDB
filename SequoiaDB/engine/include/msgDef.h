@@ -763,6 +763,9 @@
 #define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )
 #define SYS_CL_SESSION_INFO                  SYS_VIRTUAL_CS".SYS_SESSION_INFO"
 
+#define SYS_INEXISTENCE_CS                   "SYS_INEXISTENCE_CS"
+#define SYS_INEXISTENCE_CL                   "SYS_INEXISTENCE_CL"
+
 #define CMD_VALUE_NAME_CREATE                "create image"
 #define CMD_VALUE_NAME_REMOVE                "remove image"
 #define CMD_VALUE_NAME_ATTACH                "attach groups"

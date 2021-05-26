@@ -1680,16 +1680,16 @@ namespace engine
          MON_CL_LIST clList ;
          BOOLEAN needDisconnect = FALSE ;
 
-         /// get expcect lsn
-         _lsn = dpscb->expectLsn() ;
-         msg.lsn = _lsn ;
-         _beginLSNOffset = _lsn.offset ;
-
          // release notify lsn que, and prevent create cs/cl, drop cs/cl,
          // rename cl, truncate cl and so on occur during construct full names
          // and set _init = TRUE
          ossScopedLock lock( &_LSNlatch ) ;
          _deqLSN.clear() ;
+
+         /// get expcect lsn
+         _lsn = dpscb->expectLsn() ;
+         msg.lsn = _lsn ;
+         _beginLSNOffset = _lsn.offset ;
 
          /// Notify fullsync, So will kick the node from sync control nodes.
          /// In _processValidCLs, need to get lock of collection, If has some
@@ -1735,6 +1735,9 @@ namespace engine
                                       obj.objsize() ) ;
             }
          }
+
+         // save last offset after meta info is fetched.
+         _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
 
          /// reset timeCounter
          _timeCounter = 0 ;
@@ -1906,15 +1909,18 @@ namespace engine
       UINT64 fullCLLID = ossPack32To64 ( suLID, clLID ) ;
       map<UINT64, UINT32>::iterator it ;
       BOOLEAN needRelease = FALSE ;
+      BOOLEAN needSetBeginLSN = FALSE ;
       UINT32 lsnLen = 0 ;
+
+      _LSNlatch.get() ;
+      needRelease = TRUE ;
 
       if ( !_init || _quit || offset < _beginLSNOffset )
       {
          goto done ;
       }
 
-      _LSNlatch.get() ;
-      needRelease = TRUE ;
+      needSetBeginLSN = TRUE ;
 
       PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
                "extLID:%d, offset:%lld], curScan extLID:%d", sessionName(),
@@ -1974,9 +1980,13 @@ namespace engine
          }
       }
    done:
-      if ( needRelease )
+      if ( needSetBeginLSN )
       {
          _beginLSNOffset = offset + lsnLen ;
+      }
+
+      if ( needRelease )
+      {
          _LSNlatch.release () ;
       }
       PD_TRACE_EXIT ( SDB__CLSFSSS_NTFLSN );
@@ -2002,7 +2012,27 @@ namespace engine
 
    BOOLEAN _clsFSSrcSession::_canSwitchWhenSyncLog()
    {
-      return TRUE ;
+      if ( DPS_INVALID_LSN_OFFSET == _lastEndNtyOffset )
+      {
+         // lsn is not changed after meta info is fetched.
+         return TRUE ;
+      }
+
+      if ( _beginLSNOffset >= _lastEndNtyOffset )
+      {
+         // begin lsn is greater than the lsn when meta info is fetched.
+         return TRUE ;
+      }
+
+      DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+      if ( DPS_INVALID_LSN_OFFSET != processed &&
+           _lastEndNtyOffset <= processed )
+      {
+         // lsn is processed after meta info is fetched
+         return TRUE ;
+      }
+
+      return FALSE ;
    }
 
    INT32 _clsFSSrcSession::_isReady()

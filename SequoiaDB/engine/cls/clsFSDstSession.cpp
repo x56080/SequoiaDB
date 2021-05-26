@@ -1922,6 +1922,24 @@ namespace engine
          _mapEmptyCS.clear() ;
       }
 
+      try
+      {
+         if ( 0 == _fullNames.size() )
+         {
+            // make sure we can get log from the src node.
+            static string dummpyCL( SYS_INEXISTENCE_CS"."SYS_INEXISTENCE_CL ) ;
+            _fullNames.push_back( dummpyCL ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Session[%s]: Occur exception: %s",
+                 sessionName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         _disconnect() ;
+         goto done ;
+      }
+
       /// begin next status
       _meta() ;
 
