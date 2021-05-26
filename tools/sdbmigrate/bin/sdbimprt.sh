@@ -24,7 +24,7 @@ opt_list=("-h" "--help" "-V" "--version" "--debug" "-s" "--hostname" "-p" "--svc
 "-r" "--delrecord" "--force" "--unicode" "--decimalto" "-a" "--delchar" "-e" "--delfield" 
 "--fields" "--datefmt" "--timestampfmt" "--trim" "--headerline" "--sparse" "--extra" "--cast" 
 "--strictfieldnum" "--checkdelimeter" "-n" "--insertnum" "-j" "--jobs" "--coord" "--sharding" 
-"--transaction" "--allowkeydup" "--conf")
+"--transaction" "--allowkeydup" "--conf" "--autodelchar")
 
 opt_fields=""
 opt_csname=""

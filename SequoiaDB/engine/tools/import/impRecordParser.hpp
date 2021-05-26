@@ -57,7 +57,8 @@ namespace import
       RecordParser(const string& fieldDelimiter,
                    const string& stringDelimiter,
                    BOOLEAN autoAddField = TRUE,
-                   BOOLEAN autoAddValue = FALSE);
+                   BOOLEAN autoAddValue = FALSE,
+                   BOOLEAN autoAddStrDel = FALSE);
 
    public:
       virtual ~RecordParser() {}
@@ -69,6 +70,7 @@ namespace import
       string   _stringDelimiter;
       BOOLEAN  _autoAddField;
       BOOLEAN  _autoAddValue;
+      BOOLEAN  _autoAddStrDel;
 
    public:
       static INT32 createInstance(INPUT_FORMAT format, const Options& options,
