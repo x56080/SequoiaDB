@@ -22,7 +22,7 @@ The metadata information of the data source can be modified through the options 
 
 1. Name (string): Data source name
 
- format: `Name: "datasource"` 
+ format: `Name: "datasource"`
 
 2. Address (string): Coordinating node address of the data source cluster
 
@@ -36,7 +36,7 @@ The metadata information of the data source can be modified through the options 
 
  format: `Password:"12345"`
 
-5. AccessMode (string): Access permissions of data source 
+5. AccessMode (string): Access permissions of data source
 
  The values are as follows:
 
@@ -58,14 +58,23 @@ The metadata information of the data source can be modified through the options 
 
   format: `ErrorFilterMask: "READ"`
 
-7. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space and the default is  "High".
+7. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space and the default is  "high".
 
   The values are as follows:
 
-     - "High": Report an error and output an error message
-     - "Low": Ignore unsupported data operations and do not execute
+   - "high": Report an error and output an error message
+   - "low": Ignore unsupported data operations and do not execute
 
-  format: `ErrorControlLevel: "Low"`
+  format: `ErrorControlLevel: "low"`
+
+8. TransPropagateMode ( *string* ): Configure transaction propagation mode on data source, default is "never".
+
+  The values are as follows:
+
+  - "never": Transaction operation is forbidden. Report an error and output an error message.
+  - "notsupport": Transaction operation is not supported on data source. The operation will be converted to non-transactional and send to data source. It will be excluded from the transaction.
+
+  Format: `TransPropagateMode: "never"`
 
 ##RETURN VALUE##
 

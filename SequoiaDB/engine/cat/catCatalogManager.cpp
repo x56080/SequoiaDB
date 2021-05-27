@@ -1317,24 +1317,20 @@ namespace engine
                  "Updator: %s", matcher.toString().c_str(),
                  updator.toString().c_str() ) ;
 
-         /**
-          * Update collection SYSCAT.SYSDATASOURCES.
-          * Matcher:
-          * { "TransPropagateMode": { "$exists": 0 } }
-          * Updator:
-          * { "$set": { "TransPropagateMode": 1,
-          *             "TransPropagateModeDesc": "Never" } }
-          */
          rc = rtnUpdate( CAT_COLLECTION_INFO_COLLECTION, matcher, updator,
                          dummyObj, 0, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",
                       CAT_COLLECTION_INFO_COLLECTION, rc ) ;
 
-         updator = BSON( "$set" <<
-                         BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
-                               sdbDSTransModeFromDesc( VALUE_NAME_NEVER ) <<
-                               FIELD_NAME_TRANS_PROPAGATE_MODE_DESC <<
-                               VALUE_NAME_NEVER ) ) ;
+         /**
+          * Update collection SYSCAT.SYSDATASOURCES.
+          * Matcher:
+          * { "TransPropagateMode": { "$exists": 0 } }
+          * Updator:
+          * { "$set": { "TransPropagateMode": "never" } }
+          */
+         updator = BSON( "$set" << BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
+                                         VALUE_NAME_NEVER ) ) ;
          rc = rtnUpdate( CAT_DATASOURCE_COLLECTION, dsMatcher, updator,
                          dummyObj, 0, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",

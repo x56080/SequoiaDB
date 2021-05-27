@@ -69,18 +69,29 @@ format: \f[C]ErrorFilterMask:\ "READ"\f[]
 .IP "7." 3
 ErrorControlLevel (string): Configure the error level when performing
 unsupported data operations (such as DDL) on the mapping collection or
-collection space and the default is "High".
+collection space and the default is "high".
 .PP
 The values are as follows:
-.IP
-.nf
-\f[C]
-\ \-\ "High":\ Report\ an\ error\ and\ output\ an\ error\ message
-\ \-\ "Low":\ Ignore\ unsupported\ data\ operations\ and\ do\ not\ execute
-\f[]
-.fi
+.IP \[bu] 2
+"high": Report an error and output an error message
+.IP \[bu] 2
+"low": Ignore unsupported data operations and do not execute
 .PP
-format: \f[C]ErrorControlLevel:\ "Low"\f[]
+format: \f[C]ErrorControlLevel:\ "low"\f[]
+.IP "8." 3
+TransPropagateMode ( \f[I]string\f[] ): Configure transaction propagation mode
+on data source, default is "never".
+.PP
+The values are as follows:
+.IP \[bu] 2
+"never": Transaction operation is forbidden.
+Report an error and output an error message.
+.IP \[bu] 2
+"notsupport": Transaction operation is not supported on data source.
+The operation will be converted to non\-transactional and send to data source.
+It will be excluded from the transaction.
+.PP
+Format: \f[C]TransPropagateMode:\ "never"\f[]
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.

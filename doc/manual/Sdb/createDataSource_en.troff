@@ -50,7 +50,7 @@ Data source user password.
 type ( \f[I]string, optional\f[] )
 .RS 2
 .PP
-Data source type, currently only supports SequoiaDB.
+Data source type, currently only supports sequoiadb.
 .RE
 .IP \[bu] 2
 options ( \f[I]object, optional\f[] )
@@ -94,16 +94,32 @@ Format: \f[C]ErrorFilterMask:\ "READ"\f[]
 .IP "3." 3
 ErrorControlLevel ( \f[I]string\f[] ): Configure the error level when performing
 unsupported data operations (such as DDL) on the mapping collection or
-collection space, default is "High".
+collection space, default is "high".
 .RS 4
 .PP
 The values are as follows:
 .IP \[bu] 2
-"High": Report an error and output an error message.
+"high": Report an error and output an error message.
 .IP \[bu] 2
-"Low": Ignore unsupported data operations and do not execute.
+"low": Ignore unsupported data operations and do not execute.
 .PP
-Format: \f[C]ErrorControlLevel:\ "Low"\f[]
+Format: \f[C]ErrorControlLevel:\ "low"\f[]
+.RE
+.IP "4." 3
+TransPropagateMode ( \f[I]string\f[] ): Configure transaction propagation mode
+on data source, default is "never".
+.RS 4
+.PP
+The values are as follows:
+.IP \[bu] 2
+"never": Transaction operation is forbidden.
+Report an error and output an error message.
+.IP \[bu] 2
+"notsupport": Transaction operation is not supported on data source.
+The operation will be converted to non\-transactional and send to data source.
+It will be excluded from the transaction.
+.PP
+Format: \f[C]TransPropagateMode:\ "never"\f[]
 .RE
 .RE
 .SH RETURN VALUE

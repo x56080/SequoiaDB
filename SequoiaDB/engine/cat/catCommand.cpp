@@ -293,15 +293,15 @@ namespace engine
                PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
                          "Type of field[%s] is not string, rc: %d",
                          fieldName, rc ) ;
-               _dsInfo._transPropagateMode =
-                  sdbDSTransModeFromDesc( e.valuestr() ) ;
-               if ( DS_TRANS_PROPAGATE_INVALID == _dsInfo._transPropagateMode )
+               if ( 0 != ossStrcasecmp( e.valuestr(), VALUE_NAME_NEVER ) &&
+                    0 != ossStrcasecmp( e.valuestr(), VALUE_NAME_NOT_SUPPORT ) )
                {
                   rc = SDB_INVALIDARG ;
                   PD_LOG_MSG( PDERROR, "Transaction propagate mode value[%s] "
                               "is invalid[%d]", e.valuestr(), rc ) ;
                   goto error ;
                }
+               _dsInfo._transPropagateMode = e.valuestr() ;
             }
             else
             {
@@ -778,25 +778,25 @@ namespace engine
                   PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
                             "Type of field[%s] is not string, rc: %d",
                             fieldName, rc ) ;
-                  SDB_DS_TRANS_PROPAGATE_MODE mode =
-                     sdbDSTransModeFromDesc( e.valuestr() ) ;
-                  if ( DS_TRANS_PROPAGATE_INVALID == mode )
+                  if ( 0 != ossStrcasecmp( e.valuestr(), VALUE_NAME_NEVER ) &&
+                       0 != ossStrcasecmp( e.valuestr(), VALUE_NAME_NOT_SUPPORT ) )
                   {
                      rc = SDB_INVALIDARG ;
                      PD_LOG_MSG( PDERROR, "Transaction propagate mode value[%s]"
                                  " is invalid[%d]", e.valuestr(), rc ) ;
+                     goto error ;
                   }
 
                   currEle = currentMeta.getField( FIELD_NAME_TRANS_PROPAGATE_MODE ) ;
                   // For data source of old version, there is no
                   // "TransPropagateMode" field in the meta data. After altering
                   // the field, it will be added into the metadata record.
-                  if ( currEle.eoo() || ( currEle.Int() != mode ) )
+                  if ( currEle.eoo() ||
+                       ( 0 != ossStrcasecmp( currEle.valuestr(),
+                                             e.valuestr() ) ) )
                   {
                      _optionBuilder.append( FIELD_NAME_TRANS_PROPAGATE_MODE,
-                                            mode ) ;
-                     _optionBuilder.append( FIELD_NAME_TRANS_PROPAGATE_MODE_DESC,
-                                            sdbDSTransModeDesc( mode ) ) ;
+                                            e.valuestr() ) ;
                   }
                }
                else

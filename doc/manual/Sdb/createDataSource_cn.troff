@@ -46,7 +46,7 @@ password（ \f[I]string，选填\f[] ）
 type（ \f[I]string，选填\f[] ）
 .RS 2
 .PP
-数据源类型，当前仅支持 SequoiaDB
+数据源类型，当前仅支持 sequoiadb
 .RE
 .IP \[bu] 2
 options（ \f[I]object，选填\f[] ）
@@ -91,17 +91,31 @@ ErrorFilterMask（ \f[I]string\f[]
 .IP "3." 3
 ErrorControlLevel（ \f[I]string\f[]
 ）：配置对映射集合或集合空间进行不支持的数据操作（如
-DDL）时的报错级别，默认值为"High"
+DDL）时的报错级别，默认值为"high"
 .nf
 \f[C]
 取值如下：
 
-\-\ "High"：报错并输出错误信息
-\-\ "Low"：忽略不支持的数据操作且不执行
+\-\ "high"：报错并输出错误信息
+\-\ "low"：忽略不支持的数据操作且不执行
 
-格式：`ErrorControlLevel:"Low"`
+格式：`ErrorControlLevel:"low"`
 \f[]
 .fi
+.IP "4." 3
+TransPropagateMode（ \f[I]string\f[]
+）：配置事务操作在数据源上的传播模式，默认值为"never"
+.RS 4
+.PP
+取值如下：
+.IP \[bu] 2
+"never": 不允许在数据源上进行事务操作，对操作直接报错
+.IP \[bu] 2
+"notsupport":
+事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
+.PP
+格式：\f[C]TransPropagateMode:"never"\f[]
+.RE
 .RE
 .SH 返回值
 .PP

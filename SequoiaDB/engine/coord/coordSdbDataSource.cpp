@@ -38,6 +38,7 @@
 #include "msgDef.hpp"
 #include "msgCatalog.hpp"
 #include "pd.hpp"
+#include "utilDataSource.hpp"
 
 using namespace bson ;
 
@@ -133,7 +134,7 @@ namespace engine
             else if ( 0 == ossStrcmp( ele.fieldName(),
                                       FIELD_NAME_TRANS_PROPAGATE_MODE ) )
             {
-               _transPropagateMode = (SDB_DS_TRANS_PROPAGATE_MODE)ele.Int() ;
+               _transPropagateMode = sdbDSTransModeFromDesc( ele.valuestr() ) ;
             }
          }
 

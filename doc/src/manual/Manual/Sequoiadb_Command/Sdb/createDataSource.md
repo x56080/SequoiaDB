@@ -17,7 +17,7 @@ Sdb
 ##参数##
 
 - name（ *string，必填* ）
- 
+
     数据源名称，同一数据库中该名称唯一
 
 - address（ *string，必填* ）
@@ -34,7 +34,7 @@ Sdb
 
 - type（ *string，选填* ）
 
-    数据源类型，当前仅支持 SequoiaDB
+    数据源类型，当前仅支持 sequoiadb
 
 - options（ *object，选填* ）
 
@@ -62,14 +62,23 @@ Sdb
 
         格式：`ErrorFilterMask:"READ"`
 
-   3. ErrorControlLevel（ *string* ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"High"
+   3. ErrorControlLevel（ *string* ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"high"
 
         取值如下：
 
-        - "High"：报错并输出错误信息
-        - "Low"：忽略不支持的数据操作且不执行
+        - "high"：报错并输出错误信息
+        - "low"：忽略不支持的数据操作且不执行
 
-        格式：`ErrorControlLevel:"Low"`
+        格式：`ErrorControlLevel:"low"`
+
+    4. TransPropagateMode（ *string* ）：配置事务操作在数据源上的传播模式，默认值为"never"
+
+        取值如下：
+
+        - "never": 不允许在数据源上进行事务操作，对操作直接报错
+        - "notsupport": 事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
+
+        格式：`TransPropagateMode:"never"`
 
 
 ##返回值##
