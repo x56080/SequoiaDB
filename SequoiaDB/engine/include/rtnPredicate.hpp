@@ -680,6 +680,7 @@ namespace engine
          BOOLEAN matchesKey ( const BSONObj &key ) const ;
          string toString() const ;
          BSONObj getBound() const ;
+         BOOLEAN isAllRange() const ;
 
          const RTN_PREDICATE_LIST* getPredicateList() const
          {

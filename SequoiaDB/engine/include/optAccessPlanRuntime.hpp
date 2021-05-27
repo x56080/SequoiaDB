@@ -343,6 +343,17 @@ namespace engine
          INT32 toExplainPath ( optExplainScanPath &expPath,
                                const rtnContext *context ) const ;
 
+         OSS_INLINE BOOLEAN isAllRangeScan() const
+         {
+            // - match tree is empty or match all
+            // - tbscan or ixscan with all range
+            return ( ( NULL == getMatchTree() ||
+                       getMatchTree()->isMatchesAll() ) &&
+                     ( TBSCAN == getScanType() ||
+                       NULL == getPredList() ||
+                       getPredList()->isAllRange() ) ) ;
+         }
+
       protected :
          // Pointer to access plan
          optAccessPlan *         _plan ;
