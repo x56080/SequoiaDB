@@ -152,6 +152,7 @@ namespace engine
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
+      SINT64 queryContextID = -1 ;
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
@@ -164,7 +165,6 @@ namespace engine
       if ( !options.isQueryEmpty() )
       {
          rtnContextBase *pContextBase = NULL ;
-         SINT64 queryContextID = -1 ;
 
          if ( _isSimpleTextSearch( options.getQuery() ) )
          {
@@ -199,6 +199,7 @@ namespace engine
                {
                   // if we hit end of collection, let's clear the rc
                   // in this case, totalCount = 0
+                  queryContextID = -1 ;
                   rc = SDB_OK ;
                }
                else
@@ -213,29 +214,42 @@ namespace engine
                pContextBase->enableCountMode() ;
                rtnContextBuf buffObj ;
 
-               while ( TRUE )
+               if ( NULL != pContextBase->getPlanRuntime() &&
+                    pContextBase->getPlanRuntime()->isAllRangeScan() )
                {
-                  rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
-                  if ( rc )
+                  // use quick extent header count
+                  rc = su->countCollection ( pCollectionShortName, totalCount,
+                                             cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to get count %s, rc: %d",
+                               pCollection, rc ) ;
+               }
+               else
+               {
+                  while ( TRUE )
                   {
-                     // any error will clean up query context
-                     if ( SDB_DMS_EOC == rc )
+                     rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
+                     if ( rc )
                      {
-                        rc = SDB_OK ;
-                        break ;
+                        // any error will clean up query context
+                        if ( SDB_DMS_EOC == rc )
+                        {
+                           queryContextID = -1 ;
+                           rc = SDB_OK ;
+                           break ;
+                        }
+                        else
+                        {
+                           PD_LOG ( PDERROR, "Failed to fetch for count for "
+                                    "collecion %s, rc: %d", pCollection, rc ) ;
+                           goto error ;
+                        }
                      }
                      else
                      {
-                        PD_LOG ( PDERROR, "Failed to fetch for count for "
-                                 "collecion %s, rc: %d", pCollection, rc ) ;
-                        goto error ;
+                        // since rtnGetMore only takes 32 bit count, so let's pass
+                        // count and add into totalCount every round
+                        totalCount += buffObj.recordNum() ;
                      }
-                  }
-                  else
-                  {
-                     // since rtnGetMore only takes 32 bit count, so let's pass
-                     // count and add into totalCount every round
-                     totalCount += buffObj.recordNum() ;
                   }
                }
             }
@@ -259,6 +273,10 @@ namespace engine
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( -1 != queryContextID )
+      {
+         rtnCB->contextDelete( queryContextID, cb ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;
       return rc ;

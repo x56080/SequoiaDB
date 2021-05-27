@@ -2915,6 +2915,20 @@ namespace engine
       return builder.obj() ;
    }
 
+   BOOLEAN _rtnPredicateList::isAllRange() const
+   {
+      for ( RTN_PREDICATE_LIST::const_iterator iter = _predicates.begin() ;
+            iter != _predicates.end() ;
+            ++ iter )
+      {
+         if ( !iter->isGeneric() )
+         {
+            return FALSE ;
+         }
+      }
+      return TRUE ;
+   }
+
    // whether an element matches the i'th column
    // even result means the element is contained within a valid range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE, "_rtnPredicateList::matchingLowElement" )
