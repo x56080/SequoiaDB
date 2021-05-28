@@ -796,6 +796,7 @@ if nix:
         env.Append( CPPFLAGS=" -D_DEBUG" )
     else:
         env.Append( CPPFLAGS=" -O3 " )
+        env.Append( CPPFLAGS=" -DNDEBUG" )
 
 try:
     umask = os.umask(022)
