@@ -59,10 +59,10 @@ namespace engine
          _netFrame* getFrame() { return &_frame ; }
 
       public:
-         OSS_INLINE void run( NET_START_THREAD_FUNC pFunc = NULL )
+         OSS_INLINE INT32 run( NET_START_THREAD_FUNC pFunc = NULL )
          {
             _frame.setNetStartThreadFunc( pFunc ) ;
-            _frame.run() ;
+            return _frame.run() ;
          }
 
          OSS_INLINE void stop()

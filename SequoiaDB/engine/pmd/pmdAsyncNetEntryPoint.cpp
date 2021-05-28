@@ -98,7 +98,7 @@ namespace engine
       hasReg = TRUE ;
       try
       {
-         pRouteAgent->run( pmdNetCallbackFunc ) ;
+         rc = pRouteAgent->run( pmdNetCallbackFunc ) ;
       }
       catch ( std::exception &e )
       {
