@@ -396,8 +396,19 @@ namespace engine
          goto error ;
       }
 
-      /// run main suit ioservice
-      _mainSuitPtr->getIOService().run() ;
+      try
+      {
+         /// run main suit ioservice
+         _mainSuitPtr->getIOService().run() ;
+      }
+      catch ( exception &e )
+      {
+         // main net is down, should restart
+         PD_LOG( PDERROR, "Failed to run IO service, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+      }
+
       onRunSuitStop( _mainSuitPtr ) ;
 
       /// stop all evSuit
