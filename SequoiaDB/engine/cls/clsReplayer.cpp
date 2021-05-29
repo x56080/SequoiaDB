@@ -2206,7 +2206,10 @@ namespace engine
          eduCB->setDoReplay( TRUE ) ;
       }
 
-      INT32 rc = rtnReplayInsert( collection, obj, FLG_INSERT_CONTONDUP, eduCB,
+      // The log replay is behind data replay in data synchronize (full
+      // sync or split ), so if data replay meets -38 error, it should
+      // restart synchronize, while log replay meets -38 it can be ignored
+      INT32 rc = rtnReplayInsert( collection, obj, 0, eduCB,
                                   _dmsCB, _dpsCB ) ;
       if ( rc )
       {
