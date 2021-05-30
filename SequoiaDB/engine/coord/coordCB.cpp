@@ -543,7 +543,9 @@ retry :
       MsgCatRegisterReq *pReq = NULL ;
       clsRegAssit regAssit ;
 
-      BSONObj regObj = regAssit.buildRequestObj () ;
+      BSONObj regObj ;
+      rc = regAssit.buildRequestObj( regObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build request obj, rc: %d", rc ) ;
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
       // free by end of the function

@@ -1888,8 +1888,11 @@ namespace engine
       UINT32 length = 0 ;
       CHAR *buff = NULL ;
       MsgCatRegisterReq *pReq = NULL ;
+      BSONObj regObj ;
 
-      BSONObj regObj = regAssit.buildRequestObj () ;
+      rc = regAssit.buildRequestObj( regObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build request obj, rc: %d", rc ) ;
+
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
       // free by end of the function

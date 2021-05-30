@@ -1885,11 +1885,12 @@ _kstkEsp(0),_kstkEip(0)
 #endif
 
 ossIPInfo::ossIPInfo()
-:_ipNum(0), _ips(NULL)
+:_ipNum(0), _ips(NULL), _initRC(SDB_OK)
 {
    INT32 rc = _init() ;
    if ( SDB_OK != rc )
    {
+      _initRC = rc ;
       PD_LOG( PDERROR, "failed to get ip-info, errno = %d", ossGetLastError()) ;
    }
 }
@@ -1983,6 +1984,8 @@ done:
    SAFE_OSS_FREE( ifc.ifc_req ) ;
    return rc ;
 error:
+   _ipNum = 0 ;
+   SAFE_OSS_FREE( _ips ) ;
    goto done ;
 }
 #elif defined (_WINDOWS)
@@ -2058,6 +2061,8 @@ done:
    SAFE_OSS_FREE( adapterInfo ) ;
    return rc ;
 error:
+   _ipNum = 0 ;
+   SAFE_OSS_FREE( _ips ) ;
    goto done ;
 }
 #else
