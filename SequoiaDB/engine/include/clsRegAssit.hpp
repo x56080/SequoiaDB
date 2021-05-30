@@ -52,7 +52,7 @@ namespace engine
       public :
          _clsRegAssit () ;
          ~_clsRegAssit () ;
-         BSONObj buildRequestObj () ;
+         INT32 buildRequestObj ( BSONObj &request ) ;
          INT32 extractResponseMsg ( MsgHeader *pMsg ) ;
          UINT32 getGroupID () ;
          UINT16 getNodeID () ;
