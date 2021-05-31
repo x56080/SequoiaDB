@@ -237,8 +237,8 @@ namespace engine
 
    INT32 dpsTransCB::deactive ()
    {
-      PD_LOG( PDEVENT, "Counts of transID conflicts [%llu]",
-              _numTransIDConflict ) ;
+      PD_LOG( PDEVENT, "Counts of transID conflicts [%llu], "
+              "generated the same timestamp by STP", _numTransIDConflict ) ;
       return SDB_OK ;
    }
 
