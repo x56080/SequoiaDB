@@ -37,7 +37,7 @@ public class DataSource22912 extends SdbTestBase {
     private String srcCLName = "clsrc_22912";
     private String clName = "cl_22912";
 
-    @BeforeClass
+    @BeforeClass(enabled = false)
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         srcdb = new Sequoiadb( DataSrcUtils.getSrcUrl(), DataSrcUtils.getUser(),
@@ -55,7 +55,7 @@ public class DataSource22912 extends SdbTestBase {
         cs.createCollection( clName, options );
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws Exception {
         ThreadExecutor es = new ThreadExecutor();
         DeleteCS deleteCS = new DeleteCS();
@@ -80,7 +80,7 @@ public class DataSource22912 extends SdbTestBase {
         }
     }
 
-    @AfterClass
+    @AfterClass(enabled = false)
     public void tearDown() {
         try {
             DataSrcUtils.clearDataSource( sdb, csName, dataSrcName );
