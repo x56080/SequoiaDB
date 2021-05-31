@@ -10,7 +10,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
@@ -22,20 +21,19 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @Description seqDB-22912:并发使用数据源和删除使用数据源集合所在的集合空间
+ * @Description seqDB-24242:并发使用数据源和删除使用数据源的集合空间
  * @author wuyan
- * @Date 2020.12.3
+ * @Date 2021.5.31
  * @version 1.10
  */
 
-public class DataSource22912 extends SdbTestBase {
+public class DataSource24242 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb srcdb = null;
-    private String dataSrcName = "datasource22912";
-    private String csName = "cs_22912";
-    private String srcCSName = "cssrc_22912";
-    private String srcCLName = "clsrc_22912";
-    private String clName = "cl_22912";
+    private String dataSrcName = "datasource22942";
+    private String csName = "cs_22942";
+    private String srcCSName = "cssrc_22942";
+    private String srcCLName = "clsrc_22942";
 
     @BeforeClass
     public void setUp() {
@@ -48,11 +46,11 @@ public class DataSource22912 extends SdbTestBase {
         DataSrcUtils.clearDataSource( sdb, csName, dataSrcName );
         DataSrcUtils.createDataSource( sdb, dataSrcName );
         DataSrcUtils.createCSAndCL( srcdb, srcCSName, srcCLName );
-        CollectionSpace cs = sdb.createCollectionSpace( csName );
+
         BasicBSONObject options = new BasicBSONObject();
         options.put( "DataSource", dataSrcName );
-        options.put( "Mapping", srcCSName + "." + srcCLName );
-        cs.createCollection( clName, options );
+        options.put( "Mapping", srcCSName );
+        sdb.createCollectionSpace( csName, options );
     }
 
     @Test
@@ -112,7 +110,7 @@ public class DataSource22912 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void prepare() {
-            dbcl = sdb.getCollectionSpace( csName ).getCollection( clName );
+            dbcl = sdb.getCollectionSpace( csName ).getCollection( srcCLName );
             for ( int i = 0; i < 5000; i++ ) {
                 BSONObject obj = new BasicBSONObject();
                 obj.put( "testa", "test" + i );
