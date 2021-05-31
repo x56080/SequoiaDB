@@ -38,6 +38,6 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[add_sql_instance]::manual/SequoiaPerf/Overview/sequoiaperf_add_sql.md
+[add_sql_instance]:manual/SequoiaPerf/Configuration/sequoiaperf_add_sql.md
 [sequoiaperf_mysql_overview]:images/SequoiaPerf/Overview/sequoiaperf_mysql_overview.png
 
