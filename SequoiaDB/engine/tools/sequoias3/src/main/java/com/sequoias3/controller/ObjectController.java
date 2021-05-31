@@ -1,5 +1,7 @@
 package com.sequoias3.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.sequoias3.common.RestParamDefine;
 import com.sequoias3.core.*;
 import com.sequoias3.exception.S3Error;
@@ -8,7 +10,9 @@ import com.sequoias3.model.*;
 import com.sequoias3.service.BucketService;
 import com.sequoias3.service.ObjectService;
 import com.sequoias3.utils.DataFormatUtils;
+import com.sequoias3.utils.MD5Utils;
 import com.sequoias3.utils.RestUtils;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +21,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.*;
 
 @RestController
@@ -274,6 +280,71 @@ public class ObjectController {
         }catch (Exception e){
             logger.error("delete object failed. bucketName={}, bucketName/objectName={}, versionId={}",
                     bucketName, httpServletRequest.getRequestURI(), versionId);
+            throw e;
+        }
+    }
+
+    @PostMapping(value = "/{bucketname:.+}", params = RestParamDefine.DELETE, produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity deleteObjects(@PathVariable("bucketname") String bucketName,
+                                        @RequestHeader(value = RestParamDefine.AUTHORIZATION, required = false) String authorization,
+                                        @RequestHeader(name = RestParamDefine.PutObjectHeader.CONTENT_MD5, required = false) String contentMD5,
+                                        HttpServletRequest httpServletRequest)
+            throws S3ServerException {
+        try {
+            User operator = restUtils.getOperatorByAuthorization(authorization);
+            logger.debug("delete objects. bucketName={}", bucketName);
+
+            bucketService.getBucket(operator.getUserId(), bucketName);
+
+            DeleteObjectsResult deleteObjectsResult = new DeleteObjectsResult();
+            DeleteObjects deleteObjects = getDeleteObject(httpServletRequest, contentMD5);
+
+            if (deleteObjects != null && deleteObjects.getObjects() != null)
+            {
+                List<ObjectToDel> objects = deleteObjects.getObjects();
+                for (ObjectToDel object : objects)
+                    try {
+                        PutDeleteResult result = null;
+                        if (object.getVersionId() != null) {
+                            Long cvtVersionId = convertVersionId(object.getVersionId());
+                            result = objectService.deleteObject(operator.getUserId(), bucketName, object.getKey(), cvtVersionId);
+                        } else {
+                            result = objectService.deleteObject(operator.getUserId(), bucketName, object.getKey());
+                        }
+                        if (!deleteObjects.getQuiet()) {
+                            ObjectDeleted deleted = new ObjectDeleted();
+                            if (result != null && result.getDeleteMarker()) {
+                                deleted.setDeleteMarker(true);
+                                deleted.setDeleteMarkerVersion(result.getVersionId());
+                            }
+                            deleted.setVersionId(object.getVersionId());
+                            deleted.setKey(object.getKey());
+                            deleteObjectsResult.getDeletedObjects().add(deleted);
+                        }
+                    } catch (S3ServerException e) {
+                        DeleteError error = new DeleteError();
+                        error.setCode(e.getError().getCode());
+                        error.setMessage(e.getError().getErrorMessage());
+                        error.setKey(object.getKey());
+                        if (object.getVersionId() != null) {
+                            error.setVersionId(object.getVersionId());
+                        }
+                        deleteObjectsResult.getErrors().add(error);
+                    } catch (Exception e) {
+                        DeleteError error = new DeleteError();
+                        error.setCode(S3Error.OBJECT_DELETE_FAILED.getCode());
+                        error.setMessage(e.getMessage());
+                        error.setKey(object.getKey());
+                        if (object.getVersionId() != null) {
+                            error.setVersionId(object.getVersionId());
+                        }
+                        deleteObjectsResult.getErrors().add(error);
+                    }
+            }
+
+            return ResponseEntity.ok()
+                    .body(deleteObjectsResult);
+        }catch (Exception e){
             throw e;
         }
     }
@@ -749,14 +820,48 @@ public class ObjectController {
     }
 
     private void checkExpireV2(Long expireTime)
-            throws S3ServerException{
+            throws S3ServerException {
         if (expireTime != null) {
             long nowTime = System.currentTimeMillis();
-            if(nowTime/1000 > expireTime){
+            if (nowTime / 1000 > expireTime) {
                 throw new S3ServerException(S3Error.ACCESS_EXPIRED,
                         "Request has expired. Expires:" + expireTime +
                                 ", ServerTime:" + DataFormatUtils.formatDate(nowTime));
             }
+        }
+    }
+
+    private DeleteObjects getDeleteObject(HttpServletRequest httpServletRequest, String contentMD5)
+            throws S3ServerException {
+        int ONCE_READ_BYTES  = 1024;
+        try {
+            ServletInputStream inputStream = httpServletRequest.getInputStream();
+            StringBuilder stringBuilder = new StringBuilder();
+            MessageDigest MD5 = MessageDigest.getInstance("MD5");
+            byte[] b = new byte[ONCE_READ_BYTES];
+            int len = inputStream.read(b, 0, ONCE_READ_BYTES);
+            while (len > 0) {
+                MD5.update(b, 0, len);
+                stringBuilder.append(new String(b, 0, len));
+                len = inputStream.read(b, 0, ONCE_READ_BYTES);
+            }
+            if (contentMD5 != null){
+                if(!MD5Utils.isMd5EqualWithETag(contentMD5, new String(Hex.encodeHex(MD5.digest())))){
+                    throw new S3ServerException(S3Error.OBJECT_BAD_DIGEST,
+                            "The Content-MD5 you specified does not match what we received.");
+                }
+            }
+            String content = stringBuilder.toString();
+            if (content.length() > 0) {
+                ObjectMapper objectMapper = new XmlMapper();
+                return objectMapper.readValue(content, DeleteObjects.class);
+            }else {
+                return null;
+            }
+        }catch (S3ServerException e){
+            throw e;
+        } catch (Exception e){
+            throw new S3ServerException(S3Error.MALFORMED_XML, "get delete objects failed", e);
         }
     }
 }
