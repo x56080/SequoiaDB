@@ -2,7 +2,7 @@
  * @Description   : seqDB-24121:findAndModify操作
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2021.04.22
- * @LastEditTime  : 2021.05.06
+ * @LastEditTime  : 2021.05.31
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 main();
@@ -20,15 +20,14 @@ function main ()
    { "_id": 4, "a": 4, "b": "insert" },
    { "_id": 5, "a": 5, "b": "insert" }];
 
-   // SEQUOIADBMAINSTREAM-7115
-   // testFindAndModify( cl );
    testFindAndModifyWithUpdate( cl );
    testFindAndModifyWithRemove( cl );
+   testFindAndModify_parameter( cl );
 
    cl.drop();
 }
 
-function testFindAndModify ( cl )
+function testFindAndModify_parameter ( cl )
 {
    // 参数格式错误
    try
@@ -38,10 +37,10 @@ function testFindAndModify ( cl )
    }
    catch( e )
    {
-      assert.eq( e.code, -32 );
+      assert.eq( e.code, -6 );
    }
 
-   // remove:false
+   // missing update
    try
    {
       cl.findAndModify( { "query": {}, "remove": false } );
@@ -49,7 +48,7 @@ function testFindAndModify ( cl )
    }
    catch( e )
    {
-      assert.eq( e.code, -32 );
+      assert.eq( e.code, -6 );
    }
 }
 
