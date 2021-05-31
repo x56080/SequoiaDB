@@ -8,6 +8,10 @@
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
     <parameter name="SVCNAME"        value="${SVCNAME}" />
+    <!--数据源集群端主机名，CI默认传入localhost -->
+    <parameter name="DSHOSTNAME"     value="${DSHOSTNAME}" />
+    <!--数据源集群端端口号，CI默认传入11810 -->
+    <parameter name="DSSVCNAME"      value="${DSSVCNAME}" />s
     <!--公共CS名-->
     <parameter name="CHANGEDPREFIX"  value="story_java_test" />
     <!--用例创建节点预留端口号最小值-->
@@ -29,6 +33,7 @@
     
     <test name="javadriver" parallel="classes" thread-count="5">
         <packages>
+            <package name="com.sequoiadb.datasrc"/>
             <package name="com.sequoiadb.datasource"/>
             <package name="com.sequoiadb.monitor"/>
             <package name="com.sequoiadb.basicoperation" />

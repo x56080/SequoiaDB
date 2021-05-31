@@ -7,12 +7,15 @@ import com.sequoiadb.exception.BaseException;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 
 public class SdbTestBase {
     protected static String coordUrl;
     protected static String hostName;
     protected static String serviceName;
+    public static String dsHostName;
+    public static String dsServiceName;
     protected static String csName;
     protected static int reservedPortBegin;
     protected static int reservedPortEnd;
@@ -22,12 +25,14 @@ public class SdbTestBase {
     protected static String password;
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "USERNAME", "PASSWORD" })
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "USERNAME", "PASSWORD",
+            "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
             String RSRVNODEDIR, String WORKDIR, String USERNAME,
-            String PASSWORD ) {
+            String PASSWORD, @Optional("localhost") String DSHOSTNAME,
+            @Optional("11810") String DSSVCNAME ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -38,6 +43,8 @@ public class SdbTestBase {
         username = USERNAME;
         password = PASSWORD;
         coordUrl = HOSTNAME + ":" + SVCNAME;
+        dsHostName = DSHOSTNAME;
+        dsServiceName = DSSVCNAME;
 
         Sequoiadb db = null;
         try {
