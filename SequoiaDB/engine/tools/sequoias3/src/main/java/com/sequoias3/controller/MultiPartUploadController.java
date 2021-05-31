@@ -346,11 +346,11 @@ public class MultiPartUploadController {
             }
             if (completeMultipartUpload.getPart() == null){
                 throw new S3ServerException(S3Error.MALFORMED_XML,
-                        "completeMultipartUpload is empty. not found part list.");
+                        "completeMultipartUpload is empty, there is no part list.");
             }
             return completeMultipartUpload;
         }catch (Exception e){
-            throw new S3ServerException(S3Error.MALFORMED_XML, "get completeMultipartUpload failed", e);
+            throw new S3ServerException(S3Error.MALFORMED_XML, "get part list failed", e);
         }
     }
 }
