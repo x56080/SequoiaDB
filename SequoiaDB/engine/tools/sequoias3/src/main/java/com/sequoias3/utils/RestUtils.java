@@ -67,13 +67,39 @@ public class RestUtils {
         }
 
         //       2.check access key
+        //       3.check signature
+        return getOperatorByAccessKeyId(accessKeyId);
+    }
+
+    public User getOperatorByCredential(String credential) throws S3ServerException {
+        //       1.get access key id
+        String accessKeyId = null;
+        if (authConfig.isCheck()) {
+            if (credential == null){
+                throw new S3ServerException(S3Error.INVALID_AUTHORIZATION, "authorization is null");
+            }
+
+            int endIndex = credential.indexOf(RestParamDefine.REST_DELIMITER, 0);
+            if (endIndex != -1) {
+                accessKeyId = credential.substring(0, endIndex);
+            } else {
+                throw new S3ServerException(S3Error.INVALID_AUTHORIZATION, "authorization is invalid. credential="+credential);
+            }
+        }else {
+            return userDao.getUserByName(InitAdminUserDefine.ADMIN_NAME);
+        }
+
+        //       2.check access key
+        //       3.check signature
+        return getOperatorByAccessKeyId(accessKeyId);
+    }
+
+    public User getOperatorByAccessKeyId(String accessKeyId) throws S3ServerException{
         User user = userDao.getUserByAccessKeyID(accessKeyId);
         if (null == user) {
             throw new S3ServerException(S3Error.INVALID_ACCESSKEYID,
                     "Invalid accessKeyId. accessKeyId = " + accessKeyId);
         }
-
-        //       3.check signature
 
         return user;
     }
@@ -195,6 +221,7 @@ public class RestUtils {
             case ACCESS_DENIED:
             case NO_CREDENTIALS:
             case INVALID_AUTHORIZATION:
+            case ACCESS_EXPIRED:
                 status = HttpStatus.FORBIDDEN;
                 break;
             case USER_NOT_EXIST:
@@ -220,6 +247,7 @@ public class RestUtils {
             case REGION_CONFLICT_LOBPAGESIZE:
             case REGION_CONFLICT_REPLSIZE:
             case BUCKET_DELIMITER_NOT_STABLE:
+            case OPERATION_CONFLICT:
                 status = HttpStatus.CONFLICT;
                 break;
             case OBJECT_IF_MATCH_FAILED:

@@ -11,6 +11,7 @@ import com.sequoias3.service.BucketService;
 import com.sequoias3.service.ObjectService;
 import com.sequoias3.utils.DataFormatUtils;
 import com.sequoias3.utils.MD5Utils;
+
 import com.sequoias3.utils.RestUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
@@ -94,7 +95,7 @@ public class ObjectController {
                 bucket = (Bucket) httpServletRequest.getAttribute(RestParamDefine.Attribute.S3_BUCKET);
             }
 
-            InputStream body = null;
+            InputStream body;
             Long realContenLength = 0L;
             if (httpServletRequest.getHeader("x-amz-decoded-content-length") != null) {
                 body = new S3InputStreamReaderChunk(httpServletRequest.getInputStream());
@@ -157,49 +158,62 @@ public class ObjectController {
             String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
             logger.debug("get object. bucketName={}, objectName={}", bucketName, objectName);
 
-            Map<String, String> requestHeaders = new HashMap<>();
-            Enumeration headerNames = httpServletRequest.getHeaderNames();
-            while (headerNames.hasMoreElements()) {
-                String name = headerNames.nextElement().toString();
-                requestHeaders.put(name, httpServletRequest.getHeader(name));
-            }
-
-            Range range = null;
-            if (requestHeaders.containsKey(RestParamDefine.GetObjectReqHeader.REQ_RANGE)) {
-                range = restUtils.getRange(requestHeaders.get(RestParamDefine.GetObjectReqHeader.REQ_RANGE));
-            }
-
-            Boolean nullVersionFlag = null;
-            Long cvtVersionId = null;
-            if (versionId != null) {
-                cvtVersionId = convertVersionId(versionId);
-                if (null == cvtVersionId) {
-                    nullVersionFlag = true;
-                }
-            }
-
-            GetResult result = objectService.getObject(operator.getUserId(), bucketName,
-                    objectName, cvtVersionId, nullVersionFlag, requestHeaders, range);
-
-            try {
-                if (result.getMeta().getDeleteMarker()) {
-                    buildDeleteMarkerResponseHeader(result.getMeta(), response);
-                    if (null == versionId) {
-                        throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
-                    } else {
-                        throw new S3ServerException(S3Error.METHOD_NOT_ALLOWED, "no object. object:" + objectName);
-                    }
-                } else {
-                    buildHeadersForGetObject(result.getMeta(), httpServletRequest, range, response);
-                    objectService.readObjectData(result.getData(), response.getOutputStream(), range);
-                }
-            } finally {
-                objectService.releaseGetResult(result);
-            }
+            getObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
 
             logger.debug("get object success. bucketName={}, objectName={}", bucketName, objectName);
         }catch (Exception e){
             logger.error("get object failed. bucketName={}, bucketName/objectName={}, versionId={}",
+                    bucketName, httpServletRequest.getRequestURI(), versionId);
+            throw e;
+        }
+    }
+
+    @GetMapping(value="/{bucketname:.+}/**", params = RestParamDefine.CommonPara.X_AMZ_SIGNATURE, produces = MediaType.APPLICATION_XML_VALUE )
+    public void getObjectUrlV4(@PathVariable("bucketname") String bucketName,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_CREDENTIAL, required = false) String credential,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_EXPIRES, required = false) Long expireTime,
+                             @RequestParam(value = RestParamDefine.VERSION_ID, required = false) String versionId,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_DATE, required = false) String xamzdate,
+                             HttpServletRequest httpServletRequest,
+                             HttpServletResponse response)
+            throws S3ServerException, IOException{
+        try {
+            User operator = restUtils.getOperatorByCredential(credential);
+            String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
+            logger.debug("get object by url v4. bucketName={}, objectName={}", bucketName, objectName);
+
+            checkExpireV4(expireTime, xamzdate);
+
+            getObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
+
+            logger.debug("get object by url v4 success. bucketName={}, objectName={}", bucketName, objectName);
+        }catch (Exception e){
+            logger.error("get object by url failed. bucketName={}, bucketName/objectName={}, versionId={}",
+                    bucketName, httpServletRequest.getRequestURI(), versionId);
+            throw e;
+        }
+    }
+
+    @GetMapping(value="/{bucketname:.+}/**", params = RestParamDefine.CommonPara.SIGNATURE, produces = MediaType.APPLICATION_XML_VALUE )
+    public void getObjectUrlV2(@PathVariable("bucketname") String bucketName,
+                               @RequestParam(value = RestParamDefine.CommonPara.ACCESS_KEYID, required = false) String accessKeyId,
+                               @RequestParam(value = RestParamDefine.CommonPara.EXPIRES, required = false) Long expireTime,
+                               @RequestParam(value = RestParamDefine.VERSION_ID, required = false) String versionId,
+                               HttpServletRequest httpServletRequest,
+                               HttpServletResponse response)
+            throws S3ServerException, IOException{
+        try {
+            User operator = restUtils.getOperatorByAccessKeyId(accessKeyId);
+            String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
+            logger.debug("get object by url v2. bucketName={}, objectName={}", bucketName, objectName);
+
+            checkExpireV2(expireTime);
+
+            getObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
+
+            logger.debug("get object by url v2 success. bucketName={}, objectName={}", bucketName, objectName);
+        }catch (Exception e){
+            logger.error("get object by url failed. bucketName={}, bucketName/objectName={}, versionId={}",
                     bucketName, httpServletRequest.getRequestURI(), versionId);
             throw e;
         }
@@ -468,44 +482,63 @@ public class ObjectController {
             String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
             logger.debug("head object. bucketName={}, objectName={}", bucketName, objectName);
 
-            Map<String, String> requestHeaders = new HashMap<>();
-            Enumeration headerNames = httpServletRequest.getHeaderNames();
-            while (headerNames.hasMoreElements()) {
-                String name = headerNames.nextElement().toString();
-                requestHeaders.put(name, httpServletRequest.getHeader(name));
-            }
-
-            Range range = null;
-            if (requestHeaders.containsKey(RestParamDefine.GetObjectReqHeader.REQ_RANGE)) {
-                range = restUtils.getRange(requestHeaders.get(RestParamDefine.GetObjectReqHeader.REQ_RANGE));
-            }
-
-            Boolean nullVersionFlag = null;
-            Long cvtVersionId = null;
-            if (versionId != null) {
-                cvtVersionId = convertVersionId(versionId);
-                if (null == cvtVersionId) {
-                    nullVersionFlag = true;
-                }
-            }
-
-            GetResult result = objectService.getObject(operator.getUserId(), bucketName,
-                    objectName, cvtVersionId, nullVersionFlag, requestHeaders, range);
-
-            try {
-                if (result.getMeta().getDeleteMarker()) {
-                    throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
-                } else {
-                    buildHeadersForGetObject(result.getMeta(), httpServletRequest, range, response);
-                }
-            } finally {
-                objectService.releaseGetResult(result);
-            }
+            headObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
 
             logger.debug("head object success. bucketName={}, objectName={}", bucketName, objectName);
         }catch (Exception e){
             logger.error("head object failed. bucketName={}, bucketName/objectName={}",
                     bucketName, httpServletRequest.getRequestURI());
+            throw e;
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.HEAD, value="/{bucketname:.+}/**", params = RestParamDefine.CommonPara.X_AMZ_SIGNATURE)
+    public void headObjectUrlV4(@PathVariable("bucketname") String bucketName,
+                                @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_CREDENTIAL, required = false) String credential,
+                                @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_EXPIRES, required = false) Long expireTime,
+                                @RequestParam(value = RestParamDefine.VERSION_ID, required = false) String versionId,
+                                @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_DATE, required = false) String xamzdate,
+                                HttpServletRequest httpServletRequest,
+                                HttpServletResponse response)
+            throws S3ServerException{
+        try {
+            User operator = restUtils.getOperatorByCredential(credential);
+            String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
+            logger.debug("head object by url auth v4. bucketName={}, objectName={}", bucketName, objectName);
+
+            checkExpireV4(expireTime, xamzdate);
+
+            headObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
+
+            logger.debug("head object success. bucketName={}, objectName={}", bucketName, objectName);
+        }catch (Exception e){
+            logger.error("head object failed. bucketName={}, bucketName/objectName={}",
+                    bucketName, httpServletRequest.getRequestURI());
+            throw e;
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.HEAD, value="/{bucketname:.+}/**", params = RestParamDefine.CommonPara.SIGNATURE)
+    public void headObjectUrlV2(@PathVariable("bucketname") String bucketName,
+                                @RequestParam(value = RestParamDefine.CommonPara.ACCESS_KEYID, required = false) String accessKeyId,
+                                @RequestParam(value = RestParamDefine.CommonPara.EXPIRES, required = false) Long expireTime,
+                                @RequestParam(value = RestParamDefine.VERSION_ID, required = false) String versionId,
+                                HttpServletRequest httpServletRequest,
+                                HttpServletResponse response)
+            throws S3ServerException{
+        try {
+            User operator = restUtils.getOperatorByAccessKeyId(accessKeyId);
+            String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
+            logger.debug("head object by url auth v2. bucketName={}, objectName={}", bucketName, objectName);
+
+            checkExpireV2(expireTime);
+
+            headObjectCommon(bucketName, versionId, objectName, operator, httpServletRequest, response);
+
+            logger.debug("get object by url v2 success. bucketName={}, objectName={}", bucketName, objectName);
+        }catch (Exception e){
+            logger.error("get object by url failed. bucketName={}, bucketName/objectName={}, versionId={}",
+                    bucketName, httpServletRequest.getRequestURI(), versionId);
             throw e;
         }
     }
@@ -611,9 +644,8 @@ public class ObjectController {
 
         if (null != objectMeta.getMetaList()){
             Map metaList = objectMeta.getMetaList();
-            Iterator it = metaList.entrySet().iterator();
-            while (it.hasNext()){
-                Map.Entry entry = (Map.Entry)it.next();
+            for (Object o : metaList.entrySet()) {
+                Map.Entry entry = (Map.Entry) o;
                 response.addHeader(entry.getKey().toString(), entry.getValue().toString());
             }
         }
@@ -687,7 +719,7 @@ public class ObjectController {
 
     private DeleteObjects getDeleteObject(HttpServletRequest httpServletRequest, String contentMD5)
             throws S3ServerException {
-        int ONCE_READ_BYTES  = 1024;
+        int ONCE_READ_BYTES = 1024;
         try {
             ServletInputStream inputStream = httpServletRequest.getInputStream();
             StringBuilder stringBuilder = new StringBuilder();
@@ -699,8 +731,8 @@ public class ObjectController {
                 stringBuilder.append(new String(b, 0, len));
                 len = inputStream.read(b, 0, ONCE_READ_BYTES);
             }
-            if (contentMD5 != null){
-                if(!MD5Utils.isMd5EqualWithETag(contentMD5, new String(Hex.encodeHex(MD5.digest())))){
+            if (contentMD5 != null) {
+                if (!MD5Utils.isMd5EqualWithETag(contentMD5, new String(Hex.encodeHex(MD5.digest())))) {
                     throw new S3ServerException(S3Error.OBJECT_BAD_DIGEST,
                             "The Content-MD5 you specified does not match what we received.");
                 }
@@ -709,13 +741,128 @@ public class ObjectController {
             if (content.length() > 0) {
                 ObjectMapper objectMapper = new XmlMapper();
                 return objectMapper.readValue(content, DeleteObjects.class);
-            }else {
+            } else {
                 return null;
             }
-        }catch (S3ServerException e){
+        } catch (S3ServerException e) {
             throw e;
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new S3ServerException(S3Error.MALFORMED_XML, "get delete objects failed", e);
+        }
+    }
+
+    private void getObjectCommon(String bucketName, String versionId,
+                                 String objectName, User operator,
+                                 HttpServletRequest httpServletRequest,
+                                 HttpServletResponse response)
+            throws S3ServerException, IOException {
+        Map<String, String> requestHeaders = new HashMap<>();
+        Enumeration headerNames = httpServletRequest.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String name = headerNames.nextElement().toString();
+            requestHeaders.put(name, httpServletRequest.getHeader(name));
+        }
+
+        Range range = null;
+        if (requestHeaders.containsKey(RestParamDefine.GetObjectReqHeader.REQ_RANGE)) {
+            range = restUtils.getRange(requestHeaders.get(RestParamDefine.GetObjectReqHeader.REQ_RANGE));
+        }
+
+        Boolean nullVersionFlag = null;
+        Long cvtVersionId = null;
+        if (versionId != null) {
+            cvtVersionId = convertVersionId(versionId);
+            if (null == cvtVersionId) {
+                nullVersionFlag = true;
+            }
+        }
+
+        GetResult result = objectService.getObject(operator.getUserId(), bucketName,
+                objectName, cvtVersionId, nullVersionFlag, requestHeaders, range);
+
+        try {
+            if (result.getMeta().getDeleteMarker()) {
+                buildDeleteMarkerResponseHeader(result.getMeta(), response);
+                if (null == versionId) {
+                    throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
+                } else {
+                    throw new S3ServerException(S3Error.METHOD_NOT_ALLOWED, "no object. object:" + objectName);
+                }
+            } else {
+                buildHeadersForGetObject(result.getMeta(), httpServletRequest, range, response);
+                objectService.readObjectData(result.getData(), response.getOutputStream(), range);
+            }
+        } finally {
+            objectService.releaseGetResult(result);
+        }
+    }
+
+    private void headObjectCommon(String bucketName, String versionId,
+                                  String objectName, User operator,
+                                  HttpServletRequest httpServletRequest,
+                                  HttpServletResponse response)
+            throws S3ServerException{
+
+        Map<String, String> requestHeaders = new HashMap<>();
+        Enumeration headerNames = httpServletRequest.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String name = headerNames.nextElement().toString();
+            requestHeaders.put(name, httpServletRequest.getHeader(name));
+        }
+
+        Range range = null;
+        if (requestHeaders.containsKey(RestParamDefine.GetObjectReqHeader.REQ_RANGE)) {
+            range = restUtils.getRange(requestHeaders.get(RestParamDefine.GetObjectReqHeader.REQ_RANGE));
+        }
+
+        Boolean nullVersionFlag = null;
+        Long cvtVersionId = null;
+        if (versionId != null) {
+            cvtVersionId = convertVersionId(versionId);
+            if (null == cvtVersionId) {
+                nullVersionFlag = true;
+            }
+        }
+
+        GetResult result = objectService.getObject(operator.getUserId(), bucketName,
+                objectName, cvtVersionId, nullVersionFlag, requestHeaders, range);
+
+        try {
+            if (result.getMeta().getDeleteMarker()) {
+                throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
+            } else {
+                buildHeadersForGetObject(result.getMeta(), httpServletRequest, range, response);
+            }
+        } finally {
+            objectService.releaseGetResult(result);
+        }
+    }
+
+    private void checkExpireV4(Long expireTime, String xamzdate)
+            throws S3ServerException{
+        if (expireTime != null) {
+            if(xamzdate != null){
+                long nowTime = System.currentTimeMillis();
+                Date date = DataFormatUtils.parseXAMZDate(xamzdate);
+                if(nowTime/1000 - date.getTime()/1000 > expireTime){
+                    throw new S3ServerException(S3Error.ACCESS_EXPIRED,
+                            "Request has expired.  X-Amz-Date:" + date.toString() +
+                                    ", X-Amz-Expires:" + expireTime +
+                                    ", ServerTime:" + DataFormatUtils.formatDate(nowTime));
+                }
+            }
+        }
+    }
+
+    private void checkExpireV2(Long expireTime)
+            throws S3ServerException{
+        if (expireTime != null) {
+            long nowTime = System.currentTimeMillis();
+            if(nowTime/1000 > expireTime){
+                throw new S3ServerException(S3Error.ACCESS_EXPIRED,
+                        "Request has expired. Expires:" + expireTime +
+                                ", ServerTime:" + DataFormatUtils.formatDate(nowTime));
+            }
         }
     }
 }
