@@ -11,7 +11,7 @@
     <!--数据源集群端主机名，CI默认传入localhost -->
     <parameter name="DSHOSTNAME"     value="${DSHOSTNAME}" />
     <!--数据源集群端端口号，CI默认传入11810 -->
-    <parameter name="DSSVCNAME"      value="${DSSVCNAME}" />s
+    <parameter name="DSSVCNAME"      value="${DSSVCNAME}" />
     <!--公共CS名-->
     <parameter name="CHANGEDPREFIX"  value="story_java_test" />
     <!--用例创建节点预留端口号最小值-->
