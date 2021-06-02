@@ -188,6 +188,25 @@ s3.deleteObject(bucketName, objectName);
 s3.deleteVersion(bucketName, objectName, versionId);
 ```
 
+删除多个对象
+----
+
+一次删除多个对象。对每个删除的对象可以指定版本号也可以不指定，当不指定版本号时相当于 deleteObject，当指定版本号时相当于 deleteVersion，deleteObjects 接口等于一次执行了多个 deleteObject 和 deleteVersion。
+
+```lang-java
+DeleteObjectsRequest request = new DeleteObjectsRequest(bucketName);
+List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+VersionListing versions = s3.listVersions(new ListVersionsRequest().withBucketName(bucketName));
+
+List<S3VersionSummary> versionSummaries = versions.getVersionSummaries();
+for (S3VersionSummary object : versionSummaries){
+   keys.add(new DeleteObjectsRequest.KeyVersion(object.getKey(),object.getVersionId()));
+}
+
+request.setKeys(keys);
+s3.deleteObjects(request);
+```
+
 删除桶
 ----
 

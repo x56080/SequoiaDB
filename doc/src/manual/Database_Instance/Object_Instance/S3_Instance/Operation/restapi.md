@@ -1268,6 +1268,172 @@ Authorization: authorization string
     Content-Length: 0
     ```
 
+### DELETE Objects
+
+删除多个对象
+
+**请求语法**
+
+```lang-rest
+POST /bucketname?delete HTTP/1.1
+Host: ip:port
+Date: date
+Authorization: authorization string
+
+<Delete>
+   <Object>
+      <Key>string</Key>
+      <VersionId>string</VersionId>
+   </Object>
+   <Quiet>boolean</Quiet>
+</Delete>
+```
+
+**请求元素**
+
+
+
+用户需要在请求消息体中使用 XML 形式指定待删除的对象列表，系统对每个待删除的对象都会执行单独的删除操作，并将删除结果返回，单个对象的删除操作参考 DELETE object。
+
+| 元素 | 说明 |
+| ---- | ---- |
+| Delete| 包含 Object 和 Quiet |
+| Object | 待删除的对象，包含 Key 和 VersionId |
+| Key | 对象名称 |
+| VersionId | 对象版本号，可选 |
+| Quiet | 静默标志，boolean类型，当请求中包含该字段且值为true时，返回结果中仅包含删除失败的对象的结果。默认不携带此标志，返回结果中包含全部删除对象的操作结果。 |
+
+**结果解析**
+
+响应消息体中返回 XML 形式的结果，包含各个对象的删除结果。
+
+| 元素 | 说明 |
+| ---- | ---- |
+| DeleteResult | 包含 Deleted 和 Error |
+| Deleted | 删除成功的记录，包含 Key，VersionId，DeleteMarker 和 DeleteMarkerVersionId |
+| Key | 已删除的对象名称 |
+| VersionId | 指定删除的对象版本号 |
+| DeleteMarker | 当删除操作产生了 DeleteMarker 或指定版本号删除的对象是一个DeleteMarker 时，该字段为true。  | 
+| DeleteMarkerVersionId | 当删除操作产生了 DeleteMarker 或指定版本号删除的对象是一个DeleteMarker 时，该字段为新产生或指定的 VersionId |
+| Error | 删除失败的记录，包括Code, Key, Message, VersionId |
+| Code | 错误码 | 
+| Key | 删除失败的对象名称 | 
+| Message | 失败的描述 |
+| VersionId | 指定删除的对象版本号 |
+
+**示例**
+
+- 在未开启版本控制的桶内删除多个对象
+
+   ```lang-rest
+   POST /bucketname?delete HTTP/1.1
+   Host: ip:port
+   Date: date
+   Authorization: authorization string
+
+   <Delete>
+      <Object>
+         <Key>key1</Key>
+      </Object>
+      <Object>
+         <Key>key2</Key>
+      </Object>
+   </Delete>  
+   ```
+
+   删除成功，响应结果如下：
+
+   ```lang-rest
+   <DeleteResult>
+      <Deleted>
+         <Key>key1</Key>
+      </Deleted>
+      <Deleted>
+         <Key>key2</Key>
+      </Deleted>
+   </DeleteResult>
+   ```
+
+- 在开启版本控制的桶内删除多个对象
+
+   ```lang-rest
+   POST /bucketname?delete HTTP/1.1
+   Host: ip:port
+   Date: date
+   Authorization: authorization string
+
+   <Delete>
+      <Object>
+         <Key>key1</Key>
+      </Object>
+      <Object>
+         <Key>key2</Key>
+      </Object>
+   </Delete>  
+   ```
+
+   生成DeleteMarker，响应结果如下：
+
+   ```lang-rest
+   <DeleteResult>
+      <Deleted>
+         <Key>key1</Key>
+         <DeleteMarker>true</DeleteMarker>
+         <DeleteMarkerVersionId>1</DeleteMarkerVersionId>
+      </Deleted>
+      <Deleted>
+         <Key>key2</Key>
+         <DeleteMarker>true</DeleteMarker>
+         <DeleteMarkerVersionId>1</DeleteMarkerVersionId>
+      </Deleted>
+   </DeleteResult>
+   ```
+- 指定版本删除多个对象
+
+   ```lang-rest
+   POST /bucketname?delete HTTP/1.1
+   Host: ip:port
+   Date: date
+   Authorization: authorization string
+
+   <Delete>
+      <Object>
+         <Key>key1</Key>
+         <VersionId>0</VersionId>
+      </Object>
+      <Object>
+         <Key>key2</Key>
+         <VersionId>0</VersionId>
+      </Object>
+      <Object>
+         <Key>key1</Key>
+         <VersionId>1</VersionId>
+      </Object>
+   </Delete> 
+   ```
+
+   删除成功，响应结果如下：
+
+   ```lang-rest
+   <DeleteResult>
+      <Deleted>
+         <Key>key1</Key>
+         <VersionId>0</VersionId>
+      </Deleted>
+      <Deleted>
+         <Key>key2</Key>
+         <VersionId>0</VersionId>
+      </Deleted>
+      <Deleted>
+         <Key>key1</Key>
+         <VersionId>1</VersionId>
+         <DeleteMarker>true</DeleteMarker>
+         <DeleteMarkerVersionId>1</DeleteMarkerVersionId>
+      </Deleted>
+   </DeleteResult>
+   ```
+
+
 ### Initiate Multipart Upload
 
 初始化分段上传，获得 upload ID
