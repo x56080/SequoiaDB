@@ -1,4 +1,4 @@
-﻿
+
 ##环境准备##
 
 用户自行下载需要的安装包，对应版本参考如下：
@@ -55,9 +55,9 @@
 
      > **Note:**
      >
-     > JBoss 有“domain”和“standalone”两种运行模式，两种模式的安装和配置是相同的。由于“standlone”提供的功能相对比较多，比如应用热部署、丰富的 web 操作界面等，因此为了降低安装的复杂度，在本次安装中采用的运行模式是“standlone”。
+     > JBoss 有“domain”和“standalone”两种运行模式，两种模式的安装和配置是相同的。由于“standalone”提供的功能相对比较多，比如应用热部署、丰富的 web 操作界面等，因此为了降低安装的复杂度，在本次安装中采用的运行模式是“standalone”。
 
-   2. 修改 `standlone.conf` 配置文件
+   2. 修改 `standalone.conf` 配置文件
 
       ```lang-bash
       $ vim /opt/jboss/bin/standalone.conf
@@ -69,7 +69,7 @@
       JAVA_HOME=/usr/java/jdk1.7.0_67
       ```
 
-   3. 修改 `standlone.xml` 配置文件
+   3. 修改 `standalone.xml` 配置文件
 
       ```lang-bash
       $ vim /opt/jboss/standalone/configuration/standalone.xml
