@@ -494,6 +494,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLIT );
       UINT16 splitPos = 0, newPos = 0 ;
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
+      dmsExtentID newRootExtentID = DMS_INVALID_EXTENT ;
       dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
       // find the split position
@@ -553,9 +554,9 @@ namespace engine
          if ( DMS_INVALID_EXTENT == getParent() )
          {
             // if this is root page, let's allocate another page
-            dmsExtentID rootExtentID = DMS_INVALID_EXTENT ;
+
             // allocate new extent
-            rc = indexCB->allocExtent ( rootExtentID ) ;
+            rc = indexCB->allocExtent ( newRootExtentID ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to allocate new extent for index, "
@@ -563,7 +564,7 @@ namespace engine
                goto error ;
             }
             // initialize the header for the new extent
-            _ixmExtent rootExtent( rootExtentID, _extentHead->_mbID,
+            _ixmExtent rootExtent( newRootExtentID, _extentHead->_mbID,
                                    _pIndexSu ) ;
             // promote the split key into parent, key._left point to the current
             // extent
@@ -591,7 +592,9 @@ namespace engine
                goto error ;
             }
             // set new root page
-            indexCB->setRoot ( rootExtentID ) ;
+            indexCB->setRoot ( newRootExtentID ) ;
+            newRootExtentID = DMS_INVALID_EXTENT ;
+            newExtentID = DMS_INVALID_EXTENT ;
          }
          else
          {
@@ -611,6 +614,7 @@ namespace engine
                         rc ) ;
                goto error ;
             }
+            newExtentID = DMS_INVALID_EXTENT ;
          }
          // now new page and(or) root page are created, and all keys are copied,
          // so we are safe to truncate
@@ -651,6 +655,16 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__IXMEXT__SPLIT, rc );
       return rc ;
    error :
+      if ( DMS_INVALID_EXTENT != newRootExtentID )
+      {
+         indexCB->freeExtent( newRootExtentID ) ;
+         newRootExtentID = DMS_INVALID_EXTENT ;
+      }
+      if ( DMS_INVALID_EXTENT != newExtentID )
+      {
+         indexCB->freeExtent( newExtentID ) ;
+         newExtentID = DMS_INVALID_EXTENT ;
+      }
       goto done ;
    }
    // truncate a page and leave totalNodes. Passin a newPos as
@@ -2718,9 +2732,6 @@ namespace engine
                                        _pageSize,
                                        pBuffer, indexExtentDumpBufferSize,
                                        NULL,
-                                       DMS_SU_DMP_OPT_HEX |
-                                       DMS_SU_DMP_OPT_HEX_WITH_ASCII |
-                                       DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
                                        DMS_SU_DMP_OPT_FORMATTED,
                                        childExtents,
                                        TRUE ) ;
