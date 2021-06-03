@@ -146,6 +146,10 @@ namespace bson {
     */
     inline NOINLINE_DECL BSONObj BSONObj::copy() const {
         holder_type holder ;
+        if ( isEmpty() )
+        {
+           return BSONObj() ;
+        }
         if ( 0 != holder.makeFrom( objdata(), objsize() ) )
         {
             msgasserted( 13551, "BSONObj copy() out-of-memory", true ) ;
