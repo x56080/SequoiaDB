@@ -611,6 +611,7 @@ public class ObjectServiceImpl implements ObjectService {
             if (deleteObject != null && deleteObject.getDeleteMarker()){
                 response = new PutDeleteResult();
                 response.setDeleteMarker(true);
+                response.setVersionId(String.valueOf(versionId));
             }
             return response;
         }catch (S3ServerException e) {
