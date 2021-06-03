@@ -2,7 +2,7 @@
 Description   : seqDB-24073:创建/使用/获取/删除用户
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.05.25
+LastEditTime  : 2021.06.03
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -63,18 +63,20 @@ class TestAuth24073( utils.TestBase ):
          self.result = self.db.command( { "usersInfo": 1 } )
          if ( {'user': self.userName} in self.result['users'] ):
             raise "failed to drop user"
-
+         
+         self.db.logout()
       finally:
          try:
             self.result = self.db.authenticate( self.userName, self.userName )
             self.db.command( "dropUser", self.userName )
+            self.db.logout()
          except:
             self.result = self.db.command( { "usersInfo": 1 } )
             self.assertEqual( self.result, {'users': [], 'ok': 1.0}, self.result )
-         
-   ''' SEQUOIADBMAINSTREAM-7207
+      
    def test_user_auth_2( self ):
       # test: db.add_user / db.remove_user
+      self.db = self.client[ self.dbName ]
       try:
          # createUser
          self.result = self.db.add_user(self.userName, pwd=self.userName, roles=["dbAdmin"])
@@ -97,11 +99,14 @@ class TestAuth24073( utils.TestBase ):
          # dropUser
          self.result = self.db.remove_user( self.userName )
          self.assertEqual( self.result, None )
+
+         self.db.logout()
       finally:
          try:
             self.result = self.db.authenticate( self.userName, self.userName )
             self.db.remove_user( self.userName )
+            self.db.logout()
          except:
             self.result = self.db.command( { "usersInfo": 1 } )
             self.assertEqual( self.result, {'users': [], 'ok': 1.0}, self.result )
-      '''
+   
