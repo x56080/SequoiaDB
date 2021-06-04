@@ -53,7 +53,7 @@
 
 namespace engine
 {
-   #define DPS_LOCKID_STRING_MAX_SIZE      ( 128 )
+
    #define DPS_TRANSLOCK_DUMP_SLICE_SIZE   ( 1000 )
 
    dpsTransLockManager::dpsTransLockManager( LOCKMGR_TYPE managerType )
@@ -2302,10 +2302,11 @@ namespace engine
                     PD_PACK_STRING("waitLock rc:"),
                     PD_PACK_INT( rc ) )  ;
 #endif
+         CHAR lockIdStr[ DPS_LOCKID_STRING_MAX_SIZE + 1 ] = { '\0' } ;
          dpsTxExectr->getExecutor()->resetInfo( EDU_INFO_ERROR ) ;
          dpsTxExectr->getExecutor()->printInfo( EDU_INFO_ERROR,
                      "Acquire transaction lock(%s)(%s) failed",
-                     lockId.toString().c_str(),
+                     lockId.toString( lockIdStr, DPS_LOCKID_STRING_MAX_SIZE ),
                      lockModeToString( requestLockMode ) ) ;
          goto postLockWaiting ;
       }

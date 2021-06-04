@@ -229,6 +229,8 @@ namespace engine
    #define DPS_LOCKID_EXTENTID      "ExtentID"
    #define DPS_LOCKID_OFFSET        "Offset"
 
+   #define DPS_LOCKID_STRING_MAX_SIZE      ( 128 )
+
    // Note :
    // In order to implement index page lock through record locking mechanism,
    // we construct a special lockId to delinetate
@@ -302,7 +304,9 @@ namespace engine
          /*
             Format functions
          */
-         OSS_INLINE string       toString() const ;
+         OSS_INLINE ossPoolString toString() const ;
+         OSS_INLINE const CHAR * toString( CHAR *buffer,
+                                           UINT32 bufferSize ) const ;
          OSS_INLINE BSONObj      toBson() const ;
          OSS_INLINE void         toBson( BSONObjBuilder &builder ) const ;
 
@@ -460,14 +464,22 @@ namespace engine
       return FALSE ;
    }
 
-   OSS_INLINE string _dpsTransLockId::toString() const
+   OSS_INLINE ossPoolString _dpsTransLockId::toString() const
    {
-      stringstream ss ;
-      ss << DPS_LOCKID_CSID":" << csID()
-         << ", "DPS_LOCKID_CLID":" << clID()
-         << ", "DPS_LOCKID_EXTENTID":" << extentID()
-         << ", "DPS_LOCKID_OFFSET":" << offset() ;
-      return ss.str() ;
+      CHAR lockIDStr[ DPS_LOCKID_STRING_MAX_SIZE + 1 ] = { 0 } ;
+      return toString( lockIDStr, DPS_LOCKID_STRING_MAX_SIZE ) ;
+   }
+
+   OSS_INLINE const CHAR *_dpsTransLockId::toString( CHAR *buffer,
+                                                     UINT32 bufferSize ) const
+   {
+      ossSnprintf( buffer, bufferSize,
+                   DPS_LOCKID_CSID ":%u, "
+                   DPS_LOCKID_CLID ":%u, "
+                   DPS_LOCKID_EXTENTID ":%d, "
+                   DPS_LOCKID_OFFSET ":%d",
+                   csID(), clID(), extentID(), offset() ) ;
+      return buffer ;
    }
 
    OSS_INLINE BSONObj _dpsTransLockId::toBson() const
