@@ -33,29 +33,29 @@
 
 ##命令选项##
 
-|选项|缩写|描述|类型|默认值|说明|
-|---|---|---|---|---|---|
-|help|h|打印帮助信息|-|-|
-|version|V|打印版本号|-|-|
-|hostname|-|SequoiaDB 所在的主机名|String|-|dump 和 dumpheader 为 false，且 outputconf 未设置时必填|
-|svcname|-|SequoiaDB 的服务名（端口号）|String|-|dump 和 dumpheader 为 false，且 outputconf 未设置时时必填|
-|user|-|数据库用户|String|-|
-|password|-|数据库用户密码|String|-|如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码|
-|cipher|-|是否使用密文模式输入密码。关于密文模式的介绍，详细可参考[密码管理](database_management/security/system_security.md)|Bool|false，不使用密文模式输入密码|
-|token|-|加密令牌|String|-|
-|cipherfile|-|密文文件路径|String|`~/sequoiadb/passwd`|
-|ssl|-|使用 SSL 连接|Bool|false，不使用 SSL 连接|
-|path|-|归档目录|String|-|必填，可以是文件或目录|
-|outputconf|-|输出格式的配置文件路径|String|-|用于配置回放工具的输出规则，当 hostname 设置时，该参数无效。详细说明参见下一小节|
-|filter|-|过滤条件|String(json)|-|
-|dump|-|导出日志后是否重放。|Bool|false，不重放|
-|dumpheader|-|导出归档文件头后是否重放|Bool|false，不重放|
-|delete|-|重放后是否删除完成重放的归档日志文件|Bool|false，不删除归档文件|只删除完整归档文件|
-|watch|-|是否持续监控归档目录并重放日志|Bool|false，不持续监控|path为目录时有效|
-|daemon|-|是否在后台运行|Bool|false，不在后台运行|kill -15 \<pid\> 可以使后台进程正确退出|
-|status|-|指定状态文件|String|-|状态文件会存储重放的状态信息，首次指定时重放工具会生成该文件。重放工具退出后，通过指定状态文件可以从上次退出的地方继续重放。|
-|intervalnum|-|状态文件持久化间隔记录数|Int|1000|每回放 intervalnum 条记录持久化一次状态文件|
-|type|-|指定日志类型|String|archive|取值为 "archive" 表示归档日志，取值为 "replica" 表示复制日志。|
+| 参数名        | 缩写 | 描述 |
+| ----          | ---- | ---- |
+| --help        | -h   | 打印帮助信息                        |
+| --version     | -V   | 打印版本号                          |
+| --hostname    |      | SequoiaDB 所在的主机名，--dump 和 --dumpheader 为 false，且 --outputconf 未设置时必填                          |
+| --svcname     |      | SequoiaDB 的服务名（端口号），--dump 和 --dumpheader 为 false，且 --outputconf 未设置时必填                          |
+| --user        |      | 数据库用户                          |
+| --password    |      | 数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码                                       |
+| --cipher      |      | 是否使用密文模式输入密码，默认值为 false，不使用密文模式输入密码 <br> 关于密文模式介绍，可参考[密码管理][passwd_mgm] |
+| --token       |      | 加密令牌                            |
+| --cipherfile  |      | 加密文件路径，默认路径为 `~/sequoiadb/passwd`                                                       |
+| --ssl         |      | 是否使用 SSL 连接，默认值为 false，不使用 SSL 连接                                                                   |
+| --path        |      | 归档目录，可以是文件或目录，必填    |
+| --outputconf  |      | 用于配置回放工具的输出规则，当设置 --hostname 时该参数无效，该参数详细说明可参考 [outputconf说明][outputconf]                                                      |
+| --filter      |      | 过滤条件                            |
+| --dump        |      | 是否打印归档日志信息，默认值为 false，取值如下：<br>true：只打印日志信息，不执行重放操作<br>false：执行重放操作，不打印日志信息|
+| --dumpheader  |      | 是否打印归档日志元数据的头信息，默认值为 false，取值如下：<br>true：只打印日志元数据的头信息，不执行重放操作<br>false：执行重放操作，不打印日志元数据的头信息|
+| --delete      |      | 是否删除已完成重放的归档日志文件，默认值为 false，取值如下：<br>true：只删除完整的归档文件 <br>false：不删除归档文件            |
+| --watch       |      | 是否持续监控归档目录并重放日志，设置 --path 为目录时该参数有效，默认值为 false，不持续监控                             |
+| --daemon      |      | 是否在后台运行，默认值为 false，取值如下：<br>true：在后台运行，执行 `kill -15 <pid>` 可以使后台进程正确退出<br>false：不在后台运行              |
+| --status      |      | 指定状态文件，状态文件会存储重放的状态信息，首次指定时重放工具会生成该文件；重放工具退出后，通过指定状态文件可以从上次退出的地方继续重放 |
+| --intervalnum |      | 状态文件持久化间隔记录数，每回放 intervalnum 条记录持久化一次状态文件，默认值为 1000 |
+| --type        |      | 指定日志类型，默认值为“archive” <br> “archive”：归档日志<br>“replica”：复制日志 |
 
 其中 filter 是 json 格式的字符串，可以指定过滤条件对日志进行过滤，过滤条件有：
 
