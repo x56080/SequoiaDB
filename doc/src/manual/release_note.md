@@ -3,6 +3,38 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 
 [快速使用 SequoiaDB][quickstart]
 
+##SequoiaDB version 5.0.2 版本说明##
+
+**接口变更：**
+
+- SQL引擎
+  - MySQL/MariaDB 增加 preferedinstance 配置参数
+- fap 支持 findAndModify 功能
+- fap 支持 bulkWrite 功能
+
+**主要特性：**
+
+- SequoiaDB 增加数据源功能
+
+**性能优化：**
+
+- SQL引擎
+  - 优化 MySQL 索引查询性能
+  - 优化 MySQL multistatement 数据插入性能
+- 优化并发回放性能
+- 优化主子表下对切分键排序查询的性能
+
+**工具优化：**
+
+- MySQL 默认配置 lower_case_table_names 为 1（表名存储在磁盘是小写，比较时不区分大小写 ）
+- MySQL 实例和 PostgreSQL 实例默认日志路径从安装目录调整到数据目录下
+
+**解决重要Bug：**
+
+- 修复 MySQL 部分场景下条件下压不正确的问题
+- 修复 MySQL 实例组功能在多实例并发极限场景下，多个实例之间元数据不同步的问题
+- 修复 PostgresSQL 在特殊查询条件下造成内存泄漏的问题
+- 修复 引擎在内存严重不足时导致程序退出的问题
 
 ##SequoiaDB version 5.0.1 版本说明##
 
