@@ -30,8 +30,8 @@ public class GroupMgr {
     private Map< Integer, GroupWrapper > id2group = new HashMap<>();
     private static GroupMgr mgr = new GroupMgr();
     private Sequoiadb sdb = null;
+    private String coordUrl = SdbTestBase.coordUrl;
 
-    private String coordUrl = null;
     private long refreshTime;
     private boolean refreshFlag = false;
 
@@ -48,10 +48,6 @@ public class GroupMgr {
         refreshFlag = true;
     }
 
-    private GroupMgr( String coordUrl ) {
-        this.coordUrl = coordUrl;
-    }
-
     public void refresh( String coordUrl ) throws ReliabilityException {
         if ( System.currentTimeMillis() - refreshTime < 1000 && !refreshFlag ) {
             return;
@@ -61,9 +57,13 @@ public class GroupMgr {
         name2group.clear();
         id2group.clear();
         DBCursor cursor = null;
+
         do {
             try {
                 if ( sdb == null || sdb.isClosed() || !sdb.isValid() ) {
+                    sdb = new Sequoiadb( coordUrl, "", "" );
+                } else {
+                    sdb.close();
                     sdb = new Sequoiadb( coordUrl, "", "" );
                 }
                 cursor = sdb.getList( Sequoiadb.SDB_LIST_GROUPS, null, null,
@@ -95,16 +95,16 @@ public class GroupMgr {
     }
 
     public void refresh() throws ReliabilityException {
-        if ( coordUrl == null ) {
-            refresh( SdbTestBase.coordUrl );
-        } else {
-            refresh( coordUrl );
-        }
+        refresh( coordUrl );
     }
 
     public List< GroupWrapper > getAllDataGroup() {
+        return getAllDataGroup( coordUrl );
+    }
+
+    public List< GroupWrapper > getAllDataGroup( String coordUrl ) {
         try {
-            this.refresh();
+            refresh( coordUrl );
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
         }
@@ -121,8 +121,12 @@ public class GroupMgr {
     }
 
     public List< String > getAllDataGroupName() {
+        return getAllDataGroupName( coordUrl );
+    }
+
+    public List< String > getAllDataGroupName( String coordUrl ) {
         try {
-            this.refresh();
+            refresh( coordUrl );
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
             return null;
@@ -139,8 +143,12 @@ public class GroupMgr {
     }
 
     public List< String > getAllHosts() {
+        return getAllHosts( coordUrl );
+    }
+
+    public List< String > getAllHosts( String coordUrl ) {
         try {
-            this.refresh();
+            refresh( coordUrl );
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
             return null;
@@ -164,8 +172,12 @@ public class GroupMgr {
     }
 
     public GroupWrapper getGroupByName( String name ) {
+        return getGroupByName( name, coordUrl );
+    }
+
+    public GroupWrapper getGroupByName( String name, String coordUrl ) {
         try {
-            this.refresh();
+            refresh( coordUrl );
         } catch ( ReliabilityException e ) {
             e.printStackTrace();
         }
@@ -185,10 +197,16 @@ public class GroupMgr {
         return mgr;
     }
 
-    public boolean checkBusiness( int timeOutSecond )
+    public static GroupMgr getInstance( String coordUrl )
+            throws ReliabilityException {
+        mgr.refresh( coordUrl );
+        return mgr;
+    }
+
+    public boolean checkBusiness( int timeOutSecond, String coordUrl )
             throws ReliabilityException {
 
-        return checkBusiness( timeOutSecond, false );
+        return checkBusiness( timeOutSecond, false, coordUrl );
     }
 
     /**
@@ -201,9 +219,9 @@ public class GroupMgr {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkBusiness( int timeOutSecond, boolean ignoreIndeploy )
-            throws ReliabilityException {
-        refresh();
+    public boolean checkBusiness( int timeOutSecond, boolean ignoreIndeploy,
+            String coordUrl ) throws ReliabilityException {
+        refresh( coordUrl );
         long timestamp = System.currentTimeMillis();
         boolean isPrintRes = false;
         boolean ret = false;
@@ -214,7 +232,7 @@ public class GroupMgr {
                 isPrintRes = true;
             }
             try {
-                ret = checkBusiness( isPrintRes, ignoreIndeploy );
+                ret = checkBusiness( isPrintRes, ignoreIndeploy, coordUrl );
                 if ( ret ) {
                     break;
                 }
@@ -247,7 +265,22 @@ public class GroupMgr {
      * @throws ReliabilityException
      */
     public boolean checkBusiness() throws ReliabilityException {
-        return checkBusiness( 120 );
+        return checkBusiness( 120, coordUrl );
+    }
+
+    public boolean checkBusiness( int timeOutSecond )
+            throws ReliabilityException {
+        return checkBusiness( timeOutSecond, coordUrl );
+    }
+
+    public boolean checkBusiness( int timeOutSecond, boolean ignoreIndeploy )
+            throws ReliabilityException {
+        return checkBusiness( timeOutSecond, ignoreIndeploy, coordUrl );
+    }
+
+    public boolean checkBusiness( String coordUrl )
+            throws ReliabilityException {
+        return checkBusiness( 120, coordUrl );
     }
 
     private void refreshAllGroup() {
@@ -270,7 +303,8 @@ public class GroupMgr {
      */
     // TODO:可被替代，屏蔽
     private boolean checkBusiness( boolean printAndThrowAllException,
-            boolean ignoreIndeploy ) throws ReliabilityException {
+            boolean ignoreIndeploy, String coordUrl )
+            throws ReliabilityException {
         List< GroupCheckResult > results = checkGroup(
                 printAndThrowAllException );
 
@@ -285,9 +319,9 @@ public class GroupMgr {
         }
 
         // 尝试创建一个ReplSize=3的测试集合（检测所有数据节点是否Alive）
-        if ( createTestCollection( printAndThrowAllException ) ) {
+        if ( createTestCollection( printAndThrowAllException, coordUrl ) ) {
             // 因为catalog的同步策略不受ReplSize影响，所以删除cl后要等待catalog同步，以免影响外部
-            return dropTestCollection( printAndThrowAllException )
+            return dropTestCollection( printAndThrowAllException, coordUrl )
                     && waitCatalogSync( printAndThrowAllException );
         } else {
             return false;
@@ -355,12 +389,12 @@ public class GroupMgr {
         }
     }
 
-    private boolean dropTestCollection( boolean printAndThrowAllException )
-            throws ReliabilityException {
+    private boolean dropTestCollection( boolean printAndThrowAllException,
+            String coordUrl ) throws ReliabilityException {
         boolean ret = true;
         Sequoiadb db = null;
         try {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db = new Sequoiadb( coordUrl, "", "" );
             db.getCollectionSpace( SdbTestBase.csName )
                     .dropCollection( "clForTestBusiness_reliability" );
         } catch ( BaseException e ) {
@@ -378,15 +412,15 @@ public class GroupMgr {
         return ret;
     }
 
-    private boolean createTestCollection( boolean printAndThrowAllException )
-            throws ReliabilityException {
+    private boolean createTestCollection( boolean printAndThrowAllException,
+            String coordUrl ) throws ReliabilityException {
         Sequoiadb db = null;
         List< String > groupNames = null;
         int index = 0;
         boolean result = true;
         try {
-            groupNames = getAllDataGroupName();
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            groupNames = getAllDataGroupName( coordUrl );
+            db = new Sequoiadb( coordUrl, "", "" );
             CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
             for ( index = 0; index < groupNames.size(); index++ ) {
                 if ( cs.isCollectionExist( "clForTestBusiness_reliability" ) ) {
@@ -428,9 +462,9 @@ public class GroupMgr {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkBusinessWithLSN( int timeOutSecond )
+    public boolean checkBusinessWithLSN( int timeOutSecond, String coordUrl )
             throws ReliabilityException {
-        refresh();
+        refresh( coordUrl );
         long timestamp = System.currentTimeMillis();
         boolean ret = true;
         boolean printAndThrowAllException = false;
@@ -443,7 +477,7 @@ public class GroupMgr {
             }
             Sequoiadb db = null;
             try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+                db = new Sequoiadb( coordUrl, "", "" );
                 DBCursor snapCur = db.getSnapshot( Sequoiadb.SDB_SNAP_HEALTH,
                         "", "", "" );
                 while ( snapCur.hasNext() ) {
@@ -473,8 +507,8 @@ public class GroupMgr {
             }
             try {
                 if ( ret ) {
-                    ret = checkBusinessWithLSN( printAndThrowAllException,
-                            true );
+                    ret = checkBusinessWithLSN( printAndThrowAllException, true,
+                            coordUrl );
                 }
             } catch ( ReliabilityException e ) {
                 if ( printAndThrowAllException ) {
@@ -503,8 +537,18 @@ public class GroupMgr {
      * @throws ReliabilityException
      */
     // TODO:可被替代，屏蔽
+    public boolean checkBusinessWithLSN( String coordUrl )
+            throws ReliabilityException {
+        return checkBusinessWithLSN( 120, coordUrl );
+    }
+
     public boolean checkBusinessWithLSN() throws ReliabilityException {
-        return checkBusinessWithLSN( 120 );
+        return checkBusinessWithLSN( 120, coordUrl );
+    }
+
+    public boolean checkBusinessWithLSN( int timeOutSecond )
+            throws ReliabilityException {
+        return checkBusinessWithLSN( timeOutSecond, coordUrl );
     }
 
     /**
@@ -517,12 +561,13 @@ public class GroupMgr {
      */
     // TODO:可被替代，屏蔽
     private boolean checkBusinessWithLSN( boolean printAndThrowAllException,
-            boolean ignoreIndeploy ) throws ReliabilityException {
+            boolean ignoreIndeploy, String coordUrl )
+            throws ReliabilityException {
         boolean ret = false;
         // 尝试创建一个ReplSize=3的测试集合（检测所有数据节点是否Alive）
-        if ( createTestCollection( printAndThrowAllException ) ) {
+        if ( createTestCollection( printAndThrowAllException, coordUrl ) ) {
             // 因为catalog的同步策略不受ReplSize影响，所以删除cl后要等待catalog同步，以免影响外部
-            ret = dropTestCollection( printAndThrowAllException )
+            ret = dropTestCollection( printAndThrowAllException, coordUrl )
                     && waitCatalogSync( printAndThrowAllException );
         } else {
             return false;
@@ -555,14 +600,14 @@ public class GroupMgr {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkBusinessWithLSNAndDisk( int timeOutSecond )
-            throws ReliabilityException {
-        refresh();
+    public boolean checkBusinessWithLSNAndDisk( int timeOutSecond,
+            String coordUrl ) throws ReliabilityException {
+        refresh( coordUrl );
         long timestamp = System.currentTimeMillis();
-        while ( !checkBusinessWithLSNAndDisk( false ) ) {
+        while ( !checkBusinessWithLSNAndDisk( false, coordUrl ) ) {
             if ( System.currentTimeMillis() - timestamp > timeOutSecond
                     * 1000 ) {
-                return checkBusinessWithLSNAndDisk( true );
+                return checkBusinessWithLSNAndDisk( true, coordUrl );
             }
             try {
                 Thread.sleep( 1000 );
@@ -580,8 +625,14 @@ public class GroupMgr {
      * @return
      * @throws ReliabilityException
      */
-    public boolean checkBusinessWithLSNAndDisk() throws ReliabilityException {
-        return checkBusinessWithLSNAndDisk( 120 );
+    public boolean checkBusinessWithLSNAndDisk( String coordUrl )
+            throws ReliabilityException {
+        return checkBusinessWithLSNAndDisk( 120, coordUrl );
+    }
+
+    public boolean checkBusinessWithLSNAndDisk( int timeOutSecond )
+            throws ReliabilityException {
+        return checkBusinessWithLSNAndDisk( 120, coordUrl );
     }
 
     /**
@@ -594,12 +645,13 @@ public class GroupMgr {
      */
     // TODO:可被替代，屏蔽
     private boolean checkBusinessWithLSNAndDisk(
-            boolean printAndThrowAllException ) throws ReliabilityException {
+            boolean printAndThrowAllException, String coordUrl )
+            throws ReliabilityException {
         boolean ret = false;
         // 尝试创建一个ReplSize=3的测试集合（检测所有数据节点是否Alive）
-        if ( createTestCollection( printAndThrowAllException ) ) {
+        if ( createTestCollection( printAndThrowAllException, coordUrl ) ) {
             // 因为catalog的同步策略不受ReplSize影响，所以删除cl后要等待catalog同步，以免影响外部
-            ret = dropTestCollection( printAndThrowAllException )
+            ret = dropTestCollection( printAndThrowAllException, coordUrl )
                     && waitCatalogSync( printAndThrowAllException );
         } else {
             return false;
@@ -618,7 +670,6 @@ public class GroupMgr {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -742,5 +793,4 @@ public class GroupMgr {
         }
 
     }
-
 }
