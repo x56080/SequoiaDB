@@ -1,18 +1,18 @@
 下述以名为“datasource”的数据源为例介绍数据源的搭建及使用步骤。该数据源与协调节点地址为 `sdbserver1:11810` 的集群建立交互通道，且 sdbserver1 中源集群的鉴权用户名为“sdbadmin”，用户密码为“sdbadmin”。
 
-## 创建数据源
+##创建数据源##
 
 创建名为“datasource”的数据源
 
 ```lang-javascript
-> db.createDataSource("datasource","sdbserver1:11810","sdbadmin","sdbadmin")
+> db.createDataSource("datasource", "sdbserver1:11810", "sdbadmin", "sdbadmin")
 ```
 
 >**Note:**
 >
 > 创建数据源的详细参数说明可参考 [createDataSource()][create]。
 
-## 查看数据源
+##查看数据源##
 
 用户可通过 [listDataSources()][list] 或[数据源列表][SDB_LIST]查看数据源的元数据信息。
 
@@ -22,20 +22,20 @@
 
 >**Note:**
 >
-> 元数据信息字段说明可参考 [SYSCAT.SYSDATASOURCES 集合][SYSDATASOURCES]。
+> 元数据信息字段说明可参考 [SYSDATASOURCES 集合][SYSDATASOURCES]。
 
-## 使用数据源
+##使用数据源##
 
 用户可以通过创建集合空间或集合时与数据源建立映射，实现跨集群的数据访问。在集合空间上使用数据源时，可以访问被映射集合空间下的所有集合，实现跨集群的多集合数据访问；在集合上使用数据源时，可以实现跨集群的单集合数据访问。
 
-### 创建映射
+###创建映射###
 
 - **创建集合空间**
 
    创建集合空间 sample 并关联数据源 datasource 的集合空间 sample1
 
    ```lang-javascript
-   > db.createCS("sample",{DataSource:"datasource",Mapping:"sample1"})
+   > db.createCS("sample", {DataSource: "datasource", Mapping: "sample1"})
    ```
 
    >**Note:**
@@ -47,19 +47,19 @@
    创建集合 sample2.employee 并关联数据源 datasource 的同名集合
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource"})
+   > db.sample2.createCL("employee", {DataSource: "datasource"})
    ```
 
    创建集合 sample2.employee 并关联数据源 datasource 的集合 sample2.employee1
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource",Mapping:"employee1"})
+   > db.sample2.createCL("employee", {DataSource: "datasource", Mapping: "employee1"})
    ```
 
    创建集合 sample2.employee 并关联数据源 datasource 的集合 sample3.employee1
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource",Mapping:"sample3.employee1"})
+   > db.sample2.createCL("employee", {DataSource: "datasource", Mapping: "sample3.employee1"})
    ```
 
    >**Note:** 
@@ -69,14 +69,14 @@
    > - 使用了数据源的集合可作为子集合挂载到主集合，但使用了同一数据源的集合在相同主集合下只能挂载一个  
 
 
-### 查看映射
+###查看映射###
 
 - **查看集合空间信息**
 
    通过编目节点查看使用了数据源的集合空间信息
 
    ```lang-javascript
-   > var cata = new Sdb("sdbserver",11800)
+   > var cata = new Sdb("sdbserver", 11800)
    > cata.SYSCAT.SYSCOLLECTIONSPACES.find()
    ```
 
@@ -132,14 +132,14 @@
    }
    ```
 
-## 读写数据源
+##读写数据源##
 
 假设本地集群中集合 sample.employee 与源集群的集合 sample2.employee 建立映射，且集合 sample2.employee 存在如下记录：
 
 ```lang-text
-{"name":"Sam","age":26}
-{"name":"Tom","age":30}
-{"name":"Mike","age":24}
+{"name": "Sam", "age": 26}
+{"name": "Tom", "age": 30}
+{"name": "Mike", "age": 24}
 ```
 
 1. 通过本地集群检查数据是否正确
@@ -151,7 +151,7 @@
 2. 通过集合 sample.employee 对源集群插入新数据
 
     ```lang-json
-     > db.sample.employee.insert({"name":"Jack","age":32})
+     > db.sample.employee.insert({"name": "Jack", "age": 32})
     ```
 
 3. 在 sdbserver1 中检查源集群对应集合的数据是否更改
@@ -194,7 +194,7 @@
     Return 4 row(s).
     ````
     
-## 参考
+##参考##
 
 更多操作可参考
 
