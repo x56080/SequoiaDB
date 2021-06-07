@@ -240,6 +240,14 @@ namespace engine
       INT32 _assignGroup( vector< UINT32 > *pGoups, UINT32 &groupID ) ;
 
       INT32 _checkAllCSCLUniqueID() ;
+
+      /**
+       * Check and upgrade data source and collection information. It will only
+       * happen when upgrading from sequoiadb 3.2.8 to newer versions, and if
+       * data source is used.
+       */
+      INT32 _checkAndUpgradeDSCLInfo() ;
+
    private:
       INT16 _majoritySize() ;
       INT32 _setCSCLUniqueID( string csName, const BSONObj& boCollections,

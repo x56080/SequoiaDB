@@ -73,6 +73,10 @@ namespace engine
          rc = _checkAllCSCLUniqueID() ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to check cs/cl unique id, rc: %d", rc ) ;
+
+         rc = _checkAndUpgradeDSCLInfo() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check and update data source and "
+                      "collection information, rc: %d", rc ) ;
       }
 
       _taskMgr.setTaskID( catGetMaxTaskID( _pEduCB ) ) ;
@@ -1180,6 +1184,98 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR__CHECKCSOBJ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /**
+    * Compatibility handling on data source with old version. The feture of data
+    * source is originally developed in v3.2.8. In that version, the value of
+    * the field 'GroupName' in collection metadata is always 'DataSource'. That
+    * is a bad design, as 'DataSource' is just a very ordinary name which user
+    * may use. Now we change it to '$null'.
+    * So if there is any data source which was created when using sequoiadb
+    * 3.2.8, we need to upgrade the related information.
+    */
+   PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, "catCatalogueManager::_checkAndUpgradeDSCLInfo" )
+   INT32 catCatalogueManager::_checkAndUpgradeDSCLInfo()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO ) ;
+      INT64 count = 0 ;
+
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObjBuilder builder ;
+         BSONObj updator ;
+         BSONObj matcher ;
+
+         // Check whether need to upgrade or not.
+         BSONObj dsMatcher = BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
+                                 BSON( MTH_OPERATOR_STR_EXISTS << 0 ) ) ;
+         rc = catGetObjectCount( CAT_DATASOURCE_COLLECTION, dummyObj, dsMatcher,
+                                 dummyObj, _pEduCB, count ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to query from %s, rc: %d",
+                      CAT_DATASOURCE_COLLECTION, rc ) ;
+         if ( 0 == count )
+         {
+            goto done ;
+         }
+
+         /**
+          * Update collection SYSCAT.SYSCOLLECTIONS.
+          * Matcher:
+          * { "$and": [ { "DataSourceID": { "$exists": 1 } },
+          *             { "CataInfo.GroupName": "DataSource" } ] } ;
+          * Updator:
+          * { "$set" : "CataInfo.0.GroupName": "$null" } }
+          */
+         BSONArrayBuilder subBuilder(
+            builder.subarrayStart( MTH_OPERATOR_STR_AND ) ) ;
+         subBuilder.append( BSON( FIELD_NAME_DATASOURCE_ID <<
+                                  BSON( MTH_OPERATOR_STR_EXISTS << 1 ) ) ) ;
+         subBuilder.append( BSON( FIELD_NAME_CATALOGINFO"."FIELD_NAME_GROUPNAME
+                                  << "DataSource" ) ) ;
+         subBuilder.done() ;
+         matcher = builder.done() ;
+         updator = BSON( "$set" <<
+                         BSON( FIELD_NAME_CATALOGINFO".0."FIELD_NAME_GROUPNAME
+                               << CAT_DATASOURCE_GROUPNAME ) ) ;
+
+         PD_LOG( PDDEBUG, "Update collection SYSCOLLECTIONS. Matcher: %s. "
+                 "Updator: %s", matcher.toString().c_str(),
+                 updator.toString().c_str() ) ;
+
+         rc = rtnUpdate( CAT_COLLECTION_INFO_COLLECTION, matcher, updator,
+                         dummyObj, 0, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",
+                      CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+
+         /**
+          * Update collection SYSCAT.SYSDATASOURCES.
+          * Matcher:
+          * { "TransPropagateMode": { "$exists": 0 } }
+          * Updator:
+          * { "$set": { "TransPropagateMode": "never" } }
+          */
+         updator = BSON( "$set" << BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
+                                         VALUE_NAME_NEVER ) ) ;
+         rc = rtnUpdate( CAT_DATASOURCE_COLLECTION, dsMatcher, updator,
+                         dummyObj, 0, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",
+                      CAT_DATASOURCE_COLLECTION, rc ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, rc ) ;
       return rc ;
    error:
       goto done ;

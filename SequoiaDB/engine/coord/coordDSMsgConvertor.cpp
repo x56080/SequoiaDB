@@ -37,6 +37,7 @@
 
 *******************************************************************************/
 #include "coordDSMsgConvertor.hpp"
+#include "coordTrace.hpp"
 #include "msgMessage.hpp"
 #include "pmdEDU.hpp"
 #include "coordCB.hpp"
@@ -60,6 +61,7 @@ namespace engine
    {
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__CMDSHOULDFILTEROUT, "_coordDSMsgConvertor::_cmdShouldFilterOut" )
    INT32 _coordDSMsgConvertor::_cmdShouldFilterOut( _pmdSubSession *pSub,
                                                     const MsgOpQuery *pQuery,
                                                     pmdEDUCB *cb,
@@ -67,6 +69,7 @@ namespace engine
                                                     UINT32 &oprMask ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__CMDSHOULDFILTEROUT ) ;
       _rtnCommand *pCommand = NULL ;
 
       INT32 flag = 0 ;
@@ -115,7 +118,8 @@ namespace engine
       /// need to process
       if ( CMD_GET_COUNT == pCommand->type() ||
            CMD_TRUNCATE == pCommand->type() ||
-           CMD_LIST_LOB == pCommand->type() )
+           CMD_LIST_LOB == pCommand->type() ||
+           CMD_GET_CL_DETAIL == pCommand->type() )
       {
          ignore = FALSE ;
          goto done ;
@@ -160,17 +164,20 @@ namespace engine
       {
          rtnReleaseCommand( &pCommand ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__CMDSHOULDFILTEROUT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__LOBSHOULDFILTEROUT, "_coordDSMsgConvertor::_lobShouldFilterOut" )
    INT32 _coordDSMsgConvertor::_lobShouldFilterOut( const MsgHeader *msg,
                                                     const MsgHeader *pOrgMsg,
                                                     BOOLEAN &ignore,
                                                     UINT32 &oprMask ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__LOBSHOULDFILTEROUT ) ;
 
       switch( pOrgMsg->opCode )
       {
@@ -262,17 +269,20 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__LOBSHOULDFILTEROUT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR_FILTER, "_coordDSMsgConvertor::filter" )
    INT32 _coordDSMsgConvertor::filter( _pmdSubSession *pSub,
                                        _pmdEDUCB * cb,
                                        BOOLEAN &ignore,
                                        UINT32 &oprMask )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR_FILTER ) ;
       MsgHeader *msg = pSub->getReqMsg() ;
 
       ignore = FALSE ;
@@ -345,6 +355,8 @@ namespace engine
             case MSG_BS_INSERT_REQ:
             case MSG_BS_DELETE_REQ:
             case MSG_BS_UPDATE_REQ:
+            // Transaction permission check will be done in function
+            // 'checkPermission'.
             case MSG_BS_TRANS_INSERT_REQ:
             case MSG_BS_TRANS_UPDATE_REQ:
             case MSG_BS_TRANS_DELETE_REQ:
@@ -362,16 +374,19 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR_FILTER, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR_CHECKPERMISSION, "_coordDSMsgConvertor::checkPermission" )
    INT32 _coordDSMsgConvertor::checkPermission( _pmdSubSession *pSub,
                                                 UINT32 oprMask,
                                                 _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR_CHECKPERMISSION ) ;
       MsgHeader *pMsg = pSub->getReqMsg() ;
       UTIL_DS_UID dsID = UTIL_INVALID_DS_UID ;
       CoordDataSourcePtr dsPtr ;
@@ -387,14 +402,6 @@ namespace engine
          goto done ;
       }
 
-      if ( cb->isTransaction() )
-      {
-         rc = SDB_COORD_DATASOURCE_TRANS_FORBIDDEN ;
-         PD_LOG( PDERROR, "Transaction is not allowed on data source, rc: %d",
-                 rc ) ;
-         goto error ;
-      }
-
       dsID = SDB_GROUPID_2_DSID( pSub->getNodeID().columns.groupID ) ;
 
       rc = pDSMgr->getOrUpdateDataSource( dsID, dsPtr, cb ) ;
@@ -402,6 +409,18 @@ namespace engine
       {
          PD_LOG( PDERROR, "Get data source[%u] failed, rc: %d",
                  dsID, rc ) ;
+         goto error ;
+      }
+
+      // In case of autocommit on, the beginning of transaction may be pushed
+      // down to data node. No valid transaction id will be set in eduCB on
+      // coordinator, but the message will be transaction operation message.
+      if ( ( cb->isTransaction() || isTransBSMsg( pMsg->opCode) )
+           && ( DS_TRANS_PROPAGATE_NEVER == dsPtr->getTransPropagateMode() ) )
+      {
+         rc = SDB_COORD_DATASOURCE_TRANS_FORBIDDEN ;
+         PD_LOG( PDERROR, "Transaction is not allowed on data source, rc: %d",
+                 rc ) ;
          goto error ;
       }
 
@@ -422,14 +441,17 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR_CHECKPERMISSION, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__BUILDEMPTYLOBMETA, "_coordDSMsgConvertor::_buildEmptyLobMeta" )
    INT32 _coordDSMsgConvertor::_buildEmptyLobMeta( BSONObj &metaObj ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__BUILDEMPTYLOBMETA ) ;
 
       try
       {
@@ -452,15 +474,18 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__BUILDEMPTYLOBMETA, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__BUILDLOWVERLOBMETA, "_coordDSMsgConvertor::_buildLowVerLobMeta" )
    INT32 _coordDSMsgConvertor::_buildLowVerLobMeta( const CHAR *pOrgMeta,
                                                     BSONObj &newMeta ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__BUILDLOWVERLOBMETA ) ;
 
       try
       {
@@ -480,7 +505,7 @@ namespace engine
          builder.append( FIELD_NAME_VERSION,
                          (INT32)DMS_LOB_META_MERGE_DATA_VERSION - 1 ) ;
 
-         newMeta = builder.obj() ;         
+         newMeta = builder.obj() ;
       }
       catch( std::exception &e )
       {
@@ -490,17 +515,20 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__BUILDLOWVERLOBMETA, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__BUILDNEWEVENT, "_coordDSMsgConvertor::_buildNewEvent" )
    INT32 _coordDSMsgConvertor::_buildNewEvent( const MsgOpReply *pOld,
                                                const BSONObj &meta,
                                                const pmdEDUEvent &orgEvent,
                                                pmdEDUEvent &event )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__BUILDNEWEVENT ) ;
       UINT32 newSize = 0 ;
       CHAR *pNewMsg = NULL ;
 
@@ -526,11 +554,13 @@ namespace engine
       event._dataMemType = PMD_EDU_MEM_THREAD ;
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__BUILDNEWEVENT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR_CONVERTREPLY, "_coordDSMsgConvertor::convertReply" )
    INT32 _coordDSMsgConvertor::convertReply( _pmdSubSession *pSub,
                                              _pmdEDUCB *cb,
                                              const pmdEDUEvent &orgEvent,
@@ -538,6 +568,7 @@ namespace engine
                                              BOOLEAN &hasConvert )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR_CONVERTREPLY ) ;
       MsgOpReply *pReply = ( MsgOpReply* )orgEvent._Data ;
       hasConvert = FALSE ;
 
@@ -628,15 +659,18 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR_CONVERTREPLY, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR_CONVERT, "_coordDSMsgConvertor::convert" )
    INT32 _coordDSMsgConvertor::convert( _pmdSubSession *pSub,
                                         _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR_CONVERT ) ;
 
       MsgHeader *msg = pSub->getReqMsg() ;
 
@@ -651,15 +685,19 @@ namespace engine
          switch ( msg->opCode )
          {
             case MSG_BS_INSERT_REQ:
+            case MSG_BS_TRANS_INSERT_REQ:
                rc = _rebuildDataSourceInsertMsg( pSub, cb ) ;
                break ;
             case MSG_BS_UPDATE_REQ:
+            case MSG_BS_TRANS_UPDATE_REQ:
                rc = _rebuildDataSourceUpdateMsg( pSub, cb ) ;
                break ;
             case MSG_BS_DELETE_REQ:
+            case MSG_BS_TRANS_DELETE_REQ:
                rc = _rebuildDataSourceDeleteMsg( pSub, cb ) ;
                break ;
             case MSG_BS_QUERY_REQ:
+            case MSG_BS_TRANS_QUERY_REQ:
                rc = _rebuildDataSourceQueryMsg( pSub, cb ) ;
                break ;
             case MSG_BS_LOB_OPEN_REQ:
@@ -683,37 +721,37 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR_CONVERT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG , "_coordDSMsgConvertor::_rebuildDataSourceInsertMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceInsertMsg( pmdSubSession *pSub,
                                                             _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG ) ;
       MsgHeader *msg = pSub->getReqMsg() ;
       netIOVec *dataVec = pSub->getIODatas() ;
       CHAR *buff = NULL ;
       coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr catInfo ;
 
+      if ( MSG_BS_TRANS_INSERT_REQ == msg->opCode )
+      {
+         msg->opCode = MSG_BS_INSERT_REQ ;
+      }
+
       if ( dataVec->size() > 1 )
       {
-         // Insert on main collection.
+         // Data for insertion is not in a continous buffer. This hapends when
+         // using bulk insertion to insert into a sharded collection or a main
+         // collection. As a sharded collection is not allowed to use data
+         // source, it may only be a main collection here.
          const CHAR *subCLName = NULL ;
          UINT32 offset = 0 ;
-         UINT32 dataLen = pSub->getIODataLen() ;
-         UINT32 totalLen = sizeof( MsgHeader ) + dataLen ;
-         buff = ( CHAR * )SDB_OSS_MALLOC( totalLen ) ;
-         if ( !buff )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Allocate memory for message failed[%d]", rc ) ;
-            goto error ;
-         }
-         ossMemset( buff, 0, totalLen ) ;
-         MsgOpInsert *insertMsg = (MsgOpInsert *)buff;
          netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
          itr++ ; // Now point to collection information object.
          netIOV clInfo = *itr ;
@@ -727,9 +765,23 @@ namespace engine
             {
                // If field SubCLName exists, it's insertion on main
                // collection.
+               UINT32 dataLen = pSub->getIODataLen() ;
+               UINT32 totalLen = sizeof( MsgHeader ) + dataLen ;
+
                rc = pResource->getOrUpdateCataInfo( subCLName, catInfo, cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Get Catalogue information of "
                             "collection[%s] failed[%d]", subCLName, rc ) ;
+
+               buff = ( CHAR * )SDB_OSS_MALLOC( totalLen ) ;
+               if ( !buff )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Allocate memory for message failed[%d]",
+                          rc ) ;
+                  goto error ;
+               }
+               ossMemset( buff, 0, totalLen ) ;
+               MsgOpInsert *insertMsg = (MsgOpInsert *)buff;
 
                const string& mapping = catInfo->getMappingName() ;
                *insertMsg = *(MsgOpInsert *)msg ;
@@ -842,15 +894,19 @@ namespace engine
       {
          SDB_OSS_FREE( buff ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG,
+                       rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEUPDATEMSG , "_coordDSMsgConvertor::_rebuildDataSourceUpdateMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceUpdateMsg( pmdSubSession *pSub,
                                                             _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEUPDATEMSG ) ;
       CHAR *newMsg = NULL ;
       INT32 msgLen = 0 ;
       MsgHeader *msg = pSub->getReqMsg() ;
@@ -859,6 +915,11 @@ namespace engine
 
       coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr cataInfo ;
+
+      if ( MSG_BS_TRANS_UPDATE_REQ == msg->opCode )
+      {
+         msg->opCode = MSG_BS_UPDATE_REQ ;
+      }
 
       try
       {
@@ -960,15 +1021,19 @@ namespace engine
       {
          msgReleaseBuffer( newMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEUPDATEMSG,
+                       rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEDELETEMSG , "_coordDSMsgConvertor::_rebuildDataSourceDeleteMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceDeleteMsg( pmdSubSession *pSub,
                                                             _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEDELETEMSG ) ;
       CHAR *newMsg = NULL ;
       INT32 msgLen = 0 ;
       MsgHeader *msg = pSub->getReqMsg() ;
@@ -977,6 +1042,11 @@ namespace engine
 
       coordResource *pResource = sdbGetCoordCB()->getResource() ;
       CoordCataInfoPtr cataInfo ;
+
+      if ( MSG_BS_TRANS_DELETE_REQ == msg->opCode )
+      {
+         msg->opCode = MSG_BS_DELETE_REQ ;
+      }
 
       try
       {
@@ -1074,6 +1144,8 @@ namespace engine
       {
          msgReleaseBuffer( newMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEDELETEMSG,
+                       rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1082,10 +1154,12 @@ namespace engine
    /**
     * The query may be on a main collection or a normal collection.
     */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEQUERYMSG , "_coordDSMsgConvertor::_rebuildDataSourceQueryMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceQueryMsg( pmdSubSession *pSub,
                                                            _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEQUERYMSG ) ;
 
       CHAR *newMsg = NULL ;
       INT32 msgLen = 0 ;
@@ -1098,6 +1172,12 @@ namespace engine
 
       MsgOpQuery *origQuery = (MsgOpQuery *)msg ;
 
+      // Query which is not a command.
+      if ( MSG_BS_TRANS_QUERY_REQ == msg->opCode )
+      {
+         msg->opCode = MSG_BS_QUERY_REQ ;
+      }
+
       // Note: Do not use the msgExtractQuery to extract the message here, as
       // it may have been broken into netIOVector coordinator processing.
       if ( CMD_ADMIN_PREFIX[0] == origQuery->name[0] )
@@ -1109,7 +1189,6 @@ namespace engine
       }
       else
       {
-         // Query which is not a command.
          try
          {
             // TODO: YSD use _parseQueryMsg
@@ -1233,17 +1312,21 @@ namespace engine
       {
          msgReleaseBuffer( newMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEQUERYMSG,
+                       rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__PARSEQUERYMSG, "_coordDSMsgConvertor::_parseQueryMsg" )
    INT32 _coordDSMsgConvertor::_parseQueryMsg( pmdSubSession *pSub,
                                                INT32 *flag, CHAR **cmdName,
                                                CHAR **query, CHAR **selector,
                                                CHAR **order, CHAR **hint )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__PARSEQUERYMSG ) ;
       MsgOpQuery *queryMsg = (MsgOpQuery *)pSub->getReqMsg() ;
       netIOVec *dataVec = pSub->getIODatas() ;
       netIOVec::const_iterator itr = dataVec->begin() ;
@@ -1322,15 +1405,18 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__PARSEQUERYMSG, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCECMDMSG, "_coordDSMsgConvertor::_rebuildDataSourceCmdMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceCmdMsg( pmdSubSession *pSub,
                                                          _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCECMDMSG ) ;
       INT32 flag = 0 ;
       CHAR *cmdName = NULL ;
       CHAR *query = NULL ;
@@ -1530,16 +1616,18 @@ namespace engine
       {
          msgReleaseBuffer( newMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCECMDMSG, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCELOBMSG, "_coordDSMsgConvertor::_rebuildDataSourceLobMsg" )
    INT32 _coordDSMsgConvertor::_rebuildDataSourceLobMsg( pmdSubSession *pSub,
                                                          _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCELOBMSG ) ;
       const MsgHeader *pOrgMsg = NULL ;
       ISession *pSession = NULL ;
       IClient *pClient = NULL ;
@@ -1786,6 +1874,7 @@ namespace engine
       {
          SDB_OSS_FREE( pNewMsg ) ;
       }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCELOBMSG, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1849,6 +1938,7 @@ namespace engine
       case CMD_UNLINK_COLLECTION:
       case CMD_RENAME_COLLECTIONSPACE:
       case CMD_RENAME_COLLECTION:
+      case CMD_ALTER_COLLECTION:
          result = TRUE ;
          break ;
       default:

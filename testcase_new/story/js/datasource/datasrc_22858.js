@@ -17,14 +17,14 @@ function test ()
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCL( datasrcDB, srcCSName, clName );
-   db.createDataSource( dataSrcName, datasrcUrl );
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    var dataSource = db.getDataSource( dataSrcName );
    var dbcs = commCreateCS( db, csName );
    var dbcl = dbcs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
 
    dbcl.insert( { a: 1 } );
    dataSource.alter( { "AccessMode": "READ" } );
-   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function() 
+   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function()
    {
       dbcl.insert( { a: 1 } );
    } );

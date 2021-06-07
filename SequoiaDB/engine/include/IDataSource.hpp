@@ -124,10 +124,24 @@ namespace engine
       SDB_DS_MAX
    } ;
 
+   /**
+    * Transaction propagation mode for data source. As transaction operations
+    * are not allowed on data source, the action is relied on this mode.
+    */
+   enum SDB_DS_TRANS_PROPAGATE_MODE
+   {
+      DS_TRANS_PROPAGATE_INVALID,
+      DS_TRANS_PROPAGATE_NEVER,        // Report error for any transaction
+                                       // operation on data source.
+      DS_TRANS_PROPAGATE_NOT_SUPPORT   // Do not report error directly, but
+                                       // degrade to non transactioanl
+                                       // operations and send to data source.
+   } ;
+
    /*
       Data source type name define
    */
-   #define SDB_DATASOURCE_TYPE_NAME          "SequoiaDB"
+   #define SDB_DATASOURCE_TYPE_NAME          "sequoiadb"
    #define COORD_DS_ROUTE_SERVCIE            MSG_ROUTE_SHARD_SERVCIE
 
    /*
@@ -192,6 +206,8 @@ namespace engine
 
       virtual BOOLEAN isReadable() const = 0 ;
       virtual BOOLEAN isWritable() const = 0 ;
+
+      virtual SDB_DS_TRANS_PROPAGATE_MODE getTransPropagateMode() const = 0 ;
 
       /**
        * Get error filter mask of the data source.

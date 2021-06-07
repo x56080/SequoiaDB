@@ -22,7 +22,7 @@ function test ()
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { "AccessMode": "READ", "ErrorFilterMask": "READ", "ErrorControlLevel": "Low" } );
 
    var explainObj = db.listDataSources( { "Name": dataSrcName } );
-   checkExplain( explainObj, dataSrcName, datasrcUrl, userName, "READ", "READ", "Low" );
+   checkExplain( explainObj, dataSrcName, datasrcUrl, userName, "READ", "READ", "low" );
    var dbcs = commCreateCS( db, csName );
    var dbcl = dbcs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
 
@@ -30,7 +30,7 @@ function test ()
    dbcl.createIndex( indexName, { a: 1 } );
 
    // 插入数据，验证 "AccessMode": "READ"
-   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function() 
+   assert.tryThrow( [SDB_COORD_DATASOURCE_PERM_DENIED], function()
    {
       dbcl.insert( { a: 1 } );
    } );
@@ -43,7 +43,7 @@ function test ()
    dbcs.dropCL( clName );
    db.dropDataSource( dataSrcName );
 
-   assert.tryThrow( [SDB_DMS_NOTEXIST], function() 
+   assert.tryThrow( [SDB_DMS_NOTEXIST], function()
    {
       dbcl.insert( { a: 1 } );
    } );

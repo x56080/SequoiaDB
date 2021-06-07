@@ -27,19 +27,19 @@ function test ()
 
    //test a:ErrorControlLevel更新为Low
    var src = db.getDataSource( dataSrcName );
-   src.alter( { "ErrorControlLevel": "Low" } );
-   //集合级使用数据源    
+   src.alter( { "ErrorControlLevel": "low" } );
+   //集合级使用数据源
    ignoreOperationError( dbcl );
 
-   //集合空间级使用数据源 
+   //集合空间级使用数据源
    var dbcl1 = db.getCS( csName1 ).getCL( clName );
    ignoreOperationError( dbcl1 );
 
    //test b:ErrorControlLevel更新为HIGH
-   src.alter( { "ErrorControlLevel": "HIGH" } );
-   //集合级使用数据源     
+   src.alter( { "ErrorControlLevel": "high" } );
+   //集合级使用数据源
    operationPremDenied( dbcl );
-   //集合空间级使用数据源    
+   //集合空间级使用数据源
    operationPremDenied( dbcl1 );
 
    datasrcDB.dropCS( csName );
@@ -91,10 +91,12 @@ function operationPremDenied ( dbcl )
       dbcl.dropIndex( "testa" );
    } );
 
+   /*
    assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.getDetail();
    } );
+   */
 
    var recordNum = 10000;
    var expRecs = insertBulkData( dbcl, recordNum, 0, 40000 );

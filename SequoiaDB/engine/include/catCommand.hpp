@@ -41,9 +41,14 @@
 #include "catCMDBase.hpp"
 #include "catLevelLock.hpp"
 #include "IDataSource.hpp"
+#include "utilDataSource.hpp"
 
 namespace engine
 {
+   /**
+    * Data source information. Used when creating a data source, to generate
+    * a data source metadata record.
+    */
    struct _catDSInfo
    {
       UINT32      _id ;
@@ -57,6 +62,9 @@ namespace engine
       const CHAR *_errCtlLevel ;
       INT32       _accessMode ;
       INT32       _errFilterMask ;
+      // Where degrade transactional operation to non-transactional operation
+      // and send to data source.
+      const CHAR *_transPropagateMode ;
 
       _catDSInfo()
       {
@@ -76,6 +84,7 @@ namespace engine
          _errCtlLevel = VALUE_NAME_HIGH ;
          _accessMode = DS_ACCESS_DEFAULT ;
          _errFilterMask = DS_ERR_FILTER_NONE ;
+         _transPropagateMode = VALUE_NAME_NEVER ;
       }
 
       BSONObj toBson()
@@ -99,6 +108,8 @@ namespace engine
             builder.append( FIELD_NAME_ERRORFILTERMASK, _errFilterMask ) ;
             DS_ERR_FILTER_2_DESC( _errFilterMask, desc ) ;
             builder.append( FIELD_NAME_ERRORFILTERMASK_DESC, desc ) ;
+            builder.append( FIELD_NAME_TRANS_PROPAGATE_MODE,
+                            _transPropagateMode ) ;
             return builder.obj() ;
          }
          catch ( std::exception &e )

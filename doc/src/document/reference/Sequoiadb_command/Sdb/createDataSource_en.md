@@ -34,7 +34,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
 - type ( *string, optional* )
 
-    Data source type, currently only supports SequoiaDB.
+    Data source type, currently only supports sequoiadb.
 
 - options ( *object, optional* )
 
@@ -43,7 +43,7 @@ This function is used to create a data source to achieve cross-cluster data acce
     1. AccessMode ( *string* ): Configure access permissions for the data source, including reading and writing data, default is "ALL".
 
         The values are as follows:
-    
+
         - "READ": Allow read-only operation.
         - "WRITE": Allow write operation.
         - "ALL" or "READ|WRITE": Allow all operations.
@@ -54,7 +54,7 @@ This function is used to create a data source to achieve cross-cluster data acce
     2. ErrorFilterMask ( *string* ): Configure error filtering for data operations on data sources, default is "NONE".
 
         The values are as follows:
-    
+
         - "READ": Filter data read errors.
         - "WRITE": Filter data write errors.
         - "ALL" or "READ|WRITE": Filter all data read and write errors.
@@ -62,14 +62,23 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `ErrorFilterMask: "READ"`
 
-    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "High".
+    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "high".
 
         The values are as follows:
-    
-        - "High": Report an error and output an error message.
-        - "Low": Ignore unsupported data operations and do not execute.
-    
-        Format: `ErrorControlLevel: "Low"`
+
+        - "high": Report an error and output an error message.
+        - "low": Ignore unsupported data operations and do not execute.
+
+        Format: `ErrorControlLevel: "low"`
+
+    4. TransPropagateMode ( *string* ): Configure transaction propagation mode on data source, default is "never".
+
+        The values are as follows:
+
+        - "never": Transaction operation is forbidden. Report an error and output an error message.
+        - "notsupport": Transaction operation is not supported on data source. The operation will be converted to non-transactional and send to data source. It will be excluded from the transaction.
+
+        Format: `TransPropagateMode: "never"`
 
 ##RETURN VALUE##
 

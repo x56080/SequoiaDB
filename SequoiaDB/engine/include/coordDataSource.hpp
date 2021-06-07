@@ -59,6 +59,8 @@ namespace engine
     * to access data source information, it try to get it from the cache. If
     * it's not in the cache, it will be fetched from the catalogue and the cache
     * will be updated.
+    * The data source manager uses a isolated net route agent to communicate
+    * with data source nodes(Coordinators in the data source).
     */
    class _coordDataSourceMgr : public _IRemoteMgrControl
    {

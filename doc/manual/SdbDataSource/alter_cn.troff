@@ -65,18 +65,26 @@ ErrorFilterMask（string）：控制对数据源进行数据操作的错误过�
 格式：\f[C]ErrorFilterMask:"READ"\f[]
 .IP "7." 3
 ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如
-DDL）时的报错级别，默认值为"High"
+DDL）时的报错级别，默认值为"high"
 .PP
 取值如下：
-.IP
-.nf
-\f[C]
-\ \-\ "High"：报错并输出错误信息
-\ \-\ "Low"：忽略不支持的数据操作且不执行
-\f[]
-.fi
+.IP \[bu] 2
+"high"：报错并输出错误信息
+.IP \[bu] 2
+"low"：忽略不支持的数据操作且不执行
 .PP
-格式：\f[C]ErrorControlLevel:"Low"\f[]
+格式：\f[C]ErrorControlLevel:"low"\f[]
+.IP "8." 3
+TransPropagateMode（string）：配置事务操作在数据源上的传播模式，默认值为"never"
+.PP
+取值如下：
+.IP \[bu] 2
+"never": 不允许在数据源上进行事务操作，对操作直接报错
+.IP \[bu] 2
+"notsupport":
+事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
+.PP
+格式：\f[C]TransPropagateMode:"never"\f[]
 .SH 返回值
 .PP
 函数执行成功时，无返回值。

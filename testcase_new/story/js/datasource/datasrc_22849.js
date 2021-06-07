@@ -18,12 +18,12 @@ function test ()
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCL( datasrcDB, srcCSName, clName );
-   db.createDataSource( dataSrcName, datasrcUrl );
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    var dbcs = commCreateCS( db, csName );
    var dbcl = dbcs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    var dataSource = db.getDataSource( dataSrcName );
 
-   assert.tryThrow( [SDB_INVALIDARG], function() 
+   assert.tryThrow( [SDB_INVALIDARG], function()
    {
       dataSource.alter( { Address: datasrcUrl + "," + coordUrls[0] } );
    } );
@@ -31,7 +31,7 @@ function test ()
    assert.equal( actualReasult, datasrcUrl );
 
    // 校验新增其他数据源地址，需要使用两个数据源CI屏蔽该部分
-   // assert.tryThrow( [SDB_INVALIDARG], function() 
+   // assert.tryThrow( [SDB_INVALIDARG], function()
    // {
    //    dataSource.alter( { Address: datasrcUrl + "," + otherDSUrl1 } );
    // } );

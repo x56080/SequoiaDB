@@ -505,7 +505,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       IDataSource* newDataSource = NULL ;
 
-      if ( 0 == ossStrcmp( SDB_DATASOURCE_TYPE_NAME, type ) )
+      if ( 0 == ossStrcasecmp( SDB_DATASOURCE_TYPE_NAME, type ) )
       {
          newDataSource = SDB_OSS_NEW coordSdbDataSource() ;
          if ( !newDataSource )
@@ -694,6 +694,4 @@ namespace engine
    error:
       goto done ;
    }
-
-
 }

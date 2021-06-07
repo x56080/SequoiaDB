@@ -473,7 +473,7 @@ namespace engine
       }
       else if ( SDB_IS_DSID( groupID ) )
       {
-         return "DataSource" ;
+         return CAT_DATASOURCE_GROUPNAME ;
       }
 
       GRP_ID_MAP::iterator it = _grpIdMap.find( groupID ) ;
