@@ -90,6 +90,10 @@ namespace engine
                                                    rtnContextBuf &buffObj,
                                                    INT64 &contextID,
                                                    BOOLEAN &needRollback ) ;
+         INT32                   _onAdvanceReqMsg( MsgHeader * msg,
+                                                   rtnContextBuf &buffObj,
+                                                   INT64 &contextID,
+                                                   BOOLEAN &needRollback ) ;
          INT32                   _onKillContextsReqMsg( MsgHeader *msg ) ;
          INT32                   _onSQLMsg( MsgHeader *msg,
                                             INT64 &contextID,

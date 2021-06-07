@@ -173,6 +173,9 @@ namespace engine
          INT32 _onGetMoreReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
                                   INT32 &startingPos, INT64 &contextID,
                                   BOOLEAN &needRollback ) ;
+         INT32 _onAdvanceReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
+                                  INT32 &startingPos, INT64 &contextID,
+                                  BOOLEAN &needRollback ) ;
          INT32 _onKillContextsReqMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onMsgReq ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onInterruptMsg ( NET_HANDLE handle, MsgHeader *msg ) ;

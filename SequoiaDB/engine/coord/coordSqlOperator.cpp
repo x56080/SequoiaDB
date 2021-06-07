@@ -72,12 +72,12 @@ namespace engine
    {
       INT32 rc          = SDB_OK ;
       SQL_CB *sqlcb     = pmdGetKRCB()->getSqlCB() ;
-      CHAR *sql         = NULL ;
+      const CHAR *sql   = NULL ;
       BSONObjBuilder retBuilder ;
 
       contextID         = -1 ;
 
-      rc = msgExtractSql( (CHAR*)pMsg, &sql ) ;
+      rc = msgExtractSql( (const CHAR*)pMsg, &sql ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to extract sql" ) ;

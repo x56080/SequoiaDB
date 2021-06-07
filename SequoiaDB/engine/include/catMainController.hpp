@@ -143,6 +143,7 @@ namespace engine
    // msg process functions
    protected :
       INT32 _processGetMoreMsg ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
+      INT32 _processAdvanceMsg ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processQueryMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processKillContext(const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processAuthenticate( const NET_HANDLE &handle, MsgHeader *pMsg ) ;

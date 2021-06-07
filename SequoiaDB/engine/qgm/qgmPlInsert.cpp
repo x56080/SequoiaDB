@@ -272,10 +272,10 @@ namespace engine
             }
             else
             {
-               CHAR *pInsertor = NULL ;
+               const CHAR *pInsertor = NULL ;
                INT32 count = 0 ;
                INT32 flag = 0 ;
-               CHAR *pCollectionName = NULL ;
+               const CHAR *pCollectionName = NULL ;
 
                rc = msgExtractInsert( pMsg, &flag, &pCollectionName,
                                       &pInsertor, count ) ;

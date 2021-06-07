@@ -130,16 +130,16 @@ namespace engine
       contextID                        = -1 ;
 
       INT32 flag                       = 0 ;
-      CHAR *pCollectionName            = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pUpdator                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pCollectionName      = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pUpdator             = NULL ;
+      const CHAR *pHint                = NULL ;
       BOOLEAN strictDataMode           = FALSE ;
       BSONObj boSelector ;
       BSONObj boHint ;
       BSONObj boUpdator ;
 
-      rc = msgExtractUpdate( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       if ( rc )
       {
@@ -515,11 +515,11 @@ namespace engine
       INT32 rc                = SDB_OK ;
       MsgOpUpdate *pUpMsg     = ( MsgOpUpdate* )inMsg.msg() ;
 
-      INT32 flag              = 0 ;
-      CHAR *pCollectionName   = NULL;
-      CHAR *pSelector         = NULL ;
-      CHAR *pUpdator          = NULL ;
-      CHAR *pHint             = NULL;
+      INT32 flag                    = 0 ;
+      const CHAR *pCollectionName   = NULL;
+      const CHAR *pSelector         = NULL ;
+      const CHAR *pUpdator          = NULL ;
+      const CHAR *pHint             = NULL;
 
       CHAR *pBuff             = NULL ;
       UINT32 buffLen          = 0 ;
@@ -530,7 +530,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractUpdate( (CHAR*)pUpMsg, &flag, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)pUpMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse update request, rc: %d",
                    rc ) ;

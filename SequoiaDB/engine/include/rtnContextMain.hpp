@@ -48,6 +48,9 @@
 namespace engine
 {
 
+   class _pmdEDUCB ;
+   typedef ossPoolList< rtnSubContext* >           LST_SUB_CTX_PTR ;
+
    class _rtnContextMain : public _rtnContextBase,
                            public _rtnCtxDataDispatcher
    {
@@ -91,6 +94,17 @@ namespace engine
       INT32 reopenForExplain ( INT64 numToSkip, INT64 numToReturn ) ;
 
    protected:
+      virtual INT32     _doAdvance( INT32 type,
+                                    INT32 prefixNum,
+                                    const BSONObj &keyVal,
+                                    const BSONObj &orderby,
+                                    const BSONObj &arg,
+                                    BOOLEAN isLocate,
+                                    _pmdEDUCB *cb ) ;
+
+      virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const ;
+
+   protected:
       virtual BOOLEAN _requireExplicitSorting () const = 0 ;
       virtual INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) = 0 ;
       virtual INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx ) = 0 ;
@@ -98,6 +112,17 @@ namespace engine
       virtual INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) = 0 ;
       virtual INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) = 0 ;
       virtual INT32   _doAfterPrepareData( _pmdEDUCB *cb ) { return SDB_OK ; }
+
+      virtual INT32   _processCacheData( _pmdEDUCB *cb )
+      {
+         return SDB_OK ;
+      }
+
+      virtual INT32   _prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx ) = 0 ;
+
+      virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                         const BSONObj &arg,
+                                         _pmdEDUCB *cb ) = 0 ;
 
    protected:
       INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -109,6 +134,19 @@ namespace engine
                                  BOOLEAN & skipData ) ;
 
       INT32 _checkSubContext ( rtnSubContext * subContext ) ;
+
+      INT32 _checkSubContextAdvance( rtnSubContext *pSubCtx,
+                                     ixmIndexKeyGen &keyGen,
+                                     INT32 type,
+                                     INT32 prefixNum,
+                                     const BSONObj &keyVal,
+                                     const BSONObj &orderby,
+                                     BOOLEAN &processed ) ;
+
+      INT32 _checkOrderCtxsAdvance( INT32 type,
+                                    INT32 prefixNum,
+                                    const BSONObj &keyVal,
+                                    const BSONObj &orderby ) ;
 
    protected:
       rtnQueryOptions            _options ;

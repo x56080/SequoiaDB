@@ -431,7 +431,8 @@ namespace engine
          INT32 _estimateHintPlans ( dmsStorageUnit *su,
                                     dmsMBContext *mbContext,
                                     optAccessPlanHelper &planHelper,
-                                    dmsStatCache *statCache ) ;
+                                    dmsStatCache *statCache,
+                                    BOOLEAN &finished ) ;
 
          INT32 _estimatePlans ( dmsStorageUnit *su,
                                 dmsMBContext *mbContext,

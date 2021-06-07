@@ -183,17 +183,17 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       SINT64 numToSkip = 0 ;
       SINT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       seAdptContextQuery *context = NULL ;
       seAdptCommand *command = NULL ;
 
-      rc = msgExtractQuery( (CHAR *)msg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR *)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[ %s ] extract query message "
@@ -329,9 +329,10 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *contextIDs = NULL ;
+      const INT64 *contextIDs = NULL ;
 
-      rc = msgExtractKillContexts( (CHAR *)msg, &contextNum, &contextIDs )  ;
+      rc = msgExtractKillContexts( (const CHAR *)msg, &contextNum,
+                                   &contextIDs )  ;
       PD_RC_CHECK( rc, PDERROR, "Parse kill context message failed[%d]", rc ) ;
 
       for ( INT32 i = 0; i < contextNum; ++i )

@@ -75,6 +75,18 @@ namespace engine
             return !_options.isOrderByEmpty() ;
          }
 
+         virtual INT32   _prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+
+         virtual INT32   _doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                            const BSONObj &arg,
+                                            _pmdEDUCB *cb )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+
       private:
          INT32 _prepareNextSubContext( pmdEDUCB *eduCB,
                                        BOOLEAN getMore = TRUE ) ;

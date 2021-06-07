@@ -105,6 +105,9 @@ namespace engine
          INT32 _processGetMoreMsg ( MsgHeader *pMsg,
                                     rtnContextBuf &buffObj,
                                     INT64 &contextID ) ;
+         INT32 _processAdvanceMsg ( MsgHeader *pMsg,
+                                    rtnContextBuf &buffObj,
+                                    INT64 &contextID ) ;
          INT32 _processKillContext( MsgHeader *pMsg ) ;
          INT32 _processRemoteDisc( const NET_HANDLE &handle,
                                    MsgHeader *pMsg ) ;

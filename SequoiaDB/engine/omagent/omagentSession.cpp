@@ -339,10 +339,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       MsgCMRequest *pCMReq = ( MsgCMRequest* )pMsg ;
       INT32 remoteCode = 0 ;
-      CHAR *arg1 = NULL ;
-      CHAR *arg2 = NULL ;
-      CHAR *arg3 = NULL ;
-      CHAR *arg4 = NULL ;
+      const CHAR *arg1 = NULL ;
+      const CHAR *arg2 = NULL ;
+      const CHAR *arg3 = NULL ;
+      const CHAR *arg4 = NULL ;
       BSONObj obj ;
       const CHAR *body = NULL ;
       INT32 bodyLen = 0 ;
@@ -361,7 +361,7 @@ namespace engine
          goto done ;
       }
 
-      rc = msgExtractCMRequest ( ( CHAR*)pMsg, &remoteCode, &arg1, &arg2,
+      rc = msgExtractCMRequest ( ( const CHAR*)pMsg, &remoteCode, &arg1, &arg2,
                                  &arg3, &arg4 ) ;
       if ( rc )
       {
@@ -431,11 +431,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 flags               = 0 ;
-      CHAR *pCollectionName     = NULL ;
-      CHAR *pQuery              = NULL ;
-      CHAR *pFieldSelector      = NULL ;
-      CHAR *pOrderByBuffer      = NULL ;
-      CHAR *pHintBuffer         = NULL ;
+      const CHAR *pCollectionName   = NULL ;
+      const CHAR *pQuery         = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderByBuffer = NULL ;
+      const CHAR *pHintBuffer    = NULL ;
       SINT64 numToSkip          = -1 ;
       SINT64 numToReturn        = -1 ;
       _omaCommand *pCommand     = NULL ;
@@ -453,7 +453,7 @@ namespace engine
       // build reply massage header
       _buildReplyHeader( pMsg ) ;
       // extract command
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer,
                              &pHintBuffer ) ;

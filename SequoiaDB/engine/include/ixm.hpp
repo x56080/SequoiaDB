@@ -893,7 +893,7 @@ namespace engine
          oid = _oid ;
          return SDB_OK ;
       }
-      BOOLEAN isStillValid ( OID &oid ) const
+      BOOLEAN isStillValid ( const OID &oid ) const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;

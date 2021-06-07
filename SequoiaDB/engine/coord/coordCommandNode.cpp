@@ -1030,14 +1030,14 @@ namespace engine
 
       contextID = -1 ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj boNodeConfig ;
       BSONObj boNodeInfo ;
 
       SINT32 retCode = 0 ;
       BSONObj boBackup = BSON( "Backup" << true ) ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL,
                             NULL, &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse message, rc: %d", rc ) ;
 
@@ -1213,7 +1213,7 @@ namespace engine
    {
       INT32 rc                         = SDB_OK ;
       const CHAR *pGroupName           = NULL ;
-      CHAR *pQuery                     = NULL ;
+      const CHAR *pQuery               = NULL ;
       MsgOpQuery *pCreateReq           = (MsgOpQuery *)pMsg ;
 
       PD_TRACE_ENTRY ( COORD_CREATEGROUP_EXE ) ;
@@ -1221,7 +1221,7 @@ namespace engine
       // fill default-reply(create group success)
       contextID                        = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL,
                             NULL, &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse message, rc: %d", rc ) ;
 
@@ -2812,7 +2812,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_REELECT_EXE ) ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *gpName = NULL ;
       CoordGroupInfoPtr gpInfo ;
       CoordGroupList gpLst ;
@@ -2824,7 +2824,7 @@ namespace engine
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, &pQuery,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;

@@ -296,12 +296,12 @@ namespace engine
    INT32 _rtnQueryOptions::fromQueryMsg ( CHAR *pMsg )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
-      CHAR *pSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
 
-      rc = msgExtractQuery( pMsg, &_flag, (CHAR**)&_fullName, &_skip, &_limit,
+      rc = msgExtractQuery( pMsg, &_flag, &_fullName, &_skip, &_limit,
                             &pQuery, &pSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extrace query msg failed, rc: %d", rc ) ;
 

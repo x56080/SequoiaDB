@@ -110,9 +110,10 @@ namespace engine
    // change the scanner's current location to a given key and rid
    // User can indicate if they want to reset _savedObj/_savedRID using 
    // selected index RID position (_curIndexRID)
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID1, "_rtnDiskIXScanner::relocateRID" )
-   INT32 _rtnDiskIXScanner::relocateRID( const BSONObj &keyObj,
-                                         const dmsRecordID &rid )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID1, "_rtnDiskIXScanner::_relocateRID" )
+   INT32 _rtnDiskIXScanner::_relocateRID( const BSONObj &keyObj,
+                                          const dmsRecordID &rid,
+                                          INT32 direction )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_RELORID1 ) ;
@@ -137,7 +138,7 @@ namespace engine
 
          // locate the new key, the returned RID is stored in _curIndexRID
          rc = root.locate ( keyObj, rid, _order, _curIndexRID,
-                            found, _direction, _indexCB ) ;
+                            found, direction, _indexCB ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
                        "and rid(%d,%d), rc: %d", keyObj.toString().c_str(),
                        rid._extent, rid._offset, rc ) ;
@@ -166,6 +167,12 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _rtnDiskIXScanner::relocateRID( const BSONObj &keyObj,
+                                         const dmsRecordID &rid )
+   {
+      return _relocateRID( keyObj, rid, _direction ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID2, "_rtnDiskIXScanner::relocateRID" )

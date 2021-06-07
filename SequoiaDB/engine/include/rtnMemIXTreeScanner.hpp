@@ -98,6 +98,13 @@ namespace engine
    protected:
       void                    reset() ;
 
+      INT32                   _relocateRID( const BSONObj &keyObj,
+                                            const dmsRecordID &rid,
+                                            INT32 direction ) ;
+
+      INT32                   _relocateRID( BOOLEAN &found,
+                                            INT32 direction )  ;
+
    private :
       rtnPredicateListIterator   _listIterator ;
       dpsTransCB                 *_pTransCB ;

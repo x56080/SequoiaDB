@@ -161,9 +161,12 @@ namespace engine
       return recordNum + _rtnContextBase::getCachedRecordNum() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__KILLSUBCTXS, "_rtnContextCoord::killSubContexts" )
    void _rtnContextCoord::killSubContexts( pmdEDUCB * cb )
    {
       UINT32 tid = 0 ;
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__KILLSUBCTXS ) ;
+
       coordSubContext *pSubContext  = NULL ;
       pmdSubSession *pSub = NULL ;
 
@@ -254,6 +257,8 @@ namespace engine
          ++it ;
       }
       _prepareContextMap.clear() ;
+
+      PD_TRACE_EXIT( SDB_CTXCOOR__KILLSUBCTXS ) ;
    }
 
    const CHAR* _rtnContextCoord::name() const
@@ -363,9 +368,12 @@ namespace engine
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__SEND2EMPTYNODES, "_rtnContextCoord::_send2EmptyNodes" )
    INT32 _rtnContextCoord::_send2EmptyNodes( pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__SEND2EMPTYNODES ) ;
+
       MsgOpGetMore msgReq ;
       MsgRouteID routeID ;
       EMPTY_CONTEXT_MAP::iterator emptyIter ;
@@ -394,6 +402,7 @@ namespace engine
          }
 
          routeID.value = emptyIter->first ;
+         msgReq.header.routeID.value = MSG_INVALID_ROUTEID ;
          msgReq.contextID = emptyIter->second->contextID() ;
 
          pSub = _pSession->addSubSession( routeID.value ) ;
@@ -426,15 +435,19 @@ namespace engine
       }
 
    done:
+      PD_TRACE_EXITRC( SDB_CTXCOOR__SEND2EMPTYNODES, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__GETPREPARENODESDATA, "_rtnContextCoord::_getPrepareNodesData" )
    INT32 _rtnContextCoord::_getPrepareNodesData( pmdEDUCB * cb,
                                                  BOOLEAN waitAll )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__GETPREPARENODESDATA ) ;
+
       pmdEDUEvent event ;
       MsgOpReply *pReply = NULL ;
 
@@ -514,6 +527,7 @@ namespace engine
    done:
       pmdEduEventRelease( event, NULL ) ;
       pReply = NULL ;
+      PD_TRACE_EXITRC( SDB_CTXCOOR__GETPREPARENODESDATA, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -879,7 +893,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextCoord::_getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx )
+   INT32 _rtnContextCoord::_getNonEmptyNormalSubCtx( _pmdEDUCB *cb,
+                                                     rtnSubContext*& subCtx )
    {
       INT32 rc = SDB_OK ;
       SUB_ORDERED_CTX_MAP::iterator iter ;
@@ -901,7 +916,8 @@ namespace engine
          }
       }
 
-      SDB_ASSERT( _orderedContextMap.size() != 0, "_orderedContextMap should not be empty" ) ;
+      SDB_ASSERT( _orderedContextMap.size() != 0,
+                  "_orderedContextMap should not be empty" ) ;
 
       iter = _orderedContextMap.begin() ;
       subCtx = iter->second ;
@@ -973,6 +989,167 @@ namespace engine
       }
 
       return rc ;
+   }
+
+   INT32 _rtnContextCoord::_processCacheData( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _prepareContextMap.size() > 0 )
+      {
+         rc = _getPrepareNodesData( cb, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Get prepare node's data failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__PREPARESUBCTXSADVANCE, "_rtnContextCoord::_prepareSubCtxsAdvance" )
+   INT32 _rtnContextCoord::_prepareSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__PREPARESUBCTXSADVANCE ) ;
+
+      EMPTY_CONTEXT_MAP::iterator itEmpty ;
+
+      try
+      {
+         // get subcontext from empty
+         itEmpty = _emptyContextMap.begin() ;
+         while( itEmpty != _emptyContextMap.end() )
+         {
+            lstCtx.push_back( itEmpty->second ) ;
+            ++itEmpty ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e );
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CTXCOOR__PREPARESUBCTXSADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOOR__DOSUBCTXSADVANCE, "_rtnContextCoord::_doSubCtxsAdvance" )
+   INT32 _rtnContextCoord::_doSubCtxsAdvance( LST_SUB_CTX_PTR &lstCtx,
+                                              const BSONObj &arg,
+                                              _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CTXCOOR__DOSUBCTXSADVANCE ) ;
+
+      CHAR *pBuffer = NULL ;
+      INT32 buffSize = 0 ;
+      MsgOpAdvance *pAdvance = NULL ;
+      coordSubContext *pSubContext = NULL ;
+      MsgRouteID routeID ;
+      LST_SUB_CTX_PTR::iterator itrLst ;
+      pmdSubSession *pSub = NULL ;
+      pmdSubSessionItr itr ;
+      MsgOpReply *pReply = NULL ;
+
+      if ( lstCtx.size() == 0 )
+      {
+         goto done ;
+      }
+
+      /// 1. build message
+      rc = msgBuildAdvanceMsg( &pBuffer, &buffSize, -1, 0, &arg,
+                               NULL, 0, cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Build advance message failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /// 2. send message
+      pAdvance = ( MsgOpAdvance* )pBuffer ;
+      itrLst = lstCtx.begin() ;
+      while( itrLst != lstCtx.end() )
+      {
+         if ( -1 == (*itrLst)->contextID() )
+         {
+            ++itrLst ;
+            continue ;
+         }
+         pSubContext = ( coordSubContext* )( *itrLst ) ;
+
+         routeID.value = pSubContext->getRouteID().value ;
+         pAdvance->header.routeID.value = MSG_INVALID_ROUTEID ;
+         pAdvance->contextID = pSubContext->contextID() ;
+   
+         pSub = _pSession->addSubSession( routeID.value ) ;
+         pSub->setReqMsg( (MsgHeader*)pAdvance, PMD_EDU_MEM_NONE ) ;
+
+         rc = _pSession->sendMsg( pSub ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Send advance message[ContextID:%lld] to "
+                    "node[%s] failed, rc: %d", pAdvance->contextID,
+                    routeID2String( routeID ).c_str(), rc ) ;
+            goto error ;
+         }
+         else
+         {
+            PD_LOG( PDDEBUG, "Send advance message[ContextID:%lld] to "
+                    "node[%s] succeed", pAdvance->contextID,
+                    routeID2String( routeID ).c_str() ) ;
+         }
+         ++itrLst ;
+      }
+
+      /// 3. receive and process message
+      rc = _pSession->waitReply1( TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Wait reply failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      itr = _pSession->getSubSessionItr( PMD_SSITR_REPLY ) ;
+      while ( itr.more() )
+      {
+         pSub = itr.next() ;
+         pReply = ( MsgOpReply* )pSub->getRspMsg() ;
+
+         if ( pReply->flags )
+         {
+            PD_LOG ( PDERROR, "Do sub context[%lld] advance failed on "
+                     "node(groupID=%u, nodeID=%u, serviceID=%u), rc: %d",
+                     pReply->contextID,
+                     pReply->header.routeID.columns.groupID,
+                     pReply->header.routeID.columns.nodeID,
+                     pReply->header.routeID.columns.serviceID,
+                     pReply->flags ) ;
+            rc = pReply->flags ;
+            goto error ;
+         }
+      } // end while
+
+   done:
+      if ( pBuffer )
+      {
+         msgReleaseBuffer( pBuffer, cb ) ;
+      }
+      _pSession->clearSubSession() ;
+      PD_TRACE_EXITRC( SDB_CTXCOOR__DOSUBCTXSADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -1156,6 +1333,27 @@ namespace engine
       _curOffset = _pData->header.messageLength ;
       _isOrderKeyChange = TRUE ;
       return SDB_OK ;
+   }
+
+   INT32 _coordSubContext::pushFront( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 alignedSize = ossAlign4( (UINT32)obj.objsize() ) ;
+      INT32 fixHeader = ( UINT32 )ossAlign4( (UINT32)sizeof( MsgOpReply ) ) ;
+
+      if ( _curOffset < alignedSize + fixHeader )
+      {
+         rc = SDB_NOSPC ;
+      }
+      else
+      {
+         ++_recordNum ;
+         _curOffset -= alignedSize ;
+         ossMemcpy( ( (CHAR*)_pData + _curOffset ),
+                    obj.objdata(), obj.objsize() ) ;
+      }
+
+      return rc ;
    }
 
    INT32 _coordSubContext::recordNum()

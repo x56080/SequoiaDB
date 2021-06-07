@@ -715,6 +715,9 @@ retry :
             case MSG_BS_GETMORE_REQ :
                rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
                break ;
+            case MSG_BS_ADVANCE_REQ :
+               rc = _processAdvanceMsg( pMsg, buffObj, contextID ) ;
+               break ;
             case MSG_BS_KILL_CONTEXT_REQ:
                rc = _processKillContext( pMsg ) ;
                break;
@@ -848,6 +851,51 @@ retry :
       goto done ;
    }
 
+   INT32 _CoordCB::_processAdvanceMsg ( MsgHeader *pMsg,
+                                        rtnContextBuf &buffObj,
+                                        INT64 &contextID )
+   {
+      INT32 rc         = SDB_OK ;
+      INT64 tmpContextID = -1 ;
+      const CHAR *pOption = NULL ;
+      const CHAR *pBackData = NULL ;
+      INT32 backDataSize = 0 ;
+
+      /// extract msg
+      rc = msgExtractAdvanceMsg( (const CHAR*)pMsg, &tmpContextID, &pOption,
+                                 &pBackData, &backDataSize ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Extract Advance msg failed[rc:%d]", rc ) ;
+
+      try
+      {
+         BSONObj option( pOption ) ;
+         /// execute get more
+         MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), pMsg->opCode,
+                             "ContextID:%lld, BackDataSize:%d, "
+                             "Option:%s", tmpContextID,
+                             backDataSize,
+                             option.toPoolString(false,false,true).c_str() ) ;
+
+         rc = rtnAdvance ( tmpContextID, option, pBackData, backDataSize,
+                           _pEDUCB, _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__KILLCONTEXT, "_CoordCB::_processKillContext" )
    INT32 _CoordCB::_processKillContext( MsgHeader *pMsg )
    {
@@ -855,9 +903,10 @@ retry :
 
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
 
-      rc = msgExtractKillContexts ( (CHAR *)pMsg, &contextNum, &pContextIDs ) ;
+      rc = msgExtractKillContexts ( (const CHAR *)pMsg, &contextNum,
+                                    &pContextIDs ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to parse the killcontexts request, "
                     "rc: %d", rc ) ;
 
@@ -932,11 +981,11 @@ retry :
       PD_TRACE_ENTRY ( SDB__COORDCB__QUERYMSG ) ;
 
       INT32 rc                = SDB_OK ;
-      CHAR *pCollectionName   = NULL ;
-      CHAR *pQueryBuff        = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderByBuffer    = NULL ;
-      CHAR *pHintBuffer       = NULL ;
+      const CHAR *pCollectionName   = NULL ;
+      const CHAR *pQueryBuff        = NULL ;
+      const CHAR *pFieldSelector    = NULL ;
+      const CHAR *pOrderByBuffer    = NULL ;
+      const CHAR *pHintBuffer       = NULL ;
       INT32 flags             = 0 ;
       INT64 numToSkip         = -1 ;
       INT64 numToReturn       = -1 ;
@@ -944,7 +993,7 @@ retry :
       _rtnCommand *pCommand   = NULL ;
 
       /// extract msg
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract query msg failed[rc:%d]", rc ) ;

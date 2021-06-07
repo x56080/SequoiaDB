@@ -309,6 +309,7 @@ namespace engine
                }
             }
          case MSG_BS_GETMORE_REQ :
+         case MSG_BS_ADVANCE_REQ :
          /// LOB
          case MSG_BS_LOB_READ_REQ :
             {

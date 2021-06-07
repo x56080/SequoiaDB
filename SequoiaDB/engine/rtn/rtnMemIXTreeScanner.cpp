@@ -177,9 +177,10 @@ namespace engine
    // Dependency:
    //    Caller need to hold mbLatch
    //    Caller should hold the in memory tree latch.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMEMIXTREESCAN_RELORID1, "_rtnMemIXTreeScanner::relocateRID" )
-   INT32 _rtnMemIXTreeScanner::relocateRID ( const BSONObj &keyObj,
-                                             const dmsRecordID &rid )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMEMIXTREESCAN_RELORID1, "_rtnMemIXTreeScanner::_relocateRID" )
+   INT32 _rtnMemIXTreeScanner::_relocateRID ( const BSONObj &keyObj,
+                                              const dmsRecordID &rid,
+                                              INT32 direction )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNMEMIXTREESCAN_RELORID1 ) ;
@@ -204,7 +205,7 @@ namespace engine
 
       if ( _treeLatchHeld )
       {
-         rc = relocateRID( found ) ;
+         rc = _relocateRID( found, direction ) ;
          if ( rc )
          {
             goto error ;
@@ -225,7 +226,14 @@ namespace engine
    done :
       if ( hasResume )
       {
+         BSONObj tmpSavedObj = _savedObj ;
+         dmsRecordID tmpSavedRID = _savedRID ;
+
          pauseScan() ;
+
+         /// should set savedObj and savedRID
+         _savedObj = tmpSavedObj ;
+         _savedRID = tmpSavedRID ;
       }
       PD_TRACE_EXITRC ( SDB__RTNMEMIXTREESCAN_RELORID1, rc ) ;
       return rc ;
@@ -233,8 +241,14 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnMemIXTreeScanner::relocateRID ( const BSONObj &keyObj,
+                                             const dmsRecordID &rid )
+   {
+      return _relocateRID( keyObj, rid, _direction ) ;
+   }
+
    // relocate based on saved object and saved recordID
-   INT32 _rtnMemIXTreeScanner::relocateRID( BOOLEAN &found )
+   INT32 _rtnMemIXTreeScanner::_relocateRID( BOOLEAN &found, INT32 direction )
    {
       INT32 rc = SDB_OK ;
       found = FALSE ;
@@ -243,7 +257,7 @@ namespace engine
       SDB_ASSERT( _available, "Must be available" ) ;
 
       rc = _memIdxTree->locate( _savedObj, _savedRID, _curIndexPos,
-                                found, _direction ) ;
+                                found, direction ) ;
       if ( rc )
       {
          if ( SDB_IXM_EOC != rc )
@@ -279,6 +293,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _rtnMemIXTreeScanner::relocateRID( BOOLEAN &found )
+   {
+      return _relocateRID( found, _direction ) ;
    }
 
    // Description

@@ -150,6 +150,46 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNADVANCE, "rtnAdvance" )
+   INT32 rtnAdvance( SINT64 contextID,
+                     const BSONObj &arg,
+                     const CHAR *pBackData,
+                     INT32 backDataSize,
+                     pmdEDUCB *cb,
+                     SDB_RTNCB *rtnCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNADVANCE ) ;
+
+      SDB_ASSERT ( cb, "educb can't be NULL" ) ;
+      SDB_ASSERT ( rtnCB, "rtnCB can't be NULL" ) ;
+
+      rtnContext *context = NULL ;
+
+      // retrieve the context pointer
+      context = rtnCB->contextFind ( contextID, cb ) ;
+      if ( !context )
+      {
+         PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
+         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+         goto error ;
+      }
+
+      rc = context->advance( arg, pBackData, backDataSize, cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Advance context[%lld] failed, rc: %d",
+                 contextID, rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_RTNADVANCE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    static INT32 _rtnParseQueryModify( const BSONObj &hint,
                                       rtnQueryModifier** modifier )
    {
@@ -506,6 +546,7 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSORT, "rtnSort" )
    INT32 rtnSort ( rtnContext **ppContext,
                    const BSONObj &orderBy,
                    _pmdEDUCB *cb,
@@ -514,6 +555,8 @@ namespace engine
                    SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNSORT ) ;
+
       SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
       rtnContext *context = NULL ;
       rtnContext *bkContext = NULL ;
@@ -554,6 +597,7 @@ namespace engine
       contextID = sortContextID ;
       *ppContext = context ;
    done:
+      PD_TRACE_EXITRC( SDB_RTNSORT, rc ) ;
       return rc ;
    error:
       if ( -1 != sortContextID )
@@ -633,7 +677,7 @@ namespace engine
       const CHAR *indexName = NULL ;
       const CHAR *scanType  = NULL ;
       INT32 indexLID = DMS_INVALID_EXTENT ;
-      INT32 direction = 0 ;
+      INT32 direction = 1 ;
       rtnQueryType queryType = RTN_QUERY_NORMAL ;
       rtnRemoteMessenger* messenger = rtnCB->getRemoteMessenger() ;
 
@@ -726,6 +770,16 @@ namespace engine
 
       try
       {
+      BSONElement eMeta = hintTmp.getField( FIELD_NAME_META ) ;
+      BSONElement ePos = hintTmp.getField( FIELD_NAME_POSITION ) ;
+
+      if ( !ePos.eoo() && Object != ePos.type() )
+      {
+         PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       // create a new context
       rc = rtnCB->contextNew ( options.testFlag( FLG_QUERY_PARALLED ) ?
                                RTN_CONTEXT_PARADATA : RTN_CONTEXT_DATA,
@@ -739,12 +793,14 @@ namespace engine
       }
 
       // Adjust hint for meta-query
-      if ( Object == options.getHint().getField( FIELD_NAME_META ).type() )
+      if ( Object == eMeta.type() )
       {
          BSONObjBuilder build ;
-         rc = _rtnParseQueryMeta(
-               options.getHint().getField( FIELD_NAME_META ).embeddedObject(),
-               scanType, indexName, indexLID, direction, blockObj ) ;
+         BSONObjIterator itrHint( hintTmp ) ;
+
+         /// parse $Meta
+         rc = _rtnParseQueryMeta( eMeta.embeddedObject(), scanType,
+                                  indexName, indexLID, direction, blockObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse query meta[%s], rc: %d",
                       options.getHint().toString().c_str(), rc ) ;
 
@@ -757,6 +813,16 @@ namespace engine
          else
          {
             build.appendNull( "" ) ;
+         }
+
+         /// append other hints
+         while ( itrHint.more() )
+         {
+            BSONElement e = itrHint.next() ;
+            if ( 0 != ossStrcmp( e.fieldName(), FIELD_NAME_META ) )
+            {
+               build.append( e ) ;
+            }
          }
          hintTmp = build.obj () ;
       }
@@ -781,7 +847,6 @@ namespace engine
 
       // used force hint, but hint failed
       if ( options.testFlag( FLG_QUERY_FORCE_HINT ) &&
-           !options.isHintEmpty() &&
            planRuntime->isHintFailed() )
       {
          PD_LOG( PDERROR, "Query used force hint[%s] failed",
@@ -836,6 +901,16 @@ namespace engine
          {
             dataContext->getSelector().setStringOutput( TRUE ) ;
          }
+
+         if ( Object == ePos.type() )
+         {
+            rc = dataContext->locate( ePos.embeddedObject(), cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
       }
       else
       {
@@ -866,6 +941,16 @@ namespace engine
          }
 
          dataContext->setEnableQueryActivity( FALSE ) ;
+
+         if ( Object == ePos.type() )
+         {
+            rc = dataContext->locate( ePos.embeddedObject(), cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
 
          rc = rtnSort ( (rtnContext**)&dataContext, options.getOrderBy(), cb,
                         options.getSkip(), options.getLimit(), contextID ) ;

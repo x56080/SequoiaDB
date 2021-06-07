@@ -95,6 +95,9 @@ enum MSG_TYPE
    MSG_BS_TRANS_QUERY_REQ              = 2021,
    MSG_BS_TRANS_QUERY_RES              = MAKE_REPLY_TYPE(MSG_BS_TRANS_QUERY_REQ),
 
+   MSG_BS_ADVANCE_REQ                  = 2030,
+   MSG_BS_ADVANCE_RES                  = MAKE_REPLY_TYPE(MSG_BS_ADVANCE_REQ),
+
    //catalogue msg
    //(MainController:3001~3099, catalogueManager:3100~3199, nodeManager:3200~3299)
    MSG_CAT_BEGIN                       = 3000,
@@ -611,6 +614,25 @@ struct _MsgOpGetMore
    SINT32    numToReturn ;// number of rows to return
 } ;
 typedef struct _MsgOpGetMore MsgOpGetMore ;
+
+enum MSG_ADVANCE_TYPE
+{
+   MSG_ADVANCE_TO_FIRST_IN_VALUE = 1,  // For index scan. Advance to the first
+                                       // record of the same value
+   MSG_ADVANCE_TO_NEXT_OUT_VALUE = 2   // For index scan. Advance to the next
+                                       // record different from the value.
+} ;
+
+// advance for context
+// take a bson(arg) | back data bsons
+struct _MsgOpAdvance
+{
+   MsgHeader header ;      // message header
+   SINT64    contextID ;   // context ID from reply
+   SINT32    backDataSize ;// back data size
+   SINT32    padding[3] ;  // padding
+} ;
+typedef struct _MsgOpAdvance MsgOpAdvance ;
 
 // remove one row instead of all matching records
 #define FLG_DELETE_SINGLEREMOVE     0x00000001

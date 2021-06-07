@@ -232,13 +232,13 @@ namespace engine
       MsgOpQuery *pQueryMsg   = ( MsgOpQuery* )inMsg.msg() ;
 
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -268,7 +268,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractQuery( (CHAR*)pQueryMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pQueryMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -399,16 +399,16 @@ namespace engine
       // fill default-reply(query success)
       contextID                        = -1 ;
 
-      CHAR *pCollectionName            = NULL ;
+      const CHAR *pCollectionName      = NULL ;
       INT32 flag                       = 0 ;
       INT64 numToSkip                  = 0 ;
       INT64 numToReturn                = 0 ;
-      CHAR *pQuery                     = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pOrderby                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pQuery               = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pOrderby             = NULL ;
+      const CHAR *pHint                = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
       if ( rc )
@@ -418,90 +418,118 @@ namespace engine
          goto error ;
       }
 
-      // process command
-      if ( pCollectionName != NULL && '$' == pCollectionName[0] )
+      try
       {
-         pFactory = coordGetFactory() ;
-         rc = pFactory->create( &pCollectionName[1], pOperator ) ;
-         if ( rc )
+         BSONObj hint( pHint ) ;
+         // process command
+         if ( pCollectionName != NULL && '$' == pCollectionName[0] )
          {
-            if ( SDB_COORD_UNKNOWN_OP_REQ != rc )
+            pFactory = coordGetFactory() ;
+            rc = pFactory->create( &pCollectionName[1], pOperator ) ;
+            if ( rc )
             {
-               PD_LOG( PDERROR, "Create operator by name[%s] failed, rc: %d",
-                       pCollectionName, rc ) ;
+               if ( SDB_COORD_UNKNOWN_OP_REQ != rc )
+               {
+                  PD_LOG( PDERROR, "Create operator by name[%s] failed, rc: %d",
+                          pCollectionName, rc ) ;
+               }
+               goto error ;
             }
-            goto error ;
-         }
 
-         rc = pOperator->init( _pResource, cb, getTimeout() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Init operator[%s] failed, rc: %d",
-                    pOperator->getName(), rc ) ;
-            goto error ;
-         }
-         rc = pOperator->execute( pMsg, cb, contextID, buf ) ;
-         if ( rc )
-         {
-            if ( SDB_COORD_UNKNOWN_OP_REQ != rc )
+            rc = pOperator->init( _pResource, cb, getTimeout() ) ;
+            if ( rc )
             {
-               PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
+               PD_LOG( PDERROR, "Init operator[%s] failed, rc: %d",
                        pOperator->getName(), rc ) ;
+               goto error ;
             }
-            goto error ;
+            rc = pOperator->execute( pMsg, cb, contextID, buf ) ;
+            if ( rc )
+            {
+               if ( SDB_COORD_UNKNOWN_OP_REQ != rc )
+               {
+                  PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
+                          pOperator->getName(), rc ) ;
+               }
+               goto error ;
+            }
+         }
+         else
+         {
+            coordSendOptions sendOpt( cb->isTransaction() ) ;
+            rtnQueryOptions options ( BSONObj( pQuery ), BSONObj( pSelector ),
+                                      BSONObj( pOrderby ), BSONObj( pHint ),
+                                      pCollectionName, numToSkip, numToReturn,
+                                      flag ) ;
+            BSONElement ePos = hint.getField( FIELD_NAME_POSITION ) ;
+
+            if ( !ePos.eoo() && Object != ePos.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            // add last op info
+            MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+
+            MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+
+            if ( OSS_BIT_TEST( flag, FLG_QUERY_MODIFY ) )
+            {
+               _needRollback = TRUE ;
+               setReadOnly( FALSE ) ;
+            }
+
+            rc = queryOrDoOnCL( pMsg, cb, &pContext, sendOpt, NULL, buf ) ;
+            /// AUDIT
+            PD_AUDIT_OP( ( flag & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
+                         MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
+                         pCollectionName, rc,
+                         "ContextID:%lld, Matcher:%s, Selector:%s, OrderBy:%s, "
+                         "Hint:%s, Skip:%llu, Limit:%lld, Flag:0x%08x(%u)",
+                         pContext ? pContext->contextID() : -1,
+                         BSONObj(pQuery).toString().c_str(),
+                         BSONObj(pSelector).toString().c_str(),
+                         BSONObj(pOrderby).toString().c_str(),
+                         BSONObj(pHint).toString().c_str(),
+                         numToSkip, numToReturn,
+                         flag, flag ) ;
+            PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
+
+            contextID = pContext->contextID() ;
+
+            if ( OSS_BIT_TEST( flag, FLG_QUERY_MODIFY ) )
+            {
+               pContext->setModify( TRUE ) ;
+            }
+            if ( cb->isAutoCommitTrans() )
+            {
+               cb->setCurAutoTransCtxID( contextID ) ;
+            }
+
+            if ( OSS_BIT_TEST(flag, FLG_QUERY_PREPARE_MORE ) &&
+                 !OSS_BIT_TEST(flag, FLG_QUERY_MODIFY ) )
+            {
+               pContext->setPrepareMoreData( TRUE ) ;
+            }
+
+            if ( Object == ePos.type() )
+            {
+               rc = pContext->locate( ePos.embeddedObject(), cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
       }
-      else
+      catch( std::exception &e )
       {
-         coordSendOptions sendOpt( cb->isTransaction() ) ;
-         rtnQueryOptions options ( BSONObj( pQuery ), BSONObj( pSelector ),
-                                   BSONObj( pOrderby ), BSONObj( pHint ),
-                                   pCollectionName, numToSkip, numToReturn,
-                                   flag ) ;
-
-         // add last op info
-         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
-
-         MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
-
-         if ( OSS_BIT_TEST( flag, FLG_QUERY_MODIFY ) )
-         {
-            _needRollback = TRUE ;
-            setReadOnly( FALSE ) ;
-         }
-
-         rc = queryOrDoOnCL( pMsg, cb, &pContext, sendOpt, NULL, buf ) ;
-         /// AUDIT
-         PD_AUDIT_OP( ( flag & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
-                      MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
-                      pCollectionName, rc,
-                      "ContextID:%lld, Matcher:%s, Selector:%s, OrderBy:%s, "
-                      "Hint:%s, Skip:%llu, Limit:%lld, Flag:0x%08x(%u)",
-                      pContext ? pContext->contextID() : -1,
-                      BSONObj(pQuery).toString().c_str(),
-                      BSONObj(pSelector).toString().c_str(),
-                      BSONObj(pOrderby).toString().c_str(),
-                      BSONObj(pHint).toString().c_str(),
-                      numToSkip, numToReturn,
-                      flag, flag ) ;
-         PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
-
-         contextID = pContext->contextID() ;
-
-         if ( OSS_BIT_TEST( flag, FLG_QUERY_MODIFY ) )
-         {
-            pContext->setModify( TRUE ) ;
-         }
-         if ( cb->isAutoCommitTrans() )
-         {
-            cb->setCurAutoTransCtxID( contextID ) ;
-         }
-
-         if ( OSS_BIT_TEST(flag, FLG_QUERY_PREPARE_MORE ) &&
-              !OSS_BIT_TEST(flag, FLG_QUERY_MODIFY ) )
-         {
-            pContext->setPrepareMoreData( TRUE ) ;
-         }
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
    done:
@@ -512,6 +540,12 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_QUERYOPERATOR_EXE, rc ) ;
       return rc ;
    error:
+      if ( -1 != contextID  )
+      {
+         sdbGetRTNCB()->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+         pContext = NULL ;
+      }
       goto done ;
    }
 
@@ -801,13 +835,13 @@ namespace engine
 
       BOOLEAN isUpdate        = FALSE ;
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -815,7 +849,7 @@ namespace engine
       BSONObj objHint ;
       BSONObj objNewHint ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -1131,13 +1165,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR__BUILDNEWMSG ) ;
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       SINT64 numToSkip = 0 ;
       SINT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       BSONObj query ;
       BSONObj selector ;
       BSONObj orderBy ;
@@ -1146,7 +1180,7 @@ namespace engine
 
       SDB_ASSERT( newSelector || newHint, "Selector or hint is NULL" ) ;
 
-      rc = msgExtractQuery( ( CHAR * )msg, &flag, &pCollectionName,
+      rc = msgExtractQuery( ( const CHAR * )msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint );
       PD_RC_CHECK( rc, PDERROR,

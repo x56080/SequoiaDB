@@ -90,9 +90,9 @@ namespace engine
       /// do on local
       UINT32 mask = 0 ;
       INT32 rc = SDB_OK ;
-      CHAR *pMatcherBuff = NULL ;
+      const CHAR *pMatcherBuff = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pMatcherBuff, NULL, NULL, NULL ) ;
 
       try
@@ -188,11 +188,11 @@ namespace engine
                                                SET_RC &ignoreRCList )
    {
       INT32 rc = SDB_OK ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
       const CHAR *type = NULL ;
       const CHAR *name = NULL ;
 
-      rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract invalidate message failed[%d]", rc ) ;
 
@@ -336,9 +336,9 @@ namespace engine
                                       SET_RC &ignoreRCList )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       CHAR *pNewMsg = NULL ;
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -443,9 +443,9 @@ namespace engine
                                       SET_RC &ignoreRCList )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       CHAR *pNewMsg = NULL ;
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -729,14 +729,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *csname = NULL ;
       const CHAR *clname = NULL ;
       const CHAR *ixname = NULL ;
       INT32 mode = SDB_ANALYZE_MODE_SAMPLE ;
       BOOLEAN sampleByNum = FALSE, sampleByPercent = FALSE ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {

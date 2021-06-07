@@ -654,7 +654,6 @@ namespace engine
       SDB_ASSERT( NULL != eduCB, "eduCB must be not null" ) ;
 
       _catSequenceManager* seqMgr = _gtsMgr->getSequenceMgr() ;
-
       rc = msgExtractSequenceRequestMsg( (CHAR*) msg, options ) ;
       if ( SDB_OK != rc )
       {

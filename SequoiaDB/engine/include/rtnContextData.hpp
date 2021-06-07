@@ -125,6 +125,17 @@ namespace engine
          }
          virtual void      _toString( stringstream &ss ) ;
 
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb ) ;
+
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const ;
+
+
       protected:
 
          INT32    _prepareByTBScan( _pmdEDUCB *cb,
@@ -158,6 +169,15 @@ namespace engine
          INT32    _selectAndAppend( mthSelector *selector, BSONObj &obj ) ;
 
          INT32    _evalIndexCover( IXM_FIELD_NAME_SET &selectSet ) ;
+
+         BSONObj  _buildNextValueObj( const BSONObj &keyPattern,
+                                      const BSONObj &srcVal,
+                                      UINT32 keepNum,
+                                      INT32 type ) const ;
+         void     _buildNextRID( INT32 type, dmsRecordID &rid ) const ;
+         BOOLEAN  _compareFieldName( const BSONObj &orderby,
+                                     const BSONObj &keyPattern,
+                                     UINT32 prefixNum ) const ;
 
       protected:
          _SDB_DMSCB                 *_dmsCB ;
@@ -229,6 +249,15 @@ namespace engine
          void           _removeSubContext( rtnContextData *pContext ) ;
          INT32          _getSubCtxWithData ( rtnContextData **ppContext,
                                              _pmdEDUCB *cb ) ;
+
+      protected:
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb ) ;
 
       protected:
          std::vector< _rtnContextData* >           _vecContext ;

@@ -94,6 +94,10 @@ namespace engine
    protected:
       void                    reset() ;
 
+      INT32                   _relocateRID( const BSONObj &keyObj,
+                                            const dmsRecordID &rid,
+                                            INT32 direction ) ;
+
       INT32                   _isCursorSame( ixmExtent *pExtent,
                                              const BSONObj &saveObj,
                                              const dmsRecordID &saveRID,

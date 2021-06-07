@@ -53,6 +53,10 @@ namespace engine
                    _sptReturnVal &rval,
                    bson::BSONObj &detail ) ;
 
+      INT32 advance( const _sptArguments &arg,
+                     _sptReturnVal &rval,
+                     bson::BSONObj &detail ) ;
+
       INT32 next( const _sptArguments &arg,
                   _sptReturnVal &rval,
                   bson::BSONObj &detail ) ;

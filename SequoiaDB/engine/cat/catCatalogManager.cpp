@@ -117,13 +117,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_CRT_PROCEDURES, "catCatalogueManager::processCmdCrtProcedures")
-   INT32 catCatalogueManager::processCmdCrtProcedures( void *pMsg )
+   INT32 catCatalogueManager::processCmdCrtProcedures( const CHAR *pMsg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATALOGMGR_CRT_PROCEDURES ) ;
       try
       {
-         BSONObj func( (const CHAR *)pMsg ) ;
+         BSONObj func( pMsg ) ;
          BSONObj parsed ;
          rc = catPraseFunc( func, parsed ) ;
          if ( SDB_OK != rc )
@@ -165,13 +165,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_RM_PROCEDURES, "catCatalogueManager::processCmdRmProcedures")
-   INT32 catCatalogueManager::processCmdRmProcedures( void *pMsg )
+   INT32 catCatalogueManager::processCmdRmProcedures( const CHAR *pMsg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATALOGMGR_RM_PROCEDURES ) ;
       try
       {
-         BSONObj obj( (const CHAR *)pMsg ) ;
+         BSONObj obj( pMsg ) ;
          BSONElement name = obj.getField( FIELD_NAME_FUNC ) ;
          if ( name.eoo() || String != name.type() )
          {
@@ -404,15 +404,15 @@ namespace engine
       // extract and query
       try
       {
-         CHAR *pCollectionName = NULL ;
-         SINT32 flag           = 0 ;
-         SINT64 numToSkip      = 0 ;
-         SINT64 numToReturn    = -1 ;
-         CHAR *pQuery          = NULL ;
-         CHAR *pFieldSelector  = NULL ;
-         CHAR *pOrderBy        = NULL ;
-         CHAR *pHint           = NULL ;
-         rc = msgExtractQuery  ( (CHAR *)pCatReq, &flag, &pCollectionName,
+         const CHAR *pCollectionName   = NULL ;
+         SINT32 flag                   = 0 ;
+         SINT64 numToSkip              = 0 ;
+         SINT64 numToReturn            = -1 ;
+         const CHAR *pQuery            = NULL ;
+         const CHAR *pFieldSelector    = NULL ;
+         const CHAR *pOrderBy          = NULL ;
+         const CHAR *pHint             = NULL ;
+         rc = msgExtractQuery  ( (const CHAR *)pCatReq, &flag, &pCollectionName,
                                  &numToSkip, &numToReturn, &pQuery,
                                  &pFieldSelector, &pOrderBy, &pHint ) ;
          BSONObj matcher(pQuery);
@@ -545,11 +545,11 @@ namespace engine
       INT32 flag                       = 0 ;
       SINT64 numToSkip                 = 0 ;
       SINT64 numToReturn               = 0 ;
-      CHAR *pQuery                     = NULL ;
-      CHAR *pFieldSelector             = NULL ;
-      CHAR *pOrderBy                   = NULL ;
-      CHAR *pHint                      = NULL ;
-      CHAR *pCollectionName            = NULL ;
+      const CHAR *pQuery               = NULL ;
+      const CHAR *pFieldSelector       = NULL ;
+      const CHAR *pOrderBy             = NULL ;
+      const CHAR *pHint                = NULL ;
+      const CHAR *pCollectionName      = NULL ;
       BOOLEAN isDelay                  = FALSE ;
 
       // primary check
@@ -576,7 +576,8 @@ namespace engine
       try
       {
          // extract the request message
-         rc = msgExtractQuery ( (CHAR*)pTaskRequest, &flag, &pCollectionName,
+         rc = msgExtractQuery ( (const CHAR*)pTaskRequest, &flag,
+                                &pCollectionName,
                                 &numToSkip, &numToReturn, &pQuery,
                                 &pFieldSelector, &pOrderBy, &pHint ) ;
          BSONObj matcher ( pQuery ) ;
@@ -1539,13 +1540,13 @@ namespace engine
       BOOLEAN    fillPeerRouteID = FALSE ;
 
       INT32 flag = 0 ;
-      CHAR *pCMDName = NULL ;
+      const CHAR *pCMDName = NULL ;
       INT64 numToSkip = 0 ;
       INT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
 
       BOOLEAN delayLockFailed = TRUE ;
 
@@ -1567,7 +1568,7 @@ namespace engine
       }
 
       // extract msg
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query msg, rc: %d", rc ) ;
