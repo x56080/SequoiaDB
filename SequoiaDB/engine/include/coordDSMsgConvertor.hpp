@@ -98,8 +98,11 @@ namespace engine
                                           UINT32 &oprMask ) const ;
       private:
          INT32 _parseQueryMsg( pmdSubSession *pSub, INT32 *flag,
-                               CHAR **cmdName, CHAR **query,
-                               CHAR **selector, CHAR **order, CHAR **hint ) ;
+                               const CHAR **cmdName,
+                               const CHAR **query,
+                               const CHAR **selector,
+                               const CHAR **order,
+                               const CHAR **hint ) ;
 
          INT32 _rebuildDataSourceInsertMsg( pmdSubSession *pSub,
                                             _pmdEDUCB *cb ) ;

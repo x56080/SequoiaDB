@@ -91,13 +91,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      CHAR * query = NULL ;
+      const CHAR * query = NULL ;
 
       const CHAR * typeName = NULL ;
       const CHAR * collectionSpace = NULL ;
       const CHAR * collection = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &query, NULL, NULL, NULL ) ;
       if ( rc )
       {

@@ -75,13 +75,13 @@ namespace engine
       INT32 flag = 0 ;
       SINT64 numToSkip = 0 ;
       SINT64 numToReturn = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pMatcherBuf = NULL ;
-      CHAR *pSelectBuff = NULL ;
-      CHAR *pOrderyBuff = NULL ;
-      CHAR *pHintBuff = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pMatcherBuf = NULL ;
+      const CHAR *pSelectBuff = NULL ;
+      const CHAR *pOrderyBuff = NULL ;
+      const CHAR *pHintBuff = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pQuery, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pQuery, &flag, &pCollectionName,
                             &numToSkip, &numToReturn,
                             &pMatcherBuf, &pSelectBuff,
                             &pOrderyBuff, &pHintBuff ) ;
@@ -363,6 +363,7 @@ namespace engine
                SDB_SET_WRITE( oprMask ) ;
                break ;
             case MSG_BS_GETMORE_REQ:
+            case MSG_BS_ADVANCE_REQ:
             case MSG_BS_TRANS_QUERY_REQ:
                SDB_SET_READ( oprMask ) ;
                break ;
@@ -1254,13 +1255,13 @@ namespace engine
             else
             {
                INT32 flags = 0 ;
-               CHAR *clName = NULL ;
+               const CHAR *clName = NULL ;
                INT64 numToSkip = 0 ;
                INT64 numToReturn = 0 ;
-               CHAR *query = NULL ;
-               CHAR *selector = NULL ;
-               CHAR *orderBy = NULL ;
-               CHAR *hint = NULL ;
+               const CHAR *query = NULL ;
+               const CHAR *selector = NULL ;
+               const CHAR *orderBy = NULL ;
+               const CHAR *hint = NULL ;
 
                rc = pResource->getOrUpdateCataInfo( origQuery->name,
                                                     cataInfo, cb ) ;
@@ -1269,8 +1270,9 @@ namespace engine
                if ( 0 != ossStrcmp( origQuery->name,
                                     cataInfo->getMappingName().c_str() ) )
                {
-                  rc = msgExtractQuery( (CHAR *)msg, &flags, &clName, &numToSkip,
-                                        &numToReturn, &query, &selector,
+                  rc = msgExtractQuery( (const CHAR *)msg, &flags, &clName,
+                                        &numToSkip, &numToReturn,
+                                        &query, &selector,
                                         &orderBy, &hint ) ;
                   PD_RC_CHECK( rc, PDERROR, "Extract query message failed[%d]",
                                rc ) ;
@@ -1321,9 +1323,12 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__PARSEQUERYMSG, "_coordDSMsgConvertor::_parseQueryMsg" )
    INT32 _coordDSMsgConvertor::_parseQueryMsg( pmdSubSession *pSub,
-                                               INT32 *flag, CHAR **cmdName,
-                                               CHAR **query, CHAR **selector,
-                                               CHAR **order, CHAR **hint )
+                                               INT32 *flag, const
+                                               CHAR **cmdName,
+                                               const CHAR **query,
+                                               const CHAR **selector,
+                                               const CHAR **order,
+                                               const CHAR **hint )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__PARSEQUERYMSG ) ;
@@ -1392,7 +1397,8 @@ namespace engine
          {
             // The message is in a continous buffer. It can be parsed directly
             // by msgExtraceQuery.
-            rc = msgExtractQuery( (CHAR *)queryMsg, flag, cmdName, NULL, NULL,
+            rc = msgExtractQuery( (const CHAR *)queryMsg, flag, cmdName,
+                                  NULL, NULL,
                                   query, selector, order, hint ) ;
             PD_RC_CHECK( rc, PDERROR, "Extract query message failed[%d]", rc ) ;
          }
@@ -1418,11 +1424,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCECMDMSG ) ;
       INT32 flag = 0 ;
-      CHAR *cmdName = NULL ;
-      CHAR *query = NULL ;
-      CHAR *selector = NULL ;
-      CHAR *orderby = NULL ;
-      CHAR *hint = NULL ;
+      const CHAR *cmdName = NULL ;
+      const CHAR *query = NULL ;
+      const CHAR *selector = NULL ;
+      const CHAR *orderby = NULL ;
+      const CHAR *hint = NULL ;
       CHAR *newMsg = NULL ;
       INT32 buffSize = 0 ;
       BOOLEAN targetInQuery = FALSE ;
@@ -1887,6 +1893,7 @@ namespace engine
       switch ( opCode )
       {
          case MSG_BS_GETMORE_REQ :
+         case MSG_BS_ADVANCE_REQ :
          case MSG_BS_KILL_CONTEXT_REQ :
          case MSG_BS_DISCONNECT :
          case MSG_BS_INTERRUPTE :

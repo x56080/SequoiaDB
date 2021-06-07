@@ -118,9 +118,9 @@ ossPoolString printLogicalTimeToRealTime(UINT64 input)
 INT32 extractQuery(MsgHeader *pMsg, BSONObj *query)
 {
    INT32 rc = SDB_OK;
-   CHAR *pQuery = NULL; // pointer to the query buffer
-   if ((rc = msgExtractQuery((CHAR *)pMsg, NULL, NULL, NULL, NULL, &pQuery,
-                             NULL, NULL, NULL)))
+   const CHAR *pQuery = NULL; // pointer to the query buffer
+   if ((rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL,
+                              NULL, &pQuery, NULL, NULL, NULL)))
    {
       PD_LOG(PDERROR, "Error extracting query [rc=%d]", rc);
       return rc;

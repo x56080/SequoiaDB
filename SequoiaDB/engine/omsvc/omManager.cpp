@@ -1956,17 +1956,17 @@ namespace engine
    INT32 _omManager::_onAgentUpdateTaskReq( NET_HANDLE handle, MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
-      INT32 flags               = 0 ;
-      CHAR *pCollectionName     = NULL ;
-      CHAR *pQuery              = NULL ;
-      CHAR *pFieldSelector      = NULL ;
-      CHAR *pOrderByBuffer      = NULL ;
-      CHAR *pHintBuffer         = NULL ;
-      SINT64 numToSkip          = -1 ;
-      SINT64 numToReturn        = -1 ;
+      INT32 flags                = 0 ;
+      const CHAR *pCollectionName   = NULL ;
+      const CHAR *pQuery         = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderByBuffer = NULL ;
+      const CHAR *pHintBuffer    = NULL ;
+      SINT64 numToSkip           = -1 ;
+      SINT64 numToReturn         = -1 ;
       BSONObj response ;
 
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       if ( rc )
@@ -2037,17 +2037,17 @@ namespace engine
                                        INT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      INT32 flags               = 0 ;
-      CHAR *pCollectionName     = NULL ;
-      CHAR *pQuery              = NULL ;
-      CHAR *pFieldSelector      = NULL ;
-      CHAR *pOrderByBuffer      = NULL ;
-      CHAR *pHintBuffer         = NULL ;
-      SINT64 numToSkip          = -1 ;
-      SINT64 numToReturn        = -1 ;
+      INT32 flags                   = 0 ;
+      const CHAR *pCollectionName   = NULL ;
+      const CHAR *pQuery            = NULL ;
+      const CHAR *pFieldSelector    = NULL ;
+      const CHAR *pOrderByBuffer    = NULL ;
+      const CHAR *pHintBuffer       = NULL ;
+      SINT64 numToSkip              = -1 ;
+      SINT64 numToReturn            = -1 ;
 
       // extract command
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer,
                              &pHintBuffer ) ;
@@ -2164,13 +2164,51 @@ namespace engine
       goto done ;
    }
 
+   INT32 _omManager::_processAdvanceMsg( MsgHeader *pMsg,
+                                         rtnContextBuf &buf,
+                                         INT64 &contextID )
+   {
+      INT32 rc         = SDB_OK ;
+      INT64 tmpContextID = -1 ;
+      const CHAR *pOption = NULL ;
+      const CHAR *pBackData = NULL ;
+      INT32 backDataSize = 0 ;
+
+      rc = msgExtractAdvanceMsg( (const CHAR*)pMsg, &tmpContextID, &pOption,
+                                 &pBackData, &backDataSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract advance msg failed(rc=%d)!", rc ) ;
+
+      try
+      {
+         BSONObj option( pOption ) ;
+         rc = rtnAdvance( tmpContextID, option, pBackData, backDataSize,
+                          _pEDUCB, _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _omManager::_processKillContext( MsgHeader * pMsg )
    {
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
 
-      rc = msgExtractKillContexts( (CHAR *)pMsg, &contextNum, &pContextIDs ) ;
+      rc = msgExtractKillContexts( (const CHAR *)pMsg, &contextNum,
+                                   &pContextIDs ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse killcontexts "
                    "request(rc=%d)", rc ) ;
 
@@ -2407,6 +2445,9 @@ namespace engine
                break;
             case MSG_BS_GETMORE_REQ :
                rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
+               break ;
+            case MSG_BS_ADVANCE_REQ :
+               rc = _processAdvanceMsg( pMsg, buffObj, contextID ) ;
                break ;
             case MSG_BS_KILL_CONTEXT_REQ:
                rc = _processKillContext( pMsg ) ;

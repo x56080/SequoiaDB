@@ -53,7 +53,7 @@ using namespace std ;
 
 #define MSG_CHECK_BSON_LENGTH( x )                                  \
    do {                                                             \
-      if ( ossRoundUpToMultipleX( x, 4 ) < 8 )                      \
+      if ( ossAlign4( x ) < 8 )                                     \
       {                                                             \
          PD_LOG( PDERROR, "Invalid bson length %d", x ) ;           \
          SDB_ASSERT( FALSE, "Msg is invalid" ) ;                    \
@@ -61,6 +61,8 @@ using namespace std ;
          goto error ;                                               \
       }                                                             \
    } while ( FALSE )
+
+const static BSONObj __emptyObj ;
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGCHKBUFF, "msgCheckBuffer" )
 INT32 msgCheckBuffer ( CHAR **ppBuffer,
@@ -75,7 +77,7 @@ INT32 msgCheckBuffer ( CHAR **ppBuffer,
 
    if ( packetLength > *bufferSize )
    {
-      INT32 newSize = ossRoundUpToMultipleX ( packetLength, 4 ) ;
+      INT32 newSize = ossAlign4 ( packetLength ) ;
       if ( newSize < 0 )
       {
          PD_LOG ( PDERROR, "new buffer overflow" ) ;
@@ -151,31 +153,29 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDUPMSG );
    PD_TRACE1 ( SDB_MSGBLDUPMSG, PD_PACK_STRING(CollectionName) );
-   const BSONObj emptyObj ;
 
    if ( !selector )
    {
-      selector = &emptyObj ;
+      selector = &__emptyObj ;
    }
    if ( !updator )
    {
-      updator = &emptyObj ;
+      updator = &__emptyObj ;
    }
    if ( !hint )
    {
-      hint = &emptyObj ;
+      hint = &__emptyObj ;
    }
    SDB_ASSERT ( ppBuffer && bufferSize && CollectionName &&
                 selector && updator && hint, "Invalid input" ) ;
    INT32 rc             = SDB_OK ;
    MsgOpUpdate *pUpdate = NULL ;
    INT32 offset         = 0 ;
-   INT32 packetLength = ossRoundUpToMultipleX(offsetof(MsgOpUpdate, name) +
-                                              ossStrlen ( CollectionName ) + 1,
-                                              4 ) +
-                        ossRoundUpToMultipleX( selector->objsize(), 4 ) +
-                        ossRoundUpToMultipleX( updator->objsize (), 4 ) +
-                        ossRoundUpToMultipleX( hint->objsize (), 4 ) ;
+   INT32 packetLength = ossAlign4( offsetof(MsgOpUpdate, name) +
+                                   ossStrlen ( CollectionName ) + 1 ) +
+                        ossAlign4( selector->objsize() ) +
+                        ossAlign4( updator->objsize () ) +
+                        ossAlign4( hint->objsize () ) ;
    PD_TRACE1 ( SDB_MSGBLDUPMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -205,17 +205,15 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    ossStrncpy ( pUpdate->name, CollectionName, pUpdate->nameLength ) ;
    pUpdate->name[pUpdate->nameLength] = 0 ;
    // get the offset of the first bson obj
-   offset = ossRoundUpToMultipleX( offsetof(MsgOpUpdate, name) +
-                                   pUpdate->nameLength + 1,
-                                   4 ) ;
+   offset = ossAlign4( offsetof(MsgOpUpdate, name) + pUpdate->nameLength + 1 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), selector->objdata(),
                                        selector->objsize());
    // get the offset of the second bson obj
-   offset += ossRoundUpToMultipleX( selector->objsize(), 4 ) ;
+   offset += ossAlign4( selector->objsize() ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), updator->objdata(), updator->objsize());
-   offset += ossRoundUpToMultipleX( updator->objsize(), 4 ) ;
+   offset += ossAlign4( updator->objsize() ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(), hint->objsize());
-   offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   offset += ossAlign4( hint->objsize() ) ;
    // sanity test
    if ( offset != packetLength )
    {
@@ -275,65 +273,94 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTUP, "msgExtractUpdate" )
-INT32 msgExtractUpdate ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppSelector, CHAR **ppUpdator, CHAR **ppHint )
+INT32 msgExtractUpdate ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppSelector,
+                         const CHAR **ppUpdator,
+                         const CHAR **ppHint )
 {
    SDB_ASSERT ( pBuffer && pflag && ppCollectionName && ppSelector &&
                 ppUpdator && ppHint, "Invalid input" ) ;
+
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTUP );
+
    INT32 offset = 0 ;
    INT32 length = 0 ; // the length of bson object
-   MsgOpUpdate *pUpdate = (MsgOpUpdate*)pBuffer ;
+   const MsgOpUpdate *pUpdate = (const MsgOpUpdate*)pBuffer ;
+
+   const static INT32 _minSize = ossAlign4(offsetof(MsgOpUpdate, name)+1 ) ;
+
+   /// check length
+   if ( pUpdate->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *pflag = pUpdate->flags ;
    *ppCollectionName = pUpdate->name ;
-   PD_TRACE1 ( SDB_MSGEXTRACTUP, PD_PACK_STRING(*ppCollectionName) );
+
+   PD_TRACE1 ( SDB_MSGEXTRACTUP, PD_PACK_STRING(*ppCollectionName) ) ;
+
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pUpdate->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
    // get the offset for the first BSONObj
-   offset = ossRoundUpToMultipleX ( offsetof(MsgOpUpdate, name) +
-                                    pUpdate->nameLength + 1, 4 ) ;
+   offset = ossAlign4 ( offsetof(MsgOpUpdate, name) + pUpdate->nameLength + 1 ) ;
+   /// check length
+   if ( pUpdate->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    if ( ppSelector )
    {
       *ppSelector = &pBuffer[offset] ;
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
-   // sanity check in order to prevent memory overflow for invalid BSON obj
-   if ( offset + length > pUpdate->header.messageLength )
+
+   // add the size of first BSONObj
+   offset += ossAlign4( length ) ;
+   /// check length
+   if ( pUpdate->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // add the size of first BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
+
    if ( ppUpdator )
    {
       *ppUpdator  = &pBuffer[offset] ;
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
-   // the result may not exactly match because messageLength is 4 bytes aligned
-   if ( offset + length > pUpdate->header.messageLength )
+
+   // add the size of second BSONObj
+   offset += ossAlign4( length ) ;
+   // check length
+   if ( pUpdate->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // add the size of second BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
+
    if ( ppHint )
    {
       *ppHint  = &pBuffer[offset] ;
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
+
    // the result may not exactly match because messageLength is 4 bytes aligned
-   if ( offset + length > pUpdate->header.messageLength )
+   if ( pUpdate->header.messageLength < offset + length )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
 done :
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTUP, rc );
    return rc ;
@@ -354,10 +381,9 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_TRACE1 ( SDB_MSGBLDINSERTMSG, PD_PACK_STRING(CollectionName) );
    MsgOpInsert *pInsert = NULL ;
    INT32 offset         = 0 ;
-   INT32 packetLength = ossRoundUpToMultipleX(offsetof(MsgOpInsert, name) +
-                                              ossStrlen ( CollectionName ) + 1,
-                                              4 ) +
-                        ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
+   INT32 packetLength = ossAlign4( offsetof(MsgOpInsert, name) +
+                                   ossStrlen ( CollectionName ) + 1 ) +
+                        ossAlign4( insertor->objsize() ) ;
    PD_TRACE1 ( SDB_MSGBLDINSERTMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -387,11 +413,9 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
    pInsert->name[pInsert->nameLength]=0 ;
    // get the offset of the first bson obj
-   offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
-                                   pInsert->nameLength + 1,
-                                   4 ) ;
+   offset = ossAlign4( offsetof(MsgOpInsert, name) + pInsert->nameLength + 1 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), insertor->objdata(), insertor->objsize());
-   offset += ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
+   offset += ossAlign4( insertor->objsize() ) ;
    // sanity test
    if ( offset != packetLength )
    {
@@ -409,19 +433,20 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDINSERTMSG2, "msgBuildInsertMsg" )
 INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,
-                          void *pFiller, std::vector< CHAR * > &ObjQueue,
+                          std::vector< CHAR * > &ObjQueue,
                           netIOVec &ioVec,
                           IExecutor *cb )
 {
-   SDB_ASSERT ( ppBuffer && bufferSize && CollectionName && pFiller,
+   SDB_ASSERT ( ppBuffer && bufferSize && CollectionName,
                 "Invalid input" ) ;
    INT32 rc             = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_MSGBLDINSERTMSG2 );
+   const static INT32 _fullVal = 0 ;
+   PD_TRACE_ENTRY ( SDB_MSGBLDINSERTMSG2 ) ;
    PD_TRACE1 ( SDB_MSGBLDINSERTMSG2, PD_PACK_STRING(CollectionName) );
+
    MsgOpInsert *pInsert = NULL ;
-   INT32 headLength = ossRoundUpToMultipleX(offsetof(MsgOpInsert, name) +
-                                              ossStrlen ( CollectionName ) + 1,
-                                              4 );
+   INT32 headLength = ossAlign4( offsetof(MsgOpInsert, name) +
+                                 ossStrlen ( CollectionName ) + 1 );
    INT32 packetLength = headLength ;
    UINT32 i = 0 ;
    ioVec.clear() ;
@@ -439,21 +464,21 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
          ioObj.iovLen = boInsertor.objsize();
          ioVec.push_back( ioObj ) ;
 
-         INT32 usedLength = ossRoundUpToMultipleX( boInsertor.objsize(), 4 );
+         INT32 usedLength = ossAlign4( boInsertor.objsize() );
          INT32 fillLength = usedLength - boInsertor.objsize();
          if ( fillLength > 0 )
          {
             netIOV ioFiller;
-            ioFiller.iovBase = pFiller;
-            ioFiller.iovLen = fillLength;
-            ioVec.push_back( ioFiller );
+            ioFiller.iovBase = (const void*)&_fullVal ;
+            ioFiller.iovLen = fillLength ;
+            ioVec.push_back( ioFiller ) ;
          }
          packetLength += usedLength ;
       }
       catch ( std::exception &e )
       {
          PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
-                  "failed to parse the obj:%s", e.what() );
+                   "Failed to parse the obj:%s", e.what() );
       }
    }
    PD_TRACE1 ( SDB_MSGBLDINSERTMSG2, PD_PACK_INT(packetLength) );
@@ -508,8 +533,7 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                 ossIsAligned4 ( pInsert->header.messageLength ),
                 "Invalid messageLength" ) ;
    INT32 offset         = pInsert->header.messageLength ;
-   INT32 packetLength   = offset +
-                        ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
+   INT32 packetLength   = offset + ossAlign4( insertor->objsize() ) ;
    PD_TRACE1 ( SDB_MSGAPDINSERTMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -526,7 +550,7 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    // now the buffer is large enough
    pInsert->header.messageLength = packetLength ;
    ossMemcpy ( &((*ppBuffer)[offset]), insertor->objdata(), insertor->objsize());
-   offset += ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
+   offset += ossAlign4( insertor->objsize() ) ;
    if ( offset != packetLength )
    {
       PD_LOG ( PDERROR, "Invalid packet length" ) ;
@@ -541,35 +565,50 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTINSERT, "msgExtractInsert" )
-INT32 msgExtractInsert ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppInsertor, INT32 &count )
+INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppInsertor,
+                         INT32 &count )
 {
    SDB_ASSERT ( pBuffer && pflag && ppCollectionName && ppInsertor,
                 "Invalid input" ) ;
    INT32 rc = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_MSGEXTRACTINSERT );
+   PD_TRACE_ENTRY ( SDB_MSGEXTRACTINSERT ) ;
+
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpInsert, name)+1 ) ;
+
    INT32 offset = 0 ;
    INT32 size = 0 ;
-   CHAR *pCurrent = NULL ;
-   MsgOpInsert *pInsert = (MsgOpInsert*)pBuffer ;
+   const CHAR *pCurrent = NULL ;
+   const MsgOpInsert *pInsert = (const MsgOpInsert*)pBuffer ;
+
+   /// check length
+   if ( pInsert->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *pflag = pInsert->flags ;
    *ppCollectionName = pInsert->name ;
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pInsert->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+
    // get the offset for the first BSONObj
-   offset = ossRoundUpToMultipleX ( offsetof(MsgOpInsert, name) +
-                                    pInsert->nameLength + 1, 4 ) ;
+   offset = ossAlign4( offsetof(MsgOpInsert, name) + pInsert->nameLength + 1 ) ;
+   if ( pInsert->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *ppInsertor = &pBuffer[offset] ;
    pCurrent = &pBuffer[offset] ;
    count = 0 ;
    while ( TRUE )
    {
-      if ( ossRoundUpToMultipleX( offset, 4 ) >= pInsert->header.messageLength )
-      {
-         break ;
-      }
-      size = ossRoundUpToMultipleX ( *((SINT32*)pCurrent), 4 ) ;
+      size = ossAlign4( *((SINT32*)pCurrent) ) ;
       if ( size < 8 )
       {
          PD_LOG( PDERROR, "Insert msg is invalid, msg length: %d, offset: %d, "
@@ -581,6 +620,11 @@ INT32 msgExtractInsert ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
       }
       ++count ;
       offset += size ;
+
+      if ( pInsert->header.messageLength <= offset )
+      {
+         break ;
+      }
       pCurrent = &pBuffer[offset] ;
    }
    PD_TRACE2 ( SDB_MSGEXTRACTINSERT, PD_PACK_STRING(*ppCollectionName),
@@ -604,36 +648,34 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDQRYMSG ) ;
    PD_TRACE1 ( SDB_MSGBLDQRYMSG, PD_PACK_STRING(CollectionName) ) ;
-   const BSONObj emptyObj ;
 
    if ( !query )
    {
-      query = &emptyObj ;
+      query = &__emptyObj ;
    }
    if ( !fieldSelector )
    {
-      fieldSelector = &emptyObj ;
+      fieldSelector = &__emptyObj ;
    }
    if ( !orderBy )
    {
-      orderBy = &emptyObj ;
+      orderBy = &__emptyObj ;
    }
    if ( !hint )
    {
-      hint = &emptyObj ;
+      hint = &__emptyObj ;
    }
    SDB_ASSERT ( ppBuffer && bufferSize && CollectionName &&
                 query && fieldSelector && orderBy && hint, "Invalid input" ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    INT32 offset         = 0 ;
-   INT32 packetLength = ossRoundUpToMultipleX(offsetof(MsgOpQuery, name) +
-                                              ossStrlen ( CollectionName ) + 1,
-                                              4 ) +
-                        ossRoundUpToMultipleX( query->objsize(), 4 ) +
-                        ossRoundUpToMultipleX( fieldSelector->objsize(), 4) +
-                        ossRoundUpToMultipleX( orderBy->objsize(), 4 ) +
-                        ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   INT32 packetLength = ossAlign4( offsetof(MsgOpQuery, name) +
+                                   ossStrlen ( CollectionName ) + 1 ) +
+                        ossAlign4( query->objsize() ) +
+                        ossAlign4( fieldSelector->objsize() ) +
+                        ossAlign4( orderBy->objsize() ) +
+                        ossAlign4( hint->objsize() ) ;
    PD_TRACE1 ( SDB_MSGBLDQRYMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -665,24 +707,22 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;
    pQuery->name[pQuery->nameLength]=0 ;
    // get the offset of the first bson obj
-   offset = ossRoundUpToMultipleX( offsetof(MsgOpQuery, name) +
-                                   pQuery->nameLength + 1,
-                                   4 ) ;
+   offset = ossAlign4( offsetof(MsgOpQuery, name) + pQuery->nameLength + 1 ) ;
    // write query condition
    ossMemcpy ( &((*ppBuffer)[offset]), query->objdata(), query->objsize() ) ;
-   offset += ossRoundUpToMultipleX( query->objsize(), 4 ) ;
+   offset += ossAlign4( query->objsize() ) ;
    // write field select
    ossMemcpy ( &((*ppBuffer)[offset]), fieldSelector->objdata(),
                fieldSelector->objsize() ) ;
-   offset += ossRoundUpToMultipleX( fieldSelector->objsize(), 4 ) ;
+   offset += ossAlign4( fieldSelector->objsize() ) ;
    // write order by clause
    ossMemcpy ( &((*ppBuffer)[offset]), orderBy->objdata(),
                orderBy->objsize() ) ;
-   offset += ossRoundUpToMultipleX( orderBy->objsize(), 4 ) ;
+   offset += ossAlign4( orderBy->objsize() ) ;
    // write optimizer hint
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(),
                hint->objsize() ) ;
-   offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   offset += ossAlign4( hint->objsize() ) ;
    // sanity test
    if ( offset != packetLength )
    {
@@ -698,18 +738,28 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTQUERY, "msgExtractQuery" )
-INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
+INT32 msgExtractQuery  ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
                          SINT64 *numToSkip, SINT64 *numToReturn,
-                         CHAR **ppQuery, CHAR **ppFieldSelector,
-                         CHAR **ppOrderBy, CHAR **ppHint )
+                         const CHAR **ppQuery,
+                         const CHAR **ppFieldSelector,
+                         const CHAR **ppOrderBy,
+                         const CHAR **ppHint )
 {
    SDB_ASSERT ( pBuffer, "Invalid input" ) ;
 
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTQUERY );
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpQuery, name)+1 ) ;
    INT32 offset = 0 ;
    INT32 length = 0 ;
-   MsgOpQuery *pQuery = (MsgOpQuery*)pBuffer ;
+   const MsgOpQuery *pQuery = (const MsgOpQuery*)pBuffer ;
+
+   if ( pQuery->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
    if ( pflag )
    {
@@ -736,6 +786,12 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    // get the offset for the first BSONObj
    offset = ossAlign4 ( (UINT32)(offsetof(MsgOpQuery, name) +
                                  pQuery->nameLength + 1) ) ;
+   if ( pQuery->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    if ( ppQuery )
    {
       *ppQuery = &pBuffer[offset] ;
@@ -743,74 +799,53 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
 
-   // since there may another BSON followed by first one, we use >
-   if ( offset + length > pQuery->header.messageLength )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
    // add the size of first BSONObj
    offset += ossAlign4( (UINT32)length ) ;
-   if ( offset < pQuery->header.messageLength )
-   {
-      if ( ppFieldSelector )
-      {
-         *ppFieldSelector = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      // the result should exactly match messageLength
-      if ( offset + length > pQuery->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   }
-   else
+   if ( pQuery->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
+   if ( ppFieldSelector )
+   {
+      *ppFieldSelector = &pBuffer[offset] ;
+   }
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
    // add the size of second BSONObj
    offset += ossAlign4( (UINT32)length ) ;
-   if ( offset < pQuery->header.messageLength )
-   {
-      if ( ppOrderBy )
-      {
-         *ppOrderBy = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      // the result should exactly match messageLength
-      if ( offset + length > pQuery->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   }
-   else
+   if ( pQuery->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
+   if ( ppOrderBy )
+   {
+      *ppOrderBy = &pBuffer[offset] ;
+   }
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
    // add the size of third BSONObj
    offset += ossAlign4( (UINT32)length ) ;
-   if ( offset < pQuery->header.messageLength )
+   if ( pQuery->header.messageLength < offset + 5 )
    {
-      if ( ppHint )
-      {
-         *ppHint = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      // the result should exactly match messageLength
-      if ( offset + length > pQuery->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
-   else
+
+   if ( ppHint )
+   {
+      *ppHint = &pBuffer[offset] ;
+   }
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
+   // the result should exactly match messageLength
+   if ( pQuery->header.messageLength < offset + length )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -867,8 +902,9 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTGETMORE, "msgExtractGetMore" )
-INT32 msgExtractGetMore  ( CHAR *pBuffer,
-                           SINT32 *numToReturn, SINT64 *contextID )
+INT32 msgExtractGetMore  ( const CHAR *pBuffer,
+                           SINT32 *numToReturn,
+                           SINT64 *contextID )
 {
    SDB_ASSERT ( pBuffer &&
                 numToReturn && contextID ,
@@ -897,6 +933,150 @@ void msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
    PD_TRACE_EXIT ( SDB_MSGFILLGETMOREMSG );
 }
 
+INT32 msgExtractAdvanceMsg( const CHAR *pBuffer, INT64 *contextID,
+                            const CHAR **arg,
+                            const CHAR **ppBackData,
+                            INT32 *pBackDataSize )
+{
+   SDB_ASSERT ( pBuffer, "Invalid input" ) ;
+
+   INT32 rc = SDB_OK ;
+   INT32 offset = 0 ;
+   INT32 length = 0 ;
+   const MsgOpAdvance *pAdvance = (const MsgOpAdvance*)pBuffer ;
+
+   const static INT32 _minSize = ossAlign4( sizeof( MsgOpAdvance ) ) + 5 ;
+
+   /// check message
+   if ( pAdvance->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( contextID )
+   {
+      *contextID = pAdvance->contextID ;
+   }
+
+   // get the offset for the first BSONObj
+   offset = ossAlign4 ( sizeof(MsgOpAdvance) ) ;
+   if ( arg )
+   {
+      *arg = &pBuffer[offset] ;
+   }
+
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
+   /// parse back data
+   if ( pAdvance->backDataSize > 0 )
+   {
+      offset += ossAlign4( length ) ;
+
+      if ( ppBackData )
+      {
+         *ppBackData = ( const CHAR* )&pBuffer[offset] ;
+      }
+      if ( pBackDataSize )
+      {
+         *pBackDataSize = pAdvance->backDataSize ;
+      }
+
+      offset += pAdvance->backDataSize ;
+   }
+
+   if ( pAdvance->header.messageLength < offset )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 msgBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                          SINT64 contextID, UINT64 reqID,
+                          const BSONObj *arg,
+                          const CHAR *pBackData,
+                          INT32 backDataSize,
+                          IExecutor *cb )
+{
+   if ( !arg )
+   {
+      arg = &__emptyObj ;
+   }
+
+   SDB_ASSERT ( ppBuffer && bufferSize && arg, "Invalid input" ) ;
+
+   INT32 rc = SDB_OK ;
+   MsgOpAdvance *pAdvance  = NULL ;
+   INT32 offset            = 0 ;
+   INT32 packetLength      = ossAlign4( sizeof( MsgOpAdvance ) ) +
+                             ossAlign4( arg->objsize() ) +
+                             ossAlign4( backDataSize ) ;
+
+   if ( backDataSize < 0 )
+   {
+      PD_LOG( PDERROR, "Back data size is invalid" ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   else if ( packetLength < 0 )
+   {
+      PD_LOG ( PDERROR, "Packet size overflow" ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   rc = msgCheckBuffer ( ppBuffer, bufferSize, packetLength, cb ) ;
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "Failed to check buffer" ) ;
+      goto error ;
+   }
+
+   // now the buffer is large enough
+   pAdvance                      = (MsgOpAdvance*)(*ppBuffer) ;
+   pAdvance->contextID           = contextID ;
+   pAdvance->backDataSize        = backDataSize ;
+   ossMemset( (void*)(pAdvance->padding), 0, sizeof( pAdvance->padding ) ) ;
+
+   pAdvance->header.requestID    = reqID ;
+   pAdvance->header.opCode       = MSG_BS_ADVANCE_REQ ;
+   pAdvance->header.messageLength= packetLength ;
+   pAdvance->header.routeID.value= 0 ;
+   pAdvance->header.TID          = ossGetCurrentThreadID() ;
+
+   // get the offset of the first bson obj
+   offset = ossAlign4( sizeof( MsgOpAdvance ) ) ;
+
+   ossMemcpy ( &((*ppBuffer)[offset]), arg->objdata(), arg->objsize() );
+   offset += ossAlign4( arg->objsize() ) ;
+
+   // copy the back data
+   if ( backDataSize > 0 )
+   {
+      ossMemcpy( &((*ppBuffer)[offset]), pBackData, backDataSize ) ;
+      offset += ossAlign4( backDataSize ) ;
+   }
+
+   // sanity test
+   if ( offset != packetLength )
+   {
+      PD_LOG ( PDERROR, "Invalid packet length" ) ;
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDDELMSG, "msgBuildDeleteMsg" )
 INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,
@@ -906,25 +1086,24 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDDELMSG );
    PD_TRACE1 ( SDB_MSGBLDDELMSG, PD_PACK_STRING(CollectionName) );
-   const BSONObj emptyObj ;
+
    if ( !deletor )
    {
-      deletor = &emptyObj ;
+      deletor = &__emptyObj ;
    }
    if ( !hint )
    {
-      hint = &emptyObj ;
+      hint = &__emptyObj ;
    }
    SDB_ASSERT ( ppBuffer && bufferSize && CollectionName &&
                 deletor && hint, "Invalid input" ) ;
    INT32 rc             = SDB_OK ;
    MsgOpDelete *pDelete = NULL ;
    INT32 offset         = 0 ;
-   INT32 packetLength = ossRoundUpToMultipleX(offsetof(MsgOpDelete, name) +
-                                              ossStrlen ( CollectionName ) + 1,
-                                              4 ) +
-                        ossRoundUpToMultipleX( deletor->objsize(), 4 ) +
-                        ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   INT32 packetLength = ossAlign4(offsetof(MsgOpDelete, name) +
+                                  ossStrlen ( CollectionName ) + 1 ) +
+                        ossAlign4( deletor->objsize()) +
+                        ossAlign4( hint->objsize()) ;
    PD_TRACE1( SDB_MSGBLDDELMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -954,15 +1133,13 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    ossStrncpy ( pDelete->name, CollectionName, pDelete->nameLength ) ;
    pDelete->name[pDelete->nameLength]=0 ;
    // get the offset of the first bson obj
-   offset = ossRoundUpToMultipleX( offsetof(MsgOpDelete, name) +
-                                   pDelete->nameLength + 1,
-                                   4 ) ;
+   offset = ossAlign4( offsetof(MsgOpDelete, name) + pDelete->nameLength + 1 ) ;
 
    ossMemcpy ( &((*ppBuffer)[offset]), deletor->objdata(), deletor->objsize() );
-   offset += ossRoundUpToMultipleX( deletor->objsize(), 4 ) ;
+   offset += ossAlign4( deletor->objsize() ) ;
 
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(), hint->objsize() );
-   offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   offset += ossAlign4( hint->objsize() ) ;
    // sanity test
    if ( offset != packetLength )
    {
@@ -975,59 +1152,70 @@ done :
    return rc ;
 error :
    goto done ;
-
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTDEL, "msgExtractDelete" )
-INT32 msgExtractDelete ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppDeletor, CHAR **ppHint )
+INT32 msgExtractDelete ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppDeletor,
+                         const CHAR **ppHint )
 {
    SDB_ASSERT ( pBuffer && pflag && ppCollectionName && ppDeletor && ppHint,
                 "Invalid input" ) ;
    INT32 rc = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_MSGEXTRACTDEL );
+   PD_TRACE_ENTRY ( SDB_MSGEXTRACTDEL ) ;
+
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpDelete, name)+1 ) ;
    INT32 offset = 0 ;
    INT32 length = 0 ;
-   MsgOpDelete *pDelete = (MsgOpDelete*)pBuffer ;
+   const MsgOpDelete *pDelete = (const MsgOpDelete*)pBuffer ;
+
+   if ( pDelete->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *pflag = pDelete->flags ;
    *ppCollectionName = pDelete->name ;
    PD_TRACE1 ( SDB_MSGEXTRACTDEL, PD_PACK_STRING(*ppCollectionName) );
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pDelete->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+
    // get the offset for the first BSONObj
-   offset = ossRoundUpToMultipleX ( offsetof(MsgOpDelete, name) +
-                                    pDelete->nameLength + 1, 4 ) ;
+   offset = ossAlign4 ( offsetof(MsgOpDelete, name) +
+                        pDelete->nameLength + 1 ) ;
+   if ( pDelete->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    if ( ppDeletor )
    {
       *ppDeletor = &pBuffer[offset] ;
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
-   if ( offset + length > pDelete->header.messageLength )
+
+   // add the size of first BSONObj
+   offset += ossAlign4( length ) ;
+   if ( pDelete->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // add the size of first BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
-   if ( offset < pDelete->header.messageLength )
+
+   if ( ppHint )
    {
-      if ( ppHint )
-      {
-         *ppHint = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      // the result should exactly match messageLength
-      if ( offset + length >
-           pDelete->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      *ppHint = &pBuffer[offset] ;
    }
-   else
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
+   // the result should exactly match messageLength
+   if ( pDelete->header.messageLength < offset + length )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -1042,9 +1230,9 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDKILLCONTXMSG, "msgBuildKillContextsMsg" )
 INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                               UINT64 reqID,
-                               SINT32 numContexts, SINT64 *pContextIDs,
-                               engine::IExecutor *cb )
+                                UINT64 reqID,
+                                SINT32 numContexts, SINT64 *pContextIDs,
+                                engine::IExecutor *cb )
 {
    SDB_ASSERT ( ppBuffer && bufferSize && pContextIDs, "Invalid input" ) ;
    SDB_ASSERT ( numContexts > 0, "Invalid input" ) ;
@@ -1084,20 +1272,30 @@ done :
    return rc ;
 error :
    goto done ;
-
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTKILLCONTX, "msgExtractKillContexts" )
-INT32 msgExtractKillContexts ( CHAR *pBuffer,
-                              SINT32 *numContexts, SINT64 **ppContextIDs )
+INT32 msgExtractKillContexts ( const CHAR *pBuffer,
+                               SINT32 *numContexts,
+                               const SINT64 **ppContextIDs )
 {
-   SDB_ASSERT ( pBuffer && numContexts && ppContextIDs
-                , "Invalid input" ) ;
+   SDB_ASSERT ( pBuffer && numContexts && ppContextIDs, "Invalid input" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTKILLCONTX );
-   MsgOpKillContexts *pKC = (MsgOpKillContexts*)pBuffer ;
+
+   const static INT32 _minSize = offsetof(MsgOpKillContexts, contextIDs) ;
+
+   const MsgOpKillContexts *pKC = (const MsgOpKillContexts*)pBuffer ;
+
+   if ( pKC->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *numContexts = pKC->numContexts ;
    *ppContextIDs = &pKC->contextIDs[0] ;
+
    // we check exact match situation here, since the input should always
    // aligned with 8
    if ( offsetof(MsgOpKillContexts, contextIDs) + pKC->numContexts *
@@ -1106,6 +1304,7 @@ INT32 msgExtractKillContexts ( CHAR *pBuffer,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
 done :
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTKILLCONTX, rc );
    return rc ;
@@ -1123,9 +1322,7 @@ INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_TRACE_ENTRY ( SDB_MSGBLDMSGMSG );
    MsgOpMsg *pMsg       = NULL ;
    INT32 msgLen         = ossStrlen ( pMsgStr ) ;
-   INT32 packetLength = ossRoundUpToMultipleX (
-                          offsetof(MsgOpMsg, msg)+
-                          msgLen + 1, 4 ) ;
+   INT32 packetLength = ossAlign4 ( offsetof(MsgOpMsg, msg)+ msgLen + 1 ) ;
    PD_TRACE1 ( SDB_MSGBLDMSGMSG, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -1157,19 +1354,29 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTMSG, "msgExtractMsg" )
-INT32 msgExtractMsg ( CHAR *pBuffer, CHAR **ppMsgStr )
+INT32 msgExtractMsg ( const CHAR *pBuffer, const CHAR **ppMsgStr )
 {
    SDB_ASSERT ( pBuffer && ppMsgStr, "Invalid input" ) ;
    INT32 rc = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_MSGEXTRACTMSG );
-   MsgOpMsg *pMsg = (MsgOpMsg*)pBuffer ;
-   *ppMsgStr = &pMsg->msg[0] ;
-   if ( offsetof(MsgOpMsg, msg) + ossStrlen(*ppMsgStr) >
-        (UINT32)pMsg->header.messageLength )
+   PD_TRACE_ENTRY ( SDB_MSGEXTRACTMSG ) ;
+
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpMsg, msg) + 1 ) ;
+   const MsgOpMsg *pMsg = (const MsgOpMsg*)pBuffer ;
+
+   if ( pMsg->header.messageLength < _minSize )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
+   *ppMsgStr = &pMsg->msg[0] ;
+   if ( (UINT32)pMsg->header.messageLength <
+        offsetof(MsgOpMsg, msg) + ossStrlen(*ppMsgStr) + 1 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
 done :
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTMSG, rc );
    return rc ;
@@ -1188,7 +1395,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    INT32 rc             = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGBLDREPLYMSG );
    MsgOpReply *pReply = NULL ;
-   INT32 packetLength = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+   INT32 packetLength = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
    if ( packetLength < 0 )
    {
       PD_LOG ( PDERROR, "Packet size overflow" ) ;
@@ -1200,7 +1407,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    {
       INT32 objSize ;
       objSize = (*objList)[i].objsize() ;
-      packetLength = ossRoundUpToMultipleX( packetLength, 4 ) ;
+      packetLength = ossAlign4( packetLength ) ;
       rc = msgCheckBuffer ( ppBuffer, bufferSize,
                             packetLength + objSize,
                             cb ) ;
@@ -1243,10 +1450,10 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    PD_TRACE_ENTRY ( SDB_MSGBLDREPLYMSG2 );
    INT32 offset       = 0 ;
    MsgOpReply *pReply = NULL ;
-   INT32 packetLength = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+   INT32 packetLength = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
    if ( numReturned != 0 )
    {
-      packetLength += ossRoundUpToMultipleX ( bsonobj->objsize(), 4 ) ;
+      packetLength += ossAlign4 ( bsonobj->objsize() ) ;
    }
    PD_TRACE1 ( SDB_MSGBLDREPLYMSG2, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
@@ -1273,7 +1480,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.TID           = ossGetCurrentThreadID() ;
    if ( numReturned != 0 )
    {
-      offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+      offset = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
       ossMemcpy ( &((*ppBuffer)[offset]), bsonobj->objdata(),
                                           bsonobj->objsize() ) ;
    }
@@ -1285,16 +1492,24 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTREPLY, "msgExtractReply" )
-INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
+INT32 msgExtractReply ( const CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
                         SINT32 *startFrom, SINT32 *numReturned,
                         vector<BSONObj> &objList )
 {
    SDB_ASSERT ( pBuffer && flag && contextID && startFrom &&
                 numReturned , "Invalid input" ) ;
    INT32 rc = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_MSGEXTRACTREPLY );
-   INT32 offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
-   MsgOpReply *pReply = (MsgOpReply*)pBuffer ;
+   PD_TRACE_ENTRY ( SDB_MSGEXTRACTREPLY ) ;
+
+   INT32 offset = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
+   const MsgOpReply *pReply = (const MsgOpReply*)pBuffer ;
+
+   if ( pReply->header.messageLength < offset )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *flag = pReply->flags ;
    *contextID = pReply->contextID ;
    *startFrom = pReply->startFrom ;
@@ -1302,9 +1517,9 @@ INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
 
    try
    {
-      for ( SINT32 i = 0; i < *numReturned; i++ )
+      for ( SINT32 i = 0 ; i < *numReturned; i++ )
       {
-         if ( offset > pReply->header.messageLength )
+         if ( pReply->header.messageLength < offset + 5 )
          {
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -1312,8 +1527,9 @@ INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
          BSONObj obj(&pBuffer[offset]) ;
          SDB_ASSERT( obj.objsize() >= 5, "obj size must grater or equal 5" ) ;
          MSG_CHECK_BSON_LENGTH( obj.objsize() ) ;
+
          objList.push_back(obj) ;
-         offset += ossRoundUpToMultipleX ( obj.objsize(), 4 ) ;
+         offset += ossAlign4 ( obj.objsize() ) ;
       }
    }
    catch( std::exception &e )
@@ -1339,7 +1555,7 @@ INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc                     = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGBLDDISCONNMSG );
    MsgOpDisconnect *pDisconnect = NULL ;
-   INT32 packetLength = ossRoundUpToMultipleX ( sizeof ( MsgOpDisconnect ),4) ;
+   INT32 packetLength = ossAlign4 ( sizeof ( MsgOpDisconnect ) ) ;
    if ( packetLength < 0 )
    {
       PD_LOG ( PDERROR, "Packet size overflow" ) ;
@@ -1451,15 +1667,6 @@ INT32 msgBuildQuerySpaceReqMsg ( CHAR **ppBuffer, INT32 *pBufferSize,
    return rc ;
 }
 
-INT32 msgExtractQueryCatalogMsg ( CHAR *pBuffer, INT32 *pFlag, SINT64 *pNumToSkip,
-                              SINT64 *pNumToReturn, CHAR **ppQuery,
-                              CHAR **ppFieldSelector, CHAR **ppOrderBy, CHAR **ppHint )
-{
-   CHAR *pCmdName = NULL;
-   return  msgExtractQuery( pBuffer, pFlag, &pCmdName, pNumToSkip, pNumToReturn,
-                           ppQuery, ppFieldSelector, ppOrderBy, ppHint );
-}
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_EXTRACTRC, "extractRC" )
 INT32 extractRC ( BSONObj &obj )
 {
@@ -1491,33 +1698,33 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDCMREQ );
    PD_TRACE1 ( SDB_MSGBLDCMREQ, PD_PACK_INT(remoCode) );
-   const BSONObj emptyObj ;
+
    if ( !arg1 )
    {
-      arg1 = &emptyObj ;
+      arg1 = &__emptyObj ;
    }
    if ( !arg2 )
    {
-      arg2 = &emptyObj ;
+      arg2 = &__emptyObj ;
    }
    if ( !arg3 )
    {
-      arg3 = &emptyObj ;
+      arg3 = &__emptyObj ;
    }
    if ( !arg4 )
    {
-      arg4 = &emptyObj ;
+      arg4 = &__emptyObj ;
    }
    SDB_ASSERT ( ppBuffer && pBufferSize, "Invalid input" ) ;
    INT32 rc                 = SDB_OK ;
    MsgCMRequest *pCMRequest = NULL ;
-   INT32 offset             = ossRoundUpToMultipleX (
-                                 offsetof ( MsgCMRequest, arguments ), 4 ) ;
+   INT32 offset             = ossAlign4 (
+                                 offsetof ( MsgCMRequest, arguments ) ) ;
    INT32 packetLength       = offset +
-                              ossRoundUpToMultipleX ( arg1->objsize(), 4 ) +
-                              ossRoundUpToMultipleX ( arg2->objsize(), 4 ) +
-                              ossRoundUpToMultipleX ( arg3->objsize(), 4 ) +
-                              ossRoundUpToMultipleX ( arg4->objsize(), 4 ) ;
+                              ossAlign4 ( arg1->objsize() ) +
+                              ossAlign4 ( arg2->objsize() ) +
+                              ossAlign4 ( arg3->objsize() ) +
+                              ossAlign4 ( arg4->objsize() ) ;
    PD_TRACE1 ( SDB_MSGBLDCMREQ, PD_PACK_INT(packetLength) );
    if ( packetLength < 0 )
    {
@@ -1540,13 +1747,13 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
    pCMRequest->remoCode             = remoCode ;
    // write arguments
    ossMemcpy ( &((*ppBuffer)[offset]), arg1->objdata(), arg1->objsize() ) ;
-   offset += ossRoundUpToMultipleX ( arg1->objsize(), 4 ) ;
+   offset += ossAlign4 ( arg1->objsize() ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), arg2->objdata(), arg2->objsize() ) ;
-   offset += ossRoundUpToMultipleX ( arg2->objsize(), 4 ) ;
+   offset += ossAlign4 ( arg2->objsize() ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), arg3->objdata(), arg3->objsize() ) ;
-   offset += ossRoundUpToMultipleX ( arg3->objsize(), 4 ) ;
+   offset += ossAlign4 ( arg3->objsize() ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), arg4->objdata(), arg4->objsize() ) ;
-   offset += ossRoundUpToMultipleX ( arg4->objsize(), 4 ) ;
+   offset += ossAlign4 ( arg4->objsize() ) ;
    if ( offset != packetLength )
    {
       PD_LOG ( PDERROR, "Invalid packet length" ) ;
@@ -1562,18 +1769,25 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTCMREQ, "msgExtractCMRequest" )
-INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
-                            CHAR **arg1, CHAR **arg2,
-                            CHAR **arg3, CHAR **arg4 )
+INT32 msgExtractCMRequest ( const CHAR *pBuffer, SINT32 *remoCode,
+                            const CHAR **arg1, const CHAR **arg2,
+                            const CHAR **arg3, const CHAR **arg4 )
 {
    SDB_ASSERT ( pBuffer && remoCode && arg1 && arg2 && arg3 && arg4,
                 "Invalid input" ) ;
    INT32 rc           = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTCMREQ );
+
    INT32 length       = 0 ;
-   INT32 offset       = ossRoundUpToMultipleX (
-                        offsetof ( MsgCMRequest, arguments ), 4 ) ;
-   MsgCMRequest *pCMRequest = (MsgCMRequest*) pBuffer ;
+   INT32 offset       = ossAlign4 ( offsetof ( MsgCMRequest, arguments ) ) ;
+   const MsgCMRequest *pCMRequest = (const MsgCMRequest*) pBuffer ;
+
+   if ( pCMRequest->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *remoCode = pCMRequest->remoCode ;
 
    // extract the first BSONObj
@@ -1583,69 +1797,51 @@ INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
    MSG_CHECK_BSON_LENGTH( length ) ;
-   if ( offset + length > pCMRequest->header.messageLength )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
+
    // extract the second BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
-   if ( offset < pCMRequest->header.messageLength )
-   {
-      if ( arg2 )
-      {
-         *arg2 = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      if ( offset + length > pCMRequest->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   }
-   else
+   offset += ossAlign4( length ) ;
+   if ( pCMRequest->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
+   if ( arg2 )
+   {
+      *arg2 = &pBuffer[offset] ;
+   }
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
    // extract the third BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
-   if ( offset < pCMRequest->header.messageLength )
-   {
-      if ( arg3 )
-      {
-         *arg3 = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-      if ( offset + length > pCMRequest->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   }
-   else
+   offset += ossAlign4( length ) ;
+   if ( pCMRequest->header.messageLength < offset + 5 )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // extract the fourth BSONObj
-   offset += ossRoundUpToMultipleX( length, 4 ) ;
-   if ( offset < pCMRequest->header.messageLength )
+
+   if ( arg3 )
    {
-      if ( arg4 )
-      {
-         *arg4 = &pBuffer[offset] ;
-      }
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      if ( offset + length > pCMRequest->header.messageLength )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      *arg3 = &pBuffer[offset] ;
    }
-   else
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   MSG_CHECK_BSON_LENGTH( length ) ;
+
+   // extract the fourth BSONObj
+   offset += ossAlign4( length ) ;
+   if ( pCMRequest->header.messageLength < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( arg4 )
+   {
+      *arg4 = &pBuffer[offset] ;
+   }
+   length = *((SINT32*)(&pBuffer[offset])) ;
+   if ( pCMRequest->header.messageLength < offset + length )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -1680,12 +1876,12 @@ INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
 
    INT32 offset = 0 ;
    INT32 commandNameLength = ossStrlen ( commandName ) ;
-   INT32 packetLength  = ossRoundUpToMultipleX( offsetof(MsgOpQuery, name) +
-                                                commandNameLength + 1, 4 ) +
-                         ossRoundUpToMultipleX( boQuery.objsize(), 4 ) +
-                         ossRoundUpToMultipleX( boSelect.objsize(), 4 ) +
-                         ossRoundUpToMultipleX( boSort.objsize(), 4 ) +
-                         ossRoundUpToMultipleX( boHint.objsize(), 4 ) ;
+   INT32 packetLength  = ossAlign4( offsetof(MsgOpQuery, name) +
+                                    commandNameLength + 1 ) +
+                         ossAlign4( boQuery.objsize() ) +
+                         ossAlign4( boSelect.objsize() ) +
+                         ossAlign4( boSort.objsize() ) +
+                         ossAlign4( boHint.objsize() ) ;
 
    PD_TRACE1( SDB_MSGBLDQUERYCMDMSG, PD_PACK_INT( packetLength ) ) ;
 
@@ -1715,23 +1911,22 @@ INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
    pQuery->name[ commandNameLength ] = '\0' ;
 
    // get the offset of the first bson obj
-   offset = ossRoundUpToMultipleX( offsetof( MsgOpQuery, name ) +
-                                   pQuery->nameLength + 1, 4 ) ;
+   offset = ossAlign4( offsetof( MsgOpQuery, name ) + pQuery->nameLength + 1 ) ;
    // write query condition
    ossMemcpy( pBuffer + offset, boQuery.objdata(), boQuery.objsize() ) ;
-   offset += ossRoundUpToMultipleX( boQuery.objsize(), 4 ) ;
+   offset += ossAlign4( boQuery.objsize() ) ;
 
    // write field select
    ossMemcpy( pBuffer + offset, boSelect.objdata(), boSelect.objsize() ) ;
-   offset += ossRoundUpToMultipleX( boSelect.objsize(), 4 ) ;
+   offset += ossAlign4( boSelect.objsize() ) ;
 
    // write order by clause
    ossMemcpy( pBuffer + offset, boSort.objdata(), boSort.objsize() ) ;
-   offset += ossRoundUpToMultipleX( boSort.objsize(), 4 ) ;
+   offset += ossAlign4( boSort.objsize() ) ;
 
    // write optimizer hint
    ossMemcpy( pBuffer + offset, boHint.objdata(), boHint.objsize() ) ;
-   offset += ossRoundUpToMultipleX( boHint.objsize(), 4 ) ;
+   offset += ossAlign4( boHint.objsize() ) ;
 
    // sanity test
    PD_CHECK( offset == packetLength, SDB_SYS, error, PDERROR,
@@ -1893,7 +2088,7 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           IExecutor *cb )
 {
    PD_TRACE_ENTRY ( SDB_MSGBLDDROPCLMSG );
-   const BSONObj emptyObj ;
+
    SDB_ASSERT ( ppBuffer && bufferSize && CollectionName,
                 "Invalid input" ) ;
    PD_TRACE1 ( SDB_MSGBLDDROPCLMSG, PD_PACK_STRING(CollectionName) );
@@ -1916,7 +2111,7 @@ INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -1946,15 +2141,14 @@ INT32 msgBuildLinkCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                     PD_PACK_STRING(subCollectionName) ) ;
 
    BSONObj boQuery ;
-   const BSONObj emptyObj ;
 
    if ( !lowBound )
    {
-      lowBound = &emptyObj ;
+      lowBound = &__emptyObj ;
    }
    if ( !upBound )
    {
-      upBound = &emptyObj ;
+      upBound = &__emptyObj ;
    }
 
    try
@@ -1978,7 +2172,7 @@ INT32 msgBuildLinkCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_LINK_CL,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2007,7 +2201,6 @@ INT32 msgBuildUnlinkCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                       PD_PACK_STRING(subCollectionName) ) ;
 
    BSONObj boQuery ;
-   const BSONObj emptyObj ;
 
    try
    {
@@ -2027,7 +2220,7 @@ INT32 msgBuildUnlinkCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_UNLINK_CL,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2052,7 +2245,6 @@ INT32 msgBuildDropIndexMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                                      PD_PACK_STRING(IndexName) );
    INT32 rc = SDB_OK ;
    BSONObj boQuery ;
-   const BSONObj emptyObj ;
 
    try
    {
@@ -2074,7 +2266,7 @@ INT32 msgBuildDropIndexMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
 
@@ -2086,20 +2278,33 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTSQL, "msgExtractSql" )
-INT32 msgExtractSql( CHAR *pBuffer, CHAR **sql )
+INT32 msgExtractSql( const CHAR *pBuffer, const CHAR **sql )
 {
    SDB_ASSERT( NULL != pBuffer, "invalid pBuffer" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTSQL );
-   MsgOpSql *msg = ( MsgOpSql * )pBuffer ;
-   SDB_ASSERT( msg->header.messageLength > (INT32)sizeof(MsgHeader),
-               "impossible" ) ;
-   *sql = pBuffer + sizeof( MsgHeader ) ;
+   const MsgOpSql *msg = ( const MsgOpSql * )pBuffer ;
+
+   if ( (UINT32)msg->header.messageLength < sizeof( MsgHeader ) + 1 )
+   {
+      rc = SDB_INVALIDARG ;
+   }
+   else
+   {
+      *sql = pBuffer + sizeof( MsgHeader ) ;
+      if ( (UINT32)msg->header.messageLength <
+           sizeof( MsgHeader ) + ossStrlen( *sql ) + 1 )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+   }
+
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTSQL, rc );
    return rc ;
 }
 
-static INT32 msgBuildSequenceMsg( CHAR **ppBuffer, INT32 *bufferSize, INT32 sequenceOpCode,
+static INT32 msgBuildSequenceMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                  INT32 sequenceOpCode,
                                   UINT64 reqID, const BSONObj& options,
                                   engine::IExecutor *cb )
 {
@@ -2133,7 +2338,6 @@ INT32 msgBuildSequenceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                           const BSONObj &boQuery, UINT64 reqID,
                                           engine::IExecutor *cb )
 {
-   static const BSONObj emptyObj ;
    INT32 rc = SDB_OK ;
 
    SDB_ASSERT ( ppBuffer && bufferSize,
@@ -2141,7 +2345,7 @@ INT32 msgBuildSequenceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
 
    rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
                              CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_SEQUENCE_CACHE,
-                             boQuery, emptyObj, emptyObj, emptyObj,
+                             boQuery, __emptyObj, __emptyObj, __emptyObj,
                              reqID, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "Failed to build invalidate sequence cache message, rc: %d", rc ) ;
 
@@ -2151,12 +2355,13 @@ error :
    goto done ;
 }
 
-INT32 msgExtractSequenceRequestMsg( CHAR *pBuffer, BSONObj& options )
+INT32 msgExtractSequenceRequestMsg( const CHAR *pBuffer, BSONObj& options )
 {
    INT32 rc = SDB_OK ;
-   CHAR* query = NULL ;
+   const CHAR* query = NULL ;
 
-   rc = msgExtractQuery( pBuffer, NULL, NULL, NULL, NULL, &query, NULL, NULL, NULL ) ;
+   rc = msgExtractQuery( pBuffer, NULL, NULL, NULL, NULL,
+                         &query, NULL, NULL, NULL ) ;
    if ( SDB_OK == rc )
    {
       try
@@ -2177,32 +2382,42 @@ INT32 msgExtractSequenceRequestMsg( CHAR *pBuffer, BSONObj& options )
    return rc ;
 }
 
-INT32 msgExtractSequenceAcquireReply( CHAR *pBuffer, BSONObj& options )
+INT32 msgExtractSequenceAcquireReply( const CHAR *pBuffer, BSONObj& options )
 {
    INT32 rc = SDB_OK ;
-   MsgOpReply *pReply = (MsgOpReply*)pBuffer ;
-   INT32 offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
-   INT32 numReturned = pReply->numReturned ;
+   const MsgOpReply *pReply = (const MsgOpReply*)pBuffer ;
+   INT32 offset = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
+   INT32 numReturned = 0 ;
    BSONObj obj ;
 
-   if ( numReturned > 1 )
+   // check length
+   if ( pReply->header.messageLength < offset )
    {
       rc = SDB_INVALIDARG ;
-      PD_LOG( PDERROR, "More than 1 objects returned for sequence acquire request" ) ;
       goto error ;
    }
 
-   if ( offset < pReply->header.messageLength )
+   numReturned = pReply->numReturned ;
+   if ( numReturned > 1 )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR,
+              "More than 1 objects returned for sequence acquire request" ) ;
+      goto error ;
+   }
+
+   if ( pReply->header.messageLength >= offset + 5 )
    {
       try
       {
-         obj = BSONObj( (CHAR*)pBuffer + offset ) ;
+         obj = BSONObj( pBuffer + offset ) ;
          SDB_ASSERT( obj.objsize() >= 5, "obj size must grater or equal 5" ) ;
          MSG_CHECK_BSON_LENGTH( obj.objsize() ) ;
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Unexpected exception happened when extracting acquire sequence reply: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened when extracting "
+                 "acquire sequence reply: %s", e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -2234,8 +2449,7 @@ INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    SDB_ASSERT( ppBuffer, "invalid input" ) ;
    INT32 rc = SDB_OK;
    MsgOpTransCommitPre *pMsg = NULL;
-   INT32 packetLength
-            = ossRoundUpToMultipleX( sizeof( MsgOpTransCommitPre ), 4 );
+   INT32 packetLength = ossAlign4( sizeof( MsgOpTransCommitPre ) );
    PD_CHECK( (packetLength > 0), SDB_INVALIDARG, error, PDERROR,
             "Packet size overflow" );
    rc = msgCheckBuffer( ppBuffer, bufferSize, packetLength, cb ) ;
@@ -2257,8 +2471,7 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    SDB_ASSERT( ppBuffer, "invalid input" ) ;
    INT32 rc = SDB_OK;
    MsgOpTransCommitInt *pMsg = NULL;
-   INT32 packetLength
-            = ossRoundUpToMultipleX( sizeof( MsgOpTransCommitInt ), 4 );
+   INT32 packetLength = ossAlign4( sizeof( MsgOpTransCommitInt ) );
    PD_CHECK( (packetLength > 0), SDB_INVALIDARG, error, PDERROR,
             "Packet size overflow" );
    rc = msgCheckBuffer( ppBuffer, bufferSize, packetLength, cb ) ;
@@ -2281,8 +2494,7 @@ INT32 msgBuildTransRollbackMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    SDB_ASSERT( ppBuffer, "invalid input" ) ;
    INT32 rc = SDB_OK;
    MsgOpTransRollback *pMsg = NULL;
-   INT32 packetLength
-            = ossRoundUpToMultipleX( sizeof( MsgOpTransRollback ), 4 );
+   INT32 packetLength = ossAlign4( sizeof( MsgOpTransRollback ) );
    PD_CHECK( (packetLength > 0), SDB_INVALIDARG, error, PDERROR,
             "Packet size overflow" );
    rc = msgCheckBuffer( ppBuffer, bufferSize, packetLength, cb ) ;
@@ -2322,12 +2534,12 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTSYSINFOREQUEST, "msgExtractSysInfoRequest" )
-INT32 msgExtractSysInfoRequest ( CHAR *pBuffer, BOOLEAN &endianConvert )
+INT32 msgExtractSysInfoRequest ( const CHAR *pBuffer, BOOLEAN &endianConvert )
 {
    SDB_ASSERT ( NULL != pBuffer, "invalid pBuffer" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTSYSINFOREQUEST ) ;
-   MsgSysInfoRequest *request = (MsgSysInfoRequest*)pBuffer ;
+   const MsgSysInfoRequest *request = (const MsgSysInfoRequest*)pBuffer ;
    SDB_ASSERT ( (UINT32)request->header.specialSysInfoLen ==
                 MSG_SYSTEM_INFO_LEN,
                 "Invalid len, expected -1" ) ;
@@ -2385,13 +2597,13 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTSYSINFOREPLY, "msgExtractSysInfoReply" )
-INT32 msgExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN &endianConvert,
+INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
                                INT32 *osType )
 {
    SDB_ASSERT ( NULL != pBuffer, "invalid pBuffer" ) ;
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTSYSINFOREPLY ) ;
-   MsgSysInfoReply *reply = (MsgSysInfoReply*)pBuffer ;
+   const MsgSysInfoReply *reply = (const MsgSysInfoReply*)pBuffer ;
    SDB_ASSERT ( (UINT32)reply->header.specialSysInfoLen ==
                 MSG_SYSTEM_INFO_LEN,
                 "Invalid len, expected -1" ) ;
@@ -2421,39 +2633,68 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTAGGRREQ, "msgExtractAggrRequest" )
-INT32 msgExtractAggrRequest ( CHAR *pBuffer, CHAR **ppCollectionName,
-                              CHAR **ppObjs, INT32 &count,
+INT32 msgExtractAggrRequest ( const CHAR *pBuffer, const CHAR **ppCollectionName,
+                              const CHAR **ppObjs, INT32 &count,
                               INT32 *pFlags )
 {
    INT32 rc = SDB_OK;
    INT32 offset = 0;
    INT32 msgLen = 0;
    INT32 num = 0;
-   CHAR *pCur = NULL;
+   const CHAR *pCur = NULL;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTAGGRREQ ) ;
    SDB_ASSERT( pBuffer && ppCollectionName && ppObjs, "Invalid input!" ) ;
-   MsgOpAggregate *pAggr = (MsgOpAggregate *)pBuffer ;
+
+   const static INT32 _minSize = ossAlign4( offsetof(MsgOpAggregate, name)+1 ) ;
+   const MsgOpAggregate *pAggr = (const MsgOpAggregate *)pBuffer ;
+
+   if ( pAggr->header.messageLength < _minSize )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    *ppCollectionName = pAggr->name ;
    if ( pFlags )
    {
       *pFlags = pAggr->flags ;
    }
    msgLen = pAggr->header.messageLength ;
-   offset = ossRoundUpToMultipleX( offsetof(MsgOpAggregate, name) +
-                                   pAggr->nameLength + 1, 4 );
+
+   SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
+                            pAggr->nameLength, SDB_INVALIDARG,
+                            "Invalid name length" ) ;
+   offset = ossAlign4( offsetof(MsgOpAggregate, name) + pAggr->nameLength + 1 ) ;
+
+   /// at least 1 object
+   if ( msgLen < offset + 5 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
    if ( ppObjs )
    {
       *ppObjs = &pBuffer[ offset ];
    }
-   while( offset + (INT32)(sizeof(SINT32 *)) < msgLen )
+
+   while( TRUE )
    {
-      pCur = &pBuffer[ offset ];
-      INT32 size = ossRoundUpToMultipleX( *((SINT32 *)pCur), 4 );
+      pCur = &pBuffer[ offset ] ;
+      INT32 size = *((SINT32 *)pCur) ;
       MSG_CHECK_BSON_LENGTH( size ) ;
-      ++num;
-      offset += size;
+
+      ++num ;
+      offset += ossAlign4( size ) ;
+
+      if ( msgLen <= offset )
+      {
+         break ;
+      }
    }
+
    count = num ;
+
 done:
    PD_TRACE_EXITRC ( SDB_MSGEXTRACTAGGRREQ, rc ) ;
    return rc;
@@ -2487,7 +2728,7 @@ INT32 msgExtractLobRequest( const CHAR *pBuffer, const MsgOpLob **header,
 
    if ( 0 < msgHeader->bsonLen )
    {
-      bsonLen = ossRoundUpToMultipleX( msgHeader->bsonLen, 4 ) ;
+      bsonLen = ossAlign4( msgHeader->bsonLen ) ;
       if ( msgLen < ( sizeof( MsgOpLob ) + bsonLen ) )
       {
          PD_LOG( PDERROR, "invalid msg len:%d", msgLen ) ;
@@ -2498,7 +2739,12 @@ INT32 msgExtractLobRequest( const CHAR *pBuffer, const MsgOpLob **header,
       try
       {
          meta = BSONObj( body ) ;
-         body += ossRoundUpToMultipleX( msgHeader->bsonLen, 4 ) ;
+         if ( msgHeader->bsonLen < (UINT32)meta.objsize() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         body += ossAlign4( msgHeader->bsonLen ) ;
       }
       catch( std::exception &e )
       {
@@ -2572,7 +2818,7 @@ INT32 msgExtractTuplesAndData( const MsgLobTuple **begin, UINT32 *tuplesSize,
    if ( sizeof( MsgLobTuple ) <= *tuplesSize )
    {
       const MsgLobTuple *t = *begin ;
-      //UINT32 dataLen = ossRoundUpToMultipleX( t->columns.len, 4 ) ;
+      //UINT32 dataLen = ossAlign4( t->columns.len ) ;
       UINT32 dataLen = t->columns.len ;
       if ( sizeof( MsgLobTuple ) + dataLen < *tuplesSize )
       {

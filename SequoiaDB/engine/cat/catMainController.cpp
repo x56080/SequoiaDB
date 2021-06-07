@@ -839,29 +839,39 @@ namespace engine
                                                  MsgHeader *pMsg )
    {
       INT32 rc               = SDB_OK ;
-      MsgOpGetMore *pGetMore = (MsgOpGetMore*)pMsg ;
+      PD_TRACE_ENTRY ( SDB_CATMAINCT_GETMOREMSG ) ;
 
+      MsgOpGetMore *pGetMore = (MsgOpGetMore*)pMsg ;
       rtnContextBuf buffObj ;
       SINT32 msgLen          = 0 ;
+
+      MsgOpReply reply ;
       MsgOpReply *pReply     = NULL ;
 
-      PD_TRACE_ENTRY ( SDB_CATMAINCT_GETMOREMSG ) ;
       // send the reply whether successful or not
       rc = rtnGetMore( pGetMore->contextID, pGetMore->numToReturn,
                        buffObj, _pEDUCB, _pRtnCB ) ;
       if ( rc )
       {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
+         }
          delContextByID( pGetMore->contextID, FALSE );
       }
       msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
+
       // free by end of function
-      pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen );
+      pReply = (MsgOpReply *)SDB_THREAD_ALLOC( msgLen ) ;
       if ( NULL == pReply )
       {
-         PD_LOG ( PDERROR, "Malloc error ( size = %d )", msgLen ) ;
+         PD_LOG ( PDERROR, "Malloc error( size = %d )", msgLen ) ;
          rc = SDB_OOM ;
-         goto error ;
+         pReply = &reply ;
+         msgLen = sizeof( reply ) ;
+         buffObj.release() ;
       }
+
       pReply->header.messageLength = msgLen ;
       pReply->header.opCode        = MSG_BS_GETMORE_RES ;
       pReply->header.TID           = pGetMore->header.TID ;
@@ -871,26 +881,87 @@ namespace engine
       pReply->startFrom            = (INT32)buffObj.getStartFrom() ;
       pReply->numReturned          = buffObj.recordNum() ;
       pReply->flags                = rc ;
-      PD_TRACE1 ( SDB_CATMAINCT_GETMOREMSG,
-                  PD_PACK_INT ( rc ) ) ;
-      if ( SDB_OK != rc && SDB_DMS_EOC != rc )
+      /// copy data
+      if ( buffObj.size() > 0 )
       {
-         PD_LOG ( PDERROR, "Failed to get more, rc = %d", rc ) ;
+         ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
+                    buffObj.size() ) ;
       }
-      ossMemcpy( (CHAR *)pReply + sizeof(MsgOpReply), buffObj.data(),
-                 buffObj.size() ) ;
+
+      /// send result
       rc = _pCatCB->sendReply( handle, pReply, rc ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to syncSend, rc = %d", rc ) ;
-         goto error ;
       }
-   done :
-      if ( pReply )
+
+      if ( pReply && pReply != &reply )
       {
          SDB_THREAD_FREE( pReply ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATMAINCT_GETMOREMSG, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_ADVANCEMSG, "catMainController::_processAdvanceMsg" )
+   INT32 catMainController::_processAdvanceMsg( const NET_HANDLE &handle,
+                                                MsgHeader * pMsg)
+   {
+      INT32 rc               = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATMAINCT_ADVANCEMSG ) ;
+
+      INT64 contextID        = -1 ;
+      const CHAR *pOption    = NULL ;
+      const CHAR *pBackData  = NULL ;
+      INT32 backDataSize     = 0 ;
+      MsgOpReply reply ;
+
+      // fill reply
+      reply.header.messageLength   = sizeof( MsgOpReply ) ;
+      reply.header.opCode          = MSG_BS_ADVANCE_RES ;
+      reply.header.TID             = pMsg->TID ;
+      reply.header.routeID.value   = 0 ;
+      reply.header.requestID       = pMsg->requestID ;
+      reply.contextID              = contextID ;
+      reply.startFrom              = 0 ;
+      reply.numReturned            = 0 ;
+
+      // extrace msg
+      rc = msgExtractAdvanceMsg( (const CHAR *)pMsg, &contextID,
+                                 &pOption, &pBackData, &backDataSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Extrace advance message failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      // send the reply whether successful or not
+      try
+      {
+         BSONObj option( pOption ) ;
+         rc = rtnAdvance( contextID, option, pBackData, backDataSize,
+                          _pEDUCB, _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done :
+      reply.flags = rc ;
+      rc = _pCatCB->sendReply( handle, &reply, rc ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to syncSend, rc: %d", rc ) ;
+      }
+
+      PD_TRACE_EXITRC ( SDB_CATMAINCT_ADVANCEMSG, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -902,7 +973,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
       MsgOpReply msgReply;
       MsgOpKillContexts *pReq = (MsgOpKillContexts *)pMsg;
       msgReply.contextID = -1;
@@ -918,7 +989,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATMAINCT_KILLCONTEXT ) ;
       do
       {
-         rc = msgExtractKillContexts ( (CHAR *)pMsg,
+         rc = msgExtractKillContexts ( (const CHAR *)pMsg,
                                        &contextNum, &pContextIDs ) ;
          if ( SDB_OK != rc )
          {
@@ -980,17 +1051,17 @@ namespace engine
       SINT32 flags         = 0 ;
       SINT64 numToSkip     = 0 ;
       SINT64 numToReturn   = -1 ;
-      CHAR *pName          = NULL ;
-      CHAR *pQuery         = NULL ;
-      CHAR *pSelector      = NULL ;
-      CHAR *pOrderBy       = NULL ;
-      CHAR *pHint          = NULL ;
+      const CHAR *pName    = NULL ;
+      const CHAR *pQuery   = NULL ;
+      const CHAR *pSelector= NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint    = NULL ;
       catCMDBase *pCommand = NULL ;
       rtnContextBuf ctxBuff ;
       INT64 contextID = -1 ;
 
       // extract message
-      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pName,
+      rc = msgExtractQuery ( (const CHAR *)pMsg, &flags, &pName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK ( rc, PDERROR,
@@ -1120,17 +1191,17 @@ namespace engine
       SINT32 flags          = 0 ;
       SINT64 numToSkip      = -1 ;
       SINT64 numToReturn    = -1 ;
-      CHAR *pCN             = NULL ;
-      CHAR *pQuery          = NULL ;
-      CHAR *pFieldSelector  = NULL ;
-      CHAR *pOrderByBuffer  = NULL ;
-      CHAR *pHintBuffer     = NULL ;
+      const CHAR *pCN       = NULL ;
+      const CHAR *pQuery    = NULL ;
+      const CHAR *pFieldSelector  = NULL ;
+      const CHAR *pOrderByBuffer  = NULL ;
+      const CHAR *pHintBuffer     = NULL ;
       rtnContextBuf buffObj ;
       BOOLEAN bIsDelay      = FALSE ;
 
       PD_TRACE_ENTRY ( SDB_CATMAINCT_QUERYREQUEST ) ;
 
-      rc = msgExtractQuery ( (CHAR *)pMsgHeader, &flags, &pCN,
+      rc = msgExtractQuery ( (const CHAR *)pMsgHeader, &flags, &pCN,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer,
                              &pHintBuffer ) ;
@@ -1343,6 +1414,11 @@ namespace engine
       case MSG_BS_GETMORE_REQ :
          {
             rc = _processGetMoreMsg( handle, pMsg ) ;
+            break ;
+         }
+      case MSG_BS_ADVANCE_REQ :
+         {
+            rc = _processAdvanceMsg( handle, pMsg ) ;
             break ;
          }
       case MSG_BS_KILL_CONTEXT_REQ:

@@ -185,12 +185,21 @@ namespace engine
 
    public:
       INT32    append( const BSONObj &obj ) ;
+      INT32    pushFront( const BSONObj &obj ) ;
+      INT32    pushFronts( const CHAR *objBuf,
+                           INT32 len,
+                           INT32 num ) ;
       INT32    appendObjs( const CHAR *objBuf,
-                              INT32 len,
-                              INT32 num,
-                              BOOLEAN needAligned = TRUE ) ;
+                           INT32 len,
+                           INT32 num,
+                           BOOLEAN needAligned = TRUE ) ;
       INT32    get( INT32 maxNumToReturn,
-                     rtnContextBuf& buf ) ;
+                    rtnContextBuf& buf,
+                    BOOLEAN onlyPeek = FALSE ) ;
+
+      // only for object(aligned)
+      INT32    pop( UINT32 num = 1 ) ;
+
       void     release() ;
 
    public:
@@ -283,6 +292,14 @@ namespace engine
          INT32    getMore( INT32 maxNumToReturn,
                            rtnContextBuf &buffObj,
                            _pmdEDUCB *cb ) ;
+
+         INT32    advance( const BSONObj &arg,
+                           const CHAR *pBackData ,
+                           INT32 backDataSize,
+                           _pmdEDUCB *cb ) ;
+
+         INT32    locate( const BSONObj &arg,
+                          _pmdEDUCB *cb ) ;
 
          virtual void     getErrorInfo( INT32 rc,
                                         _pmdEDUCB *cb,
@@ -415,10 +432,25 @@ namespace engine
          }
 
       protected:
-         void              _onDataEmpty () ;
          virtual INT32     _prepareData( _pmdEDUCB *cb ) = 0 ;
          virtual BOOLEAN   _canPrefetch () const { return FALSE ; }
          virtual void      _toString( stringstream &ss ) {}
+         virtual INT32     _doAdvance( INT32 type,
+                                       INT32 prefixNum,
+                                       const BSONObj &keyVal,
+                                       const BSONObj &orderby,
+                                       const BSONObj &arg,
+                                       BOOLEAN isLocate,
+                                       _pmdEDUCB *cb )
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+         virtual INT32     _getAdvanceOrderby( BSONObj &orderby ) const
+         {
+            return SDB_OPTION_NOT_SUPPORT ;
+         }
+
+         void              _onDataEmpty () ;
          BOOLEAN           _canPrepareMoreData() const { return _canPrepareMore ;}
          INT32             _prepareMoreData( _pmdEDUCB *cb ) ;
          INT32             _prepareDataMonitor ( _pmdEDUCB *cb ) ;
@@ -436,6 +468,45 @@ namespace engine
             _totalRecords = totalRecords ;
          }
 
+         INT32    _advance( const BSONObj &arg,
+                            BOOLEAN isLocate,
+                            _pmdEDUCB *cb,
+                            const CHAR *pBackData = NULL,
+                            INT32 backDataSize = 0 ) ;
+
+         INT32    _advanceRecords( INT32 type,
+                                   INT32 prefixNum,
+                                   ixmIndexKeyGen &keyGen,
+                                   const BSONObj &keyVal,
+                                   const BSONObj &orderby,
+                                   INT64 recordNum,
+                                   _pmdEDUCB *cb,
+                                   BOOLEAN &finished ) ;
+
+         INT32    _advanceBackData( INT32 type,
+                                    INT32 prefixNum,
+                                    ixmIndexKeyGen &keyGen,
+                                    const BSONObj &keyVal,
+                                    const BSONObj &orderby,
+                                    const CHAR *pBackData,
+                                    INT32 backDataSize,
+                                    BOOLEAN &finished ) ;
+
+         INT32    _checkAdvance( INT32 type,
+                                 ixmIndexKeyGen &keyGen,
+                                 INT32 prefixNum,
+                                 const BSONObj &keyVal,
+                                 const BSONObj &curObj,
+                                 const BSONObj &orderby,
+                                 BOOLEAN &matched,
+                                 BOOLEAN &isEqual ) ;
+
+         INT32    _woNCompare( const BSONObj &l,
+                               const BSONObj &r,
+                               BOOLEAN compreFieldName,
+                               UINT32 keyNum,
+                               const BSONObj &keyPattern = BSONObj() ) ;
+
       protected:
          monContextCB            _monCtxCB ;
          monClassQuery          *_monQueryCB ;
@@ -451,6 +522,9 @@ namespace engine
          // Enable performance monitor
          BOOLEAN                 _enableMonContext ;
          BOOLEAN                 _enableQueryActivity ;
+
+         // advance postion info
+         BSONObj                 _advancePosition ;
 
       private:
          INT64                   _contextID ;

@@ -106,7 +106,7 @@ namespace engine
       }
 
       OSS_INLINE INT32 compare( const _rtnSortTuple *tuple,
-                            const Ordering &order ) const
+                                const Ordering &order ) const
       {
          BSONObj l( this->key(), FALSE ) ;
          BSONObj r( tuple->key(), FALSE ) ;

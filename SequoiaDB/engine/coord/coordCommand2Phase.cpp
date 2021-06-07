@@ -360,13 +360,13 @@ namespace engine
 
       PD_TRACE_ENTRY ( COORD_CMD2PHASE_EXTMSG ) ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
 
       try
       {
          _printDebug ( (const CHAR*)pMsg, getName() ) ;
 
-         rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL,
+         rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL,
                                NULL, NULL, &pQuery, NULL,
                                NULL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "

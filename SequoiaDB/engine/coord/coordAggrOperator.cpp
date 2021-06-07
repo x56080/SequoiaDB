@@ -74,8 +74,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       aggrBuilder *pAggrBuilder = pmdGetKRCB()->getAggrCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pObjs = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pObjs = NULL ;
       INT32 count = 0 ;
       BSONObj objs ;
       INT32 flags = 0 ;
@@ -84,7 +84,7 @@ namespace engine
 
       contextID = -1 ;
 
-      rc = msgExtractAggrRequest( (CHAR*)pMsg, &pCollectionName,
+      rc = msgExtractAggrRequest( (const CHAR*)pMsg, &pCollectionName,
                                   &pObjs, count, &flags ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse aggregate request "
                    "message, rc: %d", rc ) ;

@@ -953,12 +953,12 @@ namespace engine
       coordCommandFactory *pFactory = coordGetFactory() ;
       coordOperator *pOperator = NULL ;
       rtnContextBuf buffObj ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *pCSName = NULL ;
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -1146,12 +1146,12 @@ namespace engine
       rtnContextBuf buffObj ;
       BSONObj obj ;
       BSONElement ele ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *pCLName = NULL ;
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       if ( rc )
       {
@@ -1340,8 +1340,9 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
 
       // extract msg
-      CHAR *pQueryBuf = NULL ;
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL, &pQueryBuf,
+      const CHAR *pQueryBuf = NULL ;
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            &pQueryBuf,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query msg, rc: %d", rc ) ;
 
@@ -1475,7 +1476,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_TRUNCATE_EXE ) ;
-      CHAR *option = NULL;
+      const CHAR *option = NULL;
       BSONObj boQuery ;
       const CHAR *fullName = NULL ;
       CoordGroupList cataGrpLst ;
@@ -1484,7 +1485,7 @@ namespace engine
       CLS_GINDEX_LIST_ITER iter ;
       coordCataSel cataSel ;
 
-      rc = msgExtractQuery( ( CHAR * )pMsg, NULL, NULL,
+      rc = msgExtractQuery( ( const CHAR * )pMsg, NULL, NULL,
                             NULL, NULL, &option, NULL,
                             NULL, NULL );
       PD_RC_CHECK( rc, PDERROR, "failed to extract msg:%d", rc ) ;
@@ -1609,7 +1610,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CREATECS_EXE ) ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
 
       // fill default-reply
       contextID = -1 ;
@@ -1625,7 +1626,7 @@ namespace engine
 
          _printDebug ( (const CHAR*)pMsg, getName() ) ;
 
-         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+         rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                                NULL, NULL, &pQuery, NULL, NULL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to extract message, rc: %d", rc ) ;
@@ -3915,7 +3916,7 @@ namespace engine
                                         rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       CoordGroupList srcGrpLst ;
 
       // first round we perform prepare, so catalog node is able to do sanity
@@ -3931,7 +3932,7 @@ namespace engine
          goto error ;
       }
 
-      rc = msgExtractQuery ( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery ( (const CHAR*)pMsg, NULL, NULL,
                              NULL, NULL, &pQuery,
                              NULL, NULL, NULL ) ;
       if ( rc )
@@ -4793,7 +4794,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CRTIDX_PARSEMSG ) ;
 
-      CHAR *pHint = NULL ;
+      const CHAR *pHint = NULL ;
 
       try
       {
@@ -4848,7 +4849,7 @@ namespace engine
                    error, PDERROR, "Index(%s) contain invalid field(%s):rc=%d",
                    _boIndex.toString().c_str(), IXM_GLOBAL_OPTION_FIELD, rc ) ;
 
-         rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL, NULL,
+         rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, NULL,
                                NULL, NULL, &pHint ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "
                       "rc: %d", getName(), rc ) ;
@@ -5782,11 +5783,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_POP_EXE ) ;
-      CHAR *option = NULL;
+      const CHAR *option = NULL;
       BSONObj boQuery ;
       const CHAR *fullName = NULL ;
 
-      rc = msgExtractQuery( ( CHAR * )pMsg, NULL, NULL,
+      rc = msgExtractQuery( ( const CHAR * )pMsg, NULL, NULL,
                             NULL, NULL, &option, NULL,
                             NULL, NULL );
       if ( SDB_OK != rc )

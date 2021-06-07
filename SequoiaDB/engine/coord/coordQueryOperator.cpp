@@ -232,13 +232,13 @@ namespace engine
       MsgOpQuery *pQueryMsg   = ( MsgOpQuery* )inMsg.msg() ;
 
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -268,7 +268,7 @@ namespace engine
 
       inMsg.data()->clear() ;
 
-      rc = msgExtractQuery( (CHAR*)pQueryMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pQueryMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -399,16 +399,16 @@ namespace engine
       // fill default-reply(query success)
       contextID                        = -1 ;
 
-      CHAR *pCollectionName            = NULL ;
+      const CHAR *pCollectionName      = NULL ;
       INT32 flag                       = 0 ;
       INT64 numToSkip                  = 0 ;
       INT64 numToReturn                = 0 ;
-      CHAR *pQuery                     = NULL ;
-      CHAR *pSelector                  = NULL ;
-      CHAR *pOrderby                   = NULL ;
-      CHAR *pHint                      = NULL ;
+      const CHAR *pQuery               = NULL ;
+      const CHAR *pSelector            = NULL ;
+      const CHAR *pOrderby             = NULL ;
+      const CHAR *pHint                = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
       if ( rc )
@@ -472,6 +472,14 @@ namespace engine
                                       BSONObj( pOrderby ), BSONObj( pHint ),
                                       pCollectionName, numToSkip, numToReturn,
                                       flag ) ;
+            BSONElement ePos = hint.getField( FIELD_NAME_POSITION ) ;
+
+            if ( !ePos.eoo() && Object != ePos.type() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
 
             // add last op info
             MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
@@ -516,6 +524,16 @@ namespace engine
             {
                pContext->setPrepareMoreData( TRUE ) ;
             }
+
+            if ( Object == ePos.type() )
+            {
+               rc = pContext->locate( ePos.embeddedObject(), cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
       }
       catch ( std::exception &e )
@@ -533,6 +551,12 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_QUERYOPERATOR_EXE, rc ) ;
       return rc ;
    error:
+      if ( -1 != contextID  )
+      {
+         sdbGetRTNCB()->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+         pContext = NULL ;
+      }
       goto done ;
    }
 
@@ -823,13 +847,13 @@ namespace engine
 
       BOOLEAN isUpdate        = FALSE ;
       INT32 flags             = 0 ;
-      CHAR *pCollectionName   = NULL ;
+      const CHAR *pCollectionName   = NULL ;
       INT64 numToSkip         = 0 ;
       INT64 numToReturn       = -1 ;
-      CHAR *pQuery            = NULL ;
-      CHAR *pFieldSelector    = NULL ;
-      CHAR *pOrderBy          = NULL ;
-      CHAR *pHint             = NULL ;
+      const CHAR *pQuery      = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy    = NULL ;
+      const CHAR *pHint       = NULL ;
 
       BSONObj objQuery ;
       BSONObj objSelector ;
@@ -837,7 +861,7 @@ namespace engine
       BSONObj objHint ;
       BSONObj objNewHint ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flags, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flags, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query msg failed, rc: %d", rc ) ;
@@ -1180,13 +1204,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR__BUILDNEWMSG ) ;
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       SINT64 numToSkip = 0 ;
       SINT64 numToReturn = 0 ;
-      CHAR *pQuery = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderBy = NULL ;
-      CHAR *pHint = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderBy = NULL ;
+      const CHAR *pHint = NULL ;
       BSONObj query ;
       BSONObj selector ;
       BSONObj orderBy ;
@@ -1195,7 +1219,7 @@ namespace engine
 
       SDB_ASSERT( newSelector || newHint, "Selector or hint is NULL" ) ;
 
-      rc = msgExtractQuery( ( CHAR * )msg, &flag, &pCollectionName,
+      rc = msgExtractQuery( ( const CHAR * )msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint );
       PD_RC_CHECK( rc, PDERROR,

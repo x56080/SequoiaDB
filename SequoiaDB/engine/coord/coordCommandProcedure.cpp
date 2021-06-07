@@ -119,12 +119,12 @@ namespace engine
       spdSession *session = NULL ;
       contextID           = -1 ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj procedures ;
       spdCoordDownloader downloader( this, cb ) ;
       BSONObj runInfo ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, &pQuery, NULL,
                             NULL, NULL );
       if ( SDB_OK != rc )

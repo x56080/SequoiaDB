@@ -89,6 +89,7 @@ namespace sdbclient
       INT32 next          ( BSONObj &obj, BOOLEAN getOwned = TRUE ) ;
       INT32 current       ( BSONObj &obj, BOOLEAN getOwned = TRUE ) ;
       INT32 close () ;
+      INT32 advance       ( const BSONObj &option, BSONObj *pResult = NULL ) ;
    } ;
 
    typedef class _sdbCursorImpl sdbCursorImpl ;

@@ -87,10 +87,10 @@ namespace engine
       coordSendOptions sendOpt ;
       queryConf._openEmptyContext = openEmptyContext() ;
 
-      CHAR *pHint = NULL ;
+      const CHAR *pHint = NULL ;
 
       // extract request-message
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, NULL, NULL,
                             NULL, &pHint );
       PD_RC_CHECK ( rc, PDERROR, "Execute failed, failed to parse query "

@@ -78,7 +78,7 @@ namespace engine
    INT32 _rtnObjBuff::truncate( UINT32 num )
    {
       INT32 rc          = SDB_OK ;
-      INT32 offset      = 0 ;
+      INT32 offset      = _curOffset ;
       INT32 recordNum   = 0 ;
 
       if ( num >= (UINT32)_recordNum )
@@ -109,11 +109,6 @@ namespace engine
          _buffSize = offset ;
       }
 
-      if ( offset < _curOffset )
-      {
-         _curOffset = offset ;
-      }
-
       if ( recordNum < _recordNum )
       {
          _recordNum = recordNum ;
@@ -123,6 +118,32 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _rtnObjBuff::pop()
+   {
+      BSONObj obj ;
+      return nextObj( obj ) ;
+   }
+
+   INT32 _rtnObjBuff::pushFront( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 alignedSize = ossAlign4( (UINT32)obj.objsize() ) ;
+
+      if ( _curOffset < alignedSize )
+      {
+         rc = SDB_NOSPC ;
+      }
+      else
+      {
+         ++_recordNum ;
+         _curOffset -= alignedSize ;
+         ossMemcpy( (CHAR*)&(_pBuff[_curOffset]),
+                    obj.objdata(), obj.objsize() ) ;
+      }
+
+      return rc ;
    }
 
    INT32 _rtnObjBuff::getOwned()

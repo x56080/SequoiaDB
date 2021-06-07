@@ -97,6 +97,8 @@ namespace engine
          BOOLEAN     eof () const { return _curOffset >= _buffSize ; }
          void        resetItr () { _curOffset = 0 ; }
          INT32       truncate ( UINT32 num ) ;
+         INT32       pop() ;
+         INT32       pushFront( const BSONObj &obj ) ;
 
          OSS_INLINE   INT32  nextObj ( BSONObj &obj ) ;
 
@@ -123,6 +125,15 @@ namespace engine
          BSONObj objTemp( &_pBuff[_curOffset] ) ;
          obj = objTemp ;
          _curOffset += ossAlign4( (UINT32)obj.objsize() ) ;
+
+         if ( _recordNum > 0 )
+         {
+            --_recordNum ;
+         }
+         else
+         {
+            SDB_ASSERT( FALSE, "_recordNum is invalid" ) ;
+         }
       }
       catch( std::exception &e )
       {

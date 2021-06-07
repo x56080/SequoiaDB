@@ -1277,6 +1277,10 @@ namespace engine
                rc = _onGetMoreReqMsg ( msg, buffObj, startFrom,
                                        contextID, isNeedRollback ) ;
                break ;
+            case MSG_BS_ADVANCE_REQ :
+               rc = _onAdvanceReqMsg ( msg, buffObj, startFrom,
+                                       contextID, isNeedRollback ) ;
+               break ;
             case MSG_BS_TRANS_UPDATE_REQ :
             {
                MsgOpUpdate *pUpdateMsg = ( MsgOpUpdate* )msg ;
@@ -2164,16 +2168,16 @@ namespace engine
       MsgOpUpdate *pUpdate = (MsgOpUpdate*)msg ;
       INT32 flags = 0 ;
       CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pMatcherBuffer = NULL ;
-      CHAR *pUpdatorBuffer = NULL ;
-      CHAR *pHintBuffer = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pMatcherBuffer = NULL ;
+      const CHAR *pUpdatorBuffer = NULL ;
+      const CHAR *pHintBuffer = NULL ;
       INT16 w = 0 ;
       INT16 clientW = pUpdate->w ;
       INT16 replSize = 0 ;
       BOOLEAN repairCheck = FALSE ;
 
-      rc = msgExtractUpdate( (CHAR*)msg, &flags, &pCollectionName,
+      rc = msgExtractUpdate( (const CHAR*)msg, &flags, &pCollectionName,
                              &pMatcherBuffer, &pUpdatorBuffer, &pHintBuffer );
       if ( SDB_OK != rc )
       {
@@ -2311,16 +2315,16 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONINSTREQMSG ) ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pInsertorBuffer = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertorBuffer = NULL ;
       INT32 recordNum = 0 ;
-      MsgOpInsert *pInsert = (MsgOpInsert*)msg ;
+      const MsgOpInsert *pInsert = (const MsgOpInsert*)msg ;
       INT16 w = 0 ;
       INT16 clientW = pInsert->w ;
       INT16 replSize = 0 ;
       BOOLEAN repairCheck = FALSE ;
 
-      rc = msgExtractInsert ( (CHAR*)msg,  &flags, &pCollectionName,
+      rc = msgExtractInsert ( (const CHAR*)msg,  &flags, &pCollectionName,
                               &pInsertorBuffer, recordNum ) ;
       if ( SDB_OK != rc )
       {
@@ -2435,16 +2439,16 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONDELREQMSG ) ;
       INT32 flags = 0 ;
       CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pMatcherBuffer = NULL ;
-      CHAR *pHintBuffer = NULL ;
-      MsgOpDelete * pDelete = (MsgOpDelete*)msg ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pMatcherBuffer = NULL ;
+      const CHAR *pHintBuffer = NULL ;
+      const MsgOpDelete * pDelete = (const MsgOpDelete*)msg ;
       INT16 w = 0 ;
       INT16 clientW = pDelete->w ;
       INT16 replSize = 0 ;
       BOOLEAN repairCheck = FALSE ;
 
-      rc = msgExtractDelete ( (CHAR *)msg , &flags, &pCollectionName,
+      rc = msgExtractDelete ( (const CHAR *)msg , &flags, &pCollectionName,
                               &pMatcherBuffer, &pHintBuffer ) ;
       if ( SDB_OK != rc )
       {
@@ -2549,11 +2553,11 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       INT32 flags = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pQueryBuff = NULL ;
-      CHAR *pFieldSelector = NULL ;
-      CHAR *pOrderByBuffer = NULL ;
-      CHAR *pHintBuffer = NULL ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pQueryBuff = NULL ;
+      const CHAR *pFieldSelector = NULL ;
+      const CHAR *pOrderByBuffer = NULL ;
+      const CHAR *pHintBuffer = NULL ;
       INT64 numToSkip = -1 ;
       INT64 numToReturn = -1 ;
       MsgOpQuery *pQuery = (MsgOpQuery*)msg ;
@@ -2565,7 +2569,7 @@ namespace engine
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
 
-      rc = msgExtractQuery ( (CHAR *)msg, &flags, &pCollectionName,
+      rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       if ( SDB_OK != rc )
@@ -3060,6 +3064,66 @@ namespace engine
       goto done ;
    }
 
+   INT32 _clsShdSession::_onAdvanceReqMsg( MsgHeader * msg,
+                                           rtnContextBuf &buffObj,
+                                           INT32 & startingPos,
+                                           INT64 &contextID,
+                                           BOOLEAN &needRollback )
+   {
+      PD_LOG ( PDDEBUG, "session[%s] _onAdvanceReqMsg", sessionName() ) ;
+
+      INT32 rc = SDB_OK ;
+      const CHAR *pOption = NULL ;
+      const CHAR *pBackData = NULL ;
+      INT32 backDataSize = 0 ;
+      INT64 contextTmp = -1 ;
+
+      rc = msgExtractAdvanceMsg( (const CHAR *)msg, &contextTmp, &pOption,
+                                 &pBackData, &backDataSize ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Session[%s] extract ADVANCE msg failed[rc:%d]",
+                  sessionName(), rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObj option( pOption ) ;
+         // add last op info
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
+                             "ContextID:%lld, BackDataSize:%d, "
+                             "Option:%s", contextTmp,
+                             backDataSize,
+                             option.toPoolString(false, false, true).c_str() ) ;
+         /*
+         PD_LOG ( PDDEBUG, "Advance: contextID:%lld\nBackDataSize:%d\n"
+                           "Option:%s", contextTmp,
+                  backDataSize,
+                  arg.toPoolString(false, false, true).c_str() ) ; */
+
+         needRollback = FALSE ; /// don't rollback when failed
+
+         rc = rtnAdvance ( contextTmp, option, pBackData, backDataSize,
+                           eduCB(), _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONKILLCTXREQMSG, "_clsShdSession::_onKillContextsReqMsg" )
    INT32 _clsShdSession::_onKillContextsReqMsg ( NET_HANDLE handle,
                                                  MsgHeader * msg )
@@ -3069,9 +3133,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONKILLCTXREQMSG ) ;
       INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
+      const INT64 *pContextIDs = NULL ;
 
-      rc = msgExtractKillContexts ( (CHAR*)msg, &contextNum, &pContextIDs ) ;
+      rc = msgExtractKillContexts ( (const CHAR*)msg, &contextNum, &pContextIDs ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Session[%s] extract KILLCONTEXT msg failed[rc:%d]",
@@ -4046,6 +4110,33 @@ namespace engine
                                     includeShardingOrder, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open main-collection context, "
                       "rc: %d", rc ) ;
+
+         /// do locate
+         try
+         {
+            BSONElement e = options.getHint().getField( FIELD_NAME_POSITION ) ;
+            if ( Object == e.type() )
+            {
+               rc = pContext->locate( e.embeddedObject(), cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Do context locate failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            else if ( !e.eoo() )
+            {
+               PD_LOG( PDERROR, "Field[%s] is invalid", FIELD_NAME_POSITION ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
       // Get start timestamp

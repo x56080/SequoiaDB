@@ -365,13 +365,13 @@ namespace engine
 
       try
       {
-         CHAR *pQuery = NULL ;
+         const CHAR *pQuery = NULL ;
          BSONObj boQuery ;
          const CHAR *pSeqName = NULL ;
          MsgOpQuery *forward  = (MsgOpQuery *)pMsg;
          forward->header.opCode = MSG_GTS_SEQUENCE_CREATE_REQ ;
 
-         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+         rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                                NULL, NULL, &pQuery, NULL, NULL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
 
@@ -436,7 +436,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROP_SEQUENCE_EXE ) ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj boQuery ;
       const CHAR *pSeqName = NULL ;
       rtnContextCoord *pContext = NULL ;
@@ -451,7 +451,7 @@ namespace engine
          MsgOpQuery *forward  = (MsgOpQuery *)pMsg;
          forward->header.opCode = MSG_GTS_SEQUENCE_DROP_REQ ;
 
-         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+         rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                                &pQuery, NULL, NULL, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
 
@@ -530,7 +530,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_ALTER_SEQUENCE_EXE ) ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj boQuery ;
       BSONObj options ;
       const CHAR *pSeqName = "" ;
@@ -542,7 +542,7 @@ namespace engine
       pAttachMsg->header.opCode        = MSG_GTS_SEQUENCE_ALTER_REQ ;
       contextID                        = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract command[%s] msg failed, rc: %d",
                    getName(), rc ) ;
@@ -724,7 +724,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_GET_SEQ_CURR_VAL_EXE ) ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       const CHAR *pSeqName = NULL ;
       coordSequenceAgent *pSeqAgent = _pResource->getSequenceAgent() ;
       INT64 currentValue = 0 ;
@@ -733,7 +733,7 @@ namespace engine
 
       _printDebug ( (const CHAR*)pMsg, getName() ) ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
 

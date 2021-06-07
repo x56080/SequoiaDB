@@ -678,7 +678,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg must be not null" ) ;
       SDB_ASSERT( NULL != eduCB, "eduCB must be not null" ) ;
 
-      CHAR* pQuery = NULL ;
+      const CHAR* pQuery = NULL ;
       const CHAR *pSeqName = "" ;
       const CHAR *pAction = "" ;
       BSONObj boQuery ;
@@ -688,7 +688,7 @@ namespace engine
       sdbCatalogueCB* cataCB = sdbGetCatalogueCB() ;
       _catSequenceManager* pSeqMgr = cataCB->getCatGTSMgr()->getSequenceMgr() ;
 
-      rc = msgExtractQuery( ( CHAR * )msg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( ( const CHAR * )msg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract sequence msg, rc=%d", rc ) ;
 

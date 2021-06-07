@@ -235,12 +235,12 @@ namespace engine
       contextID                        = -1 ;
 
       INT32 flag = 0 ;
-      CHAR *pCollectionName = NULL ;
-      CHAR *pInsertor = NULL;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertor = NULL;
       INT32 count = 0 ;
       rtnQueryOptions options ;
 
-      rc = msgExtractInsert( (CHAR*)pMsg, &flag,
+      rc = msgExtractInsert( (const CHAR*)pMsg, &flag,
                              &pCollectionName, &pInsertor, count ) ;
       if( rc )
       {
@@ -430,11 +430,11 @@ namespace engine
       else if ( inMsg.data()->size() == 0 )
       {
          INT32 flag = 0 ;
-         CHAR *pCollectionName = NULL ;
-         CHAR *pInsertor = NULL ;
+         const CHAR *pCollectionName = NULL ;
+         const CHAR *pInsertor = NULL ;
          INT32 count = 0 ;
 
-         rc = msgExtractInsert( (CHAR *)inMsg.msg(), &flag, &pCollectionName,
+         rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag, &pCollectionName,
                                 &pInsertor, count ) ;
          PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
                       rc ) ;
@@ -750,11 +750,12 @@ namespace engine
       if ( _grpSubCLDatas.size() == 0 )
       {
          INT32 flag = 0 ;
-         CHAR *pCollectionName = NULL ;
-         CHAR *pInsertor = NULL ;
+         const CHAR *pCollectionName = NULL ;
+         const CHAR *pInsertor = NULL ;
          INT32 count = 0 ;
 
-         rc = msgExtractInsert( (CHAR *)inMsg.msg(), &flag, &pCollectionName,
+         rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
+                                &pCollectionName,
                                 &pInsertor, count ) ;
          PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
                       rc ) ;

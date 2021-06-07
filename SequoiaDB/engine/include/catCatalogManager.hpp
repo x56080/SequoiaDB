@@ -222,8 +222,8 @@ namespace engine
       INT32 processQueryCatalogue ( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;
       INT32 processQueryTask ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 processCmdCrtProcedures( void *pMsg ) ;
-      INT32 processCmdRmProcedures( void *pMsg ) ;
+      INT32 processCmdCrtProcedures( const CHAR *pMsg ) ;
+      INT32 processCmdRmProcedures( const CHAR *pMsg ) ;
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;

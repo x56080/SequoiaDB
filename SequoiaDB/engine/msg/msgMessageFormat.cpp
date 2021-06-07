@@ -102,6 +102,8 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return isCommand ? "COMMAND" : "QUERY" ;
       case MSG_BS_GETMORE_REQ :
          return "GETMORE" ;
+      case MSG_BS_ADVANCE_REQ :
+         return "ADVANCE" ;
       case MSG_BS_DELETE_REQ :
       case MSG_BS_TRANS_DELETE_REQ :
          return "DELETE" ;
@@ -288,14 +290,14 @@ void msgExpandBSQuery2String( stringstream &ss,
 {
    INT32 rc         = SDB_OK ;
    INT32 flag       = 0 ;
-   CHAR *collection = NULL ;
+   const CHAR *collection = NULL ;
    SINT64 skip      =  0;
    SINT64 limit     = -1 ;
-   CHAR *query      = NULL ;
-   CHAR *selector   = NULL ;
-   CHAR *orderby    = NULL ;
-   CHAR *hint       = NULL ;
-   rc = msgExtractQuery( (CHAR*)pMsg, &flag, &collection,
+   const CHAR *query    = NULL ;
+   const CHAR *selector = NULL ;
+   const CHAR *orderby  = NULL ;
+   const CHAR *hint     = NULL ;
+   rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &collection,
                          &skip, &limit, &query, &selector,
                          &orderby, &hint ) ;
    if ( SDB_OK != rc )

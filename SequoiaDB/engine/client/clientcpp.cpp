@@ -391,6 +391,100 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCursorImpl::advance( const BSONObj &option, BSONObj *pResult )
+   {
+      INT32 rc                = SDB_OK ;
+      CHAR *pReceiveBuffer    = NULL ;
+      INT32 receiveBufferSize = 0 ;
+
+      const CHAR *pBackData   = NULL ;
+      INT32 backDataSize      = 0 ;
+
+      // if contextid is not invalid
+      if ( -1 == _contextID )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+      // check
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      if ( _pReceiveBuffer )
+      {
+         INT32 tmpOffset = _offset ;
+         MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+
+         if ( -1 == tmpOffset )
+         {
+            tmpOffset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
+         }
+         else
+         {
+            // otherwise let's skip the current one
+            tmpOffset += ossRoundUpToMultipleX ( *(INT32*)&_pReceiveBuffer[tmpOffset],
+                                                 4 ) ;
+         }
+
+         if ( tmpOffset < pReply->header.messageLength )
+         {
+            pBackData = &_pReceiveBuffer[tmpOffset] ;
+            backDataSize = pReply->header.messageLength - tmpOffset ;
+         }
+      }
+
+      // build msg
+      rc = clientBuildAdvanceMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                     _contextID, 0, option.objdata(),
+                                     pBackData, backDataSize,
+                                     _connection->_endianConvert ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _connection->_sendAndRecv( _pSendBuffer,
+                                      &pReceiveBuffer,
+                                      &receiveBufferSize ) ;
+      if ( rc )
+      {
+         if ( pResult )
+         {
+            _connection->getLastErrorObj( *pResult ) ;
+            try
+            {
+               *pResult = pResult->getOwned() ;
+            }
+            catch( ... )
+            {
+               /// ignore error
+            }
+            /// reset result
+            _connection->cleanLastErrorObj() ;
+         }
+         goto error ;
+      }
+
+      /// clear buffer
+      if ( _pReceiveBuffer )
+      {
+         MsgOpReply *pReply = (MsgOpReply*)_pReceiveBuffer ;
+         pReply->header.messageLength = sizeof( MsgOpReply ) ;
+      }
+
+   done :
+      if ( pReceiveBuffer )
+      {
+         SDB_OSS_FREE( pReceiveBuffer ) ;
+      }
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _sdbCursorImpl::_readNextBuffer ()
    {
       INT32 rc = SDB_OK ;

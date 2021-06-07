@@ -57,10 +57,10 @@ namespace engine
                                              rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
       CHAR *newMsg = NULL ;
 
-      rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse create data source message "
                                 "failed[%d]", rc ) ;
@@ -142,13 +142,13 @@ namespace engine
                                            rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
 
       contextID = -1 ;
 
       _printDebug( (const CHAR*)pMsg, getName() ) ;
 
-      rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
                             &query, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract dropping data source message "
                    "failed[%d]", rc ) ;
@@ -196,7 +196,7 @@ namespace engine
                                             rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
 
       /*
        * The queryObj is in the format of
@@ -211,7 +211,7 @@ namespace engine
        * }
        */
 
-      rc = msgExtractQuery( (CHAR *)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
                             &query, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract altering data source message "
                                 "failed[%d]", rc ) ;

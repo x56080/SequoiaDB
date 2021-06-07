@@ -179,6 +179,8 @@ namespace sdbclient
       virtual INT32 next          ( bson::BSONObj &obj, BOOLEAN getOwned = TRUE ) = 0 ;
       virtual INT32 current       ( bson::BSONObj &obj, BOOLEAN getOwned = TRUE ) = 0 ;
       virtual INT32 close () = 0 ;
+      virtual INT32 advance       ( const bson::BSONObj &option,
+                                    bson::BSONObj *pResult = NULL ) = 0 ;
    } ;
 
    /** \class  sdbCursor
@@ -265,6 +267,22 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pCursor->current ( obj, getOwned ) ;
+      }
+
+      /** \fn INT32 advance ( const bson::BSONObj &option, bson::BSONObj *pResult = NULL )
+            \brief Advance the cusor by the option
+            \param [in] option The information of advance.
+            \param [out] pResult The result information.
+            \retval SDB_OK Operation Success
+            \retval Others Operation Fail
+      */
+      INT32 advance ( const bson::BSONObj &option, bson::BSONObj *pResult = NULL )
+      {
+         if ( !pCursor )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCursor->advance( option, pResult ) ;
       }
 
       /** \fn INT32 close ()

@@ -745,13 +745,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj conObj ;
       BSONObj dummy ;
-      CHAR *query = NULL ;
+      const CHAR *query = NULL ;
       BSONElement domain ;
       rtnQueryOptions queryOptions ;
       vector<BSONObj> replyFromCata ;
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, &query,
                             NULL, NULL, NULL );
       if ( rc != SDB_OK )
@@ -922,11 +922,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
 
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
       BSONObj query ;
-      CHAR *pHint = NULL ;
+      const CHAR *pHint = NULL ;
       BSONObj hint ;
-      CHAR *pCollectionName = NULL ;
+      const CHAR *pCollectionName = NULL ;
       INT32 flag ;
       CHAR *pNewMsg = NULL ;
       INT32 bufferSize = 0 ;
@@ -938,7 +938,7 @@ namespace engine
 
       contextID = -1 ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCollectionName,
+      rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCollectionName,
                             NULL, NULL, &pQuery,
                             NULL, NULL, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse message failed, rc: %d", rc ) ;

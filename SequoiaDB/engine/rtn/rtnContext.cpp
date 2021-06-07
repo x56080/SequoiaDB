@@ -167,6 +167,82 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnContextStoreBuf::pushFronts( const CHAR *objBuf,
+                                          INT32 len,
+                                          INT32 num )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( len < 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !isCountMode() )
+      {
+         INT32 alignedSize = ossAlign4( len ) ;
+         if ( _readOffset < alignedSize )
+         {
+            rc = _ensureBufferSize( _writeOffset + alignedSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to reallocate buffer for context, rc: "
+                       "%d", rc ) ;
+               goto error ;
+            }
+            ossMemmove( &(_buffer[alignedSize]), &(_buffer[_readOffset]),
+                        _writeOffset - _readOffset ) ;
+            _readOffset = alignedSize ;
+            _writeOffset += alignedSize ;
+         }
+
+         _readOffset -= alignedSize ;
+         ossMemcpy( &(_buffer[_readOffset]), objBuf, len ) ;
+      }
+
+      _numRecords += num ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextStoreBuf::pushFront( const BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !isCountMode() )
+      {
+         INT32 alignedSize = ossAlign4( (UINT32)obj.objsize() ) ;
+         if ( _readOffset < alignedSize )
+         {
+            rc = _ensureBufferSize( _writeOffset + alignedSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to reallocate buffer for context, rc: "
+                       "%d", rc ) ;
+               goto error ;
+            }
+            ossMemmove( &(_buffer[alignedSize]), &(_buffer[_readOffset]),
+                        _writeOffset - _readOffset ) ;
+            _readOffset = alignedSize ;
+            _writeOffset += alignedSize ;
+         }
+
+         _readOffset -= alignedSize ;
+         ossMemcpy( &(_buffer[_readOffset]), obj.objdata(), obj.objsize() ) ;
+      }
+
+      _numRecords++ ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnContextStoreBuf::appendObjs( const CHAR* objBuf,
                                           INT32 len,
                                           INT32 num,
@@ -211,7 +287,8 @@ namespace engine
    }
 
    INT32 _rtnContextStoreBuf::get( INT32 maxNumToReturn,
-                                   rtnContextBuf& buf )
+                                   rtnContextBuf& buf,
+                                   BOOLEAN onlyPeek )
    {
       INT32 rc = SDB_OK ;
 
@@ -231,19 +308,24 @@ namespace engine
          {
             buf._buffSize = _writeOffset - _readOffset ;
             buf._recordNum = _numRecords ;
-            _readOffset = _writeOffset ;
-            _numRecords = 0 ;
+
+            if ( !onlyPeek )
+            {
+               _readOffset = _writeOffset ;
+               _numRecords = 0 ;
+            }
          }
          else
          {
             INT32 prevCurOffset = _readOffset ;
-            while ( _readOffset < _writeOffset &&
+            INT32 tmpReadOffset = _readOffset ;
+            while ( tmpReadOffset < _writeOffset &&
                     maxNumToReturn > 0 )
             {
                try
                {
                   BSONObj obj( &_buffer[_readOffset] ) ;
-                  _readOffset += ossAlign4( (UINT32)obj.objsize() ) ;
+                  tmpReadOffset += ossAlign4( (UINT32)obj.objsize() ) ;
                }
                catch ( std::exception &e )
                {
@@ -254,8 +336,13 @@ namespace engine
                }
 
                buf._recordNum++ ;
-               _numRecords-- ;
                maxNumToReturn-- ;
+
+               if ( !onlyPeek )
+               {
+                  _readOffset = tmpReadOffset ;
+                  _numRecords-- ;
+               }
             } // end while
 
             if ( _readOffset > _writeOffset )
@@ -264,7 +351,7 @@ namespace engine
                SDB_ASSERT( 0 == _numRecords, "buffer num records must "
                            " be zero" ) ;
             }
-            buf._buffSize = _readOffset - prevCurOffset ;
+            buf._buffSize = tmpReadOffset - prevCurOffset ;
          }
       }
       else
@@ -272,12 +359,58 @@ namespace engine
          if ( maxNumToReturn < 0 || maxNumToReturn >= _numRecords )
          {
             buf._recordNum = _numRecords ;
-            _numRecords = 0 ;
+            if ( !onlyPeek )
+            {
+               _numRecords = 0 ;
+            }
          }
          else
          {
             buf._recordNum = maxNumToReturn ;
-            _numRecords -= maxNumToReturn ;
+            if ( !onlyPeek )
+            {
+               _numRecords -= maxNumToReturn ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextStoreBuf::pop( UINT32 num )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !isCountMode() )
+      {
+         try
+         {
+            while( _numRecords > 0 && num > 0 )
+            {
+               BSONObj obj( &_buffer[_readOffset] ) ;
+               _readOffset += ossAlign4( (UINT32)obj.objsize() ) ;
+               --_numRecords ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+      else
+      {
+         if ( _numRecords > num )
+         {
+            _numRecords -= num ;
+         }
+         else
+         {
+            _numRecords = 0 ;
          }
       }
 
@@ -543,9 +676,12 @@ namespace engine
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE_PREFETCH, "_rtnContextBase::prefetch" )
    INT32 _rtnContextBase::prefetch( pmdEDUCB * cb, UINT32 prefetchID )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXBASE_PREFETCH ) ;
+
       BOOLEAN locked = FALSE ;
       BOOLEAN againTry = FALSE ;
       UINT32 timeout = 0 ;
@@ -641,6 +777,7 @@ namespace engine
          ctxMutexPtr tmpMutexPtr( _prefetchLock ) ;
          tmpMutexPtr->release_r() ;
       }
+      PD_TRACE_EXITRC ( SDB_RTNCTXBASE_PREFETCH, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -738,12 +875,14 @@ namespace engine
       return _buffer.get( maxNumToReturn, buf ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE_GETMORE, "_rtnContextBase::getMore" )
    INT32 _rtnContextBase::getMore( INT32 maxNumToReturn,
                                    rtnContextBuf &buffObj,
                                    pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXBASE_GETMORE ) ;
 
       // release buff obj
       buffObj.release() ;
@@ -860,10 +999,543 @@ namespace engine
       {
          setQueryActivity( TRUE ) ;
       }
-
+      PD_TRACE_EXITRC ( SDB_RTNCTXBASE_GETMORE, rc ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE__ADVANCE, "_rtnContextBase::_advance" )
+   INT32 _rtnContextBase::_advance( const BSONObj &arg,
+                                    BOOLEAN isLocate,
+                                    _pmdEDUCB *cb,
+                                    const CHAR *pBackData,
+                                    INT32 backDataSize )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXBASE__ADVANCE ) ;
+
+      BOOLEAN locked = FALSE ;
+
+      BSONObj orderby ;
+      UINT32 tmpPrefetchID = 0 ;
+      BOOLEAN finished = FALSE ;
+      INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
+      INT32 prefixNum = 0 ;
+      INT32 orderbyFieldNum = 0 ;
+      BSONObj keyVal ;
+      BSONObj objValue ;
+      ixmIndexKeyGen keyGen ;
+
+      if ( !isOpened() )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      else if ( eof() && isEmpty() && backDataSize <= 0 )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+
+      // not support for count mode
+      if ( isCountMode() )
+      {
+         PD_LOG_MSG( PDERROR, "Context in count mode does not support advance" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         goto error ;
+      }
+      else if ( isWrite() )
+      {
+         PD_LOG_MSG( PDERROR, "Context in write mode does not support advance" ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         goto error ;
+      }
+
+      // check args
+      try
+      {
+         BSONElement eType   = arg.getField( FIELD_NAME_TYPE ) ;
+         BSONElement eNum    = arg.getField( FIELD_NAME_PREFIX_NUM ) ;
+         BSONElement eVal    = arg.getField( FIELD_NAME_INDEXVALUE ) ;
+
+         if ( arg.isEmpty() )
+         {
+            PD_LOG_MSG( PDERROR, "Position is empty" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( NumberInt != eType.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Int", FIELD_NAME_TYPE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( NumberInt != eNum.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Int",
+                        FIELD_NAME_PREFIX_NUM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( Object != eVal.type() )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] must be Object",
+                        FIELD_NAME_INDEXVALUE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         type = eType.numberInt() ;
+         prefixNum = eNum.numberInt() ;
+         objValue = eVal.embeddedObject() ;
+
+         // check type
+         if ( MSG_ADVANCE_TO_FIRST_IN_VALUE != type &&
+              MSG_ADVANCE_TO_NEXT_OUT_VALUE != type )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid", FIELD_NAME_TYPE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         // check prefix number
+         else if ( prefixNum <= 0 )
+         {
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
+                        FIELD_NAME_PREFIX_NUM ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = _getAdvanceOrderby( orderby ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      else
+      {
+         orderbyFieldNum = orderby.nFields() ;
+         if ( prefixNum > orderbyFieldNum )
+         {
+            SDB_ASSERT( FALSE, "Invalid prefix number" ) ;
+            prefixNum = orderbyFieldNum ;
+         }
+
+         /// generate keyVal
+         rc = keyGen.setKeyPattern( orderby ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Set index generate pattern failed, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         rc = keyGen.getKeys( objValue, keyVal ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Generate key value failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+      // need to get data lock
+      while ( TRUE )
+      {
+         rc = _dataLock.lock_r( OSS_ONE_SEC ) ;
+         if ( SDB_OK == rc )
+         {
+            locked = TRUE ;
+            break ;
+         }
+         else if ( cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+      }
+
+      if ( 0 != _prefetchID )
+      {
+         /// disable prefetch
+         tmpPrefetchID = _prefetchID + 1 ;
+         _prefetchID = 0 ;
+      }
+      // check prefetch has error
+      if ( _prefetchRet && SDB_DMS_EOC != _prefetchRet )
+      {
+         rc = _prefetchRet ;
+         PD_LOG( PDWARNING, "Occur error in prefetch, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      if ( locked )
+      {
+         _dataLock.release_r() ;
+         locked = FALSE ;
+      }
+
+      /// process back data
+      if ( pBackData && backDataSize > 0 )
+      {
+         rc = _advanceBackData( type, prefixNum, keyGen, keyVal, orderby,
+                                pBackData, backDataSize,
+                                finished ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( finished )
+         {
+            goto done ;
+         }
+      }
+
+      /// process the buffer records
+      if ( _buffer.numRecords() > 0 )
+      {
+         rc = _advanceRecords( type, prefixNum, keyGen, keyVal, orderby,
+                               _buffer.numRecords(), cb, finished ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( finished )
+         {
+            goto done ;
+         }
+      }
+
+      // First do advance
+      rc = _doAdvance( type, prefixNum, keyVal, orderby, arg, isLocate, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( isLocate )
+      {
+         goto done ;
+      }
+      // get more
+      else
+      {
+         /// save position
+         _advancePosition = arg ;
+
+         rc = _advanceRecords( type, prefixNum, keyGen, keyVal, orderby,
+                               -1, cb, finished ) ;
+         /// restore
+         _advancePosition = BSONObj() ;
+
+         /// check result
+         if ( rc )
+         {
+            goto error ;
+         }
+         SDB_ASSERT( finished, "Finish must is invalid" ) ;
+      }
+
+   done:
+      if ( 0 != tmpPrefetchID )
+      {
+         // enable pretch
+         _prefetchID = tmpPrefetchID ;
+      }
+      if ( locked )
+      {
+         _dataLock.release_r() ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNCTXBASE__ADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextBase::advance( const BSONObj &arg,
+                                   const CHAR *pBackData,
+                                   INT32 backDataSize,
+                                   _pmdEDUCB *cb )
+   {
+      return _advance( arg, FALSE, cb, pBackData, backDataSize ) ;
+   }
+
+   INT32 _rtnContextBase::locate( const BSONObj &arg,
+                                  _pmdEDUCB *cb )
+   {
+      return _advance( arg, TRUE, cb ) ;
+   }
+
+   INT32 _rtnContextBase::_advanceRecords( INT32 type,
+                                           INT32 prefixNum,
+                                           ixmIndexKeyGen &keyGen,
+                                           const BSONObj &keyVal,
+                                           const BSONObj &orderby,
+                                           INT64 recordNum,
+                                           _pmdEDUCB *cb,
+                                           BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnContextBuf buffObj ;
+      BSONObj tmpObj ;
+      BOOLEAN matched = FALSE ;
+      BOOLEAN isEqual = FALSE ;
+
+      while( 0 != recordNum  )
+      {
+         rc = getMore( 1, buffObj, cb ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            _isOpened = TRUE ;
+            finished = TRUE ;
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( rc )
+         {
+            goto error ;
+         }
+   
+         rc = buffObj.nextObj( tmpObj ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         rc = _checkAdvance( type, keyGen, prefixNum, keyVal,
+                             tmpObj, orderby, matched, isEqual ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         else if ( matched )
+         {
+            /// push back current
+            rc = _buffer.pushFront( tmpObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            finished = TRUE ;
+            break ;
+         }
+
+         if ( recordNum > 0 )
+         {
+            --recordNum ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextBase::_advanceBackData( INT32 type,
+                                            INT32 prefixNum,
+                                            ixmIndexKeyGen &keyGen,
+                                            const BSONObj &keyVal,
+                                            const BSONObj &orderby,
+                                            const CHAR *pBackData,
+                                            INT32 backDataSize,
+                                            BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      INT32 offset = 0 ;
+      INT32 recordNum = 0 ;
+      BOOLEAN matched = FALSE ;
+      BOOLEAN isEqual = FALSE ;
+
+      if ( backDataSize < 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         while( offset < backDataSize )
+         {
+            BSONObj obj( &pBackData[offset] ) ;
+            rc = _checkAdvance( type, keyGen, prefixNum, keyVal,
+                                obj, orderby, matched, isEqual ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            else if ( matched )
+            {
+               /// cacl record num
+               INT32 alignSize = ossAlign4( backDataSize ) ;
+               INT32 tmpOffset = offset ;
+
+               while( tmpOffset < backDataSize )
+               {
+                  BSONObj tmpObj( &pBackData[tmpOffset] ) ;
+                  ++recordNum ;
+                  tmpOffset += ossAlign4 ( tmpObj.objsize() ) ;
+               }
+
+               if ( tmpOffset != alignSize )
+               {
+                  PD_LOG_MSG( PDERROR, "Back data length is invalid" ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+
+               if ( _buffer.isEmpty() )
+               {
+                  _buffer.empty() ;
+                  rc = _buffer.appendObjs( &pBackData[offset],
+                                           backDataSize - offset,
+                                           recordNum ) ;
+               }
+               else
+               {
+                  /// push back current
+                  rc = _buffer.pushFronts( &pBackData[offset],
+                                           backDataSize - offset,
+                                           recordNum ) ;
+               }
+               if ( rc )
+               {
+                  goto error ;
+               }
+               _hitEnd = FALSE ;
+               finished = TRUE ;
+               break ;
+            }
+
+            offset += ossAlign4( obj.objsize() ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE__CHECKADVANCE, "_rtnContextBase::_checkAdvance" )
+   INT32 _rtnContextBase::_checkAdvance( INT32 type,
+                                         ixmIndexKeyGen &keyGen,
+                                         INT32 prefixNum,
+                                         const BSONObj &keyVal,
+                                         const BSONObj &curObj,
+                                         const BSONObj &orderby,
+                                         BOOLEAN &matched,
+                                         BOOLEAN &isEqual )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXBASE__CHECKADVANCE ) ;
+
+      BSONObj keyObj ;
+      INT32 cmp = 0 ;
+
+      try
+      {
+         rc = keyGen.getKeys( curObj, keyObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Generate key from obj(%s) failed, rc: %d",
+                    curObj.toPoolString().c_str(), rc ) ;
+            goto error ;
+         }
+
+         cmp = _woNCompare( keyVal, keyObj, FALSE, prefixNum, orderby ) ;
+         if ( cmp < 0 )
+         {
+            matched = TRUE ;
+         }
+         else if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type && 0 == cmp )
+         {
+            matched = TRUE ;
+         }
+
+         isEqual = ( 0 == cmp ) ? TRUE : FALSE ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_RTNCTXBASE__CHECKADVANCE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextBase::_woNCompare( const BSONObj &l,
+                                       const BSONObj &r,
+                                       BOOLEAN compreFieldName,
+                                       UINT32 keyNum,
+                                       const BSONObj &keyPattern )
+   {
+      BSONObjIterator itrL( l ) ;
+      BSONObjIterator itrR( r ) ;
+      BSONObjIterator itrK( keyPattern ) ;
+      UINT32 i = 0 ;
+      INT32 cmp = 0 ;
+      BOOLEAN ordered = !keyPattern.isEmpty() ;
+
+      for ( i = 0 ; i < keyNum && itrL.more() && itrR.more() ; ++i )
+      {
+         BSONElement eL = itrL.next() ;
+         BSONElement eR = itrR.next() ;
+
+         BSONElement eK ;
+         if ( ordered )
+         {
+            if ( itrK.more() )
+            {
+               eK = itrK.next() ;
+            }
+            else
+            {
+               SDB_ASSERT( FALSE, "Key pattern is invalid" ) ;
+               ordered = FALSE ;
+            }
+         }
+
+         cmp = eL.woCompare( eR, compreFieldName ) ;
+         if ( 0 != cmp )
+         {
+            if ( ordered && eK.numberInt() < 0 )
+            {
+               cmp = -cmp ;
+            }
+            return cmp ;
+         }
+      }
+
+      if ( i < keyNum )
+      {
+         if ( itrL.more() )
+         {
+            cmp = 1 ;
+         }
+         else
+         {
+            cmp = -1 ;
+         }
+      }
+      return cmp ;
    }
 
    UINT32 _rtnContextBase::getCachedRecordNum()
@@ -872,8 +1544,8 @@ namespace engine
    }
 
    _rtnContextAssit::_rtnContextAssit( RTN_CONTEXT_TYPE type,
-                                            std::string name,
-                                            RTN_CTX_NEW_FUNC func )
+                                       std::string name,
+                                       RTN_CTX_NEW_FUNC func )
    {
       SDB_ASSERT( NULL != func, "func is null" ) ;
       SDB_ASSERT( !name.empty(), "name is empty" ) ;

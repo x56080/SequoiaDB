@@ -88,6 +88,7 @@ namespace engine
       virtual INT32        pop() = 0 ;
       virtual INT32        popN( INT32 num ) = 0 ;
       virtual INT32        popAll() = 0 ;
+      virtual INT32        pushFront( const BSONObj &obj ) = 0 ;
       virtual INT32        recordNum() = 0 ;
       virtual INT32        remainLength() = 0 ;
       virtual INT32        truncate ( INT32 num ) = 0 ;

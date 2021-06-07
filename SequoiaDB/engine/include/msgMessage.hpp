@@ -177,8 +177,11 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
  * out ppSelector
  * out ppUpdator
  */
-INT32 msgExtractUpdate ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppSelector, CHAR **ppUpdator, CHAR **ppHint ) ;
+INT32 msgExtractUpdate ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppSelector,
+                         const CHAR **ppUpdator,
+                         const CHAR **ppHint ) ;
 
 /*
  * Create Insert Message in ppBuffer
@@ -196,7 +199,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
 INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,
-                          void *pFiller, std::vector< CHAR * > &ObjQueue,
+                          std::vector< CHAR * > &ObjQueue,
                           engine::netIOVec &ioVec,
                           engine::IExecutor *cb = NULL ) ;
 
@@ -211,8 +214,10 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
  * out ppCollectionName
  * out ppInsertor
  */
-INT32 msgExtractInsert ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppInsertor, INT32 &count ) ;
+INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppInsertor,
+                         INT32 &count ) ;
 
 INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,
@@ -223,22 +228,38 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                           const BSONObj *hint = NULL,
                           engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
+INT32 msgExtractQuery  ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
                          SINT64 *numToSkip, SINT64 *numToReturn,
-                         CHAR **ppQuery, CHAR **ppFieldSelector,
-                         CHAR **ppOrderBy, CHAR **ppHint ) ;
+                         const CHAR **ppQuery,
+                         const CHAR **ppFieldSelector,
+                         const CHAR **ppOrderBy,
+                         const CHAR **ppHint ) ;
 
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
                            engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractGetMore  ( CHAR *pBuffer,
-                           SINT32 *numToReturn, SINT64 *contextID ) ;
+INT32 msgExtractGetMore  ( const CHAR *pBuffer,
+                           SINT32 *numToReturn,
+                           SINT64 *contextID ) ;
 
-void msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
-                         const SINT64 contextID, const SINT32 numToReturn,
-                         const UINT64 reqID );
+void  msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
+                          const SINT64 contextID, const SINT32 numToReturn,
+                          const UINT64 reqID );
+
+INT32 msgExtractAdvanceMsg( const CHAR *pBuffer, INT64 *contextID,
+                            const CHAR **arg,
+                            const CHAR **ppBackData = NULL,
+                            INT32 *pBackDataSize = NULL ) ;
+
+INT32 msgBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                          SINT64 contextID, UINT64 reqID,
+                          const BSONObj *arg,
+                          const CHAR *pBackData = NULL,
+                          INT32 backDataSize = 0,
+                          engine::IExecutor *cb = NULL ) ;
 
 INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, SINT32 flag, UINT64 reqID,
@@ -246,23 +267,26 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const BSONObj *hint = NULL,
                           engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractDelete ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
-                         CHAR **ppDeletor, CHAR **ppHint ) ;
+INT32 msgExtractDelete ( const CHAR *pBuffer, INT32 *pflag,
+                         const CHAR **ppCollectionName,
+                         const CHAR **ppDeletor,
+                         const CHAR **ppHint ) ;
 
 INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                               UINT64 reqID,
-                               SINT32 numContexts, SINT64 *pContextIDs,
-                               engine::IExecutor *cb = NULL ) ;
+                                UINT64 reqID,
+                                SINT32 numContexts, SINT64 *pContextIDs,
+                                engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractKillContexts ( CHAR *pBuffer,
-                              SINT32 *numContexts, SINT64 **ppContextIDs ) ;
+INT32 msgExtractKillContexts ( const CHAR *pBuffer,
+                               SINT32 *numContexts,
+                               const SINT64 **ppContextIDs ) ;
 
 INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                        UINT64 reqID, CHAR *pMsgStr,
                        engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractMsg ( CHAR *pBuffer,
-                      CHAR **ppMsgStr ) ;
+INT32 msgExtractMsg ( const CHAR *pBuffer,
+                      const CHAR **ppMsgStr ) ;
 
 INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
                          SINT32 flag, SINT64 contextID, SINT32 startFrom,
@@ -276,7 +300,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
                          const BSONObj *bsonobj,
                          engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
+INT32 msgExtractReply ( const CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
                         SINT32 *startFrom, SINT32 *numReturned,
                         vector<BSONObj> &objList ) ;
 
@@ -315,7 +339,7 @@ INT32 msgBuildQuerySpaceReqMsg ( CHAR **ppBuffer, INT32 *pBufferSize,
                                  engine::IExecutor *cb = NULL ) ;
 
 
-INT32 msgExtractSql( CHAR *pBuffer, CHAR **sql ) ;
+INT32 msgExtractSql( const CHAR *pBuffer, const CHAR **sql ) ;
 
 // cluster manager
 INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize, SINT32 remoCode,
@@ -325,9 +349,9 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize, SINT32 remoCode,
                           const BSONObj *arg4 = NULL,
                           engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
-                            CHAR **arg1, CHAR **arg2,
-                            CHAR **arg3, CHAR **arg4 ) ;
+INT32 msgExtractCMRequest ( const CHAR *pBuffer, SINT32 *remoCode,
+                            const CHAR **arg1, const CHAR **arg2,
+                            const CHAR **arg3, const CHAR **arg4 ) ;
 
 INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
                             INT32 * pBufferSize,
@@ -384,13 +408,13 @@ INT32 msgBuildDropIndexMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 INT32 msgBuildSysInfoRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
                                engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractSysInfoRequest ( CHAR *pBuffer, BOOLEAN &endianConvert ) ;
+INT32 msgExtractSysInfoRequest ( const CHAR *pBuffer, BOOLEAN &endianConvert ) ;
 
 INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
                              UINT64 dbStartTime,
                              engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN &endianConvert,
+INT32 msgExtractSysInfoReply ( const CHAR *pBuffer, BOOLEAN &endianConvert,
                                INT32 *osType ) ;
 
 INT32 msgBuildSequenceAcquireMsg( CHAR **ppBuffer, INT32 *bufferSize,
@@ -401,9 +425,9 @@ INT32 msgBuildSequenceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                           const BSONObj &boQuery, UINT64 reqID,
                                           engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractSequenceRequestMsg( CHAR *pBuffer, BSONObj& options ) ;
+INT32 msgExtractSequenceRequestMsg( const CHAR *pBuffer, BSONObj& options ) ;
 
-INT32 msgExtractSequenceAcquireReply( CHAR *pBuffer, BSONObj& options ) ;
+INT32 msgExtractSequenceAcquireReply( const CHAR *pBuffer, BSONObj& options ) ;
 
 INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                   engine::IExecutor *cb = NULL );
@@ -414,9 +438,9 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 INT32 msgBuildTransRollbackMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                  engine::IExecutor *cb = NULL ) ;
 
-INT32 msgExtractAggrRequest ( CHAR *pBuffer, CHAR **ppCollectionName,
-                              CHAR **ppObjs, INT32 &count,
-                              INT32 *pFlags = NULL );
+INT32 msgExtractAggrRequest ( const CHAR *pBuffer, const CHAR **ppCollectionName,
+                              const CHAR **ppObjs, INT32 &count,
+                              INT32 *pFlags = NULL ) ;
 
 INT32 msgExtractLobRequest( const CHAR *pBuffer, const MsgOpLob **header,
                             bson::BSONObj &meta, const MsgLobTuple **tuples,

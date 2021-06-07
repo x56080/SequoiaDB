@@ -71,9 +71,9 @@ namespace engine
 
       coordSessionPropSite *pPropSite = NULL ;
       pmdRemoteSessionSite *pSite = NULL ;
-      CHAR *pQuery = NULL ;
+      const CHAR *pQuery = NULL ;
 
-      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL );
       PD_RC_CHECK( rc, PDERROR, "Failed to parse set session attribute "
                    "request, rc: %d", rc ) ;

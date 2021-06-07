@@ -174,8 +174,8 @@ namespace engine
       SDB_ASSERT( MSG_BS_QUERY_REQ == message->opCode,
                   "opcode of message is invalid" ) ;
 
-      CHAR *commandName = NULL ;
-      CHAR *optionBuffer = NULL ;
+      const CHAR *commandName = NULL ;
+      const CHAR *optionBuffer = NULL ;
       stpCommand *command = NULL ;
       BOOLEAN finished = FALSE ;
       BSONObj result ;
@@ -183,8 +183,8 @@ namespace engine
       _redirectID = STP_INVALID_REDIRECT_ID ;
 
       // extract field of query, command name and option
-      rc = msgExtractQuery( (CHAR *)message, NULL, &commandName, NULL, NULL,
-                            &optionBuffer, NULL, NULL, NULL ) ;
+      rc = msgExtractQuery( (const CHAR *)message, NULL, &commandName,
+                            NULL, NULL, &optionBuffer, NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract query, rc: %d", rc ) ;
 
       PD_CHECK( NULL != commandName, SDB_INVALIDARG, error, PDERROR,

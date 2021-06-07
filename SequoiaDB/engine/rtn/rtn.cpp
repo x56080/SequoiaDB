@@ -1437,7 +1437,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNKILLCONTEXTS, "rtnKillContexts" )
-   INT32 rtnKillContexts ( INT32 numContexts, INT64 *pContextIDs,
+   INT32 rtnKillContexts ( INT32 numContexts, const INT64 *pContextIDs,
                            pmdEDUCB *cb, SDB_RTNCB *rtnCB )
    {
       INT32 rc = SDB_OK ;

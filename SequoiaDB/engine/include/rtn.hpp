@@ -282,6 +282,14 @@ namespace engine
                       SDB_RTNCB *rtnCB             // input runtimecb
                       ) ;
 
+   INT32 rtnAdvance( SINT64 contextID,
+                     const BSONObj &arg,
+                     const CHAR *pBackData,
+                     INT32 backDataSize,
+                     pmdEDUCB *cb,
+                     SDB_RTNCB *rtnCB
+                    ) ;
+
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
                                   const CHAR *dataPath,
                                   const CHAR *indexPath,
@@ -345,7 +353,7 @@ namespace engine
    INT32 rtnFindCollection ( const CHAR *pCollection,
                              SDB_DMSCB *dmsCB ) ;
 
-   INT32 rtnKillContexts ( SINT32 numContexts, SINT64 *pContextIDs,
+   INT32 rtnKillContexts ( SINT32 numContexts, const SINT64 *pContextIDs,
                            pmdEDUCB *cb, SDB_RTNCB *rtnCB ) ;
 
    INT32 rtnBackup ( pmdEDUCB *cb, const CHAR *path, const CHAR *backupName,
