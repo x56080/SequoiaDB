@@ -175,7 +175,8 @@ namespace engine
                   const DPS_LSN &memBeginLSN ) ;
 
       INT32 invalidateStatus() ;
-      INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
+      INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset,
+                                  BOOLEAN needSync = TRUE ) ;
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;
@@ -186,7 +187,7 @@ namespace engine
    private:
       INT32 _initNewFile() ;
       INT32 _restore() ;
-      INT32 writeContent() ;
+      INT32 writeContent( BOOLEAN needSync = TRUE ) ;
       INT32 readContent() ;
 
    private:

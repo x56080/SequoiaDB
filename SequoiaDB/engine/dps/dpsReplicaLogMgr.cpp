@@ -1395,7 +1395,8 @@ namespace engine
          if ( DPS_INVALID_LSN_OFFSET != offset )
          {
             // offset is valid, just save offset.
-            _metaFile.writeOldestLSNOffset( offset ) ;
+            // flush only, no need to sync
+            _metaFile.writeOldestLSNOffset( offset, FALSE ) ;
          }
          else
          {
@@ -1404,7 +1405,9 @@ namespace engine
             // in this case we can safely save _pageFlushedBeginLSN.offset.
             if ( !_pageFlushedBeginLSN.invalid() )
             {
-               _metaFile.writeOldestLSNOffset( _pageFlushedBeginLSN.offset ) ;
+               // flush only, no need to sync
+               _metaFile.writeOldestLSNOffset( _pageFlushedBeginLSN.offset,
+                                               FALSE ) ;
             }
          }
       }

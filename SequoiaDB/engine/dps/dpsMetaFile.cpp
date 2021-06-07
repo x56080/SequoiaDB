@@ -275,7 +275,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dpsMetaFile::writeContent()
+   INT32 _dpsMetaFile::writeContent( BOOLEAN needSync )
    {
       INT32 rc = SDB_OK ;
       SINT64 written = 0 ;
@@ -285,9 +285,12 @@ namespace engine
                              ( const CHAR* ) &_content, toWrite, written ) ;
       PD_RC_CHECK( rc, PDERROR, "Write content failed, rc: %d", rc ) ;
 
-      rc = ossFsync( &_file ) ;
-      PD_RC_CHECK( rc, PDERROR, "Fsync file(%s) failed, rc: %d",
-                   _path, rc ) ;
+      if ( needSync )
+      {
+         rc = ossFsync( &_file ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fsync file(%s) failed, rc: %d",
+                      _path, rc ) ;
+      }
 
    done:
       return rc ;
@@ -314,10 +317,11 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dpsMetaFile::writeOldestLSNOffset( DPS_LSN_OFFSET offset )
+   INT32 _dpsMetaFile::writeOldestLSNOffset( DPS_LSN_OFFSET offset,
+                                             BOOLEAN needSync )
    {
       _content._oldestLSNOffset = offset ;
-      return writeContent() ;
+      return writeContent( needSync ) ;
    }
 
    INT32 _dpsMetaFile::invalidateStatus()
