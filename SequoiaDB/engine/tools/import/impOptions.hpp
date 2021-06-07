@@ -122,6 +122,7 @@ namespace import
 
       /* csv */
       inline const string& stringDelimiter() const { return _stringDelimiter; }
+      inline BOOLEAN autoAddStrDel() const { return _autoAddStrDel; }
       inline const string& fieldDelimiter() const { return _fieldDelimiter; }
       inline const string& fields() const { return _fields; }
       inline const string& dateFormat() const { return _dateFormat; }
@@ -188,6 +189,7 @@ namespace import
 
       /* csv */
       string         _stringDelimiterIn;
+      BOOLEAN        _autoAddStrDel;
       string         _fieldDelimiterIn;
       string         _stringDelimiter;
       string         _fieldDelimiter;

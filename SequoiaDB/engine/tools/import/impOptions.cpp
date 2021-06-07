@@ -56,6 +56,7 @@ namespace import
    #define IMP_OPTION_COLLECTSPACE      "csname"
    #define IMP_OPTION_COLLECTION        "clname"
    #define IMP_OPTION_DELCHAR           "delchar"
+   #define IMP_OPTION_AUTODELCHAR       "autodelchar"
    #define IMP_OPTION_DELFIELD          "delfield"
    #define IMP_OPTION_DELRECORD         "delrecord"
    #define IMP_OPTION_FILENAME          "file"
@@ -103,6 +104,7 @@ namespace import
    #define IMP_EXPLAIN_CIPHER           "input password using a cipher file"
    #define IMP_EXPLAIN_TOKEN            "password encryption token"
    #define IMP_EXPLAIN_DELCHAR          "string delimiter, default: '\"' ( csv only )"
+   #define IMP_EXPLAIN_AUTODELCHAR      "automatically add string delimiters to string data lacking string delimiters, default: false ( csv only )"
    #define IMP_EXPLAIN_DELFIELD         "field delimiter, default: ',' ( csv only )"
    #define IMP_EXPLAIN_DELRECORD        "record delimiter, default: '\\n'"
    #define IMP_EXPLAIN_COLLECTSPACE     "collection space name"
@@ -203,6 +205,7 @@ namespace import
 
    #define IMP_CSV_OPTIONS \
       (IMP_OPTION_DELCHAR",a",         _TYPE(string),    IMP_EXPLAIN_DELCHAR) \
+      (IMP_OPTION_AUTODELCHAR,         _TYPE(bool),      IMP_EXPLAIN_AUTODELCHAR) \
       (IMP_OPTION_DELFIELD",e",        _TYPE(string),    IMP_EXPLAIN_DELFIELD) \
       (IMP_OPTION_FIELDS,              _TYPE(string),    IMP_EXPLAIN_FIELDS) \
       (IMP_OPTION_DATEFMT,             _TYPE(string),    IMP_EXPLAIN_DATEFMT) \
@@ -334,6 +337,7 @@ namespace import
       _decimalto = DECIMALTO_DEFAULT ;
 
       _stringDelimiter = "\"";
+      _autoAddStrDel = FALSE;
       _fieldDelimiter = ",";
       _dateFormat = "YYYY-MM-DD";
       _timestampFormat = "YYYY-MM-DD-HH.mm.ss.ffffff";
@@ -782,6 +786,11 @@ namespace import
                       << std::endl;
             goto error;
          }
+      }
+
+      if (has(IMP_OPTION_AUTODELCHAR))
+      {
+         _autoAddStrDel = get<bool>(IMP_OPTION_AUTODELCHAR);
       }
 
       if (has(IMP_OPTION_DELRECORD))

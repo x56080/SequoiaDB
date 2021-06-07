@@ -1930,24 +1930,47 @@ namespace import
    static inline INT32 _stringToString(const CHAR* data, INT32 length,
                                        const CHAR* strDel, INT32 strDelLen,
                                        const CHAR* fieldDel, INT32 fieldDelLen,
-                                       CSVString& value, INT32& valueLength,
-                                       BOOLEAN& fieldEnd)
+                                       BOOLEAN autoAddStrDel, CSVString& value,
+                                       INT32& valueLength, BOOLEAN& fieldEnd)
    {
       CHAR* str = (CHAR*)data;
       INT32 len = length;
       INT32 rc = SDB_OK;
       BOOLEAN inString = FALSE;
+      INT32 strDelNum = 0;
       fieldEnd = FALSE;
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
-      if ( strDelLen > 0 && _startWith( str, len, strDel, strDelLen ) )
+      // when *data is: '___"data"___', spaces outside the string
+      // delimiter needs to be removed, so we skip the spaces first.
+      // but we need to handle those cases: '____' and '___,'
+      _skipSpace(&str, len, fieldDel, fieldDelLen, strDel, strDelLen);
+      if (len == 0 || _startWith(str, len, fieldDel, fieldDelLen))
+      {
+          if (autoAddStrDel)
+          {
+             // spaces skipped in *data are valid data
+             value.length = length - len;
+             value.str = (CHAR*)data;
+          }
+          else
+          {
+             value.length = 0;
+          }
+          valueLength = length - len;
+          fieldEnd = TRUE;
+          goto done;
+      }
+
+      if (strDelLen > 0 && _startWith(str, len, strDel, strDelLen))
       {
          // skip the string delimiter
          str += strDelLen;
          len -= strDelLen;
          inString = TRUE;
+         strDelNum++;
       }
 
       // point to string head
@@ -1957,6 +1980,10 @@ namespace import
       {
          if ( strDelLen > 0 && _startWith( str, len, strDel, strDelLen ) )
          {
+            // spaces outdide the string delimiter are useless data
+            // because *data contains string delimiter
+
+            //*(str - strDelLen) = '\0';
             // previous character is escape
             // TODO: process "\\\\"
             /*if ('\\' == *(str - 1))
@@ -1968,6 +1995,7 @@ namespace import
 
             len -= strDelLen;
             str += strDelLen;
+            strDelNum++;
 
             if (len == 0)
             {
@@ -1983,12 +2011,12 @@ namespace import
                value.hasEscape = TRUE;
                len -= strDelLen;
                str += strDelLen;
+               strDelNum--;
                continue;
             }
 
             inString = FALSE;
             // terminate the string
-            //*(str - strDelLen) = '\0';
             value.length = str - strDelLen - value.str;
             break;
          }
@@ -1998,9 +2026,18 @@ namespace import
             if (_startWith(str, len, fieldDel, fieldDelLen))
             {
                //*str = '\0';
-               fieldEnd = TRUE;
+               if ( autoAddStrDel && 0 == strDelNum )
+               {
+                  // spaces skipped in *data are valid data
+                  value.length = str - data;
+                  value.str = (CHAR*)data;
+               }
+               else
+               {
+                  value.length = str - value.str;
+               }
                valueLength = length - len;
-               value.length = str - value.str;
+               fieldEnd = TRUE;
                goto done;
             }
 
@@ -2023,17 +2060,27 @@ namespace import
          len--;
       }
 
-      if (inString || len == 0)
+      if (0 == len)
       {
-         SDB_ASSERT(len == 0, "len must be equal 0");
-         // must be sure it's safe to terminate the string
-         //*str = '\0';
+         // in this case, the while(len > 0){} loop ends normally
+         if (autoAddStrDel && 0 == strDelNum )
+         {
+            // spaces skipped in *data are valid data
+            value.length = str - data;
+            value.str = (CHAR*)data;
+         }
+         else
+         {
+            value.length = str - value.str;
+         }
          valueLength = length;
-         value.length = str - value.str;
          goto done;
       }
       else
       {
+         // in this case, the while(len > 0){} loop break exits,
+         // the *data contains string delimiter, so spaces outside
+         // the string delimiter needs to be removed
          _skipSpace(&str, len, fieldDel, fieldDelLen);
          if (len == 0)
          {
@@ -2106,7 +2153,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2205,7 +2252,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2306,7 +2353,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2409,7 +2456,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2504,7 +2551,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2607,7 +2654,7 @@ namespace import
 
       rc = _stringToString(data, length,
                            strDel, strDelLen,
-                           fieldDel, fieldDelLen,
+                           fieldDel, fieldDelLen, FALSE,
                            csvStr, valueLength, fieldEnd);
       if ( rc )
       {
@@ -2899,7 +2946,7 @@ namespace import
    static inline INT32 _detectFieldType(const CHAR* data, INT32 length,
                                         const CHAR* strDel, INT32 strDelLen,
                                         const CHAR* fieldDel, INT32 fieldDelLen,
-                                        CSV_TYPE& fieldType,
+                                        BOOLEAN autoAddStrDel, CSV_TYPE& fieldType,
                                         CSVFieldValue& fieldValue,
                                         INT32& fieldLength, BOOLEAN& fieldEnd)
    {
@@ -2911,7 +2958,25 @@ namespace import
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
-      SDB_ASSERT(!isspace(*data), "data can't begin with space");
+
+      // INT/LONG/DOUBLE/BOOL/NULL need skip the header spaces
+      _skipSpace(&str, len, fieldDel, fieldDelLen);
+      if (len == 0 || _startWith(str, len, fieldDel, fieldDelLen))
+      {
+         if (autoAddStrDel)
+         {
+            fieldType = CSV_TYPE_STRING;
+            fieldValue.strVal.length = length - len;
+            fieldValue.strVal.str = (CHAR*)data;
+         }
+         else
+         {
+            fieldType = CSV_TYPE_SKIP;
+         }
+         fieldEnd = TRUE;
+         fieldLength = length - len;
+         goto done;
+      }
 
       rc = _stringToRawNumber(str, len, fieldType, fieldValue, valueLength);
       if (SDB_OK != rc)
@@ -2952,13 +3017,11 @@ namespace import
          goto done;
       }
 
-      // string
+      // string, not need to skip the header spaces
       fieldType = CSV_TYPE_STRING;
-      rc = _stringToString(str, len,
-                           strDel, strDelLen,
-                           fieldDel, fieldDelLen,
-                           fieldValue.strVal, fieldLength,
-                           fieldEnd);
+      rc = _stringToString(data, length, strDel, strDelLen,
+                           fieldDel, fieldDelLen, autoAddStrDel,
+                           fieldValue.strVal, fieldLength, fieldEnd);
       if (SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Failed to parse string, rc=%d", rc ) ;
@@ -4202,8 +4265,9 @@ namespace import
    static inline INT32 _parseFieldValue(const CHAR* data, INT32 length,
                                         const CHAR* fieldDel, INT32 fieldDelLen,
                                         const CHAR* strDel, INT32 strDelLen,
-                                        CSV_TYPE& type, CSV_TYPE& subType,
-                                        CSVField* field, CSVFieldValue& fieldValue,
+                                        BOOLEAN autoAddStrDel, CSV_TYPE& type,
+                                        CSV_TYPE& subType, CSVField* field,
+                                        CSVFieldValue& fieldValue,
                                         INT32& valueLength, BOOLEAN& fieldEnd)
    {
       CHAR* str = (CHAR*)data;
@@ -4268,7 +4332,7 @@ namespace import
          goto done;
       case CSV_TYPE_STRING:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, autoAddStrDel, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4346,7 +4410,7 @@ namespace import
             }
          }
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4375,7 +4439,7 @@ namespace import
             }
          }
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4389,7 +4453,7 @@ namespace import
          goto done;
       case CSV_TYPE_OID:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4403,7 +4467,7 @@ namespace import
          goto done;
       case CSV_TYPE_REGEX:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4417,7 +4481,7 @@ namespace import
          goto done;
       case CSV_TYPE_BINARY:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4431,7 +4495,7 @@ namespace import
          goto done;
       case CSV_TYPE_AUTO:
          rc = _detectFieldType(data, length, strDel, strDelLen,
-                               fieldDel, fieldDelLen,
+                               fieldDel, fieldDelLen, autoAddStrDel,
                                type, fieldValue, valueLength, fieldEnd);
          SDB_ASSERT(CSV_TYPE_AUTO != type,
                     "type must not be CSV_TYPE_AUTO after detecting field type");
@@ -4443,7 +4507,7 @@ namespace import
       case CSV_TYPE_SKIP:
          // treat SKIP filed as string
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
-                              fieldDelLen, fieldValue.strVal,
+                              fieldDelLen, FALSE, fieldValue.strVal,
                               valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -4734,7 +4798,7 @@ namespace import
 
       rc = _parseFieldValue(str, len,
                             fieldDel, fieldDelLen,
-                            strDel, strDelLen,
+                            strDel, strDelLen, FALSE,
                             field.type, field.subType,
                             &field, field.defaultValue,
                             valueLen, fieldEnd);
@@ -4931,11 +4995,13 @@ namespace import
                                     BOOLEAN cast,
                                     BOOLEAN ignoreNull,
                                     BOOLEAN forceNotUTF8,
-                                    BOOLEAN strictFieldNum)
+                                    BOOLEAN strictFieldNum,
+                                    BOOLEAN autoAddStrDel)
    : RecordParser(fieldDelimiter,
                   stringDelimiter,
                   autoAddField,
-                  autoAddValue),
+                  autoAddValue,
+                  autoAddStrDel),
      _hasHeaderLine(hasHeaderLine)
    {
       _hasId = FALSE;
@@ -5254,19 +5320,25 @@ namespace import
          INT32 valueLength = 0;
          BOOLEAN fieldEnd = FALSE;
 
-         _skipSpace(&str, len, fieldDel, fieldDelLen, strDel, strDelLen);
-         if (len == 0)
-         {
-            break;
-         }
-
          CSVField* field = _fieldVec[fieldCount];
          fieldData.type = field->type;
          fieldData.subType = field->subType;
 
+         // in the case of CSV_TYPE_STRING or CSV_TYPE_AUTO, the space may
+         // be data, so cannot be skip
+         if ((CSV_TYPE_STRING != fieldData.type &&
+            CSV_TYPE_AUTO != fieldData.type) || !_autoAddStrDel)
+         {
+            _skipSpace(&str, len, fieldDel, fieldDelLen, strDel, strDelLen);
+            if (len == 0)
+            {
+                break;
+            }
+         }
+
          rc = _parseFieldValue(str, len,
                                fieldDel, fieldDelLen,
-                               strDel, strDelLen,
+                               strDel, strDelLen, _autoAddStrDel,
                                fieldData.type, fieldData.subType,
                                field, fieldData.value,
                                valueLength, fieldEnd);
@@ -5360,16 +5432,10 @@ namespace import
                CSVFieldData fieldData;
                INT32 valueLength = 0;
                BOOLEAN fieldEnd = FALSE;
-
-               _skipSpace(&str, len, fieldDel, fieldDelLen);
-               if (len == 0)
-               {
-                  break;
-               }
-
+               // field type is CSV_TYPE_AUTO
                rc = _parseFieldValue(str, len,
                                      fieldDel, fieldDelLen,
-                                     strDel, strDelLen,
+                                     strDel, strDelLen, _autoAddStrDel,
                                      fieldData.type, fieldData.subType,
                                      &tmpField, fieldData.value,
                                      valueLength, fieldEnd);
