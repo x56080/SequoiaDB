@@ -78,7 +78,7 @@ namespace engine
          rc = _checkTaskHWM() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check task hwm, rc: %d", rc ) ;
 
-         rc = _checkAndUpdateDSCLInfo() ;
+         rc = _checkAndUpgradeDSCLInfo() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check and update data source and "
                       "collection information, rc: %d", rc ) ;
       }
@@ -1247,34 +1247,12 @@ namespace engine
     * So if there is any data source which was created when using sequoiadb
     * 3.2.8, we need to upgrade the related information.
     */
-   PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, "catCatalogueManager::_checkAndUpdateDSCLInfo" )
-   INT32 catCatalogueManager::_checkAndUpdateDSCLInfo()
+   PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, "catCatalogueManager::_checkAndUpgradeDSCLInfo" )
+   INT32 catCatalogueManager::_checkAndUpgradeDSCLInfo()
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO ) ;
       INT64 count = 0 ;
-
-      /*
-       * The strategy is as follows:
-       * Step 1:
-       * Check the collection SYSDATASOURCES to see if there is any data source
-       * who dose not have the field "TransPropagateMode". This is a new
-       * attribute for data source in later version. If yes, we know that it's
-       * created on sequoiadb 3.2.8. In that case, goto step 2. Otherwise,
-       * maybe no data source was created on sequoiadb 3.2.8, or the upgrading
-       * has been done before. Then we just return success.
-       * step 2:
-       * Search in SYSCOLLECTIONS for any object which is using data source, and
-       * the group name is 'DataSource', upgrade the value of it's group name
-       * to '$null'.
-       * Step 3:
-       * Add field 'TransPropagateMode' for data sources who don't have that.
-
-       * Why not goto step 2 directly? Because of performance. There may be only
-       * a few data sources, but a huge amount of collections, and there is no
-       * index on the fields we want to check. So it's a very bad idea to check
-       * it each time when the node starts.
-       */
 
       try
       {
@@ -1282,6 +1260,8 @@ namespace engine
          BSONObjBuilder builder ;
          BSONObj updator ;
          BSONObj matcher ;
+
+         // Check whether need to upgrade or not.
          BSONObj dsMatcher = BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
                                  BSON( MTH_OPERATOR_STR_EXISTS << 0 ) ) ;
          rc = catGetObjectCount( CAT_DATASOURCE_COLLECTION, dummyObj, dsMatcher,
