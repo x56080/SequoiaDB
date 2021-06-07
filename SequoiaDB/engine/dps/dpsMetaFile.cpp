@@ -291,7 +291,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dpsMetaFile::writeContent()
+   INT32 _dpsMetaFile::writeContent( BOOLEAN needSync )
    {
       INT32 rc = SDB_OK ;
       SINT64 written = 0 ;
@@ -301,9 +301,12 @@ namespace engine
                              ( const CHAR* ) &_content, toWrite, written ) ;
       PD_RC_CHECK( rc, PDERROR, "Write content failed, rc: %d", rc ) ;
 
-      rc = ossFsync( &_file ) ;
-      PD_RC_CHECK( rc, PDERROR, "Fsync file(%s) failed, rc: %d",
-                   _path, rc ) ;
+      if ( needSync )
+      {
+         rc = ossFsync( &_file ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fsync file(%s) failed, rc: %d",
+                      _path, rc ) ;
+      }
 
    done:
       return rc ;
@@ -338,18 +341,20 @@ namespace engine
    }
 
    INT32 _dpsMetaFile::writeTransMeta( DPS_LSN_OFFSET offset,
-                                       const dpsLogSummary &summary )
+                                       const dpsLogSummary &summary,
+                                       BOOLEAN needSync )
    {
       _content._oldestLSNOffset = offset ;
       _content._summary = summary ;
-      return writeContent() ;
+      return writeContent( needSync ) ;
    }
 
-   INT32 _dpsMetaFile::writeSummary( const dpsLogSummary &summary )
+   INT32 _dpsMetaFile::writeSummary( const dpsLogSummary &summary,
+                                     BOOLEAN needSync )
    {
       // write summary only
       _content._summary = summary ;
-      return writeContent() ;
+      return writeContent( needSync ) ;
    }
 
    INT32 _dpsMetaFile::invalidateStatus( BOOLEAN resetSummary )
