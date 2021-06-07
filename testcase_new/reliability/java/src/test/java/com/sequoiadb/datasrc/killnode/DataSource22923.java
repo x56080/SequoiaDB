@@ -154,6 +154,8 @@ public class DataSource22923 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
                                 .getErrorCode() ) {
                     throw e;
                 }

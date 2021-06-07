@@ -161,6 +161,8 @@ public class DataSource22919 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
                                 .getErrorCode() ) {
                     throw e;
                 }

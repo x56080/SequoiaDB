@@ -57,10 +57,12 @@ public class DataSource23424 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "StandAlone environment!" );
         }
-        ArrayList< String > groupNames = CommLib.getDataGroupNames( srcdb );
-        if ( groupNames.size() < 2 ) {
+        
+        List< String > srcCoordUrls = new ArrayList<>();
+        srcCoordUrls = getAllCoordUrls( srcdb );
+        if ( srcCoordUrls.size() < 2 ) {
             throw new SkipException(
-                    "skip datasource cluster less than tow groups" );
+                    "skip datasource cluster less than tow coords" );
         }
         groupMgr = GroupMgr.getInstance();
         if ( !groupMgr.checkBusiness() ) {
@@ -73,8 +75,7 @@ public class DataSource23424 extends SdbTestBase {
         DataSrcUtils.clearDataSource( sdb, csName, dataSrcName );
         BasicBSONObject obj = new BasicBSONObject();
         String addresses = "";
-        List< String > srcCoordUrls = new ArrayList<>();
-        srcCoordUrls = getAllCoordUrls( srcdb );
+        
         for ( int i = 0; i < srcCoordUrls.size(); i++ ) {
             addresses += srcCoordUrls.get( i );
             if ( i == ( srcCoordUrls.size() - 1 ) ) {
