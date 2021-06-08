@@ -483,6 +483,7 @@ namespace engine
 
       BOOLEAN sortedIdxRequired = _key.isSortedIdxRequired() ;
 
+      UINT32 hintCnt = 0 ;
       UINT32 validHints = 0 ;
       BSONObjIterator iter( _key.getHint() ) ;
 
@@ -510,7 +511,7 @@ namespace engine
                                                     OPT_PLAN_SORTED_IDX_REQUIRED :
                                                     OPT_PLAN_IDX_REQUIRED ;
 
-                  validHints ++ ;
+                  ++hintCnt ;
 
                   PD_LOG ( PDDEBUG, "Try to use index: %s", pIndexName ) ;
 
@@ -528,6 +529,8 @@ namespace engine
                      }
                      continue ;
                   }
+
+                  ++validHints ;
 
                   if ( NULL != _searchPaths )
                   {
@@ -557,7 +560,7 @@ namespace engine
                                                  OPT_PLAN_SORTED_IDX_REQUIRED :
                                                  OPT_PLAN_IDX_REQUIRED ;
 
-               validHints ++ ;
+               ++hintCnt ;
 
                PD_LOG ( PDDEBUG, "Try to use index: %s",
                         indexOID.toString().c_str() ) ;
@@ -577,6 +580,8 @@ namespace engine
                   continue ;
                }
 
+               ++validHints ;
+
                if ( NULL != _searchPaths )
                {
                   _addSearchPath( ixScanPath, planHelper ) ;
@@ -595,7 +600,7 @@ namespace engine
 
                PD_LOG ( PDDEBUG, "Use Collection Scan by Hint" ) ;
 
-               validHints ++ ;
+               ++hintCnt ;
 
                // if we use null in the hint, we use tbscan
                rc = _estimateTbScanPlan( &collectionStat, planHelper,
@@ -607,6 +612,8 @@ namespace engine
                           rc ) ;
                   break ;
                }
+
+               ++validHints ;
 
                if ( NULL != _searchPaths )
                {
@@ -635,13 +642,17 @@ namespace engine
 
       /// no auto hint, and force hint and have hints
       if ( !_autoHint && _key.testFlag( FLG_QUERY_FORCE_HINT ) &&
-           validHints > 0 )
+           hintCnt > 0 )
       {
          finished = TRUE ;
       }
 
       if ( sortedIdxRequired )
       {
+         if ( !_autoHint && validHints > 0 )
+         {
+            finished = TRUE ;
+         }
          // Report the sort required earlier
          PD_CHECK ( bestPath.isIxScan(),
                     SDB_RTN_QUERYMODIFY_SORT_NO_IDX, error, PDWARNING,
