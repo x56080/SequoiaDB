@@ -105,12 +105,10 @@ public class DataSource22923 extends SdbTestBase {
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-        createCSCLAgainAndCheckResult();
-
-        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
         Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
         Assert.assertEquals( srcGroupMgr.checkBusinessWithLSN( 600,
                 DataSrcUtils.getSrcUrl() ), true );
+        createCSCLAgainAndCheckResult();
     }
 
     @AfterClass
@@ -156,6 +154,8 @@ public class DataSource22923 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }
@@ -185,6 +185,8 @@ public class DataSource22923 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_NOT_CONNECTED
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }

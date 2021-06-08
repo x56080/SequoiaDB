@@ -105,12 +105,10 @@ public class DataSource22919 extends SdbTestBase {
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-        alterDataSourceAgainAndCheckResult();
-
-        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
         Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
         Assert.assertEquals( srcGroupMgr.checkBusinessWithLSN( 600,
                 DataSrcUtils.getSrcUrl() ), true );
+        alterDataSourceAgainAndCheckResult();
     }
 
     @AfterClass
@@ -163,6 +161,8 @@ public class DataSource22919 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }

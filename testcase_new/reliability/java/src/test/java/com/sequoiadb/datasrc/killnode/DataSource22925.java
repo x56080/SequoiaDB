@@ -84,12 +84,10 @@ public class DataSource22925 extends SdbTestBase {
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-        checkResult();
-
-        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
         Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
         Assert.assertEquals( srcGroupMgr.checkBusinessWithLSN( 600,
                 DataSrcUtils.getSrcUrl() ), true );
+        checkResult();
     }
 
     @AfterClass
@@ -132,9 +130,11 @@ public class DataSource22925 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
-                                .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }
@@ -161,9 +161,11 @@ public class DataSource22925 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
-                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
-                                .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }

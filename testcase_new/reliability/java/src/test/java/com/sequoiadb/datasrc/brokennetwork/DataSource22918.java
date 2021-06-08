@@ -101,12 +101,10 @@ public class DataSource22918 extends SdbTestBase {
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
-        alterDataSourceAgainAndCheckResult();
-
-        Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
         Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
         Assert.assertEquals( srcGroupMgr.checkBusinessWithLSN( 600,
                 DataSrcUtils.getSrcUrl() ), true );
+        alterDataSourceAgainAndCheckResult();
     }
 
     @AfterClass
