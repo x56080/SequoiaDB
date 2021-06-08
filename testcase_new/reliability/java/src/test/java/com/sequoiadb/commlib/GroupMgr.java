@@ -31,6 +31,7 @@ public class GroupMgr {
     private static GroupMgr mgr = new GroupMgr();
     private Sequoiadb sdb = null;
     private String coordUrl = SdbTestBase.coordUrl;
+    private String inputUrl = null;
 
     private long refreshTime;
     private boolean refreshFlag = false;
@@ -62,10 +63,11 @@ public class GroupMgr {
             try {
                 if ( sdb == null || sdb.isClosed() || !sdb.isValid() ) {
                     sdb = new Sequoiadb( coordUrl, "", "" );
-                } else {
+                } else if ( coordUrl != inputUrl ) {
                     sdb.close();
                     sdb = new Sequoiadb( coordUrl, "", "" );
                 }
+                inputUrl = coordUrl;
                 cursor = sdb.getList( Sequoiadb.SDB_LIST_GROUPS, null, null,
                         null );
                 while ( cursor.hasNext() ) {

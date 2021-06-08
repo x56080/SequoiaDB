@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
@@ -180,7 +181,6 @@ public class DataSource23407 extends SdbTestBase {
     private void checkResult() {
         DBCollection dbcl = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
-        dbcl.getCount();
 
         for ( int i = 0; i < insertSuccessRecords.size(); i++ ) {
             BSONObject obj = insertSuccessRecords.get( i );
@@ -195,6 +195,27 @@ public class DataSource23407 extends SdbTestBase {
                     "find update record is " + obj.toString() );
         }
 
+        // 再次插入数据并校验
+        ArrayList< BSONObject > expDocs = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > actDocs = new ArrayList< BSONObject >();
+        for ( int i = 0; i < 1000; i++ ) {
+            BSONObject docs = new BasicBSONObject();
+            docs.put( "check", i );
+            docs.put( "test", "test_" + i );
+            expDocs.add( docs );
+        }
+        dbcl.insert( expDocs );
+        DBCursor cur = dbcl.query(
+                new BasicBSONObject( "check",
+                        new BasicBSONObject( "$exists", 1 ) ),
+                null, new BasicBSONObject( "check", 1 ), null );
+        while ( cur.hasNext() ) {
+            BSONObject obj = cur.getNext();
+            actDocs.add( obj );
+        }
+        cur.close();
+        Assert.assertEquals( actDocs, expDocs, "actDocs:" + actDocs.toString()
+                + ";expDocs:" + expDocs.toString() );
     }
 
     private void insertDatas( DBCollection dbcl, int beginNo, int endNo ) {

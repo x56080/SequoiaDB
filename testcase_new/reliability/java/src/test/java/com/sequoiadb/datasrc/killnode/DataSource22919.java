@@ -187,12 +187,7 @@ public class DataSource22919 extends SdbTestBase {
             DBCollection cl = sdb.getCollectionSpace( csName )
                     .getCollection( clName + "_" + i );
             String queryCond = "{a:" + i + "}";
-            // http://jira:8080/browse/SEQUOIADBMAINSTREAM-6556
-            try {
-                cl.getCount( queryCond );
-            } catch ( Exception e ) {
 
-            }
             long count = cl.getCount( queryCond );
             Assert.assertEquals( count, 1, "act record is " + queryCond );
             // 插入新记录
