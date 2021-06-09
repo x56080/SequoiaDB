@@ -113,6 +113,8 @@ namespace engine
       _disconnectMsg.requestID = 0 ;
 
       _info._info.setNice( SCHED_NICE_MIN ) ;
+
+      _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
    }
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
@@ -1012,6 +1014,13 @@ namespace engine
             {
                _findEnd = TRUE ;
             }
+
+            // we should make sure the DPS logs for this batch of records
+            // will be send right after them
+            _updateNtyLSN(
+                  (DPS_LSN_OFFSET)(
+                        _context->getMBContext()->mbStat()->_lastLSN.fetch() ) ) ;
+
             _context->getMBContext()->mbUnlock() ;
 
             _query = _onObjFilter( buffObj.data(), buffObj.size(), _queryLen ) ;
@@ -1126,6 +1135,58 @@ namespace engine
 
       PD_TRACE_EXITRC ( SDB__CLSDSBS__SYNCRECD, rc );
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS__UPDNTYLSN, "_clsDataSrcBaseSession::_updateNtyLSN" )
+   void _clsDataSrcBaseSession::_updateNtyLSN( DPS_LSN_OFFSET collectionLSN )
+   {
+      PD_TRACE_ENTRY( SDB__CLSDSBS__UPDNTYLSN ) ;
+
+      // we should make sure the DPS logs for this batch of records
+      // will be send right after them
+      DPS_LSN_OFFSET preparedLSN = sdbGetReplCB()->getNtyLastOffset() ;
+      DPS_LSN_OFFSET lastNtyLSN = _lastEndNtyOffset ;
+      DPS_LSN_OFFSET tempLSN = DPS_INVALID_LSN_OFFSET ;
+
+      if ( DPS_INVALID_LSN_OFFSET == preparedLSN )
+      {
+         // nothing happened
+         goto done ;
+      }
+      else if ( DPS_INVALID_LSN_OFFSET == _lastEndNtyOffset )
+      {
+         // first time to update, use the LSN from log manager
+         _lastEndNtyOffset = preparedLSN ;
+         goto done ;
+      }
+
+      if ( collectionLSN != DPS_INVALID_LSN_OFFSET )
+      {
+         // both LSN from log manager and collection are valid,
+         // choose the minimum one
+         // WARNING: collection LSN may not be correct
+         // - if collection LSN is larger than actual LSN, use the prepared LSN
+         //   which is updated by each DPS logs and must be correct
+         // - if collection LSN is smaller than actual LSN, use the collection
+         //   LSN which means the collection has not been updated recently
+         //   and it is safe
+         tempLSN = OSS_MIN( preparedLSN, collectionLSN ) ;
+      }
+      else
+      {
+         // LSN from log manager is valid
+         tempLSN = preparedLSN ;
+      }
+
+      _lastEndNtyOffset = OSS_MAX( lastNtyLSN, tempLSN ) ;
+
+   done:
+      PD_LOG( PDDEBUG, "Session[%s]: update last notify LSN from "
+              "[%llu] to [%llu], collection [%llu], prepared [%llu]",
+              name(), lastNtyLSN, _lastEndNtyOffset, collectionLSN,
+              preparedLSN ) ;
+
+      PD_TRACE_EXIT( SDB__CLSDSBS__UPDNTYLSN ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS_HNDFSMETA, "_clsDataSrcBaseSession::handleFSMeta" )
@@ -2594,8 +2655,7 @@ namespace engine
 
       _taskID           = 0 ;
       _ntyOverTime      = 0 ;
-      _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
-      _getLastEndNtyOffset = FALSE ;
+      _getMetaNtyOffset = FALSE ;
       _collectionW      = 1 ;
       _lastOprLSN       = DPS_INVALID_LSN_OFFSET ;
       _internalV        = 0 ;
@@ -2965,27 +3025,28 @@ namespace engine
             return FALSE ;
          }
 
-         if ( FALSE == _getLastEndNtyOffset )
+         // stop fetching logs after all blocking operators are finished
+         if ( FALSE == _getMetaNtyOffset )
          {
-            _getLastEndNtyOffset = TRUE ;
+            _getMetaNtyOffset = TRUE ;
             _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
          }
+      }
 
-         if ( DPS_INVALID_LSN_OFFSET != _lastEndNtyOffset )
+      if ( DPS_INVALID_LSN_OFFSET != _lastEndNtyOffset )
+      {
+         DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+         if ( DPS_INVALID_LSN_OFFSET == processed ||
+              processed < _lastEndNtyOffset )
          {
-            DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
-            if ( DPS_INVALID_LSN_OFFSET == processed ||
-                 processed < _lastEndNtyOffset )
+            return FALSE ;
+         }
+         else
+         {
+            ossScopedLock lock( &_LSNlatch ) ;
+            if ( _deqLSN.size() > 0 )
             {
                return FALSE ;
-            }
-            else
-            {
-               ossScopedLock lock( &_LSNlatch ) ;
-               if ( _deqLSN.size() > 0 )
-               {
-                  return FALSE ;
-               }
             }
          }
       }
@@ -3055,6 +3116,9 @@ namespace engine
             _init = TRUE ;
             _quit = FALSE ;
          }
+
+         // save last offset after meta info is fetched.
+         _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
       }
 
    done:
