@@ -138,6 +138,7 @@ namespace engine
                                    _pmdEDUCB *cb,
                                    CoordDataSourcePtr &dsPtr ) ;
       INT32 _updateRouteInfo( const CoordGroupInfoPtr &groupPtr ) ;
+      INT32 _isErrFilterable( INT32 err ) ;
 
    private:
       ossRWMutex              _metaLatch ;

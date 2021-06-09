@@ -210,7 +210,9 @@ namespace engine
       if ( SDB_COORD_DATASOURCE_PERM_DENIED == err ||
            SDB_COORD_DATASOURCE_TRANS_FORBIDDEN == err ||
            SDB_OPERATION_INCOMPATIBLE == err ||
-           SDB_AUTH_AUTHORITY_FORBIDDEN == err )
+           SDB_AUTH_AUTHORITY_FORBIDDEN == err ||
+           SDB_DMS_NOTEXIST == err ||
+           SDB_DMS_CS_NOTEXIST == err )
       {
          return FALSE ;
       }
@@ -233,7 +235,7 @@ namespace engine
          UINT32 oprMask = 0 ;
          INT32 errMask = DS_ERR_FILTER_NONE ;
 
-         if ( !canSwitchOtherNode(  err ) )
+         if ( !_isErrFilterable( err ) )
          {
             goto done ;
          }
@@ -693,5 +695,19 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _coordDataSourceMgr::_isErrFilterable( INT32 err )
+   {
+      switch ( err )
+      {
+         case SDB_COORD_DATASOURCE_PERM_DENIED:
+         case SDB_COORD_DATASOURCE_TRANS_FORBIDDEN:
+         case SDB_OPERATION_INCOMPATIBLE:
+         case SDB_AUTH_AUTHORITY_FORBIDDEN:
+            return FALSE ;
+         default:
+            return TRUE ;
+      }
    }
 }
