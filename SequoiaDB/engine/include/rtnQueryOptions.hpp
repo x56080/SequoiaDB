@@ -374,6 +374,9 @@ namespace engine
                    !testFlag( FLG_QUERY_MODIFY ) ;
          }
 
+         // WARNING: only used in explain
+         BOOLEAN isQueryAndModify() const ;
+
       public :
          BSONObj        _query ;
          BSONObj        _orderBy ;

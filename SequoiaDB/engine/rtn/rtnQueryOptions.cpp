@@ -257,6 +257,34 @@ namespace engine
       setCLFullName( subCLName ) ;
    }
 
+   BOOLEAN _rtnQueryOptions::isQueryAndModify() const
+   {
+      BOOLEAN result = FALSE ;
+
+      // NOTE: client will clear FLG_QUERY_MODIFY flag,
+      //       so we need to check hint for $Modify field further
+      // WARNING: only used in explain()
+      if ( testFlag( FLG_QUERY_MODIFY ) )
+      {
+         result = TRUE ;
+      }
+      else
+      {
+         try
+         {
+            result = _hint.hasField( FIELD_NAME_MODIFY ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to parse hint, occur exception %s",
+                    e.what() ) ;
+            result = FALSE ;
+         }
+      }
+
+      return result ;
+   }
+
    _rtnQueryOptions &_rtnQueryOptions::operator = ( const _rtnQueryOptions &o )
    {
       _rtnReturnOptions::operator =( o ) ;
