@@ -149,6 +149,8 @@ namespace engine
          INT32             _buildCLCommitInfo( const string &fullName,
                                                BSONObj &obj ) ;
 
+         void              _updateNtyLSN( DPS_LSN_OFFSET collectoinLSN ) ;
+
       protected:
          BSONObj                          _rangeKeyObj ;
          BSONObj                          _rangeEndKeyObj ;
@@ -185,7 +187,7 @@ namespace engine
          deque<DPS_LSN_OFFSET>            _deqLSN ;
          ossSpinXLatch                    _LSNlatch ;
          rtnLobFetcher                    _lobFetcher ;
-
+         DPS_LSN_OFFSET                   _lastEndNtyOffset ;
    };
 
    /*
@@ -247,8 +249,6 @@ namespace engine
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
-      DPS_LSN_OFFSET             _lastEndNtyOffset ;
-
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
 
@@ -315,8 +315,7 @@ namespace engine
 
          UINT64                           _taskID ;
          UINT64                           _ntyOverTime ;
-         DPS_LSN_OFFSET                   _lastEndNtyOffset ;
-         BOOLEAN                          _getLastEndNtyOffset ;
+         BOOLEAN                          _getMetaNtyOffset ;
          UINT32                           _collectionW ;
          UINT64                           _lastOprLSN ;
          UINT32                           _internalV ;
