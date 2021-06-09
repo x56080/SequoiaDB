@@ -388,6 +388,9 @@ namespace engine
             _writeOp = writeOp ;
          }
 
+         // WARNING: only used in explain
+         BOOLEAN isQueryAndModify() const ;
+
       public :
          BSONObj        _query ;
          BSONObj        _orderBy ;

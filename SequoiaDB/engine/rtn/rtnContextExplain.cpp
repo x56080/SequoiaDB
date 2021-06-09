@@ -99,7 +99,7 @@ namespace engine
       _queryOptions.setHint( realHint ) ;
 
       // Reset query flags
-      if ( _queryOptions.testFlag( FLG_QUERY_MODIFY ) &&
+      if ( _queryOptions.isQueryAndModify() &&
            !_queryOptions.isOrderByEmpty() )
       {
          // Tell the optimizer to use index by sort
