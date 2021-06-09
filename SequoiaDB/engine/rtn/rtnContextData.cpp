@@ -1639,10 +1639,14 @@ namespace engine
          }
          _segmentScan = TRUE ;
       }
-      else if ( IXSCAN == _scanType && FALSE == _indexBlockScan &&
-                ( _planRuntime.getPlan()->getKey().getOrderBy().isEmpty() ||
-                  _planRuntime.getPlan()->sortRequired() ) )
+      else if ( IXSCAN == _scanType && FALSE == _indexBlockScan )
       {
+         if ( !_planRuntime.getPlan()->getKey().getOrderBy().isEmpty() &&
+              !_planRuntime.getPlan()->sortRequired() )
+         {
+            goto done ;
+         }
+
          rc = rtnGetIndexSeps( &_planRuntime, su, mbContext, cb, _indexBlocks,
                                _indexRIDs ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get index seperations, rc: %d",
