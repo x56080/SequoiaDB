@@ -197,7 +197,6 @@ public class DataSource23407 extends SdbTestBase {
 
         // 再次插入数据并校验
         ArrayList< BSONObject > expDocs = new ArrayList< BSONObject >();
-        ArrayList< BSONObject > actDocs = new ArrayList< BSONObject >();
         for ( int i = 0; i < 1000; i++ ) {
             BSONObject docs = new BasicBSONObject();
             docs.put( "check", i );
@@ -205,17 +204,8 @@ public class DataSource23407 extends SdbTestBase {
             expDocs.add( docs );
         }
         dbcl.insert( expDocs );
-        DBCursor cur = dbcl.query(
-                new BasicBSONObject( "check",
-                        new BasicBSONObject( "$exists", 1 ) ),
-                null, new BasicBSONObject( "check", 1 ), null );
-        while ( cur.hasNext() ) {
-            BSONObject obj = cur.getNext();
-            actDocs.add( obj );
-        }
-        cur.close();
-        Assert.assertEquals( actDocs, expDocs, "actDocs:" + actDocs.toString()
-                + ";expDocs:" + expDocs.toString() );
+        DataSrcUtils.checkRecords( dbcl, expDocs, "{check:{$exists:1}}",
+                "{check:1}" );
     }
 
     private void insertDatas( DBCollection dbcl, int beginNo, int endNo ) {

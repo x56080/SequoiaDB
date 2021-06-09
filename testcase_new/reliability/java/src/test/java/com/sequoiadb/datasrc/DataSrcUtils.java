@@ -107,8 +107,8 @@ public class DataSrcUtils {
     }
 
     public static void checkRecords( DBCollection dbcl,
-            List< BSONObject > expRecords, String matcher ) {
-        DBCursor cursor = dbcl.query( matcher, "", "{'no':1}", "" );
+            List< BSONObject > expRecords, String matcher, String orderBy ) {
+        DBCursor cursor = dbcl.query( matcher, "", orderBy, "" );
 
         int count = 0;
         while ( cursor.hasNext() ) {
@@ -152,7 +152,7 @@ public class DataSrcUtils {
         }
         return sbBuffer.toString();
     }
-    
+
     /**
      * get the buff MD5 value
      * 
@@ -209,6 +209,5 @@ public class DataSrcUtils {
         lob.close();
         return lob.getID();
     }
-
 
 }
