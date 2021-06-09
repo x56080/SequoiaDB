@@ -43,8 +43,6 @@ public class DataSource23424 extends SdbTestBase {
     private String dataSrcName = "datasource23424";
 
     private ArrayList< BSONObject > insertSuccessRecords = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > expInsertRecords = new ArrayList< BSONObject >();
-    private ArrayList< BSONObject > updateSuccessRecords = new ArrayList< BSONObject >();
     private String srcCSName = "cssrc_23424";
     private String csName = "cs_23424";
     private String clName = "cl_23424";
@@ -57,7 +55,7 @@ public class DataSource23424 extends SdbTestBase {
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "StandAlone environment!" );
         }
-        
+
         List< String > srcCoordUrls = new ArrayList<>();
         srcCoordUrls = getAllCoordUrls( srcdb );
         if ( srcCoordUrls.size() < 2 ) {
@@ -75,7 +73,7 @@ public class DataSource23424 extends SdbTestBase {
         DataSrcUtils.clearDataSource( sdb, csName, dataSrcName );
         BasicBSONObject obj = new BasicBSONObject();
         String addresses = "";
-        
+
         for ( int i = 0; i < srcCoordUrls.size(); i++ ) {
             addresses += srcCoordUrls.get( i );
             if ( i == ( srcCoordUrls.size() - 1 ) ) {
@@ -101,6 +99,30 @@ public class DataSource23424 extends SdbTestBase {
         mgr.addTask( new InsertDatas() );
         mgr.execute();
         Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
+
+        int doTimes = 0;
+        int timeOut = 5000;
+        while ( doTimes < timeOut ) {
+            try {
+                ArrayList< BSONObject > docs = new ArrayList<>();
+                BSONObject doc = new BasicBSONObject();
+                doc.put( "test", "t1" );
+                docs.add( doc );
+                dbcl.insert( docs );
+                insertSuccessRecords.addAll( docs );
+                break;
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode() ) {
+                    throw e;
+                }
+            }
+            Thread.sleep( 10 );
+            doTimes += 10;
+        }
 
         Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true );
         Assert.assertEquals( srcGroupMgr.checkBusinessWithLSN( 600,
@@ -147,14 +169,6 @@ public class DataSource23424 extends SdbTestBase {
                     insertSuccessRecords.addAll( records );
                 }
             } catch ( BaseException e ) {
-                // 5秒后数据源重连到其他coord
-                sleep( 5000 );
-                ArrayList< BSONObject > docs = new ArrayList<>();
-                BSONObject doc = new BasicBSONObject();
-                doc.put( "test", "t1" );
-                docs.add( doc );
-                dbcl.insert( docs );
-                insertSuccessRecords.addAll( docs );
                 if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode()
@@ -169,18 +183,12 @@ public class DataSource23424 extends SdbTestBase {
     private void checkResult() {
         DBCollection dbcl = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
-        // 验证异常前插入和更新数据信息正确
+        // 验证异常前插入数据信息正确
         for ( int i = 0; i < insertSuccessRecords.size(); i++ ) {
             BSONObject obj = insertSuccessRecords.get( i );
             long count = dbcl.getCount( obj );
             Assert.assertEquals( count, 1,
                     "find insert record is " + obj.toString() );
-        }
-        for ( int i = 0; i < updateSuccessRecords.size(); i++ ) {
-            BSONObject obj = updateSuccessRecords.get( i );
-            long count = dbcl.getCount( obj );
-            Assert.assertEquals( count, 1,
-                    "find update record is " + obj.toString() );
         }
 
         // 再次插入1000条记录，范围从70000~71000
@@ -202,7 +210,6 @@ public class DataSource23424 extends SdbTestBase {
             test.add( record );
         }
         dbcl.insert( test );
-        expInsertRecords.addAll( test );
     }
 
     private static List< String > getAllCoordUrls( Sequoiadb sdb ) {
