@@ -317,6 +317,14 @@ namespace engine
       PD_TRACE_EXIT ( SDB__PMDMSGHND_HNDCLOSE ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONPREPARESTOP, "_pmdAsyncMsgHandler::onPrepareStop" )
+   void _pmdAsyncMsgHandler::onPrepareStop()
+   {
+      PD_TRACE_ENTRY ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
+      _pSessionMgr->handlePrepareStop() ;
+      PD_TRACE_EXIT ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONSTOP, "_pmdAsyncMsgHandler::onStop" )
    void _pmdAsyncMsgHandler::onStop()
    {
@@ -333,6 +341,8 @@ namespace engine
       pmdAsyncSession *pSession = NULL ;
       BOOLEAN bCreate = TRUE ;
       UINT64 sessionID = 0 ;
+
+      pmdSessionScopedHold scopedHold ;
 
       // if opcode is disconnect, we don't push the message
       if ( MSG_BS_DISCONNECT == header->opCode )
@@ -353,6 +363,7 @@ namespace engine
                                         PMD_SESSION_PASSIVE,
                                         handle, header->opCode,
                                         NULL, &pSession ) ;
+      scopedHold.setSession( pSession ) ;
       if ( rc )
       {
          goto error ;
@@ -368,10 +379,6 @@ namespace engine
       }
 
    done:
-      if ( pSession )
-      {
-         _pSessionMgr->holdOut( pSession ) ;
-      }
       return rc ;
    error:
       goto done ;

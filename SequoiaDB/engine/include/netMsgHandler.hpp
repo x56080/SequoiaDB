@@ -117,6 +117,7 @@ namespace engine
         }
 
         // callback on IO service stop
+        virtual void    onPrepareStop() {}
         virtual void    onStop() {}
    } ;
 

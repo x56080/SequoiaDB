@@ -103,6 +103,8 @@ namespace engine
                                       netUserDataHolder *userDataHolder ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
 
+         virtual void  onPrepareStop() ;
+
          virtual void  onStop() ;
 
       protected:

@@ -107,10 +107,34 @@ namespace engine
       return FALSE ;
    }
 
-   _netEventSuit::SET_HANDLE _netEventSuit::getHandles()
+   INT32 _netEventSuit::getHandles( SET_HANDLE &setHandle )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+         setHandle = _setHandle ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to copy handle set, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+      }
+
+      return rc ;
+   }
+
+   NET_HANDLE _netEventSuit::getNextHandle( NET_HANDLE curHandle )
    {
       ossScopedRWLock lock( &_rwMutex, SHARED ) ;
-      return _setHandle ;
+      SET_HANDLE_IT iter = _setHandle.upper_bound( curHandle ) ;
+      if ( iter == _setHandle.end() )
+      {
+         return NET_INVALID_HANDLE ;
+      }
+      return *iter ;
    }
 
    void _netEventSuit::removeAllEH()

@@ -702,6 +702,7 @@ namespace engine
       UINT64 redirectID = makeRedirectID( message->TID,
                                           UINT32( message->requestID ) ) ;
       stpSession *session = NULL ;
+      pmdSessionScopedHold scopedHold ;
 
       // get session ID by redirect ID
       rc = getRedirectSess( redirectID, sessionID ) ;
@@ -713,6 +714,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get session by "
                    "session ID [%llu], rc: %d", sessionID, rc ) ;
 
+      scopedHold.setSession( session ) ;
+
       PD_CHECK( session->getRedirectID() == redirectID,
                 SDB_SYS, error, PDERROR,
                 "Failed to handle redirect result, redirect ID of "
@@ -723,9 +726,6 @@ namespace engine
       rc = session->postMessage( message ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to post message to session [%llu], "
                    "rc: %d", session->sessionID(), rc ) ;
-
-      // hold out session
-      session->holdOut() ;
 
    done:
       if ( STP_INVALID_REDIRECT_ID != redirectID )

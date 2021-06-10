@@ -364,6 +364,8 @@ namespace engine
          void     _handleHeartBeatRes( NET_EH eh, MsgHeader *message ) ;
          void     _checkBreak( UINT32 timeout, INT32 serviceType ) ;
 
+         void     _closeHandle( NET_HANDLE handle ) ;
+
       private:
          UINT32                           _protocolMask ;
          _netRoute                        *_pRoute ;
