@@ -69,6 +69,7 @@ public class DeleteObjects24248 extends S3TestBase {
         deletedObjects = s3Client.deleteObjects( deleteRequest )
                 .getDeletedObjects();
         checkDelete( deletedObjects, deleteMarkerVersion, deleteversion );
+        runSuccess = true;
     }
 
     @AfterClass

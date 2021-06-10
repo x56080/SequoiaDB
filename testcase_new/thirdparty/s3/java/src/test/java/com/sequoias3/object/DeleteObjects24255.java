@@ -80,6 +80,7 @@ public class DeleteObjects24255 extends S3TestBase {
                 .getDeletedObjects();
         checkDeleteInfo( deletedObjects, allObjectKeys, deleteMarkerVersion, deleteVersion );
         checkExistObjectAndVersion(allObjectKeys, LastestVersion, deleteVersion );
+        runSuccess = true;
     }
 
     @AfterClass
