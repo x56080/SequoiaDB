@@ -72,17 +72,6 @@ namespace engine
 
    _catDCManager::~_catDCManager()
    {
-      _pDCBaseInfo = NULL ;
-      if ( _pDCMgr )
-      {
-         SDB_OSS_DEL _pDCMgr ;
-         _pDCMgr = NULL ;
-      }
-      if ( _pLogMgr )
-      {
-         SDB_OSS_DEL _pLogMgr ;
-         _pLogMgr = NULL ;
-      }
    }
 
    INT32 _catDCManager::init()
@@ -129,6 +118,17 @@ namespace engine
       if ( _pCatCB )
       {
          _pCatCB->unregEventHandler( this ) ;
+      }
+      _pDCBaseInfo = NULL ;
+      if ( _pDCMgr )
+      {
+         SDB_OSS_DEL _pDCMgr ;
+         _pDCMgr = NULL ;
+      }
+      if ( _pLogMgr )
+      {
+         SDB_OSS_DEL _pLogMgr ;
+         _pLogMgr = NULL ;
       }
       return SDB_OK ;
    }
