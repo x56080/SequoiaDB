@@ -32,7 +32,6 @@ public class GroupMgr {
     private Sequoiadb sdb = null;
     private String coordUrl = SdbTestBase.coordUrl;
     private String inputUrl = null;
-
     private long refreshTime;
     private boolean refreshFlag = false;
 
@@ -399,6 +398,9 @@ public class GroupMgr {
             db = new Sequoiadb( coordUrl, "", "" );
             db.getCollectionSpace( SdbTestBase.csName )
                     .dropCollection( "clForTestBusiness_reliability" );
+            if ( !coordUrl.equals( SdbTestBase.coordUrl ) ) {
+                db.dropCollectionSpace( SdbTestBase.csName );
+            }
         } catch ( BaseException e ) {
             ret = false;
             if ( printAndThrowAllException ) {
@@ -420,10 +422,15 @@ public class GroupMgr {
         List< String > groupNames = null;
         int index = 0;
         boolean result = true;
+        CollectionSpace cs = null;
         try {
             groupNames = getAllDataGroupName( coordUrl );
             db = new Sequoiadb( coordUrl, "", "" );
-            CollectionSpace cs = db.getCollectionSpace( SdbTestBase.csName );
+            if ( !coordUrl.equals( SdbTestBase.coordUrl ) ) {
+                cs = db.createCollectionSpace( SdbTestBase.csName );
+            } else {
+                cs = db.getCollectionSpace( SdbTestBase.csName );
+            }
             for ( index = 0; index < groupNames.size(); index++ ) {
                 if ( cs.isCollectionExist( "clForTestBusiness_reliability" ) ) {
                     cs.dropCollection( "clForTestBusiness_reliability" );
@@ -436,7 +443,6 @@ public class GroupMgr {
                     cs.dropCollection( "clForTestBusiness_reliability" );
                 }
             }
-
         } catch ( BaseException e ) {
             result = false;
             if ( printAndThrowAllException ) {
