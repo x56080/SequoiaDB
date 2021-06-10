@@ -144,6 +144,8 @@ public class DataSource22917 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_CLS_NOT_PRIMARY
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_INVALID_ROUTEID
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode() ) {
                     throw e;
                 }
