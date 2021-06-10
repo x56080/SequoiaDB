@@ -26,6 +26,8 @@ public class SdbTestBase {
     public static String coordUrl;
     public static String hostName;
     public static String serviceName;
+    public static String dsHostName;
+    public static String dsServiceName;
     public static String csName;
     public static String cappedCSName;
     public static int reservedPortBegin;
@@ -81,7 +83,7 @@ public class SdbTestBase {
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
             "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME",
-            "FULLTEXTPREFIX", "SDBSEADAPTERDIR" })
+            "FULLTEXTPREFIX", "SDBSEADAPTERDIR","DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
@@ -90,7 +92,9 @@ public class SdbTestBase {
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
             @Optional("") String FULLTEXTPREFIX,
-            @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR ) {
+            @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR,
+            @Optional("localhost") String DSHOSTNAME,
+            @Optional("11810") String DSSVCNAME) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -108,6 +112,8 @@ public class SdbTestBase {
         esServiceName = ESSVCNAME;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );
         sdbseadapterDir = SDBSEADAPTERDIR;
+        dsHostName = DSHOSTNAME;
+        dsServiceName = DSSVCNAME;
 
         getAllNodeConf( confObj );
         Sequoiadb db = null;
