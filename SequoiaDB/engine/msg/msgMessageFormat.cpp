@@ -70,17 +70,26 @@ const CHAR* serviceID2String( UINT32 serviceID )
    return "UNKNOW" ;
 }
 
-string routeID2String( MsgRouteID routeID )
+const CHAR *routeID2String( const MsgRouteID &routeID,
+                            CHAR *buffer,
+                            UINT32 bufferSize )
 {
-   stringstream ss ;
-   ss << "{ GroupID:" << routeID.columns.groupID
-      << ", NodeID:" << routeID.columns.nodeID
-      << ", ServiceID:" << routeID.columns.serviceID
-      << "(" << serviceID2String( routeID.columns.serviceID ) << ") }" ;
-   return ss.str() ;
+   ossSnprintf( buffer, bufferSize,
+                "{ GroupID:%u, NodeID:%u, ServiceID:%u(%s) }",
+                routeID.columns.groupID,
+                routeID.columns.nodeID,
+                routeID.columns.serviceID,
+                serviceID2String( routeID.columns.serviceID ) ) ;
+   return buffer ;
 }
 
-string routeID2String( UINT64 nodeID )
+ossPoolString routeID2String( const MsgRouteID &routeID )
+{
+   CHAR buffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
+   return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
+}
+
+ossPoolString routeID2String( UINT64 nodeID )
 {
    return routeID2String( *(MsgRouteID*)&nodeID ) ;
 }

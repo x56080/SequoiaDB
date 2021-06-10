@@ -49,8 +49,13 @@ using namespace std;
 
 const CHAR* serviceID2String( UINT32 serviceID ) ;
 
-string routeID2String( MsgRouteID routeID ) ;
-string routeID2String( UINT64 nodeID ) ;
+#define MSG_ROUTEID_STRING_MAX_SIZE ( 128 )
+
+const CHAR *routeID2String( const MsgRouteID &routeID,
+                            CHAR *buffer,
+                            UINT32 bufferSize ) ;
+ossPoolString routeID2String( const MsgRouteID &routeID ) ;
+ossPoolString routeID2String( UINT64 nodeID ) ;
 
 ///  get the msg type string desp
 const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand = FALSE ) ;
