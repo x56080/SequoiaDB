@@ -63,6 +63,7 @@ public class GetObjectByGeneratePresignedUrl24256 extends S3TestBase {
                 expireTime );
         checkResponse( urlv4 );
         checkResponse( urlv2 );
+        runSuccess = true;
     }
 
     @AfterClass
