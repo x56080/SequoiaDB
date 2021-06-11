@@ -265,8 +265,19 @@ namespace engine
 
       void postEvent ( pmdEDUEvent const &data )
       {
-         // no need latch since _queue is already latched
-         _queue.push ( data ) ;
+         try
+         {
+            // no need latch since _queue is already latched
+            _queue.push ( data ) ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to push event to "
+                    "Thread[EDUID:%llu, TID:%u], occur exception %s",
+                    _eduID, _tid, e.what() ) ;
+            // can not handle, throw to caller
+            throw e ;
+         }
       }
 
       UINT64   getTransWritingID() const { return _transWritingID ; }
@@ -317,7 +328,7 @@ namespace engine
       {
          BOOLEAN ret = FALSE ;
          INT64 waitTime = 0 ;
-         ossQueue< pmdEDUEvent > tmpQue ;
+         pmdEDUEventQueue tmpQue ;
 
          if ( millsec < 0 )
          {
@@ -467,7 +478,7 @@ namespace engine
    private :
       _pmdEDUMgr     *_eduMgr ;
       ossSpinSLatch  _mutex ;
-      ossQueue<pmdEDUEvent> _queue ;
+      pmdEDUEventQueue _queue ;
 
       EDU_STATUS     _status ;
       ossAtomic32    _dumpTransCount ;

@@ -41,6 +41,8 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "utilCircularQueue.hpp"
+#include "ossQueue.hpp"
 
 namespace engine
 {
@@ -99,8 +101,8 @@ namespace engine
    {
    public :
       pmdEDUEventTypes  _eventType ;
-      UINT64            _userData ;
       pmdEDUMemTypes    _dataMemType ;
+      UINT64            _userData ;
       void              *_Data ;
 
       _pmdEDUEvent ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
@@ -140,6 +142,34 @@ namespace engine
 
    typedef class _pmdEDUEvent pmdEDUEvent ;
 
+   /*
+      _pmdEDUEventQueue
+    */
+   #define PMD_EDU_QUEUE_CAPACITY ( 5 )
+   typedef _utilCircularStackBuffer< pmdEDUEvent, PMD_EDU_QUEUE_CAPACITY >
+                                             PMD_EVENT_QUEUE_BUFFER ;
+   typedef _utilCircularQueue< pmdEDUEvent > PMD_EVENT_QUEUE_CONTAINER ;
+   class _pmdEDUEventQueue : public ossQueue< pmdEDUEvent,
+                                              PMD_EVENT_QUEUE_CONTAINER >
+   {
+   protected:
+      typedef ossQueue< pmdEDUEvent, PMD_EVENT_QUEUE_CONTAINER > _BASE ;
+
+   public:
+      _pmdEDUEventQueue()
+      : _BASE( PMD_EVENT_QUEUE_CONTAINER( &_buffer ) )
+      {
+      }
+
+      ~_pmdEDUEventQueue()
+      {
+      }
+
+   protected:
+      PMD_EVENT_QUEUE_BUFFER _buffer ;
+   } ;
+
+   typedef class _pmdEDUEventQueue pmdEDUEventQueue ;
 
    #define PMD_INVALID_EDUID              ( 0 )
 

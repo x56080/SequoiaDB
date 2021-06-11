@@ -70,6 +70,8 @@ namespace engine
            return SDB_OK ;
         }
 
+        // callback on IO service stop
+        virtual void    onPrepareStop() {}
         virtual void    onStop() {}
 
    } ;

@@ -40,6 +40,7 @@
 #define UTIL_CIRCULAR_QUEUE_HPP__
 
 #include "oss.hpp"
+#include "ossMemPool.hpp"
 #include "pd.hpp"
 
 #pragma warning( disable: 4200 )
@@ -60,7 +61,17 @@ namespace engine
       : _capacity( 0 ),
         _front( 0 ),
         _used( 0 ),
+        _ownedBuffer( FALSE ),
         _buffer( NULL )
+      {
+      }
+
+      _utilCircularBuffer( T *buffer, UINT32 capacity )
+      : _capacity( capacity ),
+        _front( 0 ),
+        _used( 0 ),
+        _ownedBuffer( FALSE ),
+        _buffer( buffer )
       {
       }
 
@@ -82,8 +93,22 @@ namespace engine
             {
                _buffer = (T *)buffer ;
                _capacity = capacity ;
+               _ownedBuffer = TRUE ;
                return TRUE ;
             }
+         }
+         return FALSE ;
+      }
+
+      BOOLEAN initBuffer( T *buffer, UINT32 capacity )
+      {
+         finiBuffer() ;
+         if ( capacity > 0 && NULL != buffer )
+         {
+            _buffer = buffer ;
+            _capacity = capacity ;
+            _ownedBuffer = FALSE ;
+            return TRUE ;
          }
          return FALSE ;
       }
@@ -91,7 +116,7 @@ namespace engine
       // finalize buffer
       void finiBuffer()
       {
-         if ( NULL != _buffer )
+         if ( NULL != _buffer && _ownedBuffer )
          {
             SDB_OSS_FREE( _buffer ) ;
          }
@@ -99,6 +124,7 @@ namespace engine
          _front = 0 ;
          _used = 0 ;
          _buffer = NULL ;
+         _ownedBuffer = FALSE ;
       }
 
       // get capacity of buffer
@@ -204,8 +230,30 @@ namespace engine
       UINT32            _front ;
       // size of used positions
       UINT32            _used ;
+      // whether to own buffer
+      BOOLEAN           _ownedBuffer ;
       // buffer
       T *               _buffer ;
+   } ;
+
+   /*
+      _utilCircularStackBuffer define
+    */
+   template< typename T, UINT32 stackSize >
+   class _utilCircularStackBuffer : public _utilCircularBuffer< T >
+   {
+   public:
+      _utilCircularStackBuffer()
+      : _utilCircularBuffer< T >( _stackBuffer, stackSize )
+      {
+      }
+
+      ~_utilCircularStackBuffer()
+      {
+      }
+
+   protected:
+      T _stackBuffer[ stackSize ] ;
    } ;
 
    /*
@@ -349,7 +397,7 @@ namespace engine
       // circular buffer
       _utilCircularBuffer<T> *   _buffer ;
       // external queue ( to be used when buffer is full )
-      std::deque<T>              _extQueue ;
+      ossPoolDeque<T>            _extQueue ;
    } ;
 
    //The utilSPSCQueue is a single producer single consumer ring fifo queue.

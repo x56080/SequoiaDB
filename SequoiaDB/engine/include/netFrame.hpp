@@ -317,6 +317,8 @@ namespace engine
 
          void     _checkBreak( UINT32 timeout, INT32 serviceType ) ;
 
+         void     _closeHandle( NET_HANDLE handle ) ;
+
       private:
          _netRoute                        *_pRoute ;
          netEvSuitPtr                     _mainSuitPtr ;

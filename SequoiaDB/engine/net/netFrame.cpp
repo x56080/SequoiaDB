@@ -218,9 +218,22 @@ namespace engine
             goto done ;
          }
 
+         // boost shared pointer may throw exception
          try
          {
             tmpEH = NET_EH( pEH ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to create shared pointer for net "
+                    "event handler, occur exception %s", e.what() ) ;
+            goto done ;
+         }
+         // handle to shared pointer
+         pEH = NULL ;
+
+         try
+         {
             _vecEH.push_back( tmpEH ) ;
          }
          catch ( exception &e )
@@ -243,6 +256,10 @@ namespace engine
 
    done:
       _mtx.release() ;
+      if ( NULL != pEH )
+      {
+         SDB_OSS_DEL pEH ;
+      }
       return ret ;
    }
 
@@ -387,23 +404,55 @@ namespace engine
       _eraseSuit_i( evSuitPtr ) ;
       _suiteMtx.release() ;
 
-      MsgRouteID nodeID ;
-      _netEventSuit::SET_HANDLE setHandles = evSuitPtr->getHandles() ;
-      _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
-      while( itr != setHandles.end() )
+      _netEventSuit::SET_HANDLE setHandles ;
+
+      if ( SDB_OK == evSuitPtr->getHandles( setHandles ) )
       {
-         close( *itr, &nodeID ) ;
-         if ( MSG_INVALID_ROUTEID != nodeID.value )
+         // copy set of handles succeed, just iterate each handle
+         _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
+         while( itr != setHandles.end() )
          {
-            _handler->handleClose( *itr, nodeID ) ;
+            _closeHandle( *itr ) ;
+            ++itr ;
          }
-         ++itr ;
+      }
+      else
+      {
+         // copy set of handles failed, get handle one by one
+         NET_HANDLE curHandle = NET_INVALID_HANDLE ;
+         while ( TRUE )
+         {
+            curHandle = evSuitPtr->getNextHandle( curHandle ) ;
+            if ( NET_INVALID_HANDLE == curHandle )
+            {
+               break ;
+            }
+            _closeHandle( curHandle ) ;
+         }
       }
       // make sure event handlers are released
       // NOTE: handler has shared pointer of event suit, if we
       //       don't release handlers, the event suit will not be
       //       released
       evSuitPtr->removeAllEH() ;
+   }
+
+   void _netFrame::_closeHandle( NET_HANDLE handle )
+   {
+      MsgRouteID nodeID ;
+      close( handle, &nodeID ) ;
+      if ( MSG_INVALID_ROUTEID != nodeID.value )
+      {
+         try
+         {
+            _handler->handleClose( handle, nodeID ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to close handle [%u], "
+                    "occur exception %s", handle, e.what() ) ;
+         }
+      }
    }
 
    void _netFrame::onSuitTimer( netEvSuitPtr evSuitPtr )
@@ -457,33 +506,77 @@ namespace engine
          rc = ossException2RC( &e ) ;
       }
 
-      onRunSuitStop( _mainSuitPtr ) ;
+      /// WARNING: try catch each exceptions of each steps during stop
+      /// to make sure each step can tell related sessions and net suits to
+      /// stop
 
-      /// stop all evSuit
-      _stopAllEvSuit() ;
-      close() ;
-
-      /// wait all evSuit stop
-      while( TRUE )
+      // prepare to stop message handler
+      try
       {
-         if ( getEvSuitSize() > 0 )
+         if ( _handler )
          {
-            ossSleep( 200 ) ;
-            // sub-network may be added after quiesced
-            // let's retry stop after each second
-            ++ retryCount ;
-            if ( 0 == retryCount % 5 )
-            {
-               _stopAllEvSuit() ;
-            }
-            continue ;
+            _handler->onPrepareStop() ;
          }
-         break ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to prepare to stop handler, "
+                 "occur exception %s", e.what() ) ;
       }
 
-      if ( _handler )
+      // stop handles related to this suit
+      try
       {
-         _handler->onStop() ;
+         onRunSuitStop( _mainSuitPtr ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to call on stop suit event, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      // stop all sub event suits
+      try
+      {
+         _stopAllEvSuit() ;
+         close() ;
+
+         /// wait all evSuit stop
+         while( TRUE )
+         {
+            if ( getEvSuitSize() > 0 )
+            {
+               ossSleep( 200 ) ;
+               // sub-network may be added after quiesced
+               // let's retry stop after each second
+               ++ retryCount ;
+               if ( 0 == retryCount % 5 )
+               {
+                  _stopAllEvSuit() ;
+               }
+               continue ;
+            }
+            break ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to stop all suits, "
+                 "occur exception %s", e.what() ) ;
+      }
+
+      // stop message handler
+      try
+      {
+         if ( _handler )
+         {
+            _handler->onStop() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to call on stop event, "
+                 "occur exception %s", e.what() ) ;
       }
 
    done:
@@ -1811,7 +1904,6 @@ namespace engine
    {
       netEvSuitPtr ptr = _mainSuitPtr ;
       UINT32 minSockNum = ptr->getHandleNum() ;
-      BOOLEAN hasLock = FALSE ;
       PD_TRACE_ENTRY ( SDB__NETFRAME__GETEVSUIT ) ;
 
       if ( _pThreadFunc && _maxSockPerThread > 0 &&
@@ -1820,11 +1912,7 @@ namespace engine
          VEC_EVSUIT_IT itr ;
          UINT32 curSockNum = 0 ;
 
-         if ( needLock )
-         {
-            _suiteMtx.get() ;
-            hasLock = TRUE ;
-         }
+         ossScopedLock _lock( needLock ? &_suiteMtx : NULL, EXCLUSIVE ) ;
 
          if ( _suiteStopFlag )
          {
@@ -1857,7 +1945,32 @@ namespace engine
             netEventSuit *pSuit = SDB_OSS_NEW netEventSuit( this ) ;
             if ( pSuit )
             {
-               netEvSuitPtr tmpPtr = netEvSuitPtr( pSuit ) ;
+               netEvSuitPtr tmpPtr ;
+
+               // boost shared pointer may throw exception
+               try
+               {
+                  tmpPtr = netEvSuitPtr( pSuit ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to create shared pointer for "
+                          "new suit, occur exception %s", e.what() ) ;
+                  SDB_OSS_DEL pSuit ;
+                  goto done ;
+               }
+
+               try
+               {
+                  _vecEvSuit.reserve( _vecEvSuit.size() + 1 ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to reserved memory for new suit, "
+                          "occur exception %s", e.what() ) ;
+                  goto done ;
+               }
+
                /// start thread
                INT32 rc = _pThreadFunc( tmpPtr.get() ) ;
                if ( rc )
@@ -1866,17 +1979,14 @@ namespace engine
                   goto done ;
                }
 
+               // already reserved, no need to try-catch
+               _vecEvSuit.push_back( tmpPtr ) ;
                ptr = tmpPtr ;
-               _vecEvSuit.push_back( ptr ) ;
             }
          }
       }
 
    done:
-      if ( hasLock )
-      {
-         _suiteMtx.release() ;
-      }
       PD_TRACE_EXIT( SDB__NETFRAME__GETEVSUIT ) ;
       return ptr ;
    }
@@ -1907,7 +2017,19 @@ namespace engine
          goto error ;
       }
 
-      eh = NET_EH( pEH ) ;
+      // boost shared pointer may throw exception
+      try
+      {
+         eh = NET_EH( pEH ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to create shared pointer for net "
+                 "event handler, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+      // handle to shared pointer
       pEH = NULL ;
 
       _acceptor.async_accept( eh->socket(),

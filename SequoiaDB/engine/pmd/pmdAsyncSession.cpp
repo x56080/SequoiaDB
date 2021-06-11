@@ -242,7 +242,15 @@ namespace engine
       }
       _pEDUCB->getMonAppCB()->setSvcTaskInfo( NULL ) ;
 
-      _onDetach () ;
+      try
+      {
+         _onDetach () ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to call detach event, "
+                 "occur exception %s", e.what() ) ;
+      }
 
       _client.detachCB() ;
       _pEDUCB->detachSession() ;
@@ -863,6 +871,8 @@ namespace engine
       BOOLEAN bCreate = TRUE ;
       UINT64 sessionID = 0 ;
 
+      pmdSessionScopedHold scopedHold ;
+
       if ( hasDispatched )
       {
          *hasDispatched = FALSE ;
@@ -917,6 +927,8 @@ namespace engine
          }
       }
 
+      scopedHold.setSession( pSession ) ;
+
       if ( decPending )
       {
          pSession->decPendingmsgNum() ;
@@ -952,7 +964,7 @@ namespace engine
          _metaLatch.release() ;
 
          // Session will be released and we don't need to push message
-         holdOut( pSession ) ;
+         scopedHold.holdOut() ;
          rc = releaseSession( pSession, TRUE ) ;
          if ( rc )
          {
@@ -1007,10 +1019,6 @@ namespace engine
       }
 
    done:
-      if ( pSession )
-      {
-         holdOut( pSession ) ;
-      }
       return rc ;
    error:
       goto done ;
@@ -1160,12 +1168,23 @@ namespace engine
 
             if ( 0 == pSession->getPendingMsgNum() && !pSession->hasHold() )
             {
+               try
+               {
+                  /// push to deleting que
+                  ossScopedLock lock ( &_deqDeletingMutex ) ;
+                  _deqDeletingSessions.push_back ( pSession ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDWARNING, "Failed to save to deleting list, "
+                          "occur exception %s", e.what() ) ;
+                  // just release it
+                  _releaseSession( pSession ) ;
+               }
+
                /// release
                _mapPendingSession.erase( it ) ;
 
-               /// push to deleting que
-               ossScopedLock lock ( &_deqDeletingMutex ) ;
-               _deqDeletingSessions.push_back ( pSession ) ;
                pSession = NULL ;
             }
             else
@@ -1483,6 +1502,8 @@ namespace engine
 
       SDB_ASSERT ( pSession, "pSession can't be NULL" ) ;
 
+      BOOLEAN needRelease = TRUE ;
+
       if ( !_quit && postQuit && pSession->eduCB() )
       {
          // Notify the edu quit
@@ -1500,21 +1521,45 @@ namespace engine
          PD_LOG( PDEVENT, "Change session[%s] to pending queue, Its pending "
                  "msg number:%d", pSession->sessionName(),
                  pSession->getPendingMsgNum() ) ;
-         _mapPendingSession[ pSession->sessionID() ] = pSession ;
-         goto done ;
+         try
+         {
+            _mapPendingSession[ pSession->sessionID() ] = pSession ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDWARNING, "Failed to save session [%llu] to pending "
+                    "list, occur exception %s", pSession->sessionID(),
+                    e.what() ) ;
+            // can not handle this exception, throw to caller
+            throw e ;
+         }
+         needRelease = FALSE ;
       }
       // if we don't need to relase it rightaway, we can push the request to
       // delete queue and return
       else if ( delay || !pSession->isDetached() )
       {
-         ossScopedLock lock ( &_deqDeletingMutex ) ;
-         _deqDeletingSessions.push_back ( pSession ) ;
-         goto done ;
+         try
+         {
+            ossScopedLock lock ( &_deqDeletingMutex ) ;
+            _deqDeletingSessions.push_back ( pSession ) ;
+            needRelease = FALSE ;
+         }
+         catch ( exception &e )
+         {
+            // occur exception, just release it
+            PD_LOG( PDWARNING, "Failed to save session [%llu] to deleting "
+                    "list, occur exception %s", pSession->sessionID(),
+                    e.what() ) ;
+            needRelease = TRUE ;
+         }
       }
 
-      _releaseSession( pSession ) ;
+      if ( needRelease )
+      {
+         _releaseSession( pSession ) ;
+      }
 
-   done:
       PD_TRACE_EXIT ( PMD_SESSMGR_RLSSS_I );
       return SDB_OK ;
    }
@@ -1550,10 +1595,20 @@ namespace engine
       if ( !_quit && _canReuse( pSession->sessionType() ) &&
            _cacheSessionNum < _maxCacheSize() )
       {
-         ossScopedLock lock ( &_deqDeletingMutex ) ;
-         _deqCacheSessions.push_back( pSession ) ;
-         ++_cacheSessionNum ;
-         goto done ;
+         try
+         {
+            ossScopedLock lock ( &_deqDeletingMutex ) ;
+            _deqCacheSessions.push_back( pSession ) ;
+            ++_cacheSessionNum ;
+            goto done ;
+         }
+         catch ( exception &e )
+         {
+            // occur exception, just release it
+            PD_LOG( PDWARNING, "Failed to save session [%llu] to deleting "
+                    "list, occur exception %s", pSession->sessionID(),
+                    e.what() ) ;
+         }
       }
       // only free memory when it can't be queued
       SDB_OSS_DEL pSession ;
@@ -1647,14 +1702,22 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_HDLSTOP, "_pmdAsycSessionMgr::handleStop" )
-   void _pmdAsycSessionMgr::handleStop()
+   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_HANDLEPREPARESTOP, "_pmdAsycSessionMgr::handlePrepareStop" )
+   void _pmdAsycSessionMgr::handlePrepareStop()
    {
-      PD_TRACE_ENTRY ( PMD_SESSMGR_HDLSTOP ) ;
+      PD_TRACE_ENTRY ( PMD_SESSMGR_HANDLEPREPARESTOP ) ;
+
       _forceLatch.get() ;
       _isStop = TRUE ;
       _forceLatch.release() ;
 
+      PD_TRACE_EXIT ( PMD_SESSMGR_HANDLEPREPARESTOP ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( PMD_SESSMGR_HDLSTOP, "_pmdAsycSessionMgr::handleStop" )
+   void _pmdAsycSessionMgr::handleStop()
+   {
+      PD_TRACE_ENTRY ( PMD_SESSMGR_HDLSTOP ) ;
       _checkForceSession( 0 ) ;
       PD_TRACE_EXIT ( PMD_SESSMGR_HDLSTOP ) ;
    }

@@ -86,6 +86,7 @@ namespace engine
       } while( 0 )
 
    class _pmdAsycSessionMgr ;
+   class _pmdSessionScopedHold ;
 
    /*
       _pmdBuffInfo define
@@ -146,6 +147,7 @@ namespace engine
    class _pmdAsyncSession : public _pmdObjBase, public _ISession
    {
       friend class _pmdAsycSessionMgr ;
+      friend class _pmdSessionScopedHold ;
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -354,6 +356,7 @@ namespace engine
 
          INT32          handleSessionClose( const NET_HANDLE handle ) ;
 
+         void           handlePrepareStop() ;
          void           handleStop() ;
 
          virtual INT32  handleSessionTimeout( UINT32 timerID,
@@ -459,6 +462,42 @@ namespace engine
 
    } ;
    typedef _pmdAsycSessionMgr pmdAsycSessionMgr ;
+
+   /*
+      _pmdSessionScopedHold define
+    */
+   class _pmdSessionScopedHold
+   {
+   public:
+      _pmdSessionScopedHold()
+      : _session( NULL )
+      {
+      }
+
+      ~_pmdSessionScopedHold()
+      {
+         holdOut() ;
+      }
+
+      void setSession( _pmdAsyncSession *session )
+      {
+         _session = session ;
+      }
+
+      void holdOut()
+      {
+         if ( NULL != _session )
+         {
+            _session->_holdOut() ;
+            _session = NULL ;
+         }
+      }
+
+   protected:
+      pmdAsyncSession * _session ;
+   } ;
+
+   typedef class _pmdSessionScopedHold pmdSessionScopedHold ;
 
 }
 

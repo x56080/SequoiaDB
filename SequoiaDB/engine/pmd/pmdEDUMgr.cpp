@@ -1536,8 +1536,8 @@ namespace engine
       if ( it != _mapIdles.end() )
       {
          cb = it->second ;
-         _mapIdles.erase( it ) ;
          _mapRuns[ cb->getID() ] = cb ;
+         _mapIdles.erase( it ) ;
 
          cb->setType( type ) ;
          SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
