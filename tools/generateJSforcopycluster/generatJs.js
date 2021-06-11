@@ -192,6 +192,7 @@ function getDSDefine(db, jsFile, dsSet)
          ds.option.ErrorFilterMask = obj.ErrorFilterMaskDesc;
          ds.option.ErrorControlLevel = obj.ErrorControlLevel;
          ds.option.TransPropagateMode = obj.TransPropagateModeDesc;
+         ds.option.InheritSessionAttr = obj.InheritSessionAttr ;
 
          if (true === firsttime)
          {
