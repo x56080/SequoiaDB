@@ -40,6 +40,7 @@
 #define COORD_DSMSGCONVERTOR_HPP__
 
 #include "pmdRemoteSession.hpp"
+#include "rtnCommandDef.hpp"
 
 namespace engine
 {
@@ -124,6 +125,12 @@ namespace engine
                                const BSONObj &meta,
                                const pmdEDUEvent &orgEvent,
                                pmdEDUEvent &event ) ;
+
+         /**
+          * Some operations need to be done automatically internally, and they
+          * should not be affected by the data source configurations.
+          */
+         BOOLEAN _isInternalOperation( RTN_COMMAND_TYPE type ) const ;
    } ;
    typedef _coordDSMsgConvertor coordDSMsgConvertor ;
 

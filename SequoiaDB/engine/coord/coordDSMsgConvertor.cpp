@@ -115,11 +115,19 @@ namespace engine
          SDB_SET_READ( oprMask ) ;
       }
 
-      /// need to process
-      if ( CMD_GET_COUNT == pCommand->type() ||
-           CMD_TRUNCATE == pCommand->type() ||
-           CMD_LIST_LOB == pCommand->type() ||
-           CMD_GET_CL_DETAIL == pCommand->type() )
+      // For internal operation and supported commands, they should be sent to
+      // data source to process.
+      if ( _isInternalOperation( pCommand->type() ) )
+      {
+         ignore = FALSE ;
+         // Internal operations are not affected by configuration 'AccessMode'.
+         oprMask = 0 ;
+         goto done ;
+      }
+      else if ( CMD_GET_COUNT == pCommand->type() ||
+                CMD_TRUNCATE == pCommand->type() ||
+                CMD_LIST_LOB == pCommand->type() ||
+                CMD_GET_CL_DETAIL == pCommand->type() )
       {
          ignore = FALSE ;
          goto done ;
@@ -1884,6 +1892,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _coordDSMsgConvertor::_isInternalOperation( RTN_COMMAND_TYPE type ) const
+   {
+      return ( CMD_GET_SESSIONATTR == type || CMD_SET_SESSIONATTR == type ) ;
    }
 
    BOOLEAN coordIsSpecialMsg( INT32 opCode )

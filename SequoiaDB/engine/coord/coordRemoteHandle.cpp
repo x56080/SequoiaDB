@@ -47,6 +47,7 @@
 #include "coordTrace.hpp"
 #include "pdTrace.hpp"
 #include "../bson/bson.h"
+#include "IDataSource.hpp"
 
 using namespace bson ;
 
@@ -681,6 +682,12 @@ namespace engine
       pmdRemoteSessionSite *pSite = NULL ;
       coordSessionPropSite *pPropSite = NULL ;
 
+      // Transaction is not supported on data source.
+      if ( SDB_IS_DSID( pSub->getNodeID().columns.groupID ) )
+      {
+         goto done ;
+      }
+
       if ( cb->isTransaction() && isTransBSMsg( pSub->getOrgReqOpCode() ) )
       {
          BOOLEAN isWriteMsg = isTransWriteMsg( pSub->getOrgReqOpCode(),
@@ -688,6 +695,10 @@ namespace engine
          pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
          pPropSite = ( coordSessionPropSite* )pSite->getUserData() ;
 
+         // Check if the target node is already in the transaction node list. If
+         // it's not, it means the transaction has not operated on that node by
+         // far. In this case, a transaction begin message shoud be packed
+         // together with the current message and sent to that node together.
          if ( !pPropSite->checkAndUpdateNode( pSub->getNodeID(), isWriteMsg ) )
          {
             MsgOpTransBegin msgReq ;
@@ -751,6 +762,11 @@ namespace engine
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
       schedItem *pItem = NULL ;
       schedInfo *pInfo = NULL ;
+
+      if ( SDB_IS_DSID( pSub->getNodeID().columns.groupID ) )
+      {
+         goto done ;
+      }
 
       pItem = (schedItem*)cb->getSession()->getSchedItemPtr() ;
       if ( !pItem )
@@ -819,33 +835,285 @@ namespace engine
                                                      UINT32 &nodeSiteVer )
    {
       INT32 rc = SDB_OK ;
-      UINT32 curAuditVersion = pdGetCurAuditVersion() ;
-      UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
-      UINT32 curVersion = curAuditVersion + curTransVer ;
 
-      if ( 0 != curVersion && curVersion != nodeSiteVer )
+      if ( SDB_IS_DSID( pSub->getNodeID().columns.groupID ) )
       {
-         /// when net handle is invalid, the info will
-         /// stored in session-init message
-         if ( NET_INVALID_HANDLE != pSub->getHandle() )
-         {
-            rc = _buildPacketWithSessionInit( pSession, pSub, TRUE ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Build packet message with session-update "
-                       "failed, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
+         rc = _checkDSSessionAttr( pSub, cb, nodeSiteVer ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check data source session attribute "
+                      "failed[%d]", rc ) ;
+      }
+      else
+      {
+         UINT32 curAuditVersion = pdGetCurAuditVersion() ;
+         UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
+         UINT32 curVersion = curAuditVersion + curTransVer ;
 
-         /// update version
-         nodeSiteVer = curVersion ;
+         if ( 0 != curVersion && curVersion != nodeSiteVer )
+         {
+            /// when net handle is invalid, the info will
+            /// stored in session-init message
+            if ( NET_INVALID_HANDLE != pSub->getHandle() )
+            {
+               rc = _buildPacketWithSessionInit( pSession, pSub, TRUE ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Build packet message with session-update "
+                          "failed, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+
+            /// update version
+            nodeSiteVer = curVersion ;
+         }
       }
 
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _coordRemoteHandlerBase::_checkDSSessionAttr( _pmdSubSession *pSub,
+                                                       _pmdEDUCB *cb,
+                                                       UINT32 &nodeSiteVer )
+   {
+      INT32 rc = SDB_OK ;
+      const rtnSessionProperty *property = (rtnSessionProperty *)
+         ((pmdRemoteSessionSite *)cb->getRemoteSite())->getUserData() ;
+      UINT32 curVersion = property->getVersion() ;
+
+      if ( nodeSiteVer != curVersion )
+      {
+         CoordDataSourcePtr dsPtr ;
+         UINT32 groupID = pSub->getNodeID().columns.groupID ;
+         CoordCB *coordCB = pmdGetKRCB()->getCoordCB() ;
+         coordDataSourceMgr *dsMgr = coordCB->getDSManager() ;
+         rc = dsMgr->getOrUpdateDataSource( SDB_GROUPID_2_DSID( groupID ),
+                                            dsPtr, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get data source[%u] failed[%d]",
+                      SDB_GROUPID_2_DSID( groupID ), rc ) ;
+
+         if ( dsPtr->inheritSessionAttr() )
+         {
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG, "Data source session attribute version[%u] is "
+                    "not the same with local[%u]. Set it to %s", nodeSiteVer,
+                    curVersion, property->toBSON().toString().c_str() ) ;
+#endif /* _DEBUG */
+            rc = _setSessionAttr( pSub, *property, cb ) ;
+            if ( SDB_OK != rc && SDB_INVALIDARG != rc )
+            {
+               PD_LOG( PDERROR, "Set data source session attribute for [%s] "
+                       "failed[%d]",
+                       routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+               goto error ;
+            }
+            else if ( SDB_INVALIDARG == rc )
+            {
+               // There are some attributes that the data source dose not
+               // support.
+               rc = SDB_OK ;
+            }
+            nodeSiteVer = curVersion ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordRemoteHandlerBase::_setSessionAttr( _pmdSubSession *pSub,
+                                                   const rtnSessionProperty &property,
+                                                   pmdEDUCB *cb,
+                                                   BOOLEAN compatibleMode )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObj attributes ;
+         BSONObj attrObj = property.toBSON() ;
+         BSONObjIterator itr( attrObj ) ;
+         // Try to set all supported session attributes together. Need to append
+         // field 'PreferedInstanceV1'.
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            if ( 0 == ossStrcmp( FIELD_NAME_PREFERED_INSTANCE,
+                                 ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+               builder.appendAs( ele, FIELD_NAME_PREFERED_INSTANCE_V1 ) ;
+            }
+            else if ( _isSupportedDSSessoinAttr( ele.fieldName() ) )
+            {
+               builder.append( ele ) ;
+            }
+         }
+
+         attributes = builder.done() ;
+         rc = _setSessionAttr( pSub, attributes, cb ) ;
+         if ( SDB_INVALIDARG == rc && compatibleMode )
+         {
+            // For some old versions, if some attributes are not supported, try
+            // to set one by one.
+            BSONObjBuilder tmpBuilder ;
+            BSONObj tmpAttr ;
+            BSONObjIterator tmpItr( attrObj ) ;
+            while ( tmpItr.more() )
+            {
+               BSONElement tmpEle = tmpItr.next() ;
+               if ( 0 == ossStrcmp( FIELD_NAME_PREFERED_INSTANCE,
+                                    tmpEle.fieldName() ) )
+               {
+                  tmpBuilder.append( tmpEle ) ;
+                  tmpBuilder.appendAs( tmpEle,
+                                       FIELD_NAME_PREFERED_INSTANCE_V1 ) ;
+               }
+               else if ( _isSupportedDSSessoinAttr( tmpEle.fieldName() ) )
+               {
+                  tmpBuilder.append( tmpEle ) ;
+               }
+               else
+               {
+                  continue ;
+               }
+
+               tmpAttr = tmpBuilder.done() ;
+               rc = _setSessionAttr( pSub, tmpAttr, cb ) ;
+               if ( rc )
+               {
+                  if ( SDB_INVALIDARG != rc )
+                  {
+                     PD_LOG( PDERROR, "Set session attribute for node[%s] "
+                             "failed[%d]. Attributes: %s",
+                             routeID2String( pSub->getNodeID() ).c_str(),
+                             rc, tmpAttr.toString().c_str() ) ;
+                     goto error ;
+                  }
+#ifdef _DEBUG
+                  PD_LOG( PDDEBUG, "Session attribute %s is not supported on "
+                          "node[%s]", tmpAttr.toString().c_str(),
+                          routeID2String( pSub->getNodeID() ).c_str() ) ;
+#endif /* _DEBUG */
+                  rc = SDB_OK ;
+               }
+               tmpBuilder.reset() ;
+            }
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Set session attribute %s for node[%s] "
+                    "failed[%d]", attributes.toString().c_str(),
+                    routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc= ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordRemoteHandlerBase::_setSessionAttr( _pmdSubSession *pSub,
+                                                   const BSONObj &attrObj,
+                                                   _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *msgBuff = NULL ;
+      INT32 buffSize = 0 ;
+      BSONObj dummyObj ;
+      pmdRemoteSession *tmpSession = NULL ;
+      _pmdSubSession *subSession = NULL ;
+      MsgOpReply *reply = NULL ;
+
+      pmdRemoteSessionSite *site = (pmdRemoteSessionSite *)cb->getRemoteSite() ;
+      tmpSession = site->addSession( -1, NULL ) ;
+      if ( !tmpSession )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Create temp remote session failed[%d]", rc ) ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryCMDMsg( &msgBuff, &buffSize,
+                                CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
+                                attrObj, dummyObj, dummyObj, dummyObj,
+                                0, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build set session attribute message "
+                  "failed[%d]", rc ) ;
+
+      subSession = tmpSession->addSubSession( pSub->getNodeIDUInt() ) ;
+      subSession->setReqMsg( (MsgHeader *)msgBuff, PMD_EDU_MEM_NONE ) ;
+
+      rc = tmpSession->sendMsg( subSession ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send set session attribute message to "
+                   "node[%s] failed[%d]",
+                   routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+
+      rc = tmpSession->waitReply1( TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Wait set session attribute response from "
+                   "node[%s] failed[%d]",
+                   routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+
+      reply = (MsgOpReply *)subSession->getRspMsg() ;
+      if ( !reply )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Set session attribute reply message is null" ) ;
+         goto error ;
+      }
+
+      rc = reply->flags ;
+      if ( rc && ( SDB_INVALIDARG != rc ) )
+      {
+         PD_LOG( PDERROR, "Set session attribute on node[%s] failed[%d]",
+                 routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      // If the connection is just established by the steps above, set it to the
+      // connection in the original sub session.
+      if ( !pSub->getConnection()->isConnected() &&
+           subSession->getConnection()->isConnected() )
+      {
+         pSub->getConnection()->init(
+            subSession->getConnection()->getRouteAgent(), TRUE,
+            subSession->getNodeID(), subSession->getHandle() ) ;
+      }
+      if ( tmpSession )
+      {
+         site->removeSession( tmpSession ) ;
+      }
+      if ( msgBuff )
+      {
+         msgReleaseBuffer( msgBuff, cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _coordRemoteHandlerBase::_isSupportedDSSessoinAttr( const CHAR *attrName )
+   {
+      SDB_ASSERT( attrName, "Attribute name is null" ) ;
+
+      return ( 0 == ossStrcmp( FIELD_NAME_PREFERED_INSTANCE_MODE, attrName ) ||
+               0 == ossStrcmp( FIELD_NAME_PREFERED_STRICT, attrName ) ||
+               0 == ossStrcmp( FIELD_NAME_PREFERED_PERIOD, attrName ) ||
+               0 == ossStrcmp( FIELD_NAME_TIMEOUT, attrName ) ||
+               0 == ossStrcmp( FIELD_NAME_PREFERED_INSTANCE, attrName ) ) ;
    }
 
    INT32 _coordRemoteHandlerBase::onSend( _pmdRemoteSession *pSession,
@@ -863,9 +1131,11 @@ namespace engine
       pStatus = ( coordRemoteHandleStatus* )pSub->getUDFData() ;
       pStatus->init() ;
 
-      /// is not data node, ignored
-      if ( nodeID.columns.groupID < DATA_GROUP_ID_BEGIN ||
-           nodeID.columns.groupID > DATA_GROUP_ID_END ||
+
+      /// is not data node or data source, ignored
+      if ( ( ( nodeID.columns.groupID < DATA_GROUP_ID_BEGIN ||
+               nodeID.columns.groupID > DATA_GROUP_ID_END ) &&
+               ( !SDB_IS_DSID( nodeID.columns.groupID ) ) ) ||
            isNoReplyMsg( pSub->getOrgReqOpCode() ) )
       {
          goto done ;

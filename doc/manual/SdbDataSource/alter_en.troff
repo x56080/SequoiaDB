@@ -91,7 +91,15 @@ Report an error and output an error message.
 The operation will be converted to non\-transactional and send to data source.
 It will be excluded from the transaction.
 .PP
-Format: \f[C]TransPropagateMode:\ "never"\f[]
+format: \f[C]TransPropagateMode:\ "never"\f[]
+.IP "9." 3
+InheritSessionAttr ( \f[I]boolean\f[] ): Whether session between local
+coordinator and data source node inherits session attributes from local session
+on the coordinator.
+The supported attributes include.
+The default value is true.
+.PP
+format: \f[C]InheritSessionAttr:\ true\f[]
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.

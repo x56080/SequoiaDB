@@ -303,6 +303,14 @@ namespace engine
                }
                _dsInfo._transPropagateMode = e.valuestr() ;
             }
+            else if ( 0 == ossStrcmp( fieldName,
+                                      FIELD_NAME_INHERIT_SESSION_ATTR ) )
+            {
+               PD_CHECK( Bool == e.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Type of field[%s] is not bool, rc: %d",
+                         fieldName, rc ) ;
+               _dsInfo._inheritSessionAttr = e.boolean() ;
+            }
             else
             {
                rc = SDB_OPTION_NOT_SUPPORT ;
@@ -798,6 +806,15 @@ namespace engine
                      _optionBuilder.append( FIELD_NAME_TRANS_PROPAGATE_MODE,
                                             e.valuestr() ) ;
                   }
+               }
+               else if ( 0 == ossStrcmp( fieldName,
+                                         FIELD_NAME_INHERIT_SESSION_ATTR ) )
+               {
+                  PD_CHECK( Bool == e.type(), SDB_INVALIDARG, error, PDERROR,
+                            "Type of field[%s] is not bool, rc: %d",
+                            fieldName, rc ) ;
+                  _optionBuilder.append( FIELD_NAME_INHERIT_SESSION_ATTR,
+                                         e.boolean() ) ;
                }
                else
                {

@@ -74,7 +74,12 @@ The metadata information of the data source can be modified through the options 
   - "never": Transaction operation is forbidden. Report an error and output an error message.
   - "notsupport": Transaction operation is not supported on data source. The operation will be converted to non-transactional and send to data source. It will be excluded from the transaction.
 
-  Format: `TransPropagateMode: "never"`
+  format: `TransPropagateMode: "never"`
+
+9. InheritSessionAttr ( *boolean* ): Whether session between local coordinator and data source node inherits session attributes from local session on the coordinator. The supported attributes include. The default value is true.
+
+  format: `InheritSessionAttr: true`
+
 
 ##RETURN VALUE##
 

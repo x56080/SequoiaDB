@@ -116,6 +116,14 @@ TransPropagateMode（ \f[I]string\f[]
 .PP
 格式：\f[C]TransPropagateMode:"never"\f[]
 .RE
+.IP "5." 3
+InheritSessionAttr（ \f[I]boolean\f[]
+）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为
+true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+.RS 4
+.PP
+格式：\f[C]InheritSessionAttr:\ true\f[]
+.RE
 .RE
 .SH 返回值
 .PP

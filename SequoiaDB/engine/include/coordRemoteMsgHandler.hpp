@@ -45,8 +45,11 @@ namespace engine
 {
    class _coordDataSourceMgr ;
 
-   /*
-      _coordDataSourceMsgHandler define
+   /**
+    * _coordDataSourceMsgHandler define
+    * Data source message handler for coordinator, used to handle network events
+    * with data source. It's binded to the net route agent for data source when
+    * data source manager is initialized.
    */
    class _coordDataSourceMsgHandler : public _pmdRemoteMsgHandler
    {

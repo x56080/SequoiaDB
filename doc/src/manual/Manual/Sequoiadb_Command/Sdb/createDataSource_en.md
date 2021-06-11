@@ -80,6 +80,10 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `TransPropagateMode: "never"`
 
+    5. InheritSessionAttr ( *boolean* ): Whether session between local coordinator and data source node inherits session attributes from local session on the coordinator. The supported attributes include PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout. The default value is true.
+
+        Format: `InheritSessionAttr: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, it will return a DataSource object.

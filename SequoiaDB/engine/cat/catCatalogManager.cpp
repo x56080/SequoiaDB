@@ -1311,7 +1311,9 @@ namespace engine
           * { "$set": { "TransPropagateMode": "never" } }
           */
          updator = BSON( "$set" << BSON( FIELD_NAME_TRANS_PROPAGATE_MODE <<
-                                         VALUE_NAME_NEVER ) ) ;
+                                         VALUE_NAME_NEVER <<
+                                         FIELD_NAME_INHERIT_SESSION_ATTR <<
+                                         true ) ) ;
          rc = rtnUpdate( CAT_DATASOURCE_COLLECTION, dsMatcher, updator,
                          dummyObj, 0, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Update collection %s failed, rc: %d",

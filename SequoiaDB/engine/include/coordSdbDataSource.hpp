@@ -73,6 +73,7 @@ namespace engine
       virtual INT32           getDSMinorVersion() const ;
       virtual INT32           getDSFixVersion() const ;
       virtual SDB_DS_TRANS_PROPAGATE_MODE getTransPropagateMode() const ;
+      virtual BOOLEAN         inheritSessionAttr() const ;
 
       virtual const utilAddrContainer* getAddressList() const ;
       virtual CoordGroupInfoPtr        getGroupInfo() const ;
@@ -97,6 +98,7 @@ namespace engine
       INT32         _dsFixVersion ;
       INT32         _errFilterMask ;
       SDB_DS_TRANS_PROPAGATE_MODE _transPropagateMode ;
+      BOOLEAN       _inheritSessionAttr ;
    } ;
    typedef _coordSdbDataSource coordSdbDataSource ;
 }

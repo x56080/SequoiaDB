@@ -651,7 +651,7 @@
 #define FIELD_NAME_ERRORFILTERMASK_DESC      "ErrorFilterMaskDesc"
 #define FIELD_NAME_MESSAGE                   "Message"
 #define FIELD_NAME_TRANS_PROPAGATE_MODE      "TransPropagateMode"
-#define FIELD_NAME_TRANS_PROPAGATE_MODE_DESC "TransPropagateModeDesc"
+#define FIELD_NAME_INHERIT_SESSION_ATTR      "InheritSessionAttr"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"

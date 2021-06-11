@@ -491,14 +491,16 @@ namespace engine
    _rtnSessionProperty::_rtnSessionProperty ()
    : _instanceOption(),
      _operationTimeout( RTN_SESSION_OPERATION_TIMEOUT_MAX ),
-     _needCheckVer( FALSE )
+     _needCheckVer( FALSE ),
+     _version( 1 )
    {
    }
 
    _rtnSessionProperty::_rtnSessionProperty ( const rtnSessionProperty & property )
    : _instanceOption( property._instanceOption ),
      _operationTimeout( property._operationTimeout ),
-     _needCheckVer( FALSE )
+     _needCheckVer( FALSE ),
+     _version( 1 )
    {
    }
 
@@ -568,6 +570,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to parse old version of "
                          "session property, rc: %d", rc ) ;
          }
+         ++_version ;
       }
       catch ( std::exception &e )
       {

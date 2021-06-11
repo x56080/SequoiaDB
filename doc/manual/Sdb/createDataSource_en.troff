@@ -121,6 +121,17 @@ It will be excluded from the transaction.
 .PP
 Format: \f[C]TransPropagateMode:\ "never"\f[]
 .RE
+.IP "5." 3
+InheritSessionAttr ( \f[I]boolean\f[] ): Whether session between local
+coordinator and data source node inherits session attributes from local session
+on the coordinator.
+The supported attributes include
+PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout.
+The default value is true.
+.RS 4
+.PP
+Format: \f[C]InheritSessionAttr:\ true\f[]
+.RE
 .RE
 .SH RETURN VALUE
 .PP

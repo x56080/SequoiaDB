@@ -64,6 +64,7 @@ namespace engine
       // Where degrade transactional operation to non-transactional operation
       // and send to data source.
       const CHAR *_transPropagateMode ;
+      BOOLEAN     _inheritSessionAttr ;
 
       _catDSInfo()
       {
@@ -84,6 +85,7 @@ namespace engine
          _accessMode = DS_ACCESS_DEFAULT ;
          _errFilterMask = DS_ERR_FILTER_NONE ;
          _transPropagateMode = VALUE_NAME_NEVER ;
+         _inheritSessionAttr = TRUE ;
       }
 
       BSONObj toBson()
@@ -109,6 +111,8 @@ namespace engine
             builder.append( FIELD_NAME_ERRORFILTERMASK_DESC, desc ) ;
             builder.append( FIELD_NAME_TRANS_PROPAGATE_MODE,
                             _transPropagateMode ) ;
+            builder.appendBool( FIELD_NAME_INHERIT_SESSION_ATTR,
+                                _inheritSessionAttr ) ;
             return builder.obj() ;
          }
          catch ( std::exception &e )

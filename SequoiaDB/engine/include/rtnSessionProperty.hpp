@@ -262,6 +262,8 @@ namespace engine
 
          INT32 parseProperty( const BSONObj &property ) ;
 
+         UINT32 getVersion() const { return _version ; }
+
          BSONObj toBSON () const ;
 
       protected :
@@ -280,6 +282,7 @@ namespace engine
          rtnInstanceOption    _instanceOption ;
          INT64                _operationTimeout ;
          BOOLEAN              _needCheckVer ;
+         UINT32               _version ; // Version of the session property.
    } ;
 
 }

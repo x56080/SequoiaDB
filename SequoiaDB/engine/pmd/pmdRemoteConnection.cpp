@@ -42,7 +42,6 @@
 
 namespace engine
 {
-
    _pmdRemoteConnection::_pmdRemoteConnection()
    : _routeAgent( NULL ),
      _handle( NET_INVALID_HANDLE ),
@@ -108,8 +107,6 @@ namespace engine
     * Establish a TCP connection with the data source node, and send the system
     * information request message. This should always be done when connecting
     * to a SequoiaDB coordinator.
-    * @param cb
-    * @return
     */
    INT32 _pmdRemoteConnection::connect()
    {
@@ -121,6 +118,10 @@ namespace engine
          goto error ;
       }
 
+      // Only call syncConnect for external connection(e.g., connection to data
+      // source). A new connection will always be created. So they are not
+      // affected by configurations like maxsocketperthread.
+      // Connections from coordinator to data nodes will not call this function.
       if ( _isConnExtern && !isConnected() )
       {
          rc = _routeAgent->syncConnect( _routeID, &_handle ) ;
@@ -283,5 +284,4 @@ namespace engine
    error:
       goto done ;
    }
-
 }
