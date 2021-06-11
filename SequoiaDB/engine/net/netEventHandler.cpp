@@ -483,12 +483,15 @@ namespace engine
          }
          catch ( boost::system::system_error &e )
          {
+            CHAR routeIDBuffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
             if ( e.code().value() == boost::system::errc::interrupted )
             {
                PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] send message "
                        "interrupted: %s,%d", _handle,
-                       routeID2String( _id ).c_str(), e.what(),
-                       e.code().value() ) ;
+                       routeID2String( _id,
+                                       routeIDBuffer,
+                                       MSG_ROUTEID_STRING_MAX_SIZE ),
+                       e.what(), e.code().value() ) ;
                continue ;
             }
             if ( e.code().value() == boost::system::errc::timed_out ||
@@ -496,13 +499,18 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] send "
                        "message timeout: %s:%d", _handle,
-                       routeID2String( _id ).c_str(), e.what(),
-                       e.code().value() ) ;
+                       routeID2String( _id,
+                                       routeIDBuffer,
+                                       MSG_ROUTEID_STRING_MAX_SIZE ),
+                       e.what(), e.code().value() ) ;
                continue ;
             }
 
             PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] send message "
-                    "failed: %s,%d", _handle, routeID2String( _id ).c_str(),
+                    "failed: %s,%d", _handle,
+                    routeID2String( _id,
+                                    routeIDBuffer,
+                                    MSG_ROUTEID_STRING_MAX_SIZE ),
                     e.what(), e.code().value() ) ;
             rc = SDB_NET_SEND_ERR ;
             goto error ;
