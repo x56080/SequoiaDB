@@ -158,6 +158,8 @@ public class DataSource23410 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NET_SEND_ERR
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode() ) {
                     e.printStackTrace();
                 }

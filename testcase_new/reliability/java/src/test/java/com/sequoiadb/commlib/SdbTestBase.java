@@ -24,6 +24,7 @@ import com.sequoiadb.fulltext.FullTextUtils;
 
 public class SdbTestBase {
     public static String coordUrl;
+    public static String srcCoordUrl;
     public static String hostName;
     public static String serviceName;
     public static String dsHostName;
@@ -41,6 +42,7 @@ public class SdbTestBase {
     public static String esHostName;
     public static String esServiceName;
     public static String sdbseadapterDir;
+    private static boolean srcdbExist = false;
 
     private static final String TRANSISOLATION = "transisolation";
     private static final String TRANSLOCKWAIT = "translockwait";
@@ -118,6 +120,7 @@ public class SdbTestBase {
         sdbseadapterDir = SDBSEADAPTERDIR;
         dsHostName = DSHOSTNAME;
         dsServiceName = DSSVCNAME;
+        srcCoordUrl = DSHOSTNAME + ":" + DSSVCNAME;
 
         getAllNodeConf( confObj );
         Sequoiadb db = null;
@@ -132,6 +135,24 @@ public class SdbTestBase {
         } finally {
             if ( db != null ) {
                 db.close();
+            }
+        }
+
+        if ( !DSHOSTNAME.equals( "${DSHOSTNAME}" ) ) {
+            Sequoiadb srcdb = null;
+            try {
+                srcdb = new Sequoiadb( srcCoordUrl, "", "" );
+                srcdbExist = true;
+                boolean ret = createCommonCS( srcdb );
+                Assert.assertTrue( ret );
+                createWorkDir( srcCoordUrl );
+                createReserveDir( srcCoordUrl );
+            } catch ( BaseException e ) {
+                Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
+            } finally {
+                if ( srcdb != null ) {
+                    srcdb.close();
+                }
             }
         }
     }
@@ -231,9 +252,13 @@ public class SdbTestBase {
     }
 
     private static void createReserveDir() {
+        createReserveDir( coordUrl );
+    }
+
+    private static void createReserveDir( String coordUrl ) {
         try {
-            GroupMgr mgr = GroupMgr.getInstance();
-            List< String > hosts = mgr.getAllHosts();
+            GroupMgr mgr = GroupMgr.getInstance( coordUrl );
+            List< String > hosts = mgr.getAllHosts( coordUrl );
             for ( String host : hosts ) {
                 Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
@@ -251,9 +276,13 @@ public class SdbTestBase {
     }
 
     private static void createWorkDir() {
+        createWorkDir( coordUrl );
+    }
+
+    private static void createWorkDir( String coordUrl ) {
         try {
-            GroupMgr mgr = GroupMgr.getInstance();
-            List< String > hosts = mgr.getAllHosts();
+            GroupMgr mgr = GroupMgr.getInstance( coordUrl );
+            List< String > hosts = mgr.getAllHosts( coordUrl );
             for ( String host : hosts ) {
                 Ssh ssh = new Ssh( host, "root", SdbTestBase.rootPwd );
                 try {
@@ -280,6 +309,16 @@ public class SdbTestBase {
 
             if ( db.isCollectionSpaceExist( cappedCSName ) ) {
                 db.dropCollectionSpace( cappedCSName );
+            }
+            if ( srcdbExist ) {
+                Sequoiadb srcdb = new Sequoiadb( srcCoordUrl, "", "" );
+                if ( srcdb.isCollectionSpaceExist( csName ) ) {
+                    srcdb.dropCollectionSpace( csName );
+                }
+                if ( srcdb.isCollectionSpaceExist( cappedCSName ) ) {
+                    srcdb.dropCollectionSpace( cappedCSName );
+                }
+                srcdb.close();
             }
         } catch ( BaseException e ) {
             e.printStackTrace();

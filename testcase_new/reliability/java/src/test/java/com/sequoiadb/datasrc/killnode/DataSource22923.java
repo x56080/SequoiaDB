@@ -156,6 +156,8 @@ public class DataSource22923 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_NETWORK
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode() ) {
                     throw e;
                 }
