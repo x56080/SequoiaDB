@@ -297,6 +297,7 @@ namespace engine
       _maxReplSync= 0 ;
       _maxSubmitOffset = 0 ;
       _submitRC   = SDB_OK ;
+      _ntyQueue   = NULL ;
 
       _emptyEvent.signal() ;
       _allEmptyEvent.signal() ;
