@@ -1154,6 +1154,9 @@ namespace engine
       {
          if ( !connection->isConnected() )
          {
+            // Note: The connection will be established here only when it's an
+            // external connection(e.g., a connection to data source). For
+            // internal connection inside the local cluster, it will do nothing.
             rc = connection->connect() ;
             PD_RC_CHECK( rc, PDERROR, "Establish connection failed[%d]", rc ) ;
          }

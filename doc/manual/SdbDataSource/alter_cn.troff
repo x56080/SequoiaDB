@@ -85,6 +85,14 @@ TransPropagateMode（string）：配置事务操作在数据源上的传播模�
 事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
 .PP
 格式：\f[C]TransPropagateMode:"never"\f[]
+.RE
+.IP "9." 3
+InheritSessionAttr（boolean）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为
+true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+.RS 4
+.PP
+格式：\f[C]InheritSessionAttr:\ true\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，无返回值。

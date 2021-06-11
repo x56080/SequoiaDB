@@ -54,7 +54,8 @@ namespace engine
      _dsMinorVersion( 0 ),
      _dsFixVersion( 0 ),
      _errFilterMask( DS_ERR_FILTER_NONE ),
-     _transPropagateMode( DS_TRANS_PROPAGATE_NEVER )
+     _transPropagateMode( DS_TRANS_PROPAGATE_NEVER ),
+     _inheritSessionAttr( FALSE )
    {
       ossMemset( _name, 0, DATASOURCE_MAX_NAME_SZ + 1 ) ;
       ossMemset( _user, 0, SDB_MAX_USERNAME_LENGTH + 1 ) ;
@@ -135,6 +136,11 @@ namespace engine
                                       FIELD_NAME_TRANS_PROPAGATE_MODE ) )
             {
                _transPropagateMode = sdbDSTransModeFromDesc( ele.valuestr() ) ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(),
+                                      FIELD_NAME_INHERIT_SESSION_ATTR ) )
+            {
+               _inheritSessionAttr = ele.boolean() ;
             }
          }
 
@@ -234,6 +240,11 @@ namespace engine
    SDB_DS_TRANS_PROPAGATE_MODE _coordSdbDataSource::getTransPropagateMode() const
    {
       return _transPropagateMode ;
+   }
+
+   BOOLEAN _coordSdbDataSource::inheritSessionAttr() const
+   {
+      return _inheritSessionAttr ;
    }
 
    INT32 _coordSdbDataSource::_buildGroupInfo( BSONObj &objGroup )

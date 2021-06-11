@@ -61,14 +61,14 @@ namespace engine
 
          pScanner = NULL ;
 
-         switch (type) 
+         switch (type)
          {
             case SCANNER_TYPE_DISK:
                pScanner = SDB_OSS_NEW rtnDiskIXScanner( indexCB, predList,
                                                         su, cb ) ;
                break ;
             case SCANNER_TYPE_MEM_TREE:
-		         pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
+               pScanner = SDB_OSS_NEW rtnMemIXTreeScanner( indexCB, predList,
                                                            su, cb ) ;
                break ;
             case SCANNER_TYPE_MERGE:

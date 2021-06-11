@@ -209,6 +209,8 @@ namespace engine
 
       virtual SDB_DS_TRANS_PROPAGATE_MODE getTransPropagateMode() const = 0 ;
 
+      virtual BOOLEAN inheritSessionAttr() const = 0 ;
+
       /**
        * Get error filter mask of the data source.
        * @return

@@ -71,7 +71,7 @@ Sdb
 
      格式：`ErrorControlLevel:"low"`
 
-    4. TransPropagateMode（ *string* ）：配置事务操作在数据源上的传播模式，默认值为"never"
+   4. TransPropagateMode（ *string* ）：配置事务操作在数据源上的传播模式，默认值为"never"
 
      取值如下：
 
@@ -80,6 +80,9 @@ Sdb
 
      格式：`ErrorControlLevel:"low"`
 
+   5. InheritSessionAttr（ *boolean* ）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为 true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+
+     格式：`InheritSessionAttr: true`
 
 ##返回值##
 

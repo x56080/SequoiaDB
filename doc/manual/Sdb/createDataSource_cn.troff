@@ -94,9 +94,11 @@ DDL）时的报错级别，默认值为"high"
 .fi
 .PP
 格式：\f[C]ErrorControlLevel:"low"\f[]
+.RE
 .IP "4." 3
 TransPropagateMode（ \f[I]string\f[]
 ）：配置事务操作在数据源上的传播模式，默认值为"never"
+.RS 4
 .PP
 取值如下：
 .IP
@@ -108,6 +110,14 @@ TransPropagateMode（ \f[I]string\f[]
 .fi
 .PP
 格式：\f[C]ErrorControlLevel:"low"\f[]
+.RE
+.IP "5." 3
+InheritSessionAttr（ \f[I]boolean\f[]
+）：协调节点与数据源之间的会话是否继承本地会话的属性，默认值为
+true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
+.RS 4
+.PP
+格式：\f[C]InheritSessionAttr:\ true\f[]
 .RE
 .SH 返回值
 .PP

@@ -39,6 +39,7 @@
 
 #include "pmdRemoteSession.hpp"
 #include "coordDef.hpp"
+#include "rtnSessionProperty.hpp"
 
 #include "../bson/bson.h"
 
@@ -136,7 +137,6 @@ namespace engine
                                        NET_HANDLE handle,
                                        const MsgHeader *pReply ) ;
 
-
          virtual void   setUserData( UINT64 data ) ;
 
          virtual BOOLEAN canReconnect ( _pmdRemoteSession * session,
@@ -175,6 +175,21 @@ namespace engine
                                            _pmdSubSession *pSub,
                                            _pmdEDUCB *cb,
                                            UINT32 &nodeSiteVer ) ;
+
+         INT32          _checkDSSessionAttr( _pmdSubSession *pSub,
+                                             _pmdEDUCB *cb,
+                                             UINT32 &nodeSiteVer ) ;
+
+         INT32          _setSessionAttr( _pmdSubSession *pSub,
+                                         const rtnSessionProperty &property,
+                                         _pmdEDUCB *cb,
+                                         BOOLEAN compatibleMode = TRUE ) ;
+
+         INT32          _setSessionAttr( _pmdSubSession *pSub,
+                                         const BSONObj &attrObj,
+                                         _pmdEDUCB *cb ) ;
+
+         BOOLEAN        _isSupportedDSSessoinAttr( const CHAR *attrName ) ;
 
       private:
          SESSION_INIT_TYPE    _initType ;

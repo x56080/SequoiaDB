@@ -79,8 +79,8 @@ The values are as follows:
 .PP
 format: \f[C]ErrorControlLevel:\ "low"\f[]
 .IP "8." 3
-TransPropagateMode (string): Configure transaction propagation mode on data
-source, default is "never".
+TransPropagateMode ( \f[I]string\f[] ): Configure transaction propagation mode
+on data source, default is "never".
 .PP
 The values are as follows:
 .IP \[bu] 2
@@ -92,6 +92,14 @@ The operation will be converted to non\-transactional and send to data source.
 It will be excluded from the transaction.
 .PP
 format: \f[C]TransPropagateMode:\ "never"\f[]
+.IP "9." 3
+InheritSessionAttr ( \f[I]boolean\f[] ): Whether session between local
+coordinator and data source node inherits session attributes from local session
+on the coordinator.
+The supported attributes include.
+The default value is true.
+.PP
+format: \f[C]InheritSessionAttr:\ true\f[]
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
