@@ -73,6 +73,8 @@ namespace engine
       // input:
       // - timeout: timeout to get global logical time
       // - monotonic: indicate if monotonic time is required
+      // output:
+      // - pWaitedTime: return total wait time
       // return:
       // - SDB_OK: succeed to get global logical time
       // - other return code: failed to get global logical time
@@ -80,7 +82,8 @@ namespace engine
       //       `timeout` is 0 means only try once
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time,
                               INT32 timeout = -1,
-                              BOOLEAN monotonic = TRUE ) ;
+                              BOOLEAN monotonic = TRUE,
+                              INT32 *pWaitedTime = NULL ) ;
 
       INT32 getClient( stpClient &client ) ;
 
@@ -318,7 +321,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, "_stpAgentService::getLogicalTimeNS" )
    INT32 _stpAgentService::getLogicalTimeNS( stpLogicalTimeNS &time,
                                              INT32 timeout,
-                                             BOOLEAN monotonic )
+                                             BOOLEAN monotonic,
+                                             INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -388,6 +392,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
+      if ( NULL != pWaitedTime )
+      {
+         *pWaitedTime = totalTimeout ;
+      }
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_GETLOGICALTIMENS, rc ) ;
       return rc ;
 
@@ -869,7 +877,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMENS, "_stpAgent::getLogicalTimeNS" )
    INT32 _stpAgent::getLogicalTimeNS( stpLogicalTimeNS &time,
                                       INT32 timeout,
-                                      BOOLEAN monotonic )
+                                      BOOLEAN monotonic,
+                                      INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -882,7 +891,7 @@ namespace engine
       PD_CHECK( NULL != service, STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get STP agent service" ) ;
 
-      rc = service->getLogicalTimeNS( time, timeout, monotonic ) ;
+      rc = service->getLogicalTimeNS( time, timeout, monotonic, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
@@ -896,7 +905,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETLOGICALTIMEUS, "_stpAgent::getLogicalTimeUS" )
    INT32 _stpAgent::getLogicalTimeUS( stpLogicalTimeUS &time,
                                       INT32 timeout,
-                                      BOOLEAN monotonic )
+                                      BOOLEAN monotonic,
+                                      INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -905,7 +915,7 @@ namespace engine
       stpLogicalTimeNS timeNS ;
 
       // get logical time
-      rc = getLogicalTimeNS( timeNS, timeout, monotonic ) ;
+      rc = getLogicalTimeNS( timeNS, timeout, monotonic, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
       time = timeNS ;

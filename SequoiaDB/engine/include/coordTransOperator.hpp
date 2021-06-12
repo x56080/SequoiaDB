@@ -189,6 +189,10 @@ namespace engine
          virtual void    releaseCompactMsg( CHAR *pMsg,
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) = 0 ;
+
+      protected:
+         UINT64 _preCommitTimeUS ;
+         UINT64 _commitTimeUS ;
    } ;
    typedef _coord2PhaseCommit coord2PhaseCommit ;
 

@@ -1465,7 +1465,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETGLOBTRANSTIME, "dpsTransCB::getGlobTransTime" )
    INT32 dpsTransCB::getGlobTransTime( stpLogicalTimeUS &time,
-                                       INT32 timeout )
+                                       INT32 timeout,
+                                       INT32 *pWaitedTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -1474,7 +1475,7 @@ namespace engine
       // try to get time in timeout
       // NOTE: it might be failed if STP is busy with synchronization
       //       we could retry within a given timeout
-      rc = _stpAgent.getLogicalTimeUS( time, timeout, TRUE ) ;
+      rc = _stpAgent.getLogicalTimeUS( time, timeout, TRUE, pWaitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                    "rc: %d", rc ) ;
 
@@ -1498,13 +1499,18 @@ namespace engine
 
       SDB_ASSERT( NULL != eduCB, "EDUCB is invalid" ) ;
 
+      INT32 totalTimeout = 0 ;
+      INT32 waitedTime = 0 ;
+
    retry:
+      waitedTime = 0 ;
+
       // check if interrupted
       PD_CHECK( !eduCB->isInterrupted(), SDB_APP_INTERRUPT, error, PDERROR,
                 "Failed to get global logical time for pre-commit, "
                 "it is interrupted" ) ;
 
-      rc = getGlobTransTime( time, (INT32)( eduCB->getTransTimeout() ) ) ;
+      rc = getGlobTransTime( time, timeout, &waitedTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get global transaction time, "
                    "rc: %d", rc ) ;
 
@@ -1515,14 +1521,27 @@ namespace engine
       }
       else if ( expectTimeUS > time.getTime() )
       {
-         // there is an interval to reach expecting time, sleep and retry
-         UINT32 sleepTimeUS = expectTimeUS - time.getTime() ;
-         if ( sleepTimeUS > STP_MAX_TIME_ERROR_US )
+         totalTimeout += waitedTime ;
+         if ( timeout >= 0 && totalTimeout > timeout )
          {
-            sleepTimeUS = STP_MAX_TIME_ERROR_US ;
+            PD_LOG( PDWARNING, "Failed to get global transaction time, "
+                    "it is timeout" ) ;
+            rc = SDB_TIMEOUT ;
+            goto error ;
          }
-         ossSleep( STP_MICROSEC_TO_MILLISEC( sleepTimeUS ) ) ;
-         goto retry ;
+         else
+         {
+            // there is an interval to reach expecting time, sleep and retry
+            UINT32 sleepTimeUS = expectTimeUS - time.getTime() ;
+            if ( sleepTimeUS > STP_MAX_TIME_ERROR_US )
+            {
+               sleepTimeUS = STP_MAX_TIME_ERROR_US ;
+            }
+            INT32 sleepTime = STP_MICROSEC_TO_MILLISEC( sleepTimeUS ) ;
+            totalTimeout += sleepTime ;
+            ossSleep( sleepTime ) ;
+            goto retry ;
+         }
       }
       else if ( expectTimeUS == time.getTime() )
       {

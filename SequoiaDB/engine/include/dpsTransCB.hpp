@@ -457,12 +457,14 @@ namespace engine
       //               0 means try once, -1 means never timeout
       // output:
       //    - time: time from STP
+      //    - pWaitedTime: return total wait time
       // return:
       //    - SDB_OK: succeed to get time
       //    - STP_NOT_AVAILABLE: STP is not available for global transaction
       //    - SDB_TIMEOUT: failed to get time in given timeout
       INT32 getGlobTransTime( stpLogicalTimeUS &time,
-                              INT32 timeout = OSS_ONE_SEC ) ;
+                              INT32 timeout = OSS_ONE_SEC,
+                              INT32 *pWaitedTime = NULL ) ;
 
       // get logical time from STP which should after expecting time
       // input:
