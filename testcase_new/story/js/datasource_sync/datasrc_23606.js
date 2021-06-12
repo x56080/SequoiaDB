@@ -6,8 +6,8 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-// CI环境不支持运行数据源串行用例，暂时屏蔽
-// main( test );
+
+main( test );
 
 function test ()
 {
@@ -16,7 +16,7 @@ function test ()
 
    assert.tryThrow( SDB_INVALIDARG, function()
    {
-      db.createDataSource( dataSrcName, COORDHOSTNAME + ":" + COORDSVCNAME );
+      db.createDataSource( dataSrcName, "localhost:" + COORDSVCNAME );
    } );
    var obj = getLastErrObj();
    assert.equal( obj.toObj().detail, "'localhost' is not allowed in data source address" );
