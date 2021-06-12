@@ -33,18 +33,38 @@ var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
 
 function clearDataSource ( csName, dataSrcName )
 {
-   try
-   {
-      db.dropCS( csName );
-   }
-   catch( e )
-   {
-      if( e != SDB_DMS_CS_NOTEXIST )
+    if( typeof ( csName ) === "string" )
+    {
+       try
       {
-         throw new Error( e );
+         db.dropCS( csName );
       }
-   }
-
+      catch( e )
+      {
+         if( e != SDB_DMS_CS_NOTEXIST )
+         {
+            throw new Error( e );
+         }
+      }
+    }
+    else
+    {
+         for( var i in csName )
+         {
+            try
+            {
+               db.dropCS( csName[i] );
+            }
+            catch( e )
+            {
+               if( e != SDB_DMS_CS_NOTEXIST )
+               {
+               throw new Error( e );
+               }
+            }
+         }
+    }
+   
    try
    {
       db.dropDataSource( dataSrcName )
@@ -70,11 +90,16 @@ function sortBy ( field )
 
 /************************************
 *@Description: bulk insert data
-*@author:      zhaoyu
-*@createDate:  2016.11.23
+*@input: dbcl        db.getCS(cs).getCL(cl)
+         recordNum   插入记录数
+         recordStart 记录数起始值
+         recordEnd   记录结束值
 **************************************/
 function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
 {
+   if( undefined == recordNum ) { recordNum = 5000; }
+   if( undefined == recordStart ) { recordStart = 0; }
+   if( undefined == recordEnd ) { recordEnd = 5000; }
    try
    {
       var doc = [];
@@ -112,4 +137,196 @@ function getCoordUrl ( sdb )
       coordUrls.push( hostname + ":" + svcname );
    }
    return coordUrls;
+}
+
+function updateConf ( db, configs, options, errno )
+{
+   try
+   {
+      db.updateConf( configs, options );
+   }
+   catch( e )
+   {
+      if( errno === undefined || e.message !== errno.toString() )
+      {
+         throw e;
+      }
+   }
+}
+
+function deleteConf ( db, configs, options, errno )
+{
+   try
+   {
+      db.deleteConf( configs, options );
+   }
+   catch( e )
+   {
+      if( errno === undefined || e.message !== errno.toString() )
+      {
+         throw e;
+      }
+   }
+}
+
+/************************************************************************
+*@Description: 设置会话访问属性，查看访问计划检查访问节点信息，符合条件的多个节点需要访问均衡
+*@input: cl            db.getCS(cs).getCL(cl)
+         expAccessNodes  预期访问节点
+         options         会话访问属性信息
+**************************************************************************/
+function checkAccessNodes( cl, expAccessNodes, options )
+{
+   var doTimes = 0;
+   var timeOut = 10000;
+   var actAccessNodes = [];
+   while( doTimes < timeOut )//设置instanceid后，获取访问的节点，当访问节点数组的长度等于期望结果时结束循环
+   { 
+      db.setSessionAttr( options );
+      var cursor = cl.find().explain();
+      while( cursor.next() )
+      {
+         var actAccessNode = cursor.current().toObj().NodeName;         
+         if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+         {
+            actAccessNodes.push( actAccessNode );
+         }
+      }
+       
+      if( actAccessNodes.length === expAccessNodes.length )
+      {  
+         break;
+      }
+      else
+      { 
+         sleep( 10 ); 
+         doTimes++;
+      }
+   }
+  
+   if( doTimes >= timeOut )
+   {
+      throw new Error( "actAccessNodes: " + actAccessNodes + ", expAccessNodes: " + expAccessNodes );
+   }
+
+   //实际结果与预期结果比较
+   for( var i in expAccessNodes )
+   {
+      if( actAccessNodes.indexOf( expAccessNodes[i] ) === -1)
+      {
+         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+         throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
+      }
+   }
+}
+
+/************************************************************************
+*@Description: 设置会话访问属性，查看访问计划检查访问节点信息
+*@input: dbcl            db.getCS(cs).getCL(cl)
+         expAccessNodes  预期访问节点
+         options         会话访问属性信息
+**************************************************************************/
+function setSessionAndcheckAccessNodes( cl, expAccessNodes, options )
+{   
+   db.setSessionAttr( options );
+   var cursor = cl.find().explain();
+   var actAccessNodes = [];
+   while( cursor.next() )
+   {
+      var actAccessNode = cursor.current().toObj().NodeName;      
+      if( actAccessNodes.indexOf( actAccessNode ) === -1 )
+      {
+         actAccessNodes.push( actAccessNode );
+      }
+   }
+   cursor.close();    
+
+
+   //实际结果与预期结果比较
+   for( var i in actAccessNodes )
+   {
+     if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1)
+     {
+         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+         throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
+     }
+   }
+}
+
+
+
+/************************************************************************
+*@Description: find().explain()查看访问计划中访问节点信息，检查访问节点正确性
+*@input: dbcl            db.getCS(cs).getCL(cl)
+         expAccessNodes  预期访问节点
+**************************************************************************/
+function findAndCheckAccessNodes( dbcl, expAccessNodes )
+{
+   var actAccessNodes = [];
+   var cursor = dbcl.find().explain();
+   while( cursor.next() )
+   {
+      var actAccessNode = cursor.current().toObj().NodeName;          
+      actAccessNodes.push( actAccessNode );      
+   }
+   cursor.close();
+   //实际结果与预期结果比较
+   for( var i in actAccessNodes )
+   {
+      if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1)
+      {
+         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+         throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
+      }
+   }
+}
+
+/************************************************************************
+*@Description: get svcname of the data group
+*@author:      wuyan
+*@createDate:  2018.1.22
+**************************************************************************/
+function getGroupNodes( db,groupName )
+{   
+   var groupInfo = db.getRG(groupName).getDetail().current().toObj().Group;  
+   var groupNodes = [];
+   for( var i in groupInfo )
+   {
+      var nodeInfo = groupInfo[i].HostName + ":" + groupInfo[i].Service[0].Name;
+      groupNodes.push( nodeInfo );
+   }  
+   return groupNodes;
+}
+
+/*****************************************************************
+*@Description: 检查数据主节点是否存在
+*@input: db       
+         groupName
+******************************************************************/
+function checkMasterNodeExist ( db, groupName )
+{
+   var doTimes = 1;
+   var curMaster;
+   // 最长等待10min
+   while( doTimes <= 600 )
+   {
+      try
+      {
+         curMaster = db.getRG( groupName ).getMaster();         
+         break;
+      }
+      catch( e )
+      {
+         if( SDB_RTN_NO_PRIMARY_FOUND != e.message && SDB_CLS_NOT_PRIMARY != e.message )
+         {
+            throw e;
+         }
+         doTimes++;
+         sleep( 1000 );         
+      }
+   }
+   if( doTimes > 600 )
+   {
+      throw new Error( "Check group has master node timeout" );
+   }
 }
