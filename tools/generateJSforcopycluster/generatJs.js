@@ -294,7 +294,7 @@ function getCSDefine(db, dbcata, jsFile, csSet, dsSet)
 }
 
 // 获取CL定义
-function getCLDefine(db, jsFile, csSet, dsSet, mappingCLSet)
+function getCLDefine(db, jsFile, csSet, dsSet, dsMappingCLSet)
 {
    try
    {
@@ -332,7 +332,7 @@ function getCLDefine(db, jsFile, csSet, dsSet, mappingCLSet)
          {
             cl.option.DataSource = getDSNameByID(dsSet, obj.DataSourceID);
             useDataSource = true ;
-            mappingCLSet.push(obj.Name);
+            dsMappingCLSet.push(obj.Name);
          }
          if (undefined !== obj.Mapping)
          {
@@ -901,15 +901,15 @@ function main()
       var catadb = newDB(catalogHostName, catalogPort);
       var file = createFile(generateFilePath);
       var exceptCSSet = [];
-      var mappingCLSet = [];
+      var dsMappingCLSet = [];
       var dsSet = [];
 
       getDSDefine(catadb, file, dsSet);
       getGroupDefine(db,file);
       getDomainDefine(db,file);
       getCSDefine(db, catadb, file, exceptCSSet, dsSet);
-      getCLDefine(db, file, exceptCSSet, dsSet, mappingCLSet);
-      getIndexDefine(db, file, exceptCSSet, mappingCLSet);
+      getCLDefine(db, file, exceptCSSet, dsSet, dsMappingCLSet);
+      getIndexDefine(db, file, exceptCSSet, dsMappingCLSet);
       generatePublicVar(file);
 
 
