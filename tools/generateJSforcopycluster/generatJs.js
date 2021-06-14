@@ -191,8 +191,15 @@ function getDSDefine(db, jsFile, dsSet)
          ds.option.AccessMode = obj.AccessModeDesc;
          ds.option.ErrorFilterMask = obj.ErrorFilterMaskDesc;
          ds.option.ErrorControlLevel = obj.ErrorControlLevel;
-         ds.option.TransPropagateMode = obj.TransPropagateModeDesc;
-         ds.option.InheritSessionAttr = obj.InheritSessionAttr ;
+         // These are new added properties in later version.
+         if (undefined !== obj.TransPropagateMode)
+         {
+            ds.option.TransPropagateMode = obj.TransPropagateMode;
+         }
+         if (undefined !== obj.InheritSessionAttr)
+         {
+            ds.option.InheritSessionAttr = obj.InheritSessionAttr ;
+         }
 
          if (true === firsttime)
          {
@@ -214,7 +221,11 @@ function getDSDefine(db, jsFile, dsSet)
    }
    catch (e)
    {
-      throw "getDSDefine " + e;
+      // In old versions, data source is not supported.
+      if (-23 != e)
+      {
+         throw "getDSDefine " + e;
+      }
    }
 }
 
