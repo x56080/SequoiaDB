@@ -4301,22 +4301,34 @@ namespace sdbclient
                                   spearated by ','. eg: "sdbserver1:11810,sdbserver2:11820"
               User              : User name of data source.
               Password          : Data source password corresponding to User.
-              AccessMode        : Configure access permissions for the data source, default is "ALL":
-                                    "READ" means allow read-only operation.
-                                    "WRITE" means allow write operation.
-                                    "ALL" or "READ|WRITE" means allow all operations.
-                                    "NONE" means no operation allowed.
+              AccessMode        : Configure access permissions for the data source, default is "ALL".
+                                  The values are as below:
+                                    "READ"                : Allow read-only operation.
+                                    "WRITE"               : Allow write-only operation.
+                                    "ALL" or "READ|WRITE" : Allow all operations.
+                                    "NONE"                : Neither read nor write operation is allowed.
               ErrorFilterMask   : Configure error filtering for data operations on data sources,
-                                  default is "NONE":
-                                    "READ" means filter data read errors.
-                                    "WRITE" means filter data write errors.
-                                    "ALL" or "READ|WRITE" means filter all data read and write errors
-                                    "NONE" means do not filter any errors.
-              ErrorControlLevel : Configure the error level when performing unsupported data operations
-                                  (such as DDL) on the mapping collection or collection space, default
-                                  is "High":
-                                    "High" means report an error and output an error message.
-                                    "Low" means ignore unsupported data operations and do not execute.
+                                  default is "NONE". The values are as below:
+                                    "READ"                : Filter data read errors.
+                                    "WRITE"               : Filter data write errors.
+                                    "ALL" or "READ|WRITE" : Filter both data read and write errors.
+                                    "NONE"                : Do not filter any errors.
+              ErrorControlLevel : Configure the error control level when performing unsupported data
+                                  operations (such as DDL) on the mapping collection or collection space,
+                                  default is "high". The values are as below:
+                                    "high" : Report an error and output an error message.
+                                    "low"  : Ignore unsupported data operations and do not execute on data source.
+              TransPropagateMode: Configure the transaction propagation mode on data source, default is
+                                  "never". The values are as below:
+                                    "never"      : Transaction operation is forbidden. Report an error and
+                                                   output an error message.
+                                    "notsupport" : Transaction operation is not supported on data source.
+                                                   The operation will be converted to non-transactional
+                                                   and sent to data source.
+              InheritSessionAttr: Configure whether the session between the coordination node and the data source
+                                  inherits properties of the local session, default is true. The supported attributes
+                                  include PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod and Timeout.
+
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -6919,22 +6931,34 @@ namespace sdbclient
           \param [in] type Data source type
           \param [in] options Optional configuration option for create data source:
 
-              AccessMode        : Configure access permissions for the data source, default is "ALL":
-                                    "READ" means allow read-only operation.
-                                    "WRITE" means allow write operation.
-                                    "ALL" or "READ|WRITE" means allow all operations.
-                                    "NONE" means no operation allowed.
+              AccessMode        : Configure access permissions for the data source, default is "ALL".
+                                  The values are as below:
+                                    "READ"                : Allow read-only operation.
+                                    "WRITE"               : Allow write-only operation.
+                                    "ALL" or "READ|WRITE" : Allow all operations.
+                                    "NONE"                : Neither read nor write operation is allowed.
               ErrorFilterMask   : Configure error filtering for data operations on data sources,
-                                  default is "NONE":
-                                    "READ" means filter data read errors.
-                                    "WRITE" means filter data write errors.
-                                    "ALL" or "READ|WRITE" means filter all data read and write errors.
-                                    "NONE" means do not filter any errors.
-              ErrorControlLevel : Configure the error level when performing unsupported data operations
-                                  (such as DDL) on the mapping collection or collection space, default
-                                  is "High":
-                                    "High" means report an error and output an error message.
-                                    "Low" means ignore unsupported data operations and do not execute.
+                                  default is "NONE". The values are as below:
+                                    "READ"                : Filter data read errors.
+                                    "WRITE"               : Filter data write errors.
+                                    "ALL" or "READ|WRITE" : Filter both data read and write errors.
+                                    "NONE"                : Do not filter any errors.
+              ErrorControlLevel : Configure the error control level when performing unsupported data
+                                  operations (such as DDL) on the mapping collection or collection space,
+                                  default is "high". The values are as below:
+                                    "high" : Report an error and output an error message.
+                                    "low"  : Ignore unsupported data operations and do not execute on data source.
+              TransPropagateMode: Configure the transaction propagation mode on data source, default is
+                                  "never". The values are as below:
+                                    "never"      : Transaction operation is forbidden. Report an error and
+                                                   output an error message.
+                                    "notsupport" : Transaction operation is not supported on data source.
+                                                   The operation will be converted to non-transactional
+                                                   and sent to data source.
+              InheritSessionAttr: Configure whether the session between the coordination node and the data source
+                                  inherits properties of the local session, default is true. The supported attributes
+                                  include PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod and Timeout.
+
           \param [out] dataSource A data source object
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
