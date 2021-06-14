@@ -2512,25 +2512,35 @@ public class Sequoiadb implements Closeable {
      *                  the values are as follows:
      *                  <ul>
      *                    <li>"READ" : Allow read-only operation
-     *                    <li>"WRITE" : Allow write operation
+     *                    <li>"WRITE" : Allow write-only operation
      *                    <li>"ALL" or "READ|WRITE" : Allow all operations
-     *                    <li>"NONE" : No operation allowed
+     *                    <li>"NONE" : Neither read nor write operation is allowed
      *                  </ul>
      *                  <li>ErrorFilterMask(String) : Configure error filtering for data operations on data sources,
      *                  default is "NONE", the values are as follows:
      *                  <ul>
      *                    <li>"READ" : Filter data read errors
      *                    <li>"WRITE" : Filter data write errors
-     *                    <li>"ALL" or "READ|WRITE" : Filter all data read and write errors
+     *                    <li>"ALL" or "READ|WRITE" : Filter both data read and write errors
      *                    <li>"NONE" : Do not filter any errors
      *                  </ul>
-     *                  <li>ErrorControlLevel(String) : Configure the error level when performing unsupported data
-     *                  operations(such as DDL) on the mapping collection or collection space, default is "High",
+     *                  <li>ErrorControlLevel(String) : Configure the error control level when performing unsupported data
+     *                  operations(such as DDL) on the mapping collection or collection space, default is "high",
      *                  the values are as follows:
      *                  <ul>
-     *                    <li>"High" : Report an error and output an error message
-     *                    <li>"Low" : Ignore unsupported data operations and do not execute
+     *                    <li>"high" : Report an error and output an error message
+     *                    <li>"low" : Ignore unsupported data operations and do not execute on data source
      *                  </ul>
+     *                  <li>TransPropagateMode(String) : Configure the transaction propagation mode on data source,
+     *                  default is "never", the values are as follows:
+     *                  <ul>
+     *                    <li>"never": Transaction operation is forbidden. Report an error and output and error message.
+     *                    <li>"notsupport": Transaction operation is not supported on data source. The operation
+     *                    will be converted to non-transactional and send to data source.
+     *                  </ul>
+     *                  <li>InheritSessionAttr(Bool): Configure whether the session between the coordination node and the
+     *                  data source inherits properties of the local session, default is true. The supported attributes
+                        include PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod and Timeout.
      *                </ul>
      * @return A data source object
      * @throws BaseException If error happens.
