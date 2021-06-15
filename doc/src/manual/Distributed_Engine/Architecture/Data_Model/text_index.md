@@ -78,7 +78,7 @@ sdbseadapter 是 SequoiaDB 与 Elasticsearch 连接的桥梁，是实现 Sequoia
 
 2. Elasticsearch 安装 
 
-   用户自行到 [Elasticsearch 官网](http://www.elastic.co)下载 Elasticsearch 安装包，并按照实际业务需要，参考 Elasticsearch 相关文档完成软件安装及集群部署。当前 SequoiaDB 适配的 Elasticsearch 版本为 6.2.2。
+   用户自行到 [Elasticsearch 官网](http://www.elastic.co)下载 Elasticsearch 安装包，并按照实际业务需要，参考 Elasticsearch 相关文档完成软件安装及集群部署。当前 SequoiaDB 适配的 Elasticsearch 版本为 6.8.5。
 
 ### 配置全文检索运行环境
 
