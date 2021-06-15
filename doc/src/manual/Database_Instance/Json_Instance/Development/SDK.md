@@ -29,19 +29,19 @@ SDK驱动开发
 
 ### 配置 Eclipse 开发环境
 
-1. 解压驱动开发包，将开发包中的 `sequoiadb-driver.jar` 文件拷贝到工程文件目录下（建议将其放置在其他所有依赖库目录，如 `lib` 目录）
+1. 在 Eclipse 界面中，创建或打开相应的开发工程
 
-2. 在 Eclipse 界面中，创建/打开开发工程
+2. 解压驱动开发包，将开发包中的 `sequoiadb-driver.jar` 文件拷贝到工程文件目录下（建议将其放置在其他所有依赖库目录，如 `lib` 目录）
 
-3. 在 Eclipse 主窗口左侧的”Package Explore“窗口中，选择开发工程，并点击鼠标右键
+3. 在 Eclipse 主窗口左侧的【Project Explore】窗口中，选择开发工程，并点击鼠标右键
 
-4. 在菜单中选择【properties】菜单项
+4. 在选项中依次选择【Build Path】->【Configure Build Path...】
 
-5. 在弹出的”property for project …“窗口中，选择【Java Build Path】->【Libraries】
+5. 在弹出的【Properties for test】窗口中，进入【Libraries】页面点击 **Add JARs** 按钮
 
-6. 点击 **Add External JARs..** 按钮，选择添加 `sequoiadb.jar` 到工程中
+6. 在弹出的【JAR Selection】窗口中，选中对应开发工程中的 `sequoiadb-driver.jar` 文件
 
-7. 点击 **OK** 完成环境配置
+7. 点击 **OK** 按钮，完成环境配置
 
 ### 数据库操作
 
