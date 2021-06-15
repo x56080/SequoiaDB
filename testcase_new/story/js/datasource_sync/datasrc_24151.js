@@ -60,7 +60,7 @@ function test ()
    var instances = ["S", "-S", "s", "-s"];
    for( var i = 0; i < instances.length; i++ )
    {
-      var options = { PreferedInstance: instances[i] };
+      var options = { PreferedInstance: instances[i], PreferedPeriod:0 };
       checkAccessNodes( dbclA, expAccessNodesB, options );
       checkAccessNodes( dbclB, expAccessNodesB, options );
    }

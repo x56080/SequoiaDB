@@ -36,7 +36,7 @@ function test ()
       dbcl.update( { $set: { c: updateValue } } );
    } );
 
-   timeoutValue = 10000;
+   timeoutValue = 20000;
    db.setSessionAttr( { PreferedInstance: "s", Timeout: timeoutValue } );
    dbcl = db.getCS( csName ).getCL( clName );
    dbcl.update( { $set: { c: updateValue } } );

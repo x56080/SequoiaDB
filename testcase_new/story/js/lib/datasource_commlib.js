@@ -178,7 +178,7 @@ function deleteConf ( db, configs, options, errno )
 function checkAccessNodes( cl, expAccessNodes, options )
 {
    var doTimes = 0;
-   var timeOut = 10000;
+   var timeOut = 20000;
    var actAccessNodes = [];
    while( doTimes < timeOut )//设置instanceid后，获取访问的节点，当访问节点数组的长度等于期望结果时结束循环
    { 
