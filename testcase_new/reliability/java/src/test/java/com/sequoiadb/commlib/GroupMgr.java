@@ -49,7 +49,7 @@ public class GroupMgr {
     }
 
     public void refresh( String coordUrl ) throws ReliabilityException {
-        if ( System.currentTimeMillis() - refreshTime < 1000 && !refreshFlag ) {
+        if ( System.currentTimeMillis() - refreshTime < 1000 && !refreshFlag && coordUrl.equals( inputUrl )) {
             return;
         }
         refreshFlag = false;
@@ -62,7 +62,7 @@ public class GroupMgr {
             try {
                 if ( sdb == null || sdb.isClosed() || !sdb.isValid() ) {
                     sdb = new Sequoiadb( coordUrl, "", "" );
-                } else if ( coordUrl != inputUrl ) {
+                } else if ( !coordUrl.equals( inputUrl ) ) {
                     sdb.close();
                     sdb = new Sequoiadb( coordUrl, "", "" );
                 }

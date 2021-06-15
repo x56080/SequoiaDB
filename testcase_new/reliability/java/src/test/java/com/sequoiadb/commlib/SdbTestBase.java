@@ -144,7 +144,7 @@ public class SdbTestBase {
                 createWorkDir( srcCoordUrl );
                 createReserveDir( srcCoordUrl );
             } catch ( BaseException e ) {
-                Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
+                Assert.fail( "connect " + srcCoordUrl + ": " + e.getErrorCode() );
             } finally {
                 if ( srcdb != null ) {
                     srcdb.close();
