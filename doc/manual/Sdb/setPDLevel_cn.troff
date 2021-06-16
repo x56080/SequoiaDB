@@ -115,13 +115,37 @@ v2.8 及以上版本
 .SH 示例
 .IP \[bu] 2
 设置当前节点的日志级别为DEBUG。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.setPDLevel(\ 5\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.setPDLevel(\ 5\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 设置节点1000的日志级别为INFO。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.setPDLevel(\ 4,\ {NodeID:1000}\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.setPDLevel(\ 4,\ {NodeID:1000}\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 设置所有节点的日志级别为EVENT。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.setPDLevel(\ 3,\ {Global:true}\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.setPDLevel(\ 3,\ {Global:true}\ )
+\f[]
+.fi
+.RE

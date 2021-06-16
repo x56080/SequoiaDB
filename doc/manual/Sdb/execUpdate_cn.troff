@@ -30,7 +30,11 @@ Sdb
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-向集合 sample.employee 中插入新的记录
 .PP
-\f[C]lang\-javascript\ \ >\ db.execUpdate(\ "insert\ into\ sample.employee(name,age)\ values(\[aq]zhangshang\[aq],\ 30)"\ )\f[]
+向集合 sample.employee 中插入新的记录
+.IP
+.nf
+\f[C]
+>\ db.execUpdate(\ "insert\ into\ sample.employee(name,age)\ values(\[aq]zhangshang\[aq],\ 30)"\ )
+\f[]
+.fi

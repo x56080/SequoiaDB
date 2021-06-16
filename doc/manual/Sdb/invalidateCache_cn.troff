@@ -65,13 +65,31 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 清除当前协调节点和数据组‘group1'的缓存信息。
-.PP
-\f[C]lang\-javascript\ \ >\ db.invalidateCache(\ {\ GroupName:\ \[aq]group1\[aq]\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.invalidateCache(\ {\ GroupName:\ \[aq]group1\[aq]\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 清除当前协调节点的缓存信息。
-.PP
-\f[C]lang\-javascript\ \ >\ db.invalidateCache(\ {\ Global:\ false\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.invalidateCache(\ {\ Global:\ false\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 清除所有协调节点的缓存信息。
-.PP
-\f[C]lang\-javascript\ \ >\ db.invalidateCache(\ {\ GroupName:\ \[aq]SYSCoord\[aq]\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.invalidateCache(\ {\ GroupName:\ \[aq]SYSCoord\[aq]\ }\ )
+\f[]
+.fi
+.RE

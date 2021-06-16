@@ -30,7 +30,12 @@ Sdb
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-关闭数据库连接
 .PP
-\f[C]lang\-javascript\ \ >\ var\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.close()\f[]
+关闭数据库连接
+.IP
+.nf
+\f[C]
+>\ var\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.close()
+\f[]
+.fi

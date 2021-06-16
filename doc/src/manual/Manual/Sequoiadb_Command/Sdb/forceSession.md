@@ -53,21 +53,21 @@ v2.0 及以上版本
 
 * 终止当前节点编号为30的会话。
 
- ```lang-javascript
- // 连接节点
- > db = new Sdb( "localhost", 11810 )
- // 终止指定会话
- > db.forceSession( 30 )
- ```
+    ```lang-javascript
+    // 连接节点
+    > db = new Sdb( "localhost", 11810 )
+    // 终止指定会话
+    > db.forceSession( 30 )
+    ```
 
 * 终止节点ID为1000上的编号为30的会话。
 
- ```lang-javascript
- // 连接节点
- > db = new Sdb( "localhost", 11810 )
- // 终止编号为30的会话
- > db.forceSession( 30, {NodeID:1000} )
- ```
+    ```lang-javascript
+    // 连接节点
+    > db = new Sdb( "localhost", 11810 )
+    // 终止编号为30的会话
+    > db.forceSession( 30, {NodeID:1000} )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

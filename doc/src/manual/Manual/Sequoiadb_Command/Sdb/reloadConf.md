@@ -44,19 +44,19 @@ v2.8 及以上版本
 
 * 对所有节点进行配置重新加载。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.reloadConf()
- ```
+    ```lang-javascript
+    // 连接协调节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.reloadConf()
+    ```
 
 * 对指定节点 1000 进行配置重加载。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.reloadConf( {NodeID:1000} )
- ```
+    ```lang-javascript
+    // 连接协调节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.reloadConf( {NodeID:1000} )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

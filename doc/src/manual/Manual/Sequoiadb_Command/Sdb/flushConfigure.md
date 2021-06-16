@@ -48,11 +48,11 @@ v2.0 及以上版本
 
 ##示例##
 
-- 刷盘数据库配置
+刷盘数据库配置
 
- ```lang-javascript
- > db.flushConfigure( { Global : true } )
- ```
+```lang-javascript
+> db.flushConfigure( { Global : true } )
+```
 
 [^_^]:
      本文使用的所有引用及链接

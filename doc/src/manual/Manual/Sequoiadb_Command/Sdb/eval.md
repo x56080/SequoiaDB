@@ -50,36 +50,36 @@ v2.0 及以上版本
 
 * 在eval() 方法中调用存储过程函数 sum
 
- ```lang-javascript
- //初始时 sum() 方法不存在，返回异常信息
- > var a = db.eval( 'sum(1,2)' );
- { "errmsg": "(nofile):1 ReferenceError: getCL is not defined", "retCode": -152 }
-(nofile):0 uncaught exception: -152
- //初始化 sum()
- > db.createProcedure( function sum(x,y){return x+y;} )
- //调用 sum()
- > db.eval( 'sum(1,2)' )
- 3
- ```
+    ```lang-javascript
+    //初始时 sum() 方法不存在，返回异常信息
+    > var a = db.eval( 'sum(1,2)' );
+    { "errmsg": "(nofile):1 ReferenceError: getCL is not defined", "retCode": -152 }
+    (nofile):0 uncaught exception: -152
+    //初始化 sum()
+    > db.createProcedure( function sum(x,y){return x+y;} )
+    //调用 sum()
+    > db.eval( 'sum(1,2)' )
+    3
+    ```
 
 * 在 eval() 方法中填写 JavaScript 语句
 
- ```lang-javascript
- > var ret = db.eval( "db.sample.employee" )
- > ret.find()
- {
-   "_id": {
-     "$oid": "5248d3867159ae144a000000"
-   },
-   "a": 1
- }
- {
-   "_id": {
-     "$oid": "5248d3897159ae144a000001"
-   },
-   "a": 2
- }...
- ```
+    ```lang-javascript
+    > var ret = db.eval( "db.sample.employee" )
+    > ret.find()
+    {
+      "_id": {
+        "$oid": "5248d3867159ae144a000000"
+      },
+      "a": 1
+    }
+    {
+      "_id": {
+        "$oid": "5248d3897159ae144a000001"
+      },
+      "a": 2
+    }...
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

@@ -86,21 +86,67 @@ v3.2 及以上版本
 .SH 示例
 .IP \[bu] 2
 查询数据。（假定存在集合空间 “sample”，而且当前 SequoiaDB 是独立模式启动的）
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.sample.employee.find()\ \ \ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "name":\ "fang",\ \ \ \ \ \ \ "age":\ 18\ \ \ \ }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.find()
+{
+\ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
+\ \ \ },
+\ \ \ "name":\ "fang",
+\ \ \ "age":\ 18
+}
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 卸载内存中的集合空间 “sample”。
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.unloadCS(\ "sample"\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.unloadCS(\ "sample"\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 查询数据。
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.sample.employee.find()\ \ \ \ uncaught\ exception:\ \-34\ \ \ \ Collection\ space\ does\ not\ exist\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.find()
+uncaught\ exception:\ \-34
+Collection\ space\ does\ not\ exist
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 加载集合空间 “sample” 到内存中。
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.loadCS(\ "sample"\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.loadCS(\ "sample"\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 再次查询数据。
-.PP
-\f[C]lang\-javascript\ \ \ \ >\ db.sample.employee.find()\ \ \ \ {\ \ \ \ \ \ \ "_id":\ {\ \ \ \ \ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"\ \ \ \ \ \ \ },\ \ \ \ \ \ \ "name":\ "fang",\ \ \ \ \ \ \ "age":\ 18\ \ \ \ }\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.sample.employee.find()
+{
+\ \ \ "_id":\ {
+\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
+\ \ \ },
+\ \ \ "name":\ "fang",
+\ \ \ "age":\ 18
+}
+\f[]
+.fi
+.RE

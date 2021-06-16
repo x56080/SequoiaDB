@@ -136,9 +136,21 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 创建一个域，包含两个复制组。
-.PP
-\f[C]lang\-javascript\ \ >\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ]\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ]\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 创建一个域，包含两个复制组，并且指定自动切分。
-.PP
-\f[C]lang\-javascript\ \ >\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ],\ {\ AutoSplit:\ true\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ],\ {\ AutoSplit:\ true\ }\ )
+\f[]
+.fi
+.RE

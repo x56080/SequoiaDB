@@ -70,13 +70,13 @@ v2.0 及以上版本
 
 ##示例##
 
-* 创建 sum 函数
+创建 sum 函数
 
- ```lang-javascript
- > db.createProcedure( function sum(x,y) { return x+y; } )
- ```
+```lang-javascript
+> db.createProcedure( function sum(x,y) { return x+y; } )
+```
 
- 创建之后可以使用 [db.listProcedures()](manual/Manual/Sequoiadb_Command/Sdb/listProcedures.md) 查看函数信息。
+创建之后可以使用 [db.listProcedures()](manual/Manual/Sequoiadb_Command/Sdb/listProcedures.md) 查看函数信息。
 
 [^_^]:
      本文使用的所有引用及链接

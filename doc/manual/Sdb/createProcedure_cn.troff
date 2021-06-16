@@ -121,9 +121,13 @@ db.sample.employee; }。
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-创建 sum 函数
 .PP
-\f[C]lang\-javascript\ \ >\ db.createProcedure(\ function\ sum(x,y)\ {\ return\ x+y;\ }\ )\f[]
+创建 sum 函数
+.IP
+.nf
+\f[C]
+>\ db.createProcedure(\ function\ sum(x,y)\ {\ return\ x+y;\ }\ )
+\f[]
+.fi
 .PP
 创建之后可以使用 db.listProcedures() 查看函数信息。

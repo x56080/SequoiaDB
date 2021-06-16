@@ -34,11 +34,11 @@ v2.0 及以上版本
 
 ##示例##
 
-- 创建一个协调复制组
+创建一个协调复制组
 
- ```lang-javascript
- > db.createCoordRG()
- ```
+```lang-javascript
+> db.createCoordRG()
+```
 
 [^_^]:
      本文使用的所有引用及链接

@@ -42,21 +42,21 @@ v2.0 及以上版本
 
 * 清除当前协调节点和数据组‘group1’的缓存信息。
 
- ```lang-javascript
- > db.invalidateCache( { GroupName: 'group1' } )
- ```
+    ```lang-javascript
+    > db.invalidateCache( { GroupName: 'group1' } )
+    ```
  
 * 清除当前协调节点的缓存信息。
 
- ```lang-javascript
- > db.invalidateCache( { Global: false } )
- ```
+    ```lang-javascript
+    > db.invalidateCache( { Global: false } )
+    ```
 
 * 清除所有协调节点的缓存信息。
 
- ```lang-javascript
- > db.invalidateCache( { GroupName: 'SYSCoord' } )
- ```
+    ```lang-javascript
+    > db.invalidateCache( { GroupName: 'SYSCoord' } )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

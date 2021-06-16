@@ -31,7 +31,14 @@ $LIST_SEQUENCES
 .PP
 v3.2 及以上版本
 .SH 示例
-.IP \[bu] 2
-查看当前数据库的序列信息。
 .PP
-\f[C]lang\-javascript\ \ \ >\ db.listSequences()\ \ \ {\ \ \ \ \ \ \ "Name":\ "SYS_8589934593_id_SEQ"\ \ \ }\f[]
+查看当前数据库的序列信息。
+.IP
+.nf
+\f[C]
+>\ db.listSequences()
+{
+\ \ \ \ "Name":\ "SYS_8589934593_id_SEQ"
+}
+\f[]
+.fi

@@ -38,25 +38,25 @@ v2.8 及以上版本
 
 ##示例##
 
-* 获取会话属性
+获取会话属性
 
- ```lang-javascript
- > db.getSessionAttr()
- {
-   "PreferedInstance": "M",
-   "PreferedInstanceMode": "random",
-   "PreferedStrict": false,
-   "Timeout": -1,
-   "TransIsolation": 0,
-   "TransTimeout": 60,
-   "TransUseRBS": true,
-   "TransLockWait": false,
-   "TransAutoCommit": false,
-   "TransAutoRollback": true,
-   "TransRCCount": true,
-   "Source": ""
- }
- ```
+```lang-javascript
+> db.getSessionAttr()
+{
+  "PreferedInstance": "M",
+  "PreferedInstanceMode": "random",
+  "PreferedStrict": false,
+  "Timeout": -1,
+  "TransIsolation": 0,
+  "TransTimeout": 60,
+  "TransUseRBS": true,
+  "TransLockWait": false,
+  "TransAutoCommit": false,
+  "TransAutoRollback": true,
+  "TransRCCount": true,
+  "Source": ""
+}
+```
 
 [^_^]:
      本文使用的所有引用及链接

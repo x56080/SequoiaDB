@@ -96,15 +96,35 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 删除用户名为 sdbadmin，密码为 sdbadmin 的用户。
-.PP
-\f[C]lang\-javascript\ \ >\ db.dropUsr(\ "sdbadmin",\ "sdbadmin"\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.dropUsr(\ "sdbadmin",\ "sdbadmin"\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 使用 User 对象删除用户名为 sdbadmin，密码为 sdbadmin 的用户。
-.PP
-\f[C]lang\-javascript\ \ >\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )\ \ >\ db.dropUsr(\ a\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )
+>\ db.dropUsr(\ a\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 使用 CipherUser 对象删除用户名为 sdbadmin，密码为 sdbadmin
 的用户（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin
 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见sdbpasswd）。
-.PP
-\f[C]lang\-javascript\ \ >\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )\ \ >\ db.dropUsr(\ a\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
+>\ db.dropUsr(\ a\ )
+\f[]
+.fi
+.RE

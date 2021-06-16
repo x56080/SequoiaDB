@@ -40,11 +40,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 返回集合空间 sample 的引用，假定 sample 已存在。
+返回集合空间 sample 的引用，假定 sample 已存在。
 
- ```lang-javascript
- > db.getCS( "sample" )
- ```
+```lang-javascript
+> db.getCS( "sample" )
+```
 
 [^_^]:
      本文使用的所有引用及链接

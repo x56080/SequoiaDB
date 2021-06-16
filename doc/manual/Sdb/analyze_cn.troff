@@ -641,25 +641,61 @@ v2.9 及以上版本
 .SH 示例
 .IP \[bu] 2
 对全系统所有集合空间进行统计信息分析和收集
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze()\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze()
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定集合空间"sample"进行统计信息分析和收集
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze(\ {\ CollectionSpace\ :\ "sample"\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze(\ {\ CollectionSpace\ :\ "sample"\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定数据组"group1"进行统计信息分析和收集
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze(\ {\ GroupName\ :\ "group1"\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze(\ {\ GroupName\ :\ "group1"\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定集合"sample.employee"进行统计信息收集，并且指定Sample的数量
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ SampleNum\ :\ 1000\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ SampleNum\ :\ 1000\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定集合"sample.employee"的索引"index"进行统计信息收集
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Index\ :\ "index"\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Index\ :\ "index"\ }\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定集合"sample.employee"生成清空统计信息缓存
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Mode\ :\ 5\ }\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Mode\ :\ 5\ }\ )
+\f[]
+.fi
+.RE

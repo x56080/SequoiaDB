@@ -63,39 +63,39 @@ v2.9 及以上版本
 
 - 对全系统所有集合空间进行统计信息分析和收集
 
-  ```lang-javascript
-  > db.analyze()
-  ```
+    ```lang-javascript
+    > db.analyze()
+    ```
 
 - 对指定集合空间"sample"进行统计信息分析和收集
 
-  ```lang-javascript
-  > db.analyze( { CollectionSpace : "sample" } )
-  ```
+    ```lang-javascript
+    > db.analyze( { CollectionSpace : "sample" } )
+    ```
 
 - 对指定数据组"group1"进行统计信息分析和收集
 
-  ```lang-javascript
-  > db.analyze( { GroupName : "group1" } )
-  ```
+    ```lang-javascript
+    > db.analyze( { GroupName : "group1" } )
+    ```
 
 - 对指定集合"sample.employee"进行统计信息收集，并且指定Sample的数量
 
-  ```lang-javascript
-  > db.analyze( { Collection : "sample.employee", SampleNum : 1000 } )
-  ```
+    ```lang-javascript
+    > db.analyze( { Collection : "sample.employee", SampleNum : 1000 } )
+    ```
 
 - 对指定集合"sample.employee"的索引"index"进行统计信息收集
 
-  ```lang-javascript
-  > db.analyze( { Collection : "sample.employee", Index : "index" } )
-  ```
+    ```lang-javascript
+    > db.analyze( { Collection : "sample.employee", Index : "index" } )
+    ```
 
 - 对指定集合"sample.employee"生成清空统计信息缓存
 
-  ```lang-javascript
-  > db.analyze( { Collection : "sample.employee", Mode : 5 } )
-  ```
+    ```lang-javascript
+    > db.analyze( { Collection : "sample.employee", Mode : 5 } )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

@@ -55,21 +55,21 @@ v2.8 及以上版本
 
 1. 对全系统所有集合空间和日志进行深度持久化
 
-  ```lang-javascript
-  > db.sync()
-  ```
+    ```lang-javascript
+    > db.sync()
+    ```
 
 2. 对指定集合空间"sample"进行深度持久化
 
-  ```lang-javascript
-  > db.sync( { CollectionSpace : "sample" } )
-  ```
+    ```lang-javascript
+    > db.sync( { CollectionSpace : "sample" } )
+    ```
 
 3. 对指定数据组"group1"进行深度加阻塞的持久化
 
-  ```lang-javascript
-  > db.sync( { GroupName : "group1", Block : true } )
-  ```
+    ```lang-javascript
+    > db.sync( { GroupName : "group1", Block : true } )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

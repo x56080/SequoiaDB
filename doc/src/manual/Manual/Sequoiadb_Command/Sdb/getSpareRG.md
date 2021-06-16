@@ -34,11 +34,11 @@ v3.0 及以上版本
 
 ##示例##
 
-- 获取SYSSpare组的引用
+获取SYSSpare组的引用
 
- ```lang-javascript
- > var rg = db.getSpareRG()
- ```
+```lang-javascript
+> var rg = db.getSpareRG()
+```
 
 [^_^]:
      本文使用的所有引用及链接

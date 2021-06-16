@@ -42,11 +42,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 新建名为 “group1” 的复制组
+新建名为 “group1” 的复制组
 
- ```lang-javascript
- > db.createRG( "group1" )
- ```
+```lang-javascript
+> db.createRG( "group1" )
+```
 
 [^_^]:
      本文使用的所有引用及链接

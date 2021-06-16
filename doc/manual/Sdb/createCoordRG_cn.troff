@@ -30,7 +30,11 @@ Sdb
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-创建一个协调复制组
 .PP
-\f[C]lang\-javascript\ \ >\ db.createCoordRG()\f[]
+创建一个协调复制组
+.IP
+.nf
+\f[C]
+>\ db.createCoordRG()
+\f[]
+.fi

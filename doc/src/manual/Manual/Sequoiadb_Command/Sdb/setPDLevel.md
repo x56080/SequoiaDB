@@ -46,27 +46,27 @@ v2.8 及以上版本
 
 * 设置当前节点的日志级别为DEBUG。
 
- ```lang-javascript
- // 连接节点
- > db = new Sdb( "localhost", 11810 )
- > db.setPDLevel( 5 )
- ```
+    ```lang-javascript
+    // 连接节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.setPDLevel( 5 )
+    ```
 
 * 设置节点1000的日志级别为INFO。
 
- ```lang-javascript
- // 连接节点
- > db = new Sdb( "localhost", 11810 )
- > db.setPDLevel( 4, {NodeID:1000} )
- ```
+    ```lang-javascript
+    // 连接节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.setPDLevel( 4, {NodeID:1000} )
+    ```
 
 * 设置所有节点的日志级别为EVENT。
 
- ```lang-javascript
- // 连接节点
- > db = new Sdb( "localhost", 11810 )
- > db.setPDLevel( 3, {Global:true} )
- ```
+    ```lang-javascript
+    // 连接节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.setPDLevel( 3, {Global:true} )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

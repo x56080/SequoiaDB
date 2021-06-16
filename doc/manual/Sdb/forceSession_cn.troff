@@ -154,9 +154,27 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 终止当前节点编号为30的会话。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ //\ 终止指定会话\ \ >\ db.forceSession(\ 30\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+//\ 终止指定会话
+>\ db.forceSession(\ 30\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 终止节点ID为1000上的编号为30的会话。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ //\ 终止编号为30的会话\ \ >\ db.forceSession(\ 30,\ {NodeID:1000}\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+//\ 终止编号为30的会话
+>\ db.forceSession(\ 30,\ {NodeID:1000}\ )
+\f[]
+.fi
+.RE

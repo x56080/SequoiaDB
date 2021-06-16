@@ -77,7 +77,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-新建名为 “group1” 的复制组
 .PP
-\f[C]lang\-javascript\ \ >\ db.createRG(\ "group1"\ )\f[]
+新建名为 “group1” 的复制组
+.IP
+.nf
+\f[C]
+>\ db.createRG(\ "group1"\ )
+\f[]
+.fi

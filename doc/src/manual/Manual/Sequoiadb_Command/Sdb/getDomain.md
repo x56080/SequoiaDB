@@ -39,11 +39,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 获取一个之前创建的域。
+获取一个之前创建的域。
 
- ```lang-javascript
- > var domain = db.getDomain( 'mydomain' )
- ```
+```lang-javascript
+> var domain = db.getDomain( 'mydomain' )
+```
 
 [^_^]:
      本文使用的所有引用及链接

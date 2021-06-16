@@ -162,7 +162,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-刷盘数据库配置
 .PP
-\f[C]lang\-javascript\ \ >\ db.flushConfigure(\ {\ Global\ :\ true\ }\ )\f[]
+刷盘数据库配置
+.IP
+.nf
+\f[C]
+>\ db.flushConfigure(\ {\ Global\ :\ true\ }\ )
+\f[]
+.fi

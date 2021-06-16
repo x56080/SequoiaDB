@@ -34,12 +34,12 @@ v2.0 及以上版本
 
 ##示例##
 
-- 关闭数据库连接
+关闭数据库连接
 
- ```lang-javascript
- > var db = new Sdb( "localhost", 11810 )
- > db.close()
- ```
+```lang-javascript
+> var db = new Sdb( "localhost", 11810 )
+> db.close()
+```
 
 [^_^]:
      本文使用的所有引用及链接

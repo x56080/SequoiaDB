@@ -34,11 +34,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 向集合 sample.employee 中插入新的记录
+向集合 sample.employee 中插入新的记录
 
- ```lang-javascript
- > db.execUpdate( "insert into sample.employee(name,age) values('zhangshang', 30)" )
- ```
+```lang-javascript
+> db.execUpdate( "insert into sample.employee(name,age) values('zhangshang', 30)" )
+```
 
 [^_^]:
      本文使用的所有引用及链接

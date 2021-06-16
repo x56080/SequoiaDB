@@ -34,11 +34,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 从集合 sample.employee 中查找所有 age = 20 的记录
+从集合 sample.employee 中查找所有 age = 20 的记录
 
- ```lang-javascript
- > db.exec( "select * from sample.employee where age = 20" )
- ```
+```lang-javascript
+> db.exec( "select * from sample.employee where age = 20" )
+```
 
 [^_^]:
      本文使用的所有引用及链接

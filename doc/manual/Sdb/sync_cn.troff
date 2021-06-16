@@ -366,13 +366,25 @@ v2.8 及以上版本
 .SH 示例
 .IP "1." 3
 对全系统所有集合空间和日志进行深度持久化
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.sync()\f[]
+.nf
+\f[C]
+>\ db.sync()
+\f[]
+.fi
+.RE
 .IP "2." 3
 对指定集合空间"sample"进行深度持久化
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.sync(\ {\ CollectionSpace\ :\ "sample"\ }\ )\f[]
+.nf
+\f[C]
+>\ db.sync(\ {\ CollectionSpace\ :\ "sample"\ }\ )
+\f[]
+.fi
+.RE
 .IP "3." 3
 对指定数据组"group1"进行深度加阻塞的持久化
-.PP
-\f[C]lang\-javascript\ \ \ >\ db.sync(\ {\ GroupName\ :\ "group1",\ Block\ :\ true\ }\ )\f[]
+.nf
+\f[C]
+>\ db.sync(\ {\ GroupName\ :\ "group1",\ Block\ :\ true\ }\ )
+\f[]
+.fi
+.RE

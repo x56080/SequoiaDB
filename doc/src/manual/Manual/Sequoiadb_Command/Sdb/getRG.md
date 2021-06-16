@@ -43,15 +43,15 @@ v2.0 及以上版本
 
 * 指定 name 值，返回复制组 group1 的引用
 
- ```lang-javascript
- > db.getRG( "group1" )
- ```
+    ```lang-javascript
+    > db.getRG( "group1" )
+    ```
 
 * 指定 id 值，返回复制组 group1 的引用（假定 group1 的复制组 id 为1000）
 
- ```lang-javascript
- > db.getRG( 1000 )
- ```
+    ```lang-javascript
+    > db.getRG( 1000 )
+    ```
 
 
 [^_^]:

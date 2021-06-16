@@ -44,18 +44,18 @@ v2.0 及以上版本
 
 * 删除一个之前创建的域。
 
- ```lang-javascript
- > db.dropDomain( 'mydomain' )
- ```
+    ```lang-javascript
+    > db.dropDomain( 'mydomain' )
+    ```
 
 * 删除一个包含集合空间的域，返回错误：
 
- ```lang-javascript
- > db.dropDomain( 'hello' )
- (nofile):0 uncaught exception: -256
- > getLastErrMsg( -256 )
- Domain is not empty
- ```
+    ```lang-javascript
+    > db.dropDomain( 'hello' )
+    (nofile):0 uncaught exception: -256
+    > getLastErrMsg( -256 )
+    Domain is not empty
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

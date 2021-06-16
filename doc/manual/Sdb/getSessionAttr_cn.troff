@@ -37,7 +37,25 @@ Sdb
 .PP
 v2.8 及以上版本
 .SH 示例
-.IP \[bu] 2
-获取会话属性
 .PP
-\f[C]lang\-javascript\ \ >\ db.getSessionAttr()\ \ {\ \ \ \ "PreferedInstance":\ "M",\ \ \ \ "PreferedInstanceMode":\ "random",\ \ \ \ "PreferedStrict":\ false,\ \ \ \ "Timeout":\ \-1,\ \ \ \ "TransIsolation":\ 0,\ \ \ \ "TransTimeout":\ 60,\ \ \ \ "TransUseRBS":\ true,\ \ \ \ "TransLockWait":\ false,\ \ \ \ "TransAutoCommit":\ false,\ \ \ \ "TransAutoRollback":\ true,\ \ \ \ "TransRCCount":\ true,\ \ \ \ "Source":\ ""\ \ }\f[]
+获取会话属性
+.IP
+.nf
+\f[C]
+>\ db.getSessionAttr()
+{
+\ \ "PreferedInstance":\ "M",
+\ \ "PreferedInstanceMode":\ "random",
+\ \ "PreferedStrict":\ false,
+\ \ "Timeout":\ \-1,
+\ \ "TransIsolation":\ 0,
+\ \ "TransTimeout":\ 60,
+\ \ "TransUseRBS":\ true,
+\ \ "TransLockWait":\ false,
+\ \ "TransAutoCommit":\ false,
+\ \ "TransAutoRollback":\ true,
+\ \ "TransRCCount":\ true,
+\ \ "Source":\ ""
+}
+\f[]
+.fi

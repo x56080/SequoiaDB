@@ -36,11 +36,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 删除一个描述符为 5435e7b69487faa663000897 的大对象
+删除一个描述符为 5435e7b69487faa663000897 的大对象
 
- ```lang-javascript
- > db.sample.employee.deleteLob('5435e7b69487faa663000897')
- ```
+```lang-javascript
+> db.sample.employee.deleteLob('5435e7b69487faa663000897')
+```
 
 
 [^_^]:

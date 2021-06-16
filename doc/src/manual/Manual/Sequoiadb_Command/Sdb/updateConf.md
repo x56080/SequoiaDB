@@ -48,51 +48,50 @@ v2.9 及以上版本
 
 * 配置数据节点 20000 上的 diaglevel 参数。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
- ```
+    ```lang-javascript
+    // 连接协调节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
+    ```
 
 * 配置数据组 db2 上所有数据节点的 preferedinstance 和 diaglevel 参数。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.updateConf( { preferedinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
- ```
+    ```lang-javascript
+    // 连接协调节点
+    > db = new Sdb( "localhost", 11810 )
+    > db.updateConf( { preferedinstance:'A', diaglevel:3 }, { GroupName:"db2" } )
+    ```
 
 * 报错时获取详细错误信息。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- // 进行参数配置，报错
- > db.updateConf( { transactionon:'true' }, { ServiceName:"20000" } )
-   (nofile):0 uncaught exception: -264
-   One or more nodes did not complete successfully
-   Takes 0.009322s.
- // 获取详细报错信息，了解到 transactionon 参数需要重启生效
- > getLastErrObj()
-	{
-		"errno": -264,
-		"description": "One or more nodes did not complete successfully",
-		"detail": "",
-		"ErrNodes": [
-		{
-			"NodeName": "ubuntu-zwb:20000",
-			"GroupName": "db1",
-			"Flag": -322,
-			"ErrInfo": {
-			"errno": -322,
-			"description": "Some configuration changes didn't take effect",
-			"detail": "Config 'transactionon' require(s) restart to take effect."
-			}
-		}
-		]
-	}
-Takes 0.004652s.
- ```
+    ```lang-javascript
+    // 连接协调节点
+    > db = new Sdb( "localhost", 11810 )
+    // 进行参数配置，报错
+    > db.updateConf( { transactionon:'true' }, { ServiceName:"20000" } )
+      (nofile):0 uncaught exception: -264
+      One or more nodes did not complete successfully
+      Takes 0.009322s.
+    // 获取详细报错信息，了解到 transactionon 参数需要重启生效
+    > getLastErrObj()
+       {
+           "errno": -264,
+           "description": "One or more nodes did not complete successfully",
+           "detail": "",
+           "ErrNodes": [
+           {
+               "NodeName": "ubuntu-zwb:20000",
+               "GroupName": "db1",
+               "Flag": -322,
+               "ErrInfo": {
+               "errno": -322,
+               "description": "Some configuration changes didn't take effect",
+               "detail": "Config 'transactionon' require(s) restart to take effect."
+               }
+           }
+           ]
+       }
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

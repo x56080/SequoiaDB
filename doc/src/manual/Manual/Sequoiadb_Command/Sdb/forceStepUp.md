@@ -50,12 +50,12 @@ v2.0 及以上版本
 
 ##示例##
 
-- 连接 catalog 节点（hostname1:30000），并使其强制升主，持续300s。
+连接 catalog 节点（hostname1:30000），并使其强制升主，持续300s。
 
- ```lang-javascript
- > var db = new Sdb( "hostname1", 30000 ) ;
- > db.forceStepUp( { Seconds: 300 } );
- ```
+```lang-javascript
+> var db = new Sdb( "hostname1", 30000 ) ;
+> db.forceStepUp( { Seconds: 300 } );
+```
 
 [^_^]:
      本文使用的所有引用及链接

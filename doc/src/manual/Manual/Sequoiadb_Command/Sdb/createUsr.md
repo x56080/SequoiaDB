@@ -58,23 +58,23 @@ v2.0 及以上版本
 
 * 创建用户名为 sdbadmin，密码为 sdbadmin 的用户，并设置审计日志掩码。
 
- ```lang-javascript
- > db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
- ```
+    ```lang-javascript
+    > db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
+    ```
  
 * 使用 User 对象创建用户名为 sdbadmin，密码为 sdbadmin 的用户。
 
- ```lang-javascript
- > var a = User( "sdbadmin", "sdbadmin" )
- > db.createUsr( a )
- ```
+    ```lang-javascript
+    > var a = User( "sdbadmin", "sdbadmin" )
+    > db.createUsr( a )
+    ```
 
 * 使用 CipherUser 对象创建用户名为 sdbadmin，密码为 sdbadmin 的用户（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见 [sdbpasswd][passwd]）。
 
- ```lang-javascript
- > var a = CipherUser( "sdbadmin" )
- > db.createUsr( a )
- ```
+    ```lang-javascript
+    > var a = CipherUser( "sdbadmin" )
+    > db.createUsr( a )
+    ```
 
 
 [^_^]:

@@ -52,15 +52,15 @@ v2.0 及以上版本
 
 * 创建一个域，包含两个复制组。
 
- ```lang-javascript
- > db.createDomain( 'mydomain', [ 'group1', 'group2' ] )
- ```
+    ```lang-javascript
+    > db.createDomain( 'mydomain', [ 'group1', 'group2' ] )
+    ```
 
 * 创建一个域，包含两个复制组，并且指定自动切分。
 
- ```lang-javascript
- > db.createDomain( 'mydomain', [ 'group1', 'group2' ], { AutoSplit: true } )
- ```
+    ```lang-javascript
+    > db.createDomain( 'mydomain', [ 'group1', 'group2' ], { AutoSplit: true } )
+    ```
 
 [^_^]:
      本文使用的所有引用及链接

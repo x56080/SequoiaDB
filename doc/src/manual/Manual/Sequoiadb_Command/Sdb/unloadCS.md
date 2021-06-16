@@ -44,46 +44,46 @@ v3.2 及以上版本
 
 * 查询数据。（假定存在集合空间 “sample”，而且当前 SequoiaDB 是独立模式启动的）
 
-   ```lang-javascript
-   > db.sample.employee.find()
-   {
-      "_id": {
-        "$oid": "5d36c9d5c6b1cee56abefc7e"
-      },
-      "name": "fang",
-      "age": 18
-   }
-   ```
+    ```lang-javascript
+    > db.sample.employee.find()
+    {
+       "_id": {
+         "$oid": "5d36c9d5c6b1cee56abefc7e"
+       },
+       "name": "fang",
+       "age": 18
+    }
+    ```
 
 * 卸载内存空间中的集合空间 “sample”。
 
-   ```lang-javascript
-   > db.unloadCS( "sample" )
-   ```
+    ```lang-javascript
+    > db.unloadCS( "sample" )
+    ```
 
 * 查询数据。
 
-   ```lang-javascript
-   > db.sample.employee.find()
-   uncaught exception: -34
-   Collection space does not exist
-   ```
+    ```lang-javascript
+    > db.sample.employee.find()
+    uncaught exception: -34
+    Collection space does not exist
+    ```
 
 * 加载集合空间 “sample” 到内存中。
 
-   ```lang-javascript
-   > db.loadCS( "sample" )
-   ```
+    ```lang-javascript
+    > db.loadCS( "sample" )
+    ```
 
 * 再次查询数据。
 
-   ```lang-javascript
-   > db.sample.employee.find()
-   {
-      "_id": {
-        "$oid": "5d36c9d5c6b1cee56abefc7e"
-      },
-      "name": "fang",
-      "age": 18
-   }
-   ```
+    ```lang-javascript
+    > db.sample.employee.find()
+    {
+       "_id": {
+         "$oid": "5d36c9d5c6b1cee56abefc7e"
+       },
+       "name": "fang",
+       "age": 18
+    }
+    ```

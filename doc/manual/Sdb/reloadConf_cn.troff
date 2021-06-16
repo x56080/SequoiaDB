@@ -67,9 +67,25 @@ v2.8 及以上版本
 .SH 示例
 .IP \[bu] 2
 对所有节点进行配置重新加载。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接协调节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.reloadConf()\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接协调节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.reloadConf()
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 对指定节点 1000 进行配置重加载。
-.PP
-\f[C]lang\-javascript\ \ //\ 连接协调节点\ \ >\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ >\ db.reloadConf(\ {NodeID:1000}\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//\ 连接协调节点
+>\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db.reloadConf(\ {NodeID:1000}\ )
+\f[]
+.fi
+.RE

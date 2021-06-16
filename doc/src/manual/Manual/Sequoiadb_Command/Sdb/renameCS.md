@@ -55,9 +55,9 @@ Sdb
 
 对集合空间sample，改名为sample_new 。
 
- ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.renameCS( "sample", "sample_new" )
- ```
+```lang-javascript
+// 连接协调节点
+> db = new Sdb( "localhost", 11810 )
+> db.renameCS( "sample", "sample_new" )
+```
 

@@ -30,7 +30,11 @@ Sdb
 .PP
 v3.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-获取SYSSpare组的引用
 .PP
-\f[C]lang\-javascript\ \ >\ var\ rg\ =\ db.getSpareRG()\f[]
+获取SYSSpare组的引用
+.IP
+.nf
+\f[C]
+>\ var\ rg\ =\ db.getSpareRG()
+\f[]
+.fi

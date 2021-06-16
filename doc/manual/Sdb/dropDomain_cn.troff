@@ -70,9 +70,24 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 删除一个之前创建的域。
-.PP
-\f[C]lang\-javascript\ \ >\ db.dropDomain(\ \[aq]mydomain\[aq]\ )\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.dropDomain(\ \[aq]mydomain\[aq]\ )
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 删除一个包含集合空间的域，返回错误：
-.PP
-\f[C]lang\-javascript\ \ >\ db.dropDomain(\ \[aq]hello\[aq]\ )\ \ (nofile):0\ uncaught\ exception:\ \-256\ \ >\ getLastErrMsg(\ \-256\ )\ \ Domain\ is\ not\ empty\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.dropDomain(\ \[aq]hello\[aq]\ )
+(nofile):0\ uncaught\ exception:\ \-256
+>\ getLastErrMsg(\ \-256\ )
+Domain\ is\ not\ empty
+\f[]
+.fi
+.RE

@@ -91,9 +91,42 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 在eval() 方法中调用存储过程函数 sum
-.PP
-\f[C]lang\-javascript\ \ //初始时\ sum()\ 方法不存在，返回异常信息\ \ >\ var\ a\ =\ db.eval(\ \[aq]sum(1,2)\[aq]\ );\ \ {\ "errmsg":\ "(nofile):1\ ReferenceError:\ getCL\ is\ not\ defined",\ "retCode":\ \-152\ }\ (nofile):0\ uncaught\ exception:\ \-152\ \ //初始化\ sum()\ \ >\ db.createProcedure(\ function\ sum(x,y){return\ x+y;}\ )\ \ //调用\ sum()\ \ >\ db.eval(\ \[aq]sum(1,2)\[aq]\ )\ \ 3\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+//初始时\ sum()\ 方法不存在，返回异常信息
+>\ var\ a\ =\ db.eval(\ \[aq]sum(1,2)\[aq]\ );
+{\ "errmsg":\ "(nofile):1\ ReferenceError:\ getCL\ is\ not\ defined",\ "retCode":\ \-152\ }
+(nofile):0\ uncaught\ exception:\ \-152
+//初始化\ sum()
+>\ db.createProcedure(\ function\ sum(x,y){return\ x+y;}\ )
+//调用\ sum()
+>\ db.eval(\ \[aq]sum(1,2)\[aq]\ )
+3
+\f[]
+.fi
+.RE
 .IP \[bu] 2
 在 eval() 方法中填写 JavaScript 语句
-.PP
-\f[C]lang\-javascript\ \ >\ var\ ret\ =\ db.eval(\ "db.sample.employee"\ )\ \ >\ ret.find()\ \ {\ \ \ \ "_id":\ {\ \ \ \ \ \ "$oid":\ "5248d3867159ae144a000000"\ \ \ \ },\ \ \ \ "a":\ 1\ \ }\ \ {\ \ \ \ "_id":\ {\ \ \ \ \ \ "$oid":\ "5248d3897159ae144a000001"\ \ \ \ },\ \ \ \ "a":\ 2\ \ }...\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ var\ ret\ =\ db.eval(\ "db.sample.employee"\ )
+>\ ret.find()
+{
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "5248d3867159ae144a000000"
+\ \ },
+\ \ "a":\ 1
+}
+{
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "5248d3897159ae144a000001"
+\ \ },
+\ \ "a":\ 2
+}...
+\f[]
+.fi
+.RE

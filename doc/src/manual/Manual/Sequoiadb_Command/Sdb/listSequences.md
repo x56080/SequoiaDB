@@ -35,14 +35,14 @@ v3.2 及以上版本
 
 ##示例##
 
-* 查看当前数据库的序列信息。
+查看当前数据库的序列信息。
 
-  ```lang-javascript
-  > db.listSequences()
-  {
-      "Name": "SYS_8589934593_id_SEQ"
-  }
-  ```
+```lang-javascript
+> db.listSequences()
+{
+    "Name": "SYS_8589934593_id_SEQ"
+}
+```
 
 [^_^]:
      本文使用的所有引用及链接
