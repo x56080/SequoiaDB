@@ -75,7 +75,8 @@ MySQL 支持基于 UNIX 域套接字文件和 TCP/IP 两种连接方式。UNIX  
        2. 假设 mysql 服务器地址为 `sdbserver1:3306`，在客户端可以使用如下方式进行远程连接：
 
          ```lang-bash
-         $ /opt/sequoiasql/mysql/bin/mysql -h sdbserver1 -P 3306 -u sdbadmin
+         $ /opt/sequoiasql/mysql/bin/mysql -h sdbserver1 -P 3306 -u sdbadmin -p
+         Enter password:
          ```
  
 **设置 MySQL Shell 登陆密码**
