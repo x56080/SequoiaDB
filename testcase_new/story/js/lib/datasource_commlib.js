@@ -33,9 +33,9 @@ var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
 
 function clearDataSource ( csName, dataSrcName )
 {
-    if( typeof ( csName ) === "string" )
-    {
-       try
+   if( typeof ( csName ) === "string" )
+   {
+      try
       {
          db.dropCS( csName );
       }
@@ -46,25 +46,25 @@ function clearDataSource ( csName, dataSrcName )
             throw new Error( e );
          }
       }
-    }
-    else
-    {
-         for( var i in csName )
+   }
+   else
+   {
+      for( var i in csName )
+      {
+         try
          {
-            try
+            db.dropCS( csName[i] );
+         }
+         catch( e )
+         {
+            if( e != SDB_DMS_CS_NOTEXIST )
             {
-               db.dropCS( csName[i] );
-            }
-            catch( e )
-            {
-               if( e != SDB_DMS_CS_NOTEXIST )
-               {
                throw new Error( e );
-               }
             }
          }
-    }
-   
+      }
+   }
+
    try
    {
       db.dropDataSource( dataSrcName )
@@ -175,35 +175,35 @@ function deleteConf ( db, configs, options, errno )
          expAccessNodes  预期访问节点
          options         会话访问属性信息
 **************************************************************************/
-function checkAccessNodes( cl, expAccessNodes, options )
+function checkAccessNodes ( cl, expAccessNodes, options )
 {
    var doTimes = 0;
-   var timeOut = 20000;
+   var timeOut = 50000;
    var actAccessNodes = [];
    while( doTimes < timeOut )//设置instanceid后，获取访问的节点，当访问节点数组的长度等于期望结果时结束循环
-   { 
+   {
       db.setSessionAttr( options );
+      sleep( 100 );
       var cursor = cl.find().explain();
       while( cursor.next() )
       {
-         var actAccessNode = cursor.current().toObj().NodeName;         
+         var actAccessNode = cursor.current().toObj().NodeName;
          if( actAccessNodes.indexOf( actAccessNode ) === -1 )
          {
             actAccessNodes.push( actAccessNode );
          }
       }
-       
+
       if( actAccessNodes.length === expAccessNodes.length )
-      {  
+      {
          break;
       }
       else
-      { 
-         sleep( 10 ); 
-         doTimes++;
+      {
+         doTimes += 100;
       }
    }
-  
+
    if( doTimes >= timeOut )
    {
       throw new Error( "actAccessNodes: " + actAccessNodes + ", expAccessNodes: " + expAccessNodes );
@@ -212,9 +212,9 @@ function checkAccessNodes( cl, expAccessNodes, options )
    //实际结果与预期结果比较
    for( var i in expAccessNodes )
    {
-      if( actAccessNodes.indexOf( expAccessNodes[i] ) === -1)
+      if( actAccessNodes.indexOf( expAccessNodes[i] ) === -1 )
       {
-         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+         println( "actAccessNodes: " + actAccessNodes + "\nexpAccessNodes: " + expAccessNodes );
          throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
       }
    }
@@ -226,30 +226,30 @@ function checkAccessNodes( cl, expAccessNodes, options )
          expAccessNodes  预期访问节点
          options         会话访问属性信息
 **************************************************************************/
-function setSessionAndcheckAccessNodes( cl, expAccessNodes, options )
-{   
+function setSessionAndcheckAccessNodes ( cl, expAccessNodes, options )
+{
    db.setSessionAttr( options );
    var cursor = cl.find().explain();
    var actAccessNodes = [];
    while( cursor.next() )
    {
-      var actAccessNode = cursor.current().toObj().NodeName;      
+      var actAccessNode = cursor.current().toObj().NodeName;
       if( actAccessNodes.indexOf( actAccessNode ) === -1 )
       {
          actAccessNodes.push( actAccessNode );
       }
    }
-   cursor.close();    
+   cursor.close();
 
 
    //实际结果与预期结果比较
    for( var i in actAccessNodes )
    {
-     if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1)
-     {
-         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+      if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1 )
+      {
+         println( "actAccessNodes: " + actAccessNodes + "\nexpAccessNodes: " + expAccessNodes );
          throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
-     }
+      }
    }
 }
 
@@ -260,22 +260,22 @@ function setSessionAndcheckAccessNodes( cl, expAccessNodes, options )
 *@input: dbcl            db.getCS(cs).getCL(cl)
          expAccessNodes  预期访问节点
 **************************************************************************/
-function findAndCheckAccessNodes( dbcl, expAccessNodes )
+function findAndCheckAccessNodes ( dbcl, expAccessNodes )
 {
    var actAccessNodes = [];
    var cursor = dbcl.find().explain();
    while( cursor.next() )
    {
-      var actAccessNode = cursor.current().toObj().NodeName;          
-      actAccessNodes.push( actAccessNode );      
+      var actAccessNode = cursor.current().toObj().NodeName;
+      actAccessNodes.push( actAccessNode );
    }
    cursor.close();
    //实际结果与预期结果比较
    for( var i in actAccessNodes )
    {
-      if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1)
+      if( expAccessNodes.indexOf( actAccessNodes[i] ) === -1 )
       {
-         println("actAccessNodes: "+actAccessNodes+"\nexpAccessNodes: " + expAccessNodes);
+         println( "actAccessNodes: " + actAccessNodes + "\nexpAccessNodes: " + expAccessNodes );
          throw new Error( "The actAccessNodes do not include the node: " + expAccessNodes[i] );
       }
    }
@@ -286,15 +286,15 @@ function findAndCheckAccessNodes( dbcl, expAccessNodes )
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************************************************/
-function getGroupNodes( db,groupName )
-{   
-   var groupInfo = db.getRG(groupName).getDetail().current().toObj().Group;  
+function getGroupNodes ( db, groupName )
+{
+   var groupInfo = db.getRG( groupName ).getDetail().current().toObj().Group;
    var groupNodes = [];
    for( var i in groupInfo )
    {
       var nodeInfo = groupInfo[i].HostName + ":" + groupInfo[i].Service[0].Name;
       groupNodes.push( nodeInfo );
-   }  
+   }
    return groupNodes;
 }
 
@@ -312,7 +312,7 @@ function checkMasterNodeExist ( db, groupName )
    {
       try
       {
-         curMaster = db.getRG( groupName ).getMaster();         
+         curMaster = db.getRG( groupName ).getMaster();
          break;
       }
       catch( e )
@@ -322,7 +322,7 @@ function checkMasterNodeExist ( db, groupName )
             throw e;
          }
          doTimes++;
-         sleep( 1000 );         
+         sleep( 1000 );
       }
    }
    if( doTimes > 600 )

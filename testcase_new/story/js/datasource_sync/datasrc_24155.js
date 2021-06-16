@@ -2,8 +2,8 @@
  * @Description   : seqDB-24155:源集群设置会话访问属性，设置preferedPeriod属性
  * @Author        : Wu Yan
  * @CreateTime    : 2021.05.06
- * @LastEditTime  : 2021.06.07
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2021.06.16
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 
@@ -38,13 +38,15 @@ function test ()
       }
       else
       {
-         expAccessNodeM.push( groups[i]["HostName"] + ":" + groups[i]["svcname"] );         
+         expAccessNodeM.push( groups[i]["HostName"] + ":" + groups[i]["svcname"] );
       }
    }
 
    //preferedPeriod为0     
    db.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: 0 } );
    dbcl.insert( docs );
+   // 数据源性能较差，直接访问可能未生效，sleep 5秒后再访问
+   sleep( 5000 );
    findAndCheckAccessNodes( dbcl, expAccessNodeS );
 
    //preferedPeriod为5  
