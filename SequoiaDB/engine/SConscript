@@ -611,7 +611,8 @@ coordFiles = [
       "coord/coordRemoteMsgHandler.cpp",
       "coord/coordDSMsgConvertor.cpp",
       "coord/coordRemoteConnection.cpp",
-      "coord/coordDSChecker.cpp"
+      "coord/coordDSChecker.cpp",
+      "coord/coordCacheAssist.cpp"
       ]
 
 aggrFiles = [

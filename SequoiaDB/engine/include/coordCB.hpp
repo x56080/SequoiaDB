@@ -133,7 +133,7 @@ namespace engine
          INT32 _sendToCatlog ( MsgHeader *pMsg, NET_HANDLE *pHandle = NULL ) ;
          INT32 _processUpdateGrpInfo () ;
          INT32 _processCatGrpChgNty () ;
-         INT32 _processInvalidateCacheMsg( const BSONObj &option ) ;
+
       private:
 
          coordResource                 _resource ;

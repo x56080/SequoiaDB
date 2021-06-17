@@ -249,6 +249,8 @@ namespace engine
 
          BSONObj     _buildOmGroupInfo() ;
 
+         void        _invalidateRelatedCache( CoordCataInfoPtr &cataPtr ) ;
+
       private:
          MAP_GROUP_INFO                   _mapGroupInfo ;
          MAP_GROUP_NAME                   _mapGroupName ;

@@ -1675,7 +1675,6 @@ namespace engine
 
    void _coordResource::removeCataInfoWithMain( const CHAR *collectionName )
    {
-
       string strSubCLName = collectionName ;
       MAP_CATA_INFO_IT it ;
       clsCatalogSet *pCatSet = NULL ;
@@ -1698,7 +1697,11 @@ namespace engine
       /// not found
       else
       {
-         /// remove main collections
+         // In concurrency scenario, the catalogue cache of collection may have
+         // been invalidated by others, and no catalogue information can be
+         // found above. In this case, we are not sure if it's a sub-collection
+         // of a main collection. If yes, the catalogue cache of the main
+         // collection should be invalidated too.
          it = _mapCataInfo.begin() ;
          while( it != _mapCataInfo.end() )
          {

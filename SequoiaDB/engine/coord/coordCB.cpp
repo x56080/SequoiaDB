@@ -42,6 +42,7 @@
 #include "coordOmStrategyJob.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson ;
 
@@ -1076,7 +1077,24 @@ retry :
       /// run command
       if ( CMD_INVALIDATE_CACHE == pCommand->type() )
       {
-         _processInvalidateCacheMsg( BSONObj( pQueryBuff ) ) ;
+         // For 'invalidate cache' command, an object of class
+         // _rtnInvalidateCache will be created above. But this command can only
+         // execute on catalogue and data nodes. The cache management on these
+         // nodes is different from coordinators. So we need to handle it
+         // seperately here.
+         try
+         {
+            BSONObj option( pQueryBuff )  ;
+            coordCacheInvalidator assist( getResource() ) ;
+            rc = assist.invalidate( option ) ;
+            PD_RC_CHECK( rc, PDERROR, "Invalidate cache with option[%s] "
+                         "failed[%d]", option.toString().c_str(), rc ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc= ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
       }
       else
       {
@@ -1314,105 +1332,6 @@ retry :
          ossScopedLock lock( &_contextLatch ) ;
          _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
       }
-   }
-
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__PROCESSINVALIDATECACHEMSG, "_CoordCB::_processInvalidateCacheMsg" )
-   INT32 _CoordCB::_processInvalidateCacheMsg( const BSONObj &option )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__COORDCB__PROCESSINVALIDATECACHEMSG ) ;
-      const CHAR *type = NULL ;
-      const CHAR *name = NULL ;
-      try
-      {
-         BSONElement typeEle = option.getField( FIELD_NAME_TYPE ) ;
-         BSONElement nameEle = option.getField( FIELD_NAME_NAME ) ;
-         if ( !typeEle.eoo() )
-         {
-            PD_CHECK( String == typeEle.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache type should be a string[%d]",
-                      SDB_INVALIDARG ) ;
-            type = typeEle.valuestr() ;
-            PD_CHECK( ossStrlen( type ) > 0, SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache type length is 0[%d]",
-                      SDB_INVALIDARG ) ;
-         }
-         if ( !nameEle.eoo() )
-         {
-            PD_CHECK( type, SDB_INVALIDARG, error, PDERROR, "Name can't be "
-                      "used without type in invalidate cache command[%d]",
-                      SDB_INVALIDARG ) ;
-            name = nameEle.valuestr() ;
-            PD_CHECK( ossStrlen( name ) > 0, SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache name length is 0[%d]",
-                      SDB_INVALIDARG ) ;
-         }
-
-         if ( type )
-         {
-            if ( 0 == ossStrcasecmp( type, VALUE_NAME_CATALOG ) )
-            {
-               // Invalidate catalog info
-               if ( !name )
-               {
-                  // Invalidate only by type. All catalog info will be cleared.
-                  getResource()->invalidateCataInfo() ;
-               }
-               else if ( NULL == ossStrchr( name, '.' ) )
-               {
-                  // Invalidate cache of collections related to the dropped cs.
-                  vector< string > subCLSet ;
-                  getResource()->removeCataInfoByCS( name, &subCLSet ) ;
-
-                  /// clear relate sub collection's catalog info
-                  vector< string >::iterator it = subCLSet.begin() ;
-                  while( it != subCLSet.end() )
-                  {
-                     getResource()->removeCataInfo( (*it).c_str() ) ;
-                     ++it ;
-                  }
-               }
-               else
-               {
-                  // Invalidate by cl name
-                  getResource()->invalidateCataInfo( name ) ;
-               }
-            }
-            else if ( 0 == ossStrcasecmp( type, VALUE_NAME_GROUP ) )
-            {
-               getResource()->invalidateGroupInfo() ;
-            }
-            else if ( 0 == ossStrcasecmp( type, VALUE_NAME_DATASOURCE ) )
-            {
-               getResource()->invalidateDataSourceInfo( name ) ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Cache type[%s] is invalid[%d]", type, rc ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            // If no type is given, invalidate all.
-            getResource()->invalidateCataInfo() ;
-            getResource()->invalidateGroupInfo() ;
-            getResource()->invalidateDataSourceInfo() ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__COORDCB__PROCESSINVALIDATECACHEMSG, rc ) ;
-      return rc ;
-   error:
-      goto done ;
    }
 
    coordDataSourceMgr *_CoordCB::getDSManager()
