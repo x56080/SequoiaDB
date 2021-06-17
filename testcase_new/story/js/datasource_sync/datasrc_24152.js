@@ -29,7 +29,7 @@ function test ()
    var groups = commGetGroups( datasrcDB );
    var srcGroupName = dataGroupNames[0];
    var destGroupName = dataGroupNames[1];
-   var dscl = commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, Group: srcGroupName } );   
+   var dscl = commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: 0, Group: srcGroupName } );   
    dscl.split( srcGroupName, destGroupName, 50 );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
 

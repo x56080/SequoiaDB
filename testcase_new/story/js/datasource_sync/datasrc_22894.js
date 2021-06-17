@@ -18,7 +18,7 @@ function test ()
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );  
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 } } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 } , ReplSize: 0} );
    var groupNames = commGetCLGroups( datasrcDB, srcCSName + "." + clName );
    var groupName = groupNames[0];
 
