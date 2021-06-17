@@ -454,6 +454,8 @@ namespace engine
          */
          virtual BOOLEAN _flagDoOnCollection () { return FALSE ; }
 
+         virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
+
       private:
          typedef ossPoolList< utilCLUniqueID > UTIL_UNIQUE_LIST ;
          typedef UTIL_UNIQUE_LIST::iterator    UTIL_UNIQUE_LIST_ITER ;
@@ -494,6 +496,7 @@ namespace engine
          // Not a collection command
          virtual BOOLEAN _flagDoOnCollection () { return FALSE ; }
 
+         virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
    } ;
    typedef _coordCMDRenameCollectionSpace coordCMDRenameCollectionSpace ;
 
@@ -638,6 +641,8 @@ namespace engine
          */
          virtual BOOLEAN _flagUseGrpLstInCoord () { return FALSE ; }
 
+         virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
+
       private:
          CLS_GINDEX_LIST _globalIndexes ;
 
@@ -675,6 +680,8 @@ namespace engine
             update catalog info before send command to Data Groups
          */
          virtual BOOLEAN _flagUpdateBeforeData () { return TRUE ; }
+
+         virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
 
    } ;
    typedef _coordCMDRenameCollection coordCMDRenameCollection ;
@@ -860,6 +867,12 @@ namespace engine
             Rollback on Catalog before rollback on Data groups
          */
          virtual BOOLEAN _flagRollbackCataBeforeData () { return TRUE ; }
+
+         virtual BOOLEAN _needNotifyInvalidateCache( coordCMDArguments *pArgs ) ;
+
+         virtual INT32 _doComplete ( MsgHeader *pMsg,
+                                     pmdEDUCB * cb,
+                                     coordCMDArguments *pArgs ) ;
 
       protected:
          string            _subCLName ;

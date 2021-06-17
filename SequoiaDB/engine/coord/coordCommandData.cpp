@@ -48,7 +48,7 @@
 #include "coordSequenceAgent.hpp"
 #include "clsResourceContainer.hpp"
 #include "coordDSChecker.hpp"
-#include "coordCommandWithLocation.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson;
 
@@ -1980,7 +1980,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCS_DOCOMPLETE ) ;
-
       vector< string > subCLSet ;
       _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), &subCLSet ) ;
 
@@ -1992,52 +1991,50 @@ namespace engine
          ++it ;
       }
 
-      try
+      // If any objects related with this cs are using data source. If yes, need
+      // to invalidate cache by cs name on all coordinators.
+      if ( _needNotifyInvalidateCache( pArgs ) )
       {
-         BOOLEAN dsRelated = FALSE ;   // If any objects related with this cs
-                                       // are using data source. If yes, need
-                                       // to invalidate cache by cs name on all
-                                       // coordinators.
-         CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
-         // Check the group list returned by catalogue. If any one is a data
-         // source group, need to broadcast the invalidation message.
-         for ( ; itr != pArgs->_groupList.end(); ++itr )
+         coordCacheInvalidator cacheInvalidator( _pResource ) ;
+         rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                       pArgs->_targetName.c_str(), cb ) ;
+         PD_LOG( PDDEBUG, "Notify other coordinators to invalidate catalogue "
+                 "cache of collection space[%s]", pArgs->_targetName.c_str() ) ;
+         if ( rc )
          {
-            if ( SDB_IS_DSID( itr->first ) )
-            {
-               dsRelated = TRUE ;
-               break ;
-            }
+            // For invalidate cache failure, report warning in the log, but
+            // don't interrupt the current operation.
+            PD_LOG( PDWARNING, "Notify all coordinators to invalidate cache for "
+                    "dropping collection space[%s] failed[%d]",
+                    pArgs->_targetName.c_str(), rc ) ;
+            rc = SDB_OK ;
          }
-         if ( dsRelated )
-         {
-            BSONObj option = BSON( FIELD_NAME_ROLE << "Coord" <<
-                                   FIELD_NAME_TYPE << VALUE_NAME_CATALOG <<
-                                   FIELD_NAME_NAME << pArgs->_targetName.c_str() ) ;
-            rc = coordInvalidateCache( _pResource, option, cb ) ;
-            if ( rc )
-            {
-               // For invalidate cache failure, report warning in the log, but
-               // don't interrupt the current operation.
-               PD_LOG( PDWARNING, "Execute invalidate catalogue cache for "
-                       "collection space %s failed[%d]",
-                       pArgs->_targetName.c_str(), rc ) ;
-               rc = SDB_OK ;
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e )  ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
       }
 
-   done:
       PD_TRACE_EXIT ( COORD_DROPCS_DOCOMPLETE ) ;
       return rc ;
-   error:
-      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCS__NEEDNOTIFYINVALIDCACHE, "_coordCMDDropCollectionSpace::_needNotifyInvalidateCache" )
+   BOOLEAN _coordCMDDropCollectionSpace::_needNotifyInvalidateCache( coordCMDArguments *pArgs )
+   {
+      BOOLEAN result = FALSE ;
+      PD_TRACE_ENTRY( COORD_DROPCS__NEEDNOTIFYINVALIDCACHE ) ;
+      // Check the group list returned by catalogue. If any one is a data source
+      // group, need to broadcast the invalidation message.
+      CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+      while ( itr != pArgs->_groupList.end() )
+      {
+         if ( SDB_IS_DSID( itr->first ) )
+         {
+            result = TRUE ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      PD_TRACE_EXIT( COORD_DROPCS__NEEDNOTIFYINVALIDCACHE ) ;
+      return result ;
    }
 
    /*
@@ -2119,6 +2116,7 @@ namespace engine
                                                        pmdEDUCB * cb,
                                                        coordCMDArguments *pArgs )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_RENAMECS_DOCOMPLETE ) ;
 
       vector< string > subCLSet ;
@@ -2132,8 +2130,50 @@ namespace engine
          ++it ;
       }
 
+      // Check the group list returned by catalogue. If any one is a data
+      // source group, need to broadcast the invalidation message.
+      if ( _needNotifyInvalidateCache( pArgs ) )
+      {
+         coordCacheInvalidator cacheInvalidator( _pResource ) ;
+         rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                       pArgs->_targetName.c_str(), cb ) ;
+         PD_LOG( PDDEBUG, "Notify other coordinators to invalidate catalogue "
+                 "cache of collection space[%s]", pArgs->_targetName.c_str() ) ;
+         if ( rc )
+         {
+            // For invalidate cache failure, report warning in the log, but
+            // don't interrupt the current operation.
+            PD_LOG( PDWARNING, "Notify all coordinators to invalidate "
+                    "catalogue cache for renaming collection space[%s] "
+                    "failed[%d]", pArgs->_targetName.c_str(), rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+
       PD_TRACE_EXIT ( COORD_RENAMECS_DOCOMPLETE ) ;
       return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_RENAMECS__NEEDNOTIFYINVALIDCACHE, "_coordCMDRenameCollectionSpace::_needNotifyInvalidateCache" )
+   BOOLEAN _coordCMDRenameCollectionSpace::_needNotifyInvalidateCache( coordCMDArguments *pArgs )
+   {
+      BOOLEAN result = FALSE ;
+      PD_TRACE_ENTRY( COORD_RENAMECS__NEEDNOTIFYINVALIDCACHE ) ;
+      // Check the group list returned by catalogue. If any one is a data source
+      // group, need to broadcast the invalidation message.
+      CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+      while ( itr != pArgs->_groupList.end() )
+      {
+         if ( SDB_IS_DSID( itr->first ) )
+         {
+            result = TRUE ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      PD_TRACE_EXIT( COORD_RENAMECS__NEEDNOTIFYINVALIDCACHE ) ;
+      return result ;
    }
 
    /*
@@ -2762,57 +2802,118 @@ namespace engine
       _coordDataCMD3Phase::_releaseDataMsg( pMsgBuf, bufSize, cb ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL_DOCOMPLETE, "_coordCMDDropCollection::_doComplete" )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL__DOCOMPLETE, "_coordCMDDropCollection::_doComplete" )
    INT32 _coordCMDDropCollection::_doComplete ( MsgHeader *pMsg,
                                                 pmdEDUCB *cb,
                                                 coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( COORD_DROPCL_DOCOMPLETE ) ;
-
+      PD_TRACE_ENTRY ( COORD_DROPCL__DOCOMPLETE ) ;
+      ossPoolVector<string> collections ;
       CoordCataInfoPtr cataPtr = getCataPtr() ;
       if ( cataPtr.get() )
       {
          rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to invalidate sequence cache, rc: %d", rc ) ;
-         if ( UTIL_INVALID_DS_UID != cataPtr->getDataSourceID() )
+      }
+
+      if ( _needNotifyInvalidateCache( pArgs ) )
+      {
+         BOOLEAN notified = FALSE ;
+         coordCacheInvalidator cacheInvalidator( _pResource ) ;
+         try
          {
-            // It's a collection which is using the data source. Need to notify
-            // other coordinators to cleanup the catalogue cache of the
-            // collection.
-            try
+            if ( cataPtr->isMainCL() )
             {
-               BSONObj option = BSON( FIELD_NAME_ROLE << "Coord" <<
-                                      FIELD_NAME_TYPE << VALUE_NAME_CATALOG <<
-                                      FIELD_NAME_NAME << cataPtr->getName() ) ;
-               rc = coordInvalidateCache( _pResource, option, cb ) ;
+               rc = cataPtr->getSubCLList( collections ) ;
                if ( rc )
                {
-                  // For invalidation error, report warning in the log, but
-                  // don't interrupt the current operation.
-                  PD_LOG( PDWARNING, "Execute invalidate catalogue cache for "
-                          "collection %s failed[%d]",
-                          cataPtr->getName(), rc ) ;
+                  PD_LOG( PDWARNING, "Get sub collection list for [%s] "
+                          "failed[%d]", cataPtr->getName(), rc ) ;
                   rc = SDB_OK ;
                }
+               collections.push_back( pArgs->_targetName ) ;
+               rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                             collections, cb ) ;
             }
-            catch ( std::exception &e )
+            else
             {
-               rc = ossException2RC( &e )  ;
-               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-               goto error ;
+               rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                             pArgs->_targetName.c_str(),
+                                             cb ) ;
             }
+            PD_LOG( PDDEBUG, "Notify other coordinators to invalidate "
+                    "catalogue cache when dropping collection[%s]",
+                    pArgs->_targetName.c_str() ) ;
+            if ( rc )
+            {
+               // For invalidation error, report warning in the log, but
+               // don't interrupt the current operation.
+               PD_LOG( PDWARNING, "Notify all coordinators to invalidate cache "
+                       "when dropping collection[%s] failed[%d]",
+                       pArgs->_targetName.c_str(), rc ) ;
+               rc = SDB_OK ;
+            }
+            else
+            {
+               notified = TRUE ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc= ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            // In case of exception, we don't know which one to be clean. Try
+            // to notify coordinators to clean all catalogue information.
+            if ( !notified )
+            {
+               cacheInvalidator.notify( COORD_CACHE_CATALOGUE, NULL, cb ) ;
+            }
+            rc = SDB_OK ;
          }
       }
 
-      _pResource->removeCataInfoWithMain( pArgs->_targetName.c_str() ) ;
+      if ( collections.size() > 0 )
+      {
+         for ( ossPoolVector<string>::const_iterator citr = collections.begin();
+               citr != collections.end(); ++citr )
+         {
+            _pResource->removeCataInfoWithMain( citr->c_str() ) ;
+         }
+      }
+      else
+      {
+         _pResource->removeCataInfoWithMain( pArgs->_targetName.c_str() ) ;
+      }
 
    done:
-      PD_TRACE_EXIT ( COORD_DROPCL_DOCOMPLETE ) ;
+      PD_TRACE_EXIT ( COORD_DROPCL__DOCOMPLETE ) ;
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_DROPCL__NEEDNOTIFYINVALIDCACHE, "_coordCMDDropCollection::_needNotifyInvalidateCache" )
+   BOOLEAN _coordCMDDropCollection::_needNotifyInvalidateCache( coordCMDArguments *pArgs )
+   {
+      BOOLEAN result = FALSE ;
+      PD_TRACE_ENTRY( COORD_DROPCL__NEEDNOTIFYINVALIDCACHE ) ;
+      // Check the group list returned by catalogue. If any one is a data source
+      // group, need to broadcast the invalidation message.
+      CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+      while ( itr != pArgs->_groupList.end() )
+      {
+         if ( SDB_IS_DSID( itr->first ) )
+         {
+            result = TRUE ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      PD_TRACE_EXIT( COORD_DROPCL__NEEDNOTIFYINVALIDCACHE ) ;
+      return result ;
    }
 
    /*
@@ -2912,12 +3013,56 @@ namespace engine
                                                 pmdEDUCB *cb,
                                                 coordCMDArguments *pArgs )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_RENAMECL_DOCOMPLETE ) ;
+      ossPoolVector<string> collections ;
+      CoordCataInfoPtr cataPtr = getCataPtr() ;
+
+      if ( _needNotifyInvalidateCache( pArgs ) )
+      {
+         coordCacheInvalidator cacheInvalidator( _pResource ) ;
+         rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                       pArgs->_targetName.c_str(), cb ) ;
+         PD_LOG( PDDEBUG, "Notify other coordinators to invalidate "
+                 "catalogue cache when renaming collection[%s]",
+                 pArgs->_targetName.c_str() ) ;
+         if ( rc )
+         {
+            // For invalidation error, report warning in the log, but
+            // don't interrupt the current operation.
+            PD_LOG( PDWARNING, "Notify all coordinators to invalidate cache "
+                    "when renaming collection[%s] failed[%d]",
+                    pArgs->_targetName.c_str(), rc ) ;
+            rc = SDB_OK ;
+         }
+      }
 
       _pResource->removeCataInfoWithMain( pArgs->_targetName.c_str() ) ;
 
-      PD_TRACE_EXIT ( COORD_RENAMECL_DOCOMPLETE ) ;
-      return SDB_OK ;
+      PD_TRACE_EXITRC ( COORD_RENAMECL_DOCOMPLETE, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_RENAMECL__NEEDNOTIFYINVALIDCACHE, "_coordCMDRenameCollection::_needNotifyInvalidateCache" )
+   BOOLEAN _coordCMDRenameCollection::_needNotifyInvalidateCache( coordCMDArguments *pArgs )
+   {
+      BOOLEAN result = FALSE ;
+      PD_TRACE_ENTRY( COORD_RENAMECL__NEEDNOTIFYINVALIDCACHE ) ;
+      // Check the group list returned by catalogue. If any one is a data source
+      // group, need to broadcast the invalidation message.
+      CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+      while ( itr != pArgs->_groupList.end() )
+      {
+         if ( SDB_IS_DSID( itr->first ) )
+         {
+            result = TRUE ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      PD_TRACE_EXIT( COORD_RENAMECL__NEEDNOTIFYINVALIDCACHE ) ;
+      return result ;
    }
 
    /*
@@ -3810,6 +3955,75 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_UNLINKCL__DOCOMPLETE, "_coordCMDUnlinkCollection::_doComplete" )
+   INT32 _coordCMDUnlinkCollection::_doComplete ( MsgHeader *pMsg,
+                                                  pmdEDUCB * cb,
+                                                  coordCMDArguments *pArgs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_UNLINKCL__DOCOMPLETE ) ;
+      ossPoolVector<string> collections ;
+
+      // When unlinking a collection which is using data source, need to notify
+      // other coordinators to invalidate the caches of the main and sub
+      // collection. Otherwise, user may still access the sub collection through
+      // the main collection on other coordinators, as the cache of the main
+      // collection is old.
+      if ( _needNotifyInvalidateCache( pArgs ) )
+      {
+         coordCacheInvalidator cacheInvalidator( _pResource ) ;
+         try
+         {
+            collections.push_back( pArgs->_targetName ) ;
+            collections.push_back( _subCLName ) ;
+            rc = cacheInvalidator.notify( COORD_CACHE_CATALOGUE,
+                                          collections, cb ) ;
+            if ( rc )
+            {
+               // For invalidation error, report warning in the log, but
+               // don't interrupt the current operation.
+               PD_LOG( PDWARNING, "Notify all coordinators to invalidate cache "
+                       "when unlinking sub collection[%s] failed[%d]",
+                       _subCLName.c_str(), rc ) ;
+               rc = SDB_OK ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            rc= ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORD_UNLINKCL__DOCOMPLETE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_UNLINKCL__NEEDNOTIFYINVALIDCACHE, "_coordCMDUnlinkCollection::_needNotifyInvalidateCache" )
+   BOOLEAN _coordCMDUnlinkCollection::_needNotifyInvalidateCache( coordCMDArguments *pArgs )
+   {
+      PD_TRACE_ENTRY( COORD_UNLINKCL__NEEDNOTIFYINVALIDCACHE ) ;
+      BOOLEAN result = FALSE ;
+      // Check the group list returned by catalogue. If any one is a data source
+      // group, need to broadcast the invalidation message.
+      CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+      while ( itr != pArgs->_groupList.end() )
+      {
+         if ( SDB_IS_DSID( itr->first ) )
+         {
+            result = TRUE ;
+            break ;
+         }
+         ++itr ;
+      }
+
+      PD_TRACE_EXIT( COORD_UNLINKCL__NEEDNOTIFYINVALIDCACHE ) ;
+      return result ;
    }
 
    /*

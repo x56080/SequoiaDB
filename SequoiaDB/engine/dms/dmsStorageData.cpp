@@ -1250,7 +1250,7 @@ namespace engine
          /// check the length
          if ( unCompressDataLen != *(INT32*)pUncompressData )
          {
-            PD_LOG( PDERROR, "Uncompress data length[%d] is not unmatch "
+            PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
                     "real length[%d]", unCompressDataLen,
                     *(INT32*)pUncompressData ) ;
             rc = SDB_CORRUPTED_RECORD ;

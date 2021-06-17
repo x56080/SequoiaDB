@@ -43,6 +43,7 @@
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
+#include "coordCacheAssist.hpp"
 
 using namespace bson ;
 
@@ -187,8 +188,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *query = NULL ;
-      const CHAR *type = NULL ;
-      const CHAR *name = NULL ;
+      coordCacheInvalidator assist( _pResource ) ;
 
       rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL, &query,
                             NULL, NULL, NULL ) ;
@@ -197,91 +197,9 @@ namespace engine
       try
       {
          BSONObj queryObj( query ) ;
-         BSONElement typeEle = queryObj.getField( FIELD_NAME_TYPE ) ;
-         BSONElement nameEle = queryObj.getField( FIELD_NAME_NAME ) ;
-         if ( !typeEle.eoo() )
-         {
-            PD_CHECK( String == typeEle.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache type should be a string[%d]",
-                      SDB_INVALIDARG ) ;
-            type = typeEle.valuestr() ;
-            PD_CHECK( ossStrlen( type ) > 0, SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache type length is 0[%d]", SDB_INVALIDARG ) ;
-         }
-         if ( !nameEle.eoo() )
-         {
-            PD_CHECK( type, SDB_INVALIDARG, error, PDERROR, "Name can't be "
-                      "used without type in invalidate cache command[%d]",
-                      SDB_INVALIDARG ) ;
-            name = nameEle.valuestr() ;
-            PD_CHECK( ossStrlen( name ) > 0, SDB_INVALIDARG, error, PDERROR,
-                      "Invalidate cache name length is 0[%d]", SDB_INVALIDARG ) ;
-         }
-
-         if ( type )
-         {
-            if ( 0 == ossStrcasecmp( type, VALUE_NAME_CATALOG ) )
-            {
-               // Invalidate catalog info
-               if ( !name )
-               {
-                  // Invalidate only by type. All catalog info will be cleared.
-                  _pResource->invalidateCataInfo() ;
-               }
-               else if ( NULL == ossStrchr( name, '.' ) )
-               {
-                  // Invalidate cache of collections related to the dropped cs.
-                  vector< string > subCLSet ;
-                  _pResource->removeCataInfoByCS( name, &subCLSet ) ;
-
-                  /// clear relate sub collection's catalog info
-                  vector< string >::iterator it = subCLSet.begin() ;
-                  while( it != subCLSet.end() )
-                  {
-                     _pResource->removeCataInfo( (*it).c_str() ) ;
-                     ++it ;
-                  }
-               }
-               else
-               {
-                  // Invalidate by cl name
-                  _pResource->removeCataInfoWithMain( name ) ;
-               }
-            }
-            else if ( 0 == ossStrcasecmp( type, VALUE_NAME_GROUP ) )
-            {
-               if ( name )
-               {
-                  _pResource->removeGroupInfo( name ) ;
-               }
-               else
-               {
-                  _pResource->invalidateGroupInfo() ;
-               }
-            }
-            else if ( 0 == ossStrcasecmp( type, VALUE_NAME_DATASOURCE ) )
-            {
-               _pResource->invalidateDataSourceInfo( name ) ;
-            }
-            else if ( 0 == ossStrcasecmp( type, VALUE_NAME_STRATEGY ) )
-            {
-               _pResource->invalidateStrategy() ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Cache type[%s] is invalid[%d]", type, rc ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            // No type is specified, clear all.
-            _pResource->invalidateCataInfo() ;
-            _pResource->invalidateGroupInfo() ;
-            _pResource->invalidateStrategy() ;
-            _pResource->invalidateDataSourceInfo() ;
-         }
+         rc = assist.invalidate( queryObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Invalidate cache with option[%s] "
+                      "failed[%d]", queryObj.toString().c_str(), rc ) ;
       }
       catch ( std::exception &e )
       {
@@ -926,37 +844,4 @@ namespace engine
    error :
       goto done ;
    }
-
-   INT32 coordInvalidateCache( coordResource *resource, const BSONObj &option,
-                               pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      CHAR *msg = NULL ;
-      INT32 buffSize = 0 ;
-      INT64 contextID = -1 ;
-      coordCMDInvalidateCache invalidator ;
-
-      rc = msgBuildInvalidateCacheMsg( &msg, &buffSize, option, 0, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build invalidate data source cache message "
-                                "failed[%d]", rc ) ;
-
-      rc = invalidator.init( resource, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize invalidate cache command "
-                                "failed[%d]", rc ) ;
-
-      rc = invalidator.execute( (MsgHeader *)msg, cb, contextID, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Execute invalidate cache command failed[%d]",
-                   rc ) ;
-
-   done:
-      if ( msg )
-      {
-         msgReleaseBuffer( msg, cb ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }
