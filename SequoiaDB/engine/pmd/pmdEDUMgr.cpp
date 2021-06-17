@@ -1011,7 +1011,7 @@ namespace engine
 
    UINT32 _pmdEDUMgr::_getWritingEDUCount( INT32 eduTypeFilter,
                                            UINT64 idThreshold,
-                                           INT32 excludeBlockType,
+                                           EDU_BLOCK_TYPE excludeBlockType,
                                            const dpsTransLockId &lockID,
                                            UINT32 *pTransCnt )
    {
@@ -1053,12 +1053,12 @@ namespace engine
             {
                continue ;
             }
-            else if ( -1 == excludeBlockType && cb->isBlocked() )
+            else if ( EDU_BLOCK_ALL == excludeBlockType && cb->isBlocked() )
             {
                continue ;
             }
-            else if ( 0 != excludeBlockType &&
-                      excludeBlockType == cb->getBlockType() )
+            else if ( EDU_BLOCK_NONE != excludeBlockType &&
+                      OSS_BIT_TEST( cb->getBlockType(), excludeBlockType ) )
             {
                continue ;
             }
@@ -1143,7 +1143,7 @@ namespace engine
 
    UINT32 _pmdEDUMgr::getWritingEDUCount( INT32 eduTypeFilter,
                                           UINT64 idThreshold,
-                                          INT32 excludeBlockType,
+                                          EDU_BLOCK_TYPE excludeBlockType,
                                           const dpsTransLockId &lockID,
                                           UINT32 *pTransCnt )
    {

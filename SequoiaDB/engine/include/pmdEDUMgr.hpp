@@ -153,7 +153,7 @@ namespace engine
          */
          UINT32            getWritingEDUCount( INT32 eduTypeFilter = -1,
                                                UINT64 idThreshold = 0,
-                                               INT32 excludeBlockType = EDU_BLOCK_FREEZING_WND,
+                                               EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
                                                const dpsTransLockId &lockID = dpsTransLockId(),
                                                UINT32 *pTransCnt = NULL ) ;
 
@@ -210,7 +210,7 @@ namespace engine
          */
          UINT32            _getWritingEDUCount( INT32 eduTypeFilter = -1,
                                                 UINT64 idThreshold = 0,
-                                                INT32 excludeBlockType = EDU_BLOCK_FREEZING_WND,
+                                                EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
                                                 const dpsTransLockId &lockID = dpsTransLockId(),
                                                 UINT32 *pTransCnt = NULL ) ;
 
