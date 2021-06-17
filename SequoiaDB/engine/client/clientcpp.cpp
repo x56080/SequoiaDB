@@ -7451,36 +7451,29 @@ do                                                            \
       try
       {
          BSONElement ele = options.getField( FIELD_NAME_PASSWD ) ;
-         if ( ele.eoo() || isMd5String( ele.valuestrsafe() ) )
+         BSONObjIterator itr( options ) ;
+         BSONObjBuilder
+            subBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+         while ( itr.more() )
          {
-            builder.append( FIELD_NAME_OPTIONS, options ) ;
-         }
-         else
-         {
-            BSONObjIterator itr( options ) ;
-            BSONObjBuilder
-               subBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
-            while ( itr.more() )
+            BSONElement ele = itr.next() ;
+            if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PASSWD ) )
             {
-               BSONElement ele = itr.next() ;
-               if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PASSWD ) )
+               CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+               rc = md5Encrypt( ele.valuestrsafe(), md5,
+                                SDB_MD5_VALUE_BUF_LEN ) ;
+               if ( rc )
                {
-                  CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
-                  rc = md5Encrypt( ele.valuestrsafe(), md5,
-                                   SDB_MD5_VALUE_BUF_LEN ) ;
-                  if ( rc )
-                  {
-                     goto error ;
-                  }
-                  subBuilder.append( FIELD_NAME_PASSWD, md5 ) ;
+                  goto error ;
                }
-               else
-               {
-                  subBuilder.append( ele ) ;
-               }
+               subBuilder.append( FIELD_NAME_PASSWD, md5 ) ;
             }
-            subBuilder.done() ;
+            else
+            {
+               subBuilder.append( ele ) ;
+            }
          }
+         subBuilder.done() ;
       }
       catch ( std::exception &e )
       {
@@ -11710,21 +11703,14 @@ do                                                            \
          bob.append( FIELD_NAME_ADDRESS, addresses ) ;
          if ( user )
          {
+            CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
             bob.append( FIELD_NAME_USER, user ) ;
-            if ( isMd5String( password ) )
+            rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
+            if ( rc )
             {
-               bob.append( FIELD_NAME_PASSWD, password ) ;
+               goto error ;
             }
-            else
-            {
-               CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
-               rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
-               if ( rc )
-               {
-                  goto error ;
-               }
-               bob.append( FIELD_NAME_PASSWD, md5 ) ;
-            }
+            bob.append( FIELD_NAME_PASSWD, md5 ) ;
          }
          if ( type )
          {
