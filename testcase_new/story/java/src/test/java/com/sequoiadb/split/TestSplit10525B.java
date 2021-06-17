@@ -106,7 +106,7 @@ public class TestSplit10525B extends SdbTestBase {
             // 元数据
             DBCollection dbcl = null;
             boolean clFlag = false;
-            for ( int i = 0; i < 100; i++ ) {
+            for ( int i = 0; i < 200; i++ ) {
                 try {
                     CollectionSpace cs = dataDb
                             .getCollectionSpace( SdbTestBase.csName );
@@ -115,7 +115,7 @@ public class TestSplit10525B extends SdbTestBase {
                     break;
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() == -34 || e.getErrorCode() == -23 ) {
-                        Thread.sleep( 300 );
+                        Thread.sleep( 500 );
                         continue;
                     }
                     throw e;
@@ -128,7 +128,7 @@ public class TestSplit10525B extends SdbTestBase {
             // 数据
             boolean flag = false;
             List< BSONObject > actData = new ArrayList< BSONObject >();
-            for ( int j = 0; j < 100; j++ ) {
+            for ( int j = 0; j < 200; j++ ) {
                 actData.clear();
                 DBCursor cursor = dbcl.query( null, null, "{\"_id\":1}", null );
                 while ( cursor.hasNext() ) {
@@ -139,7 +139,7 @@ public class TestSplit10525B extends SdbTestBase {
                     flag = true;
                     break;
                 } else {
-                    Thread.sleep( 300 );
+                    Thread.sleep( 500 );
                 }
             }
             if ( !flag ) {
