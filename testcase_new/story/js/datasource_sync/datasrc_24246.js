@@ -21,7 +21,7 @@ function test ()
    var groups = commGetGroups( datasrcDB )[0];;
    var groupName = groups[0].GroupName;
    var primaryPos = groups[0].PrimaryPos;
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
 
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { InheritSessionAttr: false } );
    //集合空间级映射
@@ -38,12 +38,14 @@ function test ()
    //preferedPeriod为0     
    db.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: 0 } );
    dbclA.insert( docs );
+   dbclB.insert( docs );
    findAndCheckAccessNodes( dbclA, expAccessNode );
    findAndCheckAccessNodes( dbclB, expAccessNode );
 
    //preferedPeriod为5  
    db.setSessionAttr( { PreferedPeriod: 5 } );
-   //dbclA.insert( docs ); 
+   dbclA.insert( docs ); 
+   dbclB.insert( docs );
    findAndCheckAccessNodes( dbclA, expAccessNode );
    findAndCheckAccessNodes( dbclB, expAccessNode );
    //5s后检查会话访问节点为备节点,时间是一个cpu的tick，不精准，改成10s后查看
@@ -53,6 +55,7 @@ function test ()
 
    //preferedPeriod为-1
    db.setSessionAttr( { PreferedPeriod: -1 } )
+   dbclA.insert( docs );
    dbclB.insert( docs );
    findAndCheckAccessNodes( dbclA, expAccessNode );
    findAndCheckAccessNodes( dbclB, expAccessNode );
@@ -63,7 +66,8 @@ function test ()
 
    //preferedPeriod为60
    db.setSessionAttr( { PreferedPeriod: 60 } )
-   // dbcl.insert( docs );  
+   dbclA.insert( docs );
+   dbclB.insert( docs ); 
    findAndCheckAccessNodes( dbclA, expAccessNode );
    findAndCheckAccessNodes( dbclB, expAccessNode );
    //60s后检查会话访问节点为备节点

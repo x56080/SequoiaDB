@@ -23,8 +23,8 @@ function test ()
    commCreateCS( datasrcDB, srcCSName );
    var group = commGetGroups( datasrcDB )[0].sort( sortBy( "NodeID" ) );
    var groupName = group[0].GroupName;
-   commCreateCL( datasrcDB, srcCSName, clNameA, { ShardingKey: { a: 1 }, Group: groupName } );
-   commCreateCL( datasrcDB, srcCSName, clNameB, { ShardingKey: { a: 1 }, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clNameA, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clNameB, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
 
    //集合空间级映射
