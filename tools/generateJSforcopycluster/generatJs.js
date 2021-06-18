@@ -380,12 +380,12 @@ function getCLDefine(db, jsFile, csSet, dsSet, dsMappingCLSet)
                   subcl.name = obj.CataInfo[i].SubCLName;
                   subcl.attchOpt = {}
 
+                  subcl.attchOpt.LowBound = {};
+                  subcl.attchOpt.UpBound = {};
                   for (key in cl.option.ShardingKey)
                   {
-                     subcl.attchOpt.LowBound = {};
-                     subcl.attchOpt.LowBound[key] = obj.CataInfo[i].LowBound[""];
-                     subcl.attchOpt.UpBound = {};
-                     subcl.attchOpt.UpBound[key] = obj.CataInfo[i].UpBound[""];
+                     subcl.attchOpt.LowBound[key] = obj.CataInfo[i].LowBound[key];
+                     subcl.attchOpt.UpBound[key] = obj.CataInfo[i].UpBound[key];
                   }
                   cl.subcls.push(subcl);
                }
