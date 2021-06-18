@@ -1168,6 +1168,8 @@ namespace engine
       }
 
       /// wait write done
+      cb->setBlock( EDU_BLOCK_RENAMECHK,
+                    "Waiting for writing operations check in rename" ) ;
       i = 0 ;
       while( TRUE )
       {
@@ -1175,8 +1177,10 @@ namespace engine
          UINT32 cnt = 0 ;
          UINT32 transCnt = 0 ;
          dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
-         cnt = eduMgr->getWritingEDUCount( -1, _blockID, EDU_BLOCK_FREEZING_WND,
-                                          lockID, &transCnt ) ;
+         cnt = eduMgr->getWritingEDUCount( -1, _blockID,
+                                           ( EDU_BLOCK_FREEZING_WND |
+                                             EDU_BLOCK_RENAMECHK ),
+                                           lockID, &transCnt ) ;
          if ( cnt > 0 )
          {
             if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
@@ -1199,6 +1203,7 @@ namespace engine
 
          break ;
       }
+      cb->unsetBlock() ;
 
       if ( rc )
       {
@@ -1594,6 +1599,8 @@ namespace engine
       }
 
       /// wait write done
+      cb->setBlock( EDU_BLOCK_RENAMECHK,
+                    "Waiting for writing operations check in rename" ) ;
       i = 0 ;
       while( TRUE )
       {
@@ -1601,7 +1608,9 @@ namespace engine
          UINT32 cnt = 0 ;
          UINT32 transCnt = 0 ;
          dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
-         cnt = eduMgr->getWritingEDUCount( -1, _blockID, EDU_BLOCK_FREEZING_WND,
+         cnt = eduMgr->getWritingEDUCount( -1, _blockID,
+                                           ( EDU_BLOCK_FREEZING_WND |
+                                             EDU_BLOCK_RENAMECHK ),
                                            lockID, &transCnt ) ;
          if ( cnt > 0 )
          {
@@ -1625,6 +1634,7 @@ namespace engine
 
          break ;
       }
+      cb->unsetBlock() ;
 
       if ( rc )
       {

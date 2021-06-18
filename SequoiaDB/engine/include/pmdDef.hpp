@@ -267,21 +267,20 @@ namespace engine
    /*
       EDU_BLOCK_TYPE define
    */
-   enum EDU_BLOCK_TYPE
-   {
-      EDU_BLOCK_NONE             = 0,
-      EDU_BLOCK_FREEZING_WND,
-      EDU_BLOCK_DMS,
-      EDU_BLOCK_PRIMARY,
-      EDU_BLOCK_TRANSROLLBACK,
-      EDU_BLOCK_REELECT,
-      EDU_BLOCK_SYNCWAIT,
-      EDU_BLOCK_SYNCCONTROL,
-      EDU_BLOCK_WAITREPLY,
-      EDU_BLOCK_FT,
+   typedef UINT32 EDU_BLOCK_TYPE ;
 
-      EDU_BLOCK_MAX
-   } ;
+   #define EDU_BLOCK_NONE           ( 0x00000000 )
+   #define EDU_BLOCK_FREEZING_WND   ( 0x00000001 )
+   #define EDU_BLOCK_DMS            ( 0x00000002 )
+   #define EDU_BLOCK_PRIMARY        ( 0x00000004 )
+   #define EDU_BLOCK_TRANSROLLBACK  ( 0x00000008 )
+   #define EDU_BLOCK_REELECT        ( 0x00000010 )
+   #define EDU_BLOCK_SYNCWAIT       ( 0x00000020 )
+   #define EDU_BLOCK_SYNCCONTROL    ( 0x00000040 )
+   #define EDU_BLOCK_WAITREPLY      ( 0x00000080 )
+   #define EDU_BLOCK_FT             ( 0x00000100 )
+   #define EDU_BLOCK_RENAMECHK      ( 0x00000200 )
+   #define EDU_BLOCK_ALL            ( 0xFFFFFFFF )
 
    /*
       SDB_TYPE_STR DEFINE
