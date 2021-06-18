@@ -196,26 +196,26 @@ namespace engine
 
    INT32 _SDB_DMSCB::deactive ()
    {
-      INT32 rc = SDB_OK ;
+      return SDB_OK ;
+   }
+
+   INT32 _SDB_DMSCB::fini ()
+   {
       // check if MVCC is supported
-      // finish and flush Rollback Segment CS mgr. We must do it here 
+      // finish and flush Rollback Segment CS mgr. We must do it here
       // instead of fini because we need DPS to flush logs to disk.
       // see the order in _SDB_KRCB::destroy. DPS is alway the first
       // to start and last to shut down.
       if ( pmdGetOptionCB()->mvccOn() )
       {
-         rc = _rbsSUMgr.fini() ;
-         if ( rc )
+         INT32 tmpRC = _rbsSUMgr.fini() ;
+         if ( SDB_OK != tmpRC )
          {
-            PD_LOG( PDERROR, "Finish RBS failed, rc: %d",
-                    rc ) ;
+            PD_LOG( PDWARNING, "Finish RBS failed, rc: %d",
+                    tmpRC ) ;
          }
       }
-      return rc ;
-   }
 
-   INT32 _SDB_DMSCB::fini ()
-   {
       _localSUMgr.fini() ;
       _tempSUMgr.fini() ;
 
