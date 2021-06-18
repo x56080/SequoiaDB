@@ -7450,7 +7450,6 @@ do                                                            \
 
       try
       {
-         BSONElement ele = options.getField( FIELD_NAME_PASSWD ) ;
          BSONObjIterator itr( options ) ;
          BSONObjBuilder
             subBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
