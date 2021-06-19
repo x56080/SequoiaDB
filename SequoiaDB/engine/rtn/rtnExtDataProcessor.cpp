@@ -295,7 +295,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      rc = rtnDropCollectionSpaceP1( _cappedCSName, cb, dmsCB, dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP1( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
       rtnCB->incTextIdxVersion() ;
@@ -315,8 +315,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      rc = rtnDropCollectionSpaceP1Cancel( _cappedCSName, cb, dmsCB,
-                                           dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP1Cancel( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Cancel dropping collection space[ %s ] in "
                    "phase 1 failed[ %d ]", _cappedCSName, rc ) ;
       rtnCB->incTextIdxVersion() ;
@@ -335,8 +334,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DODROPP2 ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      rc = rtnDropCollectionSpaceP2( _cappedCSName, cb, dmsCB,
-                                     dpsCB, TRUE ) ;
+      rc = dmsCB->dropCollectionSpaceP2( _cappedCSName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
 

@@ -832,7 +832,7 @@ namespace engine
    }
 
    _rtnExtTruncateCtx::_rtnExtTruncateCtx()
-         : _rtnExtContextBase( DMS_EXTOPR_TYPE_TRUNCATE )
+   : _rtnExtContextBase( DMS_EXTOPR_TYPE_TRUNCATE )
    {
    }
 
