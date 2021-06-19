@@ -135,12 +135,19 @@ namespace engine
       OSS_INLINE UINT32 pageSize() const { return _pageSz ; }
       OSS_INLINE UINT32 pageSizeSquareRoot() const { return _logarithmic ; }
 
-      OSS_INLINE UINT32 getSegmentSize() const { return DMS_SEGMENT_SZ ; }
+      OSS_INLINE UINT32 getSegmentSize() const
+      {
+         SDB_ASSERT( _segmentSize > 0, "Invalid segment size of lobd" ) ;
+         return _segmentSize ;
+      }
+
       OSS_INLINE UINT32 segmentPages() const { return _segmentPages ; }
       OSS_INLINE UINT32 segmentPagesSquareRoot() const { return _segmentPagesSquare ; }
 
       INT32 open( const CHAR *path,
                   BOOLEAN createNew,
+                  UINT32 lobmSegmentSize,
+                  UINT32 lobmPageSize,
                   UINT32 totalDataPages,
                   const dmsStorageInfo &info,
                   _pmdEDUCB *cb ) ;
@@ -221,7 +228,8 @@ namespace engine
       INT64             _fileSz ;
       UINT32            _pageSz ;
       UINT32            _logarithmic ;
-      UINT32            _flags ; 
+      UINT32            _flags ;
+      UINT32            _segmentSize ;
       UINT32            _segmentPages ;
       UINT32            _segmentPagesSquare ;
 

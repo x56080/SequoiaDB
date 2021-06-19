@@ -42,6 +42,17 @@
 
 namespace engine
 {
+   /// define for lobm to chech its segment size
+   #define DMS_SEGMENT_SZ16K      (16*1024)           /// 16KB
+   #define DMS_SEGMENT_SZ32K      (32*1024)           /// 32KB
+   #define DMS_SEGMENT_SZ64K      (64*1024)           /// 64KB
+   #define DMS_SEGMENT_SZ128K     (128*1024)          /// 128KB
+   #define DMS_SEGMENT_SZ256K     (256*1024)          /// 256KB
+   #define DMS_SEGMENT_SZ512K     (512*1024)          /// 512KB
+   #define DMS_SEGMENT_SZ1M       (1*1024*1024)       /// 1MB
+   #define DMS_SEGMENT_SZ2M       (2*1024*1024)       /// 2MB
+   #define DMS_SEGMENT_SZ4M       (4*1024*1024)       /// 4MB
+   #define DMS_SEGMENT_SZ8M       (8*1024*1024)       /// 8MB
 
    #define DMS_LOB_EXTEND_THRESHOLD_SIZE     ( 65536 )   // 64K
 
@@ -272,8 +283,9 @@ namespace engine
          goto error ;
       }
 
-      rc = _data.open( path, createNew, getHeader()->_pageNum,
-                       *_pStorageInfo, pmdGetThreadEDUCB() ) ;
+      rc = _data.open( path, createNew, _segmentSize, _pageSize,
+                       getHeader()->_pageNum, *_pStorageInfo,
+                       pmdGetThreadEDUCB() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open lobd file:%s, rc:%d",
@@ -1991,9 +2003,43 @@ namespace engine
    void _dmsStorageLob::_initHeaderPageSize( dmsStorageUnitHeader * pHeader,
                                              dmsStorageInfo * pInfo )
    {
-      pHeader->_pageSize = DMS_PAGE_SIZE64B ;
-      pHeader->_lobdPageSize = pInfo->_lobdPageSize ;
-      pHeader->_segmentSize = 0 ;
+      INT64 sysPageSize      = pmdGetSysPageSize() ;
+      UINT32 lobdPageSize    = pInfo->_lobdPageSize ;
+      SDB_ASSERT( sysPageSize > 0 && 0 == ( sysPageSize % 4096 ),
+                  "System page size is invalid" ) ;
+      SDB_ASSERT( 0 != lobdPageSize,
+                  "Not initialized lobd page size" ) ;
+
+      /// assign values to lobm header
+      pHeader->_pageSize     = DMS_PAGE_SIZE64B ;
+      pHeader->_lobdPageSize = lobdPageSize ;
+
+      /// jira-4899
+      /// For we use mmap, we need to make sure the lobm segment size is aligned
+      /// with OS page size(most OS, system page is 4k/16k/64k).
+      /// When we use 128M lobd segment size, we can calculate the minimum lobm
+      /// segment size(in this case, lobPageSize is 512k) is
+      /// (128M / 512k * 64B) = 16K, which is aligned with the 4k/16k OS page
+      /// size. So when the OS page size is 4k/16k, we can use 128M as lobd
+      /// segment size safely.
+      /// However, when OS page size is 64k, and the lobPageSize is 256k/512k,
+      /// we get lobm segment size is 32k/16k, which is not aligned with OS page
+      /// size(64k). So in this case, we should use 256M/512M lobd segment
+      /// size, and then we can get lobm segment size is 64k.
+      if ( OSS_SYSTEM_PAGESIZE64K == sysPageSize &&
+           ( DMS_PAGE_SIZE256K == lobdPageSize ||
+             DMS_PAGE_SIZE512K == lobdPageSize ) )
+      {
+         /// since v3.4.3/v5.0.2, we flush the lobm segment size back to the
+         /// newly created lobm file header. But we will not change the file
+         /// header of the lobm which is created before v3.4.3/v5.0.2.
+         pHeader->_segmentSize = DMS_SEGMENT_SZ64K ;
+      }
+      else
+      {
+         pHeader->_segmentSize = DMS_SEGMENT_SZ / pHeader->_lobdPageSize *
+                                 pHeader->_pageSize ;
+      }
    }
 
    INT32 _dmsStorageLob::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -2026,12 +2072,45 @@ namespace engine
          goto error ;
       }
 
-      _segmentSize = _data.getSegmentSize() / pHeader->_lobdPageSize *
-                     pHeader->_pageSize ;
+      /// when lobm page size is 64B, lobm segment size is in range of
+      /// [16K, 2M]; when lobm page size is 256B, lobm segment size is in range
+      /// of [64K, 8M]
       if ( 0 != pHeader->_segmentSize &&
-           pHeader->_segmentSize != _segmentSize )
+           DMS_SEGMENT_SZ16K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ32K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ64K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ128K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ256K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ512K != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ1M != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ2M != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ4M != pHeader->_segmentSize &&
+           DMS_SEGMENT_SZ8M != pHeader->_segmentSize )
       {
-         pHeader->_segmentSize = _segmentSize ;
+         PD_LOG ( PDEVENT, "Invalid lobm segment size: %d in file[%s], lobm "
+                  "segment size must be one of 0/16K/32K/64K/128K/256K/512K"
+                  "1M/2M/4M/8M",
+                  pHeader->_segmentSize, getSuFileName() ) ;
+         /// we come here, we get an old version lob which lobm is not init
+         /// because of a bug. Let's set its lobm segment size to 0, for it
+         /// must be a lob created before v3.4.3/v5.0.2
+         pHeader->_segmentSize = 0 ;
+      }
+
+      /// now, pHeader is a pointer got from lobm's file header
+      if ( 0 == pHeader->_segmentSize )
+      {
+         /// we come here, we get a lob created before v3.4.3/v5.0.2,
+         /// its lobd segment size is 128M
+         _segmentSize = DMS_SEGMENT_SZ / pHeader->_lobdPageSize *
+                        pHeader->_pageSize ;
+      }
+      else
+      {
+         /// we come here, we get a lob which version at least v3.4.3/v5.0.2.
+         /// since v3.4.3/v5.0.2, lobm segment size had been writed into
+         /// lobm file header
+         _segmentSize = pHeader->_segmentSize ;
       }
 
    done:

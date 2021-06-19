@@ -112,6 +112,9 @@ namespace engine
       /// number of occurred error
       pmdOccurredErr                _numErr ;
 
+      /// system page size
+      INT64                         _sysPageSize ;
+
       _pmdSysInfo()
       :_isPrimary( 0 ), _globalID( 1 )
       {
@@ -124,6 +127,7 @@ namespace engine
          _localPort     = 0 ;
          _tick          = 0 ;
          _validationTick = 0 ;
+         _sysPageSize   = ossGetPageSize() ;
 
          ossMemset( _doing, 0, sizeof( _doing ) ) ;
       }
@@ -197,6 +201,8 @@ namespace engine
    INT32&   pmdGetSigNum() ;
 
    void     pmdSleepInstance() ;
+
+   INT64    pmdGetSysPageSize() ;
 
    /*
       Env define

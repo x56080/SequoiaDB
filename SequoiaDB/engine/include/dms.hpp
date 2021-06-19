@@ -101,6 +101,9 @@ namespace engine
 #define DMS_SEGMENT_SZ_MAX     (512*1024*1024)     /// 512MB
 
 #define DMS_SEGMENT_SZ         (128*1024*1024)     /// 128MB
+#define DMS_SEGMENT_SZ256M     (256*1024*1024)     /// 256MB
+#define DMS_SEGMENT_SZ512M     (512*1024*1024)     /// 512MB
+
 #define DMS_SEGMENT_PG(s,x)    ((s)/(x))
 
 #define DMS_SYS_SEGMENT_SZ     (32*1024*1024)      /// 32MB

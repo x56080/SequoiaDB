@@ -328,6 +328,26 @@ void ossPanic()
    *p = 10 ;
 }
 
+/// in most cases, just need to use pmdGetSysPageSize()
+INT64  ossGetPageSize()
+{
+   INT64 pagesize = 0;
+#if defined (_WINDOWS)
+   SYSTEM_INFO si;
+   GetSystemInfo(&si);
+   pagesize = si.dwPageSize;
+#else /* Posix */
+#if defined (_SC_PAGESIZE)
+   pagesize = sysconf(_SC_PAGESIZE);
+#elif defined (_SC_PAGE_SIZE)
+   pagesize = sysconf(_SC_PAGE_SIZE);
+#else
+   pagesize = (INT64)getpagesize();
+#endif
+#endif // _WINDOWS
+   return pagesize;
+}
+
 OSSPID ossGetParentProcessID()
 {
 #if defined (_WINDOWS)
