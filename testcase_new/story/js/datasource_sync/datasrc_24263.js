@@ -25,7 +25,7 @@ function test ()
       println("---At least three nodes in the group")
       return;
    }
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
 
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    //集合空间级映射

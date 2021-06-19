@@ -21,7 +21,7 @@ function test ()
    var groups = commGetGroups( datasrcDB )[0];;
    var groupName = groups[0].GroupName;
    var primaryPos = groups[0].PrimaryPos;
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
 
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { InheritSessionAttr: false } );
    //集合空间级映射

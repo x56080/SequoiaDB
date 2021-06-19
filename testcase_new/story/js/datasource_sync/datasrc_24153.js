@@ -20,7 +20,7 @@ function test ()
    commCreateCS( datasrcDB, srcCSName );
    var groups = commGetGroups( datasrcDB );
    var groupName = groups[0][0].GroupName;
-   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: 0, Group: groupName } );
+   commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
 
    //集合空间级映射

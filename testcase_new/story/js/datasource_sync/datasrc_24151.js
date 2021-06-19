@@ -41,9 +41,9 @@ function test ()
    var expAccessNodesA = [primaryNode];
    for( var i = 0; i < instances.length; i++ )
    {
-      var options = { PreferedInstance: instances[i] };
-      checkAccessNodes( dbclA, expAccessNodesA, options );
-      checkAccessNodes( dbclB, expAccessNodesA, options );
+      var options = { PreferedInstance: instances[i] };      
+      setSessionAndcheckAccessNodes ( dbclA, expAccessNodesA, options );
+      setSessionAndcheckAccessNodes ( dbclB, expAccessNodesA, options );
    }
 
    //指定为S/-S/s/-s
@@ -61,8 +61,8 @@ function test ()
    for( var i = 0; i < instances.length; i++ )
    {
       var options = { PreferedInstance: instances[i], PreferedPeriod:0 };
-      checkAccessNodes( dbclA, expAccessNodesB, options );
-      checkAccessNodes( dbclB, expAccessNodesB, options );
+      setSessionAndcheckAccessNodes ( dbclA, expAccessNodesB, options );
+      setSessionAndcheckAccessNodes ( dbclB, expAccessNodesB, options );
    }
 
    //指定为A/-A/a/-a
@@ -71,9 +71,9 @@ function test ()
    var expAccessNodesC = getGroupNodes( datasrcDB, groupName );
    for( var i = 0; i < instances.length; i++ )
    {
-      var options = { PreferedInstance: instances[i] };
-      checkAccessNodes( dbclA, expAccessNodesC, options );
-      checkAccessNodes( dbclB, expAccessNodesC, options );
+      var options = { PreferedInstance: instances[i] }; 
+      setSessionAndcheckAccessNodes ( dbclA, expAccessNodesC, options );
+      setSessionAndcheckAccessNodes ( dbclB, expAccessNodesC, options );
    }
 
    datasrcDB.dropCS( srcCSName );
