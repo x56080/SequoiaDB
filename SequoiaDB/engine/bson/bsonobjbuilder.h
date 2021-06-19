@@ -160,9 +160,9 @@ namespace bson {
 
         bool isEmpty() const {
            if ( owned() ) {
-              return _b.len() <= (int)(sizeof(unsigned) + 4) ? true : false ;
+              return ( _b.len() - _offset ) <= (int)(sizeof(unsigned) + 4) ? true : false ;
            }
-           return _b.len() <= 4 ? true : false ;
+           return ( _b.len() - _offset ) <= 4 ? true : false ;
         }
 
         /** add all the fields from the object specified to this object */
