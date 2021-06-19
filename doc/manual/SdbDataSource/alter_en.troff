@@ -69,7 +69,7 @@ format: \f[C]ErrorFilterMask:\ "READ"\f[]
 .IP "7." 3
 ErrorControlLevel (string): Configure the error level when performing
 unsupported data operations (such as DDL) on the mapping collection or
-collection space and the default is "high".
+collection space and the default is "low".
 .PP
 The values are as follows:
 .IP \[bu] 2

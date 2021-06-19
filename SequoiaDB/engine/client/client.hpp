@@ -4315,7 +4315,7 @@ namespace sdbclient
                                     "NONE"                : Do not filter any errors.
               ErrorControlLevel : Configure the error control level when performing unsupported data
                                   operations (such as DDL) on the mapping collection or collection space,
-                                  default is "high". The values are as below:
+                                  default is "low". The values are as below:
                                     "high" : Report an error and output an error message.
                                     "low"  : Ignore unsupported data operations and do not execute on data source.
               TransPropagateMode: Configure the transaction propagation mode on data source, default is
@@ -6945,7 +6945,7 @@ namespace sdbclient
                                     "NONE"                : Do not filter any errors.
               ErrorControlLevel : Configure the error control level when performing unsupported data
                                   operations (such as DDL) on the mapping collection or collection space,
-                                  default is "high". The values are as below:
+                                  default is "low". The values are as below:
                                     "high" : Report an error and output an error message.
                                     "low"  : Ignore unsupported data operations and do not execute on data source.
               TransPropagateMode: Configure the transaction propagation mode on data source, default is

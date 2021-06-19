@@ -65,7 +65,7 @@ ErrorFilterMask（string）：控制对数据源进行数据操作的错误过�
 格式：\f[C]ErrorFilterMask:"READ"\f[]
 .IP "7." 3
 ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如
-DDL）时的报错级别，默认值为"high"
+DDL）时的报错级别，默认值为"low"
 .PP
 取值如下：
 .IP \[bu] 2

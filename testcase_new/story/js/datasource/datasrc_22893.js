@@ -1,5 +1,5 @@
 /******************************************************************************
- * @Description   : seqDB-22893:使用数据源创建cs，关联集合创建索引 
+ * @Description   : seqDB-22893:使用数据源创建cs，关联集合创建索引
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
  * @LastEditTime  : 2021.03.01
@@ -19,7 +19,7 @@ function test ()
    clearDataSource( csName, dataSrcName );
    commCreateCL( datasrcDB, srcCSName, clName );
 
-   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "sequoiadb", {ErrorControlLevel: "high"} );
    var dbcs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = dbcs.getCL( clName );
 

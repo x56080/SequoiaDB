@@ -94,7 +94,7 @@ Format: \f[C]ErrorFilterMask:\ "READ"\f[]
 .IP "3." 3
 ErrorControlLevel ( \f[I]string\f[] ): Configure the error level when performing
 unsupported data operations (such as DDL) on the mapping collection or
-collection space, default is "high".
+collection space, default is "low".
 .RS 4
 .PP
 The values are as follows:

@@ -58,7 +58,7 @@ The metadata information of the data source can be modified through the options 
 
   format: `ErrorFilterMask: "READ"`
 
-7. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space and the default is  "high".
+7. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space and the default is  "low".
 
   The values are as follows:
 
