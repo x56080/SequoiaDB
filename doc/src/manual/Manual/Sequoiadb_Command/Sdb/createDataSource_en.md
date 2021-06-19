@@ -62,7 +62,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
         Format: `ErrorFilterMask: "READ"`
 
-    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "high".
+    3. ErrorControlLevel ( *string* ): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "low".
 
         The values are as follows:
 

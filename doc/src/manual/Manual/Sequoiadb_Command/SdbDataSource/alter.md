@@ -58,7 +58,7 @@ options（ *object，必填* ）
 
     格式：`ErrorFilterMask:"READ"`
 
-7. ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"high"
+7. ErrorControlLevel（string ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"low"
 
     取值如下：
 

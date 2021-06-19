@@ -17,10 +17,10 @@ function test ()
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCL( datasrcDB, srcCSName, clName );
-   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "sequoiadb", {ErrorControlLevel: "high"} );
    var dbcs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
 
-   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function() 
+   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function()
    {
       dbcs.alter( { "LobPageSize": 8192 } );
    } );
@@ -29,12 +29,12 @@ function test ()
    var dbcs = commCreateCS( db, csName );
    var dbcl = dbcs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
 
-   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function() 
+   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function()
    {
       dbcs.alter( { "LobPageSize": 8192 } );
    } );
 
-   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function() 
+   assert.tryThrow( [SDB_OPERATION_INCOMPATIBLE], function()
    {
       dbcl.alter( { "ReplSize": -1 } );
    } );

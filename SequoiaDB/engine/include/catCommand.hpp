@@ -81,7 +81,7 @@ namespace engine
          _addresses = NULL ;
          _user = NULL ;
          _password = NULL ;
-         _errCtlLevel = VALUE_NAME_HIGH ;
+         _errCtlLevel = VALUE_NAME_LOW ;
          _accessMode = DS_ACCESS_DEFAULT ;
          _errFilterMask = DS_ERR_FILTER_NONE ;
          _transPropagateMode = VALUE_NAME_NEVER ;

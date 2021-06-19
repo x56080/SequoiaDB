@@ -62,7 +62,7 @@ Sdb
 
         格式：`ErrorFilterMask:"READ"`
 
-   3. ErrorControlLevel（ *string* ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"high"
+   3. ErrorControlLevel（ *string* ）：配置对映射集合或集合空间进行不支持的数据操作（如 DDL）时的报错级别，默认值为"low"
 
         取值如下：
 

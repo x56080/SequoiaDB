@@ -20,7 +20,7 @@ function test ()
 
    db.createDataSource( dataSrcName1, datasrcUrl, userName, passwd, "SequoiaDB", { AccessMode: "READ", ErrorFilterMask: "WRITE" } );
    var explainObj = db.listDataSources( { Name: dataSrcName1 } );
-   checkExplain( explainObj, dataSrcName1, datasrcUrl, "sdbadmin", "READ", "WRITE", "high" );
+   checkExplain( explainObj, dataSrcName1, datasrcUrl, "sdbadmin", "READ", "WRITE", "low" );
 
    clearDataSource( "nocs", dataSrcName1 );
    clearDataSource( "nocs", dataSrcName2 );

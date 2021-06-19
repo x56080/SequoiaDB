@@ -91,7 +91,7 @@ ErrorFilterMask（ \f[I]string\f[]
 .IP "3." 3
 ErrorControlLevel（ \f[I]string\f[]
 ）：配置对映射集合或集合空间进行不支持的数据操作（如
-DDL）时的报错级别，默认值为"high"
+DDL）时的报错级别，默认值为"low"
 .nf
 \f[C]
 取值如下：

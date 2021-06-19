@@ -73,7 +73,7 @@ public class DataSource {
      *                    <li>"NONE" : Do not filter any errors
      *                  </ul>
      *                  <li>ErrorControlLevel(String) : Configure the error control level when performing unsupported data
-     *                  operations(such as DDL) on the mapping collection or collection space, default is "high",
+     *                  operations(such as DDL) on the mapping collection or collection space, default is "low",
      *                  the values are as follows:
      *                  <ul>
      *                    <li>"high" : Report an error and output an error message
