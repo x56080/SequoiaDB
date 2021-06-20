@@ -59,7 +59,7 @@ The output results are as follows:
   "Address": "sdbserver:11810",
   "User": "sdbadmin",
   "Password": "d41d8cd98f00b204e9800998ecf8427e",
-  "ErrorControlLevel": "High",
+  "ErrorControlLevel": "low",
   "AccessMode": 1,
   "AccessModeDesc": "READ",
   "ErrorFilterMask": 0
