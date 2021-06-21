@@ -934,7 +934,10 @@ namespace engine
                                "Failed to check whether main and sub collections "
                                "[%s] and [%s] are in the space, rc: %d",
                                mainCLName.c_str(), clName.c_str(), rc ) ;
-                  externalMainCL.insert( mainCLName ) ;
+                  if ( !inSameSpace )
+                  {
+                     externalMainCL.insert( mainCLName ) ;
+                  }
                }
             }
             rc = catGetCollectionGroupSet( pDropCLTask->getDataObj(),
