@@ -360,7 +360,6 @@ namespace engine
       // write order.
       lockType = cb->isDoRollback() ? -1 : EXCLUSIVE ;
       rc = processorMgr->getProcessorByExtName( extName, lockType, processor ) ;
-
       PD_RC_CHECK( rc, PDERROR, "Get external processor failed[%d]", rc ) ;
       _lockType = lockType ;
       if ( !processor )
