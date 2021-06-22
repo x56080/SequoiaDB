@@ -826,11 +826,16 @@ namespace engine
    {
       BOOLEAN checkResult = TRUE ;
 
-      if ( !sdbGetReplCB()->getBucket()->isEmpty() )
+      if ( SDB_OK != getSyncEmptyEvent()->wait( 0 ) )
+      {
+         PD_LOG( PDWARNING, "Repl sync log is running, "
+                 "can't initial voting" ) ;
+         checkResult = FALSE ;
+      }
+      else if ( !getBucket()->isEmpty() )
       {
          PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
-                 "repl bucket size: %d",
-                 sdbGetReplCB()->getBucket()->size() ) ;
+                 "repl bucket size: %d", getBucket()->size() ) ;
          checkResult = FALSE ;
       }
       else if ( sdbGetTransCB()->isNeedSyncTrans() &&
