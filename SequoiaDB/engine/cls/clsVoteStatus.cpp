@@ -92,6 +92,13 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
+      else if ( SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
+      {
+         PD_LOG( PDWARNING, "Repl sync log is running, "
+                 "can't initial voting" ) ;
+         rc = SDB_CLS_VOTE_FAILED ;
+         goto error ;
+      }
       else if ( !sdbGetReplCB()->getBucket()->isEmpty() )
       {
          PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
