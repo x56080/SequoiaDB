@@ -204,28 +204,34 @@ namespace engine
          typedef ossPoolMap<ossValuePtr, UINT32>   TUPLE_GROUPID_MAP ;
 
       private:
-         INT32 _openSubStreams( CoordGroupList &gpLst, _pmdEDUCB* cb ) ;
+         INT32 _openSubStreams( CoordGroupList &gpLst,
+                                _pmdEDUCB* cb,
+                                BOOLEAN &needReshard ) ;
 
          INT32 _openMainStream( const CHAR *fullName,
                                 const bson::OID &oid,
                                 INT32 mode,
-                                _pmdEDUCB *cb ) ;
+                                _pmdEDUCB *cb,
+                                BOOLEAN *pNeedReshard = NULL ) ;
 
          INT32 _openOtherStreams( const CHAR *fullName,
                                   const bson::OID &oid,
                                   INT32 mode,
                                   _pmdEDUCB *cb,
-                                  CoordGroupList &gpList ) ;
+                                  CoordGroupList &gpList,
+                                  BOOLEAN &needReshard ) ;
 
          INT32 _openOtherStream( const CHAR *fullName,
                                  const bson::OID &oid,
                                  INT32 mode,
                                  _pmdEDUCB *cb,
-                                 UINT32 pSpecGroupID ) ;
+                                 UINT32 pSpecGroupID,
+                                 BOOLEAN &needReshard ) ;
 
          INT32 _getSubStream( UINT32 groupID,
                               const subStream** sub,
-                              _pmdEDUCB *cb ) ;
+                              _pmdEDUCB *cb,
+                              BOOLEAN &needReshard ) ;
 
          INT32 _extractMeta( const MsgOpReply *header,
                              bson::BSONObj &obj,
@@ -247,7 +253,8 @@ namespace engine
 
          void _clearMsgData() ;
 
-         INT32 _reopenSubStreams( _pmdEDUCB *cb ) ;
+         INT32 _reopenSubStreams( _pmdEDUCB *cb,
+                                  BOOLEAN exceptMeta ) ;
 
          INT32 _addSubStreamsFromReply() ;
 
