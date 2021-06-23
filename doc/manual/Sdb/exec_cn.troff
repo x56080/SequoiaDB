@@ -7,7 +7,7 @@
 exec \- 执行 SQL 的 select 语句
 .SH 语法
 .PP
-\f[B]db.exec( <select sql> )\f[]
+\f[B]db.exec(<select sql>)\f[]
 .SH 类别
 .PP
 Sdb
@@ -19,7 +19,8 @@ Sdb
 无
 .SH 返回值
 .PP
-函数执行成功时，将通过游标（SdbCursor）方式返回查询结果信息列表。
+函数执行成功时，将返回一个 SdbCursor
+类型的对象。通过该对象获取查询结果信息列表。
 .PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
@@ -35,6 +36,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.exec(\ "select\ *\ from\ sample.employee\ where\ age\ =\ 20"\ )
+>\ db.exec("select\ *\ from\ sample.employee\ where\ age\ =\ 20")
 \f[]
 .fi

@@ -4,26 +4,40 @@
 .hy
 .SH NAME
 .PP
-close \- Disconnect from database.
+close \- close the database connection
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.close()\f[]\f[]
+\f[B]db.close()\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-Disconnect from database.
-.SH "Examples"
-
-.sp 2
-Disconnect from database.
-.sp 2
-> var db = new Sdb("192.168.20.178", 11810)
-.sp 2
-Takes 0.10684s.
-.sp 2
-> db.close()
-.sp 2
-Takes 0.493s.
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to close the database connection.
+.SH PARAMETERS
+.PP
+None
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+Close the database connection.
+.IP
+.nf
+\f[C]
+>\ var\ db\ =\ new\ Sdb("localhost",\ 11810)
+>\ db.close()
+\f[]
+.fi

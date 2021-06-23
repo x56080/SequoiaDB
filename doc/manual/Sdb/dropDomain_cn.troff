@@ -8,7 +8,7 @@
 dropDomain \- 删除域
 .SH 语法
 .PP
-\f[B]db.dropDomain( <name> )\f[]
+\f[B]db.dropDomain(<name>)\f[]
 .SH 类别
 .PP
 Sdb
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -48,12 +48,12 @@ T}
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-dropDomain() 方法的定义格式必须指定 name 参数，并且 name
+dropDomain() 函数的定义格式必须指定 name 参数，并且 name
 的值在系统中存在，否则操作异常。
 .IP \[bu] 2
 删除域前必须保证域中不存在任何数据。
 .IP \[bu] 2
-不能删除系统域SYSDOMAIN。
+不支持删除系统域 SYSDOMAIN。
 .RE
 .SH 返回值
 .PP
@@ -69,12 +69,12 @@ dropDomain() 方法的定义格式必须指定 name 参数，并且 name
 v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
-删除一个之前创建的域。
+删除一个已存在的域
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\ \[aq]mydomain\[aq]\ )
+>\ db.dropDomain(\[aq]mydomain\[aq])
 \f[]
 .fi
 .RE
@@ -84,9 +84,9 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\ \[aq]hello\[aq]\ )
+>\ db.dropDomain(\[aq]hello\[aq])
 (nofile):0\ uncaught\ exception:\ \-256
->\ getLastErrMsg(\ \-256\ )
+>\ getLastErrMsg(\-256)
 Domain\ is\ not\ empty
 \f[]
 .fi

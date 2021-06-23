@@ -35,7 +35,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ var\ db\ =\ new\ Sdb("localhost",\ 11810)
 >\ db.close()
 \f[]
 .fi

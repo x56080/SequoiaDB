@@ -4,83 +4,75 @@
 .hy
 .SH NAME
 .PP
-flushConfigure \- Flush the configurations to the configuration files.
+flushConfigure \- flush the configuration in the node memory to the
+configuration file
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.flushConfigure(<options>)\f[]\f[]
+\f[B]db.flushConfigure([options])\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-Flush the configurations to the configuration files.
-.sp 2
-\fBoptions (json object)\fR
-.br
-       Specify the configure filter type and location params,
-       such as GroupID, GroupName, NodeID, HostName,
-       svcname, etc.
-.sp 2
-       \fBType\fR
-.br
-              Configure filter type. 3 in default.
-              0 for no filter.
-              1 for excluding the hidden-parameters with default value.
-              2 for excluding the parameters with default value.
-              3 for excluding the un-configured parameters in the file.
-.br
-              Type:3.
-.sp 2
-       \fBGlobal\fR
-.br
-              Specify the command's location which is local or global.
-              Default is local mode.
-.br
-              Global:false  : run on local
-              Global:true   : run on global nodes
-.sp 2
-       \fBGroupID\fR
-.br
-              Specify the command's location by group ID.
-.br
-              GroupID:1000
-              GroupID:[1000, 1001, ...]
-.sp 2
-       \fBGroupName\fR
-.br
-              Specify the command's location by group name.
-.br
-              GroupName:"db1"
-              GroupName:["db1", "db2", ...]
-.sp 2
-       \fBNodeID\fR
-.br
-              Specify the command's location by node ID.
-.br
-              NodeID:1000
-              NodeID:[1000, 1001, ...]
-.sp 2
-       \fBHostName\fR
-.br
-              Specify the command's location by node name.
-              The param should be used with 'svcname'.
-.br
-              HostName:"host-01"
-              HostName:[ "centos-01", "ubuntu-02", ... ]
-.sp 2
-       \fBsvcname\fR
-.br
-              Specify the command's location by svcname.
-              The param should be used with 'HostName'.
-.br
-              svcname:"11820"
-              svcname:[ "11780", "11810", ... ]
-.sp 2
-
-.SH "Examples"
-
-.sp 2
-Flush database's configurations.
-.sp 2
-db.flushConfigure({Global:true})
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to flush the configuration in the node memory to the
+configuration file.
+.SH PARAMETERS
+.PP
+options ( \f[I]object, optional\f[] )
+.PP
+Through the options parameter, users can set the configuration filter type and
+command position parameter：
+.IP \[bu] 2
+Type ( \f[I]number\f[] )：Configure the filter type, the default value is 3.
+.RS 2
+.PP
+The values are as follows:
+.IP \[bu] 2
+0：All configurations.
+.IP \[bu] 2
+1：Shield unmodified hidden parameters.
+.IP \[bu] 2
+2：Shield all unmodified parameters.
+.IP \[bu] 2
+3：Shield unconfigured parameters.
+.PP
+Format: \f[C]Type:\ 3\f[]
+.RE
+.IP \[bu] 2
+Location Elements：Command position parameter item.
+.RS 2
+.PP
+Format: \f[C]GroupName:\ "db1"\f[]
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+When the configuration filter type is incorrect, the default setting is 3.
+.IP \[bu] 2
+When there is no position parameter, the default is only valid for the node
+itself.
+.RE
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+Flush the database configuration.
+.IP
+.nf
+\f[C]
+>\ db.flushConfigure({Global:\ true})
+\f[]
+.fi

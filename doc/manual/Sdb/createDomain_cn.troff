@@ -8,13 +8,13 @@
 createDomain \- 创建域
 .SH 语法
 .PP
-\f[B]db.createDomain( <name>, <groups>, [options] )\f[]
+\f[B]db.createDomain(<name>, <groups>, [options])\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于创建一个域。域中可以包含若干个复制组（Replica Group）。
+该函数用于创建一个域，域中可以包含若干个复制组。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -39,7 +39,7 @@ name
 T}@T{
 string
 T}@T{
-域名，全局唯一。
+域名，全局唯一
 T}@T{
 是
 T}
@@ -48,18 +48,25 @@ T{
 T}@T{
 groups
 T}@T{
-Json 数组
+array
 T}@T{
-域包含的复制组。
+域中包含的复制
 T}@T{
 否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+组
+T}@T{
 T}
 T{
 3
 T}@T{
 options
 T}@T{
-Json 对象
+object
 T}@T{
 在创建域时可以
 T}@T{
@@ -76,13 +83,12 @@ T{
 T}@T{
 T}@T{
 T}@T{
-其他属性。
+其他属性
 T}@T{
 T}
 .TE
-.SH 格式
 .PP
-目前通过 options 可设置域的属性有：
+目前通过 options 可设置的属性如下：
 .PP
 .TS
 tab(@);
@@ -116,10 +122,8 @@ T}
 .RS
 .PP
 \f[B]Note:\f[]
-.IP \[bu] 2
-AutoSplit 只作用于散列分区集合。
-.IP \[bu] 2
-不能在空域（不包含复制组）上创建集合空间。
+.PP
+不支持在空域（不包含复制组的域）中创建集合空间。
 .RE
 .SH 返回值
 .PP
@@ -135,22 +139,22 @@ AutoSplit 只作用于散列分区集合。
 v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
-创建一个域，包含两个复制组。
+创建一个域，包含两个复制组
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ]\ )
+>\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]])
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-创建一个域，包含两个复制组，并且指定自动切分。
+创建一个域，包含两个复制组，并且指定自动切分
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.createDomain(\ \[aq]mydomain\[aq],\ [\ \[aq]group1\[aq],\ \[aq]group2\[aq]\ ],\ {\ AutoSplit:\ true\ }\ )
+>\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
 \f[]
 .fi
 .RE

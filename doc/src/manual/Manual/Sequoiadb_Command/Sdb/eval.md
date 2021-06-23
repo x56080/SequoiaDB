@@ -4,7 +4,7 @@ eval - 调用存储过程
 
 ##语法##
 
-**db.eval( \<code\> )**
+**db.eval(\<code\>)**
 
 ##类别##
 
@@ -16,31 +16,31 @@ Sdb
 
 ##参数##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
+| 参数名 | 类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
-| code | 字符串 | JavaScript 语句或者创建好的存储过程函数 | 是 |
+| code | string | JavaScript 语句或者创建好的存储过程函数 | 是 |
 
 > **Note：**
 >
-> 虽然语句中的所有输出都会被屏蔽，但还是建议不要加入任何打印语句。
+> 存储过程会屏蔽所有标准输出和标准错误。同时，不建议在函数执行时加入输出语句，大量的输出可能会导致存储过程运行失败。
 
 ##返回值##
 
-（1） 执行成功则按照语句返回结果。可以将返回值直接赋值给另一个变量。如：`var a = db.eval( 'db.sample.employee' ); a.find(); `
+- 函数执行成功时，将按照语句返回结果。可以将返回值直接赋值给另一个变量，如：`var a = db.eval( 'db.sample.employee' ); a.find(); `。
 
-（2） 执行失败会返回错误码及错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md) 。
+- 函数执行失败时，将抛异常并输出错误信息。
 
-（3） 在函数执行结束前操作不会返回。中途退出则终止整个执行，但已经执行的代码不会被回滚。
+- 在函数执行结束前操作不会返回。中途退出则终止整个执行，但已经执行的代码不会被回滚。
 
-（4） 自定义返回值的长度有一定限制，参考 SequoiaDB 插入记录的最大长度。
+- 自定义返回值的长度有一定限制，参考 SequoiaDB 插入记录的最大长度。
 
-（5） 支持定义临时函数。如：`db.eval( 'function sum(x,y){return x+y;} sum(1,2)' )`
+- 支持定义临时函数，如：`db.eval( 'function sum(x,y){return x+y;} sum(1,2)' )`。
 
-（6） 全局 db 使用方式与 [createProcedure()](manual/Manual/Sequoiadb_Command/Sdb/createProcedure.md) 相同。
+- 全局 db 使用方式与 [createProcedure()][createProcedure] 相同。
 
 ##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -48,7 +48,7 @@ v2.0 及以上版本
 
 ##示例##
 
-* 在eval() 方法中调用存储过程函数 sum
+* 通过 eval() 调用存储过程函数 sum
 
     ```lang-javascript
     //初始时 sum() 方法不存在，返回异常信息
@@ -62,7 +62,7 @@ v2.0 及以上版本
     3
     ```
 
-* 在 eval() 方法中填写 JavaScript 语句
+* 通过 eval() 填写 JavaScript 语句并执行
 
     ```lang-javascript
     > var ret = db.eval( "db.sample.employee" )
@@ -83,8 +83,8 @@ v2.0 及以上版本
 
 [^_^]:
      本文使用的所有引用及链接
-
-[list_info]:manual/Manual/List/list.md
+[createProcedure]:manual/Manual/Sequoiadb_Command/Sdb/createProcedure.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/FAQ/faq_sdb.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

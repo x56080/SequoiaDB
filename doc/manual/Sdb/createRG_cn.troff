@@ -8,13 +8,13 @@
 createRG \- 新建复制组
 .SH 语法
 .PP
-\f[B]db.createRG( <name> )\f[]
+\f[B]db.createRG(<name>)\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于新建一个复制组。创建后系统自动为复制组分配一个GroupId。
+该函数用于新建一个复制组，创建后系统自动为复制组分配一个 GroupID。
 .SH 参数
 .PP
 .TS
@@ -39,7 +39,7 @@ name
 T}@T{
 string
 T}@T{
-分区组名，同一
+复制组名，同一
 T}@T{
 是
 T}
@@ -54,14 +54,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-分区组名唯一。
+复制组名唯一
 T}@T{
 T}
 .TE
 .RS
 .PP
 \f[B]Note:\f[]
-.IP \[bu] 2
+.PP
 复制组名不能是空串，不能含点（.）或者美元符号（$），并且长度不能超过127B。
 .RE
 .SH 返回值
@@ -78,10 +78,10 @@ T}
 v2.0 及以上版本
 .SH 示例
 .PP
-新建名为 “group1” 的复制组
+新建名为“group1”的复制组
 .IP
 .nf
 \f[C]
->\ db.createRG(\ "group1"\ )
+>\ db.createRG("group1")
 \f[]
 .fi
