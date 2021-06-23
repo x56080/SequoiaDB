@@ -29,8 +29,8 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  */
 
 public class Fulltext12118A extends FullTestBase {
-    private List< String > csNames = new ArrayList< >();
-    private List< String > clNames = new ArrayList< >();
+    private List< String > csNames = new ArrayList<>();
+    private List< String > clNames = new ArrayList<>();
     private String csBasicName = "cs12118A";
     private String clBasicName = "cl12118A";
     private int csNum = 2;
@@ -77,8 +77,8 @@ public class Fulltext12118A extends FullTestBase {
 
     @Override
     protected void caseFini() throws Exception {
-        List< String > esIndexNames = new ArrayList< >();
-        List< String > cappedCLNames = new ArrayList< >();
+        List< String > esIndexNames = new ArrayList<>();
+        List< String > cappedCLNames = new ArrayList<>();
         for ( String csName : csNames ) {
             CollectionSpace cs = sdb.getCollectionSpace( csName );
             for ( String clName : clNames ) {
@@ -103,7 +103,7 @@ public class Fulltext12118A extends FullTestBase {
         }
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         // 获取原始集合所在组及固定集合名，作为后续结果校验的输入
         List< String > cappedCLNames = new ArrayList<>();
