@@ -2,9 +2,11 @@
  * @Description   : seqDB-24275:主子表属于不同CS，删除CS
  * @Author        : liuli
  * @CreateTime    : 2021.06.22
- * @LastEditTime  : 2021.06.22
+ * @LastEditTime  : 2021.06.24
  * @LastEditors   : liuli
  ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test );
 
 function test ()
