@@ -1757,8 +1757,6 @@ namespace engine
                       rc ) ;
       }
 
-      _checkTotallyConverted() ;
-
    done :
       PD_TRACE_EXITRC( SDB__MTHMATCHTREE__POSTLOADPATTERN, rc ) ;
       return rc ;
@@ -2058,6 +2056,7 @@ namespace engine
             PD_LOG( PDERROR, "calc predicate failed:rc=%d", rc ) ;
             goto error ;
          }
+         _checkTotallyConverted() ;
       }
 
    done:
