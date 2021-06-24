@@ -1099,8 +1099,8 @@ namespace engine
    // return TRUE when l and r are intersect, and result is set to the intersect
    // of l and r
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREDOVERLAP, "predicatesOverlap" )
-   BOOLEAN predicatesOverlap ( rtnStartStopKey &l,
-                               rtnStartStopKey &r,
+   BOOLEAN predicatesOverlap ( const rtnStartStopKey &l,
+                               const rtnStartStopKey &r,
                                rtnStartStopKey &result )
    {
       PD_TRACE_ENTRY ( SDB_PREDOVERLAP ) ;
@@ -1131,12 +1131,12 @@ namespace engine
 
    // intersection operation for two keysets
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_OPEQU, "rtnPredicate::operator&=" )
-   const rtnPredicate &rtnPredicate::operator&= ( rtnPredicate &right )
+   const rtnPredicate &rtnPredicate::operator&= ( const rtnPredicate &right )
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_OPEQU ) ;
       RTN_SSKEY_LIST newKeySet ;
-      RTN_SSKEY_LIST::iterator i = _startStopKeys.begin() ;
-      RTN_SSKEY_LIST::iterator j = right._startStopKeys.begin() ;
+      RTN_SSKEY_LIST::const_iterator i = _startStopKeys.begin() ;
+      RTN_SSKEY_LIST::const_iterator j = right._startStopKeys.begin() ;
       while ( i != _startStopKeys.end() && j != right._startStopKeys.end() )
       {
          rtnStartStopKey overlap ;
@@ -1203,6 +1203,10 @@ namespace engine
       }
       b.done () ;
       finishOperation ( b.result(), right ) ;
+
+      // Accumulate saved cpu costs
+      _savedCPUCost += right._savedCPUCost ;
+
       PD_TRACE_EXIT ( SDB_RTNPRED_OPOREQ ) ;
       return *this ;
    }
@@ -2359,6 +2363,114 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNPREDSET_ADDPARAMPRED, rc ) ;
       return rc ;
    error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_ADDANDPREDSET, "_rtnPredicateSet::addAndPredicates" )
+   INT32 _rtnPredicateSet::addAndPredicates( const _rtnPredicateSet &otherSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNPREDSET_ADDANDPREDSET ) ;
+
+      try
+      {
+         // merge predicates
+         for ( RTN_PREDICATE_MAP_CIT iter = otherSet._predicates.begin() ;
+               iter != otherSet._predicates.end() ;
+               ++ iter )
+         {
+            pair< RTN_PREDICATE_MAP_IT, BOOLEAN > ret ;
+            ret = _predicates.insert( make_pair( iter->first, iter->second ) ) ;
+            if ( !ret.second )
+            {
+               ret.first->second &= iter->second ;
+            }
+         }
+
+         // merge parameter predicates
+         for ( RTN_PARAM_PREDICATE_MAP_CIT otherIter =
+                                 otherSet._paramPredicates.begin() ;
+               otherIter != otherSet._paramPredicates.end() ;
+               ++ otherIter )
+         {
+            for ( RTN_PREDICATE_LIST_CIT iter = otherIter->second.begin() ;
+                  iter != otherIter->second.end() ;
+                  ++ iter )
+            {
+               _paramPredicates[ otherIter->first ].push_back( *iter ) ;
+            }
+         }
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to add predicates by $and, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNPREDSET_ADDANDPREDSET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_ADDORPREDSET, "_rtnPredicateSet::addOrPredicates" )
+   INT32 _rtnPredicateSet::addOrPredicates( const _rtnPredicateSet &otherSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNPREDSET_ADDORPREDSET ) ;
+
+      // not support merge predicates with parameters yet
+      PD_CHECK( 0 == getParamSize(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to merge predicates by $or, "
+                "current set has parameter fields" ) ;
+      PD_CHECK( 0 == otherSet.getParamSize(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to merge predicates by $or, "
+                "other set has parameter fields" ) ;
+
+      if ( 0 == getSize() )
+      {
+         // current is empty, do nothing
+      }
+      else if ( 1 != getSize() || 1 != otherSet.getSize() )
+      {
+         // can not generate predicates
+         // downgrade to empty
+         clear() ;
+      }
+      else
+      {
+         RTN_PREDICATE_MAP_IT curIter = _predicates.begin() ;
+         RTN_PREDICATE_MAP_CIT otherIter = otherSet._predicates.begin() ;
+
+         SDB_ASSERT( curIter != _predicates.end(),
+                     "predicate from current set is invalid" ) ;
+         SDB_ASSERT( otherIter != otherSet._predicates.end(),
+                     "predicate from other set is invalid" ) ;
+
+         if ( curIter->first != otherIter->first )
+         {
+            // have different name
+            // downgrade to empty
+            clear() ;
+         }
+         else
+         {
+            // same fields, we can merge predicates
+            curIter->second |= otherIter->second ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNPREDSET_ADDORPREDSET, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
