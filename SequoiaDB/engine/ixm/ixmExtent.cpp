@@ -1693,10 +1693,11 @@ namespace engine
          // do have child, let's use a simple way to set the key unused (a
          // better way could be recursively swap+_deleteInternalKey /
          // _delKeyAtPos)
-         if ( nextExtent.getChildExtentID ( nextIndexKey._slot ) !=
-                    DMS_INVALID_EXTENT ||
-              nextExtent.getChildExtentID ( nextIndexKey._slot+1 ) !=
-                    DMS_INVALID_EXTENT )
+         if ( !indexCB->unique() &&
+              ( nextExtent.getChildExtentID ( nextIndexKey._slot ) !=
+                      DMS_INVALID_EXTENT ||
+                nextExtent.getChildExtentID ( nextIndexKey._slot+1 ) !=
+                      DMS_INVALID_EXTENT ) )
          {
             writeKeyNode(pos)->setUnused() ;
          }
