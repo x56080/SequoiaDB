@@ -51,6 +51,7 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _rtnContextBase ;
+   class _clsOPContext ;
 
    struct _clsIdentifyInfo
    {
@@ -213,6 +214,8 @@ namespace engine
     */
    class _clsShdSession : public _pmdAsyncSession
    {
+      friend class _clsOPContext ;
+
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -613,6 +616,21 @@ namespace engine
 
          BSONObjBuilder         _retBuilder ;
    } ;
+
+   class _clsOPContext : public _IOperationContext
+   {
+      public:
+         _clsOPContext( _clsShdSession *shdSession ) ;
+         virtual ~_clsOPContext() ;
+
+      public:
+         INT32 getShardingKey( const CHAR* clName, BSONObj &shardingKey ) ;
+
+      private:
+         _clsShdSession *_pShdSession ;
+   } ;
+
+   typedef _clsOPContext clsOPContext ;
 
 }
 

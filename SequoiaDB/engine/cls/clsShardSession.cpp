@@ -2408,9 +2408,9 @@ namespace engine
          }
          else
          {
-
+            _clsOPContext opContext( this ) ;
             rc = rtnInsert ( pCollectionName, insertor, recordNum, flags,
-                             _pEDUCB, _pDmsCB, _pDpsCB, w,
+                             _pEDUCB, _pDmsCB, _pDpsCB, w, &opContext,
                              &inResult ) ;
          }
       }
@@ -3865,11 +3865,12 @@ namespace engine
             }
             else
             {
+               clsOPContext opContext( this ) ;
                while ( TRUE )
                {
                   /// insert to sub collection
                   rc = rtnInsert ( pSubCLName, insertor, subObjsNum, flags,
-                                   _pEDUCB, _pDmsCB, _pDpsCB, w,
+                                   _pEDUCB, _pDmsCB, _pDpsCB, w, &opContext,
                                    &inResult ) ;
                   if ( rc )
                   {
@@ -7208,5 +7209,23 @@ namespace engine
    error:
       goto done ;
    }
+
+   _clsOPContext::_clsOPContext( _clsShdSession *shdSession )
+   {
+      SDB_ASSERT( NULL != shdSession, "shdSession can't be null" ) ;
+      _pShdSession = shdSession ;
+   }
+
+   _clsOPContext::~_clsOPContext()
+   {
+      _pShdSession = NULL ;
+   }
+
+   INT32 _clsOPContext::getShardingKey( const CHAR* clName,
+                                        BSONObj &shardingKey )
+   {
+      return _pShdSession->_getShardingKey( clName, shardingKey ) ;
+   }
+
 }
 

@@ -90,7 +90,7 @@ namespace engine
                                                 DMS_STORAGE_NORMAL, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create %s collection "
                       "space, rc: %d", DMS_SYSLOCAL_CS_NAME, rc ) ;
-   
+
          rc = rtnCollectionSpaceLock ( DMS_SYSLOCAL_CS_NAME, _dmsCB, TRUE,
                                        &_su, suID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock %s collection space, "
@@ -151,7 +151,7 @@ namespace engine
       insertResult.enableReturnIDInfo() ;
 
       rc = rtnInsert( DMS_SYSLOCALTASK_CL_NAME, obj, 1, 0, cb,
-                      _dmsCB, dpsCB, w, &insertResult ) ;
+                      _dmsCB, dpsCB, w, NULL, &insertResult ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Insert object(%s) to %s failed, rc: %d",

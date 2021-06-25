@@ -675,7 +675,7 @@ namespace engine
                   count, pCollectionName, flag, flag ) ; */
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
-                         &inResult ) ;
+                         NULL, &inResult ) ;
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%llu, "

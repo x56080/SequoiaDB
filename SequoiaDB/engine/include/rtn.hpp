@@ -62,6 +62,20 @@ namespace engine
    class _SDB_DMSCB;
    typedef _SDB_DMSCB SDB_DMSCB;
 
+
+   class _IOperationContext : public SDBObject
+   {
+      public:
+         _IOperationContext() {}
+         virtual ~_IOperationContext() {}
+
+      public:
+         virtual INT32 getShardingKey( const CHAR* clName,
+                                       BSONObj &shardingKey ) = 0 ;
+   } ;
+
+   typedef _IOperationContext IOperationContext ;
+
    INT32 rtnReallocBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
                             INT32 newLength, INT32 alignmentSize ) ;
 
@@ -108,6 +122,7 @@ namespace engine
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb,
+                     IOperationContext *opContext = NULL,
                      utilInsertResult *pResult = NULL ) ;
 
    // for insert/update/delete, if dpsCB = NULL, that means we don't log
@@ -115,6 +130,7 @@ namespace engine
                      const BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w = 1,
+                     IOperationContext *opContext = NULL,
                      utilInsertResult *pResult = NULL ) ;
 
    // for replaying insert operation. Only one record will be inserted in one
