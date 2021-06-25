@@ -236,7 +236,7 @@ namespace engine
          {
             _inResult.resetInfo() ;
             rc = rtnInsert ( _fullName.c_str(), obj, 1, 0, eduCB,
-                             dmsCB, dpsCB, 1, &_inResult ) ;
+                             dmsCB, dpsCB, 1, NULL, &_inResult ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Insert record on node failed, rc: %d",
@@ -291,7 +291,7 @@ namespace engine
                   BSONObj firstObj( pInsertor ) ;
                   _inResult.resetInfo() ;
                   rc = rtnInsert ( _fullName.c_str(), firstObj, count, flag,
-                                   eduCB, dmsCB, dpsCB, 1, &_inResult ) ;
+                                   eduCB, dmsCB, dpsCB, 1, NULL, &_inResult ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Insert record on node failed, rc: %d",

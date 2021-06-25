@@ -67,6 +67,7 @@ namespace replay
    #define RPL_OPTION_INFLATE           "inflate"
    #define RPL_OPTION_TYPE              "type"
    #define RPL_OPTION_UPDATE_WITH_SHARING_KEY "updatewithshardingkey"
+   #define RPL_OPTION_KEEP_SHARING_KEY  "keepshardingkey"
 
    #define RPL_EXPLAIN_HELP             "print help information"
    #define RPL_EXPLAIN_VERSION          "print version"
@@ -104,6 +105,7 @@ namespace replay
                                         "the value can be \"archive\" or \"replica\", " \
                                         "default is \"archive\""
    #define RPL_EXPLAIN_UPDATE_WITH_SHARDING_KEY "update record with sharding key when it exists, default is true"
+   #define RPL_EXPLAIN_KEEP_SHARDING_KEY "update record with flag of UPDATE_KEEP_SHARDINGKEY, default is true "
 
    #define RPL_OPTION_TYPE_ARCHIVE      "archive"
    #define RPL_OPTION_TYPE_REPLICA      "replica"
@@ -127,6 +129,7 @@ namespace replay
       _inflate = FALSE;
       _isReplicaFile = FALSE;
       _updateWithShardingKey = TRUE;
+      _isKeeyShardingKey = TRUE ;
       _intervalNum = RPL_DEFAULT_INTERVAL_NUM;
    }
 
@@ -168,6 +171,7 @@ namespace replay
          (RPL_OPTION_DEFLATE,       _TYPE(string),    RPL_EXPLAIN_DEFLATE)
          (RPL_OPTION_INFLATE,       _TYPE(string),    RPL_EXPLAIN_INFLATE)
          (RPL_OPTION_UPDATE_WITH_SHARING_KEY, _TYPE(string), RPL_EXPLAIN_UPDATE_WITH_SHARDING_KEY)
+         (RPL_OPTION_KEEP_SHARING_KEY, _TYPE(string), RPL_EXPLAIN_KEEP_SHARDING_KEY)
       ;
 
       rc = engine::utilOptions::parse(argc, argv);
@@ -534,6 +538,12 @@ namespace replay
       {
          string withShardingKey = get<string>(RPL_OPTION_UPDATE_WITH_SHARING_KEY);
          ossStrToBoolean(withShardingKey.c_str(), &_updateWithShardingKey);
+      }
+
+      if (has(RPL_OPTION_KEEP_SHARING_KEY))
+      {
+         string isKeepShardingKey = get<string>(RPL_OPTION_KEEP_SHARING_KEY);
+         ossStrToBoolean(isKeepShardingKey.c_str(), &_isKeeyShardingKey);
       }
 
       if (has(RPL_OPTION_INTERVAL_NUM))

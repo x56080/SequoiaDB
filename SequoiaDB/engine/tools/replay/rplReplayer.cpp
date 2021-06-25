@@ -2536,7 +2536,8 @@ namespace replay
       if ( !_options->hostName().empty() )
       {
          rplSdbOutputter *tmpOutputter = SDB_OSS_NEW rplSdbOutputter(
-                                           _options->updateWithShardingKey() ) ;
+                                           _options->updateWithShardingKey(),
+                                           _options->isKeepShardingKey() ) ;
          if ( NULL == tmpOutputter )
          {
             rc = SDB_OOM ;
