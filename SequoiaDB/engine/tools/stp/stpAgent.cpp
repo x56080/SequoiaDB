@@ -238,10 +238,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
       }
 
-      // test alive of STP
-      rc = _testSTP() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
-
       // check meta data
       rc = _checkMetaData( _serviceName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check meta data with key [%s], "
@@ -356,9 +352,10 @@ namespace engine
          }
          else if ( _recheckAvailable( rc, needWait ) )
          {
+            UINT32 waitTime = 0 ;
             if ( needWait )
             {
-               UINT32 waitTime = STP_MICROSEC_TO_MILLISEC( waitTimeUS ) ;
+               waitTime = STP_MICROSEC_TO_MILLISEC( waitTimeUS ) ;
 
                if ( 0 == waitTime )
                {
@@ -375,14 +372,20 @@ namespace engine
                {
                   waitTime = OSS_ONE_SEC ;
                }
-
-               // we could retry, sleep and continue loop
-               ossSleep( waitTime ) ;
-               if ( timeout > 0 )
-               {
-                  totalTimeout += waitTime ;
-               }
             }
+            else
+            {
+               // sleep for a quick interval to avoid infinity loop
+               waitTime = STP_AGENT_RETRY_INTERVAL ;
+            }
+
+             // we could retry, sleep and continue loop
+            ossSleep( waitTime ) ;
+            if ( timeout > 0 )
+            {
+               totalTimeout += waitTime ;
+            }
+
             continue ;
          }
          // we could not retry, break loop
@@ -509,6 +512,21 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTSTP ) ;
 
       INT8 test = 0 ;
+      BOOLEAN gotCheckLatch = FALSE ;
+
+      // critical section: only one thread could check available in concurrent
+      if ( !_metaCheckLatch.try_get() )
+      {
+         // if we failed to get latch, means someone else is updating,
+         // just goto done
+         goto done ;
+      }
+
+      // entered critical section
+      gotCheckLatch = TRUE ;
+
+      PD_CHECK( OSS_INVALID_PID != _stpPID, STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to test STP, PID of STP is unknown" ) ;
 
       // write test command to pipe
       rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME,
@@ -526,10 +544,17 @@ namespace engine
               _serviceName, _stpPID, STP_PIPE_MSG_TEST ) ;
 
    done:
+      if ( gotCheckLatch )
+      {
+         _metaCheckLatch.release() ;
+      }
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__TESTSTP, rc ) ;
       return rc ;
 
    error:
+      // when error happened, clear agent
+      SDB_ASSERT( gotCheckLatch, "should in critical section" ) ;
+      _clear() ;
       goto done ;
    }
 
@@ -746,13 +771,28 @@ namespace engine
       switch ( rc )
       {
          case STP_NOT_AVAILABLE :
-         case STP_SYNC_FAILED :
          {
-            // it is not synchronized or not available
+            // it is not available
             // in these cases, STP might not started, so check available
             if ( SDB_OK == checkAvailable() )
             {
                // it is available now, go retry
+               canRetry = TRUE ;
+               needWait = FALSE ;
+            }
+            break ;
+         }
+         case STP_SYNC_FAILED :
+         {
+            // it is not synchronized, test if STP is alive first
+            // if failed, it may restarted, check available again
+            if ( SDB_OK == _testSTP() )
+            {
+               canRetry = TRUE ;
+               needWait = FALSE ;
+            }
+            else if ( SDB_OK == checkAvailable() )
+            {
                canRetry = TRUE ;
                needWait = FALSE ;
             }
