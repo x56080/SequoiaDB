@@ -5,10 +5,10 @@
 .hy
 .SH 名称
 .PP
-getDomain \- 获取指定域。
+getDomain \- 获取指定域
 .SH 语法
 .PP
-\f[B]db.getDomain( <name> )\f[]
+\f[B]db.getDomain(<name>)\f[]
 .SH 类别
 .PP
 Sdb
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -48,7 +48,7 @@ T}
 .PP
 \f[B]Note:\f[]
 .PP
-不能获取系统域 SYSDOMAIN。
+不支持获取系统域 SYSDOMAIN。
 .RE
 .SH 返回值
 .PP
@@ -64,10 +64,10 @@ T}
 v2.0 及以上版本
 .SH 示例
 .PP
-获取一个之前创建的域。
+获取一个之前创建的域
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.getDomain(\ \[aq]mydomain\[aq]\ )
+>\ var\ domain\ =\ db.getDomain(\[aq]mydomain\[aq])
 \f[]
 .fi

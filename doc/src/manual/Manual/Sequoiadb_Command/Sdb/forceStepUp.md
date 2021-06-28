@@ -4,7 +4,7 @@ forceStepUp - 强制将备节点升级为主节点
 
 ##语法##
 
-**db.forceStepUp( [options] )**
+**db.forceStepUp([options])**
 
 ##类别##
 
@@ -17,15 +17,15 @@ Sdb
 
 ##参数##
 
-|参数名    |参数类型    |描述         |是否必填|
+|参数名    |类型        |描述         |是否必填|
 |--------- |----------- |------------ |----------|
-|options   |Json 对象   |参数集合   |否|
+|options   |object      |参数集合   |否|
 
-   1. **options 选项**
+**options 选项**
 
-  |参数名    |参数类型   |描述                           |默认值|
-  |--------- |---------- |------------------------------ |--------|
-  |Seconds   |int        |强制升级为主节点的持续时间   |120|
+|参数名    |类型      |描述                           |默认值|
+|--------- |---------- |------------------------------ |--------|
+|Seconds   |number     |强制升级为主节点的持续时间   |120|
 
 > **Note:**
 >
@@ -42,7 +42,7 @@ Sdb
 
 ##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
 ##版本##
 
@@ -50,17 +50,16 @@ v2.0 及以上版本
 
 ##示例##
 
-连接 catalog 节点（hostname1:30000），并使其强制升主，持续300s。
+连接 catalog 节点 `hostname1:30000`，并使其强制升主，持续 300s
 
 ```lang-javascript
-> var db = new Sdb( "hostname1", 30000 ) ;
-> db.forceStepUp( { Seconds: 300 } );
+> var db = new Sdb("hostname1", 30000)
+> db.forceStepUp({Seconds: 300})
 ```
 
 [^_^]:
      本文使用的所有引用及链接
-
-[list_info]:manual/Manual/List/list.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_guide]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

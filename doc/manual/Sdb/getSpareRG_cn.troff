@@ -31,7 +31,7 @@ Sdb
 v3.0 及以上版本
 .SH 示例
 .PP
-获取SYSSpare组的引用
+获取 SYSSpare 组的引用
 .IP
 .nf
 \f[C]

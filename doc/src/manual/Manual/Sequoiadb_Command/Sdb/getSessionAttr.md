@@ -16,7 +16,7 @@ Sdb
 
 > **Note:**
 >
-> 如果当前会话属性不符合预期，可使用 [Sdb.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md) 设置会话属性。
+> 如果当前会话属性不符合预期，可使用 [setSessionAttr()][setSessionAttr] 设置会话属性。
 
 ##参数##
 
@@ -24,13 +24,13 @@ Sdb
 
 ##返回值##
 
-函数执行成功时，将通过 BSONObj 方式返回会话属性的详细信息列表，返回的字段信息可参考 [Sdb.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。
+函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取会话属性的详细信息列表，字段说明可参考setSessionAttr()。
 
 函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -60,8 +60,8 @@ v2.8 及以上版本
 
 [^_^]:
      本文使用的所有引用及链接
-
-[list_info]:manual/Manual/List/list.md
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/FAQ/faq_sdb.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

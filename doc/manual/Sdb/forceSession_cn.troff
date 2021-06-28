@@ -8,13 +8,13 @@
 forceSession \- 终止指定会话的当前操作
 .SH 语法
 .PP
-\f[B]db.forceSession( <sessionID>, [options] )\f[]
+\f[B]db.forceSession(<sessionID>, [options])\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于终止指定会话的当前操作。当不指定节点信息时，默认为对自身的会话进行操作。
+该函数用于终止指定会话的当前操作。如果不指定节点信息，默认为对自身的会话进行操作。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -37,7 +37,7 @@ T{
 T}@T{
 sessionID
 T}@T{
-int
+number
 T}@T{
 会话编号
 T}@T{
@@ -48,9 +48,9 @@ T{
 T}@T{
 options
 T}@T{
-Json对象
+object
 T}@T{
-\f[B]命令位置参数\f[]
+命令位置参数
 T}@T{
 否
 T}
@@ -61,9 +61,9 @@ T}
 .IP \[bu] 2
 只有用户会话可以被终止。
 .IP \[bu] 2
-会话编号可以通过list()或snapshot()获取。
+会话编号可以通过 list() 或 snapshot() 获取。
 .IP \[bu] 2
-options参数只在协调节点生效。
+options 参数只在协调节点生效。
 .IP \[bu] 2
 如果终止的会话是当前会话，连接会被断开，不能再执行操作。
 .RE
@@ -98,7 +98,7 @@ T}@T{
 T}@T{
 SDB_PMD_SESSION_NOT_
 T}@T{
-指定会话不存在。
+指定会话不存在
 T}@T{
 检查指定会话是
 T}
@@ -108,7 +108,7 @@ T}@T{
 EXIST
 T}@T{
 T}@T{
-否存在。
+否存在
 T}
 T{
 2
@@ -119,7 +119,7 @@ SDB_PMD_FORCE_SYSTEM_
 T}@T{
 系统会话不能被
 T}@T{
-检查磁盘是否损
+\-
 T}
 T{
 T}@T{
@@ -128,21 +128,6 @@ EDU
 T}@T{
 终止
 T}@T{
-坏或重新执行备
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-份并删除该备份
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-文件
 T}
 .TE
 .PP
@@ -153,28 +138,28 @@ T}
 v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
-终止当前节点编号为30的会话。
+终止当前节点中，编号为 30 的会话
 .RS 2
 .IP
 .nf
 \f[C]
 //\ 连接节点
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
+>\ db\ =\ new\ Sdb("localhost",\ 11810)
 //\ 终止指定会话
->\ db.forceSession(\ 30\ )
+>\ db.forceSession(30)
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-终止节点ID为1000上的编号为30的会话。
+终止 NodeID 为 1000 的节点中，编号为 30 的会话
 .RS 2
 .IP
 .nf
 \f[C]
 //\ 连接节点
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
-//\ 终止编号为30的会话
->\ db.forceSession(\ 30,\ {NodeID:1000}\ )
+>\ db\ =\ new\ Sdb("localhost",\ 11810)
+//\ 终止指定会话\ 
+>\ db.forceSession(30,\ {NodeID:\ 1000})
 \f[]
 .fi
 .RE

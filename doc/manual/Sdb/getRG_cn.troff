@@ -8,7 +8,7 @@
 getRG \- 获取指定复制组
 .SH 语法
 .PP
-\f[B]db.getRG( <name> | <id> )\f[]
+\f[B]db.getRG(<name>|<id>)\f[]
 .SH 类别
 .PP
 Sdb
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -55,7 +55,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-复制组名唯一。
+复制组名唯一
 T}@T{
 T}
 T{
@@ -63,9 +63,9 @@ T{
 T}@T{
 id
 T}@T{
-int
+number
 T}@T{
-复制组 id，创建
+复制组 ID，创建
 T}@T{
 id 和 name 任选一
 T}
@@ -81,15 +81,15 @@ T{
 T}@T{
 T}@T{
 T}@T{
-动分配。
+动分配
 T}@T{
 T}
 .TE
 .RS
 .PP
 \f[B]Note:\f[]
-.IP \[bu] 2
-name 字段的值不能使空串，不能含点（.）或者美元符号（$），且长度不超过127B。
+.PP
+name 字段的值不能是空串，不能含点（.）或者美元符号（$），且长度不超过 127B。
 .RE
 .SH 返回值
 .PP
@@ -110,17 +110,17 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.getRG(\ "group1"\ )
+>\ db.getRG("group1")
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-指定 id 值，返回复制组 group1 的引用（假定 group1 的复制组 id 为1000）
+指定 id 值，返回复制组 group1 的引用（假定 group1 的复制组 ID 为1000）
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.getRG(\ 1000\ )
+>\ db.getRG(1000)
 \f[]
 .fi
 .RE
