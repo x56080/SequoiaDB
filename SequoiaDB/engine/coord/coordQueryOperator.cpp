@@ -1026,6 +1026,14 @@ namespace engine
          pQueryMsg = ( MsgOpQuery* )pLastMsg ;
          inMsg._pMsg = ( MsgHeader* )pLastMsg ;
 
+         // if DQL not command should check version
+         if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
+         {
+            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+            PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
+                "check cat version failed, rc: %d",rc );
+         }
+
          if ( isUpdate && ( cataSel.getCataPtr()->isSharded() ||
                             cataSel.getCataPtr()->hasAutoIncrement() ) )
          {
@@ -1087,14 +1095,6 @@ namespace engine
             }
          }
          pQueryMsg->version = cataSel.getCataPtr()->getVersion() ;
-
-         // if DQL not command should check version
-         if ( pCollectionName && CMD_ADMIN_PREFIX[0] != pCollectionName[0] )
-         {
-            rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
-            PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
-         }
 
          rcTmp = doOpOnCL( cataSel, objQuery, inMsg, sendOpt, cb, result ) ;
       }while( FALSE ) ;

@@ -173,12 +173,12 @@ namespace engine
       }
 
    retry:
-      pDelMsg->version = cataSel.getCataPtr()->getVersion() ;
-      pDelMsg->w = 0 ;
-
       rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
       PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
                 "check cat version failed, rc: %d",rc );
+
+      pDelMsg->version = cataSel.getCataPtr()->getVersion() ;
+      pDelMsg->w = 0 ;
 
       rcTmp = doOpOnCL( cataSel, boDeletor, inMsg, sendOpt, cb, result ) ;
 

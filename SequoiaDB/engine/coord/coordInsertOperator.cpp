@@ -278,6 +278,10 @@ namespace engine
       orgMsgLen = pMsg->messageLength ;
 
    retry:
+      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
+      PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
+                "check cat version failed, rc: %d",rc );
+
       // It may be a main or normal collection.
       cataPtr = cataSel.getCataPtr() ;
       if ( cataPtr->hasAutoIncrement() )
@@ -319,10 +323,6 @@ namespace engine
       pTmpInsertMsg = (MsgOpInsert*) inMsg._pMsg ;
       pTmpInsertMsg->version = cataPtr->getVersion() ;
       pTmpInsertMsg->w = 0 ;
-
-      rc = checkCatVersion( cb,pCollectionName,clientVer,cataSel );
-      PD_CHECK( SDB_OK == rc, rc, error, PDWARNING,
-                "check cat version failed, rc: %d",rc );
 
       /// Do on collection
       rcTmp = doOpOnCL( cataSel, BSONObj(), inMsg, sendOpt, cb, result ) ;
