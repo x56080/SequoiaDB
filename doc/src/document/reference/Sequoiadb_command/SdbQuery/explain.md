@@ -1,6 +1,10 @@
+##名称##
+
+explain - 获取查询的访问计划
+
 ##语法##
 
-***query.explain( \[options\] )***
+**query.explain( \[options\] )**
 
 ##类别##
 
@@ -44,10 +48,10 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | Role           | 字符串    | 访问计划所在的节点的角色<br>1. "data" 表示数据节点<br>2. "coord" 表示协调节点 |
 | Name           | 字符串    | 访问计划访问的集合的名称                         |
 | ScanType       | 字符串    | 访问计划的扫描方式<br>1. "tbscan" 表示全表扫描<br>2. "ixscan" 表示索引扫描 |
-| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时为 ""      |
+| IndexName      | 字符串    | 访问计划使用的索引的名称<br>全表扫描时，字段值为 ""      |
 | UseExtSort     | 布尔型    | 访问计划是否使用非索引排序                       |
 | Query          | BSON 对象 | 访问计划解析后的用户查询条件                     |
-| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br全>表扫描为 null    |
+| IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br>全表扫描时，字段值为 null    |
 | NeedMatch      | 布尔型    | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
 | IndexCover     | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | ReturnNum      | 长整型    | 访问计划返回记录的个数                           |
@@ -113,6 +117,10 @@ Search 选项为 true 时，将会展示查询优化器搜索过的访问计划�
 关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
 
 常见错误可参考[错误码](reference/Sequoiadb_error_code.md)。
+
+##版本##
+
+v2.0 及以上版本。
 
 ##示例##
 
