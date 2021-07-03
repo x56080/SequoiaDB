@@ -6,7 +6,7 @@
 **************************************/
 
 // SEQUOIADBMAINSTREAM-4705
-//main( test );
+main( test );
 
 function test ()
 {
