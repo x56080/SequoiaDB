@@ -8,13 +8,13 @@
 removeRG \- 删除复制组
 .SH 语法
 .PP
-\f[B]db.removeRG( <name> )\f[]
+\f[B]db.removeRG(<name>)\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于删除数据库中指定的复制组，复制组名必须存在。
+该函数用于删除数据库中指定的复制组，该复制组必须存在。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -54,7 +54,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-复制组名唯一。
+复制组名唯一
 T}@T{
 T}
 .TE
@@ -71,13 +71,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
+.PP
 删除名为“group”的复制组
-.RS 2
 .IP
 .nf
 \f[C]
 >\ db.removeRG("group")
 \f[]
 .fi
-.RE

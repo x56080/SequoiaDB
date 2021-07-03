@@ -4,101 +4,101 @@
 .hy
 .SH NAME
 .PP
-setPDLevel \- Set the node's diagnostic level and take effect.
+setPDLevel \- set the diagnostic log level for the node dynamically
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.setPDLevel(<level>,[options])\f[]\f[]
+\f[B]db.setPDLevel(<level>, [options])\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-Set the node's diagnostic level and take effect.
-.sp 2
-\fBlevel (int)\fR
-.br
-       The diagnostic level, value 0~5. value means:
-       0: SEVERE
-       1: ERROR
-       2: EVENT
-       3: WARNING
-       4: INFO
-       5: DEBUG
-.sp 2
-\fBoptions (json object)\fR
-.br
-       Specify location params, such as NodeID, HostName, svcname, etc.
-       It only takes effect on coordinate nodes. The local node in 
-       default.
-.sp 2
-       \fBGlobal\fR
-.br
-              Specify the command's location which is local or global.
-.br
-              Global:false  : run on local
-              Global:true   : run on global nodes
-.sp 2
-       \fBGroupID\fR
-.br
-              Specify the command's location by group ID.
-.br
-              GroupID:1000
-              GroupID:[1000, 1001, ...]
-.sp 2
-       \fBGroupName\fR
-.br
-              Specify the command's location by group name.
-.br
-              GroupName:"db1"
-              GroupName:["db1", "db2", ...]
-.sp 2
-       \fBNodeID\fR
-.br
-              Specify the command's location by node ID.
-.br
-              NodeID:1000
-              NodeID:[1000, 1001, ...]
-.sp 2
-       \fBHostName\fR
-.br
-              Specify the command's location by node name.
-              The param should be used with 'svcname'.
-.br
-              HostName:"host-01"
-              HostName:[ "centos-01", "ubuntu-02", ... ]
-.sp 2
-       \fBsvcname\fR
-.br
-              Specify the command's location by svcname.
-              The param should be used with 'HostName'.
-.br
-              svcname:"11820"
-              svcname:[ "11780", "11810", ... ]
-.sp 2
-       \fBNodeSelect\fR
-.br
-              Specify the command's node select type for a group 
-              without the node information. Value is "all", 
-              "master", "any" or "secondary".
-.br
-              NodeSelect:"all"
-
-.sp 2
-\fBNote: \fR
-.sp 2
-   *  The setting does not persist.
-.SH "Examples"
-
-.sp 2
-1. set all node's diagnostic level to WARNING.
-.sp 2
-   db.setPDLevel( 3, {Global:true} )
-.sp 2
-2. set the specified node 1001 's diagnostic level to EVENT.
-.sp 2
-   db.setPDLevel( 2, {NodeID:1001} )
-.sp 2
-3. set self node's diagnostic level to EVENT.
-.sp 2
-   db.setPDLevel( 2 )
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to set the diagnostic log level for the node dynamically.
+.SH PARAMETERS
+.IP \[bu] 2
+level ( \f[I]number, required\f[] )
+.RS 2
+.PP
+Specify the log level.
+The value ranges from 0 to 5, which is respectively corresponding to:
+.IP \[bu] 2
+0: SEVERE
+.IP \[bu] 2
+1: ERROR
+.IP \[bu] 2
+2: EVENT
+.IP \[bu] 2
+3: WARNING
+.IP \[bu] 2
+4: INFO
+.IP \[bu] 2
+5: DEBUG
+.RE
+.IP \[bu] 2
+options ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+Specify command position parameters.
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+When the log level is incorrect, the default setting is WARNING.
+.IP \[bu] 2
+When there is no positional parameter, the default is only valid for its own
+node.
+.IP \[bu] 2
+The setting parameters will not be persisted.
+.RE
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.8 and above
+.SH EXAMPLES
+.IP \[bu] 2
+Set the log level of the current node to DEBUG.
+.RS 2
+.IP
+.nf
+\f[C]
+//\ Connection\ node
+>\ db\ =\ new\ Sdb("localhost",\ 11810)
+>\ db.setPDLevel(5)
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Set the log level of node 1000 to INFO.
+.RS 2
+.IP
+.nf
+\f[C]
+//\ Connection\ node
+>\ db\ =\ new\ Sdb("localhost",\ 11810)
+>\ db.setPDLevel(4,\ {NodeID:\ 1000})
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Set the log level of all nodes to EVENT.
+.RS 2
+.IP
+.nf
+\f[C]
+//\ Connection\ node
+>\ db\ =\ new\ Sdb("localhost",\ 11810)
+>\ db.setPDLevel(3,\ {Global:true})
+\f[]
+.fi
+.RE

@@ -8,13 +8,13 @@
 startRG \- 启动复制组
 .SH 语法
 .PP
-\f[B]db.startRG( <name1>，[name2]，...)\f[]
+\f[B]db.startRG(<name1>, [name2], ...)\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于启动指定的复制组。复制组启动后才能在复制组上创建节点。这个方法等价于rg.start()。
+该函数用于启动指定的复制组。复制组启动后才能在复制组上创建节点。该方法等价于rg.start()。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -35,7 +35,7 @@ _
 T{
 1
 T}@T{
-name1，name2...
+name1, name2...
 T}@T{
 string
 T}@T{
@@ -63,14 +63,12 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
+.PP
 启动复制组的命令如下：
-.RS 2
 .IP
 .nf
 \f[C]
->\ db.startRG(\ "group1"\ )
->\ db.startRG(\ "group2",\ "group3",\ "group4"\ )
+>\ db.startRG("group1")
+>\ db.startRG("group2",\ "group3",\ "group4")
 \f[]
 .fi
-.RE

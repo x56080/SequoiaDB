@@ -30,13 +30,11 @@ Sdb
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
+.PP
 事务提交命令
-.RS 2
 .IP
 .nf
 \f[C]
 >\ db.transCommit()
 \f[]
 .fi
-.RE

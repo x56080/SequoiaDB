@@ -36,11 +36,11 @@ v2.0 及以上版本
 
 ##示例##
 
-* 事务回滚命令
+执行事务回滚命令
 
-	```lang-javascript
-	> db.transRollback()
-	```
+```lang-javascript
+> db.transRollback()
+```
 
 [^_^]:
      本文使用的所有引用及链接

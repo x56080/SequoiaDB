@@ -5,16 +5,16 @@
 .hy
 .SH 名称
 .PP
-removeProcedure \- 删除指定的函数名
+removeProcedure \- 删除指定的存储过程
 .SH 语法
 .PP
-\f[B]db.removeProcedure( <function name> )\f[]
+\f[B]db.removeProcedure(<function name>)\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于删除指定的函数名，函数名必须存在，否则出现异常信息。
+该函数用于删除指定的存储过程。该存储过程必须存在，否则出现异常信息。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -37,9 +37,9 @@ T{
 T}@T{
 function name
 T}@T{
-字符串
+string
 T}@T{
-函数名
+存储过程名
 T}@T{
 是
 T}
@@ -55,13 +55,15 @@ T}
 .PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
+T}@T{
+可能发生的原因
 T}@T{
 解决方法
 T}
@@ -71,11 +73,14 @@ T{
 T}@T{
 \-233
 T}@T{
+SDB_FMP_FUNC_NOT_EXIST
+T}@T{
 存储过程不存在
 T}@T{
-使用命令行
+使用命令
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -85,13 +90,15 @@ T{
 T}@T{
 T}@T{
 T}@T{
-存储过程名是否
+T}@T{
+指定存储过程是
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-存在
+T}@T{
+否存在
 T}
 .TE
 .PP
@@ -101,13 +108,11 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-删除 sum 函数
-.RS 2
+.PP
+删除名为“sum”的存储过程
 .IP
 .nf
 \f[C]
 >\ db.removeProcedure("sum")
 \f[]
 .fi
-.RE

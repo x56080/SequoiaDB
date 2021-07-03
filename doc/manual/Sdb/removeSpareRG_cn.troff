@@ -4,7 +4,7 @@
 .hy
 .SH 名称
 .PP
-removeSpareRG \- 删除数据库中的SYSSpare组
+removeSpareRG \- 删除数据库中的 SYSSpare 组
 .SH 语法
 .PP
 \f[B]db.removeSpareRG()\f[]
@@ -30,13 +30,11 @@ Sdb
 .PP
 v3.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-删除协调复制组
-.RS 2
+.PP
+删除数据库中的 SYSSpare 组
 .IP
 .nf
 \f[C]
 >\ db.removeSpareRG()
 \f[]
 .fi
-.RE

@@ -30,13 +30,11 @@ Sdb
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-事务回滚命令
-.RS 2
+.PP
+执行事务回滚命令
 .IP
 .nf
 \f[C]
 >\ db.transRollback()
 \f[]
 .fi
-.RE

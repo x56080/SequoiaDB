@@ -8,13 +8,13 @@
 stopRG \- 停止复制组
 .SH 语法
 .PP
-\f[B]db.stopRG( <name1>，[name2]，... )\f[]
+\f[B]db.stopRG(<name1>, [name2], ...)\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-停止指定的复制组。停止后将不能执行创建节点等相关操作。这个方法等价于rg.stop()。
+该函数用于停止指定的复制组。停止后将不能执行创建节点等相关操作。该方法等价于rg.stop()。
 .SH 参数
 .PP
 .TS
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -35,7 +35,7 @@ _
 T{
 1
 T}@T{
-name1，name2...
+name1, name2...
 T}@T{
 string
 T}@T{
@@ -44,11 +44,13 @@ T}@T{
 是
 T}
 .TE
+.RS
 .PP
 \f[B]Note:\f[]
-.RS
 .IP \[bu] 2
-若指定的复制组不存在，将抛异常；若不指定任何复制组，该操作为空操作。
+若指定的复制组不存在，将抛异常。
+.IP \[bu] 2
+若不指定任何复制组，该操作为空操作。
 .RE
 .SH 返回值
 .PP
@@ -63,14 +65,12 @@ T}
 .PP
 v2.8 及以上版本
 .SH 示例
-.IP \[bu] 2
+.PP
 停止复制组的命令如下：
-.RS 2
 .IP
 .nf
 \f[C]
->\ db.stopRG(\ "group1"\ )
->\ db.stopRG(\ "group2",\ "group3",\ "group4"\ )
+>\ db.stopRG("group1")
+>\ db.stopRG("group2",\ "group3",\ "group4")
 \f[]
 .fi
-.RE
