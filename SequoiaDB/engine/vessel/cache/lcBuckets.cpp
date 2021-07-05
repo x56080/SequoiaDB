@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -127,16 +124,16 @@ namespace vessel
 
 
    INT32 lcBuckets::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                         UINT32 pageSize,
+                                         const mmapPagePointer &ptr,
                                          lcPageTagHolder &holder,
-                                         BOOLEAN &newTagInBucket)
+                                         BOOLEAN &isNewTag)
    {
       ossSpinXLatch *latch = NULL;
       lcBucket *bucket = NULL;
       getBucketAndLatch(id, latch, bucket);
       ossScopedLock guard(latch);
-      return bucket->ensureTagAndIncUsage(id, pageSize, _minRecycleCount,
-                                          holder, newTagInBucket);
+      return bucket->ensureTagAndIncUsage(id, _minRecycleCount,
+                                          ptr, holder, isNewTag);
    }
 
    BOOLEAN lcBuckets::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
@@ -154,7 +151,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       ossSpinXLatch *latch = NULL;
       lcBucket *bucket = NULL;
-      if (NULL == tag || tag->id().invalid())
+      if (NULL == tag || !tag->id().isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;

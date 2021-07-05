@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -43,9 +40,7 @@ namespace engine
 {
 namespace vessel
 {
-   spaceIDLocker::spaceIDLocker():
-   _size(0),
-   _mutexVec(NULL)
+   spaceIDLocker::spaceIDLocker()
    {}
 
    spaceIDLocker::~spaceIDLocker()
@@ -53,92 +48,113 @@ namespace vessel
       fini();
    }
 
-   INT32 spaceIDLocker::init(UINT32 count)
+   INT32 spaceIDLocker::init()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _mutexVec, "do not reinit");
+      SDB_ASSERT(!_array.isInitialized(), "do not reinit");
+      UINT32 capacity = MAX_SU_COUNT;
+      UINT32 chunkSize = 512;
 
-      if (OSS_UNLIKELY(0 == count))
+      rc = _array.init(capacity, chunkSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init locker array:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
+   }
+
+   void spaceIDLocker::fini()
+   {
+      _array.fini();
+   }
+
+   INT32 spaceIDLocker::lock(SPACE_ID sid,
+                             ossSharedLatch::mode mode)
+   {
+      INT32 rc = SDB_OK;
+      ossSharedLatch *latch = NULL;
+
+      if (OSS_UNLIKELY(!_array.isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+                            ossSharedLatch::NONE == mode))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _mutexVec = SDB_OSS_NEW ossSpinSLatch[count];
-      if (NULL == _mutexVec)
+      rc = _array.ensure(sid, &latch);
+      if (SDB_OK != rc)
       {
-         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to ensure latch obj[%d], rc:%d", sid, rc);
          goto error;
       }
 
-      _size = count;
+      latch->lockWith(mode);
+
    done:
       return rc;
    error:
-      SDB_OSS_DEL []_mutexVec;
-      _mutexVec = NULL;
-      _size = 0;
       goto done;
    }
 
-   INT32 spaceIDLocker::fini()
+   void spaceIDLocker::unlock(SPACE_ID sid, ossSharedLatch::mode mode)
    {
-      if (NULL != _mutexVec)
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(ossSharedLatch::NONE != mode, "can not be invalid");
+      SDB_ASSERT(_array.isInitialized(), "must be inited");
+      ossSharedLatch *latch = NULL;
+      INT32 rc = _array.get(sid, &latch);
+      if (SDB_OK != rc)
       {
-         SDB_OSS_DEL []_mutexVec;
-         _mutexVec = NULL;
-         _size = 0;
-      }
-   done:
-      return SDB_OK;
-   }
-
-   void spaceIDLocker::lock(SPACE_ID sid, OSS_LATCH_MODE mode)
-   {
-      SDB_ASSERT(NULL != _mutexVec && 0 < _size, "impossible");
-      if (SHARED == mode)
-      {
-         _mutexVec[sid%_size].get_shared();
+         SDB_ASSERT(FALSE, "impossible");
       }
       else
       {
-         _mutexVec[sid%_size].get();
+         latch->unlockWith(mode);
       }
       return;
    }
 
-    BOOLEAN spaceIDLocker::lock(SPACE_ID sid, OSS_LATCH_MODE mode, INT32 millis)
-    {
-       return FALSE;
-    }
+   INT32 spaceIDLocker::tryLock(SPACE_ID sid,
+                                ossSharedLatch::mode mode,
+                                BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      locked = FALSE;
+      ossSharedLatch *latch = NULL;
+      if (OSS_UNLIKELY(!_array.isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+                       ossSharedLatch::NONE == mode))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
-    void spaceIDLocker::unlock(SPACE_ID sid, OSS_LATCH_MODE mode)
-    {
-       SDB_ASSERT(NULL != _mutexVec && 0 < _size, "impossible");
-       if (SHARED == mode)
-       {
-          _mutexVec[sid%_size].release_shared();
-       }
-       else
-       {
-          _mutexVec[sid%_size].release();
-       }
-       return;
-    }
+      rc = _array.ensure(sid, &latch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure latch obj[%d], rc:%d", sid, rc);
+         goto error;
+      }
 
-    BOOLEAN spaceIDLocker::tryLock(SPACE_ID sid, OSS_LATCH_MODE mode)
-    {
-       SDB_ASSERT(NULL != _mutexVec && 0 < _size, "impossible");
-       BOOLEAN r = FALSE;
-       if (SHARED == mode)
-       {
-          r = _mutexVec[sid%_size].try_get_shared();
-       }
-       else
-       {
-          r = _mutexVec[sid%_size].try_get();
-       }
-       return r;
-    }
+      locked = latch->tryLockWith(mode);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

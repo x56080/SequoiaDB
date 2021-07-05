@@ -1,0 +1,174 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = partialImpCache.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#include "vessel/partialImpCache.h"
+
+namespace engine
+{
+namespace vessel
+{
+   partialImpCache::partialImpCache()
+   {
+
+   }
+
+   partialImpCache::~partialImpCache()
+   {}
+
+   void partialImpCache::reset()
+   {
+      _flags = 0;
+      ossMemset(_buffer, 0xFF, sizeof(_buffer));
+      return;
+   }
+
+   void partialImpCache::reset(const void *data, UINT64 flags)
+   {
+      SDB_ASSERT(NULL != data, "can not be null");
+      _flags = flags;
+      ossMemcpy(_buffer, data, ID_MAP_PAGE_CACHE_SIZE);
+      return;
+   }
+
+   INT32 partialImpCache::get(UINT32 slotNo,
+                             idMapSlot &slot,
+                             BOOLEAN &mutablePage)const
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      if ((((const idMapSlot *)_buffer) + slotNo)->isFree())
+      {
+         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+         goto error;
+      }
+      else
+      {
+         slot = *(((const idMapSlot *)_buffer) + slotNo);
+         mutablePage = isMutable(slotNo);
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 partialImpCache::upsert(UINT32 slotNo,
+                                 const idMapSlot &slot)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo ||
+                       slot.isFree()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      *(((idMapSlot *)_buffer) + slotNo) = slot;
+      setAsMutable(slotNo);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 partialImpCache::drop(UINT32 slotNo, idMapSlot *beforeDropping)
+   {
+      INT32 rc = SDB_OK;
+      idMapSlot *slot = NULL;
+      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      slot = (idMapSlot *)_buffer + slotNo;
+      if (slot->isFree())
+      {
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+         goto error;
+      }
+
+      if (NULL != beforeDropping)
+      {
+         *beforeDropping = *slot;
+      }
+
+      slot->reset();
+      setAsInmmutable(slotNo);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   UINT32 partialImpCache::getMutablePageCount()const
+   {
+      return ossGetNonZeroBitCount64(_flags);
+   }
+
+   void partialImpCache::setAsInmmutable(UINT32 slotNo)
+   {
+      UINT64 v = 1;
+      v <<= slotNo;
+      OSS_BIT_CLEAR(_flags, v);
+      return;
+   }
+
+   void partialImpCache::setAsMutable(UINT32 slotNo)
+   {
+      UINT64 v = 1;
+      v <<= slotNo;
+      OSS_BIT_SET(_flags, v);
+      return;
+   }
+
+   BOOLEAN partialImpCache::isMutable(UINT32 slotNo)const
+   {
+      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      UINT64 v = 1;
+      v <<= slotNo;
+      return 0 != OSS_BIT_TEST(_flags, v);
+   }
+
+}//namespace vessel
+}//namespace engine

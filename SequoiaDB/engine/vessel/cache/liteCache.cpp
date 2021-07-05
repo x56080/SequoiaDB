@@ -50,35 +50,34 @@
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/diskIOTask.h"
-#include "vessel/storageUnit.h"
 #include "vessel/instanceEnv.h"
+#include "vessel/logicalPageSpace.h"
 
 namespace engine
 {
 namespace vessel
 {
    liteCache::liteCache()
-   :_isOpen(FALSE),
-   _buckets(NULL),
-   _lru(NULL),
-   _dl(NULL),
-   _fl(NULL)
-   {
-
-   }
+   {}
 
    liteCache::~liteCache()
    {
       fini();
    }
 
-   INT32 liteCache::init(UINT32 pageSize, const liteCacheOptions &o)
+   INT32 liteCache::init(INT32 poolNo,
+                         UINT32 pageSize,
+                         const liteCacheOptions &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _buckets, "do not reinit");
 
-      if (DMS_PAGE_SIZE32K != pageSize &&
-          DMS_PAGE_SIZE64K != pageSize)
+      if (poolNo < 0)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isValidPageSize(pageSize))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -86,6 +85,7 @@ namespace vessel
 
       fini();
 
+      _poolNo = poolNo;
       _options = o;
       correctOptions(_options);
       
@@ -151,7 +151,6 @@ namespace vessel
          goto error;
       }
 
-      _isOpen = TRUE;
    done:
       return rc;
    error:
@@ -206,7 +205,7 @@ namespace vessel
       SAFE_OSS_DELETE(_lru);
       SAFE_OSS_DELETE(_buckets);
       SAFE_OSS_DELETE(_fl);
-      _isOpen = FALSE;
+      _poolNo = -1;
       _options = liteCacheOptions();
 
    done:
@@ -267,13 +266,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       lcPageTagHolder holder;
-      ossValuePtr ptr = 0;
-      storageUnit *su = NULL;
-      BOOLEAN newTagInBucket = FALSE;
+      UINT32 pageSize = 0;
+      mmapPagePointer ptr;
+      BOOLEAN isNewTag = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isOpen() ||
-                       gpid.invalid()))
+                       !gpid.isValid() ||
+                       ossSharedLatch::NONE == options.lockMode))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -284,15 +284,36 @@ namespace vessel
          goto error;
       }
 
+      rc = context->getEnv()->sc.getPageSize(gpid.space(),
+                                             gpid.getSpaceType(),
+                                             gpid.getFileType(),
+                                             pageSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+      else if (_fl->getPageSize() != pageSize)
+      {
+         PD_LOG(PDERROR, "wrong page size");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = context->getEnv()->sc.getMmapPagePtr(gpid, ptr);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get page[%s-], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
       if (ONLY_IF_IN_POOL == options.mode)
       {
          if (_buckets->getTagAndIncUsage(gpid, holder))
          {
-            rc = initTupleBeforeReturn(holder, options, tuple);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
+            initTupleBeforeReturn(holder, options, tuple);
             goto done;
          }
          else
@@ -302,90 +323,116 @@ namespace vessel
          }
       }
 
-      rc = _buckets->ensureTagAndIncUsage(gpid, _fl->getPageSize(),
-                                          holder, newTagInBucket);
+      rc = _buckets->ensureTagAndIncUsage(gpid, ptr, holder, isNewTag);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      if (newTagInBucket)
+      initTupleBeforeReturn(holder, options, tuple);
+
+   done:
+      return rc;
+   error:
+      SDB_ASSERT(!holder.valid(), "impossible");
+      goto done;
+   }
+
+   INT32 liteCache::allocateToReset(requestContext *context,
+                                    const GLOBAL_PAGE_ID &gpid,
+                                    liteCacheTuple &tuple)
+   {
+      INT32 rc = SDB_OK;
+      lcPageTagHolder holder;
+      UINT32 pageSize = 0;
+      mmapPagePointer ptr;
+      BOOLEAN isNewTag = FALSE;
+      SDB_ASSERT(!tuple.isValid(), "do not reinit");
+
+      tuple.release();
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isOpen() ||
+                       !gpid.isValid()))
       {
-         SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
-         rc = context->getEnv()->csContainer.getStorageUnit(gpid.space(), &su);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto newTagError;
-         }
-
-         rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page ptr of [%s], rc:%d",
-                  gpid.toString().c_str(), rc);
-            goto newTagError;
-         }
-
-         rc = loadDataFromDisk(context, holder.tag()->getPageSize(), ptr, holder);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDSEVERE, "failed to load data from disk, gpid:%s, rc:%d",
-                   gpid.toString().c_str(), rc);
-            goto newTagError;
-         }
-
-         holder.unlock();
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
       }
 
-      rc = initTupleBeforeReturn(holder, options, tuple);
+      rc = context->getEnv()->sc.getPageSize(gpid.space(),
+                                             gpid.getSpaceType(),
+                                             gpid.getFileType(),
+                                             pageSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+      else if (_fl->getPageSize() != pageSize)
+      {
+         PD_LOG(PDERROR, "wrong page size");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = context->getEnv()->sc.getMmapPagePtr(gpid, ptr);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get page[%s-], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = _buckets->ensureTagAndIncUsage(gpid, ptr, holder, isNewTag);
       if (SDB_OK != rc)
       {
          goto error;
       }
+
+      holder.lock();
+      if (!holder.tag()->isInLruList())
+      {
+         rc = allocateMemPageAndInsertIntoLRU(context, TRUE, holder);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem for tag:%d", rc);
+            goto error;
+         }
+      }
+
+      /// Do not update lru.
+
+      tuple._holder = holder;
+      tuple._pool = this;
+      tuple._writingPrepared = TRUE;
+
    done:
       return rc;
    error:
       if (holder.valid())
       {
-         SDB_ASSERT(LOCK_MODE_NONE == holder.getLockMode(), "can not holding lock");
+         holder.autoUnlock();
          holder.tag()->decUsageCnt();
-         holder.reset(NULL);
-      }
-      goto done;
-   newTagError:
-      if (holder.valid())
-      {
-         SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must holding unique lock");
-         holder.tag()->decUsageCnt();
-         BOOLEAN removed = holder.tag()->tryToSetRemoved();
-         holder.unlock();
-         if (removed)
-         {
-            _buckets->releaseRemovedTag(holder.tag());
-         }
-         else
-         {
-            PD_LOG(PDWARNING, "failed to remove new tag[%s], rc:%d",
-                   gpid.toString().c_str(), rc);
-         }
-         holder.reset(NULL);
       }
       goto done;
    }
 
-   void liteCache::commit(requestContext *context,
-                          UINT64 lsn,
+   void liteCache::commit(UINT64 lsn,
                           liteCacheTuple &tuple)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not br null");
       liteCachePageTag *tag = NULL;
-      SDB_ASSERT(tuple.valid(), "tuple should be valid");
+      SDB_ASSERT(tuple.isValid(), "tuple should be valid");
       SDB_ASSERT(tuple._holder.getLockMode() == LOCK_MODE_UNIQUE, "holding unique lock");
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
       SDB_ASSERT(tuple._writingPrepared, "must be prepared");
 
-      if (OSS_UNLIKELY(!tuple.valid()))
+      if (OSS_UNLIKELY(!tuple.isValid()))
       {
          PD_LOG(PDERROR, "committed an invalid tuple");
          goto done;
@@ -397,6 +444,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
       {
+         SDB_ASSERT(FALSE, "can not commit invalid lsn");
          PD_LOG(PDERROR, "commit invalid lsn");
          goto done;
       }
@@ -407,53 +455,22 @@ namespace vessel
 
       tag = tuple._holder.tag();
       SDB_ASSERT(tag->hasMemPage(), "mem page must be allocated");
-      if (OSS_UNLIKELY(!tag->hasMemPage()))
+      rc = _dl->upsert(lsn, tuple._holder);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "tuple has no mem page");
-         goto done;
-      }
-
-      if (tag->isInDirtyList())
-      {
-         /// max lsn is impossible to be invalid when in dirty list.
-         if (tag->getMaxLSN() < lsn)
-         {
-            tag->setMaxLSN(lsn);
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "redo log might be truncated");
-            PD_LOG(PDSEVERE, "redo log might be truncated. current tag's max lsn:%lld, commit lsn:%lld", tag->getMaxLSN(), lsn);
-         }
-      }
-      else
-      {
-         if (DPS_INVALID_LSN_OFFSET != tag->getMaxLSN() &&
-             lsn <= tag->getMaxLSN())
-         {
-            SDB_ASSERT(FALSE, "redo log might be truncated");
-            PD_LOG(PDSEVERE, "redo log might be truncated. current tag's max lsn:%lld, commit lsn:%lld", tag->getMaxLSN(), lsn);
-         }
-
-         tag->setMinAndMaxLSN(lsn);         
-         rc = _dl->insert(tuple._holder);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            SDB_ASSERT(FALSE, "must be ok");
-            PD_LOG(PDSEVERE, "failed to insert tag into dirty list, gpid:%s, lsn:%lld", tag->id().toString().c_str(), lsn);
-         }
+         PD_LOG(PDSEVERE, "failed to upsert dirty list with lsn[%lld], page[%s], rc:%d",
+                lsn, tag->id().toString().c_str(), rc);
       }
    done:
       return;
    }
 
-   void liteCache::release(requestContext *context,
-                           liteCacheTuple &tuple)
+   void liteCache::release(liteCacheTuple &tuple)
    {
-      SDB_ASSERT(tuple.valid(), "tuple should be valid");
+      SDB_ASSERT(tuple.isValid(), "tuple should be valid");
       SDB_ASSERT(LOCK_MODE_NONE < tuple._holder.getLockMode(), "tuple should be locked");
    
-      if (OSS_LIKELY(tuple.valid()))
+      if (OSS_LIKELY(tuple.isValid()))
       {
          tuple._holder.unlock();
          tuple._holder.tag()->decUsageCnt();
@@ -479,12 +496,11 @@ namespace vessel
    }
 
    INT32 liteCache::allocateMemPageAndInsertIntoLRU(requestContext *context,
+                                                    BOOLEAN zeroed,
                                                     lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(holder.valid(), "invalid holder");
-      SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "holding wrong type lock");
-      SDB_ASSERT(!holder.tag()->hasMemPage(), "already has mem page");
       liteCachePageTag *tag = NULL;
       freeListPage page;
       ossValuePtr diskPtr = 0;
@@ -494,18 +510,18 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(LOCK_MODE_UNIQUE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(ossSharedLatch::EXCLUSIVE != holder.getLockMode()))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-
-      if (OSS_UNLIKELY(holder.tag()->hasMemPage()))
+      else if (OSS_UNLIKELY(holder.tag()->isInLruList()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
+
+      SDB_ASSERT(!holder.tag()->hasMemPage(), "impossible");
 
       tag = holder.tag();
 
@@ -520,22 +536,30 @@ namespace vessel
       }
 
       /// 2. copy data and init tag's mem page
-      ossMemcpy((void *)(page.buf()), (const void *)diskPtr, tag->getPageSize());
+      if (!zeroed)
+      {
+         ossMemcpy((void *)(page.buf()), (const void *)diskPtr, _fl->getPageSize());
+      }
+      else
+      {
+         ossMemset((void *)(page.buf()), 0x0, _fl->getPageSize());
+      }
+
+      tag->setMemPage(page);
 
       /// 3. insert into lru
-      rc = _lru->insert(holder, page);
+      rc = _lru->insert(holder);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDSEVERE, "failed to insert tag[%s] into lru:%d",
+                tag->id().toString().c_str(), rc);
+         ossPanic();
          goto error;
       }
-      page.reset();
+
    done:
       return rc;
    error:
-      if (page.valid())
-      {
-         _fl->releasePage(page);
-      }
       goto done;
    }
 
@@ -583,16 +607,6 @@ namespace vessel
       logger = context->getOuterResource()->logger;
       SDB_ASSERT(NULL != logger, "can not be null");
 
-      if (fsync)
-      {
-         INT32 cacheRC = _dl->cacheMinDirtyLSN();
-         if (SDB_OK != cacheRC)
-         {
-            PD_LOG(PDSEVERE, "failed to cache min dirty lsn:%d", cacheRC);
-            goto error;
-         }
-      }
-
       for (UINT32 i = 0; i < task->getPageCount(); ++i)
       {
          holder.reset(NULL);
@@ -606,41 +620,41 @@ namespace vessel
          SDB_ASSERT(tag->isInDirtyList(), "must be in dirty list");
 
          /// page in dirty list job may not be dirty
-         if (tag->isDirty())
+         if (tag->isMemDirty())
          {
-            INT32 tmpRC = logger->pushMaxFileLSN(context->getSession(), tag->getMaxLSN());
+            INT32 tmpRC = logger->pushMaxFileLSN(context->getSession(), tag->getMaxDirtyLSN());
             if (OSS_UNLIKELY(SDB_OK != tmpRC))
             {
-               PD_LOG(PDSEVERE, "failed to push max file lsn:%d, dirty page will be flush with out protection", tmpRC);
+               PD_LOG(PDSEVERE, "failed to push max file lsn:%lld, rc:%d",
+                      tag->getMaxMemDirtyLSN(), tmpRC);
             }
 
             const freeListPage &buffer = tag->getMemPage();
             void *diskPage = (void *)(tag->getDiskPagePtr());
             SDB_ASSERT(buffer.valid() && NULL != diskPage, "can not be invalid");
-            ossMemcpy(diskPage, (const void *)(buffer.buf()), tag->getPageSize());
+            ossMemcpy(diskPage, (const void *)(buffer.buf()), _fl->getPageSize());
 
-            holder.lockUniqueFromUpgrade();
-            tag->setNonDirty();
-            tag->clearFastFlags(LC_TAG_FAST_FLAG_DIRTY);
+            holder.unlockUpgradeAndLock();
+            tag->setMaxMemDirtyLSN(DPS_INVALID_LSN_OFFSET);
          }
 
          /// to avoid fsyncing each page separately, we remove all the pages from dirty list first.
          if (fsync)
          {
-            if (LOCK_MODE_UPGRADE == holder.getLockMode())
+            if (ossSharedLatch::UPGRADE == holder.getLockMode())
             {
-               holder.lockUniqueFromUpgrade();
+               holder.unlockUpgradeAndLock();
             }
             _dl->remove(holder);
          }
 
-         holder.unlock();
+         holder.autoUnlock();
          holder.reset(NULL);
       }
 
       if (fsync)
       {
-         rc = fsyncDiskPages(context, task->getFirstPID(), task->getPageCount());
+         rc = fsyncDiskPages(context, task->getFirstPID(), task->getPageCount());--should flush segment
          if (SDB_OK != rc)
          {
             DPS_LSN_OFFSET lsn = _dl->getMinDirtyLSN();
@@ -648,7 +662,6 @@ namespace vessel
             _dl->removeCachedMinDirtyLSN();
             goto error;
          }
-         _dl->removeCachedMinDirtyLSN();
       }
    done:
       if (NULL != task)
@@ -670,26 +683,20 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(!gpid.invalid(), "can not be invalid");
+      SDB_ASSERT(gpid.isValid(), "can not be invalid");
       SDB_ASSERT(0 < count, "can not be zero");
-      storageUnit *su = NULL;
+      logicalPageSpace *lps = NULL;
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen() ||
-                       gpid.invalid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = context->getEnv()->csContainer.getStorageUnit(gpid.space(), &su);
+      rc = context->getEnv()->sc.getLogicalPageSpace(gpid.space(),
+                                                     gpid.getSpaceType(), &lps);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get su[%d], rc:%d", gpid.space(), rc);
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d",
+                gpid.space(), gpid.getSpaceType(), rc);
          goto error;
       }
 
-      rc = su->fsync(gpid.type(), gpid.page(), count, TRUE);
+      rc = lps->fsyncPages(gpid.getFileType(), gpid.page(), count, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync disk pages:%d", rc);
@@ -749,59 +756,21 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::initTupleBeforeReturn(lcPageTagHolder &holder,
+   void liteCache::initTupleBeforeReturn(lcPageTagHolder &holder,
                                           const liteCacheAllocateOptions &options,
                                           liteCacheTuple &tuple)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(holder.valid(), "must be valid");
-      LOCK_MODE mode = options.readonly ? LOCK_MODE_SHARED : LOCK_MODE_UPGRADE;
+      SDB_ASSERT(ossSharedLatch::NONE != options.lockMode, "can not be none");
+      liteCachePageTag * tag = holder.tag();
+ 
       holder.lockWithMode(mode);
-
-      if (!holder.tag()->hasDiskPage())
-      {
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
       tuple._holder = holder;
       tuple._pool = this;
       tuple._writingPrepared = FALSE;
-   done:
-      return rc;
-   error:
-      holder.unlock();
-      goto done;
+      return;
    }
-
-   INT32 liteCache::loadDataFromDisk(requestContext *context,
-                                     UINT32 pageSize,
-                                     ossValuePtr diskPage,
-                                     lcPageTagHolder &holder)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < pageSize, "can not be invalid");
-      SDB_ASSERT(0 != diskPage, "can not be invalid");
-      SDB_ASSERT(holder.valid(), "can not be invalid");
-      SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique lock");
-      liteCachePageTag *tag = NULL;
-      const pageHead *head = NULL;
-      
-      if (!validatePageHeadAndTail(diskPage, pageSize))
-      {
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
-
-      head = (const pageHead *)diskPage;
-      tag = holder.tag();
-      tag->setDiskPagePtr(diskPage);
-      tag->setMinAndMaxLSN(head->lsn);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
 
 } /// end of namespace vessel
 } /// end of namespace engine

@@ -37,12 +37,13 @@
 #define VESSEL_LITE_CACHE_PAGE_TAG_H_
 
 #include "vessel/globalPageID.h"
-#include "vessel/latch.h"
 #include "ossUtil.h"
 #include "dpsDef.hpp"
 #include "vessel/freeListPage.h"
 #include "ossSpinLatch.hpp"
+#include "ossLatch.hpp"
 #include "utilPooledObject.hpp"
+#include "vessel/lcBucketInnerIndex.h"
 
 namespace engine
 {
@@ -53,11 +54,11 @@ namespace vessel
    const UINT16 LC_TAG_STATUS_TO_BE_REMOVED = 2;
 
    const UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
-   const UINT16 LC_TAG_FAST_FLAG_DIRTY = 0x02;
+   //const UINT16 LC_TAG_FAST_FLAG_DIRTY = 0x02;
 
    const UINT32 LC_TAG_LRU_FLAG_COLD = 0x01;
 
-   const UINT32 LC_TAG_FLAG_DIRTY = 0x01;
+   const UINT32 LC_TAG_FLAG_IN_BUCKET = 0x01;
    const UINT32 LC_TAG_FLAG_IN_DIRTY_LIST = 0x02;
    const UINT32 LC_TAG_FLAG_IN_LRU_LIST = 0x04;
 
@@ -73,70 +74,47 @@ namespace vessel
          void reset();
 
          OSS_INLINE void firstInit(const GLOBAL_PAGE_ID &id,
-                                   UINT32 pageSize)
+                                   ossValuePtr ptr)
          {
             _ts.status = LC_TAG_STATUS_NORMAL;
             _id = id;
-            _pageSize = pageSize;
+            _diskPagePtr = ptr;
             return;
          }
 
-         OSS_INLINE SHARED_MUTEX &rwMutex()
+         OSS_INLINE ossSharedLatch &getAccessingLatch()
          {
-            return _rwMutex;
+            return _accessingLatch;
          }
          OSS_INLINE const GLOBAL_PAGE_ID &id()const
          {
             return _id;
          }
-         OSS_INLINE UINT32 getPageSize()const
-         {
-            return _pageSize;
-         }
 
       public:
          OSS_INLINE void setStatusAsNormal()
          {
-            ossSpinGuard guard(&_spinLatch);
+            ossSpinGuard guard(&_pinLatch);
             _ts.status = LC_TAG_STATUS_NORMAL;
             return;
          }
          OSS_INLINE BOOLEAN testFastFlags(UINT16 flags)
          {
-            _spinLatch.lock();
+            _pinLatch.lock();
             BOOLEAN r = OSS_BIT_TEST(_ts.flags, flags);
-            _spinLatch.unlock();
+            _pinLatch.unlock();
             return r;
          }
 
          OSS_INLINE void setFastFlags(UINT16 flags)
          {
-            _spinLatch.lock();
+            _pinLatch.lock();
             OSS_BIT_SET(_ts.flags, flags);
-            _spinLatch.unlock();
-            return;
-         }
-
-         OSS_INLINE void clearFastFlags(UINT16 flags)
-         {
-            _spinLatch.lock();
-            OSS_BIT_CLEAR(_ts.flags, flags);
-            _spinLatch.unlock();
+            _pinLatch.unlock();
             return;
          }
 
       public:
-         OSS_INLINE void setDiskPagePtr(ossValuePtr ptr)
-         {
-            _diskPagePtr = ptr;
-            return;
-         }
-
-         OSS_INLINE BOOLEAN hasDiskPage()const
-         {
-            return 0 != _diskPagePtr;
-         }
-
          OSS_INLINE ossValuePtr getDiskPagePtr()const
          {
             return _diskPagePtr;
@@ -167,60 +145,73 @@ namespace vessel
             return _memPage;
          }
 
-         OSS_INLINE void setMinAndMaxLSN(UINT64 lsn)
+         OSS_INLINE void setMinAndMaxDirtyLSN(UINT64 lsn)
          {
-            _minLSN = lsn;
-            _maxLSN = lsn;
+            _minDirtyLSN = lsn;
+            _maxMemDirtyLSN = lsn;
          }
 
-         OSS_INLINE UINT64 getMinLSN()const
+         OSS_INLINE UINT64 getMinDirtyLSN()const
          {
-            return _minLSN;
+            return _minDirtyLSN;
          }
 
-         OSS_INLINE void setMaxLSN(UINT64 lsn)
+         OSS_INLINE void setMaxMemDirtyLSN(UINT64 lsn)
          {
-            _maxLSN = lsn;
+            _maxMemDirtyLSN = lsn;
          }
 
-         OSS_INLINE UINT64 getMaxLSN()const
+         OSS_INLINE UINT64 getMaxMemDirtyLSN()const
          {
-            return _maxLSN;
+            return _maxMemDirtyLSN;
+         }
+
+         OSS_INLINE BOOLEAN isNotInAnyList()const
+         {
+            return !isInLruList() && !isInDirtyList();
+         }
+
+         OSS_INLINE BOOLEAN isMemPageDirty()const
+         {
+            return DPS_INVALID_LSN_OFFSET != _maxMemDirtyLSN;
          }
 
       public:
-         OSS_INLINE BOOLEAN testFlags(UINT32 flags)const
+         OSS_INLINE void insertIntoBucket(const LC_BUCKET_INNER_INDEX_ITERATOR &itr)
          {
-            return OSS_BIT_TEST(_flags, flags);
-         }
-         OSS_INLINE BOOLEAN noFlagsSet()const
-         {
-            return 0 == _flags;
+            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_BUCKET);
+            _bucketItr = itr;
          }
 
+         OSS_INLINE const LC_BUCKET_INNER_INDEX_ITERATOR &getBucketIterator()const
+         {
+            return _bucketItr;
+         }
+
+         OSS_INLINE void removedFromBucket()
+         {
+            OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_BUCKET);
+            _bucketItr = LC_BUCKET_INNER_INDEX_ITERATOR();
+         }
+
+         OSS_INLINE BOOLEAN isInBucket()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_BUCKET);
+         }
+
+      public:
          OSS_INLINE BOOLEAN isInLruList()const
          {
-            return OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_LRU_LIST);
+            /// Do not user lru pre/next ptr to check if in lru list.
+            /// Ptrs may modified with out holding accessing latch by lru.
+            return 0 != OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_LRU_LIST);
          }
-          OSS_INLINE BOOLEAN isInDirtyList()const
-         {
-            return OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_DIRTY_LIST);
-         }
-         OSS_INLINE BOOLEAN isDirty()const
-         {
-            return OSS_BIT_TEST(_flags, LC_TAG_FLAG_DIRTY);
-         }
-         OSS_INLINE void setNonDirty()
-         {
-            OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_DIRTY);
-         }
-
-      public:
          /// under lru lock and w lock
          OSS_INLINE void insertIntoLru(liteCachePageTag *pre,
                                        liteCachePageTag *next,
                                        BOOLEAN isCold)
          {
+            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_LRU_LIST);
             _lruPre = pre;
             _lruNext = next;
             _lruTouchCnt = 0;
@@ -228,7 +219,6 @@ namespace vessel
             {
                OSS_BIT_SET(_lruFlags, LC_TAG_LRU_FLAG_COLD);
             }
-            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_LRU_LIST);
          }
 
          OSS_INLINE void removeFromLru()
@@ -265,7 +255,12 @@ namespace vessel
             ossFetchAndIncrement32(&_lruTouchCnt);
          }
 
-         OSS_INLINE UINT32 getLruTouchCnt()
+         OSS_INLINE UINT32 fetchLruTouchCnt()
+         {
+            return ossAtomicFetch32(&_lruTouchCnt);
+         }
+
+         OSS_INLINE UINT32 getLruTouchCnt()const
          {
             return _lruTouchCnt;
          }
@@ -291,19 +286,23 @@ namespace vessel
          }
 
       public:
+         OSS_INLINE BOOLEAN isInDirtyList()const
+         {
+            /// Do not user dirty pre/next ptr to check if in dirty list.
+            return 0 != OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_DIRTY_LIST);
+         }
          /// under dirty list lock and w lock
          OSS_INLINE void insertIntoDirtyList(liteCachePageTag *pre,
                                              liteCachePageTag *next)
          {
+            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_DIRTY_LIST);
             _dirtyPre = pre;
             _dirtyNext = next;
-            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_DIRTY_LIST|LC_TAG_FLAG_DIRTY);
          }
          OSS_INLINE void removeFromDirtyList()
          {
             _dirtyPre = NULL;
             _dirtyNext = NULL;
-            SDB_ASSERT(!OSS_BIT_TEST(_flags, LC_TAG_FLAG_DIRTY), "can not be dirty");
             OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_DIRTY_LIST);
          }
          OSS_INLINE void setDirtyListPre(liteCachePageTag *tag)
@@ -331,54 +330,43 @@ namespace vessel
          /** get tag in bucket end **/
 
          /** remove tag from bucket begin **/
-         /// spin latch is not necessary when performing precheck.
+         /// pin latch is not necessary when performing precheck.
          /// it just affects performance and accuracy.
          /// WANRING: we can not recycle the tag already set as removed.
-         /// noFlagsSet() will not be protected by spin latch.
-         OSS_INLINE BOOLEAN testIfCanBeRecycled(BOOLEAN lock=TRUE)
+         OSS_INLINE BOOLEAN fastTestIfCanBeRecycled(BOOLEAN lock=TRUE)
          {
             BOOLEAN r = FALSE;
-            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
-            r = noFlagsSet() && isNormalAndUnpinned();
+            r = isNotInAnyList() && isNormalAndUnpinned();
             return r;
          }
 
          /// under rw latch.
          OSS_INLINE BOOLEAN tryToSetRemoved();
 
-         OSS_INLINE BOOLEAN isRemoved()
+         OSS_INLINE BOOLEAN isRemoved(BOOLEAN lock=TRUE)
          {
-            ossSpinGuard guard(&_spinLatch);
+            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
+            ossSpinGuard guard(&latch);
             return (LC_TAG_STATUS_TO_BE_REMOVED == _ts.status);
          }
          /** remove tag in bucket end **/
 
          /** evict tag in lru begin **/
-         /// return true if can be evicted.
-         OSS_INLINE BOOLEAN testIfCanBeEvictedFromLru(BOOLEAN lock=TRUE)
+         /// return true if "may" be evicted.
+         OSS_INLINE BOOLEAN fastTestIfCanBeEvictedFromLru(BOOLEAN lock=TRUE)
          {
-            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
-            return !isMemBufferPinned();
+            return isNormalAndUnpinned() && !isMemPageDirty();
          }
-
-         OSS_INLINE BOOLEAN setPendingWriteIfDirty()
-         {
-            BOOLEAN r = FALSE;
-            ossSpinGuard guard(&_spinLatch);
-            if (isDirtyAndNoPending())
-            {
-               OSS_BIT_SET(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
-               r = TRUE;
-            }
-            return r;
-         }
+         
          /** evict tag in lru end **/
 
          OSS_INLINE BOOLEAN isPendingWrite(BOOLEAN lock=TRUE)
          {
-            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
             return OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
          }
@@ -387,7 +375,7 @@ namespace vessel
          OSS_INLINE BOOLEAN setPendingWrite()
          {
             BOOLEAN r = FALSE;
-            ossSpinGuard guard(&_spinLatch);
+            ossSpinGuard guard(&_pinLatch);
             if (isNoPending())
             {
                OSS_BIT_SET(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
@@ -398,8 +386,7 @@ namespace vessel
 
          OSS_INLINE void setUnPendingWrite()
          {
-            ossSpinGuard guard(&_spinLatch);
-            SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
+            ossSpinGuard guard(&_pinLatch);
             OSS_BIT_CLEAR(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
             return ;
          }
@@ -410,29 +397,15 @@ namespace vessel
             return 0 < _ts.usageCnt || 0 != _ts.flags;
          }
 
-         OSS_INLINE BOOLEAN isMemBufferPinned()const
-         {
-            return 0 < _ts.usageCnt ||
-                   OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_DIRTY);
-         }
-
          OSS_INLINE BOOLEAN isNormalAndUnpinned() const
          {
             return LC_TAG_STATUS_NORMAL == _ts.status &&
                    !isPinned();
          }
 
-         OSS_INLINE BOOLEAN isDirtyAndNoPending()const
-         {
-            SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
-            return OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_DIRTY) &&
-                   !OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
-         }
-
          OSS_INLINE BOOLEAN isNoPending()const
          {
-            SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
-            return !OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
+            return 0 == OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
          }
          
       private:
@@ -447,41 +420,42 @@ namespace vessel
          };
 
       private:
-         ossSpinLatch _spinLatch;
-         SHARED_MUTEX _rwMutex;
+         ossSpinLatch _pinLatch;
+         ossSharedLatch _accessingLatch;
 
          /// readonly after firstInitTag
          GLOBAL_PAGE_ID _id;
-         UINT32 _pageSize = 0;
+         ossValuePtr _diskPagePtr = 0;
+         //UINT32 _pageSize = 0;
 
-         /// protected by spin latch.
+         /// protected by pin latch.
          _TagState _ts;
 
          /// protected by rw latch.
-         ossValuePtr _diskPagePtr = 0;
          UINT32 _flags = 0;
-         UINT64 _minLSN = DPS_INVALID_LSN_OFFSET;
-         UINT64 _maxLSN = DPS_INVALID_LSN_OFFSET;
          freeListPage _memPage;
+         UINT64 _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+         UINT64 _maxMemDirtyLSN = DPS_INVALID_LSN_OFFSET;
+
+         /// bucket, protected by bucket latch and accessing latch
+         LC_BUCKET_INNER_INDEX_ITERATOR _bucketItr;
          
-         /// lru list, protected by lru latch and rw latch(except _lruTouchCnt)
+         /// lru list, protected by lru latch and accessing latch(except _lruTouchCnt)
          UINT32 _lruTouchCnt = 0;
          UINT32 _lruFlags = 0;
          liteCachePageTag *_lruPre = NULL;
          liteCachePageTag *_lruNext = NULL;
-         /// dirty list, protected by dirty list latch and rw latch
+
+         /// dirty list, protected by dirty list latch and accessing latch
          liteCachePageTag *_dirtyPre = NULL;
          liteCachePageTag *_dirtyNext = NULL;
-
    }; /// end of class liteCachePageTag
 
    OSS_INLINE BOOLEAN liteCachePageTag::incUsageCnt(BOOLEAN lock)
    {
       BOOLEAN r = FALSE;
-      ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+      ossSpinLatch *latch = lock ? &_pinLatch : NULL;
       ossSpinGuard guard(latch);
-      SDB_ASSERT(LC_TAG_STATUS_INVALID != _ts.status,
-                 "should not inc invalid tag's usage cnt");
       if (LC_TAG_STATUS_NORMAL == _ts.status)
       {
          ++_ts.usageCnt;
@@ -492,20 +466,17 @@ namespace vessel
 
    OSS_INLINE void liteCachePageTag::decUsageCnt()
    {
-      ossSpinGuard guard(&_spinLatch);
-      SDB_ASSERT(LC_TAG_STATUS_INVALID != _ts.status,
-                 "should not inc invalid tag's usage cnt");
-      SDB_ASSERT(0 != _ts.usageCnt, "can not be zero");
+      ossSpinGuard guard(&_pinLatch);
       --_ts.usageCnt;
       return;
    }
 
    /// under rw lock
-   /// WARNING: validate flags under rw lock first.
+   /// WARNING: validate other status under rw lock first.
    OSS_INLINE BOOLEAN liteCachePageTag::tryToSetRemoved()
    {
       BOOLEAN r = FALSE;
-      ossSpinGuard guard(&_spinLatch);
+      ossSpinGuard guard(&_pinLatch);
       if (isNormalAndUnpinned())
       {
          _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
@@ -515,6 +486,7 @@ namespace vessel
    }
 } /// end of namespace vessel
 } /// end of namespace engine
+
 
 
 #endif /// define VESSEL_LITE_CACHE_PAGE_TAG_H_

@@ -35,47 +35,173 @@
 
 #include "vessel/vesselFileDef.h"
 #include "ossUtil.hpp"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
-{
-   const CHAR * const FILE_TYPE_SUFFIX_ARRAY[] =
+{ 
+   static const fileDescriptor const VFD_ARRAY[] =
    {
-      FILE_TYPE_SUFFIX_DATAM,
-      FILE_TYPE_SUFFIX_DATAD,
-      FILE_TYPE_SUFFIX_IDXM,
-      FILE_TYPE_SUFFIX_IDXD,
-      FILE_TYPE_SUFFIX_LOBM,
-      FILE_TYPE_SUFFIX_LOBDM,
-      FILE_TYPE_SUFFIX_LOBDD,
-      FILE_TYPE_SUFFIX_FSM,
-      FILE_TYPE_SUFFIX_CSNAME,
-      FILE_TYPE_SUFFIX_CONTROL,
-      FILE_TYPE_SUFFIX_DELTA,
-      FILE_TYPE_SUFFIX_IDXMBK
+      {"sys"},
+      {"idmap"},
+      {"ds"},
+      {"fsm"},
+      {"delta"},
+      {"control"}
    };
 
-   BOOLEAN parseFileSuffix(const CHAR *suffix, FILE_TYPE &type)
+   static const spaceTypeDescriptor const VSTD_ARRAY [] = 
+   {
+      {"data"},
+      {"idx"},
+      {"lob"}
+   };
+
+   static const strSlice const SHADOW_SUFFIX_ARRAY [] = 
+   {
+      strSlice("_tmp"),
+      strSlice("_ready")
+   };
+
+   BOOLEAN parseFileType(const CHAR *suffix,
+                         FILE_TYPE &type,
+                         fileDescriptor *descriptor)
    {
       BOOLEAN r = FALSE;
-      if (NULL == suffix)
+      SDB_ASSERT(NULL != suffix, "can not be null");
+      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileDescriptor);
+
+      if (OSS_UNLIKELY(NULL == suffix))
       {
          goto done;
       }
 
-      for (UINT32 i = 0; i < FILE_TYPE_SUFFIX_ARR_SIZE; ++i)
+      for (UINT32 i = 0; i < _ARRAY_SIZE; ++i)
       {
-         const CHAR *s = FILE_TYPE_SUFFIX_ARRAY[i];
-         if (0 == ossStrcmp(suffix, s))
+         const fileDescriptor &vfd = VFD_ARRAY[i];
+         SDB_ASSERT(NULL != vfd.getSuffix(), "can not be null");
+         if (0 == ossStrcmp(suffix, vfd.getSuffix()))
          {
-            r = TRUE;
             type = i;
+            if (NULL != descriptor)
+            {
+               *descriptor = vfd;
+            }
+            r = TRUE;
             goto done;
          }
       }
    done:
       return r;
    }
+
+   BOOLEAN parseSpaceType(const CHAR *suffix,
+                          SPACE_TYPE &type,
+                          spaceTypeDescriptor *descriptor)
+   {
+      BOOLEAN r = FALSE;
+      static const UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
+      SDB_ASSERT(NULL != suffix, "can not be null");
+      if (OSS_UNLIKELY(NULL == suffix))
+      {
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < _ARRAY_SIZE; ++i)
+      {
+         const spaceTypeDescriptor &d = VSTD_ARRAY[i];
+         SDB_ASSERT(d.isValid(), "must be valid");
+         if (0 == ossStrcmp(suffix, d.getSuffix()))
+         {
+            if (NULL != descriptor)
+            {
+               *descriptor = d;
+            }
+            type = i;
+            r = TRUE;
+            goto done;
+         }
+      }
+
+   done:
+      return r;
+   }
+
+   BOOLEAN getFileDescriptor(FILE_TYPE type,
+                             fileDescriptor &descriptor)
+   {
+      BOOLEAN r = FALSE;
+      static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileDescriptor);
+      if (OSS_UNLIKELY(INVALID_FILE_TYPE == type ||
+                       _ARRAY_SIZE <= (UINT32)type))
+      {
+         goto done;
+      }
+      descriptor = VFD_ARRAY[type];
+      r = TRUE;
+   done:
+      return r;
+   }
+
+   BOOLEAN getSpaceTypeDescriptor(SPACE_TYPE type,
+                                  spaceTypeDescriptor &descriptor)
+   {
+      BOOLEAN r = FALSE;
+      static const UINT32 _ARRAY_SIZE = sizeof(VSTD_ARRAY) / sizeof(spaceTypeDescriptor);
+
+      if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                       _ARRAY_SIZE <= type))
+      {
+         SDB_ASSERT(FALSE, "impossible");
+         goto done;
+      }
+
+      descriptor = VSTD_ARRAY[type];
+      r = TRUE;
+   done:
+      return r;
+   }
+
+   UINT32 getShadowSuffixType(const CHAR *shadowSuffix)
+   {
+      UINT32 t = INVALID_FILE_SHADOW_SUFFIX;
+      SDB_ASSERT(NULL != shadowSuffix, "can not be null");
+      static const UINT32 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      if (OSS_UNLIKELY(NULL == shadowSuffix))
+      {
+         goto done;
+      }
+      for (UINT32 i = 0; i < _SIZE; ++i)
+      {
+         const strSlice &s = SHADOW_SUFFIX_ARRAY[i];
+         if (0 == ossStrcmp(s.str(), shadowSuffix))
+         {
+            t = i;
+            break;
+         }
+      }
+   done:
+      return t;
+   }
+
+   BOOLEAN getShadowSuffix(UINT32 t, strSlice &suffix)
+   {
+      BOOLEAN r = FALSE;
+      static const UINT32 _SIZE = sizeof(SHADOW_SUFFIX_ARRAY) / sizeof(strSlice);
+      if (INVALID_FILE_SHADOW_SUFFIX == t ||
+          _SIZE <= t)
+      {
+         goto done;
+      }
+
+      suffix = SHADOW_SUFFIX_ARRAY[t];
+      r = TRUE;
+   done:
+      return r;
+   }
+
 }//namespace vessel
 }//namespace engine

@@ -176,24 +176,29 @@ namespace vessel
    };//class collectionRecordOnDisk
    const UINT32 COLLECTION_DISK_RECORD_LEN = sizeof(collectionRecordOnDisk);
 
-   const UINT16 COLLECTION_RECORD_PAGE_INVALID_VERSION = 0;
    const UINT16 COLLECTION_RECORD_PAGE_VERSION_1 = 1;
    struct collectionRecordPageHead
    {
-      collectionRecordPageHead()
+      OSS_INLINE BOOLEAN isValid()const
       {
-         ossMemset(pad, 0, sizeof(pad));
+         return COLLECTION_RECORD_PAGE_VERSION_1 == version &&
+                0 == flags &&
+                0 == pad0 &&
+                1 == pad1;
       }
-      UINT16 version = COLLECTION_RECORD_PAGE_INVALID_VERSION;
+      UINT16 version = 0;
       UINT16 flags = 0;
-      CHAR pad[12];
+      UINT32 pad0 = 0;
+      UINT64 pad1 = 0;
    };//struct collectionPageHead
    const UINT32 COLLECTION_RECORD_PAGE_HEAD_LEN = sizeof(collectionRecordPageHead);
 
    INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
 
    BOOLEAN initCollectionRecordPage(UINT32 pageSize,
+                                    PAGE_ID pid,
                                     PAGE_ID lpid,
+                                    PAGE_SNAPSHOT_VERION psv,
                                     void *buf);
 #pragma pack()
 

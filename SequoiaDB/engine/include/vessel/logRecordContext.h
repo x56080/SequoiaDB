@@ -46,29 +46,26 @@ namespace vessel
    class logRecordContext
    {
       public:
-         OSS_INLINE logRecordContext()
-         {}
-
+         logRecordContext(){}
          ~logRecordContext();
 
+         logRecordContext(const logRecordContext &) = delete;
+         logRecordContext &operator=(const logRecordContext &) = delete;
       public:
-         OSS_INLINE void prepush(UINT32 len)
-         {
-            SDB_ASSERT(0 < len, "can not be zero");
-            SDB_ASSERT(len <= DPS_MAX_TAGV_LEN, "element too long");
-            SDB_ASSERT(!prepared(), "can not be prepared");
+         void open(UINT16 type);
+         void close();
+         void prepush(UINT32 len);
 
-            _originalLen += len;
-            _originalLen += 4;/// 1byte for tag and 3bytes for len.
-            return;
-         }
+         void setOplistHead();
+         
+         void setOplist(DPS_LSN_OFFSET lsn);
 
-         OSS_INLINE void prepushDone()
-         {
-            SDB_ASSERT(!prepared(), "can not be prepared");
-            _head._length = ossAlign4(_originalLen);
-            return;
-         }
+         /// must set oplist first.
+         void setOplistTail();
+
+         void prepushDone();
+
+         void setDDL();
 
          void close();
 
@@ -122,11 +119,12 @@ namespace vessel
       private:
          dpsLogRecordHeader _head;
          UINT32 _originalLen = 0;
+
          UINT32 _dpsBufLen = 0;
+
          CHAR *_fullDumpBuffer = NULL;
          UINT32 _fullDumpBufferSize = 0;
          UINT32 _fullDumpDataSize = 0;
-
    };//class logRecordContext
 }//namespace vessel
 }//namespace engine

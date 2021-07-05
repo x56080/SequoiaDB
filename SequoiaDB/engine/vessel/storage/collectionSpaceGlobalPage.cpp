@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -42,19 +39,23 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN metaRecordIsValid(const csMetaRecord &record)
+   BOOLEAN csMetaRecord::isValid()const
    {
       BOOLEAN r = FALSE;
-      if (CMR_VERSION_1 != record.version)
+      if (CMR_VERSION_1 != version)
       {
          goto done;
       }
-      else if (DMS_INVALID_LOGICCSID == record.logicalID)
+      else if (CMR_STATUS_INVALID == status)
       {
          goto done;
       }
-      else if (0 == record.name[0] ||
-               0 != record.name[DMS_COLLECTION_SPACE_NAME_SZ])
+      else if (DMS_INVALID_LOGICCSID == logicalID)
+      {
+         goto done;
+      }
+      else if (0 == name[0] ||
+               0 != name[DMS_COLLECTION_SPACE_NAME_SZ])
       {
          goto done;
       }
@@ -64,29 +65,21 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN initGmp(UINT32 pageSize, PAGE_ID pid,
-                   const strSlice &name, UINT32 uniqueID,
-                   UINT32 logicalID, CHAR *buf)
+   BOOLEAN initGmp(UINT32 pageSize,
+                   PAGE_ID pid,
+                   PAGE_ID lpid,
+                   PAGE_SNAPSHOT_VERION psv,
+                   void *buf)
    {
       BOOLEAN r = FALSE;
-      csMetaRecord *head = NULL;
-      if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
-                       INVALID_PAGE_ID == pid ||
-                       name.empty() ||
-                       DMS_INVALID_LOGICCSID == logicalID ||
-                       NULL == buf))
+      csMetaRecord record;
+
+      if (!initCommonPage(PAGE_TYPE_CS_META, pageSize, pid, lpid, psv, buf))
       {
          goto done;
       }
-
-      initCommonPage(PAGE_TYPE_CS_META, pageSize, pid, buf);
-      head = (csMetaRecord *)(buf + PAGE_HEAD_LEN);
-      head->version = CMR_VERSION_1;
-      head->status = CMR_STATUS_CREATING;
-      head->flags = 0;
-      head->uniqueID = uniqueID;
-      head->logicalID = logicalID;
-      ossMemcpy(head->name, name.str(), name.strLen() + 1);
+      
+      ossMemcpy(((void *)(ossValuePtr)buf + PAGE_HEAD_SIZE), &record, CS_META_RECORD_LEN);
 
       r = TRUE;
    done:

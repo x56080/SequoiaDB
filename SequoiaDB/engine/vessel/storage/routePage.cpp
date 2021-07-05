@@ -62,7 +62,11 @@ namespace vessel
       return capacity;
    }
 
-   BOOLEAN initRoutePage(UINT32 pageSize, PAGE_ID lpid, UINT32 logicalId, void *buf)
+   BOOLEAN initRoutePage(UINT32 pageSize,
+                         PAGE_ID lpid,
+                         SNAPSHOT_ID snapshot,
+                         UINT32 logicalId,
+                         void *buf)
    {
       BOOLEAN r = FALSE;
       routePageHead *head = NULL;
@@ -82,7 +86,7 @@ namespace vessel
          goto done;
       }
 
-      initCommonPage(PAGE_TYPE_ROUTE, pageSize, lpid, buf);
+      initCommonPage(PAGE_TYPE_ROUTE, pageSize, lpid, snapshot, buf);
       ptr = (CHAR *)buf;
       head = (routePageHead *)(ptr + PAGE_HEAD_LEN);
       head->version = ROUTE_PAGE_VERSION;

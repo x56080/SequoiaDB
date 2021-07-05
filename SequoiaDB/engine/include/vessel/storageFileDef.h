@@ -40,12 +40,16 @@
 #include "vessel/vesselIdDef.h"
 #include "ossUtil.hpp"
 #include "dms.hpp"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const UINT32 STORAGE_FILE_HEAD_SIZE = 65536;
+   static const UINT32 STORAGE_FILE_COMMON_HEAD_SIZE = 65536;
+   static const UINT32 STORAGE_FILE_USER_DEFINED_HEAD_SIZE = 65536;
+   static const UINT32 SOTRAGE_FILE_TOTAL_HEAD_SIZE = STORAGE_FILE_COMMON_HEAD_SIZE +
+                                                      STORAGE_FILE_USER_DEFINED_HEAD_SIZE;
 
    const UINT32 STORAGE_FILE_HEAD_VERSION = 1;
 
@@ -61,7 +65,6 @@ namespace vessel
    static const UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
 
    BOOLEAN isValidSegmentSize(UINT32 size);
-   
 
 #pragma pack(4)
 
@@ -71,6 +74,14 @@ namespace vessel
       pageSize(0),
       maxPageCountPerSeg(0),
       maxSegmentCountPerFile(0){}
+
+      OSS_INLINE ~storageCoreArgs(){}
+
+      OSS_INLINE storageCoreArgs(const storageCoreArgs &o):
+      pageSize(o.pageSize),
+      maxPageCountPerSeg(o.maxPageCountPerSeg),
+      maxSegmentCountPerFile(o.maxSegmentCountPerFile)
+      {}
 
       OSS_INLINE storageCoreArgs(UINT32 pageSize,
                                  UINT32 pgeCountPerSeg,
@@ -82,6 +93,13 @@ namespace vessel
          
       }
 
+      OSS_INLINE void reset()
+      {
+         pageSize = 0;
+         maxPageCountPerSeg = 0;
+         maxSegmentCountPerFile = 0;
+      }
+
       BOOLEAN isValid()const;
 
       OSS_INLINE BOOLEAN operator==(const storageCoreArgs &o)const
@@ -89,6 +107,11 @@ namespace vessel
          return o.pageSize == pageSize &&
                 o.maxPageCountPerSeg == maxPageCountPerSeg &&
                 o.maxSegmentCountPerFile == maxSegmentCountPerFile;
+      }
+
+      OSS_INLINE BOOLEAN operator!=(const storageCoreArgs &o)const
+      {
+         return !(*this == o);
       }
 
       OSS_INLINE storageCoreArgs &operator=(const storageCoreArgs &o)
@@ -101,10 +124,7 @@ namespace vessel
 
       OSS_INLINE UINT64 getMaxFileBodySize()const
       {
-         UINT64 size = pageSize;
-         size *= maxPageCountPerSeg;
-         size *= maxSegmentCountPerFile;
-         return size;
+         return (UINT64)pageSize * getMaxPageCountInFile();
       }
 
       OSS_INLINE UINT32 getMaxPageCountInFile()const
@@ -117,64 +137,41 @@ namespace vessel
       UINT32 maxSegmentCountPerFile; /// define max file size
    };//struct storageCoreArgs
 
-   struct storageFileOptions
+   struct createStorageFileOptions
    {
-      OSS_INLINE storageFileOptions(){}
-      OSS_INLINE ~storageFileOptions(){}
+      OSS_INLINE createStorageFileOptions(){}
+      OSS_INLINE ~createStorageFileOptions(){}
 
-      storageFileOptions &operator=(const storageFileOptions &o)
+      createStorageFileOptions &operator=(const createStorageFileOptions &o)
       {
          dir = o.dir;
-         name = o.name;
          secretValue = o.secretValue;
-         spaceID = o.spaceID;
-         logicalID = o.logicalID;
-         sequence = o.sequence;
          args = o.args;
          replaceWhenCreate = o.replaceWhenCreate;
-         delayFlushHead = o.delayFlushHead;
+         createAsTmpFile = o.createAsTmpFile;
          return *this;
       }
 
-      const CHAR * dir = NULL;
-      const CHAR *name = NULL;
+      public:
+      strSlice dir;
       UINT32 secretValue = 0;
-      UINT16 spaceID = INVALID_SPACE_ID;
-      UINT64 sequence = 0;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      const storageCoreArgs *args = NULL;
+      storageCoreArgs args;
       BOOLEAN replaceWhenCreate = FALSE;
 
-      ///if "delayFlushHead" is false, file head will be flushed when created.
-      ///else, file's status will be "in creating" until user modify it.
-      ///WARNING: once open a file with flag "in creating", the file will be handled
-      /// as a crashed one.
-      BOOLEAN delayFlushHead = FALSE;
-   }; // struct storageFileOptions
+      ///If "createAsTmpFile" is true, 
+      ///file name will include tmp suffix.
+      /// User should flush file before rename it to formal file name.
+      /// WARNING: file with tmp suffix will be removed automaticly
+      /// when startup.
+      BOOLEAN createAsTmpFile = FALSE;
+   }; // struct createStorageFileOptions
 
-   static const UINT64 STORAGE_FILE_HEAD_FLAG_IN_CREATING = 0x01;
 
    /// common head
    struct storageFileHead
    {
-      storageFileHead():
-      version(INVALID_FILE_HEAD_VERSION),
-      headChecksum(0),
-      createTime(0),
-      secretValue(0),
-      flags(0),
-      spaceID(INVALID_SPACE_ID),
-      logicalID(DMS_INVALID_LOGICCSID),
-      fileType(INVALID_FILE_TYPE),
-      sequence(STORAGE_FILE_INVALID_SEQUENCE),
-      pageSize(0),
-      maxPageCountPerSeg(0),
-      maxSegmentCountPerFile(0),
-      userDefinedHeadLen(0)
-      {
-         ossMemset(magicChars, 0, sizeof(magicChars));
-         ossMemset(name, 0, sizeof(name));
-      }
+      storageFileHead(){}
+      ~storageFileHead(){}
 
       storageFileHead &operator=(const storageFileHead &o)
       {
@@ -182,52 +179,28 @@ namespace vessel
          return *this;
       }
 
-      CHAR magicChars[8];
-      UINT32 version;
-      UINT32 headChecksum;
-      CHAR name[MAX_FILE_NAME_LEN+1];
-      UINT64 createTime;
-      UINT32 secretValue;
-      UINT64 flags;
-      UINT32 spaceID;
-      UINT32 logicalID;
-      UINT32 fileType;
-      UINT64 sequence;
-      UINT32 pageSize;
-      UINT32 maxPageCountPerSeg;
-      UINT32 maxSegmentCountPerFile;
-      UINT32 userDefinedHeadLen;
+      BOOLEAN isKeyContentSame(const storageFileHead &o)const;
+
+      ///WARNING: If someone modified page head, remember to 
+      /// update storageFile::createChecksum either.
+      CHAR magicChars[4] = {0};
+      UINT32 headChecksum = 0;
+      UINT32 version = 0;
+      CHAR name[MAX_FILE_NAME_LEN+1] = {0};
+      UINT64 createTime = 0;
+      UINT32 fingerprint = 0;
+      UINT32 secretValue = 0;
+      UINT64 flags = 0;
+      UINT32 spaceID = 0;
+      UINT32 spaceType = 0;
+      UINT32 fileType = 0;
+      //UINT32 logicalID = 0;
+      UINT64 sequence = 0;
+      UINT32 pageSize = 0;
+      UINT32 maxPageCountPerSeg = 0;
+      UINT32 maxSegmentCountPerFile = 0;
    }; // struct storageFileHead
    static const UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
-
-   const UINT32 META_FILE_USER_HEAD_VERSION = 1;
-   struct dataIDMapFileHead
-   {
-      OSS_INLINE dataIDMapFileHead():
-      version(INVALID_FILE_HEAD_VERSION),
-      headChecksum(0){}
-
-      OSS_INLINE ~dataIDMapFileHead(){}
-
-      OSS_INLINE dataIDMapFileHead &operator=(const dataIDMapFileHead &o)
-      {
-         version = o.version;
-         headChecksum = o.headChecksum;
-         meta = o.meta;
-         data = o.data;
-         indexMeta = o.indexMeta;
-         index = o.index;
-         return *this;
-      }
-      
-      UINT32 version;
-      UINT32 headChecksum;
-      storageCoreArgs meta;
-      storageCoreArgs data;
-      storageCoreArgs indexMeta;
-      storageCoreArgs index;
-      
-   };// struct dataIDMapFileHead
 
 #pragma pack()
 } /// end of namespace vessel

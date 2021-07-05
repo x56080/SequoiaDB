@@ -36,7 +36,7 @@
 #ifndef SDB_VESSEL_FSM_FILE_H_
 #define SDB_VESSEL_FSM_FILE_H_
 
-#include "vessel/extentStorageFile.h"
+#include "vessel/storageFile.h"
 #include "ossLatch.hpp"
 
 namespace engine
@@ -45,7 +45,7 @@ namespace vessel
 {
    class requestContext;
 
-   class fsmFile : public extentStorageFile
+   class fsmFile : public storageFile
    {
       public:
          fsmFile(){}
@@ -65,10 +65,6 @@ namespace vessel
          virtual FILE_TYPE getFileType()const
          {
             return FILE_TYPE_FSM;
-         }
-         virtual const CHAR *getMagicChars()const
-         {
-            return "SDBVFSMF";
          }
 
       private:

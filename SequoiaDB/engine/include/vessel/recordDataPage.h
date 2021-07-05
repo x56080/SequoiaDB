@@ -314,6 +314,7 @@ namespace vessel
 
    void initRecordDataPage(UINT32 pageSize,
                            PAGE_ID lpid,
+                           SNAPSHOT_ID snapshot,
                            UINT32 logicalID,
                            CL_PAGE_SEQ pageSeq,
                            void *buf);

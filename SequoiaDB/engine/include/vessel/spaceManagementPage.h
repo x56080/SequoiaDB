@@ -64,20 +64,30 @@ namespace vessel
       {
          version = o.version;
          flags = o.flags;
-         free = o.free;
          pad = o.pad;
          return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return SMP_VERSION_1 == version &&
+                0 == flags &&
+                0 == pad;
       }
       
       UINT16 version = INVALID_SMP_VERSION;
       UINT16 flags = 0;
-      UINT32 free = 0;
-      UINT64 pad = 0;
+      UINT32 pad = 0;
    };
 #pragma pack()
-   const UINT32 SMP_HEAD_LEN = sizeof(spaceManagementPageHead);
+   const UINT32 SMP_HEAD_SIZE = sizeof(spaceManagementPageHead);
 
-   BOOLEAN initSmp(UINT32 pageSize, PAGE_ID pid, UINT32 occupied, CHAR *buf);
+   BOOLEAN initSmp(UINT32 pageSize,
+                   PAGE_ID pid,
+                   PAGE_ID lpid,
+                   PAGE_SNAPSHOT_VERION psv,
+                   void *buf,
+                   UINT32 occupied);
 }//namespace vessel
 }//namespace engine
 

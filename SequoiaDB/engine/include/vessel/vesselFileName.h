@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -42,18 +39,24 @@
 #include "vessel/vesselFileDef.h"
 #include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
+   /// space dir name: _cs_<space id>
+   /// simple file name: _cs_<space id>.<user defined suffix>   eg: _cs_100.csname
+   /// file name: _cs_<space id>.<sequence>.<file type suffix>.[space type suffix].[shadow suffix]
+
    class vesselFileName : public SDBObject
    {
       public:
-         vesselFileName();
+         vesselFileName(){}
          vesselFileName(const vesselFileName &);
          ~vesselFileName();
          vesselFileName &operator=(const vesselFileName &);
+         BOOLEAN operator==(const vesselFileName &)const;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
@@ -61,12 +64,12 @@ namespace vessel
             return INVALID_SPACE_ID != _space;
          }
 
-         OSS_INLINE FILE_TYPE getType()const
+         OSS_INLINE FILE_TYPE getFileType()const
          {
-            return _type;
+            return _fileType;
          }
 
-         OSS_INLINE const CHAR *getName()const
+         OSS_INLINE const CHAR *getFileName()const
          {
             return _name;
          }
@@ -81,26 +84,51 @@ namespace vessel
             return _sequence;
          }
 
+         OSS_INLINE UINT32 getShadowSuffix()const
+         {
+            return _shadowSuffix;
+         }
+         OSS_INLINE BOOLEAN hasShadowSuffix()const
+         {
+            return INVALID_FILE_SHADOW_SUFFIX != _shadowSuffix;
+         }
+         OSS_INLINE SPACE_TYPE getSpaceType()const
+         {
+            return _spaceType;
+         }
+
          void reset();
-         /// if sid set as valid value, "extract" will also validate
-         /// space id in file name.
-         BOOLEAN extract(const strSlice &fileName, SPACE_ID sid=INVALID_SPACE_ID);
+
+         /// Will return false when parsing filename with
+         /// shadow suffix and "shadowSuffixCompatible" is false.
+         BOOLEAN extract(const strSlice &fileName,
+                         BOOLEAN shadowSuffixCompatible=FALSE);
 
          /// sequence will always included in filename
-         BOOLEAN build(SPACE_ID sid, FILE_TYPE type, UINT64 sequence);
+         BOOLEAN build(SPACE_ID sid,
+                       FILE_TYPE type,
+                       SPACE_TYPE spaceType = INVALID_SPACE_TYPE,
+                       UINT64 sequence = 0,
+                       UINT32 shadowSuffix = INVALID_FILE_SHADOW_SUFFIX);
 
-         /// "build" with out sequence will set sequence as 0,
-         /// but ignore sequence in file name.
-         BOOLEAN build(SPACE_ID sid, FILE_TYPE type);
+         void rebuildWithOutShadowSuffix();
+         
          static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
          static BOOLEAN buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
-
+         static BOOLEAN buildSimpleName(SPACE_ID sid,
+                                        const strSlice &suffix,
+                                        UINT32 bufferSize,
+                                        CHAR *buffer);
       private:
-         CHAR _name[MAX_FILE_NAME_LEN + 1];
-         SPACE_ID _space;
-         FILE_TYPE _type;
-         UINT64 _sequence;
+         CHAR _name[MAX_FILE_NAME_LEN + 1] = {0};
+         SPACE_ID _space = INVALID_SPACE_ID;
+         FILE_TYPE _fileType = INVALID_FILE_TYPE;
+         SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;
+         UINT64 _sequence = 0;
+         UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
    };//class vesselFileName
+
+   typedef ossPoolList<vesselFileName> FILE_NAME_LIST; 
 } // namespace vessel
 } // namespace engine
 

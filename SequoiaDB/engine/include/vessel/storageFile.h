@@ -1,0 +1,162 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = storageFile.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_STORAGE_FILE_H_
+#define VESSEL_STORAGE_FILE_H_
+
+#include "ossMmap.hpp"
+#include "vessel/storageFileDef.h"
+#include "vessel/pageDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/vesselFileName.h"
+#include "vessel/slice.h"
+
+namespace engine
+{
+namespace vessel
+{
+   class storageFile : public ossMmapFile
+   {
+      public:
+         storageFile();
+         virtual ~storageFile();
+
+         storageFile(const storageFile &o) = delete;
+         storageFile &operator=(const storageFile &o) = delete;
+      public:
+         INT32 create(const vesselFileName &fn,
+                      const createStorageFileOptions &options,
+                      const slice &userDefinedHead = slice());
+
+         INT32 open(const strSlice &dir,
+                    const vesselFileName &fn);
+
+         /*
+         INT32 cloneTo(const strSlice &dir,
+                       BOOLEAN sparse,
+                       BOOLEAN replace);*/
+
+         void destroy();
+         void close();
+         BOOLEAN isOpen() const;
+
+         const CHAR *getFullPath()const;
+
+      public:
+         INT32 allocateNewSegment();
+
+         INT32 ensureSegmentCount(UINT32 count);
+
+         INT32 getSegmentPtr(UINT32 seg, ossValuePtr &ptr)const;
+
+         INT32 getPagePtr(PAGE_ID page, ossValuePtr &ptr)const;
+
+         INT32 fsync(PAGE_ID pid, UINT32 count, BOOLEAN sync=TRUE)const;
+
+         INT32 fsync(UINT32 segmentId, BOOLEAN sync=TRUE)const;
+
+         INT32 fsyncFileHead(BOOLEAN sync=TRUE)const;
+
+         INT32 fsync()const;
+
+         OSS_INLINE const storageFileHead &getCommonHeadInMem()const
+         {
+            return _headInMem;
+         }
+         OSS_INLINE UINT32 getSegmentCount()const
+         {
+            return _dataSegmentCount;
+         }
+
+         OSS_INLINE UINT32 getMaxPageCountPerSeg()const
+         {
+            return _headInMem.maxPageCountPerSeg;
+         }
+         OSS_INLINE UINT32 getPageSize()const
+         {
+            return _headInMem.pageSize;
+         }
+
+      protected:
+         
+         INT32 getCommonHeadPtr(ossValuePtr &ptr)const;
+         INT32 getUserDefinedHeadPtr(ossValuePtr &ptr)const;
+      private:
+         virtual BOOLEAN validateUserDefinedHead(const void *head)const
+         {
+            return TRUE;
+         }
+      private:
+         INT32 createFileAndInitHead(const vesselFileName &fn,
+                                     const createStorageFileOptions &options,
+                                     const slice &userDefinedHead);
+
+         INT32 openFileHead(const vesselFileName &fn);
+
+         INT32 openFileSegments();
+
+         BOOLEAN validateOptions(const createStorageFileOptions &options)const;
+         INT32 initCommonHead(const vesselFileName &fn,
+                              const createStorageFileOptions &options,
+                              CHAR *headBuf);
+         INT32 extendFileAndMMap(UINT32 len, ossValuePtr *ptr);
+
+         INT32 validateHead(const void *head, const vesselFileName &fn)const;
+         INT32 createChecksum(ossValuePtr headPtr, UINT32 &checksum)const;
+
+      private:
+         OSS_INLINE UINT32 getMMapSegmentID(UINT32 dataSegmentID)const
+         {
+            return dataSegmentID + getHeadMMapSegmentCount();
+         }
+
+         static constexpr UINT32 getHeadMMapSegmentCount()
+         {
+            return 1;
+         }
+
+         OSS_INLINE UINT32 getSegmentIDFromPageID(PAGE_ID page)const
+         {
+            return page / _headInMem.maxPageCountPerSeg;
+         }
+
+      private:
+         storageFileHead _headInMem;
+         UINT32 _dataSegmentCount;
+   }; // class storageFile
+} // namespace vessel
+} // namespace engine
+
+#endif // VESSEL_STORAGE_FILE_H_

@@ -104,7 +104,7 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lcLRUList::insert(lcPageTagHolder &holder, const freeListPage &page)
+   INT32 lcLRUList::insert(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
@@ -133,22 +133,14 @@ namespace vessel
          goto error;
       }
 
-      if (OSS_UNLIKELY(holder.tag()->hasMemPage()))
+      if (OSS_UNLIKELY(!holder.tag()->hasMemPage()))
       {
          PD_LOG(PDERROR, "can not insert tag with mem page to lru");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (OSS_UNLIKELY(!page.valid()))
-      {
-         PD_LOG(PDERROR, "can not insert with invalid page");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
       tag = holder.tag();
-      tag->setMemPage(page);
       _latch.get();
       locked = TRUE;
 
@@ -258,6 +250,7 @@ namespace vessel
          if (splited())
          {
             /// do not update totalScaned here.
+            /// should we use fetchLruTouchCnt here?
             if (_options.lruHotTouchCnt <= tag->getLruTouchCnt())
             {
                ++totalSkipped;
@@ -267,7 +260,7 @@ namespace vessel
             }
          }
 
-         if (!tag->testIfCanBeEvictedFromLru(FALSE))
+         if (!tag->fastTestIfCanBeEvictedFromLru(FALSE))
          {
             ++totalSkipped;
             continue;
@@ -279,7 +272,10 @@ namespace vessel
             continue;
          }
 
-         tagToBeRemoved = tag;
+         if (removeFromBucket)
+         {
+            tagToBeRemoved = tag;
+         }
          break;
       }
 
@@ -354,7 +350,7 @@ namespace vessel
             }
          }
 
-         if (tag->testIfCanBeEvictedFromLru(FALSE))
+         if (tag->fastTestIfCanBeEvictedFromLru(FALSE))
          {
             BOOLEAN removeFromBucket = FALSE;
             freeListPage page;
@@ -370,8 +366,9 @@ namespace vessel
             }
          }
 
-         /// isDirty() not protected by rw latch.
-         if (tag->isDirty() && tag->setPendingWriteIfDirty())
+         /// isMemDirty() not protected by rw latch.
+         /// Which means we may add undirty tag to job.
+         if (tag->isMemDirty() && tag->setPendingWrite())
          {
             rc = job->addPendingWriteTag(tag);
             if (OSS_UNLIKELY(SDB_OK != rc))
@@ -594,18 +591,19 @@ namespace vessel
       removeFromBucket = FALSE;
       
       holder.reset(tag);
-      if (!holder.tryLockUnique())
+      if (!holder.tryLock())
       {
          goto done;
       }
 
-      if (tag->isDirty())
+      /// check again under latch
+      if (!tag->fastTestIfCanBeEvictedFromLru(TRUE))
       {
          goto done;
       }
 
-      /// isPendingWrite() is not protected by spin latch.
-      if (!tag->isInDirtyList() && !tag->isPendingWrite(FALSE))
+      /// if tag is not in dirty list, we try to recycle it.
+      if (!tag->isInDirtyList())
       {
          if (tag->tryToSetRemoved())
          {
@@ -620,18 +618,15 @@ namespace vessel
             goto done;
          }
       }
-      /// be sure tag's mem buffer is not pinned under protection of spin latch.
-      else if (!tag->testIfCanBeEvictedFromLru(TRUE))
-      {
-         goto done;
-      }
 
       ///from here, if tag is not marked as removed:
-      ///we can be sure that the page will not become a dirty page,
+      ///we can be sure that the page will not become a mem dirty page,
       ///coz we are holding w lock.
       ///but it is possible that other users have increased the reference count and waiting for lock.
       ///it does not matter, we will not delete tag unless removeFromBucket is true.
       ///others users may reinsert tag into lru by themselves. 
+      /// Or, tag is marked as io pending by dirty list. But because mem is not dirty, we
+      /// can still go on.
       if (splited())
       {
          removeTagAndTuneMiddle(tag);

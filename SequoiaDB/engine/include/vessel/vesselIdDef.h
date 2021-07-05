@@ -37,6 +37,7 @@
 #define VESSEL_VESSEL_ID_DEF_H_
 
 #include "ossUtil.hpp"
+#include "vessel/pageIdentifier.h"
 
 namespace engine
 {
@@ -45,13 +46,10 @@ namespace vessel
    typedef UINT16 SPACE_ID;
    const SPACE_ID INVALID_SPACE_ID = 65535;
    const SPACE_ID MAX_SPACE_ID = 16383;
-   const SPACE_ID MAX_SPACE_COUNT = MAX_SPACE_ID + 1;
+   const SPACE_ID MAX_SU_COUNT = MAX_SPACE_ID + 1;
 
-   typedef UINT32 SEGMENT_ID;
-   const SEGMENT_ID INVALID_SEG_ID = UINT32(-1);
-
-   typedef UINT32 SNAPSHOT_ID;
-   const SNAPSHOT_ID INVALID_SNAPSHOT_ID = UINT32(-1);
+   typedef UINT32 PAGE_SNAPSHOT_VERION;
+   const PAGE_SNAPSHOT_VERION INVALID_PAGE_SNAPSHOT_VERSION = 0xFFFFFFFF;
 
    typedef UINT16 CL_MB_ID;
    const CL_MB_ID INVALID_CL_MB_ID = 65535;

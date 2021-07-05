@@ -37,6 +37,9 @@
 #define VESSEL_VESSEL_FILE_DEF_H_
 
 #include "ossTypes.h"
+#include "ossUtil.hpp"
+#include "vessel/strSlice.h"
+
 
 namespace engine
 {
@@ -45,53 +48,151 @@ namespace vessel
    static const UINT32 MAX_FILE_NAME_LEN = 63;
    static const UINT32 MAX_SPACE_DIR_LEN = 15;
 
-   static const CHAR * const FILE_NAME_PREFIX = "_vessel";
-   static const UINT32 FILE_NAME_PREFIX_LEN = 7;
-   static const CHAR * const FILE_NAME_TMP_SUFFIX = "tmp";
-   static const UINT32 FILE_NAME_TMP_SUFFIX_LEN = 3;
+   static const CHAR * const FILE_MAGICAL_CHARS = "SDBV";
+   static const UINT32 FILE_MAGICSAL_CHARS_LEN = 4;
 
+   static const CHAR * const FILE_NAME_PREFIX = "_cs_";
+   static const UINT32 FILE_NAME_PREFIX_LEN = 4;
 
-   static const CHAR * const FILE_MAGIC_CHARS_IDXM_BK = "SDBVIMBK";
+   static const CHAR * const SIMPLE_FILE_SUFFIX_CSNAME = "csname";
 
-   static const CHAR * const FILE_TYPE_SUFFIX_DATAM = "dm";
-   static const CHAR * const FILE_TYPE_SUFFIX_DATAD = "dd";
-   static const CHAR * const FILE_TYPE_SUFFIX_IDXM = "idxm";
-   static const CHAR * const FILE_TYPE_SUFFIX_IDXD = "idxd";
-   static const CHAR * const FILE_TYPE_SUFFIX_LOBM = "lobm";
-   static const CHAR * const FILE_TYPE_SUFFIX_LOBDM = "lobdm";
-   static const CHAR * const FILE_TYPE_SUFFIX_LOBDD = "lobdd";
-   static const CHAR * const FILE_TYPE_SUFFIX_FSM = "fsm";
-   static const CHAR * const FILE_TYPE_SUFFIX_CSNAME = "csname";
-   static const CHAR * const FILE_TYPE_SUFFIX_CONTROL = "control";
-   static const CHAR * const FILE_TYPE_SUFFIX_DELTA = "delta";
-   static const CHAR * const FILE_TYPE_SUFFIX_IDXMBK = "idxmbk";
+   static const UINT32 INVALID_FILE_SHADOW_SUFFIX = 0xFFFFFFFF;
+   static const UINT32 FILE_SHADOW_SUFFIX_TMP = 0;
+   static const UINT32 FILE_SHADOW_SUFFIX_READY = 1;
 
-   extern const CHAR * const FILE_TYPE_SUFFIX_ARRAY[];
+   
+
+   class VESSEL_FILE_GLOBAL_OPTIONS : public SDBObject
+   {
+      public:
+         VESSEL_FILE_GLOBAL_OPTIONS(){}
+         ~VESSEL_FILE_GLOBAL_OPTIONS()=delete;
+      
+      public:
+         static void setSparseExtending(BOOLEAN allowed)
+         {
+            if (allowed)
+            {
+               OSS_BIT_CLEAR(_flags, FLAG_NOT_SPARSE_EXTENDING);
+            }
+            else
+            {
+               OSS_BIT_SET(_flags, FLAG_NOT_SPARSE_EXTENDING);
+            }
+         }
+         static BOOLEAN isSparseExtending()
+         {
+            return 0 == OSS_BIT_TEST(_flags, FLAG_NOT_SPARSE_EXTENDING);
+         }
+
+      private:
+         static const UINT32 FLAG_NOT_SPARSE_EXTENDING = 0x01;
+
+         static UINT32 _flags;
+   };//class VESSEL_FILE_GLOBAL_OPTIONS
+
+   UINT32 VESSEL_FILE_GLOBAL_OPTIONS::_flags = 0;
+
+   class fileDescriptor
+   {
+      public:
+         OSS_INLINE fileDescriptor(){}
+         OSS_INLINE fileDescriptor(const CHAR *s):
+         _suffix(s)
+         {}
+
+         OSS_INLINE fileDescriptor(const fileDescriptor &o):
+         _suffix(o._suffix)
+         {}
+
+         fileDescriptor &operator=(const fileDescriptor &o)
+         {
+            _suffix = o._suffix;
+            return *this;
+         }
+
+         ~fileDescriptor(){}
+
+      public:
+         OSS_INLINE const CHAR *getSuffix()const
+         {
+            return _suffix;
+         }
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _suffix;
+         }
+
+      private:
+         const CHAR * _suffix = NULL;
+   };//class fileDescriptor
+
+   class spaceTypeDescriptor
+   {
+      public:
+         OSS_INLINE spaceTypeDescriptor(){}
+         OSS_INLINE ~spaceTypeDescriptor(){}
+         OSS_INLINE spaceTypeDescriptor(const CHAR *s):
+         _suffix(s)
+         {}
+
+         OSS_INLINE spaceTypeDescriptor(const spaceTypeDescriptor &o):
+         _suffix(o._suffix)
+         {}
+
+         OSS_INLINE spaceTypeDescriptor &operator=(const spaceTypeDescriptor &o)
+         {
+            _suffix = o._suffix;
+            return *this;
+         }
+
+         OSS_INLINE const CHAR *getSuffix()const
+         {
+            return _suffix;
+         }
+
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _suffix;
+         }
+
+      private:
+         const CHAR *_suffix = NULL;
+   };//class spaceTypeDescriptor
+
+   typedef UINT8 SPACE_TYPE;
+   static const SPACE_TYPE INVALID_SPACE_TYPE = 255;
+   static const SPACE_TYPE SPACE_TYPE_MAIN_DATA = 0;
+   static const SPACE_TYPE SPACE_TYPE_IDX = 1;
+   static const SPACE_TYPE SPACE_TYPE_LOB = 2;
+   static const SPACE_TYPE MAX_SPACE_TYPE = SPACE_TYPE_LOB;
 
    typedef UINT8 FILE_TYPE;
    const FILE_TYPE INVALID_FILE_TYPE = 255;
-   const FILE_TYPE FILE_TYPE_DM = 0;
-   const FILE_TYPE FILE_TYPE_DD = 1;
-   const FILE_TYPE FILE_TYPE_IDX_M = 2;
-   const FILE_TYPE FILE_TYPE_IDX_D = 3;
-   const FILE_TYPE FILE_TYPE_LOB_M = 4;
-   const FILE_TYPE FILE_TYPE_LOB_DM = 5;
-   const FILE_TYPE FILE_TYPE_LOB_DD = 6;
-   const FILE_TYPE FILE_TYPE_FSM = 7;
-   const FILE_TYPE FILE_TYPE_CS_NAME = 8;
-   const FILE_TYPE FILE_TYPE_CONTROL = 9;
-   const FILE_TYPE FILE_TYPE_DELTA = 10;
-   const FILE_TYPE FILE_TYPE_IDXM_BK = 11;
-   const FILE_TYPE FILE_TYPE_MAX = FILE_TYPE_IDXM_BK;
+   const FILE_TYPE FILE_TYPE_SYS = 0;
+   const FILE_TYPE FILE_TYPE_ID_MAP = 1;
+   const FILE_TYPE FILE_TYPE_DATA_STORAGE = 2;
+   const FILE_TYPE FILE_TYPE_FSM = 3;
+   const FILE_TYPE FILE_TYPE_DELTA_LOG = 4;
+   const FILE_TYPE FILE_TYPE_CONTROL = 5;
 
-   static const UINT32 FILE_TYPE_SUFFIX_ARR_SIZE = FILE_TYPE_MAX + 1;
+   BOOLEAN parseFileType(const CHAR *typeSuffix,
+                         FILE_TYPE &type,
+                         fileDescriptor *descriptor);
 
-   /// space dir name: _vessel_<space id>
-   /// file name: _vessel.<space id>.<file type suffix>.[sequence].[old]
-   const UINT32 FILE_NAME_FORMAT_MAX_COLUMNS = 4;
-   const UINT32 FILE_NAME_FORMAT_MIN_COLUMNS = 3;
+   BOOLEAN parseSpaceType(const CHAR *suffix,
+                          SPACE_TYPE &type,
+                          spaceTypeDescriptor *descriptor);
 
-   BOOLEAN parseFileSuffix(const CHAR *suffix, FILE_TYPE &type);
+   BOOLEAN getFileDescriptor(FILE_TYPE type,
+                             fileDescriptor &descriptor);
+
+   BOOLEAN getSpaceTypeDescriptor(SPACE_TYPE type,
+                                  spaceTypeDescriptor &descriptor);
+
+   UINT32 getShadowSuffixType(const CHAR *shadowSuffix);
+
+   BOOLEAN getShadowSuffix(UINT32 t, strSlice &suffix);
 }
 }
 

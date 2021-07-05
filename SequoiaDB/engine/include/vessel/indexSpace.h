@@ -43,12 +43,19 @@ namespace engine
 namespace vessel
 {  
    class copyOnWriteSpaceEnv;
+   class idxDataFile;
 
    class indexSpace : public logicalPageSpace
    {
       public:
          indexSpace(){}
          virtual ~indexSpace();
+
+      public:
+         INT32 mapNewLpids(requestContext *context,
+                           UINT32 count,
+                           const PAGE_ID *lpids,
+                           const PAGE_ID *pids);
 
       private:
          virtual UINT32 getSystemPageCount()const {return 0;}
@@ -62,6 +69,20 @@ namespace vessel
          virtual INT32 allocateIdMapPagesOnDisk(requestContext *context,
                                                 PAGE_ID first,
                                                 UINT32 count);
+
+         virtual INT32 createDataFile(requestContext *context,
+                                      UINT64 sequence);
+
+         virtual UINT32 getDataFileCount();
+
+         virtual INT32 getDataSMPOfFile(UINT32 sequence, UINT32 i, PAGE_ID &pid);
+
+      private:
+         INT32 ensureDataFile(requestContext *context,
+                              UINT64 sequence,
+                              idxDataFile **out);
+
+         INT32 getMaxDataFileCount(UINT32 &cnt)const;
 
       private:
          copyOnWriteSpaceEnv *_env = NULL;

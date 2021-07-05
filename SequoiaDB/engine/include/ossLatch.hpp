@@ -1195,4 +1195,153 @@ public :
 } ;
 typedef class _ossRWLatchNS ossRWLatchNS ;
 
+class ossSharedLatch : public SDBObject
+{
+   public:
+      ossSharedLatch(){}
+      ~ossSharedLatch(){}
+      ossSharedLatch(const ossSharedLatch &) = delete;
+      ossSharedLatch &operator=(const ossSharedLatch &) = delete;
+
+   public:
+      enum mode
+      {
+         NONE = 0,
+         SHARED = 1,
+         UPGRADE = 2,
+         EXCLUSIVE = 3,
+      };
+
+   public:
+      void lockShared()
+      {
+         _mutex.lock_shared();
+      }
+      BOOLEAN tryLockShared()
+      {
+         return _mutex.try_lock_shared();
+      }
+      void unlockShared()
+      {
+         _mutex.unlock_shared();
+      }
+      
+
+      void lockUpgrade()
+      {
+         _mutex.lock_upgrade();
+      }
+      BOOLEAN tryLockUpgrade()
+      {
+         return _mutex.try_lock_upgrade();
+      }
+      void unlockUpgrade()
+      {
+         _mutex.unlock_upgrade();
+      }
+
+      void lock()
+      {
+         _mutex.lock();
+      }
+      BOOLEAN tryLock()
+      {
+         return _mutex.try_lock();
+      }
+      void unlock()
+      {
+         _mutex.unlock();
+      }
+
+      void lockWith(ossSharedLatch::mode mode)
+      {
+         if (ossSharedLatch::SHARED == mode)
+         {
+            lockShared();
+         }
+         else if (ossSharedLatch::UPGRADE == mode)
+         {
+            lockUpgrade();
+         }
+         else if (ossSharedLatch::EXCLUSIVE == mode)
+         {
+            lock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return;
+      }
+
+      BOOLEAN tryLockWith(ossSharedLatch::mode mode)
+      {
+         BOOLEAN r = FALSE;
+         if (ossSharedLatch::SHARED == mode)
+         {
+            r = tryLockShared();
+         }
+         else if (ossSharedLatch::UPGRADE == mode)
+         {
+            r = tryLockUpgrade();
+         }
+         else if (ossSharedLatch::EXCLUSIVE == mode)
+         {
+            r = tryLock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return r;
+      }
+
+      void unlockWith(ossSharedLatch::mode mode)
+      {
+         if (ossSharedLatch::SHARED == mode)
+         {
+            unlockShared();
+         }
+         else if (ossSharedLatch::UPGRADE == mode)
+         {
+            unlockUpgrade();
+         }
+         else if (ossSharedLatch::EXCLUSIVE == mode)
+         {
+            unlock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return;
+      }
+
+      void unlockUpgradeAndLock()
+      {
+         _mutex.unlock_upgrade_and_lock();
+      }
+
+      /// will not release upgrade if return false.
+      BOOLEAN tryUnlockUpgradeAndLock()
+      {
+         return _mutex.try_unlock_upgrade_and_lock();
+      }
+      void unlockUpgradeAndLockShared()
+      {
+         _mutex.unlock_upgrade_and_lock_shared();
+      }
+      void unlockAndLockUpgrade()
+      {
+         _mutex.unlock_and_lock_upgrade();
+      }
+      void unlockAndLockShared()
+      {
+         _mutex.unlock_and_lock_shared();
+      }
+
+   private:
+      boost::shared_mutex _mutex;
+};//class ossSharedLatch
+
 #endif //OSS_SPINLOCK_HPP_

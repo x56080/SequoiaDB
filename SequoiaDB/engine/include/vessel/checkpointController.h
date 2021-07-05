@@ -57,6 +57,9 @@ namespace vessel
          {
             return 0;
          }
+         BOOLEAN hasAtLeastOneCheckpoint()const;
+
+         void fini(){}
    };//class checkpointController
 }//namespace vessel
 }//namespace engine

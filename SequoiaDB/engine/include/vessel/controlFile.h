@@ -41,6 +41,7 @@
 #include "ossUtil.h"
 #include "ossMemPool.hpp"
 #include "strSlice.h"
+#include "vessel/vesselFileName.h"
 
 namespace engine
 {
@@ -68,31 +69,26 @@ namespace vessel
             OSS_INLINE head(){}
             OSS_INLINE ~head(){}
 
+            UINT32 magicCode = 0;
             UINT32 headVerion = INVALID_CONTROL_FILE_VERSION;
             UINT32 flags = 0;
             UINT64 commitVersion = INVALID_COMMIT_VERSION;
             UINT64 updateMillis = 0; /// milli seconds
-            UINT64 checksum = 0;/// reserved only. 
             UINT32 contentLen = 0; 
-            UINT32 pad0 = 0;
-            UINT64 pad1 = 0;
+            UINT32 pad = 0;
 
             OSS_INLINE head &operator=(const head &h)
             {
+               magicCode = h.magicCode;
                headVerion = h.headVerion;
                flags = h.flags;
                commitVersion = h.commitVersion;
                updateMillis = h.updateMillis;
-               checksum = h.checksum;
                contentLen = h.contentLen;
-               pad0 = h.pad0;
-               pad1 = h.pad1;
+               pad = h.pad;
                return *this;
             }
-            OSS_INLINE BOOLEAN isValid()const
-            {
-               return CONTROL_FILE_VERSION == headVerion;
-            }
+
             OSS_INLINE BOOLEAN isUnused()const
             {
                return INVALID_COMMIT_VERSION == commitVersion;
@@ -101,14 +97,14 @@ namespace vessel
 #pragma pack()
 
       public:
-         INT32 create(const CHAR *path, BOOLEAN replace);
-         INT32 open(const CHAR *path, BOOLEAN createIfNotExists);
+         INT32 create(const strSlice &dir);
+         INT32 open(const strSlice &dir);
          void close();
-         void destroy(const CHAR *path);
+         void destroy();
 
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _isOpen;
+            return !_dir.empty();
          }
          OSS_INLINE UINT32 getAliveVersionCount()const
          {
@@ -136,8 +132,10 @@ namespace vessel
                                  UINT32 bufSize,
                                  void *buf)const;
       public:
-         /// return file name prefix. final file name format: prefix.control.<num>
-         virtual const CHAR *getFileNamePrefix()const = 0;
+         /// return control file's name.
+         /// "i" is file sequence.
+         virtual BOOLEAN getFileName(UINT32 i,
+                                     std::string &name)const = 0;
 
          /// return max alive version count. valid range is(0, 64];
          /// which defines the max count of files.
@@ -147,9 +145,7 @@ namespace vessel
          struct _fileObj : public SDBObject
          {
             _fileObj()
-            {
-               ossMemset(buf, 0, CONTROL_FILE_SIZE);
-            }
+            {}
             ~_fileObj()
             {
                if (file.isOpened())
@@ -170,36 +166,43 @@ namespace vessel
                return (head *)buf;
             }
 
-            UINT32 seq = 0;
-            CHAR buf[CONTROL_FILE_SIZE];
+            OSS_INLINE void close()
+            {
+               sequence = 0;
+               name.clear();
+               ossMemset(buf, 0, sizeof(buf));
+               ossClose(file);
+               return;
+            }
+
+            UINT32 sequence = 0;
+            std::string name;
+            CHAR buf[CONTROL_FILE_SIZE] = {0};
             _OSS_FILE file;
-         };//struct _fileCache
+         };//struct _fileObj
 
          typedef ossPoolList<_fileObj *> _FILE_OBJ_LIST;
 
       private:
-         INT32 createFilesUnderPath(const strSlice &path,
-                                    BOOLEAN replace);
-         INT32 openFilesUnderPath(const strSlice &path, BOOLEAN createIfNotExists);
-         INT32 openFileObj(const std::string &fullPath,
-                           _fileObj *obj,
-                           BOOLEAN createIfNotExists);
-         INT32 createFileObj(const std::string &fullPath,
-                             _fileObj *obj,
-                             BOOLEAN replace);
+         INT32 createFiles();
+         INT32 openFiles();
+
+         void initFileBuf(_fileObj *obj);
+         void updateFileBuf(_fileObj *obj, UINT32 size, const void *buf);
          void pushToUnusedListWhenOpen(_fileObj *obj);
          void pushToWorkshopWhenOpen(_fileObj *obj);
 
          INT32 commitFromUnusedList(UINT32 size, const void *buf);
          INT32 commitFromWorkshop(UINT32 size, const void *buf);
          INT32 writeFile(_fileObj *obj);
+         INT32 readFile(_fileObj *obj);
          INT32 read(const _fileObj *obj,
                     UINT32 size,
                     head &h,
                     void *buf)const;
 
       private:
-         BOOLEAN _isOpen = FALSE;
+         std::string _dir;
          UINT64 _commitVersion = 0;/// next commit version.
          _FILE_OBJ_LIST _workshop;
          _FILE_OBJ_LIST _unused;

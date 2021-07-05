@@ -52,147 +52,87 @@ namespace vessel
 
    csgpAccessor::~csgpAccessor()
    {}
-   
-   INT32 csgpAccessor::initPage(requestContext *context, const csMetaRecord &record)
+
+   INT32 csgpAccessor::create(requestContext *context,
+                              const csMetaRecord &cmr,
+                              const slice &adjuncts)
    {
       INT32 rc = SDB_OK;
-      CHAR * ptr = NULL;
-      SDB_ASSERT(0 == OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_CACHE_MODE), "impossible");
-      SDB_ASSERT(0 != OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_NON_READONLY), "impossible");
-      SDB_ASSERT(0 != OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_NO_PAGE_VALIDATION), "impossible");
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCommonPageHeadAndTail();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = memsetPageBody(0);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = getWritePtrOfPageBody(0, sizeof(csMetaRecord), &ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      ossMemcpy(ptr, &record, sizeof(csMetaRecord));
-
-      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
-   done:
-      return rc;
-   error:
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
-   }
-
-   INT32 csgpAccessor::setOnlineWhenCreating(requestContext *context,
-                                             const dataIDMapFileHead &head)
-   {
-      INT32 rc = SDB_OK;
-      const csMetaRecord *recordPtr = NULL;
-      csMetaRecord *recordWPtr = NULL;
       logRecordContext lrc;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      slice adjuncts(sizeof(dataIDMapFileHead), &head);
-      
-      rc = getReadableUserHeadPtr<csMetaRecord>(&recordPtr);
+      csMetaRecord *record = NULL;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !cmr.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(getRuntimeBuffer()->isCacheBuffer(), "impossible");
+      rc = getRuntimeBuffer()->prepareToWrite(context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get meta record:%d", rc);
-         goto error;
-      }
-
-      if (!metaRecordIsValid(*recordPtr))
-      {
-         PD_LOG(PDERROR, "page crashed[%s]", getGPID().toString().c_str());
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
-
-      if (CMR_STATUS_CREATING != recordPtr->status)
-      {
-         PD_LOG(PDERROR, "invalid cs status:%d", recordPtr->status);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
          goto error;
       }
 
       rc = prepareUpdateLog(context, &lrc, LOG_TYPE_CS_CRT, FALSE, adjuncts);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
          goto error;
       }
 
-      lsn = lrc.getLsn();
-
-      rc = getWritableUserHeadPtr<csMetaRecord>(&recordWPtr);
-      if (SDB_OK != rc)
+      record = getRuntimeBuffer()->getWritablePtrOfBody<csMetaRecord>(0);
+      if (NULL == record)
       {
-         PD_LOG(PDERROR, "failed to get write ptr of meta:%d", rc);
+         PD_LOG(PDERROR, "failed to get record writable ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      recordWPtr->status = CMR_STATUS_ONLINE;
-      commitUpdateLog(context, &lrc, LOG_TYPE_CS_CRT,
-                      0, NULL, *recordWPtr, adjuncts);
-
-      pageAccessor::commit(context, lsn);
+      ossMemcpy(record, &cmr, CS_META_RECORD_LEN);
+      commitUpdateLog(context, &lrc, LOG_TYPE_CS_CRT, 0, NULL, cmr, adjuncts);
+      getRuntimeBuffer()->commit(lrc.getLsn());
       lrc.close();
    done:
       return rc;
    error:
       if (lrc.prepared())
       {
-         IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abort(context->getSession(), &lrc);
+         abortLog(context, &lrc);
       }
-      if (fullAccessing())
+      if (getRuntimeBuffer()->isWritable())
       {
-         abortToWrite();
+         getRuntimeBuffer()->abort();
       }
-
       goto done;
    }
 
-   INT32 csgpAccessor::readMetaRecord(csMetaRecord &record)
+   INT32 csgpAccessor::readMetaRecord(csMetaRecord &record)const
    {
       INT32 rc = SDB_OK;
-      const CHAR *ptr = NULL;
-      const csMetaRecord *recordPtr = NULL;
-      rc = getReadPtrOfPageBody(0, CS_META_RECORD_LEN, &ptr);
-      if (SDB_OK != rc)
+      const csMetaRecord *head = NULL;
+      if (OSS_UNLIKELY(!isOpen()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      recordPtr = (const csMetaRecord *)ptr;
-      if (!metaRecordIsValid(*recordPtr))
+      head = getRuntimeBuffer()->getReadablePtrOfBody<csMetaRecord>(0);
+      if (NULL == head)
       {
-         PD_LOG(PDERROR, "page crashed[%s]", getGPID().toString().c_str());
-         rc = SDB_VESSEL_PAGE_CRASHED;
+         PD_LOG(PDERROR, "failed to get record ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      record = *recordPtr;
+      record = *head;
    done:
       return rc;
    error:
@@ -257,7 +197,7 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
       IRedoLogger *logger = context->getOuterResource()->logger;
-      GLOBAL_PAGE_ID gpid = getGPID();
+      const GLOBAL_PAGE_ID &gpid = getRuntimeBuffer()->getGlobalPid();
 
       rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_PUBLIC_VESSEL_GPID,
@@ -319,28 +259,16 @@ namespace vessel
          }
       }
 
-      if (lrc->needFullDump())
+      rc = pageAccessor::commitLogDone(context, lrc);
+      if (SDB_OK != rc)
       {
-         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
-         SDB_ASSERT(NULL != dumpBuf, "can not be null");
-         SDB_ASSERT(0 < lrc->getFullDumpDataSize(), "impossible");
-         rc = logger->pushLogRecordElement(session, lrc,
-                                           DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           lrc->getFullDumpDataSize(), dumpBuf);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-      }
-
-      rc = logger->commit(session, lrc);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
+         PD_LOG(PDERROR, "failed to commit log:%d", rc);
          goto error;
       }
    done:
       return rc;
    error:
+      SDB_ASSERT(FALSE, "impossible");
       goto done;
    }
 }//namespace vessel

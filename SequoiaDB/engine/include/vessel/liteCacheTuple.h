@@ -45,7 +45,6 @@ namespace vessel
 {
    class liteCache;
    class requestContext;
-   class logRecordContext;
 
    class liteCacheTuple
    {
@@ -57,65 +56,35 @@ namespace vessel
          {}
          OSS_INLINE ~liteCacheTuple()
          {
-            
+            release();
          }
 
-      private:
-         OSS_INLINE liteCacheTuple(const liteCacheTuple &r):
-         _holder(r._holder),
-         _pool(r._pool),
-         _writingPrepared(r._writingPrepared)
-         { 
+         liteCacheTuple &operator=(const liteCacheTuple &) = delete;
+         liteCacheTuple(const liteCacheTuple &r) = delete;
 
-         }
-         OSS_INLINE liteCacheTuple &operator=(const liteCacheTuple &r)
-         {
-            _holder = r._holder;
-            _pool = r._pool;
-            _writingPrepared = r._writingPrepared;
-            return *this;
-         }
-         
       public:
-         OSS_INLINE BOOLEAN valid()const
+         OSS_INLINE BOOLEAN isValid()const
          {
             return NULL != _pool && _holder.valid();
          }
 
+         void release();
+
+         void commit(UINT64 lsn);
+
+         ossValuePtr getReadableBuffer()const;
+
+         ossValuePtr getWritableBuffer()const;
+
          INT32 prepareToWrite(requestContext *context);
 
-         INT32 getReadPtr(UINT32 offset, UINT32 len, const CHAR **ptr)const;
-
-         INT32 read(UINT32 offset, UINT32 len, CHAR *buf) const;
-
-         INT32 getWritePtr(UINT32 offset, UINT32 len, CHAR **ptr);
-
-         /// len can not be 0
-         INT32 write(UINT32 offset,
-                     UINT32 len,
-                     const CHAR *data);
-
-         INT32 getMinLSN(DPS_LSN_OFFSET &lsn);
-
-      private:
-         INT32 validateRead(UINT32 offset, UINT32 len)const;
-         INT32 validateWrite(UINT32 offset, UINT32 len)const;
-
-         void writePage(void *pageBuf,
-                        UINT32 offset,
-                        UINT32 len,
-                        const void *data);
-
-         void readPage(const void *pageBuf,
-                       UINT32 offset,
-                       UINT32 len,
-                       void *buf)const;
+         void swap(liteCacheTuple &o);
 
       private:
          lcPageTagHolder _holder;
          liteCache *_pool;
          BOOLEAN _writingPrepared;
-   };
+   };//class liteCacheTuple
 
 } /// end of namespace vessel
 } /// end of namespace engine

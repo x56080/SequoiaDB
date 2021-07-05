@@ -68,7 +68,7 @@ namespace vessel
 
          /// for user threads
          /// tag under w lock
-         INT32 insert(lcPageTagHolder &holder, const freeListPage &page);
+         INT32 insert(lcPageTagHolder &holder);
 
          /// for user threads
          /// tag under lock

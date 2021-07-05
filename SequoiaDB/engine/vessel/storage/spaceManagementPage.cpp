@@ -53,6 +53,8 @@ namespace vessel
       UINT32 pageCapacity = 0;
       UINT32 realCapacity = 0;
 
+      ///WANRING: 4KB page is not enough to store whole
+      /// bitmap of 128MB segment.
       switch (pageSize)
       {
       case DMS_PAGE_SIZE8K:
@@ -94,21 +96,19 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN initSmp(UINT32 pageSize, PAGE_ID pid, UINT32 occupied, CHAR *buf)
+   BOOLEAN initSmp(UINT32 pageSize,
+                   PAGE_ID pid,
+                   PAGE_ID lpid,
+                   PAGE_SNAPSHOT_VERION psv,
+                   void *buf,
+                   UINT32 occupied)
    {
       BOOLEAN r = FALSE;
       spaceManagementPageHead *head = NULL;
-      UINT32 capacity = 0;
       UINT32 bitsCount = 0;
+      UINT32 capacity = 0;
 
-      if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
-                       INVALID_PAGE_ID == pid ||
-                       NULL == buf))
-      {
-         goto done;
-      }
-
-      if (OSS_UNLIKELY(!getSMPCapacityOrCount(pageSize, &capacity, NULL)))
+      if (OSS_UNLIKELY(getSMPCapacityOrCount(pageSize, &capacity, NULL)))
       {
          goto done;
       }
@@ -118,18 +118,21 @@ namespace vessel
          goto done;
       }
 
-      initCommonPage(PAGE_TYPE_SMP, pageSize, pid, buf);
-      head = (spaceManagementPageHead *)(buf + PAGE_HEAD_LEN);
+      if (!initCommonPage(PAGE_TYPE_SMP, pageSize, pid, lpid, psv, buf))
+      {
+         goto done;
+      }
+
+      head = (spaceManagementPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
       head->version = SMP_VERSION_1;
       head->flags = 0;
-      head->free = capacity - occupied;
       head->pad = 0;
 
       bitsCount = capacity >> 6;
-      ossMemset((buf + PAGE_HEAD_LEN + SMP_HEAD_LEN), 0xFF, (capacity >> 3));
+      ossMemset(((CHAR *)buf + PAGE_HEAD_SIZE + SMP_HEAD_SIZE), 0xFF, (capacity >> 3));
       for (UINT32 i = 0; i < occupied; ++i)
       {
-         if (!setNotFreeIfFree64(bitsCount, (UINT64 *)(buf + PAGE_HEAD_LEN + SMP_HEAD_LEN), i))
+         if (!setNotFreeIfFree64(bitsCount, (UINT64 *)((CHAR *)buf + PAGE_HEAD_SIZE + SMP_HEAD_SIZE), i))
          {
             goto done;
          }

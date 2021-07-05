@@ -40,51 +40,63 @@ namespace engine
 {
 namespace vessel
 {
+   /*
    BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity)
    {
       BOOLEAN r = FALSE;
 
-      if (DMS_PAGE_SIZE32K != pageSize)
+      if (OSS_UNLIKELY(!isValidPageSize(pageSize)))
       {
          goto done;
       }
 
-      capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ID_MAP_PAGE_HEAD_LEN) /
+      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - ID_MAP_PAGE_HEAD_SIZE) /
                  sizeof(idMapSlot);
       capacity &= 0xFFFFFFC0;
       r = TRUE;
    done:
       return r;
    }
+   */
 
-   BOOLEAN initIdMapPage(UINT32 pageSize, PAGE_ID pid, void *buf)
+   BOOLEAN initIdMapPage(UINT32 pageSize,
+                         PAGE_ID pid,
+                         PAGE_ID lpid,
+                         PAGE_SNAPSHOT_VERION psv,
+                         void *buf)
    {
       BOOLEAN r = FALSE;
       idMapPageHead *head = NULL;
       CHAR *ptr = (CHAR *)buf;
       UINT32 capacity = 0;
 
-      if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
-                       INVALID_PAGE_ID == pid ||
-                       NULL == buf))
+      if (OSS_UNLIKELY(!get64AlignedIMPCapacity(pageSize, capacity)))
+      {
+         goto done;
+      }
+      if (OSS_UNLIKELY(!initCommonPage(PAGE_TYPE_ID_MAP, pageSize, pid, lpid, psv, buf)))
       {
          goto done;
       }
 
-      if (!get64AlignedIMPCapacity(pageSize, capacity))
-      {
-         goto done;
-      }
-
-      initCommonPage(PAGE_TYPE_ID_MAP, pageSize, pid, buf);
-      head = (idMapPageHead *)(ptr + PAGE_HEAD_LEN);
+      head = (idMapPageHead *)(ptr + PAGE_HEAD_SIZE);
       head->version = CURRENT_ID_MAP_PAGE_VERSION;
-      head->free = capacity;
-      ossMemset(ptr + PAGE_HEAD_LEN + ID_MAP_PAGE_HEAD_LEN,
+      head->flags = 0;
+      head->pad = 0;
+      ossMemset(ptr + PAGE_HEAD_SIZE + ID_MAP_PAGE_HEAD_SIZE,
                 0xFF, capacity * sizeof(idMapSlot));
       r = TRUE;
    done:
       return r;
+   }
+
+   idMapSlot getIdMapSlot(ossValuePtr ptr, UINT32 slot)
+   {
+      idMapSlot obj;
+      SDB_ASSERT(0 != ptr, "can not be null");
+      SDB_ASSERT(slot < ID_MAP_PAGE_CAPACITY, "can not be invalid");
+      obj = *((const idMapSlot *)ptr + slot); 
+      return obj;
    }
 }//namespace vessel
 }//namespace engine

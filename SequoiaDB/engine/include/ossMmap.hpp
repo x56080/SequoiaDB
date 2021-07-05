@@ -118,7 +118,7 @@ public:
       return &_pSegArray[ pos - 1 ] ;
    }
 
-   OSS_INLINE UINT32 segmentSize()
+   OSS_INLINE UINT32 segmentSize()const
    {
       return _size ;
    }
@@ -171,13 +171,13 @@ public:
                 UINT32 iPermission = OSS_RU|OSS_WU|OSS_RG ) ;
    void  close () ;
    INT32 map ( UINT64 offset, UINT32 length, void **pAddress ) ;
-   INT32 flushAll ( BOOLEAN sync = FALSE ) ;
-   INT32 flush ( UINT32 segmentID, BOOLEAN sync = FALSE ) ;
+   INT32 flushAll ( BOOLEAN sync = FALSE )const ;
+   INT32 flush ( UINT32 segmentID, BOOLEAN sync = FALSE )const ;
    /*
       length : -1, means flush offset to end
    */
    INT32 flushBlock ( UINT32 segmentID, UINT32 offset,
-                      INT32 length, BOOLEAN sync = FALSE ) ;
+                      INT32 length, BOOLEAN sync = FALSE )const ;
    INT32 unlink () ;
    INT32 size ( UINT64 &fileSize ) ;
 

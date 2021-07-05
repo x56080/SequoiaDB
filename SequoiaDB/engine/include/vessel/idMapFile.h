@@ -1,0 +1,132 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = idMapFile.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_ID_MAP_FILE_H_
+#define VESSEL_ID_MAP_FILE_H_
+
+#include "vessel/storageFile.h"
+
+namespace engine
+{
+namespace vessel
+{
+   static const UINT32 ID_MAP_FILE_HEAD_VERSION = 1;
+
+   static const UINT32 ID_MAP_FILE_FLAG_REPLICATED = 0x01;
+   static const UINT32 ID_MAP_FILE_FLAG_COPY_ON_WRITE = 0x02;
+
+   struct idMapFileHead
+   {
+      OSS_INLINE idMapFileHead(){}
+      OSS_INLINE ~idMapFileHead(){}
+      OSS_INLINE idMapFileHead(const idMapFileHead &o):
+      version(o.version),
+      flags(o.flags),
+      dataPageSize(o.dataPageSize),
+      dataPageCountInSeg(o.dataPageCountInSeg),
+      dataSegCountInFile(o.dataSegCountInFile),
+      totalPageCount(o.totalPageCount),
+      deltaLogOffset(o.deltaLogOffset)
+      {}
+      OSS_INLINE idMapFileHead &operator=(const idMapFileHead &o)
+      {
+         version = o.version;
+         flags = o.flags;
+         dataPageSize = o.dataPageSize;
+         dataPageCountInSeg = o.dataPageCountInSeg;
+         dataSegCountInFile = o.dataSegCountInFile;
+         totalPageCount = o.totalPageCount;
+         deltaLogOffset = o.deltaLogOffset;
+         return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return ID_MAP_FILE_HEAD_VERSION == version;
+      }
+
+      BOOLEAN hasSameArgs(const idMapFileHead &h)const
+      {
+         return flags == h.flags &&
+                dataPageSize == h.dataPageSize &&
+                dataPageCountInSeg == h.dataPageCountInSeg &&
+                dataSegCountInFile == h.dataSegCountInFile;
+      }
+
+      void setReplicated()
+      {
+         OSS_BIT_SET(flags, ID_MAP_FILE_FLAG_REPLICATED);
+      }
+      BOOLEAN isReplicated()const
+      {
+         return 0 != OSS_BIT_TEST(flags, ID_MAP_FILE_FLAG_REPLICATED);
+      }
+      void setCopyOnWrite()
+      {
+         OSS_BIT_SET(flags, ID_MAP_FILE_FLAG_COPY_ON_WRITE);
+      }
+      BOOLEAN isCopyOnWrite()const
+      {
+         return 0 != OSS_BIT_TEST(flags, ID_MAP_FILE_FLAG_COPY_ON_WRITE);
+      }
+
+
+      UINT32 version = 0;
+      UINT32 flags = 0;
+      UINT32 dataPageSize = 0;
+      UINT32 dataPageCountInSeg = 0;
+      UINT32 dataSegCountInFile = 0;
+      UINT32 totalPageCount = 0;
+      UINT64 deltaLogOffset = DPS_INVALID_LSN_OFFSET;
+
+   };//struct idMapFileHead
+
+   class idMapFile : public storageFile
+   {
+      public:
+         idMapFile();
+         virtual ~idMapFile();
+
+      public:
+         virtual BOOLEAN validateUserDefinedHead(const void *head)const;
+         INT32 getTotalPageCount(UINT32 &count)const;
+         INT32 getIdMapFileHead(idMapFileHead &h)const;
+         INT32 ensureSegmentCountAndInit(UINT32 count);
+
+   }; // class idMapFile
+} // namespace vessel
+} // namespace engine
+
+#endif // VESSEL_ID_MAP_FILE_H_

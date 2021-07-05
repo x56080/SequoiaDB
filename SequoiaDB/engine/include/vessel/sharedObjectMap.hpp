@@ -1,0 +1,348 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = sharedObjectMap.hpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_SHARED_OBJECT_MAP_HPP_
+#define VESSEL_SHARED_OBJECT_MAP_HPP_
+
+#include "utilPooledObject.hpp"
+#include "ossLatch.hpp"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
+
+namespace engine
+{
+namespace vessel
+{
+   template <typename KEY, typename VALUE>
+   class sharedObjectMap : public SDBObject
+   {
+      public:
+         sharedObjectMap(){}
+         ~sharedObjectMap()
+         {
+            fini();
+         }
+
+         sharedObjectMap(const sharedObjectMap &) = delete;
+         sharedObjectMap &operator=(const sharedObjectMap &) = delete;
+
+      private:
+         class _item : public utilPooledObject
+         {
+            friend class sharedObjectMap;
+            public:
+               _item(){}
+               ~_item(){}
+               _item(const _item &) = delete;
+               _item &operator=(const _item &) = delete;
+
+            public:
+               const ITEM_K &getKey()const
+               {
+                  return _key;
+               }
+               ITEM_V &getValue()
+               {
+                  return _value;
+               }
+            private:
+               _item *_pre = NULL;
+               _item *_next = NULL;
+               UINT32 _count = 0;
+               KEY _key;
+               VALUE _value;
+         };
+
+         class _bucket : public SDBObject
+         {
+            public:
+               _bucket(){}
+               ~_bucket(){}
+               _bucket(const _bucket &) = delete;
+               _bucket &operator=(const _bucket &) = delete;
+
+            public:
+               UITN32 _size = 0;
+               _item *_head = NULL;
+         };//class _bucket
+
+      public:
+         class object : public SDBObject
+         {
+            public:
+               friend class sharedObjectMap;
+               object(){}
+               ~object(){}
+               object(const object &o):
+               _i(o._i){}
+               object &operator=(const object &o)
+               {
+                  _i = o._i;
+                  return *this;
+               }
+
+            public:
+               BOOLEAN isValid()const
+               {
+                  return NULL != _i;
+               }
+               const KEY &getKey()const
+               {
+                  return _i->getKey();
+               }
+               VALUE &getValue()
+               {
+                  return _i->getValue();
+               }
+
+            private:
+               _item *_i = NULL;
+         };
+
+      public:
+         BOOLEAN isOpen()const
+         {
+            return 0 < _bucketCount;
+         }
+         INT32 init(UINT32 bucketCount,
+                    UINT32 latchCount)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(!isOpen(), "do not reinit");
+
+            if (!ossIsPowerOf2(bucketCount) ||
+                !ossIsPowerOf2(latchCount))
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+            else if (bucketCount < latchCount)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            _bucketCount = bucketCount;
+            _buckets = SDB_OSS_NEW _bucket[bucketCount];
+            if (NULL == _buckets)
+            {
+               rc = SDB_OOM;
+               goto error;
+            }
+            
+            _latchCount = latchCount;
+            _latches = SDB_OSS_NEW ossSpinXLatch[latchCount];
+            if (NULL == _latches)
+            {
+               rc = SDB_OOM;
+               goto error;
+            }
+         done:
+            return rc;
+         error:
+            fini();
+            goto done;
+         }
+
+         void fini()
+         {
+            if (NULL != _latches)
+            {
+               SDB_OSS_DEL []_latches;
+               _latches = NULL;
+            }
+            if (NULL != _buckets)
+            {
+               SDB_OSS_DEL []_buckets;
+               _buckets = NULL;
+            }
+            _bucketCount = 0;
+            _latchCount = 0;
+            return;
+         }
+
+         INT32 ensure(const KEY &k, object &o)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(!o.isValid(), "impossible");
+            UINT32 hash = 0;
+            _bucket *bucket = NULL;
+            ossSpinXLatch *latch = NULL;
+            _item *itemFound = NULL;
+            _item *itemCreated = NULL;
+
+            if (OSS_UNLIKELY(!isOpen()))
+            {
+               rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+               goto error;
+            }
+
+            hash = k.hash();
+            bucket = getBucket(hash);
+            latch = getLatch(latch);
+            latch->get();
+            itemFound = findFromBucket(bucket, k);
+            if (NULL != itemFound)
+            {
+               ++(itemFound->_count);
+               o._i = itemFound;
+            }
+            else
+            {
+               itemCreated = SDB_OSS_NEW _item();
+               if (OSS_UNLIKELY(NULL == itemCreated))
+               {
+                  rc = SDB_OOM;
+                  goto error;
+               }
+               itemCreated->_key = k;
+               insert(bucket, itemCreated)
+               ++itemCreated->_count;
+               o._i = itemCreated;
+            }     
+         done:
+            if (NULL != latch)
+            {
+               latch->release();
+            }
+            return rc;
+         error:
+            goto done;
+         }
+
+         void release(object &o)
+         {
+            SDB_ASSERT(isOpen(), "must be open");
+            SDB_ASSERT(o.isValid(), "can not be valid");
+            if (isOpen() && o.isValid())
+            {
+               SDB_ASSERT(0 < o._i->_count, "impossible");
+               UINT32 hash = o._i->getKey().hash();
+               _bucket *bucket = NULL;
+               ossSpinXLatch *latch = NULL;
+               bucket = getBucket(hash);
+               latch = getLatch(hash);
+               latch->get();
+               --o._i->_count;
+               if (0 == o._i->_count)
+               {
+                  remove(bucket, o._i);
+                  latch->release();
+                  SDB_OSS_DEL o._i;
+               }
+               else
+               {
+                  latch->release();
+               }
+               o._i = NULL;
+            }
+            return;
+         }
+
+      private:
+         _bucket *getBucket(UINT32 hash)
+         {
+            UINT32 i = (hash & (_bucketCount - 1));
+            return _buckets + i;
+         }
+         ossSpinXLatch *getLatch(UINT32 hash)
+         {
+            UINT32 i = (hash & (_latchCount - 1));
+            return _latches + i;
+         }
+
+         _item *find(_bucket *bucket, const KEY &k)
+         {
+            _item *out = NULL;
+            _item *i = bucket->_head;
+            while (NULL != i)
+            {
+               if (i->_key == k)
+               {
+                  out = i;
+                  break;
+               }
+               i = i->_next;
+            }
+            return out;
+         }
+
+         void insert(_bucket *bucket, _item *i)
+         {
+            _item *oldHead = bucket->_head;
+            bucket->_head = i;
+            i->_next = oldHead;
+            if (NULL != oldHead)
+            {
+               oldHead->_pre = i;
+            }
+            ++_bucket->_size;
+         }
+
+         void remove(_bucket *bucket, _item *i)
+         {
+            /// not head
+            if (NULL != i->pre)
+            {
+               i->pre->_next = i->next;
+            }
+            else
+            {
+               bucket->_head = i->next;
+            }
+
+            /// not tail
+            if (NULL != i->next)
+            {
+               i->next->_pre = i->pre;
+            }
+
+            i->pre = NULL;
+            i->next = NULL;
+            --bucket->_size;
+            return;
+         }
+
+      private:
+         UINT32 _bucketCount = 0;
+         UINT32 _latchCount = 0;
+         _bucket *_buckets = NULL;
+         ossSpinXLatch *_latches = NULL;
+
+   };//class sharedObjectMap
+}//namespace vessel
+}//namespace engine
+
+#endif//VESSEL_SHARED_OBJECT_MAP_HPP_

@@ -40,25 +40,64 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize)
+   BOOLEAN isPageCrashed(ossValuePtr ptr, UINT32 pageSize)
    {
-      BOOLEAN r = FALSE;
-      const pageHead *head = NULL;
-      UINT64 tail = DPS_INVALID_LSN_OFFSET;
-      if (OSS_UNLIKELY(0 == ptr || (pageSize < (PAGE_HEAD_LEN + sizeof(UINT64)))))
-      {
-         goto done;
-      }
+      SDB_ASSERT(0 != ptr, "can not be null");
+      SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
+      const pageHead *head = (const pageHead *)ptr;
+      const UINT64 *tail =(const UINT64 *)(ptr + pageSize - PAGE_TAIL_SIZE);
+      CHAR eyecacher[2] = {0};
+      getPageEyeCatcher(eyecacher[0], eyecacher[1]);
 
-      head = (const pageHead *)ptr;
-      tail = *((const UINT64 *)(ptr + pageSize - sizeof(UINT64)));
-      r = head->lsn == tail &&
-          INVALID_PAGE_TYPE != head->type &&
-          PAGE_VERSION_1 == head->version &&
-          head->inUsed() &&
-          head->size == pageSize;
+      return head->eyeCatcher[0] != eyecacher[0] ||
+          head->eyeCatcher[1] != eyecacher[1] ||
+          head->version != PAGE_VERSION_1 ||
+          head->size != pageSize ||
+          head->type == INVALID_PAGE_TYPE ||
+          head->pid == INVALID_PAGE_ID ||
+          head->lpid == INVALID_PAGE_ID ||
+          head->lsn != *tail ||
+          head->psv == INVALID_PAGE_SNAPSHOT_VERSION ||
+          head->pad0 != 0 ||
+          head->pad1 != 0 ||
+          !head->inUsed();
+   }
+
+   INT32 validatePage(ossValuePtr ptr,
+                      PAGE_TYPE type,
+                      UINT32 pageSize,
+                      PAGE_ID pid,
+                      PAGE_ID lpid,
+                      PAGE_SNAPSHOT_VERION psv)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 != ptr, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
+      const pageHead *head = (const pageHead *)ptr;
+
+      if (isPageCrashed(ptr, pageSize))
+      {
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+      else if (type != head->type ||
+               !head->inUsed() ||
+               pageSize != head->size ||
+               pid != head->pid ||
+               lpid != head->lpid ||
+               psv != head->psv)
+      {
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
    done:
-      return r;
+      return rc;
+   error:
+      goto done;
    }
 
    BOOLEAN isValidPageSize(UINT32 pageSize)
@@ -101,36 +140,81 @@ namespace vessel
       UINT32 bodySize = 0;
       if (OSS_UNLIKELY(!isValidPageSize(pageSize)))
       {
+         SDB_ASSERT(FALSE, "impossible");
          goto done;
       }
 
-      bodySize = pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN;
+      bodySize = pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE;
 
    done:
       return bodySize;
    }
 
-   void initCommonPage(UINT16 pageType,
-                       UINT32 pageSize,
-                       UINT32 pageID,
-                       void *buf)
+   BOOLEAN initCommonPage(UINT16 pageType,
+                          UINT32 pageSize,
+                          PAGE_ID pid,
+                          PAGE_ID lpid,
+                          PAGE_SNAPSHOT_VERION psv,
+                          void *buf)
    {
-      SDB_ASSERT(INVALID_PAGE_TYPE != pageType, "can not be invalid");
-      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != pageID, "can not be invalid");
-      SDB_ASSERT(NULL != buf, "can not be null");
-      ossMemset(buf, 0, pageSize);
+      BOOLEAN r = FALSE;
       pageHead *head = (pageHead *)buf;
-      getEyeCatcher(pageType, head->eyeCatcher[0], head->eyeCatcher[1]);
+      UINT64 *tail = NULL;
+
+      if (OSS_UNLIKELY(INVALID_PAGE_TYPE == pageType))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(!isValidPageSize(pageSize)))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_SNAPSHOT_VERSION == psv))
+      {
+         goto done;
+      }
+      else if (OSS_UNLIKELY(NULL == buf))
+      {
+         goto done;
+      }
+
+      ossMemset(buf, 0, pageSize);
+      getPageEyeCatcher(head->eyeCatcher[0], head->eyeCatcher[1]);
       head->version = PAGE_VERSION_1;
       head->type = pageType;
+      head->flags = 0;
       head->size = pageSize;
-      head->pageID = pageID;
+      head->pid = pid;
+      head->lpid = lpid;
       head->lsn = DPS_INVALID_LSN_OFFSET;
+      head->psv = psv;
       head->setInUsed();
-      UINT64 *tail = (UINT64 *)((CHAR *)buf + pageSize - PAGE_TAIL_LEN);
+      tail = (UINT64 *)((CHAR *)buf + pageSize - PAGE_TAIL_SIZE);
       *tail = DPS_INVALID_LSN_OFFSET;
-      return;
+
+   done:
+      SDB_ASSERT(r, "must be ok");
+      return r;
+   }
+
+   BOOLEAN updatePageLsn(ossValuePtr ptr,
+                         DPS_LSN_OFFSET lsn)
+   {
+      BOOLEAN r = FALSE;
+      if (OSS_UNLIKELY(0 == ptr))
+      {
+         goto done;
+      }
+
+      ((pageHead *)ptr)->lsn = lsn;
+      *((UINT64 *)(ptr + getPageBodySize(((pageHead *)ptr)->size))) = lsn;
+      r = TRUE;
+   done:
+      return r;
    }
 }//namespace vessel
 }//namespace engine

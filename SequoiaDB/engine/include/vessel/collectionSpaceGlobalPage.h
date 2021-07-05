@@ -45,27 +45,26 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT32 INALID_CMR_VERSION = 0;
    const UINT32 CMR_VERSION_1 = 1;
 
-   const static UINT32 CMR_STATUS_CREATING = 0;
+   const static UINT32 CMR_STATUS_INVALID = 0;
    const static UINT32 CMR_STATUS_ONLINE = 1;
    const static UINT32 CMR_STATUS_SNAPSHOT = 2;
 
    const static UINT64 CSGP_UPDATE_MASK_STATUS = 0x01;
    const static UINT64 CSGP_UPDATE_MASK_FLAGS = 0x02;
-   const static UINT64 CSGP_UPDATE_MASK_MAX_CLLID = 0x04;
-   const static UINT64 CSGP_UPDATE_MASK_NAME = 0x08;
+   const static UINT64 CSGP_UPDATE_MASK_NAME = 0x04;
 
 #pragma pack(4)
    struct csMetaRecord
    {
-      UINT32 version;
-      UINT32 status;
-      UINT32 flags;
-      UINT32 uniqueID;
-      UINT32 logicalID;
-      CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1];
+      UINT32 version = 0;
+      UINT16 status = 0;
+      UINT16 type = 0;
+      UINT32 flags = 0;
+      UINT32 uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
+      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
 
       csMetaRecord &operator=(const csMetaRecord &o)
       {
@@ -78,15 +77,7 @@ namespace vessel
          return *this;
       }
    
-      OSS_INLINE csMetaRecord():
-      version(INALID_CMR_VERSION),
-      status(0),
-      flags(0),
-      uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
-      logicalID(DMS_INVALID_LOGICCSID)
-      {
-         ossMemset(name, 0, sizeof(name));
-      }
+      OSS_INLINE csMetaRecord(){}
 
       OSS_INLINE ~csMetaRecord(){}
 
@@ -95,9 +86,11 @@ namespace vessel
          return CMR_STATUS_ONLINE == status;
       }
 
+      BOOLEAN isValid()const;
+
       OSS_INLINE void reset()
       {
-         version = INALID_CMR_VERSION;
+         version = 0;
          status = 0;
          flags = 0;
          uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
@@ -113,10 +106,9 @@ namespace vessel
 
    BOOLEAN initGmp(UINT32 pageSize,
                    PAGE_ID pid,
-                   const strSlice &name,
-                   UINT32 uniqueID,
-                   UINT32 logicalID,
-                   CHAR *buf);
+                   PAGE_ID lpid,
+                   PAGE_SNAPSHOT_VERION psv,
+                   void *buf);
 }//namespace vessel
 }//namespace engine
 

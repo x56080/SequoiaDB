@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -42,6 +39,8 @@
 #include "vessel/globalPageID.h"
 #include "vessel/lcPageTagHolder.h"
 #include "ossMemPool.hpp"
+#include "vessel/mmapPagePointer.h"
+#include "vessel/lcBucketInnerIndex.h"
 
 namespace engine
 {
@@ -57,10 +56,10 @@ namespace vessel
 
       public:
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                    UINT32 pageSize,
                                     UINT32 minRecycleCount,
+                                    const mmapPagePointer &ptr,
                                     lcPageTagHolder &holder,
-                                    BOOLEAN &newTagInBucket);
+                                    BOOLEAN &isNewTag);
 
          BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                    lcPageTagHolder &holder);
@@ -68,19 +67,14 @@ namespace vessel
          INT32 releaseRemovedTag(liteCachePageTag *tag);
       private:                           
          INT32 insertTag(const GLOBAL_PAGE_ID &id,
-                         UINT32 pageSize,
+                         const mmapPagePointer &ptr,
                          UINT32 minRecycleCount,
                          lcPageTagHolder &holder);
 
          liteCachePageTag *recycleTag(UINT32 minRecycleCount);
-
-      private:
-         typedef ossPoolMultiMap<GLOBAL_PAGE_ID, liteCachePageTag*> _TAG_MAP;
-         typedef _TAG_MAP::iterator _TAG_MAP_ITERATOR;
-         typedef _TAG_MAP::const_iterator _TAG_MAP_CONST_ITERATOR;
                                                 
       private:
-         _TAG_MAP _tags;
+         LC_BUCKET_INNER_INDEX _tags;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

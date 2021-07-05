@@ -44,9 +44,6 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 MD_SPACE_SYSTEM_PAGE_COUNT = 1;
-   constexpr UINT32 MD_SPACE_RESERVED_IMP_COUNT = 1;
-
    class mainDataSpace : public logicalPageSpace
    {
       public:
@@ -54,73 +51,17 @@ namespace vessel
          virtual ~mainDataSpace();
 
       public:
-         BOOLEAN isOpen()const;
-
-         INT32 create(requestContext *context,
-                      storageUnit *su,
-                      const strSlice &csName,
-                      UINT32 logicalID,
-                      const createCSOptions &options);
-
-      public:
-         INT32 getLpidOfCollectionRecord(CL_MB_ID mbID, PAGE_ID &lpid)const;
-         PAGE_ID getSystemImpPid()const;
-         INT32 readGlobalMetaData(requestContext *context,
-                                  BOOLEAN cacheMode,
-                                  csMetaRecord &record);
-
-      public:
-         virtual INT32 allocatePages(requestContext *context,
-                                     PAGE_TYPE pageType,
-                                     UINT32 count,
-                                     const PAGE_ID *lpids,
-                                     const PAGE_ID *pids,
-                                     const slice &args,
-                                     DPS_LSN_OFFSET *oplist);
-
-         virtual INT32 releasePages(requestContext *context,
-                                    UINT32 count,
-                                    const PAGE_ID *lpids,
-                                    DPS_LSN_OFFSET oplist);
-
-         virtual INT32 getPhysicalPid(requestContext *context,
-                                      PAGE_ID lpid,
-                                      PAGE_ID &pid,
-                                      SNAPSHOT_ID *snap);
-
-         virtual INT32 getPhysicalPidToWrite(requestContext *context,
-                                             PAGE_ID lpid,
-                                             PAGE_ID &pid,
-                                             SNAPSHOT_ID *snap);
-
-         virtual INT32 copyOnWirte(requestContext *context,
-                                   PAGE_ID lpid,
-                                   PAGE_ID oldPid,
-                                   PAGE_ID &newPid,
-                                   SNAPSHOT_ID *snap);
+         virtual SPACE_TYPE getSpaceType()const
+         {
+            return SPACE_TYPE_MAIN_DATA;
+         }
 
       private:
-         PAGE_ID getGlobalMetaPid()const;
-         PAGE_ID getDataSmpPid(PAGE_ID pid)const;
-
-      private:
-         virtual UINT32 getSystemPageCount()const
+         virtual UINT32 getReservedImpCount()const
          {
-            return MD_SPACE_SYSTEM_PAGE_COUNT;
+            return 1;
          }
-         virtual UINT32 getReservedImpCount()const 
-         {
-            return MD_SPACE_RESERVED_IMP_COUNT;
-         }
-         virtual FILE_TYPE getTypeOfMetaFile()const
-         {
-            return FILE_TYPE_DM;
-         }
-         virtual FILE_TYPE getTypeOfDataFile()const
-         {
-            return FILE_TYPE_DD;
-         }
-         virtual UINT32 getFreeBoundOfLpidPool()const
+         virtual UINT32 getFreeBoundOfLpidPool()const 
          {
             return PAGE_COUNT_IN_EXTENT;
          }
@@ -128,52 +69,18 @@ namespace vessel
          {
             return PAGE_COUNT_IN_EXTENT;
          }
+         virtual UINT32 getIdMapFileHeadFlagsWhenCreating()const
+         {
+            return 0;
+         }
       private:
-         virtual INT32 allocateIdMapPagesOnDisk(requestContext *context,
-                                                PAGE_ID first,
-                                                UINT32 count);
-         virtual INT32 createDataFile(requestContext *context,
-                                      UINT64 sequence);
-         virtual UINT32 getDataFileCount();
-         virtual INT32 getDataSMPOfFile(UINT32 sequence, UINT32 i, PAGE_ID &pid);
+         virtual INT32 openFiles(requestContext *context,
+                                 SPACE_ID sid,
+                                 const std::string &dir,
+                                 idMapFile **out);
 
-      private:
-         INT32 allocateNewIMPInSMP(requestContext *context,
-                                   PAGE_ID imp,
-                                   PAGE_ID pid,
-                                   UINT32 count);
-
-         INT32 allocateNewDataPagesOnSMP(requestContext *context,
-                                         PAGE_ID smpPid,
-                                         PAGE_TYPE type,
-                                         UINT32 count,
-                                         const PAGE_ID *lpids,
-                                         const PAGE_ID *pids,
-                                         const slice &args,
-                                         DPS_LSN_OFFSET *oplist);
-
-         INT32 releaseDataPagesOnSMP(requestContext *context,
-                                     UINT32 count,
-                                     const PAGE_ID *pids,
-                                     DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET,
-                                     BOOLEAN oplistTail=FALSE);
-
-         INT32 mapNewPagesToIdMap(requestContext *context,
-                                  PAGE_ID imp,
-                                  UINT32 count,
-                                  const PAGE_ID *lpids,
-                                  const PAGE_ID *pids,
-                                  DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET,
-                                  BOOLEAN oplistTail=FALSE);
-
-      private:
-         
-         INT32 initNecessaryPagesWhenCreating(requestContext *context,
-                                              storageUnit *su,
-                                              const strSlice &csName,
-                                              UINT32 logicalID,
-                                              UINT32 uniqueID);
-         INT32 updateStatusToOnlineWhenCreating(requestContext *context);
+         virtual INT32 mapDataStorageSegmentsWhenStarup(requestContext *context,
+                                                        inMemBitMap &bitmap);
    };//class mainDataSpace
 }//namespace vessel
 }//namespace engine

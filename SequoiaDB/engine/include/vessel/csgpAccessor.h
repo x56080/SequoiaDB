@@ -54,18 +54,24 @@ namespace vessel
          virtual ~csgpAccessor();
       
       public:
-         INT32 initPage(requestContext *context, const csMetaRecord &record);
+         INT32 create(requestContext *context,
+                      const csMetaRecord &cmr,
+                      const slice &adjuncts);
 
-         INT32 setOnlineWhenCreating(requestContext *context,
-                                     const dataIDMapFileHead &head);
+         INT32 readMetaRecord(csMetaRecord &record)const;
 
-         INT32 readMetaRecord(csMetaRecord &record);
-
-      private:
+      public:
          virtual PAGE_TYPE getPageType()const
          {
             return PAGE_TYPE_CS_META;
          }
+         virtual UINT32 getUserPageHeadSize()const
+         {
+            return 0;
+         }
+
+      private:
+         INT32 validateCreating()const;
 
       private:
          INT32 prepareUpdateLog(requestContext *context,

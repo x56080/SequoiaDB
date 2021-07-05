@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -51,7 +48,7 @@ namespace vessel
 
    lcBucket::~lcBucket()
    {
-      _TAG_MAP_ITERATOR itr = _tags.begin();
+      LC_BUCKET_INNER_INDEX_ITERATOR itr = _tags.begin();
       for (; itr != _tags.end(); ++itr)
       {
          if (NULL != itr->second)
@@ -63,17 +60,20 @@ namespace vessel
    }
 
    INT32 lcBucket::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &gpid,
-                                        UINT32 pageSize,
                                         UINT32 minRecycleCount,
+                                        const mmapPagePointer &ptr,
                                         lcPageTagHolder &holder,
-                                        BOOLEAN &newTagInBucket)
+                                        BOOLEAN &isNewTag)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!gpid.invalid(), "can not be invalid");
-      SDB_ASSERT(0 < pageSize, "can not be invalid");
-      BOOLEAN tagLocked = FALSE;
 
-      newTagInBucket = FALSE;
+      if (OSS_UNLIKELY(!gpid.isValid() ||
+                       !ptr.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       holder.reset(NULL);
 
       if (getTagAndIncUsage(gpid, holder))
@@ -81,20 +81,14 @@ namespace vessel
          goto done;
       }
 
-      rc = insertTag(gpid, pageSize,
-                     minRecycleCount, holder);
+      rc = insertTag(gpid, ptr, minRecycleCount, holder);
       if (SDB_OK != rc)
       {
          goto error;
       }
+      isNewTag = TRUE;
 
-      SDB_ASSERT(holder.valid(), "must be valid");
-
-      /// impossble to be failed
-      holder.tag()->incUsageCnt(FALSE);
-      tagLocked = holder.tryLockUnique();
-      SDB_ASSERT(tagLocked, "must be locked");
-      newTagInBucket = TRUE;      
+      SDB_ASSERT(holder.valid(), "must be valid");   
    done:
       return rc;
    error:
@@ -119,25 +113,8 @@ namespace vessel
          goto error;
       }
 
-      {
-      const GLOBAL_PAGE_ID &id = tag->id();
-      _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
-      _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
-      for (; lower != upper; ++lower)
-      {
-         if (tag != lower->second)
-         {
-            continue;
-         }
-
-         _tags.erase(lower);
-         SDB_OSS_DEL tag;
-         goto done;
-      }
-
-      rc = SDB_VESSEL_LC_NOT_IN_POOL;
-      goto error;
-      }
+      _tags.erase(tag->getBucketIterator());
+      SDB_OSS_DEL tag;
       
    done:
       return rc;
@@ -149,14 +126,18 @@ namespace vessel
                                        lcPageTagHolder &holder)
    {  
       BOOLEAN r = FALSE;
-      _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
-      _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
-      for (; lower != upper; ++lower)
+      SDB_ASSERT(id.isValid(), "can not be invalid");
+      holder.reset(NULL);
+      LC_BUCKET_INNER_INDEX_CONST_ITERATOR lower = _tags.lower_bound(id);
+      for (; lower != _tags.end(); ++lower)
       {
-         liteCachePageTag *tag = lower->second;
-         if (tag->incUsageCnt())
+         if (lower->first != id)
          {
-            holder.reset(tag);
+            break;
+         }
+         if (lower->second->incUsageCnt())
+         {
+            holder.reset(lower->second);
             r = TRUE;
             break;
          }
@@ -165,14 +146,15 @@ namespace vessel
    }
 
    INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,
-                             UINT32 pageSize,
+                             const mmapPagePointer &ptr,
                              UINT32 minRecycleCount,
                              lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       liteCachePageTag *tag = NULL;
-      SDB_ASSERT(!id.invalid(), "can not be ivnalid");
-      SDB_ASSERT(0 < pageSize, "can not be invalid");
+      SDB_ASSERT(id.isValid(), "can not be ivnalid");
+      SDB_ASSERT(ptr.isValid(), "can not be invalid");
+      LC_BUCKET_INNER_INDEX_ITERATOR itr;
 
       tag = recycleTag(minRecycleCount);
       if (NULL == tag)
@@ -185,8 +167,10 @@ namespace vessel
          }
       }
 
-      tag->firstInit(id, pageSize);
-      _tags.insert(std::make_pair(id, tag));
+      tag->firstInit(id, ptr.get());
+      tag->incUsageCnt(FALSE);
+      itr = _tags.insert(std::make_pair(id, tag));
+      tag->insertIntoBucket(itr);
       holder.reset(tag);
       tag = NULL;
    done:
@@ -204,37 +188,39 @@ namespace vessel
          return NULL;
       }
 
-      _TAG_MAP_ITERATOR itr = _tags.begin();
+      LC_BUCKET_INNER_INDEX_ITERATOR itr = _tags.begin();
       for (; itr != _tags.end(); ++itr)
       {
          tag = itr->second;
          /// no latch holding, just for fast skip.
-         if (!tag->testIfCanBeRecycled(FALSE))
+         if (!tag->fastTestIfCanBeRecycled(FALSE))
          {
             continue;
          }
 
          /// some one held the latch after our fast check.
-         if (!tag->rwMutex().try_lock())
+         if (!tag->getAccessingLatch().tryLock())
          {
             continue;
          }
 
-         if (!tag->noFlagsSet())
+         /// check again under latch
+         if (!tag->isNotInAnyList())
          {
-            tag->rwMutex().unlock();
+            tag->getAccessingLatch().unlock();
             continue;
          }
 
-         /// some one pinned tag.
+         /// some one pinned tag but 
+         /// failed to test because we did not hold latch. 
          if (!tag->tryToSetRemoved())
          {
-            tag->rwMutex().unlock();
+            tag->getAccessingLatch().unlock();
             continue;
          }
 
          /// no one can access this tag after removed.
-         tag->rwMutex().unlock();
+         tag->getAccessingLatch().unlock();
          _tags.erase(itr);
          tag->reset();
          

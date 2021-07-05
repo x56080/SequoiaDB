@@ -46,19 +46,43 @@ namespace vessel
 {
    struct createSUOptions
    {
-      createSUOptions():
-      sid(INVALID_SPACE_ID),
-      logicalID(DMS_INVALID_LOGICCSID)
+      createSUOptions()
+      {}
+      ~createSUOptions()
       {}
 
-      SPACE_ID sid;
-      UINT32 logicalID;
-      
+      BOOLEAN isValid()const
+      {
+         return INVALID_SPACE_ID != sid &&
+                dataArgs.isValid() &&
+                indexArgs.isValid() &&
+                lobArgs.isValid();
+      }
+
+      SPACE_ID sid = INVALID_SPACE_ID;
       storageCoreArgs dataArgs;
-      storageCoreArgs metaArgs;
-      storageCoreArgs idxArgs;
-      storageCoreArgs idxMetaArgs;
-   };//struct createStorageUnitOptions
+      storageCoreArgs indexArgs;
+      storageCoreArgs lobArgs;
+   };//struct createSUOptions
+
+   struct createLogicalPageSpaceOptions
+   {
+      OSS_INLINE createLogicalPageSpaceOptions(){}
+      OSS_INLINE ~createLogicalPageSpaceOptions(){}
+
+      BOOLEAN isValid()const
+      {
+         return INVALID_SPACE_ID != sid &&
+                !dir.empty() &&
+                dataArgs.isValid(); 
+      }
+
+      SPACE_ID sid = INVALID_SPACE_ID;
+      strSlice dir;
+      UINT32 secretValue = 0;
+      storageCoreArgs dataArgs;
+   };//struct createLogicalPageSpaceOptions
+
 }//namespace vessel
 }//namespace engine
 

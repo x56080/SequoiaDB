@@ -71,6 +71,10 @@ namespace vessel
          {
             return SDB_OK == _rc;
          }
+         OSS_INLINE BOOLEAN isNotOk()const
+         {
+            return SDB_OK != _rc;
+         }
          OSS_INLINE void reset()
          {
             _rc = SDB_OK;

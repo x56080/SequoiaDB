@@ -96,7 +96,7 @@ namespace vessel
          public:
             OSS_INLINE bucketOptions():
             bucketCount(16384),
-            bucketLatchCount(256),
+            bucketLatchCount(4096),
             minRecycleCount(16){}
 
             UINT32 bucketCount;
@@ -118,16 +118,18 @@ namespace vessel
    class storagePathOptions : public SDBObject
    {
       public:
-         std::string instancePath;
          std::string dataPath;
          std::string indexPath;
          std::string lobPath;
          std::string lobMetaPath;
 
-      public:
-         const std::string &getIndexPath()const
+         const std::string &autoGetIndexPath()const
          {
             return indexPath.empty() ? dataPath : indexPath;
+         }
+         const std::string &autoGetLobPath()const
+         {
+            return lobPath.empty() ? dataPath : lobPath;
          }
    };// class storageOptions
 
@@ -143,13 +145,19 @@ namespace vessel
          std::string lsmPath;
 
          BOOLEAN fullDumpPageLog = FALSE;
-         BOOLEAN extendFileWithSparse = FALSE;
+         BOOLEAN sparseExtendingFile = TRUE;
 
          liteCacheOptions cacheOptions;
+
+         UINT32 lpidLatchMapBucketCount = 4096;
+         UINT32 lpidLatchMapLatchCount = 4096;
+
+         UINT32 ridLatchMapBucketCount = 4096;
+         UINT32 ridLatchMapLatchCount = 4096;
          
          ///invisible options.
-         UINT32 _cowsDeltaTableBucketCount = 128;
-         UINT32 _cowsDeltaTableLatchCount = 64;
+         UINT32 _spaceLpidCacheBucketCount = 64;
+         UINT32 _spaceLpidCacheBucketLatchCount = 8;
 
          
    }; /// end of class openDBOptions

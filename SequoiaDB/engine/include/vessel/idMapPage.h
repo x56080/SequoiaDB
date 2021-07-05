@@ -38,57 +38,94 @@
 
 #include "vessel/pageDef.h"
 #include "vessel/vesselIdDef.h"
+#include "vessel/idMapFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   constexpr UINT32 ID_MAP_PAGE_CAPACITY = (ID_MAP_FILE_PAGE_SIZE >> 3);
+
 #pragma pack(4)
    const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
    struct idMapPageHead
    {
+      idMapPageHead(){}
+      ~idMapPageHead(){}
+      OSS_INLINE idMapPageHead &operator=(const idMapPageHead &o)
+      {
+         version = o.version;
+         flags = o.flags;
+         pad = o.pad;
+         return *this;
+      }
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return CURRENT_ID_MAP_PAGE_VERSION == version &&
+                0 == flags &&
+                0 == pad;
+      }
+
       UINT16 version = 0;
       UINT16 flags = 0;
-      UINT32 free = 0;
-      UINT64 pad = 0;
+      UINT32 pad = 0;
    };// struct idMapPageHead
 
-   const UINT32 ID_MAP_PAGE_HEAD_LEN = sizeof(idMapPageHead);
+   const UINT32 ID_MAP_PAGE_HEAD_SIZE = sizeof(idMapPageHead);
 
    struct idMapSlot
    {
-      OSS_INLINE idMapSlot():
-      snapshot(INVALID_SNAPSHOT_ID),
-      page(INVALID_PAGE_ID){}
+      OSS_INLINE idMapSlot(){}
       OSS_INLINE ~idMapSlot(){}
       OSS_INLINE idMapSlot(const idMapSlot &o):
-      snapshot(o.snapshot),
-      page(o.page){}
+      psv(o.psv),
+      pid(o.pid){}
+      OSS_INLINE explicit idMapSlot(PAGE_SNAPSHOT_VERION v, PAGE_ID p):
+      psv(p),
+      pid(p){}
       OSS_INLINE idMapSlot &operator=(const idMapSlot &o)
       {
-         snapshot = o.snapshot;
-         page = o.page;
+         psv = o.psv;
+         pid = o.pid;
          return *this;
       }
       OSS_INLINE void reset()
       {
-         snapshot = INVALID_SNAPSHOT_ID;
-         page = INVALID_PAGE_ID;
+         psv = INVALID_PAGE_SNAPSHOT_VERSION;
+         pid = INVALID_PAGE_ID;
       }
 
 
-      SNAPSHOT_ID snapshot;
-      PAGE_ID page;
+      UINT32 psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      UINT32 pid = INVALID_PAGE_ID;
 
-      OSS_INLINE BOOLEAN free()const
+      OSS_INLINE BOOLEAN isFree()const
       {
-         return INVALID_PAGE_ID == page;
+         return INVALID_PAGE_ID == pid;
       }
    };// struct idMapSlot
 #pragma pack()
-   BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity);
+   //BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity);
 
-   BOOLEAN initIdMapPage(UINT32 pageSize, PAGE_ID pid, void *buf);
+   idMapSlot getIdMapSlot(ossValuePtr ptr, UINT32 slot);
+
+   BOOLEAN initIdMapPage(UINT32 pageSize,
+                         PAGE_ID pid,
+                         PAGE_ID lpid,
+                         PAGE_SNAPSHOT_VERION psv,
+                         void *buf);
+
+   OSS_INLINE PAGE_ID getImpPidOfLpid(PAGE_ID lpid)
+   {
+      SDB_ASSERT(4096 == ID_MAP_PAGE_CAPACITY, "must be 4k");
+      return lpid >> 12;
+   }
+
+   OSS_INLINE UINT32 getIdMapSlotNo(PAGE_ID lpid)
+   {
+      return lpid & (ID_MAP_PAGE_CAPACITY - 1);
+   }
 }//namespace vessel
 }//namespace engine
 

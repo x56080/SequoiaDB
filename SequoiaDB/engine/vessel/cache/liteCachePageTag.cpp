@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -49,7 +46,6 @@ namespace vessel
    void liteCachePageTag::reset()
    {
       _id.reset();
-      _pageSize = 0;
 
       _ts.status = LC_TAG_STATUS_INVALID;
       _ts.usageCnt = 0;
@@ -57,9 +53,11 @@ namespace vessel
 
       _diskPagePtr = 0;
       _flags = 0;
-      _minLSN = DPS_INVALID_LSN_OFFSET;
-      _maxLSN = DPS_INVALID_LSN_OFFSET;
+      _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      _maxMemDirtyLSN = DPS_INVALID_LSN_OFFSET;
       _memPage.reset();
+
+      _bucketItr = LC_BUCKET_INNER_INDEX_ITERATOR();
       
       _lruTouchCnt = 0;
       _lruFlags = 0;

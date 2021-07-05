@@ -116,7 +116,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!_readyToWork, "do not reinit");
-      SDB_ASSERT(extentStorageFile::isOpen(), "must be open");
+      SDB_ASSERT(storageFile::isOpen(), "must be open");
       ossValuePtr ptr = 0;
       UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
       UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp

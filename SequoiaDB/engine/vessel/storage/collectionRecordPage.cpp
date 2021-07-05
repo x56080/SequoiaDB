@@ -49,7 +49,7 @@ namespace vessel
          goto error;
       }
 
-      capacity = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - COLLECTION_RECORD_PAGE_HEAD_LEN) / COLLECTION_DISK_RECORD_LEN;
+      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - COLLECTION_RECORD_PAGE_HEAD_LEN) / COLLECTION_DISK_RECORD_LEN;
    done:
       return rc;
    error:
@@ -57,12 +57,13 @@ namespace vessel
    }
 
    BOOLEAN initCollectionRecordPage(UINT32 pageSize,
+                                    PAGE_ID pid,
                                     PAGE_ID lpid,
+                                    PAGE_SNAPSHOT_VERION psv,
                                     void *buf)
    {
       BOOLEAN r = FALSE;
       UINT32 capacity = 0;
-      CHAR *ptr = (CHAR *)buf;
       collectionRecordPageHead *head = NULL;
       collectionRecord record;
       UINT32 offset = 0;
@@ -70,15 +71,25 @@ namespace vessel
       {
          goto done;
       }
-      initCommonPage(PAGE_TYPE_COLLECTION_RECORD, pageSize, lpid, buf);
-      head = (collectionRecordPageHead *)(ptr + PAGE_HEAD_LEN);
+
+      if (!initCommonPage(PAGE_TYPE_COLLECTION_RECORD, pageSize,
+                          pid, lpid, psv, buf))
+      {
+         goto done;
+      }
+
+      head = (collectionRecordPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
       head->version = COLLECTION_RECORD_PAGE_VERSION_1;
+      head->flags = 0;
+      head->pad0 = 0;
+      head->pad1 = 0;
       
-      offset = PAGE_HEAD_LEN + COLLECTION_RECORD_PAGE_HEAD_LEN;
+      offset = PAGE_HEAD_SIZE + COLLECTION_RECORD_PAGE_HEAD_LEN;
       for (UINT32 i = 0; i < capacity; ++i)
       {
-         collectionRecord *recordPtr = (collectionRecord *)(ptr + offset);
+         collectionRecord *recordPtr = (collectionRecord *)((ossValuePtr)buf + offset);
          ossMemcpy(recordPtr, &record, COLLECTION_RECORD_LEN);
+         offset += COLLECTION_DISK_RECORD_LEN;
       }
       r = TRUE;
    done:

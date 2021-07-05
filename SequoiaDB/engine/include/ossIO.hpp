@@ -473,7 +473,9 @@ INT32 ossMmapRead( OSSFILE  *pFile,
   * SDB_IO (IO error)
   * SDB_INVALIDARG (invalid file descriptor)
   */
-INT32 ossFsync(OSSFILE* pFile);
+INT32 ossFsync(const OSSFILE* pFile);
+
+INT32 ossFdatasync(const OSSFILE* pFile);
 
 enum SDB_OSS_FILETYPE
 {
@@ -558,6 +560,9 @@ INT32 ossExtendFile( OSSFILE *pFile,
 INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
                          UINT32 onceWrite = 512 ) ;
+
+INT32 ossExtendFileByFallocate(OSSFILE *file,
+                               UINT32 size);
 
 INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen ) ;
 
@@ -660,6 +665,9 @@ INT32 ossGetFileUserInfo( const CHAR *filename, OSSUID &uid, OSSGID &gid ) ;
 INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( OSSUID uid, CHAR *pUserName, UINT32 nameLen ) ;
+
+/// The real offset will be set as the end of file if "offset" is null.
+INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size);
 
 #endif // OSSIO_HPP_
 

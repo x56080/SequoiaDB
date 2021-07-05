@@ -46,23 +46,19 @@ namespace vessel
    class lcPageTagHolder
    {
       public:
-         OSS_INLINE lcPageTagHolder():_tag(NULL), _lockMode(LOCK_MODE_NONE){}
+         OSS_INLINE lcPageTagHolder(){}
          OSS_INLINE ~lcPageTagHolder()
          {
-            /// WARNING: holder's destructor will not release lock automaticly, which
-            /// to force users to manage lock resources carefully.
+            /// WARNING: holder's destructor will not release lock automaticly.
             _tag = NULL;
-            _lockMode = LOCK_MODE_NONE;
+            _mode = ossSharedLatch::NONE;
          }
 
-         OSS_INLINE lcPageTagHolder(const lcPageTagHolder &r)
-         :_tag(r._tag), _lockMode(r._lockMode)
-         {}
-         
+         lcPageTagHolder(const lcPageTagHolder &r) = delete;
          OSS_INLINE lcPageTagHolder &operator=(const lcPageTagHolder &r)
          {
             _tag = r._tag;
-            _lockMode = r._lockMode;
+            _mode = r._mode;
             return *this;
          }
 
@@ -75,42 +71,44 @@ namespace vessel
          OSS_INLINE void reset(liteCachePageTag *tag)
          {
             _tag = tag;
-            _lockMode = LOCK_MODE_NONE;
+            _mode = ossSharedLatch::NONE;
          }
 
-         OSS_INLINE void unlock()
+         OSS_INLINE void autoUnlock()
          {
-            if (NULL != _tag)
+            if (NULL != _tag && ossSharedLatch::NONE != _mode)
             {
-               if (LOCK_MODE_SHARED == _lockMode)
-               {
-                  _tag->rwMutex().unlock_shared();
-               }
-               else if (LOCK_MODE_UPGRADE == _lockMode)
-               {
-                  _tag->rwMutex().unlock_upgrade();
-               }
-               else if (LOCK_MODE_UNIQUE == _lockMode)
-               {
-                  _tag->rwMutex().unlock();
-               }
-
-               _lockMode = LOCK_MODE_NONE;
+               _tag->getAccessingLatch().unlockWith(_mode);
+               _mode = ossSharedLatch::NONE;
             }
             return;
          }
 
-         OSS_INLINE void lockUnique()
+         OSS_INLINE BOOLEAN isLocked()const
          {
-            _tag->rwMutex().lock();
-            _lockMode = LOCK_MODE_UNIQUE;
+            return _mode != ossSharedLatch::NONE;
          }
 
-         OSS_INLINE BOOLEAN tryLockUnique()
+         OSS_INLINE void lock()
          {
-            if (_tag->rwMutex().try_lock())
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::NONE), "impossible");
+            _tag->getAccessingLatch().lock();
+            _mode = ossSharedLatch::EXCLUSIVE;
+         }
+
+         OSS_INLINE void unlock()
+         {
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::EXCLUSIVE), "impossible");
+            _tag->getAccessingLatch().unlock();
+            _mode = ossSharedLatch::NONE;
+         }
+
+         OSS_INLINE BOOLEAN tryLock()
+         {
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::NONE), "impossible");
+            if (_tag->getAccessingLatch().tryLock())
             {
-               _lockMode = LOCK_MODE_UNIQUE;
+               _mode = ossSharedLatch::EXCLUSIVE;
                return TRUE;
             }
             return FALSE;
@@ -118,56 +116,49 @@ namespace vessel
 
          OSS_INLINE void lockShared()
          {
-            _tag->rwMutex().lock_shared();
-            _lockMode = LOCK_MODE_SHARED;
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::NONE), "impossible");
+            _tag->getAccessingLatch().lockShared();
+            _mode = ossSharedLatch::SHARED;
          }
 
          OSS_INLINE void lockUpgrade()
          {
-            _tag->rwMutex().lock_upgrade();
-            _lockMode = LOCK_MODE_UPGRADE;
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::NONE), "impossible");
+            _tag->getAccessingLatch().lockUpgrade();
+            _mode = ossSharedLatch::UPGRADE;
          }
 
-         OSS_INLINE void lockUniqueFromUpgrade()
+         OSS_INLINE void unlockUpgradeAndLock()
          {
-            if (LOCK_MODE_UPGRADE == _lockMode)
-            {
-               _tag->rwMutex().unlock_upgrade_and_lock();
-               _lockMode = LOCK_MODE_UNIQUE;
-            }
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::UPGRADE), "impossible");
+            _tag->getAccessingLatch().unlockUpgradeAndLock();
+            _mode = ossSharedLatch::EXCLUSIVE;
          }
 
-         OSS_INLINE void unlockUniqueAndlockUpgrade()
+         OSS_INLINE void unlockAndlockUpgrade()
          {
-            if (LOCK_MODE_UNIQUE == _lockMode)
-            {
-               _tag->rwMutex().unlock_and_lock_upgrade();
-               _lockMode = LOCK_MODE_UPGRADE;
-            }
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::EXCLUSIVE), "impossible");
+            _tag->getAccessingLatch().unlockAndLockUpgrade();
+            _mode = ossSharedLatch::UPGRADE;
          }
 
-         OSS_INLINE void lockWithMode(LOCK_MODE mode)
+         OSS_INLINE void lockWithMode(ossSharedLatch::mode mode)
          {
-            if (LOCK_MODE_SHARED == mode)
-            {
-               _tag->rwMutex().lock_shared();
-               _lockMode = mode;
-            }
-            else if (LOCK_MODE_UPGRADE == mode)
-            {
-                _tag->rwMutex().lock_upgrade();
-                _lockMode = mode;
-            }
-            else if (LOCK_MODE_UNIQUE == mode)
-            {
-               _tag->rwMutex().lock();
-               _lockMode = mode;
-            }
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::NONE), "impossible");
+            _tag->getAccessingLatch().lockWith(mode);
+            _mode = mode;
          }
 
-         OSS_INLINE LOCK_MODE getLockMode()const
+         OSS_INLINE void unlockAndLockShared()
          {
-            return _lockMode;
+            SDB_ASSERT(isValidAndLocking(ossSharedLatch::EXCLUSIVE), "impossible");
+            _tag->getAccessingLatch().unlockAndLockShared();
+            _mode = ossSharedLatch::SHARED;
+         }
+
+         OSS_INLINE ossSharedLatch::mode getLockMode()const
+         {
+            return _mode;
          }
 
          OSS_INLINE liteCachePageTag *tag()
@@ -180,8 +171,13 @@ namespace vessel
             return _tag;
          }
       private:
-         liteCachePageTag *_tag;
-         enum LOCK_MODE _lockMode;
+         OSS_INLINE BOOLEAN isValidAndLocking(ossSharedLatch::mode mode)const
+         {
+            return NULL != _tag && mode == _mode;
+         }
+      private:
+         liteCachePageTag *_tag = NULL;
+         ossSharedLatch::mode _mode = ossSharedLatch::NONE;
    }; /// end of class lcPageTagHolder
 } /// end of namespace vessel
 } /// end of namespace engine

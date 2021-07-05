@@ -1,0 +1,250 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = inMemBitmap.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_IN_MEM_BITMAP_H_
+#define VESSEL_IN_MEM_BITMAP_H_
+
+#include "ossLatch.hpp"
+#include "utilPooledObject.hpp"
+#include "ossMemPool.hpp"
+
+namespace engine
+{
+namespace vessel
+{
+   class requestContext;
+   struct spaceManagementPageHead;
+
+   class inMemBitmap : public SDBObject
+   {
+      private:
+         class _inMemBitPage : public _utilPooledObject
+         {
+            public:
+               _inMemBitPage();
+               ~_inMemBitPage();
+               _inMemBitPage(const _inMemBitPage &) = delete;
+               _inMemBitPage &operator=(const _inMemBitPage &) = delete;
+
+            public:
+               BOOLEAN isReady()const
+               {
+                  return 0 <= _pageID && NULL != _buf;
+               }
+
+               INT32 init(INT32 pageId,
+                          UINT32 capacity);
+
+               INT32 initWithNoFree(INT32 pageId,
+                                    UINT32 capacity);
+
+               INT32 initFromBuf(INT32 pageId,
+                                 UINT32 capacity,
+                                 const UINT64 *buf);
+               void fini();
+
+               INT32 allocate(UINT32 capacity,
+                              UINT32 count,
+                              UINT32 *buf,
+                              UINT32 *stillFreeCount = NULL);
+               void release(UINT32 capacity, UINT32 count, const UINT32 *buf);
+
+               INT32 test(UINT32 capacity,
+                          UINT32 offset,
+                          BOOLEAN &isFree)const;
+
+               INT32 occupy(UINT32 capacity,
+                            UINT32 offset,
+                            UINT32 *stillFreeCount = NULL);
+
+               void bitsAnd(UINT32 capacity, const UINT64 *bits);
+
+               OSS_INLINE INT32 getPageID()const
+               {
+                  return _pageID;
+               }
+               OSS_INLINE UINT32 getFree()const
+               {
+                  return _free;
+               }
+
+            private:
+               void updateFirstFree(UINT32 bitsCount, UINT32 beginBits);
+
+            private:
+               INT32 _pageID = -1;
+               UINT32 _free = 0; /// free <= _size
+               INT32 _firstFreeBits = -1;
+               UINT64 *_buf = NULL;
+
+         };// class _inMemBitPage
+
+      public:
+         inMemBitmap();
+         ~inMemBitmap();
+         inMemBitmap(const inMemBitmap &) = delete;
+         inMemBitmap &operator=(const inMemBitmap &) = delete;
+
+      public:
+         /// _pageCount will never become smaller.no latch protected.
+         OSS_INLINE UINT32 getPageCount()const
+         {
+            return _pageCount;
+         }
+         OSS_INLINE UINT32 getPageCapacity()const
+         {
+            return _pageCapacity;
+         }
+         OSS_INLINE BOOLEAN isInitialized()const
+         {
+            return 0 < _pageCapacity;
+         }
+         OSS_INLINE UINT32 getPageSkipped()const
+         {
+            return _pageSkipped;
+         }
+
+      public:
+         class options : public SDBObject
+         {
+            public:
+               /// freeBound will be used to quickly skip bit pages
+               /// with insufficient free count.
+               UINT32 freeBound = 0;
+
+               /// capacity * bitmapPageSkipped pages will not managed by bitmap.
+               UINT32 bitmapPageSkipped = 0;
+
+               UINT32 maxBitmapPageCount = UINT32(-1);
+         };//class options
+      public:       
+         /// capacity must be 64 aligned.
+         INT32 init(UINT32 pageCapacity,
+                    const options &o);
+
+         /// bitmap will not hold any latch in working.
+         INT32 initWithNoLatch(UINT32 pageCapacity,
+                             const options &o);
+         void fini();
+
+         INT32 allocateNewBitmapPage();
+
+         /// All or nothing created.
+         INT32 allocateNewBitmapPages(UINT32 count);
+
+         INT32 ensureBitmapPageCount(UINT32 count);
+
+         INT32 allocateBits(UINT32 count,
+                            UINT32 *buf,
+                            UINT32 autoExtendingCount = 0);
+
+         void release(UINT32 bitOffset);
+
+         void releaseBits(UINT32 count, const UINT32 *buf);
+
+         INT32 occupy(UINT32 offset);
+
+         INT32 occupy(UINT32 count, const UINT32 *buf);
+
+      public:
+         /// Increase total page count with no free bits.
+         INT32 incPageCount(UINT32 cnt = 1);
+      private:
+         INT32 init(UINT32 pageCapacity,
+                    const options &o,
+                    ossSpinXLatch *latch);
+
+         INT32 _allocateNewBitmapPage();
+
+         INT32 _allocateNewBitmapPages(UINT32 count);
+
+      private:
+         INT32 _allocateBits(UINT32 count, UINT32 *buf);
+         void _releaseBits(UINT32 count, const UINT32 *buf);
+
+         INT32 _occupy(UINT32 count, const UINT32 *buf);
+
+         INT32 allocateOnSinglePage(UINT32 count, UINT32 *buf);
+         INT32 allocateOnMultiPages(UINT32 count, UINT32 *buf);
+
+         INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
+         INT32 allocateBitsFromLFC(UINT32 count, UINT32 *buf);
+
+         INT32 occupyFromHFC(_inMemBitPage *page,
+                             UINT32 offset);
+
+         INT32 occupyFromLFC(_inMemBitPage *page,
+                             UINT32 offset);
+
+         void releaseBitFromHFC(UINT32 count,
+                                 const UINT32 *buf,
+                                 _inMemBitPage *page);
+         void releaseBitFromLFC(UINT32 count,
+                                 const UINT32 *buf,
+                                 _inMemBitPage *page);
+
+         void bitsAndFromHFC(_inMemBitPage *page,
+                             const UINT64 *bits);
+
+         void bitsAndFromLFC(_inMemBitPage *page,
+                             const UINT64 *bits);
+
+         void releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf);
+
+         INT32 testBit(UINT32 bitOffset, BOOLEAN &isFree)const;
+
+         _inMemBitPage *getFromHFC(INT32 pageId)const;
+
+         _inMemBitPage *getFromLFC(INT32 pageId)const;
+
+      private:
+         ossSpinXLatch _innerLatch;
+         ossSpinXLatch *_latch = NULL;
+         UINT32 _pageCapacity = 0;
+         UINT32 _freeBound = 0;
+         UINT32 _pageSkipped = 0;
+         UINT32 _maxBitmapPageCount = 0;
+
+         /// we will not keep bit pages in mem when it's free count is zero.
+         /// _pageCount means total count of page we ever allocated.
+         UINT32 _pageCount = 0;
+         INT32 _totalFreeCount = 0;
+         typedef ossPoolMap<INT32, _inMemBitPage*> _PAGE_MAP;
+         _PAGE_MAP _pagesWithLowFreeCount;
+         _PAGE_MAP _pagesWithHighFreeCount;
+   };//class inMemBitmap
+} /// end of namespace vessel
+} /// end of namespace engine
+#endif // VESSEL_IN_MEM_BITMAP_H_

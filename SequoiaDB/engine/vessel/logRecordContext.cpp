@@ -36,6 +36,7 @@
 #include "vessel/logRecordContext.h"
 #include "utilMemListPool.hpp"
 #include "ossLikely.hpp"
+#include "dpsDef.hpp"
 
 namespace engine
 {
@@ -47,6 +48,24 @@ namespace vessel
       {
          SDB_THREAD_FREE(_fullDumpBuffer);
       }
+   }
+
+   void logRecordContext::open(UINT16 type)
+   {
+      close();
+      _head._type = type;
+      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
+      return;
+   }
+
+   void logRecordContext::prepush(UINT32 len)
+   {
+      SDB_ASSERT(0 < len, "can not be invalid");
+      SDB_ASSERT(len <= DPS_MAX_TAGV_LEN, "can not be invalid");
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      _originalLen += len;
+      _originalLen += 4;/// 1byte for tag and 3bytes for len.
+      return;
    }
 
    void logRecordContext::close()
@@ -83,6 +102,7 @@ namespace vessel
 
       ossMemcpy(_fullDumpBuffer, data, size);
       _fullDumpDataSize = size;
+      prepush(_fullDumpDataSize);
    done:
       return rc;
    error:
@@ -116,6 +136,52 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void logRecordContext::setOplistHead()
+   {
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
+      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_HEAD);
+      return;
+   }
+
+   void logRecordContext::setOplistTail()
+   {
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _head._opListLSN, "impossible");
+      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_TAIL);
+   }
+
+   void logRecordContext::setOplist(DPS_LSN_OFFSET lsn)
+   {
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
+      _head._opListLSN = lsn;
+      return;
+   }
+
+   void logRecordContext::prepushDone()
+   {
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      if (0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_HEAD))
+      {
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET == _head._opListLSN, "impossible");
+      }
+      if (0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_OPL_TAIL))
+      {
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _head._opListLSN, "impossible");
+      }
+      _head._length = ossAlign4(_originalLen);
+      return;
+   }
+
+   void logRecordContext::setDDL()
+   {
+      SDB_ASSERT(!prepared(), "can not be prepared");
+      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_DDL);
+      return;
    }
 }//namespace vessel
 }//namespace engine

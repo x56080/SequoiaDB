@@ -123,11 +123,6 @@ namespace engine
    } ;
    typedef class _dpsLogRecordHeader dpsLogRecordHeader ;
 
-   OSS_INLINE void setFlags(dpsLogRecordHeader &head, UINT32 flags)
-   {
-      OSS_BIT_SET(head._flags, flags);
-   }
-
 #pragma pack(1)
    class _dpsRecordEle
    {

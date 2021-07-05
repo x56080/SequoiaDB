@@ -41,7 +41,8 @@
 #include "ossLikely.hpp"
 #include "vessel/ISession.h"
 #include "vessel/pageDef.h"
-#include "vessel/lpidContext.h"
+#include "vessel/lpsCheckpointBlocker.h"
+#include "vessel/objectLatchMap.hpp"
 
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
    do\
@@ -58,9 +59,10 @@ namespace engine
 namespace vessel
 {
 
-   static const UINT32 CONTEXT_DEFAULT_BUFFER_POOL_SIZE = 65536;
+   static const UINT32 CONTEXT_DEFAULT_BUFFER_POOL_SIZE = 32768;
    class instanceEnv;
    class outerResource;
+   class atomicOperationList;
 
    class requestContext : public SDBObject
    {
@@ -106,88 +108,127 @@ namespace vessel
 
       public:
 
-         INT32 lockSpaceID(SPACE_ID sid, OSS_LATCH_MODE mode);
-         INT32 lockSpaceIDWithTimeout(SPACE_ID sid, OSS_LATCH_MODE mode, INT32 millis, BOOLEAN &locked);
-         INT32 tryLockSpaceID(SPACE_ID sid, OSS_LATCH_MODE mode, BOOLEAN &locked);
-         INT32 unlockSpaceID();
+         INT32 lockSpaceID(SPACE_ID sid,
+                           ossSharedLatch::mode mode);
+   
+         INT32 tryLockSpaceID(SPACE_ID sid,
+                              ossSharedLatch::mode mode,
+                              BOOLEAN &locked);
+         void unlockSpaceID();
 
-         OSS_INLINE BOOLEAN getSpaceIDLocked()const
+         OSS_INLINE BOOLEAN isSpaceIdLocked(ossSharedLatch::mode *mode=NULL)const
          {
-            return _spaceIDLocked;
+            BOOLEAN r = ossSharedLatch::NONE != _sidLockedMode;
+            if (r && NULL != mode)
+            {
+               *mode = _sidLockedMode;
+            }
+            return r;
          }
 
-         OSS_INLINE OSS_LATCH_MODE getSpaceIDLockedMode()const
+         OSS_INLINE ossSharedLatch::mode getSpaceIDLockedMode()const
          {
-            return _spaceIDLockMode;
+            return _sidLockedMode;
          }
 
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _spaceID;
+            return _sid;
          }
       public:
-         INT32 attachMB(CL_MB_ID mbID, ossSpinSLatch *clLatch);
-         INT32 detachMB();
+         INT32 lockMB(CL_MB_ID mbID,
+                      ossSharedLatch *latch,
+                      ossSharedLatch::mode mode);
 
-         INT32 lockMB(CL_MB_ID mbID, ossSpinSLatch *clLatch, OSS_LATCH_MODE mode);
-         INT32 tryLockMB(CL_MB_ID mid, ossSpinSLatch *clLatch, OSS_LATCH_MODE mode, BOOLEAN &locked);
-         INT32 unlockMB();
+         INT32 tryLockMB(CL_MB_ID mbID,
+                         ossSharedLatch *latch,
+                         ossSharedLatch::mode mode,
+                         BOOLEAN &locked);
 
-         OSS_INLINE BOOLEAN mbLocked()const
+         void unlockMB();
+
+         OSS_INLINE BOOLEAN isMbLocked(ossSharedLatch::mode *mode=NULL)const
          {
-            return _mbIDLocked;
+            BOOLEAN r = ossSharedLatch::NONE != _mbLockMode;
+            if (r && NULL != mode)
+            {
+               *mode = _mbLockMode;
+            }
+            return r;
          }
          OSS_INLINE CL_MB_ID getMBID()const
          {
             return _mbID;
          }
-         OSS_INLINE OSS_LATCH_MODE getMBLockMode()const
+         OSS_INLINE ossSharedLatch::mode getMBLockMode()const
          {
-            return _mbIDLockMode;
+            return _mbLockMode;
          }
 
       public:
          /// no timeout. no recursive locking.
-         INT32 lockLpid(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
-         INT32 unlockLpid(FILE_TYPE type, PAGE_ID lpid);
-         BOOLEAN testLpidLockMode(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
-         BOOLEAN testLpidLocked(FILE_TYPE type, PAGE_ID lpid);
+         INT32 lockLpid(SPACE_TYPE type,
+                        PAGE_ID lpid,
+                        ossSharedLatch::mode mode);
+
+         void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
+         BOOLEAN testLpidLocked(SPACE_TYPE type,
+                                PAGE_ID lpid,
+                                ossSharedLatch::mode *mode);
+
+         INT32 unlockUpgradeLpidAndLock(SPACE_TYPE type,
+                                        PAGE_ID lpid);
+
+      public:
+         OSS_INLINE void attachOplist(atomicOperationList *oplist)
+         {
+            _oplist = oplist;
+         }
+         OSS_INLINE void detachOplist()
+         {
+            _oplist = NULL;
+         }
+         OSS_INLINE atomicOperationList *getOplist()
+         {
+            return _oplist;
+         }
+         OSS_INLINE BOOLEAN isOplistAttached()const
+         {
+            return NULL != _oplist;
+         }
+         void swtichOplist(atomicOperationList *newOplist,
+                           atomicOperationList **oldOplist);
+         BOOLEAN isInProcessingOplistAttached()const;
+
+      public:
+         lpsCheckpointBlocker &getBlocker()
+         {
+            return _blocker;
+         }
 
       private:
          void _close();
 
       private:
-         OSS_INLINE void reset()
-         {
-            _session = NULL;
-            _env = NULL;
-            _outerResource = NULL;
-            _spaceID = INVALID_SPACE_ID;
-            _spaceIDLocked = FALSE;
-            _spaceIDLockMode = SHARED;
-            _mbID = INVALID_CL_MB_ID;
-            _mbIDLockMode = SHARED;
-            _mbIDLocked = FALSE;
-            _clLatch = NULL;
-            _lpidContext.reset();
-            _bufAllocated = 0;
-            return;
-         }
-
-      private:
          ISession *_session = NULL;
          instanceEnv *_env = NULL;
          outerResource *_outerResource = NULL;
-         SPACE_ID _spaceID = INVALID_SPACE_ID;
-         BOOLEAN _spaceIDLocked = FALSE;
-         OSS_LATCH_MODE _spaceIDLockMode = SHARED;
+
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         ossSharedLatch::mode _sidLockedMode = ossSharedLatch::NONE;
+
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
-         OSS_LATCH_MODE _mbIDLockMode = SHARED;
-         BOOLEAN _mbIDLocked = FALSE;
-         ossSpinSLatch *_clLatch = NULL;
-         lpidContext _lpidContext;
+         ossSharedLatch::mode _mbLockMode = ossSharedLatch::NONE;
+         ossSharedLatch *_mbLatch = NULL;
+
+         objectLatchContext<logicalIdLatchKey> _lpidLatchContext;
+
          UINT32 _bufAllocated = 0;
          CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];
+
+         atomicOperationList *_oplist = NULL;
+
+         lpsCheckpointBlocker _blocker;
          
    };//class requestContext
 }

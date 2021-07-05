@@ -40,11 +40,20 @@
 #include "oss.hpp"
 #include <atomic> /// c++11
 
+///In my test: 5 threads increase global int var 100,000,000 times each(lock every time)
+/// 0: no lock (incorrect result)                     |  < 1s  |
+/// 1: atomic int(c++ 11)                             |  10 s  | 
+/// 2: ossSpinLatch (c++11)                           |  13 s  |
+/// 3. pthread_mutex_t exclusive                      |  44 s  |
+/// 4. boost::shared_lock exclusive                   |  6m 50s|
+/// 5. boost::shared_lock shared (incorrect result)   |  1m 49s|
+
+///WARNING: If you do not clearly
+///know which to use, just pick pthread_mutex_t.
 class ossSpinLatch : public SDBObject
 {
    public:
       OSS_INLINE ossSpinLatch():
-      _flag(ATOMIC_FLAG_INIT)
       {}
 
       OSS_INLINE ~ossSpinLatch(){}
@@ -55,15 +64,39 @@ class ossSpinLatch : public SDBObject
    public:
       OSS_INLINE void lock()
       {
-         while (!_flag.test_and_set(std::memory_order_acquire));
+         lockWithYield();
       }
+
+      OSS_INLINE void lockWithYield()
+      {
+         /// "test_and_set" set the flag as true and return value before set.
+         /// The first thread which set flag from false to true wins.
+         while (_flag.test_and_set(std::memory_order_acquire))
+         {
+            std::this_thread::yield();
+         }
+         return;
+      }
+
+      OSS_INLINE void lockWithoutYield()
+      {
+         while (_flag.test_and_set(std::memory_order_acquire));
+         return;
+      }
+
+      BOOLEAN tryLock()
+      {
+         return !_flag.test_and_set(std::memory_order_acquire);
+      }
+
       OSS_INLINE void unlock()
       {
          _flag.clear(std::memory_order_release);
+         return;
       }
 
    private:
-      std::atomic_flag _flag;
+      std::atomic_flag _flag = ATOMIC_FLAG_INIT;
 };//class ossSpinLatch
 
 class ossSpinGuard : public SDBObject
@@ -92,8 +125,8 @@ class ossSpinGuard : public SDBObject
       ossSpinGuard(const ossSpinGuard &) = delete;
       ossSpinGuard &operator=(const ossSpinGuard &) = delete;
    private:
-      ossSpinLatch *_latch;
-      BOOLEAN _locked;
+      ossSpinLatch *_latch = NULL;
+      BOOLEAN _locked = FALSE;
 };//class ossSpinGuard
 
 

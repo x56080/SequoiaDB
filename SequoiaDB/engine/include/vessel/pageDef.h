@@ -39,14 +39,14 @@
 #include "dpsDef.hpp"
 #include "ossLikely.hpp"
 #include "pd.hpp"
+#include "ossTypes.hpp"
+#include "vessel/vesselIdDef.h"
+#include "vessel/pageIdentifier.h"
 
 namespace engine
 {
 namespace vessel
 {
-   typedef UINT32 PAGE_ID;
-   const PAGE_ID INVALID_PAGE_ID = UINT32(-1);
-
    const UINT16 INVALID_PAGE_VERSION = 0;
    const UINT16 PAGE_VERSION_1 = 1;
 
@@ -54,70 +54,61 @@ namespace vessel
 
    typedef UINT16 PAGE_TYPE;
    const static PAGE_TYPE INVALID_PAGE_TYPE = 65535;
-   const static PAGE_TYPE PAGE_TYPE_SMP = 0;
-   const static PAGE_TYPE PAGE_TYPE_ID_MAP = 1;
+
+
    const static PAGE_TYPE PAGE_TYPE_RECORD = 2;
    const static PAGE_TYPE PAGE_TYPE_CS_META = 3;
    const static PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
    const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
    const static PAGE_TYPE PAGE_TYPE_INDEX_DEF = 1000;
 
-   OSS_INLINE void getEyeCatcher(PAGE_TYPE type, CHAR &e0, CHAR &e1)
+   OSS_INLINE void getPageEyeCatcher(CHAR &e0, CHAR &e1)
    {
-      switch (type)
-      {
-      case PAGE_TYPE_SMP:
-         e0 = 'S';
-         e1 = 'P';
-         break;
-      case PAGE_TYPE_ID_MAP:
-         e0 = 'I';
-         e1 = 'P';
-         break;
-      case PAGE_TYPE_RECORD:
-         e0 = 'R';
-         e1 = 'P';
-         break;
-      case PAGE_TYPE_CS_META:
-         e0 = 'C';
-         e1 = 'S';
-         break;
-      case PAGE_TYPE_COLLECTION_RECORD:
-         e0 = 'C';
-         e1 = 'L';
-         break;
-      case PAGE_TYPE_ROUTE:
-         e0 = 'R';
-         e1 = 'O';
-         break;
-      default:
-         e0 = 0;
-         e1 = 0;
-         SDB_ASSERT(FALSE, "invalid type");
-      }
+      e0 = 'P';
+      e1 = 'H';
       return;
    }
 
-   typedef UINT16 PAGE_FLAGS;
-   const PAGE_FLAGS PAGE_FLAG_IN_USED = 0x01;
+   static const UINT16 PAGE_FLAG_IN_USED = 0x01;
 
 #pragma pack(4)
    struct pageHead
    {
-      OSS_INLINE pageHead()
-               :version(0),
-               type(INVALID_PAGE_TYPE),
-               flags(0),
-               size(0),
-               pageID(INVALID_PAGE_ID),
-               lsn(DPS_INVALID_LSN_OFFSET),
-               //snapshot(INVALID_SNAPSHOT_ID),
-               pad(0),
-               pad2(0)
-               {
-                  eyeCatcher[0] = 0;
-                  eyeCatcher[1] = 0;
-               }
+      OSS_INLINE pageHead(){}
+      OSS_INLINE ~pageHead(){}
+
+      OSS_INLINE pageHead(const pageHead &o):
+      version(o.version),
+      type(o.type),
+      flags(o.flags),
+      size(o.size),
+      pid(o.pid),
+      lpid(o.lpid),
+      lsn(o.lsn),
+      psv(o.psv),
+      pad0(o.pad0),
+      pad1(o.pad1)
+      {
+         eyeCatcher[0] = o.eyeCatcher[0];
+         eyeCatcher[1] = o.eyeCatcher[1];
+      }
+
+      OSS_INLINE pageHead &operator=(const pageHead &o)
+      {
+         eyeCatcher[0] = o.eyeCatcher[0];
+         eyeCatcher[1] = o.eyeCatcher[1];
+         version = o.version;
+         type = o.type;
+         flags = o.flags;
+         size = o.size;
+         pid = o.pid;
+         lpid = o.lpid;
+         lsn = o.lsn;
+         psv = o.psv;
+         pad0 = o.pad0;
+         pad1 = o.pad1;
+         return *this;
+      }
 
       OSS_INLINE BOOLEAN inUsed()const
       {
@@ -136,39 +127,53 @@ namespace vessel
          type = INVALID_PAGE_TYPE;
          flags = 0;
          size = 0;
-         pageID = INVALID_PAGE_ID;
+         pid = INVALID_PAGE_ID;
+         lpid = INVALID_PAGE_ID;
          lsn = DPS_INVALID_LSN_OFFSET;
-         //snapshot = INVALID_SNAPSHOT_ID;
-         pad = 0;
-         pad2 = 0;
+         psv = INVALID_PAGE_SNAPSHOT_VERSION;
+         pad0 = 0;
+         pad1 = 0;
          return;
       }
 
-      CHAR eyeCatcher[2];
-      UINT16 version;
-      UINT16 type;
-      UINT16 flags;
-      UINT32 size;
-      UINT32 pageID;
-      UINT64 lsn;
-      //UINT32 snapshot;
-      UINT32 pad;
-      UINT64 pad2;
+      CHAR eyeCatcher[2] = {0};
+      UINT16 version = 0;
+      UINT16 type = INVALID_PAGE_TYPE;
+      UINT16 flags = 0;
+      UINT32 size = 0;
+      UINT32 pid = INVALID_PAGE_ID;
+      UINT32 lpid = INVALID_PAGE_ID;
+      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
+      UINT32 psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      UINT32 pad0 = 0;
+      UINT64 pad1 = 0;
    };// struct pageHead
 #pragma pack()
-   const UINT32 PAGE_HEAD_LEN = sizeof(pageHead);
-   const UINT32 PAGE_TAIL_LEN = sizeof(UINT64);
+   static const UINT32 PAGE_HEAD_SIZE = sizeof(pageHead);
+   static const UINT32 PAGE_TAIL_SIZE = sizeof(UINT64);
 
    UINT32 getPageBodySize(UINT32 pageSize);
 
    BOOLEAN isValidPageSize(UINT32 pageSize);
 
-   BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize);
+   BOOLEAN isPageCrashed(ossValuePtr ptr, UINT32 pageSize);
 
-   void initCommonPage(UINT16 pageType,
-                       UINT32 pageSize,
-                       UINT32 pageID,
-                       void *buf);
+   INT32 validatePage(ossValuePtr ptr,
+                        PAGE_TYPE type,
+                        UINT32 pageSize,
+                        PAGE_ID pid,
+                        PAGE_ID lpid,
+                        PAGE_SNAPSHOT_VERION psv);
+
+   BOOLEAN initCommonPage(UINT16 pageType,
+                          UINT32 pageSize,
+                          PAGE_ID pid,
+                          PAGE_ID lpid,
+                          PAGE_SNAPSHOT_VERION psv,
+                          void *buf);
+
+   BOOLEAN updatePageLsn(ossValuePtr ptr,
+                         DPS_LSN_OFFSET lsn);
 
 }/// end of namespace vessel
 } /// end of namespace engine

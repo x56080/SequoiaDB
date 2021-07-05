@@ -1671,7 +1671,7 @@ error :
  * SDB_INVALIDARG (invalid file descriptor)
  */
  // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSFSYNC, "ossFsync" )
-INT32 ossFsync( OSSFILE* pFile )
+INT32 ossFsync( const OSSFILE* pFile )
 {
    INT32   rc  = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSFSYNC );
@@ -1719,6 +1719,57 @@ error :
    return rc ;
 #endif
 }
+
+INT32 ossFsync( const OSSFILE* pFile )
+{
+   INT32   rc  = SDB_OK ;
+   PD_TRACE_ENTRY ( SDB_OSSFSYNC );
+   UINT32  err = 0 ;
+
+   // sanity check, only take effect in debug build
+   SDB_ASSERT ( pFile , "pFile is NULL" ) ;
+
+#if defined (_WINDOWS)
+   BOOL   fOk = TRUE ;
+   fOk =  FlushFileBuffers( (HANDLE) pFile->hFile ) ;
+   if ( !fOk )
+   {
+      SDB_VALIDATE_GOTOERROR ( FALSE, SDB_IO,
+                               "Failed to FlushFileBuffers()" ) ;
+   }
+done :
+   PD_TRACE_EXITRC ( SDB_OSSFSYNC, rc );
+   return rc ;
+error :
+   goto done ;
+#elif defined (_LINUX)
+   rc = fdatasync ( pFile->fd ) ;
+   if( rc )
+   {
+      err = ossGetLastError () ;
+      // handle errors
+      pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
+             "Failed to fdatasync() : %x, Error: %d",
+             pFile->fd, err ) ;
+      switch ( err )
+      {
+      case EROFS:
+      case EINVAL:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case EBADF:
+      case EIO:
+      default:
+         rc = SDB_IO ;
+         break ;
+      }
+   }
+   PD_TRACE_EXITRC ( SDB_OSSFSYNC, rc );
+   return rc ;
+#endif
+}
+
+
 
 /*
  * Type of a given path
@@ -2908,6 +2959,67 @@ error:
 #else
    return SDB_OK ;
 #endif // _LINUX
+}
+
+INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size)
+{
+   INT32 rc = SDB_OK;
+   INT64 beginOffset = 0;
+
+   if (NULL == file ||
+       !file->isOpened() ||
+       0 == size)
+   {
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   if (NULL == offset)
+   {
+      rc = ossGetFileSize(file, &beginOffset);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   }
+   else
+   {
+      beginOffset = *offset;
+   }
+
+#if defined( _LINUX )
+   rc = fallocate(file->fd, 0, beginOffset, size);
+   if (rc < 0)
+   {
+      UINT32 lastErr = ossGetLastError();
+      switch (lastErr)
+      {
+      case EBADF:
+         rc = SDB_PERM;
+         break;
+      case EINTR:
+         rc = SDB_INTERRUPT;
+         break;
+      case EINVAL:
+         rc = SDB_INVALIDARG;
+         break;
+      case ENOSPC:
+         rc = SDB_NOSPC;
+         break;
+      default:
+         rc = SDB_IO;
+         break;
+      }
+   }
+#else
+   /// TODO.
+   rc = SDB_SYS;
+   goto error;
+#endif//_LINUX
+done:
+   return rc;
+error:
+   goto done;
 }
 
 

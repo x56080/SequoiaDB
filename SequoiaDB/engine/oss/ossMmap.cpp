@@ -257,7 +257,7 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_FLHALL, "_ossMmapFile::flushAll" )
-INT32 _ossMmapFile::flushAll ( BOOLEAN sync )
+INT32 _ossMmapFile::flushAll ( BOOLEAN sync )const
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_FLHALL ) ;
@@ -279,13 +279,13 @@ error:
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_FLUSH, "_ossMmapFile::flush" )
-INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )
+INT32 _ossMmapFile::flush ( UINT32 segmentID, BOOLEAN sync )const
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_FLUSH );
    INT32 err = 0 ;
 
-   engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+   //engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
 
    if  ( segmentID >= _size )
    {
@@ -325,7 +325,7 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_FLUSHBLOCK, "_ossMmapFile::flushBlock" )
 INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
-                                INT32 length, BOOLEAN sync )
+                                INT32 length, BOOLEAN sync )const
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__OSSMMF_FLUSHBLOCK );
@@ -333,7 +333,7 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    ossMmapSegment *pSegment = NULL ;
    ossValuePtr ptr = 0 ;
 
-   engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
+   //engine::ossScopedRWLock lock( &_rwMutex, SHARED ) ;
 
    if( segmentID >= _size )
    {

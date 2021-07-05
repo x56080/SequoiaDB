@@ -35,11 +35,61 @@
 
 #include "vessel/controlFile.h"
 #include "pdTrace.hpp"
+#include "utilStr.hpp"
+#include "xxHashInc.h"
 
 namespace engine
 {
 namespace vessel
 {
+   constexpr UINT32 MAX_CONTENT_SIZE = CONTROL_FILE_SIZE - sizeof(controlFile::head) - sizeof(UINT32);
+
+   OSS_INLINE UINT32 getMagicCode()
+   {
+      static const CHAR a[4] = {'S', 'D', 'B', 'V'};
+      return *((UINT32 *)a);
+   }
+
+   void createChecksum(void *buf)
+   {
+      SDB_ASSERT(NULL != buf, "can not be null");
+      UINT32 *checksum = (UINT32 *)((ossValuePtr)buf + CONTROL_FILE_SIZE - sizeof(UINT32));
+      *checksum = XXH3_64bits(buf, CONTROL_FILE_SIZE - sizeof(UINT32));
+      return;
+   }
+
+   INT32 validateBuf(const void *buf)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != buf, "can not be null");
+      const controlFile::head *h = (const controlFile::head *)buf;
+      const UINT32 *checksum = NULL;
+      UINT32 c = 0;
+
+      if (getMagicCode() != h->magicCode)
+      {
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         goto error;
+      }
+      if (CONTROL_FILE_VERSION != h->headVerion)
+      {
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         goto error;
+      }
+
+      checksum = (UINT32 *)((ossValuePtr)buf + CONTROL_FILE_SIZE - sizeof(UINT32));
+      c = XXH3_64bits(buf, CONTROL_FILE_SIZE - sizeof(UINT32));
+      if (c != *checksum)
+      {
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    controlFile::controlFile()
    {
       
@@ -50,24 +100,16 @@ namespace vessel
       close();
    }
 
-   INT32 controlFile::create(const CHAR *path, BOOLEAN replace)
+   INT32 controlFile::create(const strSlice &dir)
    {
       INT32 rc = SDB_OK;
-      const CHAR *prefix = getFileNamePrefix();
-      SDB_ASSERT(NULL != prefix, "can not be null");
-      SDB_ASSERT(0 < ossStrlen(prefix), "can not be empty");
       SDB_ASSERT(0 < getMaxAliveVersionCount() &&
                  getMaxAliveVersionCount() <= 64, "can not be invalid");
       SDB_ASSERT(!isOpen(), "do not reinit");
       close();
-      strSlice pathSlice(path);
-      if (pathSlice.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      
-      rc = createFilesUnderPath(pathSlice, replace);
+
+      _dir = dir.str();
+      rc = createFiles();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create control file:%d", rc);
@@ -76,46 +118,44 @@ namespace vessel
    done:
       return rc;
    error:
-      destroy(path);
+      destroy();
       goto done;
    }
 
-   INT32 controlFile::open(const CHAR *path, BOOLEAN createIfNotExists)
+   INT32 controlFile::open(const strSlice &dir)
    {
       INT32 rc = SDB_OK;
-      const CHAR *prefix = getFileNamePrefix();
-      SDB_ASSERT(NULL != prefix, "can not be null");
-      SDB_ASSERT(0 < ossStrlen(prefix), "can not be empty");
       SDB_ASSERT(0 < getMaxAliveVersionCount() &&
                  getMaxAliveVersionCount() <= 64, "can not be invalid");
       SDB_ASSERT(!isOpen(), "do not reinit");
-      strSlice pathSlice(path);
-      if (pathSlice.empty())
+      close();
+      if (OSS_UNLIKELY(dir.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = openFilesUnderPath(pathSlice, createIfNotExists);
+      _dir = dir.str();
+      rc = openFiles();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init control files:%s, rc:%d", path, rc);
+         PD_LOG(PDERROR, "failed to open control files:%s, rc:%d", dir.str(), rc);
          goto error;
       }
 
-      if (_workshop.empty() && _unused.empty())
+      if (getMaxAliveVersionCount() != (_workshop.size() + _unused.size()))
       {
-         PD_LOG(PDERROR, "no available files exist");
-         rc = SDB_VESSEL_CF_FAILED_TO_INIT;
+         PD_LOG(PDERROR, "invalid file count under path:%s", dir.str());
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
-      else if (!_workshop.empty())
+
+      if (!_workshop.empty())
       {
          _fileObj *obj = _workshop.back();
          _commitVersion = obj->getHead()->commitVersion + 1;
       }
 
-      _isOpen = TRUE;
    done:
       return rc;
    error:
@@ -128,48 +168,50 @@ namespace vessel
       for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
            itr != _unused.end(); ++itr)
       {
-         SDB_OSS_DEL *itr;
+         _fileObj *obj = *itr;
+         obj->close();
+         SDB_OSS_DEL obj;
       }
       _unused.clear();
 
       for (_FILE_OBJ_LIST::iterator itr = _workshop.begin();
            itr != _workshop.end(); ++itr)
       {
-         SDB_OSS_DEL *itr;
+         _fileObj *obj = *itr;
+         obj->close();
+         SDB_OSS_DEL obj;
       }
       _workshop.clear();
 
       _commitVersion = 0;
-      _isOpen = FALSE;
+      _dir.clear();
       return;
    }
 
-   void controlFile::destroy(const CHAR *path)
+   void controlFile::destroy()
    {
-      strSlice pathSlice(path);
-      const CHAR *prefix = getFileNamePrefix();
-      SDB_ASSERT(NULL != prefix && 0 < ossStrlen(prefix), "impossible");
-      if (pathSlice.empty())
-      {
-         goto done;
-      }
+      CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
            itr != _unused.end(); ++itr)
       {
          _fileObj *obj = *itr;
-         if (!obj->file.isOpened())
+         if (OSS_LIKELY(!obj->name.empty() &&
+                        obj->file.isOpened()))
          {
-            continue;
+            INT32 rc = utilBuildFullPath(_dir.c_str(),
+                                      obj->name.c_str(),
+                                      OSS_MAX_PATHSIZE + 1,
+                                      path);
+            if (OSS_LIKELY(SDB_OK == rc))
+            {
+               obj->close();
+               ossDelete(path);
+            }
          }
-         std::stringstream ss;
-         ss << pathSlice.str()
-            << OSS_FILE_SEP
-            << prefix
-            << ".control."
-            << obj->seq;
-         std::string fullPath = ss.str();
-         ossClose(obj->file);
-         ossDelete(fullPath.c_str());
+         else
+         {
+            SDB_ASSERT(FALSE, "impossible");
+         }
          SDB_OSS_DEL obj;
       }
       _unused.clear();
@@ -178,24 +220,28 @@ namespace vessel
            itr != _workshop.end(); ++itr)
       {
          _fileObj *obj = *itr;
-         if (!obj->file.isOpened())
+         if (OSS_LIKELY(!obj->name.empty() &&
+                        obj->file.isOpened()))
          {
-            continue;
+            INT32 rc = utilBuildFullPath(_dir.c_str(),
+                                      obj->name.c_str(),
+                                      OSS_MAX_PATHSIZE + 1,
+                                      path);
+            if (OSS_LIKELY(SDB_OK == rc))
+            {
+               obj->close();
+               ossDelete(path);
+            }
          }
-         std::stringstream ss;
-         ss << pathSlice.str()
-            << OSS_FILE_SEP
-            << prefix
-            << ".control."
-            << obj->seq;
-         std::string fullPath = ss.str();
-         ossClose(obj->file);
-         ossDelete(fullPath.c_str());
+         else
+         {
+            SDB_ASSERT(FALSE, "impossible");
+         }
          SDB_OSS_DEL obj;
       }
       _workshop.clear();
       _commitVersion = 0;
-      _isOpen = FALSE;
+      _dir.clear();
    done:
       return;
    }
@@ -208,12 +254,12 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (0 == size || NULL == buf)
+      else if (OSS_UNLIKELY(0 == size || NULL == buf))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if ((CONTROL_FILE_SIZE - sizeof(controlFile::head) < size))
+      else if (OSS_UNLIKELY(MAX_CONTENT_SIZE < size))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -247,52 +293,43 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != buf, "can not be null");
       SDB_ASSERT(!_unused.empty(), "can not be empty");
-      SDB_ASSERT(size + sizeof(controlFile::head) <= CONTROL_FILE_SIZE,
-                 "can not be invalid");
+      SDB_ASSERT(size <= MAX_CONTENT_SIZE, "can not be invalid");
       _fileObj *obj = _unused.front();
-      _unused.pop_front();
-
-      obj->getHead()->commitVersion = _commitVersion;
-      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
-      obj->getHead()->contentLen = size;
-      ossMemcpy(obj->buf + sizeof(controlFile::head),
-                buf, size);
+      
+      updateFileBuf(obj, size, buf);
       rc = writeFile(obj);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to write control file[%d], rc:%d", obj->seq, rc);
+         PD_LOG(PDERROR, "failed to write control file[%s], rc:%d",
+                obj->name.c_str(), rc);
          goto error;
       }
 
+      _unused.pop_front();
       _workshop.push_back(obj);
       ++_commitVersion;
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(obj);
       goto done;
    }
 
    INT32 controlFile::commitFromWorkshop(UINT32 size, const void *buf)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != buf, "can not be null");
       SDB_ASSERT(!_workshop.empty(), "can not be empty");
-      SDB_ASSERT(size + sizeof(controlFile::head) <= CONTROL_FILE_SIZE,
-                 "can not be invalid");
+      SDB_ASSERT(size <= MAX_CONTENT_SIZE, "can not be invalid");
+
       CHAR backup[CONTROL_FILE_SIZE] = {0};
       _fileObj *obj = _workshop.front();
       ossMemcpy(backup, obj->buf, CONTROL_FILE_SIZE);
-      obj->getHead()->commitVersion = _commitVersion;
-      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
-      obj->getHead()->contentLen = size;
-      ossMemset(obj->buf + sizeof(controlFile::head),
-                0, CONTROL_FILE_SIZE - sizeof(controlFile::head));
-      ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
+
+      updateFileBuf(obj, size, buf);
       rc = writeFile(obj);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to write control file[%d], rc:%d", obj->seq, rc);
+         PD_LOG(PDERROR, "failed to write control file[%s], rc:%d",
+                obj->name.c_str(), rc);
          goto error;
       }
 
@@ -428,7 +465,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != obj, "can not be null");
-      SDB_ASSERT(obj->getHead()->isValid(), "can not be invalid");
       SDB_ASSERT(!obj->getHead()->isUnused(), "can not be unused");
       SDB_ASSERT(NULL != buf, "can not be null");
 
@@ -447,24 +483,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::openFilesUnderPath(const strSlice &path, BOOLEAN createIfNotExists)
+   INT32 controlFile::openFiles()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!path.empty(), "can not be empty");
-      const CHAR *prefix = getFileNamePrefix();
-      strSlice prefixSlice(prefix);
+      SDB_ASSERT(!_dir.empty(), "can not be empty");
       UINT32 count = getMaxAliveVersionCount();
+      CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       _fileObj *obj = NULL;
+      UINT32 flags = OSS_READWRITE | OSS_EXCLUSIVE | OSS_WRITETHROUGH;
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         std::stringstream ss;
-         ss << path.str()
-            << OSS_FILE_SEP
-            << prefix
-            << ".control."
-            << i;
-         std::string fullPath = ss.str();
+         INT64 fileSize = 0;
          obj = SDB_OSS_NEW _fileObj();
          if (NULL == obj)
          {
@@ -473,19 +503,75 @@ namespace vessel
             goto error;
          }
 
-         obj->seq = i;
-         rc = openFileObj(fullPath, obj, createIfNotExists);
-         if (SDB_OK != rc)
+         obj->sequence = i;
+         if (!getFileName(i, obj->name))
          {
-            PD_LOG(PDERROR, "failed to init file obj[%d], rc:%d", i, rc);
-            rc = SDB_OK;
-            SDB_OSS_DEL obj;
-            obj = NULL;
-            continue;
+            PD_LOG(PDERROR, "failed to get file name of sequence:%d", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
          }
 
-         SDB_ASSERT(obj->getHead()->isValid(), "must be valid");
-         if (obj->getHead()->isUnused())
+         rc = utilBuildFullPath(_dir.c_str(),
+                                obj->name.c_str(),
+                                OSS_MAX_PATHSIZE + 1,
+                                path);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build file full path:%d", rc);
+            goto error;
+         }
+
+         rc = ossOpen(path,
+                      flags,
+                      OSS_DEFAULTFILE,
+                      obj->file);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to open file:%s, rc:%d", path, rc);
+            goto error;
+         }
+
+         rc = ossGetFileSize(&(obj->file), &fileSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get file size[%s], rc:%d", path, rc);
+            goto error;
+         }
+
+         if ((INT64)CONTROL_FILE_SIZE != fileSize)
+         {
+            PD_LOG(PDERROR, "invalid file size:%lld of control file[%s]",
+                   fileSize, path);
+            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            goto error;
+         }
+
+         rc = readFile(obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file[%s], rc:%d", path, rc);
+            goto error;
+         }
+
+         rc = validateBuf(obj->buf);
+         if (SDB_VESSEL_PAGE_CRASHED == rc)
+         {
+            PD_LOG(PDERROR, "invalid file checksum:[%s], reinit it as unused one", path);
+            initFileBuf(obj);
+            rc = writeFile(obj);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to write file[%s], rc:%d", path, rc);
+               goto error;
+            }
+            pushToUnusedListWhenOpen(obj);
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "invalid file head[%s]", path);
+            goto error;
+         }
+         else if (obj->getHead()->isUnused())
          {
             pushToUnusedListWhenOpen(obj);
          }
@@ -493,6 +579,7 @@ namespace vessel
          {
             pushToWorkshopWhenOpen(obj);
          }
+         obj = NULL;
       }
 
    done:
@@ -502,24 +589,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::createFilesUnderPath(const strSlice &path, BOOLEAN replace)
+   INT32 controlFile::createFiles()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!path.empty(), "can not be empty");
-      const CHAR *prefix = getFileNamePrefix();
-      strSlice prefixSlice(prefix);
+      SDB_ASSERT(!_dir.empty(), "can not be empty");
       UINT32 count = getMaxAliveVersionCount();
+      CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       _fileObj *obj = NULL;
+      UINT32 flags = OSS_CREATEONLY |OSS_READWRITE | OSS_EXCLUSIVE | OSS_WRITETHROUGH;
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         std::stringstream ss;
-         ss << path.str()
-            << OSS_FILE_SEP
-            << prefix
-            << ".control."
-            << i;
-         std::string fullPath = ss.str();
+         UINT32 *checksum = NULL;
+
          obj = SDB_OSS_NEW _fileObj();
          if (NULL == obj)
          {
@@ -528,164 +610,96 @@ namespace vessel
             goto error;
          }
 
-         obj->seq = i;
-         rc = createFileObj(fullPath, obj, replace);
+         obj->sequence = i;
+         if (!getFileName(i, obj->name))
+         {
+            PD_LOG(PDERROR, "failed to get file name of sequence:%d", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = utilBuildFullPath(_dir.c_str(),
+                                obj->name.c_str(),
+                                OSS_MAX_PATHSIZE + 1,
+                                path);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to create file obj[%d], rc:%d", i, rc);
+            PD_LOG(PDERROR, "failed to build file full path:%d", rc);
+            goto error;
+         }
+
+         rc = ossOpen(path, flags, OSS_DEFAULTFILE, obj->file);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create contril file[%s], rc:%d",
+                   path, rc);
+            goto error;
+         }
+
+         rc = ossExtendFile(&(obj->file), (INT64)CONTROL_FILE_SIZE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend file[%s] to valid size, rc:%d",
+                   path, rc);
+            goto error;
+         }
+
+         initFileBuf(obj);
+         rc = writeFile(obj);
+         if (SDB_OK != rc)
+         {
             goto error;
          }
 
          pushToUnusedListWhenOpen(obj);
+         obj = NULL;
       }
 
    done:
       return rc;
    error:
+      if (NULL != obj && obj->file.isOpened())
+      {
+         obj->close();
+         ossDelete(path);
+      }
       SAFE_OSS_DELETE(obj);
       goto done;
    }
 
-   INT32 controlFile::createFileObj(const std::string &fullPath,
-                                    _fileObj *obj,
-                                    BOOLEAN replace)
+   void controlFile::initFileBuf(_fileObj *obj)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!fullPath.empty(), "can not be empty");
-      SDB_ASSERT(NULL != obj && !obj->file.isOpened(), "impossible");
-      UINT32 flags = replace ? OSS_REPLACE : OSS_CREATEONLY;
-      flags |= (OSS_READWRITE | OSS_EXCLUSIVE);
-      controlFile::head h;
-      h.headVerion = CONTROL_FILE_VERSION;
+      SDB_ASSERT(NULL != obj, "can not be null");
+      ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
+      controlFile::head *head = (controlFile::head*)(obj->buf);
 
-      rc = ossOpen(fullPath.c_str(),
-                   flags,
-                   OSS_DEFAULTFILE,
-                   obj->file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open control file[%s], rc:%d", fullPath.c_str(), rc);
-         goto error;
-      }
+      head->magicCode = getMagicCode();
+      head->headVerion = CONTROL_FILE_VERSION;
+      head->flags = 0;
+      head->commitVersion = INVALID_COMMIT_VERSION;
+      head->updateMillis = ossGetCurrentMilliseconds();
+      head->contentLen = 0;
+      head->pad = 0;
 
-      rc = ossExtendFile(&(obj->file), (INT64)CONTROL_FILE_SIZE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to extend file[%s] to valid size, rc:%d", fullPath.c_str(), rc);
-         goto error;
-      }
-
-      *((controlFile::head *)(obj->buf)) = h;
-      rc = writeFile(obj);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (obj->file.isOpened())
-      {
-         ossClose(obj->file);
-         ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
-      }
-      goto done;
+      createChecksum(obj->buf);
+      return;
    }
 
-   INT32 controlFile::openFileObj(const std::string &fullPath,
-                                  _fileObj *obj,
-                                  BOOLEAN createIfNotExists)
+   void controlFile::updateFileBuf(_fileObj *obj, UINT32 size, const void *buf)
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!fullPath.empty(), "can not be empty");
-      SDB_ASSERT(NULL != obj && !obj->file.isOpened(), "impossible");
-      INT64 fileSize = 0;
-      UINT32 flags = OSS_CREATEONLY | OSS_READWRITE | OSS_EXCLUSIVE;
-      if (createIfNotExists)
-      {
-         flags |= OSS_REPLACE;
-      }
-      rc = ossOpen(fullPath.c_str(),
-                   flags,
-                   OSS_DEFAULTFILE,
-                   obj->file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open control file[%s], rc:%d", fullPath.c_str(), rc);
-         goto error;
-      }
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(NULL != buf, "can not be null");
 
-      rc = ossGetFileSize(&(obj->file), &fileSize);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get file size[%s], rc:%d", fullPath.c_str(), rc);
-         goto error;
-      }
-
-      if ((INT64)CONTROL_FILE_SIZE < fileSize)
-      {
-         PD_LOG(PDERROR, "invalid file size:%lld of control file[%d]", fileSize, fullPath.c_str());
-         goto error;
-      }
-      else if (fileSize < (INT64)CONTROL_FILE_SIZE)
-      {
-         controlFile::head h;
-         h.headVerion = CONTROL_FILE_VERSION;
-         rc = ossExtendFile(&(obj->file), (INT64)CONTROL_FILE_SIZE - fileSize);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend file[%s] to valid size, rc:%d", fullPath.c_str(), rc);
-            goto error;
-         }
-
-         *((controlFile::head *)(obj->buf)) = h;
-         rc = writeFile(obj);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
-            goto error;
-         }
-      }
-      else
-      {
-         SINT64 read = 0;
-         rc = ossReadN(&(obj->file), (INT64)CONTROL_FILE_SIZE, obj->buf, read);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to read file[%s], rc:%d", fullPath.c_str(), rc);
-            goto error;
-         }
-         else if ((INT64)CONTROL_FILE_SIZE != read)
-         {
-            PD_LOG(PDERROR, "failed to read valid size of file[%s], rc:%d", fullPath.c_str(), rc);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-         else if (!obj->getHead()->isValid())
-         {
-            PD_LOG(PDERROR, "invalid file head version of file:%s", fullPath.c_str());
-            ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
-            controlFile::head h;
-            h.headVerion = CONTROL_FILE_VERSION;
-            *((controlFile::head *)(obj->buf)) = h;
-            rc = writeFile(obj);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
-               goto error;
-            }
-         }
-      }
-   done:
-      return rc;
-   error:
-      if (obj->file.isOpened())
-      {
-         ossClose(obj->file);
-         ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
-      }
-      goto done;
+      obj->getHead()->commitVersion = _commitVersion;
+      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
+      obj->getHead()->contentLen = size;
+      ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
+      ossMemset(obj->buf + sizeof(controlFile::head) + size,
+                0, CONTROL_FILE_SIZE - sizeof(controlFile::head) - size);
+      ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
+      createChecksum(obj->buf);
+      return;
    }
 
    INT32 controlFile::writeFile(_fileObj *obj)
@@ -693,17 +707,56 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(obj->file.isOpened(), "can not be closed");
+      SDB_ASSERT(!obj->name.empty(), "must be valid");
       SINT64 written = 0;
-      rc = ossSeekAndWriteN(&(obj->file), (SINT64)0,
-                            obj->buf, (SINT64)CONTROL_FILE_SIZE,
-                            written);
-      if (SDB_OK != rc)
+      
+      do
       {
-         PD_LOG(PDERROR, "failed to write file[%d], rc:%d", obj->seq, rc);
-         goto error;
-      }
+         SINT64 w = 0;
+         rc = ossSeekAndWriteN(&(obj->file),
+                               written,
+                               (CHAR *)((ossValuePtr)(obj->buf) + written),
+                               (SINT64)(CONTROL_FILE_SIZE - written),
+                               w);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write file[%s], rc:%d", obj->name.c_str(), rc);
+            goto error;
+         }
 
-      ossFsync(&(obj->file));
+         written += w;
+      } while (written < CONTROL_FILE_SIZE);
+
+      /// we set OSS_WRITETHROUGH when open file, no need to 
+      /// fsync file again.
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 controlFile::readFile(_fileObj *obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(!obj->name.empty(), "must be valid");
+      SDB_ASSERT(obj->file.isOpened(), "must be open");
+      SINT64 read = 0;
+
+      do
+      {
+         SINT64 r = 0;
+         rc = ossSeekAndReadN(&(obj->file), read,
+                              CONTROL_FILE_SIZE - read,
+                              (CHAR *)((ossValuePtr)(obj->buf) + read), r);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read content from file:%s, rc:%d",
+                   obj->name.c_str(), rc);
+            goto error;
+         }
+         read += r;
+      }while (read < CONTROL_FILE_SIZE);
    done:
       return rc;
    error:
@@ -714,11 +767,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(obj->file.isOpened(), "must be open");
-      if (!_unused.empty())
-      {
-         _fileObj *last = _unused.back();
-         SDB_ASSERT(last->seq < obj->seq, "must be sorted");
-      }
+      SDB_ASSERT(!obj->name.empty(), "must be valid");
       _unused.push_back(obj);
    done:
       return;
@@ -728,6 +777,8 @@ namespace vessel
    {
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(obj->file.isOpened(), "must be open");
+      SDB_ASSERT(!obj->name.empty(), "can not be invalid");
+      SDB_ASSERT(CONTROL_FILE_VERSION == obj->getHead()->headVerion, "must be valid");
       SDB_ASSERT(INVALID_COMMIT_VERSION != obj->getHead()->commitVersion, "can not be invalid");
       _FILE_OBJ_LIST::iterator itr = _workshop.begin();
       for (; itr != _workshop.end(); ++itr)

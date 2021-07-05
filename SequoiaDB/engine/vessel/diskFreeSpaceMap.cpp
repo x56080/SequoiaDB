@@ -839,11 +839,11 @@ namespace vessel
       mask <<= n;
       mask = ~mask;
 
-      UINT64 v = value & 0xF; /// remove invalid bits.
+      UINT64 v = (value & 0xF); /// remove invalid bits.
       v <<= n;
       UINT64 *delta = deltas + (offset >> 4); /// divided by 16
       UINT64 expected = *delta;
-      UINT64 disired = (expected & mask) | v;
+      UINT64 disired = ((expected & mask) | v);
 
       while (!ossCompareAndSwap64(delta, expected, disired))
       {
@@ -853,7 +853,7 @@ namespace vessel
             goto done;
          }
          expected = *((volatile UINT64 *)delta);
-         disired = (expected & mask) | v;
+         disired = ((expected & mask) | v);
       }
       r = TRUE;
    done:

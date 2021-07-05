@@ -45,6 +45,8 @@
 #include "vessel/logRecordContext.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/strSlice.h"
+#include "vessel/requestContext.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -139,5 +141,195 @@ namespace vessel
    error:
       goto done;
    }
+
+   UINT32 packSidAndType(SPACE_ID sid,
+                            SPACE_TYPE spaceType,
+                              FILE_TYPE fileType)
+   {
+      UINT32 value = ((UINT32)fileType << 24);
+      value |= ((UINT32)spaceType << 16);
+      value |= (UINT32)sid;
+      return value;
+   }
+
+   void unpackSidAndType(UINT32 value,
+                         SPACE_ID &sid,
+                         SPACE_TYPE &spaceType,
+                         FILE_TYPE &fileType)
+   {
+      sid = value;
+      spaceType = (value >> 16);
+      fileType = (value >> 24);
+      return;
+   }
+
+/////////////logicalPageSapceLogUtil begin
+   INT32 lpsLogUtil::prepare(requestContext *context,
+                              const slice &initer,
+                              const deltaLogRecord &dlr,
+                              logRecordContext &lrc,
+                              BOOLEAN isOplistHead,
+                              DPS_LSN_OFFSET oplist,
+                              BOOLEAN isOplistTail)
+   {
+      INT32 rc = SDB_OK;
+      ISession *session = NULL;
+      IRedoLogger *logger = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !dlr.isValid() ||
+                       lrc.prepared()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if(OSS_UNLIKELY(isOplistHead && DPS_INVALID_LSN_OFFSET != oplist))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if(OSS_UNLIKELY(isOplistTail && DPS_INVALID_LSN_OFFSET == oplist))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      session = context->getSession();
+      logger = context->getOuterResource()->logger;
+
+      if (isOplistHead)
+      {
+         lrc.setOplistHead();
+      }
+      else if (DPS_INVALID_LSN_OFFSET != oplist)
+      {
+         lrc.setOplist(oplist);
+      }
+
+      /// not else if
+      if (isOplistTail)
+      {
+         lrc.setOplistTail();
+      }
+
+      lrc.open(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
+      lrc.prepush(sizeof(UINT32));
+      lrc.prepush(dlr.getLogHead()->_size);
+      if (0 != initer.len())
+      {
+         lrc.prepush(initer.len());
+      }
+      lrc.prepushDone();
+
+      rc = logger->prepare(session, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed prepare log record:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lpsLogUtil::commit(requestContext *context,
+                            logRecordContext &lrc,
+                            SPACE_ID sid,
+                            SPACE_TYPE spaceType,
+                            FILE_TYPE fileType,
+                            const deltaLogRecord &dlr,
+                            const slice &initer)
+   {
+      INT32 rc = SDB_OK;
+      ISession *session = NULL;
+      IRedoLogger *logger = NULL;
+      UINT32 packedSidAndType = packSidAndType(sid, spaceType, fileType);
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !lrc.prepared() ||
+                       INVALID_PAGE_ID == sid ||
+                       INVALID_SPACE_TYPE == spaceType ||
+                       INVALID_FILE_TYPE == fileType ||
+                       !dlr.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      session = context->getSession();
+      logger = context->getOuterResource()->logger;
+
+      rc = logger->pushLogRecordElement(session, &lrc,
+                                        DPS_LOG_VESSEL_MAP_LPIDS_SID_AND_TYPE,
+                                        sizeof(UINT32), &packedSidAndType);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push packed sid:%d", rc);
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, &lrc,
+                                        DPS_LOG_VESSEL_MAP_LPIDS_DELTA_LOG,
+                                        dlr.getLogHead()->_size,
+                                        dlr.getLogHead());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push delta log:%d", rc);
+         goto error;
+      }
+
+      if (0 != initer.len())
+      {
+         rc = logger->pushLogRecordElement(session, &lrc,
+                                        DPS_LOG_VESSEL_MAP_LPIDS_PAGE_INITER,
+                                        initer.len(), initer.data());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push initer:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = logger->commit(session, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lpsLogUtil::abort(requestContext *context,
+                           logRecordContext &lrc)
+   {
+      INT32 rc = SDB_OK;
+      ISession *session = NULL;
+      IRedoLogger *logger = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !lrc.prepared()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      session = context->getSession();
+      logger = context->getOuterResource()->logger;
+      rc = logger->abort(session, &lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+/////////////logicalPageSapceLogUtil end
 }//namespace vessel
 }//namespace engine

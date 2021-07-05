@@ -3043,6 +3043,14 @@
       </code>
 
       <code>
+         <name>SDB_VESSEL_FILE_HEAD_CRASHED</name>
+         <description>
+            <en>file head already crashed</en>
+            <cn>文件头损坏</cn>
+         </description>
+      </code>
+
+      <code>
          <name>SDB_VESSEL_CF_FAILED_TO_INIT</name>
          <description>
             <en>failed to init control files</en>
@@ -3099,6 +3107,14 @@
       </code>
 
       <code>
+         <name>SDB_VESSEL_PAGE_HEAD_NOT_MATCH</name>
+         <description>
+            <en>the page head does not match the input arguments</en>
+            <cn>数据页头与传入参数不符</cn>
+         </description>
+      </code>
+
+      <code>
          <name>SDB_VESSEL_PAGE_CRASHED</name>
          <description>
             <en>data page is crashed</en>
@@ -3107,10 +3123,10 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_END_OF_CURSOR</name>
+         <name>SDB_VESSEL_EOC</name>
          <description>
-            <en>hit the end of cursor</en>
-            <cn>到达游标的结尾处</cn>
+            <en>hit the end of data collection to read</en>
+            <cn>到达待访问数据集的结尾</cn>
          </description>
       </code>
 
@@ -3231,6 +3247,30 @@
          <description>
             <en>the operation is not permitted</en>
             <cn>操作不被允许</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FAILURE_LOADING_DLR</name>
+         <description>
+            <en>failed to load delta log record on disk</en>
+            <cn>加载文件中的增量日志记录失败</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_DUPLICATED_KEY</name>
+         <description>
+            <en>the key is duplicated</en>
+            <cn>唯一键冲突</cn>
+         </description>
+      </code>
+ 
+      <code>
+         <name>SDB_VESSEL_KEY_NOT_FOUND</name>
+         <description>
+            <en>the key is not found</en>
+            <cn>目标键不存在</cn>
          </description>
       </code>
 

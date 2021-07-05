@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -53,133 +50,179 @@ namespace vessel
 class globalPageID
 {
    public:
-      OSS_INLINE globalPageID()
-      :_space(INVALID_SPACE_ID),
-       _type(INVALID_FILE_TYPE),
-       _pad(0),
-       _page(INVALID_PAGE_ID)
-      {
-         /// do nothing
-      }
+      OSS_INLINE globalPageID(){}
+      OSS_INLINE ~globalPageID(){}
 
-      OSS_INLINE globalPageID(SPACE_ID sid, FILE_TYPE type, PAGE_ID pid)
-      :_space(sid), _type(type), _pad(0), _page(pid)
-      {
-      
-      }
+      OSS_INLINE globalPageID(SPACE_ID sid,
+                              SPACE_TYPE spaceType,
+                              FILE_TYPE fileType,
+                              PAGE_ID pid)
+      :_sid(sid),
+       _spaceType(spaceType),
+       _fileType(fileType),
+       _pid(pid)
+      {}
 
       OSS_INLINE globalPageID(const globalPageID &r)
-      :_space(r._space), _type(r._type), _pad(0), _page(r._page)
-      {
-      
-      }
+      :_sid(r._sid),
+       _spaceType(r._spaceType),
+       _fileType(r._fileType),
+       _pid(r._pid)
+      {}
 
       OSS_INLINE globalPageID &operator=(const globalPageID &r)
       {
-         _space = r._space;
-         _type = r._type;
-         _page = r._page;
+         *((UINT64 *)(this)) = *((const UINT64 *)(&r));
          return *this;
       }
 
-      OSS_INLINE BOOLEAN invalid()const
+      OSS_INLINE BOOLEAN isValid()const
       {
-         return INVALID_SPACE_ID == _space ||
-                INVALID_FILE_TYPE == _type ||
-                INVALID_PAGE_ID == _page;
+         return INVALID_SPACE_ID != _sid &&
+                INVALID_SPACE_TYPE != _spaceType &&
+                INVALID_FILE_TYPE != _fileType &&
+                INVALID_PAGE_ID != _pid;
       }
 
-      OSS_INLINE void reset(SPACE_ID sid, FILE_TYPE type, PAGE_ID pid)
+      OSS_INLINE void reset(SPACE_ID sid,
+                            SPACE_TYPE spaceType,
+                            FILE_TYPE fileType,
+                            PAGE_ID pid)
       {
-         _space = sid;
-         _type = type;
-         _page = pid;
+         _sid = sid;
+         _spaceType = spaceType;
+         _fileType = fileType;
+         _pid = pid;
          return;
       }
 
       OSS_INLINE void reset()
       {
-         reset(INVALID_SPACE_ID, INVALID_FILE_TYPE, INVALID_PAGE_ID);
+         reset(INVALID_SPACE_ID, INVALID_SPACE_TYPE,
+               INVALID_FILE_TYPE, INVALID_PAGE_ID);
          return;
       }
 
       OSS_INLINE UINT32 hash()const
       {
          //return XXH3_64bits(this, sizeof(globalPageID));
-         UINT32 hash = (UINT32)_space << 20;
-         if (0 == _type)
-         {
-            hash += (_page << 6);
-         }
-         hash += _space;
-         hash += _type;
-         hash += _page;
-         return hash;
+         return _sid + _pid;
       }
 
       OSS_INLINE BOOLEAN operator==(const globalPageID &r)const
       {
-         return _space == r._space && _type == r._type && _page == r._page;
+         return *((const UINT64 *)(this)) == *((const UINT64 *)(&r));
       }
 
-      OSS_INLINE BOOLEAN operator<(const globalPageID &r) const
+      OSS_INLINE BOOLEAN operator!=(const globalPageID &r)const
       {
-         if (_space < r._space)
+         return *((const UINT64 *)(this)) != *((const UINT64 *)(&r));
+      }
+
+      OSS_INLINE INT32 compare(const globalPageID &r)const
+      {
+         ///Ordered by every column.
+         INT32 res = 0;
+         if (_sid < r._sid)
          {
-            return TRUE;
+            res = -1;
+            goto done;
          }
-         else if (_space > r._space)
+         else if (_sid > r._sid)
          {
-            return FALSE;
+            res = 1;
+            goto done;
          }
-         else if (_type < r._type)
+
+         if (_spaceType < r._spaceType)
          {
-            return TRUE;
+            res = -1;
+            goto done;
          }
-         else if (_type > r._type)
+         else if (_spaceType > r._spaceType)
          {
-            return FALSE;
+            res = 1;
+            goto done;
          }
-         else
+
+         if (_fileType < r._fileType)
          {
-            return _page < r._page;
+            res = -1;
+            goto done;
          }
+         else if (_fileType > r._fileType)
+         {
+            res = 1;
+            goto done;
+         }
+
+         if (_pid < r._pid)
+         {
+            res = -1;
+         }
+         else if (_pid > r._pid)
+         {
+            res = 1;
+         }
+      done:
+         return res;
+      }
+
+      OSS_INLINE BOOLEAN operator<(const globalPageID &r)const
+      {
+         return 0 < compare(r);
       }
 
       OSS_INLINE SPACE_ID space() const
       {
-         return _space;
+         return _sid;
       }
 
-      OSS_INLINE FILE_TYPE type() const
+      OSS_INLINE FILE_TYPE getFileType() const
       {
-         return _type;
+         return _fileType;
       }
 
       OSS_INLINE PAGE_ID page()const
       {
-         return _page;
+         return _pid;
+      }
+
+      OSS_INLINE SPACE_TYPE getSpaceType()const
+      {
+         return _spaceType;
       }
 
       std::string toString()const
       {
          std::stringstream ss;
-         ss << "{SPACE_ID:" << _space
-            << ",TYPE:" << _type
-            << ",PAGE_ID:" << _page
+         ss << "{SPACE_ID:" << _sid
+            << ",SPACE_TYPE:" << _spaceType
+            << ",TYPE:" << _fileType
+            << ",PAGE_ID:" << _pid
             << "}";
          return ss.str();
       }
 
    public:
-      SPACE_ID _space;
-      FILE_TYPE _type;
-      UINT8 _pad;
-      PAGE_ID _page;
+      SPACE_ID _sid = INVALID_SPACE_ID;
+      SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;
+      FILE_TYPE _fileType = INVALID_FILE_TYPE;
+      PAGE_ID _pid = INVALID_PAGE_ID;
 }; /// end of globalPageID
 
+static const UINT32 GLOBAL_PAGE_ID_SIZE = sizeof(globalPageID);
 
 typedef globalPageID GLOBAL_PAGE_ID;
+
+struct GLOBAL_PAGE_ID_LESS
+{
+   OSS_INLINE BOOLEAN operator()(const GLOBAL_PAGE_ID &l,
+                                 const GLOBAL_PAGE_ID &r)const
+   {
+      return l < r;
+   }
+};//struct GLOBAL_PAGE_ID_LESS
 
 } /// end of namespace vessel
 } /// end of namespace engine

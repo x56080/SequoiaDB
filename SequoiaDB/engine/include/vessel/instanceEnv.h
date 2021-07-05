@@ -37,11 +37,13 @@
 #define VESSEL_INSTANCE_ENV_H_
 
 #include "vessel/spaceIDLocker.h"
-#include "vessel/snapshotContainer.h"
 #include "vessel/liteCache.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
 #include "vessel/collectionSpaceContainer.h"
+#include "vessel/storageConsole.h"
+#include "vessel/liteCacheConsole.h"
+#include "vessel/objectLatchMap.h"
 
 namespace engine
 {
@@ -50,20 +52,20 @@ namespace vessel
    class instanceEnv : public SDBObject
    {
       public:
-         OSS_INLINE instanceEnv()
-         {}
-         
-         OSS_INLINE ~instanceEnv()
-         {}
-         
+         instanceEnv(){}
+         ~instanceEnv(){}
+         instanceEnv(const instanceEnv &) = delete;
+         instanceEnv &operator=(const instanceEnv &) = delete;
 
       public:
          openDBOptions options;
          checkpointController checkpointer;
          spaceIDLocker spaceLocker;
          collectionSpaceContainer csContainer;
-         snapshotContainer snapContainer;
-         liteCache cache;
+         storageConsole sc;
+         liteCacheConsole cacheConsole;
+         LOGICAL_ID_LATCH_MAP _lpidLatchMap;
+         RECORD_ID_LATCH_MAP _ridLatchMap;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

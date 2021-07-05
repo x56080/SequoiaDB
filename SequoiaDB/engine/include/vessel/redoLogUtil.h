@@ -39,14 +39,17 @@
 #include "dpsLogRecord.hpp"
 #include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
+#include "logRecordContext.h"
+#include "vessel/deltaLogRecord.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class logRecordContext;
    class IRedoLogger;
    class ISession;
+   class requestContext;
 
 /*
    INT32 initCreateCSLogRecord(const CHAR *name,
@@ -60,6 +63,42 @@ namespace vessel
                              logRecordContext *lrc,
                              const strSlice &csName,
                              const strSlice &clName);
+
+   UINT32 packSidAndType(SPACE_ID sid,
+                         SPACE_TYPE spaceType,
+                         FILE_TYPE fileType);
+
+   void unpackSidAndType(UINT32 value,
+                         SPACE_ID &sid,
+                         SPACE_TYPE &spaceType,
+                         FILE_TYPE &fileType);
+
+   class lpsLogUtil : public SDBObject
+   {
+      public:
+         lpsLogUtil() = delete;
+         ~lpsLogUtil() = delete;
+
+      public:
+         static INT32 prepare(requestContext *context,
+                              const slice &initer,
+                              const deltaLogRecord &dlr,
+                              logRecordContext &lrc,
+                              BOOLEAN isOplistHead = FALSE,
+                              DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET,
+                              BOOLEAN isOplistTail = FALSE);
+
+         static INT32 commit(requestContext *context,
+                             logRecordContext &lrc,
+                             SPACE_ID sid,
+                             SPACE_TYPE spaceType,
+                             FILE_TYPE fileType,
+                             const deltaLogRecord &dlr,
+                             const slice &initer);
+
+         static INT32 abort(requestContext *context,
+                            logRecordContext &lrc);
+   };//class lpsLogUtil
 
 }//namespace vessel
 }//namespace engine

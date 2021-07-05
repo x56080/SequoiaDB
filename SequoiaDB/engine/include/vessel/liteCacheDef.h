@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -40,35 +37,29 @@
 #define VESSEL_LITE_CACHE_DEF_H_
 
 #include "ossTypes.hpp"
+#include "ossUtil.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   enum SyncLevel
-   {
-      STOP_WHEN_HIT_PENDING,
-      SKIP_WHEN_HIT_PENDING,
-      WAIT_WHEN_HIT_PENDING,
-   };
-
    enum LC_ALLOCATE_MODE
    {
       NORMAL = 1,
       ONLY_IF_IN_POOL
    };
 
-   struct liteCacheAllocateOptions
+   class liteCacheAllocateOptions : public SDBObject
    {
-      OSS_INLINE liteCacheAllocateOptions()
-      :readonly(TRUE),
-       mode(NORMAL),
-       lockTimeout(-1)
-      {}
+      public:
+      OSS_INLINE liteCacheAllocateOptions(){}
+      OSS_INLINE ~liteCacheAllocateOptions(){}
+      liteCacheAllocateOptions(const liteCacheAllocateOptions &) = delete;
+      liteCacheAllocateOptions &operator=(const liteCacheAllocateOptions &o) = delete;
 
-      BOOLEAN readonly;
-      enum LC_ALLOCATE_MODE mode;
-      INT32 lockTimeout;
+      ossSharedLatch::mode lockMode = ossSharedLatch::SHARED;
+      enum LC_ALLOCATE_MODE mode = NORMAL;
+      INT32 lockTimeout = -1;
    };
 
 } /// end of namespace vessel

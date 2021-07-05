@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -57,6 +54,7 @@ class diskIOJob;
 class diskIOTask;
 class requestContext;
 class ISession;
+class logicalPageSpace;
 
 class liteCache : public SDBObject
 {
@@ -68,13 +66,19 @@ class liteCache : public SDBObject
       liteCache &operator=(const liteCache &) = delete;
       
    public: /// for normal requests
-      INT32 init(UINT32 pageSize, const liteCacheOptions &o);
+      INT32 init(INT32 poolNo,
+                 UINT32 pageSize,
+                 const liteCacheOptions &o);
 
       INT32 fini();
 
       OSS_INLINE BOOLEAN isOpen()const
       {
-         return _isOpen;
+         return 0 <= _poolNo;
+      }
+      OSS_INLINE INT32 getPoolNo()const
+      {
+         return _poolNo;
       }
 
       /// inc usage cnt and lock
@@ -83,17 +87,20 @@ class liteCache : public SDBObject
                      const liteCacheAllocateOptions &options,
                      liteCacheTuple &tuple);
 
+      INT32 allocateToReset(requestContext *request,
+                            const GLOBAL_PAGE_ID &id,
+                            liteCacheTuple &tuple);
+
       /// commit data if wrote something.
-      void commit(requestContext *context,
-                  UINT64 lsn,
+      void commit(UINT64 lsn,
                   liteCacheTuple &tuple);
 
       /// release tuple
-      void release(requestContext *context,
-                   liteCacheTuple &tuple);
+      void release(liteCacheTuple &tuple);
 
    public:/// only for callback
       INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
+                                            BOOLEAN zeroed,
                                             lcPageTagHolder &holder);
 
       INT32 tryToUpdateLRU(lcPageTagHolder &holder);
@@ -115,7 +122,7 @@ class liteCache : public SDBObject
       /// reset lru evict begin
       void resetLRUEvictBegin();
 
-      /// it will hold exclusive lock of dirty list until hit scanDepth or minLSN.
+      /// it will release exclusive lock of dirty list until hit scanDepth or minLSN.
       INT32 createDirtyListIOJob(requestContext *context,
                                  UINT32 scanDepth,
                                  UINT64 minLSN,
@@ -126,14 +133,9 @@ class liteCache : public SDBObject
    private:
       INT32 ensureMemPage(requestContext *context, freeListPage &page);
 
-      INT32 loadDataFromDisk(requestContext *context,
-                             UINT32 pageSize,
-                             ossValuePtr diskPage,
-                             lcPageTagHolder &holder);
-
-      INT32 initTupleBeforeReturn(lcPageTagHolder &holder,
-                                  const liteCacheAllocateOptions &options,
-                                  liteCacheTuple &tuple);
+      void initTupleBeforeReturn(lcPageTagHolder &holder,
+                                 const liteCacheAllocateOptions &options,
+                                 liteCacheTuple &tuple);
 
       INT32 fsyncDiskPages(requestContext *context,
                            const GLOBAL_PAGE_ID &gpid,
@@ -144,12 +146,12 @@ class liteCache : public SDBObject
       void correctOptions(liteCacheOptions &options);
 
    private:
-      BOOLEAN _isOpen;
+      INT32 _poolNo = -1;
       liteCacheOptions _options;
-      lcBuckets *_buckets;
-      lcLRUList *_lru;
-      lcDirtyList *_dl;
-      lcFreeList *_fl;
+      lcBuckets *_buckets = NULL;
+      lcLRUList *_lru = NULL;
+      lcDirtyList *_dl = NULL;
+      lcFreeList *_fl = NULL;
 
       //UNIQUE_MUTEX _evictLRULock;
 }; /// end of class liteCache

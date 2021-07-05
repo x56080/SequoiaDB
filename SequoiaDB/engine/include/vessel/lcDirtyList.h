@@ -64,7 +64,7 @@ namespace vessel
          INT32 fini();
 
          /// under w lock
-         INT32 insert(lcPageTagHolder &holder);
+         INT32 upsert(DPS_LSN_OFFSET lsn, lcPageTagHolder &holder);
 
          /// under w lock
          INT32 remove(lcPageTagHolder &holder);
@@ -94,7 +94,7 @@ namespace vessel
          UINT32 _size;
          liteCachePageTag *_head;
          liteCachePageTag *_tail;
-         UINT64 _cachedMinDirtyLSN;
+         DPS_LSN_OFFSET _minDirtyLsn;
    };
 
 } /// end of namespace vessel

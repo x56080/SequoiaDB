@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -51,7 +48,7 @@ namespace vessel
    :_size(0),
     _head(NULL),
     _tail(NULL),
-    _cachedMinDirtyLSN(DPS_INVALID_LSN_OFFSET)
+    _minDirtyLsn(DPS_INVALID_LSN_OFFSET)
     {}
 
    lcDirtyList::~lcDirtyList()
@@ -87,46 +84,53 @@ namespace vessel
    {
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       ossScopedLock(&_latch, SHARED);
-      lsn = _cachedMinDirtyLSN;
-      if (NULL != _tail && _tail->getMinLSN() < lsn)
+      lsn = _minDirtyLsn;
+      /// no one can update min dirty lsn now.
+      /// no need to hold tag's latch.
+      if (NULL != _tail && _tail->getMinDirtyLSN() < lsn)
       {
-         lsn = _tail->getMinLSN();
+         lsn = _tail->getMinDirtyLSN();
       }
       return lsn;
    }
 
-   INT32 lcDirtyList::insert(lcPageTagHolder &holder)
+   INT32 lcDirtyList::upsert(DPS_LSN_OFFSET lsn, lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       liteCachePageTag *tag = NULL;
-      SDB_ASSERT(holder.valid(), "holder should be valid");
-      SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "tag should be under unique lock");
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
-      
-      if (OSS_UNLIKELY(!holder.valid() ||
-                        LOCK_MODE_UNIQUE != holder.getLockMode()))
+     
+      if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn ||
+                       !holder.valid()))
       {
-         PD_LOG(PDERROR, "invalid dirty list insert: %lld, %d",
-                          holder.tag(), holder.getLockMode());
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(holder.tag()->isInDirtyList()))
+      else if (OSS_UNLIKELY(ossSharedLatch::EXCLUSIVE != holder.getLockMode()))
       {
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
 
-      tag = holder.tag();
-      lsn = tag->getMinLSN();
-      if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
+      if (holder.tag()->isInDirtyList())
       {
-         PD_LOG(PDERROR, "can not insert tag with invalid lsn");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         if (tag->getMaxMemDirtyLSN() < lsn)
+         {
+            tag->setMaxMemDirtyLSN(lsn);
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "redo log might be truncated");
+            PD_LOG(PDSEVERE, "redo log might be truncated. current tag's max lsn:%lld, commit lsn:%lld",
+                   tag->getMaxMemDirtyLSN(), lsn);
+         }
+         goto done;
       }
 
-      tag->setFastFlags(LC_TAG_FAST_FLAG_DIRTY);
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == tag->getMinDirtyLSN(), "must be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET == tag->getMaxMemDirtyLSN(), "must be invalid");
+      tag->setMinAndMaxDirtyLSN(lsn);
       _latch.get();
       insertIntoSortedList(tag);
       _latch.release();
@@ -156,8 +160,9 @@ namespace vessel
       }
 
       tag = holder.tag();
-      SDB_ASSERT(!tag->isDirty(), "can not be dirty");
+      SDB_ASSERT(!tag->isMemDirty(), "can not be dirty");
 
+      tag->setMinAndMaxDirtyLSN(DPS_INVALID_LSN_OFFSET);
       _latch.get();
       locked = TRUE;
       remove(tag);
@@ -190,7 +195,7 @@ namespace vessel
          liteCachePageTag *tag = itr;
          itr = itr->getDirtyListPre();
 
-         if (minLSN < tag->getMinLSN())
+         if (minLSN < tag->getMinDirtyLSN())
          {
             break;
          }
@@ -220,14 +225,14 @@ namespace vessel
       ossScopedLock(&_latch, EXCLUSIVE);
 
       /// there should be only one flushing dirty list job at the same time
-      if (DPS_INVALID_LSN_OFFSET != _cachedMinDirtyLSN)
+      if (DPS_INVALID_LSN_OFFSET != _minDirtyLsn)
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
       if (NULL != _tail)
       {
-         _cachedMinDirtyLSN = _tail->getMinLSN();
+         _minDirtyLsn = _tail->getMinDirtyLSN();
       }
    done:
       return rc;
@@ -238,13 +243,13 @@ namespace vessel
    void lcDirtyList::removeCachedMinDirtyLSN()
    {
       ossScopedLock(&_latch, EXCLUSIVE);
-      _cachedMinDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
    }
 
    void lcDirtyList::insertIntoSortedList(liteCachePageTag *tag)
    {
       SDB_ASSERT(NULL != tag, "should be null");
-      UINT64 lsn = tag->getMinLSN();
+      UINT64 lsn = tag->getMinDirtyLSN();
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn,
                  "should not insert tag with invalid lsn");
       if (NULL != _head)
@@ -253,7 +258,7 @@ namespace vessel
          liteCachePageTag *pre = NULL;
          do
          {
-            if (lsn >= current->getMinLSN())
+            if (lsn >= current->getMinDirtyLSN())
             {
                tag->insertIntoDirtyList(pre, current);
                current->setDirtyListPre(tag);

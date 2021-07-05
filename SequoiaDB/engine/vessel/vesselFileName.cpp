@@ -37,23 +37,21 @@
 #include "ossMemPool.hpp"
 #include "utilStr.hpp"
 #include "ossLikely.hpp"
+#include "utilStr.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   vesselFileName::vesselFileName():
-   _space(INVALID_SPACE_ID),
-   _type(INVALID_FILE_TYPE),
-   _sequence(0)
-   {
-      ossMemset(_name, 0, sizeof(_name));
-   }
+   const UINT32 FILE_NAME_FORMAT_MAX_COLUMNS = 5;
+   const UINT32 FILE_NAME_FORMAT_MIN_COLUMNS = 3;
 
    vesselFileName::vesselFileName(const vesselFileName &o):
    _space(o._space),
-   _type(o._type),
-   _sequence(o._sequence)
+   _fileType(o._fileType),
+   _spaceType(o._spaceType),
+   _sequence(o._sequence),
+   _shadowSuffix(o._shadowSuffix)
    {
       ossMemcpy(_name, o._name, sizeof(_name));
    }
@@ -67,29 +65,50 @@ namespace vessel
    vesselFileName &vesselFileName::operator=(const vesselFileName &o)
    {
       _space = o._space;
-      _type = o._type;
+      _fileType = o._fileType;
+      _spaceType = o._spaceType;
       _sequence = o._sequence;
+      _shadowSuffix = o._shadowSuffix;
       ossMemcpy(_name, o._name, sizeof(_name));
       return *this;
+   }
+
+   BOOLEAN vesselFileName::operator==(const vesselFileName &o)const
+   {
+      return isValid() && o.isValid() &&
+             _space == o._space &&
+             _fileType == o._fileType &&
+             _spaceType == o._spaceType &&
+             _sequence == o._sequence &&
+             _shadowSuffix == o._shadowSuffix;
    }
 
    void vesselFileName::reset()
    {
       _space = INVALID_SPACE_ID;
-      _type = INVALID_FILE_TYPE;
+      _fileType = INVALID_FILE_TYPE;
+      _spaceType = INVALID_SPACE_TYPE;
       _sequence = 0;
+      _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
       ossMemset(_name, 0, sizeof(_name));
       return;
    }
 
-   INT32 vesselFileName::extract(const strSlice &fileName,
-                                 SPACE_ID sid)
+   BOOLEAN vesselFileName::extract(const strSlice &fileName,
+                                   BOOLEAN shadowSuffixCompatible)
    {
       BOOLEAN r = FALSE;
       std::vector<std::string> columns;
       UINT32 space = 0;
+      UINT32 maxColumnSize = FILE_NAME_FORMAT_MAX_COLUMNS;
+      if (!shadowSuffixCompatible)
+      {
+         --maxColumnSize;
+         SDB_ASSERT(FILE_NAME_FORMAT_MIN_COLUMNS <= maxColumnSize, "impossible");
+      }
+
       reset();
-      if (fileName.strLen() <= (FILE_NAME_PREFIX_LEN + 1) ||
+      if (fileName.strLen() <= FILE_NAME_PREFIX_LEN ||
           MAX_FILE_NAME_LEN < fileName.strLen())
       {
          goto done;
@@ -101,11 +120,11 @@ namespace vessel
 
       columns = utilStrSplit(fileName.str(), ".");
       if (columns.size() < FILE_NAME_FORMAT_MIN_COLUMNS ||
-          FILE_NAME_FORMAT_MAX_COLUMNS < columns.size())
+          maxColumnSize < columns.size())
       {
          goto done;
       }
-      else if (0 != columns.at(0).compare(FILE_NAME_PREFIX))
+      else if (!parseDirName(strSlice(columns.at(0).c_str(), columns.at(0).size()), &_space))
       {
          goto done;
       }
@@ -113,36 +132,57 @@ namespace vessel
       {
          goto done;
       }
-      else if (!parseFileSuffix(columns.at(2).c_str(), _type))
+      else if (!parseFileType(columns.at(2).c_str(), _fileType, NULL))
       {
          goto done;
       }
-      else if ((FILE_NAME_FORMAT_MIN_COLUMNS + 1) == columns.size())
+      
+      _sequence = ossAtoll(columns.at(1).c_str());
+      ossMemcpy(_name, fileName.str(), fileName.strLen());
+
+      if (FILE_NAME_FORMAT_MIN_COLUMNS == columns.size())
       {
-         if (utilStrIsDigit(columns.at(3).c_str()))
-         {
-            _sequence = ossAtoll(columns.at(3).c_str());
-         }
-         else
+         r = TRUE;
+      }
+      else if (FILE_NAME_FORMAT_MAX_COLUMNS == columns.size())
+      {
+         if (!parseSpaceType(columns.at(3).c_str(), _spaceType, NULL))
          {
             goto done;
          }
-      }
 
-      space = ossAtoi(columns.at(1).c_str());
-      if (MAX_SPACE_ID < space)
-      {
-         goto done;
+         SDB_ASSERT(shadowSuffixCompatible, "must be compatible");
+         _shadowSuffix = ::engine::vessel::getShadowSuffixType(columns.at(4).c_str());
+         if (INVALID_FILE_SHADOW_SUFFIX == _shadowSuffix)
+         {
+            goto done;
+         }
+         r = TRUE;
       }
-      else if (INVALID_SPACE_ID != sid &&
-               space != (UINT32)(sid))
+      else /// 4 == columns.size()
       {
-         goto done;
-      }
-      _space = (SPACE_ID)space;
+         SPACE_TYPE st = INVALID_SPACE_TYPE;
 
-      ossMemcpy(_name, fileName.str(), fileName.strLen());
-      r = TRUE;
+         if (parseSpaceType(columns.at(3).c_str(), st, NULL))
+         {
+            _spaceType = st;
+            r = TRUE;
+            goto done;
+         }
+
+         if (!shadowSuffixCompatible)
+         {
+            goto done;
+         }
+         /// if the 4th column is not cluster, it must be valid shadow suffix.
+         _shadowSuffix = ::engine::vessel::getShadowSuffixType(columns.at(3).c_str());
+         if (INVALID_FILE_SHADOW_SUFFIX == _shadowSuffix)
+         {
+            goto done;
+         }
+
+         r = TRUE;
+      }
 
    done:
       if (!r)
@@ -153,58 +193,99 @@ namespace vessel
    }
 
    BOOLEAN vesselFileName::build(SPACE_ID sid,
-                                 FILE_TYPE type)
+                                 FILE_TYPE fileType,
+                                 SPACE_TYPE spaceType,
+                                 UINT64 sequence,
+                                 UINT32 shadowSuffix)
    {
       BOOLEAN r = FALSE;
+      fileDescriptor fd;
+      spaceTypeDescriptor sd;
+      INT32 size = 0;
+
       reset();
-      const CHAR *suffix = NULL;
-      if (OSS_UNLIKELY(FILE_TYPE_SUFFIX_ARR_SIZE <= type))
+      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+                       MAX_SPACE_ID < sid))
       {
          goto done;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                            MAX_SPACE_ID < sid))
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == fileType))
       {
          goto done;
       }
 
-      suffix = FILE_TYPE_SUFFIX_ARRAY[type];
-      ossSnprintf(_name, MAX_FILE_NAME_LEN + 1, "%s.%d.%s",
-                  FILE_NAME_PREFIX, sid, suffix);
+      if (OSS_UNLIKELY(!getFileDescriptor(fileType, fd)))
+      {
+         PD_LOG(PDERROR, "failed to get file descriptor of type[%d]", fileType);
+         goto done;
+      }
+
+      if (INVALID_SPACE_TYPE != spaceType)
+      {
+         if (OSS_UNLIKELY(!getSpaceTypeDescriptor(spaceType, sd)))
+         {
+            PD_LOG(PDERROR, "failed to get space descriptor of type[%d]", spaceType);
+            goto done;
+         }
+      }
+
+      size = ossSnprintf(_name, MAX_FILE_NAME_LEN + 1, "%s%d.%lld.%s",
+                         FILE_NAME_PREFIX, sid, sequence, fd.getSuffix());
+      SDB_ASSERT(0 < size, "impossible");
+
+      if (INVALID_SPACE_TYPE != spaceType)
+      {
+         INT32 tmpSize = 0;
+         tmpSize = ossSnprintf(_name + size, MAX_FILE_NAME_LEN + 1 - size,
+                               ".%s", sd.getSuffix());
+         SDB_ASSERT(0 < tmpSize, "impossible");
+         size += tmpSize;
+      }
+
+      if (INVALID_FILE_SHADOW_SUFFIX != shadowSuffix)
+      {
+         INT32 tmpSize = 0;
+         strSlice s;
+         if (!::engine::vessel::getShadowSuffix(shadowSuffix, s))
+         {
+            goto done;
+         }
+         tmpSize = ossSnprintf(_name + size, MAX_FILE_NAME_LEN + 1 - size,
+                               ".%s", s.str());
+         SDB_ASSERT(0 < tmpSize, "impossible");
+         size += tmpSize;
+      }
       _space = sid;
-      _type = type;
-      _sequence = 0;
+      _fileType = fileType;
+      _spaceType = spaceType;
+      _sequence = sequence;
+      _shadowSuffix = shadowSuffix;
       r = TRUE;
    done:
+      if (!r)
+      {
+         reset();
+      }
       return r;
    }
 
-   BOOLEAN vesselFileName::build(SPACE_ID sid,
-                                 FILE_TYPE type,
-                                 UINT64 sequence)
+   void vesselFileName::rebuildWithOutShadowSuffix()
    {
       BOOLEAN r = FALSE;
-      reset();
-      const CHAR *suffix = NULL;
-      if (OSS_UNLIKELY(FILE_TYPE_SUFFIX_ARR_SIZE <= type))
+      if (!isValid())
       {
          goto done;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                            MAX_SPACE_ID < sid))
+      else if (!hasShadowSuffix())
       {
          goto done;
       }
 
-      suffix = FILE_TYPE_SUFFIX_ARRAY[type];
-      ossSnprintf(_name, MAX_FILE_NAME_LEN + 1, "%s.%d.%s.%lld",
-                  FILE_NAME_PREFIX, sid, suffix, sequence);
-      _space = sid;
-      _type = type;
-      _sequence = sequence;
-      r = TRUE;
+      r = build(_space, _fileType, _spaceType, _sequence);
+      SDB_ASSERT(r, "must be ok");
+
    done:
-      return r;
+      return;
    }
 
    BOOLEAN vesselFileName::buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf)
@@ -222,7 +303,7 @@ namespace vessel
       }
 
       ossMemset(buf, 0, MAX_SPACE_DIR_LEN + 1);
-      ossSnprintf(buf, MAX_SPACE_DIR_LEN + 1, "%s_%d",
+      ossSnprintf(buf, MAX_SPACE_DIR_LEN + 1, "%s%d",
                    FILE_NAME_PREFIX, sid);
       r = TRUE;
    done:
@@ -234,7 +315,7 @@ namespace vessel
       BOOLEAN r = FALSE;
       UINT32 digit = 0;
       /// _vessel_<space id>
-      if (dirName.strLen() < (FILE_NAME_PREFIX_LEN + 2))
+      if (dirName.strLen() <= FILE_NAME_PREFIX_LEN)
       {
          goto done;
       }
@@ -242,12 +323,12 @@ namespace vessel
       {
          goto done;
       }
-      else if (!utilStrIsDigit(dirName.str() + FILE_NAME_PREFIX_LEN + 1))
+      else if (!utilStrIsDigit(dirName.str() + FILE_NAME_PREFIX_LEN))
       {
          goto done;
       }
 
-      digit = ossAtoi(dirName.str() + FILE_NAME_PREFIX_LEN + 1);
+      digit = ossAtoi(dirName.str() + FILE_NAME_PREFIX_LEN);
       if (MAX_SPACE_ID < digit)
       {
          goto done;
@@ -258,6 +339,37 @@ namespace vessel
       {
          *sid = (SPACE_ID)digit;
       }
+   done:
+      return r;
+   }
+
+   BOOLEAN vesselFileName::buildSimpleName(SPACE_ID sid,
+                                           const strSlice &suffix,
+                                           UINT32 bufferSize,
+                                           CHAR *buffer)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 minBufSize = 0;
+
+      if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
+                       MAX_SPACE_ID < sid ||
+                       suffix.empty() ||
+                       NULL == buffer))
+      {
+         goto done;
+      }
+      
+      /// prefix size + sid size(always according to max size) + suffix len + '.' + '\0'
+      minBufSize = FILE_NAME_PREFIX_LEN + suffix.strLen() + 7;
+      if (bufferSize < minBufSize)
+      {
+         goto done;
+      }
+
+      ossSnprintf(buffer, bufferSize, "%s%d.%s",
+                  FILE_NAME_PREFIX, sid, suffix.str());
+
+      r = TRUE;
    done:
       return r;
    }

@@ -39,15 +39,28 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/pageDef.h"
 #include "vessel/vesselFileDef.h"
-#include "vessel/inMemBitMap.h"
+#include "vessel/inMemBitmap.h"
 #include "ossLatch.hpp"
 #include "vessel/slice.h"
+#include "vessel/storageUnitDef.h"
+#include "vessel/vesselFileName.h"
+#include "vessel/runtimePageBuffer.h"
+#include "vessel/storageFileMap.h"
+#include "vessel/deltaLogConsole.h"
+#include "vessel/storageFileCreater.h"
+#include "vessel/logicalPageIdCache.h"
+#include "vessel/lpsCheckpointContext.h"
+#include "vessel/storageFileLoader.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class storageUnit;
+   class idMapFile;
+   class atomicOperationList;
+   class pageInitializer;
+   class dataPageCluster;
 
    class logicalPageSpace : public SDBObject
    {
@@ -58,156 +71,213 @@ namespace vessel
          logicalPageSpace &operator=(const logicalPageSpace &) = delete;
 
       public:
-         OSS_INLINE storageUnit *getSU()
+         OSS_INLINE BOOLEAN isOpen()const
          {
-            return _su;
+            return _creater.isValid();
          }
-         OSS_INLINE const storageUnit *getSU()const
+         OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _su;
+            return _creater.getSpaceID();
          }
 
+         static constexpr UINT32 MAX_LPID_COUNT = ID_MAP_PAGE_CAPACITY * ID_MAP_FILE_MAX_PAGE_COUNT;
       public:
-         BOOLEAN isOpen()const;
-         SPACE_ID getSpaceID()const;
-         INT32 getDataPageSize(UINT32 &pageSize)const;
-         INT32 getMetaPageSize(UINT32 &pageSize)const;
+         virtual void close();
+         virtual void destroy();
+         virtual SPACE_TYPE getSpaceType()const = 0;
 
       public:
-         
+
+         INT32 create(requestContext *context,
+                      const createLogicalPageSpaceOptions &o);
+
          INT32 open(requestContext *context,
-                    storageUnit *su);
-         void close();
+                    SPACE_ID sid,
+                    const CHAR *dirPath);
 
-         INT32 preallocatePages(requestContext *context,
-                                UINT32 count,
-                                PAGE_ID *lpids,
-                                PAGE_ID *pids);
+         INT32 getLogicalPageBuffer(requestContext *context,
+                                    PAGE_ID lpid,
+                                    ossSharedLatch::mode mode,
+                                    logicalPageBuffer &lpb);
 
-         void releasePagesPreallocated(requestContext *context,
-                                       UINT32 count,
-                                       PAGE_ID *lpids,
-                                       PAGE_ID *pids);
+         /// Make buffer from "getLogicalPageBuffer" writable.
+         /// Buffer with shared locking can not be writable.
+         INT32 makeBufferWritable(requestContext *context,
+                                  logicalPageBuffer &lpb);
 
-         INT32 preallocatePhysicalPids(requestContext *context,
-                                       UINT32 count,
-                                       PAGE_ID *pids);
+         /// lpid must be in reserved imp.
+         /// Page will be created if lpid unmapped and initer is valid.
+         /// Will always get upgrade lock first.
+         /// If just want to read a reserved page ,jsut use "getLogicalPageBuffer".
+         INT32 ensureReservedPage(requestContext *context,
+                                  PAGE_ID lpid,
+                                  pageInitializer *initer,
+                                  logicalPageBuffer &lpb);
 
-         void releasePhysicalPidsPreallocated(requestContext *context,
-                                              UINT32 count,
-                                              const PAGE_ID *pids);
+         INT32 allocatePages(requestContext *context,
+                             const pageInitializer *initer,
+                             UINT32 count,
+                             PAGE_ID *lpids);
 
+         INT32 releasePages(requestContext *context,
+                            UINT32 count,
+                            const PAGE_ID *lpids, 
+                            atomicOperationList *oplist);
       public:
-         /// allocate physical pids and map them to logical pids on disk.
-         /// both pids and lpids should be preallocated first.
-         virtual INT32 allocatePages(requestContext *context,
-                                     PAGE_TYPE pageType,
-                                     UINT32 count,
-                                     const PAGE_ID *lpids,
-                                     const PAGE_ID *pids,
-                                     const slice &args,
-                                     DPS_LSN_OFFSET *oplist) = 0;
 
-         /// releasePages should also release lpids in memory.
-         /// Physical pids' releasing depends on snapshot version.
-         /// If physical pid can be recycled, it will be released
-         /// in memory also.
-         /// In another word, you do not need to care about "releaseXXPrealloated"
-         /// any more if releasePages returns ok.
-         /// But if it returns error and you are rollbacking oplist, remember to
-         /// abort oplist by logger's abortOplist.
-         virtual INT32 releasePages(requestContext *context,
-                                    UINT32 count,
-                                    const PAGE_ID *lpids,
-                                    DPS_LSN_OFFSET oplist) = 0;
+         INT32 getStorageCoreArgs(FILE_TYPE type, storageCoreArgs &args)const;
 
-         /// pages only preallocated not included. 
-         virtual INT32 getPhysicalPid(requestContext *context,
-                                      PAGE_ID lpid,
-                                      PAGE_ID &pid,
-                                      SNAPSHOT_ID *snap) = 0;
-
-         /// The query on imp should be excuted automatically
-         /// if oldPid is invalid.
-         virtual INT32 copyOnWirte(requestContext *context,
-                                   PAGE_ID lpid,
-                                   PAGE_ID oldPid,
-                                   PAGE_ID &newPid,
-                                   SNAPSHOT_ID *snap) = 0;
-
-         /// copyOnWirte first if necessary and then return.
-         virtual INT32 getPhysicalPidToWrite(requestContext *context,
-                                             PAGE_ID lpid,
-                                             PAGE_ID &pid,
-                                             SNAPSHOT_ID *snap) = 0;
+         INT32 blockCheckpoint(requestContext *context);
+         INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
+  
       protected:
-         PAGE_ID getImpPidOfLpid(PAGE_ID lpid)const;
-         PAGE_ID getSMPPIdOfImp(PAGE_ID pid)const;
+         OSS_INLINE const storageFileCreater &getCreater()const
+         {
+            return _creater;
+         }
+
+         INT32 preallocate(requestContext *context,
+                           UINT32 count,
+                           PAGE_ID *lpids,
+                           PAGE_ID *pids);
+
+         void releasePreallocated(requestContext *context,
+                                  UINT32 count,
+                                  const PAGE_ID *lpids,
+                                  const PAGE_ID *pids);
+
+         INT32 validateLpidBeforeGet(PAGE_ID lpid)const;
+
+         BOOLEAN isReservedLpid(PAGE_ID lpid)const;
 
       protected:
-         INT32 preallocateLogicalPids(requestContext *context,
-                                      UINT32 count,
-                                      PAGE_ID *lpids);
-         void releaseLogicalPidsPreallocated(requestContext *context,
-                                             UINT32 count,
-                                             const PAGE_ID *lpids);
+         class _runtimePageBufferIniter : public SDBObject
+         {
+            public:
+               _runtimePageBufferIniter(){}
+               ~_runtimePageBufferIniter(){}
+            
+            public:
+               INT32 initWithLiteCache(requestContext *context,
+                                       const GLOBAL_PAGE_ID &gpid,
+                                       ossSharedLatch::mode mode,
+                                       const runtimePageBuffer::options &options,
+                                       UINT32 pageSize,
+                                       runtimePageBuffer &rpb);
 
-         /// extending will not be perfermed
-         /// if pageInPoolBeforeExtending is lower than current count.
-         INT32 extendLogicalPidSpace(requestContext *context,
-                                     const UINT32 *pageInPoolBeforeExtending);
-
-         INT32 extendPhysicalPidSpace(requestContext *context,
-                                      const UINT32 *pageInPoolBeforeExtending);
-
-         INT32 mapImpPageToBitmap(requestContext *context,
-                                  UINT32 impPageSize,
-                                  UINT32 impCapacity,
-                                  PAGE_ID impPid,
-                                  FILE_TYPE type,
-                                  storageUnit *su,
-                                  inMemBitMap &bitmap);
-
-         INT32 mapSMPPageToBitmap(requestContext *context,
-                                  UINT32 pageSize,
-                                  UINT32 capacity,
-                                  PAGE_ID pid,
-                                  FILE_TYPE type,
-                                  storageUnit *su,
-                                  inMemBitMap &bitmap);
+               INT32 initWithMmap(requestContext *context,
+                                 const GLOBAL_PAGE_ID &gpid,
+                                 const runtimePageBuffer::options &options,
+                                 UINT32 pageSize,
+                                 const mmapPagePointer &ptr,
+                                 runtimePageBuffer &rpb);
+         };//class _runtimePageBufferIniter
 
       private:
-         INT32 initInMemPpidPoolFromDisk(requestContext *context);
-         INT32 initInMemLpidPoolFromDisk(requestContext *context);
-
-      private:
-         /// The format of meta file should always be:
-         /// | smp * n | system pages | reserved id map pages | id map pages|
-         virtual UINT32 getSystemPageCount()const = 0;
          virtual UINT32 getReservedImpCount()const = 0;
-         virtual FILE_TYPE getTypeOfMetaFile()const = 0;
-         virtual FILE_TYPE getTypeOfDataFile()const = 0;
-         virtual UINT32 getFreeBoundOfLpidPool()const = 0;
-         virtual UINT32 getFreeBoundOfPpidPool()const = 0;
+         virtual UINT32 getFreeBoundOfPageStorage()const = 0;
+         virtual UINT32 getFreeBoundOfLpidAllocator()const = 0;
+
+         virtual UINT32 getIdMapFileHeadFlags()const = 0;
+         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
+         virtual BOOLEAN isStandardPage()const{return TRUE;}
+         
+
+      private:/// for data storage.
+         virtual dataPageCluster *allocateStorageObject();
+         virtual INT32 getRuntimePageBuffer(requestContext *context,
+                                            PAGE_ID pid,
+                                            ossSharedLatch::mode mode,
+                                            const runtimePageBuffer::options &o,
+                                            runtimePageBuffer &rpb) = 0;
+
+      private:/// for openning/creating
+         virtual INT32 _create(requestContext *context){return SDB_OK;}
+         virtual INT32 _open(requestContext *context){return SDB_OK;}
+
       private:
-         virtual INT32 allocateIdMapPagesOnDisk(requestContext *context,
-                                                PAGE_ID first,
-                                                UINT32 count) = 0;
+         void _close();
+         void _destroy();
+         INT32 createFirstIdMapFile();
+         INT32 openIdMapFiles(SPACE_ID sid,
+                              const strSlice &dir,
+                              const storageFileLoader &loader);
 
-         virtual INT32 createDataFile(requestContext *context,
-                                      UINT64 sequence) = 0;
+         INT32 validateIdMapFileMap();
 
-         virtual UINT32 getDataFileCount() = 0;
-         virtual INT32 getDataSMPOfFile(UINT32 sequence, UINT32 i, PAGE_ID &pid) = 0;
+         INT32 restoreAllocatorByBaseFile(const idMapFile *base);
+         INT32 restoreAllocatorByReservedImp(const idMapFile *base, PAGE_ID pid);
+         INT32 restoreAllocatorByImp(const idMapFile *base, PAGE_ID pid);
 
       private:
-         ossSpinXLatch _extendingLatch;
-         storageUnit *_su = NULL;
-         inMemBitMap _lpidPool;
-         UINT32 _pageCountInMeta = 0;
-         inMemBitMap _ppidPool;
-         UINT32 _dataFileCount = 0;
-      
+         INT32 preallocateLpids(requestContext *context,
+                                UINT32 count,
+                                PAGE_ID *lpids);
+         void releaseLpidsPreallocated(requestContext *context,
+                                       UINT32 count,
+                                       const PAGE_ID *lpids);
+
+         
+
+         INT32 remapBufferToNewDataPage(requestContext *context,
+                                        BOOLEAN releaseOld,
+                                        logicalPageBuffer &lpb);
+
+         INT32 ensureLogicalPidSpace(PAGE_ID lpid);
+
+         INT32 createPageAndCompleteBuffer(requestContext *context,
+                                           pageInitializer *initer,
+                                           logicalPageBuffer &lpb);
+
+      private:
+         virtual INT32 map(requestContext *context,
+                           PAGE_SNAPSHOT_VERION psv,
+                           UINT32 count,
+                           const PAGE_ID *lpids,
+                           const PAGE_ID *pids) = 0;
+
+         INT32 remap(requestContext *context,
+                     PAGE_SNAPSHOT_VERION psv,
+                     UINT32 count,
+                     const PAGE_ID *lpids,
+                     const PAGE_ID *newPids,
+                     const PAGE_ID *oldPids,
+                     BOOLEAN releaseOld);
+
+         INT32 unmap(requestContext *context,
+                     UINT32 count,
+                     const PAGE_ID *lpids,
+                     const PAGE_ID *pids,
+                     BOOLEAN releaseOld);
+
+         INT32 replicatedRemmap(requestContext *context,
+                                PAGE_SNAPSHOT_VERION psv,
+                                UINT32 count,
+                                const PAGE_ID *lpids,
+                                const PAGE_ID *newPids,
+                                const PAGE_ID *oldPids,
+                                DPS_LSN_OFFSET *lsn);
+
+      private:
+         INT32 replayDeltaLogWhenOpen(UINT64 beginOffset);
+         INT32 replayLogRecord(const deltaLogRecord &dlr);
+         INT32 replayMappingLogRecord(const deltaLogRecord &dlr);
+         INT32 replayRemappingLogRecord(const deltaLogRecord &dlr);
+         INT32 replayUnmappingLogRecord(const deltaLogRecord &dlr);
+         INT32 replayReleasingLogRecord(const deltaLogRecord &dlr);
+
+      private:
+         storageFileCreater _creater;
+         storageFileMap _idMapFiles;
+         inMemBitmap _allocator;
+         ossSpinXLatch _mappingLatch;
+         deltaLogConsole _logConsole;
+         logicalPageIdCache _lpidCache;
+
+         dataPageCluster *_dpc = NULL;
+
+         
+         lpsCheckpointContext _checkpointContext;
    };//class logicalPageSpace
 }//namespace vessel
 }//namespace engine

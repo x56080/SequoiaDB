@@ -201,6 +201,7 @@ typedef UINT32 OBJIDX ;
 #define ossIsAlignedNative(x) (0==(((ossValuePtr)(x))&(sizeof(void*)-1)))
 #define ossIsAligned4(x) (0==(((ossValuePtr)(x))&(4-1)))
 #define ossIsAligned8(x) (0==(((ossValuePtr)(x))&(8-1)))
+#define ossIsAligned64(x) (0==(((ossValuePtr)(x))&(63)))
 
 #define ossEndianConvert1(in,out)        \
 do {                                     \

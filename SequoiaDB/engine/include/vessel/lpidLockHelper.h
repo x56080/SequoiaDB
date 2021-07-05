@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -40,21 +37,17 @@
 #define VESSEL_LPID_LOCK_HELPER_H_
 
 #include "ossLatch.hpp"
-#include "vessel/requestContext.h"
 #include "vessel/vesselFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class requestContext;
    class lpidLockHelper : public SDBObject
    {
       public:
-         OSS_INLINE lpidLockHelper():
-         _context(NULL),
-         _type(INVALID_FILE_TYPE),
-         _lpid(INVALID_PAGE_ID),
-         _mode(SHARED)
+         OSS_INLINE lpidLockHelper()
          {}
 
          OSS_INLINE ~lpidLockHelper()
@@ -63,84 +56,35 @@ namespace vessel
          }
 
       public:
-         OSS_INLINE INT32 lock(requestContext *context,
-                               FILE_TYPE type,
-                               PAGE_ID lpid,
-                               OSS_LATCH_MODE mode)
+         OSS_INLINE PAGE_ID getLpid()const
          {
-            INT32 rc = SDB_OK;
-            if (OSS_UNLIKELY(NULL == context))
-            {
-               rc = SDB_INVALIDARG;
-               goto error;
-            }
-            else if (OSS_UNLIKELY(NULL != _context))
-            {
-               rc = SDB_INVALIDARG;
-               goto error;
-            }
-
-            rc = context->lockLpid(type, lpid, mode);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-
-            _context = context;
-            _type = type;
-            _lpid = lpid;
-            _mode = mode;
-         done:
-            return rc;
-         error:
-            goto done;
+            return _lpid;
          }
 
-         OSS_INLINE INT32 unlock()
-         {
-            INT32 rc = SDB_OK;
-            if (NULL == _context)
-            {
-               rc = SDB_INVALIDARG;
-               goto error;
-            }
+         INT32 lock(requestContext *context,
+                  SPACE_TYPE type,
+                  PAGE_ID lpid,
+                  ossSharedLatch::mode mode);
 
-            rc = _context->unlockLpid(_type, _lpid);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         done:
-            if (NULL != _context)
-            {
-               _context = NULL;
-               _type = INVALID_FILE_TYPE;
-               _lpid = INVALID_PAGE_ID;
-               _mode = SHARED;
-            }
-            return rc;
-         error:
-            goto done;
+         void unlock();
+
+         INT32 unlockUpgradeAndLock();
+
+         OSS_INLINE BOOLEAN isLocked()const
+         {
+            return ossSharedLatch::NONE != _mode;
          }
 
-         OSS_INLINE BOOLEAN isLocked(OSS_LATCH_MODE *mode=NULL)const
+         OSS_INLINE ossSharedLatch::mode getLockMode()
          {
-            if (NULL != _context)
-            {
-               if (NULL != mode)
-               {
-                  *mode = _mode;
-               }
-               return TRUE;
-            }
-            return FALSE;
+            return _mode;
          }
 
       private:
-         requestContext *_context;
-         FILE_TYPE _type;
-         PAGE_ID _lpid;
-         OSS_LATCH_MODE _mode;
+         requestContext *_context = NULL;
+         SPACE_TYPE _type = INVALID_SPACE_TYPE;
+         PAGE_ID _lpid = INVALID_PAGE_ID;
+         ossSharedLatch::mode _mode = ossSharedLatch::NONE;
    };//class lpidLockHelper
 }//namespace vessel
 }//namespace engine

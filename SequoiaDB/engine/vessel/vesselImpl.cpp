@@ -98,13 +98,30 @@ namespace vessel
       }
 
       _env.options = options;
-      rc = _env.spaceLocker.init(MAX_SPACE_COUNT);
+      rc = _env.spaceLocker.init();
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _env.cache.init(DMS_PAGE_SIZE32K, options.cacheOptions);
+      rc = _env._lpidLatchMap.init(options.lpidLatchMapBucketCount,
+                                   options.lpidLatchMapLatchCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lpid latch map:%d", rc);
+         goto error;
+      }
+
+      rc = _env._ridLatchMap.init(options.ridLatchMapBucketCount,
+                                  options.ridLatchMapLatchCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rid latch map:%d", rc);
+         goto error;
+      }
+
+
+      rc = _env.cacheConsole.init32KBCache(options.cacheOptions);
       if (SDB_OK != rc)
       {
          goto error;
@@ -691,11 +708,15 @@ namespace vessel
 
    void vesselImpl::close()
    {
-      _env.cache.fini();
+      _env.checkpointer.fini();
+      _env.cacheConsole.fini();
       _env.csContainer.close();
+      _env.sc.close();
+      _env._lpidLatchMap.fini();
+      _env._ridLatchMap.fini();
       _env.spaceLocker.fini();
       _env.options = openDBOptions();
-      _open = FALSE;
+      
       return;
    }
 

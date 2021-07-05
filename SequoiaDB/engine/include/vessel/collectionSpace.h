@@ -140,7 +140,6 @@ namespace vessel
                         utilCLInnerID clInnerId,
                         const createCLOptions &options);
       public:
-         SPACE_ID getSpaceID()const;
 
          UINT32 getCollectionCount();
 

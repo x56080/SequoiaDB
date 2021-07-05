@@ -1,0 +1,130 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = atomicOperationList.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#include "vessel/atomicOperationList.h"
+#include "vessel/requestContext.h"
+#include "vessel/outerResource.h"
+#include "ossLikely.hpp"
+#include "IRedoLogger.h"
+
+namespace engine
+{
+namespace vessel
+{
+   atomicOperationList::atomicOperationList()
+   {}
+
+   atomicOperationList::~atomicOperationList()
+   {
+      fini();
+   }
+
+   void atomicOperationList::fini()
+   {
+      _list.clear();
+      _waitingTail = FALSE;
+      _nomorePushing = FALSE;
+      return;
+   }
+
+   DPS_LSN_OFFSET atomicOperationList::getOplistLsn()const
+   {
+      return isEmpty() ? DPS_INVALID_LSN_OFFSET : _list.front();
+   }
+
+   void atomicOperationList::abort(requestContext *context)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      DPS_LSN_OFFSET lsn = getOplistLsn();
+      if (DPS_INVALID_LSN_OFFSET != lsn)
+      {
+         IRedoLogger *logger = context->getOuterResource()->logger;
+         logger->abortOplist(context->getSession(), lsn);
+      }
+      fini();
+      return;
+   }
+
+   INT32 atomicOperationList::push(DPS_LSN_OFFSET lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      
+      if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
+      {
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isReadonly())
+      {
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      _list.push_back(lsn);
+
+      if (isWatingHead())
+      {
+         _nomorePushing = TRUE;
+         _waitingTail = FALSE;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   DPS_LSN_OFFSET atomicOperationList::getLastLsn()const
+   {
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      if (!_list.empty())
+      {
+         lsn = _list.back();
+      }
+      return lsn;
+   }
+
+   void atomicOperationList::setWaitingTail()
+   {
+      SDB_ASSERT(!isWatingHead(), "impossible");
+      SDB_ASSERT(!isReadonly(), "impossible");
+      _waitingTail = TRUE;
+      return;
+   }
+
+}//namespace vessel
+}//namespace engine

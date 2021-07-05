@@ -41,7 +41,6 @@
 #include "utilUniqueID.hpp"
 #include "vessel/vesselOptions.h"
 #include "ossMemPool.hpp"
-#include "vessel/objectSlots.h"
 
 namespace engine
 {
@@ -100,11 +99,6 @@ namespace vessel
          INT32 getCSByLockedSpaceID(requestContext *context,
                                     UINT32 logicalID,
                                     collectionSpace **obj);
-
-         /// WRANING: you need to make sure that su has been created and will not be deleted.
-         INT32 getStorageUnit(SPACE_ID sid,
-                              storageUnit **su);
-
       private:
          void fini();
          void finiOpenCS();
@@ -203,7 +197,6 @@ namespace vessel
 
          typedef ossPoolMap<ossPoolString, _LID_SID_PAIR> NAME_INDEX;
          typedef ossPoolMap<utilCSUniqueID, _LID_SID_PAIR> UID_INDEX;
-         typedef ossPoolList<SPACE_ID> _SPACE_ID_POOL;
 
          enum _CONTAINER_STATUS
          {
@@ -230,8 +223,6 @@ namespace vessel
          ossSpinSLatch _latch;
          _CONTAINER_STATUS _status = CLOSED;
          UINT32 _nextLogicalID = VESSEL_MIN_CS_LID;
-         _SPACE_ID_POOL _freeStorageUnits;
-         objectSlots<storageUnit> _storageUnits;
          objectSlots<collectionSpace> _collectionSpaces;
          NAME_INDEX _nameIndex;
          UID_INDEX _uidIndex;

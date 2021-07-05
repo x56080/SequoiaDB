@@ -39,24 +39,20 @@
 #include "dms.hpp"
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
-#include "vessel/extentStorageFile.h"
+#include "vessel/storageFile.h"
 #include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/strSlice.h"
+#include "vessel/mainDataSpace.h"
+#include "vessel/mmapPagePointer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class dataExtentIDMapFile;
-   class dataExtentFile;
    class requestContext;
-   class fsmFile;
-   class deltaLogFile;
-   class idxIDMapFile;
-   class idxDataFile;
-   class idxMBackupFile;
+   class logicalPageSpace;
 
    class storageUnit : public SDBObject
    {
@@ -69,176 +65,62 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _isOpen;
+            return INVALID_SPACE_ID != _sid;
          }
-         OSS_INLINE const CHAR *getDirName()const
+         OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _dirName;
-         }
-
-      public:
-         SPACE_ID getSpaceID()const;
-         UINT32 getLogicalID()const;
-         UINT32 getMetaSegmentCount()const;
-         INT32 getPagePtr(FILE_TYPE type,
-                          PAGE_ID id,
-                          ossValuePtr &ptr);
-         INT32 getCoreArgs(FILE_TYPE type,
-                           UINT32 *pageSize = NULL,
-                           UINT32 *maxPageCountPerSeg = NULL,
-                           UINT32 *maxSegCountPerFile = NULL)const;
-         INT32 fsync(FILE_TYPE type,
-                     PAGE_ID pid,
-                     UINT32 count,
-                     BOOLEAN sync=TRUE);
-
-         INT32 fsync(FILE_TYPE,
-                     UINT32 count,
-                     const PAGE_ID *pids,
-                     BOOLEAN sync=TRUE);
-
-         INT32 getMaxPageCountInDDFile(UINT32 &count)const;
-
-         UINT32 getDataFileCount();
-
-         void dumpIDMapFileHead(dataIDMapFileHead &head);
-
-         OSS_INLINE fsmFile *getFsmFilePtr()
-         {
-            return _fsm;
+            return _sid;
          }
 
       public:
          INT32 create(requestContext *context,
                       const createSUOptions &options);
 
-         void destroy(requestContext *context);
-
          INT32 open(requestContext *context,
-                    const strSlice &dirName);
+                    SPACE_ID sid);
+
+         void destroy(requestContext *context);
                     
          void close();
 
       public:
-         INT32 extendMetaFile(requestContext *context,
-                              const UINT32 *segmentCount=NULL);
+         INT32 getMmapPagePointer(SPACE_TYPE spaceType,
+                                  FILE_TYPE fileType,
+                                  PAGE_ID pid,
+                                  mmapPagePointer &ptr)const;
 
-         INT32 createNewDataFile(requestContext *context,
-                                 UINT64 sequence=STORAGE_FILE_INVALID_SEQUENCE);
-
-         /// file must exist first.
-         INT32 ensureDataFileSpace(requestContext *context,
-                                   PAGE_ID pid);
-
-         /// WARNING: you should use this interface when init smp failed.
-         INT32 removeLastDataFile(requestContext *context);
-
-         INT32 ensureCSNameFile(requestContext *context,
-                                const strSlice &csName);
-
-         INT32 ensureFsmFile(requestContext *context, fsmFile **out);
-
-      public:
-         idxIDMapFile *getIdxMetaFile()
-         {
-            return _idxMeta;
-         }
-         idxMBackupFile *getIdxMBackupFile()
-         {
-            return _idxMBackup;
-         }
-         INT32 destroyIdxMBackupFile();
-         void clearFilesOfCowSUWhenRestore();
+         INT32 getCoreArgs(SPACE_TYPE spaceType,
+                           FILE_TYPE fileType,
+                           storageCoreArgs &args);
 
       private:
-         void destoryIdxMetaFile();
+         INT32 createMainDataSpace(requestContext *context,
+                                   const storagePathOptions &path,
+                                   const strSlice &subDir,
+                                   const createSUOptions &options);
 
-      private:
-         BOOLEAN validateSUOptions(const createSUOptions &options);
+
+         INT32 openMainDataSpace(requestContext *context,
+                                 const std::string &dir,
+                                 const strSlice &subDir,
+                                 SPACE_ID sid);
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
-                                         const strSlice &dir);
+                                         const strSlice &dir)const;
          INT32 testAllDirsBeforeOpenning(const storagePathOptions &path,
-                                         const strSlice &dirName,
-                                         BOOLEAN &impossibleCrashed);
+                                         const strSlice &dir)const;
+
          INT32 testDir(const CHAR *fullPath,
                        UINT32 &subCount);
          INT32 createAllDirs(const storagePathOptions &path,
                              const strSlice &dir);
-         INT32 removeDir(const CHAR *fullPath, BOOLEAN mustBeEmpty);
+
          INT32 removeAllDirs(const storagePathOptions &path,
-                             const CHAR *dir,
-                             BOOLEAN mustBeEmpty);
-         INT32 createNecessaryFiles(requestContext *context,
-                                    const createSUOptions &options);
-         
-         INT32 createMetaFile(requestContext *context,
-                              const createSUOptions &options);
-
-         INT32 openOtherFilesUnderPath(const CHAR *path,
-                                       const strSlice &dirName);
-         
-
-         INT32 getDataFile(UINT32 fileSequence, dataExtentFile **file);
-
-         INT32 crossCheckFilesWhenOpenning();
-
-         INT32 removeCSNameFile(const strSlice &dataPath);
-
+                             const strSlice &dir);
       private:
-         INT32 extendDataFile(requestContext *context,
-                              UINT32 sequence,
-                              UINT32 minSegCount);
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         mainDataSpace _mds;
 
-         INT32 fsyncDataPages(PAGE_ID pid, UINT32 count);
-
-      private:
-         INT32 openFile(const strSlice &fullPath,
-                        const vesselFileName &fn);
-         INT32 openMetaFile(const strSlice &fullPath,
-                            const vesselFileName &fn);
-         INT32 openDataFile(const strSlice &fullPath,
-                            const vesselFileName &fn);
-         INT32 openIdxMFile(const strSlice &fullPath,
-                            const vesselFileName &fn);
-         INT32 openIdxDFile(const strSlice &fullPath,
-                            const vesselFileName &fn);
-         INT32 openDeltaFile(const strSlice &fullPath,
-                             const vesselFileName &fn);
-         INT32 openFSMFile(const strSlice &fullPath,
-                           const vesselFileName &fn);
-         INT32 openIdxMetaBackupFile(const strSlice &fullPath,
-                                     const vesselFileName &fn);
-      private:
-         INT32 buildFileFullPath(const strSlice &path,
-                                   const strSlice &dir,
-                                   const vesselFileName &fn,
-                                   UINT32 bufferSize,
-                                   CHAR *buffer);
-         
-      private:
-         typedef ossPoolVector<dataExtentFile*> _DATA_VEC;
-         typedef ossPoolVector<idxDataFile *> _INDEX_DATA_VEC;
-         typedef ossPoolList<deltaLogFile *> _DELTA_LIST;
-
-
-      private:
-         BOOLEAN _isOpen;
-         CHAR _dirName[MAX_SPACE_DIR_LEN + 1];
-         
-         ossSpinXLatch _extendingDDAndDMLatch;
-         dataExtentIDMapFile *_meta;
-         ossSpinSLatch _dataFileAccessingMutex;
-         _DATA_VEC _data;
-
-         ossSpinXLatch _fsmLatch;
-         fsmFile *_fsm;
-
-         ossSpinSLatch _cowFilesAccessingLatch;
-         idxIDMapFile *_idxMeta;
-         idxMBackupFile *_idxMBackup;
-         _INDEX_DATA_VEC _idxDataVec;
-         _DELTA_LIST _delta;
    };//class storageUnit
 }//namespace vessel
 }//namespace engine
