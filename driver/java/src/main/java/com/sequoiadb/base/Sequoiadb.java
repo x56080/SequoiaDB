@@ -157,8 +157,8 @@ public class Sequoiadb implements Closeable {
     public final static int SDB_SNAP_LATCHWAITS = 19;
     public final static int SDB_SNAP_LOCKWAITS = 20;
     public final static int SDB_SNAP_INDEXSTATS = 21;
-    public final static int SDB_SNAP_TASKS = 22;
-    //public final static int SDB_SNAP_RESERVED4 = 23;
+    //public final static int SDB_SNAP_RESERVED3 = 22;
+    public final static int SDB_SNAP_TASKS = 23;
     public final static int SDB_SNAP_INDEXES = 24;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
