@@ -359,7 +359,7 @@ function dealQuotes()
         return 0
     fi
     case $opt in
-        *delrecord* | *delchar* | *delfield* | *floatfmt* |  *sort* | *select* | *filter* | *datefmt* | *timestampfmt* | *fields* )
+        *delrecord* | *delchar* | *delfield* | *floatfmt* |  *sort* | *select* | *filter* | *datefmt* | *timestampfmt* | *fields* | -r | -a | -e )
 
          if [ "$first_str" != "'" ]; then
              value="'$2'"
