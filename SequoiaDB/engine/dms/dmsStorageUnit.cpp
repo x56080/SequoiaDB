@@ -2539,6 +2539,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU_GETSEGEXTENTS ) ;
       segExtents.clear() ;
 
+      PD_CHECK( _pDataSu->isBlockScanSupport(), SDB_SYS, error, PDERROR,
+                "Collection space [%s] does not support block scan",
+                CSName() ) ;
+
       if ( NULL == context )
       {
          SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
