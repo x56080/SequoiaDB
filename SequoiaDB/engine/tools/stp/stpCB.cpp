@@ -50,6 +50,8 @@ using namespace std ;
 namespace engine
 {
 
+   #define STP_CB_CHECK_TIMEOUT ( 60 * OSS_ONE_SEC )
+
    /*
       _stpCB implement
     */
@@ -64,7 +66,8 @@ namespace engine
      _metaManager( this ),
      _syncSourceManager( this ),
      _syncClientManager( this ),
-     _replManager( this )
+     _replManager( this ),
+     _checkTimeout( 0 )
    {
    }
 
@@ -341,6 +344,19 @@ namespace engine
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCB_ONTIMER, "_stpCB::onTimer" )
+   void _stpCB::onTimer( UINT64 timerID, UINT32 interval )
+   {
+      _checkTimeout += interval ;
+      if ( _checkTimeout > STP_CB_CHECK_TIMEOUT )
+      {
+#if defined ( _DEBUG )
+         _checkTimeExInfo() ;
+#endif
+         _checkTimeout = 0 ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCB__REGMODULE, "_stpCB::_registerModule" )
    INT32 _stpCB::_registerModule( stpModule *module )
    {
@@ -468,7 +484,7 @@ namespace engine
       int res = adjtimex( &ex ) ;
       if ( 0 <= res )
       {
-         PD_LOG( PDEVENT, "NTP synchroinze time status: "
+         PD_LOG( PDEVENT, "NTP synchronize time status: "
                  "offset [%lld], freq [%lld], max-error [%lld], "
                  "est-error [%lld], status [%d], constant [%llu], "
                  "precision [%lld], tolerance [%lld], tick [%lld], "

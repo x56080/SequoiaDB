@@ -214,6 +214,8 @@ namespace engine
       // callback on role change
       INT32 onChangeRole( STP_ROLE role ) ;
 
+      virtual void onTimer( UINT64 timerID, UINT32 interval ) ;
+
    protected:
       // register module
       INT32 _registerModule( stpModule *module ) ;
@@ -265,6 +267,8 @@ namespace engine
       // register all modules ( node manager, etc), into module list, and
       // call initialize, active functions by iterating module list
       STP_MODULE_LIST      _moduleList ;
+
+      UINT64               _checkTimeout ;
    } ;
 
    // get STP control block

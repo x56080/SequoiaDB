@@ -228,6 +228,7 @@ namespace engine
       {
          ossSleepsecs ( 1 ) ;
          krcb->onTimer( OSS_ONE_SEC ) ;
+         stpCB->onTimer( STP_INVALID_TIMERID, OSS_ONE_SEC ) ;
       }
 
       rc = krcb->getShutdownCode() ;
