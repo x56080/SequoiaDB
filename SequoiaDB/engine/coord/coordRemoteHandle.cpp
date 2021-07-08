@@ -323,14 +323,26 @@ namespace engine
       }
 
       pOpReply = (MsgOpReply *)pReply ;
+
+      PD_LOG( PDWARNING,
+              "Received expired msg[context:%lld, opCode:(1)%d] from node[%s]",
+              pOpReply->contextID, GET_REQUEST_TYPE(pOpReply->header.opCode),
+              routeID2String( pReply->routeID ).c_str() ) ;
+
       if ( -1 == pOpReply->contextID )
       {
          goto done ;
       }
-
-      PD_LOG( PDWARNING, "Received expired context[%lld] from node[%s]",
-              pOpReply->contextID,
-              routeID2String( pReply->routeID ).c_str() ) ;
+      /// The contextID of insert/delete/update message is NOT REAL context.
+      if ( MSG_BS_INSERT_RES == pOpReply->header.opCode ||
+           MSG_BS_DELETE_RES == pOpReply->header.opCode ||
+           MSG_BS_UPDATE_RES == pOpReply->header.opCode ||
+           MSG_BS_TRANS_INSERT_RSP == pOpReply->header.opCode ||
+           MSG_BS_TRANS_DELETE_RSP == pOpReply->header.opCode ||
+           MSG_BS_TRANS_UPDATE_RSP == pOpReply->header.opCode )
+      {
+         goto done ;
+      }
 
       pSession = pSite->addSession( COORD_EXPIRED_KILLCONTEXT_TIMEOUT ) ;
       pSession->addSubSession( pReply->routeID.value ) ;
@@ -348,10 +360,7 @@ namespace engine
       /// Ignore sendMsg failed and waitReply failed
       rc = pSession->sendMsg( (MsgHeader*)&msgKillContext,
                               PMD_EDU_MEM_NONE ) ;
-      if ( SDB_OK == rc )
-      {
-         pSession->waitReply1() ;
-      }
+      // DON'T pSession->waitReply1(), Timeout of sessionAttr may fail.
 
    done:
       if ( pSession )
