@@ -2457,14 +2457,14 @@ public class Sequoiadb implements Closeable {
      * @return The specified sequence object
      */
     public DBSequence getSequence(String seqName){
-        DBSequence sequence = null;
         if (seqName == null || seqName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
         }
         if (isSequenceExist(seqName)){
-            sequence = new DBSequence(seqName, this);
+            return new DBSequence(seqName, this);
+        } else {
+            throw new BaseException(SDBError.SDB_SEQUENCE_NOT_EXIST, "Sequence does not exist");
         }
-        return sequence;
     }
 
     private boolean isSequenceExist(String seqName) throws BaseException {
