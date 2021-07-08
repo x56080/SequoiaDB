@@ -119,11 +119,6 @@ public class CopyObject19352 extends S3TestBase {
             } catch ( AmazonS3Exception e ) {
                 int statusCode = e.getStatusCode();
                 saveResult( statusCode, e );
-                // 404:NoSuchKey
-                String errCode = e.getErrorCode();
-                if ( !errCode.equals( "NoSuchKey" ) ) {
-                    throw e;
-                }
             } finally {
                 if ( s3Client1 != null ) {
                     s3Client1.shutdown();
