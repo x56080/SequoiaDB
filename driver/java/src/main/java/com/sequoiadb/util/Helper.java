@@ -369,4 +369,10 @@ public final class Helper {
         }
         return buff;
     }
+
+    public static void fillZero(ByteBuffer out, int len) {
+        for (int i = 0; i < len; i++) {
+            out.put((byte) 0);
+        }
+    }
 }
