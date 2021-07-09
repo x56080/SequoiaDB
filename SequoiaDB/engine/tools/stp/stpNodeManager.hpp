@@ -272,12 +272,18 @@ namespace engine
          _primaryRID.value = MSG_INVALID_ROUTEID ;
       }
 
-      // check whether there is a known primary
-      OSS_INLINE BOOLEAN hasPrimary()
+      OSS_INLINE void resetPrimaryOnError( const MsgRouteID &errorRID )
       {
-         ossScopedRWLock lock( &_mutex, SHARED ) ;
-         return _hasPrimary() ;
+         ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
+         if ( _primaryRID.value == errorRID.value &&
+              !_isLocalPrimary() )
+         {
+            _primaryRID.value = MSG_INVALID_ROUTEID ;
+         }
       }
+
+      // check whether there is a known primary
+      BOOLEAN hasPrimary() ;
 
       // check whether there is not a known primary
       OSS_INLINE BOOLEAN hasNoPrimary()

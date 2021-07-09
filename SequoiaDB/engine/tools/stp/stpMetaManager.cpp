@@ -503,7 +503,8 @@ namespace engine
          if ( SDB_CLS_NOT_PRIMARY == rc )
          {
             // remote is not primary, reset primary to node manager
-            getNodeManager()->resetPrimary() ;
+            getNodeManager()->resetPrimaryOnError(
+                                    response->reply.header.routeID ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to synchronize meta, "
                       "received response with error: %d", rc ) ;

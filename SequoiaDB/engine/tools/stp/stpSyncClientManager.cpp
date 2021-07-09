@@ -317,7 +317,8 @@ namespace engine
          if ( SDB_CLS_NOT_PRIMARY == rc )
          {
             // not primary, reset primary to node manager
-            _nodeManager->resetPrimary() ;
+            _nodeManager->resetPrimaryOnError(
+                                    response->reply.header.routeID ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to register node, "
                       "received response with error: %d", rc ) ;
@@ -425,7 +426,8 @@ namespace engine
          if ( SDB_CLS_NOT_PRIMARY == rc )
          {
             // not primary, reset primary to node manager
-            _nodeManager->resetPrimary() ;
+            _nodeManager->resetPrimaryOnError(
+                                    response->reply.header.routeID ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to synchronize time, "
                       "received response with error: %d", rc ) ;
@@ -1163,7 +1165,7 @@ namespace engine
       {
          // Failed to send request to primary, reset session and primary
          _session.resetCurServerRID() ;
-         _nodeManager->resetPrimary() ;
+         _nodeManager->resetPrimaryOnError( primaryRID ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to send register request, rc: %d",
                    rc ) ;
@@ -1202,7 +1204,7 @@ namespace engine
       {
          // Failed to send request to primary, reset session and primary
          _session.resetCurServerRID() ;
-         _nodeManager->resetPrimary() ;
+         _nodeManager->resetPrimaryOnError( sourceRID ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request, "
                    "rc: %d", rc ) ;
