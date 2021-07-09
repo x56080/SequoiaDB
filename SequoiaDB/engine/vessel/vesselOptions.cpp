@@ -56,11 +56,20 @@ namespace vessel
       {
          goto done;
       }
-      if (!isValidSegmentSize(dataSegSize))
+      if (DMS_PAGE_SIZE4K != lobPageSize &&
+          DMS_PAGE_SIZE8K != lobPageSize &&
+          DMS_PAGE_SIZE32K != lobPageSize &&
+          DMS_PAGE_SIZE64K != lobPageSize &&
+          DMS_PAGE_SIZE128K != lobPageSize &&
+          DMS_PAGE_SIZE256K != lobPageSize &&
+          DMS_PAGE_SIZE512K != lobPageSize)
       {
          goto done;
       }
-      if (!isValidSegmentSize(idxSegSize))
+
+      if (!isValidSegmentSize(dataSegSize) ||
+          !isValidSegmentSize(idxSegSize) ||
+          !isValidSegmentSize(lobSegSize))
       {
          goto done;
       }

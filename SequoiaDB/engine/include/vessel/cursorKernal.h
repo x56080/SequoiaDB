@@ -60,20 +60,10 @@ namespace vessel
    class cursorKernal : public _utilPooledObject
    {
       public:
-         cursorKernal():
-         _usage(0),
-         _flags(0),
-         _totalSliceInBuf(0),
-         _fetchedSliceInBuf(0),
-         _nextSlice(NULL),
-         _bufSize(0),
-         _usedBufSize(0),
-         _buf(NULL),
-         _db(NULL),
-         _filter(NULL)
-         {}
-
+         cursorKernal(){}
          virtual ~cursorKernal();
+         cursorKernal(const cursorKernal &) = delete;
+         cursorKernal &operator=(const cursorKernal &) = delete;
 
       public:
          virtual CURSOR_TYPE getType()const = 0;
@@ -83,11 +73,11 @@ namespace vessel
          INT32 open(vesselImpl *db,
                     IQueryFilter *filter, 
                     const cursorOptions *options);
-         INT32 close();
+         void close();
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
          
-         /// push complete data
+         /// push completed record
          INT32 push(const slice &content);
          INT32 push(UINT32 len, const CHAR *data);
          /// push one record with multi memory fragments
@@ -96,16 +86,13 @@ namespace vessel
          /// mark cursor as SDB_VESSEL_END_OF_CURSOR
          void pushEnd();
 
-         ///WARNING: At any time, you must check the rc code of "push" when "hasNoSpaceToPush" return FALSE.
-         BOOLEAN hasNoSpaceToPush(UINT32 size)const;
+         ///WARNING: At any time, you must check the rc code of "push"
+         /// even "hasSpaceToPush" returns TRUE.
+         BOOLEAN hasSpaceToPush(UINT32 size)const;
 
          OSS_INLINE IQueryFilter *getFilter()
          {
             return _filter;
-         }
-         OSS_INLINE UINT32 getTotalSlice()const
-         {
-            return _totalSliceInBuf;
          }
          OSS_INLINE UINT64 getUsageCount()const
          {
@@ -122,33 +109,34 @@ namespace vessel
 
       private:
          virtual INT32 _open() {return SDB_OK;}
-         virtual INT32 _close() {return SDB_OK;}
+         virtual void _close() {return;}
 
       private:
          INT32 extendBuf(UINT32 deltaSize);
          INT32 allocateSpaceForPushing(UINT32 dataLen);
-
-         OSS_INLINE UINT32 getFreeBufSize()const
-         {
-            return _bufSize - _usedBufSize;
-         }
          OSS_INLINE UINT32 getRealBufSizeOfSlice(UINT32 dataLen)const
          {
             return sizeof(UINT32) + dataLen;
          }
+         OSS_INLINE BOOLEAN hasMoreDataToFetch()const
+         {
+            return _r < _w;
+         }
+         
 
       private:
          cursorOptions _options;
-         UINT64 _usage;
-         UINT32 _flags;
-         UINT32 _totalSliceInBuf;
-         UINT32 _fetchedSliceInBuf;
-         const CHAR *_nextSlice;
-         UINT32 _bufSize;
-         UINT32 _usedBufSize;
-         CHAR *_buf;
-         vesselImpl *_db;
-         IQueryFilter *_filter;
+         UINT64 _usage = 0;
+         UINT64 _totalPushed = 0;
+         UINT32 _flags = 0;
+         //UINT32 _fetchedSliceInBuf = 0;
+         //const CHAR *_nextSlice = NULL;
+         UINT32 _bufSize = 0;
+         CHAR *_buf = NULL;
+         UINT32 _w = 0; /// buffer size written.
+         UINT32 _r = 0; /// buffer size read.
+         vesselImpl *_db = NULL;
+         IQueryFilter *_filter = NULL;
    };//class cursorKernal
 }//namespace vessel
 }//namespace engine

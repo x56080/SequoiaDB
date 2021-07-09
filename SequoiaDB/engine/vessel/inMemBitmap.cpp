@@ -694,7 +694,7 @@ namespace vessel
                                    UINT32 autoExtendingCount)
    {
       INT32 rc = SDB_OK;
-      ossSpinXLatchGuard guard(_latch, FALSE);
+      ossXLatchGuard guard(_latch, FALSE);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -758,7 +758,7 @@ namespace vessel
    INT32 inMemBitmap::ensureBitmapPageCount(UINT32 count)
    {
       INT32 rc = SDB_OK;
-      ossSpinXLatchGuard guard(_latch, FALSE);
+      ossXLatchGuard guard(_latch, FALSE);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {

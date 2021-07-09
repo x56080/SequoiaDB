@@ -45,8 +45,9 @@
 /// 1: atomic int(c++ 11)                             |  10 s  | 
 /// 2: ossSpinLatch (c++11)                           |  13 s  |
 /// 3. pthread_mutex_t exclusive                      |  44 s  |
-/// 4. boost::shared_lock exclusive                   |  6m 50s|
-/// 5. boost::shared_lock shared (incorrect result)   |  1m 49s|
+/// 4. boost::shared_lock exclusive                   |  6m 50s |
+/// 5. boost::shared_lock shared (incorrect result)   |  1m 49s |
+/// 6. pthread_rwlock_t exclusive                     |  1m 45s |          
 
 ///WARNING: If you do not clearly
 ///know which to use, just pick pthread_mutex_t.

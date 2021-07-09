@@ -45,6 +45,8 @@ namespace engine
 {
 namespace vessel
 {
+   constexpr UINT32 ALLOCATOR_PAGE_CAPACITY_BITWISE = 9;
+   constexpr UINT32 ALLOCATOR_PAGE_CAPACITY = ((UINT32)1 << ALLOCATOR_PAGE_CAPACITY_BITWISE);
    storageConsole::storageConsole()
    {}
    
@@ -55,16 +57,29 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reinit");
+      inMemBitmap::options o;
+
       if (NULL == context)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _storageUnits.init(MAX_SPACE_COUNT, FALSE);
+      rc = _storageUnits.init(MAX_SU_COUNT, ALLOCATOR_PAGE_CAPACITY);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init su slots:%d", rc);
+         PD_LOG(PDERROR, "failed to init su array:%d", rc);
+         goto error;
+      }
+
+      o.freeBound = 0;
+      o.bitmapPageSkipped = 0;
+      o.maxBitmapPageCount = MAX_SU_COUNT / ALLOCATOR_PAGE_CAPACITY;
+
+      rc = _allocator.initWithNoLatch(ALLOCATOR_PAGE_CAPACITY, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init allocator:%d", rc);
          goto error;
       }
 
@@ -83,70 +98,33 @@ namespace vessel
 
    void storageConsole::close()
    {
-      _isOpen = FALSE;
-      for (UINT32 i = 0; i < _storageUnits.size(); ++i)
-      {
-         storageUnit *su = _storageUnits.getObject(i);
-         if (NULL != su)
-         {
-            su->close();
-         }
-      }
+      _allocator.fini();
       _storageUnits.fini();
-      _pool.clear();
+      _isOpen = FALSE;
       return;
    }
 
-   INT32 storageConsole::allocateFreeSpaceID(SPACE_ID &sid)
+
+   INT32 storageConsole::occupySpaceId(SPACE_ID sid)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock guard(&_poolLatch);
-
-      if (OSS_UNLIKELY(!isOpen()))
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(sid < MAX_SU_COUNT, "can not be invalid");
+      SDB_ASSERT(_allocator.isInitialized(), "must be inited");
+      UINT32 minPageCount = (sid >> ALLOCATOR_PAGE_CAPACITY_BITWISE) + 1;
+      rc = _allocator.ensureBitmapPageCount(minPageCount);
+      if (SDB_OK != rc)
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         PD_LOG(PDERROR, "failed to ensure allocator's page count:%d", rc);
          goto error;
       }
 
-      if (_pool.empty())
+      rc = _allocator.occupy(sid);
+      if (SDB_OK != rc)
       {
-         rc = SDB_DMS_SU_OUTRANGE;
+         PD_LOG(PDERROR, "failed to occupy sid[%d], rc:%d", sid, rc);
          goto error;
       }
-
-      sid = _pool.front();
-      _pool.pop_front();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 storageConsole::releaseSpaceID(SPACE_ID sid)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                            MAX_SPACE_COUNT <= sid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (NULL != _storageUnits.getObject(sid))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      {
-      ossScopedLock guard(&_poolLatch);
-      _pool.push_back(sid);
-      }
-      
    done:
       return rc;
    error:
@@ -187,7 +165,14 @@ namespace vessel
             continue;
          }
 
-         rc = _storageUnits.allocateNewObj(sid, &su);
+         rc = occupySpaceId(sid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to occupy space id[%d], rc:%d", sid, rc);
+            goto error;
+         }
+
+         rc = _storageUnits.ensure(sid, &su);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate su obj at[%d], rc:%d",
@@ -195,7 +180,11 @@ namespace vessel
             goto error;
          }
 
-         rc = su->open()
+         rc = su->open(context, sid);
+         if (SDB_OK != rc)
+         {
+
+         }
       }
    done:
       return rc;

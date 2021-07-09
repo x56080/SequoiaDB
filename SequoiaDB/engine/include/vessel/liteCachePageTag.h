@@ -204,6 +204,8 @@ namespace vessel
          {
             /// Do not user lru pre/next ptr to check if in lru list.
             /// Ptrs may modified with out holding accessing latch by lru.
+            /// Or, if this is only one tuple in list, both pre and next
+            /// are null.
             return 0 != OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_LRU_LIST);
          }
          /// under lru lock and w lock
@@ -245,12 +247,17 @@ namespace vessel
             return OSS_BIT_TEST(_lruFlags, LC_TAG_LRU_FLAG_COLD);
          }
 
+         OSS_INLINE void setLruTouchCnt(UINT32 n)
+         {
+            _lruTouchCnt = n;
+         }
+
          OSS_INLINE void incLruTouchCnt()
          {
             ++_lruTouchCnt;
          }
 
-         OSS_INLINE void incLruTouchCntWithCAS()
+         OSS_INLINE void incLruTouchCntWithAtom()
          {
             ossFetchAndIncrement32(&_lruTouchCnt);
          }
@@ -344,6 +351,14 @@ namespace vessel
 
          /// under rw latch.
          OSS_INLINE BOOLEAN tryToSetRemoved();
+
+         /// under rw latch
+         /// Used to rollback tag just allocated.
+         /// The tag must not be in any list.
+         /// Will decrease usage count and 
+         /// try to set removed. So do not decrease
+         /// usage count out side again.
+         OSS_INLINE BOOLEAN tryToRollbackNewTag();
 
          OSS_INLINE BOOLEAN isRemoved(BOOLEAN lock=TRUE)
          {
@@ -477,6 +492,19 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       ossSpinGuard guard(&_pinLatch);
+      if (isNormalAndUnpinned())
+      {
+         _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
+         r = TRUE;
+      }
+      return r;
+   }
+
+   OSS_INLINE BOOLEAN liteCachePageTag::tryToRollbackNewTag()
+   {
+      BOOLEAN r = FALSE;
+      ossSpinGuard guard(&_pinLatch);
+      --_ts.usageCnt;
       if (isNormalAndUnpinned())
       {
          _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;

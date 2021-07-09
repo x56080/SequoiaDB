@@ -161,14 +161,12 @@ namespace vessel
 
    INT32 deltaLogRecordBuilder::buildMappingLog(PAGE_SNAPSHOT_VERION psv,
                                                 UINT8 count,
-                                                const PAGE_ID *lpids,
-                                                const PAGE_ID *pids)
+                                                const mappedLogicalPageId *mpids)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(INVALID_PAGE_SNAPSHOT_VERSION == psv ||
                        0 == count ||
-                       NULL == lpids ||
-                       NULL == pids))
+                       NULL == mpids))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -195,15 +193,15 @@ namespace vessel
       for (UINT32 i = 0; i < count; ++i)
       {
          UINT64 v = 0;
-         mappedLogicalPageId mappedId(lpids[i], pids[i]);
-         if (OSS_UNLIKELY(!mappedId.isValid()))
+         const mappedLogicalPageId &mpid = mpids[i];
+         if (OSS_UNLIKELY(!mpid.isValid()))
          {
             PD_LOG(PDERROR, "invalid id found");
             rc = SDB_INVALIDARG;
             goto error;
          }
 
-         v = mappedId.dumpAsUint64();
+         v = mpid.dumpAsUint64();
 
          rc = append(sizeof(UINT64), &v);
          if (SDB_OK != rc)
@@ -223,8 +221,7 @@ namespace vessel
 
    INT32 deltaLogRecordBuilder::buildRemappingLog(PAGE_SNAPSHOT_VERION psv,
                                                   UINT8 count,
-                                                  const PAGE_ID *lpids,
-                                                  const PAGE_ID *pids,
+                                                  const mappedLogicalPageId *mpids,
                                                   const PAGE_ID *oldPids,
                                                   BOOLEAN releaseOld)
    {
@@ -233,8 +230,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(INVALID_PAGE_SNAPSHOT_VERSION == psv ||
                        0 == count ||
-                       NULL == lpids ||
-                       NULL == pids ||
+                       NULL == mpids ||
                        NULL == oldPids))
       {
          rc = SDB_INVALIDARG;
@@ -266,7 +262,7 @@ namespace vessel
       for (UINT8 i = 0; i < count; ++i)
       {
          UINT64 v = 0;
-         mappedLogicalPageId mappedId(lpids[i], pids[i]);
+         const mappedLogicalPageId &mappedId = mpids[i];
          if (OSS_UNLIKELY(!mappedId.isValid()))
          {
             PD_LOG(PDERROR, "invalid id found");
@@ -304,15 +300,13 @@ namespace vessel
 
 
    INT32 deltaLogRecordBuilder::buildUnmappingLog(UINT8 count,
-                                                  const PAGE_ID *lpids,
-                                                  const PAGE_ID *pids,
+                                                  const mappedLogicalPageId *mpids,
                                                   BOOLEAN releaseOld)
    {
       INT32 rc = SDB_OK;
       UINT8 flags = 0;
       if (OSS_UNLIKELY(0 == count ||
-                       NULL == lpids ||
-                       NULL == pids))
+                       NULL == mpids))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -344,7 +338,7 @@ namespace vessel
       for (UINT8 i = 0; i < count; ++i)
       {
          UINT64 v = 0;
-         mappedLogicalPageId mappedId(lpids[i], pids[i]);
+         const mappedLogicalPageId &mappedId = mpids[i];
          if (OSS_UNLIKELY(!mappedId.isValid()))
          {
             PD_LOG(PDERROR, "invalid lpid found");

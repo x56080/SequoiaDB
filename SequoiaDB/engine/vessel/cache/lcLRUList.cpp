@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -104,13 +101,14 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lcLRUList::insert(lcPageTagHolder &holder)
+   INT32 lcLRUList::insert(lcPageTagHolder &holder,
+                           UINT32 touchCnt)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
       liteCachePageTag *tag = NULL;
       SDB_ASSERT(holder.valid(), "should be valid");
-      SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "should holding lock");
+      SDB_ASSERT(OSS_SHARED_LATCH_MODE_EXCLUSIVE == holder.getLockMode(), "should holding lock");
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -119,7 +117,7 @@ namespace vessel
          goto error;
       }
 
-      if (OSS_UNLIKELY(LOCK_MODE_UNIQUE != holder.getLockMode()))
+      if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
@@ -147,13 +145,13 @@ namespace vessel
       if (splited())
       {
          insertToMiddle(tag);
-         tag->incLruTouchCnt();
+         tag->setLruTouchCnt(touchCnt);
          tryToTuneRightMiddle();
       }
       else
       {
          insertToHead(tag);
-         tag->incLruTouchCnt();
+         tag->setLruTouchCnt(touchCnt);
          if (_size == _options.lruMinSplitSize)
          {
             splitLRU();
@@ -181,30 +179,33 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(LOCK_MODE_NONE == holder.getLockMode()))
+      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_NONE == holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
+      else if (!holder.tag()->isInLruList())
+      {
+         SDB_ASSERT(FALSE, "must be in lru");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       tag = holder.tag();
-      SDB_ASSERT(tag->isInLruList(), "must be in lru");
-
       if (!_options.lruIncTouchCntWhenReadOnly &&
-          LOCK_MODE_SHARED == holder.getLockMode())
+          OSS_SHARED_LATCH_MODE_SHARED == holder.getLockMode())
       {
          goto done;
       }
 
-      if (LOCK_MODE_UNIQUE == holder.getLockMode())
+      if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == holder.getLockMode())
       {
          tag->incLruTouchCnt();
       }
       else
       {
-         tag->incLruTouchCntWithCAS();
+         tag->incLruTouchCntWithAtom();
       }      
       
    done:
@@ -247,17 +248,12 @@ namespace vessel
          itr = itr->getLruPre();
          lcPageTagHolder holder;
 
-         if (splited())
+         if (splited() && (_options.lruHotTouchCnt <= tag->getLruTouchCnt()))
          {
-            /// do not update totalScaned here.
-            /// should we use fetchLruTouchCnt here?
-            if (_options.lruHotTouchCnt <= tag->getLruTouchCnt())
-            {
-               ++totalSkipped;
-               ++totalMoved;
-               moveToHead(tag);
-               continue;
-            }
+            ++totalSkipped;
+            ++totalMoved;
+            moveToHead(tag);
+            continue;
          }
 
          if (!tag->fastTestIfCanBeEvictedFromLru(FALSE))
@@ -339,15 +335,12 @@ namespace vessel
          liteCachePageTag *tag = itr;
          itr = itr->getLruPre();
 
-         if (splited())
+         if (splited() && (_options.lruHotTouchCnt <= tag->getLruTouchCnt()))
          {
-            if (_options.lruHotTouchCnt <= tag->getLruTouchCnt())
-            {
-               moveToHead(tag);
-               ++totalSkipped;
-               ++totalMoved;
-               continue;
-            }
+            moveToHead(tag);
+            ++totalSkipped;
+            ++totalMoved;
+            continue;
          }
 
          if (tag->fastTestIfCanBeEvictedFromLru(FALSE))
@@ -368,7 +361,7 @@ namespace vessel
 
          /// isMemDirty() not protected by rw latch.
          /// Which means we may add undirty tag to job.
-         if (tag->isMemDirty() && tag->setPendingWrite())
+         if (tag->isMemPageDirty() && tag->setPendingWrite())
          {
             rc = job->addPendingWriteTag(tag);
             if (OSS_UNLIKELY(SDB_OK != rc))
@@ -522,6 +515,7 @@ namespace vessel
 
       removeFromList(tag);
       insertToHead(tag);
+      tag->setLruTouchCnt(0);
 
       if (cold)
       {
@@ -641,7 +635,7 @@ namespace vessel
       tag->releaseMemPage();
       r = TRUE;
    done:
-      holder.unlock();
+      holder.autoUnlock();
       return r;
    }
 

@@ -81,20 +81,15 @@ namespace vessel
 
       public:
          static INT32 prepare(requestContext *context,
-                              const slice &initer,
                               const deltaLogRecord &dlr,
-                              logRecordContext &lrc,
-                              BOOLEAN isOplistHead = FALSE,
-                              DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET,
-                              BOOLEAN isOplistTail = FALSE);
+                              logRecordContext &lrc);
 
          static INT32 commit(requestContext *context,
                              logRecordContext &lrc,
                              SPACE_ID sid,
                              SPACE_TYPE spaceType,
                              FILE_TYPE fileType,
-                             const deltaLogRecord &dlr,
-                             const slice &initer);
+                             const deltaLogRecord &dlr);
 
          static INT32 abort(requestContext *context,
                             logRecordContext &lrc);

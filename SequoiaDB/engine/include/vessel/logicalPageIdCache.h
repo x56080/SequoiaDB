@@ -139,9 +139,12 @@ namespace vessel
 
                void removeFlushingMap();
 
-               UINT32 getTotalCacheSize()const;
+               UINT64 getTotalCacheSize()const;
 
-            private:
+               void setPagesImmutable(UINT32 pageCountPerSeg,
+                                      ossPoolSet<UINT32> *mutableSegmentIds);
+
+            public:
 
                const partialImpCacheMap *getFlushingMap()const
                {
@@ -168,29 +171,31 @@ namespace vessel
          void fini();
 
          /// WARNING:Will not hold any latch. The result may not be real.
-         UINT32 getTotalCacheSize()const;
+         UINT64 getTotalCacheSize()const;
 
          ///WARNING: User should ensure that no one can update lpid's mapping when
          /// call put/get.
-         INT32 upsert(PAGE_ID lpid, const idMapSlot &slot, BOOLEAN isMutable);
+         INT32 upsert(PAGE_ID lpid, const idMapSlot &slot);
+
+         INT32 upsertAsImmutable(PAGE_ID lpid, const idMapSlot &slot);
 
          INT32 get(PAGE_ID lpid, idMapSlot &slot, BOOLEAN &isMutable);
 
          /// Set slot as null if do not care about slot before removing.
          INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
 
+      public:         
+         INT32 setPagesImmutable(UINT32 pageCountPerSeg,
+                                  ossPoolSet<UINT32> &mutableSegmentIds);
+
+         /// set mutableSegmentIds as null if do not care about mutable segments.
+         INT32 prepareToCreateNewBase(UINT32 pageCountPerSeg,
+                                      ossPoolSet<UINT32> *mutableSegmentIds);
+         INT32 flushPreparedMapToFile(idMapFile *file);
+
          INT32 flushPreparedCacheToFile(idMapFile *file);
+
          INT32 resetBaseFileAndClearFlushedMaps(const idMapFile *file);
-
-      public:/// Used only when mutable pid not allowed.
-         INT32 prepareToCreateNewBase();
-         
-      public: /// Used only when mutable pid allowed.
-         /// The mutable physical pids will be saved in "pids" and
-         /// set as immutable in cache.
-         INT32 createMutablePidListAndSetInmmutable(ossPoolVector<PAGE_ID> &mutablePids);
-
-         INT32 prepareToCreateNewBase(ossPoolVector<PAGE_ID> &mutablePids);
 
       private:
          INT32 _upsert(PAGE_ID lpid, const idMapSlot &slot, BOOLEAN isMutable);
@@ -201,13 +206,9 @@ namespace vessel
          INT32 createCacheFromBase(UINT32 key,
                                    partialImpCache **cache);
 
-         INT32 flushBucketToFile(const _cacheBucket &bucket,
-                                 idMapFile *file);
+         INT32 flushPreparedMapToFile(const _cacheBucket &bucket,
+                                      idMapFile *file);
 
-         
-
-         //void incTotalCacheCount(UINT32 count);
-         //void decTotalCacheCount(UINT32 count);
       private:
          OSS_INLINE UINT32 getBucketNo(PAGE_ID lpid)const
          {
@@ -221,7 +222,7 @@ namespace vessel
          {
             return getImpPidOfLpid(key >> 6);
          }
-         OSS_INLINE ossSpinSLatch *getBucketLatch(UINT32 bucketNo)
+         OSS_INLINE ossSLatch *getBucketLatch(UINT32 bucketNo)
          {
             return _latches + (bucketNo & (_latchCount - 1));
          }
@@ -236,7 +237,7 @@ namespace vessel
          const idMapFile *_base = NULL;
          UINT32 _basePageCount = 0;
          UINT32 _latchCount = 0;
-         ossSpinSLatch *_latches = NULL;
+         _ossSpinSLatchPOSIX *_latches = NULL;
          UINT32 _bucketCount = 0;
          _cacheBucket *_buckets = NULL;
    };//class logicalPageIdCache

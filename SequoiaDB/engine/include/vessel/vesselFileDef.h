@@ -55,6 +55,7 @@ namespace vessel
    static const UINT32 FILE_NAME_PREFIX_LEN = 4;
 
    static const CHAR * const SIMPLE_FILE_SUFFIX_CSNAME = "csname";
+   static const CHAR * const SIMPLE_FILE_SUFFIX_TMPSU = "tmpsu";
 
    static const UINT32 INVALID_FILE_SHADOW_SUFFIX = 0xFFFFFFFF;
    static const UINT32 FILE_SHADOW_SUFFIX_TMP = 0;

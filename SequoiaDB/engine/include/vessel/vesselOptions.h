@@ -157,7 +157,7 @@ namespace vessel
          
          ///invisible options.
          UINT32 _spaceLpidCacheBucketCount = 64;
-         UINT32 _spaceLpidCacheBucketLatchCount = 8;
+         UINT32 _spaceLpidCacheBucketLatchCount = 16;
 
          
    }; /// end of class openDBOptions
@@ -184,6 +184,8 @@ namespace vessel
          UINT32 dataSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
          UINT32 idxPageSize = DMS_PAGE_SIZE16K;
          UINT32 idxSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
+         UINT32 lobPageSize = DMS_PAGE_SIZE256K;
+         UINT32 lobSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
          utilCSUniqueID uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
       
    };/// end of class createCSOptions
@@ -259,15 +261,22 @@ namespace vessel
    class cursorOptions : public SDBObject
    {
       public:
-         OSS_INLINE cursorOptions(){}
-         OSS_INLINE ~cursorOptions(){}
+         cursorOptions(){}
+          ~cursorOptions(){}
+         cursorOptions(const cursorOptions &) = delete;
+         cursorOptions &operator=(const cursorOptions &o)
+         {
+            maxBufSize = o.maxBufSize;
+            initBufSize = o.initBufSize;
+            limit = o.limit;
+            return *this;
+         }
 
          ///cursor will try to extend buf only when the buf can not hold at
          /// least one slice.
          UINT32 maxBufSize = 16777216; /// 16MB
          UINT32 initBufSize = 65536;   /// 64KB
          UINT64 limit = OSS_UINT64_MAX;
-         UINT64 offset = 0;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

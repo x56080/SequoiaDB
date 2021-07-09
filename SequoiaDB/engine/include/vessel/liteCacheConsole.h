@@ -56,10 +56,14 @@ namespace vessel
          INT32 init32KBCache(const liteCacheOptions &o);
 
       public:
-         INT32 allocate(requestContext *request,
-                        const GLOBAL_PAGE_ID &id,
+         INT32 allocate(requestContext *context,
+                        const GLOBAL_PAGE_ID &gpid,
                         const liteCacheAllocateOptions &options,
                         liteCacheTuple &tuple);
+
+         INT32 allocateToReset(requestContext *context,
+                               const GLOBAL_PAGE_ID &gpid,
+                               liteCacheTuple &tuple);
 
       private:
          liteCache *getCache(UINT32 pageSize);

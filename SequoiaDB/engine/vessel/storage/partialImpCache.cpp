@@ -54,7 +54,7 @@ namespace vessel
       return;
    }
 
-   void partialImpCache::reset(const void *data, UINT64 flags)
+   void partialImpCache::copy(const void *data, UINT64 flags)
    {
       SDB_ASSERT(NULL != data, "can not be null");
       _flags = flags;
@@ -92,7 +92,8 @@ namespace vessel
    }
 
    INT32 partialImpCache::upsert(UINT32 slotNo,
-                                 const idMapSlot &slot)
+                                 const idMapSlot &slot,
+                                 BOOLEAN isMutable)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo ||
@@ -103,7 +104,14 @@ namespace vessel
       }
 
       *(((idMapSlot *)_buffer) + slotNo) = slot;
-      setAsMutable(slotNo);
+      if (isMutable)
+      {
+         setAsMutable(slotNo);
+      }
+      else
+      {
+         setAsInmmutable(slotNo);
+      }
    done:
       return rc;
    error:
@@ -144,6 +152,37 @@ namespace vessel
    UINT32 partialImpCache::getMutablePageCount()const
    {
       return ossGetNonZeroBitCount64(_flags);
+   }
+
+   void partialImpCache::setAllPageImmutable(UINT32 pageCountPerSeg,
+                                             ossPoolSet<UINT32> *mutableSegmentIds)
+   {
+      if (0 == getMutablePageCount())
+      {
+         goto done;
+      }
+
+      do
+      {
+         INT32 mutableSlot = -1;
+         const idMapSlot *slot = NULL;
+         mutableSlot = ossGetLowestBit1From64Bits(_flags);
+         if (mutableSlot < 0)
+         {
+            break;
+         }
+         
+         slot = ((const idMapSlot *)_buffer) + mutableSlot;
+         SDB_ASSERT(!slot->isFree(), "impossible");
+         if (NULL != mutableSegmentIds)
+         {
+            mutableSegmentIds->insert((slot->pid / pageCountPerSeg));
+         }
+         setAsInmmutable(mutableSlot);
+      } while (TRUE);
+   
+   done:
+      return;
    }
 
    void partialImpCache::setAsInmmutable(UINT32 slotNo)

@@ -238,6 +238,23 @@ namespace vessel
             goto done;
          }
 
+         BOOLEAN pop(LATCH_OBJECT &obj, ossSharedLatch::mode &mode)
+         {
+            BOOLEAN r = FALSE;
+            if (0 == _size)
+            {
+               goto done;
+            }
+
+            obj = _slots[_size - 1].obj;
+            mode = _slots[_size - 1].mode;
+            remove(_size - 1);
+            r = TRUE;
+
+         done:
+            return r;
+         }
+
          INT32 findUpgradeAndSetExclusive(const logicalIdLatchKey &key,
                                           LATCH_OBJECT &obj)
          {
@@ -286,6 +303,11 @@ namespace vessel
                }
             }
             return r;
+         }
+
+         BOOLEAN isEmpty()const
+         {
+            return 0 == _size;
          }
 
       private:

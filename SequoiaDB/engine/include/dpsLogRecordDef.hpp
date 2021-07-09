@@ -72,9 +72,8 @@ namespace engine
       DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211,
 	  
 	  ///vessel only
-      DPS_LOG_PUBLIC_VESSEL_GPID = 220,
+      DPS_LOG_PUBLIC_VESSEL_GPID = 220, /// vessel::globalPageIDAndLpid
       DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 221,
-      DPS_LOG_PUBLIC_VESSEL_PAGE_INIT = 222,
    } ;
 
 /// number in public can not be used in definition !
@@ -238,11 +237,10 @@ namespace engine
       DPS_LOG_VESSEL_LPS_PM_DELTA_LOG = 2,
    };
 
-   enum DPS_LOG_VESSEL_PAGE_INIT
+   enum DPS_LOG_VESSEL_COPY_PAGE
    {
       //DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_PAGE_INIT_COMMON_HEAD = 1,
-      DPS_LOG_VESSEL_PAGE_INIT_USER_DATA = 2,
+      //DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP
    };
 
    enum DPS_LOG_VESSEL_CSGP_UPDATE

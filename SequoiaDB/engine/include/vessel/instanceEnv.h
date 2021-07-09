@@ -40,10 +40,9 @@
 #include "vessel/liteCache.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
-#include "vessel/collectionSpaceContainer.h"
-#include "vessel/storageConsole.h"
+#include "vessel/dataManagementService.h"
 #include "vessel/liteCacheConsole.h"
-#include "vessel/objectLatchMap.h"
+#include "vessel/objectLatchMap.hpp"
 
 namespace engine
 {
@@ -61,8 +60,7 @@ namespace vessel
          openDBOptions options;
          checkpointController checkpointer;
          spaceIDLocker spaceLocker;
-         collectionSpaceContainer csContainer;
-         storageConsole sc;
+         dataManagementService dms;
          liteCacheConsole cacheConsole;
          LOGICAL_ID_LATCH_MAP _lpidLatchMap;
          RECORD_ID_LATCH_MAP _ridLatchMap;

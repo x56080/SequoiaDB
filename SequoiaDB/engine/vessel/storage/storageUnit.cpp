@@ -38,7 +38,6 @@
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "utilStr.hpp"
-#include "vessel/idMapFile.h"
 #include "vessel/mainDataSpace.h"
 
 #include <boost/filesystem.hpp>
@@ -57,47 +56,85 @@ namespace vessel
 
    void storageUnit::close()
    {
-      _mds.close();
-      _sid = INVALID_SPACE_ID;
+      if (isOpen())
+      {
+         _sid = INVALID_SPACE_ID;
+         _mds.close();
+      }
       return;
    }
 
-   void storageUnit::destroy(requestContext *context)
+   INT32 storageUnit::destroy(requestContext *context)
    {
+      INT32 rc = SDB_OK;
       CHAR dirName[MAX_SPACE_DIR_LEN + 1] = {0};
       strSlice dirSlice;
+      SPACE_ID sid = _sid;
 
-      if (!isOpen())
+      if (NULL == context)
+      {
+         SDB_ASSERT(FALSE, "can not be null");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
       {
          goto done;
       }
 
-      if (OSS_UNLIKELY(!vesselFileName::buildDirName(_sid, sizeof(dirName), dirName)))
+      _sid = INVALID_SPACE_ID;
+
+      if (OSS_UNLIKELY(!vesselFileName::buildDirName(sid, sizeof(dirName), dirName)))
       {
          PD_LOG(PDERROR, "failed to build dir name");
-         goto done;
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
       }
-
       dirSlice.reset(dirName);
+
+      rc = createStatusFile(context->getEnv()->options.path,
+                            dirSlice, sid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "[sid:%d]failed to create status file before removing:%d",
+                sid, rc);
+         goto error;
+      }
 
       _mds.destroy();
 
-      removeAllDirs(context->getEnv()->options.path, dirSlice);
+      rc = ensureOtherDirRemoved(context->getEnv()->options.path, dirSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "[sid:%d]failed to remove other dirs:%d", sid, rc);
+         goto error;
+      }
+
+      rc = ensureMainDataDirRemoved(context->getEnv()->options.path, dirSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "[sid:%d]failed to remove main data dir:%d", sid, rc);
+         goto error;
+      }
    done:
-      return;
+      return rc;
+   error:
+      goto done;
    }
    
 
    INT32 storageUnit::create(requestContext *context,
+                             SPACE_ID sid,
                              const createSUOptions &options)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(EXCLUSIVE == context->getSpaceIDLockedMode(), "impossible");
       SDB_ASSERT(!isOpen(), "do not reinit");
 
       CHAR dirName[MAX_SPACE_DIR_LEN + 1] = {0};
       strSlice dirSlice;
       const storagePathOptions *path = NULL;
+      UINT32 secretValue = ossRand();
+      BOOLEAN rollback = FALSE;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -106,7 +143,6 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context))
       {
-         PD_LOG(PDERROR, "invalid ptr");
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -116,7 +152,8 @@ namespace vessel
          goto error;
       }
 
-      if (!vesselFileName::buildDirName(options.sid, sizeof(dirName), dirName))
+      _sid = sid;
+      if (!vesselFileName::buildDirName(sid, sizeof(dirName), dirName))
       {
          PD_LOG(PDERROR, "failed to build dir name");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -130,25 +167,55 @@ namespace vessel
       {
          goto error;
       }
-   
-      rc = createAllDirs(*path, dirSlice);
+
+      rc = createMainDataDir(*path, dirSlice);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to create main data dir or tmp file:%d", rc);
+         goto error;
+      }
+      rollback = TRUE;
+
+      rc = createStatusFile(*path, dirSlice, sid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create status file:%d", rc);
+         goto error;
+      }
+   
+      rc = createOtherDirs(*path, dirSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create other dirs:%d", rc);
          goto error;
       }
 
-      _sid = options.sid;
-
-      rc = createMainDataSpace(context, *path, dirSlice, options);
+      rc = createMainDataSpace(context, sid, dirSlice,
+                               secretValue, options.dataArgs);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
          goto error;
       }
+
+      rc = removeStatusFile(*path, dirSlice, sid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove status file:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
-      destroy(context);
+      if (rollback)
+      {
+         INT32 t = rollbackCreating(*path, dirSlice);
+         if (SDB_OK != t)
+         {
+            /// storage unit with same sid may not be created any more
+            PD_LOG(PDSEVERE, "failed to rollback creating of sid[%d], rc:%d", sid, t);
+         }
+      }
       goto done;
    }
 
@@ -170,7 +237,7 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_SPACE_ID == sid))
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
@@ -185,13 +252,25 @@ namespace vessel
       _sid = sid;
 
       rc = testAllDirsBeforeOpenning(*path, dirSlice);
+      if (SDB_VESSEL_TEMP_SU == rc)
+      {
+         PD_LOG(PDINFO, "will remove all files under space id[%d]", sid);
+         INT32 t = rollbackCreating(*path, dirSlice);
+         if (SDB_OK != t)
+         {
+            PD_LOG(PDSEVERE, "failed to remove files under tmp space[%d], rc:%d",
+                   sid, t);
+            rc = t;
+         }
+         goto error;
+      }
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to test dirs before openning:%d", rc);
          goto error;
       }
 
-      rc = openMainDataSpace(context, path->dataPath, dirSlice, sid);
+      rc = openMainDataSpace(context, dirSlice, sid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open main data space:%d", rc);
@@ -201,6 +280,264 @@ namespace vessel
       return rc;
    error:
       close();
+      goto done;
+   }
+
+   INT32 storageUnit::rollbackCreating(const storagePathOptions &path,
+                                       const strSlice &dir)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
+
+      _sid = INVALID_SPACE_ID;
+      if (_mds.isOpen())
+      {
+         _mds.destroy();
+      }
+
+      rc = ensureOtherDirRemoved(path, dir);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove other dirs:%d", rc);
+         goto error;
+      }
+
+      rc = ensureMainDataDirRemoved(path, dir);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove main data dir:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::createMainDataDir(const storagePathOptions &path,
+                                        const strSlice &dir)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!path.dataPath.empty(), "can not be empty");
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+
+      rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(),
+                             OSS_MAX_PATHSIZE, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full path, space:%s, %d", dir.str(), rc);
+         goto error;
+      }
+
+      rc = ossMkdir(fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to mk dir:%s, rc:%d", fullPath, rc);
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::ensureMainDataDirRemoved(const storagePathOptions &path,
+                                               const strSlice &dir)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(),
+                             OSS_MAX_PATHSIZE, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full path:%s, %d", dir.str(), rc);
+         goto error;
+      }
+
+      rc = ossDelete(fullPath);
+      if (SDB_OK == rc)
+      {
+         /// do nothing.
+      }
+      else if (SDB_FNE == rc)
+      {
+         rc = SDB_OK;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::createStatusFile(const storagePathOptions &path,
+                                       const strSlice &dir,
+                                       SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+
+      OSSFILE file;
+      BOOLEAN rollbackFile = FALSE;
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      CHAR fileName[MAX_FILE_NAME_LEN +1] = {0};
+      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
+      if (!vesselFileName::buildSimpleName(sid, suffix,
+                                           MAX_FILE_NAME_LEN + 1, fileName))
+      {
+         PD_LOG(PDERROR, "failed to build tmp file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = utilBuildFullPath(path.dataPath.c_str(),
+                             dir.str(),
+                             OSS_MAX_PATHSIZE +1,
+                             fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full path[%s],[%s], rc:%d",
+                path.dataPath.c_str(), dir.str(), rc);
+         goto error;
+      }
+
+      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, fileName);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cat path:%d", rc);
+         goto error;
+      }
+
+      rc = ossOpen(fullPath, OSS_CREATEONLY, OSS_RU|OSS_WU|OSS_RG, file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create status file:%s, rc:%d",
+                fullPath, rc);
+         goto error;
+      }
+      rollbackFile = TRUE;
+
+      rc = ossFdatasync(&file);
+      if (SDB_OK != rc)
+      {
+         ossClose(file);
+         PD_LOG(PDERROR, "failed to fsync file:%s, rc:%d", fullPath, rc);
+         goto error;
+      }
+
+      ossClose(file);
+   done:
+      return rc;
+   error:
+      if (rollbackFile)
+      {
+         ossDelete(fullPath);
+      }
+      goto done;
+   }
+
+   INT32 storageUnit::testStatusFile(const strSlice &fullDir,
+                                     SPACE_ID sid,
+                                     BOOLEAN &exists)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!fullDir.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {0};
+      exists = FALSE;
+      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
+
+      if (!vesselFileName::buildSimpleName(sid, suffix,
+                                           MAX_FILE_NAME_LEN + 1, fileName))
+      {
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = utilBuildFullPath(fullDir.str(), fileName, OSS_MAX_PATHSIZE + 1, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full path:%d", rc);
+         goto error;
+      }
+
+      rc = ossAccess(fullPath);
+      if (SDB_OK == rc)
+      {
+         exists = TRUE;
+      }
+      else if (SDB_FNE == rc)
+      {
+         rc = SDB_OK;
+         exists = FALSE;
+      }
+      else
+      {
+         PD_LOG(PDERROR, "failed to access file:%s, rc:%d", fullPath, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::removeStatusFile(const storagePathOptions &path,
+                                       const strSlice &dir,
+                                       SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!path.dataPath.empty(), "can not be empty");
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+
+      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {0};
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      strSlice suffix(SIMPLE_FILE_SUFFIX_TMPSU);
+
+      if (!vesselFileName::buildSimpleName(sid, suffix,
+                                           MAX_FILE_NAME_LEN + 1, fileName))
+      {
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(),
+                             OSS_MAX_PATHSIZE, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full path:%s, %d", dir.str(), rc);
+         goto error;
+      }
+
+      rc = utilCatPath(fullPath, OSS_MAX_PATHSIZE + 1, fileName);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cat path:%d", rc);
+         goto error;
+      }
+
+      rc = ossDelete(fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -300,15 +637,12 @@ namespace vessel
                                                 const strSlice &dirName)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!dirName.empty(), "can not be empty");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      BOOLEAN statusFileExists = FALSE;
 
-      if (path.dataPath.empty() || dirName.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = utilBuildFullPath(path.dataPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
+      rc = utilBuildFullPath(path.dataPath.c_str(), dirName.str(),
+                             OSS_MAX_PATHSIZE, fullPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build full path, space:%s, %d", dirName.str(), rc);
@@ -319,6 +653,19 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to access path:%s", fullPath);
+         goto error;
+      }
+
+      rc = testStatusFile(strSlice(fullPath), _sid, statusFileExists);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to test status file:%d", rc);
+         goto error;
+      }
+      else if (statusFileExists)
+      {
+         PD_LOG(PDERROR, "temp status file found under[%s]", fullPath);
+         rc = SDB_VESSEL_TEMP_SU;
          goto error;
       }
       
@@ -361,35 +708,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createAllDirs(const storagePathOptions &path,
-                                    const strSlice &dirName)
+   INT32 storageUnit::createOtherDirs(const storagePathOptions &path,
+                                      const strSlice &dirName)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!dirName.empty(), "can not be empty");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      BOOLEAN rollbackDataDir = FALSE;
       BOOLEAN rollbackIndexDir = FALSE;
-
-      if (dirName.empty() || path.dataPath.empty())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = utilBuildFullPath(path.dataPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build full path, space:%s, %d", dirName.str(), rc);
-         goto error;
-      }
-
-      rc = ossMkdir(fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create dir:%s, %d", fullPath, rc);
-         goto error;
-      }
-
-      rollbackDataDir = TRUE;
 
       if (path.autoGetIndexPath() != path.dataPath)
       {
@@ -436,46 +761,20 @@ namespace vessel
          {
             if (SDB_OK != ossDelete(fullPath))
             {
-               PD_LOG(PDSEVERE, "failed to rollback index dir:%s", fullPath);
-            }
-         }
-      }
-
-      if (rollbackDataDir)
-      {
-         if(SDB_OK == utilBuildFullPath(path.dataPath.c_str(), dirName.str(),
-                                        OSS_MAX_PATHSIZE, fullPath))
-         {
-            if (SDB_OK != ossDelete(fullPath))
-            {
-               PD_LOG(PDSEVERE, "failed to rollback data dir:%s", fullPath);
+               PD_LOG(PDSEVERE, "failed to rollback index dir:%s, rc:%d", fullPath, rc);
+               ossPanic();
             }
          }
       }
       goto done;
    }
 
-   INT32 storageUnit::removeAllDirs(const storagePathOptions &path,
-                                    const strSlice &dir)
+   INT32 storageUnit::ensureOtherDirRemoved(const storagePathOptions &path,
+                                            const strSlice &dir)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!dir.empty(), "can not be empty");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-
-      rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(), 
-                             OSS_MAX_PATHSIZE + 1, fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build full path:%d", rc);
-         goto error;
-      }
-
-      rc = ossDelete(fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove path:%s, rc:%d", fullPath, rc);
-         goto error;
-      }
 
       if (path.autoGetIndexPath() != path.dataPath)
       {
@@ -488,7 +787,11 @@ namespace vessel
          }
 
          rc = ossDelete(fullPath);
-         if (SDB_OK != rc)
+         if (SDB_FNE == rc)
+         {  
+            rc = SDB_OK;
+         }
+         else if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove path:%s, rc:%d", fullPath, rc);
             goto error;
@@ -506,7 +809,11 @@ namespace vessel
          }
 
          rc = ossDelete(fullPath);
-         if (SDB_OK != rc)
+         if (SDB_FNE == rc)
+         {  
+            rc = SDB_OK;
+         }
+         else if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove path:%s, rc:%d", fullPath, rc);
             goto error;
@@ -519,41 +826,35 @@ namespace vessel
    }
 
    INT32 storageUnit::createMainDataSpace(requestContext *context,
-                                          const storagePathOptions &path,
-                                          const strSlice &subDir,
-                                          const createSUOptions &options)
+                                          SPACE_ID sid,
+                                          const strSlice &dir,
+                                          UINT32 secretValue,
+                                          const storageCoreArgs &args)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(!subDir.empty(), "can not be empty");
-      SDB_ASSERT(options.isValid(), "must be valid");
-      CHAR *dirBuffer = NULL;
-      UINT32 dirBufferSize = 0;
-      createLogicalPageSpaceOptions o;
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(args.isValid(), "must be valid");
 
-      dirBufferSize = path.dataPath.size() + subDir.strLen() + 8;
-      dirBuffer = context->allocateBuffer(dirBufferSize);
-      if (NULL == dirBuffer)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
+      const storagePathOptions &path = context->getEnv()->options.path;
+      createLogicalPageSpaceOptions o;
+      CHAR dirPath[OSS_MAX_PATHSIZE + 1] = {0};
 
       rc = utilBuildFullPath(path.dataPath.c_str(),
-                             subDir.str(),
-                             dirBufferSize,
-                             dirBuffer);
+                             dir.str(),
+                             OSS_MAX_PATHSIZE + 1,
+                             dirPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build full dir path:%d", rc);
          goto error;
       }
 
-      o.sid = options.sid;
-      o.logicalID = options.logicalID;
-      o.dir.reset(dirBuffer);
-      o.dataArgs = options.dataArgs;
+      o.sid = sid;
+      o.dir.reset(dirPath);
+      o.dataArgs = args;
+      o.secretValue = secretValue;
 
       rc = _mds.create(context, o);
       if (SDB_OK != rc)
@@ -561,31 +862,25 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create main data space:%d", rc);
          goto error;
       }
-      
-      
    done:
-      if (NULL != dirBuffer)
-      {
-         context->releaseBuffer(dirBuffer, dirBufferSize);
-      }
       return rc;
    error:
       goto done;
    }
 
    INT32 storageUnit::openMainDataSpace(requestContext *context,
-                                        const std::string &dir,
-                                        const strSlice &subDir,
+                                        const strSlice &dir,
                                         SPACE_ID sid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(!dir.empty(), "can not be empty");
-      SDB_ASSERT(!subDir.empty(), "can not be null");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       CHAR dirPath[OSS_MAX_PATHSIZE + 1] = {0};
+      const storagePathOptions &path = context->getEnv()->options.path;
 
-      rc = utilBuildFullPath(dir.c_str(), subDir.str(), OSS_MAX_PATHSIZE + 1, dirPath);
+      rc = utilBuildFullPath(path.dataPath.c_str(), dir.str(),
+                             OSS_MAX_PATHSIZE + 1, dirPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build path:%d", rc);
@@ -604,5 +899,7 @@ namespace vessel
    error:
       goto done;
    }
+
+
 }//namespace vessel
 }//namespace engine

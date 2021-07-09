@@ -57,6 +57,7 @@ namespace engine
 {
 namespace vessel
 {
+   class requestContext;
    class idMapFile;
    class atomicOperationList;
    class pageInitializer;
@@ -97,7 +98,7 @@ namespace vessel
 
          INT32 getLogicalPageBuffer(requestContext *context,
                                     PAGE_ID lpid,
-                                    ossSharedLatch::mode mode,
+                                    OSS_SHARED_LATCH_MODE mode,
                                     logicalPageBuffer &lpb);
 
          /// Make buffer from "getLogicalPageBuffer" writable.
@@ -106,8 +107,8 @@ namespace vessel
                                   logicalPageBuffer &lpb);
 
          /// lpid must be in reserved imp.
-         /// Page will be created if lpid unmapped and initer is valid.
-         /// Will always get upgrade lock first.
+         /// Page will be created if lpid unmapped.
+         /// Will always get exclusive lock first.
          /// If just want to read a reserved page ,jsut use "getLogicalPageBuffer".
          INT32 ensureReservedPage(requestContext *context,
                                   PAGE_ID lpid,
@@ -115,18 +116,19 @@ namespace vessel
                                   logicalPageBuffer &lpb);
 
          INT32 allocatePages(requestContext *context,
-                             const pageInitializer *initer,
+                             pageInitializer *initer,
                              UINT32 count,
                              PAGE_ID *lpids);
 
          INT32 releasePages(requestContext *context,
                             UINT32 count,
-                            const PAGE_ID *lpids, 
-                            atomicOperationList *oplist);
+                            const PAGE_ID *lpids);
       public:
+         FILE_TYPE getStorageFileType()const;
+         const storageCoreArgs &getStorageCoreArgs(storageCoreArgs &args)const;
 
-         INT32 getStorageCoreArgs(FILE_TYPE type, storageCoreArgs &args)const;
 
+      public:
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
   
@@ -135,16 +137,30 @@ namespace vessel
          {
             return _creater;
          }
+         OSS_INLINE ossSpinXLatch *getMappingLatch()
+         {
+            return &_mappingLatch;
+         }
+         OSS_INLINE lpsCheckpointContext &getCheckpointContext()
+         {
+            return _checkpointContext;
+         }
+         OSS_INLINE deltaLogConsole &getLogConsole()
+         {
+            return _logConsole;
+         }
+         OSS_INLINE logicalPageIdCache &getCache()
+         {
+            return _lpidCache;
+         }
 
          INT32 preallocate(requestContext *context,
                            UINT32 count,
-                           PAGE_ID *lpids,
-                           PAGE_ID *pids);
+                           mappedLogicalPageId *mpids);
 
          void releasePreallocated(requestContext *context,
                                   UINT32 count,
-                                  const PAGE_ID *lpids,
-                                  const PAGE_ID *pids);
+                                  const mappedLogicalPageId *mpids);
 
          INT32 validateLpidBeforeGet(PAGE_ID lpid)const;
 
@@ -158,47 +174,82 @@ namespace vessel
                ~_runtimePageBufferIniter(){}
             
             public:
-               INT32 initWithLiteCache(requestContext *context,
-                                       const GLOBAL_PAGE_ID &gpid,
-                                       ossSharedLatch::mode mode,
-                                       const runtimePageBuffer::options &options,
-                                       UINT32 pageSize,
-                                       runtimePageBuffer &rpb);
+               INT32 initWithCache(const GLOBAL_PAGE_ID &gpid,
+                                   UINT32 pageSize,
+                                   const runtimePageBuffer::options &o,
+                                   const liteCacheTuple &tuple,
+                                   runtimePageBuffer &rpb);
 
-               INT32 initWithMmap(requestContext *context,
-                                 const GLOBAL_PAGE_ID &gpid,
-                                 const runtimePageBuffer::options &options,
-                                 UINT32 pageSize,
-                                 const mmapPagePointer &ptr,
-                                 runtimePageBuffer &rpb);
+               INT32 initWithMmap(const GLOBAL_PAGE_ID &gpid,
+                                  UINT32 pageSize,
+                                  const runtimePageBuffer::options &o,
+                                  const mmapPagePointer &ptr,
+                                  runtimePageBuffer &rpb);
          };//class _runtimePageBufferIniter
 
+      protected:
+         virtual dataPageCluster *getDataStorageObj() = 0;
+
       private:
-         virtual UINT32 getReservedImpCount()const = 0;
+         virtual UINT32 getReservedImpCount()const {return 0;}
          virtual UINT32 getFreeBoundOfPageStorage()const = 0;
          virtual UINT32 getFreeBoundOfLpidAllocator()const = 0;
 
-         virtual UINT32 getIdMapFileHeadFlags()const = 0;
-         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
-         virtual BOOLEAN isStandardPage()const{return TRUE;}
-         
+      private:/// page management
+         virtual INT32 getPageFromCache(PAGE_ID lpid,
+                                        idMapSlot &slot,
+                                        BOOLEAN &isMutable);
+
+         virtual INT32 map(requestContext *context,
+                           PAGE_SNAPSHOT_VERION psv,
+                           UINT32 count,
+                           const mappedLogicalPageId *mpids) = 0;
+
+         virtual INT32 remap(requestContext *context,
+                             PAGE_SNAPSHOT_VERION psv,
+                             UINT32 count,
+                             const mappedLogicalPageId *mpids,
+                             const PAGE_ID *oldPids,
+                             BOOLEAN releaseOld) = 0;
+
+         virtual INT32 unmap(requestContext *context,
+                             UINT32 count,
+                             const mappedLogicalPageId *mpids,
+                             BOOLEAN releasePid) = 0;
+
+         virtual INT32 releasePids(requestContext *context,
+                                   UINT32 count,
+                                   const PAGE_ID *pids) = 0;
 
       private:/// for data storage.
-         virtual dataPageCluster *allocateStorageObject();
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
-                                            ossSharedLatch::mode mode,
+                                            OSS_SHARED_LATCH_MODE mode,
                                             const runtimePageBuffer::options &o,
                                             runtimePageBuffer &rpb) = 0;
 
+         /// rpb must be writable at last
+         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
+                                                   PAGE_ID pid,
+                                                   runtimePageBuffer &rpb) = 0;
+
+         /// rpb must be writable at last
+         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
+                                               PAGE_SNAPSHOT_VERION psv,
+                                               PAGE_ID newPid,
+                                               runtimePageBuffer &rpb) = 0;
+
       private:/// for openning/creating
          virtual INT32 _create(requestContext *context){return SDB_OK;}
-         virtual INT32 _open(requestContext *context){return SDB_OK;}
+         virtual INT32 _open(requestContext *context,
+                             const storageFileLoader &loader){return SDB_OK;}
+         virtual UINT32 getIdMapFileHeadFlags()const = 0;
+         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
 
       private:
          void _close();
          void _destroy();
-         INT32 createFirstIdMapFile();
+         INT32 createFirstIdMapFile(const storageCoreArgs &dataArgs);
          INT32 openIdMapFiles(SPACE_ID sid,
                               const strSlice &dir,
                               const storageFileLoader &loader);
@@ -217,46 +268,21 @@ namespace vessel
                                        UINT32 count,
                                        const PAGE_ID *lpids);
 
-         
-
          INT32 remapBufferToNewDataPage(requestContext *context,
                                         BOOLEAN releaseOld,
                                         logicalPageBuffer &lpb);
 
          INT32 ensureLogicalPidSpace(PAGE_ID lpid);
 
-         INT32 createPageAndCompleteBuffer(requestContext *context,
-                                           pageInitializer *initer,
-                                           logicalPageBuffer &lpb);
+         INT32 initPageAndCompleteBuffer(requestContext *context,
+                                         PAGE_ID pid,
+                                         pageInitializer *initer,
+                                         logicalPageBuffer &lpb);
 
-      private:
-         virtual INT32 map(requestContext *context,
-                           PAGE_SNAPSHOT_VERION psv,
-                           UINT32 count,
-                           const PAGE_ID *lpids,
-                           const PAGE_ID *pids) = 0;
-
-         INT32 remap(requestContext *context,
-                     PAGE_SNAPSHOT_VERION psv,
-                     UINT32 count,
-                     const PAGE_ID *lpids,
-                     const PAGE_ID *newPids,
-                     const PAGE_ID *oldPids,
-                     BOOLEAN releaseOld);
-
-         INT32 unmap(requestContext *context,
-                     UINT32 count,
-                     const PAGE_ID *lpids,
-                     const PAGE_ID *pids,
-                     BOOLEAN releaseOld);
-
-         INT32 replicatedRemmap(requestContext *context,
-                                PAGE_SNAPSHOT_VERION psv,
-                                UINT32 count,
-                                const PAGE_ID *lpids,
-                                const PAGE_ID *newPids,
-                                const PAGE_ID *oldPids,
-                                DPS_LSN_OFFSET *lsn);
+         INT32 initAndMapPages(requestContext *context,
+                               pageInitializer *initer,
+                               UINT32 count,
+                               const mappedLogicalPageId *mpids);
 
       private:
          INT32 replayDeltaLogWhenOpen(UINT64 beginOffset);
@@ -273,10 +299,7 @@ namespace vessel
          ossSpinXLatch _mappingLatch;
          deltaLogConsole _logConsole;
          logicalPageIdCache _lpidCache;
-
          dataPageCluster *_dpc = NULL;
-
-         
          lpsCheckpointContext _checkpointContext;
    };//class logicalPageSpace
 }//namespace vessel

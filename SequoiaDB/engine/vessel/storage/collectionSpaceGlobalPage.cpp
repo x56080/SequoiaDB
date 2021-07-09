@@ -50,6 +50,10 @@ namespace vessel
       {
          goto done;
       }
+      else if (CMR_TYPE_NORMAL == type)
+      {
+         goto done;
+      }
       else if (DMS_INVALID_LOGICCSID == logicalID)
       {
          goto done;

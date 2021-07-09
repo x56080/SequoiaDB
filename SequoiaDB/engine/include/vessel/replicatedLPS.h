@@ -37,23 +37,87 @@
 #define VESSEL_REPLICATED_LPS_H_
 
 #include "vessel/logicalPageSpace.h"
+#include "vessel/idMapFile.h"
+#include "vessel/dataStorageFileCluster.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class logRecordContext;
+
    class replicatedLPS : public logicalPageSpace
    {
       public:
          replicatedLPS();
          virtual ~replicatedLPS();
 
-      public:
-         INT32 allocate(requestContext *context,
-                        PAGE_TYPE pt,
-                        UINT32 count,
-                        PAGE_ID *lpids,
-                        atomicOperationList *oplist);
+      private:
+         virtual UINT32 getIdMapFileHeadFlags()const
+         {
+            return ID_MAP_FILE_FLAG_REPLICATED;
+         }
+         virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const
+         {
+            return ID_MAP_FILE_FLAG_REPLICATED == flags;
+         }
+
+      private:
+         virtual INT32 getRuntimePageBuffer(requestContext *context,
+                                            PAGE_ID pid,
+                                            OSS_SHARED_LATCH_MODE mode,
+                                            const runtimePageBuffer::options &o,
+                                            runtimePageBuffer &rpb);
+
+         virtual INT32 getRuntimePageBufferToReset(requestContext *context,
+                                                   PAGE_ID pid,
+                                                   runtimePageBuffer &rpb);
+
+         virtual INT32 copyPageAndReinitBuffer(requestContext *context,
+                                               PAGE_SNAPSHOT_VERION psv,
+                                               PAGE_ID newPid,
+                                               runtimePageBuffer &rpb);
+
+      private:
+         virtual INT32 getPageFromCache(PAGE_ID lpid,
+                                        idMapSlot &slot,
+                                        BOOLEAN &isMutable);
+
+         virtual INT32 map(requestContext *context,
+                           PAGE_SNAPSHOT_VERION psv,
+                           UINT32 count,
+                           const mappedLogicalPageId *mpids);
+
+         virtual INT32 remap(requestContext *context,
+                             PAGE_SNAPSHOT_VERION psv,
+                             UINT32 count,
+                             const mappedLogicalPageId *mpids,
+                             const PAGE_ID *oldPids,
+                             BOOLEAN releaseOld);
+
+         virtual INT32 unmap(requestContext *context,
+                             UINT32 count,
+                             const mappedLogicalPageId *mpids,
+                             BOOLEAN releasePid);
+
+         virtual INT32 releasePids(requestContext *context,
+                                   UINT32 count,
+                                   const PAGE_ID *pids);
+
+         private:
+            INT32 prepareCopyLog(requestContext *context,
+                                 UINT32 pageSize,
+                                 logRecordContext *lrc);
+
+            INT32 commit(requestContext *context,
+                         UINT32 pageSize,
+                         const void *pageBuffer,
+                         const globalPageIDAndLpid &gpid,
+                         logRecordContext *lrc);
+
+            void abort(requestContext *context,
+                       logRecordContext *lrc);
+
    };//class replicatedLPS
 }//namespace vessel
 }//namespace engine

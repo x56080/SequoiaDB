@@ -36,10 +36,10 @@
 #define VESSEL_LC_FREE_LIST_H_
 
 #include "vessel/liteCacheDef.h"
-#include "vessel/latch.h"
 #include "vessel/lcCacheChunk.h"
 #include "vessel/freeListPage.h"
 #include "vessel/vesselOptions.h"
+#include "ossLatch.hpp"
 
 #include <list>
 

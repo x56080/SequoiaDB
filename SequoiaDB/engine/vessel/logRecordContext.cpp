@@ -162,6 +162,16 @@ namespace vessel
       return;
    }
 
+   void logRecordContext::setResetPage()
+   {
+      OSS_BIT_SET(_head._flags, DPS_VESSEL_LOG_FLAG_RESET_PAGE);
+   }
+
+   BOOLEAN logRecordContext::isResetPage()const
+   {
+      return 0 != OSS_BIT_TEST(_head._flags, DPS_VESSEL_LOG_FLAG_RESET_PAGE);
+   }
+
    void logRecordContext::prepushDone()
    {
       SDB_ASSERT(!prepared(), "can not be prepared");

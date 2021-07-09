@@ -209,9 +209,13 @@ namespace vessel
       {
          goto done;
       }
+      else if (OSS_UNLIKELY(!isValidPageSize(((pageHead *)ptr)->size)))
+      {
+         goto done;
+      }
 
       ((pageHead *)ptr)->lsn = lsn;
-      *((UINT64 *)(ptr + getPageBodySize(((pageHead *)ptr)->size))) = lsn;
+      *((UINT64 *)(ptr + ((pageHead *)ptr)->size - sizeof(UINT64))) = lsn;
       r = TRUE;
    done:
       return r;

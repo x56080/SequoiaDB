@@ -1720,7 +1720,7 @@ error :
 #endif
 }
 
-INT32 ossFsync( const OSSFILE* pFile )
+INT32 ossFdatasync( const OSSFILE* pFile )
 {
    INT32   rc  = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSFSYNC );
@@ -2961,9 +2961,11 @@ error:
 #endif // _LINUX
 }
 
-INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size)
+INT32 ossFallocate(OSSFILE *file, UINT64 size)
 {
    INT32 rc = SDB_OK;
+
+#if defined( _LINUX )
    INT64 beginOffset = 0;
 
    if (NULL == file ||
@@ -2974,20 +2976,12 @@ INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size)
       goto error;
    }
 
-   if (NULL == offset)
+   rc = ossGetFileSize(file, &beginOffset);
+   if (SDB_OK != rc)
    {
-      rc = ossGetFileSize(file, &beginOffset);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   }
-   else
-   {
-      beginOffset = *offset;
+      goto error;
    }
 
-#if defined( _LINUX )
    rc = fallocate(file->fd, 0, beginOffset, size);
    if (rc < 0)
    {
@@ -3013,8 +3007,11 @@ INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size)
    }
 #else
    /// TODO.
-   rc = SDB_SYS;
-   goto error;
+   rc = ossExtendFile(file, size);
+   if (SDB_OK != rc)
+   {
+      goto error;
+   }
 #endif//_LINUX
 done:
    return rc;

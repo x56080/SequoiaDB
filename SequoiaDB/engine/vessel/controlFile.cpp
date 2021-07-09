@@ -42,7 +42,7 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 MAX_CONTENT_SIZE = CONTROL_FILE_SIZE - sizeof(controlFile::head) - sizeof(UINT32);
+   constexpr UINT32 MAX_CONTENT_SIZE = CONTROL_FILE_SIZE - sizeof(controlFile::head);
 
    OSS_INLINE UINT32 getMagicCode()
    {
@@ -50,12 +50,12 @@ namespace vessel
       return *((UINT32 *)a);
    }
 
-   void createChecksum(void *buf)
+   UINT32 createChecksum(const controlFile::head *head)
    {
-      SDB_ASSERT(NULL != buf, "can not be null");
-      UINT32 *checksum = (UINT32 *)((ossValuePtr)buf + CONTROL_FILE_SIZE - sizeof(UINT32));
-      *checksum = XXH3_64bits(buf, CONTROL_FILE_SIZE - sizeof(UINT32));
-      return;
+      SDB_ASSERT(NULL != head, "can not be null");
+      const CHAR *begin = (const CHAR *)head + 8;
+      UINT32 size = sizeof(controlFile::head) - 8 + head->contentLen;
+      return XXH3_64bits(begin, size);
    }
 
    INT32 validateBuf(const void *buf)
@@ -63,23 +63,25 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != buf, "can not be null");
       const controlFile::head *h = (const controlFile::head *)buf;
-      const UINT32 *checksum = NULL;
       UINT32 c = 0;
 
       if (getMagicCode() != h->magicCode)
       {
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
       if (CONTROL_FILE_VERSION != h->headVerion)
       {
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
-
-      checksum = (UINT32 *)((ossValuePtr)buf + CONTROL_FILE_SIZE - sizeof(UINT32));
-      c = XXH3_64bits(buf, CONTROL_FILE_SIZE - sizeof(UINT32));
-      if (c != *checksum)
+      if (MAX_CONTENT_SIZE < h->contentLen)
+      {
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+      
+      if (h->checksum != createChecksum(h))
       {
          rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
@@ -490,7 +492,7 @@ namespace vessel
       UINT32 count = getMaxAliveVersionCount();
       CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       _fileObj *obj = NULL;
-      UINT32 flags = OSS_READWRITE | OSS_EXCLUSIVE | OSS_WRITETHROUGH;
+      UINT32 flags = OSS_READWRITE | OSS_EXCLUSIVE;
 
       for (UINT32 i = 0; i < count; ++i)
       {
@@ -538,12 +540,25 @@ namespace vessel
             goto error;
          }
 
-         if ((INT64)CONTROL_FILE_SIZE != fileSize)
+         if ((INT64)CONTROL_FILE_SIZE < fileSize)
          {
             PD_LOG(PDERROR, "invalid file size:%lld of control file[%s]",
                    fileSize, path);
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
+         }
+         else if (fileSize < (INT64)CONTROL_FILE_SIZE)
+         {
+            PD_LOG(PDERROR, "invalid file size:[%lld] of file[%s],"
+                  "reinit it as unused one", fileSize, path);
+            initFileBuf(obj);
+            rc = writeFile(obj);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to write file[%s], rc:%d", path, rc);
+               goto error;
+            }
+            pushToUnusedListWhenOpen(obj);
          }
 
          rc = readFile(obj);
@@ -596,7 +611,7 @@ namespace vessel
       UINT32 count = getMaxAliveVersionCount();
       CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       _fileObj *obj = NULL;
-      UINT32 flags = OSS_CREATEONLY |OSS_READWRITE | OSS_EXCLUSIVE | OSS_WRITETHROUGH;
+      UINT32 flags = OSS_CREATEONLY |OSS_READWRITE | OSS_EXCLUSIVE;
 
       for (UINT32 i = 0; i < count; ++i)
       {
@@ -636,14 +651,6 @@ namespace vessel
             goto error;
          }
 
-         rc = ossExtendFile(&(obj->file), (INT64)CONTROL_FILE_SIZE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to extend file[%s] to valid size, rc:%d",
-                   path, rc);
-            goto error;
-         }
-
          initFileBuf(obj);
          rc = writeFile(obj);
          if (SDB_OK != rc)
@@ -672,7 +679,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != obj, "can not be null");
       ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
-      controlFile::head *head = (controlFile::head*)(obj->buf);
+      controlFile::head *head = obj->getHead();
 
       head->magicCode = getMagicCode();
       head->headVerion = CONTROL_FILE_VERSION;
@@ -681,8 +688,7 @@ namespace vessel
       head->updateMillis = ossGetCurrentMilliseconds();
       head->contentLen = 0;
       head->pad = 0;
-
-      createChecksum(obj->buf);
+      head->checksum = createChecksum(head);
       return;
    }
 
@@ -690,15 +696,19 @@ namespace vessel
    {
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(NULL != buf, "can not be null");
+      controlFile::head *head = obj->getHead();
 
-      obj->getHead()->commitVersion = _commitVersion;
-      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
-      obj->getHead()->contentLen = size;
+      head->magicCode = getMagicCode();
+      head->headVerion = CONTROL_FILE_VERSION;
+      head->flags = 0;
+      head->commitVersion = _commitVersion;
+      head->updateMillis = ossGetCurrentMilliseconds();
+      head->contentLen = size;
+      head->pad = 0;
       ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
       ossMemset(obj->buf + sizeof(controlFile::head) + size,
                 0, CONTROL_FILE_SIZE - sizeof(controlFile::head) - size);
-      ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
-      createChecksum(obj->buf);
+      head->checksum = createChecksum(head);
       return;
    }
 
@@ -727,8 +737,12 @@ namespace vessel
          written += w;
       } while (written < CONTROL_FILE_SIZE);
 
-      /// we set OSS_WRITETHROUGH when open file, no need to 
-      /// fsync file again.
+      rc = ossFdatasync(&(obj->file));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fdatasync file:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:

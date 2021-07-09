@@ -72,6 +72,8 @@ namespace vessel
 
       _args = args;
       _creater = creater;
+      ossIsPowerOf2(args.maxSegmentCountPerFile, &_bitwiseMaxSegmentPerFile);
+      ossIsPowerOf2(args.maxPageCountPerSeg, &_bitwiseMaxPageCountPerSeg);
 
       rc = _allocator.init(_args.maxPageCountPerSeg, o);
       if (SDB_OK != rc)
@@ -93,7 +95,7 @@ namespace vessel
       _segmentCountOnDisk = getTotalSegmentCountAllocated();
       if (0 < _segmentCountOnDisk)
       {
-         rc = _allocator.allocateNewBitMapPages(_segmentCountOnDisk, 0);
+         rc = _allocator.allocateNewBitmapPages(_segmentCountOnDisk);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate bitmap pages:%d", rc);
@@ -124,6 +126,8 @@ namespace vessel
    void dataPageCluster::_close()
    {
       _args.reset();
+      _bitwiseMaxSegmentPerFile = 0;
+      _bitwiseMaxPageCountPerSeg = 0;
       _creater = NULL;
       _allocator.fini();
       _segmentCountOnDisk = 0;
@@ -340,7 +344,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 minSegCount = 0;
-      ossSpinXLatchGuard guard(&_extendingLatch, FALSE);
+      ossXLatchGuard guard(&_extendingLatch, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -378,7 +382,7 @@ namespace vessel
             ++_segmentCountOnDisk;
          }
          
-         rc = _allocator.allocateNewBitMapPage();
+         rc = _allocator.allocateNewBitmapPage();
          if (SDB_OK != rc)
          {
             /// No need to do anything to rollback file.
@@ -419,12 +423,45 @@ namespace vessel
          ++_segmentCountOnDisk;
       }
       
-      rc = _allocator.allocateNewBitMapPage();
+      rc = _allocator.allocateNewBitmapPage();
       if (SDB_OK != rc)
       {
          /// No need to do anything to rollback file.
          /// Just wait for the next allocating.
          PD_LOG(PDERROR, "failed to allocate new page in bitmap:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataPageCluster::getPagePtr(FILE_TYPE type,
+                                     PAGE_ID pid,
+                                     mmapPagePointer &ptr)const
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type ||
+                            INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (type != getDataFileType())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getDataPagePtr(pid, ptr);
+      if (SDB_OK != rc)
+      {
          goto error;
       }
    done:

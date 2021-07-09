@@ -49,7 +49,6 @@ namespace vessel
 
    cursorKernal::~cursorKernal()
    {
-      SDB_ASSERT(0 == _usage, "must be zero");
       close();
    }
 
@@ -63,17 +62,21 @@ namespace vessel
                             const cursorOptions *options)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (NULL == db)
+
+      if (OSS_UNLIKELY(NULL == db))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      if (OSS_UNLIKELY(isOpen()))
+      {
+         SDB_ASSERT(FALSE, "do not reopen");
+         close();
+      }
+
+      /// Set open first, ensure close can be executed.
+      OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
       if (NULL != options)
       {
          _options = *options;
@@ -88,16 +91,15 @@ namespace vessel
          }
       }
 
+      _db = db;
+      _filter = filter;
+
       rc = _open();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open:%d", rc);
          goto error;
       }
-
-      _db = db;
-      OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
-      _filter = filter;
    done:
       return rc;
    error:
@@ -105,90 +107,82 @@ namespace vessel
       goto done;
    }
 
-   INT32 cursorKernal::close()
+   void cursorKernal::close()
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
+      SDB_ASSERT(0 == _usage, "must be zero");
+      if (isOpen())
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+         _close();
+         _options = cursorOptions();
+         _usage = 0;
+         _totalPushed = 0;
+         _flags = 0;
 
-      rc = _close();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed close cursor:%d", rc);
+         _bufSize = 0;
+         if (NULL != _buf)
+         {
+            SDB_THREAD_FREE(_buf);
+            _buf = NULL;
+         }
+         _w = 0;
+         _r = 0;
+         _db = NULL;
+         _filter = NULL;
       }
-
-      _options = cursorOptions();
-      _usage = 0;
-      _flags = 0;
-      _totalSliceInBuf = 0;
-      _nextSlice = NULL;
-      _bufSize = 0;
-      _usedBufSize = 0;
-      SAFE_OSS_FREE(_buf);
-      _db = NULL;
-      _filter = NULL;
    
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 cursorKernal::getNext(ISession *session, slice &content)
    {
       INT32 rc = SDB_OK;
-      UINT32 len = 0;
+      UINT32 size = 0;
       const CHAR *buf = NULL;
-      UINT32 pushLoopCount = 0;
+
       if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      
-      while (NULL == _nextSlice)
+
+      if (!hasMoreDataToFetch())
       {
-         if (OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING))
+         if (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING) ||
+             _options.limit == _totalPushed)
          {
-            rc = SDB_VESSEL_END_OF_CURSOR;
+            rc = SDB_VESSEL_EOC;
             goto error;
          }
-         else if (OSS_LIKELY(0 == pushLoopCount))
+
+         _r = 0;
+         _w = 0;
+         rc = _db->pushMoreToCursor(session, this);
+         if (SDB_OK != rc)
          {
-            ++pushLoopCount;
-            rc = _db->pushMoreToCursor(session, this);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
+            goto error;
          }
-         else
+
+         if (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING))
          {
-            SDB_ASSERT(FALSE, "impossible");
+            rc = SDB_VESSEL_EOC;
+            goto error;
+         }
+
+         if (OSS_UNLIKELY(!hasMoreDataToFetch()))
+         {
             PD_LOG(PDERROR, "pushed nothing but flag not set");
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         
       }
       
-      len = *((const UINT32 *)_nextSlice);
-      buf = _nextSlice + sizeof(UINT32);
-      content.reset(len, buf);
-      if (++_fetchedSliceInBuf == _totalSliceInBuf)
-      {
-         _totalSliceInBuf = 0;
-         _fetchedSliceInBuf = 0;
-         _nextSlice = NULL;
-      }
-      else
-      {
-         _nextSlice = _nextSlice + sizeof(UINT32) + len;
-      }
-      
+      SDB_ASSERT((_r + sizeof(UINT32)) < _w, "impossible");
+      size = *((const UINT32 *)(_buf + _r));
+      _r += sizeof(UINT32);
+
+      SDB_ASSERT((_r + size) <= _w, "impossible");
+      content.reset(size, _buf + _r);
+      _r += size;
    done:
       return rc;
    error:
@@ -200,12 +194,17 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
       else if (OSS_UNLIKELY(0 == len || NULL == data))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_options.limit == _totalPushed)
+      {
+         rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
 
@@ -215,15 +214,11 @@ namespace vessel
          goto error;
       }
 
-      *((UINT32 *)(_buf + _usedBufSize)) = len;
-      _usedBufSize += sizeof(UINT32);
-      ossMemcpy(_buf + _usedBufSize, data, len);
-      _usedBufSize += len;
-      ++_totalSliceInBuf;
-      if (NULL == _nextSlice)
-      {
-         _nextSlice = _buf;
-      }
+      *((UINT32 *)(_buf + _w)) = len;
+      _w += sizeof(UINT32);
+      ossMemcpy(_buf + _w, data, len);
+      _w += len;
+      ++_totalPushed;
    done:
       return rc;
    error:
@@ -241,7 +236,12 @@ namespace vessel
       UINT32 len = 0;
       if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_options.limit == _totalPushed)
+      {
+         rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
 
@@ -262,18 +262,14 @@ namespace vessel
          goto error;
       }
 
-      *((UINT32 *)(_buf + _usedBufSize)) = len;
-      _usedBufSize += sizeof(UINT32);
+      *((UINT32 *)(_buf + _w)) = len;
+      _w += sizeof(UINT32);
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         ossMemcpy(_buf + _usedBufSize, i->second, i->first);
-         _usedBufSize += i->first;
+         ossMemcpy(_buf + _w, i->second, i->first);
+         _w += i->first;
       }
-      ++_totalSliceInBuf;
-      if (NULL == _nextSlice)
-      {
-         _nextSlice = _buf;
-      }
+      ++_totalPushed;
    done:
       return rc;
    error:
@@ -284,7 +280,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      UINT32 freeBufSize = getFreeBufSize();
+      SDB_ASSERT(_w <= _bufSize, "impossible");
+
+      UINT32 freeBufSize = _bufSize - _w;
       UINT32 needSize = getRealBufSizeOfSlice(dataLen);
       UINT32 extendingSize = 0;
       
@@ -296,20 +294,14 @@ namespace vessel
       extendingSize = needSize - freeBufSize;
       if (_options.maxBufSize < (_bufSize + extendingSize))
       {
-         if (0 < _totalSliceInBuf)
-         {
-            rc = SDB_VESSEL_CURSOR_NO_SPACE;
-            goto error;
-         }
-         else
-         {
-            /// max buf size is too small
-            rc = SDB_VESSEL_OUT_OF_RESOURCE;
-            goto error;
-         }
+         /// max buf size is too small
+         rc = SDB_VESSEL_OUT_OF_RESOURCE;
+         goto error;
       }
-      else if (0 < _totalSliceInBuf)
+      else if (0 < _w)
       {
+         /// extend buffer only when first pushing of current loop
+         /// _w zeroed before every pushing more
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
@@ -334,31 +326,31 @@ namespace vessel
       return;
    }
 
-   BOOLEAN cursorKernal::hasNoSpaceToPush(UINT32 size)const
+   BOOLEAN cursorKernal::hasSpaceToPush(UINT32 size)const
    {
-      BOOLEAN r = TRUE;
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      UINT32 sliceSize = getRealBufSizeOfSlice(size);
+      SDB_ASSERT(sliceSize <= 16777216, "can not be over size");
+      UINT32 freeSize = _bufSize - _w;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          goto done;
       }
-      else if (size <= getFreeBufSize())
-      {
-         r = FALSE;
-         goto done;
-      }
-      else if (0 < _totalSliceInBuf)
+      else if (_options.limit == _totalPushed)
       {
          goto done;
       }
-      else
+      else if (sliceSize <= freeSize)
       {
-         UINT32 extendingSize = size - getFreeBufSize();
-         if (_options.maxBufSize >= (_bufSize + extendingSize))
-         {
-            r = FALSE;
-            goto done; 
-         }
+         r = TRUE;
+         goto done;
+      }
+      else if ((0 == _w) && (sliceSize <= _options.maxBufSize))
+      {
+         r = TRUE;
+         goto done;
       }
    done:
       return r;
@@ -369,21 +361,22 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < deltaSize, "impossible");
       SDB_ASSERT(_bufSize + deltaSize <= _options.maxBufSize, "impossible");
-      CHAR *old = _buf;
-      _buf = (CHAR *)SDB_OSS_MALLOC(deltaSize + _bufSize);
-      if (OSS_UNLIKELY(NULL == _buf))
+      SDB_ASSERT(0 == _w, "must be first pushing");
+      CHAR *tmp = (CHAR *)SDB_THREAD_ALLOC(deltaSize + _bufSize);
+      if (OSS_UNLIKELY(NULL == tmp))
       {
-         _buf = old;
+         PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      if (NULL != old)
+      if (NULL != _buf)
       {
-         ossMemcpy(_buf, old, _bufSize);
-         SDB_OSS_FREE(old);
+         SDB_THREAD_FREE(_buf);
+         _buf = NULL;
       }
 
+      _buf = tmp;
       _bufSize += deltaSize;
    done:
       return rc;

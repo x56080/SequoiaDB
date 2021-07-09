@@ -35,6 +35,7 @@
 
 #include "vessel/storageFileLoader.h"
 #include "ossLikely.hpp"
+#include "ossIO.hpp"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -114,7 +115,15 @@ namespace vessel
          {
             PD_LOG(PDINFO, "remove tmp vessel file:%s",
                    dir_iter->path().string().c_str());
-            fs::remove(dir_iter->path());
+            //fs::remove(dir_iter->path());
+
+            /// Use ossDelete to avoid exception catching.
+            INT32 r = ossDelete(dir_iter->path().string().c_str());
+            if (SDB_OK != r)
+            {
+               PD_LOG(PDERROR, "failed to create tmp file:%s, rc:%d",
+                      dir_iter->path().string().c_str(), rc);
+            }
             continue;
          }
          _map[fn.getFileType()].push_back(fn);

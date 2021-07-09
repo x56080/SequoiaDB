@@ -666,8 +666,8 @@ INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( OSSUID uid, CHAR *pUserName, UINT32 nameLen ) ;
 
-/// The real offset will be set as the end of file if "offset" is null.
-INT32 ossFallocate(OSSFILE *file, const UINT64 *offset, UINT32 size);
+/// Allocate file size from the end of file.
+INT32 ossFallocate(OSSFILE *file, UINT64 size);
 
 #endif // OSSIO_HPP_
 

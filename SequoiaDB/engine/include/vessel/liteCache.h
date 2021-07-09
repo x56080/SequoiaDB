@@ -95,9 +95,6 @@ class liteCache : public SDBObject
       void commit(UINT64 lsn,
                   liteCacheTuple &tuple);
 
-      /// release tuple
-      void release(liteCacheTuple &tuple);
-
    public:/// only for callback
       INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
                                             BOOLEAN zeroed,
@@ -132,10 +129,6 @@ class liteCache : public SDBObject
                           diskIOTask *task);
    private:
       INT32 ensureMemPage(requestContext *context, freeListPage &page);
-
-      void initTupleBeforeReturn(lcPageTagHolder &holder,
-                                 const liteCacheAllocateOptions &options,
-                                 liteCacheTuple &tuple);
 
       INT32 fsyncDiskPages(requestContext *context,
                            const GLOBAL_PAGE_ID &gpid,

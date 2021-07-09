@@ -47,6 +47,7 @@
 #include "vessel/strSlice.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
+#include "vessel/atomicOperationList.h"
 
 namespace engine
 {
@@ -165,12 +166,8 @@ namespace vessel
 
 /////////////logicalPageSapceLogUtil begin
    INT32 lpsLogUtil::prepare(requestContext *context,
-                              const slice &initer,
                               const deltaLogRecord &dlr,
-                              logRecordContext &lrc,
-                              BOOLEAN isOplistHead,
-                              DPS_LSN_OFFSET oplist,
-                              BOOLEAN isOplistTail)
+                              logRecordContext &lrc)
    {
       INT32 rc = SDB_OK;
       ISession *session = NULL;
@@ -183,42 +180,32 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if(OSS_UNLIKELY(isOplistHead && DPS_INVALID_LSN_OFFSET != oplist))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if(OSS_UNLIKELY(isOplistTail && DPS_INVALID_LSN_OFFSET == oplist))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       session = context->getSession();
       logger = context->getOuterResource()->logger;
 
-      if (isOplistHead)
-      {
-         lrc.setOplistHead();
-      }
-      else if (DPS_INVALID_LSN_OFFSET != oplist)
-      {
-         lrc.setOplist(oplist);
-      }
-
-      /// not else if
-      if (isOplistTail)
-      {
-         lrc.setOplistTail();
-      }
-
       lrc.open(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
+
+      if (context->isInProcessingOplist())
+      {
+         atomicOperationList *oplist = context->getOplist();
+         if (oplist->isWatingHead())
+         {
+            lrc.setOplistHead();
+         }
+         else
+         {
+            lrc.setOplist(oplist->getOplistLsn());
+         }
+
+         if (oplist->isWaitingTail())
+         {
+            lrc.setOplistTail();
+         }
+      }
+
       lrc.prepush(sizeof(UINT32));
       lrc.prepush(dlr.getLogHead()->_size);
-      if (0 != initer.len())
-      {
-         lrc.prepush(initer.len());
-      }
       lrc.prepushDone();
 
       rc = logger->prepare(session, &lrc);
@@ -238,30 +225,24 @@ namespace vessel
                             SPACE_ID sid,
                             SPACE_TYPE spaceType,
                             FILE_TYPE fileType,
-                            const deltaLogRecord &dlr,
-                            const slice &initer)
+                            const deltaLogRecord &dlr)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(lrc.prepared(), "must be prepared");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(INVALID_SPACE_TYPE != spaceType, "can not be invalid");
+      SDB_ASSERT(INVALID_FILE_TYPE != fileType, "can not be invalid");
+      SDB_ASSERT(dlr.isValid(), "can not be invalid");
+
       ISession *session = NULL;
       IRedoLogger *logger = NULL;
       UINT32 packedSidAndType = packSidAndType(sid, spaceType, fileType);
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       !lrc.prepared() ||
-                       INVALID_PAGE_ID == sid ||
-                       INVALID_SPACE_TYPE == spaceType ||
-                       INVALID_FILE_TYPE == fileType ||
-                       !dlr.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
       session = context->getSession();
       logger = context->getOuterResource()->logger;
 
       rc = logger->pushLogRecordElement(session, &lrc,
-                                        DPS_LOG_VESSEL_MAP_LPIDS_SID_AND_TYPE,
+                                        DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE,
                                         sizeof(UINT32), &packedSidAndType);
       if (SDB_OK != rc)
       {
@@ -270,7 +251,7 @@ namespace vessel
       }
 
       rc = logger->pushLogRecordElement(session, &lrc,
-                                        DPS_LOG_VESSEL_MAP_LPIDS_DELTA_LOG,
+                                        DPS_LOG_VESSEL_LPS_PM_DELTA_LOG,
                                         dlr.getLogHead()->_size,
                                         dlr.getLogHead());
       if (SDB_OK != rc)
@@ -279,23 +260,16 @@ namespace vessel
          goto error;
       }
 
-      if (0 != initer.len())
-      {
-         rc = logger->pushLogRecordElement(session, &lrc,
-                                        DPS_LOG_VESSEL_MAP_LPIDS_PAGE_INITER,
-                                        initer.len(), initer.data());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to push initer:%d", rc);
-            goto error;
-         }
-      }
-
       rc = logger->commit(session, &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
          goto error;
+      }
+
+      if (context->isInProcessingOplist())
+      {
+         context->getOplist()->push(lrc.getLsn());
       }
       
    done:

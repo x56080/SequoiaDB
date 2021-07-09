@@ -45,11 +45,20 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT32 CMR_VERSION_1 = 1;
+   static const UINT32 CMR_VERSION_1 = 1;
 
-   const static UINT32 CMR_STATUS_INVALID = 0;
-   const static UINT32 CMR_STATUS_ONLINE = 1;
-   const static UINT32 CMR_STATUS_SNAPSHOT = 2;
+   enum CMR_STATUS
+   {
+      CMR_STATUS_INVALID = 0,
+      CMR_STATUS_ONLINE = 1,
+      CMR_STATUS_REMOVED_BUT_SNAPSHOT = 2,
+   };
+
+   enum CMR_TYPE
+   {
+      CMR_TYPE_INVALID = 0,
+      CMR_TYPE_NORMAL = 1,
+   };
 
    const static UINT64 CSGP_UPDATE_MASK_STATUS = 0x01;
    const static UINT64 CSGP_UPDATE_MASK_FLAGS = 0x02;
@@ -70,6 +79,7 @@ namespace vessel
       {
          version = o.version;
          status = o.status;
+         type = o.type;
          flags = o.flags;
          uniqueID = o.uniqueID;
          logicalID = o.logicalID;
@@ -92,6 +102,7 @@ namespace vessel
       {
          version = 0;
          status = 0;
+         type = 0;
          flags = 0;
          uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
          logicalID = DMS_INVALID_LOGICCSID;
@@ -102,7 +113,6 @@ namespace vessel
 
 #pragma pack()
 
-   BOOLEAN metaRecordIsValid(const csMetaRecord &record);
 
    BOOLEAN initGmp(UINT32 pageSize,
                    PAGE_ID pid,

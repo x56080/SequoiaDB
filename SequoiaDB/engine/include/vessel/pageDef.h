@@ -172,6 +172,7 @@ namespace vessel
                           PAGE_SNAPSHOT_VERION psv,
                           void *buf);
 
+   /// page head valid.
    BOOLEAN updatePageLsn(ossValuePtr ptr,
                          DPS_LSN_OFFSET lsn);
 

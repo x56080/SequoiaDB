@@ -40,16 +40,15 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/collectionSpaceGlobalPage.h"
 #include "vessel/collectionAllocator.h"
-#include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
-#include "vessel/inMemBitMap.h"
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
 #include "vessel/slice.h"
 #include "vessel/storageUnit.h"
-#include "vessel/mainDataSpace.h"
-#include "vessel/indexSpace.h"
-#include "vessel/copyOnWriteSpaceEnv.h"
+#include "ossRWMutex.hpp"
+#include "vessel/lazyArray.hpp"
+#include "vessel/inMemBitmap.h"
+#include "vessel/collectionObjHolder.h"
 
 namespace engine
 {
@@ -67,24 +66,16 @@ namespace vessel
          ~collectionSpace();
          collectionSpace(const collectionSpace &o) = delete;
          collectionSpace &operator=(const collectionSpace &o) = delete;
-
-      private:
-         enum _CS_STATUS
-         {
-            CLOSED = 0,
-            OPEN = 1,
-         };//enum _CS_STATUS
    
       public:
-         OSS_INLINE BOOLEAN isClosed()const
-         {
-            return CLOSED == _status;
-         }
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return OPEN == _status;
+            return _isOpen;
          }
-
+         OSS_INLINE SPACE_ID getSpaceId()const
+         {
+            return NULL == _su ? INVALID_SPACE_ID : _su->getSpaceID();
+         }
          OSS_INLINE const CHAR *getCSName()const
          {
             return _recordInMem.name;
@@ -114,15 +105,6 @@ namespace vessel
          {
             return _recordInMem.logicalID;
          }
-
-         OSS_INLINE mainDataSpace *getMainDataSpace()
-         {
-            return &_ms;
-         }
-         OSS_INLINE indexSpace *getIndexSpace()
-         {
-            return NULL;
-         }
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
@@ -133,7 +115,7 @@ namespace vessel
          INT32 open(requestContext *context,
                     storageUnit *su);
 
-         void close();
+         void close(BOOLEAN closeSU=TRUE);
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
@@ -162,6 +144,11 @@ namespace vessel
 
          INT32 ensureFsmFile(requestContext *context,
                              fsmFile **file);
+
+      private:
+         INT32 _create(requestContext *context,
+                       const csMetaRecord &record,
+                       const createCSOptions &options);
       private:
          INT32 precreateCL(const strSlice &clName,
                            utilCLInnerID innerID,
@@ -207,70 +194,35 @@ namespace vessel
                                               PAGE_ID pid);
 
       private:
-         struct comp
+         struct _NAME_LESS
          {
             BOOLEAN operator()(const CHAR *l, const CHAR *r)const
             {
                return ossStrcmp(l, r) < 0;
             }
-         };//struct comp
+         };//struct _CS_NAME_LESS
 
-         struct _UID_HOLDER_PAIR
-         {
-            OSS_INLINE _UID_HOLDER_PAIR():
-            holder(NULL),
-            logicalID(DMS_INVALID_LOGICCLID)
-            {}
-            OSS_INLINE _UID_HOLDER_PAIR(collectionAllocator::collectionHolder *h, UINT32 lid):
-            holder(h),
-            logicalID(lid)
-            {}
-            OSS_INLINE ~_UID_HOLDER_PAIR()
-            {
-               holder = NULL;
-               logicalID = DMS_INVALID_LOGICCLID;
-            }
-            OSS_INLINE _UID_HOLDER_PAIR(const _UID_HOLDER_PAIR &o):
-            holder(o.holder),
-            logicalID(o.logicalID)
-            {}
-            OSS_INLINE _UID_HOLDER_PAIR &operator=(const _UID_HOLDER_PAIR &o)
-            {
-               holder = o.holder;
-               logicalID = o.logicalID;
-               return *this;
-            }
-            OSS_INLINE BOOLEAN isValid()const
-            {
-               return NULL != holder && DMS_INVALID_LOGICCLID != logicalID;
-            }
-
-            collectionAllocator::collectionHolder *holder;
-            UINT32 logicalID;
-         };//struct _UID_HOLDER_PAIR
-
-         ///At present, the holder will not be destroyed after being allocated.
-         ///We can store it's pointer here.
-         typedef ossPoolMap<const CHAR *, _UID_HOLDER_PAIR, comp> NAME_INDEX;
-         typedef ossPoolMap<utilCLInnerID, _UID_HOLDER_PAIR> ID_INDEX;
-         typedef ossPoolSet<ossPoolString> CREATING_NAME_INDEX;
-         typedef ossPoolSet<utilCLInnerID> CREATING_ID_INDEX;         
+         typedef ossPoolMap<const CHAR *, CL_MB_ID, _NAME_LESS> NAME_INDEX;
+         typedef ossPoolMap<utilCLInnerID, CL_MB_ID> ID_INDEX;
+         typedef ossPoolSet<const CHAR *, _NAME_LESS> _NAME_SET;
+         typedef ossPoolSet<utilCLInnerID> _INNER_ID_SET;         
       private:
-         _CS_STATUS _status = CLOSED;
+         BOOLEAN _isOpen = FALSE;
+         storageUnit *_su = NULL;
+         ossRWMutex _latch;
          csMetaRecord _recordInMem;
-         collectionAllocator _collectionAllocator;
 
-         copyOnWriteSpaceEnv _cowEnv;
-         mainDataSpace _ms;
-         //indexSpace _is;
-
-
-         ossSpinSLatch _latch;
+         inMemBitmap _allocator;
+         lazyArray<collectionObjHolderGroup> _collections;
          UINT32 _maxCLLogicalID = DMS_INVALID_LOGICCLID;
+
+         ///formal indexes
          NAME_INDEX _clNameIndex;
          ID_INDEX _clIdIndex;
-         CREATING_NAME_INDEX _creatingNameIndex;
-         CREATING_ID_INDEX _creatingIdIndex;    
+
+         ///unformal indexes
+         _NAME_SET _unformalNameIndex;
+         _INNER_ID_SET _unformalInnerIdIndex;    
    };//class collectionSpace
 }
 }

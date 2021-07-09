@@ -74,34 +74,31 @@ namespace vessel
 
    void requestContext::_close()
    {
-      SDB_ASSERT(ossSharedLatch::NONE == _mbLockMode, "unlocking missed");
-      SDB_ASSERT(ossSharedLatch::NONE == _sidLockedMode, "unlocking missed");
+      SDB_ASSERT(OSS_SHARED_LATCH_MODE_NONE == _mbLockMode, "unlocking missed");
+      SDB_ASSERT(OSS_SHARED_LATCH_MODE_NONE == _sidLockedMode, "unlocking missed");
       SDB_ASSERT(0 == _bufAllocated, "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
-      SDB_ASSERT(_lpidContext.isEmpty(), "unlocking missed");
+      SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
+      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      LOGICAL_ID_LATCH_MAP::object lpidLatchObj;
 
-      if (ossSharedLatch::NONE != _mbLockMode)
+      unlockMB();
+
+      while (_lpidLatchContext.pop(lpidLatchObj, mode))
       {
-         _mbLatch->unlockWith(_mbLockMode);
-         _mbLockMode = ossSharedLatch::NONE;
-         _mbLatch = NULL;
+         lpidLatchObj.getValue().unlockWith(mode);
+         _env->_lpidLatchMap.release(lpidLatchObj);
       }
 
-      _lpidContext.reset();
       _blocker.fini();
       
-      if (ossSharedLatch::NONE != _sidLockedMode)
-      {
-         _env->spaceLocker.unlock(_sid, _sidLockedMode);
-         _sidLockedMode = ossSharedLatch::NONE;
-      }
+      unlockSpaceID();
 
       _session = NULL;
       _env = NULL;
       _outerResource = NULL;
-      _sid = INVALID_SPACE_ID;
-      _mbID = INVALID_CL_MB_ID;
+      _lpidLatchContext.fini();
       _bufAllocated = 0;
       _oplist = NULL;
       
@@ -143,7 +140,7 @@ namespace vessel
    }
 
    INT32 requestContext::lockSpaceID(SPACE_ID sid,
-                                     ossSharedLatch::mode mode)
+                                     OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
       spaceIDLocker *locker = NULL;
@@ -152,8 +149,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                            ossSharedLatch::NONE == mode))
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -174,24 +170,57 @@ namespace vessel
       goto done;
    }
 
-   void requestContext::unlockSpaceID()
+   INT32 requestContext::tryLockSpaceID(SPACE_ID sid,
+                                        OSS_LATCH_MODE mode,
+                                        BOOLEAN &locked)
    {
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(ossSharedLatch::NONE == _mbLockMode, "unlocking missed");
-      SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
-      SDB_ASSERT(_lpidContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
-      SDB_ASSERT(ossSharedLatch::NONE != _sidLockedMode, "can not be invalid");
-      
-      _env->spaceLocker.unlock(_sid, _sidLockedMode);
-      _sid = INVALID_SPACE_ID;
-      _sidLockedMode = ossSharedLatch::NONE;
+      INT32 rc = SDB_OK;
+      spaceIDLocker *locker = NULL;
+      locked = FALSE;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      locker = &(getEnv()->spaceLocker);
+      rc = locker->lock(sid, mode);
+      rc = locker->tryLock(sid, mode, locked);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (locked)
+      {
+         _sid = sid;
+         _sidLockedMode = mode;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void requestContext::unlockSpaceID()
+   {  
+      if (isSpaceIdLocked())
+      {
+         _env->spaceLocker.unlock(_sid, _sidLockedMode);
+         _sid = INVALID_SPACE_ID;
+         _sidLockedMode = SHARED;
+      }
       return;
    }
 
    INT32 requestContext::lockMB(CL_MB_ID mbID,
-                                ossSharedLatch *latch,
-                                ossSharedLatch::mode mode)
+                                ossRWMutex *latch,
+                                OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
@@ -200,8 +229,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID ||
-                       NULL == latch ||
-                       ossSharedLatch::NONE == mode))
+                       NULL == latch))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -218,7 +246,14 @@ namespace vessel
          goto error;
       }
       
-      latch->lockWith(mode);
+      if (SHARED == mode)
+      {
+         latch->lock_r();
+      }
+      else
+      {
+         latch->lock_w();
+      }
       _mbID = mbID;
       _mbLatch = latch;
       _mbLockMode = mode;
@@ -231,72 +266,33 @@ namespace vessel
 
    void requestContext::unlockMB()
    {
-      if (OSS_LIKELY(isMbLocked()))
+      if (isMbLocked())
       {
-         _mbLatch->unlockWith(_mbLockMode);
+         if (SHARED == _mbLockMode)
+         {
+            _mbLatch->release_r();
+         }
+         else
+         {
+            _mbLatch->release_w();
+         }
+
          _mbID = INVALID_CL_MB_ID;
-         _mbLockMode = ossSharedLatch::NONE;
+         _mbLockMode = SHARED;
          _mbLatch = NULL;
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "not locking");
       }
       return;
    }
 
-   INT32 requestContext::tryLockMB(CL_MB_ID mbID,
-                                   ossSharedLatch *latch,
-                                   ossSharedLatch::mode mode,
-                                   BOOLEAN &locked)
-   {
-      INT32 rc = SDB_OK;
-      locked = FALSE;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID ||
-                            NULL == latch ||
-                            ossSharedLatch::NONE == mode))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isSpaceIdLocked()))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      else if (isMbLocked())
-      {
-         SDB_ASSERT(FALSE, "unlocking missed");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      locked = latch->tryLockWith(mode);
-      if (locked)
-      {
-         _mbID = mbID;
-         _mbLockMode = mode;
-         _mbLatch = latch;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
    INT32 requestContext::lockLpid(SPACE_TYPE type,
                                   PAGE_ID lpid,
-                                  ossSharedLatch::mode mode)
+                                  OSS_SHARED_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
       logicalIdLatchKey key(_sid, type, lpid);
       LOGICAL_ID_LATCH_MAP::object obj;
-      ossSharedLatch::mode m = ossSharedLatch::NONE;
+      OSS_SHARED_LATCH_MODE m = OSS_SHARED_LATCH_MODE_NONE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -305,7 +301,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
                             INVALID_PAGE_ID == lpid ||
-                            ossSharedLatch::NONE == mode))
+                            OSS_SHARED_LATCH_MODE_NONE == mode))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -356,7 +352,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       logicalIdLatchKey key(_sid, type, lpid);
       LOGICAL_ID_LATCH_MAP::object obj;
-      ossSharedLatch::mode mode = ossSharedLatch::NONE;
+      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -386,7 +382,7 @@ namespace vessel
 
    BOOLEAN requestContext::testLpidLocked(SPACE_TYPE type,
                                           PAGE_ID lpid,
-                                          ossSharedLatch::mode *mode)
+                                          OSS_SHARED_LATCH_MODE *mode)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
@@ -431,7 +427,7 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN requestContext::isInProcessingOplistAttached()const
+   BOOLEAN requestContext::isInProcessingOplist()const
    {
       return NULL != _oplist && !(_oplist->isReadonly());
    }
@@ -443,6 +439,54 @@ namespace vessel
       *oldOplist = _oplist;
       _oplist = newOplist;
       return;
+   }
+
+   INT32 requestContext::blockCheckpoint(SPACE_TYPE type,
+                                         ossRWMutex *mutex)
+   {
+      INT32 rc = SDB_OK;
+      if (INVALID_SPACE_ID == _sid)
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _blocker.block(_sid, type, mutex);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 requestContext::tryToBlockCheckpoint(SPACE_TYPE type,
+                                              ossRWMutex *mutex,
+                                              BOOLEAN &blocked)
+   {
+      INT32 rc = SDB_OK;
+      if (INVALID_SPACE_ID == _sid)
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _blocker.tryToBlock(_sid, type, mutex, blocked);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void requestContext::unblockCheckpoint()
+   {
+      _blocker.unblock();
    }
    
 }//namespace vessel

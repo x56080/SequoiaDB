@@ -41,9 +41,6 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 RUNTIME_PAGE_BUFFER_FLAG_NO_PAGE_VALIDATION = 0x01;
-   static const UINT32 RUNTIME_PAGE_BUFFER_FLAG_RESET_PAGE = 0x02;
-
    static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_WRITING_PREPARED = 0x01;
    static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED = 0x02;
    static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED = 0x04;
@@ -51,16 +48,7 @@ namespace vessel
    //////////////runtimePageBuffer::options
    UINT32 runtimePageBuffer::options::toFlags()const
    {
-      UINT32 flags = 0;
-      if (noPageValidation)
-      {
-         OSS_BIT_SET(flags, RUNTIME_PAGE_BUFFER_FLAG_NO_PAGE_VALIDATION);
-      }
-      if (resetPage)
-      {
-         OSS_BIT_SET(flags, RUNTIME_PAGE_BUFFER_FLAG_RESET_PAGE);
-      }
-      return flags;
+      return 0;
    }
 
    //////////////runtimePageBuffer::options end
@@ -93,12 +81,12 @@ namespace vessel
    }
 
    INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
-                                 const options &o,
                                  UINT32 pageSize,
-                                 const mmapPagePointer &ptr)
+                                 const mmapPagePointer &ptr,
+                                 const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!_tuple.isValid(), "can not be valid");
+      fini();
       if (OSS_UNLIKELY(!gpid.isValid() ||
                        !isValidPageSize(pageSize) ||
                        !ptr.isValid()))
@@ -111,17 +99,6 @@ namespace vessel
       _pageSize = pageSize;
       _flags = o.toFlags();
       _buffer = ptr.get();
-
-      if (!noPageValidation())
-      {
-         if (isPageCrashed(_buffer, _pageSize))
-         {
-            PD_LOG(PDERROR, "page[%s] may be crashed", _gpid.toString().c_str());
-            rc = SDB_VESSEL_PAGE_CRASHED;
-            goto error;
-         }
-      }
-
    done:
       return rc;
    error:
@@ -130,13 +107,16 @@ namespace vessel
    }
 
    INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
-                                 const options &o,
-                                 UINT32 pageSize)
+                                 UINT32 pageSize,
+                                 const liteCacheTuple &tuple,
+                                 const options &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_tuple.isValid(), "can not be valid");
+
+      fini();
       if (OSS_UNLIKELY(!gpid.isValid() ||
-                       !isValidPageSize(pageSize)))
+                       !isValidPageSize(pageSize)||
+                       !tuple.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -145,18 +125,8 @@ namespace vessel
       _gpid = gpid;
       _pageSize = pageSize;
       _flags = o.toFlags();
+      _tuple = tuple;
       _buffer = _tuple.getReadableBuffer();
-
-      if (!noPageValidation())
-      {
-         if (isPageCrashed(_buffer, _pageSize))
-         {
-            PD_LOG(PDERROR, "page[%s] may be crashed", _gpid.toString().c_str());
-            rc = SDB_VESSEL_PAGE_CRASHED;
-            goto error;
-         }
-      }
-
    done:
       return rc;
    error:
@@ -294,16 +264,6 @@ namespace vessel
       UINT32 pageBodySize = getPageBodySize(_pageSize);
       SDB_ASSERT(0 < pageBodySize, "can not be invalid");
       return (offset + size) <= pageBodySize;
-   }
-
-   BOOLEAN runtimePageBuffer::noPageValidation()const
-   {
-      return 0 != OSS_BIT_TEST(_flags, RUNTIME_PAGE_BUFFER_FLAG_NO_PAGE_VALIDATION);
-   }
-
-   BOOLEAN runtimePageBuffer::isResetPage()const
-   {
-      return 0 != OSS_BIT_TEST(_flags, RUNTIME_PAGE_BUFFER_FLAG_RESET_PAGE);
    }
 
    void runtimePageBuffer::setCommitted()

@@ -49,10 +49,10 @@ namespace vessel
          virtual ~pageInitializer(){}
 
       public:
-         virtual INT32 init(requestContext *context,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            runtimePageBuffer *rpb) = 0;
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb) = 0;
 
          /// Used for batch allocating.
          /// "i" will be set as [0, count) in turns.
@@ -64,7 +64,7 @@ namespace vessel
          {
             if (0 == i)
             {
-               return init(context, lpid, psv, rpb);
+               return initPage(context, lpid, psv, rpb);
             }
             else
             {

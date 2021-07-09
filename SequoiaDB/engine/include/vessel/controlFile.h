@@ -49,7 +49,7 @@ namespace vessel
 {
    static const UINT32 INVALID_CONTROL_FILE_VERSION = 0;
    static const UINT32 CONTROL_FILE_VERSION = 1;
-   static const UINT32 CONTROL_FILE_SIZE = 512;
+   static const UINT32 CONTROL_FILE_SIZE = 4096;
 
    static const UINT64 INVALID_COMMIT_VERSION = OSS_UINT64_MAX;
 
@@ -70,12 +70,13 @@ namespace vessel
             OSS_INLINE ~head(){}
 
             UINT32 magicCode = 0;
+            UINT32 checksum = 0;
             UINT32 headVerion = INVALID_CONTROL_FILE_VERSION;
             UINT32 flags = 0;
             UINT64 commitVersion = INVALID_COMMIT_VERSION;
             UINT64 updateMillis = 0; /// milli seconds
             UINT32 contentLen = 0; 
-            UINT32 pad = 0;
+            UINT64 pad = 0;
 
             OSS_INLINE head &operator=(const head &h)
             {

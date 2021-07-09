@@ -72,14 +72,20 @@ namespace vessel
             return _sid;
          }
 
+         OSS_INLINE mainDataSpace &getMainDataSpace()
+         {
+            return _mds;
+         }
+
       public:
          INT32 create(requestContext *context,
+                      SPACE_ID sid,
                       const createSUOptions &options);
 
          INT32 open(requestContext *context,
                     SPACE_ID sid);
 
-         void destroy(requestContext *context);
+         INT32 destroy(requestContext *context);
                     
          void close();
 
@@ -101,25 +107,57 @@ namespace vessel
 
 
          INT32 openMainDataSpace(requestContext *context,
-                                 const std::string &dir,
-                                 const strSlice &subDir,
+                                 const strSlice &dir,
                                  SPACE_ID sid);
+
+      private:
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
                                          const strSlice &dir)const;
+
          INT32 testAllDirsBeforeOpenning(const storagePathOptions &path,
                                          const strSlice &dir)const;
 
+         INT32 createMainDataDir(const storagePathOptions &path,
+                                 const strSlice &dir);
+
+
+         INT32 ensureMainDataDirRemoved(const storagePathOptions &path,
+                                        const strSlice &dir);
+
+         INT32 createStatusFile(const storagePathOptions &path,
+                                const strSlice &dir,
+                                SPACE_ID sid);
+
+         INT32 removeStatusFile(const storagePathOptions &path,
+                                const strSlice &dir,
+                                SPACE_ID sid);
+
+         INT32 testStatusFile(const strSlice &fullDir,
+                              SPACE_ID sid,
+                              BOOLEAN &exists)const;
+
          INT32 testDir(const CHAR *fullPath,
                        UINT32 &subCount);
-         INT32 createAllDirs(const storagePathOptions &path,
-                             const strSlice &dir);
+         INT32 createOtherDirs(const storagePathOptions &path,
+                               const strSlice &dir);
 
-         INT32 removeAllDirs(const storagePathOptions &path,
-                             const strSlice &dir);
+         INT32 ensureOtherDirRemoved(const storagePathOptions &path,
+                                     const strSlice &dir);
+
+         INT32 rollbackCreating(const storagePathOptions &path,
+                                const strSlice &dir);
+
+      private:
+         INT32 createMainDataSpace(requestContext *context,
+                                   SPACE_ID sid,
+                                   const strSlice &dir,
+                                   UINT32 secretValue,
+                                   const storageCoreArgs &args);
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
          mainDataSpace _mds;
+
 
    };//class storageUnit
 }//namespace vessel

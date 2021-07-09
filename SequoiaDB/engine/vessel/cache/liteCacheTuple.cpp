@@ -36,47 +36,115 @@
 #include "vessel/liteCacheTuple.h"
 #include "vessel/liteCache.h"
 #include "pdTrace.hpp"
-#include "vessel/logRecordContext.h"
-#include "dpsLogRecordDef.hpp"
-#include "vessel/IRedoLogger.h"
-#include "vessel/outerResource.h"
 #include "vessel/requestContext.h"
+#include "vessel/liteCachePageTag.h"
+#include "vessel/lcPageTagHolder.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 liteCacheTuple::prepareToWrite(requestContext *context)
+   liteCacheTuple::liteCacheTuple(const liteCacheTuple &t):
+   _tag(NULL),
+   _pool(NULL),
+   _status(NULL)
+   {
+      if (t.isValid())
+      {
+         _tag = t._tag;
+         _pool = t._pool;
+         _status = t._status;
+         _status->incSharedCnt();
+      }
+   }
+
+   liteCacheTuple &liteCacheTuple::operator=(const liteCacheTuple &t)
+   {
+      release();
+      if (t.isValid())
+      {
+         _tag = t._tag;
+         _pool = t._pool;
+         _status = t._status;
+         _status->incSharedCnt();
+      }
+      return *this;
+   }
+
+   INT32 liteCacheTuple::init(liteCachePageTag *tag,
+                              OSS_SHARED_LATCH_MODE mode,
+                              liteCache *pool,
+                              BOOLEAN isWritingPrepared)
    {
       INT32 rc = SDB_OK;
-      liteCachePageTag *tag = NULL;
-      
-      
+      release();
+
+      if (NULL == tag ||
+          OSS_SHARED_LATCH_MODE_NONE == mode ||
+          NULL == pool)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isWritingPrepared &&
+               (!tag->hasMemPage() ||
+                OSS_SHARED_LATCH_MODE_EXCLUSIVE != mode))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _status = SDB_OSS_NEW liteCacheTuple::_sharedStatus();
+      if (NULL == _status)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      _tag = tag;
+      _pool = pool;
+      _status->setLockingMode(mode);
+      if (isWritingPrepared)
+      {
+         _status->setWritingPrepared();
+      }
+      _status->incSharedCnt();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 liteCacheTuple::prepareToWrite(requestContext *context)
+   {
+      INT32 rc = SDB_OK;      
       if (OSS_UNLIKELY(!isValid()))
       {
          SDB_ASSERT(FALSE, "must be valid");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_writingPrepared)
+      else if (_status->isWritingPrepared())
       {
          goto done;
       }
-      else if (ossSharedLatch::NONE == _holder.getLockMode() ||
-               ossSharedLatch::SHARED == _holder.getLockMode())
+      else if (OSS_SHARED_LATCH_MODE_NONE == _status->getLockingMode() ||
+               OSS_SHARED_LATCH_MODE_SHARED == _status->getLockingMode())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (ossSharedLatch::UPGRADE == _holder.getLockMode())
+      else if (OSS_SHARED_LATCH_MODE_UPGRADE == _status->getLockingMode())
       {
-         _holder.unlockUpgradeAndLock();
+         _tag->getAccessingLatch().unlockUpgradeAndLock();
+         _status->setLockingMode(OSS_SHARED_LATCH_MODE_EXCLUSIVE);
       }
 
-      tag = _holder.tag();
-      if (!tag->isInLruList())
+      if (!_tag->isInLruList())
       {
-         rc = _pool->allocateMemPageAndInsertIntoLRU(context, FALSE, _holder);
+         lcPageTagHolder holder(_tag, _status->getLockingMode());
+         rc = _pool->allocateMemPageAndInsertIntoLRU(context, FALSE, holder);
          if (SDB_OK != rc)
          {
             goto error;
@@ -84,10 +152,11 @@ namespace vessel
       }
       else
       {
-         _pool->tryToUpdateLRU(_holder);
+         lcPageTagHolder holder(_tag, _status->getLockingMode());
+         _pool->tryToUpdateLRU(holder);
       }
 
-      _writingPrepared = TRUE;
+      _status->setWritingPrepared();
 
    done:
       return rc;
@@ -103,13 +172,13 @@ namespace vessel
          goto done;
       }
 
-      if (_holder.tag()->hasMemPage())
+      if (_tag->hasMemPage())
       {
-         ptr = _holder.tag()->getMemPage().buf();
+         ptr = _tag->getMemPage().buf();
       }
       else
       {
-         ptr = _holder.tag()->getDiskPagePtr();
+         ptr = _tag->getDiskPagePtr();
       }
 
    done:
@@ -120,13 +189,14 @@ namespace vessel
    {
       ossValuePtr ptr = 0;
       if (OSS_UNLIKELY(!isValid() ||
-                       !_writingPrepared))
+                       !_status->isWritingPrepared()))
       {
+         SDB_ASSERT(FALSE, "not valid or writing prepared");
          goto done;
       }
 
-      SDB_ASSERT(_holder.tag()->hasMemPage(), "impossible");
-      ptr = _holder.tag()->getMemPage().buf();
+      SDB_ASSERT(_tag->hasMemPage(), "impossible");
+      ptr = _tag->getMemPage().buf();
    done:
       return ptr;
    }
@@ -135,39 +205,35 @@ namespace vessel
    {
       if (isValid())
       {
-         _holder.autoUnlock();
-         _holder.tag()->decUsageCnt();
-         _holder.reset(NULL);
-         _pool = NULL;
-         _writingPrepared = FALSE;
+         if (0 == _status->decSharedCnt())
+         {
+            lcPageTagHolder holder(_tag, _status->getLockingMode());
+            holder.autoUnlock();
+            _tag->decUsageCnt();
+            _tag = NULL;
+            _pool = NULL;
+            SDB_OSS_DEL _status;
+            _status = NULL;
+
+         }
+         else
+         {
+            _tag = NULL;
+            _pool = NULL;
+            _status = NULL;
+         }
       }
       return;
    }
 
    void liteCacheTuple::commit(UINT64 lsn)
    {
-      if (isValid())
+      if (isValid() && _status->isWritingPrepared())
       {
          _pool->commit(lsn, *this);
       }
    }
 
-   void liteCacheTuple::swap(liteCacheTuple &o)
-   {
-      liteCacheTuple tmp;
-      tmp._holder = _holder;
-      tmp._pool = _pool;
-      tmp._writingPrepared = _writingPrepared;
-
-      _holder = o._holder;
-      _pool = o._pool;
-      _writingPrepared = o._writingPrepared;
-
-      o._holder = tmp._holder;
-      o._pool = tmp._pool;
-      o._writingPrepared = tmp._writingPrepared;
-      return;
-   }
 
 } /// end of namesapce vessel
 } /// end of namespace engine

@@ -40,6 +40,7 @@
 #include "ossLatch.hpp"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
@@ -69,11 +70,11 @@ namespace vessel
                _item &operator=(const _item &) = delete;
 
             public:
-               const ITEM_K &getKey()const
+               const KEY &getKey()const
                {
                   return _key;
                }
-               ITEM_V &getValue()
+               VALUE &getValue()
                {
                   return _value;
                }
@@ -202,6 +203,7 @@ namespace vessel
             ossSpinXLatch *latch = NULL;
             _item *itemFound = NULL;
             _item *itemCreated = NULL;
+            UINT32 bucketNo = 0;
 
             if (OSS_UNLIKELY(!isOpen()))
             {
@@ -210,10 +212,10 @@ namespace vessel
             }
 
             hash = k.hash();
-            bucket = getBucket(hash);
-            latch = getLatch(latch);
+            bucket = getBucket(hash, bucketNo);
+            latch = getBucketLatch(bucketNo);
             latch->get();
-            itemFound = findFromBucket(bucket, k);
+            itemFound = find(bucket, k);
             if (NULL != itemFound)
             {
                ++(itemFound->_count);
@@ -252,34 +254,46 @@ namespace vessel
                UINT32 hash = o._i->getKey().hash();
                _bucket *bucket = NULL;
                ossSpinXLatch *latch = NULL;
-               bucket = getBucket(hash);
-               latch = getLatch(hash);
-               latch->get();
+               UINT32 bucketNo = 0;
+               bucket = getBucket(hash, bucketNo);
+               latch = getBucketLatch(bucketNo);
+
+               ossXLatchGuard guard(latch);
                --o._i->_count;
                if (0 == o._i->_count)
                {
                   remove(bucket, o._i);
-                  latch->release();
+                  guard.unlock();
                   SDB_OSS_DEL o._i;
-               }
-               else
-               {
-                  latch->release();
                }
                o._i = NULL;
             }
             return;
          }
 
-      private:
-         _bucket *getBucket(UINT32 hash)
+         BOOLEAN test(const KEY &key)
          {
-            UINT32 i = (hash & (_bucketCount - 1));
+            SDB_ASSERT(isOpen(), "must be open");
+            SDB_ASSERT(key.isValid(), "must be valid");
+            _bucket *bucket = NULL;
+            ossSpinXLatch *latch = NULL;
+            UINT32 bucketNo = 0;
+            UINT32 hash = key.hash();
+            bucket = getBucket(hash, bucketNo);
+            latch = getBucketLatch(bucketNo);
+            ossXLatchGuard guard(latch);
+            return NULL != find(bucket, key);
+         }
+
+      private:
+         _bucket *getBucket(UINT32 hash, UINT32 &bucketNo)
+         {
+            bukcetNo = (hash & (_bucketCount - 1));
             return _buckets + i;
          }
-         ossSpinXLatch *getLatch(UINT32 hash)
+         ossSpinXLatch *getBucketLatch(UINT32 bucketNo)
          {
-            UINT32 i = (hash & (_latchCount - 1));
+            UINT32 i = (bucketNo & (_latchCount - 1));
             return _latches + i;
          }
 

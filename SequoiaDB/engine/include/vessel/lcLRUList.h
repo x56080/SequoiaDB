@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -68,7 +65,8 @@ namespace vessel
 
          /// for user threads
          /// tag under w lock
-         INT32 insert(lcPageTagHolder &holder);
+         INT32 insert(lcPageTagHolder &holder,
+                      UINT32 touchCnt = 1);
 
          /// for user threads
          /// tag under lock

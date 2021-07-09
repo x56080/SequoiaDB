@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = storageUnitDef.h
+   Source File Name = crpIniter.h
 
    Descriptive Name =
 
@@ -33,55 +33,46 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_STORAGE_UNIT_DEF_H_
-#define VESSEL_STORAGE_UNIT_DEF_H_
+#ifndef VESSEL_CRP_INITER_H_
+#define VESSEL_CRP_INITER_H_
 
-#include "vessel/vesselIdDef.h"
-#include "vessel/storageFileDef.h"
-#include "vessel/strSlice.h"
+#include "vessel/pageInitializer.h"
+#include "vessel/collectionSpaceGlobalPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   struct createSUOptions
+   class createCSOptions;
+   class crpIniter : public pageInitializer
    {
-      createSUOptions()
-      {}
-      ~createSUOptions()
-      {}
+      public:
+         crpIniter(){}
+         virtual ~crpIniter(){}
 
-      BOOLEAN isValid()const
-      {
-         return dataArgs.isValid() &&
-                indexArgs.isValid() &&
-                lobArgs.isValid();
-      }
+      public:
+         virtual PAGE_TYPE getPageType()const
+         {
+            return PAGE_TYPE_CS_META;
+         }
 
-      storageCoreArgs dataArgs;
-      storageCoreArgs indexArgs;
-      storageCoreArgs lobArgs;
-   };//struct createSUOptions
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
 
-   struct createLogicalPageSpaceOptions
-   {
-      OSS_INLINE createLogicalPageSpaceOptions(){}
-      OSS_INLINE ~createLogicalPageSpaceOptions(){}
+         void set(const csMetaRecord *record,
+                  const createCSOptions *options)
+         {
+            _record = record;
+            _options = options;
+         }
 
-      BOOLEAN isValid()const
-      {
-         return INVALID_SPACE_ID != sid &&
-                !dir.empty() &&
-                dataArgs.isValid(); 
-      }
-
-      SPACE_ID sid = INVALID_SPACE_ID;
-      strSlice dir;
-      UINT32 secretValue = 0;
-      storageCoreArgs dataArgs;
-   };//struct createLogicalPageSpaceOptions
-
+      private:
+         const csMetaRecord *_record = NULL;
+         const createCSOptions *_options = NULL;
+   };//class crpIniter
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_STORAGE_UNIT_DEF_H_
+#endif//VESSEL_CRP_INITER_H_

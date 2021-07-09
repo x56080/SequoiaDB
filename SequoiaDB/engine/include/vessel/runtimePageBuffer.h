@@ -38,6 +38,7 @@
 
 #include "vessel/liteCacheTuple.h"
 #include "vessel/mmapPagePointer.h"
+#include "vessel/globalPageID.h"
 
 namespace engine
 {
@@ -80,27 +81,20 @@ namespace vessel
             OSS_INLINE ~options(){}
 
             UINT32 toFlags()const;
-
-            BOOLEAN noPageValidation = FALSE;
-            BOOLEAN resetPage = FALSE;
          };//struct options
 
       private:/// for logicalPageSpace
-         liteCacheTuple &getLiteCacheTuple()
-         {
-            return _tuple;
-         }
-
          /// init with mmap
          INT32 init(const GLOBAL_PAGE_ID &gpid,
-                    const options &o,
                     UINT32 pageSize,
-                    const mmapPagePointer &ptr);
+                    const mmapPagePointer &ptr,
+                    const options &o = options());
 
          /// init with cache tuple
          INT32 init(const GLOBAL_PAGE_ID &gpid,
-                    const options &o,
-                    UINT32 pageSize);
+                    UINT32 pageSize,
+                    const liteCacheTuple &tuple,
+                    const options &o = options());
 
       public:
          void commit(DPS_LSN_OFFSET lsn);
@@ -108,9 +102,6 @@ namespace vessel
          void abort();
 
          void fini();
-
-         BOOLEAN noPageValidation()const;
-         BOOLEAN isResetPage()const;
 
          BOOLEAN isCommitted()const;
          BOOLEAN isAborted()const;
@@ -126,9 +117,9 @@ namespace vessel
          {
             return (const void *)_buffer;
          }
-         void *getBuffer()
+         void *getBuffer()const
          {
-            return (void *)_buffer;
+            return isWritingPrepared() ? (void *)_buffer : NULL;
          }
          const pageHead *getPageHead()const
          {

@@ -59,7 +59,7 @@ namespace engine
 namespace vessel
 {
 
-   static const UINT32 CONTEXT_DEFAULT_BUFFER_POOL_SIZE = 32768;
+   static const UINT32 CONTEXT_DEFAULT_BUFFER_POOL_SIZE = 8192;
    class instanceEnv;
    class outerResource;
    class atomicOperationList;
@@ -109,16 +109,17 @@ namespace vessel
       public:
 
          INT32 lockSpaceID(SPACE_ID sid,
-                           ossSharedLatch::mode mode);
-   
+                           OSS_LATCH_MODE mode);
+
          INT32 tryLockSpaceID(SPACE_ID sid,
-                              ossSharedLatch::mode mode,
+                              OSS_LATCH_MODE mode,
                               BOOLEAN &locked);
+   
          void unlockSpaceID();
 
-         OSS_INLINE BOOLEAN isSpaceIdLocked(ossSharedLatch::mode *mode=NULL)const
+         OSS_INLINE BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=NULL)const
          {
-            BOOLEAN r = ossSharedLatch::NONE != _sidLockedMode;
+            BOOLEAN r = INVALID_SPACE_ID != _sid;
             if (r && NULL != mode)
             {
                *mode = _sidLockedMode;
@@ -126,7 +127,7 @@ namespace vessel
             return r;
          }
 
-         OSS_INLINE ossSharedLatch::mode getSpaceIDLockedMode()const
+         OSS_INLINE OSS_LATCH_MODE getSpaceIDLockedMode()const
          {
             return _sidLockedMode;
          }
@@ -137,19 +138,14 @@ namespace vessel
          }
       public:
          INT32 lockMB(CL_MB_ID mbID,
-                      ossSharedLatch *latch,
-                      ossSharedLatch::mode mode);
-
-         INT32 tryLockMB(CL_MB_ID mbID,
-                         ossSharedLatch *latch,
-                         ossSharedLatch::mode mode,
-                         BOOLEAN &locked);
+                      ossRWMutex *latch,
+                      OSS_LATCH_MODE mode);
 
          void unlockMB();
 
-         OSS_INLINE BOOLEAN isMbLocked(ossSharedLatch::mode *mode=NULL)const
+         OSS_INLINE BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const
          {
-            BOOLEAN r = ossSharedLatch::NONE != _mbLockMode;
+            BOOLEAN r = INVALID_CL_MB_ID != _mbID;
             if (r && NULL != mode)
             {
                *mode = _mbLockMode;
@@ -160,7 +156,7 @@ namespace vessel
          {
             return _mbID;
          }
-         OSS_INLINE ossSharedLatch::mode getMBLockMode()const
+         OSS_INLINE OSS_LATCH_MODE getMBLockMode()const
          {
             return _mbLockMode;
          }
@@ -169,15 +165,25 @@ namespace vessel
          /// no timeout. no recursive locking.
          INT32 lockLpid(SPACE_TYPE type,
                         PAGE_ID lpid,
-                        ossSharedLatch::mode mode);
+                        OSS_SHARED_LATCH_MODE mode);
 
          void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
          BOOLEAN testLpidLocked(SPACE_TYPE type,
                                 PAGE_ID lpid,
-                                ossSharedLatch::mode *mode);
+                                OSS_SHARED_LATCH_MODE *mode);
 
          INT32 unlockUpgradeLpidAndLock(SPACE_TYPE type,
                                         PAGE_ID lpid);
+
+      public:
+         INT32 blockCheckpoint(SPACE_TYPE type,
+                               ossRWMutex *mutex);
+
+         INT32 tryToBlockCheckpoint(SPACE_TYPE type,
+                                    ossRWMutex *mutex,
+                                    BOOLEAN &blocked);
+
+         void unblockCheckpoint();
 
       public:
          OSS_INLINE void attachOplist(atomicOperationList *oplist)
@@ -198,13 +204,7 @@ namespace vessel
          }
          void swtichOplist(atomicOperationList *newOplist,
                            atomicOperationList **oldOplist);
-         BOOLEAN isInProcessingOplistAttached()const;
-
-      public:
-         lpsCheckpointBlocker &getBlocker()
-         {
-            return _blocker;
-         }
+         BOOLEAN isInProcessingOplist()const;
 
       private:
          void _close();
@@ -215,11 +215,11 @@ namespace vessel
          outerResource *_outerResource = NULL;
 
          SPACE_ID _sid = INVALID_SPACE_ID;
-         ossSharedLatch::mode _sidLockedMode = ossSharedLatch::NONE;
+         OSS_LATCH_MODE _sidLockedMode = SHARED;
 
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
-         ossSharedLatch::mode _mbLockMode = ossSharedLatch::NONE;
-         ossSharedLatch *_mbLatch = NULL;
+         OSS_LATCH_MODE _mbLockMode = SHARED;
+         ossRWMutex *_mbLatch = NULL;
 
          objectLatchContext<logicalIdLatchKey> _lpidLatchContext;
 

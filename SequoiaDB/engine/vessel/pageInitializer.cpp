@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = storageUnitDef.h
+   Source File Name = pageInitializer.cpp
 
    Descriptive Name =
 
@@ -33,55 +33,30 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_STORAGE_UNIT_DEF_H_
-#define VESSEL_STORAGE_UNIT_DEF_H_
-
-#include "vessel/vesselIdDef.h"
-#include "vessel/storageFileDef.h"
-#include "vessel/strSlice.h"
+#include "vessel/pageInitializer.h"
+#include "vessel/logRecordContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   struct createSUOptions
+   INT32 pageInitializer::prepareLog(requestContext *context,
+                                     runtimePageBuffer *rpb,
+                                     UINT16 logType,
+                                     logRecordContext *lrc)
    {
-      createSUOptions()
-      {}
-      ~createSUOptions()
-      {}
-
-      BOOLEAN isValid()const
+      INT32 rc = SDB_OK;
+      rc = pageAccessor::prepareLog(context, rpb, logType, lrc);
+      if (SDB_OK != rc)
       {
-         return dataArgs.isValid() &&
-                indexArgs.isValid() &&
-                lobArgs.isValid();
+         goto error;
       }
 
-      storageCoreArgs dataArgs;
-      storageCoreArgs indexArgs;
-      storageCoreArgs lobArgs;
-   };//struct createSUOptions
-
-   struct createLogicalPageSpaceOptions
-   {
-      OSS_INLINE createLogicalPageSpaceOptions(){}
-      OSS_INLINE ~createLogicalPageSpaceOptions(){}
-
-      BOOLEAN isValid()const
-      {
-         return INVALID_SPACE_ID != sid &&
-                !dir.empty() &&
-                dataArgs.isValid(); 
-      }
-
-      SPACE_ID sid = INVALID_SPACE_ID;
-      strSlice dir;
-      UINT32 secretValue = 0;
-      storageCoreArgs dataArgs;
-   };//struct createLogicalPageSpaceOptions
-
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_STORAGE_UNIT_DEF_H_
+      lrc->setResetPage();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+}//class vessel
+}//class vessel

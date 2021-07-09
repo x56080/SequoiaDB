@@ -61,13 +61,13 @@ namespace vessel
 
          BOOLEAN isOpen()const;
          
-         INT32 close();
+         void close();
 
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
 
       private:
-         cursorKernal *_cursor;
+         cursorKernal *_cursor = NULL;
    };//class cursorHandler
 }//namespace vessel
 }//namespace engine

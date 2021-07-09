@@ -41,6 +41,7 @@
 #include "vessel/storageFileDef.h"
 #include "ossLatch.hpp"
 #include "vessel/inMemBitmap.h"
+#include "vessel/mmapPagePointer.h"
 
 namespace engine
 {
@@ -95,25 +96,15 @@ namespace vessel
 
          INT32 ensurePidSpace(PAGE_ID pid);
       public:
-         virtual BOOLEAN isStandardPage()const = 0;
-
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const = 0;
 
-         virtual INT32 getPagePtr(FILE_TYPE type, PAGE_ID pid, ossValuePtr &ptr)const = 0;
+         virtual INT32 getPagePtr(FILE_TYPE type,
+                                  PAGE_ID pid,
+                                  mmapPagePointer &ptr)const;
 
-         virtual INT32 getDataPagePtr(PAGE_ID pid, ossValuePtr &ptr)const = 0;
+         virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const = 0;
 
          virtual FILE_TYPE getDataFileType()const = 0;
- 
-      public:/// non-standard storage only
-         virtual INT32 initNonstandardPage(PAGE_ID pid);
-
-         virtual INT32 copyNonstandardPage(PAGE_ID src,
-                                           PAGE_SNAPSHOT_VERION psv,
-                                           PAGE_ID dst)
-         {
-            return SDB_VESSEL_INTERNAL_ERR;
-         }
 
       private:
          /// loader may be null
@@ -134,6 +125,14 @@ namespace vessel
          {
             return _creater;
          }
+         OSS_INLINE UINT32 getBitwiseMaxSegmentPerFile()const
+         {
+            return _bitwiseMaxSegmentPerFile;
+         }
+         OSS_INLINE UINT32 getBitwiseMaxPageCountPerSeg()const
+         {
+            return _bitwiseMaxPageCountPerSeg;
+         }
 
          void _close();
 
@@ -142,6 +141,8 @@ namespace vessel
 
       private:
          storageCoreArgs _args;
+         UINT32 _bitwiseMaxSegmentPerFile = 0;
+         UINT32 _bitwiseMaxPageCountPerSeg = 0;
          const storageFileCreater *_creater = NULL;
          ossSpinXLatch _extendingLatch;
          inMemBitmap _allocator;

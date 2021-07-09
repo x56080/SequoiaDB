@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lazyArray.h
+   Source File Name = lazyArray.hpp
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LAZY_ARRAY_H_
-#define VESSEL_LAZY_ARRAY_H_
+#ifndef VESSEL_LAZY_ARRAY_HPP_
+#define VESSEL_LAZY_ARRAY_HPP_
 
 #include "ossUtil.hpp"
 #include "ossLikely.hpp"
@@ -222,7 +222,7 @@ namespace vessel
             UINT32 y = 0;
             T *obj = NULL;
 
-            if (OSS_UNLIKELY(!isInitialized))
+            if (OSS_UNLIKELY(!isInitialized()))
             {
                rc = SDB_VESSEL_RESOURCES_NOT_INIT;
                goto error;
@@ -238,13 +238,15 @@ namespace vessel
                goto error;
             }
 
+            x = getX(i);
+            y = getY(i);
             obj = get(x, y);
+
             if (NULL == obj)
             {
                rc = SDB_VESSEL_RESOURCES_NOT_INIT;
                goto error;
             }
-
             *out = obj;
          done:
             return rc;
@@ -292,18 +294,19 @@ namespace vessel
          {
             T *r = NULL;
             SDB_ASSERT(isInitialized(), "must be inited");
-            ossSpinXLatchGuard guard(&_latch, FALSE);
+            ossXLatchGuard guard(&_latch, FALSE);
 
             if (NULL == _matrix[x])
             {
                guard.lock();
                if (NULL == _matrix[x])
                {
-                  _matrix[x] = SDB_OSS_NEW _objectSlot[_chunkSize];
-                  if (NULL == _matrix[x])
+                  _objectSlot *tmp = SDB_OSS_NEW _objectSlot[_chunkSize];
+                  if (NULL == tmp)
                   {
                      goto done;
                   }
+                  _matrix[x] = tmp;
                }
             }
 
@@ -319,6 +322,8 @@ namespace vessel
                   goto done;
                }
             }
+
+            r = _matrix[x][y];
          done:
             return r;
          }
@@ -347,4 +352,4 @@ namespace vessel
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_LAZY_ARRAY_H_
+#endif//VESSEL_LAZY_ARRAY_HPP_

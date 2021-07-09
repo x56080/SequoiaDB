@@ -37,8 +37,8 @@
 #define VESSEL_SPACE_ID_LOCKER_H_
 
 #include "vessel/vesselIdDef.h"
-#include "ossLatch.hpp"
-#include "vessel/lazyArray.h"
+#include "vessel/lazyArray.hpp"
+#include "ossRWMutex.hpp"
 
 namespace engine
 {  
@@ -55,14 +55,14 @@ namespace vessel
       public:
          INT32 init();
          void fini();
-         INT32 lock(SPACE_ID sid, ossSharedLatch::mode mode);
+         INT32 lock(SPACE_ID sid, OSS_LATCH_MODE mode);
          INT32 tryLock(SPACE_ID sid,
-                       ossSharedLatch::mode mode,
+                       OSS_LATCH_MODE mode,
                        BOOLEAN &locked);
-         void unlock(SPACE_ID sid, ossSharedLatch::mode mode);
+         void unlock(SPACE_ID sid, OSS_LATCH_MODE mode);
 
       private:
-         lazyArray<ossSharedLatch> _array;
+         lazyArray<ossRWMutex> _array;
    };//class spaceIDLocker
 }//namespace vessel
 }//namespace engine

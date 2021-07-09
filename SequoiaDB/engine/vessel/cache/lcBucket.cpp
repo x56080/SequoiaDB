@@ -66,6 +66,7 @@ namespace vessel
                                         BOOLEAN &isNewTag)
    {
       INT32 rc = SDB_OK;
+      isNewTag = FALSE;
 
       if (OSS_UNLIKELY(!gpid.isValid() ||
                        !ptr.isValid()))

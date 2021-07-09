@@ -45,16 +45,10 @@ namespace engine
 namespace vessel
 {
    lcDirtyList::lcDirtyList()
-   :_size(0),
-    _head(NULL),
-    _tail(NULL),
-    _minDirtyLsn(DPS_INVALID_LSN_OFFSET)
-    {}
+   {}
 
    lcDirtyList::~lcDirtyList()
-   {
-      
-   }
+   {}
 
    INT32 lcDirtyList::init()
    {
@@ -73,25 +67,18 @@ namespace vessel
       return SDB_OK;
    }
 
-   UINT32 lcDirtyList::size()
+   UINT32 lcDirtyList::size(BOOLEAN lock)
    {
-      ossScopedLock(&_latch, SHARED);
-      UINT32 size = _size;
-      return size;
+      ossSpinXLatch *latch = lock ? &_latch : NULL;
+      ossScopedLock guard(latch);
+      return _size;
    }
 
-   UINT64 lcDirtyList::getMinDirtyLSN()
+   UINT64 lcDirtyList::getMinDirtyLSN(BOOLEAN lock)
    {
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      ossScopedLock(&_latch, SHARED);
-      lsn = _minDirtyLsn;
-      /// no one can update min dirty lsn now.
-      /// no need to hold tag's latch.
-      if (NULL != _tail && _tail->getMinDirtyLSN() < lsn)
-      {
-         lsn = _tail->getMinDirtyLSN();
-      }
-      return lsn;
+      ossSpinXLatch *latch = lock ? &_latch : NULL;
+      ossScopedLock guard(latch);
+      return _minDirtyLsn;
    }
 
    INT32 lcDirtyList::upsert(DPS_LSN_OFFSET lsn, lcPageTagHolder &holder)
@@ -106,7 +93,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(ossSharedLatch::EXCLUSIVE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
       {
          SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
@@ -152,7 +139,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(LOCK_MODE_UNIQUE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type latch");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
@@ -160,7 +147,7 @@ namespace vessel
       }
 
       tag = holder.tag();
-      SDB_ASSERT(!tag->isMemDirty(), "can not be dirty");
+      SDB_ASSERT(!tag->isMemPageDirty(), "can not be dirty");
 
       tag->setMinAndMaxDirtyLSN(DPS_INVALID_LSN_OFFSET);
       _latch.get();
@@ -187,7 +174,7 @@ namespace vessel
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
       SDB_ASSERT(0 == job->getTagCount(), "must be empty");
 
-      ossScopedLock(&_latch, EXCLUSIVE);
+      ossScopedLock guard(&_latch);
 
       itr = _tail;
       for (UINT32 i = 0;i < scanDepth &&  NULL != itr; ++i)
@@ -219,31 +206,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcDirtyList::cacheMinDirtyLSN()
+   void lcDirtyList::updateMinDirtyLsn()
    {
-      INT32 rc = SDB_OK;
-      ossScopedLock(&_latch, EXCLUSIVE);
-
-      /// there should be only one flushing dirty list job at the same time
-      if (DPS_INVALID_LSN_OFFSET != _minDirtyLsn)
+      ossScopedLock guard(&_latch);
+      if (NULL == _tail)
       {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
+         _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
       }
-      if (NULL != _tail)
+      else
       {
+         /// No need to get tag's latch.
          _minDirtyLsn = _tail->getMinDirtyLSN();
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void lcDirtyList::removeCachedMinDirtyLSN()
-   {
-      ossScopedLock(&_latch, EXCLUSIVE);
-      _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      return;
    }
 
    void lcDirtyList::insertIntoSortedList(liteCachePageTag *tag)
@@ -258,6 +233,8 @@ namespace vessel
          liteCachePageTag *pre = NULL;
          do
          {
+            ///head --> tail
+            ///min dirty lsn: max --> min
             if (lsn >= current->getMinDirtyLSN())
             {
                tag->insertIntoDirtyList(pre, current);
@@ -287,6 +264,10 @@ namespace vessel
          _tail->setDirtyListNext(tag);
          _tail = tag;
          ++_size;
+         if (lsn < _minDirtyLsn)
+         {
+            _minDirtyLsn = lsn;
+         }
       }
       else /// empty list
       {
@@ -294,6 +275,7 @@ namespace vessel
          _tail = tag;
          tag->insertIntoDirtyList(NULL, NULL);
          ++_size;
+         _minDirtyLsn = lsn;
       }
 
    done:

@@ -34,7 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/lpsCheckpointBlocker.h"
-#include "ossRWMutex.hpp"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 
@@ -49,7 +48,7 @@ namespace vessel
 
    void lpsCheckpointBlocker::fini()
    {
-      if (OSS_UNLIKELY(0 < _count)
+      if (0 < _count)
       {
          SDB_ASSERT(FALSE, "unblocking missed");
          _mutex->release_r();
@@ -143,17 +142,13 @@ namespace vessel
 
    void lpsCheckpointBlocker::unblock()
    {
-      if (OSS_LIKELY(isBlocking()))
+      if (isBlocking())
       {
          _mutex->release_r();
          if (0 == --_count)
          {
             fini();
          }
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "some one unblocked casually");
       }
       return;
    }

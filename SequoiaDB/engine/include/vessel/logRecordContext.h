@@ -63,6 +63,10 @@ namespace vessel
          /// must set oplist first.
          void setOplistTail();
 
+         void setResetPage();
+
+         BOOLEAN isResetPage()const;
+
          void prepushDone();
 
          void setDDL();

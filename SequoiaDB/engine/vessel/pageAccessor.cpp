@@ -45,9 +45,6 @@
 #include "vessel/logRecordContext.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
-#include "vessel/storageConsole.h"
-#include "vessel/logicalPageSpace.h"
-#include "vessel/requestContext.h"
 #include "vessel/atomicOperationList.h"
 
 namespace engine
@@ -57,6 +54,7 @@ namespace vessel
    INT32 pageAccessor::prepareLog(requestContext *context,
                                   runtimePageBuffer *rpb,
                                   UINT16 logType,
+                                  BOOLEAN resetPage,
                                   logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
@@ -64,19 +62,16 @@ namespace vessel
       SDB_ASSERT(NULL != rpb, "can not be null");
       SDB_ASSERT(rpb->isValid(), "must be valid");
       SDB_ASSERT(rpb->isCacheBuffer(), "must be cache buffer");
-
-      /// pid and psv may be different after writing prepared.
-      SDB_ASSERT(rpb->isWritingPrepared(), "must be writing prepared");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->needFullDump(), "can not be full dump");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
 
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      const checkpointController *checkpointer = &(context->getEnv()->checkpointer);
-      const openDBOptions &options = context->getEnv()->options;
-
       lrc->open(logType);
-      if (context->isInProcessingOplistAttached())
+      if (resetPage)
+      {
+         lrc->setResetPage();
+      }
+      if (context->isInProcessingOplist())
       {
          atomicOperationList *oplist = context->getOplist();
          if (oplist->isWatingHead())
@@ -94,14 +89,38 @@ namespace vessel
             lrc->setOplistTail();
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-      if (!rpb->isResetPage() &&
+   INT32 pageAccessor::prepareLogDone(requestContext *context,
+                                      runtimePageBuffer *rpb,
+                                      logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != rpb, "can not be null");
+      SDB_ASSERT(rpb->isValid(), "must be valid");
+      /// pid and psv may be different after writing prepared.
+      SDB_ASSERT(rpb->isWritingPrepared(), "must be writing prepare");
+      SDB_ASSERT(rpb->isCacheBuffer(), "must be cache buffer");
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+
+      ISession *session = context->getSession();
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      const checkpointController *checkpointer = &(context->getEnv()->checkpointer);
+      const openDBOptions &options = context->getEnv()->options;
+
+      if (!lrc->isResetPage() &&
           options.fullDumpPageLog &&
           checkpointer->hasAtLeastOneCheckpoint())
       {
-         lsn = rpb->getPageHead()->lsn;
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "impossible");
-         if (lsn <= checkpointer->getLastCheckpointLSN())
+         DPS_LSN_OFFSET lsn = rpb->getPageHead()->lsn;
+         if (DPS_INVALID_LSN_OFFSET != lsn &&
+             lsn <= checkpointer->getLastCheckpointLSN())
          {
             rc = lrc->fullDumpPage(rpb->getPageSize(), rpb->getReadOnlyBuffer());
             if (SDB_OK != rc)
@@ -111,22 +130,6 @@ namespace vessel
             }
          }
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 pageAccessor::prepareLogDone(requestContext *context,
-                                      logRecordContext *lrc)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-
-      ISession *session = context->getSession();
-      IRedoLogger *logger = context->getOuterResource()->logger;
 
       lrc->prepushDone();
       rc = logger->prepare(session, lrc);
@@ -182,7 +185,7 @@ namespace vessel
          goto error;
       }
 
-      if (context->isInProcessingOplistAttached())
+      if (context->isInProcessingOplist())
       {
          atomicOperationList *oplist = context->getOplist();
          if (oplist->isWatingHead())

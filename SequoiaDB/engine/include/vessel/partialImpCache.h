@@ -65,19 +65,19 @@ namespace vessel
 
       public:
          void reset();
-         void reset(const void *data, UINT64 flags);
-         void resetFlags(UINT64 flags)
-         {
-            _flags = flags;
-         }
+         void copy(const void *data, UINT64 flags);
 
          /// WARNGING: User should always validate if slot is free when return ok.
          INT32 get(UINT32 slotNo, idMapSlot &slot, BOOLEAN &isMutable)const;
          INT32 upsert(UINT32 slotNo,
-                      const idMapSlot &slot);
+                      const idMapSlot &slot,
+                      BOOLEAN isMutable);
          INT32 drop(UINT32 slotNo, idMapSlot *beforeDropping=NULL);
 
          UINT32 getMutablePageCount()const;
+
+         void setAllPageImmutable(UINT32 pageCountPerSeg,
+                                  ossPoolSet<UINT32> *mutableSegmentIds);
          UINT64 getFlags()const
          {
             return _flags;

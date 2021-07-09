@@ -38,13 +38,12 @@
 
 #include "vessel/vesselFileDef.h"
 #include "vessel/vesselIdDef.h"
+#include "ossRWMutex.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class ossRWMutex;
-
    class lpsCheckpointBlocker : public SDBObject
    {
       public:
@@ -80,7 +79,7 @@ namespace vessel
          ossRWMutex *_mutex = NULL;
          SPACE_ID _sid = INVALID_SPACE_ID;
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         UINT64 _count = 0;
+         UINT32 _count = 0;
    };//class lpsCheckpointBlocker
 }//namespace vessel
 }//namespace engine

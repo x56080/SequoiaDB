@@ -1195,6 +1195,14 @@ public :
 } ;
 typedef class _ossRWLatchNS ossRWLatchNS ;
 
+enum OSS_SHARED_LATCH_MODE
+{
+   OSS_SHARED_LATCH_MODE_NONE = 0,
+   OSS_SHARED_LATCH_MODE_SHARED = 1,
+   OSS_SHARED_LATCH_MODE_UPGRADE = 2,
+   OSS_SHARED_LATCH_MODE_EXCLUSIVE = 3,
+};//enum OSS_SHARED_LATCH_MODE
+
 class ossSharedLatch : public SDBObject
 {
    public:
@@ -1202,15 +1210,6 @@ class ossSharedLatch : public SDBObject
       ~ossSharedLatch(){}
       ossSharedLatch(const ossSharedLatch &) = delete;
       ossSharedLatch &operator=(const ossSharedLatch &) = delete;
-
-   public:
-      enum mode
-      {
-         NONE = 0,
-         SHARED = 1,
-         UPGRADE = 2,
-         EXCLUSIVE = 3,
-      };
 
    public:
       void lockShared()
@@ -1253,17 +1252,17 @@ class ossSharedLatch : public SDBObject
          _mutex.unlock();
       }
 
-      void lockWith(ossSharedLatch::mode mode)
+      void lockWith(OSS_SHARED_LATCH_MODE mode)
       {
-         if (ossSharedLatch::SHARED == mode)
+         if (OSS_SHARED_LATCH_MODE_SHARED == mode)
          {
             lockShared();
          }
-         else if (ossSharedLatch::UPGRADE == mode)
+         else if (OSS_SHARED_LATCH_MODE_UPGRADE == mode)
          {
             lockUpgrade();
          }
-         else if (ossSharedLatch::EXCLUSIVE == mode)
+         else if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == mode)
          {
             lock();
          }
@@ -1274,18 +1273,18 @@ class ossSharedLatch : public SDBObject
          return;
       }
 
-      BOOLEAN tryLockWith(ossSharedLatch::mode mode)
+      BOOLEAN tryLockWith(OSS_SHARED_LATCH_MODE mode)
       {
          BOOLEAN r = FALSE;
-         if (ossSharedLatch::SHARED == mode)
+         if (OSS_SHARED_LATCH_MODE_SHARED == mode)
          {
             r = tryLockShared();
          }
-         else if (ossSharedLatch::UPGRADE == mode)
+         else if (OSS_SHARED_LATCH_MODE_UPGRADE == mode)
          {
             r = tryLockUpgrade();
          }
-         else if (ossSharedLatch::EXCLUSIVE == mode)
+         else if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == mode)
          {
             r = tryLock();
          }
@@ -1296,17 +1295,17 @@ class ossSharedLatch : public SDBObject
          return r;
       }
 
-      void unlockWith(ossSharedLatch::mode mode)
+      void unlockWith(OSS_SHARED_LATCH_MODE mode)
       {
-         if (ossSharedLatch::SHARED == mode)
+         if (OSS_SHARED_LATCH_MODE_SHARED == mode)
          {
             unlockShared();
          }
-         else if (ossSharedLatch::UPGRADE == mode)
+         else if (OSS_SHARED_LATCH_MODE_UPGRADE == mode)
          {
             unlockUpgrade();
          }
-         else if (ossSharedLatch::EXCLUSIVE == mode)
+         else if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == mode)
          {
             unlock();
          }

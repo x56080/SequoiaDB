@@ -36,36 +36,37 @@
 #ifndef VESSEL_LITE_CACHE_TUPLE_H_
 #define VESSEL_LITE_CACHE_TUPLE_H_
 
-#include "vessel/lcPageTagHolder.h"
 #include "dpsDef.hpp"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    class liteCache;
+   class liteCachePageTag;
    class requestContext;
 
+   ///WARNING: Should not share tulpe in multi threads.
    class liteCacheTuple
    {
       friend class liteCache;
       public:
-         OSS_INLINE liteCacheTuple():
-         _pool(NULL),
-         _writingPrepared(FALSE)
+         OSS_INLINE liteCacheTuple()
          {}
+
          OSS_INLINE ~liteCacheTuple()
          {
             release();
          }
 
-         liteCacheTuple &operator=(const liteCacheTuple &) = delete;
-         liteCacheTuple(const liteCacheTuple &r) = delete;
+         liteCacheTuple &operator=(const liteCacheTuple &);
+         liteCacheTuple(const liteCacheTuple &);
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _pool && _holder.valid();
+            return NULL != _tag;
          }
 
          void release();
@@ -78,12 +79,62 @@ namespace vessel
 
          INT32 prepareToWrite(requestContext *context);
 
-         void swap(liteCacheTuple &o);
+      private:
+         class _sharedStatus : public _utilPooledObject
+         {
+            public:
+               _sharedStatus(){}
+               ~_sharedStatus(){}
+               _sharedStatus(const _sharedStatus &) = delete;
+               _sharedStatus &operator=(const _sharedStatus &) = delete;
+
+            public:
+               OSS_INLINE void setLockingMode(OSS_SHARED_LATCH_MODE mode)
+               {
+                  _lockingMode = mode;
+               }
+               OSS_INLINE OSS_SHARED_LATCH_MODE getLockingMode()const
+               {
+                  return (OSS_SHARED_LATCH_MODE)_lockingMode;
+               }
+               OSS_INLINE void incSharedCnt()
+               {
+                  ++_sharedCnt;
+               }
+               OSS_INLINE UINT32 decSharedCnt()
+               {
+                  return --_sharedCnt;
+               }
+               OSS_INLINE UINT32 getSharedCnt()const
+               {
+                  return _sharedCnt;
+               }
+               OSS_INLINE void setWritingPrepared()
+               {
+                  OSS_BIT_SET(_flags, 0x01);
+               }
+               OSS_INLINE BOOLEAN isWritingPrepared()const
+               {
+                  return 0 != OSS_BIT_TEST(_flags, 0x01);
+               }
+
+            private:
+               UINT32 _sharedCnt = 0;
+               UINT16 _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
+               UINT16 _flags = 0;
+         };//class _sharedStatus
+      
+      private:/// for liteCache
+         INT32 init(liteCachePageTag *tag,
+                    OSS_SHARED_LATCH_MODE mode,
+                    liteCache *pool,
+                    BOOLEAN isWritingPrepared);
 
       private:
-         lcPageTagHolder _holder;
-         liteCache *_pool;
-         BOOLEAN _writingPrepared;
+         ///All are null or All are not null.
+         liteCachePageTag *_tag = NULL;
+         liteCache *_pool = NULL;
+         _sharedStatus *_status = NULL;
    };//class liteCacheTuple
 
 } /// end of namespace vessel

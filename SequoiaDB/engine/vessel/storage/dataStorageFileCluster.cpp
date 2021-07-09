@@ -44,11 +44,6 @@ namespace engine
 {
 namespace vessel
 {
-   OSS_INLINE storageFile *getFileFromArray(ossValuePtr *array, UINT32 i)
-   {
-      return (storageFile *)(array[i]);
-   }
-
    dataStorageFileCluster::dataStorageFileCluster()
    {}
 
@@ -59,9 +54,10 @@ namespace vessel
 
    void dataStorageFileCluster::_close()
    {
-      for (UINT32 i = 0; i < _size; ++i)
+      for (UINT32 i = 0; i < _files.getSize(); ++i)
       {
-         storageFile *file = getFileFromArray(_array, i);
+         storageFile *file = NULL;
+         _files.get<storageFile>(i, file);
          if (NULL != file)
          {
             file->close();
@@ -69,38 +65,8 @@ namespace vessel
          }
       }
 
-      if (NULL != _old)
-      {
-         SDB_THREAD_FREE(_old);
-         _old = NULL;
-      }
-      if (NULL != _array)
-      {
-         SDB_THREAD_FREE(_array);
-         _array = NULL;
-      }
-      _capacity = 0;
-      _size = 0;
+      _files.fini();
       return;
-   }
-
-   UINT32 dataStorageFileCluster::getTotalSegmentCountAllocated()const
-   {
-      const storageCoreArgs &args = getCoreArgs();
-      SDB_ASSERT(args.isValid(), "must be valid");
-      UINT32 count = 0;
-      storageFile *file = NULL;
-      if (0 == _size)
-      {
-         goto done;
-      }
-
-      file = getFileFromArray(_array, _size - 1);
-      SDB_ASSERT(NULL != file, "last file can not be null");
-      SDB_ASSERT(0 < file->getSegmentCount(), "can not be zero");
-      count = ((_size - 1) * args.maxSegmentCountPerFile) + file->getSegmentCount();
-   done:
-      return count;
    }
 
    INT32 dataStorageFileCluster::fsyncSegment(UINT32 globalSegmentId)const
@@ -117,14 +83,20 @@ namespace vessel
          goto error;
       }
 
-      fileId = globalSegmentId / args.maxSegmentCountPerFile;
-      if (_size <= fileId)
+      fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      file = getFileFromArray(_array, fileId);
+      rc = _files.get(fileId, file);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get file ptr:%d", rc);
+         goto error;
+      }
+
       if (NULL == file)
       {
          PD_LOG(PDERROR, "file[%d] does not exist", fileId);
@@ -146,7 +118,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const
+   INT32 dataStorageFileCluster::getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const
    {
       INT32 rc = SDB_OK;
       UINT32 fileId = 0;
@@ -154,22 +126,35 @@ namespace vessel
       PAGE_ID pidInFile = INVALID_PAGE_ID;
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
-      UINT32 maxPageCountInFile = args.getMaxPageCountInFile();
+      UINT32 maxPageCountInFile = 0;
+      ossValuePtr p = 0;
 
       if (OSS_UNLIKELY(!dataPageCluster::isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
-      fileId = pid / maxPageCountInFile;
-      if (_size <= fileId)
+      fileId = ((pid >> (dataPageCluster::getBitwiseMaxPageCountPerSeg() +
+                         dataPageCluster::getBitwiseMaxSegmentPerFile()));
+      if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      file = getFileFromArray(_array, fileId);
+      rc = _files.get(fileId, file);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get file:%d", rc);
+         goto error;
+      }
+
       if (NULL == file)
       {
          PD_LOG(PDERROR, "file[%d] does not exist", fileId);
@@ -177,14 +162,18 @@ namespace vessel
          goto error;
       }
 
+      maxPageCountInFile = ((UINT32)1 << (dataPageCluster::getBitwiseMaxPageCountPerSeg() +
+                                          dataPageCluster::getBitwiseMaxSegmentPerFile()));
       pidInFile = (pid & (maxPageCountInFile - 1));
-      rc = file->getPagePtr(pidInFile, ptr);
+      rc = file->getPagePtr(pidInFile, p);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d,%d] ptr:%d",
                 fileId, pidInFile, rc);
          goto error;
       }
+
+      ptr.reset(p);
    done:
       return rc;
    error:
@@ -196,7 +185,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
-      SDB_ASSERT(0 == _capacity, "must be empty");
       const storageFileCreater *creater = dataPageCluster::getCreater();
       SDB_ASSERT(NULL != creater, "can not be null");
       SDB_ASSERT(creater->isValid(), "must be valid");
@@ -204,18 +192,14 @@ namespace vessel
 
       storageFile *file = NULL;
       const FILE_NAME_LIST *fileList = NULL;
-      constexpr UINT32 DEFAULT_CAPACITY = 32;
-      UINT32 bufferSize = sizeof(ossValuePtr) * DEFAULT_CAPACITY;
-      _array = (ossValuePtr *)SDB_THREAD_ALLOC(bufferSize);
-      if (NULL == _array)
+      constexpr UINT32 DEFAULT_CAPACITY = 16;
+
+      rc = _files.init(DEFAULT_CAPACITY);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to init file array:%d", rc);
          goto error;
       }
-
-      ossMemset(_array, 0, bufferSize);
-      _capacity = DEFAULT_CAPACITY;
 
       if (NULL == loader)
       {
@@ -318,27 +302,21 @@ namespace vessel
          }
 
          sequence = file->getCommonHeadInMem().sequence;
-
-         rc = ensureArrayCapacity(sequence + 1);
+         rc = _files.set<storageFile>(sequence, file);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to ensure array capacity[%d], rc:%d",
-                   sequence + 1, rc);
+            PD_LOG(PDERROR, "failed to add file[%lld] to array:%d", sequence, rc);
             goto error;
-         }
-
-         _array[sequence] = (ossValuePtr)file;
-         if (_size <= sequence)
-         {
-            _size = sequence + 1;
          }
 
          file = NULL;
       }
 
-      if (0 < _size)
+      if (0 < _files.getSize())
       {
-         storageFile *lastFile = getFileFromArray(_array, _size - 1);
+         storageFile *lastFile = NULL;
+         _files.get<storageFile>(_files.getSize() - 1, lastFile);
+         
          if (0 == lastFile->getSegmentCount())
          {
             PD_LOG(PDERROR, "last file[%s] should not be empty", file->getFullPath());
@@ -365,18 +343,16 @@ namespace vessel
 
    void dataStorageFileCluster::destroyFiles()
    {
-      for (UINT32 i = 0; i < _size; ++i)
+      for (UINT32 i = 0; i < _files.getSize(); ++i)
       {
-         storageFile *file = getFileFromArray(_array, i);
+         storageFile *file = _files.get<storageFile>(i);
          if (NULL != file)
          {
             PD_LOG(PDINFO, "will destroy file:%s", file->getFullPath());
             file->destroy();
             SDB_OSS_DEL file;
-            _array[i] = 0;
          }
       }
-      _size = 0;
       _close();
       return;
    }
@@ -385,19 +361,20 @@ namespace vessel
                                                  BOOLEAN &isSparse)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
       storageFile *file = NULL;
       UINT32 minSegmentCount = 0;
       
-      UINT32 fileId = globalSegmentId / args.maxSegmentCountPerFile;
-      if (_size <= fileId)
+      UINT32 fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
       
-      file = getFileFromArray(_array, fileId);
+      file = _files.get<storageFile>(fileId);
       if (NULL == file)
       {
          isSparse = TRUE;
@@ -418,14 +395,33 @@ namespace vessel
       goto done;
    }
 
+   UINT32 dataStorageFileCluster::getTotalSegmentCountAllocated()const
+   {
+      SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
+      SDB_ASSERT(dataPageCluster::getCoreArgs().isValid(), "must be valid");
+      UINT32 count = 0;
+      UINT32 size = _files.getSize();
+      if (0 < size)
+      {
+         storageFile *file = _files.get<storageFile>(size - 1);
+         SDB_ASSERT(NULL != file, "the last file can not be null");
+         if (1 < size)
+         {
+            count = size * dataPageCluster::getCoreArgs().maxSegmentCountPerFile;
+         }
+         count += file->getSegmentCount();
+      }
+      return count;
+   }
+
    INT32 dataStorageFileCluster::allocateNewSegment()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
-      SDB_ASSERT(NULL != _array, "impossible");
+      SDB_ASSERT(dataPageCluster::getCoreArgs().isValid(), "must be valid");
 
       storageFile *file = NULL;
-      if (0 == _size)
+      if (0 == _files.getSize())
       {
          rc = createNewFile();
          if (SDB_OK != rc)
@@ -433,10 +429,11 @@ namespace vessel
             PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
             goto error;
          }
+         goto done;
       }
 
-      file = getFileFromArray(_array, _size - 1);
-      SDB_ASSERT(NULL != file, "impossible");
+      file = _files.get<storageFile>(_files.getSize() - 1);
+      SDB_ASSERT(NULL != file, "the last file can not be null");
       if (file->getSegmentCount() < file->getCommonHeadInMem().maxSegmentCountPerFile)
       {
          rc = file->allocateNewSegment();
@@ -465,19 +462,18 @@ namespace vessel
    INT32 dataStorageFileCluster::ensureSegmentNotSparse(UINT32 globalSegmentId)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _array, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
       SDB_ASSERT(args.isValid(), "can not be invalid");
       storageFile *file = NULL;
       UINT32 minSegmentCount = 0;
-      UINT32 fileId = globalSegmentId / args.getMaxPageCountInFile();
-      if (_size <= fileId)
+      UINT32 fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      file = getFileFromArray(_capacity, fileId);
+      file = _files.get<storageFile>(fileId);
       if (NULL == file)
       {
          rc = createFileEverShrinked(fileId);
@@ -505,23 +501,12 @@ namespace vessel
    INT32 dataStorageFileCluster::createNewFile()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _array, "impossible");
-
       const storageFileCreater *creater = dataPageCluster::getCreater();
       SDB_ASSERT(NULL != creater, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
+      SDB_ASSERT(args.isValid(), "must be valid");
 
-      storageFile *file = NULL ;
-      
-      rc = ensureArrayCapacity(_size + 1);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure array size[%d], rc:%d",
-                _size + 1, rc);
-         goto error;
-      }
-
-      file = SDB_OSS_NEW storageFile();
+      storageFile *file = SDB_OSS_NEW storageFile();
       if (OSS_UNLIKELY(NULL == file))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -530,7 +515,7 @@ namespace vessel
       }
 
       rc = creater->createTmpFile(FILE_TYPE_DATA_STORAGE,
-                                  _size, args, file);
+                                  _files.getSize(), args, file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create tmp file:%d", rc);
@@ -559,7 +544,11 @@ namespace vessel
          goto error;
       }
 
-      _array[_size++] = (ossValuePtr)file;
+      rc = _files.pushBack<storageFile>(file);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
       file = NULL;
    
    done:
@@ -576,22 +565,21 @@ namespace vessel
    INT32 dataStorageFileCluster::createFileEverShrinked(UINT32 sequence)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _array, "impossible");
-
       const storageFileCreater *creater = dataPageCluster::getCreater();
       SDB_ASSERT(NULL != creater, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
+      SDB_ASSERT(args.isValid(), "can not be invalid");
 
       storageFile *file = NULL ;
 
-      if (_size <= sequence)
+      if (_files.getSize() <= sequence)
       {
          PD_LOG(PDERROR, "invalid sequence[%d] to create, current size[%d]",
-                sequence, _size);
+                sequence, _files.getSize());
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (NULL != getFileFromArray(_array, sequence))
+      else if (NULL != _files.get<storageFile>(sequence))
       {
          rc = SDB_FE;
          goto error;
@@ -620,7 +608,7 @@ namespace vessel
          goto error;
       }
 
-      rc = file->fsyncFileHead();
+      rc = file->fsync();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync file head:%d", rc);
@@ -635,7 +623,11 @@ namespace vessel
          goto error;
       }
 
-      _array[sequence] = (ossValuePtr)file;
+      rc = _files.set(sequence, file);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
       file = NULL;
    done:
       return rc;
@@ -647,57 +639,5 @@ namespace vessel
       }
       goto done;
    }
-
-   INT32 dataStorageFileCluster::ensureArrayCapacity(UINT32 size)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 != _capacity, "can not be zero");
-      SDB_ASSERT(NULL != _array, "can not be null");
-      UINT32 capacity = _capacity;
-      ossValuePtr *buffer = NULL;
-      UINT32 bufferSize = 0;
-
-      if (size <= capacity)
-      {
-         goto done;
-      }
-
-      do
-      {
-         capacity = capacity << 1;
-      } while (capacity < size);
-      
-
-      bufferSize = (capacity << 3); /// capacity * sizeof(ossValuePtr)
-      buffer = (ossValuePtr *)SDB_THREAD_ALLOC(bufferSize);
-      if (NULL == buffer)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      ossMemset(buffer, 0, bufferSize);
-      ossMemcpy(buffer, _array, (_size << 3));
-      if (NULL != _old)
-      {
-         SDB_THREAD_FREE(_old);
-      }
-      _old = _array;
-      _array = buffer;
-      _capacity = capacity;
-      buffer = NULL;
-   done:
-      return rc;
-   error:
-      if (NULL != buffer)
-      {
-         SDB_THREAD_FREE(buffer);
-      }
-      goto done;
-   }
-
-
-
 }//namespace vessel
 }//namespace engine

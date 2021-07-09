@@ -39,20 +39,20 @@
 #include "ossLatch.hpp"
 #include "ossRWMutex.hpp"
 
-class ossSpinSLatchGuard : public SDBObject
+class ossSLatchGuard : public SDBObject
 {
    public:
-      ossSpinSLatchGuard() = delete;
-      ossSpinSLatchGuard(ossSpinSLatch *latch, OSS_LATCH_MODE mode):
+      ossSLatchGuard() = delete;
+      ossSLatchGuard(ossSLatch *latch, OSS_LATCH_MODE mode):
       _latch(latch),
       _locked(FALSE),
       _mode(mode)
       {
          lock();
       }
-      ossSpinSLatchGuard(ossSpinSLatch *latch,
-                         OSS_LATCH_MODE mode,
-                         BOOLEAN immediate):
+      ossSLatchGuard(ossSLatch *latch,
+                     OSS_LATCH_MODE mode,
+                     BOOLEAN immediate):
       _latch(latch),
       _locked(FALSE),
       _mode(mode)
@@ -63,13 +63,13 @@ class ossSpinSLatchGuard : public SDBObject
          }
       }  
 
-      ~ossSpinSLatchGuard()
+      ~ossSLatchGuard()
       {
          unlock();
       }
       
-      ossSpinSLatchGuard(const ossSpinSLatchGuard &) = delete;
-      ossSpinSLatchGuard &operator=(const ossSpinSLatchGuard &) = delete;
+      ossSLatchGuard(const ossSLatchGuard &) = delete;
+      ossSLatchGuard &operator=(const ossSLatchGuard &) = delete;
 
    public:
       void lock()
@@ -115,22 +115,22 @@ class ossSpinSLatchGuard : public SDBObject
       }
 
    private:
-      ossSpinSLatch *_latch;
+      ossSLatch *_latch;
       BOOLEAN _locked = FALSE;
       OSS_LATCH_MODE _mode = SHARED;
-};//class ossSpinSLatchGuard
+};//class ossSLatchGuard
 
-class ossSpinXLatchGuard : public SDBObject
+class ossXLatchGuard : public SDBObject
 {
    public:
-      ossSpinXLatchGuard() = delete;
-      ossSpinXLatchGuard(ossSpinXLatch *latch):
+      ossXLatchGuard() = delete;
+      ossXLatchGuard(ossXLatch *latch):
       _latch(latch),
       _locked(FALSE)
       {
          lock();
       }
-      ossSpinXLatchGuard(ossSpinXLatch *latch,
+      ossXLatchGuard(ossXLatch *latch,
                          BOOLEAN immediate):
       _latch(latch),
       _locked(FALSE)
@@ -141,13 +141,13 @@ class ossSpinXLatchGuard : public SDBObject
          }
       }  
 
-      ~ossSpinXLatchGuard()
+      ~ossXLatchGuard()
       {
          unlock();
       }
       
-      ossSpinXLatchGuard(const ossSpinXLatchGuard &) = delete;
-      ossSpinXLatchGuard &operator=(const ossSpinXLatchGuard &) = delete;
+      ossXLatchGuard(const ossXLatchGuard &) = delete;
+      ossXLatchGuard &operator=(const ossXLatchGuard &) = delete;
 
    public:
       void lock()
@@ -174,15 +174,24 @@ class ossSpinXLatchGuard : public SDBObject
       }
 
    private:
-      ossSpinXLatch *_latch;
+      ossXLatch *_latch;
       BOOLEAN _locked = FALSE;
-};//class ossSpinXLatchGuard
+};//class ossXLatchGuard
 
 class ossRWMutexGuard : public SDBObject
 {
    public:
       ossRWMutexGuard() = delete;
-      ossRWMutexGuard(ossRWMutexBase *mutex,
+      ossRWMutexGuard(engine::ossRWMutexBase *mutex,
+                      OSS_LATCH_MODE mode):
+      _mutex(mutex),
+      _mode(mode),
+      _locked(FALSE)
+      {
+         autoLock();
+      }
+
+      ossRWMutexGuard(engine::ossRWMutexBase *mutex,
                       OSS_LATCH_MODE mode,
                       BOOLEAN immediate):
       _mutex(mutex),
@@ -190,22 +199,23 @@ class ossRWMutexGuard : public SDBObject
       {
          if (immediate)
          {
-            lock();
+            autoLock();
          }
       }
+      
 
       ~ossRWMutexGuard()
       {
-         unlock();
+         autoUnlock();
       }
 
       ossRWMutexGuard(const ossRWMutexGuard &) = delete;
       ossRWMutexGuard &operator=(const ossRWMutexGuard &) = delete;
 
    public:
-      void lock()
+      void autoLock()
       {
-         if (NULL != _mutext && !_locked)
+         if (NULL != _mutex && !_locked)
          {
             if (SHARED == _mode)
             {
@@ -219,7 +229,7 @@ class ossRWMutexGuard : public SDBObject
          }
          return;
       }
-      void unlock()
+      void autoUnlock()
       {
          if (_locked)
          {
@@ -237,7 +247,7 @@ class ossRWMutexGuard : public SDBObject
       }
 
    private:
-      ossRWMutexBase *_mutex = NULL;
+      engine::ossRWMutexBase *_mutex = NULL;
       OSS_LATCH_MODE _mode = SHARED;
       BOOLEAN _locked = FALSE;
 };//class ossRWMutexGuard

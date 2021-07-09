@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -40,10 +37,8 @@
 #define VESSEL_LC_DIRTY_LIST_H_
 
 #include "ossTypes.h"
-#include "vessel/latch.h"
 #include "vessel/lcPageTagHolder.h"
 #include "ossLatch.hpp"
-
 
 namespace engine
 {
@@ -74,14 +69,14 @@ namespace vessel
                                UINT64 minLSN,
                                diskIOJob *job);
 
-         UINT32 size();
+         UINT32 size(BOOLEAN lock=TRUE);
 
-         UINT64 getMinDirtyLSN();
+         UINT64 getMinDirtyLSN(BOOLEAN lock=TRUE);
 
-         /// WARNING: incorrect use can cause wrong checkpoints.
-         /// only after all dirty pages are persisted to disk,
-         /// min lsn in the cache can be deleted.
-         INT32 cacheMinDirtyLSN();
+         /// Update min dirty lsn to current
+         /// min lsn in list after dirty list flushing.
+         void updateMinDirtyLsn();
+
          void removeCachedMinDirtyLSN();
 
       private:
@@ -90,11 +85,11 @@ namespace vessel
          void remove(liteCachePageTag *tag);
 
       private:
-         ossSpinSLatch _latch;
-         UINT32 _size;
-         liteCachePageTag *_head;
-         liteCachePageTag *_tail;
-         DPS_LSN_OFFSET _minDirtyLsn;
+         ossSpinXLatch _latch;
+         UINT32 _size = 0;
+         liteCachePageTag *_head = NULL;
+         liteCachePageTag *_tail = NULL;
+         DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
    };
 
 } /// end of namespace vessel

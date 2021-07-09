@@ -37,6 +37,7 @@
 #define VESSEL_DATA_STORAGE_FILE_CLUSTER_H_
 
 #include "vessel/dataPageCluster.h"
+#include "vessel/keepHistoryPointerArray.h"
 
 namespace engine
 {
@@ -51,11 +52,14 @@ namespace vessel
          virtual ~dataStorageFileCluster();
 
       public:
-         virtual UINT32 getTotalSegmentCountAllocated()const;
-
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const;
 
-         virtual INT32 getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const;
+         virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const;
+
+         virtual FILE_TYPE getDataFileType()const
+         {
+            return FILE_TYPE_DATA_STORAGE;
+         }
 
       private:
          virtual INT32 openFiles(const storageFileLoader *loader);
@@ -69,9 +73,9 @@ namespace vessel
 
          virtual BOOLEAN mayBeSparse()const {return TRUE;}
 
-      private:
-         INT32 ensureArrayCapacity(UINT32 size);
+         virtual UINT32 getTotalSegmentCountAllocated()const;
 
+      private:
          INT32 createNewFile();
 
          INT32 createFileEverShrinked(UINT32 sequence);
@@ -79,10 +83,7 @@ namespace vessel
          void _close();
       
       private:
-         UINT32 _capacity = 0;
-         UINT32 _size = 0;
-         ossValuePtr *_array = NULL;
-         ossValuePtr *_old = NULL;
+         keepHistoryPointerArray _files;
 
    };//class dataStorageFileCluster
 

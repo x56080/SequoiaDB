@@ -37,6 +37,7 @@
 #define VESSEL_LIST_CS_CURSOR_H_
 
 #include "vessel/cursorKernal.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -45,11 +46,7 @@ namespace vessel
    class listCSCursor : public cursorKernal
    {
       public:
-         OSS_INLINE listCSCursor()
-         {
-            ossMemset(_csName, 0, DMS_COLLECTION_SPACE_NAME_SZ + 1);
-         }
-
+         listCSCursor(){}
          virtual ~listCSCursor(){}
 
       public:
@@ -79,7 +76,7 @@ namespace vessel
          }
 
       private:
-         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1];
+         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
          ossPoolSet<UINT32> _pushedLIds;
    };//class listCSCursor
 }//namespace vessel

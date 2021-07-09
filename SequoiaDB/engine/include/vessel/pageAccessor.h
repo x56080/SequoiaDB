@@ -60,16 +60,15 @@ namespace vessel
       public:
          virtual PAGE_TYPE getPageType()const = 0;
 
-         virtual INT32 copyFrom(requestContext *context,
-                                runtimePageBuffer *rpb);
-
       protected:
-         INT32 prepareLog(requestContext *context,
-                          runtimePageBuffer *rpb,
-                          UINT16 logType,
-                          logRecordContext *lrc);
+         virtual INT32 prepareLog(requestContext *context,
+                                  runtimePageBuffer *rpb,
+                                  UINT16 logType,
+                                  BOOLEAN resetPage,
+                                  logRecordContext *lrc);
 
          INT32 prepareLogDone(requestContext *context,
+                              runtimePageBuffer *rpb,
                               logRecordContext *lrc);
 
          INT32 commitLog(requestContext *context,

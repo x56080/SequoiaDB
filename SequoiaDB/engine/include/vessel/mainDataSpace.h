@@ -36,15 +36,14 @@
 #ifndef VESSEL_MAIN_DATA_SPACE_H_
 #define VESSEL_MAIN_DATA_SPACE_H_
 
-#include "vessel/logicalPageSpace.h"
-#include "vessel/collectionSpaceGlobalPage.h"
-#include "vessel/vesselOptions.h"
+#include "vessel/replicatedLPS.h"
+#include "vessel/dataStorageFileCluster.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class mainDataSpace : public logicalPageSpace
+   class mainDataSpace : public replicatedLPS
    {
       public:
          mainDataSpace();
@@ -61,26 +60,23 @@ namespace vessel
          {
             return 1;
          }
-         virtual UINT32 getFreeBoundOfLpidPool()const 
+         virtual UINT32 getFreeBoundOfLpidAllocator()const 
          {
             return PAGE_COUNT_IN_EXTENT;
          }
-         virtual UINT32 getFreeBoundOfPpidPool()const
+         virtual UINT32 getFreeBoundOfPageStorage()const
          {
             return PAGE_COUNT_IN_EXTENT;
          }
-         virtual UINT32 getIdMapFileHeadFlagsWhenCreating()const
-         {
-            return 0;
-         }
-      private:
-         virtual INT32 openFiles(requestContext *context,
-                                 SPACE_ID sid,
-                                 const std::string &dir,
-                                 idMapFile **out);
 
-         virtual INT32 mapDataStorageSegmentsWhenStarup(requestContext *context,
-                                                        inMemBitMap &bitmap);
+      private:
+         virtual dataPageCluster *getDataStorageObj()
+         {
+            return &_storage;
+         }
+
+      private:
+         dataStorageFileCluster _storage;
    };//class mainDataSpace
 }//namespace vessel
 }//namespace engine

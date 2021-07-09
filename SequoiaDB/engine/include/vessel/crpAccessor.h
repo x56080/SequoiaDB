@@ -36,7 +36,7 @@
 #ifndef VESSEL_CRP_ACCESSOR_H_
 #define VESSEL_CRP_ACCESSOR_H_
 
-#include "vessel/logicalPageAccessor.h"
+#include "vessel/pageAccessor.h"
 #include "vessel/collectionRecordPage.h"
 #include "vessel/strSlice.h"
 #include "vessel/slice.h"
@@ -45,7 +45,7 @@ namespace engine
 {
 namespace vessel
 {
-   class crpAccessor : public logicalPageAccessor
+   class crpAccessor : public pageAccessor
    {
       public:
          crpAccessor();

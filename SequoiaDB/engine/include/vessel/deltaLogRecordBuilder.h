@@ -84,22 +84,18 @@ namespace vessel
 
          INT32 buildCheckpointLog(const LPS_CHECKPOINT &checkpoint);
 
-
          INT32 buildMappingLog(PAGE_SNAPSHOT_VERION psv,
                                UINT8 count,
-                               const PAGE_ID *lpids,
-                               const PAGE_ID *pids);
+                               const mappedLogicalPageId *mpids);
                                
          INT32 buildRemappingLog(PAGE_SNAPSHOT_VERION psv,
                                  UINT8 count,
-                                 const PAGE_ID *lpids,
-                                 const PAGE_ID *pids,
+                                 const mappedLogicalPageId *mpids,
                                  const PAGE_ID *oldPids,
                                  BOOLEAN releaseOld);
 
          INT32 buildUnmappingLog(UINT8 count,
-                                 const PAGE_ID *lpids,
-                                 const PAGE_ID *pids,
+                                 const mappedLogicalPageId *mpids,
                                  BOOLEAN releaseOld);
 
          INT32 buildReleasingLog(UINT8 count,

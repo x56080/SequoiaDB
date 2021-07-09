@@ -74,18 +74,17 @@ namespace vessel
    }
 
    INT32 spaceIDLocker::lock(SPACE_ID sid,
-                             ossSharedLatch::mode mode)
+                             OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
-      ossSharedLatch *latch = NULL;
+      ossRWMutex *latch = NULL;
 
       if (OSS_UNLIKELY(!_array.isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                            ossSharedLatch::NONE == mode))
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -98,7 +97,14 @@ namespace vessel
          goto error;
       }
 
-      latch->lockWith(mode);
+      if (SHARED == mode)
+      {
+         latch->lock_r();
+      }
+      else
+      {
+         latch->lock_w();
+      }
 
    done:
       return rc;
@@ -106,38 +112,42 @@ namespace vessel
       goto done;
    }
 
-   void spaceIDLocker::unlock(SPACE_ID sid, ossSharedLatch::mode mode)
+   void spaceIDLocker::unlock(SPACE_ID sid, OSS_LATCH_MODE mode)
    {
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      SDB_ASSERT(ossSharedLatch::NONE != mode, "can not be invalid");
       SDB_ASSERT(_array.isInitialized(), "must be inited");
-      ossSharedLatch *latch = NULL;
+
+
+      ossRWMutex *latch = NULL;
       INT32 rc = _array.get(sid, &latch);
       if (SDB_OK != rc)
       {
          SDB_ASSERT(FALSE, "impossible");
       }
+      else if (SHARED == mode)
+      {
+         latch->release_r();
+      }
       else
       {
-         latch->unlockWith(mode);
+         latch->release_w();
       }
       return;
    }
 
    INT32 spaceIDLocker::tryLock(SPACE_ID sid,
-                                ossSharedLatch::mode mode,
+                                OSS_LATCH_MODE mode,
                                 BOOLEAN &locked)
    {
       INT32 rc = SDB_OK;
       locked = FALSE;
-      ossSharedLatch *latch = NULL;
+      ossRWMutex *latch = NULL;
       if (OSS_UNLIKELY(!_array.isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid ||
-                       ossSharedLatch::NONE == mode))
+      else if (OSS_UNLIKELY(INVALID_SPACE_ID == sid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -150,7 +160,14 @@ namespace vessel
          goto error;
       }
 
-      locked = latch->tryLockWith(mode);
+      if (SHARED == mode)
+      {
+         locked = latch->try_lock_r();
+      }
+      else
+      {
+         locked = latch->try_lock_w();
+      }
    done:
       return rc;
    error:

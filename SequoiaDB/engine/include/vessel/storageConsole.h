@@ -41,13 +41,13 @@
 #include "ossLatch.hpp"
 #include "vessel/storageUnit.h"
 #include "vessel/mmapPagePointer.h"
+#include "vessel/lazyArray.h"
+#include "vessel/inMemBitmap.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class storageUnit;
-   class storageFileCluster;
    class requestContext;
 
    class storageConsole : public SDBObject
@@ -93,20 +93,17 @@ namespace vessel
                            UINT32 &pageSize)const;
 
       private:
+         INT32 occupySpaceId(SPACE_ID sid);
+
+      private:
          INT32 loadStorageUnitsOnDisk(requestContext *context);
          INT32 loadStorageUnit();
 
       private:
-         typedef ossPoolList<SPACE_ID> _SPACE_ID_POOL;
-
-      private:
          BOOLEAN _isOpen = FALSE;
          ossSpinXLatch _latch;
-         SPACE_ID _minSidNotInPool = INVALID_SPACE_ID;
-         _SPACE_ID_POOL _free;
-         _SPACE_ID_POOL _workshop;
-         _SPACE_ID_POOL _removedButSnapshoted;
-         _SPACE_ID_POOL _abnormalSids;
+         inMemBitmap _allocator;
+         lazyArray<storageUnit> _storageUnits;
    };
 }//namespace vessel
 }//namespace engine

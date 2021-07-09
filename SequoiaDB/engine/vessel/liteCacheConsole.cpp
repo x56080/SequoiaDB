@@ -77,47 +77,88 @@ namespace vessel
    }
 
    INT32 liteCacheConsole::allocate(requestContext *context,
-                                    const GLOBAL_PAGE_ID &id,
+                                    const GLOBAL_PAGE_ID &gpid,
                                     const liteCacheAllocateOptions &options,
                                     liteCacheTuple &tuple)
    {
       INT32 rc = SDB_OK;
-      logicalPageSpace *lps = NULL;
-      storageCoreArgs args;
       liteCache *cache = NULL;
-      SDB_ASSERT(id.getSpaceType() == SPACE_TYPE_MAIN_DATA, "must be main data");
+      UINT32 pageSize = 0;
+      SDB_ASSERT(gpid.getSpaceType() == SPACE_TYPE_MAIN_DATA, "must be main data");
+      SDB_ASSERT(gpid.getFileType() == FILE_TYPE_DATA_STORAGE, "must be data storage");
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !id.isValid() ||
+                       !gpid.isValid() ||
                        tuple.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = context->getEnv()->sc.getLogicalPageSpace(id.space(), id.getSpaceType(), &lps);
+      rc = context->getEnv()->dms.getPageSize(gpid.space(), gpid.getSpaceType(),
+                                              gpid.getFileType(), pageSize);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get logical space of[%s], rc:%d",
-                id.toString().c_str(), rc);
+         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
          goto error;
       }
 
-      rc = lps->getStorageCoreArgs(id.getFileType(), args);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get core args:%d", rc);
-         goto error;
-      }
-
-      cache = getCache(args.pageSize);
+      cache = getCache(pageSize);
       if (OSS_UNLIKELY(NULL == cache))
+      {
+         PD_LOG(PDERROR, "failed to get cache, page size:%d", pageSize);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = cache->allocate(context, gpid, options, tuple);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 liteCacheConsole::allocateToReset(requestContext *context,
+                                           const GLOBAL_PAGE_ID &gpid,
+                                           liteCacheTuple &tuple)
+   {
+      INT32 rc = SDB_OK;
+      liteCache *cache = NULL;
+      UINT32 pageSize = 0;
+      SDB_ASSERT(gpid.getSpaceType() == SPACE_TYPE_MAIN_DATA, "must be main data");
+      SDB_ASSERT(gpid.getFileType() == FILE_TYPE_DATA_STORAGE, "must be data storage");
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !gpid.isValid() ||
+                       tuple.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = cache->allocate(context, id, options, tuple);
+      rc = context->getEnv()->dms.getPageSize(gpid.space(), gpid.getSpaceType(),
+                                              gpid.getFileType(), pageSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page size of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      cache = getCache(pageSize);
+      if (OSS_UNLIKELY(NULL == cache))
+      {
+         PD_LOG(PDERROR, "failed to get cache, page size:%d", pageSize);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = cache->allocateToReset(context, gpid, tuple);
       if (SDB_OK != rc)
       {
          goto error;

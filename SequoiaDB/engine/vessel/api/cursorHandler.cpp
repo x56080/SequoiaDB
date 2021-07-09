@@ -53,6 +53,16 @@ namespace vessel
       }
    }
 
+   cursorHandler::cursorHandler(const cursorHandler &o):
+   _cursor(NULL)
+   {
+      if (NULL != o._cursor)
+      {
+         _cursor = o._cursor;
+         _cursor->incUsageCount();
+      }
+   }
+
    cursorHandler::~cursorHandler()
    {
       if (NULL != _cursor)
@@ -104,21 +114,13 @@ namespace vessel
       return NULL != _cursor && _cursor->isOpen();   
    }
    
-   INT32 cursorHandler::close()
+   void cursorHandler::close()
    {
-      INT32 rc = SDB_OK;
       if (NULL != _cursor)
       {
-         rc = _cursor->close();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         _cursor->close();
       }
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 cursorHandler::getNext(ISession *session, slice &content)

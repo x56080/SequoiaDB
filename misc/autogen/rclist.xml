@@ -3274,5 +3274,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_TEMP_SU</name>
+         <description>
+            <en>the storage unit is temporary</en>
+            <cn>临时的存储对象</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

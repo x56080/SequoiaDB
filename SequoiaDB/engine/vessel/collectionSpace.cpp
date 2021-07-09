@@ -39,8 +39,6 @@
 #include "ossUtil.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/smpAccessor.h"
-#include "vessel/spaceManagementPage.h"
 #include "vessel/csgpAccessor.h"
 #include "vessel/storageUnit.h"
 #include "dpsOp2Record.hpp"
@@ -48,13 +46,10 @@
 #include "vessel/outerResource.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/idMapPage.h"
-#include "vessel/impAccessor.h"
 #include "vessel/collection.h"
 #include "vessel/crpAccessor.h"
 #include "vessel/listCLCursor.h"
 #include "vessel/IRedoLogger.h"
-#include "vessel/fsmFile.h"
-#include "vessel/bitMapUtils.h"
 #include "vessel/fsmFile.h"
 
 namespace engine
@@ -78,7 +73,12 @@ namespace vessel
                                  const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isClosed(), "do not recreate");
+      SDB_ASSERT(!isOpen(), "do not recreate");
+      SDB_ASSERT(65535 == MAX_CL_MB_COUNT, "must be 65535");
+      inMemBitmap::options o;
+      static constexpr UINT32 ALLOCATOR_PAGE_CAPAITY = 512;
+      static constexpr UINT32 CHUNK_SIZE = 16;
+      static constexpr UINT32 CAPACITY = (MAX_CL_MB_COUNT +1) / collectionObjHolderGroup::CAPACITY;
 
       if (OSS_UNLIKELY(NULL == context ||
                        EXCLUSIVE != context->getSpaceIDLockedMode() ||
@@ -96,32 +96,33 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isClosed()))
-      {
-         fini();
-      }
 
-      rc = _ms.create(context, su, name, logicalID, options);
+      _isOpen = TRUE;
+      _su = su;
+      o.bitmapPageSkipped = 0;
+      o.freeBound = 0;
+      o.maxBitmapPageCount = (MAX_CL_MB_COUNT + 1) / ALLOCATOR_PAGE_CAPAITY;
+      rc = _allocator.initWithNoLatch(ALLOCATOR_PAGE_CAPAITY, o);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open main data space:%d", rc);
+         PD_LOG(PDERROR, "failed to init allocator:%d", rc);
          goto error;
       }
 
-      ///TODO, rollback when failed.
-      rc = _cowEnv.open(context, su);
+      rc = _collections.init(CAPACITY, CHUNK_SIZE);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init cow env:%d", rc);
+         PD_LOG(PDERROR, "failed to init collection array:%d", rc);
          goto error;
       }
 
       _recordInMem.version = CMR_VERSION_1;
       _recordInMem.status = CMR_STATUS_ONLINE;
+      _recordInMem.type = CMR_TYPE_NORMAL;
       _recordInMem.flags = 0;
       _recordInMem.logicalID = logicalID;
       _recordInMem.uniqueID = options.uniqueID;
-      ossMemcpy(_recordInMem.name, name.str(), name.strLen());
+      ossMemcpy(_recordInMem.name, name.str(), name.strLen() + 1);
 
       /// The name file is only for easier viewing. Even if failed
       /// to write file, it does not affect the result.
@@ -1007,6 +1008,23 @@ namespace vessel
          --_maxCLLogicalID;
       }
       return;
+   }
+
+   INT32 collectionSpace::_create(requestContext *context,
+                                  const csMetaRecord &record,
+                                  const createCSOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(record.isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != _su, "can not be null");
+
+
+      
+   done:
+      return rc;
+   error:
+      goto error;
    }
    
 }//namespace vessel
