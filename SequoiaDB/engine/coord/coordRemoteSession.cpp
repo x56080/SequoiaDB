@@ -2033,14 +2033,25 @@ namespace engine
             }
          }
       }
-      // [SDB_COORD_REMOTE_DISC] can't use in write command,
-      // because when some insert/update opr do partibal,
-      // if retry, data will repeat. The code can't update status,
-      // because it maybe occured in long time ago
-      else if ( ( isReadCmd && SDB_COORD_REMOTE_DISC == flag ) ||
-                SDB_CLS_NODE_NOT_ENOUGH == flag )
+      else if ( SDB_CLS_NODE_NOT_ENOUGH == flag )
       {
          /// do nothing
+      }
+      else if ( SDB_COORD_REMOTE_DISC == flag )
+      {
+         // [SDB_COORD_REMOTE_DISC] can't use in write command,
+         // because when some insert/update opr do partibal,
+         // if retry, data will repeat. The code can't update status,
+         // because it maybe occured in long time ago
+         if ( !isReadCmd )
+         {
+            bRetry = FALSE ;
+         }
+         if( groupPtr.get() )
+         {
+            groupPtr->updateNodeStat( nodeID.columns.nodeID,
+                                      netResult2Status( flag ) ) ;
+         }
       }
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag ||
