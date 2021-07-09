@@ -315,7 +315,7 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
 {
    INT32 rc = SDB_OK ;
    CHAR *ptr =  NULL ;
-
+   *node = NULL ;
    if ( NULL == key )
    {
       goto done ;
@@ -329,6 +329,8 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
    }
 
    *node = ( htbNode *)ptr ;
+   ossMemset ( *node, 0, sizeof( htbNode ) ) ;
+   ptr = NULL ;
 
    ptr = ( CHAR * )SDB_OSS_MALLOC( ossStrlen( key ) + 1 ) ;
    if ( NULL == ptr )
@@ -342,13 +344,14 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
 done:
    return rc ;
 error:
-   if ( NULL != (*node)->name )
-   {
-      SDB_OSS_FREE( (*node)->name ) ;
-      (*node)->name = NULL ;
-   }
+   
    if ( NULL != *node )
    {
+      if ( NULL != (*node)->name )
+      {
+         SDB_OSS_FREE( (*node)->name ) ;
+         (*node)->name = NULL ;
+      }
       SDB_OSS_FREE( *node ) ;
       *node = NULL ;
    }
