@@ -42,10 +42,12 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 public class Split24278 extends SdbTestBase {
     private String csName = "cs_24278";
     private String clName = "cl_24278";
+    private String csNameNew = "cs_24278_New";
+    private String clNameNew = "cl_24278_New";
     private DBCollection dbcl;
     List< String > groupNames = new ArrayList<>();
+    List< ObjectId > lobOids = new ArrayList<>();
     private Sequoiadb sdb = null;
-    private Random random = new Random();
     private LinkedBlockingQueue< SaveOidAndMd5 > id2md5 = new LinkedBlockingQueue< SaveOidAndMd5 >();
 
     @BeforeClass()
@@ -71,16 +73,30 @@ public class Split24278 extends SdbTestBase {
         option.put( "Group", groupNames.get( 0 ) );
         option.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
         dbcl = dbcs.createCollection( clName, option );
-        // 写入待切分的记录（0-10000)
+
+        if ( sdb.isCollectionSpaceExist( csNameNew ) ) {
+            sdb.dropCollectionSpace( csNameNew );
+        }
+        CollectionSpace dbcs2 = sdb.createCollectionSpace( csNameNew );
+        BasicBSONObject option2 = new BasicBSONObject();
+        option2.put( "ShardingKey", new BasicBSONObject( "a", 1 ) );
+        option2.put( "AutoSplit", true );
+        dbcs2.createCollection( clNameNew, option2 );
+
+        // 写入待切分的记录（0-100000)
         insertData( dbcl );
+        // 新创建一个集合插入20个lob，获取在group2上的oid
+        lobOids = getLobId( sdb, csNameNew, clNameNew );
+        // 将50%的数据切分到group2
+        dbcl.split( groupNames.get( 0 ), groupNames.get( 1 ), 50 );
     }
 
     // 100%切分同时执行putLob
     @Test
     public void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor();
-        Split split = new Split();
-        PutLob putlob = new PutLob();
+        ThreadExecutor es = new ThreadExecutor( 600000 );
+        Split split = new Split( dbcl );
+        PutLob putlob = new PutLob( lobOids );
         es.addWorker( split );
         es.addWorker( putlob );
         es.run();
@@ -95,6 +111,7 @@ public class Split24278 extends SdbTestBase {
     public void tearDown() {
         try {
             sdb.dropCollectionSpace( csName );
+            sdb.dropCollectionSpace( csNameNew );
         } finally {
             if ( sdb != null ) {
                 sdb.close();
@@ -103,13 +120,25 @@ public class Split24278 extends SdbTestBase {
     }
 
     private class Split extends ResultStore {
+        private DBCollection cl;
+
+        private Split( DBCollection cl ) {
+            this.cl = cl;
+        }
+
         @ExecuteOrder(step = 1)
         public void split() throws InterruptedException {
-            dbcl.split( groupNames.get( 0 ), groupNames.get( 2 ), 100 );
+            cl.split( groupNames.get( 0 ), groupNames.get( 2 ), 100 );
         }
     }
 
     private class PutLob extends ResultStore {
+        private List< ObjectId > lobOids;
+
+        private PutLob( List< ObjectId > lobOids ) {
+            this.lobOids = lobOids;
+        }
+
         @ExecuteOrder(step = 1)
         public void putLob()
                 throws InterruptedException, NoSuchAlgorithmException {
@@ -117,14 +146,14 @@ public class Split24278 extends SdbTestBase {
                     "" )) {
                 DBCollection dbcl = sdb.getCollectionSpace( csName )
                         .getCollection( clName );
-                for ( int i = 0; i < 20; i++ ) {
-                    int writeLobSize = random.nextInt( 1024 * 1024 );
-                    byte[] wlobBuff = getRandomBytes( writeLobSize );
-                    ObjectId oid = createAndWriteLob( dbcl, wlobBuff );
+                for ( int i = 0; i < lobOids.size(); i++ ) {
+                    byte[] wlobBuff = getRandomBytes( 1024 * 1024 * 300 );
+                    createAndWriteLob( dbcl, wlobBuff, lobOids.get( i ) );
 
                     // save oid and md5
                     String prevMd5 = getMd5( wlobBuff );
-                    id2md5.offer( new SaveOidAndMd5( oid, prevMd5 ) );
+                    id2md5.offer(
+                            new SaveOidAndMd5( lobOids.get( i ), prevMd5 ) );
                 }
             }
         }
@@ -150,14 +179,14 @@ public class Split24278 extends SdbTestBase {
 
     private void insertData( DBCollection cl ) {
         List< BSONObject > insertRecords = new ArrayList< BSONObject >();
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 1000000; i++ ) {
             BSONObject obj = new BasicBSONObject();
             obj.put( "_id", i );
             obj.put( "a", i );
             obj.put( "num", i );
             insertRecords.add( obj );
         }
-        dbcl.insert( insertRecords );
+        cl.insert( insertRecords );
     }
 
     private void checkLobData() throws NoSuchAlgorithmException {
@@ -220,7 +249,7 @@ public class Split24278 extends SdbTestBase {
         }
         BigInteger bi = new BigInteger( 1, md5.digest() );
         value = bi.toString( 16 );
-        
+
         return value;
     }
 
@@ -231,12 +260,11 @@ public class Split24278 extends SdbTestBase {
         return bytes;
     }
 
-    private ObjectId createAndWriteLob( DBCollection dbcl, byte[] data ) {
-        ObjectId lobId = dbcl.createLobID();
+    private void createAndWriteLob( DBCollection dbcl, byte[] data,
+            ObjectId lobId ) {
         DBLob lob = dbcl.createLob( lobId );
         lob.write( data );
         lob.close();
-        return lob.getID();
     }
 
     private void checkDataSplitResult() {
@@ -253,6 +281,38 @@ public class Split24278 extends SdbTestBase {
                 throw e;
             }
         }
+    }
+
+    // 创建20个lob，返回在group2上的oid
+    private List< ObjectId > getLobId( Sequoiadb db, String csName,
+            String clName ) {
+        List< ObjectId > oids = new ArrayList<>();
+        Random random = new Random();
+        DBCollection dbcl = db.getCollectionSpace( csName )
+                .getCollection( clName );
+        for ( int i = 0; i < 20; i++ ) {
+            ObjectId lobId = dbcl.createLobID();
+            int writeLobSize = random.nextInt( 1024 * 1024 );
+            byte[] wlobBuff = getRandomBytes( writeLobSize );
+            createAndWriteLob( dbcl, wlobBuff, lobId );
+        }
+
+        Node node = sdb.getReplicaGroup( groupNames.get( 1 ) ).getMaster();
+        String hoseName = node.getHostName();
+        int port = node.getPort();
+        Sequoiadb data = new Sequoiadb( hoseName, port, "", "" );
+
+        DBCollection dbclData = data.getCollectionSpace( csName )
+                .getCollection( clName );
+        DBCursor listLob = dbclData.listLobs();
+        while ( listLob.hasNext() ) {
+            BasicBSONObject obj = ( BasicBSONObject ) listLob.getNext();
+            ObjectId existOid = obj.getObjectId( "Oid" );
+            oids.add( existOid );
+        }
+
+        data.close();
+        return oids;
     }
 
 }
