@@ -102,7 +102,7 @@ namespace engine
          for ( INT32 i = 0 ; i < count ; ++i )
          {
             BSONObj tmpObj( pObjData ) ;
-            len += ossSnprintf( szTmp, MON_APP_LASTOP_DESC_LEN - len,
+            len += ossSnprintf( szTmp + len , MON_APP_LASTOP_DESC_LEN - len,
                                 "%s", tmpObj.toString().c_str() ) ;
             pObjData += ossAlignX( (UINT32)tmpObj.objsize(), 4 ) ;
             if ( len >= MON_APP_LASTOP_DESC_LEN )
