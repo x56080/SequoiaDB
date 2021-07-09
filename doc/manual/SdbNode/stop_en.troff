@@ -4,20 +4,39 @@
 .hy
 .SH NAME
 .PP
-stop \- Stop the current node.
+stop \- stop the current node
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]node.stop()\f[]\f[]
+\f[B]node.stop()\f[]
 .SH CATEGORY
 .PP
-Node
-.SH "DESCRIPTION"
-
-.sp 2
-Stop the current node.
-.SH "Examples"
-
-.sp 2
-Stop the current node.
-.sp 2
-node.stop()
+SdbNode
+.SH DESCRIPTION
+.PP
+This function is used to stop the current node.
+.SH PARAMETERS
+.PP
+None
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+Stop the node "node" .
+.IP
+.nf
+\f[C]
+>\ node.stop()
+\f[]
+.fi
