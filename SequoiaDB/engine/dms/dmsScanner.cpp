@@ -423,7 +423,7 @@ namespace engine
       /// In transaction
       else
       {
-         if ( cb->isInTransRollback() || !pExe->useTransLock() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
             _selectForUpdate = FALSE ;
@@ -1773,8 +1773,7 @@ namespace engine
       /// In transaction
       else
       {
-         // We may setup the transID during rollforward as well
-         if ( cb->isInTransRollback() || !pExe->useTransLock() )
+         if ( cb->isInTransRollback() )
          {
             _recordLock = DPS_TRANSLOCK_MAX ;
             _selectForUpdate = FALSE ;
