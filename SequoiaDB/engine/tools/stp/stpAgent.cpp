@@ -125,8 +125,6 @@ namespace engine
 
       // PID of STP
       OSSPID            _stpPID ;
-      // host name
-      CHAR              _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
       // service name ( port ) of STP
       CHAR              _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 
@@ -152,10 +150,6 @@ namespace engine
      _stpPID( OSS_INVALID_PID ),
      _lastSyncTick( 0LL )
    {
-      if ( SDB_OK != ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) )
-      {
-         _hostName[ 0 ] = '\0' ;
-      }
       _serviceName[ 0 ] = '\0' ;
    }
 
@@ -422,7 +416,7 @@ namespace engine
       PD_CHECK( NULL != getMetaData(), STP_NOT_AVAILABLE, error, PDERROR,
                 "Failed to get logical time, meta data is not available" ) ;
 
-      rc = client.setConnInfo( _hostName, _serviceName ) ;
+      rc = client.setConnInfo( OSS_LOOPBACK_IP, _serviceName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set connection information for "
                    "STP client, rc: %d", rc ) ;
 
@@ -460,17 +454,6 @@ namespace engine
 
       utilNodeInfo node ;
       UTIL_VEC_NODES listNodes ;
-
-      // check host name if needed
-      if ( '\0' == _hostName[ 0 ] )
-      {
-         rc = ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to get host name, rc: %d", rc ) ;
-            _hostName[ 0 ] = '\0' ;
-         }
-      }
 
       // list running nodes, filtered by STP
       rc = utilListNodes( listNodes, SDB_TYPE_STP, NULL, OSS_INVALID_PID, -1 ) ;
@@ -511,7 +494,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPAGENTSERVICE__TESTSTP ) ;
 
-      INT8 test = 0 ;
+      stpClient client ;
       BOOLEAN gotCheckLatch = FALSE ;
 
       // critical section: only one thread could check available in concurrent
@@ -525,23 +508,17 @@ namespace engine
       // entered critical section
       gotCheckLatch = TRUE ;
 
-      PD_CHECK( OSS_INVALID_PID != _stpPID, STP_NOT_AVAILABLE, error, PDERROR,
-                "Failed to test STP, PID of STP is unknown" ) ;
+      rc = getClient( client ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get local STP client, "
+                   "rc: %d", rc ) ;
 
-      // write test command to pipe
-      rc = utilWriteReadPipe( STP_PIPE_SERVICE_NAME,
-                              _stpPID,
-                              STP_PIPE_MSG_TEST,
-                              sizeof( STP_PIPE_MSG_TEST ),
-                              (CHAR *)( &test ),
-                              sizeof( test ),
-                              FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
-                   "node [%s] pid [%u], rc: %d", _serviceName,
-                   _stpPID, rc ) ;
-
-      PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
-              _serviceName, _stpPID, STP_PIPE_MSG_TEST ) ;
+      // try to connect to STP
+      // connect will send and recv session init messages, enough to test
+      // alive of the STP
+      // auto disconnect by destructor of stpClient
+      rc = client.connect() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to connect to STP service [%s], "
+                   "rc: %d", _serviceName, rc ) ;
 
    done:
       if ( gotCheckLatch )
