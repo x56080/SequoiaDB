@@ -280,6 +280,16 @@ namespace engine
       return SDB_COORD_UNKNOWN_OP_REQ ;
    }
 
+   INT32 _coordCMDMonIntrBase::_preExcute( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           coordCtrlParam &ctrlParam,
+                                           SET_RC &ignoreRCList )
+   {
+      // Return data during QUERY to reduce GETMORE operation.
+      ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
+      return SDB_OK ;
+   }
+
    /*
       _coordCMDMonCurIntrBase implement
    */
@@ -401,6 +411,9 @@ namespace engine
       BSONObj newHint ;
 
       contextID = -1 ;
+
+      // Return data during QUERY to reduce GETMORE operation.
+      ((MsgOpQuery*)pMsg)->flags |= FLG_QUERY_WITH_RETURNDATA ;
 
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract command failed, rc: %d", rc ) ;

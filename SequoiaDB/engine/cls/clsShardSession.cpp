@@ -2960,6 +2960,36 @@ namespace engine
             {
                buffObj = pCommand->getBuff() ;
             }
+            else if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+                      ( -1 != contextID ) )
+            {
+               rtnContext *context = _pRtnCB->contextFind ( contextID, _pEDUCB ) ;
+               if ( context )
+               {
+                  rc = context->getMore( -1, buffObj, _pEDUCB ) ;
+                  if ( rc || context->eof() )
+                  {
+                     _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
+                     contextID = -1 ;
+                  }
+                  startingPos = ( INT32 )buffObj.getStartFrom() ;
+                  if ( SDB_DMS_EOC == rc )
+                  {
+                     rc = SDB_OK ;
+                  }
+                  else if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Failed to get more, rc: %d", rc ) ;
+                     goto error ;
+                  }
+               }
+               else
+               {
+                  PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
+                  rc = SDB_RTN_CONTEXT_NOTEXIST ;
+                  goto error ;
+               }
+            }
             if ( rc && pBuilder && pCommand->getResult() )
             {
                pCommand->getResult()->toBSON( *pBuilder ) ;

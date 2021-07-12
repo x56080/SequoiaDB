@@ -115,6 +115,10 @@ namespace engine
       private:
          virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
          virtual INT32   _onLocalMode( INT32 flag ) ;
+         virtual INT32   _preExcute( MsgHeader *pMsg,
+                                     pmdEDUCB *cb,
+                                     coordCtrlParam &ctrlParam,
+                                     SET_RC &ignoreRCList ) ;
 
    } ;
    typedef _coordCMDMonIntrBase coordCMDMonIntrBase ;
@@ -171,7 +175,7 @@ namespace engine
          }
          virtual COORD_SHOWERRORMODE_TYPE _getShowErrorModeType ()
          {
-            return _showErrorMode ; 
+            return _showErrorMode ;
          }
 
       protected:
