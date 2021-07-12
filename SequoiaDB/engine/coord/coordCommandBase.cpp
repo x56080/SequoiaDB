@@ -203,7 +203,8 @@ namespace engine
 
          if ( COORD_SHOWERRORMODE_FLAT == _getShowErrorModeType() )
          {
-            BSONObjIterator itr ( builder.obj().getObjectField( "ErrNodes" ) ) ;
+            BSONObjIterator itr ( builder.obj().getObjectField(
+                                                    FIELD_NAME_ERROR_NODES ) ) ;
             BSONElement elem ;
             while ( itr.more() )
             {
