@@ -45,21 +45,23 @@ Tools:
 Drivers:
 -----------------
 	C Driver:
-		libsdbc.a
+		libstaticsdbc.a
 		libsdbc.so
 	C++ Driver:
-		libsdbcpp.a
+		libstaticsdbcpp.a
 		libsdbcpp.so
 	PHP Driver:
 		libsdbphp-x.x.x.so
 	JAVA Driver:
-		sequoiadb.jar
-	PYTHON Driver:
-		lib.linux-x86_64-2.6
+		sequoiadb-driver-x.x.x.jar
+	Python Driver:
+		#if python2
+		pysequoiadb-x.x.x-py2.tar.gz
+		#if python3
+		pysequoiadb-x.x.x-py3.tar.gz
 	.NET Driver:
 		sequoiadb.dll
-	Python Driver:
-		pysequoiadb.tar.gz
+
 
 
 Connectors:
@@ -119,6 +121,7 @@ Building Engine:
 Building Drivers:
 -----------------
 	C/C++ Client:
+	    	cd sequoiadb
 		scons --client
 	PHP Client:
 		cd driver/php5
@@ -127,12 +130,17 @@ Building Drivers:
 			PHP source code is located in thirdparty/php directory
 			The dir name must be "php-<version>"
 	Python Client:
-		<python-devel package is required>
 		cd driver/python
+		<python-devel package is required>
+		#if python2
+		apt install python-dev
 		scons
+		#if python3
+		apt install python3-dev
+		scons --py3
 	Java Client:
 		cd driver/java
-		scons
+		mvn clean package -Dmaven.test.skip=true
 	.Net Client:
 		cd driver/C#.Net
 		scons
@@ -142,12 +150,14 @@ Building Connectors:
 -----------------
 	Hadoop Connector:
 		cd driver/java
-		scons
+		mvn clean package -Dmaven.test.skip=true
+		cp -r target/sequoiadb-driver-x.x.x.jar sequoiadb.jar
 		cd driver/hadoop/hadoop-connector
 		ant -Dhadoop.version=2.2
 	Hive Connector:
 		cd driver/java
-		scons
+		mvn clean package -Dmaven.test.skip=true
+		cp -r target/sequoiadb-driver-x.x.x.jar sequoiadb.jar
 		cd driver/hadoop/hive
 		ant
 	Storm Connector:
