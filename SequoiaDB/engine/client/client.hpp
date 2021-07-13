@@ -66,7 +66,7 @@ do                                     \
 
 /** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP      0x00000001
-/** The flag represent whether insert return detail result */
+// The flag represent whether insert return detail result
 #define FLG_INSERT_RETURNNUM      0x00000002
 /** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
 #define FLG_INSERT_REPLACEONDUP   0x00000004
@@ -105,12 +105,12 @@ do                                     \
 #define UPDATE_KEEP_SHARDINGKEY           QUERY_KEEP_SHARDINGKEY_IN_UPDATE
 /** The flag represent whether to update only one matched record or all matched records */
 #define UPDATE_ONE                        0x00000002
-/** The flag represent whether update return detail result */
+// The flag represent whether update return detail result
 #define UPDATE_RETURNNUM                  0x00000004
 
 /** The flag represent whether to delete only one matched record or all matched records */
 #define FLG_DELETE_ONE                    0x00000002
-/** The flag represent whether update return detail result */
+// The flag represent whether update return detail result
 #define FLG_DELETE_RETURNNUM              0x00000004
 
 #define SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE   64
@@ -906,19 +906,7 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
-               <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the "_id" field:
-                     when flag "FLG_INSERT_RETURN_OID" is set, return the
-                     value of "_id" field of the inserted record.
-                     e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } }
-               </ul>
-
-
+          \param [out] pResult The detail result for inserting.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -961,19 +949,7 @@ namespace sdbclient
                                       if the record hit index key duplicate
                                       error, database will replace the existing
                                       record by the inserting new record.
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
-               <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the "_id" field:
-                     when flag "FLG_INSERT_RETURN_OID" is set, return the
-                     value of "_id" field of the inserted record.
-                     e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } }
-               </ul>
-
-
+          \param [out] pResult The detail result for inserting.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1017,19 +993,7 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
-               <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the field "_id":
-                     when flag "FLG_INSERT_RETURN_OID" is set, return all the
-                     values of "_id" field in a bson array.
-                     e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                      { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-               </ul>
-
+          \param [out] pResult The detail result for inserting.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1075,19 +1039,7 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The result of inserting. Can be NULL or a bson:
-               <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the field "_id":
-                     when flag "FLG_INSERT_RETURN_OID" is set, return all the
-                     values of "_id" field in a bson array.
-                     e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                      { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-               </ul>
-
+          \param [out] pResult The detail result for inserting.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
@@ -1133,20 +1085,7 @@ namespace sdbclient
                                      record by the inserting new record and then
                                      go on inserting.
 
-          \param [out] pResult The result of inserting.
-                       Can be NULL or a bson:
-               <ul>
-               <li> NULL:
-                     when this argument is NULL.
-               <li> empty bson: when this argument is not NULL but there is no
-                                result return.
-               <li> bson which contains the "_id" field:
-                     when flag "FLG_INSERT_RETURN_OID" is set, return all the
-                     values of "_id" field in a bson array.
-                     e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-                                      { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-               </ul>
-
+          \param [out] pResult The detail result for inserting.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */

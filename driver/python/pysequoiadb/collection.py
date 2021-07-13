@@ -308,7 +308,6 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
                                                the inserting new record and then go on inserting.
-             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -333,7 +332,7 @@ class collection(object):
            Name      Type    Info:
            record    dict    The inserted record.
         Return values:
-           A ObjectId object of record inserted. eg: { '_id': ObjectId('5d5149ade3071dce3692e93b') }
+           An ObjectId object of record inserted. eg: { '_id': ObjectId('5d5149ade3071dce3692e93b') }
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -366,7 +365,6 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
                                                the inserting new record and then go on inserting.
-             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
@@ -402,7 +400,6 @@ class collection(object):
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
                                                    matched records.
-             UPDATE_FLG_RETURNNUM        : The flag represent whether update return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -460,7 +457,6 @@ class collection(object):
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
                                                    matched records.
-             UPDATE_FLG_RETURNNUM        : The flag represent whether upsert return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -520,7 +516,7 @@ class collection(object):
             oid = doc.get("_id")
             return self.upsert({"$set": doc}, condition={"_id": oid})
         else:
-            return self.insert(doc)
+            return self.insert_with_flag(doc)
 
     def delete(self, **kwargs):
         """Delete the matching documents in current collection.
@@ -541,7 +537,6 @@ class collection(object):
            The delete flags, default to be 0, it can choose the follow values:
              DELETE_FLG_DELETE_ONE : The flag represent whether to delete only one matched record
                                              or all matched records.
-             DELETE_FLG_RETURNNUM  : The flag represent whether delete return detail result.
         """
         bson_condition = None
         bson_hint = None
