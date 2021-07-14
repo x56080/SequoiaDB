@@ -11,60 +11,56 @@ alter \- 修改集合空间的属性
 \f[B]db.collectionspace.alter(<options>)\f[]
 .SH 类别
 .PP
-Collection Space
+SdbCS
 .SH 描述
 .PP
-修改集合空间的属性。
-.PP
-请参考 db.collectionspace.setAttributes()
+该函数用于修改集合空间的属性，更多内容可参考 setAttributes()。
 .SH 参数
-.IP \[bu] 2
-\f[C]options\f[] ( \f[I]Object\f[]， \f[I]必填\f[] )
-.RS 2
 .PP
-通过\f[C]options\f[]参数可以修改集合空间属性：
-.IP "1." 3
-\f[C]PageSize\f[] ( \f[I]Int32\f[] )：数据页大小。单位为字节。
-.RS 4
+options ( \f[I]object，必填\f[] )
+.PP
+通过 options 参数可以修改集合空间属性：
 .IP \[bu] 2
-PageSize 只能选填 0，4096，8192，16384，32768，65536 之一。
+PageSize ( \f[I]number\f[] )：数据页大小，单位为字节
+.RS 2
 .IP \[bu] 2
-PageSize 为 0 时，即默认值 65536。
+PageSize 只能选填 0、4096、8192、16384、32768、65536 之一
+.IP \[bu] 2
+PageSize 为 0 时，即默认值 65536
 .IP \[bu] 2
 修改时不能有数据
 .PP
-格式：\f[C]PageSize\ :\ <num>\f[]
+格式：\f[C]PageSize:\ <number>\f[]
 .RE
-.IP "2." 3
-\f[C]LobPageSize\f[] ( \f[I]Int32\f[] )：LOB 数据页大小。单位为字节。
-.RS 4
 .IP \[bu] 2
-LobPageSize 只能选填 0，4096，8192，16384，32768，65536，131072，262144，524288
-之一。
+LobPageSize ( \f[I]number\f[] )：LOB 数据页大小，单位为字节
+.RS 2
 .IP \[bu] 2
-LobPageSize 为 0 时，即默认值 262144。
+LobPageSize 只能选填 0、4096、8192、16384、32768、65536、131072、262144、524288
+之一
+.IP \[bu] 2
+LobPageSize 为 0 时，即默认值 262144
 .IP \[bu] 2
 修改时不能有 LOB 数据
 .PP
-格式：\f[C]LobPageSize\ :\ <num>\f[]
+格式：\f[C]LobPageSize:\ <number>\f[]
 .RE
-.IP "3." 3
-\f[C]Domain\f[] ( \f[I]String\f[] )：所属域。
-.RS 4
+.IP \[bu] 2
+Domain ( \f[I]string\f[] )：所属域
+.RS 2
 .IP \[bu] 2
 集合空间的数据必须分布在新指定域的组上
 .PP
-格式：\f[C]Domain\ :\ <domain>\f[]
-.RE
+格式：\f[C]Domain:\ <domain>\f[]
 .RE
 .SH 返回值
 .PP
-函数执行成功时，无返回值
+函数执行成功时，无返回值。
 .PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]alter()\f[]函数常见异常如下：
+\f[C]alter()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -76,9 +72,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-可能的原因
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -97,31 +93,35 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-间属性是否支持。
+间属性是否支持
 T}
 .TE
 .PP
-当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。 可以参考常见错误处理指南了解更多内容。
+当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
+获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.10 及以上版本。
+v2.10 及以上版本
 .SH 示例
-.IP "1." 3
-创建一个集合空间，数据页大小为 4096，然后将该集合空间的数据页大小修改为 8192。
+.IP \[bu] 2
+创建一个集合空间，数据页大小为 4096，然后将该集合空间的数据页大小修改为 8192
+.RS 2
+.IP
 .nf
 \f[C]
->\ db.createCS(\ \[aq]sample\[aq],\ {\ PageSize\ :\ 4096\ }\ )
->\ db.sample.alter(\ {\ PageSize\ :\ 8192\ }\ )
+\ >\ db.createCS(\[aq]sample\[aq],\ {PageSize:\ 4096})
+\ >\ db.sample.alter({PageSize:\ 8192})
 \f[]
 .fi
 .RE
-.IP "2." 3
+.IP \[bu] 2
 创建一个集合空间，然后为该集合空间指定一个域
+.RS 2
+.IP
 .nf
 \f[C]
->\ db.createCS(\ \[aq]sample\[aq]\ )
->\ db.sample.alter(\ {\ Domain\ :\ \[aq]domain\[aq]\ }\ )
+>\ db.createCS(\[aq]sample\[aq])
+>\ db.sample.alter({Domain:\ \[aq]domain\[aq]})
 \f[]
 .fi
 .RE

@@ -8,20 +8,18 @@
 dropCL \- 删除当前集合空间下指定的集合
 .SH 语法
 .PP
-\f[B]db.collectionspace.dropCL( <name> )\f[]
+\f[B]db.collectionspace.dropCL(<name>)\f[]
 .SH 类别
 .PP
-Collection Space
+SdbCS
 .SH 描述
 .PP
 该函数用于删除当前集合空间下指定的集合。
 .SH 参数
-.IP \[bu] 2
-\f[C]name\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
-.RS 2
 .PP
-集合名。
-.RE
+name ( \f[I]string，必填\f[] )
+.PP
+集合名
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -29,7 +27,7 @@ Collection Space
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]dropCL()\f[]函数常见异常如下：
+\f[C]dropCL()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -41,9 +39,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-描述
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -53,7 +51,7 @@ T}@T{
 T}@T{
 SDB_DMS_NOTEXIST
 T}@T{
-集合不存在。
+集合不存在
 T}@T{
 检查集合是否存
 T}
@@ -62,21 +60,21 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-在。
+在
 T}
 .TE
 .PP
-当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。 可以参考常见错误处理指南了解更多内容。
+当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
+获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v1.0 及以上版本。
+v1.0 及以上版本
 .SH 示例
-.IP "1." 3
-删除集合空间 sample 下的集合 employee。
+.PP
+删除集合空间 sample 下的集合 employee
+.IP
 .nf
 \f[C]
->\ db.sample.dropCL(\ "employee"\ )
+>\ db.sample.dropCL("employee")
 \f[]
 .fi
-.RE

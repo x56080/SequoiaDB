@@ -4,26 +4,41 @@
 .hy
 .SH NAME
 .PP
-removeDomain \- Alter the current collection space to remove domain.
+removeDomain \- remove the domain of the collection space
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.collectionspace.removeDomain()\f[]\f[]
+\f[B]db.collectionspace.removeDomain()\f[]
 .SH CATEGORY
 .PP
-Collection Space
-.SH "DESCRIPTION"
-
-.sp 2
-Alter the current collection space to remove domain.
-.sp 2
-
-.SH "Examples"
-
-.sp 2
-Create a collection space.
-.sp 2
-var cs = db.createCS('foo',{PageSize:4096,Domain:'domain'})
-.sp 2
-Alter the collection space to remove domain
-.sp 2
-cs.removeDomain()
+SdbCS
+.SH DESCRIPTION
+.PP
+This function is used to remove the domain of the collection space.
+.SH PARAMETERS
+.PP
+None
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.10 and above
+.SH EXAMPLES
+.PP
+Create a collection space and specify a domain, and then remove the collection
+space from the domain.
+.IP
+.nf
+\f[C]
+>\ db.createCS(\[aq]sample\[aq],\ {Domain:\ \[aq]domain\[aq]})
+>\ db.sample.removeDomain()
+\f[]
+.fi

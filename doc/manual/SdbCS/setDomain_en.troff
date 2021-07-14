@@ -4,36 +4,51 @@
 .hy
 .SH NAME
 .PP
-setDomain \- Alter the current collection space to set domain.
+setDomain \- modify the domain of the collection space
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.collectionspace.setDomain(<options>)\f[]\f[]
+\f[B]db.collectionspace.setDomain(<options>)\f[]
 .SH CATEGORY
 .PP
-Collection Space
-.SH "DESCRIPTION"
-
-.sp 2
-Alter the current collection space to set domain.
-.sp 2
-\fBoptions (Json Object)\fR
-.br
-       Need to modify the list of attributes.
-.sp 2
-       \fBDomain\fR
-.br
-              The domain which the collection space belongs to.
-.br
-              Domain:<domain name>
-.sp 2
-
-.SH "Examples"
-
-.sp 2
-Create a collection space.
-.sp 2
-var cs = db.createCS('foo',{PageSize:4096})
-.sp 2
-Alter the collection space to set domain
-.sp 2
-cs.setDomain({Domain:'domain'})
+SdbCS
+.SH DESCRIPTION
+.PP
+This function is used to modify the domain of the collection space.
+.SH PARAMETERS
+.PP
+options ( \f[I]object，required\f[] )
+.PP
+Modify the collection space properties through the options parameter:
+.IP \[bu] 2
+Domain ( \f[I]string\f[] )：The domain of the CollectionSpace.
+.RS 2
+.IP \[bu] 2
+The data of the CollectionSpace must be distributed on the group of the newly
+designated domain.
+.PP
+Format：\f[C]Domain:\ <domain>\f[]
+.RE
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.10 and above
+.SH EXAMPLES
+.PP
+Create a CollectionSpace, and then specify a domain for the CollectionSpace.
+.IP
+.nf
+\f[C]
+>\ db.createCS(\[aq]sample\[aq])
+>\ db.sample.setDomain({Domain:\ \[aq]domain\[aq]})
+\f[]
+.fi
