@@ -4,22 +4,43 @@
 .hy
 .SH NAME
 .PP
-start \- Start the replica group.
+start \- start the current replication group
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]rg.start()\f[]\f[]
+\f[B]rg.start()\f[]
 .SH CATEGORY
 .PP
-ReplicaGroup
-.SH "DESCRIPTION"
-
-.sp 2
-Start the replica group. After a replica group is started,
-operations like creating nodes can be executed. Users can start
-specified node with the method db.startRG(<name>).
-.SH "Examples"
-
-.sp 2
-Start replica group:
-.sp 2
-rg.start() //Equivalent to db.startRG("group")
+SdbReplicaGroup
+.SH DESCRIPTION
+.PP
+This function is used to start the current replication group.
+Only after the replication group is started can nodes be created or other
+operations can be executed.
+Use startRG() can start the specified node.
+.SH PARAMETERS
+.PP
+None
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH 版本
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+Start the replication group "group1".
+.IP
+.nf
+\f[C]
+>\ var\ rg\ =\ db.getRG("group1")
+>\ rg.start()\ \ \ //Equivalent\ to\ db.startRG("group")
+\f[]
+.fi
