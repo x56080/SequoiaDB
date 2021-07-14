@@ -21,7 +21,7 @@ SequoiaDB 的搜索引擎适配器已包含在软件发布包中，按照 Sequoi
 #### 适配器节点配置文件准备
 每一个数据节点（包括主节点和备节点）需要启动一个对应的适配器节点，二者需要运行在同一台主机上。适配器启动的时候必需指定配置文件路径，且一个配置文件只能启动一个适配器实例。尝试使用同一个配置文件启动多个适配器实例将会失败。
 
-当需要使用全文检索功能时，在 SequoiaDB 安装目录的 conf 目录下，创建 seadapter 目录，并在该目录下，按适配器对应的数据节点的服务端口号，分别创建下层子目录并存放一份配置文件。配置文件模板可从 conf/samples/sdbseadapter.conf 拷贝，文件名应保持一致，然后依次对配置文件内容进行修改。详细的配置项内容请参考[搜索引擎适配器](basic_operation/text_search/sdbseadapter.md)章节内容。如下以 SequoiaDB 安装路径为 /opt/sequoiadb，数据节点服务端口号分别为 11830，11840，11850 为例进行说明。
+当需要使用全文检索功能时，在 SequoiaDB 安装目录的 `conf` 目录下，创建 `seadapter` 目录，并在该目录下，按适配器对应的数据节点的服务端口号，分别创建下层子目录并存放一份配置文件。配置文件模板可从 `conf/samples/sdbseadapter.conf` 拷贝，文件名应保持一致，然后依次对配置文件内容进行修改。详细的配置项内容请参考[搜索引擎适配器](basic_operation/text_search/sdbseadapter.md)章节内容。如下以 SequoiaDB 安装路径为 `/opt/sequoiadb`，数据节点服务端口号分别为 11830，11840，11850 为例进行说明。
 
 ```lang-bash
 $ cd /opt/sequoiadb/conf

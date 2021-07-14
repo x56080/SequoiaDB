@@ -1,6 +1,6 @@
 1. 创建全文索引
 
-	创建全文索引使用现有的语法结构，增加全文索引类型 "text"，在索引的 key 定义中指定。索引的其它选项对全文索引无效，因此无需指定。以下语句在集合 foo.bar 的 name 及 address 字段上创建复合全文索引：
+	创建全文索引使用现有的语法结构，增加全文索引类型"text"，在索引的 key 定义中指定。索引的其它选项对全文索引无效，因此无需指定。以下语句在集合 foo.bar 的 name 及 address 字段上创建复合全文索引：
 
 	```lang-javascript
 	> db.foo.bar.createIndex('idx', {name:"text", address:"text"})
@@ -48,7 +48,8 @@
 	```
 
 	其中的 search command 即 Elasticsearch 的搜索条件。search command 部分支持 Elasticsearch 的 DSL（Domain Specific Language 特定领域语言）语句。因此，需要使用全文检索功能的用户，需要掌握 Elasticsearch 的 DSL 语言。
-	以下示例程序在集合中查找 name 中包含 "Smith" 的所有记录：
+
+	以下示例程序使用全文索引对集合中 about 字段包含的"rock climbing"进行模糊查询：
 
 	```lang-javascript
 	> db.createCS('megacorp').createCL('employee')
@@ -89,5 +90,4 @@
 	  ]
 	}
 	Return 2 row(s).
-	Takes 1.181983s.
 	```
