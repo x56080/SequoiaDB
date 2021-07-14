@@ -728,18 +728,38 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void dropCollectionSpace(String csName) throws BaseException {
+        dropCollectionSpace(csName, null);
+    }
+
+    /**
+     * Remove the named collection space.
+     *
+     * @param csName The collection space name
+     * @param options Contains configuration information for drop collection space. The options are as
+     *                below:
+     *                <ul>
+     *                <li>EnsureEmpty(boolean) : check whether the collection space is empty when drop,
+     *                false means drop directly, true means only empty can drop, default value is false
+     *                </ul>
+     * @throws BaseException If error happens.
+     */
+    public void dropCollectionSpace(String csName, BSONObject options) throws BaseException {
         if (csName == null || csName.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
         }
 
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.FIELD_NAME_NAME, csName);
+        BSONObject innerOptions = new BasicBSONObject();
+        innerOptions.put(SdbConstants.FIELD_NAME_NAME, csName);
+        if (null != options) {
+            innerOptions.putAll(options);
+        }
 
-        AdminRequest request = new AdminRequest(AdminCommand.DROP_CS, options);
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_CS, innerOptions);
         SdbReply response = requestAndResponse(request);
         throwIfError(response);
         removeCache(csName);
     }
+
 
     /**
      * @param csName  The collection space name
