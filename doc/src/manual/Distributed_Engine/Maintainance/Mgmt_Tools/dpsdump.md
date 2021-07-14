@@ -75,8 +75,7 @@ sdbdpsdump --version | -v
  - 15 表示写入 LOB 数据<br />
  - 16 表示删除 LOB 数据<br />
  - 17 表示修改 LOB 数据<br />
- - 18 表示 LOB 数据 truncate<br />
- - 21 表示修改集合/集合空间/域的属性<br />
+ - 21 表示修改集合/集合空间的属性<br />
  - 22 表示添加集合/集合空间的 UniqueID<br />
 
 - **--name, -n**  
