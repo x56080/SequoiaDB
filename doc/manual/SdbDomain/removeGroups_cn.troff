@@ -25,11 +25,11 @@ SdbDomain
 .PP
 options ( \f[I]object，必填\f[] )
 .PP
-需要修改的属性列表
+需要修改的属性列表：
 .IP \[bu] 2
-Groups（string/array）：域将删除的复制组
+Groups ( \f[I]string/array\f[] )：域将删除的复制组
 .PP
-格式：\f[C]Groups:[\[aq]group1\[aq],\[aq]group2\[aq]]\f[]
+格式：\f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -37,17 +37,21 @@ Groups（string/array）：域将删除的复制组
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
+\f[C]removeGroups()\f[] 函数常见异常如下：
+.PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
 T}@T{
-解决方法
+可能发生的原因
+T}@T{
+解决办法
 T}
 _
 T{
@@ -55,11 +59,14 @@ T{
 T}@T{
 \-154
 T}@T{
+SDB_CLS_GRP_NOT_EXIST
+T}@T{
 分区组不存在
 T}@T{
 使用列表查看分
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -70,11 +77,14 @@ T{
 T}@T{
 \-256
 T}@T{
+SDB_DOMAIN_IS_OCCUPIED
+T}@T{
 域已被使用
 T}@T{
 使用 domain.
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -84,9 +94,11 @@ T{
 T}@T{
 T}@T{
 T}@T{
+T}@T{
 查看域是否存在
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -105,7 +117,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],[\[aq]group1\[aq],\[aq]group2\[aq],\[aq]group3\[aq]],{AutoSplit:true})
+>\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq],\ \[aq]group3\[aq]],\ {AutoSplit:\ true})
 \f[]
 .fi
 .IP \[bu] 2
@@ -114,7 +126,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.removeGroups(\ {\ Groups:\ [\[aq]group2\[aq]]\ }\ )
+>\ domain.removeGroups({Groups:\ [\[aq]group2\[aq]]})
 \f[]
 .fi
 .RE
@@ -124,7 +136,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.removeGroups(\ {\ Groups:\ [\[aq]group1\[aq],\[aq]group2\[aq]]\ }\ )
+>\ domain.removeGroups({Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]})
 \f[]
 .fi
 .RE

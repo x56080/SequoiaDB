@@ -15,19 +15,19 @@ SdbDomain
 
 该函数用于删除域中复制组。
 
-   >**Note:**
-   >
-   >删除复制组前必须保证组内不包含任何数据，否则操作将失败。 
+>**Note:**
+>
+> 删除复制组前必须保证组内不包含任何数据，否则操作将失败。 
 
 ##参数##
 
 options ( *object，必填* )
 
-需要修改的属性列表
+需要修改的属性列表：
 
--  Groups（string/array）：域将删除的复制组
+-  Groups ( *string/array* )：域将删除的复制组
 
-   格式：`Groups:['group1','group2']`
+   格式：`Groups: ['group1', 'group2']`
 
 ##返回值##
 
@@ -37,12 +37,14 @@ options ( *object，必填* )
 
 ##错误##
 
-| 错误码 | 可能的原因   | 解决方法              |
-| ------ | ------------ | --------------------- |
-| -154   | 分区组不存在 | 使用列表查看分区组是否存在 |
-| -256   | 域已被使用   | 使用 domain.listCollectionSpaces() 查看域是否存在集合空间 |
+`removeGroups()` 函数常见异常如下：
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error]。更多错误处理可以参考[常见错误处理指南][faq]。
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | ---------|--------------- |----------|
+| -154   | SDB_CLS_GRP_NOT_EXIST |分区组不存在 | 使用列表查看分区组是否存在 |
+| -256   |SDB_DOMAIN_IS_OCCUPIED | 域已被使用   | 使用 domain.listCollectionSpaces() 查看域是否存在集合空间 |
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -53,19 +55,19 @@ v2.0 及以上版本
 创建一个包含三个复制组的域，并开启自动切分
 
 ```lang-javascript
-> var domain = db.createDomain('mydomain',['group1','group2','group3'],{AutoSplit:true})
+> var domain = db.createDomain('mydomain', ['group1', 'group2', 'group3'], {AutoSplit: true})
 ```
 
-* 从域中删除复制组 group2
+- 从域中删除复制组 group2
 
     ```lang-javascript
-    > domain.removeGroups( { Groups: ['group2'] } )
+    > domain.removeGroups({Groups: ['group2']})
     ```
 
-* 从域中删除复制组 group1 和 group2
+- 从域中删除复制组 group1 和 group2
 
     ```lang-javascript
-    > domain.removeGroups( { Groups: ['group1','group2'] } )
+    > domain.removeGroups({Groups: ['group1', 'group2']})
     ```  
 
 
@@ -74,4 +76,4 @@ v2.0 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
-[error]:manual/Manual/Sequoiadb_error_code.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

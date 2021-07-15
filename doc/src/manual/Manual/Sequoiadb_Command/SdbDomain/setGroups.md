@@ -14,23 +14,23 @@ SdbDomain
 
 该函数用于重设域包含的复制组。
 
-   >**Note:**
-   >
-   >删除复制组前必须保证组内不包含任何数据，否则操作将失败。
+>**Note:**
+>
+> 删除复制组前必须保证组内不包含任何数据，否则操作将失败。
 
 ##参数##
 
 options ( *object，必填* )
 
-需要修改的属性列表
+通过 options 参数可以修改域属性：
 
--  Groups（string/array）：域将包含的所有复制组
+-  Groups ( *string/array* )：域将包含的所有复制组
 
-   格式：`Groups:['group1','group2']`
+   格式：`Groups: ['group1', 'group2']`
 
--  AutoSplit（boolean）：域是否自动切分
+-  AutoSplit ( *boolean* )：域是否自动切分
 
-   格式：`AutoSplit:true|false`
+   格式：`AutoSplit: true | false`
 
 ##返回值##
 
@@ -40,12 +40,14 @@ options ( *object，必填* )
 
 ##错误##
 
-| 错误码 | 可能的原因   | 解决方法              |
-| ------ | ------------ | --------------------- |
-| -154   | 复制组不存在 | 使用列表查看复制组是否存在 |
-| -256   | 域已被使用   | 使用 domain.listCollectionSpaces() 查看域是否存在集合空间 |
+`setGroups()` 函数常见异常如下：
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | -------- | -------------- | -------- |
+| -154   | SDB_CLS_GRP_NOT_EXIST |复制组不存在 | 使用列表查看复制组是否存在 |
+| -256   | SDB_DOMAIN_IS_OCCUPIED |域已被使用   | 使用 listCollectionSpaces() 查看域是否存在集合空间 |
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -53,20 +55,21 @@ v2.0 及以上版本
 
 ##示例##
 
-* 首先创建一个域，包含两个复制组，开启自动切分
+- 首先创建一个域，包含两个复制组，开启自动切分
 
     ```lang-javascript
-    > var domain = db.createDomain( 'mydomain', ['group1', 'group2'], { AutoSplit: true } )
+    > var domain = db.createDomain('mydomain', ['group1', 'group2'], {AutoSplit: true})
     ```
 
-* 从域中删除一个复制组 group2，添加另一个复制组 group3，最后域中包含 group1 和 group3 两个复制组
+- 从域中删除一个复制组 group2，添加另一个复制组 group3，最后域中包含 group1 和 group3 两个复制组
 
     ```lang-javascript
-    > domain.setGroups( { Groups: ['group1', 'group3'] } )
+    > domain.setGroups({Groups: ['group1', 'group3']})
     ```
 
 [^_^]:
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/FAQ/faq_sdb.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
