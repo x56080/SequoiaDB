@@ -74,7 +74,9 @@ TEST_F( crudTest12513, crud12513 )
    while( iter.more() ){
       BSONElement ele = iter.next() ;
       std::cout << ele.fieldName() << std::endl; 
-      ASSERT_EQ(0, strncmp( ele.fieldName(), "_id", strlen("_id"))) ;
+      if (0 != strncmp( ele.fieldName(), "_id", strlen("_id"))) {
+         continue ;
+      }
       BSONObjIterator subItr( ele.embeddedObject() ) ;
       while ( subItr.more() )
       {
@@ -97,7 +99,9 @@ TEST_F( crudTest12513, crud12513 )
    while( iter2.more() ){
       BSONElement ele = iter2.next() ;
       std::cout << ele.fieldName() << std::endl;
-      ASSERT_EQ(0, strncmp( ele.fieldName(), "_id", strlen("_id"))) ;
+      if (0 != strncmp( ele.fieldName(), "_id", strlen("_id"))){
+         continue ;
+      }
       BSONObjIterator subItr( ele.embeddedObject() ) ;
       while ( subItr.more() )
       {
