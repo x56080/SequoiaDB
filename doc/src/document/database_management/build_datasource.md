@@ -5,7 +5,7 @@
 创建名为“datasource”的数据源
 
 ```lang-javascript
-> db.createDataSource("datasource","sdbserver1:11810","sdbadmin","sdbadmin")
+> db.createDataSource("datasource", "sdbserver1:11810", "sdbadmin", "sdbadmin")
 ```
 
 >**Note:**
@@ -22,7 +22,7 @@
 
 >**Note:**
 >
-> 元数据信息字段说明可参考 [SYSCAT.SYSDATASOURCES 集合](infrastructure/catalog_node/SYSDATASOURCES.md)。
+> 元数据信息字段说明可参考 [SYSDATASOURCES 集合](infrastructure/catalog_node/SYSDATASOURCES.md)。
 
 ##使用数据源##
 
@@ -35,7 +35,7 @@
    创建集合空间 sample 并关联数据源 datasource 的集合空间 sample1
 
    ```lang-javascript
-   > db.createCS("sample",{DataSource:"datasource",Mapping:"sample1"})
+   > db.createCS("sample", {DataSource: "datasource", Mapping: "sample1"})
    ```
 
    >**Note:**
@@ -47,19 +47,19 @@
    创建集合 sample2.employee 并关联数据源 datasource 的同名集合
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource"})
+   > db.sample2.createCL("employee", {DataSource: "datasource"})
    ```
 
    创建集合 sample2.employee 并关联数据源 datasource 的集合 sample2.employee1
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource",Mapping:"employee1"})
+   > db.sample2.createCL("employee", {DataSource: "datasource", Mapping: "employee1"})
    ```
 
    创建集合 sample2.employee 并关联数据源 datasource 的集合 sample3.employee1
 
    ```lang-javascript
-   > db.sample2.createCL("employee",{DataSource:"datasource",Mapping:"sample3.employee1"})
+   > db.sample2.createCL("employee", {DataSource: "datasource", Mapping: "sample3.employee1"})
    ```
 
    >**Note:** 
@@ -76,7 +76,7 @@
    通过编目节点查看使用了数据源的集合空间信息
 
    ```lang-javascript
-   > var cata = new Sdb("sdbserver",11800)
+   > var cata = new Sdb("sdbserver", 11800)
    > cata.SYSCAT.SYSCOLLECTIONSPACES.find()
    ```
 
@@ -137,9 +137,9 @@
 假设本地集群中集合 sample.employee 与源集群的集合 sample2.employee 建立映射，且集合 sample2.employee 存在如下记录：
 
 ```lang-text
-{"name":"Sam","age":26}
-{"name":"Tom","age":30}
-{"name":"Mike","age":24}
+{"name": "Sam", "age": 26}
+{"name": "Tom", "age": 30}
+{"name": "Mike", "age": 24}
 ```
 
 1. 通过本地集群检查数据是否正确
@@ -151,7 +151,7 @@
 2. 通过集合 sample.employee 对源集群插入新数据
 
     ```lang-json
-     > db.sample.employee.insert({"name":"Jack","age":32})
+    > db.sample.employee.insert({"name": "Jack", "age": 32})
     ```
 
 3. 在 sdbserver1 中检查源集群对应集合的数据是否更改
@@ -192,7 +192,7 @@
       "age": 32
     }
     Return 4 row(s).
-    ````
+    ```
     
 ##参考##
 
