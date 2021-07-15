@@ -90,9 +90,9 @@ error:
 
 INT32 main( INT32 argc, CHAR **argv )
 {
-   INT32                rc = SDB_OK ;
-   sdbDataSourceConf    conf ;
-   sdbDataSource        ds ;
+   INT32                    rc = SDB_OK ;
+   sdbConnectionPoolConf    conf ;
+   sdbDataSource            ds ;
 
    // set configure of sdbDataSource
    // userName="",passwd=""

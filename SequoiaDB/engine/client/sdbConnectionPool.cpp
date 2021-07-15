@@ -81,7 +81,7 @@ namespace sdbclient
    // init data source with url(hostname:port) and conf
    INT32 sdbConnectionPool::init(
       const string &url,
-      const sdbDataSourceConf &conf )
+      const sdbConnectionPoolConf &conf )
    {
       std::vector<string> vUrl ;
       vUrl.push_back( url ) ;
@@ -92,7 +92,7 @@ namespace sdbclient
    // init data source with url vector and conf
    INT32 sdbConnectionPool::init(
       const std::vector<string> &vUrls,
-      const sdbDataSourceConf &conf )
+      const sdbConnectionPoolConf &conf )
    {
       INT32 rc = SDB_OK ;
       int validUrlCnt = 0 ;

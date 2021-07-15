@@ -105,26 +105,26 @@ namespace sdbclient
 
    public:
       /** \fn INT32 init(const std::string &url,
-         const sdbDataSourceConf &conf)
+         const sdbConnectionPoolConf &conf)
          \brief Initialize sdbConnectionPool
          \param [in] url A coord node("ubuntu-xxx:11810")
-         \param [in] conf The sdbDataSourceConf
+         \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
-      INT32 init( const std::string &url, const sdbDataSourceConf &conf ) ;
+      INT32 init( const std::string &url, const sdbConnectionPoolConf &conf ) ;
 
       /** \fn INT32 init(const std::vector<std::string> &vUrls,
-         const sdbDataSourceConf &conf)
+         const sdbConnectionPoolConf &conf)
          \brief Initialize sdbConnectionPool
          \param [in] vUrls A list of coord node("ubuntu-xxx:11810")
-         \param [in] conf The sdbDataSourceConf
+         \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
       INT32 init(
          const std::vector<std::string> &vUrls,
-         const sdbDataSourceConf &conf ) ;
+         const sdbConnectionPoolConf &conf ) ;
 
       /** \fn INT32 getIdleConnNum()const
          \brief Get idle connection number or -1 for DataSource
@@ -273,7 +273,7 @@ namespace sdbclient
       // to be destroyed connection list
       std::list<sdb*>         _destroyList ;
       // data source confiture
-      sdbDataSourceConf       _conf ;
+      sdbConnectionPoolConf       _conf ;
       // data source strategy
       sdbDataSourceStrategy*  _strategy ;
       // lock for connection lists

@@ -66,16 +66,16 @@ namespace sdbclient
       DS_STY_BALANCE             /**< balance strategy */
    } ;
 
-   /** \class sdbDataSourceConf
+   /** \class sdbConnectionPoolConf
        \brief The configure of sdb data source
    */
-   class DLLEXPORT sdbDataSourceConf
+   class DLLEXPORT sdbConnectionPoolConf
    {
    public:
-      /** \fn sdbDataSourceConf()
-         brief The constructor of sdbDataSourceConf.
+      /** \fn sdbConnectionPoolConf()
+         brief The constructor of sdbConnectionPoolConf.
       */
-      sdbDataSourceConf()
+      sdbConnectionPoolConf()
          :_userName(),
          _passwd(),
          _initConnCount(10),
@@ -270,8 +270,8 @@ namespace sdbclient
 
 
       /** \fn BOOLEAN isValid()
-         \brief Check whether sdbDataSourceConf is valid
-         \retval BOOLEAN The validation of sdbDataSourceConf
+         \brief Check whether sdbConnectionPoolConf is valid
+         \retval BOOLEAN The validation of sdbConnectionPoolConf
       */
       BOOLEAN isValid() ;
 
