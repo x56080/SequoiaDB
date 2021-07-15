@@ -14,7 +14,7 @@ next \- 获取当前游标指向的下一条记录
 SdbCursor
 .SH 描述
 .PP
-该函数用于获取当前游标指向的下一条记录，更多查看 cursor.current() 方法。
+该函数用于获取当前游标指向的下一条记录，更多查看 current() 方法。
 .SH 参数
 .PP
 无
@@ -36,9 +36,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-可能的原因
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -58,7 +58,7 @@ T}@T{
 CLOSE
 T}@T{
 T}@T{
-否为0条
+否为 0 条
 T}
 .TE
 .PP
@@ -69,11 +69,11 @@ T}
 v3.0 及以上版本
 .SH 示例
 .PP
-选择集合 employee 下 age 大于8的记录，返回当前游标指向的下一条记录
+选择集合 employee 下 age 大于 8 的记录，返回当前游标指向的下一条记录
 .IP
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find({age:{$gt:8}})
+>\ var\ cur\ =\ db.sample.employee.find({age:\ {$gt:\ 8}})
 >\ var\ obj\ =\ cur.next();
 >\ if\ (obj\ ==\ null)\ {
 \ \ \ \ \ \ println\ ("No\ record!");

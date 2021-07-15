@@ -17,12 +17,10 @@ SdbCursor
 .PP
 该函数用于从保存结果集的数组中，获取指定下标的记录。
 .SH 参数
-.IP \[bu] 2
-\f[C]index\f[] ( \f[I]Number\f[]， \f[I]必填\f[] )
-.RS 2
 .PP
-要访问的记录的下标。
-.RE
+\f[C]index\f[] ( \f[I]number，必填\f[] )
+.PP
+要访问的记录的下标
 .SH 返回值
 .PP
 函数执行成功时，将返回一条 String 类型的记录。

@@ -30,30 +30,24 @@ SdbCursor
 .PP
 v3.0 及以上版本
 .SH 示例
-.IP \[bu] 2
+.IP "1." 3
 插入 10 条记录
-.RS 2
-.IP
 .nf
 \f[C]
->\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {\ db.sample.employee.insert(\ {a:\ i}\ )\ }
+>\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {db.sample.employee.insert({a:\ i})}
 \f[]
 .fi
 .RE
-.IP \[bu] 2
+.IP "2." 3
 查询集合 sample.employee 的所有记录
-.RS 2
-.IP
 .nf
 \f[C]
 >\ var\ cur\ =\ db.sample.employee.find()
 \f[]
 .fi
 .RE
-.IP \[bu] 2
+.IP "3." 3
 使用游标取出一条记录
-.RS 2
-.IP
 .nf
 \f[C]
 >\ cur.next()
@@ -66,20 +60,16 @@ v3.0 及以上版本
 \f[]
 .fi
 .RE
-.IP \[bu] 2
+.IP "4." 3
 关闭游标
-.RS 2
-.IP
 .nf
 \f[C]
 >\ cur.close()
 \f[]
 .fi
 .RE
-.IP \[bu] 2
+.IP "5." 3
 再次获取下一条记录，无结果返回
-.RS 2
-.IP
 .nf
 \f[C]
 >\ cur.next()

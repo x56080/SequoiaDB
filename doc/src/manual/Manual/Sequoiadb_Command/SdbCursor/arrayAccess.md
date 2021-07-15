@@ -18,9 +18,9 @@ SdbCursor
 
 ##参数##
 
-*   `index` ( *Number*， *必填* )
+`index` ( *number，必填* )
 
-    要访问的记录的下标。
+要访问的记录的下标
 
 ##返回值##
 
@@ -30,7 +30,7 @@ SdbCursor
 
 ##错误##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -51,7 +51,8 @@ v3.0 及以上版本
 ```
 
 [^_^]:
-     本文使用的所有引用及链接
+    本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/FAQ/faq_sdb.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

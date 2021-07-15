@@ -14,7 +14,7 @@ current \- 获取当前游标指向的记录
 SdbCursor
 .SH 描述
 .PP
-该函数用于获取当前游标指向的记录，更多查看 cursor.next() 方法。
+该函数用于获取当前游标指向的记录，更多内容可查看 next() 方法。
 .SH 参数
 .PP
 无
@@ -36,9 +36,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-可能的原因
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -88,7 +88,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-口将调用失败。
+口将调用失败
 T}@T{
 没有记录返回时，
 T}
@@ -111,7 +111,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-\-29 错误。
+\-29 错误
 T}
 T{
 2
@@ -145,7 +145,7 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find({a:1});
+>\ var\ cur\ =\ db.sample.employee.find({a:\ 1});
 >\ var\ obj\ =\ null;
 >\ while((obj\ =\ cur.next()\ !=\ null)){
 \ \ \ \ println("Record\ is:"\ +\ cur.current());
@@ -156,6 +156,5 @@ Record\ is:{
 },
 "a":\ 1
 }
-Takes\ 0.003188s.
 \f[]
 .fi
