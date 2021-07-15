@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -54,7 +54,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-必须唯一。
+必须唯一
 T}@T{
 T}
 .TE
@@ -80,7 +80,7 @@ T}
 v2.0 及以上版本
 .SH 示例
 .PP
-删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
+删除集合 samle.employee 下名为"ageIndex"的索引，假设该索引已存在
 .IP
 .nf
 \f[C]

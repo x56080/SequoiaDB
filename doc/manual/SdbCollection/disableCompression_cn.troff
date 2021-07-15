@@ -15,6 +15,9 @@ SdbCollection
 .SH 描述
 .PP
 该函数用于修改集合的属性关闭压缩功能。
+.SH 参数
+.PP
+无
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -34,9 +37,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-可能的原因
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -69,7 +72,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-分区相关的属性。
+分区相关的属性
 T}
 .TE
 .PP
@@ -77,14 +80,14 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.10 及以上版本。
+v2.10 及以上版本
 .SH 示例
-.IP "1." 3
+.PP
 创建一个压缩集合，然后将该集合的压缩功能关闭
+.IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq],\ {\ CompressionType\ :\ \[aq]snappy\[aq]\ }\ )
+>\ db.sample.createCL(\[aq]employee\[aq],\ {CompressionType:\ \[aq]snappy\[aq]})
 >\ db.sample.employee.disableCompression()
 \f[]
 .fi
-.RE

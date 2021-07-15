@@ -40,9 +40,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-描述
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -52,7 +52,7 @@ T}@T{
 T}@T{
 SDB_INVALIDARG
 T}@T{
-参数错误。
+参数错误
 T}@T{
 查看参数是否填
 T}
@@ -61,7 +61,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-写正确。
+写正确
 T}
 T{
 2
@@ -70,7 +70,7 @@ T}@T{
 T}@T{
 SDB_DMS_CS_NOTEXIST
 T}@T{
-集合空间不存在。
+集合空间不存在
 T}@T{
 检查集合空间是
 T}
@@ -79,7 +79,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-否存在。
+否存在
 T}
 T{
 3
@@ -88,7 +88,7 @@ T}@T{
 T}@T{
 SDB_DMS_NOTEXIST
 T}@T{
-集合不存在。
+集合不存在
 T}@T{
 检查集合是否存
 T}
@@ -97,7 +97,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-在。
+在
 T}
 .TE
 .PP
@@ -107,28 +107,34 @@ T}
 .PP
 v1.0 及以上版本
 .SH 示例
-.IP "1." 3
-统计集合 employee 所有的记录数，即不指定参数 cond。
+.IP \[bu] 2
+统计集合 sample.employee 所有的记录数，即不指定参数 cond
+.RS 2
+.IP
 .nf
 \f[C]
 db.sample.employee.count()
 \f[]
 .fi
 .RE
-.IP "2." 3
-统计符合条件 name 字段的值为"Tom"且 age 字段的值大于25的记录数。
+.IP \[bu] 2
+统计符合条件 name 字段的值为"Tom"且 age 字段的值大于 25 的记录数
+.RS 2
+.IP
 .nf
 \f[C]
->\ db.sample.employee.count(\ {\ name:\ "Tom",\ age:\ {\ $gt:\ 25\ }\ }\ )
+>\ db.sample.employee.count({name:\ "Tom",\ age:\ {$gt:\ 25}})
 \f[]
 .fi
 .RE
-.IP "3." 3
-统计符合条件 name 字段的值为"Tom"且 age
-字段的值大于25的记录数，使用"nameIdx"索引。
+.IP \[bu] 2
+统计符合条件 name 字段的值为"Tom"且 age 字段的值大于 25 的记录数，使用索引
+nameIdx
+.RS 2
+.IP
 .nf
 \f[C]
->\ db.sample.employee.count(\ {\ name:\ "Tom",\ age:\ {\ $gt:\ 25\ }\ }\ ).hint({"":"nameIdx"})
+>\ db.sample.employee.count({name:\ "Tom",\ age:\ {$gt:\ 25}}).hint({"":\ "nameIdx"})
 \f[]
 .fi
 .RE

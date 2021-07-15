@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -54,7 +54,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-）。
+）
 T}@T{
 T}
 T{
@@ -62,7 +62,7 @@ T{
 T}@T{
 options
 T}@T{
-Json 对象
+object
 T}@T{
 分区范围，包含
 T}@T{
@@ -100,28 +100,28 @@ T{
 T}@T{
 T}@T{
 T}@T{
-如：{LowBound:{a:0},
+如：\f[C]{LowBound:\ {a:\ 0||\ ||||},\ UpBound:\ {a:\ 100}}\f[]
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-UpBound:{a:100}}表示
+表示取字段“a”
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-取字段“a”的范
+的范围区间：[0,
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-围区间：[0, 100)。
+100)
 T}@T{
 T}
 .TE
@@ -132,23 +132,29 @@ T}
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
+\f[C]attachCL()\f[] 函数常见异常如下：
+.PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
 T}@T{
-解决方法
+可能发生的原因
+T}@T{
+解决办法
 T}
 _
 T{
 1
 T}@T{
 \-236
+T}@T{
+SDB_INVALID_MAIN_CL
 T}@T{
 无效的分区集合
 T}@T{
@@ -158,9 +164,11 @@ T{
 T}@T{
 T}@T{
 T}@T{
+T}@T{
 信息是否正确，
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -170,18 +178,22 @@ T{
 T}@T{
 T}@T{
 T}@T{
-设置属性IsMainCL为
+T}@T{
+设置属性 IsMainCL
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-true。
+T}@T{
+为true
 T}
 T{
 2
 T}@T{
 \-23
+T}@T{
+SDB_DMS_NOTEXIST
 T}@T{
 集合不存在
 T}@T{
@@ -191,9 +203,11 @@ T{
 T}@T{
 T}@T{
 T}@T{
+T}@T{
 是否存在，如果
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 T}@T{
@@ -203,18 +217,22 @@ T{
 T}@T{
 T}@T{
 T}@T{
-应的子分区集合。
+T}@T{
+应的子分区集合
 T}
 T{
 3
 T}@T{
 \-237
 T}@T{
+SDB_BOUND_CONFLICT
+T}@T{
 新增区间与现有
 T}@T{
 查看现有区间，
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 区间冲突
@@ -225,7 +243,8 @@ T{
 T}@T{
 T}@T{
 T}@T{
-围。
+T}@T{
+围
 T}
 .TE
 .PP
@@ -240,6 +259,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.attachCL(\ "sample2.January",\ {\ LowBound:\ {\ date:\ "20130101"\ },\ UpBound:\ {\ date:\ "20130131"\ }\ }\ )
+>\ db.sample.employee.attachCL("sample2.January",\ {LowBound:\ {date:\ "20130101"},\ UpBound:\ {date:\ "20130131"}})
 \f[]
 .fi

@@ -16,22 +16,20 @@ SdbCollection
 .PP
 该函数用于开启集合的压缩功能或者修改集合的压缩算法。
 .SH 参数
-.IP \[bu] 2
-\f[C]options\f[] ( \f[I]Object\f[]， \f[I]选填\f[] )
-.RS 2
 .PP
-通过\f[C]options\f[]参数可以修改集合属性：
-.IP "1." 3
-\f[C]CompressionType\f[] ( \f[I]String\f[] )：集合的压缩算法类型，默认为 lzw
+options ( \f[I]object，选填\f[] )
+.PP
+通过 options 参数可以修改压缩算法类型：
+.IP \[bu] 2
+CompressionType ( \f[I]string\f[] )：集合的压缩算法类型，默认为 lzw
 算法。其可选取值如下：
-.RS 4
+.RS 2
 .IP \[bu] 2
-"lzw"：使用 lzw 算法压缩。
+"lzw"：使用 lzw 算法压缩
 .IP \[bu] 2
-"snappy"：使用 snappy 算法压缩。
+"snappy"：使用 snappy 算法压缩
 .PP
-格式：\f[C]CompressionType\ :\ "lzw"\ |\ "snappy"\f[]
-.RE
+格式：\f[C]CompressionType:\ "lzw"\ |\ "snappy"\f[]
 .RE
 .SH 返回值
 .PP
@@ -52,9 +50,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-可能的原因
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -87,7 +85,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-分区相关的属性。
+分区相关的属性
 T}
 .TE
 .PP
@@ -95,14 +93,14 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.10 及以上版本。
+v2.10 及以上版本
 .SH 示例
-.IP "1." 3
+.PP
 创建一个普通集合，然后将该集合修改为"snappy" 压缩
+.IP
 .nf
 \f[C]
 >\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableCompression(\ {\ CompressionType:\[aq]snappy\[aq]\ }\ )
+>\ db.sample.employee.enableCompression({CompressionType:\ \[aq]snappy\[aq]})
 \f[]
 .fi
-.RE
