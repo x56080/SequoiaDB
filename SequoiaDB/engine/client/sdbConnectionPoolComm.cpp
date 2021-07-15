@@ -40,7 +40,7 @@
 namespace sdbclient
 {
    //set user info
-   void sdbDataSourceConf::setUserInfo(
+   void sdbConnectionPoolConf::setUserInfo(
       const std::string &username,
       const std::string &passwd )
    {
@@ -49,7 +49,7 @@ namespace sdbclient
    }
 
    // set connection number info
-   void sdbDataSourceConf::setConnCntInfo(
+   void sdbConnectionPoolConf::setConnCntInfo(
       INT32 initCnt,
       INT32 deltaIncCnt,
       INT32 maxIdleCnt,
@@ -62,7 +62,7 @@ namespace sdbclient
    }
 
    // set idle connection interval
-   void sdbDataSourceConf::setCheckIntervalInfo(
+   void sdbConnectionPoolConf::setCheckIntervalInfo(
       INT32 interval,
       INT32 aliveTime /*= 0*/ )
    {
@@ -70,7 +70,7 @@ namespace sdbclient
       _keepAliveTimeout = aliveTime ;
    }
 
-   BOOLEAN sdbDataSourceConf::isValid()
+   BOOLEAN sdbConnectionPoolConf::isValid()
    {
       BOOLEAN ret = TRUE ;
 

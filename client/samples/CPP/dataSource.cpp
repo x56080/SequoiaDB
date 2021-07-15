@@ -30,7 +30,7 @@
 #include "common.hpp"
 #include "worker.hpp"
 #include "dataSourceTask.hpp"
-#include "sdbDataSource.hpp"
+#include "sdbConnectionPool.hpp"
 
 using namespace std;
 using namespace sdbclient;
@@ -38,9 +38,9 @@ using namespace bson;
 using namespace sample;
 
 /* 函数声明 */
-void setDataSourceConf(sdbDataSourceConf &conf);
+void setDataSourceConf(sdbConnectionPoolConf &conf);
 INT32 initDataSource(sdbDataSource &ds,
-    sdbDataSourceConf &conf,
+    sdbConnectionPoolConf &conf,
     vector<string> &addrs);
 INT32 closeDataSource(sdbDataSource &ds);
 INT32 runTasks(sdbDataSource &ds, string &csName, string &clName, int taskNum);
@@ -56,7 +56,7 @@ INT32 main(INT32 argc, CHAR **argv)
     string clName   = "bar";
     BOOLEAN hasInit = FALSE;
     vector<string> vecAddrs;
-    sdbDataSourceConf conf;
+    sdbConnectionPoolConf conf;
     sdbDataSource ds;
 
     /* 检测输入参数内容 */
@@ -98,7 +98,7 @@ error:
     goto done;
 }
 
-void setDataSourceConf(sdbDataSourceConf &conf)
+void setDataSourceConf(sdbConnectionPoolConf &conf)
 {
     /* 设置数据库鉴权的用户名密码。
        若数据库没开启鉴权，此处可填空字符串，或直接忽略此项。
@@ -128,7 +128,7 @@ void setDataSourceConf(sdbDataSourceConf &conf)
 }
 
 INT32 initDataSource(sdbDataSource &ds,
-    sdbDataSourceConf &conf,
+    sdbConnectionPoolConf &conf,
     vector<string> &addrs)
 {
     INT32 rc = SDB_OK;
