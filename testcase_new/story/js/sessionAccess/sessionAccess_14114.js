@@ -1,56 +1,48 @@
-/* *****************************************************************************
-@description: seqDB-14114:设置timeout值和session值，查询记录超时
-@author: 2018-1-29 wuyan  Init
-***************************************************************************** */
+/******************************************************************************
+ * @Description   : seqDB-14114:设置不同的timeout值执行操作超时
+ * @Author        : wuyan
+ * @CreateTime    : 2018.01.29
+ * @LastEditTime  : 2021.07.16
+ * @LastEditors   : liuli
+ ******************************************************************************/
 testConf.skipStandAlone = true;
-
 testConf.clName = CHANGEDPREFIX + "_14114";
 testConf.clOpt = { ReplSize: 0 };
-//SEQUOIADBMAINSTREAM-5245
-//main( test );
+main( test );
 
 function test ( testPara )
 {
-   bulkInsert( testPara.testCL, 80000 );
+   var dbcl = testPara.testCL;
+   bulkInsert( dbcl, 100000 );
 
    var timeoutValues = [1, 1000, 2000];
    for( var i = 0; i < timeoutValues.length; i++ )
    {
       db.setSessionAttr( { PreferedInstance: "M", Timeout: timeoutValues[i] } );
-      try
+
+      assert.tryThrow( SDB_TIMEOUT, function()
       {
-         testPara.testCL.update( { $set: { a: "aaaaaa" } } );
-         throw new Error( "NEED_TIMEOUT_ERROR" );
-      }
-      catch( e )
-      {
-         //TODO:这里需确认更新超时不报错和更新几十秒后报错-116是否合理
-         if( e.message !== "SDB_TIMEOUT" && e.message !== "SDB_APP_INTERRUPT" )
-         {
-            throw e;
-         }
-      }
-      finally
-      {
-         checkTimeoutValue( timeoutValues[i] );
-         db.setSessionAttr( { Timeout: -1 } );
-      }
+         dbcl.update( { $set: { a: "aaaaaa" } } );
+      } );
+
+      checkTimeoutValue( timeoutValues[i] );
+      db.setSessionAttr( { Timeout: -1 } );
    }
 }
 
 function checkTimeoutValue ( timeoutValue )
 {
-   var timeout = db.getSessionAttr().current().toObj().Timeout;
-   if( timeout !== timeoutValue )
+   var timeout = db.getSessionAttr().toObj().Timeout;
+   if( timeoutValue < 1000 && timeoutValue != -1 )
    {
-      throw new Error( "The expected timeout value is " + timeoutValue + ", but the actual timeout value is " + timeout );
+      timeoutValue = 1000
    }
+   assert.equal( timeout, timeoutValue );
 }
 
 function bulkInsert ( cl, insertNums )
 {
    var batchNums = 10000;
-   var recs = [];
    var times = insertNums / batchNums;
 
    for( var k = 0; k < times; k++ )
