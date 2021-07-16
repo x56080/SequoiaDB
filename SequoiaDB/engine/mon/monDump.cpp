@@ -5928,4 +5928,92 @@ namespace engine
    error:
       goto done ;
    }
+
+   /*
+      _monDataSetFetch implement
+    */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monDataSetFetch )
+
+   _monDataSetFetch::_monDataSetFetch()
+   : _rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_DATASET ),
+     _dataSet( NULL )
+   {
+   }
+
+   _monDataSetFetch::~_monDataSetFetch()
+   {
+      _clear() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH_ATTACHCTX, "_monDataSetFetch::attachContext" )
+   INT32 _monDataSetFetch::attachContext( INT64 contextID, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONDSFETCH_ATTACHCTX ) ;
+
+      _clear() ;
+
+      _dataSet = SDB_OSS_NEW rtnDataSet( contextID, cb ) ;
+      PD_CHECK( NULL != _dataSet, SDB_OOM, error, PDERROR,
+                "Failed to allocate data set for context" ) ;
+
+      _hitEnd = FALSE ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONDSFETCH_ATTACHCTX, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH__CLEAR, "_monDataSetFetch::_clear" )
+   void _monDataSetFetch::_clear()
+   {
+      PD_TRACE_ENTRY( SDB_MONDSFETCH__CLEAR ) ;
+
+      SAFE_OSS_DELETE( _dataSet ) ;
+      _hitEnd = TRUE ;
+
+      PD_TRACE_EXIT( SDB_MONDSFETCH__CLEAR ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDSFETCH_FETCH, "_monDataSetFetch::fetch" )
+   INT32 _monDataSetFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_MONDSFETCH_FETCH ) ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+      else if ( NULL == _dataSet )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      rc = _dataSet->next( obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         _hitEnd = TRUE ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get data from data set, rc: %d",
+                   rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_MONDSFETCH_FETCH, rc ) ;
+      return rc ;
+
+   error:
+      _clear() ;
+      goto done ;
+   }
+
 }

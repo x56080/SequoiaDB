@@ -49,7 +49,7 @@
 #include "aggrLimit.hpp"
 #include "aggrSort.hpp"
 #include "aggrProject.hpp"
-#include "rtnDataSet.hpp"
+#include "monDump.hpp"
 #include "aggrTrace.h"
 
 using namespace bson;
@@ -373,9 +373,10 @@ namespace engine
                                     SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContextDump *context = NULL ;
+
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       SINT64 aggrContextID = -1 ;
+      monDataSetFetch *dsFetch = NULL ;
       BSONObj obj ;
 
       try
@@ -399,57 +400,40 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
-                               contextID, cb ) ;
-      if ( SDB_OK != rc )
+      // need dump context to process selector
+      if ( !selector.isEmpty() )
       {
-         PD_LOG ( PDERROR, "Failed to create new context, rc: %d", rc ) ;
-         goto error ;
-      }
+         rtnContextDump *context = NULL ;
 
-      rc = context->open( selector, BSONObj(), limit, skip ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to open dump context, rc: %d", rc ) ;
-         goto error ;
-      }
+         rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext **)&context,
+                                  contextID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d",
+                      rc ) ;
 
-      /// dump data
+         rc = context->open( selector, BSONObj(), limit, skip ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to open dump context, rc: %d",
+                      rc ) ;
+
+         dsFetch =
+               (monDataSetFetch *)(
+                     getRtnFetchBuilder()->create( RTN_FETCH_DATASET ) ) ;
+         PD_CHECK( NULL != dsFetch, SDB_OOM, error, PDERROR,
+                   "Failed to allocate fetcher for context" ) ;
+
+         rc = dsFetch->attachContext( aggrContextID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to attach context, rc: %d", rc ) ;
+         aggrContextID = -1 ;
+
+         context->setMonFetch( dsFetch, TRUE ) ;
+         dsFetch = NULL ;
+      }
+      else
       {
-         rtnDataSet ds( aggrContextID, cb ) ;
-         while( TRUE )
-         {
-            rc = ds.next( obj ) ;
-            if ( SDB_OK == rc )
-            {
-               rc = context->monAppend( obj ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "Failed to append obj to context, rc: %d",
-                          rc ) ;
-                  goto error ;
-               }
-            }
-            else if ( SDB_DMS_EOC == rc )
-            {
-               aggrContextID = -1 ;
-               rc = SDB_OK ;
-               break ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to get next obj, rc: %d", rc ) ;
-               goto error ;
-            }
-         }
+         contextID = aggrContextID ;
+         aggrContextID = -1 ;
       }
 
    done:
-      if ( -1 != aggrContextID )
-      {
-         rtnCB->contextDelete ( aggrContextID, cb ) ;
-         aggrContextID = -1 ;
-      }
       return rc ;
    error:
       if ( -1 != contextID )
@@ -457,6 +441,12 @@ namespace engine
          rtnCB->contextDelete ( contextID, cb ) ;
          contextID = -1 ;
       }
+      if ( -1 != aggrContextID )
+      {
+         rtnCB->contextDelete ( aggrContextID, cb ) ;
+         aggrContextID = -1 ;
+      }
+      SAFE_OSS_DELETE( dsFetch ) ;
       goto done ;
    }
 

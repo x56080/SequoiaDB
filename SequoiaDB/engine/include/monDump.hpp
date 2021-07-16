@@ -48,6 +48,7 @@
 #include "rtnCommandDef.hpp"
 #include "monClass.hpp"
 #include "dmsScanner.hpp"
+#include "rtnDataSet.hpp"
 
 using namespace bson ;
 
@@ -803,6 +804,47 @@ namespace engine
          IDX_STAT_LIST           _statCache ;
    } ;
    typedef _monIndexStatsFetch monIndexStatsFetch ;
+
+   /*
+      _monDataSetFetch define
+    */
+   // NOTE: only use for fetch data from inner context or data set
+   class _monDataSetFetch : public _rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+   public:
+      _monDataSetFetch() ;
+      virtual ~_monDataSetFetch() ;
+
+      virtual INT32 init( pmdEDUCB *cb,
+                          BOOLEAN isCurrent,
+                          BOOLEAN isDetail,
+                          UINT32 addInfoMask,
+                          const BSONObj obj = BSONObj() )
+      {
+         // do nothing
+         return SDB_OK ;
+      }
+
+      INT32 attachContext( INT64 contextID, pmdEDUCB *cb ) ;
+
+      virtual INT32 fetch( BSONObj &obj ) ;
+
+      virtual const CHAR *getName() const
+      {
+         return "data set fetch" ;
+      }
+
+   protected:
+      void _clear() ;
+
+   protected:
+      rtnDataSet * _dataSet ;
+   } ;
+
+   typedef class _monDataSetFetch monDataSetFetch ;
+
 }
 
 #endif //MONDUMP_HPP_

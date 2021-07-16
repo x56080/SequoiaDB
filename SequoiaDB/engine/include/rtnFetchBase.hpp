@@ -86,6 +86,8 @@ namespace engine
       RTN_FETCH_LOCKWAITS,             /// lock waits
       RTN_FETCH_INDEXSTATS,            /// index statistics
 
+      RTN_FETCH_DATASET,               /// fetch from inner data set
+
       RTN_FETCH_MAX
    } ;
 
