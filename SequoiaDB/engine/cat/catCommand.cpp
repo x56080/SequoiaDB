@@ -1761,7 +1761,7 @@ namespace engine
          clsIdxTask* pCurTask = *it ;
          if ( pCurTask->taskID() == pOtherTask->taskID() ||
               pCurTask->muteXOn( pOtherTask ) ||
-              pOtherTask->muteXOn( pCurTask )  )
+              pOtherTask->muteXOn( pCurTask ) )
          {
             conflict = TRUE ;
             PD_LOG_MSG( PDERROR,

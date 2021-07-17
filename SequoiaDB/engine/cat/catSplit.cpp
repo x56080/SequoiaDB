@@ -180,24 +180,19 @@ namespace engine
             break ;
          }
 
-         UINT64 taskID = CLS_INVALID_TASKID ;
-         rc = rtnGetNumberLongElement( taskObj, FIELD_NAME_TASKID,
-                                       (INT64&)taskID ) ;
+         clsTask *pTmpTask = NULL ;
+
+         rc = clsNewTask( taskObj, pTmpTask ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Faield to get task ID from obj[%s], rc: %d",
-                      taskObj.toString().c_str(), rc ) ;
+                      "Failed to initialize task, rc: %d",
+                      rc ) ;
 
-         clsSplitTask tmpTask( taskID ) ;
-         rc = tmpTask.init( taskObj.objdata() ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Init split task failed, rc: %d, obj: "
-                      "%s", rc, taskObj.toString().c_str() ) ;
-
-         if ( pTask->taskID() == tmpTask.taskID() ||
-              pTask->muteXOn( &tmpTask ) || tmpTask.muteXOn( pTask ) )
+         if ( pTask->taskID() == pTmpTask->taskID() ||
+              pTask->muteXOn( pTmpTask ) || pTmpTask->muteXOn( pTask ) )
          {
             conflict = TRUE ;
             PD_LOG( PDWARNING, "Exist task[%s] conflict with current "
-                    "task[%s]", tmpTask.toBson().toString().c_str(),
+                    "task[%s]", pTmpTask->toBson().toString().c_str(),
                     pTask->toBson().toString().c_str() ) ;
             break ;
          }
