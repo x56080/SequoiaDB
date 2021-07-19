@@ -1932,7 +1932,10 @@ namespace engine
       {
          cmd << " -m" ;
       }
-
+      else
+      {
+         cmd << " -M" ;
+      }
       if( FALSE == configObj.hasField( "name" ) )
       {
          rc = SDB_INVALIDARG ;
