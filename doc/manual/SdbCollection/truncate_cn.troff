@@ -20,7 +20,7 @@ remove 需要按照条件筛选目标不同，truncate
 .PP
 \f[B]Note:\f[]
 .PP
-如有自增字段，truncate后字段序列值将会重置。
+如有自增字段，truncate 后字段序列值将会重置。
 .RE
 .SH 参数
 .PP
@@ -38,8 +38,10 @@ remove 需要按照条件筛选目标不同，truncate
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP "1." 3
-集合 sample.employee 中插入了普通数据和 LOB 数据，通过快照查看其数据页使用情况：
+.IP \[bu] 2
+集合 sample.employee 中插入了普通数据和 LOB 数据，通过快照查看其数据页使用情况
+.RS 2
+.IP
 .nf
 \f[C]
 >\ db.snapshot(SDB_SNAP_COLLECTIONS)
@@ -69,17 +71,21 @@ v2.0 及以上版本
 \f[]
 .fi
 .RE
-.IP "2." 3
-上例中可以看到其中数据页为33，索引页为7，LOB 页为36，下面执行 truncate 操作
+.IP \[bu] 2
+上例中可以看到其中数据页为 33，索引页为 7，LOB 页为 36，下面执行 truncate 操作
+.RS 2
+.IP
 .nf
 \f[C]
 >\ db.sample.employee.truncate()
 \f[]
 .fi
 .RE
-.IP "3." 3
+.IP \[bu] 2
 再次通过快照查看数据页使用情况，可以查看除索引页为
 2（存储了索引的元数据信息）外，其余数据页已经全部被释放了
+.RS 2
+.IP
 .nf
 \f[C]
 >\ db.snapshot(SDB_SNAP_COLLECTIONS)

@@ -18,7 +18,10 @@ SdbCollection
 .SH 参数
 .PP
 无
-.SH 字段信息
+.SH 返回值
+.PP
+函数执行成功时，将返回一个 SdbCursor
+类型的对象。通过该对象获取索引详细信息列表，字段说明如下：
 .PP
 .TS
 tab(@);
@@ -26,9 +29,9 @@ l l l l.
 T{
 0
 T}@T{
-参数名
+字段名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}
@@ -47,7 +50,7 @@ T{
 T}@T{
 key
 T}@T{
-json 对象
+json
 T}@T{
 索引键，可参考
 T}
@@ -62,7 +65,7 @@ T{
 T}@T{
 v
 T}@T{
-Int32
+int32
 T}@T{
 索引版本号
 T}
@@ -71,7 +74,7 @@ T{
 T}@T{
 unique
 T}@T{
-Boolean
+boolean
 T}@T{
 索引是否唯一
 T}
@@ -122,7 +125,7 @@ T{
 T}@T{
 dropDups
 T}@T{
-Boolean
+boolean
 T}@T{
 暂不开放
 T}
@@ -131,7 +134,7 @@ T{
 T}@T{
 enforced
 T}@T{
-Boolean
+boolean
 T}@T{
 索引是否强制唯
 T}
@@ -152,7 +155,7 @@ T{
 T}@T{
 NotNull
 T}@T{
-Boolean
+boolean
 T}@T{
 索引的任意一个
 T}
@@ -287,7 +290,7 @@ T{
 T}@T{
 NotArray
 T}@T{
-Boolean
+boolean
 T}@T{
 索引的任意一个
 T}
@@ -322,19 +325,18 @@ T}@T{
 组
 T}
 .TE
-.SH 返回值
-.PP
-函数执行成功时，将返回一个 SdbCursor
-类型的对象。通过该对象获取集合详细信息列表，字段说明可参考索引统计信息快照。
 .PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
 当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
 获取错误码。更多错误处理可以参考常见错误处理指南。
+.SH 版本
+.PP
+v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-返回集合 employee 下的所有索引信息
+.PP
+返回集合 sample.employee 下的所有索引信息
 .IP
 .nf
 \f[C]

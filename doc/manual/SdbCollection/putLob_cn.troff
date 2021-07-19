@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -102,7 +102,7 @@ v2.0 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-上传大对象文件 mylob.txt
+上传大对象文件 \f[C]mylob.txt\f[]
 .RS 2
 .IP
 .nf
@@ -113,7 +113,7 @@ v2.0 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-上传指定 oid 的大对象文件 mylob.txt
+上传指定 oid 的大对象文件 \f[C]mylob.txt\f[]
 .RS 2
 .IP
 .nf

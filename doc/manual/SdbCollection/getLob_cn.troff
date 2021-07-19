@@ -8,7 +8,7 @@
 getLob \- 读取大对象
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.getLob(<oid>,<file path>,[forced])\f[]
+\f[B]db.collectionspace.collection.getLob(<oid>, <file path>, [forced])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -47,7 +47,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-述符。
+述符
 T}@T{
 T}
 T{
@@ -65,7 +65,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-件全路径。
+件全路径
 T}@T{
 T}
 T{
@@ -73,7 +73,7 @@ T{
 T}@T{
 forced
 T}@T{
-bool
+boolean
 T}@T{
 本地文件如果已
 T}@T{
@@ -90,7 +90,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-覆盖。
+覆盖
 T}@T{
 T}
 .TE
@@ -116,10 +116,10 @@ forced 默认为 false。
 v2.0 及以上版本
 .SH 示例
 .PP
-将标示符为 5435e7b69487faa663000897 的 lob 写入本地 /opt/newlob 文件
+将标示符为"5435e7b69487faa663000897"的 LOB 写入本地 \f[C]/opt/newlob\f[] 文件
 .IP
 .nf
 \f[C]
->\ db.sample.employee.getLob(\ \[aq]5435e7b69487faa663000897\[aq],\ \[aq]/opt/newlob\[aq]\ )
+>\ db.sample.employee.getLob(\[aq]5435e7b69487faa663000897\[aq],\ \[aq]/opt/newlob\[aq])
 \f[]
 .fi

@@ -8,7 +8,8 @@
 upsert \- 更新集合记录
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.upsert(<rule>,[cond],[hint],[setOnInsert],[options])\f[]
+\f[B]db.collectionspace.collection.upsert(<rule>, [cond], [hint], [setOnInsert],
+[options])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -27,7 +28,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -39,9 +40,9 @@ T{
 T}@T{
 rule
 T}@T{
-Json 对象
+object
 T}@T{
-更新规则。记录
+更新规则，记录
 T}@T{
 是
 T}
@@ -56,7 +57,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-新。
+新
 T}@T{
 T}
 T{
@@ -64,9 +65,9 @@ T{
 T}@T{
 cond
 T}@T{
-Json 对象
+object
 T}@T{
-选择条件。为空
+选择条件，为空
 T}@T{
 否
 T}
@@ -95,7 +96,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-记录。
+记录
 T}@T{
 T}
 T{
@@ -103,9 +104,9 @@ T{
 T}@T{
 hint
 T}@T{
-Json 对象
+object
 T}@T{
-指定访问计划。
+指定访问计划
 T}@T{
 否
 T}
@@ -114,7 +115,7 @@ T{
 T}@T{
 setOnInsert
 T}@T{
-Json 对象
+object
 T}@T{
 在做插入操作时
 T}@T{
@@ -131,7 +132,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-追加字段。
+追加字段
 T}@T{
 T}
 T{
@@ -139,7 +140,7 @@ T{
 T}@T{
 options
 T}@T{
-Json 对象
+object
 T}@T{
 可选项，详见
 T}@T{
@@ -149,7 +150,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-options选项说明。
+options 选项说明
 T}@T{
 T}
 .TE
@@ -164,7 +165,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -176,7 +177,7 @@ T{
 T}@T{
 KeepShardingKey
 T}@T{
-bool
+boolean
 T}@T{
 为 false 时，将不
 T}@T{
@@ -207,28 +208,28 @@ T{
 T}@T{
 T}@T{
 T}@T{
-字段。为 true
+字段为 true 时，
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-时，将会保留更
+将会保留更新规
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-新规则中的分区
+则中的分区键字
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-键字段。
+段
 T}@T{
 T}
 T{
@@ -236,7 +237,7 @@ T{
 T}@T{
 JustOne
 T}@T{
-bool
+boolean
 T}@T{
 为 true 时，将只
 T}@T{
@@ -253,7 +254,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-件的记录。为
+件的记录为
 T}@T{
 T}
 T{
@@ -274,7 +275,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-的记录。
+的记录
 T}@T{
 T}
 .TE
@@ -282,17 +283,17 @@ T}
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-参数\f[C]hint\f[]的用法与 find() 的相同。
+参数 hint 的用法与 find() 的相同。
 .IP \[bu] 2
-当 \f[C]cond\f[] 参数在集合中匹配不到记录时，upsert
+当 cond 参数在集合中匹配不到记录时，upsert
 会生成一条记录插入到集合中。记录生成规则为：首先从 cond 参数中取出 $et 和 $all
 操作符对应的键值对，没有的时候生成空记录。然后使用 rule
 规则对其做更新操作，最后加入 setOnInsert 中的键值对。
 .IP \[bu] 2
 目前分区集合上，不支持更新分区键。如果 \f[C]KeepShardingKey\f[] 为
-true，并且更新规则中带有分区键字段，将会报错\-178。
+true，并且更新规则中带有分区键字段，将会报错 \-178。
 .IP \[bu] 2
-\f[C]JustOne\f[]为 true 时，只能在单个分区、单个子表上执行。
+JustOne 为 true 时，只能在单个分区、单个子表上执行。
 .RE
 .SH 返回值
 .PP
@@ -380,19 +381,21 @@ T}
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-错误信息记录在节点诊断日志（diaglog）中，可参考错误码。
+\f[C]upsert()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
 T}@T{
-解决方法
+可能发生的原因
+T}@T{
+解决办法
 T}
 _
 T{
@@ -400,11 +403,14 @@ T{
 T}@T{
 \-178
 T}@T{
+SDB_UPDATE_SHARD_KEY
+T}@T{
 分区集合上不支
 T}@T{
 KeepShardingKey 设置
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 持更新分区键
@@ -415,6 +421,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
+T}@T{
 分区键
 T}
 T{
@@ -422,11 +429,14 @@ T{
 T}@T{
 \-345
 T}@T{
+SDB_AUTH_INCOMPATIBLE
+T}@T{
 JustOne 跨多个分区
 T}@T{
 修改匹配条件，
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 或者多个子表
@@ -442,7 +452,7 @@ T}
 v2.0 及以上版本
 .SH 示例
 .PP
-假设集合 employee 中有两条记录：
+假设集合 sample.employee 中有两条记录
 .IP
 .nf
 \f[C]
@@ -464,14 +474,15 @@ v2.0 及以上版本
 .fi
 .IP \[bu] 2
 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint
-参数的内容。如下操作等效于使用 update 方法，更新集合 employee 中的所有记录，使用
+参数的内容。如下操作等效于使用 update 方法，更新集合 sample.employee
+中的所有记录，使用
 \f[I]i\f[]\f[I]n\f[]\f[I]c\f[]\f[I]将\f[]\f[I]记\f[]\f[I]录\f[]\f[I]的\f[]\f[I]a\f[]\f[I]g\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]值\f[]\f[I]加\f[]1，\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]值\f[]\f[I]更\f[]\f[I]改\f[]\f[I]为\f[]“ \f[I]M\f[]\f[I]i\f[]\f[I]k\f[]\f[I]e\f[]” ，\f[I]对\f[]\f[I]不\f[]\f[I]存\f[]\f[I]在\f[]\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]的\f[]\f[I]记\f[]\f[I]录\f[]，set
-操作符会将 name 字段和其设定的值插入到记录中，可使用 find 方法查看更新结果。
+操作符会将 name 字段和其设定的值插入到记录中，可使用 find 方法查看更新结果
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ },\ $set:\ {\ name:\ "Mike"\ }\ }\ )
+>\ db.sample.employee.upsert({$inc:\ {age:\ 1},\ $set:\ {name:\ "Mike"}})
 {
 \ \ "UpdatedNum":\ 2,
 \ \ "ModifiedNum":\ 2,
@@ -501,14 +512,14 @@ Return\ 2\ row(s).
 .IP \[bu] 2
 选择符合匹配条件的记录，对这些记录按更新规则更新，即设定 rule 和 cond
 参数。如下操作使用 $exists 匹配存在 type 字段的记录，使用 $inc 将这些记录的 age
-字段值加3。在上面给出的两条记录中，都没有 type 字段，此时，upsert
+字段值加 3。在上面给出的两条记录中，都没有 type 字段，此时，upsert
 操作会插入一条新的记录，新记录只有 _id 字段和 age 字段名，_id 字段值自动生成，而
-age 字段值为3。
+age 字段值为 3
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 3\ }\ },\ {\ type:\ {\ $exists:\ 1\ }\ }\ )
+>\ db.sample.employee.upsert({$inc:\ {age:\ 3}},\ {type:\ {$exists:\ 1}})
 {
 \ \ "UpdatedNum":\ 0,
 \ \ "ModifiedNum":\ 0,
@@ -543,13 +554,13 @@ Return\ 3\ row(s).
 .RE
 .IP \[bu] 2
 按访问计划更新记录，假设集合中存在指定的索引名 testIndex，此操作等效于使用
-update 方法，使用索引名为 testIndex 的索引访问集合 employee 中 age
-字段值大于20的记录，将这些记录的 age 字段名加1。
+update 方法，使用索引名为 testIndex 的索引访问集合 sample.employee 中 age
+字段值大于 20 的记录，将这些记录的 age 字段名加 1
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ "":\ "testIndex"\ }\ )
+>\ db.sample.employee.upsert({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 20}},\ {"":\ "testIndex"})
 {
 \ \ "UpdatedNum":\ 1,
 \ \ "ModifiedNum":\ 1,
@@ -570,20 +581,20 @@ Return\ 1\ row(s).
 .fi
 .RE
 .IP \[bu] 2
-使用setOnInsert更新记录，由于集合 employee 中 age
-字段值大于30的记录为空，upsert在做插入操作时向插入的记录中追加字段{"name":"Mike"}。
+使用 setOnInsert 更新记录，由于集合 sample.employee 中 age 字段值大于 30
+的记录为空，upsert 在做插入操作时向插入的记录中追加字段 {"name":"Mike"}
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 30\ }\ },\ {},\ {\ "name":\ "Mike"\ }\ )
+>\ db.sample.employee.upsert({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 30}},\ {},\ {"name":\ "Mike"})
 {
 \ \ "UpdatedNum":\ 0,
 \ \ "ModifiedNum":\ 0,
 \ \ "InsertedNum":\ 1
 }
 >
->\ db.sample.employee.find(\ {\ "age"\ :\ 1,\ "name":\ "Mike"\ }\ )
+>\ db.sample.employee.find({"age":\ 1,\ "name":\ "Mike"})
 {
 \ \ \ \ \ "_id":\ {
 \ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
@@ -596,7 +607,7 @@ Return\ 1\ row(s).
 .fi
 .RE
 .IP \[bu] 2
-分区集合 sample.employee，分区键为 { a: 1 }，含有以下记录
+分区集合 sample.employee，分区键为 {a: 1}，含有以下记录
 .RS 2
 .IP
 .nf
@@ -613,12 +624,12 @@ Return\ 1\ row(s).
 \f[]
 .fi
 .PP
-指定 KeepShardingKey 参数：不保留更新规则中的分区键字段。只更新了非分区键 b
+指定 KeepShardingKey 参数：不保留更新规则中的分区键字段，只更新了非分区键 b
 字段，分区键 a 字段的值没有被更新。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9,\ b:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ false\ }\ )
+>\ db.sample.employee.upsert({$set:\ {a:\ 9,\ b:\ 9}},\ {},\ {},\ {},\ {KeepShardingKey:\ false})
 {
 \ \ "UpdatedNum":\ 1,
 \ \ "ModifiedNum":\ 1,
@@ -642,7 +653,7 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert(\ {\ $set:\ {\ a:\ 9\ }\ },\ {},\ {},\ {},\ {\ KeepShardingKey:\ true\ }\ )
+>\ db.sample.employee.upsert({$set:\ {a:\ 9}},\ {},\ {},\ {},\ {KeepShardingKey:\ true})
 (nofile):0\ uncaught\ exception:\ \-178
 Sharding\ key\ cannot\ be\ updated
 \f[]

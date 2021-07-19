@@ -1,44 +1,44 @@
-##名称##
+##NAME##
 
-truncate - 删除集合内所有数据
+truncate - delete all data in the collection
 
-##语法##
+##SYNOPSIS##
 
 **db.collectionspace.collection.truncate\(\)**
 
-##类别##
+##CATEGORY##
 
 SdbCollection
 
-##描述##
+##DESCRIPTION##
 
-该函数用于删除集合内所有数据（包括普通文档和 LOB 数据），但不会影响其元数据。与 remove 需要按照条件筛选目标不同，truncate 会直接释放数据页，在清空集合（尤其是大数据量下）数据时效率比 remove 更加高效。
+This function is used to delete all data in the collection (including ordinary documents and LOB data), but it does not affect its metadata. Unlike "remove", which needs to filter targets according to conditions, "truncate" will directly release the data page, which is more efficient than "remove" when clearing the data in the collection (especially with large amounts of data).
 
 > **Note:** 
 > 
-> 如有自增字段，truncate 后字段序列值将会重置。
+> If there is an auto-increment field, the field sequence value will be reset after truncate.
 
-##参数##
+##PARAMETERS##
 
-无
+None
 
-##返回值##
+##RETURN VALUE##
 
-函数执行成功时，无返回值。
+When the function executes successfully, there is no return value.
 
-函数执行失败时，将抛异常并输出错误信息。
+When the function fails, an exception will be thrown and an error message will be printed.
 
-##错误##
+##ERRORS##
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-##版本##
+##VERSION##
 
-v2.0 及以上版本
+v2.0 and above
 
-##示例##
+##EXAMPLES##
 
-- 集合 sample.employee 中插入了普通数据和 LOB 数据，通过快照查看其数据页使用情况
+- Common data and LOB data are inserted into the collection "sample.employee", and the usage of its data pages can be viewed through a snapshot.
 
     ```lang-javascript
     > db.snapshot(SDB_SNAP_COLLECTIONS)
@@ -67,13 +67,13 @@ v2.0 及以上版本
     }
     ```
 
-- 上例中可以看到其中数据页为 33，索引页为 7，LOB 页为 36，下面执行 truncate 操作
+- In the above example, the data page is 33, the index page is 7, and the LOB page is 36. The truncate operation is executed below.
 
     ```lang-javascript
     > db.sample.employee.truncate()
     ```
 
-- 再次通过快照查看数据页使用情况，可以查看除索引页为 2（存储了索引的元数据信息）外，其余数据页已经全部被释放了
+- Check the data page usage through the snapshot again, the index page is 2 (stored index metadata information), and all the other data pages have been released.
 
     ```lang-javascript
     > db.snapshot(SDB_SNAP_COLLECTIONS)
@@ -103,7 +103,7 @@ v2.0 及以上版本
     ```
 
 [^_^]:
-     本文使用的所有引用及链接
+     Links
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

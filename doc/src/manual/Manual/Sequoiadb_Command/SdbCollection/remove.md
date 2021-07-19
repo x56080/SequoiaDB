@@ -16,23 +16,22 @@ SdbCollection
 
 ##参数##
 
-| 参数名 | 参数类型 | 描述   | 是否必填 |
+| 参数名 | 类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
-| cond   | Json 对象| 选择条件。为空时，删除所有记录，不为空时，删除符合条件的记录。 | 否 |
-| hint   | Json 对象| 指定访问计划。 | 否 |
-| options| Json 对象| 可选项，详见options选项说明。| 否 |
+| cond   | object| 选择条件，为空时，删除所有记录，不为空时，删除符合条件的记录 | 否 |
+| hint   | object| 指定访问计划 | 否 |
+| options| object| 可选项，详见 options 选项说明| 否 |
 
 options 选项：
 
-| 参数名          | 参数类型 | 描述                | 默认值 |
+| 参数名          | 类型 | 描述                | 默认值 |
 | --------------- | -------- | ------------------- | ------ |
-| JustOne         | bool     | 为 true 时，将只更新一条符合条件的记录。<br>为 false 时，将会更新所有符合条件的记录。| false  |
+| JustOne         | boolean     | 为 true 时，将只更新一条符合条件的记录<br>为 false 时，将会更新所有符合条件的记录| false  |
 
 > **Note:**
 >
-> * 参数`cond`和`hint`的用法与 [find()][find] 的相同。
->
-> * `JustOne`为 true 时，只能在单个分区、单个子表上执行。
+> - 参数 cond 和 hint 的用法与 [find()][find] 的相同。
+> - JustOne 为 true 时，只能在单个分区、单个子表上执行。
 
 ##返回值##
 
@@ -46,13 +45,13 @@ options 选项：
 
 ##错误##
 
-错误信息记录在节点诊断日志（diaglog）中，可参考[错误码][error_code]。
+`remove()` 函数常见异常如下：
   
-| 错误码   | 可能的原因               | 解决方法                                     |
-| -------- | ------------------------ | -------------------------------------------- |
-| -346     | JustOne 跨多个分区或者多个子表 | 修改匹配条件，或者不使用 JustOne |
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | -------- | -------------- | -------- |
+| -346     | SDB_DMS_UNQIUEID_UPGRADE|JustOne 跨多个分区或者多个子表 | 修改匹配条件，或者不使用 JustOne |
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -60,23 +59,22 @@ v2.0 及以上版本
 
 ##示例##
 
-* 删除集合所有记录
+- 删除集合所有记录
 
     ```lang-javascript
     > db.sample.employee.remove()
     ```
 
-* 按访问计划删除匹配 cond 条件的记录，如下操作按照索引名为“myIndex”的索引遍历集合中的记录，在遍历得到的记录中删除符合条件 age 字段值大于等于 20 的记录
+- 按访问计划删除匹配 cond 条件的记录，如下操作按照索引名为"myIndex"的索引遍历集合中的记录，在遍历得到的记录中删除符合条件 age 字段值大于等于 20 的记录
 
     ```lang-javascript
-    > db.sample.employee.remove( { age: { $gte: 20 } }, { "": "myIndex" } )
+    > db.sample.employee.remove({age: {$gte: 20}}, {"": "myIndex"})
     ```
-
 
 [^_^]:
     本文使用的所有引用及链接
 [find]:manual/Manual/Sequoiadb_Command/SdbCollection/find.md
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[error_guide]:manual/FAQ/faq_sdb.md

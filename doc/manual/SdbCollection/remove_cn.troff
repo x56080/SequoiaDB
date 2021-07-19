@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -37,9 +37,9 @@ T{
 T}@T{
 cond
 T}@T{
-Json 对象
+object
 T}@T{
-选择条件。为空
+选择条件，为空
 T}@T{
 否
 T}
@@ -68,7 +68,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-记录。
+记录
 T}@T{
 T}
 T{
@@ -76,9 +76,9 @@ T{
 T}@T{
 hint
 T}@T{
-Json 对象
+object
 T}@T{
-指定访问计划。
+指定访问计划
 T}@T{
 否
 T}
@@ -87,7 +87,7 @@ T{
 T}@T{
 options
 T}@T{
-Json 对象
+object
 T}@T{
 可选项，详见
 T}@T{
@@ -97,7 +97,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-options选项说明。
+options 选项说明
 T}@T{
 T}
 .TE
@@ -112,7 +112,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -124,7 +124,7 @@ T{
 T}@T{
 JustOne
 T}@T{
-bool
+boolean
 T}@T{
 为 true 时，将只
 T}@T{
@@ -141,7 +141,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-件的记录。为
+件的记录为
 T}@T{
 T}
 T{
@@ -162,7 +162,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-的记录。
+的记录
 T}@T{
 T}
 .TE
@@ -170,9 +170,9 @@ T}
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-参数\f[C]cond\f[]和\f[C]hint\f[]的用法与 find() 的相同。
+参数 cond 和 hint 的用法与 find() 的相同。
 .IP \[bu] 2
-\f[C]JustOne\f[]为 true 时，只能在单个分区、单个子表上执行。
+JustOne 为 true 时，只能在单个分区、单个子表上执行。
 .RE
 .SH 返回值
 .PP
@@ -212,19 +212,21 @@ T}
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-错误信息记录在节点诊断日志（diaglog）中，可参考错误码。
+\f[C]remove()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
 T}@T{
-解决方法
+可能发生的原因
+T}@T{
+解决办法
 T}
 _
 T{
@@ -232,12 +234,16 @@ T{
 T}@T{
 \-346
 T}@T{
+SDB_DMS_UNQIUEID_
+T}@T{
 JustOne 跨多个分区
 T}@T{
 修改匹配条件，
 T}
 T{
 T}@T{
+T}@T{
+UPGRADE
 T}@T{
 或者多个子表
 T}@T{
@@ -263,13 +269,13 @@ v2.0 及以上版本
 .RE
 .IP \[bu] 2
 按访问计划删除匹配 cond
-条件的记录，如下操作按照索引名为“myIndex”的索引遍历集合中的记录，在遍历得到的记录中删除符合条件
+条件的记录，如下操作按照索引名为"myIndex"的索引遍历集合中的记录，在遍历得到的记录中删除符合条件
 age 字段值大于等于 20 的记录
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.remove(\ {\ age:\ {\ $gte:\ 20\ }\ },\ {\ "":\ "myIndex"\ }\ )
+>\ db.sample.employee.remove({age:\ {$gte:\ 20}},\ {"":\ "myIndex"})
 \f[]
 .fi
 .RE

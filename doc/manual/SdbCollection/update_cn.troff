@@ -25,7 +25,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -37,9 +37,9 @@ T{
 T}@T{
 rule
 T}@T{
-Json 对象
+object
 T}@T{
-更新规则。记录
+更新规则，记录
 T}@T{
 是
 T}
@@ -54,7 +54,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-新。
+新
 T}@T{
 T}
 T{
@@ -62,9 +62,9 @@ T{
 T}@T{
 cond
 T}@T{
-Json 对象
+object
 T}@T{
-选择条件。为空
+选择条件，为空
 T}@T{
 否
 T}
@@ -93,7 +93,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-记录。
+记录
 T}@T{
 T}
 T{
@@ -101,9 +101,9 @@ T{
 T}@T{
 hint
 T}@T{
-Json 对象
+object
 T}@T{
-指定访问计划。
+指定访问计划
 T}@T{
 否
 T}
@@ -112,7 +112,7 @@ T{
 T}@T{
 options
 T}@T{
-Json 对象
+object
 T}@T{
 可选项，详见
 T}@T{
@@ -122,7 +122,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-options选项说明。
+options 选项说明
 T}@T{
 T}
 .TE
@@ -137,7 +137,7 @@ T{
 T}@T{
 参数名
 T}@T{
-参数类型
+类型
 T}@T{
 描述
 T}@T{
@@ -149,7 +149,7 @@ T{
 T}@T{
 KeepShardingKey
 T}@T{
-bool
+boolean
 T}@T{
 false：不保留更新
 T}@T{
@@ -173,28 +173,21 @@ T{
 T}@T{
 T}@T{
 T}@T{
-分区键字段。
+分区键字段true
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-true：保留更新规
+：保留更新规则
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-则中的分区键字
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-段。
+中的分区键字段
 T}@T{
 T}
 T{
@@ -202,7 +195,7 @@ T{
 T}@T{
 JustOne
 T}@T{
-bool
+boolean
 T}@T{
 true：只更新一条
 T}@T{
@@ -212,28 +205,21 @@ T{
 T}@T{
 T}@T{
 T}@T{
-符合条件的记录。
+符合条件的记录<
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-false：更新所
+br>false：更新所有
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-有符合条件的记
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-录。
+符合条件的记录
 T}@T{
 T}
 .TE
@@ -241,15 +227,15 @@ T}
 .PP
 \f[B]Note:\f[]
 .IP \[bu] 2
-参数\f[C]hint\f[]的用法与 find() 的相同。
+参数 hint 的用法与 find() 的相同。
 .IP \[bu] 2
-目前分区集合上，不支持更新分区键。如果 \f[C]KeepShardingKey\f[] 为
-true，并且更新规则中带有分区键字段，将会报错\-178。
+目前分区集合上，不支持更新分区键。如果 KeepShardingKey 为
+true，并且更新规则中带有分区键字段，将会报错 \-178。
 .IP \[bu] 2
-\f[C]JustOne\f[]为 true 时，只能在单个分区、单个子表上执行。
+JustOne 为 true 时，只能在单个分区、单个子表上执行。
 .RE
 .SH 返回值
-.IP \[bu] 2
+.PP
 函数执行成功时，将返回一个 BSONObj
 类型的对象。通过该对象获取成功更新的记录数信息，字段说明如下：
 .PP
@@ -330,23 +316,25 @@ T}@T{
 数
 T}
 .TE
-.IP \[bu] 2
+.PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-错误信息记录在节点诊断日志（diaglog）中，可参考错误码。
+\f[C]update()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 错误码
 T}@T{
-可能的原因
+错误类型
 T}@T{
-解决方法
+可能发生的原因
+T}@T{
+解决办法
 T}
 _
 T{
@@ -354,11 +342,14 @@ T{
 T}@T{
 \-178
 T}@T{
+SDB_UPDATE_SHARD_KEY
+T}@T{
 分区集合上不支
 T}@T{
 KeepShardingKey 设置
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 持更新分区键
@@ -369,6 +360,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
+T}@T{
 分区键
 T}
 T{
@@ -376,11 +368,14 @@ T{
 T}@T{
 \-345
 T}@T{
+SDB_AUTH_INCOMPATIBLE
+T}@T{
 JustOne 跨多个分区
 T}@T{
 修改匹配条件，
 T}
 T{
+T}@T{
 T}@T{
 T}@T{
 或者多个子表
@@ -397,42 +392,43 @@ v2.0 及以上版本
 .SH 示例
 .IP \[bu] 2
 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint
-参数的内容。如下操作更新集合 employee 下的 age 字段，使用 $inc 将 age
-字段的值增加1。
+参数的内容。如下操作更新集合 samle.employee 下的 age 字段，使用 $inc 将 age
+字段的值增加 1
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update(\ {\ $inc:\ {\ age:\ 1\ }\ }\ )
+>\ db.sample.employee.update({$inc:\ {age:\ 1}})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
 选择符合匹配条件的记录，对这些记录按更新规则更新，即设定 rule 和 cond
 参数。如下操作使用匹配符
-\f[I]e\f[]\f[I]x\f[]\f[I]i\f[]\f[I]s\f[]\f[I]t\f[]\f[I]匹\f[]\f[I]配\f[]\f[I]更\f[]\f[I]新\f[]\f[I]集\f[]\f[I]合\f[]\f[I]e\f[]\f[I]m\f[]\f[I]p\f[]\f[I]l\f[]\f[I]o\f[]\f[I]y\f[]\f[I]e\f[]\f[I]e\f[]\f[I]中\f[]\f[I]存\f[]\f[I]在\f[]\f[I]a\f[]\f[I]g\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]而\f[]\f[I]不\f[]\f[I]存\f[]\f[I]在\f[]\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]的\f[]\f[I]记\f[]\f[I]录\f[]，\f[I]使\f[]\f[I]用\f[]unset将这些记录的
-age 字段删除。
+\f[I]e\f[]\f[I]x\f[]\f[I]i\f[]\f[I]s\f[]\f[I]t\f[]\f[I]匹\f[]\f[I]配\f[]\f[I]更\f[]\f[I]新\f[]\f[I]集\f[]\f[I]合\f[]\f[I]s\f[]\f[I]a\f[]\f[I]m\f[]\f[I]p\f[]\f[I]l\f[]\f[I]e\f[].\f[I]e\f[]\f[I]m\f[]\f[I]p\f[]\f[I]l\f[]\f[I]o\f[]\f[I]y\f[]\f[I]e\f[]\f[I]e\f[]\f[I]中\f[]\f[I]存\f[]\f[I]在\f[]\f[I]a\f[]\f[I]g\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]而\f[]\f[I]不\f[]\f[I]存\f[]\f[I]在\f[]\f[I]n\f[]\f[I]a\f[]\f[I]m\f[]\f[I]e\f[]\f[I]字\f[]\f[I]段\f[]\f[I]的\f[]\f[I]记\f[]\f[I]录\f[]，\f[I]使\f[]\f[I]用\f[]unset将这些记录的
+age 字段删除
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update(\ {\ $unset:\ {\ age:\ ""\ }\ },\ {\ age:\ {\ $exists:\ 1\ },\ name:\ {\ $exists:\ 0\ }\ }\ )
+>\ db.sample.employee.update({$unset:\ {age:\ ""}},\ {age:\ {$exists:\ 1},\ name:\ {$exists:\ 0}})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-按访问计划更新记录，假设集合中存在指定的索引名。如下操作使用索引名为 testIndex
-的索引访问集合 employee 中 age 字段值大于20的记录，将这些记录的 age 字段名加1。
+按访问计划更新记录，假设集合中存在指定的索引名，如下操作使用索引名为 testIndex
+的索引访问集合 sample.employee 中 age 字段值大于 20 的记录，将这些记录的 age
+字段名加 1
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update(\ {\ $inc:\ {\ age:\ 1\ }\ },\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ "":\ "testIndex"\ }\ )
+>\ db.sample.employee.update({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 20}},\ {"":\ "testIndex"})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-分区集合 sample.employee，分区键为 { a: 1 }，含有以下记录
+分区集合 sample.employee，分区键为 {a: 1}，含有以下记录
 .RS 2
 .IP
 .nf
@@ -448,13 +444,15 @@ age 字段删除。
 Return\ 1\ row(s).
 \f[]
 .fi
-.PP
-指定 KeepShardingKey 参数：不保留更新规则中的分区键字段。只更新了非分区键 b
-字段，分区键 a 字段的值没有被更新。
+.RE
+.IP \[bu] 2
+指定 KeepShardingKey 参数：不保留更新规则中的分区键字段，只更新了非分区键 b
+字段，分区键 a 字段的值没有被更新
+.RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update(\ {\ $set:\ {\ a:\ 9,\ b:\ 9\ }\ },\ {},\ {},\ {\ KeepShardingKey:\ false\ }\ )
+>\ db.sample.employee.update({$set:\ {a:\ 9,\ b:\ 9}},\ {},\ {},\ {KeepShardingKey:\ false})
 {
 \ \ "UpdatedNum":\ 1,
 \ \ "ModifiedNum":\ 0,
@@ -471,13 +469,15 @@ Return\ 1\ row(s).
 Return\ 1\ row(s).
 \f[]
 .fi
-.PP
+.RE
+.IP \[bu] 2
 指定 KeepShardingKey
-参数：保留更新规则中的分区键字段。因为目前不支持更新分区键，所以会报错。
+参数：保留更新规则中的分区键字段，因为目前不支持更新分区键，所以会报错
+.RS 2
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update(\ {\ $set:\ {\ a:\ 9\ }\ },\ {},\ {},\ {\ KeepShardingKey:\ true\ }\ )
+>\ db.sample.employee.update({$set:\ {a:\ 9}},\ {},\ {},\ {KeepShardingKey:\ true})
 (nofile):0\ uncaught\ exception:\ \-178
 Sharding\ key\ cannot\ be\ updated
 \f[]
