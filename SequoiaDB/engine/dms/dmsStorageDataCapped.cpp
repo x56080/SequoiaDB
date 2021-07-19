@@ -1198,7 +1198,8 @@ namespace engine
                                                       IDmsOprHandler *pHandler,
                                                       utilUpdateResult *pResult,
                                                       dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                                      dpsUnqIdxHashArray *pOldUnqIdxHashArray )
+                                                      dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                                      const IXM_IDX_HASH_BITMAP &idxHashBitmap )
    {
       SDB_ASSERT( FALSE, "Should not be here" ) ;
       return SDB_OPERATION_INCOMPATIBLE ;

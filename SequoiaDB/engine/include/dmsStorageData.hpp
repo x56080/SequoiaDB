@@ -173,7 +173,8 @@ namespace engine
                                    IDmsOprHandler *pHandler,
                                    utilUpdateResult *pResult,
                                    dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray ) ;
+                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                   const IXM_IDX_HASH_BITMAP &idxHashBitmap ) ;
 
    } ;
    typedef _dmsStorageData dmsStorageData ;

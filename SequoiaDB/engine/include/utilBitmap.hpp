@@ -137,6 +137,15 @@ namespace engine
             return FALSE ;
          }
 
+         OSS_INLINE void setAllBits()
+         {
+            if ( NULL != _bitmap )
+            {
+               ossMemset( _bitmap, 0xFFFFFFFF, _bitmapSize ) ;
+               _freeSize = 0 ;
+            }
+         }
+
          OSS_INLINE void resetBitmap ()
          {
             if ( NULL != _bitmap )

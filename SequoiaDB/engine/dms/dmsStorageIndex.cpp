@@ -1079,6 +1079,7 @@ namespace engine
       }
 
       context->mb()->_numIndexes -- ;
+      context->mbStat()->clearIdxHash() ;
 
       // log it
       if ( dpscb )
@@ -1233,6 +1234,7 @@ namespace engine
       context->mb()->_indexExtent[indexID] = metaExtentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
+      context->mbStat()->clearIdxHash() ;
 
       // create index callback
       if ( _pDataSu->_pEventHolder )
@@ -1486,6 +1488,7 @@ namespace engine
          context->mb()->_numIndexes++ ;
          context->mb()->_indexHWCount++ ;
          context->mbStat()->_textIdxNum++ ;
+         context->mbStat()->clearIdxHash() ;
 
          rc = handler->onCrtTextIdx( context, getSuName(), indexCB, cb, NULL ) ;
          if ( rc )
@@ -2626,6 +2629,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isUndo,
                                           IDmsOprHandler *pOprHandle,
+                                          const IXM_IDX_HASH_BITMAP &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                           dpsUnqIdxHashArray *pOldUnqIdxHashArray )
@@ -2640,6 +2644,13 @@ namespace engine
          PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
                  context->toString().c_str() ) ;
          goto error ;
+      }
+
+      // test if we have updated any index fields
+      // if not, nothing need to be changed
+      if ( !_needUpdateIndexes( context, idxHashBitmap ) )
+      {
+         goto done ;
       }
 
       // do global index first.
@@ -2898,6 +2909,41 @@ namespace engine
       }
 
       return TRUE ;
+   }
+
+   BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
+                                                 const IXM_IDX_HASH_BITMAP &idxHashBitmap )
+   {
+      SDB_ASSERT( context->isMBLock( EXCLUSIVE ),
+                  "should have exclusive lock on metadata block context" ) ;
+
+      // collections's index hash bitmap is empty, rebuild it
+      // NOTE: for update, we should have $id index at least
+      if ( context->mbStat()->isIdxHashEmpty() )
+      {
+         for ( UINT32 indexID = 0 ;
+               indexID < DMS_COLLECTION_MAX_INDEX ;
+               ++ indexID )
+         {
+            if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+            {
+               break ;
+            }
+
+            ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
+                                context ) ;
+
+            // for each key in key pattern, initialize key fields
+            BSONObjIterator iter( indexCB.keyPattern() ) ;
+            while( iter.more() )
+            {
+               BSONElement e = iter.next() ;
+               context->mbStat()->setIdxHash( e.fieldName() ) ;
+            }
+         }
+      }
+
+      return context->mbStat()->testIdxHash( idxHashBitmap ) ;
    }
 
    // delete all indexes for an oject

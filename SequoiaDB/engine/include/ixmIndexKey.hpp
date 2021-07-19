@@ -45,6 +45,7 @@
 #include "pd.hpp"
 #include "ossMemPool.hpp"
 #include "utilArray.hpp"
+#include "utilBitmap.hpp"
 
 using namespace bson;
 
@@ -501,6 +502,13 @@ namespace engine
                               _ixmKeyGenBase *keyGen ) ;
    } ;
    typedef class _ixmIndexKeyGen ixmIndexKeyGen ;
+
+   /*
+      hash index bitmap used to mark whether a fields is changed
+    */
+   #define IXM_IDX_HASH_BITMAP_SIZE ( 512 )
+   typedef _utilStackBitmap< IXM_IDX_HASH_BITMAP_SIZE > IXM_IDX_HASH_BITMAP ;
+
 }
 
 #endif //IXMINDEXKEY_HPP_

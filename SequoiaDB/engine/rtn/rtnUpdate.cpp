@@ -177,7 +177,8 @@ namespace engine
                                      TRUE,
                                      shardingKey,
                                      strictDataMode,
-                                     logWriteMod ) ;
+                                     logWriteMod,
+                                     TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
                       "%s", updator.toString().c_str() ) ;
       }

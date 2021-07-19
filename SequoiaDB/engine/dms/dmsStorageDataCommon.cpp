@@ -4109,7 +4109,8 @@ namespace engine
             }
             else
             {
-               rc = modifier.modify ( obj, newobj ) ;
+               rc = modifier.modify ( obj, newobj, NULL, NULL, NULL, NULL,
+                                      NULL, NULL ) ;
             }
 
             if ( rc )
@@ -4201,7 +4202,8 @@ namespace engine
                                        dpscb ? pHandler : NULL,
                                        pResult,
                                        pNewUnqIdxHashArray,
-                                       pOldUnqIdxHashArray ) ;
+                                       pOldUnqIdxHashArray,
+                                       modifier.getIdxHashBitmap() ) ;
             if ( rc )
             {
                if ( pResult && pResult->isMaskEnabled( UTIL_RESULT_MASK_ID ) )

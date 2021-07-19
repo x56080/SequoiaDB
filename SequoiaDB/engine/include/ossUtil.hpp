@@ -64,6 +64,15 @@ OSS_INLINE UINT32 ossHash ( const CHAR *str )
    return hash ;
 }
 
+OSS_INLINE UINT32 ossHash( const CHAR *str, CHAR stopChar )
+{
+   UINT32 hash = 5381 ;
+   CHAR c ;
+   while ( (c = *(str++)) && stopChar != c )
+      hash = ((hash << 5) + hash) + c;
+   return hash ;
+}
+
 OSS_INLINE UINT32 ossHash( const CHAR *value, UINT32 size, UINT32 bit = 5)
 {
    UINT32 hash = 5381 ;

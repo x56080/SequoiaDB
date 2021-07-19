@@ -397,6 +397,9 @@ namespace engine
       // how many operators need to block index creating
       UINT32      _blockIndexCreatingCount ;
 
+      // bitmap to indicate index fields
+      IXM_IDX_HASH_BITMAP _idxHashBitmap ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -429,6 +432,7 @@ namespace engine
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
          _blockIndexCreatingCount = 0 ;
+         _idxHashBitmap.resetBitmap() ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -506,6 +510,28 @@ namespace engine
       UINT64 getMaxGlobTransID( )
       {
          return _maxGlobTransID.peek() ;
+      }
+
+      void setIdxHash( const CHAR *idxFieldName )
+      {
+         // only get the first level of field name ( for embedded fields )
+         _idxHashBitmap.setBit(
+               ossHash( idxFieldName, '.' ) % IXM_IDX_HASH_BITMAP_SIZE ) ;
+      }
+
+      void clearIdxHash()
+      {
+         _idxHashBitmap.resetBitmap() ;
+      }
+
+      BOOLEAN testIdxHash( const IXM_IDX_HASH_BITMAP &idxHashBitmap )
+      {
+         return _idxHashBitmap.hasIntersaction( idxHashBitmap ) ;
+      }
+
+      BOOLEAN isIdxHashEmpty() const
+      {
+         return _idxHashBitmap.isEmpty() ;
       }
 
       _dmsMBStatInfo ()
@@ -1073,7 +1099,8 @@ namespace engine
                                              IDmsOprHandler *pHandler,
                                              utilUpdateResult *pResult,
                                              dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray ) = 0 ;
+                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                             const IXM_IDX_HASH_BITMAP &idxHashBitmap ) = 0 ;
 
          virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,
