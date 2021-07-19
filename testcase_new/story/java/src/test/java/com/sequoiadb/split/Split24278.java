@@ -94,9 +94,10 @@ public class Split24278 extends SdbTestBase {
     // 100%切分同时执行putLob
     @Test
     public void test() throws Exception {
+        byte[] wlobBuff = getRandomBytes( 1024 * 1024 * 200 );
         ThreadExecutor es = new ThreadExecutor( 600000 );
         Split split = new Split( dbcl );
-        PutLob putlob = new PutLob( lobOids );
+        PutLob putlob = new PutLob( lobOids, wlobBuff );
         es.addWorker( split );
         es.addWorker( putlob );
         es.run();
@@ -134,9 +135,11 @@ public class Split24278 extends SdbTestBase {
 
     private class PutLob extends ResultStore {
         private List< ObjectId > lobOids;
+        private byte[] wlobBuff;
 
-        private PutLob( List< ObjectId > lobOids ) {
+        private PutLob( List< ObjectId > lobOids, byte[] wlobBuff ) {
             this.lobOids = lobOids;
+            this.wlobBuff = wlobBuff;
         }
 
         @ExecuteOrder(step = 1)
@@ -147,7 +150,6 @@ public class Split24278 extends SdbTestBase {
                 DBCollection dbcl = sdb.getCollectionSpace( csName )
                         .getCollection( clName );
                 for ( int i = 0; i < lobOids.size(); i++ ) {
-                    byte[] wlobBuff = getRandomBytes( 1024 * 1024 * 300 );
                     createAndWriteLob( dbcl, wlobBuff, lobOids.get( i ) );
 
                     // save oid and md5
