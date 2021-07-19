@@ -1744,6 +1744,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       clsTask *pOtherTask = NULL ;
+      conflict = FALSE ;
 
       rc = clsNewTask( otherIdxObj, pOtherTask ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1752,7 +1753,6 @@ namespace engine
 
       if ( CLS_TASK_STATUS_FINISH == pOtherTask->status() )
       {
-         conflict = FALSE ;
          goto done ;
       }
 
@@ -1765,14 +1765,10 @@ namespace engine
          {
             conflict = TRUE ;
             PD_LOG_MSG( PDERROR,
-                        "Task[%llu] conflicts with an existing task[%s]",
-                        pCurTask->taskID(),
-                        pOtherTask->toBson().toString().c_str() ) ;
+                        "New task[%s] conflict with an existing task[%llu,%s]",
+                        pCurTask->taskName(),
+                        pOtherTask->taskID(), pOtherTask->taskName() ) ;
             goto done ;
-         }
-         else
-         {
-            conflict = FALSE ;
          }
       }
 

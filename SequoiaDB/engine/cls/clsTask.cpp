@@ -2402,6 +2402,39 @@ namespace engine
       BOOLEAN hasChangedGroup = FALSE ;
       BOOLEAN change2Finish = FALSE ; // run -> finish
 
+      /// increase group count
+      if ( CLS_TASK_STATUS_FINISH == orgGroupInfo.status &&
+           CLS_TASK_STATUS_FINISH == newGroupInfo.status )
+      {
+         // 'finish + ok' can convert to 'finish + -243',
+         // we should DECREASE _succeededGroups
+         if ( SDB_OK == orgGroupInfo.resultCode &&
+              SDB_OK != newGroupInfo.resultCode )
+         {
+            _succeededGroups-- ;
+            _failedGroups++ ;
+         }
+         else if ( SDB_OK != orgGroupInfo.resultCode &&
+                   SDB_OK == newGroupInfo.resultCode )
+         {
+            _failedGroups-- ;
+            _succeededGroups++ ;
+         }
+         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      }
+      else if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
+      {
+         if ( SDB_OK == newGroupInfo.resultCode )
+         {
+            _succeededGroups++ ;
+         }
+         else
+         {
+            _failedGroups++ ;
+         }
+         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
+      }
+
       /// update Groups element
       if ( orgGroupInfo.status != newGroupInfo.status )
       {
@@ -2457,20 +2490,6 @@ namespace engine
       if ( hasChangedGroup )
       {
          _changedMask |= CLS_IDX_MASK_GROUPS ;
-      }
-
-      // increase group count
-      if ( CLS_TASK_STATUS_FINISH == newGroupInfo.status )
-      {
-         if ( SDB_OK == newGroupInfo.resultCode )
-         {
-            _succeededGroups++ ;
-         }
-         else
-         {
-            _failedGroups++ ;
-         }
-         _changedMask |= CLS_IDX_MASK_GROUPCOUNT ;
       }
    }
 
@@ -2631,7 +2650,7 @@ namespace engine
             {
                // ignore -247 error when create index
                cntSucGroup++ ;
-               cntRedefineIdx ++ ;
+               cntRedefineIdx++ ;
             }
             else if ( SDB_IXM_NOTEXIST == localGroup.resultCode &&
                       CLS_TASK_DROP_IDX == _taskType )
