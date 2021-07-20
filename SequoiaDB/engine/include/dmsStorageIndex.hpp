@@ -200,7 +200,7 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
-                                  const IXM_IDX_HASH_BITMAP &idxHashBitmap,
+                                  const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
@@ -329,7 +329,7 @@ namespace engine
 
          BOOLEAN  _needProcessGlobalIndex( _pmdEDUCB *cb ) ;
          BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
-                                      const IXM_IDX_HASH_BITMAP &idxHashBitmap ) ;
+                                      const ixmIdxHashBitmap &idxHashBitmap ) ;
 
       private:
          virtual UINT64 _dataOffset() ;

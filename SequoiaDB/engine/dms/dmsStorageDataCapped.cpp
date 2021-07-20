@@ -1199,7 +1199,7 @@ namespace engine
                                                       utilUpdateResult *pResult,
                                                       dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                                       dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                                      const IXM_IDX_HASH_BITMAP &idxHashBitmap )
+                                                      const ixmIdxHashBitmap &idxHashBitmap )
    {
       SDB_ASSERT( FALSE, "Should not be here" ) ;
       return SDB_OPERATION_INCOMPATIBLE ;

@@ -504,10 +504,37 @@ namespace engine
    typedef class _ixmIndexKeyGen ixmIndexKeyGen ;
 
    /*
-      hash index bitmap used to mark whether a fields is changed
+      _ixmIdxHashBitmap define
     */
-   #define IXM_IDX_HASH_BITMAP_SIZE ( 512 )
-   typedef _utilStackBitmap< IXM_IDX_HASH_BITMAP_SIZE > IXM_IDX_HASH_BITMAP ;
+   // NOTE: hash index bitmap used to mark whether a field has been updated
+
+   // calculate hash brings additional costs, so only consider update less
+   // than 8 fields
+   #define IXM_IDX_HASH_MAX_FIELD_NUM  ( 8 )
+
+   // hash bitmap with 512 bits
+   #define IXM_IDX_HASH_BITMAP_SIZE    ( 512 )
+
+   class _ixmIdxHashBitmap : public _utilStackBitmap< IXM_IDX_HASH_BITMAP_SIZE >
+   {
+   public:
+      void setFieldBit( const CHAR *fieldName )
+      {
+         setBit( calcIndex( fieldName ) ) ;
+      }
+
+      static UINT32 calcIndex( const CHAR *fieldName )
+      {
+         UINT32 hash = 5381 ;
+         CHAR c ;
+         // only take first level of field name
+         while ( (c = *(fieldName ++)) && '.' != c )
+            hash = ((hash << 5) + hash) + c ;
+         return hash % IXM_IDX_HASH_BITMAP_SIZE ;
+      }
+   } ;
+
+   typedef class _ixmIdxHashBitmap ixmIdxHashBitmap ;
 
 }
 

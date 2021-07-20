@@ -1079,7 +1079,7 @@ namespace engine
       }
 
       context->mb()->_numIndexes -- ;
-      context->mbStat()->clearIdxHash() ;
+      context->mbStat()->clearIdxHash( indexID ) ;
 
       // log it
       if ( dpscb )
@@ -1234,7 +1234,7 @@ namespace engine
       context->mb()->_indexExtent[indexID] = metaExtentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
-      context->mbStat()->clearIdxHash() ;
+      context->mbStat()->clearIdxHash( indexID ) ;
 
       // create index callback
       if ( _pDataSu->_pEventHolder )
@@ -1488,7 +1488,7 @@ namespace engine
          context->mb()->_numIndexes++ ;
          context->mb()->_indexHWCount++ ;
          context->mbStat()->_textIdxNum++ ;
-         context->mbStat()->clearIdxHash() ;
+         context->mbStat()->clearIdxHash( indexID ) ;
 
          rc = handler->onCrtTextIdx( context, getSuName(), indexCB, cb, NULL ) ;
          if ( rc )
@@ -2629,7 +2629,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isUndo,
                                           IDmsOprHandler *pOprHandle,
-                                          const IXM_IDX_HASH_BITMAP &idxHashBitmap,
+                                          const ixmIdxHashBitmap &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                           dpsUnqIdxHashArray *pOldUnqIdxHashArray )
@@ -2671,7 +2671,8 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
                     error, PDERROR, "Failed to init index" ) ;
 
-         if ( !_needProcessIndex( indexCB, extLID ) )
+         if ( !_needProcessIndex( indexCB, extLID ) ||
+              !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
          }
@@ -2912,22 +2913,27 @@ namespace engine
    }
 
    BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
-                                                 const IXM_IDX_HASH_BITMAP &idxHashBitmap )
+                                                 const ixmIdxHashBitmap &idxHashBitmap )
    {
       SDB_ASSERT( context->isMBLock( EXCLUSIVE ),
                   "should have exclusive lock on metadata block context" ) ;
 
       // collections's index hash bitmap is empty, rebuild it
       // NOTE: for update, we should have $id index at least
-      if ( context->mbStat()->isIdxHashEmpty() )
+      if ( !( context->mbStat()->isIdxHashReady() ) )
       {
-         for ( UINT32 indexID = 0 ;
+         context->mbStat()->prepareIdxHash() ;
+         for ( INT32 indexID = 0 ;
                indexID < DMS_COLLECTION_MAX_INDEX ;
                ++ indexID )
          {
             if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
             {
                break ;
+            }
+            else if ( context->mbStat()->isIdxHashReady( indexID ) )
+            {
+               continue ;
             }
 
             ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
@@ -2938,7 +2944,7 @@ namespace engine
             while( iter.more() )
             {
                BSONElement e = iter.next() ;
-               context->mbStat()->setIdxHash( e.fieldName() ) ;
+               context->mbStat()->setIdxHash( indexID, e.fieldName() ) ;
             }
          }
       }

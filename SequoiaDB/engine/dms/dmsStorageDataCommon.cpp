@@ -4109,8 +4109,7 @@ namespace engine
             }
             else
             {
-               rc = modifier.modify ( obj, newobj, NULL, NULL, NULL, NULL,
-                                      NULL, NULL ) ;
+               rc = modifier.modify ( obj, newobj ) ;
             }
 
             if ( rc )

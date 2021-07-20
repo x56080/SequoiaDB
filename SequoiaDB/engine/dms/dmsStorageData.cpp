@@ -203,7 +203,7 @@ namespace engine
                                                 utilUpdateResult *pResult,
                                                 dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                                 dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                                const IXM_IDX_HASH_BITMAP &idxHashBitmap )
+                                                const ixmIdxHashBitmap &idxHashBitmap )
    {
       INT32 rc                     = SDB_OK ;
       UINT32 dmsRecordSize         = 0 ;

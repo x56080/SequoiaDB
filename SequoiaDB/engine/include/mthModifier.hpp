@@ -250,7 +250,7 @@ namespace engine
       BSONObj _modifierPattern ;
       BOOLEAN _initialized ;
       MODIFIER_VEC _modifierElements ;
-      IXM_IDX_HASH_BITMAP _idxHashBitmap ;
+      ixmIdxHashBitmap _idxHashBitmap ;
       UINT32  _modifierBits ;
       BOOLEAN _hasModified ;
 
@@ -497,7 +497,7 @@ namespace engine
       OSS_INLINE BOOLEAN isInitialized () const { return _initialized ; }
       OSS_INLINE BOOLEAN hasModified() const { return _hasModified ; }
 
-      OSS_INLINE const IXM_IDX_HASH_BITMAP &getIdxHashBitmap() const
+      OSS_INLINE const ixmIdxHashBitmap &getIdxHashBitmap() const
       {
          return _idxHashBitmap ;
       }

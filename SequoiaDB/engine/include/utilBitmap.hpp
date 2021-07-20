@@ -164,16 +164,36 @@ namespace engine
          {
             resetBitmap() ;
 
-            UINT32 lhsIdx = 0, rhsIdx = 0 ;
-            while ( lhsIdx < _bitmapSize &&
-                    rhsIdx < bitmap._bitmapSize )
+            if ( !bitmap.isEmpty() )
             {
-               _bitmap[ lhsIdx ] = bitmap._bitmap[ rhsIdx ] ;
-               lhsIdx ++ ;
-               rhsIdx ++ ;
-            }
+               UINT32 lhsIdx = 0, rhsIdx = 0 ;
+               while ( lhsIdx < _bitmapSize &&
+                       rhsIdx < bitmap._bitmapSize )
+               {
+                  _bitmap[ lhsIdx ] = bitmap._bitmap[ rhsIdx ] ;
+                  lhsIdx ++ ;
+                  rhsIdx ++ ;
+               }
 
-            _calcFreeSize() ;
+               _calcFreeSize() ;
+            }
+         }
+
+         OSS_INLINE void unionBitmap( const _utilBitmapBase &bitmap )
+         {
+            if ( !bitmap.isEmpty() )
+            {
+               UINT32 lhsIdx = 0, rhsIdx = 0 ;
+               while ( lhsIdx < _bitmapSize &&
+                       rhsIdx < bitmap._bitmapSize )
+               {
+                  _bitmap[ lhsIdx ] |= bitmap._bitmap[ rhsIdx ] ;
+                  lhsIdx ++ ;
+                  rhsIdx ++ ;
+               }
+
+               _calcFreeSize() ;
+            }
          }
 
          OSS_INLINE BOOLEAN hasIntersaction ( const _utilBitmapBase & bitmap ) const

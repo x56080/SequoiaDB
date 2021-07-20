@@ -2616,7 +2616,8 @@ namespace engine
             goto error ;
          }
       }
-      if ( calcIdxHash )
+      if ( calcIdxHash &&
+           _modifierElements.size() <= IXM_IDX_HASH_MAX_FIELD_NUM )
       {
          _idxHashBitmap.resetBitmap() ;
          for ( MODIFIER_VEC::iterator iter = _modifierElements.begin() ;
@@ -2624,18 +2625,11 @@ namespace engine
                ++ iter )
          {
             ModifierElement *mthEle = *iter ;
-            const CHAR *fieldName = mthEle->_toModify.fieldName() ;
-
-            // only get the first level of field name ( for embedded fields )
-            _idxHashBitmap.setBit(
-                  ossHash( fieldName, '.' ) % IXM_IDX_HASH_BITMAP_SIZE ) ;
+            _idxHashBitmap.setFieldBit( mthEle->_toModify.fieldName() ) ;
             if ( RENAME == mthEle->_modType )
             {
                // need consider new name for RENAME modify operator
-               const CHAR *newFieldName = mthEle->_toModify.valuestr() ;
-               // only get the first level of field name ( for embedded fields )
-               _idxHashBitmap.setBit(
-                     ossHash( newFieldName, '.' ) % IXM_IDX_HASH_BITMAP_SIZE ) ;
+               _idxHashBitmap.setFieldBit( mthEle->_toModify.valuestr() ) ;
             }
          }
       }
