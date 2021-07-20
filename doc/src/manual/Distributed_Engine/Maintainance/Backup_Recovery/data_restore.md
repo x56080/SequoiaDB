@@ -16,8 +16,8 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | 参数名        | 缩写 | 说明 |
 | ------------- | ---- | ---- |
 | --bkpath      | -p   | 备份源数据所在路径  |
-| --increaseid  | -i   | 需要恢复到第几次增量备份，默认为 -1，表示恢复到最后一次  |
-| --beginincreaseid | -b | 需要从第几次备份开始恢复，默认为 -1，表示由系统自动计算<br>为 0 时，表示从全量备份开始恢复；为 1 时，表示从第一次增量备份开始恢复，以此类推  |
+| --beginincreaseid | -b | 需要从第几次备份开始恢复，默认为 -1，表示由系统自动计算<br>为 0 时，表示从全量备份开始恢复；为 1 时，表示从第一次增量备份开始恢复，以此类推 <br> 可参考 [listBackup()][listBackup] 输出的字段值 ID，选定需要的备份；如选定 ID 为 2 的备份，则 -b 指定为 2 |
+| --increaseid  | -i   | 需要恢复到第几次增量备份，默认为 -1，表示恢复到最后一次 <br> 取值方式可参考参数 --beginincreaseid  |
 | --bkname      | -n   | 需要恢复的备份名称 |
 | --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
@@ -195,3 +195,5 @@ auditpath=/opt/sequoiadb/database/data/11820/diaglog/
     本文使用的所有引用及链接
 [configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
 [pit]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
+[listBackup]:manual/Manual/Sequoiadb_Command/Sdb/listBackup.md
+
