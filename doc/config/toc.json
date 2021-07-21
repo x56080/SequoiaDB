@@ -809,6 +809,12 @@
                      "file": "read_write",
                      "cn": "读写分离",
                      "en": "R/W Splitting"
+                  },
+                  {
+                     "id": 1626834993,
+                     "file": "primary_secondary_consistency",
+                     "cn": "主备一致性",
+                     "en": "Primary Secondary Consistency"
                   }
                ]
             },
@@ -987,6 +993,12 @@
                      "en": "Audit log exporter tool"
                   },
                   {
+                     "id": 1599730475,
+                     "file": "split_merge",
+                     "cn": "容灾切换合并工具",
+                     "en": "Split Merge Tool"
+                  },
+                  {
                      "id": 1541583490,
                      "file": "sdbpasswd",
                      "cn": "数据库密码工具",
@@ -1091,6 +1103,56 @@
                "file": "hot_spare",
                "cn": "热备节点",
                "en": "Hot Spare"
+            },
+              {
+             "id": 1599717423,
+             "dir": "ha_dr",
+             "cn": "高可用与容灾",
+             "en": "ha_dr",
+             "contents":[
+                {
+                   "id": 1599717733,
+                   "file": "high_avaliability",
+                   "cn": "高可用",
+                   "en": "high avaliability"
+                },
+                {
+                   "id": 1599718358,
+                   "file": "disaster_recovery",
+                   "cn": "容灾",
+                   "en": "disaster recovery"
+                },
+                {
+                   "id": 1599718510,
+                   "file": "twodatacenter",
+                   "cn": "同城双中心部署",
+                   "en": "two center"
+                },
+                {
+                   "id": 1599718691,
+                   "file": "threedatacenter",
+                   "cn": "同城三中心部署",
+                   "en": "three center"
+                },
+                {
+                   "id": 1599718797,
+                   "file": "twocity_threedatacenter",
+                   "cn": "两地三中心部署",
+                   "en": "two city_three center"
+                },
+                {
+                   "id": 1599719000,
+                   "file": "threecity_fivedatacenter",
+                   "cn": "三地五中心部署",
+                   "en": "three city_five center"
+                },
+                {
+                   "id": 1599719122,
+                   "file": "disaster_recovery_tool",
+                   "cn": "容灾工具",
+                   "en": "disaster recovery tool"
+                }
+               ]
             },
             {
                "id": 1432190667,
