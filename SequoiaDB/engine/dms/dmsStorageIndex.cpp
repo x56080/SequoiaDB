@@ -453,23 +453,28 @@ namespace engine
          {
             if ( curIdxCB.isSameDef( index, TRUE ) )
             {
-               PD_LOG( PDERROR, "Same index defined already:[%s:%s]",
-                       curIdxCB.getName(),
-                       index.getStringField( IXM_FIELD_NAME_NAME ) ) ;
+               PD_LOG_MSG ( PDERROR, 
+                            "The same index '%s' has been defined already",
+                            curIdxCB.getName() ) ;
                rc = SDB_IXM_REDEF ;
             }
             else
             {
-               PD_LOG ( PDINFO, "Duplicate index name: %s",
-                        index.getStringField( IXM_FIELD_NAME_NAME ) );
+               PD_LOG_MSG ( PDERROR, 
+                            "The existing index '%s' has the same name "\
+                            "but with a different definition", 
+                            curIdxCB.getName() ) ;
                rc = SDB_IXM_EXIST;
             }
             goto error ;
          }
          else if ( curIdxCB.isSameDef( index ) )
          {
-            PD_LOG ( PDERROR, "Duplicate index define: %s",
-                     index.getStringField( IXM_FIELD_NAME_NAME ) );
+            PD_LOG_MSG ( PDERROR, 
+                         "The scene of index '%s' is covered by "\
+                         "the existing index '%s'",
+                         index.getStringField( IXM_FIELD_NAME_NAME ),
+                         curIdxCB.getName() );
             rc = SDB_IXM_EXIST_COVERD_ONE ;
             goto error ;
          }
