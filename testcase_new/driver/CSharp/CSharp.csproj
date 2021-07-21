@@ -61,19 +61,22 @@
     <Compile Include="Crud\Analyze\AnalyzeIndex14259.cs" />
     <Compile Include="Crud\Analyze\AnalyzeGroup14260.cs" />
     <Compile Include="Crud\Analyze\AnalyzeInexistCl14261.cs" />
+    <Compile Include="Crud\DataType\ArrayData14584.cs" />
     <Compile Include="Crud\DataType\BinData14587.cs" />
     <Compile Include="Crud\DataType\Bool14590.cs" />
     <Compile Include="Crud\DataType\DateTime14589.cs" />
     <Compile Include="Crud\DataType\Decimal14592.cs" />
-    <Compile Include="Crud\DataType\Regex14586.cs" />
-    <Compile Include="Crud\DataType\NumberLongData14594.cs" />
-    <Compile Include="Crud\DataType\TimestampData14588.cs" />
-    <Compile Include="Crud\DataType\ArrayData14584.cs" />
     <Compile Include="Crud\DataType\DoubleData14596.cs" />
+    <Compile Include="Crud\DataType\InsertUpdateDelete14595.cs" />
+    <Compile Include="Crud\DataType\InsertUpdateDelete14597.cs" />
     <Compile Include="Crud\DataType\MinKeyAndMaxKey14582.cs" />
     <Compile Include="Crud\DataType\NullData14583.cs" />
-    <Compile Include="Crud\DataType\ObjectData14595.cs" />
+    <Compile Include="Crud\DataType\Numberlong13652.cs" />
+    <Compile Include="Crud\DataType\NumberLongData14594.cs" />
+    <Compile Include="Crud\DataType\ObjectData14585.cs" />
     <Compile Include="Crud\DataType\OidData14591.cs" />
+    <Compile Include="Crud\DataType\Regex14586.cs" />
+    <Compile Include="Crud\DataType\TimestampData14588.cs" />
     <Compile Include="Crud\Insert\Insert14528.cs" />
     <Compile Include="Crud\Insert\Insert14529.cs" />
     <Compile Include="Crud\Insert\BulkInsert14531.cs" />
@@ -81,12 +84,23 @@
     <Compile Include="Crud\Insert\Insert14532.cs" />
     <Compile Include="Crud\Insert\Insert16622.cs" />
     <Compile Include="Crud\Insert\TestInsert18244.cs" />
+    <Compile Include="Crud\Lob\Lob13404.cs" />
+    <Compile Include="Crud\Lob\Lob13466.cs" />
+    <Compile Include="Crud\Lob\Lob13468.cs" />
+    <Compile Include="Crud\Lob\Lob22582.cs" />
+    <Compile Include="Crud\Lob\Lob22583.cs" />
+    <Compile Include="Crud\Lob\Lob22585.cs" />
+    <Compile Include="Crud\Lob\Lob22692.cs" />
+    <Compile Include="Crud\Lob\LobUtils.cs" />
+    <Compile Include="Crud\Lob\LockAndSeekParamVerify13477.cs" />
+    <Compile Include="Crud\Lob\LockAndWrite14794.cs" />
     <Compile Include="Crud\Lob\LockParamVerify13476.cs" />
     <Compile Include="Crud\Lob\ModificationTime13470.cs" />
-    <Compile Include="Crud\Lob\LockAndSeekParamVerify13477.cs" />
-    <Compile Include="Crud\Lob\TruncateLob13478.cs" />
-    <Compile Include="Crud\Lob\LockAndWrite14794.cs" />
     <Compile Include="Crud\Lob\SeekWriteAndReadLob14888.cs" />
+    <Compile Include="Crud\Lob\TestIsEof15674.cs" />
+    <Compile Include="Crud\Lob\TestListLobs20312.cs" />
+    <Compile Include="Crud\Lob\TestLob20311.cs" />
+    <Compile Include="Crud\Lob\TruncateLob13478.cs" />
     <Compile Include="Crud\Query\Count14544.cs" />
     <Compile Include="Crud\Query\Cursor14581.cs" />
     <Compile Include="Crud\Query\Query14543.cs" />
@@ -104,19 +118,9 @@
     <Compile Include="Crud\Delete\DeleteMatcherRecord14540.cs" />
     <Compile Include="Crud\Delete\QueryAndRemove14541.cs" />
     <Compile Include="Crud\Delete\Delete14542.cs" />
-    <Compile Include="Crud\DataType\InsertUpdateDelete14595.cs" />
-    <Compile Include="Crud\DataType\InsertUpdateDelete14597.cs" />
-    <Compile Include="Crud\DataType\Numberlong13652.cs" />
     <Compile Include="Crud\Explain\Explain12475.cs" />
-    <Compile Include="Crud\Lob\LobUtils.cs" />
-    <Compile Include="Crud\Lob\Lob13466.cs" />
-    <Compile Include="Crud\Lob\Lob13404.cs" />
-    <Compile Include="Crud\Lob\Lob13468.cs" />
-    <Compile Include="Crud\Lob\TestListLobs20312.cs" />
-    <Compile Include="Crud\Lob\TestLob20311.cs" />
     <Compile Include="Cluster\TestGetSlave14891.cs" />
     <Compile Include="Cluster\TestAttachDetachNodePara16816.cs" />
-    <Compile Include="Monitor\TestSnapshotAccessplan14516.cs" />
     <Compile Include="Meta\Common.cs" />
     <Compile Include="Meta\Meta15186.cs" />
     <Compile Include="Meta\Meta15187.cs" />
@@ -137,6 +141,10 @@
     <Compile Include="Meta\TestDeleteDomainAndCS14559.cs" />
     <Compile Include="Meta\TestDomain14557.cs" />
     <Compile Include="Meta\TestListDomains14558.cs" />
+    <Compile Include="Meta\RenamCS16637.cs" />
+    <Compile Include="Meta\RenameCL16641.cs" />
+    <Compile Include="Meta\RenameCL16642.cs" />
+    <Compile Include="Meta\RenameCS16638.cs" />
     <Compile Include="Split\Common.cs" />
     <Compile Include="Split\TestSplit14551.cs" />
     <Compile Include="Split\TestSplit14552.cs" />
@@ -206,6 +214,9 @@
     <Compile Include="Monitor\TestGetList13623.cs" />
     <Compile Include="Monitor\TestResetSnapshot14578.cs" />
     <Compile Include="Monitor\TestSnapshot13622.cs" />
+    <Compile Include="Monitor\TestSnapshotAccessplan14516.cs" />
+    <Compile Include="Monitor\TestSnapshot22813.cs" />
+    <Compile Include="Monitor\TestSnapshotIndexstats22774.cs" />
     <Compile Include="Auth\TestAuth14567.cs" />
     <Compile Include="Sql\TestSQL14580.cs" />
     <Compile Include="Sdb\TestDBCursor14650.cs" />
@@ -232,7 +243,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-      <Content Include="Config.xml" />
+    <Content Include="Config.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
