@@ -95,7 +95,7 @@ public class SdbTestBase {
             @Optional("9200") String ESSVCNAME,
             @Optional("") String FULLTEXTPREFIX,
             @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR,
-            @Optional("localhost") String DSHOSTNAME,
+            @Optional("${DSHOSTNAME}") String DSHOSTNAME,
             @Optional("11810") String DSSVCNAME ) {
         hostName = HOSTNAME;
         serviceName = SVCNAME;
@@ -119,36 +119,25 @@ public class SdbTestBase {
         srcCoordUrl = DSHOSTNAME + ":" + DSSVCNAME;
 
         getAllNodeConf( confObj );
-        Sequoiadb db = null;
-        try {
-            db = new Sequoiadb( coordUrl, "", "" );
+        try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" )) {
             boolean ret = createCommonCS( db );
             Assert.assertTrue( ret );
             createWorkDir();
             createReserveDir();
         } catch ( BaseException e ) {
             Assert.fail( "connect " + coordUrl + ": " + e.getErrorCode() );
-        } finally {
-            if ( db != null ) {
-                db.close();
-            }
         }
 
-        if ( !DSHOSTNAME.equals( "${DSHOSTNAME}" ) ) {
-            Sequoiadb srcdb = null;
-            try {
-                srcdb = new Sequoiadb( srcCoordUrl, "", "" );
+        if ( !"${DSHOSTNAME}".equals( DSHOSTNAME ) ) {
+            try ( Sequoiadb srcdb = new Sequoiadb( srcCoordUrl, "", "" )) {
                 srcdbExist = true;
                 boolean ret = createCommonCS( srcdb );
                 Assert.assertTrue( ret );
                 createWorkDir( srcCoordUrl );
                 createReserveDir( srcCoordUrl );
             } catch ( BaseException e ) {
-                Assert.fail( "connect " + srcCoordUrl + ": " + e.getErrorCode() );
-            } finally {
-                if ( srcdb != null ) {
-                    srcdb.close();
-                }
+                Assert.fail(
+                        "connect " + srcCoordUrl + ": " + e.getErrorCode() );
             }
         }
 
