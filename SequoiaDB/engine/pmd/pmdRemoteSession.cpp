@@ -1272,6 +1272,7 @@ namespace engine
       ossTick startTimer ;
       BOOLEAN hasBlock = FALSE ;
       UINT32 waitTimes = 0 ;
+      ossPoolVector<pmdEDUEvent> tmpEventVec ;
 
       if ( monQuery )
       {
@@ -1403,6 +1404,29 @@ namespace engine
             event.reset() ;
             continue ;
          }
+         if ( event._Data )
+         {
+            INT32 opCode = ((MsgHeader*)event._Data)->opCode ;
+            if ( opCode != MSG_BS_DISCONNECT && !IS_REPLY_TYPE( opCode ) )
+            {
+               PD_LOG( PDINFO,
+                       "Session[%s] recieve unexpected request message"
+                       "[opCode: %d], ignore it",
+                       _pEDUCB->toString().c_str(), opCode ) ;
+               try
+               {
+                  tmpEventVec.push_back( event ) ;
+               }
+               catch( std::exception &e )
+               {
+                  pmdEduEventRelease( event, _pEDUCB ) ;
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                  throw e ;
+               }
+               event.reset() ;
+               continue ;
+            }
+         }
 
          pSubSession = NULL ;
          rc = _pSite->processEvent( event, _mapSubSession, &pSubSession,
@@ -1431,6 +1455,18 @@ namespace engine
       if ( hasBlock )
       {
          _pEDUCB->unsetBlock() ;
+      }
+      for ( ossPoolVector<pmdEDUEvent>::const_iterator cit = tmpEventVec.begin() ;
+            cit != tmpEventVec.end() ; cit++ )
+      {
+         if ( pSiteHandle )
+         {
+            pSiteHandle->postEvent( *cit ) ;
+         }
+         else
+         {
+            _pEDUCB->postEvent( *cit ) ;
+         }
       }
       if ( monQuery )
       {

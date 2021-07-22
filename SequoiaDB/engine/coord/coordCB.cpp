@@ -773,6 +773,10 @@ retry :
       {
          _needReply = FALSE ;
       }
+      else if ( IS_REPLY_TYPE( pMsg->opCode ) )
+      {
+         _needReply = FALSE ;
+      }
       else
       {
          _needReply = TRUE ;
