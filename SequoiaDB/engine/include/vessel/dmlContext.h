@@ -36,7 +36,6 @@
 #ifndef VESSEL_DML_CONTEXT_H_
 #define VESSEL_DML_CONTEXT_H_
 
-#include "vessel/recordData.h"
 #include "vessel/strSlice.h"
 #include "utilUniqueID.hpp"
 #include "utilCompression.hpp"
@@ -58,27 +57,14 @@ namespace vessel
    class dmlContext : public requestContext
    {
       public:
-         OSS_INLINE dmlContext():
-         _clLogicalID(DMS_INVALID_LOGICCLID),
-         _clUniqueID(utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID, UTIL_INVALID_CL_INNER_ID)),
-         _striping(INVALID_STRIPING_ID),
-         _compressionType(UTIL_COMPRESSOR_INVALID),
-         _compressionBuffer(NULL),
-         _compressionBufferSize(0),
-         _lsn(DPS_INVALID_LSN_OFFSET)
-         {
-            
-         }
-
+         dmlContext(){}
          virtual ~dmlContext();
+
       public:
          virtual void close();
 
-         void initNewRequest(collectionSpace *cs,
-                             collection *cl,
-                             const recordData &record,
-                             const DPS_TRANS_ID &transID,
-                             STRIPING_ID striping);
+         void setCLInfo(const strSlice &csName,
+                         const strSlice &clName);
 
          OSS_INLINE const strSlice &getCSName()const
          {
@@ -88,19 +74,10 @@ namespace vessel
          {
             return _clName;
          }
-         OSS_INLINE UINT32 getLogicalID()const
-         {
-            return _clLogicalID;
-         }
-         OSS_INLINE const utilCLUniqueID &getCLUniqueID()const
-         {
-            return _clUniqueID;
-         }
          OSS_INLINE BOOLEAN clInfoIsValid()const
          {
             return !_csName.empty() &&
-                   !_clName.empty() &&
-                   DMS_INVALID_LOGICCLID != _clLogicalID;
+                   !_clName.empty();
          }
          OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
          {
@@ -110,116 +87,30 @@ namespace vessel
          {
             return _transID;
          }
-         OSS_INLINE void setOriginalRecord(const recordData &r)
+         OSS_INLINE UINT32 getUniqueKeyCount()const
          {
-            _originalRecord = r;
+            return _uniqueKeyHash.size();
          }
-         OSS_INLINE const recordData &getOriginalRecord()const
+         OSS_INLINE const UINT16 *getUniqueKeys()const
          {
-            return _originalRecord;
-         }
-         OSS_INLINE void setStriping(STRIPING_ID s)
-         {
-            _striping = s;
-         }
-         OSS_INLINE STRIPING_ID getStriping()const
-         {
-            return _striping;
+            return _uniqueKeyHash.data();
          }
 
-         OSS_INLINE const recordData &getRecord()const
-         {
-            return recordIsCompressed() ? _compressedRecord : _originalRecord;
-         }
+         ///WARNING: Unqiue keys must be added in order.
+         void addUniqueKey(UINT16 key);
 
-         OSS_INLINE BOOLEAN recordIsCompressed()const
-         {
-            return UTIL_COMPRESSOR_INVALID != _compressionType && _compressedRecord.isValid();
-         }
-         OSS_INLINE void setCompressedRecord(UINT32 size, UTIL_COMPRESSOR_TYPE type)
-         {
-            _compressionType = type;
-            _compressedRecord.reset(_originalRecord.getType(), slice(size, _compressionBuffer));
-         }
-         OSS_INLINE const recordData &getCompressedRecord()const
-         {
-            return _compressedRecord;
-         }
-         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
-         {
-            return _compressionType;
-         }
+         INT32 lockUniqueIndexKeys();
 
-         INT32 allocateCompressionBuffer(UINT32 size);
-
-         OSS_INLINE UINT32 getCompressionBufferSize()const
-         {
-            return _compressionBufferSize;
-         }
-
-         OSS_INLINE CHAR *getCompressionBuffer()
-         {
-            return _compressionBuffer;
-         }
-
-         OSS_INLINE void setLsn(const DPS_LSN_OFFSET &lsn)
-         {
-            _lsn = lsn;
-            return;
-         }
-         OSS_INLINE const DPS_LSN_OFFSET &getLsn()const
-         {
-            return _lsn;
-         }
-         OSS_INLINE void setRid(const recordID &rid)
-         {
-            _rid = rid;
-            return;
-         }
-         OSS_INLINE const recordID &getRid()const
-         {
-            return _rid;
-         }
-
-         OSS_INLINE void pushUniqueIdxHash(UINT16 h)
-         {
-            _uniqueIndexHash.push_back(h);
-         }
-
-         OSS_INLINE void sortIndexHash()
-         {
-            if (1 < _uniqueIndexHash.size())
-            {
-               std::sort(_uniqueIndexHash.begin(), _uniqueIndexHash.end());
-            }
-         }
-         OSS_INLINE UINT32 getUniqueIndexCount()const
-         {
-            return _uniqueIndexHash.size();
-         }
-         OSS_INLINE const UINT16 *getUniqueIdexData()const
-         {
-            return _uniqueIndexHash.data();
-         }
+         void unlockUniqueKeys();
       private:
-         void reset();
+         void fini();
 
       private:
          strSlice _csName;
          strSlice _clName;
-         UINT32 _clLogicalID;
-         utilCLUniqueID _clUniqueID;
-
          DPS_TRANS_ID _transID;
-         STRIPING_ID _striping;
-         recordData _originalRecord;
-         recordData _compressedRecord;
-         UTIL_COMPRESSOR_TYPE _compressionType;
-         CHAR *_compressionBuffer;
-         UINT32 _compressionBufferSize;
-         DPS_LSN_OFFSET _lsn;
-         recordID _rid;
-         ossPoolVector<UINT16> _uniqueIndexHash;
+         ossPoolVector<UINT16> _uniqueKeyHash;
+         BOOLEAN _uniqueKeyLocked = FALSE;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

@@ -64,7 +64,7 @@ namespace vessel
          initWithCache(const GLOBAL_PAGE_ID &gpid,
                        UINT32 pageSize,
                        const runtimePageBuffer::options &o,
-                       const liteCacheTuple &tuple,
+                       liteCacheTuple &tuple,
                        runtimePageBuffer &rpb)
    {
       return rpb.init(gpid, pageSize, tuple, o);
@@ -85,16 +85,17 @@ namespace vessel
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
    logicalPageSpace::~logicalPageSpace()
    {
-      _close();
+      __close();
    }
 
    void logicalPageSpace::close()
    {
       _close();
+      __close();
       return;
    }
 
-   void logicalPageSpace::_close()
+   void logicalPageSpace::__close()
    {
       _lpidCache.fini();
       _idMapFiles.fini();
@@ -115,10 +116,11 @@ namespace vessel
    void logicalPageSpace::destroy()
    {
       _destroy();
+      __destroy();
       return;
    }
 
-   void logicalPageSpace::_destroy()
+   void logicalPageSpace::__destroy()
    {
       _lpidCache.fini();
       _allocator.fini();
@@ -602,20 +604,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::ensureReservedPage(requestContext *context,
-                                              PAGE_ID lpid,
-                                              pageInitializer *initer,
-                                              logicalPageBuffer &lpb)
+   INT32 logicalPageSpace::ensureReservedPageMapped(requestContext *context,
+                                                    PAGE_ID lpid,
+                                                    pageInitializer *initer)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!lpb.isValid(), "do not reinit");
+      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
       idMapSlot slot;
       BOOLEAN isMutable = FALSE;
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
-      runtimePageBuffer::options o;
-      PAGE_ID newPid = INVALID_PAGE_ID;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      mappedLogicalPageId mpid;
 
-      lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -633,106 +632,94 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      rc = lpb._lh.lock(context, getSpaceType(), lpid, mode);
-      if (SDB_OK != rc)
+      else if (!context->testLpidLocked(getSpaceType(), lpid, &mode) ||
+               OSS_SHARED_LATCH_MODE_EXCLUSIVE != mode)
       {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
 
-      rc = getPageFromCache(lpid, slot, isMutable);
+      rc = _lpidCache.get(lpid, slot, isMutable);
       if (SDB_OK == rc)
       {
-         rc = getRuntimePageBuffer(context, slot.pid,
-                                   mode, o, lpb._rpb);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get rpb of pid[%d], rc:%d", slot.pid, rc);
-            goto error;
-         }
-         lpb.init(this, slot.psv, isMutable);
+         goto done;
       }
-      else if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
-      {
-         rc = _dpc->allocatePage(newPid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate new pid:%d", rc);
-            goto error;
-         }
-
-         rc = initPageAndCompleteBuffer(context, newPid, initer, lpb);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init new page[%d,%d], rc:%d",
-                   lpid, newPid, rc);
-            goto error;
-         }
-      }
-      else
+      else if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid[%d] in cache:%d", lpid, rc);
          goto error;
       }
-   done:
-      return rc;
-   error:
-      lpb.fini();
-      if (INVALID_PAGE_ID != newPid)
-      {
-         _dpc->releasePage(newPid);
-      }
-      goto done;
-   }
 
-   INT32 logicalPageSpace::initPageAndCompleteBuffer(requestContext *context,
-                                                     PAGE_ID pid,
-                                                     pageInitializer *initer,
-                                                     logicalPageBuffer &lpb)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(NULL != initer, "can not be null");
-      lpidLockHelper &lh = lpb._lh;
-      runtimePageBuffer &rpb = lpb._rpb;
-      SDB_ASSERT(lh.getLockMode() == OSS_SHARED_LATCH_MODE_EXCLUSIVE, "must be exclusive");
-      SDB_ASSERT(!rpb.isValid(), "can not be valid");
-      runtimePageBuffer::options o;
-      PAGE_ID lpid = lh.getLpid();
-      PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
-      mappedLogicalPageId mpid;
-
-      rc = getRuntimePageBufferToReset(context, pid, rpb);
+      /// lpid unmapped
+      rc = _dpc->allocatePage(pid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", pid, rc);
-         goto error;
-      }
-      SDB_ASSERT(rpb.isWritingPrepared(), "must be prepared");
-
-      rc = initer->initPage(context, lpid, psv, &rpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init page[%d], rc:%d", pid, rc);
+         PD_LOG(PDERROR, "failed to allocate page from page cluster:%d", rc);
          goto error;
       }
 
       mpid.reset(lpid, pid);
-      rc = map(context, psv, 1, &mpid);
+      rc = initAndMapPages(context, initer, 1, &mpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create new mapping[%d,%d], rc:%d",
-                lpid, pid, rc);
+         PD_LOG(PDERROR, "failed to init page:%d", rc);
          goto error;
       }
-
-      lpb.init(this, psv, TRUE);
    done:
       return rc;
    error:
-      rpb.fini();
+      goto done;
+   }
+
+   INT32 logicalPageSpace::getPageMappingAtNonruntime(requestContext *context,
+                                                      PAGE_ID lpid,
+                                                      PAGE_ID &pid,
+                                                      PAGE_SNAPSHOT_VERION &psv,
+                                                      mmapPagePointer &ptr)
+   {
+      INT32 rc = SDB_OK;
+      idMapSlot slot;
+      BOOLEAN isMutable = FALSE;
+
+      ptr.reset();
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validateLpidBeforeGet(lpid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = _lpidCache.get(lpid, slot, isMutable);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = _dpc->getDataPagePtr(slot.pid, ptr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      pid = slot.pid;
+      psv = slot.psv;
+   done:
+      return rc;
+   error:
+      pid = INVALID_PAGE_ID;
+      psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      ptr.reset();
       goto done;
    }
 
@@ -871,7 +858,7 @@ namespace vessel
          goto error;
       }
 
-      bufferSize = (count << 3);
+      bufferSize = count * sizeof(mappedLogicalPageId);
       buffer = context->allocateBuffer(bufferSize);
       if (OSS_UNLIKELY(NULL == buffer))
       {
@@ -1125,7 +1112,7 @@ namespace vessel
       return type;
    }
 
-   const storageCoreArgs &logicalPageSpace::getStorageCoreArgs(storageCoreArgs &args)const
+   const storageCoreArgs &logicalPageSpace::getStorageCoreArgs()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
       return _dpc->getCoreArgs();
@@ -1150,7 +1137,7 @@ namespace vessel
          goto error;
       }
 
-      bufferSize = (count << 2);
+      bufferSize = count * sizeof(PAGE_ID);
       pidBuffer = context->allocateBuffer(bufferSize);
       if (OSS_UNLIKELY(NULL == pidBuffer))
       {
@@ -1220,7 +1207,7 @@ namespace vessel
       }
       else
       {
-         UINT32 bufferSize = (count << 2);
+         UINT32 bufferSize = count * sizeof(PAGE_ID);
          CHAR *buffer = context->allocateBuffer(bufferSize);
          if (OSS_UNLIKELY(NULL == buffer))
          {
@@ -1851,14 +1838,12 @@ namespace vessel
    BOOLEAN logicalPageSpace::isReservedLpid(PAGE_ID lpid)const
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(4096 == ID_MAP_PAGE_CAPACITY, "must be 4k");
-      return lpid < (getReservedImpCount() << 12);
+      return lpid < (getReservedImpCount() * ID_MAP_PAGE_CAPACITY);
    }
 
    INT32 logicalPageSpace::validateLpidBeforeGet(PAGE_ID lpid)const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(4096 == ID_MAP_PAGE_CAPACITY, "must be 4k");
 
       if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
       {
@@ -1870,7 +1855,7 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if (_allocator.getPageCount() <= (lpid >> 12))
+      else if ((_allocator.getPageCount() * ID_MAP_PAGE_CAPACITY) <= lpid)
       {
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;

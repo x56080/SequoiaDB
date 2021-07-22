@@ -561,9 +561,6 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
                          UINT32 onceWrite = 512 ) ;
 
-INT32 ossExtendFileByFallocate(OSSFILE *file,
-                               UINT32 size);
-
 INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen ) ;
 
 CHAR* ossGetRealPath(const CHAR  *pPath,
@@ -666,8 +663,10 @@ INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( OSSUID uid, CHAR *pUserName, UINT32 nameLen ) ;
 
-/// Allocate file size from the end of file.
-INT32 ossFallocate(OSSFILE *file, UINT64 size);
+INT32 ossFallocate(OSSFILE *file,
+                   UINT32 mode,
+                   UINT64 offset,
+                   UINT64 size);
 
 #endif // OSSIO_HPP_
 

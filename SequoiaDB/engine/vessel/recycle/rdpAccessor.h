@@ -36,8 +36,7 @@
 #ifndef VESSEL_RDP_ACCESSOR_H_
 #define VESSEL_RDP_ACCESSOR_H_
 
-#include "vessel/logicalPageAccessor.h"
-#include "vessel/recordData.h"
+#include "vessel/pageAccessor.h"
 #include "vessel/strSlice.h"
 #include "utilCompression.hpp"
 #include "vessel/vesselOptions.h"
@@ -49,26 +48,21 @@ namespace engine
 namespace vessel
 {
    class logRecordContext;
+   class logicalPageBuffer;
    class insertContext;
    class scanCLCursor;
    class scanCLContext;
 
-   class rdpAccessor : public logicalPageAccessor
+   class rdpAccessor : public pageAccessor
    {
       public:
          rdpAccessor(){}
          virtual ~rdpAccessor(){}
       public:
-         INT32 init(requestContext *context,
-                    PAGE_ID lpid,
-                    const pageAccessor::options &o,
-                    logicalPageSpace *space,
-                    DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
-         INT32 insertNormalRecord(insertContext *context);
 
-         INT32 getRdpPageHead(requestContext *context,
-                              recordDataPageHead &head);
+         INT32 insertNormalRecord(insertContext *context,
+                                  logicalPageBuffer *lpb);
 
          INT32 getMoreWhenScan(scanCLContext *context,
                                scanCLCursor *cursor);

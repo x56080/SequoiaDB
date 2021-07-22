@@ -40,60 +40,64 @@
 #include "vessel/collectionRecordPage.h"
 #include "vessel/strSlice.h"
 #include "vessel/slice.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class logicalPageBuffer;
+
    class crpAccessor : public pageAccessor
    {
       public:
          crpAccessor();
          virtual ~crpAccessor();
       public:
-         INT32 init(requestContext *context,
-                    PAGE_ID lpid,
-                    const pageAccessor::options &o,
-                    logicalPageSpace *space,
-                    DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
          INT32 createCL(requestContext *context,
-                        const collectionRecord &record);
+                        const collectionRecord &record,
+                        const createCLOptions &options,
+                        const strSlice &csName,
+                        logicalPageBuffer *lpb);
 
          /// record on disk must be valid.
-         INT32 update(requestContext *context,
-                      DPS_LOG_TYPE ddlType,
-                      UINT64 mask,
-                      const collectionRecord &record,
-                      const slice &adjuncts);
-
-         /// slot: [0, capacity)
-         /// return SDB_DMS_NOTEXIST if slot is invalid.
-         INT32 getClRecordBySlot(UINT32 slot, collectionRecord &record);
-
-         virtual PAGE_TYPE getPageType()const
-         {
-            return PAGE_TYPE_COLLECTION_RECORD;
-         }
+         INT32 updateRoutePages(requestContext *context,
+                                const collectionRecord &record,
+                                logicalPageBuffer *lpb);
 
       private:
-         INT32 writeToSlot(UINT32 slot, const collectionRecord &record);
-         INT32 getRecordPtr(UINT32 slot, const collectionRecord **record);
-         INT32 getWritableRecordPtr(UINT32 slot, collectionRecord **record);
+         collectionRecordOnDisk *getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
+                                                          UINT32 i);
+         const collectionRecordOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
+                                                          UINT32 i);
 
+      private:
+         INT32 prepareCreateCLLog(requestContext *context,
+                                  UINT32 fullNameSize,
+                                  UINT32 adjunctSize,
+                                  const runtimePageBuffer *rpb,
+                                  logRecordContext *lrc);
+
+         INT32 commitCreateCLLog(requestContext *context,
+                                 UINT32 fullNameSize,
+                                 const CHAR *fullName,
+                                 const GLOBAL_PAGE_ID &gpid,
+                                 const collectionRecord &record,
+                                 const slice &adjunct,
+                                 logRecordContext *lrc);
+                                  
          INT32 prepareUpdateLog(requestContext *context,
-                                logRecordContext *lrc,
-                                DPS_LOG_TYPE ddlType,
-                                BOOLEAN hasOld,
-                                const slice &adjuncts);
+                                const runtimePageBuffer *rpb,
+                                logRecordContext *lrc);
 
          INT32 commitUpdateLog(requestContext *context,
                                logRecordContext *lrc,
-                               DPS_LOG_TYPE ddlType,
+                               const GLOBAL_PAGE_ID &gpid,
+                               PAGE_ID lpid,
                                UINT64 mask,
-                               const collectionRecord *oldRecord,
-                               const collectionRecord &newRecord,
-                               const slice &adjuncts);
+                               const collectionRecord &oldRecord,
+                               const collectionRecord &newRecord);
 
    };//class crpAccessor
 }//namespace vessel

@@ -64,6 +64,7 @@ namespace vessel
          liteCacheConsole cacheConsole;
          LOGICAL_ID_LATCH_MAP _lpidLatchMap;
          RECORD_ID_LATCH_MAP _ridLatchMap;
+         UNIQUE_INDEX_LATCH_MAP _uniqueIndexLathMap;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

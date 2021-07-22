@@ -92,7 +92,6 @@ namespace vessel
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
          PAGE_ID _lpid = INVALID_PAGE_ID;
    };//class logicalIdLatchKey
-   /// Just keep logicalIdLatchKey 8 byte aligned.
 
    typedef class sharedObjectMap<logicalIdLatchKey, ossSharedLatch> LOGICAL_ID_LATCH_MAP;
 
@@ -138,17 +137,49 @@ namespace vessel
 
    typedef class sharedObjectMap<recordIdLatchKey, ossSharedLatch> RECORD_ID_LATCH_MAP;
 
-   template <typename KEY>
-   class objectLatchContext : public SDBObject
+   class uniqueIndexLatchKey : public SDBObject
    {
       public:
-         objectLatchContext(){}
-         ~objectLatchContext()
+         uniqueIndexLatchKey(){}
+         ~uniqueIndexLatchKey(){}
+         uniqueIndexLatchKey(const uniqueIndexLatchKey &o):
+         _sid(o._sid),
+         _key(o._key)
+         {}
+         uniqueIndexLatchKey &operator=(const uniqueIndexLatchKey &o)
+         {
+            _sid = o._sid;
+            _key = o._key;
+            return *this;
+         }
+
+      public:
+         OSS_INLINE BOOLEAN operator==(const uniqueIndexLatchKey &o)const
+         {
+            return _sid == o._sid && _key == o._key;
+         }
+         OSS_INLINE UINT32 hash()const
+         {
+            return _sid + _key;
+         }
+      private:
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         UINT16 _key = 0;
+   };//class uniqueIndexLatchKey
+
+   typedef class sharedObjectMap<uniqueIndexLatchKey, ossSpinXLatch> UNIQUE_INDEX_LATCH_MAP;
+
+   template <typename KEY>
+   class objectSharedLatchContext : public SDBObject
+   {
+      public:
+         objectSharedLatchContext(){}
+         ~objectSharedLatchContext()
          {
             fini();
          }
-         objectLatchContext(const objectLatchContext &) = delete;
-         objectLatchContext &operator=(const objectLatchContext &) = delete;
+         objectSharedLatchContext(const objectSharedLatchContext &) = delete;
+         objectSharedLatchContext &operator=(const objectSharedLatchContext &) = delete;
 
       private:
          typedef class sharedObjectMap<KEY, ossSharedLatch>::object LATCH_OBJECT;
@@ -168,7 +199,7 @@ namespace vessel
             }
 
             LATCH_OBJECT obj;
-            ossSharedLatch::mode mode = ossSharedLatch::NONE;
+            OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
          };//struct _latchSlot
 
       public:
@@ -185,10 +216,10 @@ namespace vessel
          }
 
          INT32 push(const LATCH_OBJECT &obj,
-                    ossSharedLatch::mode mode)
+                    OSS_SHARED_LATCH_MODE mode)
          {
             INT32 rc = SDB_OK;
-            if (OSS_UNLIKELY(!obj.isValid() || ossSharedLatch::NONE == mode))
+            if (OSS_UNLIKELY(!obj.isValid() || OSS_SHARED_LATCH_MODE_NONE == mode))
             {
                rc = SDB_INVALIDARG;
                goto error;
@@ -209,9 +240,9 @@ namespace vessel
             goto done;
          }
 
-         INT32 pop(const logicalIdLatchKey &key,
+         INT32 pop(const KEY &key,
                    LATCH_OBJECT &obj,
-                   ossSharedLatch::mode &mode)
+                   OSS_SHARED_LATCH_MODE &mode)
          {
             INT32 rc = SDB_OK;
             _latchSlot *slot = NULL;
@@ -238,7 +269,7 @@ namespace vessel
             goto done;
          }
 
-         BOOLEAN pop(LATCH_OBJECT &obj, ossSharedLatch::mode &mode)
+         BOOLEAN pop(LATCH_OBJECT &obj, OSS_SHARED_LATCH_MODE &mode)
          {
             BOOLEAN r = FALSE;
             if (0 == _size)
@@ -255,7 +286,7 @@ namespace vessel
             return r;
          }
 
-         INT32 findUpgradeAndSetExclusive(const logicalIdLatchKey &key,
+         INT32 findUpgradeAndSetExclusive(const KEY &key,
                                           LATCH_OBJECT &obj)
          {
             INT32 rc = SDB_OK;
@@ -273,13 +304,13 @@ namespace vessel
                rc = SDB_VESSEL_KEY_NOT_FOUND;
                goto error;
             }
-            if (ossSharedLatch::UPGRADE != slot->mode)
+            if (OSS_SHARED_LATCH_MODE_UPGRADE != slot->mode)
             {
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
                goto error;
             }
 
-            slot->mode = ossSharedLatch::EXCLUSIVE;
+            slot->mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
             obj = slot->obj;
          done:
             return rc;
@@ -287,8 +318,8 @@ namespace vessel
             goto done;
          }
 
-         BOOLEAN test(const logicalIdLatchKey &key,
-                      ossSharedLatch::mode *mode)
+         BOOLEAN test(const KEY &key,
+                      OSS_SHARED_LATCH_MODE *mode)
          {
             BOOLEAN r = FALSE;
             _latchSlot *slot = NULL;
@@ -321,7 +352,7 @@ namespace vessel
                goto done;
             }
 
-            tmp = SDB_OSS_NEW _latchSlot[size + DEFAULT_CAPACITY];
+            tmp = SDB_OSS_NEW _latchSlot[_capacity << 1];
             if (NULL == tmp)
             {
                rc = SDB_OOM;
@@ -340,7 +371,7 @@ namespace vessel
             }
 
             _slots = tmp;
-            _capacity = size + DEFAULT_CAPACITY;
+            _capacity = (_capacity << 1);
          done:
             return rc;
          error:
@@ -390,7 +421,7 @@ namespace vessel
          _latchSlot _staticBuf[DEFAULT_CAPACITY];
          _latchSlot *_slots = _staticBuf;
 
-   };//class objectLatchContext
+   };//class objectSharedLatchContext
 }//namespace vessel
 }//namespace engine
 

@@ -45,14 +45,12 @@ namespace engine
 namespace vessel
 {
    INT32 countCLHandler::doit(const collectionHandle &handle,
-                              IQueryFilter *filter,
                               UINT64 &count)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
-      spaceIDLockHelper lh(&context);
 
       if (OSS_UNLIKELY(!handle.isValid()))
       {
@@ -61,7 +59,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(!isInitialized()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -74,14 +72,10 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(handle.getSpaceID(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", handle.getSpaceID(), rc);
-         goto error;
-      }
-
-      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context, handle.getCSLId(), &cs);
+      rc = getEnv()->dms.getCSBySpaceID(&context,
+                                        handle.getSpaceID(),
+                                        handle.getCSLId(),
+                                        SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -95,7 +89,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->getRecordCount(&context, filter, count);
+      rc = cl->getTotalCountInRdpHead(&context, count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -105,7 +99,10 @@ namespace vessel
       {
          context.unlockMB();
       }
-      lh.unlock();
+      if (NULL != cs)
+      {
+         context.unlockSpaceID();
+      }
       context.close();
       return rc;
    error:

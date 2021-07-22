@@ -44,13 +44,13 @@ namespace vessel
    INT32 lpidLockHelper::lock(requestContext *context,
                               SPACE_TYPE type,
                               PAGE_ID lpid,
-                              ossSharedLatch::mode mode)
+                              OSS_SHARED_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY((NULL == context ||
                        INVALID_SPACE_TYPE == type ||
                        INVALID_PAGE_ID == lpid ||
-                       ossSharedLatch::NONE == mode)))
+                       OSS_SHARED_LATCH_MODE_NONE == mode)))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -87,7 +87,7 @@ namespace vessel
          _context = NULL;
          _type = INVALID_SPACE_TYPE;
          _lpid = INVALID_PAGE_ID;
-         _mode = ossSharedLatch::NONE;
+         _mode = OSS_SHARED_LATCH_MODE_NONE;
       }
       return;
    }
@@ -95,7 +95,7 @@ namespace vessel
    INT32 lpidLockHelper::unlockUpgradeAndLock()
    {
       INT32 rc = SDB_OK;
-      if (ossSharedLatch::UPGRADE != _mode)
+      if (OSS_SHARED_LATCH_MODE_UPGRADE != _mode)
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -107,7 +107,7 @@ namespace vessel
          goto error;
       }
 
-      _mode = ossSharedLatch::EXCLUSIVE;
+      _mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
    done:
       return rc;
    error:

@@ -114,7 +114,7 @@ namespace vessel
                              storageFile *file,
                              const slice &userDefinedHead = slice())const;
 
-         ;INT32 createFormalFile(FILE_TYPE fileType,
+         INT32 createFormalFile(FILE_TYPE fileType,
                                 UINT64 sequence,
                                 const storageCoreArgs &args,
                                 storageFile *file,

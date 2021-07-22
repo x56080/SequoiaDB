@@ -81,7 +81,7 @@ namespace vessel
             private:
                _item *_pre = NULL;
                _item *_next = NULL;
-               UINT32 _count = 0;
+               UINT32 _shared = 0;
                KEY _key;
                VALUE _value;
          };
@@ -218,7 +218,7 @@ namespace vessel
             itemFound = find(bucket, k);
             if (NULL != itemFound)
             {
-               ++(itemFound->_count);
+               ++(itemFound->_shared);
                o._i = itemFound;
             }
             else
@@ -231,7 +231,7 @@ namespace vessel
                }
                itemCreated->_key = k;
                insert(bucket, itemCreated)
-               ++itemCreated->_count;
+               ++itemCreated->_shared;
                o._i = itemCreated;
             }     
          done:
@@ -250,7 +250,7 @@ namespace vessel
             SDB_ASSERT(o.isValid(), "can not be valid");
             if (isOpen() && o.isValid())
             {
-               SDB_ASSERT(0 < o._i->_count, "impossible");
+               SDB_ASSERT(0 < o._i->_shared, "impossible");
                UINT32 hash = o._i->getKey().hash();
                _bucket *bucket = NULL;
                ossSpinXLatch *latch = NULL;
@@ -259,13 +259,14 @@ namespace vessel
                latch = getBucketLatch(bucketNo);
 
                ossXLatchGuard guard(latch);
-               --o._i->_count;
-               if (0 == o._i->_count)
+               --o._i->_shared;
+               if (0 == o._i->_shared)
                {
                   remove(bucket, o._i);
                   guard.unlock();
                   SDB_OSS_DEL o._i;
                }
+               guard.unlock();
                o._i = NULL;
             }
             return;
@@ -315,13 +316,13 @@ namespace vessel
 
          void insert(_bucket *bucket, _item *i)
          {
-            _item *oldHead = bucket->_head;
-            bucket->_head = i;
-            i->_next = oldHead;
-            if (NULL != oldHead)
+            i->_pre = NULL;
+            i->_next = bucket->_head;
+            if (NULL != bucket->_head)
             {
-               oldHead->_pre = i;
+               bucket->_head->_pre = i;
             }
+            bucket->_head = i;
             ++_bucket->_size;
          }
 

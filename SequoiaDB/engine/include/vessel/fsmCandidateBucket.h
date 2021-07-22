@@ -40,147 +40,118 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/pageDef.h"
-#include "ossSpinLatch.hpp"
 #include "vessel/freeSpaceMapDef.h"
+#include "vessel/fsmCandidate.h"
+#include "vessel/freeSpaceTuple.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-
-#pragma pack(4)
+   class requestContext;
+   
    class fsmCandidateBucket : public SDBObject
    {
       public:
          fsmCandidateBucket();
          ~fsmCandidateBucket();
+         fsmCandidateBucket(const fsmCandidateBucket &) = delete;
+         fsmCandidateBucket &operator=(const fsmCandidateBucket &) = delete;
 
       public:
          OSS_INLINE UINT64 getReqCnt()const;
+         OSS_INLINE BOOLEAN isOpen()const;
 
       public:
          INT32 init(UINT32 capacity);
          void fini();
 
-         BOOLEAN upsert(UINT32 capacity,
-                        const fsmCandidate &candidate,
-                        fsmCandidate *replaced=NULL);
+         INT32 upsert(UINT32 seq,
+                      const fsmCandidate::SHARED_INFO_PTR &sptr);
 
-         BOOLEAN findAndAutoRemoving(UINT32 capacity,
-                                     UINT16 size,
-                                     UINT16 minFreeSize,
-                                     fsmCandidate &candidate);
+         INT32 find(INT32 lvl,
+                    FREE_SPACE_TUPLE_POOL &newPagePool,
+                    fsmCandidate &candidate);
 
-         UINT32 getSize(UINT32 capacity)const;
-
-         BOOLEAN tryToInc(UINT32 capacity,
-                          CL_PAGE_SEQ seq,
-                          PAGE_ID lpid,
-                          UINT16 maxFreeSize,
-                          UINT16 newFreeSize,
-                          UINT16 delta);
-
-         BOOLEAN tryToDec(UINT32 capacity,
-                          CL_PAGE_SEQ seq,
-                          PAGE_ID lpid,
-                          UINT16 minFreeSize,
-                          UINT16 newFreeSize,
-                          UINT16 delta);
-
-         BOOLEAN updateCandidate(UINT32 capacity,
-                                 CL_PAGE_SEQ seq,
-                                 PAGE_ID lpid,
-                                 UINT16 minFreeSize,
-                                 UINT16 freeSizeFromBucket,
-                                 UINT16 currentFreeSize,
-                                 BOOLEAN failure);
-
-         void dump(UINT32 capacity, fsmCandidate *candidates, UINT32 &count)const;
+         void dumpTuplesWithValidLvl(ossPoolList<freeSpaceTuple> &tuples)const;
 
       private:
-         OSS_INLINE void remove(UINT32 i);
-
-      private:
-         struct _bucketCandidate : public SDBObject
+         class _bucketCandidate : public SDBObject
          {
-            OSS_INLINE _bucketCandidate():
-            seq(INVALID_CL_PAGE_SEQ),
-            lpid(INVALID_PAGE_ID),
-            free(0),
-            failureCnt(0),
-            flags(0){}
-   
-            OSS_INLINE ~_bucketCandidate(){}
-            OSS_INLINE _bucketCandidate(const _bucketCandidate &o):
-            seq(o.seq),
-            lpid(o.lpid),
-            free(o.free),
-            failureCnt(o.failureCnt),
-            flags(o.flags){}
+            public:
+               _bucketCandidate(){}
+               ~_bucketCandidate(){}
+               _bucketCandidate(const _bucketCandidate &) = delete;
+               _bucketCandidate &operator=(const _bucketCandidate &) = delete;
 
-            OSS_INLINE _bucketCandidate &operator=(const _bucketCandidate &o)
-            {
-               seq = o.seq;
-               lpid = o.lpid;
-               free = o.free;
-               failureCnt = o.failureCnt;
-               flags = o.flags;
-               return *this;
-            }
+               OSS_INLINE void reset()
+               {
+                  _seq = INVALID_CL_PAGE_SEQ;
+                  _sptr.reset();
+                  _failureCnt = 0;
+                  return;
+               }
 
-            OSS_INLINE void reset()
-            {
-               seq = INVALID_CL_PAGE_SEQ;
-               lpid = INVALID_PAGE_ID;
-               free = 0;
-               failureCnt = 0;
-               flags = 0;
-               return;
-            }
+               void reset(UINT32 seq,
+                          fsmCandidate::SHARED_INFO_PTR &sptr)
+               {
+                  _seq = seq;
+                  _sptr = sptr;
+                  _failureCnt = 0;
+                  return;
+               }
 
-            OSS_INLINE void reset(CL_PAGE_SEQ s,
-                                  PAGE_ID l,
-                                  UINT16 f)
-            {
-               seq = s;
-               lpid = l;
-               free = f;
-               failureCnt = 0;
-               flags = 0;
-               return;
-            }
+               OSS_INLINE UINT32 incAndGetFaulureCnt()
+               {
+                  return ++_failureCnt;
+               }
 
-            OSS_INLINE UINT8 incAndGetFaulureCnt()
-            {
-               return ++failureCnt;
-            }
+               OSS_INLINE BOOLEAN isValid()const
+               {
+                  return INVALID_CL_PAGE_SEQ != _seq &&
+                         NULL != _sptr.get();
+               }
 
-            OSS_INLINE BOOLEAN isValid()const
-            {
-               return INVALID_CL_PAGE_SEQ != seq;
-            }
+               OSS_INLINE UINT32 getSeq()const
+               {
+                  return _seq;
+               }
+               OSS_INLINE const fsmCandidate::SHARED_INFO_PTR &getInfoPtr()const
+               {
+                  return _sptr;
+               }
+               OSS_INLINE UINT32 getFailureCnt()const
+               {
+                  return _failureCnt;
+               }
 
-            CL_PAGE_SEQ seq;
-            PAGE_ID lpid;
-            UINT16 free;
-            UINT8 failureCnt;
-            UINT8 flags;
+            private:
+               UINT32 _seq = INVALID_CL_PAGE_SEQ;
+               fsmCandidate::SHARED_INFO_PTR _sptr;
+               UINT32 _failureCnt = 0;
          };//struct _bucketCandidate
 
-      private:
-         /// we should always keep searching done in one cpu cache line.
-         _bucketCandidate *_candidates;
-         UINT64 _reqCnt;
-   };//class fsmCandidateBucket
-#pragma pack()
 
+      private:
+         INT32 resetWithNewCandidate(UINT32 pos,
+                                    FREE_SPACE_TUPLE_POOL &newPagePool,
+                                    BOOLEAN &inserted);
+
+      private:
+         UINT32 _capacity = 0;
+         /// we should always keep searching done in few cpu cache lines.
+         _bucketCandidate *_candidates = NULL;
+         UINT64 _reqCnt = 0;
+   };//class fsmCandidateBucket
+
+   OSS_INLINE BOOLEAN fsmCandidateBucket::isOpen()const
+   {
+      return NULL != _candidates;
+   }
    OSS_INLINE UINT64 fsmCandidateBucket::getReqCnt()const
    {
       return _reqCnt;
-   }
-   OSS_INLINE void fsmCandidateBucket::remove(UINT32 i)
-   {
-      _candidates[i].reset();
    }
 }//namespace vessel
 }//namespace engine

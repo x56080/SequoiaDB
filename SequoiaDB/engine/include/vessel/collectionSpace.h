@@ -37,9 +37,7 @@
 #define VESSEL_COLLECTION_SPACE_H_
 
 #include "vessel/vesselIdDef.h"
-#include "vessel/vesselOptions.h"
 #include "vessel/collectionSpaceGlobalPage.h"
-#include "vessel/collectionAllocator.h"
 #include "vessel/strSlice.h"
 #include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
@@ -49,6 +47,8 @@
 #include "vessel/lazyArray.hpp"
 #include "vessel/inMemBitmap.h"
 #include "vessel/collectionObjHolder.h"
+#include "vessel/collectionSpaceOptions.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
@@ -57,7 +57,7 @@ namespace vessel
    class collection;
    class requestContext;
    class listCLCursor;
-   class fsmFile;
+   class collectionRecord;
 
    class collectionSpace : public SDBObject
    {
@@ -105,9 +105,14 @@ namespace vessel
          {
             return _recordInMem.logicalID;
          }
+         OSS_INLINE storageUnit *getSU()const
+         {
+            return _su;
+         }
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,
+                      utilCSUniqueID uniqueId,
                       UINT32 logicalID,
                       storageUnit *su,
                       const createCSOptions &options);
@@ -115,7 +120,7 @@ namespace vessel
          INT32 open(requestContext *context,
                     storageUnit *su);
 
-         void close(BOOLEAN closeSU=TRUE);
+         void close();
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
@@ -129,7 +134,7 @@ namespace vessel
                                listCLCursor *cursor);
 
          INT32 dump(requestContext *context,
-                    listCollectionSpaceRecord &record);
+                    bson::BSONObj &record);
 
          INT32 getCollectionByName(requestContext *context,
                                    const strSlice &clName, 
@@ -142,56 +147,52 @@ namespace vessel
                                    OSS_LATCH_MODE mode,
                                    collection **obj);
 
-         INT32 ensureFsmFile(requestContext *context,
-                             fsmFile **file);
-
       private:
-         INT32 _create(requestContext *context,
-                       const csMetaRecord &record,
-                       const createCSOptions &options);
+         void fini();
+         INT32 initInMemStructures();
+         INT32 createOnDisk(requestContext *context,
+                            const csMetaRecord &record,
+                            const createCSOptions &options);
+
+         INT32 initCollectionsFromDisk(requestContext *context);
+         INT32 initCollection(requestContext *context,
+                              const collectionRecord *record);
+
+         INT32 ensureCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
+
+         INT32 getCollectionHolder(CL_MB_ID mbID, collectionObjHolder **holder);
+
+         INT32 ensureCollectionRecordPage(requestContext *context,
+                                          CL_MB_ID mbID);
+
       private:
          INT32 precreateCL(const strSlice &clName,
                            utilCLInnerID innerID,
+                           CL_MB_ID &mbID,
                            UINT32 &logicalID);
 
 
          void rollbackPrecreating(const strSlice &clName,
                                   utilCLInnerID innerID,
+                                  CL_MB_ID mbID,
                                   UINT32 logicalID);
 
-         void moveToFormalIndex(collectionAllocator::collectionHolder *holder);
-
-         BOOLEAN insertIntoFormalIndex(collectionAllocator::collectionHolder *holder);
-
-         void eraseFromIndex(const strSlice &clName,
-                             utilCLInnerID innerID);
-
-         BOOLEAN existsInFormalIndex(const strSlice &clName,
-                                     utilCLInnerID innerID);
-
-         /// Should always use name in nameBuffer instead of
-         /// name in cl obj to do next upper bound.
-         BOOLEAN upperBoundCLName(const strSlice &clName,
-                                  UINT32 bufferSize,
-                                  CHAR *nameBuffer,
-                                  UINT32 &logicalID,
-                                  collectionAllocator::collectionHolder **holder);
-
-         BOOLEAN findCollection(const strSlice &clName,
-                                UINT32 &logicalID,
-                                collectionAllocator::collectionHolder **holder);
-         BOOLEAN findCollection(utilCLInnerID innerID,
-                                UINT32 &logicalID,
-                                collectionAllocator::collectionHolder **holder);
+         void endCreatingCL(collection *obj);
 
       private:
-         void fini();
+         BOOLEAN upperBoundCLName(const strSlice &clName,
+                                  CL_MB_ID &mbID)const;
 
-         INT32 initCollectionsFromDisk(requestContext *context);
+         INT32 insertIntoFormalIndexes(collection *obj);
+         BOOLEAN existsInFormalIndexes(const strSlice &clName,
+                                       utilCLInnerID innerID)const;
+         BOOLEAN existsInUnformalIndexes(const strSlice &clName,
+                                         utilCLInnerID innerID)const;
 
-         INT32 initCollectionsFromOneDiskPage(requestContext *context,
-                                              UINT32 capacity,
-                                              PAGE_ID pid);
+         BOOLEAN find(const strSlice &clName,
+                      CL_MB_ID &mbID)const;
+         BOOLEAN find(utilCLInnerID innerID,
+                      CL_MB_ID &mbID)const;
 
       private:
          struct _NAME_LESS
@@ -209,7 +210,7 @@ namespace vessel
       private:
          BOOLEAN _isOpen = FALSE;
          storageUnit *_su = NULL;
-         ossRWMutex _latch;
+         ossSpinSLatchPOSIX _latch;
          csMetaRecord _recordInMem;
 
          inMemBitmap _allocator;
@@ -218,11 +219,11 @@ namespace vessel
 
          ///formal indexes
          NAME_INDEX _clNameIndex;
-         ID_INDEX _clIdIndex;
+         ID_INDEX _innerIdIndex;
 
          ///unformal indexes
          _NAME_SET _unformalNameIndex;
-         _INNER_ID_SET _unformalInnerIdIndex;    
+         _INNER_ID_SET _unformalInnerIdIndex;
    };//class collectionSpace
 }
 }

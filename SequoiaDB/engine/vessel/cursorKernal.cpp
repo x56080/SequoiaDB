@@ -49,7 +49,7 @@ namespace vessel
 
    cursorKernal::~cursorKernal()
    {
-      close();
+      _mb.release();
    }
 
    BOOLEAN cursorKernal::isOpen()const
@@ -59,7 +59,7 @@ namespace vessel
 
    INT32 cursorKernal::open(vesselImpl *db,
                             IQueryFilter *filter,
-                            const cursorOptions *options)
+                            const cursorOptions &options)
    {
       INT32 rc = SDB_OK;
 
@@ -75,31 +75,20 @@ namespace vessel
          close();
       }
 
-      /// Set open first, ensure close can be executed.
       OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
-      if (NULL != options)
-      {
-         _options = *options;
-      }
-
-      if (0 < _options.initBufSize)
-      {
-         rc = extendBuf(_options.initBufSize);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
+      _options = options;
       _db = db;
       _filter = filter;
 
-      rc = _open();
-      if (SDB_OK != rc)
+      if (0 < _options.initBufSize)
       {
-         PD_LOG(PDERROR, "failed to open:%d", rc);
-         goto error;
-      }
+         rc = _mb.reserve(_options.initBufSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reserve memory:%d", rc);
+            goto error;
+         }
+      }  
    done:
       return rc;
    error:
@@ -109,26 +98,13 @@ namespace vessel
 
    void cursorKernal::close()
    {
-      SDB_ASSERT(0 == _usage, "must be zero");
-      if (isOpen())
-      {
-         _close();
-         _options = cursorOptions();
-         _usage = 0;
-         _totalPushed = 0;
-         _flags = 0;
-
-         _bufSize = 0;
-         if (NULL != _buf)
-         {
-            SDB_THREAD_FREE(_buf);
-            _buf = NULL;
-         }
-         _w = 0;
-         _r = 0;
-         _db = NULL;
-         _filter = NULL;
-      }
+      _options = cursorOptions();
+      _totalPushed = 0;
+      _flags = 0;
+      _mb.release();
+      _read = 0;
+      _db = NULL;
+      _filter = NULL;
    
       return;
    }
@@ -147,15 +123,14 @@ namespace vessel
 
       if (!hasMoreDataToFetch())
       {
-         if (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING) ||
-             _options.limit == _totalPushed)
+         if (noMorePushing())
          {
             rc = SDB_VESSEL_EOC;
             goto error;
          }
 
-         _r = 0;
-         _w = 0;
+         _read = 0;
+         _mb.resize(0);
          rc = _db->pushMoreToCursor(session, this);
          if (SDB_OK != rc)
          {
@@ -176,22 +151,30 @@ namespace vessel
          }
       }
       
-      SDB_ASSERT((_r + sizeof(UINT32)) < _w, "impossible");
-      size = *((const UINT32 *)(_buf + _r));
-      _r += sizeof(UINT32);
+      SDB_ASSERT((_read + sizeof(UINT32)) < _mb.getSize(), "impossible");
+      size = *((const UINT32 *)((ossValuePtr)(_mb.getBuffer()) + _read));
+      _read += sizeof(UINT32);
 
-      SDB_ASSERT((_r + size) <= _w, "impossible");
-      content.reset(size, _buf + _r);
-      _r += size;
+      SDB_ASSERT((_read + size) <= _mb.getSize(), "impossible");
+      content.reset(size, (const CHAR *)(_mb.getBuffer()) + _read);
+      _read += size;
    done:
       return rc;
    error:
       goto done;
    }
 
+   BOOLEAN cursorKernal::noMorePushing()const
+   {
+      return (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING)) ||
+             (_totalPushed == _options.limit);
+   }
+
    INT32 cursorKernal::push(UINT32 len, const CHAR *data)
    {
       INT32 rc = SDB_OK;
+      UINT32 oldSize = 0;
+
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -202,7 +185,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_options.limit == _totalPushed)
+      else if (noMorePushing())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
@@ -211,13 +194,26 @@ namespace vessel
       rc = allocateSpaceForPushing(len);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
          goto error;
       }
 
-      *((UINT32 *)(_buf + _w)) = len;
-      _w += sizeof(UINT32);
-      ossMemcpy(_buf + _w, data, len);
-      _w += len;
+      oldSize = _mb.getSize();
+      rc = _mb.append(sizeof(UINT32), &len);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append size:%d", rc);
+         goto error;
+      }
+
+      rc = _mb.append(len, data);
+      if (SDB_OK != rc)
+      {
+         _mb.resize(oldSize);
+         PD_LOG(PDERROR, "failed to append data:%d", rc);
+         goto error;
+      }
+
       ++_totalPushed;
    done:
       return rc;
@@ -234,12 +230,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 len = 0;
+      UINT32 oldSize = 0;
+
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_options.limit == _totalPushed)
+      else if (noMorePushing())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
@@ -259,16 +257,29 @@ namespace vessel
       rc = allocateSpaceForPushing(len);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
          goto error;
       }
 
-      *((UINT32 *)(_buf + _w)) = len;
-      _w += sizeof(UINT32);
+      oldSize = _mb.getSize();
+      rc = _mb.append(sizeof(UINT32), &len);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append size:%d", rc);
+         goto error;
+      }
+
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         ossMemcpy(_buf + _w, i->second, i->first);
-         _w += i->first;
+         rc = _mb.append(i->first, i->second);
+         if (SDB_OK != rc)
+         {
+            _mb.resize(oldSize);
+            PD_LOG(PDERROR, "failed to append data:%d", rc);
+            goto error;
+         }
       }
+      
       ++_totalPushed;
    done:
       return rc;
@@ -280,33 +291,30 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_w <= _bufSize, "impossible");
 
-      UINT32 freeBufSize = _bufSize - _w;
       UINT32 needSize = getRealBufSizeOfSlice(dataLen);
       UINT32 extendingSize = 0;
       
-      if (needSize <= freeBufSize)
+      if (needSize <= _mb.getFreeCapacity())
       {
          goto done;
       }
 
-      extendingSize = needSize - freeBufSize;
-      if (_options.maxBufSize < (_bufSize + extendingSize))
+      extendingSize = needSize - _mb.getFreeCapacity();
+      if (_options.maxBufSize < (_mb.getCapacity() + extendingSize))
       {
          /// max buf size is too small
          rc = SDB_VESSEL_OUT_OF_RESOURCE;
          goto error;
       }
-      else if (0 < _w)
+      else if (!_mb.isEmpty())
       {
-         /// extend buffer only when first pushing of current loop
-         /// _w zeroed before every pushing more
+         /// Extend buffer only at the first pushing of current loop.
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
       }
 
-      rc = extendBuf(extendingSize);
+      rc = _mb.reserve(extendingSize);
       if (SDB_OK != rc)
       {
          goto error;
@@ -330,58 +338,28 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(isOpen(), "can not be closed");
-      UINT32 sliceSize = getRealBufSizeOfSlice(size);
-      SDB_ASSERT(sliceSize <= 16777216, "can not be over size");
-      UINT32 freeSize = _bufSize - _w;
+      UINT32 realSize = getRealBufSizeOfSlice(size);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          goto done;
       }
-      else if (_options.limit == _totalPushed)
+      else if (noMorePushing())
       {
          goto done;
       }
-      else if (sliceSize <= freeSize)
+      else if (realSize <= _mb.getFreeCapacity())
       {
          r = TRUE;
          goto done;
       }
-      else if ((0 == _w) && (sliceSize <= _options.maxBufSize))
+      else if (_mb.isEmpty() && (realSize <= _options.maxBufSize))
       {
          r = TRUE;
          goto done;
       }
    done:
       return r;
-   }
-
-   INT32 cursorKernal::extendBuf(UINT32 deltaSize)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < deltaSize, "impossible");
-      SDB_ASSERT(_bufSize + deltaSize <= _options.maxBufSize, "impossible");
-      SDB_ASSERT(0 == _w, "must be first pushing");
-      CHAR *tmp = (CHAR *)SDB_THREAD_ALLOC(deltaSize + _bufSize);
-      if (OSS_UNLIKELY(NULL == tmp))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      if (NULL != _buf)
-      {
-         SDB_THREAD_FREE(_buf);
-         _buf = NULL;
-      }
-
-      _buf = tmp;
-      _bufSize += deltaSize;
-   done:
-      return rc;
-   error:
-      goto done;
    }
 }//namespace vessel
 }//namespace engine

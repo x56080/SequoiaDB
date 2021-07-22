@@ -71,15 +71,18 @@ namespace vessel
 
    void resetBitMap64(UINT32 count, UINT64 *bits, BOOLEAN free);
 
+   /// beginBits is offset of uint64
    BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
                                      INT32 beginBits,
                                      const UINT64 *bits,
                                      UINT32 &offset);
 
+
    BOOLEAN findAndClearFirstFreeBitFromBit64(UINT32 bitsCount,
                                              INT32 beginBits,
                                              UINT64 *bits,
                                              UINT32 &offset);
+
 
    /// offset between (low, high]
    BOOLEAN upperBoundFirstFreeBitFromBit64(UINT32 bitsCount,
@@ -89,12 +92,12 @@ namespace vessel
                                            UINT32 &offset);
 
    
-   BOOLEAN setNotFreeWithAtomic64(UINT32 count,
-                                 UINT64 *bits,
-                                 UINT32 offset);
-   BOOLEAN setFreeWithAtomic64(UINT32 count,
+   void setNotFreeWithAtomic64(UINT32 count,
                                UINT64 *bits,
                                UINT32 offset);
+   void setFreeWithAtomic64(UINT32 count,
+                            UINT64 *bits,
+                            UINT32 offset);
 
    BOOLEAN setNotFreeIfFree64(UINT32 count, UINT64 *bits, UINT32 offset);
    BOOLEAN setFreeIfNotFree64(UINT32 count, UINT64 *bits, UINT32 offset);
@@ -102,6 +105,10 @@ namespace vessel
                          UINT32 offset);
 
    void bitsAndMerge(UINT32 count, const UINT64 *toAnd, UINT64 *bits);
+
+   void clearFromOffsetToTheEnd(UINT32 bitsCount,
+                                UINT32 offset,
+                                UINT64 *bits);
 
 }//namespace vessel
 }//namespace engine

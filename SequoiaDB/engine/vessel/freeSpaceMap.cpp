@@ -33,25 +33,16 @@
 
 ******************************************************************************/
 #include "vessel/freeSpaceMap.h"
-#include "vessel/fsmSizeLvl.h"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   const UINT32 freeSpaceMap::FIND_BUCKET = 0x01;
-   const UINT32 freeSpaceMap::FIND_NEW_POOL = 0x02;
-   const UINT32 freeSpaceMap::FIND_DISK_MAP = 0x04;
-   const UINT32 freeSpaceMap::FIND_ALL = 0x07;
+   static const UINT32 MAX_CANDIDATE_COUNT = 64;
+   static const UINT32 SINGLE_BUCKET_MODE_CAPACITY = 8;
 
-   freeSpaceMap::freeSpaceMap():
-   _minStriping(INVALID_STRIPING_ID),
-   _maxStriping(INVALID_STRIPING_ID),
-   _pageSize(0),
-   _maxFreeSize(0),
-   _minFreeSize(getMinSizeOfRecordInRdp()),
-   _bucketCount(0),
-   _bucketCapacity(0)
+   freeSpaceMap::freeSpaceMap()
    {
       
    }
@@ -63,22 +54,17 @@ namespace vessel
 
    void freeSpaceMap::fini()
    {
+      _isOpen = FALSE;
       _minStriping = INVALID_STRIPING_ID;
       _maxStriping = INVALID_STRIPING_ID;
-      _pageSize = 0;
-      _maxFreeSize = 0;
-      _minFreeSize = getMinSizeOfRecordInRdp();
-      _bucketCount = 0;
-      _bucketCapacity = 0;
-      
-      _buckets.fini();
+      finiBuckets();
       _newPagePool.clear();
       _dfsm.close();
+      return;
    }
 
    void freeSpaceMap::close()
    {
-      ossScopedLock guard(&_latch, EXCLUSIVE);
       if (!isOpen())
       {
          goto done;
@@ -91,67 +77,84 @@ namespace vessel
       return;
    }
 
-   INT32 freeSpaceMap::create(fsmFile *file,
-                              CL_MB_ID mbID,
+   INT32 freeSpaceMap::create(CL_MB_ID mbID,
                               UINT32 logicalID,
-                              UINT32 pageSize,
-                              UINT32 minFreeSize,
-                              BOOLEAN bucketMode,
+                              fsmFile *file)
+   {
+      INT32 rc = SDB_OK;
+      static const UINT32 _BUCKET_CAPACITY = 8;
+
+      SDB_ASSERT(!isOpen(), "do not reinit");
+      if (INVALID_CL_MB_ID == mbID ||
+          DMS_INVALID_LOGICCLID == logicalID ||
+          NULL == file || !file->isOpen())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _isOpen = TRUE;
+
+      rc = initBuckets(1, SINGLE_BUCKET_MODE_CAPACITY, 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init buckets:%d", rc);
+         goto error;
+      }
+
+      rc = _dfsm.create(file, mbID, logicalID);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create fsm on disk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
+   }
+
+   INT32 freeSpaceMap::create(CL_MB_ID mbID,
+                              UINT32 logicalID,
+                              fsmFile *file,
+                              UINT32 bucketCount,
                               STRIPING_ID min,
                               STRIPING_ID max)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
-      UINT32 alignedMinSize = ossAlign4(minFreeSize);
       UINT32 latchCount = 0;
 
       if (NULL == file || !file->isOpen() ||
           INVALID_CL_MB_ID == mbID ||
           DMS_INVALID_LOGICCLID == logicalID ||
-          (DMS_PAGE_SIZE64K != pageSize && 
-           DMS_PAGE_SIZE32K != pageSize) ||
-          pageSize <= alignedMinSize)
+          !ossIsPowerOf2(bucketCount) ||
+          MAX_CANDIDATE_COUNT < bucketCount ||
+          INVALID_STRIPING_ID == min ||
+          INVALID_STRIPING_ID == max ||
+          max < min)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (bucketMode)
-      {
-         if (INVALID_STRIPING_ID == min ||
-             INVALID_STRIPING_ID == max ||
-             max < min)
-         {
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-      }
 
+      _isOpen = TRUE;
       _minStriping = min;
       _maxStriping = max;
-      _pageSize = pageSize;
-      _maxFreeSize = getMaxFreeSizeOfRdp(pageSize);
-      if (_minFreeSize < alignedMinSize)
-      {
-         _minFreeSize = alignedMinSize;
-      }
 
-      if (bucketMode)
+      latchCount = bucketCount / 8;
+      if (0 == latchCount)
       {
-         _bucketCount = FSM_STRIPING_BUCKET_COUNT;
-         _bucketCapacity = 2;
-         latchCount = 4;
-      }
-      else
-      {
-         _bucketCount = 1;
-         _bucketCapacity = 8;
          latchCount = 1;
       }
 
-      rc = _buckets.init(_bucketCount, _bucketCapacity, latchCount);
+      rc = initBuckets(bucketCount,
+                       MAX_CANDIDATE_COUNT / bucketCount,
+                       latchCount);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init fsm bucket:%d", rc);
+         PD_LOG(PDERROR, "failed to init buckets:%d", rc);
          goto error;
       }
 
@@ -164,74 +167,56 @@ namespace vessel
    done:
       return rc;
    error:
+      fini();
       goto done;
    }
 
-   INT32 freeSpaceMap::open(fsmFile *file,
-                              CL_MB_ID mbID,
-                              UINT32 logicalID,
-                              UINT32 pageSize,
-                              UINT32 minFreeSize,
-                              BOOLEAN bucketMode,
-                              STRIPING_ID min,
-                              STRIPING_ID max)
+   INT32 freeSpaceMap::open(CL_MB_ID mbID,
+                            UINT32 logicalID,
+                            UINT32 pageCount,
+                            fsmFile *file,
+                            UINT32 bucketCount,
+                            STRIPING_ID min,
+                            STRIPING_ID max)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
-      UINT32 alignedMinSize = ossAlign4(minFreeSize);
+      
       UINT32 latchCount = 0;
 
       if (NULL == file || !file->isOpen() ||
           INVALID_CL_MB_ID == mbID ||
           DMS_INVALID_LOGICCLID == logicalID ||
-          (DMS_PAGE_SIZE64K != pageSize && 
-           DMS_PAGE_SIZE32K != pageSize) ||
-          pageSize <= alignedMinSize)
+          !ossIsPowerOf2(bucketCount) ||
+          MAX_CANDIDATE_COUNT < bucketCount ||
+          INVALID_STRIPING_ID == min ||
+          INVALID_STRIPING_ID == max ||
+          max < min)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (bucketMode)
-      {
-         if (INVALID_STRIPING_ID == min ||
-             INVALID_STRIPING_ID == max ||
-             max < min)
-         {
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-      }
 
+      _isOpen = TRUE;
       _minStriping = min;
       _maxStriping = max;
-      _pageSize = pageSize;
-      _maxFreeSize = getMaxFreeSizeOfRdp(pageSize);
-      if (_minFreeSize < alignedMinSize)
-      {
-         _minFreeSize = alignedMinSize;
-      }
 
-      if (bucketMode)
+      latchCount = bucketCount / 8;
+      if (0 == latchCount)
       {
-         _bucketCount = FSM_STRIPING_BUCKET_COUNT;
-         _bucketCapacity = 2;
-         latchCount = 4;
-      }
-      else
-      {
-         _bucketCount = 1;
-         _bucketCapacity = 8;
          latchCount = 1;
       }
 
-      rc = _buckets.init(_bucketCount, _bucketCapacity, latchCount);
+      rc = initBuckets(bucketCount,
+                       MAX_CANDIDATE_COUNT / bucketCount,
+                       latchCount);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init fsm bucket:%d", rc);
+         PD_LOG(PDERROR, "failed to init buckets:%d", rc);
          goto error;
       }
 
-      rc = _dfsm.open(file, mbID, logicalID);
+      rc = _dfsm.open(file, mbID, logicalID, pageCount, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open free space map on disk:%d", rc);
@@ -244,64 +229,201 @@ namespace vessel
       goto done;
    }
 
-   INT32 freeSpaceMap::fastFind(STRIPING_ID striping,
-                                UINT32 originalRecordSize,
-                                fsmCandidate &candidate)
+   INT32 freeSpaceMap::open(CL_MB_ID mbID,
+                            UINT32 logicalID,
+                            UINT32 pageCount,
+                            fsmFile *file)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!isOpen(), "already open");
+      
+      UINT32 latchCount = 0;
+
+      if (NULL == file || !file->isOpen() ||
+          INVALID_CL_MB_ID == mbID ||
+          DMS_INVALID_LOGICCLID == logicalID)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _isOpen = TRUE;
+
+      rc = initBuckets(1, SINGLE_BUCKET_MODE_CAPACITY, 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init buckets:%d", rc);
+         goto error;
+      }
+
+      rc = _dfsm.open(file, mbID, logicalID, pageCount, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open free space map on disk:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
+   }
+
+   INT32 freeSpaceMap::fastFind(INT32 lvl,
+                                STRIPING_ID striping,
+                                fsmCandidate &candidate,
+                                UINT16 *bucketTick)
    {
       INT32 rc = SDB_OK;
       UINT32 bucketNo = 0;
       candidate.reset();
-      UINT32 size = getMaxSizeOfRecordInRdp(originalRecordSize);
 
-      if (!isOpen())
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (0 == size)
+      else if (isSharded() && INVALID_STRIPING_ID == striping)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (1 < _bucketCount && (INVALID_STRIPING_ID == striping))
+
+      if (isSharded())
       {
-         rc = SDB_INVALIDARG;
+         bucketNo = getBucketNo(striping);
+      }
+
+      rc = findFromBucket(bucketNo, lvl, candidate, bucketTick);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find from bucket:%d", rc);
          goto error;
       }
-      else if (_maxFreeSize < size)
-      {
-         rc = SDB_VESSEL_OUT_OF_RESOURCE;
-         goto error;
-      }      
-
-      bucketNo = getBucketNo(striping);
-
-      if (!findFromBucket(bucketNo, size, candidate))
-      {
-         rc = SDB_VESSEL_FSM_NO_FREE_SPACE;
-         goto error;
-      }
-      
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 freeSpaceMap::addNewPages(CL_PAGE_SEQ firstSeq,
-                                   const PAGE_ID *lpids,
-                                   UINT32 count)
+   INT32 freeSpaceMap::find(INT32 lvl,
+                            STRIPING_ID striping,
+                            fsmCandidate &candidate,
+                            const UINT16 *bucketTick)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock guard(&_latch, EXCLUSIVE);
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == firstSeq ||
-                       PAGE_COUNT_IN_EXTENT != count ||
-                       NULL == lpids))
+      UINT32 bucketNo = 0;
+      candidate.reset();
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (isSharded() && INVALID_STRIPING_ID == striping)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (isSharded())
+      {
+         bucketNo = getBucketNo(striping);
+      }
+
+      /// find from bucket
+      if (NULL == bucketTick ||
+          *bucketTick != _bucketTicks[bucketNo])
+      {
+         rc = findFromBucket(bucketNo, lvl, candidate, NULL);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find from bucket:%d", rc);
+            goto error;
+         }
+
+         if (candidate.isValid())
+         {
+            goto done;
+         }
+      }
+
+      /// find from pool
+      if (0 < _newPagePool.getSizeWithNoLock())
+      {
+         rc = findFromNewPagePool(candidate);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find in pool:%d", rc);
+            goto error;
+         }
+         else if (candidate.isValid())
+         {
+            rc = upsertIntoBucket(bucketNo,
+                                  candidate.getSeq(),
+                                  candidate.getInfoPtr());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to upsert page[%d] into bucket, rc:%d",
+                      candidate.getSeq(), rc);
+               rc = SDB_OK;
+            }
+
+            goto done;
+         }
+      }
+
+      /// find from disk
+      rc = findFromDiskMap(lvl, candidate);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find from disk map:%d", rc);
+         goto error;
+      }
+      else if (candidate.isValid())
+      {
+         rc = upsertIntoBucket(bucketNo,
+                               candidate.getSeq(),
+                               candidate.getInfoPtr());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to upsert page[%d] into bucket, rc:%d",
+                     candidate.getSeq(), rc);
+            rc = SDB_OK;
+         }
+
+         goto done;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 freeSpaceMap::insertNewPages(UINT32 firstSeq,
+                                      const PAGE_ID *lpids,
+                                      UINT32 count)
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == firstSeq ||
+                            0 == count ||
+                            NULL == lpids))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -309,7 +431,7 @@ namespace vessel
 
       addNewPagesToPool(count, firstSeq, lpids);
 
-      rc = _dfsm.addNewPages(firstSeq, count);
+      rc = _dfsm.incDataPageCount(count);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to add new pages to disk map:%d", rc);
@@ -321,365 +443,269 @@ namespace vessel
       goto done;
    }
 
-   INT32 freeSpaceMap::findInWholeMap(STRIPING_ID striping,
-                                      UINT32 originalRecordSize,
-                                      UINT32 flags,
-                                      fsmCandidate &candidate)
+   INT32 freeSpaceMap::findFromDiskMap(INT32 lvl,
+                                       fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
-      UINT32 bucketNo = 0;
-      UINT32 size = getMaxSizeOfRecordInRdp(originalRecordSize);
-      candidate.reset();
-      UINT32 findingFlags = 0 == flags ? freeSpaceMap::FIND_ALL : flags;
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      SDB_ASSERT(!candidate.isValid(), "can not be valid");
+      
+      UINT32 seq = INVALID_CL_PAGE_SEQ;
+      BOOLEAN found = FALSE;
+      INT32 realLvl = FSM_INVALID_SPACE_LVL;
 
-      if (!isOpen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (0 == size)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (1 < _bucketCount && (INVALID_STRIPING_ID == striping))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (_maxFreeSize < size)
-      {
-         rc = SDB_VESSEL_OUT_OF_RESOURCE;
-         goto error;
-      }      
-
-      bucketNo = getBucketNo(striping);
-
-      {
-      ossScopedLock guard(&_latch, EXCLUSIVE);
-      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_BUCKET) &&
-          findFromBucket(bucketNo, size, candidate))
-      {
-         goto done;
-      }
-
-      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_NEW_POOL) &&
-          findPageFromPoolAndUpdateBucket(bucketNo, size, candidate))
-      {
-         goto done;
-      }
-
-      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_DISK_MAP))
-      {
-         rc = findPageFromDiskMapAndUpdateBucket(bucketNo, size, candidate);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 freeSpaceMap::updateBucket(CL_PAGE_SEQ seq,
-                                    PAGE_ID lpid,
-                                    UINT32 bucketNo,
-                                    UINT16 freeSizeFromBucket,
-                                    UINT16 currentFreeSize,
-                                    BOOLEAN failure)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
-                       INVALID_PAGE_ID == lpid ||
-                       _maxFreeSize < freeSizeFromBucket ||
-                       _maxFreeSize < currentFreeSize ||
-                       _bucketCount <= bucketNo))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _buckets.updateCandidate(bucketNo, seq, lpid,
-                              _minFreeSize, freeSizeFromBucket,
-                              currentFreeSize, failure);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 freeSpaceMap::findPageFromDiskMapAndUpdateBucket(UINT32 bucketNo,
-                                                          UINT16 size,
-                                                          fsmCandidate &candidate)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(bucketNo < _bucketCount, "impossible");
-      SDB_ASSERT(DMS_PAGE_SIZE32K == _pageSize ||
-                 DMS_PAGE_SIZE64K == _pageSize, "impossible");
-      CL_PAGE_SEQ seq = INVALID_CL_PAGE_SEQ;
-      UINT32 minFreeSize = 0;
-      fsmSizeLvl candidateLvl;
-      fsmSizeLvl lvl;
-      lvl.init(_pageSize, size);
-      if (_minFreeSize <= size)
-      {
-         lvl.incDelta();
-      }
-
-      rc = _dfsm.find(lvl, seq, candidateLvl);
-      if (SDB_VESSEL_FSM_NO_FREE_SPACE == rc)
-      {
-         goto error;
-      }
-      else if (SDB_OK != rc)
+      rc = _dfsm.find(lvl, found, seq, realLvl);
+      if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find free space from disk map:%d", rc);
          goto error;
       }
-
-      minFreeSize = candidateLvl.getMinFreeSize(_pageSize);
-      SDB_ASSERT(size <= minFreeSize, "impossible");
-
-      candidate = fsmCandidate(seq, INVALID_PAGE_ID, minFreeSize - size);
-      if (_minFreeSize <= (minFreeSize - size))
+      
+      if (found)
       {
-         fsmCandidate c(candidate);
-         if (_buckets.upsert(bucketNo, candidate))
+         fsmCandidate::SHARED_INFO_PTR sptr;
+         rc = makeFsmCandidateSharedInfoPtr(INVALID_PAGE_ID, realLvl, sptr);
+         if (SDB_OK != rc)
          {
-            candidate.setBucketNo(bucketNo);
-            candidate.setFeedback();
+            PD_LOG(PDERROR, "failed to make shared ptr:%d", rc);
+            goto error;
+         }
+
+         candidate.reset(seq, sptr);
+      }
+   done:
+      return rc;
+   error:
+      if (INVALID_CL_PAGE_SEQ != seq)
+      {
+         INT32 trc = _dfsm.upgradePageSpaceLvl(seq, realLvl);
+         if (SDB_OK != trc)
+         {
+            PD_LOG(PDERROR, "failed to give back page[%d], rc:%d", seq, rc);
          }
       }
-   done:
-      return rc;
-   error:
       goto done;
    }
 
-   BOOLEAN freeSpaceMap::findPageFromPoolAndUpdateBucket(UINT32 bucketNo,
-                                                         UINT16 size,
-                                                         fsmCandidate &candidate)
+   INT32 freeSpaceMap::findFromNewPagePool(fsmCandidate &candidate)
    {
-      SDB_ASSERT(bucketNo < _bucketCount, "impossible");
-      SDB_ASSERT(size <= _maxFreeSize, "impossible");
-
-      BOOLEAN r = FALSE;
-      UINT32 maxCnt = 0;
-      _pageSAndL page;
-
-      if (_newPagePool.empty())
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!candidate.isValid(), "can not be valid");
+      freeSpaceTuple tuple;
+      if (_newPagePool.popForward(tuple))
       {
-         goto done;
+         fsmCandidate::SHARED_INFO_PTR sptr;
+         rc = makeFsmCandidateSharedInfoPtr(tuple.getLpid(),
+                                            tuple.getSpaceLvl(),
+                                            sptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make shared ptr:%d", rc);
+            goto error;
+         }
+
+         candidate.reset(tuple.getSeq(), sptr);
       }
 
-      maxCnt = estimateMaxUpdatingCount(bucketNo);
-      SDB_ASSERT(0 < maxCnt, "can not be zero");
-
-      page = _newPagePool.front();
-      _newPagePool.pop_front();
-
-      candidate = fsmCandidate(page.seq, page.lpid, _maxFreeSize - size);
-
-      if (_minFreeSize <= (_maxFreeSize - size))
+      
+   done:
+      return rc;
+   error:
+      if (tuple.isValid())
       {
-         fsmCandidate c(candidate);
-         if (_buckets.upsert(bucketNo, c))
+         if (SDB_OK != _newPagePool.pushForward(tuple))
          {
-            candidate.setBucketNo(bucketNo);
+            PD_LOG(PDERROR, "failed to give back tuple[%d]", tuple.getSeq());
          }
       }
-
-      while (--maxCnt > 0 && !_newPagePool.empty())
-      {
-         page = _newPagePool.front();
-         _newPagePool.pop_front();
-         fsmCandidate c(page.seq, page.lpid, _maxFreeSize);
-         _buckets.upsert(bucketNo, c);
-      }
-      r = TRUE;
-      
-   done:
-      return r;
-   }
-
-   INT32 freeSpaceMap::incPageFreeSize(CL_PAGE_SEQ sequence,
-                                       PAGE_ID lpid,
-                                       STRIPING_ID minStriping,
-                                       UINT16 newFreeSize,
-                                       UINT16 delta)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 bucketNo = 0;
-      fsmSizeLvl oldLvl;
-      fsmSizeLvl newLvl;
-
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence ||
-                        INVALID_PAGE_ID == lpid ||
-                        newFreeSize < delta ||
-                        _maxFreeSize < newFreeSize))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (newFreeSize < _minFreeSize)
-      {
-         goto done;
-      }
-
-      oldLvl.init(_pageSize, newFreeSize - delta);
-      newLvl.init(_pageSize, newFreeSize);
-
-      if (oldLvl.getLvl() == newLvl.getLvl())
-      {
-         goto done;
-      }
-
-      bucketNo = getBucketNo(minStriping);
-
-      {
-      ossScopedLock lock(&_latch, SHARED);
-      if (_buckets.tryToIncBucket(sequence, lpid, bucketNo,
-                                  _maxFreeSize, newFreeSize, delta))
-      {
-         goto done;
-      }
-
-      rc = _dfsm.updatePageFreeSizeLvL(sequence, newLvl);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      }
-   done:
-      return rc;
-   error:
       goto done;
    }
 
-   INT32 freeSpaceMap::decPageFreeSize(CL_PAGE_SEQ sequence,
-                                       PAGE_ID lpid,
-                                       STRIPING_ID minStriping,
-                                       UINT16 newFreeSize,
-                                       UINT16 delta)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 bucketNo = 0;
-      fsmSizeLvl oldLvl;
-      fsmSizeLvl newLvl;
-      
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence ||
-                        INVALID_PAGE_ID == lpid ||
-                        newFreeSize < delta ||
-                        _maxFreeSize < newFreeSize))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      oldLvl.init(_pageSize, newFreeSize + delta);
-      newLvl.init(_pageSize, newFreeSize);
-      if (oldLvl.getLvl() == newLvl.getLvl())
-      {
-         goto done;
-      }
-
-      bucketNo = getBucketNo(minStriping);
-
-      {
-      ossScopedLock lock(&_latch, SHARED);
-      if (_buckets.tryToDecBucket(sequence, lpid, bucketNo,
-                                  _minFreeSize, newFreeSize, delta))
-      {
-         goto done;
-      }
-
-      rc = _dfsm.updatePageFreeSizeLvL(sequence, newLvl);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   BOOLEAN freeSpaceMap::findFromBucket(UINT32 bucketNo,
-                                        UINT32 size,
-                                        fsmCandidate &candidate)
+   INT32 freeSpaceMap::findFromBucket(UINT32 bucketNo,
+                                      INT32 lvl,
+                                      fsmCandidate &candidate,
+                                      UINT16 *tick)
    {
       SDB_ASSERT(bucketNo < _bucketCount, "impossible");
-      return _buckets.findAndAutoRemoving(bucketNo, size, _minFreeSize, candidate);
-   }
-
-  
-
-   UINT32 freeSpaceMap::estimateMaxUpdatingCount(UINT32 bucketNo)
-   {
-      UINT32 maxPageCount = _buckets.getFreeSize(bucketNo);
-      if (0 == maxPageCount)
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      INT32 rc = SDB_OK;
+      ossXLatchGuard guard(getBucketLatch(bucketNo));
+   
+      rc = _buckets[bucketNo].find(lvl, _newPagePool, candidate);
+      if (SDB_OK != rc)
       {
-         maxPageCount = 1;
+         PD_LOG(PDERROR, "failed to find candidate in bucket[%d], rc:%d",
+                bucketNo, rc);
+         goto error;
       }
-      
+
+      if (NULL != tick)
+      {
+         *tick = _bucketTicks[bucketNo];
+      }
    done:
-      return maxPageCount;
+      return rc;
+   error:
+      goto done;
    }
 
-   UINT32 freeSpaceMap::getBucketNo(STRIPING_ID striping)
+   INT32 freeSpaceMap::upsertIntoBucket(UINT32 bucketNo,
+                                        UINT32 seq,
+                                        const fsmCandidate::SHARED_INFO_PTR sptr)
    {
-      SDB_ASSERT(1 == _bucketCount || 32 == _bucketCount, "must be 1 or 32");
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(bucketNo < _bucketCount, "impossible");
+      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
+      SDB_ASSERT(NULL != sptr.get(), "can not be invalid");
+      ossXLatchGuard guard(getBucketLatch(bucketNo));
+
+      rc = _buckets[bucketNo].upsert(seq, sptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to upsert into bucket:%d", rc);
+         goto error;
+      }
+
+      ++_bucketTicks[bucketNo];
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   UINT32 freeSpaceMap::getBucketNo(STRIPING_ID striping)const
+   {
+      SDB_ASSERT(0 < _bucketCount, "can not be invalid");
+      SDB_ASSERT(INVALID_STRIPING_ID != striping, "can not be invalid");
+      SDB_ASSERT(_minStriping <= striping, "can not be invalid");
+      SDB_ASSERT(striping <= _maxStriping, "can not be invalid");
+
       UINT32 bucketNo = 0;
-      if (1 == _bucketCount || INVALID_STRIPING_ID == striping)
+      UINT32 totalStripingCount = 0;
+
+      if (1 == _bucketCount)
       {
          return 0;
       }
-      else if (striping <= _minStriping)
-      {
-         return 0;
-      }
-      else if (_maxStriping <= striping)
+      if (striping == _maxStriping)
       {
          return _bucketCount - 1;
       }
-      UINT16 range = (_maxStriping - _minStriping + 1) >> 5; /// divided by 32
-      if (0 == range)
-      {
-         range = 1;
-      }
 
-      bucketNo = (striping - _minStriping) / range;
-      bucketNo &= 0x1f;
+      totalStripingCount = _maxStriping - _minStriping + 1;
+      if (totalStripingCount < _bucketCount)
+      {
+         bucketNo = (striping - _minStriping);
+      }
+      else
+      {
+         UINT16 range = totalStripingCount / _bucketCount;
+         bucketNo = (striping - _minStriping) / range;
+         SDB_ASSERT(bucketNo < _bucketCount, "impossible");
+      }
       return bucketNo;
    }
 
+   INT32 freeSpaceMap::initBuckets(UINT32 bucketCount,
+                                   UINT32 bucketCapacity,
+                                   UINT32 bucketLatchCount)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!ossIsPowerOf2(bucketCount) ||
+                       !ossIsPowerOf2(bucketCapacity) ||
+                       !ossIsPowerOf2(bucketLatchCount) ||
+                       bucketCount < bucketLatchCount))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _bucketCapacity = bucketCapacity;
+      _bucketCount = bucketCount;
+      _bucketLatchCount = bucketLatchCount;
+
+      _buckets = SDB_OSS_NEW fsmCandidateBucket[_bucketCount];
+      if (NULL == _buckets)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < _bucketCount; ++i)
+      {
+         rc = _buckets[i].init(bucketCapacity);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init bucket[%d], rc:%d", i, rc);
+            goto error;
+         }
+      }
+
+      _bucketLatches = SDB_OSS_NEW ossSpinXLatch[_bucketLatchCount];
+      if (NULL == _bucketLatches)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      _bucketTicks = new UINT16[_bucketCount];
+      if (NULL == _bucketTicks)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+      /// No need to zeroed _bucketTicks.
+      /// We just want to diff old/current value.
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void freeSpaceMap::finiBuckets()
+   {
+      if (NULL != _buckets)
+      {
+         SDB_OSS_DEL []_buckets;
+         _buckets = NULL;
+      }
+      if (NULL != _bucketLatches)
+      {
+         SDB_OSS_DEL []_bucketLatches;
+         _bucketLatches = NULL;
+      }
+      if (NULL != _bucketTicks)
+      {
+         delete []_bucketTicks;
+         _bucketTicks = NULL;
+      }
+      _bucketCapacity = 0;
+      _bucketCount = 0;
+      _bucketLatchCount = 0;
+      return;
+   }
+
    void freeSpaceMap::addNewPagesToPool(UINT32 count,
-                                        CL_PAGE_SEQ seq,
+                                        UINT32 firstSeq,
                                         const PAGE_ID *lpids)
    {
       SDB_ASSERT(0 < count, "impossible");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
+      SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
       SDB_ASSERT(NULL != lpids, "can not be null");
+
       for (UINT32 i = 0; i < count; ++i)
       {
          SDB_ASSERT(INVALID_PAGE_ID != lpids[i], "can not be invalid");
-         if (INVALID_PAGE_ID != lpids[i])
+         INT32 rc = _newPagePool.pushForward(freeSpaceTuple(firstSeq + i,
+                                                            lpids[i],
+                                                            FSM_MAX_SPACE_LVL));
+         if (SDB_OK != rc)
          {
-            _newPagePool.push_back(_pageSAndL(seq + i, lpids[i]));
+            PD_LOG(PDERROR, "failed to add new page[%d] to pool:%d",
+                   firstSeq + i, rc);
          }
       }
       return;
@@ -688,12 +714,16 @@ namespace vessel
    void freeSpaceMap::savePagesInPool()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      fsmSizeLvl lvl;
-      lvl.init(_pageSize, _maxFreeSize);
-      _NEW_PAGE_POOL::const_iterator itr = _newPagePool.begin();
-      for (; itr != _newPagePool.end(); ++itr)
+      freeSpaceTuple tuple;
+      while (_newPagePool.popForward(tuple))
       {
-         _dfsm.updatePageFreeSizeLvL(itr->seq, lvl);
+         INT32 rc = _dfsm.upgradePageSpaceLvl(tuple.getSeq(),
+                                              tuple.getSpaceLvl());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to upgrade page[%d] on disk, rc:%d",
+                   tuple.getSeq(), rc);
+         }
       }
       return;
    }
@@ -701,29 +731,23 @@ namespace vessel
    void freeSpaceMap::savePagesInBuckets()
    {
       SDB_ASSERT(isOpen(), "must be open");
-      UINT32 size = _buckets.getBucketCount();
-      fsmCandidate *candidates = SDB_OSS_NEW fsmCandidate[_bucketCapacity];
-      if (NULL == candidates)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         goto done;
-      }
+      ossPoolList<freeSpaceTuple> tuples;
       
-      for (UINT32 i = 0; i < size; ++i)
+      for (UINT32 i = 0; i < _bucketCount; ++i)
       {
-         UINT32 cnt = 0;
-         _buckets.dumpBucket(i, candidates, cnt);
-         for (UINT32 j = 0; j < cnt; ++j)
-         {
-            fsmSizeLvl lvl;
-            lvl.init(_pageSize, candidates[j].free);
-            _dfsm.updatePageFreeSizeLvL(candidates[j].seq, lvl);
-         }
+         _buckets[i].dumpTuplesWithValidLvl(tuples);
       }
-   done:
-      if (NULL != candidates)
+
+      for (ossPoolList<freeSpaceTuple>::const_iterator itr = tuples.begin();
+           itr != tuples.end(); ++itr)
       {
-         SDB_OSS_DEL []candidates;
+         INT32 rc = _dfsm.upgradePageSpaceLvl(itr->getSeq(),
+                                              itr->getSpaceLvl());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to upgrade page[%d] on disk, rc:%d",
+                   itr->getSeq(), rc);
+         }
       }
       return;
    }

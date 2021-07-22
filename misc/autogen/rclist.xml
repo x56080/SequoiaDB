@@ -3162,13 +3162,6 @@
          </description>
       </code>
 
-      <code>
-         <name>SDB_VESSEL_OP_ON_MBID_BANNED</name>
-         <description>
-            <en>operation on mbid is banned by allocator</en>
-            <cn>在该集合序列的操作被集合管理器禁止</cn>
-         </description>
-      </code>
 
       <code>
          <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
@@ -3199,22 +3192,6 @@
          <description>
             <en>the page of free space map on disk is broken</en>
             <cn>空间管理索引页损坏</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_FSM_NO_FREE_SPACE</name>
-         <description>
-            <en>no free space in free space map</en>
-            <cn>空间管理索引中没有足够的空闲空间</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_CAS_BUSY</name>
-         <description>
-            <en>the loop count of cas hits the max value</en>
-            <cn>原子更新数据时尝试的次数达到最大值</cn>
          </description>
       </code>
 
@@ -3279,6 +3256,14 @@
          <description>
             <en>the storage unit is temporary</en>
             <cn>临时的存储对象</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_OUT_OF_MBID_RESOURCE</name>
+         <description>
+            <en>no more free mb id can be allocated</en>
+            <cn>没有可用的集合槽位</cn>
          </description>
       </code>
 

@@ -46,8 +46,14 @@ namespace vessel
    class scanCLOptions : public SDBObject
    {
       public:
-         TRANS_ISOLATION_LEVEL transLvl = TRANS_ISOLATION_RU;
-         DPS_TRANS_ID transID;
+         scanCLOptions(){}
+         ~scanCLOptions(){}
+         scanCLOptions(const scanCLOptions &o){}
+         scanCLOptions &operator=(const scanCLOptions &o)
+         {
+            return *this;
+         }
+
    };//class scanCLOptions
 }//namespace vessel
 }//namespace engine

@@ -93,7 +93,7 @@ namespace vessel
          /// init with cache tuple
          INT32 init(const GLOBAL_PAGE_ID &gpid,
                     UINT32 pageSize,
-                    const liteCacheTuple &tuple,
+                    liteCacheTuple &tuple,
                     const options &o = options());
 
       public:

@@ -44,8 +44,6 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 ID_MAP_PAGE_CAPACITY = (ID_MAP_FILE_PAGE_SIZE >> 3);
-
 #pragma pack(4)
    const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
    struct idMapPageHead
@@ -108,6 +106,8 @@ namespace vessel
 #pragma pack()
    //BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity);
 
+   constexpr UINT32 ID_MAP_PAGE_CAPACITY = (ID_MAP_FILE_PAGE_SIZE / sizeof(idMapSlot));
+
    idMapSlot getIdMapSlot(ossValuePtr ptr, UINT32 slot);
 
    BOOLEAN initIdMapPage(UINT32 pageSize,
@@ -118,8 +118,7 @@ namespace vessel
 
    OSS_INLINE PAGE_ID getImpPidOfLpid(PAGE_ID lpid)
    {
-      SDB_ASSERT(4096 == ID_MAP_PAGE_CAPACITY, "must be 4k");
-      return lpid >> 12;
+      return lpid / ID_MAP_PAGE_CAPACITY;
    }
 
    OSS_INLINE UINT32 getIdMapSlotNo(PAGE_ID lpid)

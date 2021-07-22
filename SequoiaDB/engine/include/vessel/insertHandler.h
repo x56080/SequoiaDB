@@ -39,7 +39,6 @@
 #include "vessel/requestHandler.h"
 #include "vessel/slice.h"
 #include "vessel/collectionHandle.h"
-#include "vessel/recordData.h"
 #include "utilInsertResult.hpp"
 #include "dpsTransID.hpp"
 
@@ -56,10 +55,10 @@ namespace vessel
 
       public:
          INT32 doit(const collectionHandle &handle,
-                    const recordData &record,
+                    const slice &record,
                     const DPS_TRANS_ID &transID,
                     STRIPING_ID striping,
-                    const insertOptions *options,
+                    const insertOptions &options,
                     utilInsertResult &res);
 
    };//class insertHandler

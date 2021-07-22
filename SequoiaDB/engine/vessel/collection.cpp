@@ -38,41 +38,34 @@
 #include "ossUtil.hpp"
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
-#include "vessel/impAccessor.h"
-#include "vessel/idMapPage.h"
 #include "vessel/storageUnit.h"
-#include "dpsLogRecord.hpp"
-#include "vessel/redoLogUtil.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/crpAccessor.h"
 #include "vessel/collectionSpace.h"
-#include "dpsLogRecord.hpp"
-#include "vessel/IRedoLogger.h"
-#include "vessel/outerResource.h"
 #include "vessel/lpidLockHelper.h"
-#include "vessel/smpAccessor.h"
 #include "vessel/insertContext.h"
 #include "vessel/routePage.h"
 #include "vessel/routePageAccessor.h"
-#include "vessel/rdpAccessor.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/scanCLContext.h"
+#include "vessel/rdpScanner.h"
+#include "vessel/routePageIniter.h"
+#include "vessel/atomicOperationList.h"
+#include "vessel/rdpIniter.h"
+#include "vessel/rdpInsertExecutor.h"
 
 namespace engine
 {
 namespace vessel
 {
-   collection::collection():
-   _collectionSpace(NULL),
-   _maxPageCntInRoutePages(0),
-   _pageCntInRoutePages(0)
+   collection::collection()
    {
       
    }
 
    collection::~collection()
    {
-
+      fini();
    }
 
    INT32 collection::initWhenOpen(requestContext *context,
@@ -84,38 +77,18 @@ namespace vessel
       UINT32 pageSize = 0;
       fsmFile *file = NULL;
 
-      if (OSS_UNLIKELY(NULL == cs))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(COLLECTION_RECORD_VERSION != record.version))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_CL_MB_ID == record.mbID))
+      if (OSS_UNLIKELY(NULL == context ||
+                       !record.isValid() ||
+                       NULL == cs ||
+                       !cs->isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = cs->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = cs->ensureFsmFile(context, &file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure fsm file:%d", rc);
-         goto error;
-      }
-      
-      _record = record;
       _collectionSpace = cs;
-
+      _record = record;
+      
       rc = initPageSequenceWhenOpen(context);
       if (SDB_OK != rc)
       {
@@ -123,6 +96,7 @@ namespace vessel
          goto error;
       }
 
+      pageSize = getDataPageSize();
       rc = _fsm.open(file, record.mbID,
                      record.logicalCLID, pageSize,
                      record.freeSizeReserved, 1 < record.maxSGCount,
@@ -150,38 +124,27 @@ namespace vessel
       INT32 rc = SDB_OK;
       fsmFile *fsm = NULL;
       UINT32 pageSize = 0;
-      SDB_ASSERT(NULL == _collectionSpace, "do not reinit");
+      SDB_ASSERT(!isOpen(), "do not reinit");
+      static const FLOAT32 MAX_FREE_SIZE_RESERVED_PERCENT = 0.7;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->mbLocked() ||
-                       EXCLUSIVE != context->getMBLockMode() ||
                        INVALID_CL_MB_ID == context->getMBID() ||
                        clName.empty() ||
                        DMS_INVALID_LOGICCLID == logicalID ||
                        NULL == cs ||
+                       !cs->isOpen() ||
                        !options.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (NULL != _collectionSpace)
+
+      _collectionSpace = cs;
+      pageSize = cs->getSU()->getMainDataSpace().getStorageCoreArgs().pageSize;
+      if ((pageSize * MAX_FREE_SIZE_RESERVED_PERCENT) < options.freeSizeReserved)
       {
+         PD_LOG(PDERROR, "too much free size reserved[%d]", options.freeSizeReserved);
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = cs->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      fini();
-
-      rc = cs->ensureFsmFile(context, &fsm);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create fsm file:%d", rc);
          goto error;
       }
 
@@ -194,14 +157,12 @@ namespace vessel
       _record.minStriping = options.minStriping;
       _record.maxStriping = options.maxStriping;
       ossMemcpy(_record.name, clName.str(), clName.strLen());
-      _record.maxSGCount = options.multiStripingBucket ? 32 : 1;
+      _record.maxSGCount = options.stripingBucketCount;
       _record.compressionType = options.compressionType;
-      _collectionSpace = cs;
-
 
       rc = _fsm.create(fsm, context->getMBID(), logicalID,
                        pageSize, options.freeSizeReserved,
-                       options.multiStripingBucket,
+                       options.stripingBucketCount,
                        options.minStriping,
                        options.maxStriping);
       if (SDB_OK != rc)
@@ -211,7 +172,7 @@ namespace vessel
          goto error;
       }
 
-      rc = saveOnDiskWhenCreating(context);
+      rc = saveOnDiskWhenCreating(context, options);
       if (SDB_OK != rc)
       {
          goto error;
@@ -227,8 +188,8 @@ namespace vessel
    {
       _record.reset();
       _collectionSpace = NULL;
-      _maxPageCntInRoutePages = 0;
-      _pageCntInRoutePages = 0;
+      _totalLvl0Count = 0;
+      _totalRdpCount = 0;
       _fsm.close();
       return;
    }
@@ -239,12 +200,7 @@ namespace vessel
                                  const createIndexOptions &options)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock guard(&_ddlSLatch, EXCLUSIVE);
-      if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+
       
 
    done:
@@ -253,72 +209,67 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::saveOnDiskWhenCreating(requestContext *context)
+   INT32 collection::saveOnDiskWhenCreating(requestContext *context,
+                                             const createCLOptions &options)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->getSpaceIDLocked(), "must be locked");
-      SDB_ASSERT(context->getSpaceID() == _collectionSpace->getSpaceID(), "must be same");
-      SDB_ASSERT(INVALID_CL_MB_ID != getMBID(), "can not be invlalid");
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      lpidLockHelper lh;
+      SDB_ASSERT(_record.isValid(), "must be valid");
+      logicalPageBuffer lpb;
+      crpAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      UINT32 pageSize = getDataPageSize();
+      strSlice csName;
 
-      rc = _collectionSpace->getMainDataSpace()->getLpidOfCollectionRecord(getMBID(), lpid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      PAGE_ID lpid = getCrpLpidOfCollection(pageSize, _record.mbID);
+      if (INVALID_PAGE_ID == lpid)
       {
-         PD_LOG(PDERROR, "failed to get lpid");
+         PD_LOG(PDERROR, "failed to get lpid of mbid[%d]", _record.mbID);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-
-      rc = lh.lock(context, FILE_TYPE_DD, lpid, EXCLUSIVE);
+      
+      rc = mds.getLogicalPageBuffer(context, lpid,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
+         PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d",
+                lpid, rc);
          goto error;
       }
-
-      rc = ensureCLRecordPageAllocated(context, lpid, pid);
+      
+      csName.reset(_collectionSpace->getCSName());
+      rc = accessor.createCL(context, _record, options, csName, &lpb);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to create cl on crp:%d", rc);
          goto error;
       }
-
-      rc = saveCLRecordWhenCreating(context, lpid);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
    done:
-      lh.unlock();
+      lpb.fini();
       return rc;
    error:
       goto done;
    }
 
    INT32 collection::dump(requestContext *context,
-                          listCollectionsRecord &record)
+                          bson::BSONObj &record)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == context))
+      if (OSS_UNLIKELY(NULL == _collectionSpace))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      SDB_ASSERT(context->mbLocked(), "must locked");
-      SDB_ASSERT(context->getMBID() == _record.mbID, "must be same");
-
-      record.version = _record.version;
-      ossMemcpy(record.name, _record.name, ossStrlen(_record.name) + 1);
-      record.csUniqueID = _collectionSpace->getUniqueID();
-      record.clInnerID = _record.innerID;
-      record.clLogicalID = _record.logicalCLID;
-      record.spaceID = _collectionSpace->getSpaceID();
-      record.mbID = _record.mbID;
-      record.maxSGCount = _record.maxSGCount;
+      record = dumpCollection(_collectionSpace->getLogicalID(),
+                              _record.mbID,
+                              _record.name,
+                              _record.logicalCLID,
+                              _record.innerID,
+                              _record.maxSGCount,
+                              _record.compressionType);
       
    done:
       return rc;
@@ -327,30 +278,26 @@ namespace vessel
    }
 
    INT32 collection::insert(insertContext *context,
-                            const recordData &record,
-                            const DPS_TRANS_ID &transID,
-                            STRIPING_ID striping,
-                            const insertOptions *options,
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(record.isValid(), "can not be invalid");
-      UINT32 recordSize = 0;
-      UINT32 pageSize = 0;
 
-      ossScopedLock guard(&_ddlSLatch, SHARED);
-
-      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (OSS_UNLIKELY(!isOpen()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-
-      context->initNewRequest(_collectionSpace, this, record, transID, striping);
-      if (NULL != options)
+      else if (NULL == context ||
+               !context->getOriginalRecord().isValid())
       {
-         context->setOptions(*options);
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_record.isStripingMode() &&
+               INVALID_STRIPING_ID == context->getStriping())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
       if (UTIL_COMPRESSOR_INVALID != _record.compressionType)
@@ -358,8 +305,7 @@ namespace vessel
          SDB_ASSERT(FALSE, "todo");
       }
 
-      recordSize = context->getRecord().getSlice().len();
-      if (!isBigRecordInRdp(pageSize, recordSize))
+      if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().len()))
       {
          rc = insertNonBigRecord(context);
          if (SDB_OK != rc)
@@ -378,20 +324,25 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getRecordCount(requestContext *context,
-                                    IQueryFilter *filter,
-                                    UINT64 &count)
+   INT32 collection::getTotalCountInRdpHead(requestContext *context,
+                                            UINT64 &count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       count = 0;
       ISession *session = context->getSession();
-      const static UINT32 _QUIT_CHECK = 16 - 1;
+      const static UINT32 _QUIT_CHECK = 7;
 
-      for (UINT32 i = 0; i < _pageCntInRoutePages; ++i)
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < _totalRdpCount; ++i)
       {
          PAGE_ID lpid = INVALID_PAGE_ID;
-         UINT32 cnt = 0;
+         UINT32 countInRdp = 0;
          if (0 == (i & _QUIT_CHECK))
          {
             if (session->quit())
@@ -408,13 +359,13 @@ namespace vessel
             goto error;
          }
 
-         rc = getRecordCountOfPage(context, lpid, filter, cnt);
+         rc = getRecordCountInPageHead(context, lpid, countInRdp);
          if (SDB_OK != rc)
          {
             goto error;
          }
 
-         count += cnt;
+         count += countInRdp;
       }
    done:
       return rc;
@@ -432,15 +383,41 @@ namespace vessel
       SDB_ASSERT(cursor->isOpen(), "must be open");
       SDB_ASSERT(cursor->getHandle().getCLLId() == _record.logicalCLID, "must be same");
 
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
       do
       {
-         if (_pageCntInRoutePages <= cursor->getPageSeq())
+         PAGE_ID lpid = cursor->getLpid();
+
+         if (_totalRdpCount <= cursor->getPageSeq())
          {
             cursor->pushEnd();
             goto done;
          }
 
-         rc = getMoreFromSeqInCursor(context, cursor);
+         if (INVALID_PAGE_ID == lpid)
+         {
+            rc = getLpidBySequence(context, cursor->getPageSeq(), lpid);
+            if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+            {
+               rc = SDB_OK;
+               cursor->incPageSeqAndResetRid();
+               continue;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d",
+                      cursor->getPageSeq(), rc);
+               goto error;
+            }
+            cursor->setLpid(lpid);
+         }
+
+         rc = getMoreFromPageInCursor(context, cursor);
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
             rc = SDB_OK;
@@ -461,91 +438,76 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getRecordCountOfPage(requestContext *context,
-                                          PAGE_ID lpid,
-                                          IQueryFilter *filter,
-                                          UINT32 &count)
+   INT32 collection::getRecordCountInPageHead(requestContext *context,
+                                              PAGE_ID lpid,
+                                              UINT32 &count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      rdpAccessor accessor;
-      rc = accessor.init(context, lpid, o,
-                         _collectionSpace->getMainDataSpace());
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      logicalPageBuffer lpb;
+      rdpScanner scanner;
+
+      rc = mds.getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init rdp accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                lpid, rc);
          goto error;
       }
 
-      if (NULL == filter)
+      rc = scanner.getRecourdCountInHead(context, &lpb, count);
+      if (SDB_OK != rc)
       {
-         rc = accessor.getRecordCount(context, count);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get record count of page[%d], rc:%d", lpid, rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to get record count of lpid[%d], rc:%d",
+                lpid, rc);
+         goto error;
       }
-      else
-      {
-         SDB_ASSERT(FALSE, "TODO");
-      }
-
-      accessor.fini(context);
    done:
+      lpb.fini();
       return rc;
    error:
-      accessor.fini(context);
-      count = 0;
       goto done;
    }
 
-   INT32 collection::getMoreFromSeqInCursor(scanCLContext *context,
-                                            scanCLCursor *cursor)
+   INT32 collection::getMoreFromPageInCursor(scanCLContext *context,
+                                             scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      rdpAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      lpid = cursor->getLpid();
+      SDB_ASSERT(NULL != cursor, "can not be null");
+      SDB_ASSERT(INVALID_PAGE_ID != cursor->getLpid(), "can not be invalid");
+      
+      rdpScanner scanner;
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
 
-      if (INVALID_PAGE_ID == lpid)
-      {
-         rc = getLpidBySequence(context, cursor->getPageSeq(), lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d",
-                   cursor->getPageSeq(), rc);
-            goto error;
-         }
-
-         cursor->setLpid(lpid);
-      }
-
-      rc = accessor.init(context, lpid, o,
-                         _collectionSpace->getMainDataSpace());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init accessor of lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.getMoreWhenScan(context, cursor);
+      rc = mds.getLogicalPageBuffer(context,
+                                    cursor->getLpid(),
+                                    OSS_SHARED_LATCH_MODE_SHARED,
+                                    lpb);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                cursor->getLpid(), rc);
          goto error;
       }
 
-      accessor.fini(context);
+      rc = scanner.getMore(context, &lpb, cursor);
+      if (SDB_OK != rc)
+      {
+         if (SDB_OK != SDB_VESSEL_CURSOR_NO_SPACE)
+         {
+            PD_LOG(PDERROR, "failed to get more from page:%d", rc);
+            goto error;
+         }
+      }
+
    done:
+      lpb.fini();
       return rc;
    error:
-      accessor.fini(context);
       goto done;
    }
 
@@ -553,14 +515,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 recordSize = context->getRecord().getSlice().len();
+      UINT32 alignedSize = getMaxSizeOfRecordInRdp(context->getRecordToInsert().len());
 
       do
       {
          fsmCandidate &candidate = context->getCandidate();
          context->setLastFreeSize(0);
          rc = findFreePageForRecord(static_cast<requestContext*>(context),
-                                    recordSize, context->getStriping(),
+                                    alignedSize, context->getStriping(),
                                     candidate);
          if (SDB_OK != rc)
          {
@@ -625,31 +587,30 @@ namespace vessel
       const fsmCandidate &candidate = context->getCandidate();
       SDB_ASSERT(candidate.isValid(), "must be valid");
       SDB_ASSERT(INVALID_PAGE_ID != candidate.lpid, "can not be invalid");
-      rdpAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      o.readOnly = FALSE;
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      rdpInsertExecutor accessor;
 
-      rc = accessor.init(context, candidate.lpid, o,
-                         _collectionSpace->getMainDataSpace());
+      rc = mds.getLogicalPageBuffer(context, candidate.lpid,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init accessor of lpid[%d], rc:%d",
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
                 candidate.lpid, rc);
          goto error;
       }
 
-      rc = accessor.insertNormalRecord(context);
+      rc = accessor.insertNormalRecord(context, &lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert record to lpid[%d], rc:%d",
-                candidate.lpid, rc);
+         if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert record:%d", rc);
+         }
          goto error;
       }
-
-      
    done:
-      accessor.fini(context);
+      lpb.fini();
       return rc;
    error:
       goto done;
@@ -677,7 +638,7 @@ namespace vessel
       else
       {
          UINT32 flags = freeSpaceMap::FIND_ALL;
-         ossScopedLock guard(&_pageAllocLatch);
+         ossScopedLock guard(&_rdpCountLatch);
          do
          {
             rc = _fsm.findInWholeMap(striping, recordSize,
@@ -685,7 +646,7 @@ namespace vessel
             if (SDB_VESSEL_FSM_NO_FREE_SPACE == rc)
             {
                PAGE_ID lpids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
-               CL_PAGE_SEQ firstSeq = INVALID_CL_PAGE_SEQ;
+               UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
                rc = allocateNewRecordDataPages(context, PAGE_COUNT_IN_EXTENT,
                                                firstSeq, lpids);
                if (SDB_OK != rc)
@@ -721,131 +682,88 @@ namespace vessel
 
    INT32 collection::allocateNewRecordDataPages(requestContext *context,
                                                 UINT32 count,
-                                                CL_PAGE_SEQ &firstSeq,
+                                                UINT32 &firstSeq,
                                                 PAGE_ID *lpids)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(8 == count, "capacity of route page is 32bytes alienged");
       SDB_ASSERT(NULL != lpids, "can not be null");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(_pageCntInRoutePages <= _maxPageCntInRoutePages, "impossible");
+      SDB_ASSERT(isOpen(), "can not be closed");
 
-      UINT32 capacity = 0;
-      PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
-      PAGE_ID lvl0Pid = INVALID_PAGE_ID;
-      UINT32 lvl0No = 0;
-      PAGE_ID pids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
-      UINT32 pageSize = 0;
-      BOOLEAN rollbackPre = FALSE;
-      BOOLEAN rollbackPages = FALSE;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      slice args;
       routePageAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      o.readOnly = FALSE;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-
-      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-      capacity = getCapacityOfRoutePage(pageSize);
+      logicalPageBuffer lpb;
+      rdpIniter initer;
+      UINT32 lvl0No = 0;
+      PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      UINT32 capacity = 0;
+      atomicOperationList oplist;
+      atomicOperationList *backup = NULL;
+      
+      capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
       {
+         PD_LOG(PDERROR, "failed to get capacity of route page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (_maxPageCntInRoutePages == _pageCntInRoutePages)
+      lvl0No = _totalRdpCount / capacity;
+      SDB_ASSERT(lvl0No <= _totalLvl0Count, "impossible");
+      if (lvl0No == _totalLvl0Count)
       {
-         rc = extendRoutePageMap(context, &lvl0Lpid);
+         rc = extendRoutePageMap(context);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to create new route page:%d", rc);
+            PD_LOG(PDERROR, "failed to extend route page map:%d", rc);
             goto error;
          }
       }
-      else
-      {
-         lvl0No = _pageCntInRoutePages / capacity;
-         rc = getLvl0RoutePage(context, capacity, lvl0No, lvl0Lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lvl0[%d] page, rc:%d", lvl0No, rc);
-            goto error;
-         }
-      }
-
-      rc = ms->preallocatePages(context, count, lpids, pids);
+      
+      initer.init(_record.logicalCLID, _totalRdpCount, count);
+      context->swtichOplist(&oplist, &backup);
+      rc = mds.allocatePages(context, &initer, count, lpids);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to preallocate pages:%d", rc);
+         PD_LOG(PDERROR, "failed to allocate new rdps:%d", rc);
          goto error;
       }
 
-      rollbackPre = TRUE;
-      rc = initNewRecordDataPages(context, count, _pageCntInRoutePages, lpids, pids);
+      rc = getLvl0RoutePage(context, capacity, lvl0No, lvl0Lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init pages:%d", rc);
+         PD_LOG(PDERROR, "failed to get lpid of lvl0[%d], rc:%d", lvl0No, rc);
          goto error;
       }
 
-      args.reset(sizeof(_pageCntInRoutePages), (const CHAR *)(&_pageCntInRoutePages));
-      rc = ms->allocatePages(context, PAGE_TYPE_RECORD,
-                             count, lpids, pids, args, &lsn);
+      rc = mds.getLogicalPageBuffer(context, lvl0Lpid,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate data pages:%d", rc);
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                lvl0Lpid, rc);
          goto error;
       }
 
-      rollbackPre = FALSE;
-      rollbackPages = TRUE;
-
-      rc = accessor.init(context, lvl0Lpid, o, ms, lsn);
+      oplist.setWaitingTail();
+      rc = accessor.append(context, count, lpids, &lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to ini accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to append lpids to route page:%d", rc);
          goto error;
       }
 
-      rc = accessor.appendSlots(context, _record.logicalCLID,
-                                 _pageCntInRoutePages %capacity,
-                                 count, lpids);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append new page to lvl0 page[%d], rc:%d",
-                lvl0Pid, rc);
-         goto error;
-      }
-
-      accessor.fini(context);
-
-      firstSeq = _pageCntInRoutePages;
-      _pageCntInRoutePages += count;
+      firstSeq = _totalRdpCount;
+      _totalRdpCount += count;
    done:
+      if (NULL != backup)
+      {
+         context->attachOplist(backup);
+      }
       return rc;
    error:
-      accessor.fini(context);
-      if (rollbackPre)
-      {
-         ms->releasePagesPreallocated(context, count, lpids, pids);
-      }
-      if (rollbackPages)
-      {
-         INT32 tmpRc = ms->releasePages(context, count, lpids, lsn);
-         if (SDB_OK != tmpRc)
-         {
-            PD_LOG(PDSEVERE, "failed to rollback allocating, rc:%d", rc);
-            IRedoLogger *logger = context->getOuterResource()->logger;
-            logger->abortOplist(context->getSession(), lsn);
-         }
-      }
-      ossMemset(lpids, 0xFF, (count << 2));
+      /// TODO: rollback oplist
       goto done;
    }
    
@@ -854,252 +772,283 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_CL_MB_ID != _record.mbID, "can not be invalid");
-      
-      UINT32 capacity = 0;
-      UINT32 pageSize = 0;
-      UINT32 max = 0;
-      UINT32 count = 0;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-      rc = ms->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      SDB_ASSERT(_record.isValid(), "must be valid");
+   
+
+      if (INVALID_PAGE_ID != _record.routePages[COLLECTION_ROOT_LVL2])
       {
-         goto error;
+         rc = initPageSequenceByRootLvL2(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init by lvl2 root:%d", rc);
+            goto error;
+         }
+      }
+      else if (INVALID_PAGE_ID != _record.routePages[COLLECTION_SECOND_ROOT_LVL1])
+      {
+         rc = initPageSequenceByRootLvL1(context, 1);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init by second lvl1 root:%d", rc);
+            goto error;
+         }
+      }
+      else if (INVALID_PAGE_ID != _record.routePages[COLLECTION_FIRST_ROOT_LVL1])
+      {
+         rc = initPageSequenceByRootLvL1(context, 0);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init by first lvl1 root:%d", rc);
+            goto error;
+         }
+      }
+      else if (INVALID_PAGE_ID != _record.routePages[COLLECTION_ROOT_LVL0])
+      {
+         rc = initPageSequenceByRootLvL0(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init by lvl0 root:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         _totalLvl0Count = 0;
+         _totalRdpCount = 0;
       }
 
-      capacity = getCapacityOfRoutePage(pageSize);
-      if (OSS_UNLIKELY(0 == capacity))
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::initPageSequenceByRootLvL2(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_record.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != _record.routePages[COLLECTION_ROOT_LVL2],
+                 "can not be invalid");
+
+      UINT32 lvl1Count = 0;
+      PAGE_ID lastLvl1 = INVALID_PAGE_ID;
+      UINT32 lvl0Count = 0;
+      PAGE_ID lastLvl0 = INVALID_PAGE_ID;
+      UINT32 rdpCount = 0;
+      PAGE_ID lastRdp = INVALID_PAGE_ID;
+
+      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
+                        getStorageCoreArgs().pageSize;
+      UINT32 capacity = getCapacityOfRoutePage(pageSize);
+      if (0 == capacity)
       {
          PD_LOG(PDERROR, "failed to get capacity of route page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL0])
-      {
-         /// do nothing.
-      }
-      else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_FIRST_ROOT_LVL1])
-      {
-         rc = getPageCntOfRoutePage(context, TRUE, capacity,
-                                    _record.routePages[COLLECTION_ROOT_LVL0],
-                                    COLLECTION_ROUTE_PAGE_LVL0,
-                                    max, count);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page count:%d", rc);
-            goto error;
-         }
-      }
-      else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_SECOND_ROOT_LVL1])
-      {
-         rc = getPageCntOfRoutePage(context, TRUE, capacity,
-                                    _record.routePages[COLLECTION_FIRST_ROOT_LVL1],
-                                    COLLECTION_ROUTE_PAGE_LVL1,
-                                    max, count);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page count:%d", rc);
-            goto error;
-         }
-         max += capacity;
-         count += capacity;
-      }
-      else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL2])
-      {
-         UINT32 delta = (1 + capacity) * capacity;
-         rc = getPageCntOfRoutePage(context, TRUE, capacity,
-                                    _record.routePages[COLLECTION_SECOND_ROOT_LVL1],
-                                    COLLECTION_ROUTE_PAGE_LVL1,
-                                    max, count);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page count:%d", rc);
-            goto error;
-         }
+      _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                            COLLECTION_SECOND_ROOT_LVL1);
+      _totalRdpCount = _totalLvl0Count * capacity;
 
-         
-         max += delta;
-         count += delta;
+      rc = getCountAndLastEleInRoutePage(context, capacity,
+                                         _record.routePages[COLLECTION_ROOT_LVL2],
+                                         COLLECTION_ROUTE_PAGE_LVL2,
+                                         lvl1Count, lastLvl1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get the last lvl1 page:%d", rc);
+         goto error;
+      }
+
+      if (0 == lvl1Count)
+      {
+         goto done;
+      }
+
+      _totalLvl0Count += ((lvl1Count - 1) * capacity);
+      _totalRdpCount = _totalLvl0Count * capacity;
+
+      rc = getCountAndLastEleInRoutePage(context, capacity,
+                                         lastLvl1,
+                                         COLLECTION_ROUTE_PAGE_LVL1,
+                                         lvl0Count, lastLvl0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get the last lvl0 page:%d", rc);
+         goto error;
+      }
+
+      if (0 == lvl0Count)
+      {
+         goto done;
+      }
+
+      _totalLvl0Count += lvl0Count;
+      _totalRdpCount += ((lvl0Count - 1) * capacity);
+
+      rc = getCountAndLastEleInRoutePage(context, capacity,
+                                         lastLvl0,
+                                         COLLECTION_ROUTE_PAGE_LVL0,
+                                         rdpCount, lastRdp);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get the last rdp:%d", rc);
+         goto error;
+      }
+
+      _totalRdpCount += rdpCount;
+   done:
+      return rc;
+   error:
+      _totalRdpCount = 0;
+      _totalLvl0Count = 0;
+      goto done;
+   }
+
+   INT32 collection::initPageSequenceByRootLvL1(requestContext *context,
+                                                UINT32 rootNo)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_record.isValid(), "can not be invalid");
+      SDB_ASSERT(rootNo <= 1, "can not out of bound");
+      PAGE_ID lpid = _record.routePages[COLLECTION_FIRST_ROOT_LVL1 + rootNo];
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+
+      UINT32 lvl0Count = 0;
+      PAGE_ID lastLvl0 = INVALID_PAGE_ID;
+      UINT32 rdpCount = 0;
+      PAGE_ID lastRdp = INVALID_PAGE_ID;
+
+      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
+                        getStorageCoreArgs().pageSize;
+      UINT32 capacity = getCapacityOfRoutePage(pageSize);
+      if (0 == capacity)
+      {
+         PD_LOG(PDERROR, "failed to get capacity of route page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (0 == rootNo)
+      {
+         _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                               COLLECTION_ROOT_LVL0);
       }
       else
       {
-         UINT32 delta = (1 + capacity + capacity) * capacity;
-         rc = getPageCntOfRoutePage(context, TRUE, capacity,
-                                    _record.routePages[COLLECTION_ROOT_LVL2],
-                                    COLLECTION_ROUTE_PAGE_LVL2,
-                                    max, count);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page count:%d", rc);
-            goto error;
-         }
+         _totalLvl0Count = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                               COLLECTION_FIRST_ROOT_LVL1);
+      }
+      _totalRdpCount = _totalLvl0Count * capacity;
 
-         max += delta;
-         count += delta;
+      rc = getCountAndLastEleInRoutePage(context, capacity,
+                                         lpid,
+                                         COLLECTION_ROUTE_PAGE_LVL1,
+                                         lvl0Count, lastLvl0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get the last lvl0 page:%d", rc);
+         goto error;
       }
 
-      _maxPageCntInRoutePages = max;
-      _pageCntInRoutePages = count;
+      if (0 == lvl0Count)
+      {
+         goto done;
+      }
+
+      _totalLvl0Count += lvl0Count;
+      _totalRdpCount += ((lvl0Count - 1) * capacity);
+
+      rc = getCountAndLastEleInRoutePage(context, capacity,
+                                         lastLvl0,
+                                         COLLECTION_ROUTE_PAGE_LVL0,
+                                         rdpCount, lastRdp);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get the last rdp:%d", rc);
+         goto error;
+      }
+
+      _totalRdpCount += rdpCount;
    done:
       return rc;
    error:
+      _totalLvl0Count = 0;
+      _totalRdpCount = 0;
       goto done;
    }
 
-   INT32 collection::getPageCntOfRoutePage(requestContext *context,
-                                           BOOLEAN direct,
-                                           UINT32 capacity,
-                                           PAGE_ID lpid,
-                                           UINT32 lvl,
-                                           UINT32 &maxPageCnt,
-                                           UINT32 &pageCnt)
+   INT32 collection::initPageSequenceByRootLvL0(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 != capacity, "can not be zero");
+      SDB_ASSERT(_record.isValid(), "can not be invalid");
+      PAGE_ID lpid = _record.routePages[COLLECTION_ROOT_LVL0];
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(COLLECTION_MIN_ROUTE_LVL <= lvl, "can not be invalid");
-      SDB_ASSERT(lvl <= COLLECTION_MAX_ROUTE_LVL, "can not be invalid");
-      UINT32 max = 0;
-      UINT32 count = 0;
-      UINT32 subMax = 0;
-      UINT32 subCount = 0;
-      PAGE_ID last = INVALID_PAGE_ID;
-      UINT32 slot = 0;
 
-      maxPageCnt = 0;
-      pageCnt = 0;
+      UINT32 rdpCount = 0;
+      PAGE_ID lastRdp = INVALID_PAGE_ID;
 
-      if (COLLECTION_ROUTE_PAGE_LVL0 == lvl)
+      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
+                        getStorageCoreArgs().pageSize;
+      UINT32 capacity = getCapacityOfRoutePage(pageSize);
+      if (0 == capacity)
       {
-         maxPageCnt = capacity;
-      }
-
-      rc = getLastElementInRoutePage(context, direct, lpid, last, slot);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get last element:%d", rc);
+         PD_LOG(PDERROR, "failed to get capacity of route page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (INVALID_PAGE_ID == last)
-      {
-         goto done;
-      }
-
-      if (COLLECTION_ROUTE_PAGE_LVL0 == lvl)
-      {
-         pageCnt = slot + 1;
-         goto done;
-      }
-      else if (COLLECTION_ROUTE_PAGE_LVL1 == lvl)
-      {
-         max = capacity * slot;
-         count = max;
-      }
-      else if (COLLECTION_ROUTE_PAGE_LVL2 == lvl)
-      {
-         max = capacity * capacity * slot;
-         count = max;
-      }
-
-      rc = getPageCntOfRoutePage(context, direct, capacity, last,
-                                 lvl - 1, subMax, subCount);
+      rc = getCountAndLastEleInRoutePage(context, capacity, lpid,
+                                         COLLECTION_ROUTE_PAGE_LVL0,
+                                         rdpCount, lastRdp);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get page count of sub page:%d", rc);
+         PD_LOG(PDERROR, "failed to get the last rdp:%d", rc);
          goto error;
       }
 
-      maxPageCnt = max + subMax;
-      pageCnt = count + subCount;
+      _totalLvl0Count = 1;
+      _totalRdpCount = rdpCount;
    done:
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 collection::initNewRecordDataPages(requestContext *context,
-                                            UINT32 count,
-                                            CL_PAGE_SEQ firstSeq,
-                                            const PAGE_ID *lpids,
-                                            const PAGE_ID *pids)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
-      UINT32 pageSize = 0;
-      ossValuePtr ptr = 0;
-      storageUnit *su = _collectionSpace->getMainDataSpace()->getSU();
-
-      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         if (OSS_UNLIKELY(INVALID_PAGE_ID == pids[i] ||
-                          INVALID_PAGE_ID == lpids[i]))
-         {
-            PD_LOG(PDERROR, "invalid page id");
-            goto error;
-         }
-
-         rc = su->getPagePtr(FILE_TYPE_DD, pids[i], ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page ptr of[%d], rc:%d", pids[i], rc);
-            goto error;
-         }
-
-         initRecordDataPage(pageSize, lpids[i], getLogicalID(),
-                            firstSeq + i, (void *)ptr);
-      }
-   done:
-      return rc;
-   error:
+      _totalLvl0Count = 0;
+      _totalRdpCount = 0;
       goto done;
    }
 
    INT32 collection::getLpidBySequence(requestContext *context,
-                                       CL_PAGE_SEQ sequence,
+                                       UINT32 sequence,
                                        PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_CL_PAGE_SEQ != sequence, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      UINT32 pageSize = 0;
+
       UINT32 capacity = 0;
       UINT32 lvl0Id = 0;
       PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
-      routePageAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
 
       lpid = INVALID_PAGE_ID;
 
-      if (_pageCntInRoutePages <= sequence)
+      if (_totalRdpCount <= sequence)
       {
          PD_LOG(PDERROR, "invalid page sequence[%d], current max page count[%d]",
-                sequence, _pageCntInRoutePages);
-         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
+                sequence, _totalRdpCount);
+         rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      rc = ms->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      capacity = getCapacityOfRoutePage(getDataPageSize());
+      if (0 == capacity)
       {
+         PD_LOG(PDERROR, "failed to get route page capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-
-      capacity = getCapacityOfRoutePage(pageSize);
       lvl0Id = sequence / capacity;
 
       rc = getLvl0RoutePage(context, capacity, lvl0Id, lvl0Lpid);
@@ -1109,60 +1058,96 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, lvl0Lpid, o, ms);
+      rc = getLpidFromRoutePage(context, lvl0Lpid,
+                                sequence % capacity,
+                                lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init route accessor of lpid[%d], rc:%d", lvl0Lpid, rc);
+         /// rdp may be released
+         if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpid from route page[%d], rc:%d",
+                   lvl0Lpid, rc);
+         }
          goto error;
       }
 
-      rc = accessor.readSlot(context, sequence % capacity, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to read slot of sequence[%d], rc:%d", sequence, rc);
-         goto error;
-      }
-
-      accessor.fini(context);
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
    done:
       return rc;
    error:
-      accessor.fini(context);
       goto done;
    }
 
-   INT32 collection::getLastElementInRoutePage(requestContext *context,
-                                               BOOLEAN direct,
-                                               PAGE_ID lpid,
-                                               PAGE_ID &element,
-                                               UINT32 &slot)
+
+   INT32 collection::getCountAndLastEleInRoutePage(requestContext *context,
+                                                   UINT32 capacity,
+                                                   PAGE_ID lpid,
+                                                   INT32 lvl,
+                                                   UINT32 &count,
+                                                   PAGE_ID &element)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(0 < capacity, "can not be zero");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      SDB_ASSERT(isValidRoutePageLvl(lvl), "must be valid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      pageAccessor::options o;
-      o.cacheMode = !direct;
-      routePageAccessor accessor;
-      rc = accessor.init(context, lpid, o,
-                         _collectionSpace->getMainDataSpace());
-      if (SDB_OK != rc)
+      UINT32 tmpLvl0Cnt = 0;
+      UINT32 tmpRdpCnt = 0;
+
+      PAGE_ID pid = INVALID_PAGE_ID;
+      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
+      mmapPagePointer ptr;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      const routePageHead *head = NULL;
+
+      rc = mds.getPageMappingAtNonruntime(context, lpid, pid, psv, ptr);
+      if (SDB_OK == rc)
       {
-         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to get mapping of lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
 
-      rc = accessor.readLastSlot(context, element, slot);
+      rc = validatePage(ptr.get(), PAGE_TYPE_ROUTE,
+                        mds.getStorageCoreArgs().pageSize,
+                        pid, lpid, psv);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to read last slot of lpid[%d], rc:%d", lpid, rc);
+         PD_LOG(PDERROR, "failed to validate pid[%d], rc:%d", pid, rc);
          goto error;
       }
-      
-      
+
+      head = (const routePageHead *)(ptr.get() + PAGE_HEAD_SIZE);
+      if (_record.logicalCLID != head->logicalId)
+      {
+         PD_LOG(PDERROR, "cl logical ids not same[%d,%d]",
+                _record.logicalCLID, head->logicalId);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+      else if (capacity < head->size)
+      {
+         PD_LOG(PDERROR, "invalid count in head:%d", head->size);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (lvl != head->lvl)
+      {
+         PD_LOG(PDERROR, "lvl in head [%d] is not target page lvl[%d] in page[%d]",
+                head->lvl, lvl, lpid);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      count = head->size;
+      if (0 < count)
+      {
+         UINT32 offset = PAGE_HEAD_SIZE + ROUTE_PAGE_HEAD_SIZE;
+         offset += (count - 1) * sizeof(PAGE_ID);
+         const PAGE_ID *tmp = (const PAGE_ID *)(ptr.get() + offset);
+         element = *tmp;
+      }
    done:
-      accessor.fini(context);
       return rc;
    error:
       goto done;
@@ -1174,60 +1159,73 @@ namespace vessel
                                       PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 != capacity, "can not be zero");
       PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
-      UINT32 slot = 0;
+      UINT32 pos = 0;
       routePageAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
 
       lpid = INVALID_PAGE_ID;
+
+      if (_totalLvl0Count <= lvl0No)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
       if (0 == lvl0No)
       {
          lpid = _record.routePages[COLLECTION_ROOT_LVL0];
          if (INVALID_PAGE_ID == lpid)
          {
-            rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+            PD_LOG(PDERROR, "root lvl0 does not exist");
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
          goto done;
       }
-      else if (lvl0No < (1 + capacity + capacity))
+      else if (lvl0No < getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                        COLLECTION_FIRST_ROOT_LVL1))
       {
-         lvl1Lpid = (lvl0No < (1 + capacity)) ?
-                    _record.routePages[COLLECTION_FIRST_ROOT_LVL1] :
-                    _record.routePages[COLLECTION_SECOND_ROOT_LVL1];
+         pos = lvl0No - 1;
+         lvl1Lpid = _record.routePages[COLLECTION_FIRST_ROOT_LVL1];
          if (INVALID_PAGE_ID == lvl1Lpid)
          {
-            rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+            PD_LOG(PDERROR, "the first root lvl1 does not exist");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
+      else if (lvl0No < getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                        COLLECTION_SECOND_ROOT_LVL1))
+      {
+         pos = lvl0No - 1 - capacity;
+         lvl1Lpid = _record.routePages[COLLECTION_SECOND_ROOT_LVL1];
+         if (INVALID_PAGE_ID == lvl1Lpid)
+         {
+            PD_LOG(PDERROR, "the second root lvl1 does not exist");
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
       }
       else if (lvl0No < getMaxLvl0Cnt(capacity))
       {
-         PAGE_ID lvl2Pid = _record.routePages[COLLECTION_ROOT_LVL2];
-         if (INVALID_PAGE_ID == lvl2Pid)
+         pos = (lvl0No - 1 - capacity - capacity) % capacity;
+         UINT32 lvl1Pos = (lvl0No - 1 - capacity - capacity) / capacity;
+         PAGE_ID lvl2Lpid = _record.routePages[COLLECTION_ROOT_LVL2];
+         if (INVALID_PAGE_ID == lvl2Lpid)
          {
-            rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+            PD_LOG(PDERROR, "lvl2 root does not exist");
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
 
-         rc = accessor.init(context, lvl2Pid, o,
-                            _collectionSpace->getMainDataSpace());
+         rc = getLpidFromRoutePage(context, lvl2Lpid,
+                                   lvl1Pos, lvl1Lpid);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+            PD_LOG(PDERROR, "failed to get lvl1 page in root lvl2:%d", rc);
             goto error;
          }
-
-         slot = (lvl0No - 1 - capacity - capacity) / capacity;
-         rc = accessor.readSlot(context, slot, lvl1Lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to read slot[%d] of lvl2:%d", slot, rc);
-            goto error;
-         }
-
-         accessor.fini(context);
       }
       else
       {
@@ -1235,51 +1233,67 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, lvl1Lpid, o,
-                         _collectionSpace->getMainDataSpace());
+      /// get lvl0 from lvl1
+      rc = getLpidFromRoutePage(context, lvl1Lpid, pos, lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to get lvl0 from lvl1[%d], rc:%d",
+                lvl1Lpid, rc);
          goto error;
       }
-
-      slot = (lvl0No - 1) % capacity;
-      rc = accessor.readSlot(context, slot, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to read slot[%d] of lvl2:%d", slot, rc);
-         goto error;
-      }
-
-      accessor.fini(context);
    done:
       return rc;
    error:
-      accessor.fini(context);
+      if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+      {
+         PD_LOG(PDERROR, "lvl0 page should exist all time");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+      }
       goto done;
    }
 
-   INT32 collection::extendRoutePageMap(requestContext *context,
-                                        PAGE_ID *newLvl0)
+   INT32 collection::getLpidFromRoutePage(requestContext *context,
+                                          PAGE_ID routePgaeLpid,
+                                          UINT32 pos,
+                                          PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(_maxPageCntInRoutePages == _pageCntInRoutePages, "impossible");
+      routePageAccessor accessor;
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
 
-      UINT32 pageSize = 0;
-      UINT32 capacity = 0;
-      UINT32 lvl0Cnt = 0;
-      UINT32 maxLvl0Cnt = 0;
-      PAGE_ID newLvl0Lpid = INVALID_PAGE_ID;
-      rc = _collectionSpace->getMainDataSpace()->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = mds.getLogicalPageBuffer(context, routePgaeLpid,
+                                    OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get page size:%d", rc);
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+                routePgaeLpid, rc);
          goto error;
       }
 
-      capacity = getCapacityOfRoutePage(pageSize);
+      rc = accessor.get(context, pos, &lpb, lpid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::extendRoutePageMap(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isOpen(), "can not be closed");
+
+      PAGE_ID newLvl0 = INVALID_PAGE_ID;
+      UINT32 maxLvl0COunt = 0;
+      PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
+      UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
       {
          PD_LOG(PDERROR, "failed to get route page capacity");
@@ -1287,534 +1301,380 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(0 == _maxPageCntInRoutePages % capacity, "impossible");
-      lvl0Cnt = _maxPageCntInRoutePages / capacity;
-      maxLvl0Cnt = getMaxLvl0Cnt(capacity);
-      
-      if (0 == lvl0Cnt)
-      {
-         rc = createRootRoutePage(context, COLLECTION_ROOT_LVL0);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         newLvl0Lpid = _record.routePages[COLLECTION_ROOT_LVL0];
-      }
-      else if (lvl0Cnt < (1 + capacity))
-      {
-         if (INVALID_PAGE_ID == _record.routePages[COLLECTION_FIRST_ROOT_LVL1])
-         {
-            rc = createRootRoutePage(context, COLLECTION_FIRST_ROOT_LVL1);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         }
+      maxLvl0COunt = getMaxLvl0Cnt(capacity);
 
-         rc = createNonRootRoutePage(context,
-                                     _record.routePages[COLLECTION_FIRST_ROOT_LVL1],
-                                     (lvl0Cnt - 1 ) % capacity,
-                                     newLvl0Lpid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      else if (lvl0Cnt < (1 + capacity + capacity))
+      if (OSS_UNLIKELY(maxLvl0COunt < _totalLvl0Count))
       {
-         if (INVALID_PAGE_ID == _record.routePages[COLLECTION_SECOND_ROOT_LVL1])
-         {
-            rc = createRootRoutePage(context, COLLECTION_SECOND_ROOT_LVL1);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         }
-         rc = createNonRootRoutePage(context,
-                                     _record.routePages[COLLECTION_SECOND_ROOT_LVL1],
-                                     (lvl0Cnt - 1 ) % capacity,
-                                     newLvl0Lpid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         PD_LOG(PDERROR, "invalid _totalLvl0Count[%d]", _totalLvl0Count);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
       }
-      else if (lvl0Cnt < maxLvl0Cnt)
-      {
-         PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
-         UINT32 slot = 0;
-         if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL2])
-         {
-            rc = createRootRoutePage(context, COLLECTION_ROOT_LVL2);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         }
 
-         slot = (lvl0Cnt - 1 - capacity - capacity) / capacity;
-         rc = ensureNonRootLvl1RoutePage(context, slot, lvl1Lpid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         rc = createNonRootRoutePage(context,
-                                     lvl1Lpid,
-                                     (lvl0Cnt - 1 ) % capacity,
-                                     newLvl0Lpid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      else if (lvl0Cnt == maxLvl0Cnt)
+      if (getMaxLvl0Cnt(capacity) == _totalLvl0Count)
       {
+         PD_LOG(PDERROR, "can not create any more new lvl0 pages");
          rc = SDB_VESSEL_FS_UPPER_LIMIT;
          goto error;
       }
+      
+      if (0 == _totalLvl0Count)
+      {
+         /// COLLECTION_ROOT_LVL0 impossible to be valid when _totalLvl0Count is zero.
+         SDB_ASSERT(INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL0], "impossible");
+         rc = ensureRootRoutePage(context, COLLECTION_ROOT_LVL0);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         ++_totalLvl0Count;
+         goto done;
+      }
+      else if (_totalLvl0Count <
+               getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                COLLECTION_FIRST_ROOT_LVL1))
+      {
+         rc = ensureRootRoutePage(context, COLLECTION_FIRST_ROOT_LVL1);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         lvl1Lpid = _record.routePages[COLLECTION_FIRST_ROOT_LVL1];
+      }
+      else if (_totalLvl0Count <
+               getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                   COLLECTION_SECOND_ROOT_LVL1))
+      {
+         rc = ensureRootRoutePage(context, COLLECTION_SECOND_ROOT_LVL1);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         lvl1Lpid = _record.routePages[COLLECTION_SECOND_ROOT_LVL1];
+      }
       else
       {
-         PD_LOG(PDERROR, "lvl0 count[%d] in chaos", lvl0Cnt);
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = ensureRootRoutePage(context, COLLECTION_ROOT_LVL2);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         rc = ensureNonRootLvl1RoutePage(context, lvl1Lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure lvl1 page:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = createNonRootRoutePage(context, lvl1Lpid,
+                                  COLLECTION_ROUTE_PAGE_LVL0,
+                                  newLvl0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create new lvl0 page:%d", rc);
          goto error;
       }
 
-      if (NULL != newLvl0)
-      {
-         *newLvl0 = newLvl0Lpid;
-      }
-
-      _maxPageCntInRoutePages += capacity;
-
+      ++_totalLvl0Count;
    done:
       return rc;
    error:
       goto done;
    }
 
-
-   INT32 collection::createRootRoutePage(requestContext *context,
+   INT32 collection::ensureRootRoutePage(requestContext *context,
                                          UINT32 rootSlot)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(COLLECTION_MIN_ROUTE_ROOT <= rootSlot &&
-                 rootSlot <= COLLECTION_MAX_ROUTE_ROOT, "impossible");
-      SDB_ASSERT( INVALID_PAGE_ID == _record.routePages[rootSlot], "must be invalid");
-      SDB_ASSERT(0 == _maxPageCntInRoutePages, "must be zero");
-      PAGE_ID lpidOfRP = INVALID_PAGE_ID;
-      PAGE_ID crpLpid = INVALID_PAGE_ID;
+      SDB_ASSERT(COLLECTION_MIN_ROUTE_ROOT <= rootSlot, "impossible");
+      SDB_ASSERT(rootSlot <= COLLECTION_MAX_ROUTE_ROOT, "impossible");
 
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-
-      /// we are holding ddl s latch and page allocating x latch.
-      /// all columns in _record are unchangeable now.
-      collectionRecord record = _record;
       crpAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      o.readOnly = FALSE;
-      o.oplistTail = TRUE;
-      UINT64 mask = COLLECTION_UPDATE_MASK_ROUTE_PAGES;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
+      logicalPageBuffer lpb;
+      PAGE_ID crpLpid = INVALID_PAGE_ID;
+      PAGE_ID routeLpid = INVALID_PAGE_ID;
+      UINT32 rootLvl = COLLECTION_ROUTE_PAGE_LVL0;
 
-      if(OSS_UNLIKELY(rootSlot < COLLECTION_MIN_ROUTE_ROOT ||
-                      COLLECTION_MAX_ROUTE_ROOT < rootSlot ||
-                      INVALID_PAGE_ID != _record.routePages[rootSlot]))
+      atomicOperationList oplist;
+      atomicOperationList *backup = NULL;
+
+      if (COLLECTION_FIRST_ROOT_LVL1 == rootSlot ||
+          COLLECTION_SECOND_ROOT_LVL1 == rootSlot)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         rootLvl = COLLECTION_ROUTE_PAGE_LVL1;
+      }
+      else if (COLLECTION_ROOT_LVL2 == rootSlot)
+      {
+         rootLvl = COLLECTION_ROUTE_PAGE_LVL2;
       }
 
-      rc = createNewRoutePage(context, lpidOfRP, &lsn);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create root lvl0 page:%d", rc);
-         goto error;
-      }
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
 
-      rc = ms->getLpidOfCollectionRecord(getMBID(), crpLpid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (INVALID_PAGE_ID != _record.routePages[rootSlot])
       {
-         PD_LOG(PDERROR, "failed to get lpid");
+         goto done;
+      }
+
+      crpLpid = getCrpLpidOfCollection(getDataPageSize(), _record.mbID);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == crpLpid))
+      {
+         PD_LOG(PDERROR, "failed to get lpid of crp");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      record.routePages[rootSlot] = lpidOfRP;
-      rc = accessor.init(context, crpLpid, o, ms, lsn);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init crp accessor:%d", rc);
-         goto error;
-      }
-
-      rc = accessor.update(context, LOG_TYPE_DUMMY, mask, record, slice());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update cl record[%d], rc:%d", record.mbID, rc);
-         goto error;
-      }
-
-      accessor.fini(context);
-      _record.routePages[rootSlot] = lpidOfRP;
-   done:
-      return rc;
-   error:
-      accessor.fini(context);
-      if (INVALID_PAGE_ID != lpidOfRP)
-      {
-         INT32 tmpRc = ms->releasePages(context, 1, &lpidOfRP, lsn);
-         if (SDB_OK != tmpRc)
-         {
-            PD_LOG(PDSEVERE, "failed to rollback allocating[%d], rc:%d", lpidOfRP, rc);
-            IRedoLogger *logger = context->getOuterResource()->logger;
-            logger->abortOplist(context->getSession(), lsn);
-         }
-      }
-      goto done;
-   }
-
-   INT32 collection::createNonRootRoutePage(requestContext *context,
-                                            PAGE_ID lpid,
-                                            UINT32 slot,
-                                            PAGE_ID &lpidOfRP)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      PAGE_ID newLpid = INVALID_PAGE_ID;
-      DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET;
-      routePageAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      o.readOnly = FALSE;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-
-      rc = createNewRoutePage(context, newLpid, &oplist);
+      context->swtichOplist(&oplist, &backup);
+      rc = createNewRoutePage(context, rootLvl, routeLpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create new route page:%d", rc);
          goto error;
       }
 
-      rc = accessor.init(context, newLpid, o, ms, oplist);
+      rc = mds.getLogicalPageBuffer(context, crpLpid,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to get buffer of lpid:%d, rc:%d",
+                crpLpid, rc);
          goto error;
       }
 
-      rc = accessor.appendSlots(context, _record.logicalCLID,
-                                slot, 1, &newLpid);
+      /// we are holding ddl s latch and page allocating x latch.
+      /// all columns in _record are unchangeable now.
+      _record.routePages[rootSlot] = routeLpid;
+      oplist.setWaitingTail();
+      rc = accessor.updateRoutePages(context, _record, &lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to append page[%d] to route page:%d", newLpid, rc);
+         _record.routePages[rootSlot] = INVALID_PAGE_ID;
+         PD_LOG(PDERROR, "failed to update collection record:%d", rc);
          goto error;
       }
 
-      accessor.fini(context);
-      lpidOfRP = newLpid;
    done:
+      lpb.fini();
+      if (NULL != backup)
+      {
+         context->attachOplist(backup);
+      }
       return rc;
    error:
-      accessor.fini(context);
-      if (INVALID_PAGE_ID != newLpid)
+      ///TODO: rollback oplist
+      goto done;
+   }
+
+   INT32 collection::createNonRootRoutePage(requestContext *context,
+                                            PAGE_ID father,
+                                            UINT32 pageLvl,
+                                            PAGE_ID &out)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_PAGE_ID != father, "can not be invalid");
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(COLLECTION_ROUTE_PAGE_LVL0 <= pageLvl, "impossible");
+      SDB_ASSERT(pageLvl <= COLLECTION_ROUTE_PAGE_LVL1, "impossible");
+
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      atomicOperationList oplist;
+      atomicOperationList *backup = NULL;
+      logicalPageBuffer lpb;
+      routePageAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+
+      context->swtichOplist(&oplist, &backup);
+
+      rc = createNewRoutePage(context, pageLvl, lpid);
+      if (SDB_OK != rc)
       {
-         INT32 tmpRc = ms->releasePages(context, 1, &newLpid, oplist);
-         if (SDB_OK != tmpRc)
-         {
-            PD_LOG(PDSEVERE, "failed to rollback allocating[%d], rc:%d", newLpid, rc);
-            IRedoLogger *logger = context->getOuterResource()->logger;
-            logger->abortOplist(context->getSession(), oplist);
-         }
+         PD_LOG(PDERROR, "failed to create new route page:%d", rc);
+         goto error;
       }
+
+      rc = mds.getLogicalPageBuffer(context, father,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", father, rc);
+         goto error;
+      }
+
+      oplist.setWaitingTail();
+      rc = accessor.append(context, 1, &lpid, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append new page to father:%d", rc);
+         goto error;
+      }
+
+      out = lpid;
+      
+   done:
+      if (NULL != backup)
+      {
+         context->attachOplist(backup);
+      }
+      return rc;
+   error:
+      out = INVALID_PAGE_ID;
+      ///TODO: rolblack oplist
       goto done;
    }
 
    INT32 collection::ensureNonRootLvl1RoutePage(requestContext *context,
-                                                UINT32 slot,
                                                 PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(INVALID_PAGE_ID != _record.routePages[COLLECTION_ROOT_LVL2], "impossible");
+      lpid = INVALID_PAGE_ID;
       routePageAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      UINT32 targetCount = 0;
+      UINT32 minCount = 0;
+      UINT32 currentLvl1Count = 0;
+      PAGE_ID lvl1 = INVALID_PAGE_ID;
 
-      PAGE_ID lvl2Lpid = _record.routePages[COLLECTION_ROOT_LVL2];
-      if (INVALID_PAGE_ID == lvl2Lpid)
+      UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
+      if (OSS_UNLIKELY(0 == capacity))
       {
-         PD_LOG(PDERROR, "lvl2 page does not exist");
-         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "failed to get route page capacity");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rc = accessor.init(context, lvl2Lpid, o,
-                         _collectionSpace->getMainDataSpace());
+      minCount = getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                     COLLECTION_SECOND_ROOT_LVL1);
+      if (_totalLvl0Count < minCount)
+      {
+         PD_LOG(PDERROR, "invalid _totalLvl0Count[%d]", _totalLvl0Count);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (getMaxLvl0Cnt(capacity) < _totalLvl0Count)
+      {
+         PD_LOG(PDERROR, "unexpected _totalLvl0Count[%d]", _totalLvl0Count);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      targetCount = ((_totalLvl0Count - minCount) / capacity) + 1;
+
+      rc = mds.getLogicalPageBuffer(context,
+                                    _record.routePages[COLLECTION_ROOT_LVL2],
+                                    OSS_SHARED_LATCH_MODE_SHARED, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         PD_LOG(PDERROR, "failed to get root lvl2:%d", rc);
          goto error;
       }
 
-      rc = accessor.readSlot(context, slot, lpid);
-      if (SDB_OK == rc)
+      rc = accessor.getSizeAndLast(context, &lpb, currentLvl1Count, lvl1);
+      if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get size:%d", rc);
+         goto error;
+      }
+
+      lpb.fini();
+
+      if (targetCount == currentLvl1Count)
+      {
+         if (INVALID_PAGE_ID == lvl1)
+         {
+            PD_LOG(PDERROR, "current lvl1 count in root lvl2 is %d, but no lpid found",
+                   currentLvl1Count);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         lpid = lvl1;
          goto done;
       }
-      else if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+      else if (targetCount != (currentLvl1Count + 1))
       {
-         ///create new one.
-         rc = SDB_OK;
-      }
-      else
-      {
-         PD_LOG(PDERROR, "failed to read slot[%d] on route page:%d", slot, rc);
+         PD_LOG(PDERROR, "target count[%d] does match current count[%d]",
+                targetCount, currentLvl1Count);
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      accessor.fini(context);
-
-      rc = createNonRootRoutePage(context, lvl2Lpid, slot, lpid);
+      rc = createNonRootRoutePage(context,
+                                  _record.routePages[COLLECTION_ROOT_LVL2],
+                                  COLLECTION_ROUTE_PAGE_LVL1,
+                                  lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "faile to create new route page:%d", rc);
+         PD_LOG(PDERROR, "failed to create new lvl1 page:%d", rc);
          goto error;
       }
 
    done:
-      accessor.fini(context);
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+
+   INT32 collection::createNewRoutePage(requestContext *context,
+                                        UINT32 lvl,
+                                        PAGE_ID &lpid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      routePageIniter initer;
+      initer.setLogicalId(_record.logicalCLID);
+      initer.setLvl(lvl);
+
+      rc = mds.allocatePages(context, &initer, 1, &lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create new route page:%d", rc);
+         goto error;
+      }
+   done:
       return rc;
    error:
       lpid = INVALID_PAGE_ID;
       goto done;
    }
 
-   INT32 collection::createNewRoutePage(requestContext *context,
-                                        PAGE_ID &lpidOfRP,
-                                        DPS_LSN_OFFSET *lsn)
+   UINT32 collection::getDataPageSize()const
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      PAGE_ID pid = INVALID_PAGE_ID;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      ossValuePtr ptr = 0;
-      UINT32 pageSize = 0;
-      slice s;
-      UINT32 logicalId = _record.logicalCLID;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-
-      rc = ms->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = ms->preallocatePages(context, 1, &lpid, &pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to preallocate data page:%d", rc);
-         goto error;
-      }
-
-      rc = ms->getSU()->getPagePtr(FILE_TYPE_DD, pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", pid, rc);
-         goto error;
-      }
-
-      if (!initRoutePage(pageSize, lpid, logicalId, (void *)ptr))
-      {
-         PD_LOG(PDERROR, "failed to init route page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      s.reset(sizeof(logicalId), (const CHAR *)(&logicalId));
-
-      rc = ms->allocatePages(context, PAGE_TYPE_ROUTE,
-                             1, &lpid, &pid, s, lsn);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate pages:%d", rc);
-         goto error;
-      }
-
-      lpidOfRP = lpid;
-   done:
-      return rc;
-   error:
-      if (INVALID_PAGE_ID != pid)
-      {
-         ms->releasePagesPreallocated(context, 1, &lpid, &pid);
-      }
-      goto done;
+      SDB_ASSERT(isOpen(), "must be open");
+      return _collectionSpace->getSU()->getMainDataSpace().getStorageCoreArgs().pageSize;
    }
 
-   INT32 collection::ensureCLRecordPageAllocated(requestContext *context,
-                                                 PAGE_ID lpid,
-                                                 PAGE_ID &pid)
+   UINT32 collection::getMaxLvL0RoutePageCountLteRoot(UINT32 capacity,
+                                                          UINT32 maxRoot)const
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE), "must holding lock");
-
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-      rc = ms->getPhysicalPid(context, lpid, pid, NULL);
-      if (SDB_OK == rc)
+      SDB_ASSERT(0 < capacity, "can not be zero");
+      SDB_ASSERT(maxRoot <= COLLECTION_MAX_ROUTE_ROOT, "impossible");
+      UINT32 count = 0;
+      if (COLLECTION_ROOT_LVL0 <= maxRoot)
       {
-         goto done;
+         count += 1;
       }
-      else if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
+      if (COLLECTION_FIRST_ROOT_LVL1 <= maxRoot)
       {
-         rc = allocatePageForCLRecord(context, lpid, pid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         count += capacity;
       }
-      else
+      if (COLLECTION_SECOND_ROOT_LVL1 <= maxRoot)
       {
-         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
-         goto error;
+         count += capacity;
       }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collection::allocatePageForCLRecord(requestContext *context,
-                                             PAGE_ID lpid,
-                                             PAGE_ID &pid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE),
-                 "must holding lock");
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-      rc = preallocateCLRecordPage(context, lpid, pid);
-      if (SDB_OK != rc)
+      if (COLLECTION_ROOT_LVL2 <= maxRoot)
       {
-         goto error;
+         count += (capacity * capacity);
       }
-
-      rc = ms->allocatePages(context, PAGE_TYPE_COLLECTION_RECORD,
-                             1, &lpid, &pid, slice(), NULL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate data pages:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (INVALID_PAGE_ID != pid)
-      {
-         ms->releasePhysicalPidsPreallocated(context, 1, &pid);
-         pid = INVALID_PAGE_ID;
-      }
-      goto done;
-   }
-
-   INT32 collection::preallocateCLRecordPage(requestContext *context,
-                                             PAGE_ID lpid,
-                                             PAGE_ID &pid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-
-      UINT32 pageSize = 0;
-      ossValuePtr ptr = 0;
-      pid = INVALID_PAGE_ID;
-      mainDataSpace *ms = _collectionSpace->getMainDataSpace();
-
-      rc = ms->getDataPageSize(pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = ms->preallocatePhysicalPids(context, 1, &pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to preallocate pid:%d", rc);
-         goto error;
-      }
-
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-
-      rc = ms->getSU()->getPagePtr(FILE_TYPE_DD, pid, ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (!initCollectionRecordPage(pageSize, lpid, (void *)ptr))
-      {
-         PD_LOG(PDERROR, "failed to init crp page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = ms->getSU()->fsync(FILE_TYPE_DD, pid, 1, TRUE);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (INVALID_PAGE_ID != pid)
-      {
-         ms->releasePhysicalPidsPreallocated(context, 1, &pid);
-         pid = INVALID_PAGE_ID;
-      }
-      goto done;
-   }
-
-   INT32 collection::saveCLRecordWhenCreating(requestContext *context, PAGE_ID lpid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      crpAccessor accessor;
-      pageAccessor::options o;
-      o.cacheMode = TRUE;
-      o.readOnly = FALSE;
-      rc = accessor.init(context, lpid, o,
-                         _collectionSpace->getMainDataSpace());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to setup crp accessor:%d", rc);
-         goto error;
-      }
-
-      rc = accessor.createCL(context, _record);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      accessor.fini(context);
-      return rc;
-   error:
-      goto done;
+      return count;
    }
 }//namespace vessel
 }//namespace engine

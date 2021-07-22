@@ -33,11 +33,15 @@
 
 ******************************************************************************/
 
-#include "vessel/crpIniter.hpp"
-#include "ossLikely.hpp"
+#include "vessel/crpIniter.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/vesselOptions.h"
+#include "vessel/collectionRecordPage.h"
 #include "vessel/logRecordContext.h"
+#include "vessel/ISession.h"
+#include "vessel/outerResource.h"
+#include "vessel/IRedoLogger.h"
+#include "vessel/requestContext.h"
+#include "dpsLogRecordDef.hpp"
 
 namespace engine
 {
@@ -50,7 +54,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logRecordContext lrc;
-      csMetaRecord *ptr = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == lpid ||
@@ -61,44 +64,41 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (NULL == _record ||
-               !_record->isValid() ||
-               NULL == _options ||
-               !_options->isValid())
+      else if (!rpb->isCacheBuffer() ||
+               !rpb->isWritingPrepared())
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
-      SDB_ASSERT(rpb->isWritingPrepared(), "must be prepared");
-      SDB_ASSERT(rpb->isCacheBuffer(), "must be cache buffer");
-      
-      if (!initGmp(rpb->getPageSize(),
-                   rpb->getGlobalPid().page(),
-                   lpid, psv, rpb->getBuffer()))
-      {
-         PD_LOG(PDERROR, "failed to init cs meta page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      ptr = rpb->getWritablePtrOfBody<csMetaRecord>(0);
-      if (NULL == ptr)
-      {
-         PD_LOG(PDERROR, "failed to get write ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      ossMemcpy(ptr, _record, CS_META_RECORD_LEN);
-
-      rc = pageAccessor::prepareLog(context, rpb,
-                                    LOG_TYPE_VESSEL_UPDATE_CS_META,
-                                    TRUE, &lrc);
+      rc = pageInitializer::prepareInitLog(context, 0, rpb, &lrc);
       if (SDB_OK != rc)
       {
-         
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
       }
+
+      if (!initCollectionRecordPage(rpb->getPageSize(),
+                                    rpb->getGlobalPid().page(),
+                                    lpid, psv, rpb->getBuffer()))
+      {
+         rpb->abort();
+         PD_LOG(PDERROR, "failed to init crp");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = pageInitializer::commitInitLog(context, rpb->getGlobalPid(),
+                                          lpid, psv, PAGE_TYPE_COLLECTION_RECORD,
+                                          slice(), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      rpb->commit(lrc.getLsn());
    done:
       return rc;
    error:

@@ -75,6 +75,7 @@ namespace vessel
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
+                        utilCSUniqueID uniqueId,
                         const createCSOptions &options,
                         SPACE_ID *sid = NULL,
                         UINT32 *logicalID = NULL);
@@ -103,6 +104,15 @@ namespace vessel
                                utilCSUniqueID uniqueID,
                                OSS_LATCH_MODE mode,
                                collectionSpace **out);
+
+         /// if logicalID set as valid value,
+         /// will return error when the actual id of the object
+         /// does not match the parameter
+         INT32 getCSBySpaceID(requestContext *context,
+                              SPACE_ID sid,
+                              UINT32 logicalID,
+                              OSS_LATCH_MODE mode,
+                              collectionSpace **out);
 
          /// if logicalID set as valid value,
          /// will return error when the actual id of the object
@@ -156,6 +166,7 @@ namespace vessel
 
          INT32 createCS(requestContext *context,
                         const strSlice &csName,
+                        utilCSUniqueID uniqueId,
                         UINT32 logicalID,
                         const createCSOptions &options,
                         collectionSpace **out);

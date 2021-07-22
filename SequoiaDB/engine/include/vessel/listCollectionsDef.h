@@ -37,40 +37,29 @@
 #define VESSEL_LIST_COLLECTIONS_DEF_H_
 
 #include "vessel/vesselIdDef.h"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCollectionsRecord : public SDBObject
-   {
-      public:
-         listCollectionsRecord():
-         version(0),
-         csUniqueID(UTIL_INVALID_CS_UNIQUE_ID),
-         clInnerID(UTIL_INVALID_CL_INNER_ID),
-         clLogicalID(DMS_INVALID_LOGICCLID),
-         spaceID(INVALID_SPACE_ID),
-         mbID(INVALID_CL_MB_ID),
-         maxSGCount(0)
-         {
-            ossMemset(name, 0, sizeof(name));
-         }
+   static const CHAR * const CL_DUMP_RECORD_FIELD_CS_LOGICAL_ID = "cs_logical_id";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_MB_ID = "mbid";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_NAME = "name";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID = "cl_logical_id";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_INNER_ID = "inner_id";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_SG_COUNT = "sg_count";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_COMPRESSION = "compression";
 
-         ~listCollectionsRecord()
-         {}
+   bson::BSONObj dumpCollection(UINT32 csLogicalID,
+                                CL_MB_ID mbID,
+                                const CHAR *name,
+                                UINT32 clLogicalID,
+                                UINT32 innerID,
+                                UINT32 sgCount,
+                                UINT32 compression);
 
-      public:
-         UINT32 version;
-         CHAR name[DMS_COLLECTION_NAME_SZ+1];
-         utilCSUniqueID csUniqueID;
-         utilCLInnerID clInnerID;
-         UINT32 clLogicalID;
-         SPACE_ID spaceID;
-         CL_MB_ID mbID;
-         UINT16 maxSGCount;
-   };//class listCollectionsRecord
-}
-}
+}//namespace vessel
+}//namespace engine
 
 #endif//VESSEL_LIST_COLLECTION_SPACE_DEF_H_

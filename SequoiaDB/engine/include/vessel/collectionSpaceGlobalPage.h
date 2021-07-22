@@ -51,7 +51,8 @@ namespace vessel
    {
       CMR_STATUS_INVALID = 0,
       CMR_STATUS_ONLINE = 1,
-      CMR_STATUS_REMOVED_BUT_SNAPSHOT = 2,
+      CMR_STATUS_REMOVING = 2,
+      CMR_STATUS_REMOVED_BUT_SNAPSHOT = 3,
    };
 
    enum CMR_TYPE
@@ -59,10 +60,6 @@ namespace vessel
       CMR_TYPE_INVALID = 0,
       CMR_TYPE_NORMAL = 1,
    };
-
-   const static UINT64 CSGP_UPDATE_MASK_STATUS = 0x01;
-   const static UINT64 CSGP_UPDATE_MASK_FLAGS = 0x02;
-   const static UINT64 CSGP_UPDATE_MASK_NAME = 0x04;
 
 #pragma pack(4)
    struct csMetaRecord

@@ -192,7 +192,6 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(count < 256, "can not over 1 byte");
-      SDB_ASSERT(NULL != lpids, "can not be null");
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
@@ -304,6 +303,32 @@ namespace vessel
       logRecordContext lrc;
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
+      CHAR *buffer = NULL;
+      UINT32 bufferSize = count * sizeof(PAGE_ID);
+
+      if (releasePid)
+      {
+         buffer = context->allocateBuffer(bufferSize);
+         if (NULL == buffer)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         for (UINT32 i = 0; i < count; ++i)
+         {
+            if (!mpids[i].isValid())
+            {
+               PD_LOG(PDERROR, "invalid mpid found");
+               SDB_ASSERT(FALSE, "impossible");
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            ((PAGE_ID *)buffer)[i] = mpids[i].getPid();
+         }
+      }
 
       rc = builder.buildUnmappingLog(count, mpids, releasePid);
       if (OSS_UNLIKELY(SDB_OK != rc))
@@ -378,12 +403,17 @@ namespace vessel
 
       if (releasePid)
       {
-         logicalPageSpace::getDataStorageObj()->releasePages(count, pids);
+         logicalPageSpace::getDataStorageObj()->releasePages(count,
+                                                           (const PAGE_ID *)buffer);
       }
    done:
       if (checkpointBlocked)
       {
          context->unblockCheckpoint();
+      }
+      if (NULL != buffer)
+      {
+         context->releaseBuffer(buffer, bufferSize);
       }
       return rc;
    error:
@@ -541,6 +571,7 @@ namespace vessel
                           logicalPageSpace::getSpaceType(),
                           logicalPageSpace::getStorageFileType(),
                           pid);
+      UINT32 pageSize = 0;
       
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == pid))
@@ -591,7 +622,6 @@ namespace vessel
       runtimePageBuffer::options o;
       liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
-      globalPageIDAndLpid lgpid;
       UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       CHAR *buffer = NULL;
       liteCacheTuple tuple;
@@ -637,17 +667,18 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy(tuple.getWritableBuffer(),
-                rpb.getReadablePtrOfBody(),
-                pageSize);
+      ossMemcpy((void *)(tuple.getWritableBuffer()),
+                 rpb.getReadOnlyBuffer(),
+                 pageSize);
       ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
       ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;
       updatePageLsn((ossValuePtr)(tuple.getWritableBuffer()), lrc.getLsn());
 
-      lgpid.gpid = gpid;
-      lgpid.lpid = ((pageHead *)(tuple.getWritableBuffer()))->lpid;
-      rc = commit(context, pageSize, tuple.getWritableBuffer(),
-                  lgpid, &lrc);
+      rc = commit(context, pageSize,
+                  (const void *)(tuple.getReadableBuffer()),
+                  gpid,
+                  ((const pageHead *)(tuple.getReadableBuffer()))->lpid,
+                  &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
@@ -665,7 +696,6 @@ namespace vessel
          ossPanic();
          goto error;
       }
-      tuple.release();
 
       rc = rpb.prepareToWrite(context);
       if (SDB_OK != rc)
@@ -676,6 +706,7 @@ namespace vessel
          goto error;
       }
    done:
+      tuple.release();
       if (NULL != buffer)
       {
          context->releaseBuffer(buffer, pageSize);
@@ -697,8 +728,9 @@ namespace vessel
       IRedoLogger *logger = context->getOuterResource()->logger;
       lrc->open(LOG_TYPE_VESSEL_COPY_PAGE);
       lrc->setResetPage();
-      lrc->prepush(sizeof(globalPageIDAndLpid));
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
       lrc->prepush(pageSize);
+      lrc->prepush(sizeof(PAGE_ID));
       lrc->prepushDone();
       rc = logger->prepare(session, lrc);
       if (SDB_OK != rc)
@@ -715,7 +747,8 @@ namespace vessel
    INT32 replicatedLPS::commit(requestContext *context,
                                UINT32 pageSize,
                                const void *pageBuffer,
-                               const globalPageIDAndLpid &gpid,
+                               const GLOBAL_PAGE_ID &gpid,
+                               PAGE_ID lpid,
                                logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
@@ -723,6 +756,7 @@ namespace vessel
       SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
       SDB_ASSERT(NULL != pageBuffer, "can not be null");
       SDB_ASSERT(gpid.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
 
@@ -736,6 +770,15 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push gpid:%d", rc);
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_COPY_PAGE_LPID,
+                                        sizeof(PAGE_ID), &lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push page lpid:%d", rc);
          goto error;
       }
 

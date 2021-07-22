@@ -83,11 +83,12 @@ namespace vessel
 
          static constexpr UINT32 MAX_LPID_COUNT = ID_MAP_PAGE_CAPACITY * ID_MAP_FILE_MAX_PAGE_COUNT;
       public:
-         virtual void close();
-         virtual void destroy();
          virtual SPACE_TYPE getSpaceType()const = 0;
 
       public:
+         void close();
+
+         void destroy();
 
          INT32 create(requestContext *context,
                       const createLogicalPageSpaceOptions &o);
@@ -108,12 +109,12 @@ namespace vessel
 
          /// lpid must be in reserved imp.
          /// Page will be created if lpid unmapped.
-         /// Will always get exclusive lock first.
+         /// If lpid has already been mapped, will do nothing.
+         /// Should always get exclusive latch out side.
          /// If just want to read a reserved page ,jsut use "getLogicalPageBuffer".
-         INT32 ensureReservedPage(requestContext *context,
-                                  PAGE_ID lpid,
-                                  pageInitializer *initer,
-                                  logicalPageBuffer &lpb);
+         INT32 ensureReservedPageMapped(requestContext *context,
+                                        PAGE_ID lpid,
+                                        pageInitializer *initer);
 
          INT32 allocatePages(requestContext *context,
                              pageInitializer *initer,
@@ -123,9 +124,18 @@ namespace vessel
          INT32 releasePages(requestContext *context,
                             UINT32 count,
                             const PAGE_ID *lpids);
+
+      public:
+         /// WARNING: Can not guarantee data consistency!
+         INT32 getPageMappingAtNonruntime(requestContext *context,
+                                          PAGE_ID lpid,
+                                          PAGE_ID &pid,
+                                          PAGE_SNAPSHOT_VERION &psv,
+                                          mmapPagePointer &ptr);
+
       public:
          FILE_TYPE getStorageFileType()const;
-         const storageCoreArgs &getStorageCoreArgs(storageCoreArgs &args)const;
+         const storageCoreArgs &getStorageCoreArgs()const;
 
 
       public:
@@ -165,7 +175,6 @@ namespace vessel
          INT32 validateLpidBeforeGet(PAGE_ID lpid)const;
 
          BOOLEAN isReservedLpid(PAGE_ID lpid)const;
-
       protected:
          class _runtimePageBufferIniter : public SDBObject
          {
@@ -174,10 +183,11 @@ namespace vessel
                ~_runtimePageBufferIniter(){}
             
             public:
+               ///WARNING: tuple will be invalid after init.
                INT32 initWithCache(const GLOBAL_PAGE_ID &gpid,
                                    UINT32 pageSize,
                                    const runtimePageBuffer::options &o,
-                                   const liteCacheTuple &tuple,
+                                   liteCacheTuple &tuple,
                                    runtimePageBuffer &rpb);
 
                INT32 initWithMmap(const GLOBAL_PAGE_ID &gpid,
@@ -243,12 +253,14 @@ namespace vessel
          virtual INT32 _create(requestContext *context){return SDB_OK;}
          virtual INT32 _open(requestContext *context,
                              const storageFileLoader &loader){return SDB_OK;}
+         virtual void _close(){return;}
+         virtual void _destroy(){return ;}
          virtual UINT32 getIdMapFileHeadFlags()const = 0;
          virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
 
       private:
-         void _close();
-         void _destroy();
+         void __close();
+         void __destroy();
          INT32 createFirstIdMapFile(const storageCoreArgs &dataArgs);
          INT32 openIdMapFiles(SPACE_ID sid,
                               const strSlice &dir,
@@ -273,11 +285,6 @@ namespace vessel
                                         logicalPageBuffer &lpb);
 
          INT32 ensureLogicalPidSpace(PAGE_ID lpid);
-
-         INT32 initPageAndCompleteBuffer(requestContext *context,
-                                         PAGE_ID pid,
-                                         pageInitializer *initer,
-                                         logicalPageBuffer &lpb);
 
          INT32 initAndMapPages(requestContext *context,
                                pageInitializer *initer,

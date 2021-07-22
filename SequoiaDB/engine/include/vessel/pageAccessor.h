@@ -58,18 +58,23 @@ namespace vessel
          pageAccessor &operator=(const pageAccessor &) = delete;
 
       public:
-         virtual PAGE_TYPE getPageType()const = 0;
+         //virtual PAGE_TYPE getPageType()const = 0;
 
       protected:
          virtual INT32 prepareLog(requestContext *context,
-                                  runtimePageBuffer *rpb,
+                                  const runtimePageBuffer *rpb,
                                   UINT16 logType,
                                   BOOLEAN resetPage,
                                   logRecordContext *lrc);
 
          INT32 prepareLogDone(requestContext *context,
-                              runtimePageBuffer *rpb,
                               logRecordContext *lrc);
+
+         INT32 pushElement(requestContext *context,
+                           UINT8 tag,
+                           UINT32 size,
+                           const void *data,
+                           logRecordContext *lrc);
 
          INT32 commitLog(requestContext *context,
                          logRecordContext *lrc);

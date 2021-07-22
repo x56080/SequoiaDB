@@ -72,8 +72,6 @@ namespace vessel
 
       _args = args;
       _creater = creater;
-      ossIsPowerOf2(args.maxSegmentCountPerFile, &_bitwiseMaxSegmentPerFile);
-      ossIsPowerOf2(args.maxPageCountPerSeg, &_bitwiseMaxPageCountPerSeg);
 
       rc = _allocator.init(_args.maxPageCountPerSeg, o);
       if (SDB_OK != rc)
@@ -82,14 +80,11 @@ namespace vessel
          goto error;
       }
 
-      if (NULL != loader)
+      rc = openFiles(loader);
+      if (SDB_OK != rc)
       {
-         rc = openFiles(loader);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to open files:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to open files:%d", rc);
+         goto error;
       }
 
       _segmentCountOnDisk = getTotalSegmentCountAllocated();
@@ -126,8 +121,6 @@ namespace vessel
    void dataPageCluster::_close()
    {
       _args.reset();
-      _bitwiseMaxSegmentPerFile = 0;
-      _bitwiseMaxPageCountPerSeg = 0;
       _creater = NULL;
       _allocator.fini();
       _segmentCountOnDisk = 0;
@@ -423,6 +416,7 @@ namespace vessel
          ++_segmentCountOnDisk;
       }
       
+      SDB_ASSERT(_allocator.getPageCount() < _segmentCountOnDisk, "impossible");
       rc = _allocator.allocateNewBitmapPage();
       if (SDB_OK != rc)
       {

@@ -44,32 +44,7 @@ namespace engine
 {
 namespace vessel
 {
-   liteCacheTuple::liteCacheTuple(const liteCacheTuple &t):
-   _tag(NULL),
-   _pool(NULL),
-   _status(NULL)
-   {
-      if (t.isValid())
-      {
-         _tag = t._tag;
-         _pool = t._pool;
-         _status = t._status;
-         _status->incSharedCnt();
-      }
-   }
-
-   liteCacheTuple &liteCacheTuple::operator=(const liteCacheTuple &t)
-   {
-      release();
-      if (t.isValid())
-      {
-         _tag = t._tag;
-         _pool = t._pool;
-         _status = t._status;
-         _status->incSharedCnt();
-      }
-      return *this;
-   }
+   static const UINT16 TUPLE_FLAG_WRITING_PREPARED = 0x01;
 
    INT32 liteCacheTuple::init(liteCachePageTag *tag,
                               OSS_SHARED_LATCH_MODE mode,
@@ -90,30 +65,28 @@ namespace vessel
                (!tag->hasMemPage() ||
                 OSS_SHARED_LATCH_MODE_EXCLUSIVE != mode))
       {
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _status = SDB_OSS_NEW liteCacheTuple::_sharedStatus();
-      if (NULL == _status)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
          goto error;
       }
 
       _tag = tag;
       _pool = pool;
-      _status->setLockingMode(mode);
       if (isWritingPrepared)
       {
-         _status->setWritingPrepared();
+         OSS_BIT_SET(_flags, TUPLE_FLAG_WRITING_PREPARED);
       }
-      _status->incSharedCnt();
+      _lockingMode = mode;
+
    done:
       return rc;
    error:
       goto done;
+   }
+
+   BOOLEAN liteCacheTuple::isWritingPrepared()const
+   {
+      return 0 != OSS_BIT_TEST(_flags, TUPLE_FLAG_WRITING_PREPARED);
    }
 
    INT32 liteCacheTuple::prepareToWrite(requestContext *context)
@@ -125,25 +98,25 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_status->isWritingPrepared())
+      else if (isWritingPrepared())
       {
          goto done;
       }
-      else if (OSS_SHARED_LATCH_MODE_NONE == _status->getLockingMode() ||
-               OSS_SHARED_LATCH_MODE_SHARED == _status->getLockingMode())
+      else if (OSS_SHARED_LATCH_MODE_NONE == _lockingMode ||
+               OSS_SHARED_LATCH_MODE_SHARED == _lockingMode)
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (OSS_SHARED_LATCH_MODE_UPGRADE == _status->getLockingMode())
+      else if (OSS_SHARED_LATCH_MODE_UPGRADE == _lockingMode)
       {
          _tag->getAccessingLatch().unlockUpgradeAndLock();
-         _status->setLockingMode(OSS_SHARED_LATCH_MODE_EXCLUSIVE);
+         _lockingMode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
       }
 
       if (!_tag->isInLruList())
       {
-         lcPageTagHolder holder(_tag, _status->getLockingMode());
+         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
          rc = _pool->allocateMemPageAndInsertIntoLRU(context, FALSE, holder);
          if (SDB_OK != rc)
          {
@@ -152,11 +125,11 @@ namespace vessel
       }
       else
       {
-         lcPageTagHolder holder(_tag, _status->getLockingMode());
+         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
          _pool->tryToUpdateLRU(holder);
       }
 
-      _status->setWritingPrepared();
+      OSS_BIT_SET(_flags, TUPLE_FLAG_WRITING_PREPARED);
 
    done:
       return rc;
@@ -189,7 +162,7 @@ namespace vessel
    {
       ossValuePtr ptr = 0;
       if (OSS_UNLIKELY(!isValid() ||
-                       !_status->isWritingPrepared()))
+                       !isWritingPrepared()))
       {
          SDB_ASSERT(FALSE, "not valid or writing prepared");
          goto done;
@@ -205,35 +178,41 @@ namespace vessel
    {
       if (isValid())
       {
-         if (0 == _status->decSharedCnt())
-         {
-            lcPageTagHolder holder(_tag, _status->getLockingMode());
-            holder.autoUnlock();
-            _tag->decUsageCnt();
-            _tag = NULL;
-            _pool = NULL;
-            SDB_OSS_DEL _status;
-            _status = NULL;
-
-         }
-         else
-         {
-            _tag = NULL;
-            _pool = NULL;
-            _status = NULL;
-         }
+         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
+         holder.autoUnlock();
+         _tag->decUsageCnt();
+         _tag = NULL;
+         _pool = NULL;
+         _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
+         _flags = 0;
       }
       return;
    }
 
    void liteCacheTuple::commit(UINT64 lsn)
    {
-      if (isValid() && _status->isWritingPrepared())
+      if (isValid() && isWritingPrepared())
       {
          _pool->commit(lsn, *this);
       }
    }
 
+   void liteCacheTuple::moveTo(liteCacheTuple &tuple)
+   {
+      tuple.release();
+      if (isValid())
+      {
+         tuple._tag = _tag;
+         tuple._pool = _pool;
+         tuple._lockingMode = _lockingMode;
+         tuple._flags = _flags;
 
+         _tag = NULL;
+         _pool = NULL;
+         _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
+         _flags = 0;
+      }
+      return;
+   }
 } /// end of namesapce vessel
 } /// end of namespace engine

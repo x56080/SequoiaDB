@@ -36,7 +36,7 @@
 #ifndef VESSEL_ROUTE_PAGE_ACCESSOR_H_
 #define VESSEL_ROUTE_PAGE_ACCESSOR_H_
 
-#include "vessel/logicalPageAccessor.h"
+#include "vessel/pageAccessor.h"
 #include "vessel/routePage.h"
 
 namespace engine
@@ -44,56 +44,44 @@ namespace engine
 namespace vessel
 {
    class logRecordContext;
+   class logicalPageBuffer;
 
-   class routePageAccessor : public logicalPageAccessor
+   class routePageAccessor : public pageAccessor
    {
       public:
          routePageAccessor(){}
          virtual ~routePageAccessor(){}
 
       public:
-         INT32 init(requestContext *context,
-                    PAGE_ID lpid,
-                    const pageAccessor::options &o,
-                    logicalPageSpace *space,
-                    DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET);
+         INT32 append(requestContext *context,
+                      UINT32 count,
+                      const PAGE_ID *lpids,
+                      logicalPageBuffer *lpb);
 
-         INT32 appendSlots(requestContext *context,
-                           UINT32 logicalId,
-                           UINT32 slot,
-                           UINT32 count,
-                           const PAGE_ID *lpids);
+         /// pos can not be sout of current size
+         INT32 get(requestContext *context,
+                   UINT32 pos,
+                   const logicalPageBuffer *lpb,
+                   PAGE_ID &lpid)const;
 
-         /// users should ensure slot is lower than capacity and count.
-         INT32 readSlot(requestContext *context,
-                        UINT32 slot,
-                        PAGE_ID &lpid);
-
-         /// WARNING: SDB_OK deos means slot is valid.
-         /// users should alwasy validate lpid by themselves.
-         INT32 readLastSlot(requestContext *context,
-                            PAGE_ID &lpid,
-                            UINT32 &slot);
-
-      public:
-         virtual PAGE_TYPE getPageType()const
-         {
-            return PAGE_TYPE_ROUTE;
-         }
+         INT32 getSizeAndLast(requestContext *context,
+                              const logicalPageBuffer *lpb,
+                              UINT32 &size,
+                              PAGE_ID &last)const;
 
       private:
-         INT32 readSlot(UINT32 slot, PAGE_ID &lpid);
-         INT32 writeSlots(UINT32 slot, UINT32 count, const PAGE_ID *lpids);
-         INT32 prpareAppendLog(requestContext *context,
-                               logRecordContext *lrc,
-                               UINT32 count);
+         INT32 prepareAppendLog(requestContext *context,
+                                const runtimePageBuffer *rpb,
+                                UINT32 count,
+                                logRecordContext *lrc);
+
          INT32 commitAppendLog(requestContext *context,
-                               logRecordContext *lrc,
+                               const GLOBAL_PAGE_ID &gpid,
                                PAGE_ID lpid,
-                               const routePageHead &oldHead,
-                               const routePageHead &newHead,
-                               UINT32 count,
-                               const PAGE_ID *lpids);
+                               UINT16 oldCount,
+                               UINT16 size,
+                               const PAGE_ID *lpids,
+                               logRecordContext *lrc);
 
    };//class routePageAccessor
 }//namespace vessel

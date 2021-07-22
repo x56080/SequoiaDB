@@ -107,6 +107,14 @@ namespace vessel
       {
          goto error;
       }
+
+      if (!ossIsPowerOf2(_headInMem.pageSize, &_bitwisePageSize) ||
+          !ossIsPowerOf2(_headInMem.maxPageCountPerSeg, &_bitwisePageCountOfSeg))
+      {
+         PD_LOG(PDERROR, "invalid core args");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
       
    done:
       return rc;
@@ -307,136 +315,20 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create file:%d", rc);
          goto error;
       }
+
+      if (!ossIsPowerOf2(_headInMem.pageSize, &_bitwisePageSize) ||
+          !ossIsPowerOf2(_headInMem.maxPageCountPerSeg, &_bitwisePageCountOfSeg))
+      {
+         PD_LOG(PDERROR, "invalid core args");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
    done:
       return rc;
    error:
       destroy();
       goto done;
    }
-
-/*
-   INT32 storageFile::cloneTo(const strSlice &dir,
-                              BOOLEAN sparse,
-                              BOOLEAN replace)
-   {
-      INT32 rc = SDB_OK;
-      vesselFileName fn;
-      storageFileOptions options;
-      storageFile *file = NULL;
-      ossValuePtr src = 0;
-      ossValuePtr dst = 0;
-      UINT32 segSize = 0;
-      UINT32 checksum = 0;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(dir.empty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (0 != OSS_BIT_TEST(_headInMem.flags,
-                                 STORAGE_FILE_HEAD_FLAG_CLONE))
-      {
-         /// can not clone a cloned file.
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      file = SDB_OSS_NEW storageFile();
-      if (NULL == file)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      options.dir = dir.str();
-      options.secretValue = _headInMem.secretValue;
-      options.args.pageSize = _headInMem.pageSize;
-      options.args.maxPageCountPerSeg = _headInMem.maxPageCountPerSeg;
-      options.args.maxSegmentCountPerFile = _headInMem.maxSegmentCountPerFile;
-      options.replaceWhenCreate = replace;
-      options.creatingMode = TRUE;
-
-      if (fn.build(_headInMem.spaceID,
-                   _headInMem.fileType,
-                   _headInMem.fileCluster,
-                   _headInMem.sequence,
-                   FILE_SHADOWN_SUFFIX_MODE_CLONE))
-      {
-         PD_LOG(PDERROR, "failed to build file name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = file->createFileAndInitHead(fn, options, 0, NULL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create new file:%d", rc);
-         goto error;
-      }
-
-      rc = getUserDefinedHeadPtr(src);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      rc = file->getUserDefinedHeadPtr(dst);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      ossMemcpy((void *)dst, (const void *)src, STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
-
-      segSize = _headInMem.pageSize * _headInMem.maxPageCountPerSeg;
-      for (UINT32 i = 0; i < _dataSegmentCount; ++i)
-      {
-         rc = file->allocateNewSegment(sparse);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate new segment in clone file:%d", rc);
-            goto error;
-         }
-
-         rc = getSegmentPtr(i, src);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         rc = file->getSegmentPtr(i, dst);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         ossMemcpy((void *)dst, (const void *)src, segSize);
-      }
-
-      rc = file->updateHeadToNormalIfCreating(TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update head of clone file:%d", rc);
-         goto error;
-      }
-
-      file->close();
-   done:
-      SAFE_OSS_DELETE(file);
-      return rc;
-   error:
-      if (NULL != file)
-      {
-         file->destroy();
-      }
-      goto done;
-   }
-   */
 
    INT32 storageFile::createFileAndInitHead(const vesselFileName &fn,
                                             const createStorageFileOptions &options,
@@ -549,11 +441,6 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN storageFile::isOpen() const
-   {
-      return ossMmapFile::_file.isOpened();
-   }
-
    const CHAR *storageFile::getFullPath()const
    {
       return isOpen() ? ossMmapFile::_fileName : NULL;
@@ -561,9 +448,11 @@ namespace vessel
 
    void storageFile::destroy()
    {
-      _headInMem = storageFileHead();
+      _headInMem.reset();
       _dataSegmentCount = 0;
-      if (isOpen())
+      _bitwisePageSize = 0;
+      _bitwisePageCountOfSeg = 0;
+      if (ossMmapFile::_file.isOpened())
       {
          ossMmapFile::unlink();
       }
@@ -572,18 +461,20 @@ namespace vessel
 
    void storageFile::close()
    {
-      _headInMem = storageFileHead();
+      _headInMem.reset();
       _dataSegmentCount = 0;
+      _bitwisePageSize = 0;
+      _bitwisePageCountOfSeg = 0;
       ossMmapFile::close();
       return;
    }
 
-   INT32 storageFile::getPagePtr(PAGE_ID page, ossValuePtr &ptr)const
+   INT32 storageFile::getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const
    {
       INT32 rc = SDB_OK;
       UINT32 segID = 0;
       ossValuePtr segPtr = 0;
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == page))
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -595,14 +486,14 @@ namespace vessel
          goto error;
       }
 
-      segID = page / _headInMem.maxPageCountPerSeg;
+      segID = getSegmentIDFromPageID(pid);
       rc = getSegmentPtr(segID, segPtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      ptr = segPtr + ((page % _headInMem.maxPageCountPerSeg) * _headInMem.pageSize);
+      ptr = segPtr + ((pid & (_headInMem.maxPageCountPerSeg)) << _bitwisePageSize);
    done:
       return rc;
    error:
@@ -644,50 +535,40 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::fsync(PAGE_ID pid, UINT32 count, BOOLEAN sync)
+   INT32 storageFile::fsyncPage(PAGE_ID pid, BOOLEAN sync)const
    {
       INT32 rc = SDB_OK;
-      UINT32 lastCount = count;
-      PAGE_ID tmp = pid;
       UINT32 seg = 0;
+      UINT32 offsetInSegment = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
-                            0 == count ))
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      seg = getSegmentIDFromPageID(pid + count - 1);
+      seg = getSegmentIDFromPageID(pid);
       if (OSS_UNLIKELY(_dataSegmentCount <= seg))
       {
          PD_LOG(PDERROR, "fsync out of file range");
-         rc = SDB_INVALIDARG;
+         rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      
-      do
-      {
-         seg = getSegmentIDFromPageID(tmp);
-         PAGE_ID beginPage = (tmp & (_headInMem.maxPageCountPerSeg - 1));
-         UINT32 pageCount =  (_headInMem.maxPageCountPerSeg  - beginPage) < lastCount ?
-                             (_headInMem.maxPageCountPerSeg - beginPage) : lastCount;
-         rc =  ossMmapFile::flushBlock(getMMapSegmentID(seg),
-                                       beginPage * _headInMem.pageSize,
-                                       pageCount * _headInMem.pageSize, sync);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
 
-         lastCount -= pageCount;
-         tmp += pageCount;
-      } while (0 < lastCount);
+      offsetInSegment = ((pid & (_headInMem.maxPageCountPerSeg - 1)) << _bitwisePageSize);
+      rc = ossMmapFile::flushBlock(getMMapSegmentID(seg),
+                                   offsetInSegment,
+                                   _headInMem.pageSize, sync);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync pid[%d], rc:%d", pid, rc);
+         goto error;
+      }
 
    done:
       return rc;
@@ -695,7 +576,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::fsync(UINT32 segmentId, BOOLEAN sync)const
+   INT32 storageFile::fsyncSegment(UINT32 segmentId, BOOLEAN sync)const
    {
       INT32 rc = SDB_OK;
       UINT32 mmapSegId = 0;
@@ -841,13 +722,22 @@ namespace vessel
 
       if (VESSEL_FILE_GLOBAL_OPTIONS::isSparseExtending())
       {
-         rc = ossFallocate(&_file, &originalFileSize, len);
+#if defined( _LINUX )
+         rc = ossFallocate(&_file, 0, originalFileSize, len);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to extend file with fallocate: %s, %d, %d",
                    _fileName, len, rc);
             goto error;
          }
+#else
+         rc = ossExtentBySparse(&_file, len);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend file by sparse:%d", rc);
+            goto error;
+         }
+#endif//#if defined( _LINUX )
       }
       else
       {

@@ -39,7 +39,6 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/collectionHandle.h"
 #include "utilInsertResult.hpp"
-#include "vessel/recordData.h"
 #include "dpsTransID.hpp"
 #include "vessel/scanCLOptions.h"
 #include "vessel/cursorHandler.h"
@@ -58,11 +57,10 @@ namespace vessel
    class collectionHandler : public SDBObject
    {
       public:
-         OSS_INLINE collectionHandler():
-                    _db(NULL){}
+         OSS_INLINE collectionHandler(){}
 
-         OSS_INLINE collectionHandler(const collectionHandle &handle,
-                                      vesselImpl *db):
+         OSS_INLINE explicit collectionHandler(const collectionHandle &handle,
+                                               vesselImpl *db):
                     _handle(handle),
                     _db(db){}
 
@@ -70,7 +68,7 @@ namespace vessel
                     _handle(o._handle),
                     _db(o._db){}
 
-         OSS_INLINE~collectionHandler()
+         OSS_INLINE ~collectionHandler()
          {
             _db = NULL;
          }
@@ -102,27 +100,26 @@ namespace vessel
 
       public:
          INT32 insert(ISession *session,
-                      const recordData &record,
+                      const slice &record,
                       const DPS_TRANS_ID &transID,
                       STRIPING_ID striping,
-                      const insertOptions *options,
+                      const insertOptions &options,
                       utilInsertResult &res);
 
-         INT32 getRecordCount(ISession *session,
-                              IQueryFilter *filter,
-                              UINT64 &count);
+         INT32 getTotalRecordCountInPageHead(ISession *session,
+                                             UINT64 &count);
 
-         /// The release of cursor is not related to handler.
+         /// The releasing of cursor is not related to handler.
          /// You can call their "close" functions in any order.
          INT32 openScanCursor(ISession *session,
                               IQueryFilter *filter,
-                              const scanCLOptions *scanOptions,
-                              const cursorOptions *cursorOptions,
+                              const scanCLOptions &scanOptions,
+                              const cursorOptions &cursorOptions,
                               cursorHandler &cursor);
           
       private:
          collectionHandle _handle;
-         vesselImpl *_db;
+         vesselImpl *_db = NULL;
    };//class collectionHandler
 }//namespace vessel
 }//namespace engine

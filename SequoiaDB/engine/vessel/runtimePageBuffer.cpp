@@ -108,7 +108,7 @@ namespace vessel
 
    INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
                                  UINT32 pageSize,
-                                 const liteCacheTuple &tuple,
+                                 liteCacheTuple &tuple,
                                  const options &o)
    {
       INT32 rc = SDB_OK;
@@ -125,7 +125,7 @@ namespace vessel
       _gpid = gpid;
       _pageSize = pageSize;
       _flags = o.toFlags();
-      _tuple = tuple;
+      tuple.moveTo(_tuple);
       _buffer = _tuple.getReadableBuffer();
    done:
       return rc;

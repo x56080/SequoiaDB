@@ -84,7 +84,7 @@ namespace vessel
             return;
          }
 
-         OSS_INLINE BOOLEAN valid()const
+         OSS_INLINE BOOLEAN isValid()const
          {
             return 0 < _len && NULL != _data;
          }

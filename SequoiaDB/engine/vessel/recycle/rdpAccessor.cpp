@@ -50,35 +50,8 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 rdpAccessor::init(requestContext *context,
-                           PAGE_ID lpid,
-                           const pageAccessor::options &o,
-                           logicalPageSpace *space,
-                           DPS_LSN_OFFSET oplist)
-   {
-      return logicalPageAccessor::init(context, FILE_TYPE_DD, lpid,
-                                       o, space, oplist);
-   }
-
-   INT32 rdpAccessor::getRdpPageHead(requestContext *context,
-                                     recordDataPageHead &head)
-   {
-      INT32 rc = SDB_OK;
-      const recordDataPageHead *headPtr = NULL;
-      rc = getReadableUserHeadPtr<recordDataPageHead>(&headPtr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      head = *headPtr;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpAccessor::insertNormalRecord(insertContext *context)
+   INT32 rdpAccessor::insertNormalRecord(insertContext *context,
+                                         logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
       recordData rd;

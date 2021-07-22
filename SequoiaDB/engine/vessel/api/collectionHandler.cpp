@@ -75,10 +75,10 @@ namespace vessel
    }
 
    INT32 collectionHandler::insert(ISession *session,
-                                   const recordData &record,
+                                   const slice &record,
                                    const DPS_TRANS_ID &transID,
                                    STRIPING_ID striping,
-                                   const insertOptions *options,
+                                   const insertOptions &options,
                                    utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
@@ -94,7 +94,8 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->insert(session, _handle, record, transID, striping, options, res);
+      rc = _db->insert(session, _handle, record,
+                       transID, striping, options, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -107,8 +108,8 @@ namespace vessel
 
    INT32 collectionHandler::openScanCursor(ISession *session,
                                            IQueryFilter *filter,
-                                           const scanCLOptions *scanOptions,
-                                           const cursorOptions *cursorOptions,
+                                           const scanCLOptions &scanOptions,
+                                           const cursorOptions &cursorOptions,
                                            cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
@@ -149,22 +150,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::getRecordCount(ISession *session,
-                                           IQueryFilter *filter,
-                                           UINT64 &count)
+   INT32 collectionHandler::getTotalRecordCountInPageHead(ISession *session,
+                                                          UINT64 &count)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == session))
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == session))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!isOpen())
-      {
-         rc = SDB_INVALIDARG;
-      }
 
-      rc = _db->getRecordCount(session, _handle, filter, count);
+      rc = _db->getTotalRecordCountInPageHead(session, _handle, count);
       if (SDB_OK != rc)
       {
          goto error;

@@ -38,20 +38,21 @@
 
 #include "ossLikely.hpp"
 #include "vessel/slice.h"
-#include "vessel/cursorKernal.h"
+#include "vessel/localThreadSharedPointer.h"
 
 namespace engine
 {
 namespace vessel
 {
    class ISession;
+   class cursorKernal;
 
    class cursorHandler : public SDBObject
    {
       public:
-         cursorHandler();
-         cursorHandler(cursorKernal *c);
-         cursorHandler(const cursorHandler &o);
+         cursorHandler(){}
+         explicit cursorHandler(cursorKernal *kernal);
+         cursorHandler(const cursorHandler &o) = delete;
          cursorHandler &operator=(const cursorHandler &o);
 
          ~cursorHandler();
@@ -61,13 +62,15 @@ namespace vessel
 
          BOOLEAN isOpen()const;
          
+         /// All handlers with same kernal can no longer execute getNext.
          void close();
 
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
 
       private:
-         cursorKernal *_cursor = NULL;
+         localThreadSharedPointer _cursor;
+
    };//class cursorHandler
 }//namespace vessel
 }//namespace engine

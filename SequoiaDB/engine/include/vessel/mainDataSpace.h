@@ -38,11 +38,15 @@
 
 #include "vessel/replicatedLPS.h"
 #include "vessel/dataStorageFileCluster.h"
+#include "vessel/collectionSpaceOptions.h"
+#include "vessel/collectionSpaceGlobalPage.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class fsmFile;
+
    class mainDataSpace : public replicatedLPS
    {
       public:
@@ -55,6 +59,20 @@ namespace vessel
             return SPACE_TYPE_MAIN_DATA;
          }
 
+      public:
+         INT32 initMetaPageWhenCreateCS(requestContext *context,
+                                        const csMetaRecord &record,
+                                        const slice &options);
+
+         INT32 readMetaRecordWhenOpen(requestContext *context,
+                                      csMetaRecord &record);
+
+         INT32 ensureNameFile(const CHAR *csName)const;
+
+         fsmFile *getFsmFile()
+         {
+            return _fsm;
+         }
       private:
          virtual UINT32 getReservedImpCount()const
          {
@@ -68,15 +86,27 @@ namespace vessel
          {
             return PAGE_COUNT_IN_EXTENT;
          }
-
-      private:
          virtual dataPageCluster *getDataStorageObj()
          {
             return &_storage;
          }
 
+         virtual INT32 _create(requestContext *context);
+         virtual INT32 _open(requestContext *context,
+                             const storageFileLoader &loader);
+         virtual void _close();
+         virtual void _destroy();
+
+      private:
+         INT32 mapGlobalMetaPageWhenCreating(PAGE_SNAPSHOT_VERION psv,
+                                             PAGE_ID lpid,
+                                             PAGE_ID pid);
+
+         INT32 ensureNameFileRemoved();
+
       private:
          dataStorageFileCluster _storage;
+         fsmFile *_fsm = NULL;
    };//class mainDataSpace
 }//namespace vessel
 }//namespace engine

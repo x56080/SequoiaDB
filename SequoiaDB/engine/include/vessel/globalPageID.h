@@ -121,9 +121,9 @@ class globalPageID
 
       OSS_INLINE INT32 compare(const globalPageID &r)const
       {
-         ///Do not use uint64 to compare.
-         ///Ordered columns in turns. If we find the gpids of
-         /// specified space id in ordered map, we can know
+         ///Do not cast to uint64 to compare.
+         ///Ordered columns in turns. If we scan the gpids of
+         /// specified space id in a ordered map, we can know
          /// when to stop.
          INT32 res = 0;
          if (_sid < r._sid)
@@ -226,35 +226,6 @@ struct GLOBAL_PAGE_ID_LESS
       return l < r;
    }
 };//struct GLOBAL_PAGE_ID_LESS
-
-#pragma pack(4)
-   /// for logging.
-   class globalPageIDAndLpid
-   {
-      public:
-         globalPageIDAndLpid(){}
-         ~globalPageIDAndLpid(){}
-         globalPageIDAndLpid(const globalPageIDAndLpid &o):
-         gpid(o.gpid),
-         lpid(o.lpid){}
-
-         globalPageIDAndLpid &operator=(const globalPageIDAndLpid &o)
-         {
-            gpid = o.gpid;
-            lpid = o.lpid;
-            return *this;
-         }
-
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return gpid.isValid() && INVALID_PAGE_ID != lpid;
-         } 
-      public:
-         GLOBAL_PAGE_ID gpid;
-         PAGE_ID lpid = INVALID_PAGE_ID;
-   };//class globalPageIDAndLpid
-
-#pragma pack()
 
 } /// end of namespace vessel
 } /// end of namespace engine

@@ -46,14 +46,10 @@ namespace vessel
    class collectionHandle : public SDBObject
    {
       public:
-         OSS_INLINE collectionHandle():
-                    _csLogicalID(DMS_INVALID_LOGICCSID),
-                    _clLogicalID(DMS_INVALID_LOGICCLID),
-                    _sid(INVALID_SPACE_ID),
-                    _mbid(INVALID_CL_MB_ID){}
+         OSS_INLINE collectionHandle(){}
 
-         OSS_INLINE collectionHandle(UINT32 cslid, UINT32 cllid,
-                                      SPACE_ID sid, CL_MB_ID mbid):
+         OSS_INLINE explicit collectionHandle(UINT32 cslid, UINT32 cllid,
+                                              SPACE_ID sid, CL_MB_ID mbid):
                     _csLogicalID(cslid),
                     _clLogicalID(cllid),
                     _sid(sid),
@@ -112,10 +108,10 @@ namespace vessel
          }
           
       private:
-         UINT32 _csLogicalID;
-         UINT32 _clLogicalID;
-         SPACE_ID _sid;
-         CL_MB_ID _mbid;
+         UINT32 _csLogicalID = DMS_INVALID_LOGICCSID;
+         UINT32 _clLogicalID = DMS_INVALID_LOGICCLID;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         CL_MB_ID _mbid = INVALID_CL_MB_ID;
    };//class collectionHandle
 }//namespace vessel
 }//namespace engine

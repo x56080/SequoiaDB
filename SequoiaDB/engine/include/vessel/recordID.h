@@ -53,7 +53,7 @@ namespace vessel
           _slot(INVALID_RECORD_SLOT_ID)
           {}
 
-         OSS_INLINE recordID(PAGE_ID pid, RECORD_SLOT_ID slotID)
+         OSS_INLINE explicit recordID(PAGE_ID pid, RECORD_SLOT_ID slotID)
          :_page(pid), _slot(slotID){}
 
          OSS_INLINE recordID(const recordID &id)

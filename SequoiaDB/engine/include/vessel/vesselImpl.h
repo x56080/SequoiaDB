@@ -108,16 +108,15 @@ namespace vessel
 
          INT32 insert(ISession *session,
                       const collectionHandle &handle,
-                      const recordData &record,
+                      const slice &record,
                       const DPS_TRANS_ID &transID,
                       STRIPING_ID striping,
-                      const insertOptions *options,
+                      const insertOptions &options,
                       utilInsertResult &res);
 
-         INT32 getRecordCount(ISession *session,
-                              const collectionHandle &handle,
-                              IQueryFilter *filter,
-                              UINT64 &count);
+         INT32 getTotalRecordCountInPageHead(ISession *session,
+                                             const collectionHandle &handle,
+                                             UINT64 &count);
 
          public:
             virtual INT32 pushMoreToCursor(ISession * session,

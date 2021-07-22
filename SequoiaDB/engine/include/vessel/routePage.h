@@ -37,6 +37,7 @@
 #define VESSEL_ROUTE_PAGE_H_
 
 #include "vessel/pageDef.h"
+#include "dms.hpp"
 
 namespace engine
 {
@@ -44,36 +45,51 @@ namespace vessel
 {
    static const UINT16 ROUTE_PAGE_VERSION = 1;
 
+   const static INT32 COLLECTION_ROUTE_PAGE_LVL0 = 0;
+   const static INT32 COLLECTION_ROUTE_PAGE_LVL1 = 1;
+   const static INT32 COLLECTION_ROUTE_PAGE_LVL2 = 2;
+
 #pragma pack(4)
    struct routePageHead
    {
       OSS_INLINE routePageHead &operator=(const routePageHead &o)
       {
          version = o.version;
-         count = o.count;
+         size = o.size;
          logicalId = o.logicalId;
+         lvl = o.lvl;
          pad = o.pad;
          return *this;
       }
 
-      UINT16 version;
-      /// WARNING: count can never shrink. It means slot ever allocated.
-      UINT16 count;
-      UINT32 logicalId;
-      UINT64 pad;
+      UINT16 version = 0;
+      /// WARNING: size never shrinks.
+      UINT16 size = 0;
+      UINT32 logicalId = DMS_INVALID_LOGICCLID;
+      INT32 lvl = -1;
+      UINT64 pad = 0;
    };//struct routePageHead
 
-   static const UINT32 ROUTE_PAGE_HEAD_LEN = sizeof(routePageHead);
+   static const UINT32 ROUTE_PAGE_HEAD_SIZE = sizeof(routePageHead);
 
 #pragma pack()
 
    UINT32 getCapacityOfRoutePage(UINT32 pageSize);
 
+   OSS_INLINE BOOLEAN isValidRoutePageLvl(INT32 lvl)
+   {
+      return COLLECTION_ROUTE_PAGE_LVL0 <= lvl &&
+             lvl <= COLLECTION_ROUTE_PAGE_LVL2;
+   }
+
    BOOLEAN initRoutePage(UINT32 pageSize,
+                         PAGE_ID pid,
                          PAGE_ID lpid,
-                         SNAPSHOT_ID snapshot,
+                         PAGE_SNAPSHOT_VERION psv,
                          UINT32 logicalId,
+                         INT32 lvl,
                          void *buf);
+
 }//namespace vessel
 }//namespace engine
 

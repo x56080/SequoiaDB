@@ -34,46 +34,44 @@
 ******************************************************************************/
 
 #include "vessel/freeSpaceMapDef.h"
+#include "ossLikely.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN isWorthToScanDisk(UINT32 needLvl,
-                             UINT32 totalCnt,
-                             INT32 lvl0,
-                             INT32 lvl1,
-                             INT32 lvl2,
-                             INT32 lvl3,
-                             FLOAT32 minPercent)
+   /// lvl size range: (x, y]
+   INT32 getFsmSpaceLvl(UINT32 pageSize, UINT32 size)
    {
-      BOOLEAN r = FALSE;
-      FLOAT32 cnt = 0;
-      FLOAT32 percent = 0.0;
+      INT32 lvl = FSM_INVALID_SPACE_LVL;
+      if (isValidPageSize(pageSize) &&
+          size <= pageSize &&
+          0 < size)
+      {
+         lvl = (size - 1) / (pageSize / FSM_SPACE_LVL_COUNT);
+      }
+      return lvl;
+   }
 
-      if (0 == totalCnt)
+   INT32 getAdjustedFsmSpaceLvl(UINT32 pageSize,
+                                UINT32 size,
+                                UINT32 factor)
+   {
+      INT32 lvl = FSM_INVALID_SPACE_LVL;
+      if (isValidPageSize(pageSize) &&
+          size <= pageSize &&
+          0 < size)
       {
-         goto done;
+         UINT32 range = pageSize / FSM_SPACE_LVL_COUNT;
+         lvl = (size - 1) / range;
+         if (0 <= lvl &&
+             ((size % range) < factor))
+         {
+            --lvl;
+         }
       }
-      switch (needLvl)
-      {
-      case FSM_SPACE_LVL0:
-         if (0 < lvl0) {cnt += lvl0;}
-      case FSM_SPACE_LVL1:
-         if (0 < lvl1) {cnt += lvl1;}
-      case FSM_SPACE_LVL2:
-         if (0 < lvl2) {cnt += lvl2;}
-      case FSM_SPACE_LVL3:
-         if (0 < lvl3) {cnt += lvl3;}
-         break;
-      default:
-         break;
-      }
-   
-      percent = cnt / totalCnt;
-      r = minPercent <= percent;
-   done:
-      return r;
+      return lvl;
    }
 }//namespace vessel
 }//namespace engine

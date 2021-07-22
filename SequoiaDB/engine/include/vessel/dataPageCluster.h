@@ -98,6 +98,8 @@ namespace vessel
       public:
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const = 0;
 
+         virtual INT32 fysncPage(PAGE_ID pid)const = 0;
+
          virtual INT32 getPagePtr(FILE_TYPE type,
                                   PAGE_ID pid,
                                   mmapPagePointer &ptr)const;
@@ -105,6 +107,8 @@ namespace vessel
          virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const = 0;
 
          virtual FILE_TYPE getDataFileType()const = 0;
+
+         virtual UINT32 getTotalSegmentCountAllocated()const = 0;
 
       private:
          /// loader may be null
@@ -118,20 +122,11 @@ namespace vessel
                                        BOOLEAN &isSparse)const = 0;
 
          virtual BOOLEAN mayBeSparse()const = 0;
-         virtual UINT32 getTotalSegmentCountAllocated()const = 0;
-
+      
       protected:
          OSS_INLINE const storageFileCreater *getCreater()const
          {
             return _creater;
-         }
-         OSS_INLINE UINT32 getBitwiseMaxSegmentPerFile()const
-         {
-            return _bitwiseMaxSegmentPerFile;
-         }
-         OSS_INLINE UINT32 getBitwiseMaxPageCountPerSeg()const
-         {
-            return _bitwiseMaxPageCountPerSeg;
          }
 
          void _close();
@@ -141,8 +136,6 @@ namespace vessel
 
       private:
          storageCoreArgs _args;
-         UINT32 _bitwiseMaxSegmentPerFile = 0;
-         UINT32 _bitwiseMaxPageCountPerSeg = 0;
          const storageFileCreater *_creater = NULL;
          ossSpinXLatch _extendingLatch;
          inMemBitmap _allocator;

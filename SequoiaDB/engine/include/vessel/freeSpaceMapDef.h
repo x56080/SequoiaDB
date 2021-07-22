@@ -39,176 +39,94 @@
 #include "vessel/pageDef.h"
 #include "pdTrace.hpp"
 #include "vessel/recordDataPage.h"
-#include "ossMemPool.hpp"
+#include "vessel/forwardList.hpp"
+#include "ossSpinLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   const static UINT32 FSM_STRIPING_BUCKET_COUNT = 32;
-   const static UINT32 FSM_BITMAP_BITS_COUNT = 62;
-   const static UINT32 FSM_SUB_BITMAP_COUNT = 8;
-   const static UINT16 FSM_PAGE_VERSION = 1;
-   const static UINT32 FSM_SMP_PID = 0;
-   const static UINT32 FSM_PAGE_MAP_CAPAITY = 1364;
+   /// free space map file
+   static const UINT32 FSM_FILE_PAGE_SIZE = 32768;
+   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 128;
+   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 2048;
 
-   const static UINT32 FSM_PAGE_SIZE = 32768;
-   const static UINT32 FSM_PAGE_COUNT_PER_SEG = 64;
-   const static UINT32 FSM_MAX_SEG_COUNT = 4096;
+   static const UINT32 FSM_FILE_PAGE_VERSION = 1;
 
-   const static UINT16 FSM_PAGE_TYPE_BITMAP = 1;
-   const static UINT16 FSM_PAGE_TYPE_PAGEMAP = 2;
+   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP = 1;
+   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP_OWNER = 2;
 
-   const static UINT32 FSM_SEQ_RANGE_IN_SUB_PAGE = FSM_BITMAP_BITS_COUNT * 64;
-   const static UINT32 FSM_SEQ_RANGE_IN_PAGE = FSM_SEQ_RANGE_IN_SUB_PAGE * FSM_SUB_BITMAP_COUNT;
-
-   const static INT32 FSM_SPACE_LVL_INVALID = -1;
-   const static INT32 FSM_SPACE_LVL0 = 0;
-   const static INT32 FSM_SPACE_LVL1 = 1;
-   const static INT32 FSM_SPACE_LVL2 = 2;
-   const static INT32 FSM_SPACE_LVL3 = 3;
-   const static INT32 FSM_SPACE_LVL_MIN = FSM_SPACE_LVL0;
-   const static INT32 FSM_SPACE_LVL_MAX = FSM_SPACE_LVL3;
-   const static UINT32 FSM_SPACE_LVL_COUNT = FSM_SPACE_LVL_MAX + 1;
-
-   const static UINT32 FSM_LVL_DELTA_COUNT = 16;
-
-   const static UINT32 FSM_32KB_LVL1 = 8192;
-   const static UINT32 FSM_32KB_LVL2 = 16384;
-   const static UINT32 FSM_32KB_LVL3 = 24576;
-
-   const static UINT32 FSM_32KB_LVL3_DELTA_RANGE = (DMS_PAGE_SIZE32K - FSM_32KB_LVL3) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL2_DELTA_RANGE = (FSM_32KB_LVL3 - FSM_32KB_LVL2) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL1_DELTA_RANGE = (FSM_32KB_LVL2 - FSM_32KB_LVL1) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL0_DELTA_RANGE = FSM_32KB_LVL1 / FSM_LVL_DELTA_COUNT;
+   static const UINT32 FSM_FILE_SMP_PID = 0;
 
 
-   const static UINT32 FSM_64KB_LVL1 = FSM_32KB_LVL1 << 1;
-   const static UINT32 FSM_64KB_LVL2 = FSM_32KB_LVL2 << 1;
-   const static UINT32 FSM_64KB_LVL3 = FSM_32KB_LVL3 << 1;
+   
+   static const UINT32 FSM_BITMAP_BITS_COUNT = 1022;
 
-   const static UINT32 FSM_64KB_LVL3_DELTA_RANGE = (DMS_PAGE_SIZE64K - FSM_64KB_LVL3) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL2_DELTA_RANGE = (FSM_64KB_LVL3 - FSM_64KB_LVL2) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL1_DELTA_RANGE = (FSM_64KB_LVL2 - FSM_64KB_LVL1) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL0_DELTA_RANGE = FSM_64KB_LVL1 / FSM_LVL_DELTA_COUNT;
+   /// The count of data page can be managed by one bitmap page. 
+   static const UINT32 FSM_BITMAP_PAGE_CAPACITY = FSM_BITMAP_BITS_COUNT * 64;
+
+   /// total slot count in pm page
+   static const UINT32 FSM_BITMAP_OWNER_PAGE_CAPAITY = 8181;
+
+   /// free space map
+   /// size range of lvl0:  (0, x]
+   /// size range of lvl1: (x, 2x]
+   /// ...
+   /// size range of lvl max: (n * x, page size]
+   static const UINT32 FSM_SPACE_LVL_COUNT = 4;
+   static const INT32 FSM_INVALID_SPACE_LVL = -1;
+   static const INT32 FSM_MIN_SPACE_LVL = 0;
+   static const INT32 FSM_MAX_SPACE_LVL = (FSM_MIN_SPACE_LVL + FSM_SPACE_LVL_COUNT - 1);
+   OSS_INLINE BOOLEAN isValidFsmLvL(INT32 lvl)
+   {
+      return FSM_MIN_SPACE_LVL <= lvl &&
+             lvl <= FSM_MAX_SPACE_LVL;
+   }
+
+   /// return space lvl, not rc code.
+   INT32 getFsmSpaceLvl(UINT32 pageSize, UINT32 size);
+
+   /// Downgrade lvl if delta size lower than factor.
+   INT32 getAdjustedFsmSpaceLvl(UINT32 pageSize,
+                                UINT32 size,
+                                UINT32 factor = 512);
 
 #pragma pack(4)
-   struct fsmStats
-   {
-      OSS_INLINE fsmStats():
-      totalPageCount(0)
-      {
-         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-         {
-            lvln[i] = 0;
-         }
-      }
-
-      OSS_INLINE ~fsmStats(){}
-      OSS_INLINE fsmStats &operator=(const fsmStats &o)
-      {
-         totalPageCount = o.totalPageCount;
-         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-         {
-            lvln[i] = o.lvln[i];
-         }
-         return *this;
-      }
-      OSS_INLINE void reset()
-      {
-         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-         {
-            lvln[i] = 0;
-         }
-         totalPageCount = 0;
-         return;
-      }
-      OSS_INLINE void merge(const fsmStats &o)
-      {
-         totalPageCount += o.totalPageCount;
-         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-         {
-            lvln[i] += o.lvln[i];
-         }
-         return;
-      }
-      OSS_INLINE INT32 getLvl(UINT32 i)
-      {
-         return i < FSM_SPACE_LVL_COUNT ? lvln[i] : -1;
-      }
-      OSS_INLINE void decLvl(UINT32 i)
-      {
-         if (i < FSM_SPACE_LVL_COUNT)
-         {
-            --lvln[i];
-         }
-      }
-
-   public:
-      UINT32 totalPageCount;
-      INT32 lvln[FSM_SPACE_LVL_COUNT];
-   };// struct fsmStats
 
    struct fsmPageHead
    {
-      UINT16 version;
-      UINT16 type;
-      UINT32 flags;
-      UINT32 prePage;
-      UINT32 nextPage;
-      CHAR pad[8];
+      UINT16 version = 0;
+      UINT16 type = 0;
+      UINT32 clLogicalId = DMS_INVALID_LOGICCLID;
+      UINT32 flags = 0;
+      UINT32 pre = INVALID_PAGE_ID;
+      UINT32 next = INVALID_PAGE_ID;
+      UINT64 pad = 0;
    };//struct fsmPageHead
    const static UINT32 FSM_PAGE_HEAD_SIZE = sizeof(fsmPageHead);
 
-   struct fsmPageMapSlot
-   {
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return INVALID_PAGE_ID != pid;
-      }
-      UINT32 pid;
-      fsmStats stat;
-   };//struct fsmPageMapSlot
-
-   struct fsmPageMapPage
+   struct fsmBitmapOwnerPage
    {
       fsmPageHead head;
-      UINT16 count;
-      UINT16 flags;
-      UINT32 pad;
-      fsmPageMapSlot pages[FSM_PAGE_MAP_CAPAITY];
-   };//struct fsmPageMapPage
-   const static UINT32 FSM_PMAP_PAGE_SIZE = sizeof(fsmPageMapPage);
+      UINT32 flags = 0;
+      CHAR pad[12] = {0};
+      UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY] = {0xFF};
+   };//struct fsmPMapPage
+   const static UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
 
-   struct fsmBitMapSubPage
+
+   struct fsmBitmapPage
    {
-      OSS_INLINE UINT64 *getBits(UINT32 lvl)
-      {
-         return &(lvln[FSM_BITMAP_BITS_COUNT * lvl]);
-      }
-      OSS_INLINE UINT32 getBitsCount()const
-      {
-         return FSM_BITMAP_BITS_COUNT;
-      }
       fsmPageHead head;
-      fsmStats stat;
-      CHAR pad[84];
-      UINT64 lvln[FSM_BITMAP_BITS_COUNT * 4];
-      UINT64 deltas[FSM_BITMAP_BITS_COUNT * 4];
-   };//struct fsmBitMapSubPage
-
-   struct fsmBitMapPage
-   {
-      fsmBitMapSubPage pages[FSM_SUB_BITMAP_COUNT];
+      CHAR pad[36] = {0};
+      UINT64 lvlBitmaps[FSM_SPACE_LVL_COUNT][FSM_BITMAP_BITS_COUNT] = {0};
    };//struct fsmBitMapPage
-   const static UINT32 FSM_BIT_MAP_PAGE_SIZE = sizeof(fsmBitMapPage);
+   const static UINT32 FSM_BITMAP_PAGE_SIZE = sizeof(fsmBitmapPage);
 
 
    struct fsmCLEntry
    {
-      OSS_INLINE fsmCLEntry():
-      root(INVALID_PAGE_ID),
-      logicalID(DMS_INVALID_LOGICCLID){}
+      OSS_INLINE fsmCLEntry(){}
 
       OSS_INLINE ~fsmCLEntry()
       {}
@@ -220,137 +138,35 @@ namespace vessel
          return *this;
       }
 
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return INVALID_PAGE_ID != root &&
-                DMS_INVALID_LOGICCLID != logicalID;
-      }
-
-      UINT32 root;
-      UINT32 logicalID;
+      UINT32 root = INVALID_PAGE_ID;
+      UINT32 logicalID = DMS_INVALID_LOGICCLID;
    };//struct fsmCLEntry
    static const UINT32 FSM_CL_ENTRY_SIZE = sizeof(fsmCLEntry);
 
-   const static UINT32 FSM_ENTRY_SLOT_COUNT = FSM_PAGE_SIZE / FSM_CL_ENTRY_SIZE;
-   const static UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
-
-
-   static const UINT8 FSM_CANDIDATE_FLAG_FEEDBACK = 0x01;
-   class fsmCandidate : public SDBObject
-   {
-      public:
-         OSS_INLINE fsmCandidate():
-         seq(INVALID_CL_PAGE_SEQ),
-         lpid(INVALID_PAGE_ID),
-         free(0),
-         flags(0),
-         bucket(-1){}
-
-         OSS_INLINE fsmCandidate(CL_PAGE_SEQ s,
-                                 PAGE_ID l,
-                                 UINT16 f):
-         seq(s),
-         lpid(l),
-         free(f),
-         flags(0),
-         bucket(-1){}
-
-         OSS_INLINE ~fsmCandidate(){}
-
-         OSS_INLINE fsmCandidate(const fsmCandidate &o):
-         seq(o.seq),
-         lpid(o.lpid),
-         free(o.free),
-         flags(o.flags),
-         bucket(o.bucket){}
-
-         OSS_INLINE fsmCandidate &operator=(const fsmCandidate &o)
-         {
-            seq = o.seq;
-            lpid = o.lpid;
-            free = o.free;
-            flags = o.flags;
-            bucket = o.bucket;
-            return *this;
-         }
-
-         OSS_INLINE void reset()
-         {
-            seq = INVALID_CL_PAGE_SEQ;
-            lpid = INVALID_PAGE_ID;
-            free = 0;
-            flags = 0;
-            bucket = -1;
-            return;
-         }
-
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_CL_PAGE_SEQ != seq;
-         }
-
-         OSS_INLINE BOOLEAN testFeedback()const
-         {
-            return OSS_BIT_TEST(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
-         }
-         OSS_INLINE void setFeedback()
-         {
-            OSS_BIT_SET(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
-         }
-         OSS_INLINE void clearFeedback()
-         {
-            OSS_BIT_CLEAR(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
-         }
-
-         OSS_INLINE void setBucketNo(INT8 bucketNo)
-         {
-            bucket = bucketNo;
-            return;
-         }
-         OSS_INLINE BOOLEAN hasBucketNo()const
-         {
-            return 0 <= bucket;
-         }
-         OSS_INLINE void resetBucket()
-         {
-            bucket = -1;
-         }
-      public:
-         CL_PAGE_SEQ seq;
-         PAGE_ID lpid;
-         UINT16 free;
-         UINT8 flags;
-         INT8 bucket;
-   };//class fsmCandidate
-   
 #pragma pack()
-   
 
-   
+   static const UINT32 FSM_ENTRY_SLOT_COUNT = FSM_FILE_PAGE_SIZE / FSM_CL_ENTRY_SIZE;
+   static const UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
+   static const UINT32 FSM_FILE_RESERVED_PAGE_CNT = FSM_ENTRY_PAGE_COUNT + 1;
 
-   
-   
-   /*
-   const static UINT32 FMS_32KB_LVLS_SIZE[FSM_SPACE_LVL_MAX] = {0, FSM_32KB_LVL2, FSM_32KB_LVL3, FSM_32KB_LVL4};
-   const static UINT32 FSM_32KB_LVLS_DELTA_RANGE[FSM_SPACE_LVL_MAX] = {FSM_32KB_LVL1_DELTA_RANGE,
-                                                                       FSM_32KB_LVL2_DELTA_RANGE,
-                                                                       FSM_32KB_LVL3_DELTA_RANGE,
-                                                                       FSM_32KB_LVL4_DELTA_RANGE};
-   const static UINT32 FMS_64KB_LVLS_SIZE[FSM_SPACE_LVL_MAX] = {0, FSM_64KB_LVL2, FSM_64KB_LVL3, FSM_64KB_LVL4};
-   const static UINT32 FSM_64KB_LVLS_DELTA_RANGE[FSM_SPACE_LVL_MAX] = {FSM_64KB_LVL1_DELTA_RANGE,
-                                                                       FSM_64KB_LVL2_DELTA_RANGE,
-                                                                       FSM_64KB_LVL3_DELTA_RANGE,
-                                                                       FSM_64KB_LVL4_DELTA_RANGE};
-*/
+   OSS_INLINE BOOLEAN isValidFsmPageHead(const fsmPageHead &head)
+   {
+      return FSM_FILE_PAGE_VERSION == head.version &&
+             DMS_INVALID_LOGICCLID != head.clLogicalId &&
+             (FSM_FILE_PAGE_TYPE_BITMAP == head.type ||
+              FSM_FILE_PAGE_TYPE_BITMAP_OWNER == head.type) &&
+             FSM_FILE_RESERVED_PAGE_CNT <= head.pre &&
+             FSM_FILE_RESERVED_PAGE_CNT <= head.next &&
+             0 == head.pad;
+   }
 
-
-   BOOLEAN isWorthToScanDisk(UINT32 needLvl,
-                             UINT32 totalCnt,
-                             INT32 lvl0,
-                             INT32 lvl1,
-                             INT32 lvl2,
-                             INT32 lvl3,
-                             FLOAT32 minPercent);
+   OSS_INLINE BOOLEAN isValidFsmEntry(const fsmCLEntry &head)
+   {
+      return INVALID_PAGE_ID != head.root &&
+             FSM_FILE_RESERVED_PAGE_CNT <= head.root &&
+             DMS_INVALID_LOGICCLID != head.logicalID;
+   }
+;
 }//namespace vessel
 }//namespace engine
 

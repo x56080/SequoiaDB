@@ -57,11 +57,11 @@ namespace vessel
             return CURSOR_TYPE_SCAN_COLLECTION;
          }
 
-         OSS_INLINE void resetToScan(const collectionHandle &handle,
-                                     const scanCLOptions *options)
+         void resetToScan(const collectionHandle &handle,
+                          const scanCLOptions &options)
          {
             _handle = handle;
-            _options = NULL == options ? scanCLOptions() : *options;
+            _options = options;
             _seq = 0;
             _lpid = INVALID_PAGE_ID;
             _slot = INVALID_RECORD_SLOT_ID;
@@ -75,7 +75,7 @@ namespace vessel
          {
             return _options;
          }
-         OSS_INLINE CL_PAGE_SEQ getPageSeq()const
+         OSS_INLINE UINT32 getPageSeq()const
          {
             return _seq;
          }
@@ -106,7 +106,7 @@ namespace vessel
       private:
          scanCLOptions _options;
          collectionHandle _handle;
-         CL_PAGE_SEQ _seq = 0;
+         UINT32 _seq = 0;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
    };//class scanCLCursor

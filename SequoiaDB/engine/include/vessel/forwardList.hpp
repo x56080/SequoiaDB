@@ -55,7 +55,7 @@ namespace vessel
    };//class forwardListDummyLocker
 
    template<typename T, typename LOCKER=forwardListDummyLocker>
-   class forwardList : public _utilPooledObject
+   class forwardList : public SDBObject
    {
       public:
          forwardList(){}
@@ -64,7 +64,6 @@ namespace vessel
          forwardList &operator=(const forwardList &) = delete;
 
       private:
-         template<typename U>
          class _item : public _utilPooledObject
          {
             public:
@@ -75,14 +74,14 @@ namespace vessel
 
             public:
                _item *next = NULL;
-               U data;
+               T data;
          };//class _item
 
       public:
          INT32 pushForward(const T &data)
          {
             INT32 rc = SDB_OK;
-            _item<T> *item = SDB_OSS_NEW _item<T>();
+            _item *item = SDB_OSS_NEW _item();
             if (OSS_UNLIKELY(NULL == item))
             {
                rc = SDB_OOM;
@@ -100,7 +99,7 @@ namespace vessel
          INT32 pushForwardWithNoLock(const T &data)
          {
             INT32 rc = SDB_OK;
-            _item<T> *item = SDB_OSS_NEW _item<T>();
+            _item *item = SDB_OSS_NEW _item();
             if (OSS_UNLIKELY(NULL == item))
             {
                rc = SDB_OOM;
@@ -118,7 +117,7 @@ namespace vessel
          BOOLEAN popForward(T &data)
          {
             BOOLEAN r = FALSE;
-            _item<T> *item = NULL;
+            _item *item = NULL;
             if (popForward(TRUE, &item))
             {
                data = item->data;
@@ -131,7 +130,7 @@ namespace vessel
          BOOLEAN popForwardWithNoLock(T &data)
          {
             BOOLEAN r = FALSE;
-            _item<T> *item = NULL;
+            _item *item = NULL;
             if (popForward(FALSE, &item))
             {
                data = item->data;
@@ -142,20 +141,28 @@ namespace vessel
          }
 
          /// WARNING: Will not hold latch.
-         void fini()
+         void clear()
          {
             T data;
             while (popForwardWithNoLock(data));
             return;
          }
 
-         UINT32 getSize()const
+         UINT32 getSizeWithNoLock()const
          {
             return _size;
          }
 
+         UINT32 getSize()const
+         {
+            _latch.lock();
+            UINT32 size = _size;
+            _latch.unlock();
+            return size;
+         }
+
       private:
-         void pushForward(BOOLEAN lock, _item<T> *item)
+         void pushForward(BOOLEAN lock, _item *item)
          {
             if (lock)
             {
@@ -173,7 +180,7 @@ namespace vessel
             return;
          }
 
-         BOOLEAN popForward(BOOLEAN lock, _item<T> **out)
+         BOOLEAN popForward(BOOLEAN lock, _item **out)
          {
             BOOLEAN r = FLASE;
             if (lock)
@@ -200,7 +207,7 @@ namespace vessel
       private:
          LOCKER _latch;
          UINT32 _size = 0;
-         _item<T> *_head = NULL;
+         _item *_head = NULL;
    };//class forwardList
 }//namespace vessel
 }//namespace engine

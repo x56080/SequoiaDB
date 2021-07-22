@@ -64,6 +64,10 @@ namespace vessel
          {
             return _rpb;
          }
+         OSS_INLINE runtimePageBuffer &getRuntimeBuffer()
+         {
+            return _rpb;
+         }
          OSS_INLINE BOOLEAN isValid()const
          {
             return NULL != _lps &&

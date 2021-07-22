@@ -37,103 +37,69 @@
 #include "utilMemListPool.hpp"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
-#include "vessel/collectionSpace.h"
-#include "vessel/collection.h"
-
 namespace engine
 {
 namespace vessel
 {
    dmlContext::~dmlContext()
    {
-      if (isOpen())
-      {
-         close();
-      }
+      fini();
    }
 
    void dmlContext::close()
    {
-      reset();
+      fini();
       requestContext::close();
       return;
    }
 
-   void dmlContext::reset()
+   void dmlContext::fini()
    {
       _csName.reset();
       _clName.reset();
       _clLogicalID = DMS_INVALID_LOGICCLID;
-      _clUniqueID = utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID,
-                                    UTIL_INVALID_CL_INNER_ID);
       _transID.reset();
-      _striping = INVALID_STRIPING_ID;
-      _originalRecord.reset();
-      _compressedRecord.reset();
-      _compressionType = UTIL_COMPRESSOR_INVALID;
-      if (NULL != _compressionBuffer)
-      {
-         SDB_THREAD_FREE(_compressionBuffer);
-         _compressionBuffer = NULL;
-      }
-      _compressionBufferSize = 0;
-      
-      _lsn = DPS_INVALID_LSN_OFFSET;
-      _rid = recordID();
       _uniqueIndexHash.clear();
       return;
    }
 
-   void dmlContext::initNewRequest(collectionSpace *cs,
-                                    collection *cl,
-                                    const recordData &record,
-                                    const DPS_TRANS_ID &transID,
-                                    STRIPING_ID striping)
+   void dmlContext::setCLInfo(const strSlice &csName,
+                               const strSlice &clName,
+                               UINT32 clLogicalId)
    {
-      SDB_ASSERT(NULL != cs && NULL != cl, "can not be null");
-      SDB_ASSERT(record.isValid(), "can not be invalid");
-      reset();
-      _csName.reset(cs->getCSName());
-      _clName.reset(cl->getName());
-      _clLogicalID = cl->getLogicalID();
-      _clUniqueID = utilBuildCLUniqueID(cs->getUniqueID(), cl->getInnerID());
-      if (transID.isValid())
-      {
-         _transID = transID;
-      }
-      _striping = striping;
-      _originalRecord = record;
-      _compressionType = cl->getCompressionType();
+      _csName = csName;
+      _clName = clName;
+      _clLogicalID = clLogicalId;
       return;
    }
 
+   INT32 dmlContext::lockUniqueIndexKey()
+   {
+      INT32 rc = SDB_OK;
+      if (!requestContext::isOpen() ||
+          !requestContext::isSpaceIdLocked())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_uniqueKeyLocked)
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      _uniqueKeyLocked = TRUE;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-    INT32 dmlContext::allocateCompressionBuffer(UINT32 size)
-    {
-       INT32 rc = SDB_OK;
-       if (size <= _compressionBufferSize)
-       {
-          goto done;
-       }
-       else if (NULL != _compressionBuffer)
-       {
-          SDB_THREAD_FREE(_compressionBuffer);
-          _compressionBuffer = NULL;
-          _compressionBufferSize = 0;
-       }
-
-       _compressionBuffer = (CHAR *)SDB_THREAD_ALLOC(size);
-       if (NULL == _compressionBuffer)
-       {
-          PD_LOG(PDERROR, "failed to allocate mem");
-          rc = SDB_OOM;
-          goto error;
-       }
-       _compressionBufferSize = size;
-    done:
-       return rc;
-    error:
-       goto done;
-    }
+   void dmlContext::unlockUniqueKeys()
+   {
+      if (_uniqueKeyLocked)
+      {
+         _uniqueKeyLocked = FALSE;
+      }
+   }
 }//namespace vessel
 }//namespace engine

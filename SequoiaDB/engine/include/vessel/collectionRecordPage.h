@@ -37,7 +37,6 @@
 #define VESSEL_COLLECTION_RECORD_PAGE_H_
 
 #include "vessel/vesselIdDef.h"
-#include "vessel/collectionDef.h"
 #include "dms.hpp"
 #include "vessel/pageDef.h"
 #include "utilCompression.hpp"
@@ -47,6 +46,8 @@ namespace engine
 {
 namespace vessel
 {
+   static constexpr PAGE_ID COLLECTION_RECORD_PAGE_MIN_LPID = 1;
+
    const static UINT16 COLLECTION_RECORD_VERSION = 1;
    const static UINT16 COLLECTION_RECORD_INVALID_VERSION = 0;
    const static UINT32 COLLECTION_ROUTE_PAGE_SLOT_COUNT = 4;
@@ -57,46 +58,23 @@ namespace vessel
    const static UINT32 COLLECTION_MAX_ROUTE_ROOT = COLLECTION_ROOT_LVL2;
    const static UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
 
-   const static UINT32 COLLECTION_ROUTE_PAGE_LVL0 = 0;
-   const static UINT32 COLLECTION_ROUTE_PAGE_LVL1 = 1;
-   const static UINT32 COLLECTION_ROUTE_PAGE_LVL2 = 2;
 
-   const static UINT32 COLLECTION_MAX_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL2;
-   const static UINT32 COLLECTION_MIN_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL0;
+   const static INT32 COLLECTION_MAX_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL2;
+   const static INT32 COLLECTION_MIN_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL0;
 
-   const static UINT64 COLLECTION_UPDATE_MASK_COMPRESSTYPE = 0x01;
-   const static UINT64 COLLECTION_UPDATE_MASK_FLAGS = 0x02;
-   const static UINT64 COLLECTION_UPDATE_MASK_NAME = 0x04;
-   const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x08;
-   const static UINT64 COLLECTION_UPDATE_MASK_COMPRESSION_DIC = 0x010;
-   const static UINT64 COLLECTION_UPDATE_MASK_INDEX = 0x20;
-   const static UINT64 COLLECTION_UPDATE_MASK_FS_RESERVED = 0x40;
-   const static UINT64 COLLECTION_UPDATE_MASK_STRIPING = 0x80;
+   const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x01ull;
+
+   enum COLLECTION_TYPE
+   {
+      COLLECTION_TYPE_NORMAL = 0,
+      COLLECTION_TYPE_INVALID = 65535,
+   };//enum COLLECTION_TYPE
    
 #pragma pack(4)
    struct collectionRecord
    {
-      collectionRecord():
-      version(COLLECTION_RECORD_INVALID_VERSION),
-      type(INVALID_COLLECTION_TYPE),
-      innerID(UTIL_INVALID_CL_INNER_ID),
-      logicalCLID(DMS_INVALID_LOGICCLID),
-      mbID(INVALID_CL_MB_ID),
-      maxSGCount(0),
-      compressionType(UTIL_COMPRESSOR_INVALID),
-      flags(0),
-      freeSizeReserved(0),
-      minStriping(INVALID_STRIPING_ID),
-      maxStriping(INVALID_STRIPING_ID),
-      compressionDic(INVALID_PAGE_ID),
-      nonUniqueIndexCount(0),
-      uniqueIndexCount(0),
-      indexPad(0),
-      nextIndexID(0)
+      collectionRecord()
       {
-         ossMemset(name, 0, sizeof(name));
-         ossMemset(routePages, 0xFF, sizeof(routePages));
-         ossMemset(indexSlots, 0xFF, sizeof(indexSlots));
       }
 
       OSS_INLINE collectionRecord &operator=(const collectionRecord &o)
@@ -108,15 +86,20 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid()const
       {
          return COLLECTION_RECORD_VERSION == version &&
-                INVALID_COLLECTION_TYPE != type &&
+                COLLECTION_TYPE_INVALID != type &&
                 DMS_INVALID_LOGICCLID != logicalCLID &&
                 INVALID_CL_MB_ID != mbID;
+      }
+
+      OSS_INLINE BOOLEAN isStripingMode()const
+      {
+         return INVALID_STRIPING_ID != minStriping;
       }
 
       void reset()
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
-         type = INVALID_COLLECTION_TYPE;
+         type = COLLECTION_TYPE_INVALID;
          innerID = UTIL_INVALID_CL_INNER_ID;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
@@ -127,39 +110,35 @@ namespace vessel
          maxStriping = INVALID_STRIPING_ID;
          compressionType = UTIL_COMPRESSOR_INVALID;
          compressionDic = INVALID_PAGE_ID;
-         nonUniqueIndexCount = 0;
-         uniqueIndexCount = 0;
-         indexPad = 0;
-         nextIndexID = 0;
+         uniqueIndexes = 0;
+         nonUniqueIndexes = 0;
+         nextIndexId = 0;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
-         ossMemset(indexSlots, 0xFF, sizeof(indexSlots));
       }
 
-      UINT16 version;
-      UINT16 type;
-      UINT32 innerID;
-      UINT32 logicalCLID;
-      UINT16 mbID;
-      UINT8 maxSGCount;
-      UINT8 compressionType;
-      UINT32 flags;
-      UINT32 freeSizeReserved;
-      UINT16 minStriping;
-      UINT16 maxStriping;
+      UINT16 version = 0;
+      UINT16 type = COLLECTION_TYPE_INVALID;
+      UINT32 innerID = UTIL_INVALID_CL_INNER_ID;
+      UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
+      UINT16 mbID = INVALID_CL_MB_ID;
+      UINT8 maxSGCount = 0;
+      UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
+      UINT32 flags = 0;
+      UINT32 freeSizeReserved = 0;
+      UINT16 minStriping = INVALID_STRIPING_ID;
+      UINT16 maxStriping = INVALID_STRIPING_ID;
 
-      CHAR name[DMS_COLLECTION_NAME_SZ + 1];
+      CHAR name[DMS_COLLECTION_NAME_SZ + 1] = {0};
 
-      UINT32 routePages[COLLECTION_ROUTE_PAGE_SLOT_COUNT];
+      UINT32 routePages[COLLECTION_ROUTE_PAGE_SLOT_COUNT] = {0xFF};
 
-      UINT32 compressionDic;
+      UINT32 compressionDic = INVALID_PAGE_ID;
 
       /// index begin
-      UINT8 nonUniqueIndexCount;
-      UINT8 uniqueIndexCount;
-      UINT16 indexPad;
-      UINT32 nextIndexID;
-      UINT32 indexSlots[MAX_INDEX_COUNT_PER_CL];
+      UINT64 uniqueIndexes = 0;
+      UINT64 nonUniqueIndexes = 0;
+      UINT32 nextIndexId = 0;
       
       /// index end
    };//class collectionRecord
@@ -176,23 +155,6 @@ namespace vessel
    };//class collectionRecordOnDisk
    const UINT32 COLLECTION_DISK_RECORD_LEN = sizeof(collectionRecordOnDisk);
 
-   const UINT16 COLLECTION_RECORD_PAGE_VERSION_1 = 1;
-   struct collectionRecordPageHead
-   {
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return COLLECTION_RECORD_PAGE_VERSION_1 == version &&
-                0 == flags &&
-                0 == pad0 &&
-                1 == pad1;
-      }
-      UINT16 version = 0;
-      UINT16 flags = 0;
-      UINT32 pad0 = 0;
-      UINT64 pad1 = 0;
-   };//struct collectionPageHead
-   const UINT32 COLLECTION_RECORD_PAGE_HEAD_LEN = sizeof(collectionRecordPageHead);
-
    INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
 
    BOOLEAN initCollectionRecordPage(UINT32 pageSize,
@@ -200,6 +162,12 @@ namespace vessel
                                     PAGE_ID lpid,
                                     PAGE_SNAPSHOT_VERION psv,
                                     void *buf);
+
+   BOOLEAN getCollectionRecordIfValid(const void *ptr,
+                                      UINT32 i,
+                                      collectionRecord &record);
+
+   PAGE_ID getCrpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID);
 #pragma pack()
 
 }//namespace vessel

@@ -39,25 +39,34 @@ namespace engine
 {
 namespace vessel
 {
-   void initRecordDataPage(UINT32 pageSize,
+   BOOLEAN initRecordDataPage(UINT32 pageSize,
+                              PAGE_ID pid,      
                               PAGE_ID lpid,
-                              SNAPSHOT_ID snapshot,
+                              PAGE_SNAPSHOT_VERION psv,
                               UINT32 logicalID,
-                              CL_PAGE_SEQ pageSeq,
+                              UINT32 pageSeq,
                               void *buf)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalID, "can not be invalid");
       SDB_ASSERT(INVALID_CL_PAGE_SEQ != pageSeq, "can not be invalid");
-      initCommonPage(PAGE_TYPE_RECORD, pageSize, lpid, snapshot, buf);
+
+      recordDataPageHead *head = NULL;
       CHAR *ptr = (CHAR *)buf;
-      recordDataPageHead *head = (recordDataPageHead *)(ptr + PAGE_HEAD_LEN);
-      *head = recordDataPageHead();
+      BOOLEAN r = initCommonPage(PAGE_TYPE_RECORD, pageSize,
+                                 pid, lpid, psv, buf);
+      if (!r)
+      {
+         goto done;
+      }
+
+      head = (recordDataPageHead *)(ptr + PAGE_HEAD_SIZE);
       head->version = RDP_VERSION;
       head->clLogcalID = logicalID;
       head->pageSeq = pageSeq;
       head->totalFreeSpace = getMaxFreeSizeOfRdp(pageSize);
       head->freeSpaceAfterLastSlot = head->totalFreeSpace;
-      return;
+   done:
+      return r;
    }
 }//namespace vessel
 }//namespace engine

@@ -52,14 +52,11 @@ namespace vessel
          virtual ~fsmFile(){}
 
       public:
-         INT32 initToWork(ossSpinXLatch *latch, BOOLEAN sparse);
-         INT32 allocateNewPage(PAGE_ID &pid, BOOLEAN sparse);
-         INT32 releasePages(UINT32 count, const PAGE_ID *pids);
+         INT32 initToWork();
+         INT32 allocateNewPage(PAGE_ID &pid);
 
-         OSS_INLINE BOOLEAN isReadyToWork()const
-         {
-            return _readyToWork;
-         }
+         ///releasing will not fsync file.
+         INT32 releasePages(UINT32 count, const PAGE_ID *pids);
 
       private:
          virtual FILE_TYPE getFileType()const
@@ -74,13 +71,12 @@ namespace vessel
 
          INT32 releasePagesFromSmp(UINT32 count, const PAGE_ID *pids);
 
-         INT32 ensureSpace(PAGE_ID pid, BOOLEAN sparse);
+         INT32 ensureSpace(PAGE_ID pid);
 
-         INT32 initAfterCreation(BOOLEAN sparse);
+         INT32 initAfterCreation();
 
       private:
-         ossSpinXLatch *_latch = NULL;
-         BOOLEAN _readyToWork = FALSE;
+         ossSpinXLatch _latch;
          INT32 _firstFree = -1;
    };//class fsmFIle
 }//namespace vessel

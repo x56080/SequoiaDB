@@ -195,7 +195,7 @@ namespace vessel
          goto error;
       }
 
-      rc = listCursor->open(this, filter, NULL);
+      rc = listCursor->open(this, filter, cursorOptions());
       if (SDB_OK != rc)
       {
          goto error;
@@ -367,7 +367,7 @@ namespace vessel
          goto error;
       }
 
-      rc = listCursor->open(this, filter, NULL);
+      rc = listCursor->open(this, filter, cursorOptions());
       if (SDB_OK != rc)
       {
          goto error;
@@ -573,10 +573,10 @@ namespace vessel
 
    INT32 vesselImpl::insert(ISession *session,
                             const collectionHandle &handle,
-                            const recordData &record,
+                            const slice &record,
                             const DPS_TRANS_ID &transID,
                             STRIPING_ID striping,
-                            const insertOptions *options,
+                            const insertOptions &options,
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
@@ -610,10 +610,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::getRecordCount(ISession *session,
-                                    const collectionHandle &handle,
-                                    IQueryFilter *filter,
-                                    UINT64 &count)
+   INT32 vesselImpl::getTotalRecordCountInPageHead(ISession *session,
+                                                   const collectionHandle &handle,
+                                                   UINT64 &count)
    {
       INT32 rc = SDB_OK;
       countCLHandler handler;
@@ -635,7 +634,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.doit(handle, filter, count);
+      rc = handler.doit(handle, count);
       if (SDB_OK != rc)
       {
          goto error;

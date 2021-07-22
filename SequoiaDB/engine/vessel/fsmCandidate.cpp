@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = crpIniter.h
+   Source File Name = fsmCandidate.cpp
 
    Descriptive Name =
 
@@ -33,46 +33,35 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CRP_INITER_H_
-#define VESSEL_CRP_INITER_H_
-
-#include "vessel/pageInitializer.h"
-#include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/fsmCandidate.h"
+#include "ossMemPool.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createCSOptions;
-   class crpIniter : public pageInitializer
+   INT32 makeFsmCandidateSharedInfoPtr(PAGE_ID lpid,
+                                       INT32 lvl,
+                                       fsmCandidate::SHARED_INFO_PTR &sptr)
    {
-      public:
-         crpIniter(){}
-         virtual ~crpIniter(){}
+      INT32 rc = SDB_OK;
+      ossPoolAllocator<fsmCandidate::mutableInfo> alloc;
+      sptr.reset();
 
-      public:
-         virtual PAGE_TYPE getPageType()const
-         {
-            return PAGE_TYPE_CS_META;
-         }
+      /// allocate_shared can avoid twice memory allocating(obj and control block).
+      sptr = std::allocate_shared<fsmCandidate::mutableInfo>(alloc, lpid, lvl);
+      if (NULL == sptr.get())
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
 
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
-
-         void set(const csMetaRecord *record,
-                  const createCSOptions *options)
-         {
-            _record = record;
-            _options = options;
-         }
-
-      private:
-         const csMetaRecord *_record = NULL;
-         const createCSOptions *_options = NULL;
-   };//class crpIniter
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_CRP_INITER_H_

@@ -37,31 +37,48 @@
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 #include "vessel/freeSpaceMapDef.h"
-#include "vessel/bitMapUtils.h"
+#include "vessel/bitmapUtils.h"
 #include "ossAtomic.hpp"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   diskFreeSpaceMap::diskFreeSpaceMap():
-   _fsmFile(NULL)
-   {
+   constexpr UINT32 SUPER_BITMAP_BLOCK_CAPACITY = 64;
 
+   diskFreeSpaceMap::diskFreeSpaceMap()
+   {
+      SDB_ASSERT(FSM_FILE_PAGE_SIZE == FSM_BITMAP_OWNER_PAGE_SIZE, "must be same");
+      SDB_ASSERT(FSM_FILE_PAGE_SIZE == FSM_BITMAP_PAGE_SIZE, "must be same");
+      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "must be power of 2");
    }
 
    diskFreeSpaceMap::~diskFreeSpaceMap()
    {
-
+      close();
    }
 
    void diskFreeSpaceMap::close()
    {
       _fsmFile = NULL;
-      _entry = fsmCLEntry();
-      _pmapPids.clear();
-      _cursor.reset();
-      _stats.reset();
+      _logicalId = DMS_INVALID_LOGICCLID;
+      _totalDataPageCount = 0;
+      for (_BITMAP_OBJ_MAP::iterator itr = _bitmaps.begin();
+           itr != _bitmaps.end(); ++itr)
+      {
+         if (NULL != itr->second)
+         {
+            SDB_OSS_DEL itr->second;
+         }
+      }
+      _bitmaps.clear();
+      _bitmapOwners.clear();
+
+      for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      {
+         _superBitmaps[i].release();
+      }
       return;
    }
 
@@ -70,9 +87,11 @@ namespace vessel
                                   UINT32 logicalID)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!isOpen(), "do not reinit");
       PAGE_ID pid = INVALID_PAGE_ID;
+      fsmBitmapPageObject *obj = NULL;
+      fsmCLEntry entry;
 
-      SDB_ASSERT(NULL == _fsmFile, "already open");
       if (OSS_UNLIKELY(NULL == file ||
                        !file->isOpen() ||
                        INVALID_CL_MB_ID == mbID ||
@@ -83,17 +102,20 @@ namespace vessel
       }
 
       _fsmFile = file;
+      _logicalId = logicalID;
 
-      rc = createNewBitMapPage(file, pid);
+      rc = createNewBitmapObj(0, &obj);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      _entry.root = pid;
-      _entry.logicalID = logicalID;
+      pid = obj->getPid();
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      entry.root = pid;
+      entry.logicalID = logicalID;
 
-      rc = updateEntrySlot(mbID, _entry, FALSE);
+      rc = updateEntrySlot(mbID, entry);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update entry slot:%d", rc);
@@ -102,7 +124,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != _fsmFile && INVALID_PAGE_ID != pid)
+      if (INVALID_PAGE_ID != pid)
       {
          file->releasePages(1, &pid);
       }
@@ -113,10 +135,12 @@ namespace vessel
    INT32 diskFreeSpaceMap::open(fsmFile *file,
                                 CL_MB_ID mbID,
                                 UINT32 logicalID,
+                                UINT32 dataPageCount,
                                 BOOLEAN autoRecreateEntry)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
+      fsmCLEntry entry;
 
       if (OSS_UNLIKELY(NULL == file ||
                        !file->isOpen() ||
@@ -127,23 +151,27 @@ namespace vessel
          goto error;
       }
 
-      PD_LOG(PDDEBUG, "openning fsm for mbid[%d], lid[%d]", mbID, logicalID);
-
       _fsmFile = file;
-      rc = readEntrySlot(mbID, logicalID, _entry);
+      _logicalId = logicalID;
+      _totalDataPageCount = dataPageCount;
+
+      rc = readEntrySlot(mbID, logicalID, entry);
       if (SDB_VESSEL_FSM_ENTRY_BROKEN == rc)
       {
-         PD_LOG(PDERROR, "[%d:%d] entry slot is broken, will recreate it", mbID, logicalID);
-         if (!autoRecreateEntry)
+         PD_LOG(PDERROR, "entry slot[%d,%d] is broken", mbID, logicalID);
+         if (autoRecreateEntry)
          {
-            goto error;
+            rc = SDB_OK;
+            close();
+            rc = create(file, mbID, logicalID);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to recreate entry slot:%d", rc);
+               goto error;
+            }
          }
-
-         close();
-         rc = create(file, mbID, logicalID);
-         if (SDB_OK != rc)
+         else
          {
-            PD_LOG(PDERROR, "failed to recreate entry slot:%d", rc);
             goto error;
          }
       }
@@ -153,15 +181,17 @@ namespace vessel
          goto error;
       }
 
-      rc = cachePMapPids();
+      rc = buildBitmapObjs(entry.root, dataPageCount);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to build bitmap objs:%d", rc);
          goto error;
       }
 
-      rc = createStats(_stats);
+      rc = createSuperBitmaps();
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to create super bitmaps:%d", rc);
          goto error;
       }
    done:
@@ -171,52 +201,72 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::addNewPages(CL_PAGE_SEQ sequence,
-                                       UINT32 count)
+   INT32 diskFreeSpaceMap::incDataPageCount(UINT32 count)
    {
       INT32 rc = SDB_OK;
-      UINT32 pageNo = 0;
-      SDB_ASSERT(PAGE_COUNT_IN_EXTENT == count, "impossible");
+      UINT32 minBitmapNo = 0;
+      UINT32 maxBitmapNo = 0;
+      fsmBitmapPageObject *obj = NULL;
+      ossSLatchGuard guard(&_latch, EXCLUSIVE, FALSE);
 
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence ||
-                       PAGE_COUNT_IN_EXTENT != count))
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == count))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+
+      guard.lock();
+
+      minBitmapNo = getBitmapPageNo(_totalDataPageCount);
+      maxBitmapNo = getBitmapPageNo(_totalDataPageCount + count - 1);
+      /// We will not rollback _dataPageCount,
+      /// which to keep _dataPageCount as same as cl meta data.
+      _totalDataPageCount += count;
+
+      rc = ensureSuperBitmapSize(maxBitmapNo + 1);
+      if (SDB_OK != rc)
       {
-         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "faield to ensure super bitmap size:%d", rc);
          goto error;
       }
 
-      pageNo = getPageNo(sequence);
-      if (0 == pageNo)
+      for (UINT32 i = minBitmapNo; i < maxBitmapNo; ++i)
       {
-         rc = addNewPagesToBitMapPage(_entry.root, sequence, count);
+         rc = ensureBitmapObj(i, &obj);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to ensure page with no[%d] exists", pageNo, rc);
-            goto error;
-         }
-      }
-      else
-      {
-         UINT32 pmapCount = ((pageNo - 1) / FSM_PAGE_MAP_CAPAITY) + 1;
-         rc = ensurePMapPage(pmapCount);
-         if (SDB_OK != rc)
-         {
+            PD_LOG(PDERROR, "failed to ensure bitmap obj[%d]:%d", i, rc);
             goto error;
          }
 
-         rc = addNewPagesToPageMapPage(_pmapPids.at(pmapCount - 1), sequence, count);
+         rc = obj->ensureSize(FSM_BITMAP_PAGE_CAPACITY);
          if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to increase data page count of obj[%d], rc:%d",
+                  bitmapNo, rc);
             goto error;
          }
       }
 
-      _stats.totalPageCount += count;
+      rc = ensureBitmapObj(maxBitmapNo, &obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure bitmap obj[%d]:%d", maxBitmapNo, rc);
+         goto error;
+      }
+
+      rc = obj->ensureSize((_totalDataPageCount - maxBitmapNo * FSM_BITMAP_PAGE_CAPACITY));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to increase data page count of obj[%d], rc:%d",
+                maxBitmapNo, rc);
+         goto error;
+      }
       
    done:
       return rc;
@@ -224,232 +274,52 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::updatePageFreeSizeLvL(CL_PAGE_SEQ sequence,
-                                                 const fsmSizeLvl &lvl)
+   INT32 diskFreeSpaceMap::upgradePageSpaceLvl(UINT32 seq,
+                                               INT32 lvl)
    {
       INT32 rc = SDB_OK;
-      UINT32 pageNo = 0;
-      fsmBitMapPage *page = NULL;
-      fsmPageMapSlot *slot = NULL;
-      fsmSizeLvl old;
+      UINT32 bitmapNo = 0;
+      fsmBitmapPageObject *obj = NULL;
+      BOOLEAN upgraded = FALSE;
+      ossSLatchGuard guard(&_latch, SHARED);
 
-      /// lvl can be invalid here. which means no free space at all.
-      if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence))
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (INVALID_CL_PAGE_SEQ == seq || 
+               !isValidFsmLvL(lvl))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (_totalDataPageCount <= seq)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      pageNo = getPageNo(sequence);
-      rc = getBitMapPageByPageNo(pageNo, &page, &slot);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = updateSizeLvl(sequence, lvl, page, old);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (lvl.getLvl() != old.getLvl())
-      {
-         if (old.isValid())
-         {
-            if (NULL != slot)
-            {
-               decStatWithCAS(slot->stat, old.getLvl());
-            }
-            decStatWithCAS(_stats, old.getLvl());
-         }
-         
-         if (lvl.isValid())
-         {
-            if (NULL != slot)
-            {
-               incStatWithCAS(slot->stat, lvl.getLvl());
-            }
-            incStatWithCAS(_stats, lvl.getLvl());
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::updateSizeLvl(CL_PAGE_SEQ seq,
-                                         const fsmSizeLvl &lvl,
-                                         fsmBitMapPage *page,
-                                         fsmSizeLvl &old)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
-      SDB_ASSERT(NULL != page, "can not be null");
-      
-      UINT32 subPageOffset = getSubPageOffset(seq);
-      UINT32 offset = seq % FSM_SEQ_RANGE_IN_SUB_PAGE;
-      fsmBitMapSubPage *subPage = &(page->pages[subPageOffset]);
-      INT32 oldLvl = FSM_SPACE_LVL_INVALID;
-      UINT32 oldDelta = 0;
-      UINT64 *bits = NULL;
-      old.reset();
-
-      /// Usually due to dirty pages not being flushed.
-      if (subPage->stat.totalPageCount < (offset +1))
-      {
-         PD_LOG(PDERROR, "page sequence[%d] out of bound", seq);
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      
-      oldDelta = getDelta(subPage->deltas, offset);
-      for (UINT32 i = FSM_SPACE_LVL_MIN; i <= FSM_SPACE_LVL_MAX; ++i)
+
+      bitmapNo = getBitmapPageNo(seq);
+      obj = getBitmapPageObj(bitmapNo);
+      if (NULL == obj)
       {
-         bits = subPage->getBits(i);
-         if (testBitIsFree(subPage->getBitsCount(), bits, offset))
-         {
-            oldLvl = i;
-            break;
-         }
-      }
-
-      if (oldDelta != lvl.getDelta())
-      {
-         /// update delta
-         setDeltaWithCAS(subPage->deltas, offset, lvl.getDelta());
-      }
-
-      if (lvl.getLvl() != oldLvl && FSM_SPACE_LVL_INVALID != oldLvl)
-      {
-         decStatWithCAS(subPage->stat, oldLvl);
-         /// do not goto error when cas failed. checking it return value
-         /// just for logging error message.
-         if (!setNotFreeWithCAS64(subPage->getBitsCount(),
-                                  subPage->getBits(oldLvl),
-                                  offset, 64))
-         {
-            PD_LOG(PDERROR, "failed to update lvl with cas");
-         }
-      }
-
-      if (lvl.getLvl() != oldLvl && lvl.isValid())
-      {
-         if (!setFreeWithCAS64(subPage->getBitsCount(),
-                               subPage->getBits(lvl.getLvl()),
-                               offset, 64))
-         {
-            PD_LOG(PDERROR, "failed to update lvl with cas");
-         }
-         incStatWithCAS(subPage->stat, lvl.getLvl());
-      }
-
-      old.reset(oldLvl, oldDelta);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::addNewPagesToPageMapPage(PAGE_ID pid,
-                                                    CL_PAGE_SEQ seq,
-                                                    UINT32 count)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
-      SDB_ASSERT(FSM_SEQ_RANGE_IN_PAGE <= seq, "impssible");
-      fsmPageMapPage *page = NULL;
-      fsmPageHead *head = NULL;
-      fsmPageMapSlot *slot = NULL;
-      UINT32 slotOffset = ((seq / FSM_SEQ_RANGE_IN_PAGE) - 1) % FSM_PAGE_MAP_CAPAITY;
-
-      rc = getPageHead(pid, &head);
-      if (SDB_OK != rc)
-      {
+         PD_LOG(PDERROR, "failed to get bitmap obj[%d]", bitmapNo);
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      page = (fsmPageMapPage *)head;
-      slot = &(page->pages[slotOffset]);
-
-      if (!slot->isValid())
-      {
-         PAGE_ID pid = INVALID_PAGE_ID;
-         rc = createNewBitMapPage(_fsmFile, pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create new bitmap page:%d", rc);
-            goto error;
-         }
-
-         slot->pid = pid;
-         slot->stat.reset();
-      }
-
-      /// We always think that writing 4bytes count or pid on disk is
-      /// atomic. Dirty page flush missing will cause the inconsistency
-      /// between head and slot. Just correct the head count.
-      if (page->count < (slotOffset + 1))
-      {
-         page->count = slotOffset + 1;
-      }
-
-      rc = addNewPagesToBitMapPage(slot->pid, seq, count);
+      rc = obj->upgradePageSpaceLvl(seq, lvl, upgraded);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to upgrade size lvl in obj[%d], rc:%d",
+                bitmapNo, rc);
          goto error;
       }
 
-      slot->stat.totalPageCount += count;
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::addNewPagesToBitMapPage(PAGE_ID pid,
-                                                   CL_PAGE_SEQ sequence,
-                                                   UINT32 count)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(INVALID_CL_PAGE_SEQ != sequence, "can not be invalid");
-      SDB_ASSERT(0 == (sequence & 0x07), "impossible");
-      SDB_ASSERT(8 == count, "must be 8");
-      UINT32 subPageOffset = getSubPageOffset(sequence);
-      UINT32 offset = sequence % FSM_SEQ_RANGE_IN_SUB_PAGE;
-      fsmPageHead *page = NULL;
-      fsmBitMapSubPage *subPage = NULL;
-
-      rc = getPageHead(pid, &page);
-      if (SDB_OK != rc)
+      if (upgraded)
       {
-         goto error;
-      }
-
-      subPage = (fsmBitMapSubPage *)page + subPageOffset;
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         for (UINT32 j = 0; j < FSM_SPACE_LVL_COUNT; ++j)
-         {
-            setNotFreeIfFree64(subPage->getBitsCount(),
-                               subPage->getBits(j),
-                               offset + i);
-         }
-         setDelta(subPage->deltas, offset + i, 0);
-      }
-
-      if (subPage->stat.totalPageCount < (offset + count))
-      {
-         subPage->stat.totalPageCount = (offset + count);
+         atomicSetSuperBitmap(lvl, bitmapNo);
       }
    done:
       return rc;
@@ -457,47 +327,135 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::ensurePMapPage(UINT32 count)
+   INT32 diskFreeSpaceMap::ensureBitmapObj(UINT32 bitmapNo,
+                                           fsmBitmapPageObject **out)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      PAGE_ID lastPid = _entry.root;
-      fsmPageHead *last = NULL;
-      PAGE_ID pid = INVALID_PAGE_ID;
-
-      rc = getPageHead(_entry.root, &last);
-      if (SDB_OK != rc)
+      fsmBitmapPageObject *obj = getBitmapPageObj(bitmapNo);
+      if (NULL == obj)
       {
-         goto error;
+         fsmPageHead *head = NULL;
+         PAGE_ID ownerPid = INVALID_PAGE_ID;
+         UINT32 ownerPageNo = 0;
+         UINT32 pos = 0;
+
+         if (0 == bitmapNo)
+         {
+            PD_LOG(PDERROR, "root bitmap obj not found");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         ownerPageNo = (bitmapNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPAITY;
+         pos = (bitmapNo - 1) % FSM_BITMAP_OWNER_PAGE_CAPAITY;
+
+         rc = ensureOwnerPage(ownerPageNo + 1);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure ower page:%d", rc);
+            goto error;
+         }
+
+         ownerPid = _bitmapOwners.at(ownerPageNo);
+
+         rc = getFsmPageHead(ownerPid,
+                             FSM_FILE_PAGE_TYPE_BITMAP_OWNER,
+                             head);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d], rc:%d",
+                   ownerPid, rc);
+            goto error;
+         }
+
+         rc = createNewBitmapObj(bitmapNo, &obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create new bitmap obj:%d", rc);
+            goto error;
+         }
+
+         ((fsmBitmapOwnerPage *)head)->pages[pos] = obj->getPid();
+         _fsmFile->fsyncPage(ownerPid, FALSE);
       }
 
-      while (_pmapPids.size() < count)
+
+      if (NULL != out)
       {
-         rc = _fsmFile->allocateNewPage(pid, FALSE);
-         if (SDB_OK != rc)
+         *out = obj;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 diskFreeSpaceMap::ensureOwnerPage(UINT32 count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(0 < count, "can not be zero");
+      PAGE_ID prePid = INVALID_PAGE_ID;
+      fsmPageHead *lastHead = NULL;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      fsmBitmapPageObject *obj = NULL;
+
+      if (count <= _bitmapOwners.size())
+      {
+         goto done;
+      }
+
+      if (_bitmapOwners.empty())
+      {
+         obj = getBitmapPageObj(0);
+         if (NULL == obj)
          {
-            PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
-            goto error;
-         }
-         rc = initPageMapPage(pid, lastPid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init first page map:%d", rc);
+            PD_LOG(PDERROR, "root bitmap page does not exist");
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
 
-         rc = _fsmFile->fsync(pid, 1, TRUE);
+         rc = getFsmPageHead(obj->getPid(), FSM_FILE_PAGE_TYPE_BITMAP, lastHead);
          if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to get page head:%d", rc);
             goto error;
          }
 
-         last->nextPage = pid;
-         _fsmFile->fsync(lastPid, 1, FALSE);
-         _pmapPids.push_back(pid);
-         lastPid = pid;
+         prePid = obj->getPid();
+      }
+      else
+      {
+         rc = getFsmPageHead(_bitmapOwners.back(),
+                             FSM_FILE_PAGE_TYPE_BITMAP_OWNER,
+                             lastHead);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page head:%d", rc);
+            goto error;
+         }
+         prePid = _bitmapOwners.back();
+      }
+
+
+      while (_bitmapOwners.size() < count)
+      {
+         rc = createNewOwnerPage(prePid, pid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create new pmap page:%d", rc);
+            goto error;
+         }
+
+         lastHead->next = pid;
+         _fsmFile->fsyncPage(prePid, FALSE);
+         _bitmapOwners.push_back(pid);
+         prePid = pid;
          pid = INVALID_PAGE_ID;
-         rc = getPageHead(lastPid, &last);
+
+         rc = getFsmPageHead(prePid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, lastHead);
          if (SDB_OK != rc)
          {
             goto error;
@@ -506,41 +464,74 @@ namespace vessel
    done:
       return rc;
    error:
-      if (INVALID_PAGE_ID != pid)
-      {
-         _fsmFile->releasePages(1, &pid);
-      }
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::createNewBitMapPage(fsmFile *file, PAGE_ID &pid)
+   INT32 diskFreeSpaceMap::createNewBitmapObj(UINT32 pageNo,
+                                              fsmBitmapPageObject **out)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != file && file->isOpen(), "can not be closed");
+      SDB_ASSERT(isOpen(), "must be open");
       PAGE_ID bitmapPid = INVALID_PAGE_ID;
+      fsmBitmapPageObject *obj = NULL;
+      fsmPageHead *head = NULL;
+      UINT32 abnormal = 0;
 
-      rc = file->allocateNewPage(bitmapPid, FALSE);
+      if (0 < _bitmaps.count(pageNo))
+      {
+         rc = SDB_VESSEL_DUPLICATED_KEY;
+         goto error;
+      }
+
+      obj = SDB_OSS_NEW fsmBitmapPageObject();
+      if (OSS_UNLIKELY(NULL == obj))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _fsmFile->allocateNewPage(bitmapPid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate new page form file:%d", rc);
          goto error;
       }
 
-      rc = initBitMapPage(bitmapPid);
+      rc = initBitmapPage(bitmapPid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init new fsm page:%d", rc);
          goto error;
       }
 
-      rc = file->fsync(bitmapPid, 1, TRUE);
+      rc = _fsmFile->fsyncPage(bitmapPid, FALSE);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to fsync file:%d", rc);
+         PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", bitmapPid, rc);
          goto error;
       }
 
-      pid = bitmapPid;
+      rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page[%d], rc:%d", bitmapPid, rc);
+         goto error;
+      }
+
+      rc = obj->init(pageNo, bitmapPid, 0, (fsmBitmapPage *)head, abnormal);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init bitmap obj:%d", rc);
+         goto error;
+      }
+
+      _bitmaps.insert(std::make_pair(pageNo, obj));
+
+      if (NULL != out)
+      {
+         *out = obj;
+      }
    done:
       return rc;
    error:
@@ -548,525 +539,219 @@ namespace vessel
       {
          _fsmFile->releasePages(1, &bitmapPid);
       }
+      SAFE_OSS_DELETE(obj);
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::find(const fsmSizeLvl &lvl,
-                                CL_PAGE_SEQ &seq,
-                                fsmSizeLvl &realLvl,
-                                FLOAT32 worthToScan)
+   void diskFreeSpaceMap::removeBitmapObj(UINT32 pageNo)
    {
-      INT32 rc = SDB_OK;
-      UINT16 *cursor = NULL;
-      UINT32 beginPageNo = 0;
-      UINT32 pageNo = 0;
-      UINT32 loop = 0;
-      UINT32 scanned = 0;
-      fsmPageMapSlot *slot = NULL;
-      CL_PAGE_SEQ candidate = INVALID_CL_PAGE_SEQ;
-      fsmSizeLvl candidateLvl;
-      const static UINT32 MAX_SCAN = 8;
-      BOOLEAN r = FALSE;
-
-      if (!lvl.isValid())
+      fsmBitmapPageObject *obj = NULL;
+      _BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.find(i);
+      if (_bitmaps.end() != itr)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         SDB_OSS_DEL itr->second;
+         _bitmaps.erase(itr);
       }
-      else if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!isWorthToScanDisk(lvl.getLvl(), _stats.totalPageCount,
-                             _stats.getLvl(FSM_SPACE_LVL0),
-                             _stats.getLvl(FSM_SPACE_LVL1),
-                             _stats.getLvl(FSM_SPACE_LVL2),
-                             _stats.getLvl(FSM_SPACE_LVL3),
-                             worthToScan))
-      {
-         rc = SDB_VESSEL_FSM_NO_FREE_SPACE;
-         goto error;
-      }
-
-      cursor = _cursor.get(lvl.getLvl());
-      SDB_ASSERT(8 == FSM_SUB_BITMAP_COUNT, "must be 8");
-      beginPageNo = *cursor >> 3;
-
-      do
-      {
-         candidate = INVALID_CL_PAGE_SEQ;
-         fsmBitMapPage *page = NULL;
-         pageNo = *cursor >> 3;
-
-         if (0 != loop++ && beginPageNo == pageNo)
-         {
-            break;
-         }
-
-         rc = getBitMapPageByPageNo(pageNo, &page, &slot);
-         if (SDB_OUT_OF_BOUND == rc)
-         {
-            rc = SDB_OK;
-            *cursor = 0;
-            continue;
-         }
-         else if (SDB_VESSEL_PAGE_CRASHED == rc)
-         {
-            rc = SDB_OK;
-            *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
-            continue;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page[%d], rc:%d", cursor, rc);
-            goto error;
-         }
-
-         if (NULL != slot)
-         {
-            if (!isWorthToScanDisk(lvl.getLvl(), slot->stat.totalPageCount,
-                                   slot->stat.getLvl(FSM_SPACE_LVL0),
-                                   slot->stat.getLvl(FSM_SPACE_LVL1),
-                                   slot->stat.getLvl(FSM_SPACE_LVL2),
-                                   slot->stat.getLvl(FSM_SPACE_LVL3),
-                                   worthToScan))
-            {
-               /// do not upate scanned
-               *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
-               continue;
-            }
-         }
-
-         if (findFromBitMapPage(lvl, *cursor, page, candidate, candidateLvl))
-         {
-            if (NULL != slot)
-            {
-               slot->stat.decLvl(candidateLvl.getLvl());
-            }
-
-            *cursor = candidate / FSM_SEQ_RANGE_IN_SUB_PAGE;
-            r = TRUE;
-            break;
-         }
-         else
-         {
-            *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
-            ++scanned;
-            continue;
-         }
-      }while(scanned <= MAX_SCAN);
-
-      if (r)
-      {
-         SDB_ASSERT(INVALID_CL_PAGE_SEQ != candidate &&
-                    candidateLvl.isValid(), "can not be invalid");
-         _stats.decLvl(candidateLvl.getLvl());
-         seq = candidate;
-         realLvl = candidateLvl;
-      }
-      else
-      {
-         rc = SDB_VESSEL_FSM_NO_FREE_SPACE;
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   BOOLEAN diskFreeSpaceMap::findFromBitMapPage(const fsmSizeLvl &lvl,
-                                                UINT32 subPageNo,
-                                                fsmBitMapPage *page,
-                                                CL_PAGE_SEQ &candidate,
-                                                fsmSizeLvl &realLvl)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(lvl.isValid() && NULL != page, "can not be invalid");
-      UINT32 offset = 0;
-      UINT32 begin = subPageNo & (FSM_SUB_BITMAP_COUNT - 1);
-      for (UINT32 i = begin; i < FSM_SUB_BITMAP_COUNT; ++i)
-      {
-         fsmBitMapSubPage &subPage = page->pages[i];
-         if (findFromSubBitMapPage(lvl, &subPage, offset, realLvl))
-         {
-            candidate = (subPageNo >> 3) * FSM_SEQ_RANGE_IN_PAGE +
-                        i * FSM_SEQ_RANGE_IN_SUB_PAGE +
-                        offset;
-            r = TRUE;
-            break;
-         }
-      }
-
-      return r;
-   }
-
-   BOOLEAN diskFreeSpaceMap::findFromSubBitMapPage(const fsmSizeLvl &lvl,
-                                                   fsmBitMapSubPage *page,
-                                                   UINT32 &offset,
-                                                   fsmSizeLvl &realLvl)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(lvl.isValid() && NULL != page, "can not be invalid");
-      UINT16 delta = lvl.getDelta();
-      UINT16 realDelta = 0;
-
-      if (0 == page->stat.totalPageCount)
-      {
-         goto done;
-      }
-
-      for (UINT32 i = lvl.getLvl(); i <= FSM_SPACE_LVL_MAX; ++i)
-      {
-         if (findFromLvLn(page, i, delta, offset, realDelta))
-         {
-            realLvl.reset(i, realDelta);
-            r = TRUE;
-            goto done;
-         }
-         delta = 0;
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN diskFreeSpaceMap::findFromLvLn(fsmBitMapSubPage *page,
-                                          UINT32 lvl,
-                                          UINT32 delta,
-                                          UINT32 &offset,
-                                          UINT16 &realDelta)
-   {
-      SDB_ASSERT(NULL != page, "can not be null");
-      SDB_ASSERT(FSM_SPACE_LVL_MIN <= lvl && lvl <= FSM_SPACE_LVL_MAX, "impossible");
-      BOOLEAN r = FALSE;
-      UINT64 *bits = NULL;
-
-      UINT32 maxOffset = 0;
-      INT32 bound = -1;
-      UINT32 diskDelta = 0;
-      INT32 lvlCnt = 0;
-      INT32 originalCnt = 0;
-      UINT32 bitOffset = 0;
-
-      bits = page->getBits(lvl);
-      lvlCnt = page->stat.getLvl(lvl);
-      originalCnt = lvlCnt;
-
-      if (0 == originalCnt || 0 == page->stat.totalPageCount)
-      {
-         goto done;
-      }
-
-      maxOffset = page->stat.totalPageCount - 1;
-
-      while (0 < lvlCnt)
-      {
-         if (!upperBoundFirstFreeBitFromBit64(FSM_BITMAP_BITS_COUNT,
-                                              bits, bound, maxOffset,
-                                              bitOffset))
-         {
-            /// should alwasy find free bit when head count is not zero.
-            PD_LOG(PDWARNING, "inconsistency found, reset head as %d from %d",
-                   originalCnt - lvlCnt, originalCnt);
-            page->stat.lvln[lvl] = originalCnt - lvlCnt;
-            goto done;
-         }
-
-         diskDelta = getDelta(page->deltas, bitOffset);
-         if (delta <= diskDelta)
-         {
-            setNotFreeIfFree64(FSM_BITMAP_BITS_COUNT,
-                               bits, bitOffset);
-            setDelta(page->deltas, bitOffset, 0);
-            r = TRUE;
-            page->stat.decLvl(lvl);
-            offset = bitOffset;
-            realDelta = diskDelta;
-            goto done;
-         }
-
-         bound = bitOffset;
-         --lvlCnt;
-      }
-   done:
-      return r;
-   }
-
-   UINT32 diskFreeSpaceMap::getDelta(const UINT64 *deltas,
-                                     UINT32 offset)
-   {
-      SDB_ASSERT(NULL != deltas, "can not be null");
-      SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
-      UINT64 delta = *(deltas + (offset >> 4)); /// divided by 16. 16 deltas per 64 bits.
-      UINT32 n = (offset & 0xF) << 2; /// (offset mod 16) * 4;
-      delta = delta >> n;
-      return delta & 0xF;
-      
-   }
-
-   void diskFreeSpaceMap::setDelta(UINT64 *deltas,
-                                   UINT32 offset,
-                                   UINT32 value)
-   {
-      SDB_ASSERT(NULL != deltas, "can not be null");
-      SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
-      UINT32 n = offset & 0xF;
-      UINT64 mask = 0xF;
-      mask <<= n;
-      mask = ~mask;
-
-      UINT64 v = value & 0xF; /// remove invalid bits.
-      v <<= n;
-      UINT64 *delta = deltas + (offset >> 4); /// divided by 16
-      *delta &= mask;
-      *delta |= v;
       return;
    }
 
-   BOOLEAN diskFreeSpaceMap::setDeltaWithCAS(UINT64 *deltas,
-                                             UINT32 offset,
-                                             UINT32 value)
+   fsmBitmapPageObject *diskFreeSpaceMap::getBitmapPageObj(UINT32 i)
    {
-      SDB_ASSERT(NULL != deltas, "can not be null");
-      SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
-      BOOLEAN r = FALSE;
-      UINT32 loopCnt = 0;
-      UINT32 n = (offset & 0xF) << 2;/// 64bits has 16 deltas, 4bits each delta.
-      UINT64 mask = 0xF;
-      mask <<= n;
-      mask = ~mask;
-
-      UINT64 v = (value & 0xF); /// remove invalid bits.
-      v <<= n;
-      UINT64 *delta = deltas + (offset >> 4); /// divided by 16
-      UINT64 expected = *delta;
-      UINT64 disired = ((expected & mask) | v);
-
-      while (!ossCompareAndSwap64(delta, expected, disired))
+      fsmBitmapPageObject *obj = NULL;
+      _BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.find(i);
+      if (_bitmaps.end() != itr)
       {
-         if (++loopCnt == 64)
-         {
-            PD_LOG(PDERROR, "delta cas loop over 64 times");
-            goto done;
-         }
-         expected = *((volatile UINT64 *)delta);
-         disired = ((expected & mask) | v);
+         obj = itr->second;
       }
-      r = TRUE;
-   done:
-      return r;
+      return obj;
    }
 
-   INT32 diskFreeSpaceMap::getBitMapPageByPageNo(UINT32 pageNo,
-                                                 fsmBitMapPage **page,
-                                                 fsmPageMapSlot **slot)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(NULL != page, "can not be null");
-      
-      if (0 == pageNo)
-      {
-         fsmPageHead *head = NULL;
-         rc = getPageHead(_entry.root, &head);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         *page = (fsmBitMapPage *)head;
-         if (NULL != slot)
-         {
-            *slot = NULL;
-         }
-      }
-      else
-      {
-         UINT32 pmapNo = (pageNo - 1) / FSM_PAGE_MAP_CAPAITY;
-         UINT32 slotOffset = (pageNo - 1) % FSM_PAGE_MAP_CAPAITY;
-         fsmPageMapPage *pmap = NULL;
-         fsmPageHead *head = NULL;
-
-         rc = getPMap(pmapNo, &pmap);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         
-         if (pmap->count < (slotOffset + 1))
-         {
-            rc = SDB_OUT_OF_BOUND;
-            goto error;
-         }
-
-         if (!pmap->pages[slotOffset].isValid())
-         {
-            rc = SDB_VESSEL_PAGE_NOT_EXISTS;
-            goto error;
-         }
-
-         rc = getPageHead(pmap->pages[slotOffset].pid, &head);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         *page = (fsmBitMapPage *)head;
-         if (NULL != slot)
-         {
-            *slot = &(pmap->pages[slotOffset]);
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::getPMap(UINT32 mapPageNo, fsmPageMapPage **page)
-   {
-      SDB_ASSERT(isOpen(), "can not be null");
-      SDB_ASSERT(NULL != page, "can not be null");
-      INT32 rc = SDB_OK;
-      fsmPageHead *head = NULL;
-      if (_pmapPids.size() <= mapPageNo)
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto done;
-      }
-
-      rc = getPageHead(_pmapPids.at(mapPageNo), &head);
-      if (SDB_OK != rc)
-      {
-         goto done;
-      }
-
-      *page = (fsmPageMapPage *)head;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::getRootBitMap(fsmBitMapPage **page)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(NULL != page, "can not be null");
-      fsmPageHead *head = NULL;
-      rc = getPageHead(_entry.root, &head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      *page = (fsmBitMapPage *)head;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::createStats(fsmStats &stats)
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      SDB_ASSERT(isOpen(), "can not be closed");
-
-      pid = _entry.root;
-      const fsmPageHead *ph = NULL;
-      rc = getPageHead(pid, &ph);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      createStats(ph, stats);
-
-      for (UINT32 i = 0; i < _pmapPids.size(); ++i)
-      {
-         pid = _pmapPids.at(i);
-         rc = getPageHead(pid, &ph);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         createStats(ph, stats);
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::getPageHead(PAGE_ID pid, fsmPageHead **head)
+   INT32 diskFreeSpaceMap::buildBitmapObj(UINT32 pageNo,
+                                          PAGE_ID pid,
+                                          UINT32 dataPageCount,
+                                          fsmBitmapPage *page)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(NULL != head, "can not be invalid");
-      SDB_ASSERT(isOpen(), "can not be closed");
-      ossValuePtr ptr = 0;
-      rc = _fsmFile->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
+      SDB_ASSERT(NULL != page, "can nto be null");
+
+      UINT32 abnormalCount = 0;
+      fsmBitmapPageObject *obj = NULL;
+
+      if (0 < _bitmaps.count(pageNo))
       {
-         PD_LOG(PDERROR, "failed to get ptr of pid[%d], rc:%d", pid, rc);
+         rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;
       }
 
-      *head = (fsmPageHead *)ptr;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskFreeSpaceMap::getPageHead(PAGE_ID pid, const fsmPageHead **head)
-   {
-      fsmPageHead *h = NULL;
-      INT32 rc = getPageHead(pid, &h);
-      if (SDB_OK != rc)
+      obj = SDB_OSS_NEW fsmBitmapPageObject();
+      if (NULL == obj)
       {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
          goto error;
       }
 
-      *head = h;
+      rc = obj->init(pageNo, pid, dataPageCount,
+                     page, abnormalCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rebuild page obj[%d,%d], rc:%d",
+                pageNo, pid, rc);
+         goto error;
+      }
+      else if (0 < abnormalCount)
+      {
+         PD_LOG(PDWARNING, "[%d] abnormal data pages found when rebuilding [%d,%d]",
+                abnormalCount, pageNo, pid);
+      }
+
+      _bitmaps.insert(std::make_pair(pageNo, obj));
+      
    done:
       return rc;
    error:
+      SAFE_OSS_DELETE(obj);
       goto done;
    }
 
-   void diskFreeSpaceMap::createStats(const fsmPageHead *head, fsmStats &stats)
+   INT32 diskFreeSpaceMap::createNewOwnerPage(PAGE_ID pre, PAGE_ID &pid)
    {
-      SDB_ASSERT(NULL != head, "can not be null");
-      if (FSM_PAGE_TYPE_BITMAP == head->type)
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(INVALID_PAGE_ID != pre, "can not be invalid");
+      PAGE_ID ownerPid = INVALID_PAGE_ID;
+
+      rc = _fsmFile->allocateNewPage(ownerPid);
+      if (SDB_OK != rc)
       {
-         const fsmBitMapPage *page = (const fsmBitMapPage *)head;
-         for (UINT32 i = 0; i < FSM_SUB_BITMAP_COUNT; ++i)
+         PD_LOG(PDERROR, "failed to allocate new page form file:%d", rc);
+         goto error;
+      }
+
+      rc = initOwnerPage(ownerPid, pre);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init new fsm page:%d", rc);
+         goto error;
+      }
+
+      rc = _fsmFile->fsyncPage(ownerPid, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", ownerPid, rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      if (INVALID_PAGE_ID != ownerPid)
+      {
+         _fsmFile->releasePages(1, &ownerPid);
+      }
+      goto done;
+   }
+
+   INT32 diskFreeSpaceMap::find(INT32 targetLvl,
+                                BOOLEAN &found,
+                                UINT32 &seq,
+                                INT32 &lvl)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 bitmapNo = 0;
+      fsmBitmapPageObject *obj = NULL;
+      ossSLatchGuard guard(&_latch, EXCLUSIVE, FALSE);
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidFsmLvL(targetLvl)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      guard.lock();
+      do
+      {
+         found = FALSE;
+         seq = INVALID_CL_PAGE_SEQ;
+         lvl = FSM_INVALID_SPACE_LVL;
+
+         if (!findBitmapFromSuperBitmap(targetLvl, bitmapNo))
          {
-            const fsmBitMapSubPage &subPage = page->pages[i];
-            stats.merge(subPage.stat);
+            goto done;
          }
-      }
-      else if (FSM_PAGE_TYPE_PAGEMAP == head->type)
-      {
-         const fsmPageMapPage *page = (const fsmPageMapPage *)head;
-         for (UINT32 i = 0; i < page->count; ++i)
+
+         obj = getBitmapPageObj(bitmapNo);
+         if (NULL == obj)
          {
-            const fsmPageMapSlot &slot = page->pages[i];
-            if (!slot.isValid())
+            PD_LOG(PDERROR, "failed to get bitmap obj[%d]", bitmapNo);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = obj->findAndClear(targetLvl, found, seq, lvl);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find free space from obj:%d", rc);
+            goto error;
+         }
+
+         if (found)
+         {
+            if (obj->getStats(lvl) <= 0)
             {
-               continue;
+               clearInSuperBitmapAtLvL(lvl, bitmapNo);
             }
-            stats.merge(slot.stat);
+            break;
+         }
+
+         /// obj found in super bitmap but nothing found in bitmap obj.
+         /// clear it in super bitmaps.
+         clearInSuperBitmapGTELvL(targetLvl, bitmapNo);
+      } while (TRUE);
+   
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   BOOLEAN diskFreeSpaceMap::findBitmapFromSuperBitmap(INT32 targetLvl,
+                                                       UINT32 &bitmapNo)const
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(FSM_INVALID_SPACE_LVL != targetLvl, "can not be invalid");
+      UINT32 bitsCount = _superBitmaps[0].getSize() >> 3;
+      UINT32 offset = 0;
+      for (INT32 i = targetLvl; i < FSM_SPACE_LVL_COUNT; ++i)
+      {
+         if (findFirstFreeBitFromBit64(bitsCount, 0,
+                                       (const UINT64 *)(_superBitmaps[i].getBuffer()),
+                                       offset))
+         {
+            r = TRUE;
+            bitmapNo = offset;
+            break;
          }
       }
-      return;
+
+      return r;
    }
+
+   void diskFreeSpaceMap::atomicSetSuperBitmap(INT32 lvl, UINT32 bitmapNo)
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      UINT32 bitsCount = _superBitmaps[lvl].getSize() >> 3;
+      setFreeWithAtomic64(bitsCount, (UINT64 *)(_superBitmaps[lvl].getBuffer(), bitmapNo));
+   }
+
 
    INT32 diskFreeSpaceMap::readEntrySlot(CL_MB_ID mbID,
                                          UINT32 logicalID,
@@ -1076,8 +761,7 @@ namespace vessel
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
       SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalID, "can not be invalid");
       SDB_ASSERT(NULL != _fsmFile, "can not be null");
-      UINT32 pageSize = _fsmFile->getPageSize();
-      SDB_ASSERT(FSM_PAGE_SIZE == pageSize, "must be same");
+
       PAGE_ID pid = INVALID_PAGE_ID;
       ossValuePtr ptr = 0;
       const fsmCLEntry *slot = NULL; 
@@ -1092,20 +776,13 @@ namespace vessel
 
       slot = getEntryFromPagePtr(ptr, mbID);
       SDB_ASSERT(NULL != slot, "can not be null");
-      if (!slot->isValid() || logicalID != slot->logicalID)
-      {
-         PD_LOG(PDERROR, "entry slot of [%d,%d] is broken", mbID, logicalID);
-         rc = SDB_VESSEL_FSM_ENTRY_BROKEN;
-         goto error;
-      }
-      else if (0 == slot->root)
-      {
-         /// page 0 is smp.
-         PD_LOG(PDERROR, "entry slot of [%d,%d] is broken", mbID, logicalID);
-         rc = SDB_VESSEL_FSM_ENTRY_BROKEN;
-         goto error;
-      }
 
+      if (!isValidFsmEntry(*slot) || logicalID != slot->logicalID)
+      {
+         PD_LOG(PDERROR, "entry slot of [%d] is broken", mbID);
+         rc = SDB_VESSEL_FSM_ENTRY_BROKEN;
+         goto error;
+      }
       entry = *slot;
    done:
       return rc;
@@ -1113,29 +790,109 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::cachePMapPids()
+   INT32 diskFreeSpaceMap::buildBitmapObjs(PAGE_ID root, UINT32 totalPageCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      const fsmPageHead *page = NULL;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      rc = getPageHead(_entry.root, &page);
+      SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
+      SDB_ASSERT(_bitmaps.empty(), "must be empty");
+      fsmPageHead *head = NULL;
+      PAGE_ID ownerPid = INVALID_PAGE_ID;
+      UINT32 pageCountInBitmap = 0;
+      UINT32 totalCount = totalPageCount;
+
+      rc = getFsmPageHead(root, FSM_FILE_PAGE_TYPE_BITMAP, head);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get root page:%d", rc);
          goto error;
       }
 
-      while (INVALID_PAGE_ID != page->nextPage)
+      pageCountInBitmap = totalCount < FSM_BITMAP_PAGE_CAPACITY ?
+                          totalCount : FSM_BITMAP_PAGE_CAPACITY;
+
+      rc = buildBitmapObj(0, root, pageCountInBitmap, (fsmBitmapPage *)head);
+      if (SDB_OK != rc)
       {
-         _pmapPids.push_back(page->nextPage);
-         pid = page->nextPage;
-         rc = getPageHead(pid, &page);
+         PD_LOG(PDERROR, "failed to rebuild bitmap obj:%d", rc);
+         goto error;
+      }
+      totalCount -= pageCountInBitmap;
+
+      ownerPid = head->next;
+      while (INVALID_PAGE_ID != ownerPid)
+      {
+         UINT32 bitmapPageNo = _bitmapOwners.size() * FSM_BITMAP_OWNER_PAGE_CAPAITY + 1;
+         fsmBitmapOwnerPage *owner = NULL;
+         _bitmapOwners.push_back(ownerPid);
+
+         rc = getFsmPageHead(ownerPid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, head);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get root page:%d", rc);
+            PD_LOG(PDERROR, "failed to get owner page[%d], rc:%d", ownerPid, rc);
             goto error;
          }
+
+         owner = (fsmBitmapOwnerPage *)head;
+         for (UINT32 i = 0; i < FSM_BITMAP_OWNER_PAGE_CAPAITY; ++i)
+         {
+            fsmPageHead *bitmapPageHead = NULL;
+            pageCountInBitmap = totalCount < FSM_BITMAP_PAGE_CAPACITY ?
+                                totalCount : FSM_BITMAP_PAGE_CAPACITY;
+            PAGE_ID bitmapPid = owner->pages[i];
+            if (INVALID_PAGE_ID == bitmapPid)
+            {
+               if (0 == totalCount)
+               {
+                  break;
+               }
+
+               PD_LOG(PDWARNING, "failed to get bitmap pid at slot[%d], recreate it", i);
+               fsmBitmapPageObject *newObj = NULL;
+               rc = createNewBitmapObj(bitmapPageNo + i, &newObj);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to recreate bitmap page[%d], rc:%d",
+                         bitmapPageNo + i, rc);
+                  goto error;
+               }
+
+               owner->pages[i] = newObj->getPid();
+               _fsmFile->fsyncPage(ownerPid, FALSE);
+
+               rc = newObj->ensureSize(pageCountInBitmap);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to inc data page count:%d", rc);
+                  goto error;
+               }
+               totalCount -= pageCountInBitmap;
+               continue;
+            }
+
+            rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, bitmapPageHead);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get bitmap page[%d], rc:%d",
+                      bitmapPid, rc);
+               goto error;
+            }
+
+            rc = buildBitmapObj(bitmapPageNo + i,
+                                bitmapPid,
+                                pageCountInBitmap,
+                                (fsmBitmapPage *)bitmapPageHead);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to build bitmap obj[%d], rc:%d",
+                      bitmapPageNo + i, rc);
+               goto error;
+            }
+
+            totalCount -= pageCountInBitmap;
+         }
+
+         ownerPid = owner->head.next;
       }
    done:
       return rc;
@@ -1144,13 +901,13 @@ namespace vessel
    }
 
    INT32 diskFreeSpaceMap::updateEntrySlot(CL_MB_ID mbID,
-                                       const fsmCLEntry &entry,
-                                       BOOLEAN sync)
+                                           const fsmCLEntry &entry)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(entry.isValid(), "must be valid");
+      SDB_ASSERT(isValidFsmEntry(entry), "must be valid");
       SDB_ASSERT(NULL != _fsmFile, "can not be null");
+
       ossValuePtr ptr = 0;
       PAGE_ID pid = INVALID_PAGE_ID;
       fsmCLEntry *slot = NULL;
@@ -1167,7 +924,12 @@ namespace vessel
       SDB_ASSERT(NULL != slot, "can not be null");
       *slot = entry;
 
-      _fsmFile->fsync(pid, 1, sync);
+      rc = _fsmFile->fsyncPage(pid, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync entry slot:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -1177,11 +939,8 @@ namespace vessel
    PAGE_ID diskFreeSpaceMap::getEntryPid(CL_MB_ID mbID)
    {
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(4096 == FSM_ENTRY_SLOT_COUNT, "must be 4096");
-      UINT32 v = mbID;
-      v = v >> 12;
-      /// 1 for smp
-      return v + 1;
+      /// +1 for smp
+      return ((UINT32)mbID / FSM_ENTRY_SLOT_COUNT) + 1;
    }
 
    fsmCLEntry *diskFreeSpaceMap::getEntryFromPagePtr(ossValuePtr ptr,
@@ -1189,17 +948,67 @@ namespace vessel
    {
       SDB_ASSERT(0 != ptr, "can not be null");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "must be power of 2");
       fsmCLEntry *slot = (fsmCLEntry *)ptr;
       return slot + (mbID & (FSM_ENTRY_SLOT_COUNT - 1));/// mod 4096
    }
 
-   INT32 diskFreeSpaceMap::initBitMapPage(PAGE_ID pid)
+   INT32 diskFreeSpaceMap::getFsmPageHead(PAGE_ID pid, UINT16 type,
+                                          fsmPageHead *&head)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      ossValuePtr ptr = 0;
+      const fsmPageHead *tmp = NULL;
+
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid ||
+                       NULL == head))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _fsmFile->getPagePtr(pid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page ptr:%d", rc);
+         goto error;
+      }
+
+      tmp = (const fsmPageHead *)ptr;
+      if (!isValidFsmPageHead(*head))
+      {
+         PD_LOG(PDERROR, "page[%d] head is broken", pid);
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+      else if (_logicalId != tmp->clLogicalId)
+      {
+         PD_LOG(PDERROR, "logical id[%d] does not match the one on disk[%d]",
+                _logicalId, tmp->clLogicalId);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+      else if (type != tmp->type)
+      {
+         PD_LOG(PDERROR, "type[%d] does not match the one on disk[%d]",
+                type, tmp->type);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      head = (fsmPageHead *)ptr;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 diskFreeSpaceMap::initBitmapPage(PAGE_ID pid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(sizeof(fsmBitMapPage) == FSM_PAGE_SIZE, "must be same");
-      fsmBitMapSubPage *page = NULL;
+      fsmPageHead *head = NULL;
       ossValuePtr ptr = 0;
       rc = _fsmFile->getPagePtr(pid, ptr);
       if (SDB_OK != rc)
@@ -1208,29 +1017,32 @@ namespace vessel
          goto error;
       }
 
-      /// only init the first sub page head!
-      ossMemset((CHAR*)ptr, 0, FSM_PAGE_SIZE);
-      page = (fsmBitMapSubPage *)ptr;
+      ossMemset((CHAR*)ptr, 0, FSM_BITMAP_PAGE_SIZE);
+      head = (fsmPageHead *)ptr;
       
-      page->head.version = FSM_PAGE_VERSION;
-      page->head.type = FSM_PAGE_TYPE_BITMAP;
-      page->head.flags = 0;
-      page->head.prePage = INVALID_PAGE_ID;
-      page->head.nextPage = INVALID_PAGE_ID;
+      head->version = FSM_FILE_PAGE_VERSION;
+      head->type = FSM_FILE_PAGE_TYPE_BITMAP;
+      head->clLogicalId = _logicalId;
+      head->flags = 0;
+      head->pre = INVALID_PAGE_ID;
+      head->next = INVALID_PAGE_ID;
+      head->pad = 0;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::initPageMapPage(PAGE_ID pid, PAGE_ID pre)
+   INT32 diskFreeSpaceMap::initOwnerPage(PAGE_ID pid, PAGE_ID pre)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != pre, "can not be invalid");
-      SDB_ASSERT(sizeof(fsmPageMapPage) == FSM_PAGE_SIZE, "must be same");
-      fsmPageMapPage *page = NULL;
+
+      fsmBitmapOwnerPage *page = NULL;
       ossValuePtr ptr = 0;
+
       rc = _fsmFile->getPagePtr(pid, ptr);
       if (SDB_OK != rc)
       {
@@ -1238,28 +1050,57 @@ namespace vessel
          goto error;
       }
 
-      page = (fsmPageMapPage *)ptr;
-      ossMemset(page, 0, FSM_PAGE_SIZE);
-      page->head.version = FSM_PAGE_VERSION;
-      page->head.type = FSM_PAGE_TYPE_PAGEMAP;
+      page = (fsmBitmapOwnerPage *)ptr;
+      page->head.version = FSM_FILE_PAGE_VERSION;
+      page->head.type = FSM_FILE_PAGE_TYPE_BITMAP_OWNER;
+      page->head.clLogicalId = _logicalId;
       page->head.flags = 0;
-      page->head.prePage = pre;
-      page->head.nextPage = INVALID_PAGE_ID;
+      page->head.pre = pre;
+      page->head.next = INVALID_PAGE_ID;
+      page->head.pad = 0;
 
       page->flags = 0;
-      page->count = 0;
+      ossMemset(page->pad, 0, sizeof(page->pad));
+      ossMemset(page->pages, 0xFF, sizeof(page->pages));
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-      for (UINT32 i = 0; i < FSM_PAGE_MAP_CAPAITY; ++i)
+   INT32 diskFreeSpaceMap::createSuperBitmaps()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+
+      if (!_bitmaps.empty())
       {
-         fsmPageMapSlot &slot = page->pages[i];
-         slot.pid = INVALID_PAGE_ID;
+         rc = ensureSuperBitmapSize(_bitmaps.size());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to ensure super bitmaps size:%d", rc);
+            goto error;
+         }
       }
 
-      rc = _fsmFile->fsync(pid, 1, TRUE);
-      if (SDB_OK != rc)
+      for (_BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.begin();
+           itr != _bitmaps.end(); ++itr)
       {
-         PD_LOG(PDERROR, "failed to fsync file:%d", rc);
-         goto error;
+         SDB_ASSERT(NULL != itr->second, "can not be null");
+         for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            if (0 < itr->second->getStats(i))
+            {
+               if (!setFreeIfNotFree64((itr->first >> 6) + 1,
+                                       (UINT64 *)(_superBitmaps[i].getBuffer()),
+                                       itr->first))
+               {
+                  PD_LOG(PDERROR, "failed to set offset[%d] free", itr->first);
+                  rc = SDB_VESSEL_INTERNAL_ERR;
+                  goto error;
+               }
+            }
+         }
       }
    done:
       return rc;
@@ -1267,18 +1108,62 @@ namespace vessel
       goto done;
    }
 
-   void diskFreeSpaceMap::decStatWithCAS(fsmStats &stats, UINT32 lvl)
+   INT32 diskFreeSpaceMap::ensureSuperBitmapSize(UINT32 bitmapPageCount)
    {
-      SDB_ASSERT(FSM_SPACE_LVL_MIN <= lvl && lvl <= FSM_SPACE_LVL_MAX, "impossible");
-      ossFetchAndDecrement32(&(stats.lvln[lvl]));
-      return;
+      SDB_ASSERT(0 < bitmapPageCount, "can not be zero");
+      SDB_ASSERT(64 == SUPER_BITMAP_BLOCK_CAPACITY, "must be 64");
+      INT32 rc = SDB_OK;
+      INT32 rollback = -1;
+      UINT32 newBlockSize = ossAlign64(bitmapPageCount) * sizeof(UINT64);
+      UINT32 oldBlockSize = _superBitmaps[0].getSize();
+      if (newBlockSize <= oldBlockSize)
+      {
+         goto done;
+      }
+
+      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      {
+         rc = _superBitmaps[i].resize(newBlockSize, 0);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to resize memory block:%d", rc);
+            goto error;
+         }
+         rollback = i;
+      }
+
+   done:
+      return rc;
+   error:
+      for (INT32 i = rollback; i >= 0; --i)
+      {
+         _superBitmaps[i].resize(oldBlockSize);
+      }
+      goto done;
    }
 
-   void diskFreeSpaceMap::incStatWithCAS(fsmStats &stats, UINT32 lvl)
+   void diskFreeSpaceMap::clearInSuperBitmapAtLvL(INT32 lvl, UINT32 bitmapNo)
    {
-      SDB_ASSERT(FSM_SPACE_LVL_MIN <= lvl && lvl <= FSM_SPACE_LVL_MAX, "impossible");
-      ossFetchAndIncrement32(&(stats.lvln[lvl]));
-      return;
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      memoryBlock &block = _superBitmaps[lvl];
+      UINT32 bitsCount = block.getSize() >> 3;
+      if (bitmapNo < (bitsCount << 3))
+      {
+         setNotFreeIfFree64(bitsCount, (UINT64 *)(block.getBuffer()), bitmapNo);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+      }
+   }
+   
+   void diskFreeSpaceMap::clearInSuperBitmapGTELvL(INT32 lvl, UINT32 bitmapNo)
+   {
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      for (INT32 i = lvl; i < FSM_SPACE_LVL_COUNT; ++i)
+      {
+         clearInSuperBitmapAtLvL(i, bitmapNo);
+      }
    }
 
 }//namespace vessel

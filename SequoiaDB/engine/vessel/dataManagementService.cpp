@@ -129,15 +129,17 @@ namespace vessel
       _nameIndex.clear();
       _uidIndex.clear();
       _nextLogicalID = VESSEL_MIN_CS_LID;
+      _suAllocator.fini();
 
       for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
            itr != _mainIndex.end(); ++itr)
       {
-         SPACE_ID sid = itr->first;
-         itr->second->close(TRUE);
+         storageUnit *su = itr->second->getSU();
+         itr->second->close();
+         su->close();
       }
       _mainIndex.clear();
-      _suAllocator.fini();
+      
       _sus.fini();
    done:
       return;
@@ -145,6 +147,7 @@ namespace vessel
 
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
+                                         utilCSUniqueID uniqueID,
                                          const createCSOptions &options,
                                          SPACE_ID *outSid,
                                          UINT32 *outLid)
@@ -173,7 +176,7 @@ namespace vessel
       /// 1. Ensure name and uid unique.
       /// 2. Allocate sid and logical id.
       /// 3. Add name and uid to tmp index.
-      rc = precreateCS(csName, options.uniqueID, logicalID, sid);
+      rc = precreateCS(csName, uniqueID, logicalID, sid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -190,7 +193,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createCS(context, csName, logicalID, options, &obj);
+      rc = createCS(context, csName, uniqueID, logicalID, options, &obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs obj[%s], rc:%d", csName.str(), rc);
@@ -220,7 +223,7 @@ namespace vessel
       lh.unlock();
       if (INVALID_SPACE_ID != sid)
       {
-         rollbackPrecreating(csName, options.uniqueID, logicalID, sid);
+         rollbackPrecreating(csName, uniqueID, logicalID, sid);
       }
       goto done;
    }
@@ -282,6 +285,7 @@ namespace vessel
 
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
+                                         utilCSUniqueID uniqueId,
                                          UINT32 logicalID,
                                          const createCSOptions &options,
                                          collectionSpace **out)
@@ -310,7 +314,7 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->create(context, csName, logicalID, su, options);
+      rc = obj->create(context, csName, uniqueId, logicalID, su, options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cs[%s], rc:%d",
@@ -348,7 +352,7 @@ namespace vessel
                                                      listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      listCollectionSpaceRecord record;
+      bson::BSONObj record;
       BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -407,8 +411,7 @@ namespace vessel
             }
             else
             {
-               rc = cursor->push(sizeof(listCollectionSpaceRecord),
-                                 (const CHAR *)(&record));
+               rc = cursor->push(record.objsize(), record.objdata());
                if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
                {
                   rc = SDB_OK;
@@ -440,12 +443,7 @@ namespace vessel
             context->unlockSpaceID();
             continue;
          }
-         
-         if (!cursor->hasSpaceToPush(sizeof(listCollectionSpaceRecord)))
-         {
-            break;
-         }
-         
+            
       } while (TRUE);
    done:
       if (context->isSpaceIdLocked())
@@ -528,6 +526,66 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 dataManagementService::getCSBySpaceID(requestContext *context,
+                                               SPACE_ID sid,
+                                               UINT32 logicalID,
+                                               OSS_LATCH_MODE mode,
+                                               collectionSpace **out)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *tmp = NULL;
+      BOOLEAN locked = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            context->isSpaceIdLocked() ||
+                            INVALID_SPACE_ID == sid ||
+                            NULL == out))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context->lockSpaceID(sid, mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", sid, rc);
+         goto error;
+      }
+      locked = TRUE;
+
+      {
+      ossScopedRWLock guard(&_latch, SHARED);
+      tmp = getCS(sid);
+      if (NULL == tmp)
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+      }
+
+      if (DMS_INVALID_LOGICCSID != logicalID &&
+          logicalID != tmp->getLogicalID())
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+
+      *out = tmp;
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockSpaceID();
+      }
       goto done;
    }
 
@@ -1028,7 +1086,7 @@ namespace vessel
             PD_LOG(PDERROR, "storage unit[%s] may crashed when creating/removing",
                    nameSlice.str());
             rc = SDB_OK;
-            _storageUnits.release(sid);
+            _sus.release(sid);
             continue;
          }
          else if (SDB_OK != rc)

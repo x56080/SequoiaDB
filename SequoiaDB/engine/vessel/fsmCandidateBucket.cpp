@@ -40,11 +40,10 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT32 MAX_FAILURE_COUNT = 8;
+   static const UINT32 MAX_FAILURE_COUNT = 8;
 
-   fsmCandidateBucket::fsmCandidateBucket():
-   _candidates(NULL),
-   _reqCnt(0)
+///////////fsmCandidateBucket
+   fsmCandidateBucket::fsmCandidateBucket()
    {
 
    }
@@ -59,12 +58,13 @@ namespace vessel
       INT32 rc = SDB_OK;
       fini();
 
-      if (0 == capacity || !ossIsPowerOf2(capacity))
+      if (!ossIsPowerOf2(capacity))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      _capacity = capacity;
       _candidates = SDB_OSS_NEW _bucketCandidate[capacity];
       if (NULL == _candidates)
       {
@@ -75,11 +75,13 @@ namespace vessel
    done:
       return rc;
    error:
+      fini();
       goto done;
    }
 
    void fsmCandidateBucket::fini()
    {
+      _capacity = 0;
       if (NULL != _candidates)
       {
          SDB_OSS_DEL []_candidates;
@@ -89,273 +91,204 @@ namespace vessel
       return;
    }
 
-   BOOLEAN fsmCandidateBucket::upsert(UINT32 capacity,
-                                      const fsmCandidate &candidate,
-                                      fsmCandidate *replaced)
+   INT32 fsmCandidateBucket::upsert(UINT32 seq,
+                                    const fsmCandidate::SHARED_INFO_PTR &sptr)
    {
-      SDB_ASSERT(candidate.isValid(), "can not be invalid");
-      UINT16 minFree = candidate.free;
-      BOOLEAN r = FALSE;
-      _bucketCandidate *toBeEvited = NULL;
+      INT32 rc = SDB_OK;
+      INT32 pos = -1;
 
-      for (UINT32 i = 0; i < capacity; ++i)
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
+                            NULL == sptr.get() ||
+                            !isValidFsmLvL(sptr->_lvl)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < _capacity; ++i)
       {
          _bucketCandidate &c = _candidates[i];
-         if (!c.isValid())
+         if (!c.isValid() ||
+             !isValidFsmLvL(c.getInfoPtr()->_lvl))
          {
-            c.reset(candidate.seq,
-                    candidate.lpid,
-                    candidate.free);
-            r = TRUE;
-            if (NULL != replaced)
-            {
-               replaced->reset();
-            }
-            goto done;
+            pos = i;
+            break;
          }
-         else if (c.free < minFree)
+         else if (pos < 0)
          {
-            toBeEvited = &c;
-            minFree = c.free;
+            pos = i;
+         }
+         else if (_candidates[pos].getFailureCnt() < c.getFailureCnt())
+         {
+            pos = i;
          }
       }
 
-      if (NULL == toBeEvited)
-      {
-         goto done;
-      }
-
-      if (NULL != replaced)
-      {
-         replaced->reset();
-         replaced->seq = toBeEvited->seq;
-         replaced->lpid = toBeEvited->lpid;
-         replaced->free = toBeEvited->free;
-      }
-
-      toBeEvited->reset(candidate.seq,
-                       candidate.lpid,
-                       candidate.free);
-      r = TRUE;
+      _candidates[pos].reset(seq, sptr);
    done:
-      return r;
+      return rc;
+   error:
+      goto done;
    }
 
-   BOOLEAN fsmCandidateBucket::findAndAutoRemoving(UINT32 capacity,
-                                                   UINT16 size,
-                                                   UINT16 minFreeSize,
-                                                   fsmCandidate &candidate)
+   void fsmCandidateBucket::dumpTuplesWithValidLvl(ossPoolList<freeSpaceTuple> &tuples)const
    {
-      BOOLEAN r = FALSE;
-      UINT32 seed = _reqCnt++;
-      SDB_ASSERT(ossIsPowerOf2(capacity), "must be power of 2");
-
-      for (UINT32 i = 0; i < capacity; ++i)
-      {
-         UINT32 index = (seed + i) & (capacity - 1);
-         _bucketCandidate &c = _candidates[i];
-         if (c.isValid())
-         {
-            if (size <= c.free)
-            {
-               c.free -= size;
-               candidate = fsmCandidate(c.seq, c.lpid, c.free);
-               
-               if (c.free < minFreeSize)
-               {
-                  remove(index);
-               }
-               r = TRUE;
-               break;
-            }
-            else if (c.incAndGetFaulureCnt() == MAX_FAILURE_COUNT)
-            {
-               remove(index);
-            }
-         }
-      }
-
-      return r;
-   }
-
-   BOOLEAN fsmCandidateBucket::tryToInc(UINT32 capacity,
-                                        CL_PAGE_SEQ seq,
-                                        PAGE_ID lpid,
-                                        UINT16 maxFreeSize,
-                                        UINT16 newFreeSize,
-                                        UINT16 delta)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(newFreeSize <= maxFreeSize, "impossible");
-      for (UINT32 i = 0; i < capacity; ++i)
-      {
-         _bucketCandidate &c = _candidates[i];
-         if (!c.isValid() || seq != c.seq)
-         {
-            continue;
-         }
-
-         r = TRUE;
-
-         if ((c.free + delta) < newFreeSize)
-         {
-            c.free += delta;
-         }
-         else
-         {
-            c.free = newFreeSize;
-         }
-
-         if (INVALID_PAGE_ID == c.lpid &&
-             INVALID_PAGE_ID != c.lpid)
-         {
-            c.lpid = lpid;
-         }
-         goto done;
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN fsmCandidateBucket::tryToDec(UINT32 capacity,
-                                        CL_PAGE_SEQ seq,
-                                        PAGE_ID lpid,
-                                        UINT16 minFreeSize,
-                                        UINT16 newFreeSize,
-                                        UINT16 delta)
-   {
-      BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < capacity; ++i)
-      {
-         _bucketCandidate &c = _candidates[i];
-         if (!c.isValid() || seq != c.seq)
-         {
-            continue;
-         }
-
-         r = TRUE;
-
-         if (newFreeSize < minFreeSize)
-         {
-            remove(i);
-            goto done;
-         }
-
-         if (newFreeSize < c.free)
-         {
-            c.free = newFreeSize;
-         }
-         else if (delta < c.free)
-         {
-            c.free -= delta;
-            if (c.free < minFreeSize)
-            {
-               remove(i);
-               goto done;
-            }
-         }
-         else
-         {
-            remove(i);
-            goto done;
-         }
-
-         if (INVALID_PAGE_ID == c.lpid &&
-             INVALID_PAGE_ID != c.lpid)
-         {
-            c.lpid = lpid;
-         }
-         goto done; 
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN fsmCandidateBucket::updateCandidate(UINT32 capacity,
-                                               CL_PAGE_SEQ seq,
-                                               PAGE_ID lpid,
-                                               UINT16 minFreeSize,
-                                               UINT16 freeSizeFromBucket,
-                                               UINT16 currentFreeSize,
-                                               BOOLEAN failure)
-   {
-      BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < capacity; ++i)
-      {
-         _bucketCandidate &c = _candidates[i];
-         if (!c.isValid() || seq != c.seq)
-         {
-            continue;
-         }
-
-         r = TRUE;
-
-         if (failure)
-         {
-            if (MAX_FAILURE_COUNT <= c.incAndGetFaulureCnt())
-            {
-               remove(i);
-               goto done;
-            }
-         }
-         
-         if (currentFreeSize < minFreeSize)
-         {
-            remove(i);
-         }
-         else if (currentFreeSize < c.free)
-         {
-            c.free = currentFreeSize;
-         }
-         else if (freeSizeFromBucket == c.free &&
-                  currentFreeSize != c.free)
-         {
-            /// only the first allocating's feedback on this page
-            /// has chance to increase free size.
-            c.free = currentFreeSize;
-         }
-
-         if (INVALID_PAGE_ID == c.lpid)
-         {
-            c.lpid = lpid;
-         }
-
-         break;
-      }
-   done:
-      return r;
-   }
-
-   void fsmCandidateBucket::dump(UINT32 capacity,
-                                 fsmCandidate *candidates,
-                                 UINT32 &count)const
-   {
-      UINT32 cnt = 0;
-      for (UINT32 i = 0; i < capacity; ++i)
+      freeSpaceTuple tuple;
+      for (UINT32 i = 0; i < _capacity; ++i)
       {
          const _bucketCandidate &c = _candidates[i];
-         if (!c.isValid())
+         if (!c.isValid() || !isValidFsmLvL(c.getInfoPtr()->_lvl))
          {
             continue;
          }
 
-         candidates[cnt++] = fsmCandidate(c.seq, c.lpid, c.free);
+         tuple.reset(c.getSeq(),
+                     c.getInfoPtr()->_lpid,
+                     c.getInfoPtr()->_lvl);
+         tuples.push_back(tuple);
       }
-      count = cnt;
       return;
    }
 
-   UINT32 fsmCandidateBucket::getSize(UINT32 capacity)const
+   INT32 fsmCandidateBucket::resetWithNewCandidate(UINT32 pos,
+                                                   FREE_SPACE_TUPLE_POOL &newPagePool,
+                                                   BOOLEAN &inserted)
    {
-      UINT32 size = 0;
-      for (UINT32 i = 0; i < capacity; ++i)
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(pos < _capacity, "can not be out of bound");
+      freeSpaceTuple tuple;
+      inserted = FALSE;
+      
+      if (newPagePool.popForward(tuple))
       {
-         if (_candidates[i].isValid())
+         SDB_ASSERT(tuple.isValid(), "impossible");
+         SDB_ASSERT(isValidFsmLvL(tuple.getSpaceLvl()), "impossible");
+         fsmCandidate::SHARED_INFO_PTR sptr;
+         rc = makeFsmCandidateSharedInfoPtr(tuple.getLpid(),
+                                            tuple.getSpaceLvl(),
+                                            sptr);
+         if (SDB_OK != rc)
          {
-            ++size;
+            PD_LOG(PDERROR, "failed to make shared ptr:%d", rc);
+            goto error;
+         }
+
+         _candidates[pos].reset(tuple.getSeq(), sptr);
+         inserted = TRUE;
+      }
+
+   done:
+      return rc;
+   error:
+      if (tuple.isValid())
+      {
+         if (SDB_OK != newPagePool.pushForward(tuple))
+         {
+            PD_LOG(PDERROR, "failed to give back tuple[%d]", tuple.getSeq());
          }
       }
-      return size;
+      goto done;
    }
+
+   INT32 fsmCandidateBucket::find(INT32 lvl,
+                                  FREE_SPACE_TUPLE_POOL &newPagePool,
+                                  fsmCandidate &candidate)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      SDB_ASSERT(!candidate.isValid(), "can not be valid");
+      INT32 toBeReset = -1;
+      INT32 toBeEvicted = -1;
+      BOOLEAN found = FALSE;
+      UINT32 seed = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValidFsmLvL(lvl)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      seed = _reqCnt++;
+      for (UINT32 i = 0; i < _capacity; ++i)
+      {
+         UINT32 pos = ((seed + i) & (_capacity - 1));
+         _bucketCandidate &c = _candidates[pos];
+
+         if (!c.isValid() || !isValidFsmLvL(c.getInfoPtr()->_lvl))
+         {
+            if (toBeReset < 0)
+            {
+               toBeReset = pos;
+            }
+         }
+         else if (lvl <= c.getInfoPtr()->_lvl)
+         {
+            found = TRUE;
+            candidate.reset(c.getSeq(), c.getInfoPtr());
+            break;
+         }
+         else
+         {
+            UINT32 failureCount = c.incAndGetFaulureCnt();
+            if (toBeEvicted < 0)
+            {
+               toBeEvicted = pos;
+            }
+            else if (_candidates[toBeEvicted].getFailureCnt() < failureCount)
+            {
+               toBeEvicted = pos;
+            }
+         }
+      }
+
+      if (0 == newPagePool.getSizeWithNoLock())
+      {
+         goto done;
+      }
+
+      if (found)
+      {
+         /// Always fill bucket with new page no matter if we found candidate.
+         if (0 <= toBeReset)
+         {
+            BOOLEAN inserted = FALSE;
+            resetWithNewCandidate(toBeReset, newPagePool, inserted);
+         } 
+      }
+      else
+      {
+         INT32 resetPos = (toBeReset < 0) ? toBeEvicted : toBeReset;
+         SDB_ASSERT(0 <= resetPos, "impossible");
+         BOOLEAN inserted = FALSE;
+         rc = resetWithNewCandidate((UINT32)resetPos, newPagePool, inserted);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reset with new candidate:%d", rc);
+            goto error;
+         }
+         else if (!inserted)
+         {
+            goto done;
+         }
+
+         candidate.reset(_candidates[resetPos].getSeq(),
+                         _candidates[resetPos].getInfoPtr());
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
-}//namespace engine
+}//namespace engin

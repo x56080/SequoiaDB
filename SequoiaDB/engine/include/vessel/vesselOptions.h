@@ -37,7 +37,6 @@
 #define VESSEL_VESSEL_OPTIONS_H_
 
 #include "vessel/storageFileDef.h"
-#include "vessel/collectionDef.h"
 #include "utilCompression.hpp"
 #include "vessel/insertOptions.h"
 
@@ -96,7 +95,7 @@ namespace vessel
          public:
             OSS_INLINE bucketOptions():
             bucketCount(16384),
-            bucketLatchCount(4096),
+            bucketLatchCount(512),
             minRecycleCount(16){}
 
             UINT32 bucketCount;
@@ -150,10 +149,10 @@ namespace vessel
          liteCacheOptions cacheOptions;
 
          UINT32 lpidLatchMapBucketCount = 4096;
-         UINT32 lpidLatchMapLatchCount = 4096;
+         UINT32 lpidLatchMapLatchCount = 256;
 
          UINT32 ridLatchMapBucketCount = 4096;
-         UINT32 ridLatchMapLatchCount = 4096;
+         UINT32 ridLatchMapLatchCount = 256;
          
          ///invisible options.
          UINT32 _spaceLpidCacheBucketCount = 64;
@@ -173,23 +172,6 @@ namespace vessel
          BOOLEAN flushDirtyList;
    }; // class closeDBOptions
 
-   class createCSOptions : public SDBObject
-   {
-      public:
-         OSS_INLINE createCSOptions(){}
-         OSS_INLINE ~createCSOptions(){}
-         BOOLEAN isValid()const;
-
-         UINT32 dataPageSize = DMS_PAGE_SIZE32K;
-         UINT32 dataSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
-         UINT32 idxPageSize = DMS_PAGE_SIZE16K;
-         UINT32 idxSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
-         UINT32 lobPageSize = DMS_PAGE_SIZE256K;
-         UINT32 lobSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;
-         utilCSUniqueID uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
-      
-   };/// end of class createCSOptions
-
    class alterCSOptions : public SDBObject
    {
 
@@ -200,33 +182,7 @@ namespace vessel
 
    }; // class dropCSOptions
 
-   class createCLOptions
-   {
-      public:
-      OSS_INLINE createCLOptions():
-      type(COLLECTION_TYPE_NORMAL),
-      freeSizeReserved(4096),
-      multiStripingBucket(FALSE),
-      compressionType(UTIL_COMPRESSOR_INVALID),
-      minStriping(INVALID_STRIPING_ID),
-      maxStriping(INVALID_STRIPING_ID)
-      {}
-
-      OSS_INLINE ~createCLOptions(){}
-
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return COLLECTION_TYPE_NORMAL == type;
-      }
-
-      public:
-      UINT16 type;
-      UINT16 freeSizeReserved;
-      BOOLEAN multiStripingBucket;
-      UTIL_COMPRESSOR_TYPE compressionType;
-      STRIPING_ID minStriping;
-      STRIPING_ID maxStriping; 
-   };/// end of class createCLOptions
+   
 
    class alterCLOptions
    {

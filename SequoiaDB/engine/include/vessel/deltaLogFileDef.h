@@ -52,10 +52,10 @@ namespace vessel
 
       public:
          static const UINT32 PAGE_SIZE = DMS_PAGE_SIZE4K;
-         static const UINT32 PAGE_COUNT_PER_SEGMENT = 256;
+         static const UINT32 PAGE_COUNT_PER_SEGMENT = 512;
          static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
                                                  PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 64;
+         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 32;
          static const UINT32 MAX_PAGE_COUNT_PER_FILE = PAGE_COUNT_PER_SEGMENT *
                                                        MAX_SEGMENT_COUNT_PER_FILE;
          static const UINT32 MAX_FILE_SIZE = PAGE_SIZE * MAX_PAGE_COUNT_PER_FILE;
@@ -66,13 +66,11 @@ namespace vessel
       public:
          OSS_INLINE static UINT64 getLogFileSequenceByOffset(UINT64 offset)
          {
-            SDB_ASSERT(67108864 == MAX_FILE_SIZE, "must be 64MB");
-            return offset >> 26;
+            return offset / MAX_FILE_SIZE;
          }
          OSS_INLINE static UINT32 getSegmentIdInFileByOffset(UINT64 offset)
          {
-            SDB_ASSERT(1048576 == FILE_SEGMENT_SIZE, "must be 1MB");
-            return (offset >> 20) & (MAX_SEGMENT_COUNT_PER_FILE - 1);
+            return (offset / FILE_SEGMENT_SIZE) & (MAX_SEGMENT_COUNT_PER_FILE - 1);
          }
          OSS_INLINE static UINT32 getOffsetInSegmentByOffset(UINT64 offset)
          {

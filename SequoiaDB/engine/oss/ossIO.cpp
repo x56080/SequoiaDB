@@ -2961,12 +2961,14 @@ error:
 #endif // _LINUX
 }
 
-INT32 ossFallocate(OSSFILE *file, UINT64 size)
+INT32 ossFallocate(OSSFILE *file,
+                   UINT32 mode,
+                   UINT64 offset,
+                   UINT64 size)
 {
    INT32 rc = SDB_OK;
 
 #if defined( _LINUX )
-   INT64 beginOffset = 0;
 
    if (NULL == file ||
        !file->isOpened() ||
@@ -2976,13 +2978,7 @@ INT32 ossFallocate(OSSFILE *file, UINT64 size)
       goto error;
    }
 
-   rc = ossGetFileSize(file, &beginOffset);
-   if (SDB_OK != rc)
-   {
-      goto error;
-   }
-
-   rc = fallocate(file->fd, 0, beginOffset, size);
+   rc = fallocate(file->fd, mode, offset, size);
    if (rc < 0)
    {
       UINT32 lastErr = ossGetLastError();
@@ -3007,11 +3003,8 @@ INT32 ossFallocate(OSSFILE *file, UINT64 size)
    }
 #else
    /// TODO.
-   rc = ossExtendFile(file, size);
-   if (SDB_OK != rc)
-   {
-      goto error;
-   }
+   rc = SDB_SYS;
+   goto error;
 #endif//_LINUX
 done:
    return rc;

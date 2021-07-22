@@ -46,15 +46,18 @@ namespace vessel
    class insertOptions : public SDBObject
    {
       public:
-         OSS_INLINE insertOptions():
-         noCompression(FALSE)
+         OSS_INLINE insertOptions(){}
+
+         OSS_INLINE ~insertOptions(){}
+
+         OSS_INLINE insertOptions(const insertOptions &o)
          {}
 
-         OSS_INLINE ~insertOptions()
-         {}
+         OSS_INLINE insertOptions &operator=(const insertOptions &o)
+         {
+            return *this;
+         }
       public:
-         /// do not compress record even on compressed collection.
-         BOOLEAN noCompression;
    }; /// end of class insertOptions
 
 }//namespace vessel

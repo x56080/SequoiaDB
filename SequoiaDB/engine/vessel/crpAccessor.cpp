@@ -42,6 +42,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/redoLogUtil.h"
 #include "dpsLogRecordDef.hpp"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
@@ -53,380 +54,389 @@ namespace vessel
    crpAccessor::~crpAccessor()
    {}
 
-   INT32 crpAccessor::init(requestContext *context,
-                           PAGE_ID lpid,
-                           const pageAccessor::options &o,
-                           logicalPageSpace *space,
-                           DPS_LSN_OFFSET oplist)
-   { 
-      return logicalPageAccessor::init(context, FILE_TYPE_DD, lpid, o, space, oplist);
-   }
-
-   INT32 crpAccessor::update(requestContext *context,
-                             DPS_LOG_TYPE ddlType,
-                             UINT64 mask,
-                             const collectionRecord &record,
-                             const slice &adjuncts)
+   INT32 crpAccessor::createCL(requestContext *context,
+                               const collectionRecord &record,
+                               const createCLOptions &options,
+                               const strSlice &csName,
+                               logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
-      CL_MB_ID mbID = record.mbID;
-      UINT32 capacity = 0;
       UINT32 slot = 0;
-      collectionRecord old;
-      const collectionRecord *ptr = NULL;
-      collectionRecord *wPtr = NULL;
       logRecordContext lrc;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-   
+      collectionRecordOnDisk *recordPtr = NULL;
+      UINT32 capacity;
+      ossValuePtr ptr = 0;
+      CHAR *fullNameBuffer = NULL;
+      UINT32 bufferSize = 0;
+      strSlice clNameSlice;
+      bson::BSONObj obj;
+      
       if (OSS_UNLIKELY(NULL == context ||
-                       COLLECTION_RECORD_VERSION != record.version ||
-                       INVALID_CL_MB_ID == record.mbID))
+                       !record.isValid() ||
+                       !options.isValid() ||
+                       csName.empty() ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = getCapacityOfCLRecordPage(getPageSize(), capacity);
+      ptr = (ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer());
+
+      rc = validatePage(ptr, PAGE_TYPE_COLLECTION_RECORD,
+                        lpb->getRuntimeBuffer().getPageSize(),
+                        lpb->getRuntimeBuffer().getGlobalPid().page(),
+                        lpb->getLogicalPid(), lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(lpb->getRuntimeBuffer().getPageSize(), capacity);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
          goto error;
       }
 
-      slot = mbID % capacity;
-      rc = getRecordPtr(slot, &ptr);
-      if (SDB_OK != rc)
+      slot = record.mbID % capacity;
+      clNameSlice.reset(record.name);
+      SDB_ASSERT(!clNameSlice.empty(), "can not be empty");
+      bufferSize = csName.strLen() + clNameSlice.strLen() + 2;
+      fullNameBuffer = context->allocateBuffer(bufferSize);
+      if (NULL == fullNameBuffer)
       {
-         PD_LOG(PDERROR, "failed to get ptr of mbID[%d], rc:%d", mbID, rc);
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
          goto error;
       }
+      ossMemcpy(fullNameBuffer, csName.str(), csName.strLen());
+      fullNameBuffer[csName.strLen()] = '.';
+      ossMemcpy(fullNameBuffer + csName.strLen() + 1,
+                clNameSlice.str(), clNameSlice.strLen());
+      fullNameBuffer[bufferSize - 1] = '\0'; 
 
-      if (COLLECTION_RECORD_VERSION != ptr->version ||
-          mbID != ptr->mbID)
-      {
-         PD_LOG(PDERROR, "record of mbid[%d] is invalid", mbID);
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      ossMemcpy(&old, ptr, COLLECTION_RECORD_LEN);
-      rc = prepareToWrite(context);
+      rc = lpb->prepareToWrite(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
          goto error;
       }
 
-      rc = prepareUpdateLog(context, &lrc, ddlType, TRUE, adjuncts);
+      obj = options.toBson();
+
+      rc = prepareCreateCLLog(context, bufferSize, obj.objsize(),
+                              &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
       {
          goto error;
       }
-
       lsn = lrc.getLsn();
 
-      rc = getWritableRecordPtr(slot, &wPtr);
-      if (SDB_OK != rc)
+      recordPtr = getWritableDiskRecordPtr(&(lpb->getRuntimeBuffer()), slot);
+      if (NULL == recordPtr)
       {
+         PD_LOG(PDERROR, "failed to get writable disk ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (0 == mask)
+      ossMemset(recordPtr, 0, COLLECTION_RECORD_LEN);
+      recordPtr->record = record;
+
+      rc = commitCreateCLLog(context, bufferSize, fullNameBuffer,
+                             lpb->getRuntimeBuffer().getGlobalPid(),
+                             record, slice(obj.objsize(), obj.objdata()), &lrc);
+      if (SDB_OK != rc)
       {
-         ossMemcpy(wPtr, &record, COLLECTION_RECORD_LEN);
-      }
-      else
-      { 
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_COMPRESSTYPE))
-         {
-            wPtr->compressionType = record.compressionType;
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_FLAGS))
-         {
-            wPtr->flags = record.flags;
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_NAME))
-         {
-            ossMemcpy(wPtr->name, record.name, sizeof(wPtr->name));
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_ROUTE_PAGES))
-         {
-            for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
-            {
-               wPtr->routePages[i] = record.routePages[i];
-            }
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_COMPRESSION_DIC))
-         {
-            wPtr->compressionDic = record.compressionDic;
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_INDEX))
-         {
-            wPtr->uniqueIndexCount = record.nonUniqueIndexCount;
-            wPtr->uniqueIndexCount = record.uniqueIndexCount;
-            wPtr->indexPad = record.indexPad;
-            wPtr->nextIndexID = record.nextIndexID;
-            ossMemcpy(wPtr->indexSlots, record.indexSlots, sizeof(wPtr->indexSlots));
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_FS_RESERVED))
-         {
-            wPtr->freeSizeReserved = record.freeSizeReserved;
-         }
-         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_STRIPING))
-         {
-            wPtr->maxSGCount = record.maxSGCount;
-            wPtr->minStriping = record.minStriping;
-            wPtr->maxStriping = record.maxStriping;
-         }
+         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lsn, rc);
+         ossMemset(recordPtr, 0, COLLECTION_RECORD_LEN);
+         ossPanic();
+         goto error;
       }
 
-      commitUpdateLog(context, &lrc, ddlType,
-                      mask, &old, *wPtr, adjuncts);
+      lpb->getRuntimeBuffer().commit(lsn);
+
+   done:
+      if (NULL != fullNameBuffer)
+      {
+         context->releaseBuffer(fullNameBuffer, bufferSize);
+      }
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      if (lpb->getRuntimeBuffer().isWritingPrepared())
+      {
+         lpb->getRuntimeBuffer().abort();
+      }
+      goto done;
+   }
+
+   INT32 crpAccessor::updateRoutePages(requestContext *context,
+                                       const collectionRecord &record,
+                                       logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 slot = 0;
+      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      collectionRecordOnDisk *wptr = NULL;
+      collectionRecord oldRecord;
+      UINT32 capacity = 0;
+      ossValuePtr ptr = 0;
+      const runtimePageBuffer *rpb = NULL;
       
-      pageAccessor::commit(context, lsn);
-      lrc.close();
+      if (OSS_UNLIKELY(NULL == context ||
+                       !record.isValid() ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rpb = &(lpb->getRuntimeBuffer());
+      ptr = (ossValuePtr)(rpb->getReadOnlyBuffer());
+
+      rc = validatePage(ptr, PAGE_TYPE_COLLECTION_RECORD,
+                        rpb->getPageSize(),
+                        rpb->getGlobalPid().page(),
+                        lpb->getLogicalPid(),
+                        lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(rpb->getPageSize(), capacity);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
+         goto error;
+      }
+
+      slot = record.mbID % capacity;
+
+      rc = lpb->prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      wptr = getWritableDiskRecordPtr(rpb, slot);
+      if (NULL == wptr)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr of slot[%d]", slot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!wptr->record.isValid())
+      {
+         PD_LOG(PDERROR, "invalid record on disk");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      oldRecord = wptr->record;
+      rc = prepareUpdateLog(context, rpb, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
+      {
+         wptr->record.routePages[i] = record.routePages[i];
+      }
+
+      rc = commitUpdateLog(context, &lrc, rpb->getGlobalPid(),
+                           lpb->getLogicalPid(),
+                           COLLECTION_UPDATE_MASK_ROUTE_PAGES,
+                           oldRecord, wptr->record);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d",
+                lrc.getLsn(), rc);
+         ossPanic();
+         for (UINT32 i = 0; i < COLLECTION_ROUTE_PAGE_SLOT_COUNT; ++i)
+         {
+            wptr->record.routePages[i] = oldRecord.routePages[i];
+         }
+         goto error;
+      }
+
+      lpb->getRuntimeBuffer().commit(lrc.getLsn());
    done:
       return rc;
    error:
       if (lrc.prepared())
       {
-         IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abort(context->getSession(), &lrc);
+         pageAccessor::abortLog(context, &lrc);
       }
-      if (fullAccessing())
+      if (lpb->getRuntimeBuffer().isWritingPrepared())
       {
-         abortToWrite();
+         lpb->getRuntimeBuffer().abort();
       }
       goto done;
    }
 
-   INT32 crpAccessor::createCL(requestContext *context,
-                               const collectionRecord &record)
+   collectionRecordOnDisk *crpAccessor::getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
+                                                                 UINT32 i)
    {
-      INT32 rc = SDB_OK;
-      CL_MB_ID mbID = record.mbID;
-      UINT32 slot = 0;
-      logRecordContext lrContext;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      const collectionRecord *recordPtr = NULL;
-      UINT32 capacity;
-      collectionRecord r;
-      strSlice clName(record.name);
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       COLLECTION_RECORD_VERSION != record.version ||
-                       DMS_INVALID_LOGICCLID == record.logicalCLID ||
-                       INVALID_CL_MB_ID == record.mbID ||
-                       clName.empty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = getCapacityOfCLRecordPage(getPageSize(), capacity);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
-         goto error;
-      }
-
-      slot = mbID % capacity;
-      rc = getRecordPtr(slot, &recordPtr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (recordPtr->version != COLLECTION_RECORD_INVALID_VERSION)
-      {
-         PD_LOG(PDERROR, "mbid[%d] in crp is in used", mbID);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = prepareToWrite(context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
-         goto error;
-      }
-
-      rc = prepareUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT, FALSE, slice());
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      lsn = lrContext.getLsn();
-
-      r.version = record.version;
-      r.type = record.type;
-      r.innerID = record.innerID;
-      r.logicalCLID = record.logicalCLID;
-      r.mbID = record.mbID;
-      r.maxSGCount = record.maxSGCount;
-      r.compressionType = record.compressionType;
-      r.flags = record.flags;
-      r.freeSizeReserved = record.freeSizeReserved;
-      r.minStriping = record.minStriping;
-      r.maxStriping = record.maxStriping;
-      ossMemcpy(r.name, clName.str(), clName.strLen());
-      rc = writeToSlot(slot, r);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      commitUpdateLog(context, &lrContext, LOG_TYPE_CL_CRT,
-                      0, NULL, r, slice());
-      pageAccessor::commit(context, lsn);
-      lrContext.close();
-
-   done:
-      return rc;
-   error:
-      if (lrContext.prepared())
-      {
-         IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abort(context->getSession(), &lrContext);
-      }
-      if (fullAccessing())
-      {
-         abortToWrite();
-      }
-      goto done;
+      SDB_ASSERT(NULL != rpb, "can not be null");
+      UINT32 offset = COLLECTION_RECORD_LEN * i;
+      collectionRecordOnDisk *ptr = rpb->getWritablePtrOfBody<collectionRecordOnDisk>(offset);
+      return ptr;
    }
 
-   INT32 crpAccessor::getClRecordBySlot(UINT32 slot, collectionRecord &record)
+   const collectionRecordOnDisk *crpAccessor::getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
+                                                                 UINT32 i)
    {
-      INT32 rc = SDB_OK;
-      UINT32 capacity = 0;
-      const collectionRecord *ptr = NULL;
-
-      rc = getCapacityOfCLRecordPage(getPageSize(), capacity);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
-         goto error;
-      }
-
-      if (capacity <= slot)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = getRecordPtr(slot, &ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (COLLECTION_RECORD_VERSION != ptr->version)
-      {
-         rc = SDB_DMS_NOTEXIST;
-         goto error;
-      }
-
-      record = *ptr;
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(NULL != rpb, "can not be null");
+      UINT32 offset = COLLECTION_RECORD_LEN * i;
+      const collectionRecordOnDisk *ptr =
+               rpb->getReadablePtrOfBody<collectionRecordOnDisk>(offset);
+      return ptr;
    }
 
-   INT32 crpAccessor::writeToSlot(UINT32 slot, const collectionRecord &record)
+   INT32 crpAccessor::prepareCreateCLLog(requestContext *context,
+                                         UINT32 fullNameSize,
+                                         UINT32 adjunctSize,
+                                         const runtimePageBuffer *rpb,
+                                         logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
-      UINT32 offset = COLLECTION_RECORD_PAGE_HEAD_LEN + slot * COLLECTION_DISK_RECORD_LEN;
-      UINT32 len = COLLECTION_RECORD_LEN;
-
-      rc = writePageBody(offset, len, (const CHAR *)(&record));
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 crpAccessor::getRecordPtr(UINT32 slot, const collectionRecord **record)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != record, "can not be null");
-      UINT32 offset = COLLECTION_RECORD_PAGE_HEAD_LEN + slot * COLLECTION_DISK_RECORD_LEN;
-      const collectionRecordOnDisk *ptr = NULL;
-      rc = getReadPtrOfPageBody<collectionRecordOnDisk>(offset, &ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get slot[%d], rc:%d", slot, rc);
-         goto error;
-      }
-
-      *record = &(ptr->record);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 crpAccessor::getWritableRecordPtr(UINT32 slot, collectionRecord **record)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != record, "can not be null");
-      UINT32 offset = COLLECTION_RECORD_PAGE_HEAD_LEN + slot * COLLECTION_DISK_RECORD_LEN;
-      collectionRecordOnDisk *ptr = NULL;
-      rc = getWritePtrOfPageBody<collectionRecordOnDisk>(offset, &ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get slot[%d], rc:%d", slot, rc);
-         goto error;
-      }
-      *record = &(ptr->record);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   
-
-   INT32 crpAccessor::prepareUpdateLog(requestContext *context,
-                                       logRecordContext *lrc,
-                                       DPS_LOG_TYPE ddlType,
-                                       BOOLEAN hasOld,
-                                       const slice &adjuncts)
-   {
-      INT32 rc = SDB_OK;
-
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(0 != fullNameSize, "can not be zero");
+      SDB_ASSERT(0 != adjunctSize, "can not be zero");
+      SDB_ASSERT(NULL != rpb, "can not be null");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      dpsLogRecordHeader *head = NULL;
 
-      head = &(lrc->getHead());
-      head->_type = LOG_TYPE_VESSEL_UPDATE_CL_RECORD;
-
-      if (LOG_TYPE_DUMMY != ddlType)
-      {
-         OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_DDL);
-      }
-
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(DPS_LOG_TYPE));
-      lrc->prepush(sizeof(UINT64));
-      if (hasOld)
-      {
-         lrc->prepush(COLLECTION_RECORD_LEN);
-      }
-      lrc->prepush(COLLECTION_RECORD_LEN);
-      if (0 < adjuncts.len())
-      {
-         lrc->prepush(adjuncts.len());
-      }
-      rc = prepareLogDone(context, lrc);
+      rc = pageAccessor::prepareLog(context, rpb,
+                                    LOG_TYPE_CL_CRT,
+                                    FALSE, lrc);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      lrc->setDDL();
+
+      lrc->prepush(fullNameSize);
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(sizeof(CL_MB_ID));
+      lrc->prepush(sizeof(UINT32));
+      lrc->prepush(sizeof(UINT32));
+      lrc->prepush(adjunctSize);
+
+      rc = pageAccessor::prepareLogDone(context, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 crpAccessor::commitCreateCLLog(requestContext *context,
+                                        UINT32 fullNameSize,
+                                        const CHAR *fullName,
+                                        const GLOBAL_PAGE_ID &gpid,
+                                        const collectionRecord &record,
+                                        const slice &adjunct,
+                                        logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_FULLNAME,
+                                     fullNameSize, fullName, lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
+                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_MBID,
+                                     sizeof(CL_MB_ID), &(record.mbID), lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_MBID,
+                                     sizeof(UINT32), &(record.innerID), lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_LOGICAL_ID,
+                                     sizeof(UINT32), &(record.logicalCLID), lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_ADJUNCT,
+                                     adjunct.len(), adjunct.data(), lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      rc = pageAccessor::commitLog(context, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 crpAccessor::prepareUpdateLog(requestContext *context,
+                                       const runtimePageBuffer *rpb,
+                                       logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+
+      rc = pageAccessor::prepareLog(context, rpb,
+                                    LOG_TYPE_VESSEL_CRP_UPDATE,
+                                    FALSE, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+      
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(sizeof(UINT32));
+      lrc->prepush(sizeof(UINT64));
+      lrc->prepush(COLLECTION_RECORD_LEN);
+      lrc->prepush(COLLECTION_RECORD_LEN);
+
+      rc = pageAccessor::prepareLogDone(context, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare done log:%d", rc);
          goto error;
       }
    done:
@@ -437,96 +447,47 @@ namespace vessel
 
    INT32 crpAccessor::commitUpdateLog(requestContext *context,
                                       logRecordContext *lrc,
-                                      DPS_LOG_TYPE ddlType,
+                                      const GLOBAL_PAGE_ID &gpid,
+                                      PAGE_ID lpid,
                                       UINT64 mask,
-                                      const collectionRecord *oldRecord,
-                                      const collectionRecord &newRecord,
-                                      const slice &adjuncts)
+                                      const collectionRecord &oldRecord,
+                                      const collectionRecord &newRecord)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      ISession *session = context->getSession();
-      SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(lrc->prepared(), "must be prepared");
-      IRedoLogger *logger = context->getOuterResource()->logger;
-      GLOBAL_PAGE_ID gpid = getGPID();
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_PUBLIC_VESSEL_GPID,
-                                        sizeof(GLOBAL_PAGE_ID),
-                                        &gpid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
+                                     sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
+      if (SDB_OK != rc)
       {
          goto error;
       }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_VESSEL_CL_RECORD_UPDATE_DDL_TYPE,
-                                        sizeof(DPS_LOG_TYPE),
-                                        &ddlType);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_LPID,
+                                     sizeof(UINT32), &lpid, lrc);
+      if (SDB_OK != rc)
       {
          goto error;
       }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_VESSEL_CL_RECORD_UPDATE_MASK,
-                                        sizeof(UINT64),
-                                        &mask);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_MASK,
+                                     sizeof(UINT64), &mask, lrc);
+      if (SDB_OK != rc)
       {
          goto error;
       }
-
-      if (NULL != oldRecord)
-      {
-         rc = logger->pushLogRecordElement(session, lrc,
-                                          DPS_LOG_VESSEL_CL_RECORD_UPDATE_OLD,
-                                          COLLECTION_RECORD_LEN,
-                                          oldRecord);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_VESSEL_CL_RECORD_UPDATE_NEW,
-                                        COLLECTION_RECORD_LEN,
-                                        &newRecord);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_OLD,
+                                     COLLECTION_RECORD_LEN, &oldRecord, lrc);
+      if (SDB_OK != rc)
       {
          goto error;
       }
-
-      if (0 < adjuncts.len())
+      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_NEW,
+                                     COLLECTION_RECORD_LEN, &newRecord, lrc);
+      if (SDB_OK != rc)
       {
-         rc = logger->pushLogRecordElement(session, lrc,
-                                           DPS_LOG_VESSEL_CL_RECORD_UPDATE_ADJUNCTS,
-                                           adjuncts.len(),
-                                           adjuncts.data());
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
+         goto error;
       }
-
-      if (lrc->needFullDump())
+      rc = pageAccessor::commitLog(context, lrc);
+      if (SDB_OK != rc)
       {
-         const CHAR *dumpBuf = lrc->getFullDumpBuffer();
-         SDB_ASSERT(NULL != dumpBuf, "can not be null");
-         rc = logger->pushLogRecordElement(session, lrc,
-                                           DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
-                                           lrc->getFullDumpDataSize(), dumpBuf);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-      }
-
-      rc = logger->commit(session, lrc);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc->getLsn(), rc);
          goto error;
       }
    done:

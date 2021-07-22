@@ -39,8 +39,9 @@
 #include "vessel/diskFreeSpaceMap.h"
 #include "ossLikely.hpp"
 #include "vessel/freeSpaceMapDef.h"
-#include "ossMemPool.hpp"
-#include "vessel/fsmCandidateBuckets.h"
+#include "vessel/fsmCandidateBucket.h"
+#include "vessel/fsmCandidate.h"
+#include "vessel/forwardList.hpp"
 
 namespace engine
 {
@@ -56,143 +57,141 @@ namespace vessel
       public:
          freeSpaceMap();
          ~freeSpaceMap();
+         freeSpaceMap(const freeSpaceMap &) = delete;
+         freeSpaceMap &operator=(const freeSpaceMap &) = delete;
 
       public:
-         BOOLEAN isOpen()const
+         class fastFindContext : public SDBObject
          {
-            return 0 != _pageSize;
+            public:
+               fastFindContext(){}
+               ~fastFindContext(){}
+               fastFindContext(const fastFindContext &o):
+               _striping(o._striping),
+               _tick(o._tick),
+               _lvl(o._lvl),
+               _bucket(o._bucket){}
+               fastFindContext &operator=(const fastFindContext &o)
+               {
+                  _striping = o._striping;
+                  _tick = o._tick;
+                  _lvl = o._lvl;
+                  _bucket = o._bucket;
+                  return *this;
+               }
+
+            private:
+               STRIPING_ID _striping = INVALID_STRIPING_ID;
+               UINT16 _tick = 0;
+               INT16 _lvl = FSM_INVALID_SPACE_LVL;
+               INT16 _bucket = -1; 
+         };//class fastFindContext
+
+      public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return _isOpen;
          }
 
-         INT32 create(fsmFile *file,
-                     CL_MB_ID mbID,
-                     UINT32 logicalID,
-                     UINT32 pageSize,
-                     UINT32 minFreeSize,
-                     BOOLEAN bucketMode = FALSE,
-                     STRIPING_ID min=INVALID_STRIPING_ID,
-                     STRIPING_ID max=INVALID_STRIPING_ID);
+         /// create with multiple bucket mode
+         INT32 create(CL_MB_ID mbID,
+                      UINT32 logicalID,
+                      fsmFile *file,
+                      UINT32 bucketCount,
+                      STRIPING_ID min,
+                      STRIPING_ID max);
 
-         INT32 open(fsmFile *file,
-                    CL_MB_ID mbID,
+         /// create with single bucket mode
+         INT32 create(CL_MB_ID mbID,
+                      UINT32 logicalID,
+                      fsmFile *file);
+
+         INT32 open(CL_MB_ID mbID,
                     UINT32 logicalID,
-                    UINT32 pageSize,
-                    UINT32 minFreeSize,
-                    BOOLEAN bucketMode = FALSE,
-                    STRIPING_ID min=INVALID_STRIPING_ID,
-                    STRIPING_ID max=INVALID_STRIPING_ID);
+                    UINT32 pageCount,
+                    fsmFile *file);
+
+         INT32 open(CL_MB_ID mbID,
+                    UINT32 logicalID,
+                    UINT32 pageCount,
+                    fsmFile *file,
+                    UINT32 bucketCount,
+                    STRIPING_ID min,
+                    STRIPING_ID max);
 
          void close();
 
-         /// find free space only in buckets.
-         INT32 fastFind(STRIPING_ID striping,
-                        UINT32 originalRecordSize,
-                        fsmCandidate &candidate);
+         /// Find free space only in buckets.
+         /// The striping is necessary when cl is sharded.
+         /// User should validate candidate again even return ok.
+         /// Invalid candidate means no suitable candidate found.
+         INT32 fastFind(INT32 lvl,
+                        STRIPING_ID striping,
+                        fsmCandidate &candidate,
+                        UINT16 *bucketTick=NULL);
 
-         INT32 findInWholeMap(STRIPING_ID striping,
-                              UINT32 originalRecordSize,
-                              UINT32 flags,/// 0 means all
-                              fsmCandidate &candidate);
+         INT32 find(INT32 lvl,
+                    STRIPING_ID striping,
+                    fsmCandidate &candidate,
+                    const UINT16 *bucketTick=NULL);
 
-         ///count should alwasy be eight now.
-         INT32 addNewPages(CL_PAGE_SEQ firstSeq,
-                           const PAGE_ID *lpids,
-                           UINT32 count);
-
-         INT32 updateBucket(CL_PAGE_SEQ seq,
-                            PAGE_ID lpid,
-                            UINT32 bucketNo,
-                            UINT16 freeSizeFromBucket,
-                            UINT16 currentFreeSize,
-                            BOOLEAN failure);
-
-         /// reorg page
-         INT32 incPageFreeSize(CL_PAGE_SEQ sequence,
-                               PAGE_ID lpid,
-                               STRIPING_ID minStriping,
-                               UINT16 newFreeSize,
-                               UINT16 delta);/// newFreeSize - delta == oldFreeSize
-
-         /// in-page moved when update record.
-         INT32 decPageFreeSize(CL_PAGE_SEQ sequence,
-                               PAGE_ID lpid,
-                               STRIPING_ID minStriping,
-                               UINT16 newFreeSize,
-                               UINT16 delta);/// newFreeSize + delta == oldFreeSize
-
-      public:
-         static const UINT32 FIND_BUCKET;
-         static const UINT32 FIND_NEW_POOL;
-         static const UINT32 FIND_DISK_MAP;
-         static const UINT32 FIND_ALL;
-
+         INT32 insertNewPages(UINT32 firstSeq,
+                              const PAGE_ID *lpids,
+                              UINT32 count);
       private:
-         struct _pageSAndL
+         INT32 initBuckets(UINT32 bucketCount,
+                           UINT32 bucketCapacity,
+                           UINT32 bucketLatchCount);
+
+         void finiBuckets();
+
+         UINT32 getBucketNo(STRIPING_ID striping)const;
+
+         OSS_INLINE ossXLatch *getBucketLatch(UINT32 bucketNo)
          {
-            OSS_INLINE _pageSAndL():
-            seq(INVALID_CL_PAGE_SEQ),
-            lpid(INVALID_PAGE_ID){}
+            return _bucketLatches + (bucketNo & (_bucketLatchCount - 1));
+         }
 
-            OSS_INLINE _pageSAndL(CL_PAGE_SEQ s, PAGE_ID p):
-            seq(s),lpid(p){}
+         INT32 findFromBucket(UINT32 bucketNo,
+                              INT32 lvl,
+                              fsmCandidate &candidate,
+                              UINT16 *tick);
 
-            OSS_INLINE ~_pageSAndL(){}
-
-            OSS_INLINE _pageSAndL &operator=(const _pageSAndL &p)
-            {
-               seq = p.seq;
-               lpid = p.lpid;
-               return *this;
-            }
-
-            OSS_INLINE BOOLEAN isValid()const
-            {
-               return INVALID_CL_PAGE_SEQ != seq;
-            }
-
-            CL_PAGE_SEQ seq;
-            PAGE_ID lpid;
-         };//struct _pageSAndL
-         typedef ossPoolList<_pageSAndL> _NEW_PAGE_POOL;
+         INT32 upsertIntoBucket(UINT32 bucketNo,
+                                UINT32 seq,
+                                const fsmCandidate::SHARED_INFO_PTR sptr);
 
       private:
-         UINT32 getBucketNo(STRIPING_ID striping);
+         OSS_INLINE BOOLEAN isSharded()const
+         {
+            return INVALID_STRIPING_ID != _minStriping;
+         }
 
-         BOOLEAN findFromBucket(UINT32 bucketNo,
-                                UINT32 size,
-                                fsmCandidate &candidate);
+         INT32 findFromNewPagePool(fsmCandidate &candidate);
 
-         UINT32 estimateMaxUpdatingCount(UINT32 bucketNo);
-
-         /// WARNING: should always do finding in bucket first.
-         BOOLEAN findPageFromPoolAndUpdateBucket(UINT32 bucketNo,
-                                                 UINT16 size,
-                                                 fsmCandidate &candidate);
-
-         /// WARNING: should always do finding in pool first.
-         INT32 findPageFromDiskMapAndUpdateBucket(UINT32 bucketNo,
-                                                  UINT16 size,
-                                                  fsmCandidate &candidate);
-      private:
+         INT32 findFromDiskMap(INT32 lvl,
+                               fsmCandidate &candidate);
          void fini();
          void addNewPagesToPool(UINT32 count,
-                                CL_PAGE_SEQ seq,
+                                UINT32 firstSeq,
                                 const PAGE_ID *lpids);
          void savePagesInPool();
          void savePagesInBuckets();
  
          
       private:
-         STRIPING_ID _minStriping;
-         STRIPING_ID _maxStriping;
-         UINT32 _pageSize;
-         UINT32 _maxFreeSize;
-         UINT32 _minFreeSize;
-         UINT16 _bucketCount;
-         UINT16 _bucketCapacity;
-         fsmCandidateBuckets _buckets;
+         BOOLEAN _isOpen = FALSE;
+         STRIPING_ID _minStriping = INVALID_STRIPING_ID;
+         STRIPING_ID _maxStriping = INVALID_STRIPING_ID;
+         
+         UINT32 _bucketCapacity = 0;
+         UINT32 _bucketCount = 0;
+         UINT32 _bucketLatchCount = 0;
+         fsmCandidateBucket *_buckets = NULL;
+         ossSpinXLatch *_bucketLatches = NULL;
+         UINT16 *_bucketTicks = NULL;
 
-         ossSpinSLatch _latch;
-         _NEW_PAGE_POOL _newPagePool;
+         FREE_SPACE_TUPLE_POOL _newPagePool;
          diskFreeSpaceMap _dfsm;
    };//class freeSpaceMap
 }//namespace vessel

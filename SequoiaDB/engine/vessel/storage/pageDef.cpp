@@ -71,15 +71,20 @@ namespace vessel
                       PAGE_SNAPSHOT_VERION psv)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 != ptr, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
-      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
       const pageHead *head = (const pageHead *)ptr;
 
-      if (isPageCrashed(ptr, pageSize))
+      if (0 == ptr ||
+          INVALID_PAGE_TYPE == type ||
+          !isValidPageSize(pageSize) ||
+          INVALID_PAGE_ID == pid ||
+          INVALID_PAGE_ID == lpid ||
+          INVALID_PAGE_SNAPSHOT_VERSION == psv)
+      {
+         SDB_ASSERT(FALSE, "should not be invalid");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isPageCrashed(ptr, pageSize))
       {
          rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;

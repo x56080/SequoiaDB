@@ -40,96 +40,52 @@ namespace engine
 {
 namespace vessel
 {
-   cursorHandler::cursorHandler():
-   _cursor(NULL)
-   {}
-
-   cursorHandler::cursorHandler(cursorKernal *c):
-   _cursor(c)
+   cursorHandler::cursorHandler(cursorKernal *kernal)
    {
-      if (OSS_UNLIKELY(NULL != _cursor))
-      {
-         _cursor->incUsageCount();
-      }
-   }
-
-   cursorHandler::cursorHandler(const cursorHandler &o):
-   _cursor(NULL)
-   {
-      if (NULL != o._cursor)
-      {
-         _cursor = o._cursor;
-         _cursor->incUsageCount();
-      }
+      _cursor.reset(kernal);
    }
 
    cursorHandler::~cursorHandler()
    {
-      if (NULL != _cursor)
-      {
-         if (0 == _cursor->decUsageCount())
-         {
-            SDB_OSS_DEL _cursor;
-            _cursor = NULL;
-         }
-      }
+      _cursor.release();
    }
 
    cursorHandler &cursorHandler::operator=(const cursorHandler &o)
    {
-      if (NULL != _cursor)
-      {
-         if (0 == _cursor->decUsageCount())
-         {
-            SDB_OSS_DEL _cursor;
-            _cursor = NULL;
-         }
-         else
-         {
-            _cursor = NULL;
-         }
-      }
-
-      if (NULL != o._cursor)
-      {
-         _cursor = o._cursor;
-         _cursor->incUsageCount();
-      }
-
+      _cursor = o._cursor;
       return *this;
    }
 
    CURSOR_TYPE cursorHandler::getType()const
    {
-      if (OSS_LIKELY(NULL != _cursor))
-      {
-         return _cursor->getType();
-      }
-      return CURSOR_TYPE_INVALID;
+      return  _cursor.isValid() ?
+              _cursor.get<cursorKernal>()->getType() :
+              CURSOR_TYPE_INVALID;
    }
 
 
    BOOLEAN cursorHandler::isOpen()const
    {
-      return NULL != _cursor && _cursor->isOpen();   
+      return _cursor.isValid() && _cursor.get<cursorKernal>()->isOpen();
    }
    
    void cursorHandler::close()
    {
-      if (NULL != _cursor)
+      if (_cursor.isValid())
       {
-         _cursor->close();
+         _cursor.get<cursorKernal>()->close();
       }
       return;
    }
 
    INT32 cursorHandler::getNext(ISession *session, slice &content)
    {
-      if (OSS_LIKELY(NULL != _cursor))
+      if (_cursor.isValid())
       {
-         return _cursor->getNext(session, content);
+         return _cursor.get<cursorKernal>()->getNext(session, content);
       }
-      return SDB_INVALIDARG;
+      
+      return SDB_VESSEL_RESOURCES_NOT_INIT;
    }
 }//namespace vessel
 }//namespace engine

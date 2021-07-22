@@ -216,11 +216,11 @@ namespace vessel
          }
          OSS_INLINE UINT32 getKeyByLpid(PAGE_ID lpid)
          {
-            return lpid >> 6;
+            return lpid / ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED;
          }
          OSS_INLINE PAGE_ID getImpPidByKey(UINT32 key)const
          {
-            return getImpPidOfLpid(key >> 6);
+            return getImpPidOfLpid(key * ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED);
          }
          OSS_INLINE ossSLatch *getBucketLatch(UINT32 bucketNo)
          {
@@ -229,7 +229,7 @@ namespace vessel
          OSS_INLINE UINT32 getOffsetInImpByKey(UINT32 key)const
          {
             return (key & (ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED - 1))
-                    << ID_MAP_PAGE_CACHE_BITWISE_SIZE;
+                    * ID_MAP_PAGE_CACHE_SIZE;
          }
 
       private:

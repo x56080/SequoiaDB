@@ -75,7 +75,7 @@ namespace vessel
             }
             return _obj;
          }
-         void release()
+         void releaseObj()
          {
             SAFE_OSS_DELETE(_obj);
          }
@@ -96,7 +96,7 @@ namespace vessel
          static constexpr UINT32 CAPACITY = 64;
 
       public:
-         collectionObjHolder _holders[CAPACITY];
+         collectionObjHolder holders[CAPACITY];
    }
 }//namespace vessel
 }//namesapce engine

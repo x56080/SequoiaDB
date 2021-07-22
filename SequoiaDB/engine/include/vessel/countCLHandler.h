@@ -38,6 +38,7 @@
 
 #include "vessel/requestHandler.h"
 #include "vessel/collectionHandle.h"
+#include "vessel/scanCLOptions.h"
 
 namespace engine
 {
@@ -53,7 +54,6 @@ namespace vessel
 
       public:
          INT32 doit(const collectionHandle &handle,
-                    IQueryFilter *filter,
                     UINT64 &count);
    };//class countCLHandler
 }//namespace vessel

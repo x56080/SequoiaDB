@@ -40,24 +40,25 @@
 #include "vessel/fsmFile.h"
 #include "ossLatch.hpp"
 #include "vessel/freeSpaceMapDef.h"
-#include "vessel/fsmSizeLvl.h"
 #include "ossMemPool.hpp"
+#include "vessel/fsmBitmapPageObject.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   struct bitMapPage;
-
    class diskFreeSpaceMap : public SDBObject
    {
       public:
          diskFreeSpaceMap();
          ~diskFreeSpaceMap();
+         diskFreeSpaceMap(const diskFreeSpaceMap &) = delete;
+         diskFreeSpaceMap &operator=(const diskFreeSpaceMap &) = delete;
       public:
          BOOLEAN isOpen()const
          {
-            return _entry.isValid();
+            return NULL != _fsmFile;
          }
 
          INT32 create(fsmFile *file,
@@ -67,134 +68,89 @@ namespace vessel
          INT32 open(fsmFile *file,
                     CL_MB_ID mbID,
                     UINT32 logicalID,
+                    UINT32 dataPageCount,
                     BOOLEAN autoRecreateEntry=TRUE);
 
          void close();
 
-         INT32 find(const fsmSizeLvl &lvl,
-                    CL_PAGE_SEQ &canditate,
-                    fsmSizeLvl &realLvl,
-                    FLOAT32 worthToScan=0.05);
+         INT32 find(INT32 targetLvl,
+                    BOOLEAN &found,
+                    UINT32 &seq,
+                    INT32 &lvl);
 
-         /// count of pages should always be 8
-         INT32 addNewPages(CL_PAGE_SEQ sequence,
-                           UINT32 count);
+         INT32 incDataPageCount(UINT32 count);
 
-         INT32 updatePageFreeSizeLvL(CL_PAGE_SEQ sequence,
-                                     const fsmSizeLvl &lvl);
+         INT32 upgradePageSpaceLvl(UINT32 seq,
+                                   INT32 lvl);
       private:
-         INT32 getBitMapPageByPageNo(UINT32 pageNo,
-                                     fsmBitMapPage **page,
-                                     fsmPageMapSlot **slot);
-
-         BOOLEAN findFromBitMapPage(const fsmSizeLvl &lvl,
-                                    UINT32 subPageNo,
-                                    fsmBitMapPage *page,
-                                    CL_PAGE_SEQ &candidate,
-                                    fsmSizeLvl &realLvl);
-
-         BOOLEAN findFromSubBitMapPage(const fsmSizeLvl &lvl,
-                                       fsmBitMapSubPage *page,
-                                       UINT32 &offset,
-                                       fsmSizeLvl &realLvl);
-
-         BOOLEAN findFromLvLn(fsmBitMapSubPage *page,
-                              UINT32 lvl,
-                              UINT32 delta,
-                              UINT32 &offset,
-                              UINT16 &realDelta);
-
-      private:
-         INT32 initBitMapPage(PAGE_ID pid);
-         INT32 initPageMapPage(PAGE_ID pid, PAGE_ID pre);
-         INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry, BOOLEAN sync);
+         INT32 initBitmapPage(PAGE_ID pid);
+         INT32 initOwnerPage(PAGE_ID pid, PAGE_ID pre);
+         INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry);
          INT32 readEntrySlot(CL_MB_ID mbID, UINT32 logicalID, fsmCLEntry &entry);
-         INT32 cachePMapPids();
+         INT32 buildBitmapObjs(PAGE_ID root, UINT32 totalPageCount);
+
+      private:
+         INT32 createSuperBitmaps();
+         INT32 ensureSuperBitmapSize(UINT32 bitmapPageCount);
+         void clearInSuperBitmapAtLvL(INT32 lvl, UINT32 bitmapNo);
+         void clearInSuperBitmapGTELvL(INT32 lvl, UINT32 bitmapNo);
+         BOOLEAN findBitmapFromSuperBitmap(INT32 targetLvl,
+                                           UINT32 &bitmapNo)const;
+         void atomicSetSuperBitmap(INT32 lvl, UINT32 bitmapNo);
+
+      private:
          PAGE_ID getEntryPid(CL_MB_ID mbID);
          fsmCLEntry *getEntryFromPagePtr(ossValuePtr ptr, CL_MB_ID mbID);
-         INT32 getPageHead(PAGE_ID pid, const fsmPageHead **head);
-         INT32 getPageHead(PAGE_ID pid, fsmPageHead **head);
-         OSS_INLINE UINT32 getPageNo(CL_PAGE_SEQ seq)
+         INT32 getFsmPageHead(PAGE_ID pid, UINT16 type,
+                              fsmPageHead *&head);
+
+         OSS_INLINE UINT32 getBitmapPageNo(UINT32 seq)const
          {
             SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "impossible");
-            return seq / FSM_SEQ_RANGE_IN_PAGE;
+            return seq / FSM_BITMAP_PAGE_CAPACITY;
+         }
+         OSS_INLINE UINT32 getOwnerPageNo(UINT32 bitmapPageNo)const
+         {
+            SDB_ASSERT(0 < bitmapPageNo, "can not be root");
+            return (bitmapPageNo - 1) / FSM_BITMAP_OWNER_PAGE_CAPAITY;
          }
 
-         OSS_INLINE UINT32 getSubPageOffset(CL_PAGE_SEQ seq)
-         {
-            return (seq / FSM_SEQ_RANGE_IN_SUB_PAGE) & (FSM_SUB_BITMAP_COUNT - 1);
-         }
+      private:
+         INT32 ensureOwnerPage(UINT32 count);
 
-         INT32 getRootBitMap(fsmBitMapPage **page);
-         INT32 getPMap(UINT32 mapPageNo, fsmPageMapPage **page);
+         INT32 createNewBitmapObj(UINT32 pageNo,
+                                 fsmBitmapPageObject **out);
+
+         void removeBitmapObj(UINT32 pageNo);
+
+         fsmBitmapPageObject *getBitmapPageObj(UINT32 i);
+
+         INT32 buildBitmapObj(UINT32 pageNo,
+                              PAGE_ID pid,
+                              UINT32 dataPageCount,
+                              fsmBitmapPage *page);
+
+         INT32 createNewOwnerPage(PAGE_ID pre, PAGE_ID &pid);
+
+         INT32 ensureBitmapObj(UINT32 bitmapNo,
+                               fsmBitmapPageObject **out);
 
       private:
-         INT32 createStats(fsmStats &stats);
-         void createStats(const fsmPageHead *head, fsmStats &stats);
+         typedef ossPoolVector<PAGE_ID> _BITMAP_OWNER_ARRAY;
+
+         typedef ossPoolMap<UINT32, fsmBitmapPageObject *> _BITMAP_OBJ_MAP;
 
       private:
-         UINT32 getDelta(const UINT64 *deltas,
-                         UINT32 offset);
-         void setDelta(UINT64 *deltas,
-                       UINT32 offset,
-                       UINT32 value);
-         BOOLEAN setDeltaWithCAS(UINT64 *deltas,
-                                 UINT32 offset,
-                                 UINT32 value);
+         fsmFile *_fsmFile = NULL;
+         UINT32 _logicalId = DMS_INVALID_LOGICCLID;
 
-         void decStatWithCAS(fsmStats &stats, UINT32 lvl);
-         void incStatWithCAS(fsmStats &stats, UINT32 lvl);
+         ossSpinSLatchPOSIX _latch;
+         UINT32 _totalDataPageCount = 0;
+         _BITMAP_OBJ_MAP _bitmaps;
+         _BITMAP_OWNER_ARRAY _bitmapOwners;
 
-      private:
-         INT32 ensurePMapPage(UINT32 count);
-
-         INT32 createNewBitMapPage(fsmFile *file, PAGE_ID &pid);
-
-         INT32 addNewPagesToBitMapPage(PAGE_ID pid,
-                                       CL_PAGE_SEQ seq,
-                                       UINT32 count);
-
-         INT32 addNewPagesToPageMapPage(PAGE_ID pid,
-                                        CL_PAGE_SEQ seq,
-                                        UINT32 count);
-
-         INT32 updateSizeLvl(CL_PAGE_SEQ seq,
-                             const fsmSizeLvl &lvl,
-                             fsmBitMapPage *page,
-                             fsmSizeLvl &old);
-
-      private:
-         typedef ossPoolVector<PAGE_ID> _PAGE_MAP_PIDS;
-         struct _scanCursor
-         {
-            _scanCursor()
-            {
-               reset();
-            }
-
-            OSS_INLINE void reset()
-            {
-               for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-               {
-                  pages[i] = 0;
-               }
-               return;
-            }
-
-            UINT16 *get(UINT32 i)
-            {
-               return &(pages[i]);
-            }
-
-            UINT16 pages[FSM_SPACE_LVL_COUNT];
-         };//struct _scanCursor
-
-      private:
-         fsmFile *_fsmFile;
-         fsmCLEntry _entry;
-         _PAGE_MAP_PIDS _pmapPids;
-         _scanCursor _cursor;
-         fsmStats _stats;
+         /// bitmap indexes of bitmap pages.
+         memoryBlock _superBitmaps[FSM_SPACE_LVL_COUNT];
    };//class diskFreeSpaceMap
 }//namespace vessel
 }//namespace engine

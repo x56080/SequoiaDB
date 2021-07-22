@@ -40,9 +40,9 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/pageDef.h"
-#include "ossSpinLatch.hpp"
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/fsmCandidateBucket.h"
+#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -72,14 +72,14 @@ namespace vessel
                                      UINT16 minFreeSize,
                                      fsmCandidate &candidate);
 
-         BOOLEAN tryToIncBucket(CL_PAGE_SEQ seq,
+         BOOLEAN tryToIncBucket(UINT32 seq,
                                 PAGE_ID lpid,
                                 UINT32 bucketBegin,
                                 UINT16 maxFreeSize,
                                 UINT16 newFreeSize,
                                 UINT16 delta);
 
-         BOOLEAN tryToDecBucket(CL_PAGE_SEQ seq,
+         BOOLEAN tryToDecBucket(UINT32 seq,
                                 PAGE_ID lpid,
                                 UINT32 bucketBegin,
                                 UINT16 minFreeSize,
@@ -87,7 +87,7 @@ namespace vessel
                                 UINT16 delta);
 
          BOOLEAN updateCandidate(UINT32 bucketNo,
-                                 CL_PAGE_SEQ seq,
+                                 UINT32 seq,
                                  PAGE_ID lpid,
                                  UINT16 minFreeSize,
                                  UINT16 freeSizeFromBucket,
@@ -100,13 +100,13 @@ namespace vessel
          /// should ensure candidates buffer size
          void dumpBucket(UINT32 i, fsmCandidate *candidates, UINT32 &count);
       private:
-         OSS_INLINE ossSpinLatch *getLatch(UINT32 bucketNo);
+         OSS_INLINE ossXLatch *getLatch(UINT32 bucketNo);
       private:
-         UINT16 _bucketCount;
-         UINT16 _bucketCapacity;
-         fsmCandidateBucket *_buckets;
-         UINT32 _latchCount;
-         ossSpinLatch *_latches;
+         UINT32 _bucketCount = 0;
+         UINT32 _bucketCapacity = 0;
+         fsmCandidateBucket *_buckets = NULL;
+         UINT32 _latchCount = 0;
+         ossSpinXLatch *_latches = NULL;
 
    };//class fsmCandidateBuckets
 #pragma pack()
@@ -116,7 +116,7 @@ namespace vessel
       return _bucketCount;
    }
 
-   OSS_INLINE ossSpinLatch *fsmCandidateBuckets::getLatch(UINT32 bucketNo)
+   OSS_INLINE ossXLatch *fsmCandidateBuckets::getLatch(UINT32 bucketNo)
    {
       return &(_latches[bucketNo & (_latchCount - 1)]);
    }

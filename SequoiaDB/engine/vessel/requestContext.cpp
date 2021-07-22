@@ -264,6 +264,65 @@ namespace vessel
       goto done;
    }
 
+   INT32 requestContext::tryLockMB(CL_MB_ID mbID,
+                                   ossRWMutex *latch,
+                                   OSS_LATCH_MODE mode,
+                                   BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID ||
+                       NULL == latch))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSpaceIdLocked()))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (isMbLocked())
+      {
+         SDB_ASSERT(FALSE, "unlocking missed");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      
+      if (SHARED == mode)
+      {
+         locked = latch->try_lock_r();
+      }
+      else
+      {
+         locked = latch->try_lock_w();
+      }
+
+      if (locked)
+      {
+         _mbID = mbID;
+         _mbLatch = latch;
+         _mbLockMode = mode;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void requestContext::setCLLoigcalIdUnderLock(UINT32 lid)
+   {
+      SDB_ASSERT(isMbLocked(), "must be locked");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != lid, "can not be invalid");
+      _clLogicalId = lid;
+      return;
+   }
+
    void requestContext::unlockMB()
    {
       if (isMbLocked())
@@ -280,6 +339,7 @@ namespace vessel
          _mbID = INVALID_CL_MB_ID;
          _mbLockMode = SHARED;
          _mbLatch = NULL;
+         _clLogicalId = DMS_INVALID_LOGICCLID;
       }
       return;
    }
@@ -435,7 +495,6 @@ namespace vessel
    void requestContext::swtichOplist(atomicOperationList *newOplist,
                                      atomicOperationList **oldOplist)
    {
-      SDB_ASSERT(NULL != oldOplist, "can not be null");
       *oldOplist = _oplist;
       _oplist = newOplist;
       return;

@@ -56,21 +56,18 @@ namespace vessel
 
    void fsmCandidateBuckets::fini()
    {
-      if (0 != _bucketCount)
+      _bucketCount = 0;
+      _bucketCapacity = 0;
+      _latchCount = 0;
+      if (NULL != _buckets)
       {
-         _bucketCount = 0;
-         _bucketCapacity = 0;
-         if (NULL != _buckets)
-         {
-            SDB_OSS_DEL []_buckets;
-            _buckets = NULL;
-         }
-         _latchCount = 0;
-         if (NULL != _latches)
-         {
-            SDB_OSS_DEL []_latches;
-            _latches = NULL;
-         }
+         SDB_OSS_DEL []_buckets;
+         _buckets = NULL;
+      }
+      if (NULL != _latches)
+      {
+         SDB_OSS_DEL []_latches;
+         _latches = NULL;
       }
       return;
    }
@@ -107,7 +104,7 @@ namespace vessel
          }
       }
 
-      _latches = SDB_OSS_NEW ossSpinLatch[latchCount];
+      _latches = SDB_OSS_NEW ossSpinXLatch[latchCount];
       if (NULL == _latches)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -139,7 +136,7 @@ namespace vessel
       }
 
       {
-      ossSpinGuard guard(getLatch(bucketNo));
+      ossScopedLock guard(getLatch(bucketNo));
       r = _buckets[bucketNo].upsert(_bucketCapacity, candidate, replaced);
       }
    done:
@@ -161,8 +158,9 @@ namespace vessel
       }
 
       {
-      ossSpinGuard guard(getLatch(bucketNo));
-      if (_buckets[bucketNo].findAndAutoRemoving(_bucketCapacity, size, minFreeSize, candidate))
+      ossScopedLock guard(getLatch(bucketNo));
+      if (_buckets[bucketNo].findAndAutoRemoving(_bucketCapacity, size,
+                                                 minFreeSize, candidate))
       {
          candidate.setBucketNo(bucketNo);
          r = TRUE;
@@ -172,7 +170,7 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN fsmCandidateBuckets::tryToIncBucket(CL_PAGE_SEQ seq,
+   BOOLEAN fsmCandidateBuckets::tryToIncBucket(UINT32 seq,
                                                 PAGE_ID lpid,
                                                 UINT32 bucketBegin,
                                                 UINT16 maxFreeSize,
@@ -184,7 +182,7 @@ namespace vessel
       for (UINT32 i = 0; i < _bucketCount; ++i)
       {
          UINT32 bucketNo = (bucketBegin + i) & (_bucketCount - 1);
-         ossSpinGuard guard(getLatch(bucketNo));
+         ossScopedLock guard(getLatch(bucketNo));
          if (_buckets[bucketNo].tryToInc(_bucketCapacity, seq, lpid, maxFreeSize, newFreeSize, delta))
          {
             r = TRUE;
@@ -195,7 +193,7 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN fsmCandidateBuckets::tryToDecBucket(CL_PAGE_SEQ seq,
+   BOOLEAN fsmCandidateBuckets::tryToDecBucket(UINT32 seq,
                                                 PAGE_ID lpid,
                                                 UINT32 bucketBegin,
                                                 UINT16 minFreeSize,
@@ -207,7 +205,7 @@ namespace vessel
       for (UINT32 i = 0; i < _bucketCount; ++i)
       {
          UINT32 bucketNo = (bucketBegin + i) & (_bucketCount - 1);
-         ossSpinGuard guard(getLatch(bucketNo));
+         ossScopedLock guard(getLatch(bucketNo));
          if (_buckets[bucketNo].tryToDec(_bucketCapacity, seq, lpid, minFreeSize, newFreeSize, delta))
          {
             r = TRUE;
@@ -219,7 +217,7 @@ namespace vessel
    }
 
    BOOLEAN fsmCandidateBuckets::updateCandidate(UINT32 bucketNo,
-                                                CL_PAGE_SEQ seq,
+                                                UINT32 seq,
                                                 PAGE_ID lpid,
                                                 UINT16 minFreeSize,
                                                 UINT16 freeSizeFromBucket,
@@ -232,7 +230,7 @@ namespace vessel
          goto done;
       }
       {
-      ossSpinGuard guard(getLatch(bucketNo));
+      ossScopedLock guard(getLatch(bucketNo));
       r = _buckets[bucketNo].updateCandidate(_bucketCapacity, seq, lpid,
                                              minFreeSize, freeSizeFromBucket,
                                              currentFreeSize, failure);
@@ -249,7 +247,7 @@ namespace vessel
          return 0;
       }
       {
-      ossSpinGuard guard(getLatch(bucketNo));
+      ossScopedLock guard(getLatch(bucketNo));
       return _bucketCapacity - _buckets[bucketNo].getSize(_bucketCapacity);
       }
    }
@@ -270,7 +268,7 @@ namespace vessel
    {
       SDB_ASSERT(i < _bucketCount, "out of bound");
       SDB_ASSERT(NULL != candidates, "can not be null");
-      ossSpinGuard guard(getLatch(i));
+      ossScopedLock guard(getLatch(i));
       _buckets[i].dump(_bucketCapacity, candidates, count);
    }
 }//namespace vessel

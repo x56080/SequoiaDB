@@ -112,7 +112,8 @@ namespace vessel
             INT32 commit(requestContext *context,
                          UINT32 pageSize,
                          const void *pageBuffer,
-                         const globalPageIDAndLpid &gpid,
+                         const GLOBAL_PAGE_ID &gpid,
+                         PAGE_ID lpid,
                          logRecordContext *lrc);
 
             void abort(requestContext *context,

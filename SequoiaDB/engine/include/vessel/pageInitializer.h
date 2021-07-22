@@ -37,6 +37,7 @@
 #define VESSEL_PAGE_INITIALIZER_H_
 
 #include "vessel/pageAccessor.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -71,6 +72,20 @@ namespace vessel
                return SDB_VESSEL_INTERNAL_ERR;
             }
          }
+
+      protected:
+         INT32 prepareInitLog(requestContext *context,
+                              UINT32 adjunctSize,
+                              const runtimePageBuffer *rpb,
+                              logRecordContext *lrc);
+
+         INT32 commitInitLog(requestContext *context,
+                             const GLOBAL_PAGE_ID &gpid,
+                             PAGE_ID lpid,
+                             PAGE_SNAPSHOT_VERION psv,
+                             PAGE_TYPE type,
+                             const slice &adjunct,
+                             logRecordContext *lrc);
    };//class pageInitializer
 }//class vessel
 }//class engine

@@ -51,16 +51,17 @@ namespace vessel
    static const UINT32 SOTRAGE_FILE_TOTAL_HEAD_SIZE = STORAGE_FILE_COMMON_HEAD_SIZE +
                                                       STORAGE_FILE_USER_DEFINED_HEAD_SIZE;
 
-   const UINT32 STORAGE_FILE_HEAD_VERSION = 1;
+   static const UINT32 STORAGE_FILE_HEAD_VERSION = 1;
 
-   const UINT32 INVALID_FILE_HEAD_VERSION = 0;
+   static const UINT32 INVALID_FILE_HEAD_VERSION = 0;
 
    static const UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
 
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_2MB = (2 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = (32 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = (128 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = (256 <<20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_2MB = ((UINT32)2 << 20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
 
    static const UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
 
@@ -131,6 +132,10 @@ namespace vessel
       {
          return maxPageCountPerSeg * maxSegmentCountPerFile;
       }
+      OSS_INLINE UINT64 getSegmentSize()const
+      {
+         return (UINT64)pageSize * maxPageCountPerSeg;
+      }
 
       UINT32 pageSize;
       UINT32 maxPageCountPerSeg; /// define max mmap size
@@ -177,6 +182,11 @@ namespace vessel
       {
          ossMemcpy(magicChars, o.magicChars, sizeof(storageFileHead));
          return *this;
+      }
+
+      void reset()
+      {
+         ossMemset(this, 0, sizeof(storageFileHead));
       }
 
       BOOLEAN isKeyContentSame(const storageFileHead &o)const;

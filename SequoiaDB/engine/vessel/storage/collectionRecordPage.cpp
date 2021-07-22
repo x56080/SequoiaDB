@@ -49,7 +49,7 @@ namespace vessel
          goto error;
       }
 
-      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - COLLECTION_RECORD_PAGE_HEAD_LEN) / COLLECTION_DISK_RECORD_LEN;
+      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE) / COLLECTION_DISK_RECORD_LEN;
    done:
       return rc;
    error:
@@ -64,7 +64,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       UINT32 capacity = 0;
-      collectionRecordPageHead *head = NULL;
       collectionRecord record;
       UINT32 offset = 0;
       if (SDB_OK != getCapacityOfCLRecordPage(pageSize, capacity))
@@ -77,14 +76,8 @@ namespace vessel
       {
          goto done;
       }
-
-      head = (collectionRecordPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      head->version = COLLECTION_RECORD_PAGE_VERSION_1;
-      head->flags = 0;
-      head->pad0 = 0;
-      head->pad1 = 0;
       
-      offset = PAGE_HEAD_SIZE + COLLECTION_RECORD_PAGE_HEAD_LEN;
+      offset = PAGE_HEAD_SIZE;
       for (UINT32 i = 0; i < capacity; ++i)
       {
          collectionRecord *recordPtr = (collectionRecord *)((ossValuePtr)buf + offset);
@@ -94,6 +87,40 @@ namespace vessel
       r = TRUE;
    done:
       return r;
+   }
+
+    BOOLEAN getCollectionRecordIfValid(const void *ptr,
+                                       UINT32 i,
+                                       collectionRecord &record)
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(NULL != ptr, "can not be null");
+      const collectionRecord *cr = (const collectionRecord *)
+                                   ((ossValuePtr)ptr +
+                                    PAGE_HEAD_SIZE +
+                                    i * COLLECTION_DISK_RECORD_LEN);
+   
+      if (cr->isValid())
+      {
+         record = *cr;
+         r = TRUE;
+      }
+      return r;             
+   }
+
+   PAGE_ID getCrpLpidOfCollection(UINT32 pageSize, CL_MB_ID mbID)
+   {
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      UINT32 capacity = 0;
+      INT32 rc = getCapacityOfCLRecordPage(pageSize, capacity);
+      if (SDB_OK != rc)
+      {
+         goto done;
+      }
+
+      lpid = mbID / capacity + COLLECTION_RECORD_PAGE_MIN_LPID;
+   done:
+      return lpid;
    }
 }//namespace vessel
 }//namespace engine

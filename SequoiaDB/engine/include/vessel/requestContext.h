@@ -141,6 +141,18 @@ namespace vessel
                       ossRWMutex *latch,
                       OSS_LATCH_MODE mode);
 
+         INT32 tryLockMB(CL_MB_ID mbID,
+                         ossRWMutex *latch,
+                         OSS_LATCH_MODE mode,
+                         BOOLEAN &locked);
+
+         void setCLLoigcalIdUnderLock(UINT32 lid);
+
+         OSS_INLINE UINT32 getCLLid()const
+         {
+            return _clLogicalId;
+         }
+
          void unlockMB();
 
          OSS_INLINE BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const
@@ -220,8 +232,9 @@ namespace vessel
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
          OSS_LATCH_MODE _mbLockMode = SHARED;
          ossRWMutex *_mbLatch = NULL;
+         UINT32 _clLogicalId = DMS_INVALID_LOGICCLID;
 
-         objectLatchContext<logicalIdLatchKey> _lpidLatchContext;
+         objectSharedLatchContext<logicalIdLatchKey> _lpidLatchContext;
 
          UINT32 _bufAllocated = 0;
          CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];

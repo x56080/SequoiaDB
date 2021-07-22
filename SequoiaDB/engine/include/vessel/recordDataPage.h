@@ -53,26 +53,13 @@ namespace vessel
 #pragma pack(4)
    struct recordDataPageHead
    {
-      OSS_INLINE recordDataPageHead(){}
+      recordDataPageHead(){}
 
-      OSS_INLINE ~recordDataPageHead(){}
+      ~recordDataPageHead(){}
 
-      OSS_INLINE recordDataPageHead &operator=(const recordDataPageHead &o)
+      recordDataPageHead &operator=(const recordDataPageHead &o)
       {
-         version = o.version;
-         flags = o.flags;
-         clLogcalID = o.clLogcalID;
-         pageSeq = o.pageSeq;
-         totalSlotCount = o.totalSlotCount;
-         firstFreeSlot = o.firstFreeSlot;
-         dicSlot = o.dicSlot;
-         totalFreeSpace = o.totalFreeSpace;
-         freeSpaceAfterLastSlot = o.freeSpaceAfterLastSlot;
-         flags = o.flags;
-         minStriping = o.minStriping;
-         maxStriping = o.maxStriping;
-         transSN = o.transSN;
-         pad = o.pad;
+         ossMemcpy(this, &o, RECORD_PAGE_HEAD_LEN);
          return *this;
       }
 
@@ -84,8 +71,8 @@ namespace vessel
       UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
       UINT16 recordCount = 0;
       UINT16 dicSlot = INVALID_RECORD_SLOT_ID;
-      UINT32 totalFreeSpace = 0;
-      UINT32 freeSpaceAfterLastSlot = 0;
+      UINT16 totalFreeSpace = 0;
+      UINT16 freeSpaceAfterLastSlot = 0;
       UINT16 minStriping = INVALID_STRIPING_ID;
       UINT16 maxStriping = INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
@@ -94,48 +81,43 @@ namespace vessel
    const static UINT32 RECORD_PAGE_HEAD_LEN = sizeof(recordDataPageHead);
 
 
-   /// value range: [0x0, 0xF]
-   const static UINT8 RDP_R_HEAD_TYPE_INVALID = 0x0;
-   const static UINT8 RDP_R_HEAD_TYPE_NORMAL = 0x01;
-   const static UINT8 RDP_R_HEAD_TYPE_BIG_RECORD_HEAD = 0x02;
-   const static UINT8 RDP_R_HEAD_TYPE_BIG_RECORD_BODY = 0x03;
-   const static UINT8 RDP_R_HEAD_TYPE_COMPRESSION_DIC = 0x04;
+   /// value range: [0x0, 0xFF]
+   const static UINT8 RDP_SLOT_TYPE_INVALID = 0x0;
+   const static UINT8 RDP_SLOT_TYPE_NORMAL = 0x01;
+   const static UINT8 RDP_SLOT_TYPE_BIG_RECORD_HEAD = 0x02;
+   const static UINT8 RDP_SLOT_TYPE_BIG_RECORD_BODY = 0x03;
+   const static UINT8 RDP_SLOT_TYPE_COMPRESSION_DIC = 0x04;
 
-   const static UINT8 RDP_RSLOT_FLAG_SKIP_SCANNING = 0x10;
+   /// value range: [0x0, 0xFF]
+   const static UINT8 RDP_SLOT_FLAG_INVISIBLE = 0x01;
 
    struct recordSlot
    {
-      OSS_INLINE recordSlot():
-      _flags(0),
-      _pad(0),
-      _offset(0){}
-
-      OSS_INLINE ~recordSlot()
-      {}
+      OSS_INLINE recordSlot(){}
+      OSS_INLINE ~recordSlot(){}
 
       OSS_INLINE recordSlot(const recordSlot &o):
+      _type(o._type),
       _flags(o._flags),
-      _pad(o._pad),
       _offset(o._offset)
       {}
 
       OSS_INLINE recordSlot &operator=(const recordSlot &o)
       {
+         _type = o._type;
          _flags = o._flags;
-         _pad = o._pad;
          _offset = o._offset;
          return *this;
       }
 
       OSS_INLINE void setType(UINT8 type)
       {
-         _flags &= 0xF0;/// clear lower 4 bits.
-         _flags |= (0xF & type);
+         _type = type;
          return;
       }
       OSS_INLINE UINT8 getType()const
       {
-         return (_flags & 0xF);
+         return _type;
       }
 
       OSS_INLINE void setOffset(UINT16 offset)
@@ -147,112 +129,121 @@ namespace vessel
       {
          return _offset;
       }
-      OSS_INLINE BOOLEAN isFree()const
+      OSS_INLINE BOOLEAN isValid()const
       {
-         return RDP_R_HEAD_TYPE_INVALID == getType();
+         return RDP_SLOT_TYPE_INVALID != getType() &&
+                0 != _offset;
       }
-      OSS_INLINE BOOLEAN skipScanning()const
+      OSS_INLINE BOOLEAN isInvisible()const
       {
-         return (_flags & RDP_RSLOT_FLAG_SKIP_SCANNING);
+         return 0 != OSS_BIT_TEST(_flags & RDP_SLOT_FLAG_INVISIBLE);
       }
 
-      OSS_INLINE void setSkipScanning()
+      OSS_INLINE void setInvisible()
       {
-         OSS_BIT_SET(_flags, RDP_RSLOT_FLAG_SKIP_SCANNING);
+         OSS_BIT_SET(_flags, RDP_SLOT_FLAG_INVISIBLE);
       }
    
       private:
-      /// lower 4bits: record head type
-      /// upper 4bits: flags
-      UINT8 _flags;
-      UINT8 _pad;
-      UINT16 _offset;
+      UINT8 _type = RDP_SLOT_TYPE_INVALID;
+      UINT8 _flags = 0;
+      UINT16 _offset = 0;
    };//struct recordSlot
-   const static UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
+   constexpr UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
 
-   const UINT8 RDP_RECORD_FLAG_DEPENDENT = 0x01;
-   const UINT8 RDP_RECORD_FLAG_TOMBSTONE = 0x02;
-   const UINT8 RDP_RECORD_FLAG_OVERFLOW = 0x04;
+   static const UINT16 RDP_RECORD_FLAG_DEPENDENT = 0x01;
+   static const UINT16 RDP_RECORD_FLAG_TOMBSTONE = 0x02;
+   static const UINT16 RDP_RECORD_FLAG_OVERFLOW = 0x04;
 
    struct recordHead
    {
       public:
-      OSS_INLINE recordHead():
-      size(0),
-      type(RDP_R_HEAD_TYPE_INVALID),
-      flags(0),
-      compressionType(UTIL_COMPRESSOR_INVALID),
-      pad(0),
-      transNode(DPS_INVALID_TRANSID_NODEID),
-      transSN(DPS_INVALID_TRANSID_SN)
-      {}
+         OSS_INLINE recordHead()
+         {}
 
-      OSS_INLINE ~recordHead()
-      {}
+         OSS_INLINE ~recordHead()
+         {}
 
-      OSS_INLINE recordHead(const recordHead &o):
-      size(o.size),
-      type(o.type),
-      flags(o.flags),
-      compressionType(o.compressionType),
-      pad(o.pad),
-      transNode(o.transNode),
-      transSN(o.transSN){}
+         OSS_INLINE recordHead(const recordHead &o):
+         _size(o._size),
+         _flags(o._flags),
+         _compressionType(o._compressionType),
+         _pad(o._pad),
+         _transNode(o._transNode),
+         _transSN(o._transSN){}
 
-      OSS_INLINE recordHead &operator=(const recordHead &o)
-      {
-         size = o.size;
-         type = o.type;
-         flags = o.flags;
-         compressionType = o.compressionType;
-         pad = o.pad;
-         transNode = o.transNode;
-         transSN = o.transSN;
-         return *this;
-      }
+         OSS_INLINE recordHead &operator=(const recordHead &o)
+         {
+            _size = o._size;
+            _flags = o._flags;
+            _compressionType = o._compressionType;
+            _pad = o._pad;
+            _transNode = o._transNode;
+            _transSN = o._transSN;
+            return *this;
+         }
 
-      OSS_INLINE UINT16 getSize()const
-      {
-         return size;
-      }
-      OSS_INLINE BOOLEAN isDependent()const
-      {
-         return OSS_BIT_TEST(flags, RDP_RECORD_FLAG_DEPENDENT);
-      }
-      OSS_INLINE BOOLEAN isTombstone()const
-      {
-         return OSS_BIT_TEST(flags, RDP_RECORD_FLAG_TOMBSTONE);
-      }
-      OSS_INLINE BOOLEAN isOverflow()const
-      {
-         return OSS_BIT_TEST(flags, RDP_RECORD_FLAG_OVERFLOW);
-      }
-      OSS_INLINE void setTypeAndFormat(UINT8 ht, UINT8 format)
-      {
-         type = 0;
-         type |= (ht & 0xF);
-         type |= (format << 4);
-      }
-      OSS_INLINE UINT8 getType()const
-      {
-         return type & 0xF;
-      }
-      OSS_INLINE UINT8 getFormat()const
-      {
-         return type >> 4;
-      }
+         OSS_INLINE UINT16 getSize()const
+         {
+            return _size;
+         }
+         OSS_INLINE void setSize(UINT16 size)
+         {
+            _size = size;
+         }
+         OSS_INLINE void setDependent()
+         {
+            OSS_BIT_SET(_flags, RDP_RECORD_FLAG_DEPENDENT);
+         }
+         OSS_INLINE BOOLEAN isDependent()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, RDP_RECORD_FLAG_DEPENDENT);
+         }
+         OSS_INLINE void setTombstone()
+         {
+            OSS_BIT_SET(_flags, RDP_RECORD_FLAG_TOMBSTONE);
+         }
+         OSS_INLINE BOOLEAN isTombstone()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, RDP_RECORD_FLAG_TOMBSTONE);
+         }
+         OSS_INLINE void setOverflow()const
+         {
+            OSS_BIT_SET(_flags, RDP_RECORD_FLAG_OVERFLOW);
+         }
+         OSS_INLINE BOOLEAN isOverflow()const
+         {
+            return 0 != OSS_BIT_TEST(_flags, RDP_RECORD_FLAG_OVERFLOW);
+         }
+         OSS_INLINE void setCompressionType(UTIL_COMPRESSOR_TYPE type)
+         {
+            _compressionType = type;
+         }
+         OSS_INLINE void setTransInfo(UINT16 transNode, UINT64 transSN)
+         {
+            _transNode = transNode;
+            _transSN = transSN;
+         }
+         OSS_INLINE UINT16 getTransNode()const
+         {
+            return _transNode;
+         }
+         OSS_INLINE UINT64 getTransSN()const
+         {
+            return _transSN;
+         }
+         OSS_INLINE BOOLEAN isCompressed()const
+         {
+            return UTIL_COMPRESSOR_INVALID != _compressionType;
+         }
 
-      UINT16 size;
-      /// lower 4bits: record head type
-      /// upper 4bits: record format
       private:
-      UINT8 type;
-      public:
-      UINT8 flags;
-      UINT8 compressionType;
-      UINT8 pad;
-      UINT16 transNode;
-      UINT64 transSN;
+         UINT16 _size = 0;
+         UINT16 _flags = 0;
+         UINT8 _compressionType = UTIL_COMPRESSOR_INVALID;
+         UINT8 _pad = 0;
+         UINT16 _transNode = DPS_INVALID_TRANSID_NODEID;
+         UINT64 _transSN = DPS_INVALID_TRANSID_SN;
    };//struct recordHead
    const static UINT32 RDP_RECORD_HEAD_LEN = sizeof(recordHead);
 
@@ -260,44 +251,32 @@ namespace vessel
    struct bigRecordHead
    {
       recordHead normalHead;
-      UINT32 originalLen;
-      UINT32 compressedLen;
-      UINT32 nextPid;
-      UINT16 nextSlot;
-      UINT16 totalSlice;
+      UINT32 originalLen = 0;
+      UINT32 compressedLen = 0;
+      UINT32 nextPid = INVALID_PAGE_ID;
+      UINT16 nextSlot = INVALID_RECORD_SLOT_ID;
+      UINT16 totalSlice = 0;
    };
    const static UINT32 RDP_BIG_RECORD_HEAD_HEAD_LEN = sizeof(bigRecordHead);
 
    struct bigRecordBodyHead
    {
       recordHead normalHead;
-      UINT32 nextPid;
-      UINT16 nextSlot;
-      UINT16 sliceNo;
+      UINT32 nextPid = INVALID_PAGE_ID;
+      UINT16 nextSlot = INVALID_RECORD_SLOT_ID;
+      UINT16 sliceNo = 0;
    };//struct bigRecordBodyHead
    const static UINT32 RDP_BIT_RECORD_BODY_HEAD_LEN = sizeof(bigRecordBodyHead);
 
    struct compressionDicRecordHead
    {
-      UINT16 size;
-      UINT8 type;
-      UINT8 flags;
-   };//struct lz4DicRecordHead
+      UINT16 size = 0;
+      UINT8 type = UTIL_COMPRESSOR_INVALID;
+      UINT8 flags = 0;
+   };//struct compressionDicRecordHead
    const static UINT32 RDP_DIC_RECORD_HEAD_LEN = sizeof(compressionDicRecordHead);
    
 #pragma pack()
-
-   OSS_INLINE UINT32 getMaxFreeSizeOfRdp(UINT32 pageSize)
-   {
-      SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
-      static constexpr UINT32 len = PAGE_HEAD_LEN + PAGE_TAIL_LEN + RECORD_PAGE_HEAD_LEN;
-      return pageSize - len;
-   }
-
-   OSS_INLINE UINT32 getMaxSizeOfRecordInRdp(UINT32 recordSize)
-   {
-      return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE + ossAlign4(recordSize);
-   }
 
    /// in fact, we may not allocate new slot when insert record.
    /// but ignore it here.
@@ -305,19 +284,38 @@ namespace vessel
    {
       return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE;
    }
-   
-   OSS_INLINE BOOLEAN isBigRecordInRdp(UINT32 pageSize, UINT32 recordSize)
+
+   BOOLEAN initRecordDataPage(UINT32 pageSize,
+                              PAGE_ID pid,      
+                              PAGE_ID lpid,
+                              PAGE_SNAPSHOT_VERION psv,
+                              UINT32 logicalID,
+                              UINT32 pageSeq,
+                              void *buf);
+
+   OSS_INLINE UINT32 getMaxFreeSizeOfRdp(UINT32 pageSize)
    {
-      SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
-      return getMaxSizeOfRecordInRdp(recordSize) > getMaxFreeSizeOfRdp(pageSize);
+      SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
+      return pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - RECORD_PAGE_HEAD_LEN;
    }
 
-   void initRecordDataPage(UINT32 pageSize,
-                           PAGE_ID lpid,
-                           SNAPSHOT_ID snapshot,
-                           UINT32 logicalID,
-                           CL_PAGE_SEQ pageSeq,
-                           void *buf);
+   OSS_INLINE UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize)
+   {
+      return RDP_RECORD_HEAD_LEN + ossAlign4(recordSize);
+   }
+
+   OSS_INLINE UINT32 getMaxSizeOfRecordInRdp(UINT32 recordSize)
+   {
+      return getAlignedSizeOfNormalRecordAndHead(recordSize) + RDP_RSLOT_SIZE;
+   }
+
+   OSS_INLINE BOOLEAN isBigRecord(UINT32 pageSize, UINT32 originalRecordSize)
+   {
+      SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
+      UINT32 maxSize = getMaxSizeOfRecordInRdp(originalRecordSize);
+      /// 512 is meaningless magic number.
+      return (maxSize + RECORD_PAGE_HEAD_LEN + 512) > getPageBodySize(pageSize);
+   }
 }//namespace vessel
 }//namespace engine
 

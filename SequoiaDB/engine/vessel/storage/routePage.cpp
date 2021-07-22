@@ -44,28 +44,29 @@ namespace vessel
 {
    UINT32 getCapacityOfRoutePage(UINT32 pageSize)
    {
-      SDB_ASSERT(DMS_PAGE_SIZE32K == pageSize ||
-                 DMS_PAGE_SIZE64K == pageSize, "invalid page size");
       UINT32 capacity = 0;
       UINT32 freeSize = 0;
 
       if (OSS_UNLIKELY(DMS_PAGE_SIZE32K != pageSize &&
                        DMS_PAGE_SIZE64K != pageSize))
       {
+         SDB_ASSERT(FALSE, "invalid page size");
          goto done;
       }
 
-      freeSize = pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ROUTE_PAGE_HEAD_LEN;
+      freeSize = pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - ROUTE_PAGE_HEAD_SIZE;
       freeSize = freeSize & 0xffffffe0;///32 bytes aligned
-      capacity = freeSize >> 2; /// capacity = freeSize / 4 
+      capacity = freeSize >> 2; /// capacity = freeSize / 4
    done:
       return capacity;
    }
 
    BOOLEAN initRoutePage(UINT32 pageSize,
+                         PAGE_ID pid,
                          PAGE_ID lpid,
-                         SNAPSHOT_ID snapshot,
+                         PAGE_SNAPSHOT_VERION psv,
                          UINT32 logicalId,
+                         INT32 lvl,
                          void *buf)
    {
       BOOLEAN r = FALSE;
@@ -73,8 +74,11 @@ namespace vessel
       CHAR *ptr = NULL;
       UINT32 capacity = 0;
       if (OSS_UNLIKELY(!isValidPageSize(pageSize) ||
+                       INVALID_PAGE_ID == pid ||
                        INVALID_PAGE_ID == lpid ||
+                       INVALID_PAGE_SNAPSHOT_VERSION == psv ||
                        DMS_INVALID_LOGICCLID == logicalId ||
+                       !isValidRoutePageLvl(lvl) ||
                        NULL == buf))
       {
          goto done;
@@ -86,13 +90,18 @@ namespace vessel
          goto done;
       }
 
-      initCommonPage(PAGE_TYPE_ROUTE, pageSize, lpid, snapshot, buf);
+      if (!initCommonPage(PAGE_TYPE_ROUTE, pageSize, pid, lpid, psv, buf))
+      {
+         goto done;
+      }
+
       ptr = (CHAR *)buf;
-      head = (routePageHead *)(ptr + PAGE_HEAD_LEN);
+      head = (routePageHead *)(ptr + PAGE_HEAD_SIZE);
       head->version = ROUTE_PAGE_VERSION;
-      head->count = 0;
+      head->size = 0;
       head->logicalId = logicalId;
-      ossMemset(ptr + PAGE_HEAD_LEN + ROUTE_PAGE_HEAD_LEN,
+      head->lvl = lvl;
+      ossMemset(ptr + PAGE_HEAD_SIZE + ROUTE_PAGE_HEAD_SIZE,
                 0xFF, capacity << 2);
       r = TRUE;
    done:

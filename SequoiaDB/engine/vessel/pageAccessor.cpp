@@ -52,7 +52,7 @@ namespace engine
 namespace vessel
 {
    INT32 pageAccessor::prepareLog(requestContext *context,
-                                  runtimePageBuffer *rpb,
+                                  const runtimePageBuffer *rpb,
                                   UINT16 logType,
                                   BOOLEAN resetPage,
                                   logRecordContext *lrc)
@@ -62,15 +62,38 @@ namespace vessel
       SDB_ASSERT(NULL != rpb, "can not be null");
       SDB_ASSERT(rpb->isValid(), "must be valid");
       SDB_ASSERT(rpb->isCacheBuffer(), "must be cache buffer");
+
+      ///pid and psv may changed after full dumping.
+      SDB_ASSERT(rpb->isWritingPrepared(), "must be prepare");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->needFullDump(), "can not be full dump");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+
+      const checkpointController *checkpointer = &(context->getEnv()->checkpointer);
+      const openDBOptions &options = context->getEnv()->options;
 
       lrc->open(logType);
       if (resetPage)
       {
          lrc->setResetPage();
       }
+      else if (options.fullDumpPageLog &&
+               checkpointer->hasAtLeastOneCheckpoint())
+      {
+         DPS_LSN_OFFSET lsn = rpb->getPageHead()->lsn;
+         if (DPS_INVALID_LSN_OFFSET != lsn &&
+             lsn <= checkpointer->getLastCheckpointLSN())
+         {
+            rc = lrc->fullDumpPage(rpb->getPageSize(), rpb->getReadOnlyBuffer());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "faile to full dump page:%d", rc);
+               goto error;
+            }
+         }
+      }
+
+      
       if (context->isInProcessingOplist())
       {
          atomicOperationList *oplist = context->getOplist();
@@ -96,45 +119,49 @@ namespace vessel
    }
 
    INT32 pageAccessor::prepareLogDone(requestContext *context,
-                                      runtimePageBuffer *rpb,
                                       logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != rpb, "can not be null");
-      SDB_ASSERT(rpb->isValid(), "must be valid");
       /// pid and psv may be different after writing prepared.
-      SDB_ASSERT(rpb->isWritingPrepared(), "must be writing prepare");
-      SDB_ASSERT(rpb->isCacheBuffer(), "must be cache buffer");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
 
       ISession *session = context->getSession();
       IRedoLogger *logger = context->getOuterResource()->logger;
-      const checkpointController *checkpointer = &(context->getEnv()->checkpointer);
-      const openDBOptions &options = context->getEnv()->options;
-
-      if (!lrc->isResetPage() &&
-          options.fullDumpPageLog &&
-          checkpointer->hasAtLeastOneCheckpoint())
-      {
-         DPS_LSN_OFFSET lsn = rpb->getPageHead()->lsn;
-         if (DPS_INVALID_LSN_OFFSET != lsn &&
-             lsn <= checkpointer->getLastCheckpointLSN())
-         {
-            rc = lrc->fullDumpPage(rpb->getPageSize(), rpb->getReadOnlyBuffer());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "faile to full dump page:%d", rc);
-               goto error;
-            }
-         }
-      }
-
+   
       lrc->prepushDone();
       rc = logger->prepare(session, lrc);
       if (SDB_OK != rc)
       {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 pageAccessor::pushElement(requestContext *context,
+                                   UINT8 tag,
+                                   UINT32 size,
+                                   const void *data,
+                                   logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(0 < size, "can not be zero");
+      SDB_ASSERT(NULL != data, "can not be null");
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(lrc->prepared(), "must be prepared");
+
+      ISession *session = context->getSession();
+      IRedoLogger *logger = context->getOuterResource()->logger;
+
+      rc = logger->pushLogRecordElement(session, lrc, tag, size, data);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push log ele[%d], size[%d], rc:%d", tag, size, rc);
          goto error;
       }
    done:
@@ -148,9 +175,8 @@ namespace vessel
    {
       SDB_ASSERT(NULL != context, "can not be invalid");
       SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(lrc->prepared(), "must be prepared");
       IRedoLogger *logger = context->getOuterResource()->logger;
-      if (OSS_UNLIKELY(NULL != logger))
+      if (lrc->prepared())
       {
          logger->abort(context->getSession(), lrc);
       }

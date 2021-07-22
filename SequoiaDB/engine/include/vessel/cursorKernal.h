@@ -38,8 +38,9 @@
 
 #include "vessel/vesselOptions.h"
 #include "vessel/slice.h"
-#include "utilPooledObject.hpp"
+#include "vessel/memoryBlock.h"
 #include <initializer_list>
+#include "vessel/localThreadSharedPointer.h"
 
 namespace engine
 {
@@ -57,7 +58,7 @@ namespace vessel
       CURSOR_TYPE_SCAN_COLLECTION = 3,
    };
 
-   class cursorKernal : public _utilPooledObject
+   class cursorKernal : public localThreadSharedCounter
    {
       public:
          cursorKernal(){}
@@ -72,7 +73,7 @@ namespace vessel
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,
                     IQueryFilter *filter, 
-                    const cursorOptions *options);
+                    const cursorOptions &options);
          void close();
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
@@ -94,47 +95,24 @@ namespace vessel
          {
             return _filter;
          }
-         OSS_INLINE UINT64 getUsageCount()const
-         {
-            return _usage;
-         }
-         OSS_INLINE void incUsageCount()
-         {
-            ++_usage;
-         }
-         OSS_INLINE UINT64 decUsageCount()
-         {
-            return --_usage;
-         }
-
       private:
-         virtual INT32 _open() {return SDB_OK;}
-         virtual void _close() {return;}
-
-      private:
-         INT32 extendBuf(UINT32 deltaSize);
          INT32 allocateSpaceForPushing(UINT32 dataLen);
+         BOOLEAN noMorePushing()const;
          OSS_INLINE UINT32 getRealBufSizeOfSlice(UINT32 dataLen)const
          {
             return sizeof(UINT32) + dataLen;
          }
          OSS_INLINE BOOLEAN hasMoreDataToFetch()const
          {
-            return _r < _w;
+            return _read < _mb.getSize();
          }
-         
-
+      
       private:
          cursorOptions _options;
-         UINT64 _usage = 0;
          UINT64 _totalPushed = 0;
          UINT32 _flags = 0;
-         //UINT32 _fetchedSliceInBuf = 0;
-         //const CHAR *_nextSlice = NULL;
-         UINT32 _bufSize = 0;
-         CHAR *_buf = NULL;
-         UINT32 _w = 0; /// buffer size written.
-         UINT32 _r = 0; /// buffer size read.
+         memoryBlock _mb;
+         UINT32 _read = 0; /// buffer size read.
          vesselImpl *_db = NULL;
          IQueryFilter *_filter = NULL;
    };//class cursorKernal

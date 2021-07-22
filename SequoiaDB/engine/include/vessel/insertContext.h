@@ -39,6 +39,8 @@
 #include "vessel/dmlContext.h"
 #include "vessel/insertOptions.h"
 #include "vessel/freeSpaceMapDef.h"
+#include "vessel/slice.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -52,6 +54,8 @@ namespace vessel
 
          virtual ~insertContext(){}
       public:
+         virtual void close();
+
          OSS_INLINE const insertOptions &getOptions()const
          {
             return _options;
@@ -72,9 +76,65 @@ namespace vessel
          {
             return _lastFreeSize;
          }
+
+         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
+         {
+            return _compressionType;
+         }
+         OSS_INLINE BOOLEAN isCompressed()const
+         {
+            return UTIL_COMPRESSOR_INVALID != _compressionType;
+         }
+
+         OSS_INLINE void setOriginalRecord(const slice &r)
+         {
+            _originalRecord = r;
+         }
+         /// Return compressed record or original record.
+         slice getRecordToInsert()const;
+
+         OSS_INLINE void setStriping(STRIPING_ID s)
+         {
+            _striping = s;
+         }
+         OSS_INLINE STRIPING_ID getStriping()const
+         {
+            return _striping;
+         }
+         OSS_INLINE const recordID &getRid()const
+         {
+            return _rid;
+         }
+         OSS_INLINE void setRid(const recordID &rid)
+         {
+            _rid = rid;
+         }
+
+         OSS_INLINE const slice &getOriginalRecord()const
+         {
+            return _originalRecord;
+         }
+         OSS_INLINE memoryBlock &getCompressionMB()
+         {
+            return _compressionMB;
+         }
+
       private:
+         void fini();
+
+      private:
+         /// init from request
          insertOptions _options;
+         STRIPING_ID _striping = INVALID_STRIPING_ID;
+         slice _originalRecord;
+
+         /// runtime
+         UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
+         memoryBlock _compressionMB;
+
          fsmCandidate _candidate;
+
+         recordID _rid;
          UINT32 _lastFreeSize = 0;
    };//class insertContext
 }//namespace vessel

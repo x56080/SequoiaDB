@@ -56,6 +56,11 @@ namespace vessel
          storageFile(const storageFile &o) = delete;
          storageFile &operator=(const storageFile &o) = delete;
       public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return ossMmapFile::_file.isOpened();
+         }
+
          INT32 create(const vesselFileName &fn,
                       const createStorageFileOptions &options,
                       const slice &userDefinedHead = slice());
@@ -63,14 +68,8 @@ namespace vessel
          INT32 open(const strSlice &dir,
                     const vesselFileName &fn);
 
-         /*
-         INT32 cloneTo(const strSlice &dir,
-                       BOOLEAN sparse,
-                       BOOLEAN replace);*/
-
          void destroy();
          void close();
-         BOOLEAN isOpen() const;
 
          const CHAR *getFullPath()const;
 
@@ -81,11 +80,11 @@ namespace vessel
 
          INT32 getSegmentPtr(UINT32 seg, ossValuePtr &ptr)const;
 
-         INT32 getPagePtr(PAGE_ID page, ossValuePtr &ptr)const;
+         INT32 getPagePtr(PAGE_ID pid, ossValuePtr &ptr)const;
 
-         INT32 fsync(PAGE_ID pid, UINT32 count, BOOLEAN sync=TRUE)const;
+         INT32 fsyncPage(PAGE_ID pid, BOOLEAN sync=TRUE)const;
 
-         INT32 fsync(UINT32 segmentId, BOOLEAN sync=TRUE)const;
+         INT32 fsyncSegment(UINT32 segmentId, BOOLEAN sync=TRUE)const;
 
          INT32 fsyncFileHead(BOOLEAN sync=TRUE)const;
 
@@ -147,14 +146,14 @@ namespace vessel
             return 1;
          }
 
-         OSS_INLINE UINT32 getSegmentIDFromPageID(PAGE_ID page)const
+         OSS_INLINE UINT32 getSegmentIDFromPageID(PAGE_ID pid)const
          {
-            return page / _headInMem.maxPageCountPerSeg;
+            return pid / _headInMem.maxPageCountPerSeg;
          }
 
       private:
          storageFileHead _headInMem;
-         UINT32 _dataSegmentCount;
+         UINT32 _dataSegmentCount = 0;
    }; // class storageFile
 } // namespace vessel
 } // namespace engine

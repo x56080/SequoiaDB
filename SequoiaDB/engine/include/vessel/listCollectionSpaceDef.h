@@ -38,44 +38,36 @@
 
 #include "vessel/vesselIdDef.h"
 #include "utilUniqueID.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCollectionSpaceRecord : public SDBObject
-   {
-      public:
-         listCollectionSpaceRecord():
-         version(0),
-         uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
-         sid(INVALID_SPACE_ID),
-         status(0),
-         flags(0),
-         dataPageSize(0),
-         dataPageCountPerSeg(0),
-         idxPageSize(0),
-         idxPageCountPerSeg(0)
-         {
-            ossMemset(name, 0, sizeof(name));
-         }
+   static const CHAR * const CS_DUMP_RECORD_FIELD_SPACE_ID = "sid";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_NAME = "name";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_UNIQUE_ID = "unique_id";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_LOGICAL_ID = "logical_id";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_STATUS = "status";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_DATA_PAGE_SIZE = "data_page_size";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_DATA_SEG_SIZE = "data_seg_size";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_IDX_PAGE_SIZE = "index_page_size";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_IDX_SEG_SIZE = "index_seg_size";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_LOB_PAGE_SIZE = "lob_page_size";
+   static const CHAR * const CS_DUMP_RECORD_FIELD_LOB_SEG_SIZE = "lob_seg_size";
 
-         ~listCollectionSpaceRecord()
-         {}
-
-      public:
-         UINT32 version;
-         CHAR name[DMS_COLLECTION_SPACE_NAME_SZ+1];
-         utilCSUniqueID uniqueID;
-         SPACE_ID sid;
-         UINT32 status;
-         UINT32 flags;
-         UINT32 dataPageSize;
-         UINT32 dataPageCountPerSeg;
-         UINT32 idxPageSize;
-         UINT32 idxPageCountPerSeg;
-   };//class listCollectionSpaceRecord
-}
-}
+   bson::BSONObj dumpCollectionSpace(SPACE_ID sid,
+                                     const CHAR *name,
+                                     utilCSUniqueID uniqueId,
+                                     UINT32 logicalId,
+                                     UINT16 status,
+                                     UINT32 dataPageSize,
+                                     UINT32 dataSegSize,
+                                     UINT32 idxPageSize,
+                                     UINT32 idxSegSize,
+                                     UINT32 lobPageSize,
+                                     UINT32 lobSegSize);
+}//namespace vessel
+}//namespace engine
 
 #endif//VESSEL_LIST_COLLECTION_SPACE_DEF_H_

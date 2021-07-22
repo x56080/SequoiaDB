@@ -38,6 +38,7 @@
 
 #include "vessel/requestContext.h"
 #include "vessel/recordID.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -50,23 +51,52 @@ namespace vessel
          virtual ~scanCLContext(){}
       public:
 
-         OSS_INLINE void setOverflowed(const recordID &from,
-                                       const recordID &to)
+         void setScanning(const recordID &rid)
          {
-            _overflowed = from;
-            _overflowedTo = to;
+            _scanning = rid;
          }
-         OSS_INLINE const recordID &getOverflowed()const
+         const recordID &getScanning()const
          {
-            return _overflowed;
+            return _scanning;
          }
-         OSS_INLINE const recordID &getOverflowedTo()const
+         const recordID &getNext()const
          {
-            return _overflowedTo;
+            return _next;
+         }
+         void setNext(const recordID &rid)
+         {
+            _next = rid;
+         }
+         BOOLEAN hasNext()const
+         {
+            return _next.valid();
+         }
+         memoryBlock &getMemBlock()
+         {
+            return _mb;
+         }
+         BOOLEAN isOverflow()const
+         {
+            return _overflow;
+         }
+         BOOLEAN isBigRecord()const
+         {
+            return _bigRecord;
+         }
+         void setOverflow()
+         {
+            _overflow = TRUE;
+         }
+         void setBigRecord()
+         {
+            _bigRecord = TRUE;
          }
       private:
-         recordID _overflowed;
-         recordID _overflowedTo;
+         BOOLEAN _overflow = FALSE;
+         BOOLEAN _bigRecord = FALSE;
+         recordID _scanning;
+         recordID _next;
+         memoryBlock _mb;
    };//class scanCLContext
 }//namespace vessel
 }//namespace engine

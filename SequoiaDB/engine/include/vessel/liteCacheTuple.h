@@ -37,7 +37,7 @@
 #define VESSEL_LITE_CACHE_TUPLE_H_
 
 #include "dpsDef.hpp"
-#include "utilPooledObject.hpp"
+#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -47,7 +47,7 @@ namespace vessel
    class liteCachePageTag;
    class requestContext;
 
-   ///WARNING: Should not share tulpe in multi threads.
+   ///WARNING: Should not share tulpe in multiple threads.
    class liteCacheTuple
    {
       friend class liteCache;
@@ -60,8 +60,8 @@ namespace vessel
             release();
          }
 
-         liteCacheTuple &operator=(const liteCacheTuple &);
-         liteCacheTuple(const liteCacheTuple &);
+         liteCacheTuple &operator=(const liteCacheTuple &) = delete;
+         liteCacheTuple(const liteCacheTuple &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
@@ -79,50 +79,8 @@ namespace vessel
 
          INT32 prepareToWrite(requestContext *context);
 
-      private:
-         class _sharedStatus : public _utilPooledObject
-         {
-            public:
-               _sharedStatus(){}
-               ~_sharedStatus(){}
-               _sharedStatus(const _sharedStatus &) = delete;
-               _sharedStatus &operator=(const _sharedStatus &) = delete;
-
-            public:
-               OSS_INLINE void setLockingMode(OSS_SHARED_LATCH_MODE mode)
-               {
-                  _lockingMode = mode;
-               }
-               OSS_INLINE OSS_SHARED_LATCH_MODE getLockingMode()const
-               {
-                  return (OSS_SHARED_LATCH_MODE)_lockingMode;
-               }
-               OSS_INLINE void incSharedCnt()
-               {
-                  ++_sharedCnt;
-               }
-               OSS_INLINE UINT32 decSharedCnt()
-               {
-                  return --_sharedCnt;
-               }
-               OSS_INLINE UINT32 getSharedCnt()const
-               {
-                  return _sharedCnt;
-               }
-               OSS_INLINE void setWritingPrepared()
-               {
-                  OSS_BIT_SET(_flags, 0x01);
-               }
-               OSS_INLINE BOOLEAN isWritingPrepared()const
-               {
-                  return 0 != OSS_BIT_TEST(_flags, 0x01);
-               }
-
-            private:
-               UINT32 _sharedCnt = 0;
-               UINT16 _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
-               UINT16 _flags = 0;
-         };//class _sharedStatus
+         /// Strongly recommend that do not input valid tuple.
+         void moveTo(liteCacheTuple &tuple);
       
       private:/// for liteCache
          INT32 init(liteCachePageTag *tag,
@@ -130,11 +88,14 @@ namespace vessel
                     liteCache *pool,
                     BOOLEAN isWritingPrepared);
 
+         BOOLEAN isWritingPrepared()const;
+
       private:
          ///All are null or All are not null.
          liteCachePageTag *_tag = NULL;
          liteCache *_pool = NULL;
-         _sharedStatus *_status = NULL;
+         UINT16 _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
+         UINT16 _flags = 0;
    };//class liteCacheTuple
 
 } /// end of namespace vessel

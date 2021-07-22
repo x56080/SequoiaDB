@@ -54,12 +54,15 @@ namespace vessel
       public:
          virtual INT32 fsyncSegment(UINT32 globalSegmentId)const;
 
+         virtual INT32 fysncPage(PAGE_ID pid)const;
+
          virtual INT32 getDataPagePtr(PAGE_ID pid, mmapPagePointer &ptr)const;
 
          virtual FILE_TYPE getDataFileType()const
          {
             return FILE_TYPE_DATA_STORAGE;
          }
+         virtual UINT32 getTotalSegmentCountAllocated()const;
 
       private:
          virtual INT32 openFiles(const storageFileLoader *loader);
@@ -73,7 +76,7 @@ namespace vessel
 
          virtual BOOLEAN mayBeSparse()const {return TRUE;}
 
-         virtual UINT32 getTotalSegmentCountAllocated()const;
+         
 
       private:
          INT32 createNewFile();
@@ -81,7 +84,11 @@ namespace vessel
          INT32 createFileEverShrinked(UINT32 sequence);
 
          void _close();
-      
+
+         UINT32 getFileIdByGlobalSegmentId(UINT32 globalSegment,
+                                           UINT32 *segmentInFile)const;
+         UINT32 getFileIdByGlobalPageId(PAGE_ID pid,
+                                        PAGE_ID *pidInFile)const;
       private:
          keepHistoryPointerArray _files;
 

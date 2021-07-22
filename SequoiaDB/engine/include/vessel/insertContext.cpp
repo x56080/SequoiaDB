@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionDef.h
+   Source File Name = insertContext.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,19 +33,36 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_COLLECTION_DEF_H_
-#define VESSEL_COLLECTION_DEF_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/insertContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const UINT16 INVALID_COLLECTION_TYPE = 65535;
-   const UINT16 COLLECTION_TYPE_NORMAL = 0;
+   void insertContext::close()
+   {
+      fini();
+      dmlContext::close();
+   }
+
+   void insertContext::fini()
+   {
+      _options = insertOptions();
+      _striping = INVALID_STRIPING_ID;
+      _originalRecord.reset();
+      _compressionType = UTIL_COMPRESSOR_INVALID;
+      _compressionMB.release();
+      _candidate.reset();
+      _rid = recordID();
+      _lastFreeSize = 0;
+   }
+
+   slice insertContext::getRecordToInsert()const
+   {
+      return isCompressed() ?
+             _compressionMB.getSlice() :
+             _originalRecord;
+   }
+
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_COLLECTION_DEF_H_

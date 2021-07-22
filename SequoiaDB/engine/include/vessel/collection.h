@@ -42,11 +42,11 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/recordID.h"
 #include "vessel/listCollectionsDef.h"
-#include "vessel/recordData.h"
 #include "utilInsertResult.hpp"
 #include "vessel/freeSpaceMap.h"
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/collectionOptions.h"
 
 
 namespace engine
@@ -68,6 +68,10 @@ namespace vessel
          ~collection();
 
       public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return NULL != _collectionSpace;
+         }
          OSS_INLINE const CHAR *getName()const
          {
             return _record.name;
@@ -111,30 +115,43 @@ namespace vessel
 
       public:
          INT32 dump(requestContext *context,
-                    listCollectionsRecord &record);
+                    bson::BSONObj &record);
 
          INT32 insert(insertContext *context,
-                      const recordData &record,
-                      const DPS_TRANS_ID &transID,
-                      STRIPING_ID striping,
-                      const insertOptions *options,
                       utilInsertResult &res);
 
          INT32 getMoreWhenScan(scanCLContext *context,
                                scanCLCursor *cursor);
 
-         INT32 getRecordCount(requestContext *context,
-                              IQueryFilter *filter,
-                              UINT64 &count);
+         INT32 getTotalCountInRdpHead(requestContext *context,
+                                      UINT64 &count);
+
+      private:/// Used only when openning/creating.
+         INT32 initPageSequenceWhenOpen(requestContext *context);
+         INT32 initPageSequenceByRootLvL2(requestContext *context);
+         INT32 initPageSequenceByRootLvL1(requestContext *context,
+                                          UINT32 rootNo);
+         INT32 initPageSequenceByRootLvL0(requestContext *context);
+
+         /// User should always validate count and element when return SDB_OK.
+         /// Count never shrink but element may be removed.
+         INT32 getCountAndLastEleInRoutePage(requestContext *context,
+                                             UINT32 capacity,
+                                             PAGE_ID lpid,
+                                             INT32 lvl,
+                                             UINT32 &count,
+                                             PAGE_ID &element);
+
+         INT32 saveOnDiskWhenCreating(requestContext *context,
+                                      const createCLOptions &options);
 
       private:
-         INT32 getMoreFromSeqInCursor(scanCLContext *context,
-                                      scanCLCursor *cursor);
+         INT32 getMoreFromPageInCursor(scanCLContext *context,
+                                       scanCLCursor *cursor);
 
-         INT32 getRecordCountOfPage(requestContext *context,
-                                    PAGE_ID lpid,
-                                    IQueryFilter *filter,
-                                    UINT32 &count);
+         INT32 getRecordCountInPageHead(requestContext *context,
+                                        PAGE_ID lpid,
+                                        UINT32 &count);
 
       private:
          INT32 insertNonBigRecord(insertContext *context);
@@ -147,97 +164,70 @@ namespace vessel
                                      STRIPING_ID striping,
                                      fsmCandidate &candidate);
          
-         /// user should hold _pageAllocLatch first
+         /// user should hold _newPageLatch first
          INT32 allocateNewRecordDataPages(requestContext *context,
                                           UINT32 count,
-                                          CL_PAGE_SEQ &firstSeq,
+                                          UINT32 &firstSeq,
                                           PAGE_ID *lpids);
+      private:/// route page
 
-         INT32 initNewRecordDataPages(requestContext *context,
-                                      UINT32 count,
-                                      CL_PAGE_SEQ firstSeq,
-                                      const PAGE_ID *lpids,
-                                      const PAGE_ID *pids);
-
-         INT32 initPageSequenceWhenOpen(requestContext *context);
-      private:
          INT32 getLpidBySequence(requestContext *context,
-                                 CL_PAGE_SEQ sequence,
+                                 UINT32 sequence,
                                  PAGE_ID &lpid);
 
-         INT32 getPageCntOfRoutePage(requestContext *context,
-                                     BOOLEAN direct,
-                                     UINT32 capacity,
-                                     PAGE_ID lpid,
-                                     UINT32 lvl,
-                                     UINT32 &maxPageCnt,
-                                     UINT32 &pageCnt);
+         /// create new lvl0 page and insert into map.
+         INT32 extendRoutePageMap(requestContext *context);
 
-         /// user should always validate element when return SDB_OK.
-         /// invalid element means non element exists in page.
-         INT32 getLastElementInRoutePage(requestContext *context,
-                                         BOOLEAN direct,
-                                         PAGE_ID lpid,
-                                         PAGE_ID &element,
-                                         UINT32 &slot);
-
-         INT32 extendRoutePageMap(requestContext *context,
-                                  PAGE_ID *newLvl0=NULL);
-
-         INT32 createRootRoutePage(requestContext *context,
+         INT32 ensureRootRoutePage(requestContext *context,
                                    UINT32 rootSlot);
 
-         INT32 createNonRootRoutePage(requestContext *context,
-                                      PAGE_ID lpid,
-                                      UINT32 slot,
-                                      PAGE_ID &lpidOfRP);
+         INT32 createNewRoutePage(requestContext *context,
+                                  UINT32 lvl,
+                                  PAGE_ID &lpid);
 
+         /// Create new route page and insert into father.
+         INT32 createNonRootRoutePage(requestContext *context,
+                                      PAGE_ID father,
+                                      UINT32 pageLvl,
+                                      PAGE_ID &out);
+
+         /// Get the position by _totalLvl0Count and then create
+         /// lvl1 if necessary.
+         /// Root lvl2 should be created first.
          INT32 ensureNonRootLvl1RoutePage(requestContext *context,
-                                          UINT32 slot,
                                           PAGE_ID &lpid);
+
+         OSS_INLINE UINT32 getMaxLvl0Cnt(UINT32 capacity)const
+         {
+            return getMaxLvL0RoutePageCountLteRoot(capacity,
+                                                       COLLECTION_ROOT_LVL2);
+         }
+
+         /// Return total lvl0 count 
+         UINT32 getMaxLvL0RoutePageCountLteRoot(UINT32 capacity,
+                                                UINT32 maxRoot)const;
 
          INT32 getLvl0RoutePage(requestContext *context,
                                 UINT32 capacity,
                                 UINT32 lvl0No,
                                 PAGE_ID &lpid);
-         
-         INT32 createNewRoutePage(requestContext *context,
-                                  PAGE_ID &lpidOfRP,
-                                  DPS_LSN_OFFSET *lsn);
 
+         INT32 getLpidFromRoutePage(requestContext *context,
+                                    PAGE_ID routePgaeLpid,
+                                    UINT32 pos,
+                                    PAGE_ID &lpid);
+   
       private:
-         INT32 saveOnDiskWhenCreating(requestContext *context);
-
-         INT32 ensureCLRecordPageAllocated(requestContext *context,
-                                           PAGE_ID lpid,
-                                           PAGE_ID &pid);
-
-         INT32 allocatePageForCLRecord(requestContext *context,
-                                       PAGE_ID lpid,
-                                       PAGE_ID &pid);
-
-         INT32 preallocateCLRecordPage(requestContext *context,
-                                       PAGE_ID lpid,
-                                       PAGE_ID &pid);
-
-         INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID lpid);
-
-      private:
-         OSS_INLINE UINT32 getMaxLvl0Cnt(UINT32 capacity)
-         {
-            return 1 + (capacity << 1) + capacity * capacity;
-         }
+         UINT32 getDataPageSize()const;
       private:
          //ossSpinSLatch _recordLatch;
          collectionRecord _record;
-         collectionSpace *_collectionSpace;
-
-         UINT32 _maxPageCntInRoutePages;
-         UINT32 _pageCntInRoutePages;
-
+         collectionSpace *_collectionSpace = NULL;
+         UINT32 _totalLvl0Count = 0;
+         UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
-         ossSpinSLatch _ddlSLatch;
-         ossSpinXLatch _pageAllocLatch;
+         ossRWMutex _ddlLatch;
+         ossSpinXLatch _rdpCountLatch;
    };//class collection
 }//namespace vessel
 }//namespace engine

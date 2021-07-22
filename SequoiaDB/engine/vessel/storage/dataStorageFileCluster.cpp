@@ -75,7 +75,7 @@ namespace vessel
       storageFile *file = NULL;
       UINT32 fileId = 0;
       UINT32 segmentInFile = 0;
-      const storageCoreArgs &args = getCoreArgs();
+      const storageCoreArgs &args = dataPageCluster::getCoreArgs();
 
       if (OSS_UNLIKELY(!dataPageCluster::isOpen()))
       {
@@ -83,20 +83,14 @@ namespace vessel
          goto error;
       }
 
-      fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      fileId = globalSegmentId / args.maxSegmentCountPerFile;
       if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      rc = _files.get(fileId, file);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get file ptr:%d", rc);
-         goto error;
-      }
-
+      file = _files.get<storageFile>(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "file[%d] does not exist", fileId);
@@ -105,11 +99,56 @@ namespace vessel
       }
 
       segmentInFile = (globalSegmentId & (args.maxSegmentCountPerFile - 1));
-      rc = file->fsync(segmentInFile, TRUE);
+      rc = file->fsyncSegment(segmentInFile, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync segment[%d,%d], rc:%d",
                 fileId, segmentInFile, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataStorageFileCluster::fysncPage(PAGE_ID pid)const
+   {
+      INT32 rc = SDB_OK;
+      UINT32 fileId = 0;
+      PAGE_ID pidInFile = INVALID_PAGE_ID;
+      storageFile *file = NULL;
+      
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!dataPageCluster::isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      fileId = getFileIdByGlobalPageId(pid, &pidInFile);
+      if (_files.getSize() <= fileId)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      file = _files.get<storageFile>(fileId);
+      if (NULL == file)
+      {
+         PD_LOG(PDERROR, "file[%d] does not exist", fileId);
+         rc = SDB_FNE;
+         goto error;
+      }
+
+      rc = file->fsyncPage(pidInFile, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", pidInFile, rc);
          goto error;
       }
    done:
@@ -124,9 +163,6 @@ namespace vessel
       UINT32 fileId = 0;
       storageFile *file = NULL;
       PAGE_ID pidInFile = INVALID_PAGE_ID;
-      const storageCoreArgs &args = getCoreArgs();
-      SDB_ASSERT(args.isValid(), "must be valid");
-      UINT32 maxPageCountInFile = 0;
       ossValuePtr p = 0;
 
       if (OSS_UNLIKELY(!dataPageCluster::isOpen()))
@@ -140,31 +176,21 @@ namespace vessel
          goto error;
       }
 
-      fileId = ((pid >> (dataPageCluster::getBitwiseMaxPageCountPerSeg() +
-                         dataPageCluster::getBitwiseMaxSegmentPerFile()));
+      fileId = getFileIdByGlobalPageId(pid, &pidInFile);
       if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      rc = _files.get(fileId, file);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get file:%d", rc);
-         goto error;
-      }
-
+      file = _files.get<storageFile>(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "file[%d] does not exist", fileId);
-         rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+         rc = SDB_FNE;
          goto error;
       }
 
-      maxPageCountInFile = ((UINT32)1 << (dataPageCluster::getBitwiseMaxPageCountPerSeg() +
-                                          dataPageCluster::getBitwiseMaxSegmentPerFile()));
-      pidInFile = (pid & (maxPageCountInFile - 1));
       rc = file->getPagePtr(pidInFile, p);
       if (SDB_OK != rc)
       {
@@ -188,11 +214,19 @@ namespace vessel
       const storageFileCreater *creater = dataPageCluster::getCreater();
       SDB_ASSERT(NULL != creater, "can not be null");
       SDB_ASSERT(creater->isValid(), "must be valid");
+      UINT32 maxPageCount = args.getMaxPageCountInFile();
       constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
 
       storageFile *file = NULL;
       const FILE_NAME_LIST *fileList = NULL;
       constexpr UINT32 DEFAULT_CAPACITY = 16;
+
+      if (!args.isValid())
+      {
+         PD_LOG(PDERROR, "invalid core args");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       rc = _files.init(DEFAULT_CAPACITY);
       if (SDB_OK != rc)
@@ -367,7 +401,7 @@ namespace vessel
       storageFile *file = NULL;
       UINT32 minSegmentCount = 0;
       
-      UINT32 fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      UINT32 fileId = globalSegmentId / args.maxSegmentCountPerFile;
       if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
@@ -407,7 +441,7 @@ namespace vessel
          SDB_ASSERT(NULL != file, "the last file can not be null");
          if (1 < size)
          {
-            count = size * dataPageCluster::getCoreArgs().maxSegmentCountPerFile;
+            count = (size - 1) * dataPageCluster::getCoreArgs().maxSegmentCountPerFile;
          }
          count += file->getSegmentCount();
       }
@@ -462,11 +496,9 @@ namespace vessel
    INT32 dataStorageFileCluster::ensureSegmentNotSparse(UINT32 globalSegmentId)
    {
       INT32 rc = SDB_OK;
-      const storageCoreArgs &args = dataPageCluster::getCoreArgs();
-      SDB_ASSERT(args.isValid(), "can not be invalid");
       storageFile *file = NULL;
-      UINT32 minSegmentCount = 0;
-      UINT32 fileId = (globalSegmentId >> dataPageCluster::getBitwiseMaxSegmentPerFile());
+      UINT32 segmentIdInFile = 0;
+      UINT32 fileId = getFileIdByGlobalSegmentId(globalSegmentId, &segmentIdInFile);
       if (_files.getSize() <= fileId)
       {
          rc = SDB_OUT_OF_BOUND;
@@ -484,8 +516,7 @@ namespace vessel
          }
       }
 
-      minSegmentCount = (globalSegmentId & (args.maxSegmentCountPerFile - 1)) + 1;
-      rc = file->ensureSegmentCount(minSegmentCount);
+      rc = file->ensureSegmentCount(segmentIdInFile + 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure segment count:%d", rc);
@@ -638,6 +669,34 @@ namespace vessel
          SDB_OSS_DEL file;
       }
       goto done;
+   }
+
+   UINT32 dataStorageFileCluster::getFileIdByGlobalSegmentId(UINT32 globalSegment,
+                                                             UINT32 *segmentInFile)const
+   {
+      const storageCoreArgs &args = dataPageCluster::getCoreArgs();
+      SDB_ASSERT(args.isValid(), "must be valid");
+      UINT32 fileId = globalSegment / args.maxSegmentCountPerFile;
+      if (NULL != segmentInFile)
+      {
+         *segmentInFile = (globalSegment & (args.maxSegmentCountPerFile - 1));
+      }
+      return fileId;
+   }
+         
+   UINT32 dataStorageFileCluster::getFileIdByGlobalPageId(PAGE_ID pid,
+                                                          PAGE_ID *pidInFile)const
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      const storageCoreArgs &args = dataPageCluster::getCoreArgs();
+      SDB_ASSERT(args.isValid(), "must be valid");
+      UINT32 pageCountPerFile = args.getMaxPageCountInFile();
+      UINT32 fileId = pid / pageCountPerFile;
+      if (NULL != pidInFile)
+      {
+         *pidInFile = (pid & (pageCountPerFile - 1));
+      }
+      return fileId;
    }
 }//namespace vessel
 }//namespace engine

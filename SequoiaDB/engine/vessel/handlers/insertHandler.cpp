@@ -37,7 +37,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
-#include "vessel/recordData.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/insertOptions.h"
 #include "vessel/insertContext.h"
@@ -47,17 +46,18 @@ namespace engine
 namespace vessel
 {
    INT32 insertHandler::doit(const collectionHandle &handle,
-                              const recordData &record,
+                              const slice &record,
                               const DPS_TRANS_ID &transID,
                               STRIPING_ID striping,
-                              const insertOptions *options,
+                              const insertOptions &options,
                               utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       insertContext context;
-      spaceIDLockHelper lh(&context);
+      strSlice csName;
+      strSlice clName;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -77,20 +77,17 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(handle.getSpaceID(), SHARED);
+      rc = getEnv()->dms.getCSBySpaceID(&context,
+                                        handle.getSpaceID(),
+                                        handle.getCSLId(),
+                                        SHARED, &cs);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle.getSpaceID(), rc);
+         PD_LOG(PDERROR, "failed to get collection space[%d,%d], rc:%d",
+                handle.getSpaceID(), handle.getCSLId(), rc);
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context,
-                                                      handle.getCSLId(),
-                                                      &cs);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
 
       rc = cs->getCollectionByMBID(&context, handle.getMbId(),
                                    handle.getCLLId(), SHARED, &cl);
@@ -99,7 +96,15 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->insert(&context, record, transID, striping, options, res);
+      csName.reset(cs->getCSName());
+      clName.reset(cl->getName());
+      context.setCLInfo(csName, clName);
+      context.setTransID(transID);
+      context.setOptions(options);
+      context.setStriping(striping);
+      context.setOriginalRecord(record);
+
+      rc = cl->insert(&context, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;
@@ -114,7 +119,10 @@ namespace vessel
       {
          context.unlockMB();
       }
-      lh.unlock();
+      if (NULL != cs)
+      {
+         context.unlockSpaceID();
+      }
       context.close();
       return rc;
    error:

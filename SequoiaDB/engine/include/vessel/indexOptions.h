@@ -67,7 +67,7 @@ namespace vessel
 
       public:
          INDEX_TYPE type = INDEX_TYPE_LSM;
-         UINT8 btreePrefixCompressionColumns = 0;
+         UINT32 btreePrefixCompressionColumns = 0;
          BOOLEAN isUnique = FALSE;
          BOOLEAN enforeced = FALSE;
          UINT32 sortBufferSize = 64;//MB
