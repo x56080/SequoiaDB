@@ -341,7 +341,7 @@ namespace engine
                namePtr = (CHAR*)SDB_THREAD_ALLOC( _size + 1 ) ;
                if ( !namePtr )
                {
-                  goto done ;
+                  throw bad_alloc() ;
                }
                ossMemcpy( namePtr, _begin, _size ) ;
                namePtr[ _size ] = 0 ;
@@ -383,8 +383,15 @@ namespace engine
          }
          catch ( exception &e )
          {
+            if ( namePtr && namePtr != fastStr )
+            {
+               SDB_THREAD_FREE( namePtr ) ;
+               namePtr = NULL ;
+            }
+            // can not process, throw exception to caller
             PD_LOG( PDWARNING, "Failed to build field name, "
                     "occur exception %s", e.what() ) ;
+            throw e ;
          }
 
          if ( namePtr && namePtr != fastStr )
@@ -394,7 +401,6 @@ namespace engine
          }
       }
 
-   done:
       return _fieldNameCache ;
    }
 
