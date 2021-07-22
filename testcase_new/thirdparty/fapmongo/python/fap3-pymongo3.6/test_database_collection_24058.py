@@ -19,6 +19,7 @@ class TestDBCL24058( utils.TestBase ):
       self.dbName2 = 'pymongo_db_24058_2'
       self.clName1 = 'pymongo_cl_24058_1'
       self.clName2 = 'pymongo_cl_24058_2'
+      
       # 创建client，获取cl对象
       self.db1 = self.client[ self.dbName1 ]
       self.db1_cl1 = self.db1[ self.clName1 ]
@@ -33,20 +34,15 @@ class TestDBCL24058( utils.TestBase ):
    def test_db_cl( self ):
       self.auto_create_dbcl()  
       
-      self.client_list_databases()
-      self.client_list_database_names()
-      
-      self.db_list_collections()
-      self.db_list_collection_names()
-      
-      self.client_get_default_database()
+      self.client_database_names()
+      self.db_collection_names()
+      #self.client_get_default_database()
       self.client_get_database()
       
       self.db_drop_collection()
       self.cl_drop()
-      
       self.client_drop_database()
-
+      
       self.dbcl_notexist_dataOper()
    
    def tearDown( self ):
@@ -64,43 +60,30 @@ class TestDBCL24058( utils.TestBase ):
 
       # insert操作，自动创建 db / cl
       self.db1_cl1.insert_one( {'a':1} )
-      self.assertEqual( self.db1_cl1.count_documents( {} ), 1 )
+      self.assertEqual( self.db1_cl1.count( {} ), 1 )
       
       self.db2_cl1.insert_one( {'a':1} )
-      self.assertEqual( self.db2_cl1.count_documents( {} ), 1 )
+      self.assertEqual( self.db2_cl1.count( {} ), 1 )
       
       # update操作，自动创建 db / cl
       self.db1_cl2.update_one( {'a':1}, { '$set': {'_id': 1 } }, upsert = True )
-      self.assertEqual( self.db1_cl2.count_documents( {} ), 1 )
+      self.assertEqual( self.db1_cl2.count( {} ), 1 )
     
-   def client_list_databases( self ):
-      # list_databases, 列取 db
-      self.cursorSize = 0
-      for self.db in self.client.list_databases():
-         self.cursorSize += 1
-      self.assertGreaterEqual( self.cursorSize, 2)
-    
-   def client_list_database_names( self ):
-      # list_databases, 列取 db names
-      self.result = self.client.list_database_names()
+   def client_database_names( self ):
+      # 列取 db names
+      self.result = self.client.database_names()
       self.assertIn( self.dbName1, self.result )
       self.assertIn( self.dbName2, self.result )
     
-   def db_list_collections( self ):  
-      # list_collections, 列取 cl
-      self.cursorSize = 0
-      for self.db in self.db1.list_collections():
-         self.cursorSize += 1
-      self.assertEqual( self.cursorSize, 2 )
-    
-   def db_list_collection_names( self ):
-      # list_databases, 列取 db names
-      self.result = self.db1.list_collection_names()
+   def db_collection_names( self ):
+      # 列取 cl names
+      self.result = self.db1.collection_names()
       self.assertEqual( self.result, [self.clName1, self.clName2] )
       
    def client_get_default_database( self ):
       # get_default_database, 获取默认db
-      self.assertEqual( self.client.get_default_database( self.dbName1 ).name, self.dbName1 ) 
+      self.tmpClient = MongoClient('localhost/' + self.dbName1);
+      self.assertEqual( self.tmpClient.get_default_database().name, self.dbName1 ) 
       
    def client_get_database( self ):
       # get_database 获取 db
@@ -109,18 +92,18 @@ class TestDBCL24058( utils.TestBase ):
    def db_drop_collection( self ):
       # drop_collection，删除cl
       self.db1.drop_collection( self.clName1 )
-      self.result = self.db1.list_collection_names()
+      self.result = self.db1.collection_names()
       self.assertEqual( self.result, [self.clName2] )
       
    def cl_drop( self ):
       # drop 删除 cl
       self.db1_cl2.drop()
-      self.result = self.db1.list_collection_names()
+      self.result = self.db1.collection_names()
       self.assertEqual( self.result, [] )
       
    def client_drop_database( self ):
       self.client.drop_database( self.dbName2 )
-      self.result = self.client.list_database_names()
+      self.result = self.client.database_names()
       self.assertNotIn( self.dbName2, self.result )
       self.assertIn( self.dbName1, self.result )
 
@@ -128,25 +111,33 @@ class TestDBCL24058( utils.TestBase ):
       # not exist db
       self.client.drop_database( self.dbName1 )
       # find
-      for doc in self.db1_cl1.find():
-         self.assertEqual( doc, null )
-      # count_documents
       try:
-         self.db1_cl1.count_documents( {} )
+         self.db1_cl1.find( {} )
       except pymongo.errors.OperationFailure as e:
          pass
       except:
          raise
-
+      # count
+      try:
+         self.db1_cl1.count( {} )
+      except pymongo.errors.OperationFailure as e:
+         pass
+      except:
+         raise
+      
       # not exist cl
       self.db1_cl1.insert_one( {'a':1} )
       self.db1_cl1.drop()
       # find
-      for doc in self.db1_cl1.find():
-         self.assertEqual( doc, null )
-      # count_documents
       try:
-         self.db1_cl1.count_documents( {} )
+         self.db1_cl1.find( {} )
+      except bson.errors.InvalidBSON as e:
+         pass
+      except:
+         raise
+      # count
+      try:
+         self.db1_cl1.count( {} )
       except pymongo.errors.OperationFailure as e:
          pass
       except:
