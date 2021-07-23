@@ -63,6 +63,7 @@ namespace engine
       }
       /// close the old connections
       _frame.close( oldID ) ;
+      PD_LOG( PDDEBUG, "Close net frame" ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__NETRTAG_UPRT, rc );
@@ -89,6 +90,7 @@ namespace engine
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
+         PD_LOG( PDDEBUG, "Close net frame" ) ;
       }
 
    done:
@@ -115,6 +117,7 @@ namespace engine
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
+         PD_LOG( PDDEBUG, "Close net frame" ) ;
       }
 
    done:
