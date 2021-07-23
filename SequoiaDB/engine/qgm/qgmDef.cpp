@@ -71,6 +71,7 @@ namespace engine
       _ptrTable = field._ptrTable ;
       _begin = field._begin ;
       _size = field._size ;
+      _fieldNameCache.clear() ;
       return *this ;
    }
 
@@ -324,57 +325,76 @@ namespace engine
       return FALSE ;
    }
 
-   ossPoolString _qgmField::toFieldName() const
+   const ossPoolString &_qgmField::toFieldName() const
    {
-      StringBuilder ss( _size + 1 ) ;
-
-      if ( _size > 0 )
+      if ( _size > 0 && _fieldNameCache.empty() )
       {
          CHAR *namePtr = NULL ;
          CHAR fastStr[ QGM_FAST_STRING_SIZE + 1 ] = { 0 } ;
 
-         if ( _size > QGM_FAST_STRING_SIZE )
+         try
          {
-            namePtr = (CHAR*)SDB_THREAD_ALLOC( _size + 1 ) ;
-            if ( !namePtr )
-            {
-               return ossPoolString() ;
-            }
-            ossMemcpy( namePtr, _begin, _size ) ;
-            namePtr[ _size ] = 0 ;
-         }
-         else
-         {
-            ossMemcpy( fastStr, _begin, _size ) ;
-            namePtr = fastStr ;
-         }
+            StringBuilder ss( _size + 1 ) ;
 
-         INT32 pos = 0 ;
-         INT32 num = 0 ;
-         utilSplitIterator i( namePtr, '.' ) ;
-         while ( i.more() )
-         {
-            if ( 0 == pos )
+            if ( _size > QGM_FAST_STRING_SIZE )
             {
-               ++pos ;
+               namePtr = (CHAR*)SDB_THREAD_ALLOC( _size + 1 ) ;
+               if ( !namePtr )
+               {
+                  PD_LOG( PDERROR, "Failed to allocate space [%u] to "
+                          "build field name", _size + 1 ) ;
+                  throw bad_alloc() ;
+               }
+               ossMemcpy( namePtr, _begin, _size ) ;
+               namePtr[ _size ] = 0 ;
             }
             else
             {
-               ss << "." ;
+               ossMemcpy( fastStr, _begin, _size ) ;
+               namePtr = fastStr ;
             }
 
-            const CHAR *left = i.next() ;
-            if ( '$' == *left && '[' == *(left + 1) &&
-                 SDB_OK == mthConvertSubElemToNumeric( left, num ) )
+            INT32 pos = 0 ;
+            INT32 num = 0 ;
+            utilSplitIterator i( namePtr, '.' ) ;
+            while ( i.more() )
             {
-               ss << num ;
+               if ( 0 == pos )
+               {
+                  ++pos ;
+               }
+               else
+               {
+                  ss << "." ;
+               }
+
+               const CHAR *left = i.next() ;
+               if ( '$' == *left && '[' == *(left + 1) &&
+                    SDB_OK == mthConvertSubElemToNumeric( left, num ) )
+               {
+                  ss << num ;
+               }
+               else
+               {
+                  ss << left ;
+               }
             }
-            else
-            {
-               ss << left ;
-            }
+            i.finish() ;
+
+            _fieldNameCache = ss.poolStr() ;
          }
-         i.finish() ;
+         catch ( exception &e )
+         {
+            if ( namePtr && namePtr != fastStr )
+            {
+               SDB_THREAD_FREE( namePtr ) ;
+               namePtr = NULL ;
+            }
+            // can not process, throw exception to caller
+            PD_LOG( PDERROR, "Failed to build field name, "
+                    "occur exception %s", e.what() ) ;
+            throw e ;
+         }
 
          if ( namePtr && namePtr != fastStr )
          {
@@ -383,7 +403,7 @@ namespace engine
          }
       }
 
-      return ss.poolStr() ;
+      return _fieldNameCache ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMFETCHOUT_ELEMENT, "_qgmFetchOut::element" )
@@ -417,7 +437,7 @@ namespace engine
          {
             try
             {
-               ossPoolString fieldName = attr.attr().toFieldName() ;
+               const ossPoolString &fieldName = attr.attr().toFieldName() ;
                local = obj.getFieldDotted( fieldName.c_str() ) ;
                next = this->next->obj.getFieldDotted( fieldName.c_str() ) ;
             }

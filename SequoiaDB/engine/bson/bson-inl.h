@@ -1096,12 +1096,7 @@ namespace bson {
         if ( e.eoo() ) {
             const char *p = strchr(name, '.');
             if ( p ) {
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
-                ossPoolString left(name, p-name) ;
-#else
-                string left(name, p-name);
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
-                BSONObj sub = getObjectField(left.c_str());
+                BSONObj sub = getObjectField( StringData(name, p-name) );
                 return sub.isEmpty() ? BSONElement() : sub.getFieldDotted(p+1);
             }
         }
@@ -1110,6 +1105,12 @@ namespace bson {
     }
 
     inline BSONObj BSONObj::getObjectField(const char *name) const {
+        BSONElement e = getField(name);
+        BSONType t = e.type();
+        return t == Object || t == Array ? e.embeddedObject() : BSONObj();
+    }
+
+    inline BSONObj BSONObj::getObjectField( const StringData &name ) const {
         BSONElement e = getField(name);
         BSONType t = e.type();
         return t == Object || t == Array ? e.embeddedObject() : BSONObj();
