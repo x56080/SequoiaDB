@@ -450,13 +450,11 @@ namespace engine
             p += sizeof(FLOAT64) ;
             break ;
          case cint:
-            b.append(pFieldName, static_cast<SINT32>((reinterpret_cast<const
-                     PackedDouble&>(*p)).d)) ;
+            b.append(pFieldName, static_cast<SINT32>(*(FLOAT64 *)(p))) ;
             p+=sizeof(FLOAT64) ;
             break ;
          case clong:
-            b.append(pFieldName, static_cast<SINT64>((reinterpret_cast<const
-                     PackedDouble&>(*p)).d)) ;
+            b.append(pFieldName, static_cast<SINT64>(*(FLOAT64 *)(p))) ;
             p+=sizeof(FLOAT64) ;
             break ;
          default:
@@ -589,8 +587,8 @@ namespace engine
       // actually not limited to double type
       case cdouble:
       {
-         FLOAT64 L = (reinterpret_cast< const PackedDouble* >(l))->d;
-         FLOAT64 R = (reinterpret_cast< const PackedDouble* >(r))->d;
+         FLOAT64 L = *(FLOAT64 *)(l) ;
+         FLOAT64 R = *(FLOAT64 *)(r) ;
          if( L < R )
             return -1;
          if( L != R )
@@ -664,6 +662,36 @@ namespace engine
       return 0;
    }
 
+   static INT32 ixmTypeToBSONType( UINT32 ixmType )
+   {
+      switch ( ixmType )
+      {
+         case cminkey :
+            return MinKey ;
+         case cundefined :
+            return 0 ;
+         case cnull :
+            return 5 ;
+         case cdouble :
+            return 10 ;
+         case cstring :
+            return 15 ;
+         case cbindata :
+            return 30 ;
+         case coid :
+            return 35 ;
+         case cfalse :
+            return 40 ;
+         case cdate :
+            return 45 ;
+         case cmaxkey :
+            return 127 ;
+         default :
+            assert( 0 ) ;
+            return -1 ;
+      }
+   }
+
    INT32 _ixmKey::_compareHybrid ( const _ixmKey &r, const Ordering &order) const
    {
       BSONObj L = toBson();
@@ -708,6 +736,7 @@ namespace engine
 
      return 0;
    }
+
    // well ordered equal
    BOOLEAN _ixmKey::woEqual ( const _ixmKey &right ) const
    {
@@ -741,8 +770,7 @@ namespace engine
             l += sizeof(UINT64); r += sizeof(UINT64);
             break;
          case cdouble:
-            if( (reinterpret_cast< const PackedDouble* > (l))->d !=
-                (reinterpret_cast< const PackedDouble* > (r))->d )
+            if( *(FLOAT64 *)(l) != *(FLOAT64 *)(r) )
                return FALSE ;
             l += sizeof(FLOAT64); r += sizeof(FLOAT64);
             break;
@@ -843,4 +871,226 @@ namespace engine
       } while ( more ) ;
       return p - _keyData ;
    }
+
+   /*
+      _ixmKeyCache implement
+    */
+   _ixmKeyCache::_ixmKeyCache()
+   : _ixmKeyOwned()
+   {
+   }
+
+   _ixmKeyCache::~_ixmKeyCache()
+   {
+   }
+
+   void _ixmKeyCache::_convToBSON() const
+   {
+      try
+      {
+         _bsonBuilder.reset() ;
+         _toBson( _bsonBuilder ) ;
+         _bsonKey = _bsonBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON, occur exception %s",
+                 e.what() ) ;
+         _bsonBuilder.reset() ;
+         _bsonKey = BSONObj() ;
+      }
+   }
+
+   /*
+      _ixmKeyElement implement
+    */
+   INT32 _ixmKeyIterator::woCompare( const BSONElement &r ) const
+   {
+      INT32 result = 0 ;
+
+      const UINT8 *l = _offset ;
+
+      UINT32 lt = ( *l & cCANONTYPEMASK ) ;
+      INT32 lct = ixmTypeToBSONType( lt ) ;
+      result = lct - r.canonicalType() ;
+      if ( result )
+      {
+         return result ;
+      }
+      ++ l ;
+      switch ( lt )
+      {
+         case cdouble :
+         {
+            FLOAT64 L = *(FLOAT64 *)( l ) ;
+            FLOAT64 R = r.numberDouble() ;
+            if ( L < R )
+            {
+               return -1 ;
+            }
+            else if ( L != R )
+            {
+               return 1 ;
+            }
+            l += sizeof( FLOAT64 ) ;
+            break ;
+         }
+         case cstring :
+         {
+            INT32 lsz = *l ;
+            INT32 rsz = r.valuestrsize() - 1 ; // contains '\0'
+            INT32 common = OSS_MIN( lsz, rsz ) ;
+            ++ l ;
+            result = ossMemcmp( l, r.valuestr(), common ) ;
+            if ( result )
+            {
+               return result ;
+            }
+            result = lsz - rsz ;
+            if ( result )
+            {
+               return result ;
+            }
+            l += lsz ;
+            break ;
+         }
+         case cbindata :
+         {
+            INT32 lValue = *l ;
+            INT32 lLen = binDataCodeToLength( lValue ) ;
+            INT32 rLen = 0 ;
+            const CHAR *rValue = r.binData( rLen ) ;
+            result = lLen = rLen ;
+            ++ l ;
+            result = ossMemcmp( l, rValue, lLen ) ;
+            if ( result )
+            {
+               return result ;
+            }
+            l += lLen ;
+            break ;
+         }
+         case cdate :
+         {
+            INT64 lValue = *((INT64 *) l) ;
+            INT64 rValue = r.date() ;
+            if( lValue < rValue )
+            {
+               return -1 ;
+            }
+            if( lValue > rValue )
+            {
+               return 1 ;
+            }
+            l += sizeof( INT64 ) ;
+            break ;
+         }
+         case coid :
+         {
+            r.OID() ;
+            result = ossMemcmp( l, r.value(), sizeof( OID ) ) ;
+            if ( result )
+            {
+               return result ;
+            }
+            l += sizeof( OID ) ;
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+      _next = l ;
+      return 0 ;
+   }
+
+   INT32 _ixmKeyIterator::woCompare( const _ixmKeyIterator &rKey ) const
+   {
+      const UINT8 *l = _offset ;
+      const UINT8 *r = rKey._offset ;
+      INT32 x = compare( l, r ) ;
+      if ( x )
+         return x ;
+      _next = l ;
+      rKey._next = r ;
+      return 0 ;
+   }
+
+   BOOLEAN _ixmKeyIterator::hasMore() const
+   {
+      return ( NULL != _head && NULL == _offset ) ||
+             ( NULL != _offset && OSS_BIT_TEST( *_offset, cHASMORE ) ) ;
+   }
+
+   BOOLEAN _ixmKeyIterator::moveNext() const
+   {
+      if ( NULL == _offset )
+      {
+         _offset = _head ;
+      }
+      else if ( OSS_BIT_TEST( *_offset, cHASMORE ) )
+      {
+         if ( _next != NULL )
+         {
+            _offset = _next ;
+            _next = NULL ;
+         }
+         else
+         {
+            _offset = _getNext() ;
+         }
+      }
+      else
+      {
+         _offset = NULL ;
+      }
+      return NULL != _offset ;
+   }
+
+   const UINT8 *_ixmKeyIterator::_getNext() const
+   {
+      const UINT8 *l = _offset ;
+      UINT32 lt = ( *l & cCANONTYPEMASK ) ;
+      ++ l ;
+      switch ( lt )
+      {
+         case cdouble :
+         {
+            l += sizeof( FLOAT64 ) ;
+            break ;
+         }
+         case cstring :
+         {
+            INT32 lsz = *l ;
+            ++ l ;
+            l += lsz ;
+            break ;
+         }
+         case cbindata :
+         {
+            INT32 lValue = *l ;
+            INT32 lLen = binDataCodeToLength( lValue ) ;
+            ++ l ;
+            l += lLen ;
+            break ;
+         }
+         case cdate :
+         {
+            l += sizeof( INT64 ) ;
+            break ;
+         }
+         case coid :
+         {
+            l += sizeof( OID ) ;
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+      return l ;
+   }
+
 }

@@ -79,7 +79,11 @@ namespace engine
       virtual void            disableByType( IXScannerType type ) ;
       virtual INT32           getLockModeByType( IXScannerType type ) const ;
 
-      virtual const BSONObj*  getCurKeyObj() const { return &_curKeyObj ; }
+      virtual const BSONObj*  getCurKeyObj() const
+      {
+         return &( _curKey.getBSONObj() ) ;
+      }
+
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
@@ -121,9 +125,7 @@ namespace engine
       BSONObj                  _savedObj ;
       dmsRecordID              _savedRID ;
 
-      BSONObj                  _curKeyObj ;
-
-      BufBuilder               _builder ;
+      ixmKeyCache              _curKey ;
    } ;
    typedef class _rtnDiskIXScanner rtnDiskIXScanner ;
 

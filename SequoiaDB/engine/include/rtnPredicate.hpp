@@ -46,6 +46,9 @@
 #include <string>
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
+#if defined ( SDB_ENGINE )
+#include "ixmKey.hpp"
+#endif
 
 using namespace bson ;
 using namespace std ;
@@ -727,6 +730,13 @@ namespace engine
          INT32 matchingLowElement ( const BSONElement &e, INT32 i,
                                     BOOLEAN direction,
                                     BOOLEAN &lowEquality ) const ;
+#if defined ( SDB_ENGINE )
+         INT32 matchingLowElement( const ixmKeyIterator &e,
+                                   INT32 i,
+                                   BOOLEAN direction,
+                                   BOOLEAN &lowEquality ) const ;
+#endif
+
          BOOLEAN matchesElement ( const BSONElement &e, INT32 i,
                                   BOOLEAN direction ) const ;
 
@@ -765,6 +775,9 @@ namespace engine
    public :
       _rtnPredicateListIterator ( const rtnPredicateList &predList ) ;
       INT32 advance ( const BSONObj &curr ) ;
+#if defined ( SDB_ENGINE )
+      INT32 advance ( const ixmKeyCache &curr ) ;
+#endif
       const VEC_ELE_CMP &cmp() const { return _cmp ; }
       const VEC_BOOLEAN &inc() const { return _inc ; }
       void reset() ;
@@ -776,6 +789,13 @@ namespace engine
                                           const BSONElement &currElt,
                                           BOOLEAN reverse,
                                           BOOLEAN &hitUpperInclusive ) ;
+#if defined ( SDB_ENGINE )
+      rtnPredicateCompareResult
+            validateCurrentStartStopKey ( INT32 keyIdx,
+                                          const ixmKeyIterator &currElt,
+                                          BOOLEAN reverse,
+                                          BOOLEAN &hitUpperInclusive ) ;
+#endif
       INT32 advanceToLowerBound ( INT32 i ) ;
       INT32 advancePast ( INT32 i ) ;
       INT32 advancePastZeroed ( INT32 i ) ;

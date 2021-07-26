@@ -146,12 +146,101 @@ namespace engine
       _ixmKeyOwned ( const _ixmKey &r ) ;
       // make empty key
       _ixmKeyOwned () {_keyData = NULL; }
-   private:
+   protected:
       StackBufBuilder _b ;
       // create standard BSON object as key
       void _traditional ( const BSONObj &obj ) ;
    } ;
    typedef class _ixmKeyOwned ixmKeyOwned ;
+
+   /*
+      _ixmKeyCache define
+    */
+   class _ixmKeyCache : public _ixmKeyOwned
+   {
+   private:
+      // disable copy
+      void operator =( const _ixmKeyCache & ) ;
+
+   public:
+      _ixmKeyCache() ;
+      ~_ixmKeyCache() ;
+
+      void reset()
+      {
+         _b.reset() ;
+         _keyData = NULL ;
+         _bsonBuilder.reset() ;
+         _bsonKey = BSONObj() ;
+      }
+
+      const BSONObj &getBSONObj() const
+      {
+         if ( _bsonKey.isEmpty() )
+         {
+            _convToBSON() ;
+         }
+         return _bsonKey ;
+      }
+
+      void setBSONObj( const BSONObj &obj )
+      {
+         SDB_ASSERT( !obj.isEmpty(), "invalid BSON object" ) ;
+         reset() ;
+         _bsonKey = obj ;
+      }
+
+      void setKey( const _ixmKey &key )
+      {
+         reset() ;
+         _b.appendBuf( key.data(), key.dataSize() ) ;
+         _keyData = (const UINT8 *)( _b.buf() ) ;
+      }
+
+   protected:
+      void _convToBSON() const ;
+
+   public:
+      mutable bson::BSONObjBuilder _bsonBuilder ;
+      mutable bson::BSONObj        _bsonKey ;
+   } ;
+
+   typedef class _ixmKeyCache ixmKeyCache ;
+
+   /*
+      _ixmKeyElement define
+    */
+   class _ixmKeyIterator : public SDBObject
+   {
+   public:
+      _ixmKeyIterator( const _ixmKey &key )
+      : _head( (const UINT8 *)( key.data() ) ),
+        _offset( NULL ),
+        _next( NULL )
+      {
+      }
+
+      ~_ixmKeyIterator()
+      {
+      }
+
+      INT32 woCompare( const BSONElement &r ) const ;
+      INT32 woCompare( const _ixmKeyIterator &rKey ) const ;
+
+      BOOLEAN moveNext() const ;
+      BOOLEAN hasMore() const ;
+
+   protected:
+      const UINT8 *_getNext() const ;
+
+   protected:
+      const UINT8 *_head ;
+      mutable const UINT8 * _offset ;
+      mutable const UINT8 * _next ;
+   } ;
+
+   typedef class _ixmKeyIterator ixmKeyIterator ;
+
 }
 
 #endif

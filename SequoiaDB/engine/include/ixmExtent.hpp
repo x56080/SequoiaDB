@@ -223,6 +223,14 @@ namespace engine
                        INT32 direction,
                        ixmRecordID &bestIxmRID,
                        dmsExtentID &resultExtent, _pmdEDUCB *cb ) const ;
+      INT32 _keyFind ( UINT16 low, UINT16 high, const ixmKeyCache &prevKey,
+                       INT32 keepFieldsNum, BOOLEAN skipToNext,
+                       const VEC_ELE_CMP &matchEle,
+                       const VEC_BOOLEAN &matchInclusive,
+                       const Ordering &o,
+                       INT32 direction,
+                       ixmRecordID &bestIxmRID,
+                       dmsExtentID &resultExtent, _pmdEDUCB *cb ) const ;
    public:
       // currentKey is the key from current disk location that trying to
       // be matched
@@ -244,6 +252,15 @@ namespace engine
                              const VEC_ELE_CMP &matchEle,
                              const VEC_BOOLEAN &matchInclusive,
                              const Ordering &o, INT32 direction ) ;
+
+      static INT32 _keyCmp( const ixmKey &currentKey,
+                            const ixmKeyCache &prevKey,
+                            INT32 keepFieldsNum,
+                            BOOLEAN skipToNext,
+                            const VEC_ELE_CMP &matchEle,
+                            const VEC_BOOLEAN &matchInclusive,
+                            const Ordering &o,
+                            INT32 direction ) ;
 
    public:
       // create new extent id without parent
@@ -445,11 +462,30 @@ namespace engine
                         const VEC_BOOLEAN &matchInclusive,
                         const Ordering &o, INT32 direction,
                         _pmdEDUCB *cb ) const ;
+      INT32 keyLocate ( ixmRecordID &rid,
+                        const ixmKeyCache &prevKey,
+                        INT32 keepFieldsNum,
+                        BOOLEAN skipToNext,
+                        const VEC_ELE_CMP &matchEle,
+                        const VEC_BOOLEAN &matchInclusive,
+                        const Ordering &o,
+                        INT32 direction,
+                        _pmdEDUCB *cb ) const ;
+
       INT32 keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
                          INT32 keepFieldsNum, BOOLEAN skipToNext,
                          const VEC_ELE_CMP &matchEle,
                          const VEC_BOOLEAN &matchInclusive,
                          const Ordering &o, INT32 direction,
+                         _pmdEDUCB *cb ) const ;
+      INT32 keyAdvance ( ixmRecordID &rid,
+                         const ixmKeyCache &prevKey,
+                         INT32 keepFieldsNum,
+                         BOOLEAN skipToNext,
+                         const VEC_ELE_CMP &matchEle,
+                         const VEC_BOOLEAN &matchInclusive,
+                         const Ordering &o,
+                         INT32 direction,
                          _pmdEDUCB *cb ) const ;
       INT32 dumpIndexExtentIntoLog() const ;
    } ;

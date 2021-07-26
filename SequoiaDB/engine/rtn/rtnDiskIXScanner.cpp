@@ -234,7 +234,7 @@ namespace engine
          // same
          dmsExtentID rootExtent = _indexCB->getRoot() ;
          ixmExtent root ( rootExtent, _su->index() ) ;
-         rc = root.keyLocate ( _curIndexRID, BSONObj(), 0, FALSE,
+         rc = root.keyLocate ( _curIndexRID, _curKey, 0, FALSE,
                                _listIterator.cmp(), _listIterator.inc(),
                                _order, _direction, _cb ) ;
          if ( rc )
@@ -366,8 +366,7 @@ namespace engine
             // get the key from index rid
             try
             {
-               _builder.reset();
-               _curKeyObj = ixmKey(dataBuffer).toBson( &_builder ) ;
+               _curKey.setKey( ixmKey( dataBuffer ) ) ;
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
             }
             catch ( std::exception &e )
@@ -379,7 +378,7 @@ namespace engine
                              _curIndexRID._slot, e.what() ) ;
             }
             // compare the key in list iterator
-            rc = _listIterator.advance ( _curKeyObj ) ;
+            rc = _listIterator.advance ( _curKey ) ;
             // if -2, that means we hit end of iterator, so all other keys in
             // index are not within our select range
             if ( -2 == rc )
@@ -392,7 +391,7 @@ namespace engine
             else if ( rc >= 0 )
             {
                lastRID = _curIndexRID ;
-               rc = indexExtent.keyAdvance ( _curIndexRID, _curKeyObj, rc,
+               rc = indexExtent.keyAdvance ( _curIndexRID, _curKey, rc,
                                              _listIterator.after(),
                                              _listIterator.cmp(),
                                              _listIterator.inc(),
@@ -434,7 +433,7 @@ namespace engine
                // if we are write mode, let's record the _savedObj as well
                if ( !isReadonly() )
                {
-                  _savedObj = _curKeyObj.getOwned() ;
+                  _savedObj = _curKey.getBSONObj().getOwned() ;
                }
                // otherwise if we are read mode, let's reset _savedRID
                else
@@ -468,7 +467,7 @@ namespace engine
          rid.reset() ;
 
          PD_LOG( PDDEBUG, "Hit end with last obj(%s)",
-                 _curKeyObj.toString().c_str() ) ;
+                 _curKey.getBSONObj().toPoolString().c_str() ) ;
       }
       PD_TRACE_EXITRC( SDB__RTNDISKIXSCAN_ADVANCE, rc ) ;
       return rc ;
@@ -487,7 +486,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_PAUSESCAN ) ;
 
-      if ( !_init || _curIndexRID.isNull() )
+      if ( !_init || _curIndexRID.isNull() || _eof )
       {
          goto done ;
       }
@@ -546,7 +545,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_RESUMESCAN ) ;
       BOOLEAN isSame = TRUE ;
 
-      _curKeyObj = BSONObj() ;
+      _curKey.reset() ;
 
       if ( !_indexCB )
       {
@@ -588,7 +587,7 @@ namespace engine
       }
       if ( isSame )
       {
-         _curKeyObj = _savedObj ;
+         _curKey.setBSONObj( _savedObj ) ;
       }
 
       if ( !isReadonly() )
@@ -624,7 +623,7 @@ namespace engine
          if ( isSame )
          {
             _savedRID.reset() ;
-            _curKeyObj = _savedObj ;
+            _curKey.setBSONObj( _savedObj ) ;
          }
       }
 

@@ -594,8 +594,10 @@ namespace engine
       // first round or we don't have tree latch. There are special boundary
       // case in IXSec scan where we may call pause scan twice, the second
       // pause may become no op due to the treeLatch held condition.
-      if ( !_init || !_treeLatchHeld ||
-           !_memIdxTree->isPosValid( _curIndexPos ) )
+      if ( !_init ||
+           !_treeLatchHeld ||
+           !_memIdxTree->isPosValid( _curIndexPos ) ||
+           _eof )
       {
          goto done ;
       }

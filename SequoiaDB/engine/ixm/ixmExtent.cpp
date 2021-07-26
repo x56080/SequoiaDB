@@ -2321,6 +2321,108 @@ namespace engine
       return retCode ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_IXMEXT__KEYCMP_KEY, "_ixmExtent::_keyCmp" )
+   INT32 _ixmExtent::_keyCmp( const ixmKey &currentKey,
+                              const ixmKeyCache &prevKey,
+                              INT32 keepFieldsNum,
+                              BOOLEAN skipToNext,
+                              const VEC_ELE_CMP &matchEle,
+                              const VEC_BOOLEAN &matchInclusive,
+                              const Ordering &o,
+                              INT32 direction )
+   {
+      INT32 retCode = 0 ;
+
+      PD_TRACE_ENTRY ( SDB_IXMEXT__KEYCMP_KEY ) ;
+
+      if ( currentKey.isCompactFormat() &&
+           ( 0 == keepFieldsNum || prevKey.isCompactFormat() ) )
+      {
+
+         ixmKeyIterator ll ( currentKey ) ;
+         VEC_ELE_CMP::const_iterator eleItr = matchEle.begin() ;
+         VEC_BOOLEAN ::const_iterator incItr = matchInclusive.begin() ;
+         UINT32 mask = 1 ;
+
+         if ( keepFieldsNum > 0 )
+         {
+            ixmKeyIterator rr ( prevKey ) ;
+            // match keepFieldsNum fields
+            for ( INT32 i = 0 ; i < keepFieldsNum ; ++ i, mask <<= 1 )
+            {
+               ll.moveNext() ;
+               rr.moveNext() ;
+               // skip those fields since we don't want to match them from
+               // startstopkey iterator
+               ++eleItr ;
+               ++incItr ;
+               INT32 result = ll.woCompare( rr ) ;
+               if ( result )
+               {
+                  if ( o.descending( mask ) )
+                  {
+                     result = -result ;
+                  }
+                  retCode = result ;
+                  goto done ;
+               }
+            }
+         }
+
+         // if all the keepFieldsNum fields got matched, let's see if we want to
+         // simply skip to next key, if so we don't need to match all other
+         // elements
+         // if that happen, the return value should be -direction, since we want to
+         // return -1 if searching forward, otherwise return 1
+         if ( skipToNext )
+         {
+            retCode = -direction ;
+            goto done ;
+         }
+
+         // if all keepFieldsNum fields got matched, and we want to further match
+         // startstopkey iterator, let's move on
+         while ( ll.hasMore() )
+         {
+            // curEle is always get from current key
+            ll.moveNext() ;
+            // now let's get the expected element from startstopkey iterator
+            BSONElement prevEle = **eleItr ;
+            INT32 result = ll.woCompare ( prevEle ) ;
+            if ( o.descending ( mask ))
+               result = -result ;
+            if ( result )
+            {
+               retCode = result ;
+               goto done ;
+            }
+            // when getting here, that means the key matches expectation, then
+            // let's see if we want inclusive predicate. If not we need to return
+            // the negative of direction ( -1 for forward scan, otherwise 1 )
+            if ( !*incItr )
+            {
+               retCode = -direction ;
+               goto done ;
+            }
+            // when get here, it means key match AND inclusive
+            ++ eleItr ;
+            ++ incItr ;
+            mask <<= 1 ;
+         }
+      }
+      else
+      {
+         retCode = _keyCmp( currentKey.toBson(),
+                            0 == keepFieldsNum ? BSONObj() : prevKey.getBSONObj(),
+                            keepFieldsNum, skipToNext, matchEle, matchInclusive,
+                            o, direction ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_IXMEXT__KEYCMP_KEY, retCode ) ;
+      return retCode ;
+   }
+
    // bestIxmRID and resultExtent are the output
    // if rresultExtent != DMS_INVALID_EXTENT, it means there's child extent for
    // the best matched key and we should further dig into that node
@@ -2399,6 +2501,86 @@ namespace engine
       } // while ( TRUE )
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__KEYFIND, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__KEYFIND_IXM, "_ixmExtent::_keyFind" )
+   INT32 _ixmExtent::_keyFind ( UINT16 l, UINT16 h, const ixmKeyCache &prevKey,
+                                INT32 keepFieldsNum, BOOLEAN skipToNext,
+                                const VEC_ELE_CMP &matchEle,
+                                const VEC_BOOLEAN &matchInclusive,
+                                const Ordering &o, INT32 direction,
+                                ixmRecordID &bestIxmRID,
+                                dmsExtentID &resultExtent, _pmdEDUCB *cb ) const
+   {
+      SINT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__IXMEXT__KEYFIND_IXM );
+      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      SDB_ASSERT ( l <= h, "low must be less than high" ) ;
+      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+
+      INT32 low = ( INT32 )l ;
+      INT32 high = ( INT32 )h ;
+      INT32 m = 0 ;
+      BufBuilder builder;
+
+      while ( TRUE )
+      {
+         if ( low > high )
+         {
+            INT32 tmpSlot = direction > 0 ? low : high ;
+            if ( tmpSlot < (INT32)l || tmpSlot > (INT32)h )
+            {
+               bestIxmRID.reset() ;
+            }
+            else
+            {
+               bestIxmRID._extent = _me ;
+               bestIxmRID._slot = tmpSlot ;
+            }
+            resultExtent = getChildExtentID( low ) ;
+            goto done ;
+         }
+         // no need to worry about 16 bit overflow, since each page is only
+         // 65536 and each key slot will always > 2 bytes, so h+l won't hit
+         // 0xFFFF
+         m = ( low + high ) / 2 ;
+         const CHAR *data = getKeyData ( m ) ;
+         if ( !data )
+         {
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key", m ) ;
+            dumpIndexExtentIntoLog () ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         builder.reset();
+         INT32 r = _keyCmp ( ixmKey( data ), prevKey, keepFieldsNum,
+                             skipToNext, matchEle, matchInclusive, o, direction);
+         if ( r < 0 )
+         {
+            low = m + 1 ;
+         }
+         else if ( r > 0 )
+         {
+            high = m - 1 ;
+         }
+         else
+         {
+            if ( direction < 0 )
+            {
+               low = m + 1 ;
+            }
+            else
+            {
+               high = m - 1 ;
+            }
+         }
+      } // while ( TRUE )
+   done :
+      PD_TRACE_EXITRC ( SDB__IXMEXT__KEYFIND_IXM, rc );
       return rc ;
    error :
       goto done ;
@@ -2592,6 +2774,175 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYLOCATE_IXM, "_ixmExtent::keyLocate" )
+   INT32 _ixmExtent::keyLocate ( ixmRecordID &rid,
+                                 const ixmKeyCache &prevKey,
+                                 INT32 keepFieldsNum,
+                                 BOOLEAN skipToNext,
+                                 const VEC_ELE_CMP &matchEle,
+                                 const VEC_BOOLEAN &matchInclusive,
+                                 const Ordering &o,
+                                 INT32 direction,
+                                 _pmdEDUCB *cb ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__IXMEXT_KEYLOCATE_IXM );
+      UINT16 l, h, z ;
+      const CHAR *data = NULL ;
+      INT32 result ;
+      dmsExtentID childExtentID ;
+      SDB_ASSERT ( direction == 1 || direction == -1, "direction must be "
+                   "either 1 or -1" ) ;
+      // empty root?
+      if ( 0 == getNumKeyNode() )
+      {
+         rid.reset() ;
+         goto done ;
+      }
+
+      // keep going until find the smallest/biggest target
+      l = 0 ;
+      h = getNumKeyNode() - 1 ;
+      // when direction = 1, z = 0
+      // when direction = -1, z = h
+      z = (1-direction)/2*h ;
+      data = getKeyData ( z ) ;
+      if ( !data )
+      {
+         PD_LOG ( PDERROR, "slot %d doesn't have matching key", z ) ;
+         dumpIndexExtentIntoLog () ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // first let's compare the extream condition for first or last record
+      // (depends on forward or backward scan)
+      result = _keyCmp ( ixmKey( data ), prevKey, keepFieldsNum,
+                         skipToNext, matchEle, matchInclusive, o, direction ) ;
+      // if we search forward and first key is greater than expected, or if we
+      // search backward and last key is smaller than expected, let's go down
+      // a tree level and continue search if possible
+
+      // if we want to exam the one before first ( in forward search ), or the
+      // one after last ( in backward search )
+      if ( direction * result >= 0 )
+      {
+         // set best match here. This part should be done here since the first
+         // key in this page is less than expected in forward phase ( or greater
+         // than expected in backward phase), so this key will be a better match
+         rid._extent = _me ;
+         rid._slot   = z ;
+         if ( direction > 0 )
+         {
+            // for forward scan, this code path means the requested key is
+            // smaller than the lowest
+            childExtentID = getChildExtentID(0) ;
+         }
+         else
+         {
+            // for backward scan, this code path means the requested key is
+            // greater than the last
+            childExtentID = _extentHead->_right ;
+         }
+         // is child exist? if not let's just return the best match
+         if ( DMS_INVALID_EXTENT != childExtentID )
+         {
+            // otherwise get the child and recursively call keyLocate
+            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                        matchEle, matchInclusive, o, direction,
+                                        cb );
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
+                        childExtentID ) ;
+               goto error ;
+            }
+         }
+         goto done ;
+      }
+
+      // now let's check another extream condition, that the last and first key
+      // in the page for forward and backward condition
+      data = getKeyData( h-z ) ;
+      if ( !data )
+      {
+         PD_LOG ( PDERROR, "slot %d doesn't have matching key", z ) ;
+         dumpIndexExtentIntoLog () ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // first let's compare the extream condition for first or last record
+      // (depends on forward or backward scan)
+      result = _keyCmp ( ixmKey( data ), prevKey, keepFieldsNum,
+                         skipToNext, matchEle, matchInclusive, o, direction ) ;
+      // if we search forward and last key is less than expected, or if we
+      // search backward and first key is greater than expected, let's go down
+      // a tree level and continue search if possible
+      if ( direction * result < 0 )
+      {
+         // in this case, be careful we shouldn't overwrite rid as it's less than
+         // our expect in forward phase ( or greater than our expect in backward
+         // phase ), so we should go into the child if exist. If no child exist
+         // let's simply return without touching rid
+         // get child
+         if ( direction > 0 )
+         {
+            // for forward scan, this code path means the requested key is
+            // greater than the largest
+            childExtentID = _extentHead->_right ;
+         }
+         else
+         {
+            // for backward scan, this code path means the requested key is
+            // smaller than the lowest
+            childExtentID = getChildExtentID(0) ;
+         }
+         // is child exist? if not let's just return the best match
+         if ( DMS_INVALID_EXTENT != childExtentID )
+         {
+            // otherwise get the child and recursively call keyLocate
+            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                        matchEle, matchInclusive, o, direction,
+                                        cb );
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
+                        childExtentID ) ;
+               goto error ;
+            }
+         }
+         goto done ;
+      }
+
+      // otherwise the key must fall in this page
+      rc = _keyFind ( l, h, prevKey, keepFieldsNum, skipToNext, matchEle,
+                      matchInclusive, o, direction, rid, childExtentID, cb ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to run keyFind from extent %d", _me ) ;
+         goto error ;
+      }
+      if ( DMS_INVALID_EXTENT != childExtentID )
+      {
+         ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+         rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                     matchEle, matchInclusive, o, direction,
+                                     cb ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
+                     childExtentID ) ;
+            goto error ;
+         }
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB__IXMEXT_KEYLOCATE_IXM, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // get the rid for the smallest/greatest key matching prevKey (forward and
    // backward scan), if there's no such thing exist, rid is reset.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYADVANCE, "_ixmExtent::keyAdvance" )
@@ -2715,6 +3066,135 @@ namespace engine
       }
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_KEYADVANCE, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYADVANCE_IXM, "_ixmExtent::keyAdvance" )
+   INT32 _ixmExtent::keyAdvance( ixmRecordID &rid,
+                                 const ixmKeyCache &prevKey,
+                                 INT32 keepFieldsNum,
+                                 BOOLEAN skipToNext,
+                                 const VEC_ELE_CMP &matchEle,
+                                 const VEC_BOOLEAN &matchInclusive,
+                                 const Ordering &o,
+                                 INT32 direction,
+                                 _pmdEDUCB *cb ) const
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__IXMEXT_KEYADVANCE_IXM );
+      UINT16 l = 0, h = 0 ;
+      BOOLEAN currentLevel = FALSE ;
+      dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
+      dmsExtentID parentExtentID = DMS_INVALID_EXTENT ;
+      const CHAR *data = NULL ;
+
+      // first let's compare the last/first item (forward and backward scan)
+      // with the expect key
+      if ( direction > 0 )
+      {
+         // for forward scan, compare if the latest key is greater than the
+         // target
+         l = rid.isNull()?(0):rid._slot ;
+         h = getNumKeyNode() - 1 ;
+         data = getKeyData( h ) ;
+         if ( !data )
+         {
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key", h ) ;
+            dumpIndexExtentIntoLog () ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         currentLevel = ( _keyCmp( ixmKey( data ), prevKey,
+                                   keepFieldsNum, skipToNext, matchEle,
+                                   matchInclusive, o, direction) >= 0 ) ;
+      }
+      else
+      {
+         // for backward scan, compare if the first key is smaller than the
+         // target
+         l = 0 ;
+         h = rid.isNull()?(getNumKeyNode()-1):rid._slot ;
+         data = getKeyData ( l ) ;
+         if ( !data )
+         {
+            PD_LOG ( PDERROR, "slot %d doesn't have matching key", l ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         currentLevel = ( _keyCmp( ixmKey( data ), prevKey,
+                                   keepFieldsNum, skipToNext, matchEle,
+                                   matchInclusive, o, direction) <= 0 ) ;
+      }
+      // if the latest/first key is greater/smaller than the target, that means
+      // we don't need to traversal up. So let's simply call keyFind in the
+      // current level
+      // if keyFind get us a slot without child, that's our target then.
+      // Otherwise we have to keep going to drill down
+      if ( currentLevel )
+      {
+         rc = _keyFind ( l, h, prevKey, keepFieldsNum, skipToNext,
+                         matchEle, matchInclusive, o, direction,
+                         rid, childExtentID, cb ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to keyFind in extent %d", _me ) ;
+            goto error ;
+         }
+
+         if ( DMS_INVALID_EXTENT == childExtentID )
+         {
+            goto done ;
+         }
+         else
+         {
+            ixmExtent childExtent ( childExtentID, _pIndexSu ) ;
+            rc = childExtent.keyLocate ( rid, prevKey, keepFieldsNum,
+                                         skipToNext, matchEle,
+                                         matchInclusive, o, direction, cb ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to keyLocate in extent %d",
+                        childExtentID ) ;
+               goto error ;
+            }
+         }
+      }
+      else if ( (parentExtentID = getParent()) != DMS_INVALID_EXTENT )
+      {
+         // we need to go up, so let's first reset rid
+         rid.reset() ;
+         // if we get here, that means the target is greater or smaller than
+         // latest/first key (forward and backward). That means the key is not
+         // within the current node, and we should traversal up
+         ixmExtent parentExtent ( parentExtentID, _pIndexSu ) ;
+         rc = parentExtent.keyAdvance ( rid, prevKey, keepFieldsNum,
+                                        skipToNext, matchEle, matchInclusive,
+                                        o, direction, cb ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to keyAdvance in extent %d",
+                     parentExtentID ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         // we have to reset rid here, so that if there's no further keys
+         // in index scan let's return NULL
+         rid.reset() ;
+         // if we are root?
+         rc = keyLocate ( rid, prevKey, keepFieldsNum, skipToNext, matchEle,
+                          matchInclusive, o, direction, cb ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to keyLocate in extent %d", _me ) ;
+            goto error ;
+         }
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB__IXMEXT_KEYADVANCE_IXM, rc );
       return rc ;
    error :
       goto done ;

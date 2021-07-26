@@ -3117,6 +3117,85 @@ namespace engine
       PD_TRACE_EXIT ( SDB__RTNPREDLIST_MATLOWELE ) ;
       return l ;
    }
+
+#if defined ( SDB_ENGINE )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE_IXM, "_rtnPredicateList::matchingLowElement" )
+   INT32 _rtnPredicateList::matchingLowElement( const ixmKeyIterator &e,
+                                                INT32 i,
+                                                BOOLEAN direction,
+                                                BOOLEAN &lowEquality ) const
+   {
+      PD_TRACE_ENTRY ( SDB__RTNPREDLIST_MATLOWELE_IXM ) ;
+      lowEquality = FALSE ;
+      INT32 l = -1 ;
+      // since each element got start and stop key, so we use *2 to double the
+      // scan range
+      INT32 h = _predicates[i]._startStopKeys.size() * 2 ;
+      INT32 m = 0 ;
+      // loop until l=h-1, in one start/stop key scenario, we start from l=-1,
+      // h=2
+      // in matching case, l should be 0,2,4,6,8, etc... which indicate the
+      // matching range between l and h
+      // when not match, l should be 1,3,5,7, etc... which indicate the
+      // unmatching range between previous stopKey and next startKey
+      while ( l + 1 < h )
+      {
+         m = ( l + h ) / 2 ;
+         BSONElement toCmp ;
+         BOOLEAN toCmpInclusive ;
+         const rtnStartStopKey &startstopkey=_predicates[i]._startStopKeys[m/2];
+         // even number means startKey
+         if ( 0 == m%2 )
+         {
+            toCmp = startstopkey._startKey._bound ;
+            toCmpInclusive = startstopkey._startKey._inclusive ;
+         }
+         else
+         {
+            toCmp = startstopkey._stopKey._bound ;
+            toCmpInclusive = startstopkey._stopKey._inclusive ;
+         }
+         // compare the input and key
+         INT32 result = -1 * e.woCompare( toCmp ) ;
+         // for backward scan we reverse the result
+         if ( !direction )
+            result = -result ;
+         // key smaller than input, scan up
+         if ( result < 0 )
+            l = m ;
+         // key larger than iniput, scan down
+         else if ( result > 0 )
+            h = m ;
+         // if we get exact match
+         else
+         {
+            // match the start key
+            if ( 0 == m%2 )
+               lowEquality = TRUE ;
+            // if we got startKey match and it's inclusive, then we are okay
+            // (return even number, match case)
+            // but if it's not inclusive, we should return the one before it (
+            // return odd number, means out of range)
+            // if we got stopKey match and it's inclusive, we should return the
+            // one before it (return even number, means match)
+            // otherwise we dont' change ( return odd number, out of range )
+            INT32 ret = m ;
+            if ((0 == m%2 && !toCmpInclusive) ||
+                (1 == m%2 && toCmpInclusive))
+            {
+               --ret ;
+            }
+            PD_TRACE1 ( SDB__RTNPREDLIST_MATLOWELE_IXM, PD_PACK_INT ( ret ) ) ;
+            PD_TRACE_EXIT ( SDB__RTNPREDLIST_MATLOWELE_IXM ) ;
+            return ret ;
+         }
+      }
+      PD_TRACE1 ( SDB__RTNPREDLIST_MATLOWELE_IXM, PD_PACK_INT ( l ) ) ;
+      PD_TRACE_EXIT ( SDB__RTNPREDLIST_MATLOWELE_IXM ) ;
+      return l ;
+   }
+#endif
+
    BOOLEAN _rtnPredicateList::matchesElement ( const BSONElement &e, INT32 i,
                                                BOOLEAN direction ) const
    {
@@ -3259,6 +3338,62 @@ namespace engine
       PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_VALCURSSKEY ) ;
       return re ;
    }
+
+#if defined ( SDB_ENGINE )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_VALCURSSKEY_IXM, "_rtnPredicateListIterator::validateCurrentStartStopKey" )
+   rtnPredicateCompareResult
+     _rtnPredicateListIterator::validateCurrentStartStopKey ( INT32 keyIdx,
+                                                const ixmKeyIterator &currElt,
+                                                BOOLEAN reverse,
+                                                BOOLEAN &hitUpperInclusive )
+   {
+      PD_TRACE_ENTRY ( SDB__RTNPREDLISTITE_VALCURSSKEY_IXM ) ;
+      rtnPredicateCompareResult re = MATCH ;
+      hitUpperInclusive = FALSE ;
+      const rtnStartStopKey &key =_predList._predicates[keyIdx]._startStopKeys [
+                                         _currentKey[keyIdx]] ;
+      INT32 upperMatch = -1 * currElt.woCompare( key._stopKey._bound ) ;
+      if ( reverse )
+         upperMatch = -upperMatch ;
+      // element matches stop key and it's inclusive
+      if ( upperMatch == 0 && key._stopKey._inclusive )
+      {
+         hitUpperInclusive = TRUE ;
+         // it's a match with stop key
+         re = MATCH ;
+         goto done ;
+      }
+      // upperMatch < 0 means the stopKey is smaller than currElt, which means
+      // currElt is greater than the range
+      if ( upperMatch <= 0 )
+      {
+         // if it's larger than stopkey, or same but not inclusive
+         re = GREATER ;
+         goto done ;
+      }
+      {
+         INT32 lowerMatch = -1 * currElt.woCompare( key._startKey._bound ) ;
+         if ( reverse )
+            lowerMatch = -lowerMatch ;
+         // element matches start key
+         if ( lowerMatch == 0 && key._startKey._inclusive )
+         {
+            re = MATCH ;
+            goto done ;
+         }
+         // lowerMatch > 0 means the startKey is gerater than currElt, which means
+         // currElt is smaller than the range
+         if ( lowerMatch >= 0 )
+         {
+            // if it's less than startkey, or same but not inclusive
+            re = LESS ;
+         }
+      }
+   done :
+      PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_VALCURSSKEY_IXM ) ;
+      return re ;
+   }
+#endif
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_RESET, "_rtnPredicateListIterator::reset" )
    void _rtnPredicateListIterator::reset ()
@@ -3513,5 +3648,203 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__RTNPREDLISTITE_ADVANCE, rc ) ;
       return rc ;
    }
+
+#if defined ( SDB_ENGINE )
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_ADVANCE_IXM, "_rtnPredicateListIterator::advance" )
+   INT32 _rtnPredicateListIterator::advance ( const ixmKeyCache &curr )
+   {
+      INT32 rc = -1 ;
+      PD_TRACE_ENTRY ( SDB__RTNPREDLISTITE_ADVANCE_IXM ) ;
+
+      if ( !curr.isCompactFormat() )
+      {
+         rc = advance( curr.getBSONObj() ) ;
+      }
+      else
+      {
+         // iterator for input key to match
+         ixmKeyIterator j( curr ) ;
+         // get index key pattern for direction
+         BSONObjIterator o ( _predList._keyPattern ) ;
+         // this variable indicates the last field that haven't hit end of the
+         // start/stop key list. This is useful when we hit end of the current
+         // range, so that we only start from the first field that haven't hit the
+         // end (all previous fields remains the same since they can't further
+         // grow)
+         INT32 latestNonEndPoint = -1 ;
+         // for each of the key field
+         for ( INT32 i = 0; i < (INT32)_currentKey.size(); ++i )
+         {
+            _prevKey[i] = _currentKey[i] ;
+            // everytime when we search for the best match, we should do binary
+            // search to find the best match place
+            // one exception is that i-1'th field is equal predicate, and don't
+            // change the predicate index which means
+            // the next followed field must be in order
+            if ( i > 0 && ( _prevKey[ i-1 ] != _currentKey[ i-1 ] ||
+                 !_predList._predicates[i-1]._startStopKeys[_currentKey[i-1]
+                                                           ].isEquality() ) )
+            {
+               _currentKey[i] = -1 ;
+            }
+            BSONElement oo = o.next() ;
+            // if index defined forward, and direction is forward, reverse = FALSE
+            // if index defined forward, and direction is backward, reverse = TRUE
+            // if index defined backward, and direction is forward, reverse = TRUE
+            // if index defined backward, and direction is backward, reverse=FALSE
+            BOOLEAN reverse = ((oo.number()<0)^(_predList._direction<0)) ;
+            // now get the i'th field in the key element
+            j.moveNext() ;
+            // this condition is only hit when the previous field is NOT equal
+            if ( -1 == _currentKey[i] )
+            {
+      retry:
+               BOOLEAN lowEquality ;
+               // compare the key element with predicate
+               INT32 l = _predList.matchingLowElement ( j, i, !reverse,
+                                                        lowEquality ) ;
+               if ( 0 == l%2 )
+               {
+                  // if we have a match, let's set the current key for i'th column
+                  // to the one we found
+                  _currentKey[i] = l/2 ;
+                  // let's record the last non-end point so that we can do reset
+                  // from it
+                  if ( ((INT32)_predList._predicates[i]._startStopKeys.size() >
+                           _currentKey[i]+1) ||
+                        ( j.woCompare(
+                              _predList._predicates[i].
+                                    _startStopKeys.back()._stopKey._bound ) != 0) )
+                  {
+                     // this means we are not at the end point
+                     // or we are at the end range but didn't hit stopKey
+                     latestNonEndPoint = i ;
+                  }
+                  // then let's try next field when this field is matched
+                  continue ;
+               }
+               else
+               {
+                  // otherwise we are out of range, first let's see if we are at
+                  // the end
+                  if ( l ==
+                    (INT32)_predList._predicates[i]._startStopKeys.size()*2-1 )
+                  {
+                     // if we hit end of the range, and there's no non-end point,
+                     // we don't have any room to further advance
+                     if ( -1 == latestNonEndPoint )
+                     {
+                        rc = -2 ;
+                        goto done ;
+                     }
+                     // otherwise let's reset all currentKey from lastNonEndPoint
+                     rc = advancePastZeroed ( latestNonEndPoint + 1 ) ;
+                     goto done ;
+                  }
+                  // if we are not at the end, let's move to nearest start/stop key
+                  // range based on the input
+                  _currentKey[i] = (l+1)/2 ;
+                  // if we are at the non-inclusive startkey, let's return the next
+                  // field
+                  if ( lowEquality )
+                  {
+                     rc = advancePastZeroed ( i+1 ) ;
+                     goto done ;
+                  }
+                  // otherwise let's move advance to next start/stop key range (
+                  // note _currentKey[i] = (l+1)/2 in few statement before)
+                  rc = advanceToLowerBound(i) ;
+                  goto done ;
+               }
+            } // if ( -1 == _currentKey[i] )
+            // when getting here that means _currentKey[i] != -1
+            // this is possible only when the i-1'th field was equal compare
+            // eq variable represetns whether a key hits stopKey for a given range
+            BOOLEAN eq = FALSE ;
+            while ( _currentKey[i] <
+                    (INT32)_predList._predicates[i]._startStopKeys.size())
+            {
+               // since the previous field is equality, we know it's safe to call
+               // validateCurrentStartStopKey
+               rtnPredicateCompareResult compareResult =
+                  validateCurrentStartStopKey ( i, j, reverse, eq ) ;
+               // if the result shows jj is greater than the current range, let's
+               // move to next range, and compare again
+               // we also need to increment _currentKey if the current processed
+               // range same as previous range when compareResult shows Less.
+               // Otherwise we might loop in same range forever in some situation
+               // Why this will work?
+               // compareResult = GREATER means the current key in record is
+               // greater than the current range
+               // comopareResult = MATCH means the current key in record is within
+               // the current range
+               // compareResult = LESS means the current key in record is smaller
+               // than the current range
+               if ( GREATER == compareResult )
+               {
+                  _currentKey[i]++ ;
+                  continue ;
+               }
+               // jump out the loop if we get a match
+               else if ( MATCH == compareResult )
+               {
+                  break ;
+               }
+               // if jj is less than the current range, let's return the current
+               // field id as well as setting _cmp/_inc
+               else
+               {
+                  /// has increased the start-stop key, so need to relocated
+                  if ( _prevKey[i] != _currentKey[i] )
+                  {
+                     rc = advanceToLowerBound(i) ;
+                  }
+                  else
+                  {
+                     /// means the pre keys has changed, so need to binary find
+                     /// again. ex: { a:1, b:1, c:5 } ==> { a:2, b:1, c:0 }, cur
+                     /// is c, range is:[5,5]
+                     goto retry ;
+                  }
+                  goto done ;
+               }
+            }
+            // when we get here, either we have a match or we hit end of
+            // startstopkeyset
+            INT32 diff = _predList._predicates[i]._startStopKeys.size() -
+                         _currentKey[i] ;
+            if ( diff > 1 || ( !eq && diff == 1 ) )
+            {
+               // if we don't hit the last key, or we are not hitting the stopKey,
+               // let's set latest non end point
+               // if we hit stop key at the last predicate, we don't want to set
+               // this variable then
+               latestNonEndPoint = i ;
+            }
+            // otherwise it means we hit the end if we run out of the loop
+            else if ( diff == 0 )
+            {
+               // if we hit end of the range, and there's no non-end point,
+               // we don't have any room to further advance
+               if ( -1 == latestNonEndPoint )
+               {
+                  rc = -2 ;
+                  goto done ;
+               }
+               // otherwise let's reset all currentKey from lastNonEndPoint
+               rc = advancePastZeroed ( latestNonEndPoint + 1 ) ;
+               goto done ;
+            }
+            // when (eq && diff==1), that means we hit stopKey for the last
+            // predicate, which we want to continue run the next field and don't
+            // set latestNonEndPoint
+         }
+      }
+      // we have a match if we hit here, means all fields got matched
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNPREDLISTITE_ADVANCE_IXM, rc ) ;
+      return rc ;
+   }
+#endif
 
 }
