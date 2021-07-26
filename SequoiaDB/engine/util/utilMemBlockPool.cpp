@@ -885,6 +885,7 @@ namespace engine
    {
       BOOLEAN valid = TRUE ;
 
+#if defined (_DEBUG)
       if ( UTIL_MEM_B_EYE_CHAR != *UTIL_MEM_PTR_B_EYE_PTR( ptr ) )
       {
          SDB_ASSERT( FALSE, "Invalid b-eye" ) ;
@@ -928,7 +929,16 @@ namespace engine
             }
          }
       }
-
+#else
+      if ( pUserSize )
+      {
+         *pUserSize = *UTIL_MEM_PTR_SIZE_PTR( ptr ) - UTIL_MEM_TOTAL_FILL_LEN ;
+      }
+      if ( pType )
+      {
+         *pType = (UINT16)(*UTIL_MEM_PTR_TYPE_PTR( ptr )) ;
+      }
+#endif
       return valid ;
    }
 
