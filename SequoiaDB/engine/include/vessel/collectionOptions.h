@@ -45,8 +45,7 @@ namespace engine
 namespace vessel
 {
    static const CHAR * const CRT_CL_OPTIONS_FIELD_TYPE = "type";
-   static const CHAR * const CRT_CL_OPTIONS_FIELD_FREE_SIZE_RESERVED = "reserved_percent";
-   static const CHAR * const CRT_CL_OPTIONS_FIELD_STRIPING_BUCKET = "striping_bucket";
+   static const CHAR * const CRT_CL_OPTIONS_FIELD_FREE_SIZE_RESERVED = "free_size_reserved";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_COMPRESSION = "compression";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_MIN_STRIPING = "min_striping";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_MAX_STRIPING = "max_striping";
@@ -64,10 +63,6 @@ namespace vessel
 
       bson::BSONObj toBson()const;
 
-      void setMultiBucket()
-      {
-         stripingBucketCount = 32;
-      }
 
       public:
          UINT16 type = COLLECTION_TYPE_NORMAL;
@@ -75,7 +70,7 @@ namespace vessel
          UTIL_COMPRESSOR_TYPE compressionType = UTIL_COMPRESSOR_INVALID;
          STRIPING_ID minStriping = INVALID_STRIPING_ID;
          STRIPING_ID maxStriping = INVALID_STRIPING_ID;
-         UINT32 stripingBucketCount = 1;
+         //UINT32 stripingBucketCount = 1;
    };// class createCLOptions
 }//namespace vessel
 }//namespace engine

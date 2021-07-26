@@ -38,6 +38,7 @@
 
 #include "vessel/vesselIdDef.h"
 #include "../bson/bson.hpp"
+#include "vessel/collectionRecordPage.h"
 
 namespace engine
 {
@@ -48,16 +49,12 @@ namespace vessel
    static const CHAR * const CL_DUMP_RECORD_FIELD_NAME = "name";
    static const CHAR * const CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID = "cl_logical_id";
    static const CHAR * const CL_DUMP_RECORD_FIELD_INNER_ID = "inner_id";
-   static const CHAR * const CL_DUMP_RECORD_FIELD_SG_COUNT = "sg_count";
    static const CHAR * const CL_DUMP_RECORD_FIELD_COMPRESSION = "compression";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_MIN_STRIPING = "min_striping";
+   static const CHAR * const CL_DUMP_RECORD_FIELD_MAX_STRIPING = "max_striping";
 
-   bson::BSONObj dumpCollection(UINT32 csLogicalID,
-                                CL_MB_ID mbID,
-                                const CHAR *name,
-                                UINT32 clLogicalID,
-                                UINT32 innerID,
-                                UINT32 sgCount,
-                                UINT32 compression);
+   bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
+                                        const collectionRecord &record);
 
 }//namespace vessel
 }//namespace engine

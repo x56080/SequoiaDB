@@ -74,7 +74,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _collectionSpace, "do not reinit");
-      UINT32 pageSize = 0;
       fsmFile *file = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -96,11 +95,13 @@ namespace vessel
          goto error;
       }
 
-      pageSize = getDataPageSize();
-      rc = _fsm.open(file, record.mbID,
-                     record.logicalCLID, pageSize,
-                     record.freeSizeReserved, 1 < record.maxSGCount,
-                     record.minStriping, record.maxStriping);
+      file = cs->getSU()->getMainDataSpace().getFsmFile();
+      rc = _fsm.open(record.mbID,
+                     record.logicalCLID,
+                     _totalRdpCount,
+                     file,
+                     record.minStriping,
+                     record.maxStriping);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open free space map of cl[%d], rc:%d",
@@ -123,9 +124,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       fsmFile *fsm = NULL;
-      UINT32 pageSize = 0;
       SDB_ASSERT(!isOpen(), "do not reinit");
-      static const FLOAT32 MAX_FREE_SIZE_RESERVED_PERCENT = 0.7;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_CL_MB_ID == context->getMBID() ||
@@ -140,13 +139,6 @@ namespace vessel
       }
 
       _collectionSpace = cs;
-      pageSize = cs->getSU()->getMainDataSpace().getStorageCoreArgs().pageSize;
-      if ((pageSize * MAX_FREE_SIZE_RESERVED_PERCENT) < options.freeSizeReserved)
-      {
-         PD_LOG(PDERROR, "too much free size reserved[%d]", options.freeSizeReserved);
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       _record.version = COLLECTION_RECORD_VERSION;
       _record.mbID = context->getMBID();
@@ -157,12 +149,10 @@ namespace vessel
       _record.minStriping = options.minStriping;
       _record.maxStriping = options.maxStriping;
       ossMemcpy(_record.name, clName.str(), clName.strLen());
-      _record.maxSGCount = options.stripingBucketCount;
       _record.compressionType = options.compressionType;
 
-      rc = _fsm.create(fsm, context->getMBID(), logicalID,
-                       pageSize, options.freeSizeReserved,
-                       options.stripingBucketCount,
+      rc = _fsm.create(context->getMBID(),
+                       logicalID, fsm,
                        options.minStriping,
                        options.maxStriping);
       if (SDB_OK != rc)
@@ -263,14 +253,8 @@ namespace vessel
          goto error;
       }
 
-      record = dumpCollection(_collectionSpace->getLogicalID(),
-                              _record.mbID,
-                              _record.name,
-                              _record.logicalCLID,
-                              _record.innerID,
-                              _record.maxSGCount,
-                              _record.compressionType);
-      
+      record = dumpCollectionWhenList(_collectionSpace->getLogicalID(),
+                                      _record);
    done:
       return rc;
    error:
@@ -514,35 +498,34 @@ namespace vessel
    INT32 collection::insertNonBigRecord(insertContext *context)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 alignedSize = getMaxSizeOfRecordInRdp(context->getRecordToInsert().len());
+      UINT32 size = getMaxSizeOfRecordInRdp(context->getRecordToInsert().len());
+      INT32 targetLvl = getFsmSpaceLvl(getpagesize(), size);
+      PAGE_ID lpid = INVALID_PAGE_ID;
 
       do
       {
          fsmCandidate &candidate = context->getCandidate();
-         context->setLastFreeSize(0);
-         rc = findFreePageForRecord(static_cast<requestContext*>(context),
-                                    alignedSize, context->getStriping(),
-                                    candidate);
-         if (SDB_OK != rc)
+         if (!candidate.isValid() || candidate.getInfoPtr()->_lvl < targetLvl)
          {
-            PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
-            goto error;
+            rc = findCandidate(static_cast<requestContext*>(context),
+                               targetLvl, context->getStriping(),
+                               candidate);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
+               goto error;
+            }
          }
 
-         if (INVALID_PAGE_ID == candidate.lpid)
+         if (INVALID_PAGE_ID == candidate.getLpid())
          {
-            rc = getLpidBySequence(context, candidate.seq, candidate.lpid);
-            if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+            rc = getLpidBySequence(context, candidate.getSeq(), lpid);
+            if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "sequence[%d] not exists in collection", candidate.seq);
-               rc = SDB_OK;
-               _fsm.updateBucket(candidate.seq, candidate.lpid, candidate.bucket,
-                                 candidate.free, 0, TRUE);
-               continue;
-            }
-            else if (SDB_OK != rc)
-            {
+               PD_LOG(PDERROR, "failed to find lpid of seq[%d], rc:%d",
+                      candidate.getSeq(), rc);
                goto error;
             }
          }
@@ -580,23 +563,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::insertNonBigRecordToCandidate(insertContext *context)
+   INT32 collection::insertNonBigRecordToPage(insertContext *context,
+                                              PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      const fsmCandidate &candidate = context->getCandidate();
-      SDB_ASSERT(candidate.isValid(), "must be valid");
-      SDB_ASSERT(INVALID_PAGE_ID != candidate.lpid, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       logicalPageBuffer lpb;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       rdpInsertExecutor accessor;
 
-      rc = mds.getLogicalPageBuffer(context, candidate.lpid,
+      rc = mds.getLogicalPageBuffer(context, lpid,
                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
-                candidate.lpid, rc);
+                lpid, rc);
          goto error;
       }
 
@@ -616,64 +598,60 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::findFreePageForRecord(requestContext *context,
-                                           UINT32 recordSize,
-                                           STRIPING_ID striping,
-                                           fsmCandidate &candidate)
+   INT32 collection::findCandidate(requestContext *context,
+                                   INT32 lvl,
+                                   STRIPING_ID striping,
+                                   fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < recordSize, "impossible");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      UINT32 totalRdpCount = _totalRdpCount;
+      PAGE_ID lpids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
+      UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
       candidate.reset();
 
-      rc = _fsm.fastFind(striping, recordSize, candidate);
-      if (SDB_OK == rc)
+      do
       {
-         goto done;
-      }
-      else if (SDB_VESSEL_FSM_NO_FREE_SPACE != rc)
-      {
-         PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
-         goto error;
-      }
-      else
-      {
-         UINT32 flags = freeSpaceMap::FIND_ALL;
-         ossScopedLock guard(&_rdpCountLatch);
-         do
+         /// do not get latch here.
+         ossXLatchGuard guard(&_extendingLatch, FALSE);
+
+         rc = _fsm.find(context, lvl, striping, candidate);
+         if (SDB_OK != rc)
          {
-            rc = _fsm.findInWholeMap(striping, recordSize,
-                                     flags, candidate);
-            if (SDB_VESSEL_FSM_NO_FREE_SPACE == rc)
-            {
-               PAGE_ID lpids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
-               UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
-               rc = allocateNewRecordDataPages(context, PAGE_COUNT_IN_EXTENT,
-                                               firstSeq, lpids);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
-                  goto error;
-               }
+            PD_LOG(PDERROR, "failed to find candidate from fsm:%d", rc);
+            goto error;
+         }
 
-               rc = _fsm.addNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to add new pages to fsm:%d", rc);
-                  goto error;
-               }
-
-               flags = freeSpaceMap::FIND_NEW_POOL;
-               continue;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to find free space from fsm:%d", rc);
-               goto error;
-            }
-
+         if (candidate.isValid())
+         {
             break;
-         }while (TRUE);
-      }
+         }
+
+         guard.lock();
+         if (totalRdpCount < _totalRdpCount)
+         {
+            totalRdpCount = _totalRdpCount;
+            continue;
+         }
+
+         rc = allocateNewRecordDataPages(context, PAGE_COUNT_IN_EXTENT,
+                                         firstSeq, lpids);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,  "failed to allocate new rdps:%d", rc);
+            goto error;
+         }
+
+         totalRdpCount = _totalRdpCount;
+
+         rc = _fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert new pages into fsm:%d", rc);
+            goto error;
+         }
+      } while (TRUE);
    done:
       return rc;
    error:

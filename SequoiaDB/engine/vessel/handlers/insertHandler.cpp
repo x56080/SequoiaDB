@@ -103,6 +103,7 @@ namespace vessel
       context.setOptions(options);
       context.setStriping(striping);
       context.setOriginalRecord(record);
+      context.setMinFreeSize(cl->getRecord().freeSizeReserved);
 
       rc = cl->insert(&context, res);
       if (SDB_IXM_DUP_KEY == rc)

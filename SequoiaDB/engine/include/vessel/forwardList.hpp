@@ -182,7 +182,7 @@ namespace vessel
 
          BOOLEAN popForward(BOOLEAN lock, _item **out)
          {
-            BOOLEAN r = FLASE;
+            BOOLEAN r = FALSE;
             if (lock)
             {
                _latch.lock();

@@ -46,48 +46,31 @@
 #include "vessel/diskIOJob.h"
 #include "vessel/cursorKernal.h"
 #include "vessel/scanCLCursor.h"
+#include "vessel/collectionSpace.h"
 
-#include "boost/filesystem.hpp"
-#include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
-
-namespace fs = boost::filesystem;
 
 namespace engine
 {
 namespace vessel
 {
-   vesselImpl::vesselImpl():
-   _open(FALSE)
-   {
-
-   }
-
    vesselImpl::~vesselImpl()
    {
-      close();
+      fini();
    }
 
-   INT32 vesselImpl::initOuterResource(const outerResource &outer)
-   {
-      _outerResource = outer;
-      return SDB_OK;
-   }  
-
-   INT32 vesselImpl::open(ISession *session, const openDBOptions &options)
+   INT32 vesselImpl::open(ISession *session,
+                          const outerResource *resource,
+                          const openDBOptions &options)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reopen");
       requestContext context;
 
-      if (NULL == session)
+      if (NULL == session ||
+          NULL == resource ||
+          !resource->isValid())
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!_outerResource.isValid())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -97,14 +80,19 @@ namespace vessel
          goto error;
       }
 
+
+      _open = TRUE;
+      _outerResource.logger = resource->logger;
       _env.options = options;
+      VESSEL_FILE_GLOBAL_OPTIONS::setSparseExtending(options.sparseExtendingFile);
+
       rc = _env.spaceLocker.init();
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _env._lpidLatchMap.init(options.lpidLatchMapBucketCount,
+      rc = _env.lpidLatchMap.init(options.lpidLatchMapBucketCount,
                                    options.lpidLatchMapLatchCount);
       if (SDB_OK != rc)
       {
@@ -112,7 +100,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env._ridLatchMap.init(options.ridLatchMapBucketCount,
+      rc = _env.ridLatchMap.init(options.ridLatchMapBucketCount,
                                   options.ridLatchMapLatchCount);
       if (SDB_OK != rc)
       {
@@ -120,6 +108,13 @@ namespace vessel
          goto error;
       }
 
+      rc = _env.uniqueIndexLathMap.init(options.indexLatchMapBucketCount,
+                                        options.indexLatchMapLatchCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init rid latch map:%d", rc);
+         goto error;
+      }
 
       rc = _env.cacheConsole.init32KBCache(options.cacheOptions);
       if (SDB_OK != rc)
@@ -127,25 +122,17 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.csContainer.openStorageUnits(&context);
+      rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open stoarge units:%d", rc);
          goto error;
       }
 
-      rc = _env.csContainer.openCollectionSpaces(&context);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open collection spaces:%d", rc);
-         goto error;
-      }
-
-      _open = TRUE;
    done:
       return rc;
    error:
-      close();
+      fini();
       goto done;
    }
 
@@ -164,7 +151,7 @@ namespace vessel
          context.close();
       }
    done:
-      close();
+      fini();
       return rc;
    error:
       goto done;
@@ -220,7 +207,7 @@ namespace vessel
          goto error;
       }
 
-      count = _env.csContainer.getCSCount();
+      count = _env.dms.getCSCount();
    done:
       return rc;
    error:
@@ -229,6 +216,7 @@ namespace vessel
 
    INT32 vesselImpl::createCollectionSpace(ISession *session,
                                            const CHAR *name,
+                                           utilCSUniqueID uniqueId,
                                            const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -253,7 +241,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.doit(name, options);
+      rc = handler.doit(name, uniqueId, options);
       if (SDB_OK != rc)
       {
          goto error;
@@ -352,8 +340,8 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.csContainer.testCS(&context, strSlice(csName),
-                                   DMS_INVALID_LOGICCLID, logicalID, sid);
+      rc = _env.dms.testCS(&context, strSlice(csName),
+                           logicalID, sid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -392,6 +380,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       requestContext context;
+      collectionSpace *obj = NULL;
+
       if (OSS_UNLIKELY(NULL == session || NULL == csName))
       {
          rc = SDB_INVALIDARG;
@@ -409,11 +399,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.csContainer.getCLCount(&context, csName, count);
+      rc = _env.dms.getCSByName(&context, strSlice(csName), SHARED, &obj);
       if (SDB_OK != rc)
       {
          goto error;
       }
+
+      count = obj->getCollectionCount();
+      context.unlockSpaceID();
    done:
       return rc;
    error:
@@ -648,17 +641,23 @@ namespace vessel
    INT32 vesselImpl::flushWholeDirtyList(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "must be open");
+      
       UINT32 scanDepth = 128;
       diskIOJob job;
 
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
       do
       {
-         diskIOTask task;
          job.prepare(0, diskIOJob::DIRTY_LIST, scanDepth);
 
-         rc = _env.cache.createDirtyListIOJob(context, scanDepth,
-                                              DPS_INVALID_LSN_OFFSET, &job);
+         rc = _env.cacheConsole.get32KBCache().createDirtyListIOJob(context, scanDepth,
+                                                                    DPS_INVALID_LSN_OFFSET,
+                                                                    &job);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create io job of dirty list:%d", rc);
@@ -674,26 +673,30 @@ namespace vessel
 
          do
          {
-            rc = job.getNextTask(task);
-            if (SDB_VESSEL_END_OF_CURSOR == rc)
-            {
-               rc = SDB_OK;
-               break;
-            }
-            else if (SDB_OK != rc)
+            diskIOTask task;
+            BOOLEAN hitTheEnd = FALSE;
+            rc = job.getNextTask(context, hitTheEnd, task);
+            if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get io task:%d", rc);
                goto error;
             }
-            else
+
+            if (hitTheEnd)
             {
-               rc = _env.cache.executeIOTask(context, &task);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to execute io task:%d", rc);
-                  goto error;
-               }
+               break;
             }
+
+            rc = _env.cacheConsole.get32KBCache().executeIOTask(context, &task);
+            if (SDB_OK != rc)
+            {
+               task.done();
+               PD_LOG(PDERROR, "failed to execute io task:%d", rc);
+               goto error;
+            }
+
+            task.done();
+
          } while (TRUE);
 
          job.reset();
@@ -705,17 +708,21 @@ namespace vessel
       goto done;
    }
 
-   void vesselImpl::close()
+   void vesselImpl::fini()
    {
-      _env.checkpointer.fini();
-      _env.cacheConsole.fini();
-      _env.csContainer.close();
-      _env.sc.close();
-      _env._lpidLatchMap.fini();
-      _env._ridLatchMap.fini();
-      _env.spaceLocker.fini();
-      _env.options = openDBOptions();
-      
+      if (_open)
+      {
+         _open = FALSE;
+         _env.checkpointer.fini();
+         _env.cacheConsole.fini();
+         _env.dms.close();
+         _env.lpidLatchMap.fini();
+         _env.ridLatchMap.fini();
+         _env.uniqueIndexLathMap.fini();
+         _env.spaceLocker.fini();
+         _env.options = openDBOptions();
+         _outerResource.logger = NULL;
+      }
       return;
    }
 

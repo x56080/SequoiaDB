@@ -58,7 +58,6 @@ namespace vessel
    static const UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
 
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_2MB = ((UINT32)2 << 20);
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
@@ -188,8 +187,6 @@ namespace vessel
       {
          ossMemset(this, 0, sizeof(storageFileHead));
       }
-
-      BOOLEAN isKeyContentSame(const storageFileHead &o)const;
 
       ///WARNING: If someone modified page head, remember to 
       /// update storageFile::createChecksum either.

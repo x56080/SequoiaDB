@@ -45,33 +45,6 @@ namespace engine
 namespace vessel
 {
 #pragma pack(4)
-   const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
-   struct idMapPageHead
-   {
-      idMapPageHead(){}
-      ~idMapPageHead(){}
-      OSS_INLINE idMapPageHead &operator=(const idMapPageHead &o)
-      {
-         version = o.version;
-         flags = o.flags;
-         pad = o.pad;
-         return *this;
-      }
-
-      OSS_INLINE BOOLEAN isValid()const
-      {
-         return CURRENT_ID_MAP_PAGE_VERSION == version &&
-                0 == flags &&
-                0 == pad;
-      }
-
-      UINT16 version = 0;
-      UINT16 flags = 0;
-      UINT32 pad = 0;
-   };// struct idMapPageHead
-
-   const UINT32 ID_MAP_PAGE_HEAD_SIZE = sizeof(idMapPageHead);
-
    struct idMapSlot
    {
       OSS_INLINE idMapSlot(){}
@@ -104,17 +77,10 @@ namespace vessel
       }
    };// struct idMapSlot
 #pragma pack()
-   //BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity);
 
    constexpr UINT32 ID_MAP_PAGE_CAPACITY = (ID_MAP_FILE_PAGE_SIZE / sizeof(idMapSlot));
 
    idMapSlot getIdMapSlot(ossValuePtr ptr, UINT32 slot);
-
-   BOOLEAN initIdMapPage(UINT32 pageSize,
-                         PAGE_ID pid,
-                         PAGE_ID lpid,
-                         PAGE_SNAPSHOT_VERION psv,
-                         void *buf);
 
    OSS_INLINE PAGE_ID getImpPidOfLpid(PAGE_ID lpid)
    {

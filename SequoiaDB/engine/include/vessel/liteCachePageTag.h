@@ -363,7 +363,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isRemoved(BOOLEAN lock=TRUE)
          {
             ossSpinLatch *latch = lock ? &_pinLatch : NULL;
-            ossSpinGuard guard(&latch);
+            ossSpinGuard guard(latch);
             return (LC_TAG_STATUS_TO_BE_REMOVED == _ts.status);
          }
          /** remove tag in bucket end **/

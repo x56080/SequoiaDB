@@ -82,7 +82,7 @@ namespace vessel
 
             BOOLEAN isFree()const
             {
-               return NULL == obj;
+               return NULL == _obj;
             }
             T *allocate()
             {
@@ -92,9 +92,9 @@ namespace vessel
             }
             void release()
             {
-               SAFE_OSS_DELETE(obj);
+               SAFE_OSS_DELETE(_obj);
             }
-            U *getObj()
+            T *getObj()
             {
                return _obj;
             }
@@ -107,7 +107,6 @@ namespace vessel
          {
             INT32 rc = SDB_OK;
             fini();
-            UINT32 xSize = 0;
             UINT32 bufferSize = 0;
             UINT32 sequare = 0;
             
@@ -323,7 +322,7 @@ namespace vessel
                }
             }
 
-            r = _matrix[x][y];
+            r = _matrix[x][y].getObj();
          done:
             return r;
          }

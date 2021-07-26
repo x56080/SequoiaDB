@@ -38,6 +38,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
+#include "vessel/fsmCandidate.h"
 
 namespace engine
 {
@@ -50,12 +51,17 @@ namespace vessel
       slice record;
       const runtimePageBuffer *rpb = NULL;
       const recordDataPageHead *head = NULL;
+
       RECORD_SLOT_ID slotId = INVALID_RECORD_SLOT_ID;
       recordSlot rs;
       UINT32 alignedSize = 0;
+      UINT32 totalSize = 0;
       UINT16 offset = 0;
       recordHead rh;
       recordID rid;
+      INT32 oldLvl = FSM_INVALID_SPACE_LVL;
+      INT32 newLvl = FSM_INVALID_SPACE_LVL;
+      UINT32 newFreeSize = 0;
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -113,14 +119,31 @@ namespace vessel
          goto error;
       }
 
+      if (context->getCandidate().isValid() &&
+          head->pageSeq == context->getCandidate().getSeq())
+      {
+         if (INVALID_PAGE_ID == context->getCandidate().getLpid())
+         {
+            context->getCandidate().setLpid(lpb->getLogicalPid());
+         }
+         oldLvl = getFsmSpaceLvl(lpb->getRuntimeBuffer().getPageSize(),
+                                 head->freeSpaceAfterLastSlot);
+         if (oldLvl != context->getCandidate().getSpaceLvl())
+         {
+            context->getCandidate().getInfoPtr()->_lvl = oldLvl;
+         }
+      }
+
       alignedSize = getAlignedSizeOfNormalRecordAndHead(record.len());
 
-      rc = getPosToInsert(head, alignedSize, slotId, offset);
+      rc = getPosToInsert(head, alignedSize, slotId, offset, totalSize);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDDEBUG, "failed to get position to insert:%d", rc);
          goto error;
       }
 
+      newFreeSize = head->freeSpaceAfterLastSlot - totalSize;
       rs.setType(RDP_SLOT_TYPE_NORMAL);
       rs.setOffset(offset);
 
@@ -137,9 +160,29 @@ namespace vessel
          goto error;
       }
 
+      /// do not access old page ptr any more.
+      head = NULL;
       rid.setPageID(lpb->getLogicalPid());
       rid.setSlotID(slotId);
       context->setRid(rid);
+
+      if (context->getCandidate().isValid() &&
+          head->pageSeq == context->getCandidate().getSeq())
+      {
+         if (newFreeSize < context->getMinFreeSize())
+         {
+            context->getCandidate().getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
+         }
+         else
+         {
+            newLvl = getFsmSpaceLvl(lpb->getRuntimeBuffer().getPageSize(),
+                                    newFreeSize);
+            if (newLvl != oldLvl)
+            {
+               context->getCandidate().getInfoPtr()->_lvl = newLvl;
+            }
+         }
+      }
       
    done:
       return rc;
@@ -193,7 +236,7 @@ namespace vessel
       }
 
       slotPtr = rpb->getWritablePtrOfBody<recordSlot>(RECORD_PAGE_HEAD_LEN +
-                                                      (slotId << RDP_BITWISE_RSLOT_SIZE));
+                                                      (slotId * RDP_RSLOT_SIZE));
       if (NULL == slotPtr)
       {
          PD_LOG(PDERROR, "failed to get writable slot ptr");
@@ -250,7 +293,8 @@ namespace vessel
    INT32 rdpInsertExecutor::getPosToInsert(const recordDataPageHead *head,
                                            UINT32 alignedHeadAndBodySize,
                                            RECORD_SLOT_ID &slotId,
-                                           UINT16 &offset)const
+                                           UINT16 &offset,
+                                           UINT32 &totalSize)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != head, "can not be null");
@@ -258,7 +302,7 @@ namespace vessel
 
       UINT32 currentSlotCount = head->totalSlotCount;
       UINT32 high = 0;
-      UINT32 totalSize = alignedHeadAndBodySize;
+      totalSize = alignedHeadAndBodySize;
       if (INVALID_RECORD_SLOT_ID == head->firstFreeSlot)
       {
          totalSize += RDP_RSLOT_SIZE;
@@ -277,7 +321,7 @@ namespace vessel
          goto error;
       }
 
-      high = (currentSlotCount << RDP_BITWISE_RSLOT_SIZE) + head->freeSpaceAfterLastSlot;
+      high = (currentSlotCount * RDP_RSLOT_SIZE) + head->freeSpaceAfterLastSlot;
       offset = high - alignedHeadAndBodySize;
    done:
       return rc;
@@ -310,7 +354,8 @@ namespace vessel
          for (UINT32 i = slotId + 1; i < head->totalSlotCount; ++i)
          {
             const recordSlot *tmp = (const recordSlot *)
-                                     ((ossValuePtr)head + (i << RDP_BITWISE_RSLOT_SIZE));
+                                     ((ossValuePtr)head + RECORD_PAGE_HEAD_LEN +
+                                     (i * RDP_RSLOT_SIZE));
             if (tmp->isValid())
             {
                continue;
@@ -543,9 +588,11 @@ namespace vessel
 
       if (INVALID_STRIPING_ID != context->getStriping())
       {
-         rc = pageAccessor::pushElement(context, DPS_LOG_VESESL_RDP_INSERT_STRIPING,
+         UINT16 striping = context->getStriping();
+         rc = pageAccessor::pushElement(context,
+                                        DPS_LOG_VESESL_RDP_INSERT_STRIPING,
                                         sizeof(UINT16),
-                                        &(context->getStriping()), lrc);
+                                        &striping, lrc);
          if (SDB_OK != rc)
          {
             goto error;

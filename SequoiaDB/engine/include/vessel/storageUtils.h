@@ -38,7 +38,6 @@
 
 #include "vessel/vesselFileName.h"
 #include "ossMemPool.hpp"
-#include "vessel/bitmapVector.h"
 
 namespace engine
 {
@@ -68,14 +67,6 @@ namespace vessel
                                 const FILE_TYPE *fileTypes,
                                 BOOLEAN removeTmpFile,
                                 ossPoolList<vesselFileName> &fl);
-
-   INT32 mapPhysicalPagesToBitmap(ossValuePtr impPtr,
-                                  bitmapVector &bitmap);
-
-   INT32 mapIdMapSlotsToBitmap(PAGE_ID pid,
-                               ossValuePtr impPtr,
-                               bitmapVector &lpids,
-                               bitmapVector &ppids);
 
 }//namespace vessel
 }//namespace engine

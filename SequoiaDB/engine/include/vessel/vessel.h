@@ -58,8 +58,10 @@ namespace vessel
 
       public:
          virtual BOOLEAN isOpen() = 0;
-         virtual INT32 initOuterResource(const outerResource &resource) = 0;
-         virtual INT32 open(ISession *session, const openDBOptions &options) = 0;
+
+         virtual INT32 open(ISession *session,
+                            const outerResource *resource,
+                            const openDBOptions &options) = 0;
 
          
          virtual INT32 close(ISession *session, const closeDBOptions &options) = 0;
@@ -67,6 +69,7 @@ namespace vessel
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
+                                             utilCSUniqueID uniqueId,
                                              const createCSOptions &options) = 0;
 
          /// cursor's mem managed by user.

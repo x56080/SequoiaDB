@@ -84,7 +84,7 @@ namespace vessel
                UINT32 _shared = 0;
                KEY _key;
                VALUE _value;
-         };
+         };//class _item
 
          class _bucket : public SDBObject
          {
@@ -95,7 +95,7 @@ namespace vessel
                _bucket &operator=(const _bucket &) = delete;
 
             public:
-               UITN32 _size = 0;
+               UINT32 _size = 0;
                _item *_head = NULL;
          };//class _bucket
 
@@ -130,7 +130,7 @@ namespace vessel
 
             private:
                _item *_i = NULL;
-         };
+         };//class object
 
       public:
          BOOLEAN isOpen()const
@@ -230,7 +230,7 @@ namespace vessel
                   goto error;
                }
                itemCreated->_key = k;
-               insert(bucket, itemCreated)
+               insert(bucket, itemCreated);
                ++itemCreated->_shared;
                o._i = itemCreated;
             }     
@@ -289,8 +289,8 @@ namespace vessel
       private:
          _bucket *getBucket(UINT32 hash, UINT32 &bucketNo)
          {
-            bukcetNo = (hash & (_bucketCount - 1));
-            return _buckets + i;
+            bucketNo = (hash & (_bucketCount - 1));
+            return _buckets + bucketNo;
          }
          ossSpinXLatch *getBucketLatch(UINT32 bucketNo)
          {
@@ -323,29 +323,29 @@ namespace vessel
                bucket->_head->_pre = i;
             }
             bucket->_head = i;
-            ++_bucket->_size;
+            ++bucket->_size;
          }
 
          void remove(_bucket *bucket, _item *i)
          {
             /// not head
-            if (NULL != i->pre)
+            if (NULL != i->_pre)
             {
-               i->pre->_next = i->next;
+               i->_pre->_next = i->_next;
             }
             else
             {
-               bucket->_head = i->next;
+               bucket->_head = i->_next;
             }
 
             /// not tail
-            if (NULL != i->next)
+            if (NULL != i->_next)
             {
-               i->next->_pre = i->pre;
+               i->_next->_pre = i->_pre;
             }
 
-            i->pre = NULL;
-            i->next = NULL;
+            i->_pre = NULL;
+            i->_next = NULL;
             --bucket->_size;
             return;
          }

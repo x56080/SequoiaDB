@@ -47,6 +47,8 @@ namespace engine
 namespace vessel
 {
    class liteCachePageTag;
+   class requestContext;
+
    class diskIOJob : public SDBObject
    {
       public:
@@ -73,14 +75,15 @@ namespace vessel
 
       public:
          void reset();
-         void prepare(UINT64 jobID, TYPE type, UINT32 bufSize=0);
+         void prepare(UINT64 jobID, TYPE type, UINT32 maxTagSize=0);
          INT32 addPendingWriteTag(liteCachePageTag *tag);
 
-         void prepareForDispatching(UINT32 maxIOSizePerTask=0);
+         void prepareForDispatching();
 
          /// must be prepared for dispatching.
-         /// return SDB_VESSEL_END_OF_CURSOR when no more task.
-         INT32 getNextTask(diskIOTask &task);
+         INT32 getNextTask(requestContext *context,
+                           BOOLEAN &hitTheEnd,
+                           diskIOTask &task);
 
          /// can not abort dispathed task.
          void abortUndispatchedTasks();
@@ -123,7 +126,6 @@ namespace vessel
          UINT64 _jobID;
          TYPE _jobType;
          UINT32 _dispatchedCount;
-         UINT32 _maxIOSizePerTask;
          _TAG_VEC _tags; 
    };//class diskIOJob
 

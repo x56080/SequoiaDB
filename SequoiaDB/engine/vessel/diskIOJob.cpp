@@ -40,6 +40,8 @@
 #include "pdTrace.hpp"
 #include "vessel/liteCachePageTag.h"
 #include "ossLikely.hpp"
+#include "vessel/requestContext.h"
+#include "vessel/instanceEnv.h"
 #include <algorithm>
 
 namespace engine
@@ -59,8 +61,7 @@ namespace vessel
    _status(NONE),
    _jobID(0),
    _jobType(DIRTY_LIST),
-   _dispatchedCount(0),
-   _maxIOSizePerTask(DEFAULT_MAX_IO_SIZE_PER_TASK)
+   _dispatchedCount(0)
    {
    }
 
@@ -77,16 +78,15 @@ namespace vessel
          _jobID = 0;
          _jobType = DIRTY_LIST;
          _dispatchedCount = 0;
-         _maxIOSizePerTask = DEFAULT_MAX_IO_SIZE_PER_TASK;
          _tags.clear();
       }
       return;
    }
 
 
-   void diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 bufSize)
+   void diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 maxTagSize)
    {
-      UINT32 initBufSize = 0 < bufSize ? bufSize : DEFUALT_BUF_COUNT;
+      UINT32 initBufSize = 0 < maxTagSize ? maxTagSize : DEFUALT_BUF_COUNT;
       SDB_ASSERT(NONE == _status, "must be none");
 
       _tags.reserve(initBufSize);
@@ -108,12 +108,6 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(PENDING != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(DIRTY_LIST != _jobType &&
-                            LRU_LIST != _jobType))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -150,18 +144,12 @@ namespace vessel
       return;
    }
 
-   void diskIOJob::prepareForDispatching(UINT32 maxIOSizePerTask)
+   void diskIOJob::prepareForDispatching()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(PENDING == _status, "must be pendding");
 
-      if (0 < maxIOSizePerTask)
-      {
-         _maxIOSizePerTask = maxIOSizePerTask;
-      }
-
-      if ((1 < _tags.size()) &&
-          (LRU_LIST == _jobType || DIRTY_LIST == _jobType))
+      if (1 < _tags.size())
       {
          std::sort(_tags.begin(), _tags.end(), compareTag);
       }
@@ -204,52 +192,73 @@ namespace vessel
    }
    
 
-   INT32 diskIOJob::getNextTask(diskIOTask &task)
+   INT32 diskIOJob::getNextTask(requestContext *context,
+                                BOOLEAN &hitTheEnd,
+                                diskIOTask &task)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!task.valid(), "can not be valid");
       GLOBAL_PAGE_ID gpid;
-      GLOBAL_PAGE_ID pre;
       UINT32 count = 0;
-      UINT32 ioSize = 0;
-      const liteCachePageTag*tag = NULL;
+      const liteCachePageTag *tag = NULL;
       UINT32 taskID = 0;
+      logicalPageSpace *lps = NULL;
+      UINT32 firstSegment = 0;
+      hitTheEnd = FALSE;
 
-      if (OSS_UNLIKELY(DISPATCHING != _status))
+      if (OSS_UNLIKELY(NULL == context))
       {
+         SDB_ASSERT(NULL != context, "can not be null");
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_tags.size() == _dispatchedCount)
+      else if (OSS_UNLIKELY(DISPATCHING != _status))
       {
-         rc = SDB_VESSEL_END_OF_CURSOR;
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
+      }
+
+      if (_tags.size() == _dispatchedCount)
+      {
+         hitTheEnd = TRUE;
+         goto done;
       }
       
       taskID = _dispatchedCount;
       tag = _tags[_dispatchedCount++];
       gpid = tag->id();
-      SDB_ASSERT(!gpid.invalid(), "can not be invalid");
+      SDB_ASSERT(gpid.isValid(), "can not be invalid");
       count = 1;
-      pre = gpid;
-      ioSize = tag->getPageSize();
+      rc = context->getEnv()->dms.getLogicalPageSpace(gpid.space(),
+                                                      gpid.getSpaceType(),
+                                                      &lps);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lps of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
 
-      while (_dispatchedCount < _tags.size()  &&
-             ioSize < _maxIOSizePerTask)
+      firstSegment = gpid.page() / lps->getStorageCoreArgs().maxPageCountPerSeg;
+
+      while (_dispatchedCount < _tags.size())
       {
          tag = _tags[_dispatchedCount];
-         if (tag->id().space() == pre.space() &&
-             tag->id().type() == pre.type() &&
-             tag->id().page() == pre.page() + 1)
+         if (tag->id().space() == gpid.space() &&
+             tag->id().getSpaceType() == gpid.getSpaceType() &&
+             tag->id().getFileType() == gpid.getFileType())
          {
-            ++count;
-            pre = tag->id();
-            ++_dispatchedCount;
-            ioSize += tag->getPageSize();
+            UINT32 seg = tag->id().page() / lps->getStorageCoreArgs().maxPageCountPerSeg;
+            if (seg == firstSegment)
+            {
+               ++count;
+               ++_dispatchedCount;
+               continue;
+            }
          }
-         else
-         {
-            break;
-         }
+
+         break;
       }
 
       task = diskIOTask(taskID, count, this);

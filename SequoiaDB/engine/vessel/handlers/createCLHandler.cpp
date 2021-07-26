@@ -82,7 +82,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSByName(&context, csName, SHARED, &csObj);
+      rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &csObj);
       if (SDB_OK != rc)
       {
          goto error;

@@ -38,7 +38,6 @@
 #include "vessel/collectionSpace.h"
 #include "ossLikely.hpp"
 #include "vessel/inMemIndexDefObj.h"
-#include "vessel/indexDefPageAccessor.h"
 #include "vessel/lpidLockHelper.h"
 #include "vessel/indexSpace.h"
 
@@ -100,7 +99,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
-      UINT32 currentIndexCount = _record->uniqueIndexCount + _record->nonUniqueIndexCount;
+      UINT32 currentIndexCount = _record->uniqueIndexes + _record->nonUniqueIndexes;
 
       if (MAX_INDEX_COUNT_PER_CL <= currentIndexCount)
       {
@@ -109,7 +108,7 @@ namespace vessel
          rc = SDB_DMS_MAX_INDEX;
          goto error;
       }
-      else if (INVALID_LOGICAL_INDEX_ID == _record->nextIndexID)
+      else if (INVALID_LOGICAL_INDEX_ID == _record->nextIndexId)
       {
          PD_LOG(PDERROR, "hit the max logical index id in cl[%s]",
                 _record->name);
@@ -117,7 +116,7 @@ namespace vessel
          goto error;
       }
 
-      logicalID = _record->nextIndexID;
+      logicalID = _record->nextIndexId;
       slot = (INT32)currentIndexCount;
    done:
       return rc;
@@ -134,32 +133,10 @@ namespace vessel
       SDB_ASSERT(!indexName.empty(), "can not be empty");
       SDB_ASSERT(pattern.isValid(), "must be valid");
       SDB_ASSERT(NULL != _record && NULL != _is, "can not be null");
-      inMemIndexDefObj obj;
-      indexDefPageAccessor accessor;
-      UINT32 count = _record->uniqueIndexCount + _record->nonUniqueIndexCount;
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         lpidLockHelper lh;
-         PAGE_ID lpid = _record->indexSlots[i];
-         if (INVALID_PAGE_ID == lpid)
-         {
-            PD_LOG(PDERROR, "index slot[%d] is invalid", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         rc = lh.lock(context, FILE_TYPE_IDX_D, lpid, SHARED);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
-            goto error;
-         }         
-      }
+      
    done:
       return rc;
    error:
-      accessor.fini(context);
       goto done;
    }
 }//namespace vessel

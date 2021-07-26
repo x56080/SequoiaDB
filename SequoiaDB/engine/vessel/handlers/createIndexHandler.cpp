@@ -88,9 +88,9 @@ namespace vessel
          PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle.getSpaceID(), rc);
          goto error;
       }
-      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context,
-                                                      handle.getCSLId(),
-                                                      &cs);
+      rc = getEnv()->dms.getCSByLockedSpaceID(&context,
+                                              handle.getCSLId(),
+                                              &cs);
       if (SDB_OK != rc)
       {
          goto error;

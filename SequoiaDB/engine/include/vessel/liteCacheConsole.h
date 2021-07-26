@@ -65,6 +65,12 @@ namespace vessel
                                const GLOBAL_PAGE_ID &gpid,
                                liteCacheTuple &tuple);
 
+      public:
+         liteCache &get32KBCache()
+         {
+            return _32KBCache;
+         }
+
       private:
          liteCache *getCache(UINT32 pageSize);
       private:

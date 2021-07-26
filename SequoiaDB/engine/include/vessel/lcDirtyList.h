@@ -74,7 +74,7 @@ namespace vessel
          UINT64 getMinDirtyLSN(BOOLEAN lock=TRUE);
 
          /// Update min dirty lsn to current
-         /// min lsn in list after dirty list flushing.
+         /// min lsn in list.
          void updateMinDirtyLsn();
 
          void removeCachedMinDirtyLSN();

@@ -90,7 +90,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context,
+      rc = getEnv()->dms.getCSByLockedSpaceID(&context,
                                                       handle->getCSLId(),
                                                       &cs);
       if (SDB_OK != rc)

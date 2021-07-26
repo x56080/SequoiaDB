@@ -1118,6 +1118,26 @@ namespace vessel
       return _dpc->getCoreArgs();
    }
 
+   INT32 logicalPageSpace::fsyncSegment(UINT32 segment)const
+   {
+      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _dpc->fsyncSegment(segment);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync segment[%d], rc:%d", segment, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
    INT32 logicalPageSpace::preallocate(requestContext *context,
                                        UINT32 count,

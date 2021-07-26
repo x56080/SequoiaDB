@@ -50,28 +50,18 @@ namespace vessel
       {
          goto done;
       }
-      else if (maxStriping < minStriping)
-      {
-         goto done;
-      }
-      else if (!ossIsPowerOf2(stripingBucketCount) ||
-               32 < stripingBucketCount)
-      {
-         goto done;
-      }
-      else if (INVALID_STRIPING_ID == minStriping &&
-               INVALID_STRIPING_ID == maxStriping)
-      {
-
-         if (1 != stripingBucketCount)
-         {
-            goto done;
-         }
-      }
       else if (INVALID_STRIPING_ID != minStriping ||
                INVALID_STRIPING_ID != maxStriping)
       {
-         goto done;
+         if (INVALID_STRIPING_ID == minStriping ||
+             INVALID_STRIPING_ID == maxStriping)
+         {
+            goto done;
+         }
+         else if (max < min)
+         {
+            goto done;
+         }
       }
    done:
       return r;
@@ -84,8 +74,7 @@ namespace vessel
              .append(CRT_CL_OPTIONS_FIELD_FREE_SIZE_RESERVED, freeSizeReserved)
              .append(CRT_CL_OPTIONS_FIELD_COMPRESSION, compressionType)
              .append(CRT_CL_OPTIONS_FIELD_MIN_STRIPING, minStriping)
-             .append(CRT_CL_OPTIONS_FIELD_MAX_STRIPING, maxStriping)
-             .append(CRT_CL_OPTIONS_FIELD_STRIPING_BUCKET, stripingBucketCount);
+             .append(CRT_CL_OPTIONS_FIELD_MAX_STRIPING, maxStriping);
       return builder.obj();
    }
 }//namespace vessel

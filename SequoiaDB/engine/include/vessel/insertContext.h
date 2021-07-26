@@ -68,15 +68,6 @@ namespace vessel
          {
             return _candidate;
          }
-         OSS_INLINE void setLastFreeSize(UINT32 size)
-         {
-            _lastFreeSize = size;
-         }
-         OSS_INLINE UINT32 getLastFreeSize()const
-         {
-            return _lastFreeSize;
-         }
-
          OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
          {
             return _compressionType;
@@ -135,7 +126,6 @@ namespace vessel
          fsmCandidate _candidate;
 
          recordID _rid;
-         UINT32 _lastFreeSize = 0;
    };//class insertContext
 }//namespace vessel
 }//namespace engine

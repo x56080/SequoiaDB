@@ -102,6 +102,15 @@ namespace vessel
          INT32 lockUniqueIndexKeys();
 
          void unlockUniqueKeys();
+
+         void setMinFreeSize(UINT32 size)
+         {
+            _minFreeSize = size;
+         }
+         UINT32 getMinFreeSize()const
+         {
+            return _minFreeSize;
+         }
       private:
          void fini();
 
@@ -111,6 +120,7 @@ namespace vessel
          DPS_TRANS_ID _transID;
          ossPoolVector<UINT16> _uniqueKeyHash;
          BOOLEAN _uniqueKeyLocked = FALSE;
+         UINT32 _minFreeSize = 0;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

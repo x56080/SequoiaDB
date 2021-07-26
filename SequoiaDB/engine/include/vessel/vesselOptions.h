@@ -39,6 +39,8 @@
 #include "vessel/storageFileDef.h"
 #include "utilCompression.hpp"
 #include "vessel/insertOptions.h"
+#include "vessel/collectionSpaceOptions.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
@@ -153,6 +155,9 @@ namespace vessel
 
          UINT32 ridLatchMapBucketCount = 4096;
          UINT32 ridLatchMapLatchCount = 256;
+
+         UINT32 indexLatchMapBucketCount = 4096;
+         UINT32 indexLatchMapLatchCount = 256;
          
          ///invisible options.
          UINT32 _spaceLpidCacheBucketCount = 64;

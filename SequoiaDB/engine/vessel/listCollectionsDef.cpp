@@ -39,22 +39,18 @@ namespace engine
 {
 namespace vessel
 {
-   bson::BSONObj dumpCollection(UINT32 csLogicalID,
-                                CL_MB_ID mbID,
-                                const CHAR *name,
-                                UINT32 clLogicalID,
-                                UINT32 innerID,
-                                UINT32 sgCount,
-                                UINT32 compression)
+   bson::BSONObj dumpCollectionWhenList(UINT32 csLogicalID,
+                                        const collectionRecord &record)
    {
       bson::BSONObjBuilder builder;
       builder.append(CL_DUMP_RECORD_FIELD_CS_LOGICAL_ID, csLogicalID)
-             .append(CL_DUMP_RECORD_FIELD_MB_ID, mbID)
-             .append(CL_DUMP_RECORD_FIELD_NAME, name)
-             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, clLogicalID)
-             .append(CL_DUMP_RECORD_FIELD_INNER_ID, innerID)
-             .append(CL_DUMP_RECORD_FIELD_SG_COUNT, sgCount)
-             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, compression);
+             .append(CL_DUMP_RECORD_FIELD_MB_ID, record.mbID)
+             .append(CL_DUMP_RECORD_FIELD_NAME, record.name)
+             .append(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID, record.logicalCLID)
+             .append(CL_DUMP_RECORD_FIELD_INNER_ID, record.innerID)
+             .append(CL_DUMP_RECORD_FIELD_COMPRESSION, record.compressionType)
+             .append(CL_DUMP_RECORD_FIELD_MIN_STRIPING, record.minStriping)
+             .append(CL_DUMP_RECORD_FIELD_MAX_STRIPING, record.maxStriping);
       return builder.obj();
    }
 }//namespace vessel

@@ -44,7 +44,7 @@ namespace vessel
 {
    fsmBitmapPageObject::fsmBitmapPageObject()
    {
-      SDB_ASSERT((FSM_BITMAP_PAGE_CAPACITY / 64) < 65535, "we save _where as uint16");
+      
    }
 
    fsmBitmapPageObject::~fsmBitmapPageObject()
@@ -60,7 +60,6 @@ namespace vessel
       _size = 0;
       for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         _where[i] = 0;
          _stats[i] = 0;
       }
       return;
@@ -92,14 +91,31 @@ namespace vessel
       _page = page;
       _size = dataPageCount;
 
+      bitsCount = ossAlign64(FSM_BITMAP_PAGE_CAPACITY) >> 6;
+
+      if (dataPageCount < FSM_BITMAP_PAGE_CAPACITY)
+      {
+         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            UINT32 offset = 0;
+            if (lowerBoundFirstNonzeroBit(bitsCount,
+                                          dataPageCount,
+                                          _page->lvlBitmaps[i],
+                                          offset))
+            {
+               clearFromOffsetToTheEnd(bitsCount, dataPageCount, _page->lvlBitmaps[i]);
+            }
+         }
+      }
+
       if (0 == dataPageCount)
       {
          goto done;
       }
-
-      bitsCount = ossAlign64(dataPageCount) >> 6;
-
-      /// OS crashing may occur error stats. 
+      
+      /// A page may exist in mutiple lvls here,
+      /// which caused by system crashing.
+      /// It may be put into more than one buckets.
       for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
          const UINT64 *bits = _page->lvlBitmaps[i];
@@ -130,7 +146,7 @@ namespace vessel
       else if (OSS_UNLIKELY(FSM_BITMAP_PAGE_CAPACITY < size))
       {
          PD_LOG(PDERROR, "data page count out of range");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_INVALIDARG;
          goto error;
       }
       else if (_size < size)
@@ -142,50 +158,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   void fsmBitmapPageObject::clearBitAtLvLs(INT32 exceptLvl, UINT32 bitOffset)
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(bitOffset < _size, "can not be out of range");
-      UINT32 count = (bitOffset >> 6) + 1;
-
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-      {
-         if (i == exceptLvl)
-         {
-            continue;
-         }
-         
-         if (setNotFreeIfFree64(count, _page->lvlBitmaps[i], bitOffset))
-         {
-            --_stats[i];
-         }
-      }
-      return;
-   }
-
-   void fsmBitmapPageObject::atomicClearBitAtLvls(INT32 exceptLvl, UINT32 bitOffset)
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(bitOffset < _size, "can not be out of range");
-      UINT32 count = (bitOffset >> 6) + 1;
-
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-      {
-         if (i == exceptLvl)
-         {
-            continue;
-         }
-
-         if (!testBitIsFree(count, _page->lvlBitmaps[i], bitOffset))
-         {
-            continue;
-         }
-         
-         atomicUnsetLvl(count, bitOffset, i);
-      }
-      return;
    }
 
    INT32 fsmBitmapPageObject::findAndClear(INT32 targetLvl,
@@ -215,14 +187,11 @@ namespace vessel
       for (INT32 i = targetLvl; i < FSM_SPACE_LVL_COUNT; ++i)
       {
          UINT32 offset = 0;
-         if (findAndClear(i, offset))
+         if (atomicFindAndClear(i, offset))
          {
             found = TRUE;
             seq = _pageNo * FSM_BITMAP_PAGE_CAPACITY + offset;
             realLvl = i;
-
-            /// In case of unexpected error stats, clear it in other lvls.
-            clearBitAtLvLs(i, offset);
             break;
          }
          /// If not found in target lvl, find in upper lvl.
@@ -240,75 +209,30 @@ namespace vessel
       return _stats[lvl];
    }
 
-   BOOLEAN fsmBitmapPageObject::findAndClear(INT32 lvl,
-                                             UINT32 &offset)
+   BOOLEAN fsmBitmapPageObject::atomicFindAndClear(INT32 lvl,
+                                                   UINT32 &offset)
    {
       BOOLEAN r = FALSE;
+      SDB_ASSERT(NULL != _page, "can not be null");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       SDB_ASSERT(0 < _size, "can not be zero");
+      UINT32 count = 0;
 
-      UINT32 where = _where[lvl];
-      UINT32 maxBitsCount = ossAlign64(_size) >> 6;
-      SDB_ASSERT(where < maxBitsCount, "impossible");
-
-      do
+      if (_stats[lvl] <= 0)
       {
-         if (_stats[lvl] <= 0)
-         {
-            goto done;
-         }
-
-         if (findAndClearFirstFreeBitFromBit64(maxBitsCount,
-                                               (INT32)(_where[lvl]),
-                                               _page->lvlBitmaps[lvl],
-                                               offset))
-         {
-            --_stats[lvl];
-            _where[lvl] = (offset >> 6);
-            if (_size <= offset)
-            {
-               /// We always zeroed bitmap when creating and only
-               /// set it as non-zero when upgrading lvl.
-               /// In case of unexpected error, we check it again.
-               /// If it is out of bound, just continue.
-               continue;
-            }
-            else
-            {
-               r = TRUE;
-               goto done;
-            }
-         }
-         else
-         {
-            /// searched from 'where' to the end.  
-            break;
-         }
-      } while (TRUE);
-      
-
-      SDB_ASSERT(0 < _stats[lvl], "impossible");
-      if (0 != where)
-      {
-         /// search [0, where)
-         if (findAndClearFirstFreeBitFromBit64(where, -1,
-                                             _page->lvlBitmaps[lvl], offset))
-         {
-            /// Offset may be out of bound only at the last uint64.
-            SDB_ASSERT(offset < _size, "impossible");
-            --_stats[lvl];
-            _where[lvl] = (offset >> 6);
-            r = TRUE;
-            goto done;
-         }
+         goto done;
       }
 
-      /// We have searched all bitmap, but nothing found.
-      /// It may caused by error stats or some reason else.
-      /// Just set stat as zero
-      PD_LOG(PDWARNING, "stat is not zero but nothing found");
-      _stats[lvl] = 0;
-      _where[lvl] = 0;
+      count = ossAlign64(_size) >> 6;
+
+      r = atomicFindAndClearFirstNonzeroBit(count, 0,
+                                            _page->lvlBitmaps[lvl],
+                                            offset);
+      if (r)
+      {
+         ossFetchAndDecrement32(_stats + lvl);
+      }
+      
    done:
       return r;
    }
@@ -342,15 +266,20 @@ namespace vessel
       }
       
       bitsCount = (offset >> 6) + 1;
-
-      if (!atomicSetLvl(bitsCount, offset, lvl))
+      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         ///At same lvl, do nothing. It may caused by flushing missed.
-         goto done;
+         if (i == lvl)
+         {
+            continue;
+         }
+
+         if (testBitIsNonzero(bitsCount, _page->lvlBitmaps[i], offset))
+         {
+            atomicUnsetLvl(bitsCount, offset, i);
+         }
       }
 
-      upgraded = TRUE;
-      atomicClearBitAtLvls(lvl, offset);
+      upgraded = atomicSetLvl(bitsCount, offset, lvl);
    done:
       return rc;
    error:
@@ -358,14 +287,11 @@ namespace vessel
    }
 
    INT32 fsmBitmapPageObject::downgradePageSpaceLvl(UINT32 seq,
-                                                    INT32 lvl,
-                                                    BOOLEAN &downgraded)
+                                                    INT32 lvl)
    {
       INT32 rc = SDB_OK;
       UINT32 offset = 0;
       UINT32 bitsCount = 0;
-      downgraded = FALSE;
-      INT32 notZeroLvls[FSM_SPACE_LVL_COUNT] = {0};
       UINT32 notZeroLvlCount = 0;
 
       if (OSS_UNLIKELY(!isValid()))
@@ -391,38 +317,31 @@ namespace vessel
 
       for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         if (testBitIsFree(bitsCount, _page->lvlBitmaps[i], offset))
+         if (i == lvl)
          {
-            notZeroLvls[i] = 1;
-            ++notZeroLvlCount;
+            continue;
+         }
+
+         if (testBitIsNonzero(bitsCount, _page->lvlBitmaps[i], offset))
+         {
+            if (atomicUnsetLvl(bitsCount, offset, i))
+            {
+               ++notZeroLvlCount;
+            }  
          }
       }
 
       if (0 == notZeroLvlCount)
       {
-         /// Do not downgrade lvl if not exists.
+         /// If the page is not at any other lvls:
+         /// 1. The page is already at target, do nothing;
+         /// 2. The page is not at target lvl too:
+         ///    2.1. It may be in bucket now, do nothing;
+         ///    2.2. For some reason lvl info lost. It will corrected at next upgrading.
          goto done;
       }
 
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
-      {
-         if (0 == notZeroLvls[i])
-         {
-            if (i == lvl)
-            {
-               atomicSetLvl(bitsCount, offset, lvl);
-            }
-         }
-         else
-         {
-            if (i != lvl)
-            {
-               atomicUnsetLvl(bitsCount, offset, lvl);
-            }
-         }
-      }
-
-      downgraded = TRUE;
+      atomicUnsetLvl(bitsCount, offset, lvl);
    done:
       return rc;
    error:
@@ -434,20 +353,15 @@ namespace vessel
                                              INT32 lvl)
    {
       SDB_ASSERT(isValid(), "must be valid");
-      SDB_ASSERT(offset < FSM_BITMAP_PAGE_CAPACITY, "can not beo out of range");
+      SDB_ASSERT(offset < _size, "can not beo out of range");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       BOOLEAN r = FALSE;
-
-      /// The bit we are accessing may not updating by others.
-      if (testBitIsFree(bitsCount, _page->lvlBitmaps[lvl], offset))
+      atomicSetBitAtOffset(bitsCount, _page->lvlBitmaps[lvl],
+                           offset, &r);
+      if (r)
       {
-         ///At same lvl, do nothing.
-         goto done;
+         ossFetchAndIncrement32(_stats + lvl);
       }
-
-      setFreeWithAtomic64(bitsCount, _page->lvlBitmaps[lvl], offset);
-      ossFetchAndIncrement32(_stats + lvl);
-      r = TRUE;
 
    done:
       return r;
@@ -458,32 +372,20 @@ namespace vessel
                                                INT32 lvl)
    {
       SDB_ASSERT(isValid(), "must be valid");
-      SDB_ASSERT(offset < FSM_BITMAP_PAGE_CAPACITY, "can not beo out of range");
+      SDB_ASSERT(offset < _size, "can not beo out of range");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       BOOLEAN r = FALSE;
-      if (!testBitIsFree(bitsCount, _page->lvlBitmaps[lvl], offset))
-      {
-         ///At same lvl, do nothing.
-         goto done;
-      }
 
-      setNotFreeWithAtomic64(bitsCount, _page->lvlBitmaps[lvl], offset);
-      ossFetchAndDecrement32(_stats + lvl);
-      r = TRUE;
+      atomicClearBitAtOffset(bitsCount, _page->lvlBitmaps[lvl],
+                             offset, &r);
+      if (r)
+      {
+         ossFetchAndDecrement32(_stats + lvl);
+      }
 
    done:
       return r;
    }
 
-   void fsmBitmapPageObject::clearFromOffsetToTheEnd(INT32 lvl, UINT32 offset)
-   {
-      SDB_ASSERT(NULL != _page, "can not be null");
-      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      SDB_ASSERT(offset < FSM_BITMAP_PAGE_CAPACITY, "can not be out of bound");
-
-      UINT32 bitsCount = FSM_BITMAP_PAGE_CAPACITY >> 6;
-      UINT64 *bitmap = _page->lvlBitmaps[lvl];
-
-   }
 }//namespace vessel
 }//namespace engine

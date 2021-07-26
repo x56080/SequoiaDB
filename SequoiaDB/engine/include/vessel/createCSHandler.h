@@ -38,7 +38,7 @@
 
 #include "vessel/requestHandler.h"
 #include "vessel/requestContext.h"
-#include "vessel/vesselOptions.h"
+#include "vessel/collectionSpaceOptions.h"
 #include "vessel/strSlice.h"
 
 namespace engine
@@ -53,6 +53,7 @@ namespace vessel
 
       public:
          INT32 doit(const CHAR *name,
+                    utilCSUniqueID uniqueId,
                     const createCSOptions &options);
 
       private:

@@ -73,7 +73,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSByName(&context, csName, SHARED, &cs);
+      rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
@@ -87,7 +87,7 @@ namespace vessel
 
       clHandler = collectionHandler(collectionHandle(cs->getLogicalID(),
                                                      cl->getLogicalID(),
-                                                     cs->getSpaceID(),
+                                                     cs->getSpaceId(),
                                                      cl->getMBID()),
                                     db);
    done:

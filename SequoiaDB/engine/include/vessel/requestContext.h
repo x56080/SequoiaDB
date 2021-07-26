@@ -43,6 +43,7 @@
 #include "vessel/pageDef.h"
 #include "vessel/lpsCheckpointBlocker.h"
 #include "vessel/objectLatchMap.hpp"
+#include "dms.hpp"
 
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
    do\

@@ -48,8 +48,8 @@ namespace vessel
 {
    /// free space map file
    static const UINT32 FSM_FILE_PAGE_SIZE = 32768;
-   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 128;
-   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 2048;
+   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 64;
+   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 4096;
 
    static const UINT32 FSM_FILE_PAGE_VERSION = 1;
 
@@ -110,7 +110,7 @@ namespace vessel
       fsmPageHead head;
       UINT32 flags = 0;
       CHAR pad[12] = {0};
-      UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY] = {0xFF};
+      UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY];
    };//struct fsmPMapPage
    const static UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
 
@@ -119,7 +119,7 @@ namespace vessel
    {
       fsmPageHead head;
       CHAR pad[36] = {0};
-      UINT64 lvlBitmaps[FSM_SPACE_LVL_COUNT][FSM_BITMAP_BITS_COUNT] = {0};
+      UINT64 lvlBitmaps[FSM_SPACE_LVL_COUNT][FSM_BITMAP_BITS_COUNT];
    };//struct fsmBitMapPage
    const static UINT32 FSM_BITMAP_PAGE_SIZE = sizeof(fsmBitmapPage);
 

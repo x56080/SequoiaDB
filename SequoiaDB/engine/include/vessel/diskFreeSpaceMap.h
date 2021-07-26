@@ -73,6 +73,8 @@ namespace vessel
 
          void close();
 
+         void destroy();
+
          INT32 find(INT32 targetLvl,
                     BOOLEAN &found,
                     UINT32 &seq,
@@ -82,22 +84,27 @@ namespace vessel
 
          INT32 upgradePageSpaceLvl(UINT32 seq,
                                    INT32 lvl);
+
+         INT32 downgradePgaeSpaceLvl(UINT32 seq,
+                                     INT32 lvl);
       private:
          INT32 initBitmapPage(PAGE_ID pid);
          INT32 initOwnerPage(PAGE_ID pid, PAGE_ID pre);
          INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry);
+         INT32 destroyEntrySlot(CL_MB_ID mbID);
          INT32 readEntrySlot(CL_MB_ID mbID, UINT32 logicalID, fsmCLEntry &entry);
          INT32 buildBitmapObjs(PAGE_ID root, UINT32 totalPageCount);
 
       private:
-         INT32 createSuperBitmaps();
+         INT32 createSuperBitmap();
          INT32 ensureSuperBitmapSize(UINT32 bitmapPageCount);
-         void clearInSuperBitmapAtLvL(INT32 lvl, UINT32 bitmapNo);
+
          void clearInSuperBitmapGTELvL(INT32 lvl, UINT32 bitmapNo);
          BOOLEAN findBitmapFromSuperBitmap(INT32 targetLvl,
                                            UINT32 &bitmapNo)const;
          void atomicSetSuperBitmap(INT32 lvl, UINT32 bitmapNo);
-
+         void atomicUnsetSuperBitmap(INT32 lvl, UINT32 bitmapNo);
+         void atomicUnsetSuperBitmapFromLvl(INT32 lvl, UINT32 bitmapNo);
       private:
          PAGE_ID getEntryPid(CL_MB_ID mbID);
          fsmCLEntry *getEntryFromPagePtr(ossValuePtr ptr, CL_MB_ID mbID);
@@ -121,8 +128,6 @@ namespace vessel
          INT32 createNewBitmapObj(UINT32 pageNo,
                                  fsmBitmapPageObject **out);
 
-         void removeBitmapObj(UINT32 pageNo);
-
          fsmBitmapPageObject *getBitmapPageObj(UINT32 i);
 
          INT32 buildBitmapObj(UINT32 pageNo,
@@ -135,6 +140,7 @@ namespace vessel
          INT32 ensureBitmapObj(UINT32 bitmapNo,
                                fsmBitmapPageObject **out);
 
+
       private:
          typedef ossPoolVector<PAGE_ID> _BITMAP_OWNER_ARRAY;
 
@@ -143,14 +149,15 @@ namespace vessel
       private:
          fsmFile *_fsmFile = NULL;
          UINT32 _logicalId = DMS_INVALID_LOGICCLID;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
 
          ossSpinSLatchPOSIX _latch;
          UINT32 _totalDataPageCount = 0;
          _BITMAP_OBJ_MAP _bitmaps;
          _BITMAP_OWNER_ARRAY _bitmapOwners;
 
-         /// bitmap indexes of bitmap pages.
-         memoryBlock _superBitmaps[FSM_SPACE_LVL_COUNT];
+         /// bitmap index of bitmap pages.
+         memoryBlock _superBitmap[FSM_SPACE_LVL_COUNT];
    };//class diskFreeSpaceMap
 }//namespace vessel
 }//namespace engine

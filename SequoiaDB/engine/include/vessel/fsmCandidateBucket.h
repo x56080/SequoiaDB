@@ -61,7 +61,10 @@ namespace vessel
 
       public:
          OSS_INLINE UINT64 getReqCnt()const;
+         OSS_INLINE UINT32 getCapacity()const;
+         OSS_INLINE UINT32 getSize()const;
          OSS_INLINE BOOLEAN isOpen()const;
+         OSS_INLINE BOOLEAN isFull()const;
 
       public:
          INT32 init(UINT32 capacity);
@@ -71,7 +74,6 @@ namespace vessel
                       const fsmCandidate::SHARED_INFO_PTR &sptr);
 
          INT32 find(INT32 lvl,
-                    FREE_SPACE_TUPLE_POOL &newPagePool,
                     fsmCandidate &candidate);
 
          void dumpTuplesWithValidLvl(ossPoolList<freeSpaceTuple> &tuples)const;
@@ -94,7 +96,7 @@ namespace vessel
                }
 
                void reset(UINT32 seq,
-                          fsmCandidate::SHARED_INFO_PTR &sptr)
+                          const fsmCandidate::SHARED_INFO_PTR &sptr)
                {
                   _seq = seq;
                   _sptr = sptr;
@@ -132,14 +134,9 @@ namespace vessel
                UINT32 _failureCnt = 0;
          };//struct _bucketCandidate
 
-
-      private:
-         INT32 resetWithNewCandidate(UINT32 pos,
-                                    FREE_SPACE_TUPLE_POOL &newPagePool,
-                                    BOOLEAN &inserted);
-
       private:
          UINT32 _capacity = 0;
+         UINT32 _size = 0;
          /// we should always keep searching done in few cpu cache lines.
          _bucketCandidate *_candidates = NULL;
          UINT64 _reqCnt = 0;
@@ -152,6 +149,18 @@ namespace vessel
    OSS_INLINE UINT64 fsmCandidateBucket::getReqCnt()const
    {
       return _reqCnt;
+   }
+   OSS_INLINE UINT32 fsmCandidateBucket::getCapacity()const
+   {
+      return _capacity;
+   }
+   OSS_INLINE UINT32 fsmCandidateBucket::getSize()const
+   {
+      return _size;
+   }
+   OSS_INLINE BOOLEAN fsmCandidateBucket::isFull()const
+   {
+      return _capacity == _size;
    }
 }//namespace vessel
 }//namespace engine

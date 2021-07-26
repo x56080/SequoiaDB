@@ -39,6 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include <atomic> /// c++11
+#include <thread> /// c++11
 
 ///In my test: 5 threads increase global int var 100,000,000 times each(lock every time)
 /// 0: no lock (incorrect result)                     |  < 1s  |
@@ -54,7 +55,7 @@
 class ossSpinLatch : public SDBObject
 {
    public:
-      OSS_INLINE ossSpinLatch():
+      OSS_INLINE ossSpinLatch()
       {}
 
       OSS_INLINE ~ossSpinLatch(){}

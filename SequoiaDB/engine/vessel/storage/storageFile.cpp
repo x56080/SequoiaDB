@@ -60,7 +60,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      BOOLEAN removeFile = FALSE;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -105,14 +104,6 @@ namespace vessel
       rc = openFileSegments();
       if (SDB_OK != rc)
       {
-         goto error;
-      }
-
-      if (!ossIsPowerOf2(_headInMem.pageSize, &_bitwisePageSize) ||
-          !ossIsPowerOf2(_headInMem.maxPageCountPerSeg, &_bitwisePageCountOfSeg))
-      {
-         PD_LOG(PDERROR, "invalid core args");
-         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
       
@@ -315,14 +306,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create file:%d", rc);
          goto error;
       }
-
-      if (!ossIsPowerOf2(_headInMem.pageSize, &_bitwisePageSize) ||
-          !ossIsPowerOf2(_headInMem.maxPageCountPerSeg, &_bitwisePageCountOfSeg))
-      {
-         PD_LOG(PDERROR, "invalid core args");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
    done:
       return rc;
    error:
@@ -361,8 +344,8 @@ namespace vessel
           if (!tmpFn.build(fn.getSpaceID(),
                            fn.getFileType(),
                            fn.getSpaceType(),
-                           fn.getSequence()),
-                           FILE_SHADOW_SUFFIX_TMP)
+                           fn.getSequence(),
+                           FILE_SHADOW_SUFFIX_TMP))
          {
             PD_LOG(PDERROR, "failed to build tmp file name");
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -407,7 +390,7 @@ namespace vessel
       }
 
       /// init user defined file head
-      if (userDefinedHead.valid())
+      if (userDefinedHead.isValid())
       {
          ossMemcpy((void *)(headPtr + STORAGE_FILE_COMMON_HEAD_SIZE),
                    userDefinedHead.data(), userDefinedHead.len());
@@ -450,8 +433,6 @@ namespace vessel
    {
       _headInMem.reset();
       _dataSegmentCount = 0;
-      _bitwisePageSize = 0;
-      _bitwisePageCountOfSeg = 0;
       if (ossMmapFile::_file.isOpened())
       {
          ossMmapFile::unlink();
@@ -463,8 +444,6 @@ namespace vessel
    {
       _headInMem.reset();
       _dataSegmentCount = 0;
-      _bitwisePageSize = 0;
-      _bitwisePageCountOfSeg = 0;
       ossMmapFile::close();
       return;
    }
@@ -493,7 +472,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = segPtr + ((pid & (_headInMem.maxPageCountPerSeg)) << _bitwisePageSize);
+      ptr = segPtr + ((pid & (_headInMem.maxPageCountPerSeg - 1)) * _headInMem.pageSize);
    done:
       return rc;
    error:
@@ -560,7 +539,7 @@ namespace vessel
          goto error;
       }
 
-      offsetInSegment = ((pid & (_headInMem.maxPageCountPerSeg - 1)) << _bitwisePageSize);
+      offsetInSegment = ((pid & (_headInMem.maxPageCountPerSeg - 1)) * _headInMem.pageSize);
       rc = ossMmapFile::flushBlock(getMMapSegmentID(seg),
                                    offsetInSegment,
                                    _headInMem.pageSize, sync);
@@ -648,9 +627,6 @@ namespace vessel
    BOOLEAN storageFile::validateOptions(const createStorageFileOptions &options)const
    {
       BOOLEAN r = FALSE;
-
-      UINT32 dirLen = 0;
-      UINT32 nameLen = 0;
 
       if (options.dir.empty())
       {

@@ -49,7 +49,7 @@ namespace vessel
          collectionObjHolder(){}
          ~collectionObjHolder()
          {
-            release();
+            releaseObj();
          }
          collectionObjHolder(const collectionObjHolder &) = delete;
          collectionObjHolder &operator=(const collectionObjHolder &) = delete;
@@ -97,7 +97,7 @@ namespace vessel
 
       public:
          collectionObjHolder holders[CAPACITY];
-   }
+   };//class collectionObjHolderGroup
 }//namespace vessel
 }//namesapce engine
 

@@ -138,6 +138,10 @@ namespace vessel
                            FILE_TYPE fileType,
                            UINT32 &pageSize)const;
 
+         INT32 getLogicalPageSpace(SPACE_ID sid,
+                                   SPACE_TYPE type,
+                                   logicalPageSpace **lps);
+
       private:
          INT32 loadStorageUnits(requestContext *context,
                                 ossPoolList<SPACE_ID> &sidList);

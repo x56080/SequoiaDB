@@ -75,23 +75,5 @@ namespace vessel
              STORAGE_FILE_SEGMENT_SIZE_256MB == size;
    }
 
-   BOOLEAN storageFileHead::isKeyContentSame(const storageFileHead &o)const
-   {
-      return 0 == ossMemcmp(magicChars, o.magicChars, sizeof(magicChars)) &&
-             version = o.version &&
-             0 == ossStrcmp(name, o.name) &&
-             secretValue == o.secretValue &&
-             flags == o.flags &&
-             spaceID == o.spaceID &&
-             spaceType == o.spaceType &&
-             fileType == o.fileType &&
-             //logicalID == o.logicalID &&
-             sequence == o.sequence &&
-             pageSize == o.pageSize &&
-             maxPageCountPerSeg == o.maxPageCountPerSeg &&
-             maxSegmentCountPerFile == o.maxSegmentCountPerFile;
-
-   }
-
 }//namespace vessel
 }//namespace engine

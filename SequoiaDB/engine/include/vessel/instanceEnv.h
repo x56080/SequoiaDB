@@ -62,9 +62,9 @@ namespace vessel
          spaceIDLocker spaceLocker;
          dataManagementService dms;
          liteCacheConsole cacheConsole;
-         LOGICAL_ID_LATCH_MAP _lpidLatchMap;
-         RECORD_ID_LATCH_MAP _ridLatchMap;
-         UNIQUE_INDEX_LATCH_MAP _uniqueIndexLathMap;
+         LOGICAL_ID_LATCH_MAP lpidLatchMap;
+         RECORD_ID_LATCH_MAP ridLatchMap;
+         UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

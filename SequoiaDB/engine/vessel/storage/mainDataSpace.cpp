@@ -227,7 +227,7 @@ namespace vessel
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
 
-      rc = logicalPageSpace::getPageMapping(context, 0, pid, psv, ptr);
+      rc = logicalPageSpace::getPageMappingAtNonruntime(context, 0, pid, psv, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page mapping of meta page:%d", rc);
@@ -437,7 +437,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _fsm, "must be null");
-      storageCoreArgs args(FSM_PAGE_SIZE, FSM_PAGE_COUNT_PER_SEG, FSM_MAX_SEG_COUNT);
+      storageCoreArgs args(FSM_FILE_PAGE_SIZE,
+                           FSM_FILE_PAGE_COUNT_PER_SEG,
+                           FSM_FILE_MAX_SEG_COUNT);
+                           
       const storageFileCreater &creater = logicalPageSpace::getCreater();
       SDB_ASSERT(creater.isValid(), "can not be inalvid");
       fsmFile *file = SDB_OSS_NEW fsmFile();

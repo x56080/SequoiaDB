@@ -74,8 +74,6 @@ namespace vessel
 
    void requestContext::_close()
    {
-      SDB_ASSERT(OSS_SHARED_LATCH_MODE_NONE == _mbLockMode, "unlocking missed");
-      SDB_ASSERT(OSS_SHARED_LATCH_MODE_NONE == _sidLockedMode, "unlocking missed");
       SDB_ASSERT(0 == _bufAllocated, "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
@@ -88,7 +86,7 @@ namespace vessel
       while (_lpidLatchContext.pop(lpidLatchObj, mode))
       {
          lpidLatchObj.getValue().unlockWith(mode);
-         _env->_lpidLatchMap.release(lpidLatchObj);
+         _env->lpidLatchMap.release(lpidLatchObj);
       }
 
       _blocker.fini();
@@ -189,7 +187,6 @@ namespace vessel
       }
 
       locker = &(getEnv()->spaceLocker);
-      rc = locker->lock(sid, mode);
       rc = locker->tryLock(sid, mode, locked);
       if (SDB_OK != rc)
       {
@@ -380,7 +377,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env->_lpidLatchMap.ensure(key, obj);
+      rc = _env->lpidLatchMap.ensure(key, obj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure latch obj[%d,%d,%d], rc:%d",
@@ -402,7 +399,7 @@ namespace vessel
    error:
       if (obj.isValid())
       {
-         _env->_lpidLatchMap.release(obj);
+         _env->lpidLatchMap.release(obj);
       }
       goto done;
    }
@@ -434,7 +431,7 @@ namespace vessel
       }
 
       obj.getValue().unlockWith(mode);
-      _env->_lpidLatchMap.release(obj);
+      _env->lpidLatchMap.release(obj);
 
    done:
       return;
@@ -444,7 +441,6 @@ namespace vessel
                                           PAGE_ID lpid,
                                           OSS_SHARED_LATCH_MODE *mode)
    {
-      BOOLEAN r = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
       logicalIdLatchKey key(_sid, type, lpid);
       return _lpidLatchContext.test(key, mode);

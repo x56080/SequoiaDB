@@ -43,72 +43,70 @@ namespace engine
 {
 namespace vessel
 {
-   void resetBitMap32(UINT32 count, UINT32 *bits, BOOLEAN allFree);
+   void resetBitmap(UINT32 count, UINT64 *bits, BOOLEAN zeroed);
 
-   BOOLEAN findFirstFreeFromBitMap32(UINT32 totalCount,
-                                     const UINT32 *bits,
-                                     INT32 searchBegin,
-                                     UINT32 &offset);
-
-   BOOLEAN findFirstFreeBitFromBit32(UINT32 bitsCount,
-                                     INT32 beginBits,
-                                     INT32 maxOffset,
-                                     UINT32 *bits,
-                                     BOOLEAN clear,
-                                     UINT32 &offset);
-
-   BOOLEAN findFirstFreeBitsFromBitMap32(UINT32 totalCount,
-                                         const UINT32 *bits,
-                                         INT32 searchBegin,
-                                         INT32 &bitsOffset);
-
-   BOOLEAN allocateFromBitMap32(UINT32 count, UINT32 *bits, UINT32 &offset);
-
-   BOOLEAN setFreeIfNotFree32(UINT32 count, UINT32 *bits, UINT32 offset);
-
-   BOOLEAN setNotFreeIfFree32(UINT32 count, UINT32 *bits, UINT32 offset);
+   /// searchBegin is offset of uint64, not offset of bit
+   BOOLEAN findFirstNonzeroBit(UINT32 bitsCount,
+                               UINT32 searchBegin,
+                               const UINT64 *bits,
+                               UINT32 &offset);
 
 
-   void resetBitMap64(UINT32 count, UINT64 *bits, BOOLEAN free);
+   /// searchBegin is offset of uint64, not offset of bit
+   BOOLEAN findAndClearFirstNonzeroBit(UINT32 bitsCount,
+                                       UINT32 searchBegin,
+                                       UINT64 *bits,
+                                       UINT32 &offset);
 
-   /// beginBits is offset of uint64
-   BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
-                                     INT32 beginBits,
+
+   /// find the first bit from [bitOffset, end]
+   BOOLEAN lowerBoundFirstNonzeroBit(UINT32 bitsCount,
+                                     UINT32 bitOffset,
                                      const UINT64 *bits,
                                      UINT32 &offset);
 
-
-   BOOLEAN findAndClearFirstFreeBitFromBit64(UINT32 bitsCount,
-                                             INT32 beginBits,
-                                             UINT64 *bits,
-                                             UINT32 &offset);
-
-
-   /// offset between (low, high]
-   BOOLEAN upperBoundFirstFreeBitFromBit64(UINT32 bitsCount,
-                                           const UINT64 *bits,
-                                           INT32 low,
-                                           INT32 high,
-                                           UINT32 &offset);
-
-   
-   void setNotFreeWithAtomic64(UINT32 count,
-                               UINT64 *bits,
-                               UINT32 offset);
-   void setFreeWithAtomic64(UINT32 count,
+   /// return false if bit is zero
+   BOOLEAN clearBitIfNonzero(UINT32 count,
                             UINT64 *bits,
                             UINT32 offset);
 
-   BOOLEAN setNotFreeIfFree64(UINT32 count, UINT64 *bits, UINT32 offset);
-   BOOLEAN setFreeIfNotFree64(UINT32 count, UINT64 *bits, UINT32 offset);
-   BOOLEAN testBitIsFree(UINT32 count, const UINT64 *bits,
-                         UINT32 offset);
+   /// return false if bit is nonzero
+   BOOLEAN setBitIfZeroed(UINT32 count, UINT64 *bits, UINT32 offset);
+
+   BOOLEAN testBitIsNonzero(UINT32 count,
+                            const UINT64 *bits,
+                            UINT32 offset);
 
    void bitsAndMerge(UINT32 count, const UINT64 *toAnd, UINT64 *bits);
 
    void clearFromOffsetToTheEnd(UINT32 bitsCount,
                                 UINT32 offset,
                                 UINT64 *bits);
+
+   UINT32 getNonzeroBitCount(UINT32 bitsCount,
+                             const UINT64 *bits);
+
+
+   /// set bit at offet
+   void atomicSetBitAtOffset(UINT32 count,
+                             UINT64 *bits,
+                             UINT32 offset,
+                             BOOLEAN *zeroBeforeSet=NULL);
+
+   /// clear bit at offset
+   void atomicClearBitAtOffset(UINT32 count,
+                               UINT64 *bits,
+                               UINT32 offset,
+                               BOOLEAN *nonzeroBeforeClear=NULL);
+
+   /// searchBegin is offset of uint64, not offset of bit
+   /// WARNING: To speed up, we will find nonzero bit in 
+   /// one uint64 first. And then, try to clear it with atomic op.
+   /// In the moment, new nonzeroed bit may be ignored.
+   BOOLEAN atomicFindAndClearFirstNonzeroBit(UINT32 bitsCount,
+                                             UINT32 searchBegin,
+                                             UINT64 *bits,
+                                             UINT32 &offset);
 
 }//namespace vessel
 }//namespace engine

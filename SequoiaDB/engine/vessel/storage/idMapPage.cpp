@@ -40,56 +40,6 @@ namespace engine
 {
 namespace vessel
 {
-   /*
-   BOOLEAN get64AlignedIMPCapacity(UINT32 pageSize, UINT32 &capacity)
-   {
-      BOOLEAN r = FALSE;
-
-      if (OSS_UNLIKELY(!isValidPageSize(pageSize)))
-      {
-         goto done;
-      }
-
-      capacity = (pageSize - PAGE_HEAD_SIZE - PAGE_TAIL_SIZE - ID_MAP_PAGE_HEAD_SIZE) /
-                 sizeof(idMapSlot);
-      capacity &= 0xFFFFFFC0;
-      r = TRUE;
-   done:
-      return r;
-   }
-   */
-
-   BOOLEAN initIdMapPage(UINT32 pageSize,
-                         PAGE_ID pid,
-                         PAGE_ID lpid,
-                         PAGE_SNAPSHOT_VERION psv,
-                         void *buf)
-   {
-      BOOLEAN r = FALSE;
-      idMapPageHead *head = NULL;
-      CHAR *ptr = (CHAR *)buf;
-      UINT32 capacity = 0;
-
-      if (OSS_UNLIKELY(!get64AlignedIMPCapacity(pageSize, capacity)))
-      {
-         goto done;
-      }
-      if (OSS_UNLIKELY(!initCommonPage(PAGE_TYPE_ID_MAP, pageSize, pid, lpid, psv, buf)))
-      {
-         goto done;
-      }
-
-      head = (idMapPageHead *)(ptr + PAGE_HEAD_SIZE);
-      head->version = CURRENT_ID_MAP_PAGE_VERSION;
-      head->flags = 0;
-      head->pad = 0;
-      ossMemset(ptr + PAGE_HEAD_SIZE + ID_MAP_PAGE_HEAD_SIZE,
-                0xFF, capacity * sizeof(idMapSlot));
-      r = TRUE;
-   done:
-      return r;
-   }
-
    idMapSlot getIdMapSlot(ossValuePtr ptr, UINT32 slot)
    {
       idMapSlot obj;

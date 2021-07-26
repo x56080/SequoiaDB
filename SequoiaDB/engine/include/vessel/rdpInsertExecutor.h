@@ -74,7 +74,8 @@ namespace vessel
          INT32 getPosToInsert(const recordDataPageHead *head,
                               UINT32 alignedHeadAndBodySize,
                               RECORD_SLOT_ID &slotId,
-                              UINT16 &offset)const;
+                              UINT16 &offset,
+                              UINT32 &totalSize)const;
 
       private:
          INT32 prepareInsertLog(insertContext *context,

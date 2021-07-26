@@ -42,268 +42,18 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 BM_UTIL_BITWISE_32 = 5;
-   static const UINT32 BM_UTIL_BIT_MOD_32 = 0x1f;
-
    static const UINT32 BM_UTIL_BITWISE_64 = 6;
    static const UINT32 BM_UTIL_BIT_MOD_64 = 0x3f;
 
-   void resetBitMap32(UINT32 count, UINT32 *bits, BOOLEAN allFree)
-   {
-      ossMemset(bits, allFree ? 0xFF : 0, count << 2);
-      return;
-   }
-
-   BOOLEAN findFirstFreeFromBitMap32(UINT32 totalCount,
-                                     const UINT32 *bits,
-                                     INT32 searchBegin,
-                                     UINT32 &offset)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(searchBegin < (INT32)totalCount, "searchBegin out of range");
-      UINT32 i = 0;
-      if (0 < searchBegin)
-      {
-         i = searchBegin;
-      }
-      for (; i < totalCount; ++i)
-      {
-         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
-         if (0 <= res)
-         {
-            offset = (i << BM_UTIL_BITWISE_32) + res;
-            r = TRUE;
-            goto done;
-         }
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN findFirstFreeBitFromBit32(UINT32 bitsCount,
-                                     INT32 beginBits,
-                                     INT32 maxOffset,
-                                     UINT32 *bits,
-                                     BOOLEAN clear,
-                                     UINT32 &offset)
+   BOOLEAN findAndClearFirstNonzeroBit(UINT32 bitsCount,
+                                       UINT32 searchBegin,
+                                       UINT64 *bits,
+                                       UINT32 &offset)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
-      UINT32 begin = 0 < beginBits ? beginBits : 0;
-      UINT32 endCount = bitsCount;
-      if (0 <= maxOffset)
-      {
-         UINT32 specifiedCount = maxOffset >> BM_UTIL_BITWISE_32;
-         if (specifiedCount < endCount)
-         {
-            endCount = specifiedCount;
-         }
-      }
-      UINT32 i = begin;
-
-      for (; i < endCount; ++i)
-      {
-         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
-         if (0 <= res)
-         {
-            if (clear)
-            {
-               OSS_BIT_CLEAR(bits[i], ((UINT32)1 << res));
-            }
-            offset = (i << BM_UTIL_BITWISE_32) + res;
-            r = TRUE;
-            goto done;
-         }
-      }
-
-      if (0 < maxOffset &&
-          0 != (maxOffset & BM_UTIL_BIT_MOD_32) && /// maxOffset % 32
-          i < bitsCount)
-      {
-         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
-         if (0 <= res)
-         {
-            UINT32 tmp = (i << BM_UTIL_BITWISE_32) + res;
-            if (tmp <= (UINT32)maxOffset)
-            {
-               if (clear)
-               {
-                  OSS_BIT_CLEAR(bits[i], ((UINT32)1 << res));
-               }
-               offset = tmp;
-               r = TRUE;
-            }
-         }
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN findFirstFreeBitsFromBitMap32(UINT32 totalCount,
-                                         const UINT32 *bits,
-                                         INT32 searchBegin,
-                                         INT32 &bitsOffset)
-   {
-      BOOLEAN r = FALSE;
-      bitsOffset = -1;
-      UINT32 begin = 0 < searchBegin ? searchBegin : 0;
-      UINT32 i = begin;
-      for (; i < totalCount; ++i)
-      {
-         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
-         if (0 <= res)
-         {
-            bitsOffset = i;
-            r = TRUE;
-            break;
-         }
-      }
-   
-      return r;
-   }
-
-   BOOLEAN allocateFromBitMap32(UINT32 count, UINT32 *bits, UINT32 &offset)
-   {
-      BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
-         if (0 <= res)
-         {
-            UINT32 bit = 1;
-            bit = bit << res;
-            OSS_BIT_CLEAR(bits[i], bit);
-            offset = (i << BM_UTIL_BITWISE_32) + res;
-            r = TRUE;
-            goto done;
-         }
-      }
-
-   done:
-      return r;
-   }
-
-   
-
-   BOOLEAN setFreeIfNotFree32(UINT32 count, UINT32 *bits, UINT32 offset)
-   {
-      BOOLEAN r = FALSE;
-      UINT32 slot = offset >> BM_UTIL_BITWISE_32;
-      UINT32 bit = (UINT32)1 << (offset & BM_UTIL_BIT_MOD_32);
-      UINT32 *bitsSlot = NULL;
-      if (slot < count)
-      {
-         bitsSlot = &(bits[slot]);
-         if (!OSS_BIT_TEST(*bitsSlot, bit))
-         {
-            OSS_BIT_SET(*bitsSlot, bit);
-            r = TRUE;
-         }
-      }
-   
-      return r;
-   }
-
-   BOOLEAN setNotFreeIfFree32(UINT32 count, UINT32 *bits, UINT32 offset)
-   {
-      BOOLEAN r = FALSE;
-      UINT32 slot = offset >> BM_UTIL_BITWISE_32;
-      UINT32 bit = (UINT32)1 << (offset & BM_UTIL_BIT_MOD_32);
-      UINT32 *bitsSlot = NULL;
-      if (slot < count)
-      {
-         bitsSlot = &(bits[slot]);
-         if (OSS_BIT_TEST(*bitsSlot, bit))
-         {
-            OSS_BIT_CLEAR(*bitsSlot, bit);
-            r = TRUE;
-         }
-      }
-   done:
-      return r;
-   }
-
-
-   BOOLEAN upperBoundFirstFreeBitFromBit64(UINT32 bitsCount,
-                                           const UINT64 *bits,
-                                           INT32 low,
-                                           INT32 high,
-                                           UINT32 &offset)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != bits, "can not be null");
-      UINT32 i = 0;
-      UINT32 begin = 0;
-      UINT32 loopEnd = bitsCount;
-      UINT64 lowMask = OSS_UINT64_MAX;
-      UINT32 bitFound = 0;
-
-      if (0 <= low)
-      {
-         UINT32 value = (low & BM_UTIL_BIT_MOD_64);
-         if (value < BM_UTIL_BIT_MOD_64)
-         {
-            lowMask <<= (value + 1);
-         }
-
-         begin = (low + 1) >> BM_UTIL_BITWISE_64;
-      }
-      
-      if (0 <= high)
-      {
-         UINT32 count = (high >> BM_UTIL_BITWISE_64) + 1;
-         if (count < loopEnd)
-         {
-            loopEnd = count;
-         }
-      }
-
-      i = begin;
-      if (i < loopEnd)
-      {
-         INT32 res = ossGetLowestBit1From64Bits((bits[i] & lowMask));
-         if (0 <= res)
-         {
-            bitFound = (i << BM_UTIL_BITWISE_64) + res;
-            if (high < 0 || bitFound <= (UINT32)high)
-            {
-               r = TRUE;
-               offset = bitFound;
-            }
-            goto done;
-         }
-      }
-
-      ++i;
-      for (; i < loopEnd; ++i)
-      {
-         INT32 res = ossGetLowestBit1From64Bits(bits[i]);
-         if (0 <= res)
-         {
-            bitFound = (i << BM_UTIL_BITWISE_64) + res;
-            if (high < 0 || bitFound <= (UINT32)high)
-            {
-               r = TRUE;
-               offset = bitFound;
-            }
-            goto done;
-         }
-      }
-   done:
-      return r;
-   }
-   
-
-   BOOLEAN findAndClearFirstFreeBitFromBit64(UINT32 bitsCount,
-                                             INT32 beginBits,
-                                             UINT64 *bits,
-                                             UINT32 &offset)
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != bits, "can not be null");
-      SDB_ASSERT(beginBits < (INT32)bitsCount, "impossible");
-      UINT32 i = 0 < beginBits ? beginBits : 0;
-      for (; i < bitsCount; ++i)
+      SDB_ASSERT(searchBegin < bitsCount, "impossible");
+      for (UINT32 i = searchBegin; i < bitsCount; ++i)
       {
          INT32 res = ossGetLowestBit1From64Bits(bits[i]);
          if (0 <= res)
@@ -320,24 +70,23 @@ namespace vessel
       return r;
    }
 
-   void resetBitMap64(UINT32 count, UINT64 *bits, BOOLEAN free)
+   void resetBitmap(UINT32 count, UINT64 *bits, BOOLEAN zeroed)
    {
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != bits, "can not be null");
-      ossMemset(bits, free ? 0xFF : 0, count << 3);
+      ossMemset(bits, zeroed ? 0 : 0xFF, count << 3);
       return;
    }
 
-   BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
-                                     INT32 beginBits,
-                                     const UINT64 *bits,
-                                     UINT32 &offset)
+   BOOLEAN findFirstNonzeroBit(UINT32 bitsCount,
+                               UINT32 searchBegin,
+                               const UINT64 *bits,
+                               UINT32 &offset)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
-      SDB_ASSERT(beginBits < (INT32)bitsCount, "impossible");
-      UINT32 i = 0 < beginBits ? beginBits : 0;
-      for (; i < bitsCount; ++i)
+      SDB_ASSERT(searchBegin < bitsCount, "impossible");
+      for (UINT32 i = searchBegin; i < bitsCount; ++i)
       {
          INT32 res = ossGetLowestBit1From64Bits(bits[i]);
          if (0 <= res)
@@ -351,90 +100,92 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN setFreeIfNotFree64(UINT32 count, UINT64 *bits, UINT32 offset)
-   {
-      BOOLEAN r = FALSE;
-      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 bit = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
-      UINT64 *bitsSlot = NULL;
-      if (slot < count)
-      {
-         bitsSlot = &(bits[slot]);
-         if (!OSS_BIT_TEST(*bitsSlot, bit))
-         {
-            OSS_BIT_SET(*bitsSlot, bit);
-            r = TRUE;
-         }
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN setNotFreeIfFree64(UINT32 count, UINT64 *bits, UINT32 offset)
-   {
-      BOOLEAN r = FALSE;
-      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 bit = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
-      UINT64 *bitsSlot = NULL;
-      if (slot < count)
-      {
-         bitsSlot = &(bits[slot]);
-         if (OSS_BIT_TEST(*bitsSlot, bit))
-         {
-            OSS_BIT_CLEAR(*bitsSlot, bit);
-            r = TRUE;
-         }
-      }
-   done:
-      return r;
-   }
-
-   BOOLEAN testBitIsFree(UINT32 count,
-                         const UINT64 *bits,
-                         UINT32 offset)
-   {
-      BOOLEAN r = FALSE;
-      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      UINT64 bit = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
-      if (slot < count)
-      {
-         UINT64 v = bits[slot];
-         /// BOOLEAN is int32, do not assign it as OSS_BIT_TEST
-         UINT64 bitAnd = OSS_BIT_TEST(v, bit);
-         r = (0 != bitAnd);
-      }
-      return r;
-   }
-
-   void setNotFreeWithAtomic64(UINT32 count,
-                                  UINT64 *bits,
-                                  UINT32 offset)
+   BOOLEAN setBitIfZeroed(UINT32 count, UINT64 *bits, UINT32 offset)
    {
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
+      BOOLEAN r = FALSE;
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      SDB_ASSERT(slot < count, "can not be out of bound");
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+
+      if (0 == OSS_BIT_TEST(bits[slot], mask))
+      {
+         OSS_BIT_SET(bits[slot], mask);
+         r = TRUE;
+      }
+   done:
+      return r;
+   }
+
+   BOOLEAN clearBitIfNonzero(UINT32 count, UINT64 *bits, UINT32 offset)
+   {
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
+
+      BOOLEAN r = FALSE;
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      
+      if (0 != OSS_BIT_TEST(bits[slot], mask))
+      {
+         OSS_BIT_CLEAR(bits[slot], mask);
+         r = TRUE;
+      }
+   done:
+      return r;
+   }
+
+   BOOLEAN testBitIsNonzero(UINT32 count,
+                            const UINT64 *bits,
+                            UINT32 offset)
+   {
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      return 0 != OSS_BIT_TEST(bits[slot], mask);
+   }
+
+   void atomicClearBitAtOffset(UINT32 count,
+                               UINT64 *bits,
+                               UINT32 offset,
+                               BOOLEAN *nonzeroBeforeClear)
+   {
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 mask = 1;
       UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
       mask <<= n;
-      mask = (~mask);
-      ossFetchAndAND64(bits + slot, mask);
+      UINT64 old = ossFetchAndAND64(bits + offset, ~mask);
+      if (NULL != nonzeroBeforeClear)
+      {
+         *nonzeroBeforeClear = (0 != OSS_BIT_TEST(old, mask));
+      }
       return;
    }
 
-   void setFreeWithAtomic64(UINT32 count,
-                               UINT64 *bits,
-                               UINT32 offset)
+   void atomicSetBitAtOffset(UINT32 count,
+                             UINT64 *bits,
+                             UINT32 offset,
+                             BOOLEAN *zeroBeforeSet)
    {
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(offset < (count << BM_UTIL_BITWISE_64), "can not be out of bound");
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
-      SDB_ASSERT(slot < count, "can not be out of bound");
       UINT64 mask = 1;
       UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
       mask <<= n;
-
-      ossFetchAndOR64(bits + slot, mask);
+      UINT64 old = ossFetchAndOR64(bits + slot, mask);
+      if (NULL != zeroBeforeSet)
+      {
+         *zeroBeforeSet = (0 == OSS_BIT_TEST(old, mask));
+      }
       return;
    }
 
@@ -463,20 +214,119 @@ namespace vessel
       UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
       if (0 != n)
       {
-         UINT32 totalCount = BM_UTIL_BIT_MOD_64 - n;
+         UINT32 totalCount = 64 - n;
          for (UINT32 i = 0; i < totalCount; ++i)
          {
-            setNotFreeIfFree64(bitsCount, bits, offset + i);
+            clearBitIfNonzero(bitsCount, bits, offset + i);
          }
          ++begin;
       }
 
       if (begin < bitsCount)
       {
-         resetBitMap64(bitsCount - begin, bits + begin, FALSE);
+         resetBitmap(bitsCount - begin, bits + begin, TRUE);
       }
       return;
    }
 
+   BOOLEAN lowerBoundFirstNonzeroBit(UINT32 bitsCount,
+                                    UINT32 bitOffset,
+                                    const UINT64 *bits,
+                                    UINT32 &offset)
+   {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(bitOffset < (bitsCount << 6), "can not out of bound");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      BOOLEAN r = FALSE;
+      UINT32 delta = 0;
+      UINT32 begin = bitOffset >> BM_UTIL_BITWISE_64;
+      UINT32 n = (bitOffset & BM_UTIL_BIT_MOD_64);
+
+      if (0 < n)
+      {
+         UINT64 firstBits = 0;
+         INT32 freeInFirstBits = -1;
+         UINT64 mask = 1;
+
+         for (UINT32 i = 1; i < n; ++i)
+         {
+            mask <<= 1;
+            mask |= 1;
+         }
+
+         mask = (~mask);
+         firstBits = *(bits + begin);
+         firstBits = (firstBits & mask);
+         freeInFirstBits = ossGetLowestBit1From64Bits(firstBits);
+         if (0 <= freeInFirstBits)
+         {
+            r = TRUE;
+            offset = bitOffset + freeInFirstBits;
+            goto done;
+         }
+
+         ++begin;
+         delta = 64;
+      }
+
+      if (begin < bitsCount)
+      {
+         if (findFirstNonzeroBit(bitsCount - begin, 0, bits + begin, offset))
+         {
+            r = TRUE;
+            offset += delta;
+         }
+      }
+
+   done:
+      return r;
+   }
+
+   UINT32 getNonzeroBitCount(UINT32 bitsCount,
+                             const UINT64 *bits)
+   {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      UINT32 totalCount = 0;
+      for (UINT32 i = 0; i < bitsCount; ++i)
+      {
+         const UINT64 &n = bits[i];
+         UINT32 cnt = ossGetNonZeroBitCount64(n);
+         totalCount += cnt;
+      }
+      return totalCount;
+   }
+
+   BOOLEAN atomicFindAndClearFirstNonzeroBit(UINT32 bitsCount,
+                                             UINT32 searchBegin,
+                                             UINT64 *bits,
+                                             UINT32 &offset)
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(searchBegin < bitsCount, "impossible");
+      for (UINT32 i = searchBegin; i < bitsCount; ++i)
+      {
+         for (UINT32 loop = 0; loop < 64; ++loop)
+         {
+            INT32 pos = ossGetLowestBit1From64Bits(bits[i]);
+            if (pos < 0)
+            {
+               break;
+            }
+
+            UINT64 mask = (UINT64)1 << pos;
+            UINT64 newMask = ossFetchAndAND64(bits + i, ~mask);
+            if (0 != OSS_BIT_TEST(mask, newMask))
+            {
+               r = TRUE;
+               offset = (i << BM_UTIL_BITWISE_64) + pos;
+               goto done;
+            }
+         }
+      }
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine

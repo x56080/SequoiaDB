@@ -39,6 +39,7 @@
 #include "ossLikely.hpp"
 #include "vessel/slice.h"
 #include "vessel/localThreadSharedPointer.h"
+#include "vessel/cursorDef.h"
 
 namespace engine
 {

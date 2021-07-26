@@ -475,8 +475,8 @@ namespace vessel
       lcPageTagHolder holder;
 
       if (OSS_UNLIKELY(!tuple.isValid() ||
-                       tuple._status->getLockingMode() != OSS_SHARED_LATCH_MODE_EXCLUSIVE ||
-                       tuple._status->isWritingPrepared()))
+                       tuple._lockingMode != OSS_SHARED_LATCH_MODE_EXCLUSIVE ||
+                       tuple.isWritingPrepared()))
       {
          PD_LOG(PDERROR, "committed an invalid tuple");
          SDB_ASSERT(FALSE, "invalid tuple to commit");
@@ -493,7 +493,7 @@ namespace vessel
          goto done;
       }
 
-      holder = lcPageTagHolder(tuple._tag, tuple._status->getLockingMode());
+      holder = lcPageTagHolder(tuple._tag, (OSS_SHARED_LATCH_MODE)tuple._lockingMode);
       rc = _dl->upsert(lsn, holder);
       if (SDB_OK != rc)
       {
@@ -677,12 +677,11 @@ namespace vessel
 
       if (fsync)
       {
-         rc = fsyncDiskPages(context, task->getFirstPID(), task->getPageCount());--should flush segment
+         rc = fsyncIOTask(context, task);
          if (SDB_OK != rc)
          {
-            DPS_LSN_OFFSET lsn = _dl->getMinDirtyLSN();
-            PD_LOG(PDSEVERE, "failed to fsync disk pages:%d, min dirty lsn[%lld] will fall into chaos!", lsn);
-            _dl->removeCachedMinDirtyLSN();
+            PD_LOG(PDSEVERE, "failed to fsync disk pages, current min dirty lsn[%lld], rc:%d",
+                   _dl->getMinDirtyLSN(TRUE), rc);
             goto error;
          }
       }
@@ -700,29 +699,52 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::fsyncDiskPages(requestContext *context,
-                                   const GLOBAL_PAGE_ID &gpid,
-                                   UINT32 count)
+   void liteCache::updateMinCacheLsn()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      _dl->updateMinDirtyLsn();
+   }
+
+   INT32 liteCache::fsyncIOTask(requestContext *context,
+                                diskIOTask *task)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(gpid.isValid(), "can not be invalid");
-      SDB_ASSERT(0 < count, "can not be zero");
-      logicalPageSpace *lps = NULL;
+      SDB_ASSERT(NULL != task, "can not be null");
 
-      rc = context->getEnv()->sc.getLogicalPageSpace(gpid.space(),
-                                                     gpid.getSpaceType(), &lps);
-      if (SDB_OK != rc)
+      UINT32 segment = 0;
+      logicalPageSpace *lps = NULL;
+      GLOBAL_PAGE_ID gpid = task->getFirstPID();
+      if (!gpid.isValid())
       {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d",
-                gpid.space(), gpid.getSpaceType(), rc);
+         PD_LOG(PDERROR, "invalid first gpid");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rc = lps->fsyncPages(gpid.getFileType(), gpid.page(), count, TRUE);
+      rc = context->getEnv()->dms.getLogicalPageSpace(gpid.space(),
+                                                      gpid.getSpaceType(),
+                                                      &lps);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to fsync disk pages:%d", rc);
+         PD_LOG(PDERROR, "failed to get lps of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
+      if (gpid.getFileType() != lps->getStorageFileType())
+      {
+         PD_LOG(PDERROR, "invalid file type:%d", gpid.getFileType());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      segment = gpid.page() / lps->getStorageCoreArgs().maxPageCountPerSeg;
+      rc = lps->fsyncSegment(segment);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync segment of gpid[%s], rc:%d",
+                gpid.toString().c_str(), rc);
          goto error;
       }
    done:

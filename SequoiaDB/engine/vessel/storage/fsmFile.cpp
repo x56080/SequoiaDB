@@ -50,10 +50,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       const storageFileHead &head = getCommonHeadInMem();
-      SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
+      SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
       ossValuePtr ptr = 0;
-      UINT32 offset = 0;
-      UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
+      UINT32 totalBitsCount = FSM_FILE_PAGE_SIZE >> 3; /// divided by 8
       UINT32 reserved = 1 + FSM_ENTRY_PAGE_COUNT; /// 1 for smp
 
       rc = ensureSegmentCount(1);
@@ -71,10 +70,10 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", i, rc);
             goto error;
          }
-         ossMemset((void *)ptr, 0xFF, FSM_PAGE_SIZE);
+         ossMemset((void *)ptr, 0xFF, FSM_FILE_PAGE_SIZE);
       }
 
-      rc = getPagePtr(FSM_SMP_PID, ptr);
+      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get smp page ptr:%d", rc);
@@ -84,7 +83,7 @@ namespace vessel
       /// smp and entry pages can not be allocated.
       for (UINT32 i = 0; i < reserved; ++i)
       {
-         if (!setNotFreeIfFree64(totalBitsCount, (UINT64 *)ptr, i))
+         if (!clearBitIfNonzero(totalBitsCount, (UINT64 *)ptr, i))
          {
             PD_LOG(PDERROR, "failed to reserve page[%d]", i);
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -111,7 +110,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(storageFile::isOpen(), "must be open");
       ossValuePtr ptr = 0;
-      UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
+      UINT32 totalBitsCount = FSM_FILE_PAGE_SIZE >> 3; /// divided by 8
       UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp
       UINT32 nextFreePid = INVALID_PAGE_ID;
       UINT32 currentSegCount = 0;
@@ -128,14 +127,14 @@ namespace vessel
          goto done;
       }
 
-      rc = getPagePtr(FSM_SMP_PID, ptr);
+      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get page ptr:%d", rc);
          goto error;
       }
 
-      if (findFirstFreeBitFromBit64(totalBitsCount, -1, (const UINT64 *)ptr, nextFreePid))
+      if (findFirstNonzeroBit(totalBitsCount, 0, (const UINT64 *)ptr, nextFreePid))
       {
          if (nextFreePid < minFreePid)
          {
@@ -222,7 +221,7 @@ namespace vessel
    INT32 fsmFile::findFreePageFromSmp(PAGE_ID &pid)
    {
       INT32 rc = SDB_OK;
-      UINT32 totalCount = FSM_PAGE_SIZE >> 3;// dividec by 8
+      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3;// dividec by 8
       PAGE_ID minFreePid = FSM_ENTRY_PAGE_COUNT + 1;/// 1 smp + all entry pages.
 
       pid = INVALID_PAGE_ID;
@@ -234,14 +233,14 @@ namespace vessel
          goto error;
       }
 
-      rc = getPagePtr(FSM_SMP_PID, ptr);
+      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
          goto error;
       }
 
-      if (!findFirstFreeBitFromBit64(totalCount, _firstFree, (const UINT64 *)ptr, offset))
+      if (!findFirstNonzeroBit(totalCount, (UINT32)_firstFree, (const UINT64 *)ptr, offset))
       {
          PD_LOG(PDERROR, "failed to find free page from fsm");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -267,33 +266,34 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
-      SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
-      UINT32 totalCount = FSM_PAGE_SIZE >> 3; /// divide by 8
+      SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
+      SDB_ASSERT(0 <= _firstFree, "impossible");
+      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3; /// divide by 8
       ossValuePtr ptr = 0;
-      UINT32 nextFree = -1;
+      UINT32 nextFree = 0;
 
-      rc = getPagePtr(FSM_SMP_PID, ptr);
+      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
          goto error;
       }
 
-      if (!setNotFreeIfFree64(totalCount, (UINT64 *)ptr, pid))
+      if (!clearBitIfNonzero(totalCount, (UINT64 *)ptr, pid))
       {
          PD_LOG(PDERROR, "failed to set pid[%d] non-free", pid);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rc = fsyncPage(FSM_SMP_PID, TRUE);
+      rc = fsyncPage(FSM_FILE_SMP_PID, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync smp:%d", rc);
          goto error;
       }
 
-      if (findFirstFreeBitFromBit64(totalCount, _firstFree, (const UINT64 *)ptr, nextFree))
+      if (findFirstNonzeroBit(totalCount, _firstFree, (const UINT64 *)ptr, nextFree))
       {
          _firstFree = nextFree >> 6; /// divided by 64
       }
@@ -312,13 +312,13 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < count && NULL != pids, "can not be invalid");
       const storageFileHead &head = getCommonHeadInMem();
-      SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
-      UINT32 totalCount = FSM_PAGE_SIZE >> 3; /// divide by 8
+      SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
+      UINT32 totalCount = FSM_FILE_PAGE_SIZE >> 3; /// divide by 8
       ossValuePtr ptr = 0;
       PAGE_ID minPid = INVALID_PAGE_ID;
       UINT32 reserved = 1 + FSM_ENTRY_PAGE_COUNT;
 
-      rc = getPagePtr(FSM_SMP_PID, ptr);
+      rc = getPagePtr(FSM_FILE_SMP_PID, ptr);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get smp ptr:%d", rc);
@@ -339,7 +339,7 @@ namespace vessel
             continue;
          }
 
-         if (!setFreeIfNotFree64(totalCount, (UINT64 *)ptr, pid))
+         if (!setBitIfZeroed(totalCount, (UINT64 *)ptr, pid))
          {
             PD_LOG(PDERROR, "pid[%d] is free in smp", pid);
             continue;

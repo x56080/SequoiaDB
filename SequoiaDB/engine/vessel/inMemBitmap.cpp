@@ -219,9 +219,9 @@ namespace vessel
       do
       {
          UINT32 offset = 0;
-         if (findAndClearFirstFreeBitFromBit64(bitsCount,
-                                               _firstFreeBits,
-                                               _buf, offset))
+         if (findAndClearFirstNonzeroBit(bitsCount,
+                                         (UINT32)_firstFreeBits,
+                                         _buf, offset))
          {
             buf[allocatedCount++] = offset;
             --_free;
@@ -285,7 +285,7 @@ namespace vessel
       for (UINT32 i = 0; i < count; ++i)
       {
          UINT32 offset = buf[i];
-         if (setFreeIfNotFree64(bitsCount, _buf, offset))
+         if (clearBitIfNonzero(bitsCount, _buf, offset))
          {
             ++_free;
             if (_firstFreeBits < 0)
@@ -311,7 +311,7 @@ namespace vessel
       SDB_ASSERT(isReady(), "impossible");
       SDB_ASSERT(0 < _free, "impossible");
       UINT32 offset = 0;
-      if (findFirstFreeBitFromBit64(bitsCount, (INT32)beginBits, _buf, offset))
+      if (findFirstNonzeroBit(bitsCount, beginBits, _buf, offset))
       {
          _firstFreeBits = offset >> 6;
       }
@@ -340,7 +340,7 @@ namespace vessel
          goto error;
       }
 
-      isFree = testBitIsFree(capacity >> 6, _buf, offset);
+      isFree = testBitIsNonzero(capacity >> 6, _buf, offset);
    done:
       return rc;
    error:
@@ -370,7 +370,7 @@ namespace vessel
          goto error;
       }
 
-      if (!setNotFreeIfFree64(bitsCount, _buf, offset))
+      if (!clearBitIfNonzero(bitsCount, _buf, offset))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -519,7 +519,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_LIKELY(isInitialized()))
       {
-         ossSpinXLatchGuard guard(_latch);
+         ossXLatchGuard guard(_latch);
          if ((_pageCount + cnt) <= _maxBitmapPageCount)
          {
             _pageCount += cnt;
@@ -545,8 +545,7 @@ namespace vessel
    INT32 inMemBitmap::allocateNewBitmapPage()
    {
       INT32 rc = SDB_OK;
-      _inMemBitPage *page = NULL;
-      ossSpinXLatchGuard guard(_latch, FALSE);
+      ossXLatchGuard guard(_latch, FALSE);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -655,7 +654,7 @@ namespace vessel
    INT32 inMemBitmap::allocateNewBitmapPages(UINT32 count)
    {
       INT32 rc = SDB_OK;
-      ossSpinXLatchGuard guard(_latch, FALSE);
+      ossXLatchGuard guard(_latch, FALSE);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -838,12 +837,12 @@ namespace vessel
          UINT32 offset = buf[i] % _pageCapacity;
          _inMemBitPage *page = NULL;
 
-         if (_pageCount <= pageId)
+         if ((INT32)_pageCount <= pageId)
          {
             rc = SDB_OUT_OF_BOUND;
             goto error;
          }
-         else if (pageId < _pageSkipped)
+         else if (pageId < (INT32)_pageSkipped)
          {
             rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
             goto error;
@@ -950,7 +949,7 @@ namespace vessel
       SDB_ASSERT(NULL != buf, "can not be null");
       INT32 rc = SDB_OK;
 
-      if (_totalFreeCount < count)
+      if (_totalFreeCount < (INT32)count)
       {
          rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
@@ -1049,7 +1048,7 @@ namespace vessel
 
    void inMemBitmap::releaseBits(UINT32 count, const UINT32 *buf)
    {
-      ossSpinXLatchGuard guard(_latch, FALSE);
+      ossXLatchGuard guard(_latch, FALSE);
       if (OSS_UNLIKELY(!isInitialized()))
       {
          goto done;
@@ -1378,12 +1377,12 @@ namespace vessel
       const _inMemBitPage *page = NULL;
       _PAGE_MAP::const_iterator itr;
 
-      if (_pageCount <= pageId)
+      if ((INT32)_pageCount <= pageId)
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if (pageId < _pageSkipped)
+      else if (pageId < (INT32)_pageSkipped)
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;

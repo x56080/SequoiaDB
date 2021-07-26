@@ -39,6 +39,6 @@
 #include "core.hpp"
 #include "oss.hpp"
 #define XXH_INLINE_ALL
-#include "xxHash/xxhash.h"
+#include "xxhash.h"
 
 #endif//SDB_XXHASH_INC_H_

@@ -48,7 +48,7 @@ namespace engine
 namespace vessel
 {
    class fsmFile;
-   class fsmCandidateBucket;
+   class requestContext;
 
    class freeSpaceMap : public SDBObject
    {
@@ -61,89 +61,51 @@ namespace vessel
          freeSpaceMap &operator=(const freeSpaceMap &) = delete;
 
       public:
-         class fastFindContext : public SDBObject
-         {
-            public:
-               fastFindContext(){}
-               ~fastFindContext(){}
-               fastFindContext(const fastFindContext &o):
-               _striping(o._striping),
-               _tick(o._tick),
-               _lvl(o._lvl),
-               _bucket(o._bucket){}
-               fastFindContext &operator=(const fastFindContext &o)
-               {
-                  _striping = o._striping;
-                  _tick = o._tick;
-                  _lvl = o._lvl;
-                  _bucket = o._bucket;
-                  return *this;
-               }
-
-            private:
-               STRIPING_ID _striping = INVALID_STRIPING_ID;
-               UINT16 _tick = 0;
-               INT16 _lvl = FSM_INVALID_SPACE_LVL;
-               INT16 _bucket = -1; 
-         };//class fastFindContext
-
-      public:
          OSS_INLINE BOOLEAN isOpen()const
          {
             return _isOpen;
          }
 
-         /// create with multiple bucket mode
+         /// min/max both be valid or invalid
          INT32 create(CL_MB_ID mbID,
                       UINT32 logicalID,
                       fsmFile *file,
-                      UINT32 bucketCount,
                       STRIPING_ID min,
                       STRIPING_ID max);
-
-         /// create with single bucket mode
-         INT32 create(CL_MB_ID mbID,
-                      UINT32 logicalID,
-                      fsmFile *file);
-
-         INT32 open(CL_MB_ID mbID,
-                    UINT32 logicalID,
-                    UINT32 pageCount,
-                    fsmFile *file);
 
          INT32 open(CL_MB_ID mbID,
                     UINT32 logicalID,
                     UINT32 pageCount,
                     fsmFile *file,
-                    UINT32 bucketCount,
                     STRIPING_ID min,
                     STRIPING_ID max);
 
          void close();
 
-         /// Find free space only in buckets.
+         void destroy();
+
+         /// Find free space in whole map.
          /// The striping is necessary when cl is sharded.
          /// User should validate candidate again even return ok.
          /// Invalid candidate means no suitable candidate found.
-         INT32 fastFind(INT32 lvl,
-                        STRIPING_ID striping,
-                        fsmCandidate &candidate,
-                        UINT16 *bucketTick=NULL);
-
-         INT32 find(INT32 lvl,
+         INT32 find(requestContext *context,
+                    INT32 lvl,
                     STRIPING_ID striping,
-                    fsmCandidate &candidate,
-                    const UINT16 *bucketTick=NULL);
+                    fsmCandidate &candidate);
 
          INT32 insertNewPages(UINT32 firstSeq,
                               const PAGE_ID *lpids,
                               UINT32 count);
+
+         INT32 upgradePageSpaceLvl(UINT32 seq,
+                                   INT32 lvl);
+
+         INT32 downgradePgaeSpaceLvl(UINT32 seq,
+                                     INT32 lvl);
       private:
          INT32 initBuckets(UINT32 bucketCount,
                            UINT32 bucketCapacity,
                            UINT32 bucketLatchCount);
-
-         void finiBuckets();
 
          UINT32 getBucketNo(STRIPING_ID striping)const;
 
@@ -152,23 +114,21 @@ namespace vessel
             return _bucketLatches + (bucketNo & (_bucketLatchCount - 1));
          }
 
-         INT32 findFromBucket(UINT32 bucketNo,
-                              INT32 lvl,
-                              fsmCandidate &candidate,
-                              UINT16 *tick);
+         /// get bucket latch outside first.
+         INT32 upsertIntoBucketFromNewPagePool(fsmCandidateBucket &bucket,
+                                               BOOLEAN &upserted);
 
-         INT32 upsertIntoBucket(UINT32 bucketNo,
-                                UINT32 seq,
-                                const fsmCandidate::SHARED_INFO_PTR sptr);
+         INT32 findFromNewPagePool(fsmCandidate &candidate);
 
-      private:
          OSS_INLINE BOOLEAN isSharded()const
          {
             return INVALID_STRIPING_ID != _minStriping;
          }
 
-         INT32 findFromNewPagePool(fsmCandidate &candidate);
-
+         INT32 _find(UINT32 bucketNo,
+                     INT32 lvl,
+                     fsmCandidate &candidate);
+                     
          INT32 findFromDiskMap(INT32 lvl,
                                fsmCandidate &candidate);
          void fini();
@@ -184,12 +144,10 @@ namespace vessel
          STRIPING_ID _minStriping = INVALID_STRIPING_ID;
          STRIPING_ID _maxStriping = INVALID_STRIPING_ID;
          
-         UINT32 _bucketCapacity = 0;
          UINT32 _bucketCount = 0;
          UINT32 _bucketLatchCount = 0;
          fsmCandidateBucket *_buckets = NULL;
          ossSpinXLatch *_bucketLatches = NULL;
-         UINT16 *_bucketTicks = NULL;
 
          FREE_SPACE_TUPLE_POOL _newPagePool;
          diskFreeSpaceMap _dfsm;

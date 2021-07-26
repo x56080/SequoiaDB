@@ -59,7 +59,7 @@ namespace vessel
 
       recordDataPageHead &operator=(const recordDataPageHead &o)
       {
-         ossMemcpy(this, &o, RECORD_PAGE_HEAD_LEN);
+         ossMemcpy(this, &o, sizeof(recordDataPageHead));
          return *this;
       }
 
@@ -136,7 +136,7 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isInvisible()const
       {
-         return 0 != OSS_BIT_TEST(_flags & RDP_SLOT_FLAG_INVISIBLE);
+         return 0 != OSS_BIT_TEST(_flags, RDP_SLOT_FLAG_INVISIBLE);
       }
 
       OSS_INLINE void setInvisible()
@@ -207,7 +207,7 @@ namespace vessel
          {
             return 0 != OSS_BIT_TEST(_flags, RDP_RECORD_FLAG_TOMBSTONE);
          }
-         OSS_INLINE void setOverflow()const
+         OSS_INLINE void setOverflow()
          {
             OSS_BIT_SET(_flags, RDP_RECORD_FLAG_OVERFLOW);
          }

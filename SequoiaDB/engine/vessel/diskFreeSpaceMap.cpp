@@ -45,7 +45,7 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 SUPER_BITMAP_BLOCK_CAPACITY = 64;
+   constexpr UINT32 SUPER_BITMAP_EXTENDING_CAPACITY = 64;
 
    diskFreeSpaceMap::diskFreeSpaceMap()
    {
@@ -63,6 +63,7 @@ namespace vessel
    {
       _fsmFile = NULL;
       _logicalId = DMS_INVALID_LOGICCLID;
+      _mbID = INVALID_CL_MB_ID;
       _totalDataPageCount = 0;
       for (_BITMAP_OBJ_MAP::iterator itr = _bitmaps.begin();
            itr != _bitmaps.end(); ++itr)
@@ -77,8 +78,40 @@ namespace vessel
 
       for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         _superBitmaps[i].release();
+         _superBitmap[i].release();
       }
+      return;
+   }
+
+   void diskFreeSpaceMap::destroy()
+   {
+      if (isOpen())
+      {
+         ossPoolVector<PAGE_ID> pids;
+         INT32 rc = destroyEntrySlot(_mbID);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to destroy entry slot of mbid[%d], rc:%d",
+                   _mbID, rc);    
+         }
+
+         for (UINT32 i = 0; i < _bitmapOwners.size(); ++i)
+         {
+            pids.push_back(_bitmapOwners.at(i));
+         }
+         for (_BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.begin();
+              itr != _bitmaps.end(); ++itr)
+         {
+            pids.push_back(itr->second->getPid());
+         }
+
+         rc = _fsmFile->releasePages(pids.size(), pids.data());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to release pids on smp:%d", rc);
+         }
+      }
+   done:
       return;
    }
 
@@ -103,6 +136,7 @@ namespace vessel
 
       _fsmFile = file;
       _logicalId = logicalID;
+      _mbID = mbID;
 
       rc = createNewBitmapObj(0, &obj);
       if (SDB_OK != rc)
@@ -153,6 +187,7 @@ namespace vessel
 
       _fsmFile = file;
       _logicalId = logicalID;
+      _mbID = mbID;
       _totalDataPageCount = dataPageCount;
 
       rc = readEntrySlot(mbID, logicalID, entry);
@@ -188,7 +223,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createSuperBitmaps();
+      rc = createSuperBitmap();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create super bitmaps:%d", rc);
@@ -248,7 +283,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to increase data page count of obj[%d], rc:%d",
-                  bitmapNo, rc);
+                  i, rc);
             goto error;
          }
       }
@@ -321,6 +356,56 @@ namespace vessel
       {
          atomicSetSuperBitmap(lvl, bitmapNo);
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 diskFreeSpaceMap::upgradePageSpaceLvl(UINT32 seq,
+                                               INT32 lvl)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 bitmapNo = 0;
+      fsmBitmapPageObject *obj = NULL;
+      ossSLatchGuard guard(&_latch, SHARED);
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (INVALID_CL_PAGE_SEQ == seq || 
+               !isValidFsmLvL(lvl))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_totalDataPageCount <= seq)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      bitmapNo = getBitmapPageNo(seq);
+      obj = getBitmapPageObj(bitmapNo);
+      if (NULL == obj)
+      {
+         PD_LOG(PDERROR, "failed to get bitmap obj[%d]", bitmapNo);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = obj->downgradePageSpaceLvl(seq, lvl);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to upgrade size lvl in obj[%d], rc:%d",
+                bitmapNo, rc);
+         goto error;
+      }
+
+      /// Do not test stats in obj when downgrade.
+      /// We only update super bitmap when finding page.
    done:
       return rc;
    error:
@@ -543,18 +628,6 @@ namespace vessel
       goto done;
    }
 
-   void diskFreeSpaceMap::removeBitmapObj(UINT32 pageNo)
-   {
-      fsmBitmapPageObject *obj = NULL;
-      _BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.find(i);
-      if (_bitmaps.end() != itr)
-      {
-         SDB_OSS_DEL itr->second;
-         _bitmaps.erase(itr);
-      }
-      return;
-   }
-
    fsmBitmapPageObject *diskFreeSpaceMap::getBitmapPageObj(UINT32 i)
    {
       fsmBitmapPageObject *obj = NULL;
@@ -661,7 +734,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 bitmapNo = 0;
       fsmBitmapPageObject *obj = NULL;
-      ossSLatchGuard guard(&_latch, EXCLUSIVE, FALSE);
+      ossSLatchGuard guard(&_latch, SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -703,16 +776,15 @@ namespace vessel
 
          if (found)
          {
-            if (obj->getStats(lvl) <= 0)
-            {
-               clearInSuperBitmapAtLvL(lvl, bitmapNo);
-            }
             break;
          }
 
-         /// obj found in super bitmap but nothing found in bitmap obj.
+         /// The page found in super bitmap but nothing found in bitmap obj.
+         /// Which means no more resources at target or upper lvls exist. 
          /// clear it in super bitmaps.
-         clearInSuperBitmapGTELvL(targetLvl, bitmapNo);
+         /// WARNING: In the moment, if some one is upgrading lvl on this page,
+         /// super bitmap may be overwritten by mistake.
+         atomicUnsetSuperBitmapFromLvl(targetLvl, bitmapNo);
       } while (TRUE);
    
    done:
@@ -727,13 +799,13 @@ namespace vessel
       BOOLEAN r = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(FSM_INVALID_SPACE_LVL != targetLvl, "can not be invalid");
-      UINT32 bitsCount = _superBitmaps[0].getSize() >> 3;
+      UINT32 bitsCount = _superBitmap[0].getSize() >> 3;
       UINT32 offset = 0;
       for (INT32 i = targetLvl; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         if (findFirstFreeBitFromBit64(bitsCount, 0,
-                                       (const UINT64 *)(_superBitmaps[i].getBuffer()),
-                                       offset))
+         if (findFirstNonzeroBit(bitsCount, 0,
+                                 (const UINT64 *)(_superBitmap[i].getBuffer()),
+                                 offset))
          {
             r = TRUE;
             bitmapNo = offset;
@@ -748,8 +820,20 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      UINT32 bitsCount = _superBitmaps[lvl].getSize() >> 3;
-      setFreeWithAtomic64(bitsCount, (UINT64 *)(_superBitmaps[lvl].getBuffer(), bitmapNo));
+      UINT32 bitsCount = _superBitmap[lvl].getSize() >> 3;
+      atomicSetBitAtOffset(bitsCount,
+                           (UINT64 *)(_superBitmap[lvl].getBuffer()),
+                           bitmapNo);
+   }
+
+   void diskFreeSpaceMap::atomicUnsetSuperBitmap(INT32 lvl, UINT32 bitmapNo)
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
+      UINT32 bitsCount = _superBitmap[lvl].getSize() >> 3;
+      atomicClearBitAtOffset(bitsCount,
+                             (UINT64 *)(_superBitmap[lvl].getBuffer()),
+                             bitmapNo);
    }
 
 
@@ -936,6 +1020,39 @@ namespace vessel
       goto done;
    }
 
+   INT32 diskFreeSpaceMap::destroyEntrySlot(CL_MB_ID mbID)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
+      ossValuePtr ptr = 0;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      fsmCLEntry *slot = NULL;
+
+      pid = getEntryPid(mbID);
+      rc = _fsmFile->getPagePtr(pid, ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page[%d] from fsm file, rc:%d", pid, rc);
+         goto error;
+      }
+
+      slot = getEntryFromPagePtr(ptr, mbID);
+      SDB_ASSERT(NULL != slot, "can not be null");
+      slot->logicalID = DMS_INVALID_LOGICCLID;
+      slot->root = INVALID_PAGE_ID;
+
+      rc = _fsmFile->fsyncPage(pid, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync entry slot:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    PAGE_ID diskFreeSpaceMap::getEntryPid(CL_MB_ID mbID)
    {
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
@@ -1068,7 +1185,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::createSuperBitmaps()
+   INT32 diskFreeSpaceMap::createSuperBitmap()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
@@ -1087,18 +1204,21 @@ namespace vessel
            itr != _bitmaps.end(); ++itr)
       {
          SDB_ASSERT(NULL != itr->second, "can not be null");
+         if (OSS_UNLIKELY(_bitmaps.size() <= itr->first))
+         {
+            PD_LOG(PDERROR, "unexpected bitmap no[%d]", itr->first);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
          for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
          {
             if (0 < itr->second->getStats(i))
             {
-               if (!setFreeIfNotFree64((itr->first >> 6) + 1,
-                                       (UINT64 *)(_superBitmaps[i].getBuffer()),
-                                       itr->first))
-               {
-                  PD_LOG(PDERROR, "failed to set offset[%d] free", itr->first);
-                  rc = SDB_VESSEL_INTERNAL_ERR;
-                  goto error;
-               }
+               setBitIfZeroed((itr->first >> 6) + 1,
+                               (UINT64 *)(_superBitmap[i].getBuffer()),
+                              itr->first);
+
             }
          }
       }
@@ -1110,61 +1230,56 @@ namespace vessel
 
    INT32 diskFreeSpaceMap::ensureSuperBitmapSize(UINT32 bitmapPageCount)
    {
-      SDB_ASSERT(0 < bitmapPageCount, "can not be zero");
-      SDB_ASSERT(64 == SUPER_BITMAP_BLOCK_CAPACITY, "must be 64");
+      SDB_ASSERT(64 == SUPER_BITMAP_EXTENDING_CAPACITY, "must be 64");
       INT32 rc = SDB_OK;
-      INT32 rollback = -1;
-      UINT32 newBlockSize = ossAlign64(bitmapPageCount) * sizeof(UINT64);
-      UINT32 oldBlockSize = _superBitmaps[0].getSize();
-      if (newBlockSize <= oldBlockSize)
+      UINT32 newBlockSize = (ossAlign64(bitmapPageCount) / SUPER_BITMAP_EXTENDING_CAPACITY)
+                            * sizeof(UINT64);
+      UINT32 currentSize = _superBitmap[0].getSize();
+      memoryBlock mbs[FSM_SPACE_LVL_COUNT];
+
+      if (newBlockSize <= currentSize)
       {
          goto done;
       }
 
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         rc = _superBitmaps[i].resize(newBlockSize, 0);
+         rc = mbs[i].resize(newBlockSize);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to resize memory block:%d", rc);
             goto error;
          }
-         rollback = i;
+
+         if (0 != currentSize)
+         {
+            ossMemcpy(mbs[i].getBuffer(),
+                      _superBitmap[i].getBuffer(),
+                      currentSize);
+         }
       }
 
+
+      for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      {
+         _superBitmap[i].swap(mbs[i]);
+      }
    done:
       return rc;
    error:
-      for (INT32 i = rollback; i >= 0; --i)
-      {
-         _superBitmaps[i].resize(oldBlockSize);
-      }
       goto done;
    }
-
-   void diskFreeSpaceMap::clearInSuperBitmapAtLvL(INT32 lvl, UINT32 bitmapNo)
-   {
-      SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      memoryBlock &block = _superBitmaps[lvl];
-      UINT32 bitsCount = block.getSize() >> 3;
-      if (bitmapNo < (bitsCount << 3))
-      {
-         setNotFreeIfFree64(bitsCount, (UINT64 *)(block.getBuffer()), bitmapNo);
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "out of bound");
-      }
-   }
    
-   void diskFreeSpaceMap::clearInSuperBitmapGTELvL(INT32 lvl, UINT32 bitmapNo)
+   void diskFreeSpaceMap::atomicUnsetSuperBitmapFromLvl(INT32 lvl, UINT32 bitmapNo)
    {
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       for (INT32 i = lvl; i < FSM_SPACE_LVL_COUNT; ++i)
       {
-         clearInSuperBitmapAtLvL(i, bitmapNo);
+         atomicUnsetSuperBitmap(i, bitmapNo);
       }
+      return;
    }
+
 
 }//namespace vessel
 }//namespace engine

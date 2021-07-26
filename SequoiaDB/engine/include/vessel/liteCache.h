@@ -127,12 +127,13 @@ class liteCache : public SDBObject
 
       INT32 executeIOTask(requestContext *context,
                           diskIOTask *task);
+
+      void updateMinCacheLsn();
    private:
       INT32 ensureMemPage(requestContext *context, freeListPage &page);
 
-      INT32 fsyncDiskPages(requestContext *context,
-                           const GLOBAL_PAGE_ID &gpid,
-                           UINT32 count);
+      INT32 fsyncIOTask(requestContext *context,
+                        diskIOTask *task);
 
       void releaseTag();
 

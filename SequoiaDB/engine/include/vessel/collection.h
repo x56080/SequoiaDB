@@ -72,6 +72,10 @@ namespace vessel
          {
             return NULL != _collectionSpace;
          }
+         OSS_INLINE const collectionRecord &getRecord()const
+         {
+            return _record;
+         }
          OSS_INLINE const CHAR *getName()const
          {
             return _record.name;
@@ -156,13 +160,14 @@ namespace vessel
       private:
          INT32 insertNonBigRecord(insertContext *context);
 
-         INT32 insertNonBigRecordToCandidate(insertContext *context);
+         INT32 insertNonBigRecordToPage(insertContext *context,
+                                        PAGE_ID lpid);
 
       private:
-         INT32 findFreePageForRecord(requestContext *context,
-                                     UINT32 recordSize,
-                                     STRIPING_ID striping,
-                                     fsmCandidate &candidate);
+         INT32 findCandidate(requestContext *context,
+                             INT32 lvl,
+                             STRIPING_ID striping,
+                             fsmCandidate &candidate);
          
          /// user should hold _newPageLatch first
          INT32 allocateNewRecordDataPages(requestContext *context,
@@ -226,8 +231,9 @@ namespace vessel
          UINT32 _totalLvl0Count = 0;
          UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
+
          ossRWMutex _ddlLatch;
-         ossSpinXLatch _rdpCountLatch;
+         ossSpinXLatch _extendingLatch;
    };//class collection
 }//namespace vessel
 }//namespace engine

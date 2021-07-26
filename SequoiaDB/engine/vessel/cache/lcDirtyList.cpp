@@ -217,6 +217,7 @@ namespace vessel
       {
          /// No need to get tag's latch.
          _minDirtyLsn = _tail->getMinDirtyLSN();
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _minDirtyLsn, "impossible");
       }
       return;
    }

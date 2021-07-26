@@ -71,7 +71,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->csContainer.listCollectionSpaces(&context, cursor);
+      rc = getEnv()->dms.listCollectionSpaces(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;

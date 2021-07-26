@@ -63,6 +63,7 @@ zstd_dir = join(thirdparty_dir, 'zstd')
 zstd_lib_dir = join(zstd_dir, 'lib')
 bzip2_dir = join(thirdparty_dir, 'bzip2')
 bzip2_lib_dir = join(bzip2_dir, 'lib')
+xxhash_dir = join(thirdparty_dir, 'xxHash')
 # --- options ----
 
 options = {}
@@ -547,7 +548,7 @@ CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(engine_dir,'t
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
          join(snappy_dir,'include'),join(gtest_dir,'include'),
          join(rocksdb_dir,'include'),join(zstd_dir,'lib'),bzip2_dir,
-         pcre_dir, boost_dir, ssh2_dir, hdfsJniPath,
+         pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, xxhash_dir,
          hdfsJniMdPath] )
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H", "BOOST_THREAD_HAS_CONDATTR_SET_CLOCK_MONOTONIC"] )
@@ -658,6 +659,9 @@ if guess_os == "linux":
     bzip2_lib = join(bzip2_lib_dir, 'libbz2.a')
 
     nix = True
+
+    if debugBuild:
+       env.Append( CPPFLAGS=" -Wno-deprecated-declarations -Wno-literal-suffix " ) 
 
 elif guess_os == "win32":
     # when building windows

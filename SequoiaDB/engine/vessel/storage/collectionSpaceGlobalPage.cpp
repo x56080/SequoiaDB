@@ -83,7 +83,7 @@ namespace vessel
          goto done;
       }
       
-      ossMemcpy(((void *)(ossValuePtr)buf + PAGE_HEAD_SIZE), &record, CS_META_RECORD_LEN);
+      ossMemcpy((void *)((ossValuePtr)buf + PAGE_HEAD_SIZE), &record, CS_META_RECORD_LEN);
 
       r = TRUE;
    done:

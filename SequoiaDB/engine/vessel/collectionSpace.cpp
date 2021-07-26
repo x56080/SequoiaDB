@@ -300,11 +300,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(!context->isMbLocked(), "can not be locked");
-      static const UINT32 NAME_BUFF_SIZE = DMS_COLLECTION_NAME_SZ + 1;
-      CHAR clName[NAME_BUFF_SIZE] = {0};
 
       bson::BSONObj record;
-      BOOLEAN locked = FALSE;
+      ossSLatchGuard guard(&_latch, SHARED, FALSE);
       
       if (OSS_UNLIKELY(NULL == context && NULL == cursor))
       {
@@ -320,10 +318,9 @@ namespace vessel
       do
       {
          BOOLEAN mbLocked = FALSE;
-         if (!locked)
+         if (!guard.isLocked())
          {
-            _latch.get_shared();
-            locked = TRUE;
+            guard.lock();
          }
 
          collectionObjHolder *holder = NULL;
@@ -393,8 +390,7 @@ namespace vessel
          }
          else /// failed to lock mb
          {
-            _latch.release_shared();
-            locked = FALSE;
+            guard.unlock();
             holder->getLatch().lock_r();
             holder->getLatch().release_r();
             continue;
@@ -403,14 +399,11 @@ namespace vessel
       } while (TRUE);
       
    done:
-      if (locked)
-      {
-         _latch.release_shared();
-      }
       if (context->isMbLocked())
       {
          context->unlockMB();
       }
+      guard.unlock();
       return rc;
    error:
       
@@ -592,7 +585,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
       UINT32 crpCapacity = 0;
-      UINT32 crpCount = 0;
       const storageCoreArgs &args = _su->getMainDataSpace().getStorageCoreArgs();
       mainDataSpace *mds = &(_su->getMainDataSpace());
       collectionRecord record;
@@ -866,8 +858,7 @@ namespace vessel
       }
 
       rc = _allocator.allocateBits(1, &m, 1);
-      if (SDB_VESSEL_OUT_OF_RESOURCE == rc ||
-          INVALID_CL_MB_ID == m)
+      if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
       {
          PD_LOG(PDERROR, "no free mb id any more");
          rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
@@ -971,23 +962,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   INT32 collectionSpace::createOnDisk(requestContext *context,
-                                       const csMetaRecord &record,
-                                       const createCSOptions &options)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(record.isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != _su, "can not be null");
-
-
-      
-   done:
-      return rc;
-   error:
-      goto error;
    }
 
    INT32 collectionSpace::insertIntoFormalIndexes(collection *obj)

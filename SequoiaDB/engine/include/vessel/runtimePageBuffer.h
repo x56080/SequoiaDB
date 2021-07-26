@@ -160,7 +160,7 @@ namespace vessel
                goto error;
             }
 
-            rc = getReadablePtrOfBodyWithRc(offset, sizeof(T), &tmp);
+            rc = getReadablePtrOfBodyWithRc(offset, sizeof(T), tmp);
             if (SDB_OK != rc)
             {
                goto error;
@@ -200,7 +200,7 @@ namespace vessel
                goto error;
             }
 
-            rc = getWritablePtrOfBodyWithRc(offset, sizeof(T), &tmp);
+            rc = getWritablePtrOfBodyWithRc(offset, sizeof(T), tmp);
             if (SDB_OK != rc)
             {
                goto error;

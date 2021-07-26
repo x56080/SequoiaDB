@@ -75,6 +75,8 @@ namespace vessel
                     fsmBitmapPage *page,
                     UINT32 &abnormalCount);
 
+         /// The size never shrink
+         /// Not thread safe
          INT32 ensureSize(UINT32 size);
 
          INT32 findAndClear(INT32 targetLvl,
@@ -89,16 +91,11 @@ namespace vessel
                                    BOOLEAN &upgraded);
 
          INT32 downgradePageSpaceLvl(UINT32 seq,
-                                     INT32 lvl,
-                                     BOOLEAN &downgraded);
+                                     INT32 lvl);
                        
       private:
-         void clearBitAtLvLs(INT32 exceptLvl, UINT32 bitOffset);
-
-         void atomicClearBitAtLvls(INT32 exceptLvl, UINT32 bitOffset);
-
-         BOOLEAN findAndClear(INT32 lvl,
-                              UINT32 &offset);
+         BOOLEAN atomicFindAndClear(INT32 lvl,
+                                    UINT32 &offset);
 
          /// Return false if already set.
          BOOLEAN atomicSetLvl(UINT32 bitsCount,
@@ -108,14 +105,11 @@ namespace vessel
          BOOLEAN atomicUnsetLvl(UINT32 bitsCount,
                                 UINT32 offset,
                                 INT32 lvl);
-
-         void clearFromOffsetToTheEnd(INT32 lvl, UINT32 offset);
       private:
          UINT32 _pageNo = 0;
          PAGE_ID _pid = INVALID_PAGE_ID;
          fsmBitmapPage *_page = NULL;
          UINT32 _size = 0;
-
          INT32 _stats[FSM_SPACE_LVL_COUNT] = {0};
          
    };//class fsmBitmapPageObject

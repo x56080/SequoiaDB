@@ -42,50 +42,11 @@ namespace engine
 {
 namespace vessel
 {  
-   class copyOnWriteSpaceEnv;
-   class idxDataFile;
-
-   class indexSpace : public logicalPageSpace
+   class indexSpace
    {
       public:
          indexSpace(){}
          virtual ~indexSpace();
-
-      public:
-         INT32 mapNewLpids(requestContext *context,
-                           UINT32 count,
-                           const PAGE_ID *lpids,
-                           const PAGE_ID *pids);
-
-      private:
-         virtual UINT32 getSystemPageCount()const {return 0;}
-         virtual UINT32 getReservedImpCount()const {return 2;}
-         virtual FILE_TYPE getTypeOfMetaFile()const{return FILE_TYPE_IDX_M;}
-         virtual FILE_TYPE getTypeOfDataFile()const{return FILE_TYPE_IDX_D;}
-         virtual UINT32 getFreeBoundOfLpidPool()const{return 0;}
-         virtual UINT32 getFreeBoundOfPpidPool()const{return 0;}
-
-      private:
-         virtual INT32 allocateIdMapPagesOnDisk(requestContext *context,
-                                                PAGE_ID first,
-                                                UINT32 count);
-
-         virtual INT32 createDataFile(requestContext *context,
-                                      UINT64 sequence);
-
-         virtual UINT32 getDataFileCount();
-
-         virtual INT32 getDataSMPOfFile(UINT32 sequence, UINT32 i, PAGE_ID &pid);
-
-      private:
-         INT32 ensureDataFile(requestContext *context,
-                              UINT64 sequence,
-                              idxDataFile **out);
-
-         INT32 getMaxDataFileCount(UINT32 &cnt)const;
-
-      private:
-         copyOnWriteSpaceEnv *_env = NULL;
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

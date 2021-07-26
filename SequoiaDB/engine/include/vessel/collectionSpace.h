@@ -150,9 +150,6 @@ namespace vessel
       private:
          void fini();
          INT32 initInMemStructures();
-         INT32 createOnDisk(requestContext *context,
-                            const csMetaRecord &record,
-                            const createCSOptions &options);
 
          INT32 initCollectionsFromDisk(requestContext *context);
          INT32 initCollection(requestContext *context,

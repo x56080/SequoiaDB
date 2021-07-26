@@ -93,7 +93,7 @@ namespace vessel
 
       private:
          UINT64 _flags = 0;
-         CHAR _buffer[ID_MAP_PAGE_CACHE_SIZE] = {0xFF};/// The slots will be inited as invalid value.
+         CHAR _buffer[ID_MAP_PAGE_CACHE_SIZE] = {(CHAR)0xFF};/// The slots will be inited as invalid value.
 
    };//class partialImpCache
 }//namespace vessel

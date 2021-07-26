@@ -71,8 +71,6 @@ namespace vessel
 
          void setDDL();
 
-         void close();
-
          OSS_INLINE BOOLEAN prepared()const
          {
             return DPS_INVALID_LSN_OFFSET != _head._lsn;

@@ -137,6 +137,8 @@ namespace vessel
          FILE_TYPE getStorageFileType()const;
          const storageCoreArgs &getStorageCoreArgs()const;
 
+         INT32 fsyncSegment(UINT32 segment)const;
+
 
       public:
          INT32 blockCheckpoint(requestContext *context);

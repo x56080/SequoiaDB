@@ -44,7 +44,7 @@ namespace vessel
    class outerResource : public SDBObject
    {
       public:
-         IRedoLogger *logger;
+         IRedoLogger *logger = NULL;
 
       OSS_INLINE BOOLEAN isValid()const
       {

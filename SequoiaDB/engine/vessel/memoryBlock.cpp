@@ -90,7 +90,7 @@ namespace vessel
          _buffer = NULL;
       }
 
-      _buffer = buffer;
+      _buffer = (CHAR *)buffer;
       _capacity = capacity;
    done:
       return rc;
@@ -167,6 +167,22 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void memoryBlock::swap(memoryBlock &mb)
+   {
+      CHAR *buffer = _buffer;
+      UINT32 size = _size;
+      UINT32 capacity = _capacity;
+
+      _buffer = mb._buffer;
+      _size = mb._size;
+      _capacity = mb._capacity;
+
+      mb._buffer = buffer;
+      mb._size = size;
+      mb._capacity = capacity;
+      return;
    }
 }//namespace vessel
 }//namespace engine

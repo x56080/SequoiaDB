@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = csgpAccessor.h
+   Source File Name = cursorDef.h
 
    Descriptive Name =
 
@@ -33,28 +33,24 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CSGP_ACCESSOR_H_
-#define VESSEL_CSGP_ACCESSOR_H_
+#ifndef VESSEL_CURSOR_DEF_H_
+#define VESSEL_CURSOR_DEF_H_
 
-#include "vessel/pageAccessor.h"
-#include "vessel/collectionSpaceGlobalPage.h"
-#include "vessel/storageFileDef.h"
-#include "vessel/slice.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   
-   ///collection space global page
-   class csgpAccessor : public pageAccessor
+   enum CURSOR_TYPE
    {
-      public:
-         csgpAccessor();
-         virtual ~csgpAccessor();
-      
-   };//class csgpAccessor
-}//class vessel
-}//class engine
+      CURSOR_TYPE_INVALID = 0,
+      CURSOR_TYPE_LIST_COLLECTION_SPACE = 1,
+      CURSOR_TYPE_LIST_COLLECTION = 2,
+      CURSOR_TYPE_SCAN_COLLECTION = 3,
+   };
+}//namespace vessel
+}//namespace engine
 
-#endif//VESSEL_CSGP_ACCESSOR_H_
+#endif//VESSEL_CURSOR_DEF_H_

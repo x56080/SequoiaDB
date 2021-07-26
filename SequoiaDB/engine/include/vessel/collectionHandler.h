@@ -44,6 +44,7 @@
 #include "vessel/cursorHandler.h"
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/vesselOptions.h"
 
 namespace engine
 {

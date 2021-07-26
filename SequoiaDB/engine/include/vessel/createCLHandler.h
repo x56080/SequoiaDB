@@ -41,7 +41,7 @@
 
 #include "vessel/requestHandler.h"
 #include "vessel/requestContext.h"
-#include "vessel/vesselOptions.h"
+#include "vessel/collectionOptions.h"
 #include "vessel/strSlice.h"
 
 namespace engine

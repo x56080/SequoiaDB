@@ -82,6 +82,8 @@ namespace vessel
 
          INT32 append(UINT32 size, const void *buffer);
 
+         void swap(memoryBlock &mb);
+
          slice getSlice()const
          {
             return slice(_size, _buffer);

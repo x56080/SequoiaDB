@@ -58,10 +58,6 @@ namespace vessel
    const static UINT32 COLLECTION_MAX_ROUTE_ROOT = COLLECTION_ROOT_LVL2;
    const static UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
 
-
-   const static INT32 COLLECTION_MAX_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL2;
-   const static INT32 COLLECTION_MIN_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL0;
-
    const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x01ull;
 
    enum COLLECTION_TYPE
@@ -103,7 +99,7 @@ namespace vessel
          innerID = UTIL_INVALID_CL_INNER_ID;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
-         maxSGCount = 0;
+         pad = 0;
          flags = 0;
          freeSizeReserved = 0;
          minStriping = INVALID_STRIPING_ID;
@@ -122,8 +118,8 @@ namespace vessel
       UINT32 innerID = UTIL_INVALID_CL_INNER_ID;
       UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
       UINT16 mbID = INVALID_CL_MB_ID;
-      UINT8 maxSGCount = 0;
       UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
+      UINT8 pad = 0;
       UINT32 flags = 0;
       UINT32 freeSizeReserved = 0;
       UINT16 minStriping = INVALID_STRIPING_ID;

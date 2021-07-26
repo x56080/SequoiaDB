@@ -52,12 +52,15 @@ namespace vessel
    class vesselImpl : public vessel, SDBObject
    {
       public:
-         vesselImpl();
+         vesselImpl(){}
          virtual ~vesselImpl();
       public:
          virtual BOOLEAN isOpen(){return _open;}
-         virtual INT32 initOuterResource(const outerResource &resource);
-         virtual INT32 open(ISession *session, const openDBOptions &options);
+
+         virtual INT32 open(ISession *session,
+                            const outerResource *resource,
+                            const openDBOptions &options);
+                            
          virtual INT32 close(ISession *session, const closeDBOptions &options);
 
          virtual INT32 listCollectionSpace(ISession *session,
@@ -69,6 +72,7 @@ namespace vessel
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
+                                             utilCSUniqueID uniqueId,
                                              const createCSOptions &options);
 
          virtual INT32 dropCollectionSpace(ISession *session,
@@ -122,10 +126,10 @@ namespace vessel
             virtual INT32 pushMoreToCursor(ISession * session,
                                            cursorKernal *cursor);
       private:
-         void close();
+         void fini();
          INT32 flushWholeDirtyList(requestContext *context);
       private:
-         BOOLEAN _open;
+         BOOLEAN _open = FALSE;
          instanceEnv _env;
          outerResource _outerResource;
          
