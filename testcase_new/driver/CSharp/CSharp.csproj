@@ -72,7 +72,6 @@
     <Compile Include="Crud\DataType\DoubleData14596.cs" />
     <Compile Include="Crud\DataType\MinKeyAndMaxKey14582.cs" />
     <Compile Include="Crud\DataType\NullData14583.cs" />
-    <Compile Include="Crud\DataType\ObjectData14595.cs" />
     <Compile Include="Crud\DataType\OidData14591.cs" />
     <Compile Include="Crud\Insert\Insert14528.cs" />
     <Compile Include="Crud\Insert\Insert14529.cs" />
@@ -229,6 +228,14 @@
     <Compile Include="Cluster\TestConnect14575.cs" />
     <Compile Include="Cluster\TestConnect14576.cs" />
     <Compile Include="Cluster\TestClusterManage14574.cs" />
+    <Compile Include="Crud/Lob/Lob22692.cs" />
+    <Compile Include="Crud/DataType/ObjectData14585.cs" />
+    <Compile Include="Meta/RenamCS16637.cs" />
+    <Compile Include="Meta/RenameCL16641.cs" />
+    <Compile Include="Meta/RenameCL16642.cs" />
+    <Compile Include="Meta/RenameCS16638.cs" />
+    <Compile Include="Crud/Lob/TestIsEof15674.cs" />
+    <Compile Include="Monitor/TestSnapshot22813.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

@@ -73,24 +73,6 @@ namespace CSharp.Crud.Lob
             {
                 lob.Close();
             }
-
-            lob = cl.OpenLob( oid, DBLob.SDB_LOB_SHAREREAD );
-            try
-            {
-                lob.Write( expect );
-                Assert.Fail("Can't write in shareread mode.");
-            }
-            catch (BaseException e)
-            {
-                if (e.ErrorCode != -6)
-                {
-                    Assert.Fail("Lob22692 write fail in shareread mode: " + e);
-                }
-            }
-            finally
-            {
-                lob.Close();
-            }
         }
 
         [TestCleanup]
