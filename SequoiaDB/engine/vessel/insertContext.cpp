@@ -54,7 +54,6 @@ namespace vessel
       _compressionMB.release();
       _candidate.reset();
       _rid = recordID();
-      _lastFreeSize = 0;
    }
 
    slice insertContext::getRecordToInsert()const

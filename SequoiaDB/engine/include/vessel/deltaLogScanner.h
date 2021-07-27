@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogReader.h
+   Source File Name = deltaLogScanner.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_DELTA_LOG_READER_H_
-#define VESSEL_DELTA_LOG_READER_H_
+#ifndef VESSEL_DELTA_LOG_SCANNER_H_
+#define VESSEL_DELTA_LOG_SCANNER_H_
 
 #include "vessel/deltaLogFileDef.h"
 #include "vessel/storageFileMap.h"
@@ -44,13 +44,13 @@ namespace engine
 {
 namespace vessel
 {
-   class deltaLogReader : public SDBObject
+   class deltaLogScanner : public SDBObject
    {
       public:
-         deltaLogReader();
-         deltaLogReader(const deltaLogReader &) = delete;
-         ~deltaLogReader();
-         deltaLogReader &operator=(const deltaLogReader &) = delete;
+         deltaLogScanner();
+         deltaLogScanner(const deltaLogScanner &) = delete;
+         ~deltaLogScanner();
+         deltaLogScanner &operator=(const deltaLogScanner &) = delete;
 
       public:
          void fini();
@@ -72,8 +72,8 @@ namespace vessel
          UINT64 _lastRecordHeadOffset = DPS_INVALID_LSN_OFFSET;
          UINT64 _maxFileOffset = 0;
          UINT64 _currentOffset = 0;
-   };//class deltaLogReader
+   };//class deltaLogScanner
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_DELTA_LOG_READER_H_
+#endif//VESSEL_DELTA_LOG_SCANNER_H_

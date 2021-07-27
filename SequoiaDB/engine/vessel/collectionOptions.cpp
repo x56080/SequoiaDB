@@ -58,7 +58,7 @@ namespace vessel
          {
             goto done;
          }
-         else if (max < min)
+         else if (maxStriping < minStriping)
          {
             goto done;
          }

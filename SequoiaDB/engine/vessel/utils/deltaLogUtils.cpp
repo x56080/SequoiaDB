@@ -36,6 +36,7 @@
 #include "vessel/deltaLogUtils.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
+#include "xxHashInc.h"
 
 namespace engine
 {

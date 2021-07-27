@@ -37,6 +37,7 @@
 #define VESSEL_DELTA_LOG_FILE_H_
 
 #include "vessel/storageFile.h"
+#include "vessel/deltaLogRecord.h"
 
 namespace engine
 {

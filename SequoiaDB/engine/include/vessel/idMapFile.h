@@ -116,8 +116,8 @@ namespace vessel
    class idMapFile : public storageFile
    {
       public:
-         idMapFile();
-         virtual ~idMapFile();
+         idMapFile(){}
+         virtual ~idMapFile(){}
 
       public:
          virtual BOOLEAN validateUserDefinedHead(const void *head)const;

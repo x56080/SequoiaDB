@@ -48,7 +48,7 @@ namespace vessel
    class fsmCandidate : public SDBObject
    {
       public:
-         class mutableInfo
+         class mutableInfo : public SDBObject
          {
             public:
                mutableInfo(){}

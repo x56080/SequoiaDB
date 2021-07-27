@@ -50,7 +50,7 @@ namespace vessel
    {
       friend class logicalPageSpace;
       public:
-         logicalPageBuffer();
+         logicalPageBuffer(){}
          ~logicalPageBuffer();
          logicalPageBuffer(const logicalPageBuffer &) = delete;
          logicalPageBuffer &operator=(const logicalPageBuffer &) = delete;

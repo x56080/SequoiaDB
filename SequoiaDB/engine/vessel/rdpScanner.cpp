@@ -102,7 +102,7 @@ namespace vessel
 
       for (RECORD_SLOT_ID i = slotId; i < head->totalSlotCount; ++i)
       {
-         UINT32 offset = RECORD_PAGE_HEAD_LEN + (i << RDP_BITWISE_RSLOT_SIZE);
+         UINT32 offset = RECORD_PAGE_HEAD_LEN + (i * RDP_RSLOT_SIZE);
          const recordSlot *slotPtr = rpb->getReadablePtrOfBody<recordSlot>(offset);
          if (NULL == slotPtr)
          {

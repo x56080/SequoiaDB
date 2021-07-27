@@ -37,6 +37,8 @@
 #define VESSEL_RDP_INSERT_EXECUTOR_H_
 
 #include "vessel/pageAccessor.h"
+#include "vessel/recordDataPage.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
@@ -49,8 +51,8 @@ namespace vessel
    class rdpInsertExecutor : public pageAccessor
    {
       public:
-         rdpInsertExecutor();
-         virtual ~rdpInsertExecutor();
+         rdpInsertExecutor(){}
+         virtual ~rdpInsertExecutor(){}
 
       public:
          /// non-big-record

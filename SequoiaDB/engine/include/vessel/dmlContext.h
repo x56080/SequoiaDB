@@ -96,12 +96,17 @@ namespace vessel
             return _uniqueKeyHash.data();
          }
 
-         ///WARNING: Unqiue keys must be added in order.
+         /// add key before hold locks.
          void addUniqueKey(UINT16 key);
 
          INT32 lockUniqueIndexKeys();
 
          void unlockUniqueKeys();
+
+         UINT32 getLockingUniqueKeyCount()const
+         {
+            return _uniqueKeyContext.size();
+         }
 
          void setMinFreeSize(UINT32 size)
          {
@@ -114,12 +119,17 @@ namespace vessel
       private:
          void fini();
 
+         INT32 _lockUniqueIndexKeys();
+
+      private:
+         typedef ossPoolVector<UNIQUE_INDEX_LATCH_MAP::object> _UNIQUE_KEY_CONTEXT;
+
       private:
          strSlice _csName;
          strSlice _clName;
          DPS_TRANS_ID _transID;
          ossPoolVector<UINT16> _uniqueKeyHash;
-         BOOLEAN _uniqueKeyLocked = FALSE;
+         _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
          UINT32 _minFreeSize = 0;
    };//class dmlContext
 }//namespace vessel

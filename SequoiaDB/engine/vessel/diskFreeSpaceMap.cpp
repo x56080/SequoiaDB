@@ -362,8 +362,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 diskFreeSpaceMap::upgradePageSpaceLvl(UINT32 seq,
-                                               INT32 lvl)
+   INT32 diskFreeSpaceMap::downgradePgaeSpaceLvl(UINT32 seq,
+                                                 INT32 lvl)
    {
       INT32 rc = SDB_OK;
       UINT32 bitmapNo = 0;
@@ -801,7 +801,7 @@ namespace vessel
       SDB_ASSERT(FSM_INVALID_SPACE_LVL != targetLvl, "can not be invalid");
       UINT32 bitsCount = _superBitmap[0].getSize() >> 3;
       UINT32 offset = 0;
-      for (INT32 i = targetLvl; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (INT32 i = targetLvl; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
       {
          if (findFirstNonzeroBit(bitsCount, 0,
                                  (const UINT64 *)(_superBitmap[i].getBuffer()),
@@ -1211,7 +1211,7 @@ namespace vessel
             goto error;
          }
 
-         for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         for (INT32 i = 0; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
          {
             if (0 < itr->second->getStats(i))
             {
@@ -1273,7 +1273,7 @@ namespace vessel
    void diskFreeSpaceMap::atomicUnsetSuperBitmapFromLvl(INT32 lvl, UINT32 bitmapNo)
    {
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      for (INT32 i = lvl; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (INT32 i = lvl; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
       {
          atomicUnsetSuperBitmap(i, bitmapNo);
       }

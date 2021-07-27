@@ -43,7 +43,7 @@
 #include "vessel/deltaLogRecord.h"
 #include "vessel/logicalPageSpaceCheckpoint.h"
 #include "vessel/storageFileMap.h"
-#include "vessel/deltaLogReader.h"
+#include "vessel/deltaLogScanner.h"
 
 namespace engine
 {
@@ -95,7 +95,7 @@ namespace vessel
          /// valid checkpoint exists.
          /// If begingOffset is invalid, will search from offset zero.
          INT32 initReaderBeforeAddingNewRecord(UINT64 beginOffset,
-                                               deltaLogReader &reader)const;
+                                               deltaLogScanner &reader)const;
 
          INT32 append(const deltaLogRecord &dlr, UINT64 *offset=NULL);
 

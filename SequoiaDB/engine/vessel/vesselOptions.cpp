@@ -40,42 +40,5 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN createCSOptions::isValid()const
-   {
-      BOOLEAN r = FALSE;
-
-      if (DMS_PAGE_SIZE32K != dataPageSize &&
-          DMS_PAGE_SIZE64K != dataPageSize)
-      {
-         goto done;
-      }
-      if (DMS_PAGE_SIZE64K != idxPageSize &&
-          DMS_PAGE_SIZE32K != idxPageSize &&
-          DMS_PAGE_SIZE16K != idxPageSize &&
-          DMS_PAGE_SIZE8K != idxPageSize)
-      {
-         goto done;
-      }
-      if (DMS_PAGE_SIZE4K != lobPageSize &&
-          DMS_PAGE_SIZE8K != lobPageSize &&
-          DMS_PAGE_SIZE32K != lobPageSize &&
-          DMS_PAGE_SIZE64K != lobPageSize &&
-          DMS_PAGE_SIZE128K != lobPageSize &&
-          DMS_PAGE_SIZE256K != lobPageSize &&
-          DMS_PAGE_SIZE512K != lobPageSize)
-      {
-         goto done;
-      }
-
-      if (!isValidSegmentSize(dataSegSize) ||
-          !isValidSegmentSize(idxSegSize) ||
-          !isValidSegmentSize(lobSegSize))
-      {
-         goto done;
-      }
-      r = TRUE;
-   done:
-      return r;
-   }
 }//namespace vessel
 }//namespace engine

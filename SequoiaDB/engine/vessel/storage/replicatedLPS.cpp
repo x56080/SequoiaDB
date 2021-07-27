@@ -62,7 +62,6 @@ namespace vessel
                                          BOOLEAN &isMutable)
    {
       INT32 rc = SDB_OK;
-      idMapSlot slot;
       rc = logicalPageSpace::getCache().get(lpid, slot, isMutable);
       if (SDB_OK != rc)
       {
@@ -146,7 +145,7 @@ namespace vessel
       rc = lpsLogUtil::commit(context, lrc,
                               logicalPageSpace::getSpaceID(),
                               getSpaceType(),
-                              logicalPageSpace::getStorageFileType(), dlr);
+                              getStorageFileType(), dlr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -248,8 +247,8 @@ namespace vessel
       guard.unlock();
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
-                              logicalPageSpace::getSpaceType(),
-                              logicalPageSpace::getStorageFileType(), dlr);
+                              getSpaceType(),
+                              getStorageFileType(), dlr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -274,7 +273,7 @@ namespace vessel
 
       if (releaseOld)
       {
-         logicalPageSpace::getDataStorageObj()->releasePages(count, oldPids);
+         getDataStorageObj()->releasePages(count, oldPids);
       }
 
    done:
@@ -378,8 +377,8 @@ namespace vessel
       guard.unlock();
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
-                              logicalPageSpace::getSpaceType(),
-                              logicalPageSpace::getStorageFileType(), dlr);
+                              getSpaceType(),
+                              getStorageFileType(), dlr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -403,7 +402,7 @@ namespace vessel
 
       if (releasePid)
       {
-         logicalPageSpace::getDataStorageObj()->releasePages(count,
+         getDataStorageObj()->releasePages(count,
                                                            (const PAGE_ID *)buffer);
       }
    done:
@@ -484,8 +483,8 @@ namespace vessel
       guard.unlock();
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
-                              logicalPageSpace::getSpaceType(),
-                              logicalPageSpace::getStorageFileType(), dlr);
+                              getSpaceType(),
+                              getStorageFileType(), dlr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -496,7 +495,7 @@ namespace vessel
       context->unblockCheckpoint();
       checkpointBlocked = FALSE;
 
-      logicalPageSpace::getDataStorageObj()->releasePages(count, pids);
+      getDataStorageObj()->releasePages(count, pids);
    done:
       if (checkpointBlocked)
       {
@@ -531,8 +530,8 @@ namespace vessel
       }
 
       gpid.reset(logicalPageSpace::getSpaceID(),
-                 logicalPageSpace::getSpaceType(),
-                 logicalPageSpace::getStorageFileType(),
+                 getSpaceType(),
+                 getStorageFileType(),
                  pid);
 
       rc = context->getEnv()->cacheConsole.allocate(context, gpid, options, tuple);
@@ -568,8 +567,8 @@ namespace vessel
       liteCacheTuple tuple;
       runtimePageBuffer::options o;
       GLOBAL_PAGE_ID gpid(logicalPageSpace::getSpaceID(),
-                          logicalPageSpace::getSpaceType(),
-                          logicalPageSpace::getStorageFileType(),
+                          getSpaceType(),
+                          getStorageFileType(),
                           pid);
       UINT32 pageSize = 0;
       
@@ -624,7 +623,6 @@ namespace vessel
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       CHAR *buffer = NULL;
-      liteCacheTuple tuple;
       logRecordContext lrc;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -649,8 +647,8 @@ namespace vessel
       rpb.fini();
 
       gpid.reset(logicalPageSpace::getSpaceID(),
-                 logicalPageSpace::getSpaceType(),
-                 logicalPageSpace::getStorageFileType(),
+                 getSpaceType(),
+                 getStorageFileType(),
                  newPid);
       rc = context->getEnv()->cacheConsole.allocateToReset(context, gpid, tuple);
       if (SDB_OK != rc)

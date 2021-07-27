@@ -113,7 +113,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 size = 0;
-      const CHAR *buf = NULL;
 
       if (OSS_UNLIKELY(!isOpen()))
       {

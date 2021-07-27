@@ -175,7 +175,7 @@ namespace vessel
    }
 
    INT32 deltaLogConsole::initReaderBeforeAddingNewRecord(UINT64 beginOffset,
-                                                          deltaLogReader &reader)const
+                                                          deltaLogScanner &reader)const
    {
       INT32 rc = SDB_OK;
 
@@ -263,7 +263,6 @@ namespace vessel
       UINT32 segmentId = 0;
       UINT32 offsetInSegment = 0;
       DELTA_LOG_CHECKSUM checksum = 0;
-      UINT32 diskRecordSize = 0;
 
       if (OSS_UNLIKELY(!isReady()))
       {
@@ -377,12 +376,10 @@ namespace vessel
       SDB_ASSERT(isReady(), "must be ready");
       SDB_ASSERT(dlr.isValid(), "can not be invalid");
 
-      const deltaLogRecordHead *head = dlr.getLogHead();
       UINT32 sizeNeeded = 0;
       UINT32 currentOffsetInSegment = 0;
       UINT32 currentSegmentFreeSize = 0;
       DELTA_LOG_CHECKSUM checksum = 0;
-      UINT32 remainSize = 0;
 
       if (!isBufferReady())
       {
@@ -503,7 +500,7 @@ namespace vessel
          goto error;
       }
 
-      if (!_logFiles.insert(file))
+      if (!_logFiles.insertFile(file))
       {
          PD_LOG(PDERROR, "failed to insert new log file to list, sequence:%lld",
                 fileId);
@@ -748,7 +745,7 @@ namespace vessel
             goto error;
          }
 
-         _logFiles.insert(file);
+         _logFiles.insertFile(file);
          file = NULL;
       }
 
@@ -765,8 +762,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != beginOffset, "can not be invalid");
-      UINT64 lastCheckpointOffset = DPS_INVALID_LSN_OFFSET;
-      deltaLogReader reader;
+      deltaLogScanner reader;
       LPS_CHECKPOINT lastFound;
       found = FALSE;
 

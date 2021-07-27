@@ -36,27 +36,27 @@
 
 ******************************************************************************/
 
-#include "vessel/inMemBitMap.h"
+#include "vessel/inMemBitmap.h"
 #include <gtest/gtest.h>
 
 TEST(sbmtest, test1)
 {
-   engine::vessel::inMemBitMap bitmap;
+   engine::vessel::inMemBitmap bitmap;
+   engine::vessel::inMemBitmap::options o;
    INT32 rc = SDB_OK;
-   UINT32 bitCount = 1234;
-   UINT32 freeBound = 0;
+   UINT32 capacity = 1280;
    UINT32 offset = 0;
 
-   rc = bitmap.init(bitCount, freeBound);
+   rc = bitmap.init(capacity, o);
    ASSERT_EQ(SDB_OK, rc);
    rc = bitmap.allocateBits(1, &offset);
    ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
 
-   rc = bitmap.allocateNewBitPage();
+   rc = bitmap.allocateNewBitmapPage();
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < bitCount; ++i)
+   for (UINT32 i = 0; i < capacity; ++i)
    {
       rc = bitmap.allocateBits(1, &offset);
       ASSERT_EQ(SDB_OK, rc);
@@ -65,24 +65,26 @@ TEST(sbmtest, test1)
    rc = bitmap.allocateBits(1, &offset);
    ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
-   rc = bitmap.fini();
-   ASSERT_EQ(SDB_OK, rc);
+   bitmap.fini();
 }
 
 TEST(sbmtest, test2)
 {
-   engine::vessel::inMemBitMap bitmap;
+   engine::vessel::inMemBitmap bitmap;
+   engine::vessel::inMemBitmap::options o;
    INT32 rc = SDB_OK;
-   UINT32 bitCount = 4078;
+   UINT32 capacity = 1536;
    UINT32 offset = 0;
-   const UINT32 freeBound = 8;
+   static const UINT32 freeBound = 7;
+   o.freeBound = freeBound;
    UINT32 buf[freeBound];
-   UINT32 loop = bitCount / freeBound;
+   UINT32 loop = capacity / freeBound;
+   UINT32 mod = capacity % freeBound;
 
-   rc = bitmap.init(bitCount, freeBound);
+   rc = bitmap.init(capacity, o);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = bitmap.allocateNewBitPage();
+   rc = bitmap.allocateNewBitmapPage();
    ASSERT_EQ(SDB_OK, rc);
    for (UINT32 i = 0; i < loop; ++i)
    {
@@ -90,18 +92,18 @@ TEST(sbmtest, test2)
       ASSERT_EQ(SDB_OK, rc);
       for (UINT32 j = 0; j < freeBound; ++j)
       {
-         ASSERT_EQ(i*8 + j, buf[j]);
+         ASSERT_EQ(i*freeBound + j, buf[j]);
       }
    }
 
    rc = bitmap.allocateBits(freeBound, buf);
    ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
-   for (UINT32 i = 0; i < (freeBound % 8); ++i)
+   for (UINT32 i = 0; i < mod; ++i)
    {
       rc = bitmap.allocateBits(1, buf);
       ASSERT_EQ(SDB_OK, rc);
-      ASSERT_EQ(loop * 8 + i, buf[i]);
+      ASSERT_EQ(loop * freeBound + i, buf[0]);
    }
 
    bitmap.fini();
@@ -109,30 +111,50 @@ TEST(sbmtest, test2)
 
 TEST(sbmtest, test3)
 {
-   engine::vessel::inMemBitMap bitmap;
+   engine::vessel::inMemBitmap bitmap;
+   engine::vessel::inMemBitmap::options o;
    INT32 rc = SDB_OK;
-   UINT32 bitCount = 16384;
+   UINT32 capacity = 16384;
    UINT32 offset = 0;
-   const UINT32 freeBound = 0;
+   o.bitmapPageSkipped = 8;
 
-   rc = bitmap.init(bitCount, freeBound);
+   rc = bitmap.init(capacity, o);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = bitmap.allocateNewBitmapPage();
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < capacity; ++i)
+   {
+      rc = bitmap.allocateBits(1, &offset);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_EQ(8 * capacity + i, offset);
+   }
+
+   bitmap.fini();
+}
+
+TEST(sbmtest, test4)
+{
+   engine::vessel::inMemBitmap bitmap;
+   engine::vessel::inMemBitmap::options o;
+   INT32 rc = SDB_OK;
+   UINT32 capacity = 4096;
+   UINT32 offset = 0;
+   o.maxBitmapPageCount = 8;
+
+   rc = bitmap.init(capacity, o);
    ASSERT_EQ(SDB_OK, rc);
 
 
-   for (UINT32 loop = 0; loop < 32; ++loop)
+   for (UINT32 i = 0; i < (capacity * o.maxBitmapPageCount); ++i)
    {
-      rc = bitmap.allocateNewBitPage();
+      rc = bitmap.allocateBits(1, &offset, 1);
       ASSERT_EQ(SDB_OK, rc);
-
-      for (UINT32 i = 0; i < bitCount; ++i)
-      {
-         rc = bitmap.allocateBits(1, &offset);
-         ASSERT_EQ(SDB_OK, rc);
-         ASSERT_EQ(loop * bitCount + i, offset);
-      }
-      rc = bitmap.allocateBits(1, &offset);
-      ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
+      ASSERT_EQ(i, offset);
    }
 
+   rc = bitmap.allocateBits(1, &offset, 1);
+   ASSERT_EQ(SDB_VESSEL_OUT_OF_RESOURCE, rc);
    bitmap.fini();
 }

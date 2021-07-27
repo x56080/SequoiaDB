@@ -204,6 +204,7 @@ namespace vessel
             _item *itemFound = NULL;
             _item *itemCreated = NULL;
             UINT32 bucketNo = 0;
+            o._i = NULL;
 
             if (OSS_UNLIKELY(!isOpen()))
             {
@@ -265,9 +266,13 @@ namespace vessel
                   remove(bucket, o._i);
                   guard.unlock();
                   SDB_OSS_DEL o._i;
+                  o._i = NULL;
                }
-               guard.unlock();
-               o._i = NULL;
+               else
+               {
+                  guard.unlock();
+                  o._i = NULL;
+               }
             }
             return;
          }

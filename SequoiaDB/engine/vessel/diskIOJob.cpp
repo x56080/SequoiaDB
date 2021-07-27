@@ -146,7 +146,6 @@ namespace vessel
 
    void diskIOJob::prepareForDispatching()
    {
-      INT32 rc = SDB_OK;
       SDB_ASSERT(PENDING == _status, "must be pendding");
 
       if (1 < _tags.size())

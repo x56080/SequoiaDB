@@ -519,7 +519,8 @@ namespace vessel
             }
          }
 
-         if (INVALID_PAGE_ID == candidate.getLpid())
+         lpid = candidate.getLpid();
+         if (INVALID_PAGE_ID == lpid)
          {
             rc = getLpidBySequence(context, candidate.getSeq(), lpid);
             if (SDB_OK != rc)
@@ -530,15 +531,12 @@ namespace vessel
             }
          }
 
-         rc = insertNonBigRecordToCandidate(context);
+         rc = insertNonBigRecordToPage(context, lpid);
          if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
          {
-            PD_LOG(PDWARNING, "page seq[%] free size may be not correct", candidate.seq);
-            if (candidate.testFeedback())
-            {
-               _fsm.updateBucket(candidate.seq, candidate.lpid, candidate.bucket,
-                                 candidate.free, context->getLastFreeSize(), TRUE);
-            }
+            PD_LOG(PDDEBUG, "page seq[%] free size may be not correct",
+                   candidate.getSeq());
+            candidate.reset();
             rc = SDB_OK;
             continue;
          }
@@ -546,12 +544,6 @@ namespace vessel
          {
             PD_LOG(PDERROR, "failed to insert record to page:%d", rc);
             goto error;
-         }
-
-         if (candidate.testFeedback())
-         {
-            _fsm.updateBucket(candidate.seq, candidate.lpid, candidate.bucket,
-                              candidate.free, context->getLastFreeSize(), FALSE);
          }
 
          break;
@@ -1070,8 +1062,6 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(isValidRoutePageLvl(lvl), "must be valid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      UINT32 tmpLvl0Cnt = 0;
-      UINT32 tmpRdpCnt = 0;
 
       PAGE_ID pid = INVALID_PAGE_ID;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;

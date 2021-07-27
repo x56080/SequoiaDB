@@ -92,14 +92,12 @@ TEST_F(cl_ddl_test, test1)
    options.path.lobPath = DATA_PATH;
    cursorHandler cursor;
    slice slice;
-   const listCollectionsRecord *record = NULL;
+   bson::BSONObj record;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -116,22 +114,22 @@ TEST_F(cl_ddl_test, test1)
 
    rc = cursor.getNext(&session, slice);
    ASSERT_EQ(SDB_OK, rc);
-   record = (const listCollectionsRecord *)(slice.data());
-   ASSERT_EQ(0, record->mbID);
-   ASSERT_EQ(1, record->csUniqueID);
-   ASSERT_EQ(1, record->clInnerID);
-   ASSERT_EQ(0, ossStrcmp("bar1", record->name));
+
+   record = bson::BSONObj(slice.data());
+   ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
+   ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
+   ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
+   ASSERT_EQ(0, ossStrcmp("bar1", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
    rc = cursor.getNext(&session, slice);
-   ASSERT_EQ(SDB_OK, rc);
-   record = (const listCollectionsRecord *)(slice.data());
-   ASSERT_EQ(1, record->mbID);
-   ASSERT_EQ(1, record->csUniqueID);
-   ASSERT_EQ(2, record->clInnerID);
-   ASSERT_EQ(0, ossStrcmp("bar2", record->name));
+   record = bson::BSONObj(slice.data());
+   ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
+   ASSERT_EQ(2, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
+   ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
+   ASSERT_EQ(0, ossStrcmp("bar2", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
    rc = cursor.getNext(&session, slice);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    db.close(&session, closeDBOptions());
 }
@@ -152,12 +150,10 @@ TEST_F(cl_ddl_test, test2)
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -168,7 +164,7 @@ TEST_F(cl_ddl_test, test2)
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 3, clOptions);
@@ -181,7 +177,7 @@ TEST_F(cl_ddl_test, test2)
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 
-    rc = db.open(&session, options);
+    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -206,7 +202,6 @@ TEST_F(cl_ddl_test, test3)
    resource.logger = &logger; 
    test_session session;
    openDBOptions options;
-   options.extendFileWithSparse = TRUE;
    createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;
@@ -216,15 +211,13 @@ TEST_F(cl_ddl_test, test3)
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 65535; ++i)
+   for (UINT32 i = 0; i < creatingCount; ++i)
    {
       CHAR name[32] = {0};
       sprintf(name, "%s%d", "bar", i);
@@ -244,7 +237,7 @@ TEST_F(cl_ddl_test, test3)
    ASSERT_EQ(SDB_OK, rc);
 
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);

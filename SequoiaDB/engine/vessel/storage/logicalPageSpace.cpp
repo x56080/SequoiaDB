@@ -47,7 +47,7 @@
 #include "vessel/dataStorageFileCluster.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/deltaLogRecordReader.h"
-#include "vessel/deltaLogReader.h"
+#include "vessel/deltaLogScanner.h"
 #include "vessel/deltaLogRecordBuilder.h"
 #include "ossLatchGuard.hpp"
 #include "vessel/redoLogUtil.h"
@@ -1139,6 +1139,28 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::getPagePtr(FILE_TYPE type,
+                                      PAGE_ID pid,
+                                      mmapPagePointer &ptr)const
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _dpc->getPagePtr(type, pid, ptr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 logicalPageSpace::preallocate(requestContext *context,
                                        UINT32 count,
                                        mappedLogicalPageId *mpids)
@@ -1524,7 +1546,7 @@ namespace vessel
       SDB_ASSERT(NULL != _dpc, "can not be null");
       SDB_ASSERT(_dpc->isOpen(), "must be open");
 
-      deltaLogReader reader;
+      deltaLogScanner reader;
       rc = _logConsole.initReaderBeforeAddingNewRecord(beginOffset, reader);
       if (SDB_OK != rc)
       {

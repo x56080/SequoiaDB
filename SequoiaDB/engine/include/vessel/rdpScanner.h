@@ -43,14 +43,16 @@ namespace engine
 namespace vessel
 {
    class scanCLContext;
+   class requestContext;
    class scanCLCursor;
    class logicalPageBuffer;
+   class runtimePageBuffer;
 
    class rdpScanner : public SDBObject
    {
       public:
-         rdpScanner();
-         ~rdpScanner();
+         rdpScanner(){}
+         ~rdpScanner(){}
          rdpScanner(const rdpScanner &) = delete;
          rdpScanner &operator=(const rdpScanner &) = delete;
 

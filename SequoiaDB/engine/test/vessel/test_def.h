@@ -113,7 +113,8 @@ class test_logger : public ::engine::vessel::IRedoLogger
                return SDB_INVALIDARG;
             }
             context->getHead()._lsn = _lsn;
-            if (OSS_BIT_TEST(context->getHead()._flags, DPS_VESSEL_LOG_FLAG_OP_HEAD))
+            if (0 != OSS_BIT_TEST(context->getHead()._flags,
+                                  DPS_VESSEL_LOG_FLAG_OPL_HEAD))
             {
                context->getHead()._opListLSN = _lsn;
             }

@@ -43,7 +43,9 @@ namespace engine
 {
 namespace vessel
 { 
-   static const fileDescriptor const VFD_ARRAY[] =
+   UINT32 VESSEL_FILE_GLOBAL_OPTIONS::_flags = 0;
+   
+   static const fileDescriptor VFD_ARRAY[] =
    {
       {"sys"},
       {"idmap"},
@@ -53,14 +55,14 @@ namespace vessel
       {"control"}
    };
 
-   static const spaceTypeDescriptor const VSTD_ARRAY [] = 
+   static const spaceTypeDescriptor VSTD_ARRAY [] = 
    {
       {"data"},
       {"idx"},
       {"lob"}
    };
 
-   static const strSlice const SHADOW_SUFFIX_ARRAY [] = 
+   static const strSlice SHADOW_SUFFIX_ARRAY [] = 
    {
       strSlice("_tmp"),
       strSlice("_ready")
@@ -71,11 +73,11 @@ namespace vessel
                          fileDescriptor *descriptor)
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != suffix, "can not be null");
       static const UINT32 _ARRAY_SIZE = sizeof(VFD_ARRAY) / sizeof(fileDescriptor);
 
       if (OSS_UNLIKELY(NULL == suffix))
       {
+         SDB_ASSERT(FALSE, "can not be null");
          goto done;
       }
 

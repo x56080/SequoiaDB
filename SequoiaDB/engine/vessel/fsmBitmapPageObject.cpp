@@ -184,7 +184,7 @@ namespace vessel
          goto done;
       }
 
-      for (INT32 i = targetLvl; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (INT32 i = targetLvl; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
       {
          UINT32 offset = 0;
          if (atomicFindAndClear(i, offset))
@@ -266,7 +266,7 @@ namespace vessel
       }
       
       bitsCount = (offset >> 6) + 1;
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (INT32 i = 0; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
       {
          if (i == lvl)
          {
@@ -315,7 +315,7 @@ namespace vessel
       
       bitsCount = (offset >> 6) + 1;
 
-      for (INT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+      for (INT32 i = 0; i < (INT32)FSM_SPACE_LVL_COUNT; ++i)
       {
          if (i == lvl)
          {

@@ -37,6 +37,7 @@
 #define VESSEL_STORAGE_FILE_MAP_H_
 
 #include "ossMemPool.hpp"
+#include "vessel/vesselFileName.h"
 
 namespace engine
 {
@@ -46,7 +47,7 @@ namespace vessel
    class storageFileMap : public SDBObject
    {
       public:
-         storageFileMap();
+         storageFileMap(){}
          ~storageFileMap();
          storageFileMap(const storageFileMap &) = delete;
          storageFileMap &operator=(const storageFileMap &) = delete;

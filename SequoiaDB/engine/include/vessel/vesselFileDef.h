@@ -92,8 +92,6 @@ namespace vessel
          static UINT32 _flags;
    };//class VESSEL_FILE_GLOBAL_OPTIONS
 
-   UINT32 VESSEL_FILE_GLOBAL_OPTIONS::_flags = 0;
-
    class fileDescriptor
    {
       public:

@@ -53,7 +53,7 @@ namespace vessel
          copyOnWriteTrigger(const copyOnWriteTrigger &o):
          _psv(o._psv),
          _mutablePid(o._mutablePid){}
-         ~copyOnWriteTrigger();
+         ~copyOnWriteTrigger(){}
          copyOnWriteTrigger &operator=(const copyOnWriteTrigger &o)
          {
             _psv = o._psv;

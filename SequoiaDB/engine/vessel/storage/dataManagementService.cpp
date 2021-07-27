@@ -145,6 +145,88 @@ namespace vessel
       return;
    }
 
+   INT32 dataManagementService::getPageSize(SPACE_ID sid,
+                                            SPACE_TYPE spaceType,
+                                            FILE_TYPE fileType,
+                                            UINT32 &pageSize)const
+   {
+      INT32 rc = SDB_OK;
+      logicalPageSpace *lps = NULL;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (INVALID_SPACE_ID == sid ||
+               INVALID_SPACE_TYPE == spaceType ||
+               INVALID_FILE_TYPE == fileType)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getLogicalPageSpace(sid, spaceType, &lps);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (fileType == lps->getStorageFileType())
+      {
+         pageSize = lps->getStorageCoreArgs().pageSize;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataManagementService::getLogicalPageSpace(SPACE_ID sid,
+                                                    SPACE_TYPE type,
+                                                    logicalPageSpace **lps)const
+   {
+      INT32 rc = SDB_OK;
+      storageUnit *su = NULL;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (INVALID_SPACE_ID == sid ||
+               INVALID_SPACE_TYPE == type ||
+               NULL == lps)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _sus.get(sid, &su);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get su of sid[%d], rc:%d", sid, rc);
+         goto error;
+      }
+
+      if (SPACE_TYPE_MAIN_DATA == type)
+      {
+         *lps = &(su->getMainDataSpace());
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "todo");
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueID,
@@ -645,10 +727,6 @@ namespace vessel
                                             collectionSpace **out)
    {
       INT32 rc = SDB_OK;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      BOOLEAN locked = FALSE;
-      collectionSpace *obj = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        nameSlice.empty() ||
@@ -770,9 +848,6 @@ namespace vessel
                                                    collectionSpace **obj)
    {
       INT32 rc = SDB_OK;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !UTIL_IS_VALID_CSUNIQUEID(uniqueID) ||

@@ -655,15 +655,6 @@ namespace vessel
          goto error;
       }
 
-      _bucketTicks = new UINT16[_bucketCount];
-      if (NULL == _bucketTicks)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-      /// No need to zeroed _bucketTicks.
-      /// We just want to diff old/current value.
    done:
       return rc;
    error:

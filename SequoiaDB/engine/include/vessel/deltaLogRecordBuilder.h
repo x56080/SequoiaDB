@@ -37,6 +37,7 @@
 #define VESSEL_DELTA_LOG_RECORD_BUILDER_H_
 
 #include "vessel/deltaLogRecord.h"
+#include "vessel/logicalPageSpaceCheckpoint.h"
 
 namespace engine
 {

@@ -186,7 +186,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 slot = 0;
       logRecordContext lrc;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       collectionRecordOnDisk *wptr = NULL;
       collectionRecord oldRecord;
       UINT32 capacity = 0;
@@ -460,7 +459,7 @@ namespace vessel
       {
          goto error;
       }
-      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_LPID,
+      rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_CL_RECORD_UPDATE_LPID,
                                      sizeof(UINT32), &lpid, lrc);
       if (SDB_OK != rc)
       {

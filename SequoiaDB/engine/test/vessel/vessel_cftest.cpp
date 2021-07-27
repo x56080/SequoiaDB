@@ -87,9 +87,13 @@ class testControlFile : public engine::vessel::controlFile
       virtual ~testControlFile(){}
 
    public:
-      virtual const CHAR *getFileNamePrefix() const
+      virtual BOOLEAN getFileName(UINT32 i,
+                                  std::string &name) const
       {
-         return "unit_test";
+         std::stringstream ss;
+         ss << "unit_test." << i;
+         name = ss.str();
+         return TRUE;
       }
 
       virtual UINT32 getMaxAliveVersionCount()const
@@ -105,44 +109,46 @@ class testControlFile : public engine::vessel::controlFile
 TEST_F(cftest, test0)
 {
    INT32 rc = SDB_OK;
-   testControlFile f(1);
-   rc = f.open(TEST_PATH, TRUE);
+   v::strSlice dirSlice(TEST_PATH); 
+   testControlFile file(1);
+   rc = file.create(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    dummyContent content;
    UINT64 version = 0;
 
-   rc = f.readOldestVersion(version, sizeof(content), &content);
+   rc = file.readOldestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
-   rc = f.readLatestVersion(version, sizeof(content), &content);
+   rc = file.readLatestVersion(version, sizeof(content), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
    for (UINT32 i = 0; i < 32; ++i)
    {
       dummyContent commit;
       commit.a = i;
-      rc = f.commit(sizeof(commit), &commit);
+      rc = file.commit(sizeof(commit), &commit);
       ASSERT_EQ(SDB_OK, rc);
-      rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
+      rc = file.readLatestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(version, i);
       ASSERT_EQ(content.a, i);
 
-      rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
+      rc = file.readOldestVersion(version, sizeof(dummyContent), &content);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(version, i);
       ASSERT_EQ(content.a, i);
    }
    
-   f.close();
+   file.close();
 }
 
 /// loop write and read with multi versions
 TEST_F(cftest, test1)
 {
    INT32 rc = SDB_OK;
+   v::strSlice dirSlice(TEST_PATH); 
    testControlFile f(16);
-   rc = f.open(TEST_PATH, TRUE);
+   rc = f.create(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    dummyContent content;
    UINT64 version = 0;
@@ -185,8 +191,9 @@ TEST_F(cftest, test1)
 TEST_F(cftest, test2)
 {
    INT32 rc = SDB_OK;
+   v::strSlice dirSlice(TEST_PATH); 
    testControlFile f(16);
-   rc = f.open(TEST_PATH, TRUE);
+   rc = f.create(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    UINT64 version = 0;
    dummyContent content;
@@ -200,7 +207,7 @@ TEST_F(cftest, test2)
    }
 
    f.close();
-   rc = f.open(TEST_PATH, TRUE);
+   rc = f.open(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_OK, rc);
@@ -222,101 +229,6 @@ TEST_F(cftest, test2)
 
    rc = f.readPreVersion(16, version, sizeof(dummyContent), &content);
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
-
-   f.close();
-}
-
-/// write, close, rm latest file, reopen
-TEST_F(cftest, test3)
-{
-   INT32 rc = SDB_OK;
-   testControlFile f(16);
-   rc = f.open(TEST_PATH, TRUE);
-   ASSERT_EQ(SDB_OK, rc);
-   UINT64 version = 0;
-   dummyContent content;
-   std::string deletePath = std::string(TEST_PATH) + "/unit_test.control.15";
-
-   for (UINT32 i = 0; i < 16; ++i)
-   {
-      dummyContent commit;
-      commit.a = i;
-      rc = f.commit(sizeof(commit), &commit);
-      ASSERT_EQ(SDB_OK, rc);
-   }
-
-   f.close();
-
-   ossDelete(deletePath.c_str());
-
-   rc = f.open(TEST_PATH, TRUE);
-   ASSERT_EQ(SDB_OK, rc);
-   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(version, 14);
-   ASSERT_EQ(content.a, 14);
-
-   ASSERT_EQ(f.getAliveVersionCount(), 15);
-   dummyContent commit;
-   commit.a = 15;
-   rc = f.commit(sizeof(commit), &commit);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(f.getAliveVersionCount(), 16);
-
-   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(version, 15);
-   ASSERT_EQ(content.a, 15);
-
-   f.close();
-}
-
-/// write, close, rm non-latest file, reopen
-TEST_F(cftest, test4)
-{
-   INT32 rc = SDB_OK;
-   testControlFile f(16);
-   rc = f.open(TEST_PATH, TRUE);
-   ASSERT_EQ(SDB_OK, rc);
-   UINT64 version = 0;
-   dummyContent content;
-   std::string deletePath = std::string(TEST_PATH) + "/unit_test.control.13";
-
-   for (UINT32 i = 0; i < 16; ++i)
-   {
-      dummyContent commit;
-      commit.a = i;
-      rc = f.commit(sizeof(commit), &commit);
-      ASSERT_EQ(SDB_OK, rc);
-   }
-
-   f.close();
-
-   ossDelete(deletePath.c_str());  
-
-   rc = f.open(TEST_PATH, TRUE);
-   ASSERT_EQ(SDB_OK, rc);
-   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(version, 15);
-   ASSERT_EQ(content.a, 15);
-   ASSERT_EQ(f.getAliveVersionCount(), 15);
-
-   dummyContent commit;
-   commit.a = 16;
-   rc = f.commit(sizeof(commit), &commit);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(f.getAliveVersionCount(), 16);
-
-   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(version, 16);
-   ASSERT_EQ(content.a, 16);
-
-   rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
-   ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(version, 0);
-   ASSERT_EQ(content.a, 0);
 
    f.close();
 }

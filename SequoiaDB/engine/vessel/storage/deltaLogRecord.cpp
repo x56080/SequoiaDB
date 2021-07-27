@@ -68,46 +68,5 @@ namespace vessel
    done:
       return ptr;
    }
-
-   INT32 deltaLogRecord::readAsMappingRecord(const UINT32 **count,
-                                             const UINT32 **lpids,
-                                             const UINT32 **pids)const
-   {
-      INT32 rc = SDB_OK;
-      const void *ptr = NULL;
-      UINT32 mappingCount = 0;
-      UINT32 offset = 0;
-
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(DELTA_LOG_TYPE_MAPPING != getLogHead()->_type))
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      
-      ptr = getRecordBodyPtr(offset, sizeof(UINT32));
-      if (OSS_UNLIKELY(NULL == ptr))
-      {
-         PD_LOG(PDERROR, "failed to get body ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      mappingCount = *((UINT32 *)ptr);
-      if (OSS_UNLIKELY(0 == mappingCount))
-      {
-         PD_LOG(PDERROR, "mapping count is zero");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 }//namespace vessel
 }//namespace engine

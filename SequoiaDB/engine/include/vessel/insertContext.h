@@ -41,6 +41,7 @@
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/slice.h"
 #include "vessel/memoryBlock.h"
+#include "vessel/fsmCandidate.h"
 
 namespace engine
 {
@@ -122,9 +123,7 @@ namespace vessel
          /// runtime
          UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
          memoryBlock _compressionMB;
-
          fsmCandidate _candidate;
-
          recordID _rid;
    };//class insertContext
 }//namespace vessel

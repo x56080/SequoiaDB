@@ -900,6 +900,51 @@ namespace vessel
       goto done;
    }
 
+   INT32 storageUnit::getMmapPagePointer(SPACE_TYPE spaceType,
+                                          FILE_TYPE fileType,
+                                          PAGE_ID pid,
+                                          mmapPagePointer &ptr)const
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (INVALID_SPACE_TYPE == spaceType ||
+               INVALID_FILE_TYPE == fileType ||
+               INVALID_PAGE_ID == pid)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
+      if (SPACE_TYPE_MAIN_DATA == spaceType)
+      {
+         rc = _mds.getPagePtr(fileType, pid, ptr);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      else if (SPACE_TYPE_IDX == spaceType)
+      {
+         SDB_ASSERT(FALSE, "todo");
+      }
+      else if (SPACE_TYPE_LOB == spaceType)
+      {
+         SDB_ASSERT(FALSE, "todo");
+      }
+      else
+      {
+         PD_LOG(PDERROR, "invalid space type[%d]", spaceType);
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

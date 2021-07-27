@@ -46,17 +46,23 @@ namespace vessel
                                        fsmCandidate::SHARED_INFO_PTR &sptr)
    {
       INT32 rc = SDB_OK;
-      ossPoolAllocator<fsmCandidate::mutableInfo> alloc;
+      ossPoolAllocator<fsmCandidate::mutableInfo>::Type alloc;
       sptr.reset();
 
       /// allocate_shared can avoid twice memory allocating(obj and control block).
-      sptr = std::allocate_shared<fsmCandidate::mutableInfo>(alloc, lpid, lvl);
+      sptr = std::allocate_shared<fsmCandidate::mutableInfo,
+                                  typename ossPoolAllocator<fsmCandidate::mutableInfo>::Type>
+                                  (alloc, lpid, lvl);
       if (NULL == sptr.get())
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
+
+      ///For now, allocator is under c++98 standard.
+      sptr->_lvl = lvl;
+      sptr->_lpid = lpid;
 
    done:
       return rc;

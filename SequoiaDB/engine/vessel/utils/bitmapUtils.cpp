@@ -161,7 +161,7 @@ namespace vessel
       UINT64 mask = 1;
       UINT32 n = (offset & BM_UTIL_BIT_MOD_64);
       mask <<= n;
-      UINT64 old = ossFetchAndAND64(bits + offset, ~mask);
+      UINT64 old = ossFetchAndAND64(bits + slot, ~mask);
       if (NULL != nonzeroBeforeClear)
       {
          *nonzeroBeforeClear = (0 != OSS_BIT_TEST(old, mask));

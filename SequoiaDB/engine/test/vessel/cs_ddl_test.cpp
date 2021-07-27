@@ -93,27 +93,22 @@ TEST_F(cs_ddl_test, test1)
 
    UINT32 count = 0;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1, count);
 
-   csOptions.uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 2, csOptions);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo1", csOptions);
+   rc = db.createCollectionSpace(&session, "foo1", 1, csOptions);
    ASSERT_EQ(SDB_DMS_CS_EXIST, rc);
 
-   csOptions.uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "bar", csOptions); 
+   rc = db.createCollectionSpace(&session, "bar", 2, csOptions); 
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
@@ -139,17 +134,16 @@ TEST_F(cs_ddl_test, test2)
    UINT32 createdCount = 0;
    UINT32 count = 0;
 
-   db.initOuterResource(resource);
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
+   for (UINT32 i = 0; i < MAX_SU_COUNT; ++i)
    {
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", i);
-      csOptions.uniqueID = i;
-      rc = db.createCollectionSpace(&session, buf, csOptions);
+
+      rc = db.createCollectionSpace(&session, buf, i, csOptions);
       if (SDB_OK == rc)
       {
          ++createdCount;
@@ -162,22 +156,21 @@ TEST_F(cs_ddl_test, test2)
       }
       else
       {
-         ASSERT_EQ(SDB_OK, rc);
+         ASSERT_TRUE(FALSE);
       }
    }
 
-   if (MAX_SPACE_COUNT == createdCount)
+   if (MAX_SU_COUNT == createdCount)
    {
       CHAR buf[6] = {0};
-      ossSnprintf(buf, 6, "%d", MAX_SPACE_COUNT);
-      csOptions.uniqueID = MAX_SPACE_COUNT;
-      rc = db.createCollectionSpace(&session, buf, csOptions);
+      ossSnprintf(buf, 6, "%d", MAX_SU_COUNT);
+      rc = db.createCollectionSpace(&session, buf, MAX_SU_COUNT, csOptions);
       ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
    }
 
    db.close(&session, closeDBOptions());
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.getCollectionSpaceCount(&session, count);
@@ -203,20 +196,17 @@ TEST_F(cs_ddl_test, test3)
    options.path.lobPath = DATA_PATH;
    UINT32 count = 0;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo", csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "bar", csOptions);
+   rc = db.createCollectionSpace(&session, "bar", 2, csOptions);
    ASSERT_EQ(SDB_OK, rc);
    db.close(&session, closeDBOptions());
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
@@ -240,30 +230,26 @@ TEST_F(cs_ddl_test, test4)
    options.path.lobPath = DATA_PATH;
    UINT32 count = 0;
    slice content;
-   const listCollectionSpaceRecord *record = NULL;
+   bson::BSONObj record;
    cursorHandler c;
 
-   db.initOuterResource(resource);
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.listCollectionSpace(&session, NULL, c);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
    c.close();
 
-   csOptions.uniqueID = 1;
-   rc = db.createCollectionSpace(&session, "foo1", csOptions);
+   rc = db.createCollectionSpace(&session, "foo1", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 2;
-   rc = db.createCollectionSpace(&session, "foo2", csOptions);
+   rc = db.createCollectionSpace(&session, "foo2", 2, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   csOptions.uniqueID = 3;
-   rc = db.createCollectionSpace(&session, "foo3", csOptions);
+   rc = db.createCollectionSpace(&session, "foo3", 3, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.listCollectionSpace(&session, NULL, c);
@@ -271,33 +257,33 @@ TEST_F(cs_ddl_test, test4)
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo1", record->name));
-   ASSERT_EQ(1, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo1", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo2", record->name));
-   ASSERT_EQ(2, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo2", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo3", record->name));
-   ASSERT_EQ(3, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo3", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
    c.close();
 
 
    db.close(&session, closeDBOptions());
 
-   rc = db.open(&session, options);
+   rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
@@ -308,27 +294,27 @@ TEST_F(cs_ddl_test, test4)
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo1", record->name));
-   ASSERT_EQ(1, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo1", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(1, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo2", record->name));
-   ASSERT_EQ(2, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo2", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(2, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(content.valid());
-   record = (const listCollectionSpaceRecord *)content.data();
-   ASSERT_EQ(0, ossStrcmp("foo3", record->name));
-   ASSERT_EQ(3, record->uniqueID);
+   ASSERT_TRUE(content.isValid());
+   record = bson::BSONObj(content.data());
+   ASSERT_EQ(0, ossStrcmp("foo3", record.getStringField(CS_DUMP_RECORD_FIELD_NAME)));
+   ASSERT_EQ(3, record.getIntField(CS_DUMP_RECORD_FIELD_UNIQUE_ID));
 
    rc = c.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
    c.close();
 
    db.close(&session, closeDBOptions());

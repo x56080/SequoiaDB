@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogReader.cpp
+   Source File Name = deltaLogScanner.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/deltaLogReader.h"
+#include "vessel/deltaLogScanner.h"
 #include "ossLikely.hpp"
 #include "vessel/deltaLogUtils.h"
 
@@ -41,15 +41,15 @@ namespace engine
 {
 namespace vessel
 {
-   deltaLogReader::deltaLogReader()
+   deltaLogScanner::deltaLogScanner()
    {}
 
-   deltaLogReader::~deltaLogReader()
+   deltaLogScanner::~deltaLogScanner()
    {
       fini();
    }
 
-   void deltaLogReader::fini()
+   void deltaLogScanner::fini()
    {
       _logFiles = NULL;
       _firstRecordOffset = DPS_INVALID_LSN_OFFSET;
@@ -59,7 +59,7 @@ namespace vessel
       return;
    }
 
-   INT32 deltaLogReader::init(const storageFileMap *logFiles,
+   INT32 deltaLogScanner::init(const storageFileMap *logFiles,
                               UINT64 firstRecordOffset,
                               UINT64 lastRecordHeadOffset)
    {
@@ -134,7 +134,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogReader::getNext(deltaLogRecord &dlr,
+   INT32 deltaLogScanner::getNext(deltaLogRecord &dlr,
                                  UINT64 *offset)
    {
       INT32 rc = SDB_OK;
@@ -189,7 +189,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogReader::getRecord(UINT64 offset, deltaLogRecord &dlr)const
+   INT32 deltaLogScanner::getRecord(UINT64 offset, deltaLogRecord &dlr)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _logFiles, "can not be null");

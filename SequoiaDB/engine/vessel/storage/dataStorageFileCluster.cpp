@@ -214,7 +214,7 @@ namespace vessel
       const storageFileCreater *creater = dataPageCluster::getCreater();
       SDB_ASSERT(NULL != creater, "can not be null");
       SDB_ASSERT(creater->isValid(), "must be valid");
-      UINT32 maxPageCount = args.getMaxPageCountInFile();
+
       constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
 
       storageFile *file = NULL;

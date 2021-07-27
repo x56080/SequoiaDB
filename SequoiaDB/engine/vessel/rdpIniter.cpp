@@ -102,7 +102,7 @@ namespace vessel
       }
 
       lidAndSeq = pack(_logicalId, _sequence + i);
-      adjunct.reset(sizeof(UINT64), &lidAndSeq);
+      adjunct.reset(sizeof(UINT64), (const CHAR *)(&lidAndSeq));
       rc = pageInitializer::commitInitLog(context, rpb->getGlobalPid(),
                                           lpid, psv, PAGE_TYPE_RECORD,
                                           adjunct, &lrc);

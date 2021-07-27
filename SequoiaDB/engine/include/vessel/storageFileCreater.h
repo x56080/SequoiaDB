@@ -49,8 +49,8 @@ namespace vessel
    class storageFileCreater : public SDBObject
    {
       public:
-         storageFileCreater();
-         ~storageFileCreater();
+         storageFileCreater(){}
+         ~storageFileCreater(){}
          storageFileCreater(const storageFileCreater &o):
          _sid(o._sid),
          _type(o._type),

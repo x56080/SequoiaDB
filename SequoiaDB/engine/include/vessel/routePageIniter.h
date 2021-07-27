@@ -37,6 +37,7 @@
 #define VESSEL_ROUTE_PAGE_INITER_H_
 
 #include "vessel/pageInitializer.h"
+#include "dms.hpp"
 
 namespace engine
 {

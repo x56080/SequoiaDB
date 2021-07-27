@@ -38,6 +38,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "pdTrace.hpp"
 
 namespace engine
 {

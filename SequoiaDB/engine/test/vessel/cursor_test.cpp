@@ -116,7 +116,7 @@ TEST(cursortest, test1)
    test_vessel db;
    test_session session;
    test_cursor cursor;
-   rc = cursor.open(&db, NULL, NULL);
+   rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < 64; ++i)
@@ -135,10 +135,9 @@ TEST(cursortest, test1)
       ASSERT_EQ(1020, content.len());
    }
    rc = cursor.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
-   rc = cursor.close();
-   ASSERT_EQ(SDB_OK, rc);
+   cursor.close();
 }
 
 TEST(cursortest, test2)
@@ -153,7 +152,7 @@ TEST(cursortest, test2)
    test_vessel db;
    test_session session;
    test_cursor cursor;
-   rc = cursor.open(&db, NULL, &options);
+   rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = cursor.push(src);
@@ -167,10 +166,9 @@ TEST(cursortest, test2)
    ASSERT_EQ(2048, content.len());
 
    rc = cursor.getNext(&session, content);
-   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+   ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
-   rc = cursor.close();
-   ASSERT_EQ(SDB_OK, rc);
+   cursor.close();
 }
 
 TEST(cursortest, test3)
@@ -186,12 +184,11 @@ TEST(cursortest, test3)
    test_vessel db;
    test_session session;
    test_cursor cursor;
-   rc = cursor.open(&db, NULL, &options);
+   rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = cursor.push(src);
    ASSERT_EQ(SDB_VESSEL_OUT_OF_RESOURCE, rc);
 
-   rc = cursor.close();
-   ASSERT_EQ(SDB_OK, rc);
+   cursor.close();
 }

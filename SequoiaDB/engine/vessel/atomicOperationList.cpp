@@ -37,7 +37,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
 #include "ossLikely.hpp"
-#include "IRedoLogger.h"
+#include "vessel/IRedoLogger.h"
 
 namespace engine
 {

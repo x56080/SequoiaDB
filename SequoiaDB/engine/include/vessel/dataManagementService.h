@@ -140,7 +140,7 @@ namespace vessel
 
          INT32 getLogicalPageSpace(SPACE_ID sid,
                                    SPACE_TYPE type,
-                                   logicalPageSpace **lps);
+                                   logicalPageSpace **lps)const;
 
       private:
          INT32 loadStorageUnits(requestContext *context,

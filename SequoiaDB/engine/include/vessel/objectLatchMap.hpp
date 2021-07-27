@@ -142,6 +142,10 @@ namespace vessel
       public:
          uniqueIndexLatchKey(){}
          ~uniqueIndexLatchKey(){}
+         explicit uniqueIndexLatchKey(SPACE_ID sid,
+                                      UINT16 hash):
+                  _sid(sid),
+                  _key(hash){}
          uniqueIndexLatchKey(const uniqueIndexLatchKey &o):
          _sid(o._sid),
          _key(o._key)
@@ -162,11 +166,20 @@ namespace vessel
          {
             return _sid + _key;
          }
+         OSS_INLINE SPACE_ID getSpaceID()const
+         {
+            return _sid;
+         }
+         OSS_INLINE UINT16 getKeyHash()const
+         {
+            return _key;
+         }
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
          UINT16 _key = 0;
    };//class uniqueIndexLatchKey
 
+   ///WARNING: UNIQUE_INDEX_LATCH_MAP's object is x latch, do not use objectSharedLatchContext.
    typedef class sharedObjectMap<uniqueIndexLatchKey, ossSpinXLatch> UNIQUE_INDEX_LATCH_MAP;
 
    template <typename KEY>
@@ -203,6 +216,15 @@ namespace vessel
          };//struct _latchSlot
 
       public:
+         OSS_INLINE UINT32 getSize()const
+         {
+            return _size;
+         }
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return 0 == _size;
+         }
+
          void fini()
          {
             if (_slots != _staticBuf)
@@ -336,11 +358,6 @@ namespace vessel
             return r;
          }
 
-         BOOLEAN isEmpty()const
-         {
-            return 0 == _size;
-         }
-
       private:
          INT32 ensureBuf(UINT32 size)
          {
@@ -394,7 +411,7 @@ namespace vessel
                }
                out = NULL;
             }
-         done:
+         
             return out;
          }
 

@@ -38,6 +38,7 @@
 
 #include "ossLatch.hpp"
 #include "vessel/vesselFileDef.h"
+#include "vessel/pageIdentifier.h"
 
 namespace engine
 {
@@ -64,7 +65,7 @@ namespace vessel
          INT32 lock(requestContext *context,
                   SPACE_TYPE type,
                   PAGE_ID lpid,
-                  OSS_SHARED_LATCH_MODE mode);
+                  OSS_SHARED_LATCH_MODE mode); 
 
          void unlock();
 

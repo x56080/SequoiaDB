@@ -41,6 +41,11 @@ namespace engine
 {
 namespace vessel
 {
+   storageFileMap::~storageFileMap()
+   {
+      fini();
+   }
+
    void storageFileMap::fini()
    {
       _FILE_MAP::iterator itr = _map.begin();
@@ -61,7 +66,6 @@ namespace vessel
    INT32 storageFileMap::insertFile(storageFile *file)
    {
       INT32 rc = SDB_OK;
-      UINT64 s = 0;
       if (OSS_UNLIKELY(NULL == file ||
                        !file->isOpen()))
       {

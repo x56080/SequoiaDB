@@ -63,7 +63,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != buf, "can not be null");
       const controlFile::head *h = (const controlFile::head *)buf;
-      UINT32 c = 0;
 
       if (getMagicCode() != h->magicCode)
       {
@@ -615,8 +614,6 @@ namespace vessel
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 *checksum = NULL;
-
          obj = SDB_OSS_NEW _fileObj();
          if (NULL == obj)
          {

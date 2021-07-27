@@ -139,7 +139,9 @@ namespace vessel
 
          INT32 fsyncSegment(UINT32 segment)const;
 
-
+         virtual INT32 getPagePtr(FILE_TYPE type,
+                                  PAGE_ID pid,
+                                  mmapPagePointer &ptr)const;
       public:
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);

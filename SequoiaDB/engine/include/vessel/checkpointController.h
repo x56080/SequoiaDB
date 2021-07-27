@@ -57,7 +57,10 @@ namespace vessel
          {
             return 0;
          }
-         BOOLEAN hasAtLeastOneCheckpoint()const;
+         BOOLEAN hasAtLeastOneCheckpoint()const
+         {
+            return FALSE;
+         }
 
          void fini(){}
    };//class checkpointController
