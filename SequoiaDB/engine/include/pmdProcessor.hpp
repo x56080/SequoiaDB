@@ -57,7 +57,8 @@ namespace engine
                                              INT64 &contextID,
                                              BOOLEAN &needReply,
                                              BOOLEAN &needRollback,
-                                             BSONObjBuilder &builder ) ;
+                                             BSONObjBuilder &builder,
+                                             INT64 &delayKillContext ) ;
 
          virtual INT32           doRollback() ;
          virtual INT32           doCommit() ;
@@ -82,7 +83,8 @@ namespace engine
                                                  _rtnContextBuf &buffObj,
                                                  INT64 &contextID,
                                                  BOOLEAN &needRollback,
-                                                 BSONObjBuilder &builder ) ;
+                                                 BSONObjBuilder &builder,
+                                                 INT64 &delayKillContext ) ;
          INT32                   _onDelReqMsg( MsgHeader * msg,
                                                SDB_DPSCB *dpsCB,
                                                utilDeleteResult &delResult ) ;
@@ -168,7 +170,8 @@ namespace engine
                                              INT64 &contextID,
                                              BOOLEAN &needReply,
                                              BOOLEAN &needRollback,
-                                             BSONObjBuilder &builder ) ;
+                                             BSONObjBuilder &builder,
+                                             INT64 &delayKillContext ) ;
 
          virtual INT32           doRollback() ;
          virtual INT32           doCommit() ;
@@ -186,14 +189,16 @@ namespace engine
          INT32                   _onQueryReqMsg( MsgHeader *msg,
                                                  _rtnContextBuf &buffObj,
                                                  INT64 &contextID,
-                                                 BOOLEAN &needRollback ) ;
+                                                 BOOLEAN &needRollback,
+                                                 INT64 &delayKillContext ) ;
 
       private:
          INT32                   _processCoordMsg( MsgHeader *msg,
                                                    INT64 &contextID,
                                                    rtnContextBuf &contextBuff,
                                                    BOOLEAN &needReply,
-                                                   BOOLEAN &needRollback ) ;
+                                                   BOOLEAN &needRollback,
+                                                   INT64 &delayKillContext ) ;
    } ;
 
    typedef _pmdCoordProcessor pmdCoordProcessor ;

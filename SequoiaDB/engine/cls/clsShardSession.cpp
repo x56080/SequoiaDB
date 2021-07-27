@@ -663,7 +663,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode;
 
-      SINT64 contextID = -1 ;
+      SINT64 contextID = -1, delayKillContextID = -1 ;
       INT32 startFrom = 0 ;
       rtnContextBuf buffObj ;
       _pCollectionName = NULL ;
@@ -691,6 +691,12 @@ namespace engine
       while ( loop )
       {
          _retBuilder.reset() ;
+
+         if ( -1 != delayKillContextID )
+         {
+            _pRtnCB->contextDelete( delayKillContextID, _pEDUCB ) ;
+            delayKillContextID = -1 ;
+         }
 
          if ( MSG_PACKET == opCode )
          {
@@ -786,7 +792,7 @@ namespace engine
             case MSG_BS_QUERY_REQ :
                rc = _onQueryReqMsg ( handle, msg, buffObj, startFrom,
                                      contextID, isNeedRollback,
-                                     &_retBuilder ) ;
+                                     &_retBuilder, delayKillContextID ) ;
                break ;
             case MSG_BS_GETMORE_REQ :
                rc = _onGetMoreReqMsg ( msg, buffObj, startFrom,
@@ -840,7 +846,8 @@ namespace engine
             }
             case MSG_BS_TRANS_QUERY_REQ :
                rc = _onTransQueryReqMsg( handle, msg, buffObj, startFrom,
-                                         contextID, isNeedRollback ) ;
+                                         contextID, isNeedRollback,
+                                         delayKillContextID ) ;
                break ;
             case MSG_BS_KILL_CONTEXT_REQ :
                rc = _onKillContextsReqMsg ( handle, msg ) ;
@@ -1168,6 +1175,11 @@ namespace engine
       }
 
    done:
+      if ( -1 != delayKillContextID )
+      {
+         _pRtnCB->contextDelete( delayKillContextID, _pEDUCB ) ;
+         delayKillContextID = -1 ;
+      }
       // clear global index affect status
       eduCB()->setIsAffectGIndex( FALSE ) ;
 
@@ -2032,7 +2044,8 @@ namespace engine
                                           INT32 &startingPos,
                                           INT64 &contextID,
                                           BOOLEAN &needRollback,
-                                          BSONObjBuilder *pBuilder )
+                                          BSONObjBuilder *pBuilder,
+                                          INT64 &delayKillContextID )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONQYREQMSG ) ;
 
@@ -2053,6 +2066,8 @@ namespace engine
       monClassQuery *monQuery = NULL ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       CHAR mainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+      delayKillContextID = -1 ;
 
       rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
@@ -2194,7 +2209,8 @@ namespace engine
                rc = pContext->getMore( -1, buffObj, _pEDUCB ) ;
                if ( rc || pContext->eof() )
                {
-                  _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
+                  // delay kill context after reply
+                  delayKillContextID = contextID ;
                   contextID = -1 ;
                }
                startingPos = ( INT32 )buffObj.getStartFrom() ;
@@ -2950,7 +2966,8 @@ namespace engine
                                               rtnContextBuf & buffObj,
                                               INT32 & startingPos,
                                               INT64 & contextID,
-                                              BOOLEAN &needRollback )
+                                              BOOLEAN &needRollback,
+                                              INT64 &delayKillContextID )
    {
       INT32 rc = SDB_OK ;
 
@@ -2965,7 +2982,7 @@ namespace engine
                 _pEDUCB->getTransRC() ) ;
 
       rc = _onQueryReqMsg( handle, msg, buffObj, startingPos,
-                           contextID, needRollback, NULL ) ;
+                           contextID, needRollback, NULL, delayKillContextID ) ;
       if ( SDB_OK != rc )
       {
          goto error ;

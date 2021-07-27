@@ -83,7 +83,8 @@ namespace engine
                                         INT64 &contextID,
                                         BOOLEAN &needReply,
                                         BOOLEAN &needRollback,
-                                        BSONObjBuilder &builder )
+                                        BSONObjBuilder &builder,
+                                        INT64 &delayKillContext )
    {
       INT32 rc     = SDB_OK ;
       INT32 opCode = msg->opCode ;
@@ -97,6 +98,7 @@ namespace engine
       SDB_ASSERT( getSession(), "Must attach session at first" ) ;
 
       needRollback = FALSE ;
+      delayKillContext = -1 ;
 
       if ( eduCB()->getMonQueryCB() == NULL )
       {
@@ -189,7 +191,7 @@ namespace engine
             }
             case MSG_BS_QUERY_REQ :
                rc = _onQueryReqMsg( msg, getDPSCB(), contextBuff, contextID,
-                                    needRollback, builder ) ;
+                                    needRollback, builder, delayKillContext ) ;
                break ;
             case MSG_BS_DELETE_REQ :
             {
@@ -708,7 +710,8 @@ namespace engine
                                             _rtnContextBuf &buffObj,
                                             INT64 &contextID,
                                             BOOLEAN &needRollback,
-                                            BSONObjBuilder &builder )
+                                            BSONObjBuilder &builder,
+                                            INT64 &delayKillContext )
    {
       INT32 rc = SDB_OK ;
       INT32 flags = 0 ;
@@ -721,6 +724,8 @@ namespace engine
       INT64 numToReturn = -1 ;
       _rtnCommand *pCommand = NULL ;
       monClassQuery *monQuery = NULL ;
+
+      delayKillContext = -1 ;
 
       rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
@@ -820,7 +825,7 @@ namespace engine
                rc = pContext->getMore( -1, buffObj, eduCB() ) ;
                if ( rc || pContext->eof() )
                {
-                  _pRTNCB->contextDelete( contextID, eduCB() ) ;
+                  delayKillContext = contextID ;
                   contextID = -1 ;
                }
 
@@ -1749,7 +1754,8 @@ namespace engine
                                                INT64 &contextID,
                                                rtnContextBuf &contextBuff,
                                                BOOLEAN &needReply,
-                                               BOOLEAN &needRollback )
+                                               BOOLEAN &needRollback,
+                                               INT64 &delayKillContext )
    {
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
@@ -2015,7 +2021,8 @@ namespace engine
          }
          case MSG_BS_QUERY_REQ :
          {
-            rc = _onQueryReqMsg( msg, contextBuff, contextID, needRollback ) ;
+            rc = _onQueryReqMsg( msg, contextBuff, contextID, needRollback,
+                                 delayKillContext ) ;
             break ;
          }
          default :
@@ -2044,7 +2051,8 @@ namespace engine
    INT32 _pmdCoordProcessor::_onQueryReqMsg( MsgHeader *msg,
                                              _rtnContextBuf &buffObj,
                                              INT64 &contextID,
-                                             BOOLEAN &needRollback )
+                                             BOOLEAN &needRollback,
+                                             INT64 &delayKillContext )
    {
       INT32 rc = SDB_OK ;
       coordResource *pResource = NULL ;
@@ -2158,7 +2166,7 @@ namespace engine
             rc = pContext->getMore( -1, buffObj, eduCB() ) ;
             if ( rc || pContext->eof() )
             {
-               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               delayKillContext = contextID ;
                contextID = -1 ;
             }
 
@@ -2189,7 +2197,8 @@ namespace engine
                                          INT64 &contextID,
                                          BOOLEAN &needReply,
                                          BOOLEAN &needRollback,
-                                         BSONObjBuilder &builder )
+                                         BSONObjBuilder &builder,
+                                         INT64 &delayKillContext )
    {
       INT32 rc = SDB_OK ;
       monClassQuery *monQueryCB = NULL ;
@@ -2200,6 +2209,8 @@ namespace engine
 
       BSONObjBuilder clientInfoBuilder ;
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROMSG );
+
+      delayKillContext = -1 ;
 
       if ( eduCB()->getMonQueryCB() == NULL )
       {
@@ -2221,13 +2232,13 @@ namespace engine
       startTime.sample() ;
 
       rc = _processCoordMsg( msg, contextID, contextBuff,
-                             needReply, needRollback ) ;
+                             needReply, needRollback, delayKillContext ) ;
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc )
       {
          contextBuff.release() ;
          rc = _pmdDataProcessor::processMsg( msg, contextBuff, contextID,
                                              needReply, needRollback,
-                                             builder ) ;
+                                             builder, delayKillContext ) ;
       }
       else
       {

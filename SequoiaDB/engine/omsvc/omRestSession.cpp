@@ -539,7 +539,7 @@ namespace engine
    {
       INT32 rc        = SDB_OK ;
       INT32 rtnCode   = SDB_OK ;
-      INT64 contextID = -1 ;
+      INT64 contextID = -1, delayKillContext = -1 ;
       rtnContextBuf contextBuff ;
       BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
       BOOLEAN needReplay = FALSE ;
@@ -598,7 +598,7 @@ namespace engine
 
       rtnCode = transProcessor->processMsg( msg, contextBuff, contextID, 
                                             needReplay, needRollback,
-                                            retBuilder ) ;
+                                            retBuilder, delayKillContext ) ;
       if ( rtnCode )
       {
          BSONObj tmp ;
@@ -698,6 +698,11 @@ namespace engine
       {
          _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
          contextID = -1 ;
+      }
+      if ( -1 != delayKillContext )
+      {
+         _pRTNCB->contextDelete( delayKillContext, _pEDUCB ) ;
+         delayKillContext = -1 ;
       }
 
       if ( NULL != transProcessor )

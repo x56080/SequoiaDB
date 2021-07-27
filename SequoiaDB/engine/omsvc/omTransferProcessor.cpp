@@ -134,7 +134,8 @@ namespace engine
                                            INT64 &contextID,
                                            BOOLEAN &needReply,
                                            BOOLEAN &needRollback,
-                                           BSONObjBuilder &builder )
+                                           BSONObjBuilder &builder,
+                                           INT64 &delayKillContext )
    {
       pmdKRCB *pKrcb       = pmdGetKRCB();
       SDB_RTNCB *pRtncb    = pKrcb->getRTNCB();
@@ -145,6 +146,7 @@ namespace engine
       _omContextTransfer *pTmpContext = NULL ;
 
       contextID = -1 ;
+      delayKillContext = -1 ;
       list< omNodeInfo >::iterator iter = _nodeList.begin() ;
 
       if ( _nodeList.size() <= 0 )

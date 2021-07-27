@@ -231,7 +231,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       rtnContextBuf contextBuff ;
-      INT64 contextID = -1 ;
+      INT64 contextID = -1, delayKillContext = -1 ;
       BOOLEAN needReply = TRUE ;
       BOOLEAN needRollback = FALSE ;
       BSONObjBuilder builder( PMD_RETBUILDER_DFT_SIZE ) ;
@@ -239,7 +239,8 @@ namespace engine
       try
       {
          rc = _processor->processMsg( msg, contextBuff, contextID,
-                                      needReply, needRollback, builder ) ;
+                                      needReply, needRollback, builder,
+                                      delayKillContext ) ;
       }
       catch( std::bad_alloc &e )
       {
@@ -261,6 +262,11 @@ namespace engine
       }
 
    done:
+      if ( -1 != delayKillContext )
+      {
+         sdbGetRTNCB()->contextDelete( delayKillContext, _cb ) ;
+         delayKillContext = -1 ;
+      }
       return rc ;
    error:
       goto done ;

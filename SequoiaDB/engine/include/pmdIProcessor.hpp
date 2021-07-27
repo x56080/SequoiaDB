@@ -69,7 +69,8 @@ namespace engine
                                                    INT64 &contextID,
                                                    BOOLEAN &needReply,
                                                    BOOLEAN &needRollback,
-                                                   BSONObjBuilder &builder ) = 0 ;
+                                                   BSONObjBuilder &builder,
+                                                   INT64 &delayKillContext ) = 0 ;
 
          virtual INT32                 doRollback() = 0 ;
          virtual INT32                 doCommit() = 0 ;

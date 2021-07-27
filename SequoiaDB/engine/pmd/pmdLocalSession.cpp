@@ -369,6 +369,7 @@ namespace engine
       BOOLEAN needRollback = FALSE ;
       BOOLEAN isAutoCommit = FALSE ;
       BOOLEAN isDoCommit   = FALSE ;
+      INT64 delayKillContext = -1 ;
 
       BSONObjBuilder retBuilder( PMD_RETBUILDER_DFT_SIZE ) ;
 
@@ -391,7 +392,8 @@ namespace engine
                                          _replyHeader.contextID,
                                          _needReply,
                                          needRollback,
-                                         retBuilder ) ;
+                                         retBuilder,
+                                         delayKillContext ) ;
             pBody     = contextBuff.data() ;
             bodyLen   = contextBuff.size() ;
             _replyHeader.numReturned = contextBuff.recordNum() ;
@@ -502,6 +504,12 @@ namespace engine
          {
             disconnect() ;
          }
+      }
+
+      if ( -1 != delayKillContext )
+      {
+         sdbGetRTNCB()->contextDelete( delayKillContext, _pEDUCB ) ;
+         delayKillContext = -1 ;
       }
 
       // end

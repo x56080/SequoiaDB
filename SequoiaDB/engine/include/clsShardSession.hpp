@@ -174,7 +174,8 @@ namespace engine
          INT32 _onQueryReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                 rtnContextBuf &buffObj, INT32 &startingPos,
                                 INT64 &contextID, BOOLEAN &needRollback,
-                                BSONObjBuilder *pBuilder ) ;
+                                BSONObjBuilder *pBuilder,
+                                INT64 &delayKillContextID ) ;
          INT32 _onGetMoreReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
                                   INT32 &startingPos, INT64 &contextID,
                                   BOOLEAN &needRollback ) ;
@@ -196,7 +197,8 @@ namespace engine
                                       utilDeleteResult &delResult ) ;
          INT32 _onTransQueryReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                      rtnContextBuf &buffObj, INT32 &startingPos,
-                                     INT64 &contextID, BOOLEAN &needRollback ) ;
+                                     INT64 &contextID, BOOLEAN &needRollback,
+                                     INT64 &delayKillContextID ) ;
          INT32 _onSessionInitReqMsg ( MsgHeader *msg ) ;
 
          INT32 _onCatalogChangeNtyMsg( MsgHeader *msg ) ;
