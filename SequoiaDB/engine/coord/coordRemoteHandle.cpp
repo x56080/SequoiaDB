@@ -315,6 +315,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       MsgOpReply *pOpReply = NULL ;
       pmdRemoteSession *pSession = NULL ;
+      pmdSubSession *pSub = NULL ;
       MsgOpKillContexts msgKillContext ;
 
       if ( NULL == pReply || !IS_REPLY_TYPE( pReply->opCode ) )
@@ -345,7 +346,7 @@ namespace engine
       }
 
       pSession = pSite->addSession( COORD_EXPIRED_KILLCONTEXT_TIMEOUT ) ;
-      pSession->addSubSession( pReply->routeID.value ) ;
+      pSub = pSession->addSubSession( pReply->routeID.value ) ;
 
       /// send kill context
       msgKillContext.contextIDs[ 0 ] = pOpReply->contextID ;
@@ -357,10 +358,13 @@ namespace engine
       msgKillContext.header.routeID.value = 0 ;
       msgKillContext.header.TID = 0 ;
 
-      /// Ignore sendMsg failed and waitReply failed
+      /// Ignore sendMsg failed
       rc = pSession->sendMsg( (MsgHeader*)&msgKillContext,
                               PMD_EDU_MEM_NONE ) ;
-      // DON'T pSession->waitReply1(), Timeout of sessionAttr may fail.
+      // DON'T wait for reply, otherwise Timeout of sessionAttr may fail. Reset
+      // sub session when ignoring the reply, otherwise interrupt message will
+      // be sent to data node, the operation of data node may be interrupted.
+      pSub->resetForResend() ;
 
    done:
       if ( pSession )

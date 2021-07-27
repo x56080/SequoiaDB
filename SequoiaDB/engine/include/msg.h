@@ -59,10 +59,10 @@ enum MSG_TYPE
    //shard msg
    MSG_BS_MSG_REQ                      = 1000,
    MSG_BS_MSG_RES                      = MAKE_REPLY_TYPE(MSG_BS_MSG_REQ),
-   MSG_BS_INSERT_REQ                   = 2002,
-   MSG_BS_INSERT_RES                   = MAKE_REPLY_TYPE(MSG_BS_INSERT_REQ),
    MSG_BS_UPDATE_REQ                   = 2001,
    MSG_BS_UPDATE_RES                   = MAKE_REPLY_TYPE(MSG_BS_UPDATE_REQ),
+   MSG_BS_INSERT_REQ                   = 2002,
+   MSG_BS_INSERT_RES                   = MAKE_REPLY_TYPE(MSG_BS_INSERT_REQ),
    MSG_BS_SQL_REQ                      = 2003,
    MSG_BS_SQL_RES                      = MAKE_REPLY_TYPE(MSG_BS_SQL_REQ),
    MSG_BS_QUERY_REQ                    = 2004,
