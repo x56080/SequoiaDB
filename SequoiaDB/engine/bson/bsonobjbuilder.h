@@ -137,7 +137,7 @@ namespace bson {
         }
 
         ~BSONObjBuilder() {
-            if ( !_doneCalled && _b.buf() && _buf.getSize() == 0 ) {
+            if ( !_doneCalled && !owned() ) {
                try {
                    _done();
                } catch ( ... ) {
