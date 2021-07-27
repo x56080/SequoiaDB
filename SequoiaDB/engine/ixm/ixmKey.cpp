@@ -308,6 +308,7 @@ namespace engine
                {
                   INT32 len = binDataCodeToLength( *p++ ) ;
                   p += len ;
+                  break ;
                }
                case coid:
                   p += sizeof( OID ) ;
