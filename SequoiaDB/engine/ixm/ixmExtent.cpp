@@ -392,6 +392,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__BASICINS );
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
+      INT32 keySize = 0 ;
       UINT16 bytesNeeded = 0 ;
       // first let's validate the pos is same or less than the total number of
       // keys in the extent
@@ -402,8 +403,9 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+      keySize = key.dataSize() ;
       // Then let's calculate how many bytes needed
-      bytesNeeded = key.dataSize() + sizeof(ixmKeyNode) ;
+      bytesNeeded = keySize + sizeof(ixmKeyNode) ;
       // If it's greater than the free size in the page, let's perform reorg and
       // check again
       if ( bytesNeeded > getFreeSize() )
@@ -441,12 +443,11 @@ namespace engine
       pHeader->_totalKeyNodeNum ++ ;
       {
          // copy the key into the page
-         INT32 datasize = key.dataSize() ;
          ixmKeyNode *kn = writeKeyNode( pos ) ;
          kn->_left = DMS_INVALID_EXTENT ;
          kn->_rid = rid ;
          // allocate datasize bytes from the page
-         rc = _alloc ( datasize, kn->_keyOffset ) ;
+         rc = _alloc ( keySize, kn->_keyOffset ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
@@ -455,7 +456,7 @@ namespace engine
          }
          // copy the data into the position
          ossMemcpy ( ((CHAR*)pHeader) + kn->_keyOffset,
-                      key.data(), datasize ) ;
+                      key.data(), keySize ) ;
       }
 #if defined (_DEBUG)
       rc = _validate(MAX, order) ;
@@ -809,7 +810,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__PSHBACK );
-      UINT16 bytesNeeded = key.dataSize() + sizeof(ixmKeyNode) ;
+      INT32 keySize = key.dataSize() ;
+      UINT16 bytesNeeded = keySize + sizeof(ixmKeyNode) ;
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       ixmKeyNode *kn = NULL ;
       // make sure we are not out of range
@@ -865,15 +867,15 @@ namespace engine
       }
 
       kn->_rid = rid ;
-      rc = _alloc ( key.dataSize(), kn->_keyOffset ) ;
+      rc = _alloc ( keySize, kn->_keyOffset ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                  key.dataSize()) ;
+                  keySize ) ;
          goto error ;
       }
       ossMemcpy ( ((CHAR*)pHeader)+kn->_keyOffset,
-                  key.data(), key.dataSize()) ;
+                  key.data(), keySize ) ;
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__PSHBACK, rc );
       return rc ;
@@ -1190,7 +1192,7 @@ namespace engine
          rc = SDB_IXM_KEY_TOO_LARGE ;
          goto error ;
       }
-      if ( key.dataSize() <= 0 )
+      if ( keySize <= 0 )
       {
          PD_LOG ( PDERROR, "key size must be greater than 0" ) ;
          rc = SDB_INVALIDARG ;

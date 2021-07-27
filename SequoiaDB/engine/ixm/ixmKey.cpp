@@ -245,9 +245,10 @@ namespace engine
    // convert from existing key to owned key
    _ixmKeyOwned::_ixmKeyOwned ( const _ixmKey &r )
    {
-      _b.appendBuf ( r.data(), r.dataSize() ) ;
+      INT32 keySize = r.dataSize() ;
+      _b.appendBuf ( r.data(), keySize ) ;
       _keyData = (const UINT8*) _b.buf() ;
-      SDB_ASSERT ( _b.len() == dataSize(),
+      SDB_ASSERT ( _b.len() == keySize,
                    "builder length must be same as data length" ) ;
       SDB_ASSERT ( (*_keyData & cNOTUSED) == 0,
                    "Flag is not correct" ) ;
