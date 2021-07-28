@@ -1,54 +1,53 @@
-##lobmetapath修改##
+lobmetapath 用于修改大对象元数据文件的存储路径，默认为 lobpath 指定的路径。修改前需要将原路径下的大对象元数据文件转移至目标路径，以节点 11820 为例，具体操作如下：
 
-lobmetapath 默认与 lobpath 相同。以下将 lobmetapath 由：/opt/sequoiadb/database/data/11820，修改为：/opt/sequoiadb/database/data/11820/lobmetapath。
+1. 停止节点 11820
 
-1. 关闭要修改配置的节点11820。
+    ```lang-bash
+    $ sdbstop -p 11820
+    ```
 
-  ```lang-javascript
-  $ sdbstop -p 11820
-  ```
+2. 创建新的大对象元数据文件存储目录，并修改目录权限为数据库管理用户（安装 SequoiaDB 时指定，默认为 sdbadmin）
 
-2. 进入该节点大对象元数据文件所在位置，创建新的大对象元数据目录 lobmetapath。将该原有的大对象元数据文件 *.lobm转移到新的目录。
+    ```lang-bash
+    $ mkdir /opt/sequoiadb/lobmetapath_11820
+    $ chown -R sdbadmin:sdbadmin_group /opt/sequoiadb/lobmetapath_11820
+    $ chmod 755 /opt/sequoiadb/lobmetapath_11820
+    ```
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/database/data/11820
-  $ mkdir lobmetapath
-  $ chown -R sdbadmin:sdbadmin_group lobmetapath/
-  $ chmod 755 lobmetapath/
-  $ mv *.lobm lobmetapath/
-  ```
+3. 切换至原路径（默认为 `/opt/sequoiadb/database/data/11820`）
 
- >   **Note:**
- >    
- >   注意新创建目录的权限问题。其中 sdbadmin:sdbadmin_group 为 sequoiadb 安装的用户名和用户组。
+    ```lang-bash
+    $ cd /opt/sequoiadb/database/data/11820
+    ```
 
-3. 进入该节点的配置文件所在位置，重新配置参数。将 lobmetapath 修改为 /opt/sequoiadb/database/data/11820/lobmetapath。
+4. 将大对象元数据文件转移至目标路径
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/conf/local/11820
-  $ vim sdb.conf
-  ```
+    ```lang-bash
+    $ mv *.lobm /opt/sequoiadb/lobmetapath_11820
+    ```
 
-  修改配置文件如下：
+5. 修改节点 11820 的配置文件
 
-  ```lang-ini
-  ...
-  lobmetapath=/opt/sequoiadb/database/data/11820/lobmetapath
-  ...
-  ```
+    ```lang-bash
+    $ vim /opt/sequoiadb/conf/local/11820/sdb.conf
+    ```
 
-4. 重新启动节点。
+    将参数 lobmetapath 修改为 `/opt/sequoiadb/lobmetapath_11820`
 
-  ```lang-javascript
-  $ sdbstart -p 11820
-  ```
+    ```lang-ini
+    ...
+    lobmetapath=/opt/sequoiadb/lobmetapath_11820
+    ...
+    ```
 
-5. 连接协调节点11810，使用快照查看节点11820的配置参数。
+6. 重启节点 11820
 
-  ```lang-javascript
-  > var db=new Sdb("localhost",11810)
-  > db.snapshot(SDB_SNAP_CONFIGS,{"svcname":"11820"},{"lobmetapath":""})
-  {
-  "lobmetapath": "/opt/sequoiadb/database/data/11820/lobmetapath/"
-  }
-  ```
+    ```lang-bash
+    $ sdbstart -p 11820
+    ```
+
+7. 通过快照查看节点 11820 的配置信息
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_CONFIGS, {"svcname": "11820"}, {"lobmetapath": ""})
+    ```

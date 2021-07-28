@@ -2281,13 +2281,13 @@
                       {
                         "id": 1432191415,
                         "file": "lobpath_modify",
-                        "cn": "大对象数据文件",
+                        "cn": "lobpath",
                         "en": "lobpath_modify"
                       },
                       {
                         "id": 1432191416,
                         "file": "lobmetapath_modify",
-                        "cn": "大对象元数据文件",
+                        "cn": "lobmetapath",
                         "en": "lobmetapath_modify"
                       },
                       {
