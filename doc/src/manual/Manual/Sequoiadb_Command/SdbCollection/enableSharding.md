@@ -20,7 +20,7 @@ options ( *object，必填* )
 
 通过 options 参数可以修改集合属性：
 
-- ShardingKey ( *object，必填* )：分区键
+- ShardingKey ( *object，必填* )：分区键，取值为 1 或 -1，表示正向或逆向排序
 
     - 已有的 ShardingKey 会被修改成新的 ShardingKey。
     - 集合只能存在于一个数据组中，或者集合为没有挂载子表的主表。

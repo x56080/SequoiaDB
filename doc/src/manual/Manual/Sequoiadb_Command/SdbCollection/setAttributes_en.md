@@ -28,7 +28,7 @@ Modify the collection properties through the options parameter:
 
     Format: `ReplSize: <number>`
 
-- ShardingKey ( *object* ): Sharding key
+- ShardingKey ( *object* ): Sharding key, the value is 1 or -1, indicating forward or backward sorting.
 
     - The existing "ShardingKey" will be modified to a new "ShardingKey".
     - The collection can only exist in one data group, or the collection is the main table without mounting sub-tables.

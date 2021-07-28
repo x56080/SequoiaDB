@@ -32,7 +32,8 @@ space.
 The options for creating the collection, could be a combination of the following
 options:
 .IP " 1." 4
-\f[C]ShardingKey\f[] ( \f[I]Object\f[] ): The sharding key of the collection.
+\f[C]ShardingKey\f[] ( \f[I]Object\f[] ): Sharding key, the value is 1 or \-1,
+indicating forward or backward sorting.
 .RS 4
 .PP
 Format: \f[C]ShardingKey:{<field1>\ :\ <1|\-1>,[<field1>\ :\ <1|\-1>,\ ...]}\f[]

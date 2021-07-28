@@ -25,7 +25,7 @@ belong to one and only one collection.
     The options for creating the collection, could be a combination of 
     the following options:
 
-    1. `ShardingKey` ( *Object* ): The sharding key of the collection.
+    1. `ShardingKey` ( *Object* ): Sharding key, the value is 1 or -1, indicating forward or backward sorting.
     
         Format: `ShardingKey:{<field1> : <1|-1>,[<field1> : <1|-1>, ...]}`
 

@@ -25,7 +25,7 @@ Collection Space
 
     在创建集合时，可以通过 options 参数设置集合的其他属性，如指定集合的分区键，是否以压缩的形式插入数据等。可组合使用 options 的如下选项：
 
-    1. ShardingKey（object）：分区键
+    1. ShardingKey（object）：分区键，取值为 1 或 -1，表示正向或逆向排序
 
         格式：`ShardingKey:{<字段1> : <1|-1>,[<字段2> : <1|-1>, ...]}`
 

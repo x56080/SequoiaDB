@@ -41,7 +41,8 @@ the response to the client.
 Format: \f[C]ReplSize:\ <number>\f[]
 .RE
 .IP \[bu] 2
-ShardingKey ( \f[I]object\f[] ): Sharding key
+ShardingKey ( \f[I]object\f[] ): Sharding key, the value is 1 or \-1, indicating
+forward or backward sorting.
 .RS 2
 .IP \[bu] 2
 The existing "ShardingKey" will be modified to a new "ShardingKey".
