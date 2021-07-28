@@ -1251,9 +1251,30 @@
                ]
             },
             {
+               "id": 1627438310,
+               "dir": "Operation",
+               "cn": "操作指南",
+               "en": "Operation",
+               "top": true,
+               "contents":[
+                  {
+                     "id": 1627442024,
+                     "file": "collectionspace_operation",
+                     "cn": "库操作",
+                     "en": "CollectionSpace Operation"
+                  },
+                  {
+                     "id": 1627442029,
+                     "file": "collection_operation",
+                     "cn": "表操作",
+                     "en": "Collection Operation"
+                  }
+               ]
+            },
+            {
                "id": 1601184872,
                "dir": "Maintainance",
-               "cn": "运维指南",
+               "cn": "运维管理",
                "en": "Maintainance",
                "top": true,
                "contents":[

@@ -7,11 +7,13 @@ SequoiaDB 巨杉数据库通过独创的引擎级多模架构，实现跨引擎 
 本章主要介绍 SequoiaDB 分布式引擎层的系统架构、内核原理和运维管理等相关内容：
 
 - [系统架构][Architecture]
-- [运维指南][Maintainance]
+- [操作指南][Operation]
+- [运维管理][Maintainance]
 
 
 
 [^_^]:
    本文使用的所有引用及链接
 [Architecture]:manual/Distributed_Engine/Architecture/Readme.md
+[Operation]:manual/Distributed_Engine/Operation/Readme.md
 [Maintainance]:manual/Distributed_Engine/Maintainance/Readme.md
