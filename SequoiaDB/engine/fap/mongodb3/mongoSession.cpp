@@ -1244,13 +1244,15 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    BOOLEAN needReply    = FALSE ;
    BOOLEAN needRollback = FALSE ;
    bson::BSONObjBuilder retBuilder ;
+   INT64 delayKillContext = -1 ;
 
    _onMsgBegin( (MsgHeader *) pMsg ) ;
 
    _contextBuff.release() ;
    rc = getProcessor()->processMsg( (MsgHeader *) pMsg, _contextBuff,
                                     _replyHeader.contextID,
-                                    needReply, needRollback, retBuilder ) ;
+                                    needReply, needRollback, retBuilder,
+                                    delayKillContext ) ;
    if ( rc && needRollback )
    {
       PD_LOG( PDDEBUG,
@@ -1288,6 +1290,11 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    _onMsgEnd( rc, (MsgHeader *) pMsg ) ;
 
 done:
+   if ( -1 != delayKillContext )
+   {
+      engine::pmdGetKRCB()->getRTNCB()->contextDelete( delayKillContext, _pEDUCB ) ;
+      delayKillContext = -1 ;
+   }
    return rc ;
 error:
    goto done ;

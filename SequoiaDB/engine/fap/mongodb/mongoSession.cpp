@@ -306,6 +306,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
    bson::BSONObjBuilder retBuilder ;
    mongoDataPacket &packet = _converter.getParser().dataPacket() ;
    const CHAR* commandName = _converter.getParser().command()->name() ;
+   INT64 delayKillContext = -1 ;
 
    _onMsgBegin( (MsgHeader *) pMsg ) ;
 
@@ -315,7 +316,8 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
                                        _contextBuff, _replyHeader.contextID,
                                        needReply,
                                        needRollback,
-                                       retBuilder ) ;
+                                       retBuilder,
+                                       delayKillContext ) ;
       _errorInfo = engine::utilGetErrorBson( rc,
                    _pEDUCB->getInfo( engine::EDU_INFO_ERROR ) ) ;
       if ( SDB_OK != rc )
@@ -390,6 +392,11 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
    _onMsgEnd( rc, (MsgHeader *) pMsg ) ;
 
 done:
+   if ( -1 != delayKillContext )
+   {
+      engine::pmdGetKRCB()->getRTNCB()->contextDelete( delayKillContext, _pEDUCB ) ;
+      delayKillContext = -1 ;
+   }
    return rc ;
 error:
    goto done ;
