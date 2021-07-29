@@ -232,9 +232,10 @@ elif guess_os == "linux":
     env.Append(CPPDEFINES=["HAVE_CONFIG_H", "PIC"])
     env['ENV']['HOME'] = os.environ['HOME']
     env['ENV']['TERM'] = os.environ['TERM']
-    env.Append(CPPFLAGS="-ggdb")
+    env.Append(CPPFLAGS="-ggdb -pthread")
     env.Append(LIBS=['ssl'])
     env.Append(LIBS=['crypto'])
+    env.Append(LINKFLAGS=" -pthread")
     if guess_arch == "ia64":
         env.Append(LIBPATH="/usr/lib64")
         env.Append(LIBPATH="/lib64")
