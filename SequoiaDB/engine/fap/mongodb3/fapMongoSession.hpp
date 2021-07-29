@@ -137,8 +137,8 @@ private:
    MsgOpReply              _replyHeader ;
    BOOLEAN                 _masterRead ;
    engine::rtnContextBuf   _contextBuff ;
-   msgBuffer               _inBuffer ;
-   msgBuffer               _tmpBuffer ;
+   mongoMsgBuffer          _inBuffer ;
+   mongoMsgBuffer          _tmpBuffer ;
    engine::IResource      *_resource ;
    std::set<INT64>         _cursorList ;
    BOOLEAN                 _isAuthed ;

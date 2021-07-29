@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = msgBuffer.cpp
+   Source File Name = fapMongoUtil.cpp
 
    Descriptive Name =
 
@@ -45,9 +45,9 @@ using namespace bson ;
 namespace fap
 {
 
-static _fapMongoErrorObjAssit errorObjAssit ;
+static _mongoErrorObjAssit errorObjAssit ;
 
-INT32 _msgBuffer::alloc( const UINT32 size )
+INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
 
@@ -72,7 +72,7 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::realloc( const UINT32 size )
+INT32 _mongoMsgBuffer::_realloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
    CHAR* ptr = NULL ;
@@ -105,8 +105,8 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
-                         BOOLEAN align , INT32 bytes )
+INT32 _mongoMsgBuffer::write( const CHAR *in, const UINT32 inLen,
+                              BOOLEAN align , INT32 bytes )
 {
    INT32 rc   = SDB_OK ;
    INT32 size = 0 ;        // new size to realloc
@@ -124,7 +124,7 @@ INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
       num = ( inLen + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
-      rc = realloc( size ) ;
+      rc = _realloc( size ) ;
       if( SDB_OK != rc )
       {
          goto error ;
@@ -147,7 +147,7 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::write( const BSONObj &obj, BOOLEAN align, INT32 bytes )
+INT32 _mongoMsgBuffer::write( const BSONObj &obj, BOOLEAN align, INT32 bytes )
 {
    INT32 rc   = SDB_OK ;
    INT32 size = 0 ;        // new size to realloc
@@ -159,7 +159,7 @@ INT32 _msgBuffer::write( const BSONObj &obj, BOOLEAN align, INT32 bytes )
       num = ( objsize + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
-      rc = realloc( size ) ;
+      rc = _realloc( size ) ;
       if( SDB_OK != rc )
       {
          goto error ;
@@ -182,7 +182,7 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::advance( const UINT32 pos )
+INT32 _mongoMsgBuffer::advance( const UINT32 pos )
 {
    INT32 rc = SDB_OK ;
 
@@ -200,7 +200,7 @@ error:
    goto done ;
 }
 
-_fapMongoErrorObjAssit::_fapMongoErrorObjAssit()
+_mongoErrorObjAssit::_mongoErrorObjAssit()
 {
    for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
    {
@@ -213,9 +213,9 @@ _fapMongoErrorObjAssit::_fapMongoErrorObjAssit()
 }
 
 // generate a new record based on matcher condition and update condition
-INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
-                                 const BSONObj &updatorObj,
-                                 BSONObj &target )
+INT32 mongoGenerateNewRecord( const BSONObj &matcher,
+                              const BSONObj &updatorObj,
+                              BSONObj &target )
 {
    INT32 rc = SDB_OK ;
    engine::mthMatchTree matcherTree ;
@@ -263,18 +263,18 @@ error:
    goto done ;
 }
 
-BSONObj fapMongoGetErrorBson( INT32 errorCode )
+BSONObj mongoGetErrorBson( INT32 errorCode )
 {
    return errorObjAssit.getErrorObj( errorCode ) ;
 }
 
-CHAR* fapMongoGetOOMErrResHeader()
+CHAR* mongoGetOOMErrResHeader()
 {
    static _fapMongoInnerHeader OOMResHeader( SDB_OOM ) ;
    return (CHAR*)&OOMResHeader ;
 }
 
-BOOLEAN fapMongoCheckBigEndian()
+BOOLEAN mongoCheckBigEndian()
 {
    BOOLEAN bigEndian = FALSE ;
    union
@@ -290,6 +290,86 @@ BOOLEAN fapMongoCheckBigEndian()
    }
 
    return bigEndian ;
+}
+
+INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *fieldName,
+                          INT32 &value )
+{
+   SINT32 rc = SDB_OK ;
+   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( fieldName ) ;
+   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+              "Can't locate field '%s': %s",
+              fieldName,
+              obj.toString().c_str() ) ;
+   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
+              "Unexpected field type : %s, supposed to be Integer",
+              obj.toString().c_str()) ;
+   value = ele.numberInt() ;
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
+                              const CHAR **value )
+{
+   SINT32 rc = SDB_OK ;
+   SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
+   BSONElement ele = obj.getField ( fieldName ) ;
+   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+              "Can't locate field '%s': %s",
+              fieldName,
+              obj.toString().c_str() ) ;
+   PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+              "Unexpected field type : %s, supposed to be String",
+              obj.toString().c_str()) ;
+   *value = ele.valuestr() ;
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *fieldName,
+                             BSONObj &value )
+{
+   SINT32 rc = SDB_OK ;
+   SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( fieldName ) ;
+   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+              "Can't locate field '%s': %s",
+              fieldName,
+              obj.toString().c_str() ) ;
+   PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+              "Unexpected field type : %s, supposed to be Array",
+              obj.toString().c_str()) ;
+   value = ele.embeddedObject() ;
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *fieldName,
+                                  INT64 &value )
+{
+   SINT32 rc = SDB_OK ;
+   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( fieldName ) ;
+   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+              "Can't locate field '%s': %s",
+              fieldName,
+              obj.toString().c_str() ) ;
+   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
+              "Unexpected field type : %s, supposed to be number",
+              obj.toString().c_str()) ;
+   value = ele.numberLong() ;
+done :
+   return rc ;
+error :
+   goto done ;
 }
 
 }

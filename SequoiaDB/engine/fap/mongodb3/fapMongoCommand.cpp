@@ -51,88 +51,8 @@ namespace fap
 #define FAP_MONGO_PAYLOADD_MAX_SIZE 128
 #define FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE 128
 
-static INT32 getIntElement( const BSONObj &obj, const CHAR *fieldName,
-                            INT32 &value )
-{
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              fieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be Integer",
-              obj.toString().c_str()) ;
-   value = ele.numberInt() ;
-done :
-   return rc ;
-error :
-   goto done ;
-}
-
-static INT32 getStringElement ( const BSONObj &obj, const CHAR *fieldName,
-                                const CHAR **value )
-{
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              fieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be String",
-              obj.toString().c_str()) ;
-   *value = ele.valuestr() ;
-done :
-   return rc ;
-error :
-   goto done ;
-}
-
-static INT32 getArrayElement ( const BSONObj &obj, const CHAR *fieldName,
-                               BSONObj &value )
-{
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              fieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be Array",
-              obj.toString().c_str()) ;
-   value = ele.embeddedObject() ;
-done :
-   return rc ;
-error :
-   goto done ;
-}
-
-static INT32 getNumberLongElement ( const BSONObj &obj, const CHAR *fieldName,
-                                    INT64 &value )
-{
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              fieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be number",
-              obj.toString().c_str()) ;
-   value = ele.numberLong() ;
-done :
-   return rc ;
-error :
-   goto done ;
-}
-
 static void appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
-                                msgBuffer &msgBuf )
+                                mongoMsgBuffer &msgBuf )
 {
    BSONObj empty ;
    BSONObj org( bodyBuf.data() ) ;
@@ -146,6 +66,7 @@ static void escapeDot( string& collectionFullName )
 {
    BOOLEAN firstLoop = TRUE ;
    string::size_type pos = 0 ;
+
    while( TRUE )
    {
       pos = collectionFullName.find( '.', pos ) ;
@@ -288,69 +209,6 @@ static void convertCollectionObj( BSONObj& collectionObj )
    collectionObj = BSON( "name" << clShortName.c_str() ) ;
 }
 
-static INT32 parseClientInfo( const CHAR* clientName,
-                              const CHAR* clientVerStr,
-                              mongoClientInfo &clientInfo )
-{
-   INT32 rc         = SDB_OK ;
-   INT32 i          = 0 ;
-   CHAR *curStr     = NULL ;
-   CHAR *lastParsed = NULL ;
-   CHAR clientVerStrCpy[FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE+1] = { 0 } ;
-
-   if ( NULL == clientName || NULL == clientVerStr )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   if ( ossStrlen( clientVerStr ) < 0 ||
-        ossStrlen( clientVerStr ) > FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   ossStrncpy( clientVerStrCpy, clientVerStr, ossStrlen( clientVerStr ) ) ;
-
-   if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_NODEJS ) )
-   {
-      clientInfo.type = NODEJS_DRIVER ;
-   }
-   else if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_JAVA ) )
-   {
-      clientInfo.type = JAVA_DRIVER ;
-   }
-   else if ( 0 == ossStrcmp( clientName,
-                             FAP_MONGO_FIELD_VALUE_MONGOSHELL ) )
-   {
-      clientInfo.type = MONGO_SHELL ;
-   }
-
-   curStr = ossStrtok( clientVerStrCpy, ".", &lastParsed ) ;
-   while ( '\0' != curStr )
-   {
-      if( 0 == i )
-      {
-         clientInfo.version = ossAtoi( curStr ) ;
-      }
-      else if( 1 == i )
-      {
-         clientInfo.subVersion = ossAtoi( curStr ) ;
-      }
-      else if( 2 == i )
-      {
-         clientInfo.fixVersion = ossAtoi( curStr ) ;
-      }
-      curStr = ossStrtok( lastParsed, ".", &lastParsed ) ;
-      i++ ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
 template< typename T >
 static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
                                        T &matchConditonBob )
@@ -417,97 +275,6 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
    catch( std::exception )
    {
       rc = SDB_SYS ;
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-static INT32 checkAuthMechanisms( const BSONElement &mechanismsEle,
-                                  mongoSessionCtx &ctx )
-{
-   INT32 rc = SDB_OK ;
-   const CHAR* mechanismsStr = NULL ;
-   CHAR  errMsg[64] = { 0 } ;
-
-   try
-   {
-      if ( Array != mechanismsEle.type() )
-      {
-         rc = SDB_INVALIDARG ;
-         ctx.setError( rc, "Mechanisms field must be an array" ) ;
-         goto error ;
-      }
-
-      BSONObjIterator itr( mechanismsEle.embeddedObject() ) ;
-      while ( itr.more() )
-      {
-         BSONElement ele = itr.next() ;
-
-         if ( String != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            ctx.setError( rc, "Mechanisms field must be an array of strings" ) ;
-            goto error ;
-         }
-
-         mechanismsStr = ele.valuestr() ;
-
-         if ( 0 == ossStrcmp( mechanismsStr, FAP_MONGO_FIELD_VALUE_SCRAMSHA1 ) )
-         {
-            continue ;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            ossSnprintf( errMsg, 64, "Unsupported auth mechanism[%s]",
-                         mechanismsStr ) ;
-            ctx.setError( rc, errMsg ) ;
-            goto error ;
-         }
-      }
-   }
-   catch( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Check auth mechanisms exception: %s, rc: %d",
-              e.what(), rc ) ;
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-static INT32 isCondHasOp( const BSONObj &cond,
-                          BOOLEAN &hasOp )
-{
-   INT32 rc = SDB_OK ;
-   hasOp = FALSE ;
-
-   try
-   {
-      BSONObjIterator itr( cond ) ;
-      while ( itr.more() )
-      {
-         BSONElement ele = itr.next() ;
-
-         if ( '$' == ele.fieldName()[0] )
-         {
-            hasOp = TRUE ;
-         }
-      }
-   }
-   catch( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Check if cond has op exception: %s, rc: %d",
-              e.what(), rc ) ;
       goto error ;
    }
 
@@ -755,7 +522,7 @@ _mongoCmdAssit::_mongoCmdAssit ( MONGO_CMD_NEW_FUNC pFunc )
 
 INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
                         mongoSessionCtx &sessCtx,
-                        msgBuffer &sdbMsg )
+                        mongoMsgBuffer &sdbMsg )
 {
    SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
 
@@ -766,7 +533,7 @@ INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
       sdbMsg.zero() ;
 
       // build message
-      rc = (*ppCommand)->buildSdbMsg( sdbMsg, sessCtx ) ;
+      rc = (*ppCommand)->buildSdbRequest( sdbMsg, sessCtx ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build sdb message for command[%s], rc: %d",
                    (*ppCommand)->name(), rc ) ;
@@ -953,7 +720,7 @@ INT32 mongoParseSdbReplyMsg( _mongoCommand *pCommand,
 
    try
    {
-      rc = pCommand->parseSdbReplyMsg( sdbReply, replyBuf ) ;
+      rc = pCommand->parseSdbReply( sdbReply, replyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to parse sdb reply msg, rc: %d",
                    rc ) ;
@@ -983,7 +750,7 @@ INT32 mongoPostRunCommand( _mongoCommand *pCommand,
 
    try
    {
-      rc = pCommand->buildReply( sdbReply, replyBuf, headerBuf ) ;
+      rc = pCommand->buildMongoReply( sdbReply, replyBuf, headerBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build reply for command[%s], rc: %d",
                    pCommand->name(), rc ) ;
@@ -1283,7 +1050,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
    _csName.assign( nameInReq, ptr - nameInReq ) ;
 
    // get collection full name
-   rc = getStringElement( _obj, commandName, &clShortName ) ;
+   rc = mongoGetStringElement( _obj, commandName, &clShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 commandName, rc ) ;
@@ -1318,7 +1085,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
    _csName = pReq->databaseName() ;
 
    const CHAR* clShortName = NULL ;
-   rc = getStringElement( _obj, pReq->commandName(), &clShortName ) ;
+   rc = mongoGetStringElement( _obj, pReq->commandName(), &clShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pReq->commandName(), rc ) ;
@@ -1452,8 +1219,8 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoInsertCommand)
-INT32 _mongoInsertCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                        mongoSessionCtx &ctx )
+INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                            mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -1478,7 +1245,7 @@ INT32 _mongoInsertCommand::buildSdbMsg( msgBuffer &sdbMsg,
 
    // get records to be insert
    BSONObj docList ;
-   rc = getArrayElement( _obj, FAP_MONGO_FIELD_NAME_DOCUMENTS, docList ) ;
+   rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DOCUMENTS, docList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_DOCUMENTS, rc ) ;
@@ -1502,9 +1269,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoInsertCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -1528,8 +1295,8 @@ INT32 _mongoInsertCommand::buildReply( const MsgOpReply &sdbReply,
 
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
-INT32 _mongoDeleteCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                        mongoSessionCtx &ctx )
+INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                            mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -1555,7 +1322,7 @@ INT32 _mongoDeleteCommand::buildSdbMsg( msgBuffer &sdbMsg,
    sdbMsg.write( _clFullName.c_str(), del->nameLength + 1, TRUE ) ;
 
    // { delete: "bar", deletes: [ { q: {xxx}, limit: 0 } ] }
-   rc = getArrayElement( _obj, FAP_MONGO_FIELD_NAME_DELETES, objList ) ;
+   rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DELETES, objList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_DELETES, rc ) ;
@@ -1603,7 +1370,7 @@ error:
    goto done ;
 }
 
-INT32 _mongoDeleteCommand::parseSdbReplyMsg( const MsgOpReply &sdbReply,
+INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf )
 {
    INT32 rc = SDB_OK ;
@@ -1648,9 +1415,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
         SDB_DMS_NOTEXIST == sdbReply.flags )
@@ -1678,8 +1445,8 @@ INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoUpdateCommand)
-INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                        mongoSessionCtx &ctx )
+INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                            mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -1707,7 +1474,7 @@ INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
 
    // { update: "bar",
    //   updates: [ { q: {xxx}, u: {xxx}, upsert: false, multi: true } ... ] }
-   rc = getArrayElement( _obj, FAP_MONGO_FIELD_NAME_UPDATES, objList ) ;
+   rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_UPDATES, objList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_UPDATES, rc ) ;
@@ -1820,7 +1587,7 @@ error:
    goto done ;
 }
 
-INT32 _mongoUpdateCommand::parseSdbReplyMsg( const MsgOpReply &sdbReply,
+INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf )
 {
    INT32 rc = SDB_OK ;
@@ -1894,9 +1661,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoUpdateCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -2179,7 +1946,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoQueryCommand::buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx )
+INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                           mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -2252,9 +2020,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoQueryCommand::buildReply( const MsgOpReply &sdbReply,
-                                      engine::rtnContextBuf &bodyBuf,
-                                      _mongoResponseBuffer &headerBuf )
+INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                           engine::rtnContextBuf &bodyBuf,
+                                           _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -2376,7 +2144,8 @@ BSONObj _mongoQueryCommand::_getHintObj( const BSONObj &obj )
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindCommand)
-INT32 _mongoFindCommand::buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx )
+INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                          mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -2439,9 +2208,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoFindCommand::buildReply( const MsgOpReply &sdbReply,
-                                     engine::rtnContextBuf &bodyBuf,
-                                     _mongoResponseBuffer &headerBuf )
+INT32 _mongoFindCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                          engine::rtnContextBuf &bodyBuf,
+                                          _mongoResponseBuffer &headerBuf )
 {
    INT32 rc = SDB_OK ;
 
@@ -2593,7 +2362,7 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
    _csName.assign( nameInReq, ptr - nameInReq ) ;
 
    // get collection full name
-   rc = getStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION, &clShortName ) ;
+   rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION, &clShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
@@ -2603,13 +2372,13 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
    _clFullName += clShortName ;
 
    // get cursorID
-   rc = getNumberLongElement( obj, commandName, _cursorID ) ;
+   rc = mongoGetNumberLongElement( obj, commandName, _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 commandName, rc ) ;
 
    // get returned number
-   rc = getIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
+   rc = mongoGetIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
    if ( SDB_FIELD_NOT_EXIST == rc )
    {
       rc = SDB_OK ;
@@ -2643,7 +2412,8 @@ INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
    _csName = pReq->databaseName() ;
 
    // get cl name
-   rc = getStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION, &clShortName ) ;
+   rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION,
+                               &clShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
@@ -2653,13 +2423,13 @@ INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
    _clFullName += clShortName ;
 
    // get cursorID
-   rc = getNumberLongElement( obj, pReq->commandName(), _cursorID ) ;
+   rc = mongoGetNumberLongElement( obj, pReq->commandName(), _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pReq->commandName(), rc ) ;
 
    // get returned number
-   rc = getIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
+   rc = mongoGetIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
    if ( SDB_FIELD_NOT_EXIST == rc )
    {
       rc = SDB_OK ;
@@ -2679,8 +2449,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoGetmoreCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                         mongoSessionCtx &ctx )
+INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                             mongoSessionCtx &ctx )
 {
    MsgOpGetMore *more = NULL ;
 
@@ -2805,9 +2575,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoGetmoreCommand::buildReply( const MsgOpReply &sdbReply,
-                                        engine::rtnContextBuf &bodyBuf,
-                                        _mongoResponseBuffer &headerBuf )
+INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf,
+                                             _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -2942,7 +2712,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       // get cursorID list
-      rc = getArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
+      rc = mongoGetArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s], rc: %d",
                    FAP_MONGO_FIELD_NAME_CURSORS, rc ) ;
@@ -2973,7 +2743,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
 
       // get cursorID list
       obj = BSONObj( pReq->metadata() ) ;
-      rc = getArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
+      rc = mongoGetArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s], rc: %d",
                    FAP_MONGO_FIELD_NAME_CURSORS, rc ) ;
@@ -3007,8 +2777,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoKillCursorCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
    MsgOpKillContexts *kill = NULL ;
@@ -3049,9 +2819,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoKillCursorCommand::buildReply( const MsgOpReply &sdbReply,
-                                           engine::rtnContextBuf &bodyBuf,
-                                           _mongoResponseBuffer &headerBuf )
+INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                engine::rtnContextBuf &bodyBuf,
+                                                _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3092,7 +2862,8 @@ INT32 _mongoKillCursorCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCountCommand)
-INT32 _mongoCountCommand::buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx )
+INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                           mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3163,9 +2934,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoCountCommand::buildReply( const MsgOpReply &sdbReply,
-                                      engine::rtnContextBuf &bodyBuf,
-                                      _mongoResponseBuffer &headerBuf )
+INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                           engine::rtnContextBuf &bodyBuf,
+                                           _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3341,8 +3112,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoAggregateCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                           mongoSessionCtx &ctx )
+INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                               mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3421,9 +3192,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoAggregateCommand::buildReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf,
-                                          _mongoResponseBuffer &headerBuf )
+INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf,
+                                               _mongoResponseBuffer &headerBuf )
 {
    INT32 rc = SDB_OK ;
 
@@ -3485,8 +3256,8 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDistinctCommand)
-INT32 _mongoDistinctCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                          mongoSessionCtx &ctx )
+INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                              mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3551,9 +3322,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoDistinctCommand::buildReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf,
-                                         _mongoResponseBuffer &headerBuf )
+INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
 {
    // reply: { values: [ 1, 3, 4 ], ok: 1 }
    if ( SDB_OK == sdbReply.flags )
@@ -3577,8 +3348,8 @@ INT32 _mongoDistinctCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateCLCommand)
-INT32 _mongoCreateCLCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                          mongoSessionCtx &ctx )
+INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                              mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
    MsgOpQuery *query       = NULL ;
@@ -3613,9 +3384,9 @@ INT32 _mongoCreateCLCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoCreateCLCommand::buildReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf,
-                                         _mongoResponseBuffer &headerBuf )
+INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3628,8 +3399,8 @@ INT32 _mongoCreateCLCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropCLCommand)
-INT32 _mongoDropCLCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                        mongoSessionCtx &ctx )
+INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                            mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
    MsgOpQuery *query = NULL ;
@@ -3665,9 +3436,9 @@ INT32 _mongoDropCLCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoDropCLCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3688,8 +3459,8 @@ INT32 _mongoDropCLCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListIdxCommand)
-INT32 _mongoListIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                         mongoSessionCtx &ctx )
+INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                             mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3727,9 +3498,9 @@ INT32 _mongoListIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoListIdxCommand::buildReply( const MsgOpReply &sdbReply,
-                                        engine::rtnContextBuf &bodyBuf,
-                                        _mongoResponseBuffer &headerBuf )
+INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf,
+                                             _mongoResponseBuffer &headerBuf )
 {
    INT32 rc = SDB_OK ;
 
@@ -3750,8 +3521,8 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateIdxCommand)
-INT32 _mongoCreateIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                           mongoSessionCtx &ctx )
+INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                               mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3780,7 +3551,7 @@ INT32 _mongoCreateIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
 
    // { createIndexes: "bar", indexes: [ { key: {a:1}, name: "aIdx" } ] }
    BSONObj objList, obj ;
-   rc = getArrayElement( _obj, FAP_MONGO_FIELD_NAME_INDEXES, objList ) ;
+   rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_INDEXES, objList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_INDEXES, rc ) ;
@@ -3836,9 +3607,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoCreateIdxCommand::buildReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf,
-                                          _mongoResponseBuffer &headerBuf )
+INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf,
+                                               _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3853,8 +3624,8 @@ INT32 _mongoCreateIdxCommand::buildReply( const MsgOpReply &sdbReply,
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropIdxCommand)
-INT32 _mongoDropIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                         mongoSessionCtx &ctx )
+INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                             mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -3899,9 +3670,9 @@ INT32 _mongoDropIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoDropIdxCommand::buildReply( const MsgOpReply &sdbReply,
-                                        engine::rtnContextBuf &bodyBuf,
-                                        _mongoResponseBuffer &headerBuf )
+INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf,
+                                             _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3914,8 +3685,8 @@ INT32 _mongoDropIdxCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropDatabaseCommand)
-INT32 _mongoDropDatabaseCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                  mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
    MsgOpQuery *query       = NULL ;
@@ -3953,9 +3724,9 @@ INT32 _mongoDropDatabaseCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoDropDatabaseCommand::buildReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf,
-                                             _mongoResponseBuffer &headerBuf )
+INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                  engine::rtnContextBuf &bodyBuf,
+                                                  _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -4018,8 +3789,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoCreateUserCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                            mongoSessionCtx &ctx )
+INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
    MsgAuthCrtUsr *user = NULL ;
@@ -4079,7 +3850,7 @@ INT32 _mongoCreateUserCommand::buildSdbMsg( msgBuffer &sdbMsg,
          else if ( 0 == ossStrcmp( ele.fieldName(),
                    FAP_MONGO_FIELD_NAME_MECHANISMS ) )
          {
-            rc = checkAuthMechanisms( ele, ctx ) ;
+            rc = _checkAuthMechanisms( ele, ctx ) ;
             if ( rc )
             {
                goto error ;
@@ -4125,9 +3896,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoCreateUserCommand::buildReply( const MsgOpReply &sdbReply,
-                                           engine::rtnContextBuf &bodyBuf,
-                                           _mongoResponseBuffer &headerBuf )
+INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                engine::rtnContextBuf &bodyBuf,
+                                                _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -4136,6 +3907,64 @@ INT32 _mongoCreateUserCommand::buildReply( const MsgOpReply &sdbReply,
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
    return SDB_OK ;
+}
+
+INT32 _mongoCreateUserCommand::_checkAuthMechanisms( const BSONElement &mechanismsEle,
+                                                     mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   const CHAR* mechanismsStr = NULL ;
+   CHAR  errMsg[64] = { 0 } ;
+
+   try
+   {
+      if ( Array != mechanismsEle.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Mechanisms field must be an array" ) ;
+         goto error ;
+      }
+
+      BSONObjIterator itr( mechanismsEle.embeddedObject() ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         if ( String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            ctx.setError( rc, "Mechanisms field must be an array of strings" ) ;
+            goto error ;
+         }
+
+         mechanismsStr = ele.valuestr() ;
+
+         if ( 0 == ossStrcmp( mechanismsStr, FAP_MONGO_FIELD_VALUE_SCRAMSHA1 ) )
+         {
+            continue ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            ossSnprintf( errMsg, 64, "Unsupported auth mechanism[%s]",
+                         mechanismsStr ) ;
+            ctx.setError( rc, errMsg ) ;
+            goto error ;
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when checking auth mechanisms: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropUserCommand)
@@ -4184,8 +4013,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoDropUserCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                          mongoSessionCtx &ctx )
+INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                              mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
    MsgAuthDelUsr *auth = NULL ;
@@ -4223,9 +4052,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoDropUserCommand::buildReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf,
-                                         _mongoResponseBuffer &headerBuf )
+INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -4347,7 +4176,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoListUserCommand::buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx )
+INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                              mongoSessionCtx &ctx )
 {
    INT32 rc            = SDB_OK ;
    MsgOpQuery *query   = NULL ;
@@ -4380,9 +4210,9 @@ INT32 _mongoListUserCommand::buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ct
    return rc ;
 }
 
-INT32 _mongoListUserCommand::buildReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf,
-                                         _mongoResponseBuffer &headerBuf )
+INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
 {
    INT32 rc = SDB_OK ;
 
@@ -4491,8 +4321,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoSaslStartCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                           mongoSessionCtx &ctx )
+INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                               mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
    MsgAuthentication *auth = NULL ;
@@ -4568,9 +4398,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoSaslStartCommand::buildReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf,
-                                          _mongoResponseBuffer &headerBuf )
+INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf,
+                                               _mongoResponseBuffer &headerBuf )
 {
   /* Generate server-first-message on the form:
    * r=client-nonce+server-nonce,s=user-salt,i=iteration-count
@@ -4687,8 +4517,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoSaslContinueCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                  mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
    MsgAuthentication *auth = NULL ;
@@ -4775,9 +4605,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoSaslContinueCommand::buildReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf,
-                                             _mongoResponseBuffer &headerBuf )
+INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                  engine::rtnContextBuf &bodyBuf,
+                                                  _mongoResponseBuffer &headerBuf )
 {
    BSONObjBuilder bob ;
    BOOLEAN rebuildBuf = FALSE ;
@@ -4834,8 +4664,8 @@ INT32 _mongoSaslContinueCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListCollectionCommand)
-INT32 _mongoListCollectionCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                                mongoSessionCtx &ctx )
+INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                    mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
    MsgOpQuery *query       = NULL ;
@@ -4882,9 +4712,9 @@ INT32 _mongoListCollectionCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoListCollectionCommand::buildReply( const MsgOpReply &sdbReply,
-                                               engine::rtnContextBuf &bodyBuf,
-                                               _mongoResponseBuffer &headerBuf )
+INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                    engine::rtnContextBuf &bodyBuf,
+                                                    _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK      == sdbReply.flags ||
         SDB_DMS_EOC == sdbReply.flags )
@@ -4898,8 +4728,8 @@ INT32 _mongoListCollectionCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListDatabaseCommand)
-INT32 _mongoListDatabaseCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                              mongoSessionCtx &ctx )
+INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                  mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -4937,9 +4767,9 @@ INT32 _mongoListDatabaseCommand::buildSdbMsg( msgBuffer &sdbMsg,
    return rc ;
 }
 
-INT32 _mongoListDatabaseCommand::buildReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf,
-                                             _mongoResponseBuffer &headerBuf )
+INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                  engine::rtnContextBuf &bodyBuf,
+                                                  _mongoResponseBuffer &headerBuf )
 {
    if ( SDB_OK == sdbReply.flags )
    {
@@ -4970,9 +4800,9 @@ INT32 _mongoListDatabaseCommand::buildReply( const MsgOpReply &sdbReply,
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetLogCommand)
-INT32 _mongoGetLogCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoGetLogCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    bson::BSONObjBuilder bob ;
    bob.append( "totalLinesWritten", 0 ) ;
@@ -5010,7 +4840,7 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
          const CHAR* driverName   = driverObj.getStringField( "name" ) ;
          const CHAR* driverVerStr = driverObj.getStringField( "version" ) ;
 
-         rc = parseClientInfo( driverName, driverVerStr, ctx.clientInfo ) ;
+         rc = _parseClientInfo( driverName, driverVerStr, ctx.clientInfo ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to parse client info, rc: %d", rc ) ;
 
@@ -5024,9 +4854,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoIsMasterCommand::buildReply( const MsgOpReply &sdbReply,
-                                         engine::rtnContextBuf &bodyBuf,
-                                         _mongoResponseBuffer &headerBuf )
+INT32 _mongoIsMasterCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
 {
    BSONObjBuilder bob ;
    bob.appendBool( "ismaster", TRUE ) ;
@@ -5044,11 +4874,74 @@ INT32 _mongoIsMasterCommand::buildReply( const MsgOpReply &sdbReply,
    return SDB_OK ;
 }
 
+INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* clientName,
+                                               const CHAR* clientVerStr,
+                                               mongoClientInfo &clientInfo )
+{
+   INT32 rc         = SDB_OK ;
+   INT32 i          = 0 ;
+   CHAR *curStr     = NULL ;
+   CHAR *lastParsed = NULL ;
+   CHAR clientVerStrCpy[FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE+1] = { 0 } ;
+
+   if ( NULL == clientName || NULL == clientVerStr )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( ossStrlen( clientVerStr ) < 0 ||
+        ossStrlen( clientVerStr ) > FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   ossStrncpy( clientVerStrCpy, clientVerStr, ossStrlen( clientVerStr ) ) ;
+
+   if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_NODEJS ) )
+   {
+      clientInfo.type = NODEJS_DRIVER ;
+   }
+   else if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_JAVA ) )
+   {
+      clientInfo.type = JAVA_DRIVER ;
+   }
+   else if ( 0 == ossStrcmp( clientName,
+                             FAP_MONGO_FIELD_VALUE_MONGOSHELL ) )
+   {
+      clientInfo.type = MONGO_SHELL ;
+   }
+
+   curStr = ossStrtok( clientVerStrCpy, ".", &lastParsed ) ;
+   while ( '\0' != curStr )
+   {
+      if( 0 == i )
+      {
+         clientInfo.version = ossAtoi( curStr ) ;
+      }
+      else if( 1 == i )
+      {
+         clientInfo.subVersion = ossAtoi( curStr ) ;
+      }
+      else if( 2 == i )
+      {
+         clientInfo.fixVersion = ossAtoi( curStr ) ;
+      }
+      curStr = ossStrtok( lastParsed, ".", &lastParsed ) ;
+      i++ ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoBuildinfoCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoBuildInfoCommand)
-INT32 _mongoBuildInfoCommand::buildReply( const MsgOpReply &sdbReply,
-                                          engine::rtnContextBuf &bodyBuf,
-                                          _mongoResponseBuffer &headerBuf )
+INT32 _mongoBuildInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf,
+                                               _mongoResponseBuffer &headerBuf )
 {
    bson::BSONObjBuilder bob ;
    bob.append( "version", "3.2.22" ) ;
@@ -5078,9 +4971,9 @@ INT32 _mongoGetLastErrorCommand::init( const _mongoMessage *pMsg,
    return _mongoGlobalCommand::init( pMsg, ctx ) ;
 }
 
-INT32 _mongoGetLastErrorCommand::buildReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf,
-                                             _mongoResponseBuffer &headerBuf )
+INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                  engine::rtnContextBuf &bodyBuf,
+                                                  _mongoResponseBuffer &headerBuf )
 {
    INT32       errCode = SDB_OK ;
    BSONElement codeEle = _errorInfoObj.getField( FAP_MONGO_FIELD_NAME_CODE ) ;
@@ -5123,9 +5016,9 @@ INT32 _mongoLogoutCommand::init( const _mongoMessage *pMsg,
    return _mongoGlobalCommand::init( pMsg, ctx ) ;
 }
 
-INT32 _mongoLogoutCommand::buildReply( const MsgOpReply &sdbReply,
-                                       engine::rtnContextBuf &bodyBuf,
-                                       _mongoResponseBuffer &headerBuf )
+INT32 _mongoLogoutCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                            engine::rtnContextBuf &bodyBuf,
+                                            _mongoResponseBuffer &headerBuf )
 {
    bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
@@ -5133,9 +5026,9 @@ INT32 _mongoLogoutCommand::buildReply( const MsgOpReply &sdbReply,
    return SDB_OK ;
 }
 
-INT32 _mongoDummyCommand::buildReply( const MsgOpReply &sdbReply,
-                                      engine::rtnContextBuf &bodyBuf,
-                                      _mongoResponseBuffer &headerBuf )
+INT32 _mongoDummyCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                           engine::rtnContextBuf &bodyBuf,
+                                           _mongoResponseBuffer &headerBuf )
 {
    bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
@@ -5153,8 +5046,8 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetCmdLineOptsCommand)
 // that the parameters of the commands are different
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindandmodifyCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindAndModifyCommand)
-INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
-                                               mongoSessionCtx &ctx )
+INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
+                                                   mongoSessionCtx &ctx )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
@@ -5277,7 +5170,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
 
             _updater = ele.embeddedObject() ;
 
-            rc = isCondHasOp( _updater, hasOp ) ;
+            rc = _isCondHasOp( _updater, hasOp ) ;
             if ( rc )
             {
                goto error ;
@@ -5394,9 +5287,9 @@ error:
    goto done ;
 }
 
-INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
-                                              engine::rtnContextBuf &bodyBuf,
-                                              _mongoResponseBuffer &headerBuf )
+INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
+                                                   engine::rtnContextBuf &bodyBuf,
+                                                   _mongoResponseBuffer &headerBuf )
 {
    /*
    The format of reply msg is as follows:
@@ -5477,6 +5370,39 @@ INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "Build findAndModify reply msg exception: %s, rc: %d",
               e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoFindAndModifyCommand::_isCondHasOp( const BSONObj &cond,
+                                                BOOLEAN &hasOp )
+{
+   INT32 rc = SDB_OK ;
+   hasOp = FALSE ;
+
+   try
+   {
+      BSONObjIterator itr( cond ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         if ( '$' == ele.fieldName()[0] )
+         {
+            hasOp = TRUE ;
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when checking if cond has op: "
+              "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 

@@ -62,7 +62,7 @@ namespace fap
 #define FAP_MONGO_ERROR_RESPONSE_MAX_LEN 128
 
 static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
-                                msgBuffer &out )
+                                mongoMsgBuffer &out )
 {
    if ( !out.empty() )
    {
@@ -180,7 +180,7 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
    {
       rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
                                 PMD_EDU_MEM_NONE,
-                                fapMongoGetOOMErrResHeader(),
+                                mongoGetOOMErrResHeader(),
                                 SET_MONGO_MSG_FLAG( eduID() ) ) ;
       if ( rc )
       {
@@ -198,7 +198,7 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
                   "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
          rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
                                    PMD_EDU_MEM_NONE,
-                                   fapMongoGetOOMErrResHeader(),
+                                   mongoGetOOMErrResHeader(),
                                    SET_MONGO_MSG_FLAG( eduID() ) ) ;
          if ( rc )
          {
@@ -579,7 +579,7 @@ INT32 _mongoSession::run()
 
    PD_CHECK( _pEDUCB, SDB_SYS, error, PDERROR,
              "_pEDUCB is null" ) ;
-   PD_CHECK( FALSE == fapMongoCheckBigEndian(), SDB_SYS, error, PDERROR,
+   PD_CHECK( FALSE == mongoCheckBigEndian(), SDB_SYS, error, PDERROR,
              "Big endian is not support" ) ;
 
    try
@@ -970,7 +970,7 @@ INT32 _mongoSession::_autoInsert( const CHAR *clFullName,
 
    try
    {
-      rc = fapMongoGenerateNewRecord( matcher, updatorObj, target ) ;
+      rc = mongoGenerateNewRecord( matcher, updatorObj, target ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to generate new record, rc: %d", rc ) ;
@@ -1032,7 +1032,7 @@ done:
    return rc ;
 error:
    _replyHeader.flags = rc ;
-   errorObj = fapMongoGetErrorBson( rc ) ;
+   errorObj = mongoGetErrorBson( rc ) ;
    _contextBuff = engine::rtnContextBuf( errorObj ) ;
    goto done ;
 }
@@ -1376,7 +1376,7 @@ done:
    return rc ;
 error:
    _replyHeader.flags = rc ;
-   errorObj = fapMongoGetErrorBson( rc ) ;
+   errorObj = mongoGetErrorBson( rc ) ;
    _contextBuff = engine::rtnContextBuf( errorObj ) ;
    goto done ;
 }
@@ -1402,7 +1402,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 
    if ( rc )
    {
-      errorObj = fapMongoGetErrorBson( rc ) ;
+      errorObj = mongoGetErrorBson( rc ) ;
       _contextBuff = engine::rtnContextBuf( errorObj ) ;
       _replyHeader.numReturned = 1 ;
 
@@ -1506,7 +1506,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
    {
       if ( errObj.isEmpty() )
       {
-         errObj = fapMongoGetErrorBson( errCode ) ;
+         errObj = mongoGetErrorBson( errCode ) ;
       }
 
       _contextBuff = engine::rtnContextBuf( errObj ) ;
@@ -1618,7 +1618,7 @@ error:
 void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
                                           INT32 &msgLen )
 {
-   BSONObj errorBson = fapMongoGetErrorBson( errorCode ) ;
+   BSONObj errorBson = mongoGetErrorBson( errorCode ) ;
 
    if ( MONGO_OP_QUERY == _opCodeOfPostEvent ||
         MONGO_OP_GET_MORE == _opCodeOfPostEvent )

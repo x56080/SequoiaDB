@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = msgBuffer.hpp
+   Source File Name = fapMongoUtil.hpp
 
    Descriptive Name =
 
@@ -50,24 +50,22 @@
 
 namespace fap
 {
-class _msgBuffer : public SDBObject
+
+class _mongoMsgBuffer : public engine::_utilPooledObject
 {
 public:
-   _msgBuffer() : _data( NULL ), _size( 0 ), _capacity( 0 )
+   _mongoMsgBuffer() : _data( NULL ), _size( 0 ), _capacity( 0 )
    {
-      alloc( MEMERY_BLOCK_SIZE ) ;
+      _alloc( MEMERY_BLOCK_SIZE ) ;
    }
 
-   ~_msgBuffer()
+   ~_mongoMsgBuffer()
    {
       if ( NULL != _data )
       {
          SDB_OSS_FREE( _data ) ;
          _data = NULL ;
       }
-
-      //_size = 0 ;
-      //_capacity = 0 ;
    }
 
    BOOLEAN empty() const
@@ -113,7 +111,7 @@ public:
          return ;
       }
 
-      realloc( size ) ;
+      _realloc( size ) ;
    }
 
    void doneLen()
@@ -122,22 +120,22 @@ public:
    }
 
 private:
-   INT32 alloc( const UINT32 size ) ;
-   INT32 realloc( const UINT32 size ) ;
+   INT32 _alloc( const UINT32 size ) ;
+   INT32 _realloc( const UINT32 size ) ;
 
 private:
    CHAR  *_data ;
    UINT32 _size ;
    UINT32 _capacity ;
 } ;
-typedef _msgBuffer msgBuffer ;
+typedef _mongoMsgBuffer mongoMsgBuffer ;
 
-class _fapMongoErrorObjAssit : public SDBObject
+class _mongoErrorObjAssit : public SDBObject
 {
 public:
-   _fapMongoErrorObjAssit() ;
+   _mongoErrorObjAssit() ;
 
-   ~_fapMongoErrorObjAssit(){}
+   ~_mongoErrorObjAssit(){}
 
    BSONObj getErrorObj( INT32 errorCode )
    {
@@ -147,17 +145,30 @@ public:
 private:
    BSONObj _errorObjsArray[ SDB_MAX_ERROR + SDB_MAX_WARNING + 1 ] ;
 };
-typedef _fapMongoErrorObjAssit fapMongoErrorObjAssit ;
+typedef _mongoErrorObjAssit mongoErrorObjAssit ;
 
-INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
-                                 const BSONObj &updatorObj,
-                                 BSONObj &target ) ;
+INT32 mongoGenerateNewRecord( const BSONObj &matcher,
+                              const BSONObj &updatorObj,
+                              BSONObj &target ) ;
 
-BSONObj fapMongoGetErrorBson( INT32 errorCode ) ;
+BSONObj mongoGetErrorBson( INT32 errorCode ) ;
 
-CHAR* fapMongoGetOOMErrResHeader() ;
+CHAR* mongoGetOOMErrResHeader() ;
 
-BOOLEAN fapMongoCheckBigEndian() ;
+BOOLEAN mongoCheckBigEndian() ;
+
+INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *fieldName,
+                          INT32 &value ) ;
+
+INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
+                              const CHAR **value ) ;
+
+INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *fieldName,
+                             BSONObj &value ) ;
+
+INT32 mongoGetNumberLongElement ( const BSONObj &obj,
+                                  const CHAR *fieldName,
+                                  INT64 &value ) ;
 
 }
 #endif
