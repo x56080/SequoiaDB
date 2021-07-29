@@ -147,13 +147,34 @@ namespace engine
       while ( TRUE )
       {
          // check synchronize
-         rc = getLogicalTimeNS( time, FALSE, TRUE, waitTime ) ;
-         if ( STP_SYNC_BUSY == rc && retryTime < STP_META_GET_TIME_TIEMOUT )
+         rc = getLogicalTimeNS( time, TRUE, TRUE, waitTime ) ;
+         if ( SDB_OK != rc && retryTime < STP_META_GET_TIME_TIEMOUT )
          {
-            // the STP is synchronizing, wait for a while
-            ossSleep( STP_META_GET_TIME_WAITTIME ) ;
-            retryTime += STP_META_GET_TIME_WAITTIME ;
-            continue ;
+            if ( STP_SYNC_BUSY == rc )
+            {
+               // the STP is synchronizing, wait for a while
+               ossSleep( STP_META_GET_TIME_WAITTIME ) ;
+               retryTime += STP_META_GET_TIME_WAITTIME ;
+               continue ;
+            }
+            else if ( STP_TIME_AHEAD_AFTER_SYNC == rc )
+            {
+               // time of STP is ahead after synchronize, need wait for a
+               // while until logical time available again
+               UINT32 waitTimeMS = STP_MICROSEC_TO_MILLISEC_CEIL( waitTime ) ;
+               // wait time is extremely small, set to minimum interval
+               if ( 0 == waitTimeMS )
+               {
+                  waitTimeMS = STP_GET_TIME_MIN_RETRY_INTERVAL ;
+               }
+               // if wait time is too long, just return error
+               if ( waitTimeMS <= STP_META_GET_TIME_TIEMOUT )
+               {
+                  ossSleep( waitTimeMS ) ;
+                  retryTime += waitTimeMS ;
+                  continue ;
+               }
+            }
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
                       "rc: %d", rc ) ;
@@ -588,10 +609,10 @@ namespace engine
       INT64 oldOffset = _offset ;
 
       // calculate slew rate
-      // slew rate = old slew rate * source interval / local interval
-      _slewRate = (UINT64)( (FLOAT64)( oldSlewRate ) *
-                            (FLOAT64)( sourceInterval ) /
-                            (FLOAT64)( localInterval ) ) ;
+      // slew rate = source interval / local interval * old slew rate
+      _slewRate = (UINT64)( round( (FLOAT64)( sourceInterval ) /
+                                   (FLOAT64)( localInterval ) *
+                                   (FLOAT64)( oldSlewRate ) ) ) ;
 
       if ( oldSlewRate != _slewRate )
       {

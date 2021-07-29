@@ -349,11 +349,12 @@ namespace engine
             UINT32 waitTime = 0 ;
             if ( needWait )
             {
-               waitTime = STP_MICROSEC_TO_MILLISEC( waitTimeUS ) ;
+               waitTime = STP_MICROSEC_TO_MILLISEC_CEIL( waitTimeUS ) ;
 
+               // wait time is extremely small, set to minimum interval
                if ( 0 == waitTime )
                {
-                  waitTime = STP_AGENT_RETRY_INTERVAL ;
+                  waitTime = STP_GET_TIME_MIN_RETRY_INTERVAL ;
                }
 
                // reset wait time against timeout
@@ -370,7 +371,7 @@ namespace engine
             else
             {
                // sleep for a quick interval to avoid infinity loop
-               waitTime = STP_AGENT_RETRY_INTERVAL ;
+               waitTime = STP_GET_TIME_RETRY_INTERVAL ;
             }
 
              // we could retry, sleep and continue loop

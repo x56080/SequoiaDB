@@ -1996,7 +1996,7 @@ namespace engine
       // NOTE: if STP is unavailable temporarily, timeout > 0
       //       will trigger STP checking
       rc = timeAgent.getLogicalTimeUS( activeTime,
-                                       STP_AGENT_RETRY_INTERVAL,
+                                       STP_GET_TIME_RETRY_INTERVAL,
                                        FALSE ) ;
       if ( SDB_OK == rc )
       {

@@ -59,13 +59,6 @@ namespace engine
    // maximum retry times for slew rate checking
    #define STP_MAX_SLEW_RATE_CHECK_TIMES ( STP_SYNC_RECORD_CACHE_SIZE * 2 )
 
-   // synchronize record with offset in valid range means the offset is too
-   // trivial to adjust slew rate
-   // maximum valid offset to slew rate check
-   #define STP_SLEWRATE_OFFSET_MAX_LIMIT     ( 100000L )
-   // minimum valid offset to slew rate check
-   #define STP_SLEWRATE_OFFSET_MIN_LIMIT     ( -100000L )
-
    // maximum limit for standard deviation for slew rate check
    #define STP_SLEWRATE_DEVIATION_MAX_LIMIT  ( STP_SLEWRATE_OFFSET_MAX_LIMIT * 2 )
 
@@ -76,6 +69,14 @@ namespace engine
    // request
    #define STP_SLEWRATE_CHECK_INTARVAL_NS    \
                      ( STP_MILLISEC_TO_NANOSEC( STP_SLEWRATE_CHECK_INTERVAL ) )
+
+   // offset check scale
+   // NOTE: we can only check if the offset is beyond time error after
+   //       synchronization, so we take a scale in advance to predict the
+   //       situation
+   #define STP_OFFSET_CHECK_SCALE            ( 0.9 )
+   // if
+   #define STP_SYNC_TIME_STEP_MAX_STABLE     ( 10 )
 
    /*
       _stpSyncClientManager implement
@@ -96,7 +97,9 @@ namespace engine
      _lastStableTick( 0LL ),
      _syncTimeTimeout( 0LL ),
      _waitSyncRsp( FALSE ),
-     _sourceClearTimeout( 0LL )
+     _sourceClearTimeout( 0LL ),
+     _syncTimeSteps( 0 ),
+     _lastStableStepCount( 0 )
    {
       _regSourceRID.value = MSG_INVALID_ROUTEID ;
       _syncSourceRID.value = MSG_INVALID_ROUTEID ;
@@ -687,7 +690,28 @@ namespace engine
             UINT64 normalPassed = pmdGetTickSpanTime( _lastStableTick ) ;
             if ( normalPassed > STP_SYNC_RECHECK_INTERVAL )
             {
+               PD_LOG( PDEVENT, "Periodically timeout for status [%s], "
+                       "change status to [%s]",
+                       stpGetSyncStatusName( STP_SYNC_INTERVALCHECK ),
+                       stpGetSyncStatusName( STP_SYNC_CHECKOFFSET ) ) ;
                // active check-offset status
+               activeStatus( STP_SYNC_CHECKOFFSET ) ;
+            }
+            else if ( !_updateSyncTimeSteps( record ) )
+            {
+               // offset is beyond time error, which means the time shift in
+               // a synchronize interval is too larger than current time error.
+               // since we have already in interval-check status, it means
+               // it may have a CPU tick frequency change, especially in
+               // virtual machines
+               // let's restart from check-offset status which will check
+               // slew-rate later
+               PD_LOG( PDEVENT, "Failed to update synchronize time steps, "
+                       "synchronize offset [%lld] is still beyond "
+                       "time error [%u], change status from [%s] to [%s]",
+                       record.getOffset(), record.getRspTimeError(),
+                       stpGetSyncStatusName( STP_SYNC_INTERVALCHECK ),
+                       stpGetSyncStatusName( STP_SYNC_CHECKOFFSET ) ) ;
                activeStatus( STP_SYNC_CHECKOFFSET ) ;
             }
             break ;
@@ -710,9 +734,10 @@ namespace engine
       }
 
       PD_LOG( PDEVENT, "Done synchronize time: status %s [%d], "
-              "meta data: %s, records: %u",
-              stpGetSyncStatusName( _status ), _status,
-              getMetaData()->toString().c_str(), _syncRecords.size() ) ;
+              "meta data: %s, records: %u, synchronize time step: %u "
+              "[in last %u times]", stpGetSyncStatusName( _status ), _status,
+              getMetaData()->toString().c_str(), _syncRecords.size(),
+              _syncTimeSteps, _lastStableStepCount ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__TPSYNCCLIENTMGR_COMMITRECORD, rc ) ;
@@ -761,7 +786,8 @@ namespace engine
          {
             // for interval-check status, the interval is specified by
             // configuration
-            interval = (UINT64)( _options->getSyncInterval() ) * OSS_ONE_SEC ;
+            interval = _calcCurSyncIntSec( _options->getSyncInterval() ) *
+                       OSS_ONE_SEC ;
             break ;
          }
          default :
@@ -806,6 +832,8 @@ namespace engine
       {
          _resetSourceRID() ;
       }
+
+      _resetSyncTimeSteps() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__HASENOUGHRECORDS, "_stpSyncClientManager::_hasEnoughRecords" )
@@ -1123,6 +1151,83 @@ namespace engine
    done:
       PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR__COULDDECTIMEERROR ) ;
       return canDecrease ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__UPDSYNCTIMESTEP, "_stpSyncClientManager::_updateSyncTimeSteps" )
+   BOOLEAN _stpSyncClientManager::_updateSyncTimeSteps( const stpSyncRecord &record )
+   {
+      BOOLEAN canUpdate = TRUE ;
+
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__UPDSYNCTIMESTEP ) ;
+
+      UINT32 maxSyncIntSec = _options->getSyncInterval() ;
+      UINT64 curSyncIntSec = _calcCurSyncIntSec( maxSyncIntSec ) ;
+      UINT32 newSteps = _syncTimeSteps ;
+      FLOAT64 ratio = 1.0 ;
+
+      if ( 0 == record.getOffset() )
+      {
+         // no offset between synchronize nodes, set to maximum step
+         newSteps = STP_SYNC_INT_TO_STEP( _options->getSyncInterval() ) ;
+      }
+      else
+      {
+         UINT32 maxSteps = 0 ;
+
+         if ( !record.isOffsetInTimeError( STP_OFFSET_CHECK_SCALE, ratio ) )
+         {
+            PD_LOG( PDWARNING, "Synchronize offset [%lld] is beyond time "
+                    "error [%u] with scale [%.3f]", record.getOffset(),
+                    record.getRspTimeError(), STP_OFFSET_CHECK_SCALE ) ;
+   
+            if ( 0 == _syncTimeSteps )
+            {
+               // no space to adjust steps, report failed
+               canUpdate = FALSE ;
+               goto done ;
+            }
+         }
+
+         // adjust steps
+         // - current synchronize interval is T1
+         // - adjust synchronize interval is T2
+         // - offset by synchronize interval T1 is O1
+         // - current time error is TE
+         // need to make sure O1 * T2 / T1 < TE
+         // that will be T2 < T1 * ( TE / O1 ) = T1 * ratio
+         maxSteps = STP_SYNC_INT_TO_STEP( _options->getSyncInterval() ) ;
+         newSteps =
+               STP_SYNC_INT_TO_STEP( (UINT32)(
+                     (FLOAT64)( curSyncIntSec ) * ratio ) ) ;
+         newSteps = OSS_MIN( newSteps, maxSteps ) ;
+      }
+
+      if ( newSteps != _syncTimeSteps )
+      {
+         PD_LOG( PDDEBUG, "Update synchronize time steps from [%u] to [%u]",
+                 _syncTimeSteps, newSteps ) ;
+         _syncTimeSteps = newSteps ;
+         _lastStableStepCount = 0 ;
+      }
+      else
+      {
+         // if synchronize time is stable for 10 times and smaller than
+         // maximum synchronize time, we can notify caller to enter
+         // check-slew-rate status
+         ++ _lastStableStepCount ;
+         if ( _lastStableStepCount > STP_SYNC_TIME_STEP_MAX_STABLE &&
+              curSyncIntSec < maxSyncIntSec )
+         {
+            PD_LOG( PDDEBUG, "Synchronize time steps [%u] is stable "
+                    "for [%u] times", _syncTimeSteps, _lastStableStepCount ) ;
+            canUpdate = FALSE ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR__UPDSYNCTIMESTEP ) ;
+
+      return canUpdate ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__LAUNCHREGISTER, "_stpSyncClientManager::_launchRegister" )

@@ -48,9 +48,6 @@
 namespace engine
 {
 
-   // sleep time ( 100ms ) for retry getting logical time
-   #define STP_AGENT_RETRY_INTERVAL ( 100 )
-
    /*
       _stpAgent define
     */
