@@ -90,8 +90,7 @@ namespace engine
          virtual void               _onNodeReply( INT32 processType,
                                                   MsgOpReply *pReply,
                                                   pmdEDUCB *cb,
-                                                  coordSendMsgIn &inMsg,
-                                                  BOOLEAN oneGroup ) ;
+                                                  coordSendMsgIn &inMsg ) ;
 
       private:
 

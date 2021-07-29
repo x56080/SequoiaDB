@@ -172,7 +172,7 @@ namespace engine
          {
             BSONObj tmpResult ;
             buff.nextObj( tmpResult ) ;
-            _delResult.setResultObj( tmpResult, FALSE ) ;
+            _delResult.setResultObj( tmpResult ) ;
          }
          opr.clearStat() ;
       }

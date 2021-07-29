@@ -432,8 +432,7 @@ namespace engine
    void _coordDeleteOperator::_onNodeReply( INT32 processType,
                                             MsgOpReply *pReply,
                                             pmdEDUCB *cb,
-                                            coordSendMsgIn &inMsg,
-                                            BOOLEAN oneGroup )
+                                            coordSendMsgIn &inMsg )
    {
       BOOLEAN processed = FALSE ;
 
@@ -444,22 +443,15 @@ namespace engine
          {
             BSONObj objResult( ( const CHAR* )pReply + sizeof( MsgOpReply ) ) ;
             BSONObjIterator itr( objResult ) ;
-            if ( oneGroup && SDB_OK == pReply->flags )
+            while ( itr.more() )
             {
-               _delResult.setResultObj( objResult, TRUE ) ;
-            }
-            else
-            {
-               while ( itr.more() )
+               BSONElement e = itr.next() ;
+               if ( !processed &&
+                    0 == ossStrcmp( e.fieldName(), FIELD_NAME_DELETE_NUM ) )
                {
-                  BSONElement e = itr.next() ;
-                  if ( !processed &&
-                       0 == ossStrcmp( e.fieldName(), FIELD_NAME_DELETE_NUM ) )
-                  {
-                     processed = TRUE ;
-                     _delResult.incDeletedNum( (UINT64)e.numberLong() ) ;
-                     break ;
-                  }
+                  processed = TRUE ;
+                  _delResult.incDeletedNum( (UINT64)e.numberLong() ) ;
+                  break ;
                }
             }
          }
@@ -473,7 +465,7 @@ namespace engine
       if ( !processed )
       {
          _recvNum = 0 ;
-         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg, oneGroup ) ;
+         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg ) ;
          _delResult.incDeletedNum( _recvNum ) ;
       }
    }

@@ -61,7 +61,7 @@ namespace engine
             if ( flag == iter->second._rc &&
                  !iter->second._obj.isEmpty() )
             {
-               pResult->setResultObj( iter->second._obj, FALSE ) ;
+               pResult->setResultObj( iter->second._obj ) ;
                break ;
             }
             ++iter ;

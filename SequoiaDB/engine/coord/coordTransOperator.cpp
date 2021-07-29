@@ -172,8 +172,7 @@ namespace engine
    void _coordTransOperator::_onNodeReply( INT32 processType,
                                            MsgOpReply *pReply,
                                            pmdEDUCB *cb,
-                                           coordSendMsgIn &inMsg,
-                                           BOOLEAN oneGroup )
+                                           coordSendMsgIn &inMsg )
    {
       if ( pReply->contextID > 0 )
       {

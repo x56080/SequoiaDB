@@ -513,8 +513,7 @@ namespace engine
    void _coordInsertOperator::_onNodeReply( INT32 processType,
                                             MsgOpReply *pReply,
                                             pmdEDUCB *cb,
-                                            coordSendMsgIn &inMsg,
-                                            BOOLEAN oneGroup )
+                                            coordSendMsgIn &inMsg )
    {
       if ( pReply->header.messageLength > (INT32)sizeof( MsgOpReply ) &&
            1 == pReply->numReturned )
@@ -525,35 +524,27 @@ namespace engine
          try
          {
             BSONObj objResult( ( const CHAR* )pReply + sizeof( MsgOpReply ) ) ;
-
-            if ( oneGroup && SDB_OK == pReply->flags )
+            BSONObjIterator itr( objResult ) ;
+            while ( itr.more() )
             {
-               _inResult.setResultObj( objResult, TRUE ) ;
-            }
-            else
-            {
-               BSONObjIterator itr( objResult ) ;
-               while ( itr.more() )
+               BSONElement e = itr.next() ;
+               if ( !insertedProcessed &&
+                    0 == ossStrcmp( e.fieldName(), FIELD_NAME_INSERT_NUM ) )
                {
-                  BSONElement e = itr.next() ;
-                  if ( !insertedProcessed &&
-                       0 == ossStrcmp( e.fieldName(), FIELD_NAME_INSERT_NUM ) )
-                  {
-                     insertedProcessed = TRUE ;
-                     _inResult.incInsertedNum( (UINT64)e.numberLong() ) ;
-                  }
-                  else if ( !duplicateProcessed &&
-                            0 == ossStrcmp( e.fieldName(),
-                                            FIELD_NAME_DUPLICATE_NUM ) )
-                  {
-                     duplicateProcessed = TRUE ;
-                     _inResult.incDuplicatedNum( (UINT64)e.numberLong() ) ;
-                  }
+                  insertedProcessed = TRUE ;
+                  _inResult.incInsertedNum( (UINT64)e.numberLong() ) ;
+               }
+               else if ( !duplicateProcessed &&
+                         0 == ossStrcmp( e.fieldName(),
+                                         FIELD_NAME_DUPLICATE_NUM ) )
+               {
+                  duplicateProcessed = TRUE ;
+                  _inResult.incDuplicatedNum( (UINT64)e.numberLong() ) ;
+               }
 
-                  if ( insertedProcessed && duplicateProcessed )
-                  {
-                     break ;
-                  }
+               if ( insertedProcessed && duplicateProcessed )
+               {
+                  break ;
                }
             }
          }

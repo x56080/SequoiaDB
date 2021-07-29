@@ -186,8 +186,6 @@ namespace engine
       UINT32 groupID = 0 ;
       BOOLEAN needRetry = FALSE ;
 
-      BOOLEAN oneGroup = ( options._groupLst.size() == 1 ? TRUE : FALSE ) ;
-
       /// set options
       _remoteHandler.enableInterruptWhenFailed( _interruptWhenFailed(),
                                                 options._pIgnoreRC ) ;
@@ -297,7 +295,7 @@ namespace engine
          }
 
          // callback for parse
-         _onNodeReply( processType, pReply, cb, inMsg, oneGroup ) ;
+         _onNodeReply( processType, pReply, cb, inMsg ) ;
 
          if ( !result.pushReply( replyEvent, processType ) )
          {
@@ -571,8 +569,7 @@ namespace engine
    void _coordOperator::_onNodeReply( INT32 processType,
                                       MsgOpReply *pReply,
                                       pmdEDUCB *cb,
-                                      coordSendMsgIn &inMsg,
-                                      BOOLEAN oneGroup )
+                                      coordSendMsgIn &inMsg )
    {
       // do nothing
    }

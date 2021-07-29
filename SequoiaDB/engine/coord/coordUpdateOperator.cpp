@@ -709,8 +709,7 @@ namespace engine
    void _coordUpdateOperator::_onNodeReply( INT32 processType,
                                             MsgOpReply *pReply,
                                             pmdEDUCB *cb,
-                                            coordSendMsgIn &inMsg,
-                                            BOOLEAN oneGroup )
+                                            coordSendMsgIn &inMsg )
    {
       BOOLEAN inProcessed = FALSE ;
       BOOLEAN upProcessed = FALSE ;
@@ -722,41 +721,34 @@ namespace engine
          try
          {
             BSONObj objResult( ( const CHAR* )pReply + sizeof( MsgOpReply ) ) ;
-            if ( oneGroup && SDB_OK == pReply->flags )
+            BSONObjIterator itr( objResult ) ;
+            while ( itr.more() )
             {
-               _upResult.setResultObj( objResult, TRUE ) ;
-            }
-            else
-            {
-               BSONObjIterator itr( objResult ) ;
-               while ( itr.more() )
+               BSONElement e = itr.next() ;
+               if ( !moProcessed &&
+                    0 == ossStrcmp( e.fieldName(), FIELD_NAME_MODIFIED_NUM ) )
                {
-                  BSONElement e = itr.next() ;
-                  if ( !moProcessed &&
-                       0 == ossStrcmp( e.fieldName(), FIELD_NAME_MODIFIED_NUM ) )
-                  {
-                     moProcessed = TRUE ;
-                     _upResult.incModifiedNum( (UINT64)e.numberLong() ) ;
-                  }
-                  else if ( !upProcessed &&
-                            0 == ossStrcmp( e.fieldName(),
-                                            FIELD_NAME_UPDATE_NUM ) )
-                  {
-                     upProcessed = TRUE ;
-                     _upResult.incUpdatedNum( (UINT64)e.numberLong() ) ;
-                  }
-                  else if ( !inProcessed &&
-                            0 == ossStrcmp( e.fieldName(),
-                                            FIELD_NAME_INSERT_NUM ) )
-                  {
-                     inProcessed = TRUE ;
-                     _upResult.incInsertedNum( (UINT64)e.numberLong() ) ;
-                  }
+                  moProcessed = TRUE ;
+                  _upResult.incModifiedNum( (UINT64)e.numberLong() ) ;
+               }
+               else if ( !upProcessed &&
+                         0 == ossStrcmp( e.fieldName(),
+                                         FIELD_NAME_UPDATE_NUM ) )
+               {
+                  upProcessed = TRUE ;
+                  _upResult.incUpdatedNum( (UINT64)e.numberLong() ) ;
+               }
+               else if ( !inProcessed &&
+                         0 == ossStrcmp( e.fieldName(),
+                                         FIELD_NAME_INSERT_NUM ) )
+               {
+                  inProcessed = TRUE ;
+                  _upResult.incInsertedNum( (UINT64)e.numberLong() ) ;
+               }
 
-                  if ( inProcessed && upProcessed && moProcessed )
-                  {
-                     break ;
-                  }
+               if ( inProcessed && upProcessed && moProcessed )
+               {
+                  break ;
                }
             }
          }
@@ -770,7 +762,7 @@ namespace engine
       if ( !upProcessed )
       {
          _recvNum = 0 ;
-         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg, oneGroup ) ;
+         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg ) ;
          _upResult.incUpdatedNum( _recvNum ) ;
       }
    }
