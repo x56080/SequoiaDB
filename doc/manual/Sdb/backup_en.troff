@@ -107,6 +107,18 @@ name, and the default is false.
 Format: \f[C]OverWrite:\ false\f[]
 .RE
 .IP \[bu] 2
+MaxDataFileSize ( \f[I]number\f[] ): Specify the maximum size of backup data
+file.
+The default value is 102400, the unit is MB, and the value range is [32,
+8388608], i.e., 32MB~8TB.
+.RS 2
+.PP
+Backup data files that exceed the specified size will be split into several
+files that meet the specifications.
+.PP
+Format: \f[C]MaxDataFileSize:\ 64\f[]
+.RE
+.IP \[bu] 2
 Compressed ( \f[I]boolean\f[] ): Whether to enable data compression, and the
 default is true.
 .RS 2

@@ -69,6 +69,12 @@ The name, path, description and other attributes of the backup can be set throug
 
     Format: `OverWrite: false`
 
+- MaxDataFileSize ( *number* ): Specify the maximum size of backup data file. The default value is 102400, the unit is MB, and the value range is [32, 8388608], i.e., 32MB~8TB.
+
+    Backup data files that exceed the specified size will be split into several files that meet the specifications.
+
+    Format: `MaxDataFileSize: 64`
+
 - Compressed ( *boolean* ): Whether to enable data compression, and the default is true.
 
     Format: `Compressed: true`

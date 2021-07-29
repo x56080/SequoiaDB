@@ -69,6 +69,12 @@ options（ *object，选填* ）
 
     格式：`OverWrite: false`
 
+- MaxDataFileSize（ *number* ）：指定最大的备份数据文件大小，默认值为 102400，单位为 MB，取值范围为[32, 8388608]，即 32MB~8TB
+
+    超过指定大小的备份数据文件，将被分割成若干符合规格的文件。
+
+    格式：`MaxDataFileSize: 64`
+
 - Compressed（ *boolean* ）：是否开启数据压缩，缺省为 true
 
     格式：`Compressed: true`
