@@ -16,6 +16,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 | -a | 客户端最大连接数，默认为 1024 | 否 |
 | -e | 错误日志级别，默认为 3 | 否 |
 | -v | 输出版本信息 | 否 |
+| --sdb-conn-addr | 所连接 SequoiaDB 集群的协调节点地址 | 否 |
+| --sdb-user | SequoiaDB 用户名 | 否 |
+| --sdb-passwd | SequoiaDB 用户密码 | 否 |
+| --sdb-cipherfile | SequoiaDB 用户密码的密文文件路径 | 否 |
+| --sdb-token | SequoiaDB 用户密码的加密令牌 | 否 |
 | --print | 打印日志信息 | 否 |
 | --baklog | 删除实例时是否备份日志文件 | 否 |
                
@@ -27,7 +32,7 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
  * 创建实例
 
-   sdb_mysql_ctl addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY]
+   sdb_mysql_ctl addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
  
    添加一个 myinst 的实例，指定数据库存储路径为 `/opt/sequoiasql/mysql/database/3306/`，指定密码为 123456
  
@@ -95,7 +100,7 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
  * 创建一个实例并加入[实例组][instance_group]
 
-   sdb_mysql_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY]
+   sdb_mysql_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
 
    先初始化一个名为“sql_group”实例组
 
