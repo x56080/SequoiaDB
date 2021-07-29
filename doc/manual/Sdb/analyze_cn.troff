@@ -8,7 +8,7 @@
 analyze \- 收集统计信息
 .SH 语法
 .PP
-\f[B]db.analyze( [options] )\f[]
+\f[B]db.analyze([options])\f[]
 .SH 类别
 .PP
 Sdb
@@ -17,484 +17,83 @@ Sdb
 该函数用于分析集合和索引的数据，并收集统计信息。
 .SH 参数
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-参数名
-T}@T{
-参数类型
-T}@T{
-描述
-T}@T{
-是否必填
-T}
-_
-T{
-1
-T}@T{
-options
-T}@T{
-Json 对象
-T}@T{
-设定 \f[B]分析模式\f[]
-T}@T{
-否
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-、 **指定集合空
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-间** 以及 **命令
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-位置参数**
-T}@T{
-T}
-.TE
-.IP "1." 3
-\f[B]Options 格式\f[]
+options ( \f[I]object，选填\f[] )
 .PP
-.TS
-tab(@);
-l l l l l.
-T{
-0
-T}@T{
-属性名
-T}@T{
-描述
-T}@T{
-约束
-T}@T{
-格式
-T}
-_
-T{
-1
-T}@T{
-Mode
-T}@T{
-进行分析的模式，
-T}@T{
-Mode取 1 \- 3 时，必
-T}@T{
-Mode:1
-T}
-T{
-T}@T{
-T}@T{
-整数类型，(1\-5)：
-T}@T{
-须在主数据节点
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-1：进行抽样
-T}@T{
-上执行Mode取 3
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-分析，生成统计
-T}@T{
-时，需要指定集
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-信息2：进行
-T}@T{
-合全名。此时，
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-全量数据分析，
-T}@T{
-生成的统计信息
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-生成统计信息
-T}@T{
-将包含集合及该
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-3：生成默认的统
-T}@T{
-集合上所有索引
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-计信息4：加
-T}@T{
-的统计信息；如
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-载统计信息到缓
-T}@T{
-果用户同时指定
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-存中5：清除
-T}@T{
-集合全名和该集
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-缓存的统计信息<
-T}@T{
-合上具体的索引
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-br>默认值为 1
-T}@T{
-名，生成的统计
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-信息将包含集合
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-及该集合上指定
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-索引的统计信息</
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-br>Mode取 4，5 时，
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-可以在备数据节
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-点上执行
-T}@T{
-T}
-T{
-2
-T}@T{
-CollectionSpace
-T}@T{
-指定需要分析的
-T}@T{
-不能与Collection同
-T}@T{
-CollectionSpace:"sample
-T}
-T{
-T}@T{
-T}@T{
-集合名称，字符
-T}@T{
-时使用
-T}@T{
-"
-T}
-T{
-T}@T{
-T}@T{
-串类型。默认值
-T}@T{
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-为空。
-T}@T{
-T}@T{
-T}
-T{
-3
-T}@T{
-Collection
-T}@T{
-指定需要分析的
-T}@T{
-不能与
-T}@T{
-Collection:"sample.
-T}
-T{
-T}@T{
-T}@T{
-集合名称，字符
-T}@T{
-CollecitonSpace同时
-T}@T{
-employee"
-T}
-T{
-T}@T{
-T}@T{
-串类型。默认值
-T}@T{
-使用必须是
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-为空。
-T}@T{
-Collection的全名
-T}@T{
-T}
-T{
-4
-T}@T{
-Index
-T}@T{
-指定需要分析的
-T}@T{
-如果指定该参数，
-T}@T{
-Index:"index"
-T}
-T{
-T}@T{
-T}@T{
-索引名称，字符
-T}@T{
-需要指定Collection
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-串类型。默认值
-T}@T{
-参数
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-为空。
-T}@T{
-T}@T{
-T}
-T{
-5
-T}@T{
-SampleNum
-T}@T{
-指定抽样的数据
-T}@T{
-不能与SamplePercent
-T}@T{
-SampleNum:1000
-T}
-T{
-T}@T{
-T}@T{
-个数，整数类型，
-T}@T{
-同时使用
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-范围为 100 \- 10000 ，
-T}@T{
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-默认值为 200
-T}@T{
-T}@T{
-T}
-T{
-6
-T}@T{
-SamplePercent
-T}@T{
-指定抽样的比例，
-T}@T{
-不能与SampleNum同
-T}@T{
-SamplePercent:50
-T}
-T{
-T}@T{
-T}@T{
-浮点数类型，范
-T}@T{
-时使用集合数
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-围为：0.0 \- 100.0
-T}@T{
-据个数和比例的
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-乘积为抽样的数
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-据个数，自动调
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-整在 100 \- 10000 之
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-间（小于 100 调整
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-为 100，大于 10000
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-调整为 10000）
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-缺省则不使用
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-SamplePercent，而选
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-取 SampleNum 的默认
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-值 200
-T}@T{
-T}
-T{
-7
-T}@T{
+通过参数 options 可以指定分析模式、集合空间和命令位置参数：
+.IP \[bu] 2
+Mode ( \f[I]number\f[] )：分析模式，默认值为 1
+.RS 2
+.PP
+取值如下：
+.IP \[bu] 2
+1：进行抽样分析，生成统计信息
+.IP \[bu] 2
+2：进行全量数据分析，生成统计信息
+.IP \[bu] 2
+3：生成默认字段值的统计信息
+.IP \[bu] 2
+4：加载统计信息到缓存中
+.IP \[bu] 2
+5：清除缓存中的统计信息
+.PP
+Mode 取 1~3 时，必须在主数据节点上执行；取 3 时，必须指定参数
+Collection，默认生成该集合及所有索引的统计信息，若同时指定参数
+Index，则生成该集合及指定索引的统计信息。
+.PP
+格式：\f[C]Mode:\ 1\f[]
+.RE
+.IP \[bu] 2
+CollectionSpace ( \f[I]string\f[] )：集合空间名称，默认为空
+.RS 2
+.PP
+该参数不能与参数 Collection 同时使用。
+.PP
+格式：\f[C]CollectionSpace:\ "sample"\f[]
+.RE
+.IP \[bu] 2
+Collection ( \f[I]string\f[] )：集合名称，默认为空
+.RS 2
+.PP
+该参数不能与参数 CollecitonSpace 同时使用，且必须指定集合全名。
+.PP
+格式：\f[C]Collection:\ "sample.employee"\f[]
+.RE
+.IP \[bu] 2
+Index ( \f[I]string\f[] )：索引名称，默认为空
+.RS 2
+.PP
+指定该参数时，需要同时指定参数 Collection。
+.PP
+格式：\f[C]Index:\ "index"\f[]
+.RE
+.IP \[bu] 2
+SampleNum ( \f[I]number\f[] )：抽样的数据个数，范围为 100~10000，默认值为 200
+.RS 2
+.PP
+该参数不能与参数 SamplePercent 同时使用。
+.PP
+格式：\f[C]SampleNum:\ 1000\f[]
+.RE
+.IP \[bu] 2
+SamplePercent ( \f[I]number\f[] )：抽样的比例，范围为 0.0~100.0
+.RS 2
+.IP \[bu] 2
+该参数不能与参数 SampleNum 同时使用，缺省则不使用该参数，而选取参数 SampleNum
+的默认值 200。
+.IP \[bu] 2
+抽样的数据个数为集合数据个数和比例的乘积，范围为 100~10000（小于 100 调整为
+100，大于 10000 调整为 10000）。
+.PP
+格式：\f[C]SamplePercent:\ 50\f[]
+.RE
+.IP \[bu] 2
 Location Elements
-T}@T{
-命令位置参数项，
-T}@T{
-T}@T{
-GroupName:"db1"
-T}
-T{
-T}@T{
-T}@T{
-详细见 **命令位
-T}@T{
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-置参数**
-T}@T{
-T}@T{
-T}
-.TE
-.IP "2." 3
-\f[B]统计信息\f[]
+.RS 2
 .PP
-统计信息的具体描述可以参考统计信息一节。
+命令位置参数项，可参考命令位置参数
+.PP
+格式：\f[C]GroupName:\ "db1"\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -502,7 +101,7 @@ T}
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]analyze()\f[]函数常见异常如下：
+\f[C]analyze()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -514,9 +113,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-描述
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -526,7 +125,7 @@ T}@T{
 T}@T{
 SDB_DMS_CS_NOTEXIST
 T}@T{
-集合空间不存在。
+集合空间不存在
 T}@T{
 检查集合空间是
 T}
@@ -535,7 +134,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-否存在。
+否存在
 T}
 T{
 2
@@ -552,7 +151,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-在。
+在
 T}@T{
 在
 T}
@@ -571,7 +170,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-在。
+在
 T}@T{
 障未修复，则需
 T}
@@ -587,7 +186,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-师进行修复。
+师进行修复
 T}
 T{
 4
@@ -604,7 +203,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-存在冲突，请参
+存在冲突，可参
 T}@T{
 诊断日志，找到
 T}
@@ -612,7 +211,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-考 \f[B]Options\f[] 的约
+考 options 的说明
 T}@T{
 该参数错误的详
 T}
@@ -620,7 +219,6 @@ T{
 T}@T{
 T}@T{
 T}@T{
-束。
 T}@T{
 细描述，并加以
 T}
@@ -629,7 +227,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-修正重试。
+修正重试
 T}
 .TE
 .PP
@@ -640,7 +238,7 @@ T}
 v2.9 及以上版本
 .SH 示例
 .IP \[bu] 2
-对全系统所有集合空间进行统计信息分析和收集
+对所有集合空间进行统计信息分析和收集
 .RS 2
 .IP
 .nf
@@ -650,52 +248,52 @@ v2.9 及以上版本
 .fi
 .RE
 .IP \[bu] 2
-对指定集合空间"sample"进行统计信息分析和收集
+对指定集合空间 sample 进行统计信息分析和收集
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.analyze(\ {\ CollectionSpace\ :\ "sample"\ }\ )
+>\ db.analyze({CollectionSpace:\ "sample"})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-对指定数据组"group1"进行统计信息分析和收集
+对指定数据组 group1 进行统计信息分析和收集
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.analyze(\ {\ GroupName\ :\ "group1"\ }\ )
+>\ db.analyze({GroupName:\ "group1"})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-对指定集合"sample.employee"进行统计信息收集，并且指定Sample的数量
+对指定集合 sample.employee 进行统计信息收集，并指定参数 SampleNum
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ SampleNum\ :\ 1000\ }\ )
+>\ db.analyze({Collection:\ "sample.employee",\ SampleNum:\ 1000})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-对指定集合"sample.employee"的索引"index"进行统计信息收集
+对指定集合 sample.employee 的索引 index 进行统计信息收集
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Index\ :\ "index"\ }\ )
+>\ db.analyze({Collection:\ "sample.employee",\ Index:\ "index"})
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-对指定集合"sample.employee"生成清空统计信息缓存
+对指定集合 sample.employee 生成清空统计信息缓存
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.analyze(\ {\ Collection\ :\ "sample.employee",\ Mode\ :\ 5\ }\ )
+>\ db.analyze({Collection:\ "sample.employee",\ Mode:\ 5})
 \f[]
 .fi
 .RE
