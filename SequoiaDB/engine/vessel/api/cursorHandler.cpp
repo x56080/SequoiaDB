@@ -47,11 +47,12 @@ namespace vessel
 
    cursorHandler::~cursorHandler()
    {
-      _cursor.release();
+      close();
    }
 
    cursorHandler &cursorHandler::operator=(const cursorHandler &o)
    {
+      close();
       _cursor = o._cursor;
       return *this;
    }
@@ -73,7 +74,11 @@ namespace vessel
    {
       if (_cursor.isValid())
       {
-         _cursor.get<cursorKernal>()->close();
+         if (1 == _cursor.getSharedCount())
+         {
+            _cursor.get<cursorKernal>()->close();
+         }
+         _cursor.release();
       }
       return;
    }

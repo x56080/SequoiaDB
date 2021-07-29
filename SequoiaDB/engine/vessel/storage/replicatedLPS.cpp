@@ -403,7 +403,7 @@ namespace vessel
       if (releasePid)
       {
          getDataStorageObj()->releasePages(count,
-                                                           (const PAGE_ID *)buffer);
+                                          (const PAGE_ID *)buffer);
       }
    done:
       if (checkpointBlocked)
@@ -811,6 +811,30 @@ namespace vessel
       IRedoLogger *logger = context->getOuterResource()->logger;
       logger->abort(session, lrc);
       return;
+   }
+
+   INT32 replicatedLPS::prepareToFlushSegments(requestContext *context,
+                                               BOOLEAN isFullCheckpoint,
+                                               ossPoolSet<UINT32> &segments)
+   {
+      INT32 rc = SDB_OK;
+      const storageCoreArgs &args = logicalPageSpace::getStorageCoreArgs();
+      SDB_ASSERT(args.isValid(), "can not be invalid");
+      if (!isFullCheckpoint)
+      {
+         goto done;
+      }
+
+      rc = logicalPageSpace::getCache().prepareToCreateNewBase(args.maxPageCountPerSeg, NULL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get cache ready to create new base:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

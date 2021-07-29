@@ -37,7 +37,7 @@
 #define VESSEL_DELTA_LOG_SCANNER_H_
 
 #include "vessel/deltaLogFileDef.h"
-#include "vessel/storageFileMap.h"
+#include "vessel/sortedStorageFileList.h"
 #include "vessel/deltaLogRecord.h"
 
 namespace engine
@@ -55,9 +55,11 @@ namespace vessel
       public:
          void fini();
 
-         INT32 init(const storageFileMap *logFiles,
-                    UINT64 firstRecordOffset,
-                    UINT64 lastRecordHeadOffset = DPS_INVALID_LSN_OFFSET);
+         INT32 init(sortedStorageFileList *logFiles,
+                    UINT64 minOffset, /// the offset of first log record head
+                    UINT64 maxBound = DPS_INVALID_LSN_OFFSET
+                    /// the offset of last log record tail + 1
+                    );
 
          /// return SDB_VESSEL_EOC when hit the end.
          INT32 getNext(deltaLogRecord &dlr,
@@ -67,10 +69,8 @@ namespace vessel
          BOOLEAN getRecord(UINT64 offset,
                           deltaLogRecord &dlr)const;
       private:
-         const storageFileMap *_logFiles = NULL;
-         UINT64 _firstRecordOffset = DPS_INVALID_LSN_OFFSET;
-         UINT64 _lastRecordHeadOffset = DPS_INVALID_LSN_OFFSET;
-         UINT64 _maxFileOffset = 0;
+         sortedStorageFileList *_logFiles = NULL;
+         UINT64 _maxOffset = 0;
          UINT64 _currentOffset = 0;
    };//class deltaLogScanner
 }//namespace vessel

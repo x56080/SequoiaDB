@@ -214,7 +214,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 < count || NULL == pids))
+      else if (OSS_UNLIKELY(0 == count || NULL == pids))
       {
          rc = SDB_INVALIDARG;
          goto error;

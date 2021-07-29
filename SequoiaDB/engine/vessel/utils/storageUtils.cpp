@@ -161,9 +161,8 @@ namespace vessel
          goto error;
       }
 
-#if !defined( _LINUX )
+      /// To clear full path saved in ossMmapFile, we alwasy reopen file.
       file->close();
-#endif
 
       rc = renameFileShadowSuffix(dir, replaceNewFile, oldFn, newFn);
       if (SDB_OK != rc)
@@ -171,14 +170,13 @@ namespace vessel
          goto error;
       }
 
-#if !defined( _LINUX )
       rc = file->open(dir, newFn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reopen new file[%s]:%d", newFn.getFileName(), rc);
          goto error;
       }
-#endif
+
    done:
       return rc;
    error:

@@ -66,6 +66,7 @@ class fsm_test : public testing::Test
    }
 };
 
+
 TEST_F(fsm_test, diskmap_0)
 {
    INT32 rc = SDB_OK;
@@ -76,11 +77,15 @@ TEST_F(fsm_test, diskmap_0)
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
    v::vesselFileName fn;
+   UINT32 count = 8;
 
    v::diskFreeSpaceMap dfsm;
 
    ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
    rc = file.create(fn, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = file.initToWork();
    ASSERT_EQ(SDB_OK, rc);
    
    rc = dfsm.create(&file, 0, 0);
@@ -92,21 +97,146 @@ TEST_F(fsm_test, diskmap_0)
    BOOLEAN found = FALSE;
    rc = dfsm.find(targetLvl, found, seq, lvl);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(!found);
+   ASSERT_FALSE(found);
 
-   rc = dfsm.incDataPageCount(8);
+   rc = dfsm.incDataPageCount(count);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = dfsm.upgradePageSpaceLvl(0, FSM_MAX_SPACE_LVL);
-   ASSERT_EQ(SDB_OK, rc);
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.upgradePageSpaceLvl(i, FSM_MAX_SPACE_LVL);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.find(targetLvl, found, seq, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_TRUE(found);
+      ASSERT_EQ(i, seq);
+      ASSERT_EQ(FSM_MAX_SPACE_LVL, lvl);
+   }
 
    rc = dfsm.find(targetLvl, found, seq, lvl);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_TRUE(found);
-   ASSERT_EQ(0, seq);
-   ASSERT_EQ(FSM_MAX_SPACE_LVL, lvl);
+   ASSERT_FALSE(found);
 
    dfsm.close();
    file.close();
+}
 
+TEST_F(fsm_test, diskmap_1)
+{
+   INT32 rc = SDB_OK;
+   v::fsmFile file;
+   v::createStorageFileOptions options;
+   options.dir.reset(DATA_PATH);
+   options.args.pageSize = FSM_FILE_PAGE_SIZE;
+   options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
+   options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
+   v::vesselFileName fn;
+   UINT32 count = 65536 * 10 + 1;
+
+   v::diskFreeSpaceMap dfsm;
+
+   ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
+   rc = file.create(fn, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = file.initToWork();
+   ASSERT_EQ(SDB_OK, rc);
+   
+   rc = dfsm.create(&file, 0, 0);
+   ASSERT_EQ(SDB_OK, rc);
+
+   INT32 targetLvl = FSM_MIN_SPACE_LVL;
+   INT32 lvl = FSM_INVALID_SPACE_LVL;
+   UINT32 seq = INVALID_CL_PAGE_SEQ;
+   BOOLEAN found = FALSE;
+   rc = dfsm.find(targetLvl, found, seq, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_FALSE(found);
+
+   rc = dfsm.incDataPageCount(count);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.upgradePageSpaceLvl(i, FSM_MAX_SPACE_LVL);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.find(targetLvl, found, seq, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_TRUE(found);
+      ASSERT_EQ(i, seq);
+      ASSERT_EQ(FSM_MAX_SPACE_LVL, lvl);
+   }
+
+   rc = dfsm.find(targetLvl, found, seq, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_FALSE(found);
+
+   dfsm.close();
+   file.close();
+}
+
+TEST_F(fsm_test, diskmap_2)
+{
+   INT32 rc = SDB_OK;
+   v::fsmFile file;
+   v::createStorageFileOptions options;
+   options.dir.reset(DATA_PATH);
+   options.args.pageSize = FSM_FILE_PAGE_SIZE;
+   options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
+   options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
+   v::vesselFileName fn;
+   UINT32 count = 65536 * 100 + 1;
+
+   v::diskFreeSpaceMap dfsm;
+
+   ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
+   rc = file.create(fn, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = file.initToWork();
+   ASSERT_EQ(SDB_OK, rc);
+   
+   rc = dfsm.create(&file, 0, 0);
+   ASSERT_EQ(SDB_OK, rc);
+
+   INT32 targetLvl = FSM_MIN_SPACE_LVL;
+   INT32 lvl = FSM_INVALID_SPACE_LVL;
+   UINT32 seq = INVALID_CL_PAGE_SEQ;
+   BOOLEAN found = FALSE;
+   rc = dfsm.find(targetLvl, found, seq, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_FALSE(found);
+
+   rc = dfsm.incDataPageCount(count);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.upgradePageSpaceLvl(i, FSM_MAX_SPACE_LVL);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = dfsm.find(targetLvl, found, seq, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_TRUE(found);
+      ASSERT_EQ(i, seq);
+      ASSERT_EQ(FSM_MAX_SPACE_LVL, lvl);
+   }
+
+   rc = dfsm.find(targetLvl, found, seq, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_FALSE(found);
+
+   dfsm.close();
+   file.close();
 }

@@ -109,7 +109,7 @@ namespace vessel
          PAGE_ID getEntryPid(CL_MB_ID mbID);
          fsmCLEntry *getEntryFromPagePtr(ossValuePtr ptr, CL_MB_ID mbID);
          INT32 getFsmPageHead(PAGE_ID pid, UINT16 type,
-                              fsmPageHead *&head);
+                              fsmPageHead **head);
 
          OSS_INLINE UINT32 getBitmapPageNo(UINT32 seq)const
          {

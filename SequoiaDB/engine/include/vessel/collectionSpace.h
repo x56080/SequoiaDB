@@ -122,6 +122,8 @@ namespace vessel
 
          void close();
 
+         INT32 createCheckpoint(requestContext *context);
+
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
                         utilCLInnerID clInnerId,
@@ -212,7 +214,7 @@ namespace vessel
 
          inMemBitmap _allocator;
          lazyArray<collectionObjHolderGroup> _collections;
-         UINT32 _maxCLLogicalID = DMS_INVALID_LOGICCLID;
+         UINT32 _nextCLLogicalId = 0;
 
          ///formal indexes
          NAME_INDEX _clNameIndex;

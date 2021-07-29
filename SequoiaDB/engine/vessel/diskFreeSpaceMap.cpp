@@ -155,6 +155,13 @@ namespace vessel
          PD_LOG(PDERROR, "failed to update entry slot:%d", rc);
          goto error;
       }
+
+      rc = createSuperBitmap();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create super bitmaps:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -446,7 +453,7 @@ namespace vessel
 
          rc = getFsmPageHead(ownerPid,
                              FSM_FILE_PAGE_TYPE_BITMAP_OWNER,
-                             head);
+                             &head);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page[%d], rc:%d",
@@ -462,7 +469,7 @@ namespace vessel
          }
 
          ((fsmBitmapOwnerPage *)head)->pages[pos] = obj->getPid();
-         _fsmFile->fsyncPage(ownerPid, FALSE);
+         _fsmFile->fsyncPage(ownerPid, TRUE);
       }
 
 
@@ -502,7 +509,8 @@ namespace vessel
             goto error;
          }
 
-         rc = getFsmPageHead(obj->getPid(), FSM_FILE_PAGE_TYPE_BITMAP, lastHead);
+         rc = getFsmPageHead(obj->getPid(), FSM_FILE_PAGE_TYPE_BITMAP,
+                             &lastHead);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page head:%d", rc);
@@ -515,7 +523,7 @@ namespace vessel
       {
          rc = getFsmPageHead(_bitmapOwners.back(),
                              FSM_FILE_PAGE_TYPE_BITMAP_OWNER,
-                             lastHead);
+                             &lastHead);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page head:%d", rc);
@@ -535,12 +543,12 @@ namespace vessel
          }
 
          lastHead->next = pid;
-         _fsmFile->fsyncPage(prePid, FALSE);
+         _fsmFile->fsyncPage(prePid, TRUE);
          _bitmapOwners.push_back(pid);
          prePid = pid;
          pid = INVALID_PAGE_ID;
 
-         rc = getFsmPageHead(prePid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, lastHead);
+         rc = getFsmPageHead(prePid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, &lastHead);
          if (SDB_OK != rc)
          {
             goto error;
@@ -590,14 +598,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _fsmFile->fsyncPage(bitmapPid, FALSE);
+      rc = _fsmFile->fsyncPage(bitmapPid, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", bitmapPid, rc);
          goto error;
       }
 
-      rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, head);
+      rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, &head);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d], rc:%d", bitmapPid, rc);
@@ -716,6 +724,8 @@ namespace vessel
          goto error;
       }
 
+      pid = ownerPid;
+
    done:
       return rc;
    error:
@@ -754,7 +764,8 @@ namespace vessel
          seq = INVALID_CL_PAGE_SEQ;
          lvl = FSM_INVALID_SPACE_LVL;
 
-         if (!findBitmapFromSuperBitmap(targetLvl, bitmapNo))
+         if (0 == _totalDataPageCount ||
+             !findBitmapFromSuperBitmap(targetLvl, bitmapNo))
          {
             goto done;
          }
@@ -798,6 +809,7 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(0 != _superBitmap[0].getSize(), "can not be empty");
       SDB_ASSERT(FSM_INVALID_SPACE_LVL != targetLvl, "can not be invalid");
       UINT32 bitsCount = _superBitmap[0].getSize() >> 3;
       UINT32 offset = 0;
@@ -885,7 +897,7 @@ namespace vessel
       UINT32 pageCountInBitmap = 0;
       UINT32 totalCount = totalPageCount;
 
-      rc = getFsmPageHead(root, FSM_FILE_PAGE_TYPE_BITMAP, head);
+      rc = getFsmPageHead(root, FSM_FILE_PAGE_TYPE_BITMAP, &head);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get root page:%d", rc);
@@ -910,7 +922,7 @@ namespace vessel
          fsmBitmapOwnerPage *owner = NULL;
          _bitmapOwners.push_back(ownerPid);
 
-         rc = getFsmPageHead(ownerPid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, head);
+         rc = getFsmPageHead(ownerPid, FSM_FILE_PAGE_TYPE_BITMAP_OWNER, &head);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get owner page[%d], rc:%d", ownerPid, rc);
@@ -942,7 +954,7 @@ namespace vessel
                }
 
                owner->pages[i] = newObj->getPid();
-               _fsmFile->fsyncPage(ownerPid, FALSE);
+               _fsmFile->fsyncPage(ownerPid, TRUE);
 
                rc = newObj->ensureSize(pageCountInBitmap);
                if (SDB_OK != rc)
@@ -954,7 +966,8 @@ namespace vessel
                continue;
             }
 
-            rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, bitmapPageHead);
+            rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP,
+                                &bitmapPageHead);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get bitmap page[%d], rc:%d",
@@ -1008,7 +1021,7 @@ namespace vessel
       SDB_ASSERT(NULL != slot, "can not be null");
       *slot = entry;
 
-      rc = _fsmFile->fsyncPage(pid, FALSE);
+      rc = _fsmFile->fsyncPage(pid, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync entry slot:%d", rc);
@@ -1070,7 +1083,7 @@ namespace vessel
    }
 
    INT32 diskFreeSpaceMap::getFsmPageHead(PAGE_ID pid, UINT16 type,
-                                          fsmPageHead *&head)
+                                          fsmPageHead **head)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
@@ -1092,7 +1105,7 @@ namespace vessel
       }
 
       tmp = (const fsmPageHead *)ptr;
-      if (!isValidFsmPageHead(*head))
+      if (!isValidFsmPageHead(*tmp))
       {
          PD_LOG(PDERROR, "page[%d] head is broken", pid);
          rc = SDB_VESSEL_PAGE_CRASHED;
@@ -1113,7 +1126,7 @@ namespace vessel
          goto error;
       }
 
-      head = (fsmPageHead *)ptr;
+      *head = (fsmPageHead *)ptr;
    done:
       return rc;
    error:
@@ -1190,14 +1203,16 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
 
-      if (!_bitmaps.empty())
+      if (_bitmaps.empty())
       {
-         rc = ensureSuperBitmapSize(_bitmaps.size());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to ensure super bitmaps size:%d", rc);
-            goto error;
-         }
+         goto done;
+      }
+
+      rc = ensureSuperBitmapSize(_bitmaps.size());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure super bitmaps size:%d", rc);
+         goto error;
       }
 
       for (_BITMAP_OBJ_MAP::const_iterator itr = _bitmaps.begin();

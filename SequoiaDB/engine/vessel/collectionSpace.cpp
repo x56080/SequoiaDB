@@ -92,7 +92,7 @@ namespace vessel
 
       _isOpen = TRUE;
       _su = su;
-      _maxCLLogicalID = 0;
+      _nextCLLogicalId = 0;
 
       rc = initInMemStructures();
       if (SDB_OK != rc)
@@ -189,7 +189,7 @@ namespace vessel
       _recordInMem.reset();
       _allocator.fini();
       _collections.fini();
-      _maxCLLogicalID = DMS_INVALID_LOGICCLID;
+      _nextCLLogicalId = 0;
       _clNameIndex.clear();
       _innerIdIndex.clear();
       _unformalNameIndex.clear();
@@ -580,6 +580,32 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpace::createCheckpoint(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _su->getMainDataSpace().createCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create checkpoint:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionSpace::initCollectionsFromDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
@@ -588,6 +614,7 @@ namespace vessel
       const storageCoreArgs &args = _su->getMainDataSpace().getStorageCoreArgs();
       mainDataSpace *mds = &(_su->getMainDataSpace());
       collectionRecord record;
+      UINT32 totalCrpCount = 0;
 
       rc = getCapacityOfCLRecordPage(args.pageSize, crpCapacity);
       if (SDB_OK != rc)
@@ -596,9 +623,14 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = 0; i < MAX_CL_MB_COUNT; ++i)
+      totalCrpCount = MAX_CL_MB_COUNT / crpCapacity;
+      if (0 != MAX_CL_MB_COUNT % crpCapacity)
       {
-         
+         ++totalCrpCount;
+      }
+
+      for (UINT32 i = 0; i < totalCrpCount; ++i)
+      {
          PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
          mmapPagePointer ptr;
          PAGE_ID pid = INVALID_PAGE_ID;
@@ -632,20 +664,21 @@ namespace vessel
             goto error;
          }
 
-         if (!getCollectionRecordIfValid((const void *)(ptr.get()),
-                                         (i % crpCapacity),
-                                         record))
+         for (UINT32 j = 0; j < crpCapacity; ++j)
          {
-            continue;
-         }
+            if (!getCollectionRecordIfValid((const void *)(ptr.get()),
+                                            j, record))
+            {
+               continue;
+            }
 
-         rc = initCollection(context, &record);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init collection[%d]:%d", i, rc);
-            goto error;
+            rc = initCollection(context, &record);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to init collection[%d]:%d", i, rc);
+               goto error;
+            }
          }
-
       }
 
    done:
@@ -653,7 +686,7 @@ namespace vessel
    error:
       _clNameIndex.clear();
       _innerIdIndex.clear();
-      _maxCLLogicalID = DMS_INVALID_LOGICCLID;
+      _nextCLLogicalId = 0;
       goto done;
    }
 
@@ -704,13 +737,9 @@ namespace vessel
          goto error;
       }
 
-      if (DMS_INVALID_LOGICCLID == _maxCLLogicalID)
+      if (_nextCLLogicalId <= record->logicalCLID)
       {
-         _maxCLLogicalID = record->logicalCLID;
-      }
-      else if (_maxCLLogicalID < record->logicalCLID)
-      {
-         _maxCLLogicalID = record->logicalCLID;
+         _nextCLLogicalId = record->logicalCLID + 1;
       }
       
    done:
@@ -835,7 +864,7 @@ namespace vessel
       UINT32 m = INVALID_CL_MB_ID;
       
       ossSLatchGuard guard(&_latch, EXCLUSIVE);
-      if (_maxCLLogicalID + 1 == DMS_INVALID_LOGICCLID)
+      if (_nextCLLogicalId == DMS_INVALID_LOGICCLID)
       {
          PD_LOG(PDERROR, "logical id hits the max value");
          rc = SDB_VESSEL_OUT_OF_RESOURCE;
@@ -878,7 +907,7 @@ namespace vessel
 
       SDB_ASSERT(m < MAX_CL_MB_COUNT, "impossible");
       mbID = m;
-      logicalID = ++_maxCLLogicalID;
+      logicalID = _nextCLLogicalId++;
 
    done:
       return rc;
@@ -902,9 +931,9 @@ namespace vessel
          _unformalInnerIdIndex.erase(innerID);
       }
       _allocator.release(mbID);
-      if (logicalID == _maxCLLogicalID)
+      if (logicalID + 1 == _nextCLLogicalId)
       {
-         --_maxCLLogicalID;
+         --_nextCLLogicalId;
       }
       return;
    }

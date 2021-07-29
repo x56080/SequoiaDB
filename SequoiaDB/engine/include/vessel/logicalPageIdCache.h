@@ -191,7 +191,6 @@ namespace vessel
          /// set mutableSegmentIds as null if do not care about mutable segments.
          INT32 prepareToCreateNewBase(UINT32 pageCountPerSeg,
                                       ossPoolSet<UINT32> *mutableSegmentIds);
-         INT32 flushPreparedMapToFile(idMapFile *file);
 
          INT32 flushPreparedCacheToFile(idMapFile *file);
 

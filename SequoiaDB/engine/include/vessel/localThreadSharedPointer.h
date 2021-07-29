@@ -52,7 +52,7 @@ namespace vessel
 
       public:
          localThreadSharedCounter(){}
-         ~localThreadSharedCounter();
+         virtual ~localThreadSharedCounter();
          localThreadSharedCounter(const localThreadSharedCounter &) = delete;
          localThreadSharedCounter &operator=(const localThreadSharedCounter &) = delete;
 

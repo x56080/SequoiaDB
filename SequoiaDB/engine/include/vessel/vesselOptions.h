@@ -169,12 +169,16 @@ namespace vessel
    class closeDBOptions : public SDBObject
    {
       public:
-         closeDBOptions():
-         flushDirtyList(TRUE)
-         {}
+         closeDBOptions(){}
 
       public:
-         BOOLEAN flushDirtyList;
+         enum CLOSE_MODE
+         {
+            CLOSE_MODE_NORMAL = 0,
+            CLOSE_MODE_IMMDIETE = 1,
+         };//
+      public:
+         CLOSE_MODE closeMode = CLOSE_MODE_NORMAL;
    }; // class closeDBOptions
 
    class alterCSOptions : public SDBObject

@@ -148,7 +148,7 @@ namespace vessel
       for (; itr != _map.end(); ++itr)
       {
          storageFile *file = itr->second;
-         PD_LOG(PDINFO, "will destroy file[%s]");
+         PD_LOG(PDINFO, "will destroy file[%s]", file->getFullPath());
          file->destroy();
          SDB_OSS_DEL file;
       }

@@ -3267,5 +3267,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_SAME_TASK_RUNNING</name>
+         <description>
+            <en>task with same type is running</en>
+            <cn>同类型的任务正在进行</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

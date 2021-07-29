@@ -491,6 +491,7 @@ namespace vessel
    {
       if (NULL != _fsm)
       {
+         _fsm->fsync();
          _fsm->close();
          SDB_OSS_DEL _fsm;
          _fsm = NULL;

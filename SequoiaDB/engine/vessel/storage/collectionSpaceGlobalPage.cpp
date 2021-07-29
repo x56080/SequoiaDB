@@ -50,7 +50,7 @@ namespace vessel
       {
          goto done;
       }
-      else if (CMR_TYPE_NORMAL == type)
+      else if (CMR_TYPE_NORMAL != type)
       {
          goto done;
       }

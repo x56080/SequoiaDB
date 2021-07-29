@@ -63,7 +63,6 @@ namespace vessel
 
          BOOLEAN isOpen()const;
          
-         /// All handlers with same kernal can no longer execute getNext.
          void close();
 
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.

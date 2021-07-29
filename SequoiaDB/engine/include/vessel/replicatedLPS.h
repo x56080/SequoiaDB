@@ -104,20 +104,27 @@ namespace vessel
                                    UINT32 count,
                                    const PAGE_ID *pids);
 
-         private:
-            INT32 prepareCopyLog(requestContext *context,
-                                 UINT32 pageSize,
-                                 logRecordContext *lrc);
+      private:
+         virtual INT32 prepareToFlushSegments(requestContext *context,
+                                              BOOLEAN isFullCheckpoint,
+                                              ossPoolSet<UINT32> &segments);
 
-            INT32 commit(requestContext *context,
-                         UINT32 pageSize,
-                         const void *pageBuffer,
-                         const GLOBAL_PAGE_ID &gpid,
-                         PAGE_ID lpid,
-                         logRecordContext *lrc);
+         virtual INT32 prepareToCreateCheckpoint(requestContext *context){return SDB_OK;}
 
-            void abort(requestContext *context,
-                       logRecordContext *lrc);
+      private:
+         INT32 prepareCopyLog(requestContext *context,
+                              UINT32 pageSize,
+                              logRecordContext *lrc);
+
+         INT32 commit(requestContext *context,
+                        UINT32 pageSize,
+                        const void *pageBuffer,
+                        const GLOBAL_PAGE_ID &gpid,
+                        PAGE_ID lpid,
+                        logRecordContext *lrc);
+
+         void abort(requestContext *context,
+                     logRecordContext *lrc);
 
    };//class replicatedLPS
 }//namespace vessel

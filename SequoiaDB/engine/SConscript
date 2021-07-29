@@ -910,6 +910,7 @@ vesselFiles = [
       "vessel/storage/storageFileLoader.cpp",
       "vessel/storage/logicalPageIdCache.cpp",
       "vessel/storage/partialImpCache.cpp",
+      "vessel/storage/sortedStorageFileList.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
       "vessel/handlers/requestHandler.cpp",

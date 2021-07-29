@@ -99,6 +99,29 @@ namespace vessel
       goto done;
    }
 
+   INT32 idMapFile::getDeltaLogOffset(UINT64 &offset)const
+   {
+      INT32 rc = SDB_OK;
+      idMapFileHead head;
+      rc = getIdMapFileHead(head);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (!head.isValid())
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      offset = head.deltaLogOffset;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 idMapFile::getIdMapFileHead(idMapFileHead &h)const
    {
       INT32 rc = SDB_OK;
@@ -154,11 +177,7 @@ namespace vessel
             goto error;
          }
 
-         for (UINT32 j = 0; j < ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG; ++i)
-         {
-            ossMemset((void *)(ptr + offset), 0xFF, ID_MAP_FILE_PAGE_SIZE);
-            offset += ID_MAP_FILE_PAGE_SIZE;
-         }
+         ossMemset((void *)ptr, 0xFF, ID_MAP_FILE_SEG_SIZE);
       }      
    done:
       return rc;

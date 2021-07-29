@@ -38,14 +38,17 @@
 
 #include "ossTypes.hpp"
 #include "dms.hpp"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
    constexpr UINT32 ID_MAP_FILE_PAGE_SIZE = DMS_PAGE_SIZE32K;
-   constexpr UINT32 ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG = 64;
-   constexpr UINT32 ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE = 2048;
+   constexpr UINT32 ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG = 128;
+   constexpr UINT32 ID_MAP_FILE_SEG_SIZE = ID_MAP_FILE_PAGE_SIZE * ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
+   constexpr UINT32 ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE = STORAGE_FILE_SIZE / ID_MAP_FILE_PAGE_SIZE
+                                                                          / ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
    constexpr UINT32 ID_MAP_FILE_MAX_PAGE_COUNT =  ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG *
                                                   ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE;
 }

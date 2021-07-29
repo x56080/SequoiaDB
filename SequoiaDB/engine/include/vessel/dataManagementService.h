@@ -142,6 +142,9 @@ namespace vessel
                                    SPACE_TYPE type,
                                    logicalPageSpace **lps)const;
 
+      public:
+         INT32 createCheckpointBeforeClosing(requestContext *context);
+
       private:
          INT32 loadStorageUnits(requestContext *context,
                                 ossPoolList<SPACE_ID> &sidList);

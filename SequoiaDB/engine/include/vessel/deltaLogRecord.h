@@ -56,6 +56,11 @@ namespace vessel
    constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_UNMAPPING = 12;
    constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_RELEASING = 13;
 
+   OSS_INLINE BOOLEAN isOperationalDeltaLogRecord(DELTA_LOG_RECORD_TYPE type)
+   {
+      return type >= DELTA_LOG_TYPE_MAPPING;
+   }
+
    constexpr UINT32 MAX_DELTA_LOG_RECORD_SIZE = 512;
 
    ///DELTA_LOG_TYPE_REMAPPING flags

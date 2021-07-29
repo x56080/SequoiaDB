@@ -136,16 +136,18 @@ namespace vessel
             goto error;
          }
 
-         if (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING))
+         if (!hasMoreDataToFetch())
          {
-            rc = SDB_VESSEL_EOC;
-            goto error;
-         }
+            if (!noMorePushing())
+            {
+               PD_LOG(PDERROR, "pushed nothing but flag not set");
+               rc = SDB_VESSEL_INTERNAL_ERR;
+            }
+            else
+            {
+               rc = SDB_VESSEL_EOC;
+            }
 
-         if (OSS_UNLIKELY(!hasMoreDataToFetch()))
-         {
-            PD_LOG(PDERROR, "pushed nothing but flag not set");
-            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
       }

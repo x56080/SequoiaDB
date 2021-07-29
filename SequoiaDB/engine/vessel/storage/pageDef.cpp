@@ -201,6 +201,8 @@ namespace vessel
       tail = (UINT64 *)((CHAR *)buf + pageSize - PAGE_TAIL_SIZE);
       *tail = DPS_INVALID_LSN_OFFSET;
 
+      r = TRUE;
+
    done:
       SDB_ASSERT(r, "must be ok");
       return r;

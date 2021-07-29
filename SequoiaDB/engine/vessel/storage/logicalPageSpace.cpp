@@ -58,6 +58,8 @@ namespace engine
 {
 namespace vessel
 {
+   static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608;
+
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
          _runtimePageBufferIniter::
@@ -85,20 +87,20 @@ namespace vessel
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
    logicalPageSpace::~logicalPageSpace()
    {
-      __close();
+      fini();
    }
 
    void logicalPageSpace::close()
    {
       _close();
-      __close();
+      fini();
       return;
    }
 
-   void logicalPageSpace::__close()
+   void logicalPageSpace::fini()
    {
       _lpidCache.fini();
-      _idMapFiles.fini();
+      _idMapFiles.close();
       _allocator.fini();
       _logConsole.fini();
       
@@ -116,29 +118,17 @@ namespace vessel
    void logicalPageSpace::destroy()
    {
       _destroy();
-      __destroy();
-      return;
-   }
-
-   void logicalPageSpace::__destroy()
-   {
-      _lpidCache.fini();
-      _allocator.fini();
-
-      if (_logConsole.isReady())
-      {
-         _logConsole.destroy();
-      }
-
       if (NULL != _dpc)
       {
          _dpc->destroy();
          _dpc = NULL;
       }
-
+      if (_logConsole.isReady())
+      {
+         _logConsole.destroy();
+      }
       _idMapFiles.destroy();
-      _checkpointContext.fini();
-      _creater.fini();
+      fini();
       return;
    }
 
@@ -174,7 +164,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create id map file:%d", rc);
          goto error;
       }
-      baseFile = (const idMapFile *)(_idMapFiles.getLast());
+      baseFile = (const idMapFile *)(_idMapFiles.getBack());
       SDB_ASSERT(NULL != baseFile, "can not be null");
 
       /// 2. init lpid allocator.
@@ -280,7 +270,7 @@ namespace vessel
          goto error;
       }
 
-      base = (const idMapFile *)(_idMapFiles.getLast());
+      base = (const idMapFile *)(_idMapFiles.getBack());
       SDB_ASSERT(NULL != base, "can not be null");
 
       rc = base->getIdMapFileHead(baseHead);
@@ -400,6 +390,145 @@ namespace vessel
       return rc;
    error:
       close();
+      goto done;
+   }
+
+   INT32 logicalPageSpace::createCheckpoint(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN locked = FALSE;
+      BOOLEAN fullCheckpoint = FALSE;
+      BOOLEAN abortCheckpoint = FALSE;
+      DPS_LSN_OFFSET minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      UINT32 totalImpCount = 0;
+      ossPoolSet<UINT32> segments;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _checkpointContext.getLatch()->lock_w();
+      locked = TRUE;
+
+      if (lpsCheckpointContext::NONE != _checkpointContext.getStatus())
+      {
+         rc = SDB_VESSEL_SAME_TASK_RUNNING;
+         goto error;
+      }
+
+      maxDirtyLsn = _checkpointContext.getMaxDirtyLsn();
+      if (DPS_INVALID_LSN_OFFSET == maxDirtyLsn)
+      {
+         goto done;
+      }
+      minDirtyLsn = _checkpointContext.getMinDirtyLsn();
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != minDirtyLsn, "impossible");
+
+      _checkpointContext.setStatus(lpsCheckpointContext::PREPARE);
+      abortCheckpoint = TRUE;
+
+      rc = prepareToCreateCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
+         goto error;
+      }
+
+      fullCheckpoint = (FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize());
+
+      rc = _logConsole.precreateCheckpoint(0, maxDirtyLsn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get log console ready to create checkpoint:%d", rc);
+         goto error;
+      }
+
+      /// New imp may allocated in preallocating.
+      /// But we can be sure page count not less than real count to be
+      /// saved into new base id map file.
+      totalImpCount = _allocator.getPageCount();
+
+      rc = prepareToFlushSegments(context, fullCheckpoint, segments);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create segment list:%d", rc);
+         goto error;
+      }
+
+      _checkpointContext.getLatch()->release_w();
+      locked = FALSE;
+
+      if (!segments.empty())
+      {
+         _checkpointContext.setStatus(lpsCheckpointContext::FLUSH_SEGS);
+         rc = flushWhenCreatingCheckpoint(context, segments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to flush segments:%d", rc);
+            goto error;
+         }
+      }
+
+      _checkpointContext.setStatus(lpsCheckpointContext::COMMIT);
+      rc = _logConsole.commitCheckpointPrecreated();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit checkpoint:%d", rc);
+         goto error;
+      }
+
+      _checkpointContext.getLatch()->lock_w();
+      locked = TRUE;
+      _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
+      if (maxDirtyLsn == _checkpointContext.getMaxDirtyLsn())
+      {
+         /// no more new request
+         _checkpointContext.clearLsn();
+      }
+      else
+      {
+         _checkpointContext.setMinDirtyLsn(maxDirtyLsn + 1);
+      }
+
+      if (fullCheckpoint)
+      {
+         _checkpointContext.setStatus(lpsCheckpointContext::CREATE_NEW_BASE);
+         _checkpointContext.getLatch()->release_w();
+         locked = FALSE;
+         rebaseWhenCreatingCheckpoint(totalImpCount,
+                                      _checkpointContext.getCheckpoint().offset);
+         removeHistoryIdMapAndDeltaLogFiles();
+         _checkpointContext.getLatch()->lock_w();
+         locked = TRUE;
+         
+      }
+      
+      _checkpointContext.setStatus(lpsCheckpointContext::NONE);
+
+   done:
+      if (locked)
+      {
+         _checkpointContext.getLatch()->release_w();
+      }
+      return rc;
+   error:
+      if (abortCheckpoint)
+      {
+         if (!locked)
+         {
+            _checkpointContext.getLatch()->lock_w();
+            locked = TRUE;
+         }
+         _checkpointContext.setStatus(lpsCheckpointContext::NONE);
+      }
       goto done;
    }
 
@@ -999,7 +1128,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _idMapFiles.insertFile(file);
+         rc = _idMapFiles.unsortedPushBack(file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert file[%s] into map:%d",
@@ -1017,6 +1146,8 @@ namespace vessel
          goto error;
       }
 
+      _idMapFiles.resort();
+
       rc = validateIdMapFileMap();
       if (SDB_OK != rc)
       {
@@ -1031,7 +1162,7 @@ namespace vessel
          file->close();
          SDB_OSS_DEL file;
       }
-      _idMapFiles.fini();
+      _idMapFiles.close();
       goto done;
    }
 
@@ -1042,7 +1173,7 @@ namespace vessel
       const idMapFile *base = NULL;
       idMapFileHead baseHead;
 
-      base = (const idMapFile *)(_idMapFiles.getLast());
+      base = (const idMapFile *)(_idMapFiles.getBack());
       rc = base->getIdMapFileHead(baseHead);
       if (SDB_OK != rc)
       {
@@ -1051,18 +1182,17 @@ namespace vessel
          goto error;
       }
 
-      rc = validateIdMapFileHeadFlags(baseHead.flags);
-      if (SDB_OK != rc)
+      if (!validateIdMapFileHeadFlags(baseHead.flags))
       {
          PD_LOG(PDERROR, "flags[%d] of base file head is not valid", baseHead.flags);
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
 
-      for (storageFileMap::CONST_ITERATOR itr = _idMapFiles.begin();
+      for (sortedStorageFileList::CONST_ITERATOR itr = _idMapFiles.begin();
            itr != _idMapFiles.end(); ++itr)
       {
-         const idMapFile *fileInMap = (const idMapFile *)(itr->second);
+         const idMapFile *fileInMap = (const idMapFile *)(*itr);
          idMapFileHead h;
          if (fileInMap->getCommonHeadInMem().sequence ==
              base->getCommonHeadInMem().sequence)
@@ -1355,6 +1485,14 @@ namespace vessel
 
       slice hs(sizeof(idMapFileHead), &imfHead);
 
+      file = SDB_OSS_NEW idMapFile();
+      if (OSS_UNLIKELY(NULL == file))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
       rc = _creater.createTmpFile(FILE_TYPE_ID_MAP,
                                   0, args, file, hs);
       if (SDB_OK != rc)
@@ -1378,7 +1516,7 @@ namespace vessel
          goto error;
       }
 
-      _idMapFiles.insertFile(file);
+      _idMapFiles.pushBack(file);
       file = NULL;
 
    done:
@@ -1389,6 +1527,170 @@ namespace vessel
          file->destroy();
          SDB_OSS_DEL file;
       }
+      goto done;
+   }
+
+   INT32 logicalPageSpace::rebaseWhenCreatingCheckpoint(UINT32 totalImpCount,
+                                                        UINT64 deltaLogOffset)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      UINT32 oldPageCount = 0;
+      UINT32 segmentCount = 0;
+      storageFile *base = NULL;
+      idMapFile *file = NULL;
+      storageCoreArgs args(ID_MAP_FILE_PAGE_SIZE,
+                           ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG,
+                           ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE);
+      idMapFileHead imfHead;
+      imfHead.version = ID_MAP_FILE_HEAD_VERSION;
+      imfHead.flags = getIdMapFileHeadFlags();
+      imfHead.dataPageSize = getStorageCoreArgs().pageSize;
+      imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
+      imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
+      imfHead.totalPageCount = totalImpCount;
+      imfHead.deltaLogOffset = deltaLogOffset;
+      slice hs(sizeof(idMapFileHead), &imfHead);
+
+      base = _idMapFiles.getBack();
+      if (NULL == base)
+      {
+         PD_LOG(PDERROR, "no base file exists");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = ((const idMapFile *)base)->getTotalPageCount(oldPageCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get old page count from base:%d", rc);
+         goto error;
+      }
+
+      file = SDB_OSS_NEW idMapFile();
+      if (OSS_UNLIKELY(NULL == file))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _creater.createTmpFile(FILE_TYPE_ID_MAP,
+                                  base->getCommonHeadInMem().sequence + 1,
+                                  args, file, hs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create tmp id map file:%d", rc);
+         goto error;
+      }
+
+      segmentCount = ossAlignX(totalImpCount, getStorageCoreArgs().maxPageCountPerSeg) /
+                     getStorageCoreArgs().maxPageCountPerSeg;
+
+      rc = file->ensureSegmentCountAndInit(segmentCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend new id map file:%d", rc);
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < oldPageCount; ++i)
+      {
+         ossValuePtr src = 0;
+         ossValuePtr dst = 0;
+         rc = base->getPagePtr(i, src);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] from base:%d", i, rc);
+            goto error;
+         }
+         rc = file->getPagePtr(i, src);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] from file:%d", i, rc);
+            goto error;
+         }
+
+         ossMemcpy((void *)dst, (const void *)src, getStorageCoreArgs().pageSize);
+      }
+
+      rc = _lpidCache.flushPreparedCacheToFile(file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to flush lpid cache:%d", rc);
+         goto error;
+      }
+
+      rc = file->fsync();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync file:%d", rc);
+         goto error;
+      }
+
+      rc = renameToFormalAndReopen(_creater.getDirSlice(),
+                                   FALSE, FILE_SHADOW_SUFFIX_TMP, file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rename id map file and reopen:%d", rc);
+         goto error;
+      }
+
+      rc = _lpidCache.resetBaseFileAndClearFlushedMaps(file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reset base file:%d", rc);
+         goto error;
+      }
+      
+      _idMapFiles.pushBack(file);
+   done:
+      return rc;
+   error:
+      if (NULL != file)
+      {
+         file->destroy();
+         SDB_OSS_DEL file;
+      }
+      goto done;
+   }
+
+   INT32 logicalPageSpace::removeHistoryIdMapAndDeltaLogFiles()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      static const UINT32 _IMF_MIN_SIZE = 3;
+      idMapFile *file = NULL;
+      UINT64 sequence = 0;
+      UINT64 offset = 0;
+
+      UINT32 size = _idMapFiles.getSize(TRUE);
+      if (size < _IMF_MIN_SIZE)
+      {
+         goto done;
+      }
+
+      file = (idMapFile *)(_idMapFiles.getBack());
+      sequence = file->getCommonHeadInMem().sequence + 1 - _IMF_MIN_SIZE;
+      _idMapFiles.destroyIfLess(sequence);
+
+      file = (idMapFile *)(_idMapFiles.getFront());
+      rc = file->getDeltaLogOffset(offset);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get delta log offset:%d", rc);
+         goto error;
+      }
+
+      rc = _logConsole.tryToDestroyHistroyFiles(offset);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to destroy history log files:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -1561,6 +1863,10 @@ namespace vessel
          rc = reader.getNext(dlr, &offset);
          if (SDB_OK == rc)
          {
+            if (!isOperationalDeltaLogRecord(dlr.getLogHead()->_type))
+            {
+               continue;
+            }
             rc = replayLogRecord(dlr);
             if (SDB_OK != rc)
             {

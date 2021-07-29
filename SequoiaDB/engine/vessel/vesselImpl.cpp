@@ -139,7 +139,7 @@ namespace vessel
    INT32 vesselImpl::close(ISession *session, const closeDBOptions &options)
    {
       INT32 rc = SDB_OK;
-      if (isOpen() && options.flushDirtyList)
+      if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
          requestContext context;
          rc = context.open(session, &_env, &_outerResource);
@@ -148,7 +148,7 @@ namespace vessel
             goto error;
          }
          flushWholeDirtyList(&context);
-         context.close();
+         _env.dms.createCheckpointBeforeClosing(&context);
       }
    done:
       fini();

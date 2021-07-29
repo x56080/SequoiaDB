@@ -285,7 +285,7 @@ namespace vessel
       for (UINT32 i = 0; i < count; ++i)
       {
          UINT32 offset = buf[i];
-         if (clearBitIfNonzero(bitsCount, _buf, offset))
+         if (setBitIfZeroed(bitsCount, _buf, offset))
          {
             ++_free;
             if (_firstFreeBits < 0)
@@ -779,11 +779,24 @@ namespace vessel
       {
          goto done;
       }
-      
-      rc = _allocateNewBitmapPages(count - _pageCount);
-      if (SDB_OK != rc)
+
+      if ((_pageCount + 1) == count)
       {
-         goto error;
+         rc = _allocateNewBitmapPage();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _allocateNewBitmapPages(count - _pageCount);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate multiple pages:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;

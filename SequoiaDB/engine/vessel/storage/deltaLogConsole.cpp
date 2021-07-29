@@ -64,8 +64,11 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == creater ||
                        !creater->isValid()))
       {
-         _creater = creater;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
+
+      _creater = creater;
    done:
       return rc;
    error:
@@ -116,7 +119,7 @@ namespace vessel
    void deltaLogConsole::fini()
    {
       _creater = NULL;
-      _logFiles.fini();
+      _logFiles.close();
       _nextCheckpoint = LPS_CHECKPOINT();
       _checkpoint = LPS_CHECKPOINT();
       _nextRecordOffset = 0;
@@ -175,7 +178,7 @@ namespace vessel
    }
 
    INT32 deltaLogConsole::initReaderBeforeAddingNewRecord(UINT64 beginOffset,
-                                                          deltaLogScanner &reader)const
+                                                          deltaLogScanner &reader)
    {
       INT32 rc = SDB_OK;
 
@@ -190,9 +193,7 @@ namespace vessel
          goto error;
       }
 
-      /// _fileWriteOffset must be zero if has not checkpoint.
-      SDB_ASSERT(_checkpoint.isValid(), "must be valid");
-      rc = reader.init(&_logFiles, beginOffset, _checkpoint.offset);
+      rc = reader.init(&_logFiles, beginOffset, _nextRecordOffset);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init log reader:%d", rc);
@@ -209,19 +210,12 @@ namespace vessel
                                               DPS_LSN_OFFSET lsn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!_nextCheckpoint.isValid(), "must be invalid");
       deltaLogRecordBuilder builder;
       UINT64 offset = DPS_INVALID_LSN_OFFSET;
 
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(_nextCheckpoint.isValid()))
-      {
-         PD_LOG(PDERROR, "the next checkpoint has been created");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
       else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
@@ -241,6 +235,13 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to append dummy record:%d", rc);
+         goto error;
+      }
+
+      rc = copyDataFromBufferToFile();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy data to file:%d", rc);
          goto error;
       }
 
@@ -291,7 +292,7 @@ namespace vessel
       SDB_ASSERT((offsetInSegment + dlr.getLogHead()->_size + deltaLogFileDef::CHECKSUM_SIZE) <=
                   deltaLogFileDef::FILE_SEGMENT_SIZE, "impossible");
 
-      file = _logFiles.get(fileId);
+      file = _logFiles.findFromBackToFront(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "failed to get log file[%lld], rc:%d", fileId, rc);
@@ -324,14 +325,38 @@ namespace vessel
    done:
       return rc;
    error:
-      abortCheckpointPrecreated();
+      _nextCheckpoint = LPS_CHECKPOINT();
       goto done;
    }
 
-   void deltaLogConsole::abortCheckpointPrecreated()
+   UINT32 deltaLogConsole::getDirtyLogSize()const
    {
-      _nextCheckpoint = LPS_CHECKPOINT();
-      return;
+      if (OSS_UNLIKELY(!isReady()))
+      {
+         SDB_ASSERT(FALSE, "not ready");
+         return 0;
+      }
+      SDB_ASSERT(_minDirtyOffset <= _nextRecordOffset, "impossible");
+      return _nextRecordOffset - _minDirtyOffset;
+   }
+
+   INT32 deltaLogConsole::tryToDestroyHistroyFiles(UINT64 offset)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isReady()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      if (offset < _minDirtyOffset)
+      {
+         _logFiles.destroyIfLess(offset / deltaLogFileDef::MAX_FILE_SIZE);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 deltaLogConsole::append(const deltaLogRecord &dlr, UINT64 *offset)
@@ -441,6 +466,7 @@ namespace vessel
          goto error;
       }
 
+      offset = _nextRecordOffset;
       _nextRecordOffset += sizeNeeded;
 
    done:
@@ -500,11 +526,11 @@ namespace vessel
          goto error;
       }
 
-      if (!_logFiles.insertFile(file))
+      rc = _logFiles.pushBack(file);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert new log file to list, sequence:%lld",
-                fileId);
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "failed to insert new log file to list, sequence:%lld, rc:%d",
+                fileId, rc);
          goto error;
       }
 
@@ -529,7 +555,7 @@ namespace vessel
       SDB_ASSERT(STORAGE_FILE_INVALID_SEQUENCE != fileId, "can not be invalid");
       SDB_ASSERT(segmentId < deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE, "impossible");
 
-      storageFile *file = _logFiles.get(fileId);
+      storageFile *file = _logFiles.findFromBackToFront(fileId);
       if (NULL != file)
       {
          /// Do not use "allocateNewSegment" to extend log file.
@@ -593,7 +619,7 @@ namespace vessel
          goto error;
       }
 
-      file = _logFiles.get(fileId);
+      file = _logFiles.findFromBackToFront(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "failed to get file[%lld]", fileId);
@@ -638,7 +664,7 @@ namespace vessel
       SDB_ASSERT(remainSize < (MAX_DELTA_LOG_RECORD_SIZE + deltaLogFileDef::CHECKSUM_SIZE),
                  "impossible");
 
-      file = _logFiles.get(fileId);
+      file = _logFiles.findFromBackToFront(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "failed to get file with sequence[%lld]", fileId);
@@ -677,7 +703,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _creater, "can not be null");
       SDB_ASSERT(_creater->isValid(), "cann ot be invalid");
-      SDB_ASSERT(_logFiles.isEmpty(), "must be empty");
+      SDB_ASSERT(_logFiles.isEmpty(FALSE), "must be empty");
 
       storageFile *file = NULL;
       FILE_NAME_LIST::const_iterator itr;
@@ -745,9 +771,11 @@ namespace vessel
             goto error;
          }
 
-         _logFiles.insertFile(file);
+         _logFiles.unsortedPushBack(file);
          file = NULL;
       }
+
+      _logFiles.resort();
 
    done:
       return rc;
@@ -758,7 +786,7 @@ namespace vessel
 
    INT32 deltaLogConsole::findLastCheckpoint(UINT64 beginOffset,
                                              BOOLEAN &found,
-                                             LPS_CHECKPOINT &checkpoint)const
+                                             LPS_CHECKPOINT &checkpoint)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != beginOffset, "can not be invalid");
@@ -766,7 +794,7 @@ namespace vessel
       LPS_CHECKPOINT lastFound;
       found = FALSE;
 
-      if (_logFiles.isEmpty())
+      if (_logFiles.isEmpty(FALSE))
       {
          goto done;
       }
@@ -899,41 +927,25 @@ namespace vessel
    INT32 deltaLogConsole::fsyncDeltaLog(UINT64 maxOffset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < maxOffset, "impossible");
       SDB_ASSERT(_minDirtyOffset < maxOffset, "impossible");
       SDB_ASSERT(maxOffset < _nextRecordOffset, "impossible");
+      SDB_ASSERT(maxOffset < _fileWriteOffset, "impossible");
       UINT64 minGlobalSegmentId = _minDirtyOffset / deltaLogFileDef::FILE_SEGMENT_SIZE;
       UINT64 maxGlobalSegmentId = maxOffset / deltaLogFileDef::FILE_SEGMENT_SIZE;
-
-      if (_fileWriteOffset <= maxOffset)
-      {
-         rc = copyDataFromBufferToFile();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to copy data to file:%d", rc);
-            goto error;
-         }
-      }
 
       for (UINT64 i = minGlobalSegmentId; i <= maxGlobalSegmentId; ++i)
       {
          UINT64 fileId = i / deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE;
          UINT32 segmentId = (i & (deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE - 1));
-         storageFile *file = _logFiles.get(fileId);
+         storageFile *file = _logFiles.findFromFrontToBack(fileId);
          if (NULL == file)
          {
             PD_LOG(PDERROR, "failed to get file[%lld] to fsync", fileId);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         else if (file->getSegmentCount() <= segmentId)
-         {
-            PD_LOG(PDERROR, "failed to get file segment [%lld, %d] to fsync", fileId, segmentId);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
 
-         rc = file->flush(segmentId, TRUE);
+         rc = file->fsyncSegment(segmentId, TRUE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to flush segment[%lld, %d], rc:%d",

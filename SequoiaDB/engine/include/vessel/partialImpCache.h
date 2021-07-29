@@ -84,7 +84,7 @@ namespace vessel
 
          OSS_INLINE const CHAR *getBuffer()const
          {
-            return _buffer;
+            return (const CHAR *)_buffer;
          }
       private:
          void setAsInmmutable(UINT32 slotNo);
@@ -93,7 +93,7 @@ namespace vessel
 
       private:
          UINT64 _flags = 0;
-         CHAR _buffer[ID_MAP_PAGE_CACHE_SIZE] = {(CHAR)0xFF};/// The slots will be inited as invalid value.
+         idMapSlot _buffer[ID_MAP_PAGE_CACHE_SLOT_COUNT];
 
    };//class partialImpCache
 }//namespace vessel

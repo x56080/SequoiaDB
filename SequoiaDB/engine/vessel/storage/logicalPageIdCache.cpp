@@ -526,7 +526,7 @@ namespace vessel
                                     const idMapSlot &slot)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(isReady()))
+      if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -553,7 +553,7 @@ namespace vessel
    INT32 logicalPageIdCache::upsertAsImmutable(PAGE_ID lpid, const idMapSlot &slot)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(isReady()))
+      if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -801,7 +801,7 @@ namespace vessel
       if (_basePageCount <= pid)
       {
          PD_LOG(PDERROR, "imp pid[%d] is over total page count[%d]", pid, _basePageCount);
-         rc = SDB_OUT_OF_BOUND;
+         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
       }
 

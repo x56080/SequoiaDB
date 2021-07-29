@@ -42,7 +42,7 @@
 #include "vessel/vesselFileName.h"
 #include "vessel/deltaLogRecord.h"
 #include "vessel/logicalPageSpaceCheckpoint.h"
-#include "vessel/storageFileMap.h"
+#include "vessel/sortedStorageFileList.h"
 #include "vessel/deltaLogScanner.h"
 
 namespace engine
@@ -93,17 +93,19 @@ namespace vessel
 
          /// WARNING: Can be used only before adding new log record and
          /// valid checkpoint exists.
-         /// If begingOffset is invalid, will search from offset zero.
          INT32 initReaderBeforeAddingNewRecord(UINT64 beginOffset,
-                                               deltaLogScanner &reader)const;
+                                               deltaLogScanner &reader);
 
          INT32 append(const deltaLogRecord &dlr, UINT64 *offset=NULL);
 
          INT32 precreateCheckpoint(UINT32 flags,
                                    DPS_LSN_OFFSET lsn);
 
-         void abortCheckpointPrecreated();
          INT32 commitCheckpointPrecreated();
+
+         UINT32 getDirtyLogSize()const;
+
+         INT32 tryToDestroyHistroyFiles(UINT64 offset);
 
 
       private:
@@ -112,7 +114,7 @@ namespace vessel
 
          INT32 findLastCheckpoint(UINT64 beginOffset,
                                   BOOLEAN &found,
-                                  LPS_CHECKPOINT &checkpoint)const;
+                                  LPS_CHECKPOINT &checkpoint);
 
          INT32 initLogFiles(const FILE_NAME_LIST *fl);
 
@@ -144,7 +146,7 @@ namespace vessel
    
       private:
          const storageFileCreater *_creater = NULL;
-         storageFileMap _logFiles;
+         sortedStorageFileList _logFiles;
 
          LPS_CHECKPOINT _nextCheckpoint;
          LPS_CHECKPOINT _checkpoint;

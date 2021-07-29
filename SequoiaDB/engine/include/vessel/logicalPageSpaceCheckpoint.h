@@ -62,6 +62,7 @@ namespace vessel
          version = o.version;
          flags = o.flags;
          lsn = o.lsn;
+         offset = o.offset;
          preCheckpoint = o.preCheckpoint;
          return *this;
       }
@@ -73,12 +74,14 @@ namespace vessel
                 DPS_INVALID_LSN_OFFSET != offset;
       }
 
-      OSS_INLINE void init(UINT32 flags,
-                           UINT64 lsn,
-                           UINT64 offset,
-                           UINT64 precheckpoint)
+      void init(UINT32 flags,
+                UINT64 lsn,
+                UINT64 offset,
+                UINT64 precheckpoint)
       {
          version = LPS_CHECKPOINT_VERSION;
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != offset, "can not be invalid");
          flags = flags;
          this->lsn = lsn;
          this->offset = offset;

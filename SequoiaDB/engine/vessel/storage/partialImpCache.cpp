@@ -50,7 +50,7 @@ namespace vessel
    void partialImpCache::reset()
    {
       _flags = 0;
-      ossMemset(_buffer, 0xFF, sizeof(_buffer));
+      ossMemset(_buffer, 0xFF, ID_MAP_PAGE_CACHE_SIZE);
       return;
    }
 
@@ -74,14 +74,14 @@ namespace vessel
          goto error;
       }
 
-      if ((((const idMapSlot *)_buffer) + slotNo)->isFree())
+      if (_buffer[slotNo].isFree())
       {
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
       }
       else
       {
-         slot = *(((const idMapSlot *)_buffer) + slotNo);
+         slot = _buffer[slotNo];
          mutablePage = isMutable(slotNo);
       }
 
@@ -103,7 +103,7 @@ namespace vessel
          goto error;
       }
 
-      *(((idMapSlot *)_buffer) + slotNo) = slot;
+      _buffer[slotNo] = slot;
       if (isMutable)
       {
          setAsMutable(slotNo);
@@ -128,8 +128,7 @@ namespace vessel
          goto error;
       }
 
-      slot = (idMapSlot *)_buffer + slotNo;
-      if (slot->isFree())
+      if (_buffer[slotNo].isFree())
       {
          SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
@@ -138,10 +137,10 @@ namespace vessel
 
       if (NULL != beforeDropping)
       {
-         *beforeDropping = *slot;
+         *beforeDropping = _buffer[slotNo];
       }
 
-      slot->reset();
+      _buffer[slotNo].reset();
       setAsInmmutable(slotNo);
    done:
       return rc;
@@ -157,29 +156,23 @@ namespace vessel
    void partialImpCache::setAllPageImmutable(UINT32 pageCountPerSeg,
                                              ossPoolSet<UINT32> *mutableSegmentIds)
    {
-      if (0 == getMutablePageCount())
+      if (NULL != mutableSegmentIds)
       {
-         goto done;
+         do
+         {
+            INT32 mutableSlot = -1;
+            mutableSlot = ossGetLowestBit1From64Bits(_flags);
+            if (mutableSlot < 0)
+            {
+               break;
+            }
+            
+            SDB_ASSERT(!_buffer[mutableSlot].isFree(), "impossible");
+            mutableSegmentIds->insert((_buffer[mutableSlot].pid / pageCountPerSeg));
+         } while (TRUE);
       }
 
-      do
-      {
-         INT32 mutableSlot = -1;
-         const idMapSlot *slot = NULL;
-         mutableSlot = ossGetLowestBit1From64Bits(_flags);
-         if (mutableSlot < 0)
-         {
-            break;
-         }
-         
-         slot = ((const idMapSlot *)_buffer) + mutableSlot;
-         SDB_ASSERT(!slot->isFree(), "impossible");
-         if (NULL != mutableSegmentIds)
-         {
-            mutableSegmentIds->insert((slot->pid / pageCountPerSeg));
-         }
-         setAsInmmutable(mutableSlot);
-      } while (TRUE);
+      _flags = 0;
    
    done:
       return;

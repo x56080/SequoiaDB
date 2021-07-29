@@ -53,20 +53,60 @@ namespace vessel
          enum CHECKPOINT_STATUS
          {
             NONE = 0,
-            CREATING_FLUSH_LIST = 1,
-         };
+            PREPARE = 1,
+            FLUSH_SEGS = 2,
+            COMMIT = 3,
+            CREATE_NEW_BASE = 4,
+         };//enum CHECKPOINT_STATUS
+
+      public:
+         
+         OSS_INLINE void setStatus(CHECKPOINT_STATUS s)
+         {
+            _status = s;
+         }
+         OSS_INLINE CHECKPOINT_STATUS getStatus()const
+         {
+            return _status;
+         }
+         
+         OSS_INLINE const LPS_CHECKPOINT &getCheckpoint()const
+         {
+            return _checkpoint;
+         }
+
+         OSS_INLINE DPS_LSN_OFFSET getMinDirtyLsn()const
+         {
+            return _minDirtyLsn;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLsn()const
+         {
+            return _maxDirtyLsn;
+         }
+         OSS_INLINE BOOLEAN isDirty()const
+         {
+            return DPS_INVALID_LSN_OFFSET != _minDirtyLsn;
+         }
+
+         OSS_INLINE ossRWMutex *getLatch()
+         {
+            return &_checkpointLatch;
+         }
 
       public:
          void fini();
          void setCheckpoint(const LPS_CHECKPOINT &checkpoint);
          void updateDirtyLsn(DPS_LSN_OFFSET lsn);
-         const LPS_CHECKPOINT &getCheckpoint()const
+         void clearLsn()
          {
-            return _checkpoint;
+            _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+            _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
          }
-         ossRWMutex *getLatch()
+         void setMinDirtyLsn(DPS_LSN_OFFSET lsn)
          {
-            return &_checkpointLatch;
+            SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+            SDB_ASSERT(lsn <= _maxDirtyLsn, "impossible");
+            _minDirtyLsn = lsn;
          }
       private:
          ossRWMutex _checkpointLatch;

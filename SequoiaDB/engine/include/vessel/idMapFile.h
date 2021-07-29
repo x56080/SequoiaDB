@@ -122,6 +122,7 @@ namespace vessel
       public:
          virtual BOOLEAN validateUserDefinedHead(const void *head)const;
          INT32 getTotalPageCount(UINT32 &count)const;
+         INT32 getDeltaLogOffset(UINT64 &offset)const;
          INT32 getIdMapFileHead(idMapFileHead &h)const;
          INT32 ensureSegmentCountAndInit(UINT32 count);
 

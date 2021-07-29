@@ -137,10 +137,12 @@ namespace vessel
          storageUnit *su = itr->second->getSU();
          itr->second->close();
          su->close();
+         SDB_OSS_DEL itr->second;
       }
       _mainIndex.clear();
       
       _sus.fini();
+      _isOpen = FALSE;
    done:
       return;
    }
@@ -342,7 +344,7 @@ namespace vessel
       suOptions.lobArgs.pageSize = options.lobPageSize;
       suOptions.lobArgs.maxPageCountPerSeg = options.lobSegSize / options.lobPageSize;
       /// single lobd file.
-      suOptions.lobArgs.maxSegmentCountPerFile = UINT32(-1);
+      suOptions.lobArgs.maxSegmentCountPerFile = DMS_MAX_PG / suOptions.lobArgs.maxPageCountPerSeg;
 
       rc = su->create(context, sid, suOptions);
       if (SDB_OK != rc)
@@ -1260,7 +1262,7 @@ namespace vessel
       rc = _suAllocator.allocateBits(1, &newSpaceId, 1);
       if (SDB_OK == rc)
       {
-         SDB_ASSERT(MAX_SPACE_ID <= newSpaceId, "impossible");
+         SDB_ASSERT(newSpaceId <= MAX_SPACE_ID, "impossible");
       }
       else if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
       {
@@ -1449,6 +1451,45 @@ namespace vessel
       {
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dataManagementService::createCheckpointBeforeClosing(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 count = 0;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
+           itr != _mainIndex.end(); ++itr)
+      {
+         rc = itr->second->createCheckpoint(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "collection space[%d] failed to create checkpoint:%d",
+                   itr->first, rc);
+            ++count;
+         }
+      }
+
+      if (0 != count)
+      {
+         PD_LOG(PDERROR, "total [%d] collection spaces failed to create checkpoint", count);
+      }
+
+      rc = SDB_OK;
    done:
       return rc;
    error:

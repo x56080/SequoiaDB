@@ -46,87 +46,75 @@ namespace vessel
 
    deltaLogScanner::~deltaLogScanner()
    {
-      fini();
+      
    }
 
    void deltaLogScanner::fini()
    {
       _logFiles = NULL;
-      _firstRecordOffset = DPS_INVALID_LSN_OFFSET;
-      _lastRecordHeadOffset = DPS_INVALID_LSN_OFFSET;
-      _maxFileOffset = 0;
+      _maxOffset = 0;
       _currentOffset = 0;
       return;
    }
 
-   INT32 deltaLogScanner::init(const storageFileMap *logFiles,
-                              UINT64 firstRecordOffset,
-                              UINT64 lastRecordHeadOffset)
+   INT32 deltaLogScanner::init(sortedStorageFileList *logFiles,
+                               UINT64 minOffset,
+                               UINT64 maxBound)
    {
       INT32 rc = SDB_OK;
       const storageFile *file = NULL;
       UINT64 minFileId = 0;
-      UINT64 maxFileId = 0;
       UINT64 minFileOffset = 0;
+      UINT64 maxFileId = 0;
+      UINT64 maxFileOffset = 0;
 
       fini();
       if (OSS_UNLIKELY(NULL == logFiles ||
                        logFiles->isEmpty() ||
-                       DPS_INVALID_LSN_OFFSET == firstRecordOffset ||
-                       lastRecordHeadOffset < firstRecordOffset))
+                       DPS_INVALID_LSN_OFFSET == minOffset ||
+                       maxBound <= minOffset))
       {
          rc = SDB_INVALIDARG;
          goto error;
-      }
-
-      file = logFiles->getFirst();
-      if (NULL == file || !file->isOpen())
-      {
-         PD_LOG(PDERROR, "invalid file found");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      minFileId = file->getCommonHeadInMem().sequence;
-      minFileOffset = minFileId * deltaLogFileDef::MAX_FILE_SIZE;
-
-      file = logFiles->getLast();
-      if (NULL == file || !file->isOpen())
-      {
-         PD_LOG(PDERROR, "invalid file found");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      maxFileId = file->getCommonHeadInMem().sequence;
-      _maxFileOffset = (file->getCommonHeadInMem().sequence * deltaLogFileDef::MAX_FILE_SIZE)
-                       + (file->getSegmentCount() * deltaLogFileDef::FILE_SEGMENT_SIZE);
-
-      /// valid offset is [minFileOffset, _maxFileOffset)
-      if (firstRecordOffset < minFileOffset ||
-          _maxFileOffset <= firstRecordOffset)
-      {
-         PD_LOG(PDERROR, "the first record offset[%lld] is not in valid range[%lld, %lld)",
-                firstRecordOffset, minFileOffset, _maxFileOffset);
-         rc = SDB_DPS_LSN_OUTOFRANGE;
-         goto error;
-      }
-
-      if (DPS_INVALID_LSN_OFFSET != lastRecordHeadOffset)
-      {
-         if (lastRecordHeadOffset < minFileOffset ||
-             _maxFileOffset <= lastRecordHeadOffset)
-         {
-            PD_LOG(PDERROR, "the last record head offset[%lld] is not in valid range[%lld, %lld)",
-                lastRecordHeadOffset, minFileOffset, _maxFileOffset);
-            rc = SDB_DPS_LSN_OUTOFRANGE;
-            goto error;
-         }
       }
 
       _logFiles = logFiles;
-      _firstRecordOffset = firstRecordOffset;
-      _lastRecordHeadOffset = lastRecordHeadOffset;
-      _currentOffset = _firstRecordOffset; 
+      file = _logFiles->getFront();
       
+      minFileId = file->getCommonHeadInMem().sequence;
+      minFileOffset = minFileId * deltaLogFileDef::MAX_FILE_SIZE;
+      if (minOffset < minFileOffset)
+      {
+         PD_LOG(PDERROR, "current min file offset[%lld] does not match min offset param[%lld]",
+                minFileOffset, minOffset);
+         rc = SDB_VESSEL_FAILURE_LOADING_DLR;
+         goto error;
+      }
+
+      file = logFiles->getBack();
+      maxFileId = file->getCommonHeadInMem().sequence;
+      maxFileOffset = maxFileId * deltaLogFileDef::MAX_FILE_SIZE +
+                      file->getSegmentCount() * deltaLogFileDef::FILE_SEGMENT_SIZE;
+
+      if (maxFileOffset <= minOffset)
+      {
+         PD_LOG(PDERROR, "current max file offset[%lld] does not match min offset param[%lld]",
+                maxFileOffset, minOffset);
+         rc = SDB_VESSEL_FAILURE_LOADING_DLR;
+         goto error;
+      }
+      if (DPS_INVALID_LSN_OFFSET != maxBound &&
+          maxFileOffset < maxBound)
+      {
+         PD_LOG(PDERROR, "current max file offset[%lld] does not match max bound param[%lld]",
+                maxFileOffset, maxBound);
+         rc = SDB_VESSEL_FAILURE_LOADING_DLR;
+         goto error;
+      }
+
+      _maxOffset = (DPS_INVALID_LSN_OFFSET == maxBound) ?
+                   maxFileOffset : maxBound;
+      _currentOffset = minOffset;
    done:
       return rc;
    error:
@@ -135,26 +123,22 @@ namespace vessel
    }
 
    INT32 deltaLogScanner::getNext(deltaLogRecord &dlr,
-                                 UINT64 *offset)
+                                  UINT64 *offset)
    {
       INT32 rc = SDB_OK;
 
-      if (DPS_INVALID_LSN_OFFSET == _firstRecordOffset)
+      if (NULL == _logFiles)
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (_lastRecordHeadOffset < _currentOffset)
-      {
-         rc = SDB_VESSEL_EOC;
-         goto error;
-      }
-      else if (_maxFileOffset <= _currentOffset)
+      else if (_maxOffset <= (deltaLogFileDef::MIN_RECORD_SIZE_ON_DISK + _currentOffset))
       {
          rc = SDB_VESSEL_EOC;
          goto error;
       }
 
+      dlr.reset();
       rc = getRecord(_currentOffset, dlr);
       if (SDB_OK == rc)
       {
@@ -170,15 +154,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get next log record:%d", rc);
          goto error;
       }
-      else if (DPS_INVALID_LSN_OFFSET != _lastRecordHeadOffset)
-      {
-         PD_LOG(PDERROR, "failed to get log record at offset[%lld]", _currentOffset);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
       else
       {
-         /// If _lastRecordHeadOffset not set, stop where first failure reading. 
          rc = SDB_VESSEL_EOC;
          goto error;
       }
@@ -193,7 +170,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _logFiles, "can not be null");
-      SDB_ASSERT(_currentOffset <= _lastRecordHeadOffset, "impossible");
 
       DELTA_LOG_CHECKSUM checksum = 0;
       const DELTA_LOG_CHECKSUM *checksumOnDisk = NULL;
@@ -201,7 +177,7 @@ namespace vessel
       UINT32 segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(offset);
       UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(offset);
       UINT64 fileId = deltaLogFileDef::getLogFileSequenceByOffset(offset);
-      const storageFile *file = _logFiles->get(fileId);
+      const storageFile *file = _logFiles->findFromBackToFront(fileId);
       if (NULL == file)
       {
          PD_LOG(PDERROR, "file with sequence[%lld] does not exist", fileId);

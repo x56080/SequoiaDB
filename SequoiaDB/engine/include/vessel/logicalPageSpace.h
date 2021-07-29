@@ -45,13 +45,13 @@
 #include "vessel/storageUnitDef.h"
 #include "vessel/vesselFileName.h"
 #include "vessel/runtimePageBuffer.h"
-#include "vessel/storageFileMap.h"
 #include "vessel/deltaLogConsole.h"
 #include "vessel/storageFileCreater.h"
 #include "vessel/logicalPageIdCache.h"
 #include "vessel/lpsCheckpointContext.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/logicalPageBuffer.h"
+#include "vessel/sortedStorageFileList.h"
 
 namespace engine
 {
@@ -143,8 +143,25 @@ namespace vessel
                                   PAGE_ID pid,
                                   mmapPagePointer &ptr)const;
       public:
+         INT32 createCheckpoint(requestContext *context);
+
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
+
+      private:
+         /// Under checkpoint x latch.
+         /// Must resume x latch if released in func.
+         virtual INT32 prepareToCreateCheckpoint(requestContext *context) = 0;
+
+         virtual INT32 prepareToFlushSegments(requestContext *context,
+                                              BOOLEAN isFullCheckpoint,
+                                              ossPoolSet<UINT32> &segments) = 0;
+
+         virtual INT32 flushWhenCreatingCheckpoint(requestContext *context,
+                                                   const ossPoolSet<UINT32> &segments)
+         {
+            return SDB_VESSEL_INTERNAL_ERR;
+         }
   
       protected:
          OSS_INLINE const storageFileCreater &getCreater()const
@@ -263,8 +280,7 @@ namespace vessel
          virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
 
       private:
-         void __close();
-         void __destroy();
+         void fini();
          INT32 createFirstIdMapFile(const storageCoreArgs &dataArgs);
          INT32 openIdMapFiles(SPACE_ID sid,
                               const strSlice &dir,
@@ -275,6 +291,11 @@ namespace vessel
          INT32 restoreAllocatorByBaseFile(const idMapFile *base);
          INT32 restoreAllocatorByReservedImp(const idMapFile *base, PAGE_ID pid);
          INT32 restoreAllocatorByImp(const idMapFile *base, PAGE_ID pid);
+
+         INT32 rebaseWhenCreatingCheckpoint(UINT32 totalImpCount,
+                                            UINT64 deltaLogOffset);
+
+         INT32 removeHistoryIdMapAndDeltaLogFiles();
 
       private:
          INT32 preallocateLpids(requestContext *context,
@@ -305,7 +326,7 @@ namespace vessel
 
       private:
          storageFileCreater _creater;
-         storageFileMap _idMapFiles;
+         sortedStorageFileList _idMapFiles;
          inMemBitmap _allocator;
          ossSpinXLatch _mappingLatch;
          deltaLogConsole _logConsole;

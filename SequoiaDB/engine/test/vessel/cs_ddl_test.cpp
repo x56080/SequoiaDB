@@ -236,6 +236,10 @@ TEST_F(cs_ddl_test, test4)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
+   rc = db.getCollectionSpaceCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, count);
+
    rc = db.listCollectionSpace(&session, NULL, c);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -251,6 +255,10 @@ TEST_F(cs_ddl_test, test4)
 
    rc = db.createCollectionSpace(&session, "foo3", 3, csOptions);
    ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.getCollectionSpaceCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(3, count);
 
    rc = db.listCollectionSpace(&session, NULL, c);
    ASSERT_EQ(SDB_OK, rc);

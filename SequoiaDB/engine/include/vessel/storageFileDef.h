@@ -57,13 +57,14 @@ namespace vessel
 
    static const UINT64 STORAGE_FILE_SIZE = (UINT64(4) << 30); /// 4GB
 
-   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_2MB = ((UINT32)2 << 20);
+   static const UINT32 STORAGE_FILE_SEGMENT_SIZE_4MB = ((UINT32)4 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_32MB = ((UINT32)32 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_128MB = ((UINT32)128 << 20);
    static const UINT32 STORAGE_FILE_SEGMENT_SIZE_256MB = ((UINT32)256 << 20);
 
    static const UINT64 STORAGE_FILE_INVALID_SEQUENCE = OSS_UINT64_MAX;
 
+   /// Internal files like detalog may not follow segment sizes here.
    BOOLEAN isValidSegmentSize(UINT32 size);
 
 #pragma pack(4)
