@@ -200,9 +200,8 @@ static void convertIndexObj( BSONObj& indexObj, string clFullName )
 static void convertCollectionObj( BSONObj& collectionObj )
 {
    // { Name: "foo.bar" } => { name: "bar" }
-   const CHAR* _clFullName = collectionObj.getStringField( "Name" ) ;
-   const CHAR* dotPos = ossStrstr( _clFullName, "." ) + 1 ;
-   string clShortName = dotPos ;
+   const CHAR* _pClFullName = collectionObj.getStringField( "Name" ) ;
+   string clShortName = ossStrstr( _pClFullName, "." ) + 1 ;
 
    unescapeDot( clShortName ) ;
 
@@ -221,20 +220,20 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
       while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
-         const CHAR* fieldName = NULL ;
+         const CHAR* pFieldName = NULL ;
 
          if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_OPERATOR_EQ ) )
          {
             // if the field name is "$eq", we should build the new field name
             // named "$et"
-            fieldName = FAP_MONGO_OPERATOR_ET ;
+            pFieldName = FAP_MONGO_OPERATOR_ET ;
          }
 
          if ( Object == ele.type() )
          {
             BSONObjBuilder subBob( matchConditonBob.subobjStart(
-                                   ( NULL == fieldName ) ?
-                                   ele.fieldName() : fieldName ) ) ;
+                                   ( NULL == pFieldName ) ?
+                                   ele.fieldName() : pFieldName ) ) ;
             rc = convertMongoOperator2Sdb( ele.Obj(), subBob ) ;
             if ( rc )
             {
@@ -245,8 +244,8 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
          else if ( Array == ele.type() )
          {
             BSONArrayBuilder subBob( matchConditonBob.subarrayStart(
-                                     ( NULL == fieldName ) ?
-                                     ele.fieldName() : fieldName ) ) ;
+                                     ( NULL == pFieldName ) ?
+                                     ele.fieldName() : pFieldName ) ) ;
             rc = convertMongoOperator2Sdb( ele.Obj(), subBob ) ;
             if ( rc )
             {
@@ -256,13 +255,13 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
          }
          else
          {
-            if ( NULL == fieldName )
+            if ( NULL == pFieldName )
             {
                matchConditonBob.append( ele ) ;
             }
             else
             {
-               matchConditonBob.appendAs( ele, fieldName ) ;
+               matchConditonBob.appendAs( ele, pFieldName ) ;
             }
          }
       }
@@ -300,15 +299,15 @@ _mongoCmdFactory::~_mongoCmdFactory ()
 
 void _mongoCmdFactory::_releaseCmdInfo ( _mongoCmdInfo *pCmdInfo )
 {
-   if ( pCmdInfo->next )
+   if ( pCmdInfo->pNext )
    {
-      _releaseCmdInfo ( pCmdInfo->next ) ;
-      pCmdInfo->next = NULL ;
+      _releaseCmdInfo ( pCmdInfo->pNext ) ;
+      pCmdInfo->pNext = NULL ;
    }
-   if ( pCmdInfo->sub )
+   if ( pCmdInfo->pSub )
    {
-      _releaseCmdInfo ( pCmdInfo->sub ) ;
-      pCmdInfo->sub = NULL ;
+      _releaseCmdInfo ( pCmdInfo->pSub ) ;
+      pCmdInfo->pSub = NULL ;
    }
 
    SDB_OSS_DEL pCmdInfo ;
@@ -325,8 +324,8 @@ INT32 _mongoCmdFactory::_register ( const CHAR * name,
       _pCmdInfoRoot->cmdName = name ;
       _pCmdInfoRoot->createFunc = pFunc ;
       _pCmdInfoRoot->nameSize = ossStrlen ( name ) ;
-      _pCmdInfoRoot->next = NULL ;
-      _pCmdInfoRoot->sub = NULL ;
+      _pCmdInfoRoot->pNext = NULL ;
+      _pCmdInfoRoot->pSub = NULL ;
    }
    else
    {
@@ -350,25 +349,25 @@ INT32 _mongoCmdFactory::_insert( _mongoCmdInfo * pCmdInfo,
                                  MONGO_CMD_NEW_FUNC pFunc )
 {
    INT32 rc = SDB_OK ;
-   _mongoCmdInfo *newCmdInfo = NULL ;
+   _mongoCmdInfo *pNewCmdInfo = NULL ;
    UINT32 sameNum = _near ( pCmdInfo->cmdName.c_str(), name ) ;
 
    if ( sameNum == 0 )
    {
-      if ( !pCmdInfo->sub )
+      if ( !pCmdInfo->pSub )
       {
-         newCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
-         newCmdInfo->cmdName = name ;
-         newCmdInfo->createFunc = pFunc ;
-         newCmdInfo->nameSize = ossStrlen(name) ;
-         newCmdInfo->next = NULL ;
-         newCmdInfo->sub = NULL ;
+         pNewCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
+         pNewCmdInfo->cmdName = name ;
+         pNewCmdInfo->createFunc = pFunc ;
+         pNewCmdInfo->nameSize = ossStrlen(name) ;
+         pNewCmdInfo->pNext = NULL ;
+         pNewCmdInfo->pSub = NULL ;
 
-         pCmdInfo->sub = newCmdInfo ;
+         pCmdInfo->pSub = pNewCmdInfo ;
       }
       else
       {
-         rc = _insert ( pCmdInfo->sub, name, pFunc ) ;
+         rc = _insert ( pCmdInfo->pSub, name, pFunc ) ;
       }
    }
    else if ( sameNum == pCmdInfo->nameSize )
@@ -384,33 +383,33 @@ INT32 _mongoCmdFactory::_insert( _mongoCmdInfo * pCmdInfo,
             rc = SDB_SYS ; //already exist
          }
       }
-      else if ( !pCmdInfo->next )
+      else if ( !pCmdInfo->pNext )
       {
-         newCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
-         newCmdInfo->cmdName = &name[sameNum] ;
-         newCmdInfo->createFunc = pFunc ;
-         newCmdInfo->nameSize = ossStrlen(&name[sameNum]) ;
-         newCmdInfo->next = NULL ;
-         newCmdInfo->sub = NULL ;
+         pNewCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
+         pNewCmdInfo->cmdName = &name[sameNum] ;
+         pNewCmdInfo->createFunc = pFunc ;
+         pNewCmdInfo->nameSize = ossStrlen(&name[sameNum]) ;
+         pNewCmdInfo->pNext = NULL ;
+         pNewCmdInfo->pSub = NULL ;
 
-         pCmdInfo->next = newCmdInfo ;
+         pCmdInfo->pNext = pNewCmdInfo ;
       }
       else
       {
-         rc = _insert ( pCmdInfo->next, &name[sameNum], pFunc ) ;
+         rc = _insert ( pCmdInfo->pNext, &name[sameNum], pFunc ) ;
       }
    }
    else
    {
       //split next node first
-      newCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
-      newCmdInfo->cmdName = pCmdInfo->cmdName.substr( sameNum ) ;
-      newCmdInfo->createFunc = pCmdInfo->createFunc ;
-      newCmdInfo->nameSize = pCmdInfo->nameSize - sameNum ;
-      newCmdInfo->next = pCmdInfo->next ;
-      newCmdInfo->sub = NULL ;
+      pNewCmdInfo = SDB_OSS_NEW _mongoCmdInfo ;
+      pNewCmdInfo->cmdName = pCmdInfo->cmdName.substr( sameNum ) ;
+      pNewCmdInfo->createFunc = pCmdInfo->createFunc ;
+      pNewCmdInfo->nameSize = pCmdInfo->nameSize - sameNum ;
+      pNewCmdInfo->pNext = pCmdInfo->pNext ;
+      pNewCmdInfo->pSub = NULL ;
 
-      pCmdInfo->next = newCmdInfo ;
+      pCmdInfo->pNext = pNewCmdInfo ;
 
       //change cur node
       pCmdInfo->cmdName = pCmdInfo->cmdName.substr ( 0, sameNum ) ;
@@ -420,7 +419,7 @@ INT32 _mongoCmdFactory::_insert( _mongoCmdInfo * pCmdInfo,
       {
          pCmdInfo->createFunc = NULL ;
 
-         rc = _insert ( newCmdInfo, &name[sameNum], pFunc ) ;
+         rc = _insert ( pNewCmdInfo, &name[sameNum], pFunc ) ;
       }
       else
       {
@@ -431,9 +430,9 @@ INT32 _mongoCmdFactory::_insert( _mongoCmdInfo * pCmdInfo,
    return rc ;
 }
 
-_mongoCommand *_mongoCmdFactory::create ( const CHAR *commandName )
+_mongoCommand *_mongoCmdFactory::create ( const CHAR *pCommandName )
 {
-   MONGO_CMD_NEW_FUNC pFunc = _find ( commandName ) ;
+   MONGO_CMD_NEW_FUNC pFunc = _find ( pCommandName ) ;
    if ( pFunc )
    {
       return (*pFunc)() ;
@@ -450,7 +449,7 @@ void _mongoCmdFactory::release ( _mongoCommand *pCommand )
    }
 }
 
-MONGO_CMD_NEW_FUNC _mongoCmdFactory::_find ( const CHAR * name )
+MONGO_CMD_NEW_FUNC _mongoCmdFactory::_find ( const CHAR *pName )
 {
    MONGO_CMD_NEW_FUNC pFunc = NULL ;
    _mongoCmdInfo *pCmdNode = _pCmdInfoRoot ;
@@ -460,9 +459,9 @@ MONGO_CMD_NEW_FUNC _mongoCmdFactory::_find ( const CHAR * name )
    while ( pCmdNode )
    {
       findRoot = FALSE ;
-      if ( pCmdNode->cmdName.at ( 0 ) != name[index] )
+      if ( pCmdNode->cmdName.at ( 0 ) != pName[index] )
       {
-         pCmdNode = pCmdNode->sub ;
+         pCmdNode = pCmdNode->pSub ;
       }
       else
       {
@@ -471,29 +470,29 @@ MONGO_CMD_NEW_FUNC _mongoCmdFactory::_find ( const CHAR * name )
 
       if ( findRoot )
       {
-         if ( _near ( pCmdNode->cmdName.c_str(), &name[index] )
+         if ( _near ( pCmdNode->cmdName.c_str(), &pName[index] )
             != pCmdNode->nameSize )
          {
             break ;
          }
          index += pCmdNode->nameSize ;
-         if ( name[index] == 0 ) //find
+         if ( pName[index] == 0 ) //find
          {
             pFunc = pCmdNode->createFunc ;
             break ;
          }
 
-         pCmdNode = pCmdNode->next ;
+         pCmdNode = pCmdNode->pNext ;
       }
    }
 
    return pFunc ;
 }
 
-UINT32 _mongoCmdFactory::_near ( const CHAR *str1, const CHAR *str2 )
+UINT32 _mongoCmdFactory::_near ( const CHAR *pStr1, const CHAR *pStr2 )
 {
    UINT32 same = 0 ;
-   while ( str1[same] && str2[same] && str1[same] == str2[same] )
+   while ( pStr1[same] && pStr2[same] && pStr1[same] == pStr2[same] )
    {
       ++same ;
    }
@@ -560,7 +559,7 @@ error:
    goto done ;
 }
 
-static INT32 _mongoGetAndInitCommand( const CHAR *commandName,
+static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
                                       _mongoMessage *pMsg,
                                       _mongoCommand **ppCommand,
                                       mongoSessionCtx &sessCtx )
@@ -572,18 +571,18 @@ static INT32 _mongoGetAndInitCommand( const CHAR *commandName,
    try
    {
       // get command
-      *ppCommand = getMongoCmdFactory()->create( commandName ) ;
+      *ppCommand = getMongoCmdFactory()->create( pCommandName ) ;
       if ( NULL == *ppCommand )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
 
          CHAR err[ 64 ] = {0} ;
-         ossSnprintf( err, 63, "Command '%s' is not supported", commandName ) ;
+         ossSnprintf( err, 63, "Command '%s' is not supported", pCommandName ) ;
          sessCtx.setError( rc, err ) ;
 
          PD_LOG( PDERROR,
                  "Unknown command name for mongo request: %s",
-                 commandName ) ;
+                 pCommandName ) ;
          goto error ;
       }
 
@@ -625,7 +624,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
    {
       _mongoQueryRequest req ;
       const CHAR* ptr = NULL ;
-      const CHAR* commandName = NULL ;
+      const CHAR* pCommandName = NULL ;
 
       rc = req.init( pMsg ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -639,14 +638,14 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
       if ( ptr )
       {
          BSONObj obj( req.query() ) ;
-         commandName = obj.firstElementFieldName() ;
+         pCommandName = obj.firstElementFieldName() ;
       }
       else
       {
-         commandName = MONGO_CMD_NAME_QUERY ;
+         pCommandName = MONGO_CMD_NAME_QUERY ;
       }
 
-      rc = _mongoGetAndInitCommand( commandName, &req, ppCommand, sessCtx ) ;
+      rc = _mongoGetAndInitCommand( pCommandName, &req, ppCommand, sessCtx ) ;
       if ( rc )
       {
          goto error ;
@@ -791,8 +790,8 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       BSONObj obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -864,18 +863,18 @@ INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
       _obj = BSONObj( pReq->query() ) ;
 
       // check command name
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       // get cs name
-      const CHAR* nameInReq = pReq->fullCollectionName() ;
-      const CHAR* ptr = ossStrstr( nameInReq,
+      const CHAR* pNameInReq = pReq->fullCollectionName() ;
+      const CHAR* ptr = ossStrstr( pNameInReq,
                                    FAP_MONGO_FIELD_NAME_CMD ) ;
       PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
                 "Invalid collectionFullName for mongo %s request: %s",
-                name(), nameInReq ) ;
-      _csName.assign( nameInReq, ptr - nameInReq ) ;
+                name(), pNameInReq ) ;
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
 
       _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
@@ -1032,32 +1031,32 @@ error:
 INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
 {
    INT32 rc = SDB_OK ;
-   const CHAR* clShortName = NULL ;
-   const CHAR* nameInReq = pReq->fullCollectionName() ;
+   const CHAR* pClShortName = NULL ;
+   const CHAR* pNameInReq = pReq->fullCollectionName() ;
 
    _obj = BSONObj( pReq->query() ) ;
 
    // check command name
-   const CHAR* commandName = _obj.firstElementFieldName() ;
-   SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+   const CHAR* pCommandName = _obj.firstElementFieldName() ;
+   SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                "Invalid command name" ) ;
 
    // get cs name
-   const CHAR* ptr = ossStrstr( nameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
-             name(), nameInReq ) ;
-   _csName.assign( nameInReq, ptr - nameInReq ) ;
+             name(), pNameInReq ) ;
+   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
 
    // get collection full name
-   rc = mongoGetStringElement( _obj, commandName, &clShortName ) ;
+   rc = mongoGetStringElement( _obj, pCommandName, pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
-                commandName, rc ) ;
+                pCommandName, rc ) ;
 
    _clFullName = _csName ;
    _clFullName += "." ;
-   _clFullName += clShortName ;
+   _clFullName += pClShortName ;
    escapeDot( _clFullName ) ;
 
 done:
@@ -1084,15 +1083,15 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
    // get cs cl name
    _csName = pReq->databaseName() ;
 
-   const CHAR* clShortName = NULL ;
-   rc = mongoGetStringElement( _obj, pReq->commandName(), &clShortName ) ;
+   const CHAR* pClShortName = NULL ;
+   rc = mongoGetStringElement( _obj, pReq->commandName(), pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pReq->commandName(), rc ) ;
 
    _clFullName = _csName ;
    _clFullName += "." ;
-   _clFullName += clShortName ;
+   _clFullName += pClShortName ;
    escapeDot( _clFullName ) ;
 
 done:
@@ -1225,23 +1224,23 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
-   MsgOpInsert *insert     = NULL ;
+   MsgOpInsert *pInsert    = NULL ;
 
    sdbMsg.reserve( sizeof( MsgOpInsert ) ) ;
    sdbMsg.advance( sizeof( MsgOpInsert ) - 4 ) ;
 
-   insert = ( MsgOpInsert *)sdbMsg.data() ;
-   insert->header.opCode = MSG_BS_INSERT_REQ ;
-   insert->header.TID = 0 ;
-   insert->header.routeID.value = 0 ;
-   insert->header.requestID = _requestID ;
-   insert->version = 0 ;
-   insert->w = 0 ;
-   insert->padding = 0 ;
-   insert->flags = FLG_INSERT_RETURNNUM ;
+   pInsert = ( MsgOpInsert *)sdbMsg.data() ;
+   pInsert->header.opCode = MSG_BS_INSERT_REQ ;
+   pInsert->header.TID = 0 ;
+   pInsert->header.routeID.value = 0 ;
+   pInsert->header.requestID = _requestID ;
+   pInsert->version = 0 ;
+   pInsert->w = 0 ;
+   pInsert->padding = 0 ;
+   pInsert->flags = FLG_INSERT_RETURNNUM ;
 
-   insert->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), insert->nameLength + 1, TRUE ) ;
+   pInsert->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pInsert->nameLength + 1, TRUE ) ;
 
    // get records to be insert
    BSONObj docList ;
@@ -1300,26 +1299,26 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
-   INT32 rc         = SDB_OK ;
-   MsgOpDelete *del = NULL ;
+   INT32 rc          = SDB_OK ;
+   MsgOpDelete *pDel = NULL ;
    BSONObj objList, deleteObj, qObj ;
    BSONObjBuilder operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpDelete ) ) ;
    sdbMsg.advance( sizeof( MsgOpDelete ) - 4 ) ;
 
-   del = ( MsgOpDelete *)sdbMsg.data() ;
-   del->header.opCode = MSG_BS_DELETE_REQ ;
-   del->header.TID = 0 ;
-   del->header.routeID.value = 0 ;
-   del->header.requestID = _requestID ;
-   del->version = 0 ;
-   del->w = 0 ;
-   del->padding = 0 ;
-   del->flags = FLG_DELETE_RETURNNUM ;
+   pDel = ( MsgOpDelete *)sdbMsg.data() ;
+   pDel->header.opCode = MSG_BS_DELETE_REQ ;
+   pDel->header.TID = 0 ;
+   pDel->header.routeID.value = 0 ;
+   pDel->header.requestID = _requestID ;
+   pDel->version = 0 ;
+   pDel->w = 0 ;
+   pDel->padding = 0 ;
+   pDel->flags = FLG_DELETE_RETURNNUM ;
 
-   del->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), del->nameLength + 1, TRUE ) ;
+   pDel->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pDel->nameLength + 1, TRUE ) ;
 
    // { delete: "bar", deletes: [ { q: {xxx}, limit: 0 } ] }
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DELETES, objList ) ;
@@ -1351,7 +1350,7 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    if ( 1 == deleteObj.getIntField( "limit" ) )
    {
-      del->flags |= FLG_DELETE_ONE ;
+      pDel->flags |= FLG_DELETE_ONE ;
    }
 
    rc = convertMongoOperator2Sdb( qObj, operatorBob ) ;
@@ -1451,26 +1450,26 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
-   BOOLEAN updateMulti = FALSE ;
-   MsgOpUpdate *update = NULL ;
+   BOOLEAN updateMulti  = FALSE ;
+   MsgOpUpdate *pUpdate = NULL ;
    BSONObj query, updator, hint, setOnObj, objList, updateObj ;
    BSONObjBuilder operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpUpdate ) ) ;
    sdbMsg.advance( sizeof( MsgOpUpdate ) - 4 ) ;
 
-   update = ( MsgOpUpdate *)sdbMsg.data() ;
-   update->header.opCode = MSG_BS_UPDATE_REQ ;
-   update->header.TID = 0 ;
-   update->header.routeID.value = 0 ;
-   update->header.requestID = _requestID ;
-   update->version = 0 ;
-   update->w = 0 ;
-   update->padding = 0 ;
-   update->flags = FLG_UPDATE_RETURNNUM ;
+   pUpdate = ( MsgOpUpdate *)sdbMsg.data() ;
+   pUpdate->header.opCode = MSG_BS_UPDATE_REQ ;
+   pUpdate->header.TID = 0 ;
+   pUpdate->header.routeID.value = 0 ;
+   pUpdate->header.requestID = _requestID ;
+   pUpdate->version = 0 ;
+   pUpdate->w = 0 ;
+   pUpdate->padding = 0 ;
+   pUpdate->flags = FLG_UPDATE_RETURNNUM ;
 
-   update->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), update->nameLength + 1, TRUE ) ;
+   pUpdate->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pUpdate->nameLength + 1, TRUE ) ;
 
    // { update: "bar",
    //   updates: [ { q: {xxx}, u: {xxx}, upsert: false, multi: true } ... ] }
@@ -1507,11 +1506,11 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    // set flag
    if ( FALSE == updateMulti )
    {
-      update->flags |= FLG_UPDATE_ONE ;
+      pUpdate->flags |= FLG_UPDATE_ONE ;
    }
    if ( _isUpsert )
    {
-      update->flags |= FLG_UPDATE_UPSERT ;
+      pUpdate->flags |= FLG_UPDATE_UPSERT ;
    }
 
    // if updator without operator, convert to $replace
@@ -1895,7 +1894,7 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
 
    INT32 rc = SDB_OK ;
    const CHAR* ptr = NULL ;
-   const CHAR* nameInReq = NULL ;
+   const CHAR* pNameInReq = NULL ;
    const _mongoQueryRequest* pReq = NULL ;
 
    // convert request
@@ -1906,20 +1905,20 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
    pReq = (_mongoQueryRequest*)pMsg ;
 
    // get cs name and cl name
-   nameInReq = pReq->fullCollectionName() ;
+   pNameInReq = pReq->fullCollectionName() ;
 
-   ptr = ossStrstr( nameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
    PD_CHECK( NULL == ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
-             name(), nameInReq ) ;
+             name(), pNameInReq ) ;
 
-   ptr = ossStrstr( nameInReq, FAP_MONGO_DOT ) ;
+   ptr = ossStrstr( pNameInReq, FAP_MONGO_DOT ) ;
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
-             name(), nameInReq ) ;
+             name(), pNameInReq ) ;
 
-   _csName.assign( nameInReq, ptr - nameInReq ) ;
-   _clFullName = nameInReq ;
+   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+   _clFullName = pNameInReq ;
    escapeDot( _clFullName ) ;
 
    // get query
@@ -1952,47 +1951,47 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
-   MsgOpQuery *query       = NULL ;
+   MsgOpQuery *pQuery      = NULL ;
    BSONObj cond, orderby, hint ;
    BSONObjBuilder operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = FLG_QUERY_WITH_RETURNDATA ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = FLG_QUERY_WITH_RETURNDATA ;
 
-   query->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
 
-   query->numToSkip = _skip ;
+   pQuery->numToSkip = _skip ;
    if ( _nReturn > 0 )
    {
       if ( 1000 == _nReturn && NODEJS_DRIVER == _client )
       {
          // The defalut value of batchSize for NODEJS-driver is 1000,
          // while other driver is 0.
-         query->numToReturn = -1 ;
+         pQuery->numToReturn = -1 ;
       }
       else
       {
-         query->numToReturn = _nReturn ;
+         pQuery->numToReturn = _nReturn ;
       }
    }
    else if ( 0 == _nReturn )
    {
-      query->numToReturn = -1 ;
+      pQuery->numToReturn = -1 ;
    }
    else
    {
-      query->numToReturn = -_nReturn ;
+      pQuery->numToReturn = -_nReturn ;
    }
 
    convertProjection( _selector ) ;
@@ -2149,28 +2148,28 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
-   INT32      rc     = SDB_OK ;
-   MsgOpQuery *query = NULL ;
+   INT32      rc      = SDB_OK ;
+   MsgOpQuery *pQuery = NULL ;
    BSONObj cond, orderby, hint, selector ;
    BSONObjBuilder operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = FLG_QUERY_WITH_RETURNDATA ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = FLG_QUERY_WITH_RETURNDATA ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
 
-   query->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
 
    cond     = _obj.getObjectField( "filter" ) ;
    orderby  = _obj.getObjectField( "sort" ) ;
@@ -2184,11 +2183,11 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
    if ( _obj.hasField( "limit" ) )
    {
-      query->numToReturn = _obj.getIntField( "limit" ) ;
+      pQuery->numToReturn = _obj.getIntField( "limit" ) ;
    }
    if ( _obj.hasField( "skip" ) )
    {
-      query->numToSkip = _obj.getIntField( "skip" ) ;
+      pQuery->numToSkip = _obj.getIntField( "skip" ) ;
    }
 
    rc = convertMongoOperator2Sdb( cond, operatorBob ) ;
@@ -2312,15 +2311,15 @@ INT32 _mongoGetmoreCommand::_init( const _mongoGetmoreRequest *pReq )
    INT32 rc = SDB_OK ;
 
    // get collection full name
-   const CHAR* nameInReq = pReq->fullCollectionName() ;
-   _clFullName = nameInReq ;
+   const CHAR* pNameInReq = pReq->fullCollectionName() ;
+   _clFullName = pNameInReq ;
 
    // get cs name
-   const CHAR* ptr = ossStrstr( nameInReq, FAP_MONGO_DOT ) ;
+   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_DOT ) ;
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
-             name(), nameInReq ) ;
-   _csName.assign( nameInReq, ptr - nameInReq ) ;
+             name(), pNameInReq ) ;
+   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
 
    // get cursorID
    _cursorID = pReq->cursorID() ;
@@ -2345,37 +2344,38 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
    // fullCollectionName: "foo.$cmd"
    // { getMore: <cursorID>, collection: "bar", batchSize: 1000 }
    INT32 rc = SDB_OK ;
-   const CHAR* clShortName = NULL ;
-   const CHAR* nameInReq = pReq->fullCollectionName() ;
+   const CHAR* pClShortName = NULL ;
+   const CHAR* pNameInReq = pReq->fullCollectionName() ;
    BSONObj obj( pReq->query() ) ;
 
    // check command name
-   const CHAR* commandName = obj.firstElementFieldName() ;
-   SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+   const CHAR* pCommandName = obj.firstElementFieldName() ;
+   SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                "Invalid command name" ) ;
 
    // get cs name
-   const CHAR* ptr = ossStrstr( nameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
-             name(), nameInReq ) ;
-   _csName.assign( nameInReq, ptr - nameInReq ) ;
+             name(), pNameInReq ) ;
+   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
 
    // get collection full name
-   rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION, &clShortName ) ;
+   rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION,
+                               pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
 
    _clFullName = _csName ;
    _clFullName += "." ;
-   _clFullName += clShortName ;
+   _clFullName += pClShortName ;
 
    // get cursorID
-   rc = mongoGetNumberLongElement( obj, commandName, _cursorID ) ;
+   rc = mongoGetNumberLongElement( obj, pCommandName, _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
-                commandName, rc ) ;
+                pCommandName, rc ) ;
 
    // get returned number
    rc = mongoGetIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
@@ -2401,7 +2401,7 @@ error:
 INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
 {
    INT32 rc = SDB_OK ;
-   const CHAR* clShortName = NULL ;
+   const CHAR* pClShortName = NULL ;
    BSONObj obj( pReq->metadata() ) ;
 
    // check command name
@@ -2413,14 +2413,14 @@ INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
 
    // get cl name
    rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION,
-                               &clShortName ) ;
+                               pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
 
    _clFullName = _csName ;
    _clFullName += "." ;
-   _clFullName += clShortName ;
+   _clFullName += pClShortName ;
 
    // get cursorID
    rc = mongoGetNumberLongElement( obj, pReq->commandName(), _cursorID ) ;
@@ -2452,18 +2452,18 @@ error:
 INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                              mongoSessionCtx &ctx )
 {
-   MsgOpGetMore *more = NULL ;
+   MsgOpGetMore *pGetMore = NULL ;
 
    sdbMsg.reserve( sizeof( MsgOpGetMore ) ) ;
    sdbMsg.advance( sizeof( MsgOpGetMore ) ) ;
 
-   more = ( MsgOpGetMore * )sdbMsg.data() ;
-   more->header.opCode = MSG_BS_GETMORE_REQ ;
-   more->header.TID = 0 ;
-   more->header.routeID.value = 0 ;
-   more->header.requestID = _requestID ;
-   more->contextID = MGCURSOID_TO_SDBCTXID( _cursorID ) ;
-   more->numToReturn = _nToReturn ;
+   pGetMore = ( MsgOpGetMore * )sdbMsg.data() ;
+   pGetMore->header.opCode = MSG_BS_GETMORE_REQ ;
+   pGetMore->header.TID = 0 ;
+   pGetMore->header.routeID.value = 0 ;
+   pGetMore->header.requestID = _requestID ;
+   pGetMore->contextID = MGCURSOID_TO_SDBCTXID( _cursorID ) ;
+   pGetMore->numToReturn = _nToReturn ;
 
    sdbMsg.doneLen() ;
 
@@ -2707,8 +2707,8 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
       BSONObj obj( pReq->query() ) ;
 
       // check command name
-      const CHAR* commandName = obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       // get cursorID list
@@ -2780,8 +2780,8 @@ error:
 INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                 mongoSessionCtx &ctx )
 {
-   INT32 rc                = SDB_OK ;
-   MsgOpKillContexts *kill = NULL ;
+   INT32 rc                 = SDB_OK ;
+   MsgOpKillContexts *pKill = NULL ;
 
    if ( _killCursorList.size() > 1 )
    {
@@ -2793,13 +2793,13 @@ INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.reserve( sizeof( MsgOpKillContexts ) ) ;
    sdbMsg.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
 
-   kill = ( MsgOpKillContexts * )sdbMsg.data() ;
-   kill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
-   kill->header.TID = 0 ;
-   kill->header.routeID.value = 0 ;
-   kill->header.requestID = _requestID ;
-   kill->ZERO = 0 ;
-   kill->numContexts = _killCursorList.size() ;
+   pKill = ( MsgOpKillContexts * )sdbMsg.data() ;
+   pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+   pKill->header.TID = 0 ;
+   pKill->header.routeID.value = 0 ;
+   pKill->header.requestID = _requestID ;
+   pKill->ZERO = 0 ;
+   pKill->numContexts = _killCursorList.size() ;
 
    for( vector<INT64>::iterator it = _killCursorList.begin() ;
         it != _killCursorList.end() ; it++ )
@@ -2868,36 +2868,36 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
-   MsgOpQuery *query = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT ;
+   MsgOpQuery *pQuery = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT ;
    BSONObj empty, hint, matcher ;
    BSONObjBuilder operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
 
-   query->nameLength = ossStrlen( cmdName ) ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    if ( _obj.hasField( "skip" ) )
    {
-      query->numToSkip = _obj.getIntField( "skip" ) ;
+      pQuery->numToSkip = _obj.getIntField( "skip" ) ;
    }
    if ( _obj.hasField( "limit" ) )
    {
-      query->numToReturn = _obj.getIntField( "limit" ) ;
+      pQuery->numToReturn = _obj.getIntField( "limit" ) ;
    }
 
    // mongo command: db.bar.count( { a: 1 }, { hint: "aIdx" } )
@@ -2993,9 +2993,9 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
    }
 
    BSONObj groupValue = groupObj.getObjectField( "$group" ) ;
-   const CHAR* idValue = groupValue.getStringField( "_id" ) ;
+   const CHAR* pIdValue = groupValue.getStringField( "_id" ) ;
 
-   if ( '$' == idValue[0] )
+   if ( '$' == pIdValue[0] )
    {
       BSONObjBuilder bobGroup, bobProj ;
       BSONObjIterator itr( groupValue ) ;
@@ -3012,7 +3012,7 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
             bobProj.append( e.fieldName(), 1 ) ;
          }
       }
-      bobGroup.append( "tmp_id_field", idValue ) ;
+      bobGroup.append( "tmp_id_field", pIdValue ) ;
 
       newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
       newStageList.push_back( BSON( "$project" << bobProj.obj() ) ) ;
@@ -3118,22 +3118,22 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
-   MsgOpAggregate *aggre   = NULL ;
+   MsgOpAggregate *pAggre  = NULL ;
 
    sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
    sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
 
-   aggre = ( MsgOpAggregate * )sdbMsg.data() ;
-   aggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
-   aggre->header.TID = 0 ;
-   aggre->header.routeID.value = 0 ;
-   aggre->header.requestID = _requestID ;
-   aggre->version = 0 ;
-   aggre->w = 0 ;
-   aggre->padding = 0 ;
-   aggre->flags = 0 ;
-   aggre->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), aggre->nameLength + 1, TRUE ) ;
+   pAggre = ( MsgOpAggregate * )sdbMsg.data() ;
+   pAggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
+   pAggre->header.TID = 0 ;
+   pAggre->header.routeID.value = 0 ;
+   pAggre->header.requestID = _requestID ;
+   pAggre->version = 0 ;
+   pAggre->w = 0 ;
+   pAggre->padding = 0 ;
+   pAggre->flags = 0 ;
+   pAggre->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
 
    /* eg: { pipeline: [ { $match: { b: 1 } },
                         { $group: { _id: "$a", b: { $sum: "$b" } } }
@@ -3265,25 +3265,25 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
     * { distinct: "bar", key: "a", query: { b: 1 } }
     */
    INT32 rc = SDB_OK ;
-   MsgOpAggregate *aggre   = NULL ;
+   MsgOpAggregate *pAggre   = NULL ;
    BSONObj match, group1, group2 ;
    BSONObjBuilder builder, operatorBob ;
 
    sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
    sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
 
-   aggre = ( MsgOpAggregate * )sdbMsg.data() ;
-   aggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
-   aggre->header.TID = 0 ;
-   aggre->header.routeID.value = 0 ;
-   aggre->header.requestID = _requestID ;
-   aggre->version = 0 ;
-   aggre->w = 0 ;
-   aggre->padding = 0 ;
-   aggre->flags = 0 ;
+   pAggre = ( MsgOpAggregate * )sdbMsg.data() ;
+   pAggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
+   pAggre->header.TID = 0 ;
+   pAggre->header.routeID.value = 0 ;
+   pAggre->header.requestID = _requestID ;
+   pAggre->version = 0 ;
+   pAggre->w = 0 ;
+   pAggre->padding = 0 ;
+   pAggre->flags = 0 ;
 
-   aggre->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), aggre->nameLength + 1, TRUE ) ;
+   pAggre->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
 
    std::string distinctfield = "$" ;
    distinctfield += _obj.getStringField( "key" ) ;
@@ -3352,25 +3352,25 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
-   MsgOpQuery *query       = NULL ;
-   const CHAR *cmdName     = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
+   MsgOpQuery *pQuery      = NULL ;
+   const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->nameLength = ossStrlen( cmdName ) ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj cond, empty ;
    cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
@@ -3403,26 +3403,26 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                             mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   MsgOpQuery *query = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->nameLength = ossStrlen( cmdName ) ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj cond, empty ;
    cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
@@ -3465,27 +3465,26 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
-   MsgOpQuery *query = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
-
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   query->nameLength = ossStrlen( cmdName ) ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj empty ;
    sdbMsg.write( empty, TRUE ) ;
@@ -3527,27 +3526,27 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
-   MsgOpQuery *query       = NULL ;
-   const CHAR *cmdName     = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
+   MsgOpQuery *pQuery      = NULL ;
+   const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
 
-   query->nameLength = ossStrlen( cmdName ) ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    // { createIndexes: "bar", indexes: [ { key: {a:1}, name: "aIdx" } ] }
    BSONObj objList, obj ;
@@ -3630,26 +3629,26 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
-   MsgOpQuery *query = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   query->nameLength = ossStrlen( cmdName ) ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    // mongo message:
    // { deleteIndexes: "bar", index: "aIdx" } or
@@ -3688,28 +3687,28 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropDatabaseCommand)
 INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                   mongoSessionCtx &ctx )
 {
-   INT32 rc                = SDB_OK ;
-   MsgOpQuery *query       = NULL ;
-   const CHAR *cmdName     = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
 
-   query->nameLength = ossStrlen( cmdName ) ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj obj, empty ;
    obj = BSON( FIELD_NAME_NAME << _csName.c_str() ) ;
@@ -3756,8 +3755,8 @@ INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       _obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -3793,7 +3792,7 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                 mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   MsgAuthCrtUsr *user = NULL ;
+   MsgAuthCrtUsr *pCtrUser = NULL ;
    BSONObj obj ;
    const CHAR *pUserName = NULL ;
    const CHAR *pTextPasswd = NULL ;
@@ -3803,11 +3802,11 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.reserve( sizeof( MsgAuthCrtUsr ) ) ;
    sdbMsg.advance( sizeof( MsgAuthCrtUsr ) ) ;
 
-   user = ( MsgAuthCrtUsr * )sdbMsg.data() ;
-   user->header.opCode = MSG_AUTH_CRTUSR_REQ ;
-   user->header.TID = 0 ;
-   user->header.routeID.value = 0 ;
-   user->header.requestID = _requestID ;
+   pCtrUser = ( MsgAuthCrtUsr * )sdbMsg.data() ;
+   pCtrUser->header.opCode = MSG_AUTH_CRTUSR_REQ ;
+   pCtrUser->header.TID = 0 ;
+   pCtrUser->header.routeID.value = 0 ;
+   pCtrUser->header.requestID = _requestID ;
 
    try
    {
@@ -3913,7 +3912,7 @@ INT32 _mongoCreateUserCommand::_checkAuthMechanisms( const BSONElement &mechanis
                                                      mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   const CHAR* mechanismsStr = NULL ;
+   const CHAR* pMechanismsStr = NULL ;
    CHAR  errMsg[64] = { 0 } ;
 
    try
@@ -3937,9 +3936,9 @@ INT32 _mongoCreateUserCommand::_checkAuthMechanisms( const BSONElement &mechanis
             goto error ;
          }
 
-         mechanismsStr = ele.valuestr() ;
+         pMechanismsStr = ele.valuestr() ;
 
-         if ( 0 == ossStrcmp( mechanismsStr, FAP_MONGO_FIELD_VALUE_SCRAMSHA1 ) )
+         if ( 0 == ossStrcmp( pMechanismsStr, FAP_MONGO_FIELD_VALUE_SCRAMSHA1 ) )
          {
             continue ;
          }
@@ -3947,7 +3946,7 @@ INT32 _mongoCreateUserCommand::_checkAuthMechanisms( const BSONElement &mechanis
          {
             rc = SDB_INVALIDARG ;
             ossSnprintf( errMsg, 64, "Unsupported auth mechanism[%s]",
-                         mechanismsStr ) ;
+                         pMechanismsStr ) ;
             ctx.setError( rc, errMsg ) ;
             goto error ;
          }
@@ -3980,8 +3979,8 @@ INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       _obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -4017,28 +4016,28 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   MsgAuthDelUsr *auth = NULL ;
+   MsgAuthDelUsr *pAuth = NULL ;
    BSONObj obj ;
 
    sdbMsg.reserve( sizeof( MsgAuthDelUsr ) ) ;
    sdbMsg.advance( sizeof( MsgAuthDelUsr ) ) ;
 
-   auth = ( MsgAuthDelUsr * )sdbMsg.data() ;
-   auth->header.opCode = MSG_AUTH_DELUSR_REQ ;
-   auth->header.TID = 0 ;
-   auth->header.routeID.value = 0 ;
-   auth->header.requestID = _requestID ;
+   pAuth = ( MsgAuthDelUsr * )sdbMsg.data() ;
+   pAuth->header.opCode = MSG_AUTH_DELUSR_REQ ;
+   pAuth->header.TID = 0 ;
+   pAuth->header.routeID.value = 0 ;
+   pAuth->header.requestID = _requestID ;
 
    // eg: { dropUser: "myuser" }
-   const CHAR* userName = _obj.getStringField( name() ) ;
-   if ( 0 != ossStrcmp( userName, ctx.userName.c_str() ) )
+   const CHAR* pUserName = _obj.getStringField( name() ) ;
+   if ( 0 != ossStrcmp( pUserName, ctx.userName.c_str() ) )
    {
       rc = SDB_OPTION_NOT_SUPPORT ;
       ctx.setError( rc, "Only current user can be dropped" ) ;
       goto error ;
    }
 
-   obj = BSON( SDB_AUTH_USER << userName <<
+   obj = BSON( SDB_AUTH_USER << pUserName <<
                SDB_AUTH_NONCE << ctx.authInfo.nonce <<
                SDB_AUTH_IDENTIFY << ctx.authInfo.identify <<
                SDB_AUTH_PROOF << ctx.authInfo.clientProof <<
@@ -4078,8 +4077,8 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       _obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -4179,26 +4178,26 @@ error:
 INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
-   INT32 rc            = SDB_OK ;
-   MsgOpQuery *query   = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->nameLength = ossStrlen( cmdName ) ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj empty ;
    sdbMsg.write( empty, TRUE ) ;
@@ -4237,19 +4236,19 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // { User: "myuser", ... } => { user: "myuser" }
          BSONObj obj( bodyBuf.data() + offset ) ;
-         const CHAR* user = obj.getStringField( FIELD_NAME_USER ) ;
+         const CHAR* pUser = obj.getStringField( FIELD_NAME_USER ) ;
 
          if ( returnAllUsers )
          {
-            arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << user ) ) ;
+            arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
          }
          else
          {
             for ( UINT32 i = 0; i < usernames.size(); i++ )
             {
-               if ( 0 == ossStrcmp( usernames[i].c_str(), user ) )
+               if ( 0 == ossStrcmp( usernames[i].c_str(), pUser ) )
                {
-                  arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << user ) ) ;
+                  arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
                }
             }
          }
@@ -4288,8 +4287,8 @@ INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       _obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -4325,26 +4324,26 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   MsgAuthentication *auth = NULL ;
-   const CHAR* userName = NULL ;
-   const CHAR* clientNonce = NULL ;
+   MsgAuthentication *pAuth = NULL ;
+   const CHAR* pUserName = NULL ;
+   const CHAR* pClientNonce = NULL ;
    CHAR* p = NULL ;
    CHAR* nextPtr = NULL ;
-   const CHAR* payload = NULL ;
+   const CHAR* pPayload = NULL ;
    INT32 payloadLen = 0 ;
    CHAR payloadCpy[ FAP_MONGO_PAYLOADD_MAX_SIZE ] = { 0 } ;
    BSONObj obj ;
 
    // get payload
    BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
-   payload = ele.binData( payloadLen ) ;
+   pPayload = ele.binData( payloadLen ) ;
    if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   ossMemcpy( payloadCpy, payload, payloadLen ) ;
+   ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
 
   /* The two allowed payload forms are:
    * n,,n=encoded-username,r=client-nonce
@@ -4363,7 +4362,7 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   userName = p + 2 ;
+   pUserName = p + 2 ;
 
    p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
    if ( NULL == p )
@@ -4371,26 +4370,26 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   clientNonce = p + 2 ;
+   pClientNonce = p + 2 ;
 
    // build message
    sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
    sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
 
-   auth = ( MsgAuthentication * ) sdbMsg.data() ;
-   auth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
-   auth->header.TID = 0 ;
-   auth->header.routeID.value = 0 ;
-   auth->header.requestID = _requestID ;
+   pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
+   pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
+   pAuth->header.TID = 0 ;
+   pAuth->header.routeID.value = 0 ;
+   pAuth->header.requestID = _requestID ;
 
    obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_1 <<
-               SDB_AUTH_USER << userName <<
-               SDB_AUTH_NONCE << clientNonce <<
+               SDB_AUTH_USER << pUserName <<
+               SDB_AUTH_NONCE << pClientNonce <<
                SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
 
-   ctx.userName = userName ;
+   ctx.userName = pUserName ;
 
 done:
    return rc ;
@@ -4424,13 +4423,13 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         const CHAR* salt = replyObj.getStringField( SDB_AUTH_SALT ) ;
+         const CHAR* pSalt = replyObj.getStringField( SDB_AUTH_SALT ) ;
          UINT32 iterationCount = replyObj.getIntField( SDB_AUTH_ITERATIONCOUNT ) ;
-         const CHAR* nonce = replyObj.getStringField( SDB_AUTH_NONCE ) ;
+         const CHAR* pNonce = replyObj.getStringField( SDB_AUTH_NONCE ) ;
 
-         ss << FAP_MONGO_SASL_MSG_RANDOM  FAP_MONGO_EQUAL << nonce
+         ss << FAP_MONGO_SASL_MSG_RANDOM  FAP_MONGO_EQUAL << pNonce
             << FAP_MONGO_COMMA
-            << FAP_MONGO_SASL_MSG_SALT    FAP_MONGO_EQUAL << salt
+            << FAP_MONGO_SASL_MSG_SALT    FAP_MONGO_EQUAL << pSalt
             << FAP_MONGO_COMMA
             << FAP_MONGO_SASL_MSG_ITERATE FAP_MONGO_EQUAL << iterationCount ;
 
@@ -4484,8 +4483,8 @@ INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
       _obj = BSONObj( pReq->query() ) ;
-      const CHAR* commandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( commandName, name() ),
+      const CHAR* pCommandName = _obj.firstElementFieldName() ;
+      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
       _isInitialized = TRUE ;
@@ -4521,33 +4520,33 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                   mongoSessionCtx &ctx )
 {
    INT32 rc = SDB_OK ;
-   MsgAuthentication *auth = NULL ;
-   const CHAR* channel = NULL ;
-   const CHAR* nonce = NULL ;
-   const CHAR* clientProof = NULL ;
+   MsgAuthentication *pAuth = NULL ;
+   const CHAR* pChannel = NULL ;
+   const CHAR* pNonce = NULL ;
+   const CHAR* pClientProof = NULL ;
    CHAR* p = NULL ;
    CHAR* nextPtr = NULL ;
-   const CHAR* payload = NULL ;
+   const CHAR* pPayload = NULL ;
    INT32 payloadLen = 0 ;
    CHAR payloadCpy[ FAP_MONGO_PAYLOADD_MAX_SIZE ] = { 0 } ;
    BSONObj obj ;
 
    // get payload
    BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
-   payload = ele.binData( payloadLen ) ;
+   pPayload = ele.binData( payloadLen ) ;
    if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   if( 0 == payloadLen || 'v' == payload[0] )
+   if( 0 == payloadLen || 'v' == pPayload[0] )
    {
       // step 3 format: { payload: "" } or { payload: "v=ServerSignature" }
       _step = MONGO_AUTH_STEP3 ;
       goto done ;
    }
 
-   ossMemcpy( payloadCpy, payload, payloadLen ) ;
+   ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
 
   /* The payload forms is:
    * c=channel-binding(base64),r=client-nonce+server-nonce,p=ClientProof
@@ -4558,7 +4557,7 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   channel = p + 2 ;
+   pChannel = p + 2 ;
 
    p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
    if ( NULL == p )
@@ -4566,7 +4565,7 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   nonce = p + 2 ;
+   pNonce = p + 2 ;
 
    p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
    if ( NULL == p )
@@ -4574,30 +4573,30 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   clientProof = p + 2 ;
+   pClientProof = p + 2 ;
 
    // build message
    sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
    sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
 
-   auth = ( MsgAuthentication * ) sdbMsg.data() ;
-   auth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
-   auth->header.TID = 0 ;
-   auth->header.routeID.value = 0 ;
-   auth->header.requestID = _requestID ;
+   pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
+   pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
+   pAuth->header.TID = 0 ;
+   pAuth->header.routeID.value = 0 ;
+   pAuth->header.requestID = _requestID ;
 
    obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
                SDB_AUTH_USER << ctx.userName <<
-               SDB_AUTH_NONCE << nonce <<
-               SDB_AUTH_IDENTIFY << channel <<
-               SDB_AUTH_PROOF << clientProof <<
+               SDB_AUTH_NONCE << pNonce <<
+               SDB_AUTH_IDENTIFY << pChannel <<
+               SDB_AUTH_PROOF << pClientProof <<
                SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
 
-   ctx.authInfo.nonce = nonce ;
-   ctx.authInfo.identify = channel ;
-   ctx.authInfo.clientProof = clientProof ;
+   ctx.authInfo.nonce = pNonce ;
+   ctx.authInfo.identify = pChannel ;
+   ctx.authInfo.clientProof = pClientProof ;
    ctx.authInfo.type = SDB_AUTH_TYPE_EXTEND_PWD ;
 done:
    return rc ;
@@ -4623,9 +4622,9 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags )
       {
          BSONObj replyObj( bodyBuf.data() ) ;
-         const CHAR* serverProof = replyObj.getStringField( SDB_AUTH_PROOF ) ;
+         const CHAR* pServerProof = replyObj.getStringField( SDB_AUTH_PROOF ) ;
          string payload = FAP_MONGO_SASL_MSG_VALUE FAP_MONGO_EQUAL ;
-         payload += serverProof ;
+         payload += pServerProof ;
 
          bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, payload.length(),
                             BinDataGeneral, payload.c_str() ) ;
@@ -4668,27 +4667,27 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                     mongoSessionCtx &ctx )
 {
    INT32 rc                = SDB_OK ;
-   MsgOpQuery *query       = NULL ;
-   const CHAR *cmdName     = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+   MsgOpQuery *pQuery      = NULL ;
+   const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
 
-   query->nameLength = ossStrlen( cmdName ) ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    // filter cs[foo]'s collections
    // condition: { Name: { $gt: "foo.", $lt: "foo/" }, ... }
@@ -4733,28 +4732,28 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
-   INT32 rc            = SDB_OK ;
-   MsgOpQuery *query   = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = _requestID ;
+   pQuery = ( MsgOpQuery * )sdbMsg.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = _requestID ;
 
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
 
-   query->nameLength = ossStrlen( cmdName ) ;
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
+   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    BSONObj empty ;
    sdbMsg.write( empty, TRUE ) ;
@@ -4837,10 +4836,10 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
       {
          BSONObj clientObj = obj.getObjectField( "client" ) ;
          BSONObj driverObj = clientObj.getObjectField( "driver" ) ;
-         const CHAR* driverName   = driverObj.getStringField( "name" ) ;
-         const CHAR* driverVerStr = driverObj.getStringField( "version" ) ;
+         const CHAR* pDriverName   = driverObj.getStringField( "name" ) ;
+         const CHAR* pDriverVerStr = driverObj.getStringField( "version" ) ;
 
-         rc = _parseClientInfo( driverName, driverVerStr, ctx.clientInfo ) ;
+         rc = _parseClientInfo( pDriverName, pDriverVerStr, ctx.clientInfo ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to parse client info, rc: %d", rc ) ;
 
@@ -4874,60 +4873,61 @@ INT32 _mongoIsMasterCommand::buildMongoReply( const MsgOpReply &sdbReply,
    return SDB_OK ;
 }
 
-INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* clientName,
-                                               const CHAR* clientVerStr,
+INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* pClientName,
+                                               const CHAR* pClientVerStr,
                                                mongoClientInfo &clientInfo )
 {
-   INT32 rc         = SDB_OK ;
-   INT32 i          = 0 ;
-   CHAR *curStr     = NULL ;
-   CHAR *lastParsed = NULL ;
+   INT32 rc          = SDB_OK ;
+   INT32 i           = 0 ;
+   CHAR *pCurStr     = NULL ;
+   CHAR *pLastParsed = NULL ;
    CHAR clientVerStrCpy[FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE+1] = { 0 } ;
 
-   if ( NULL == clientName || NULL == clientVerStr )
+   if ( NULL == pClientName || NULL == pClientVerStr )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   if ( ossStrlen( clientVerStr ) < 0 ||
-        ossStrlen( clientVerStr ) > FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE )
+   if ( ossStrlen( pClientVerStr ) < 0 ||
+        ossStrlen( pClientVerStr ) > FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   ossStrncpy( clientVerStrCpy, clientVerStr, ossStrlen( clientVerStr ) ) ;
 
-   if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_NODEJS ) )
+   ossStrncpy( clientVerStrCpy, pClientVerStr, ossStrlen( pClientVerStr ) ) ;
+
+   if ( 0 == ossStrcmp( pClientName, FAP_MONGO_FIELD_VALUE_NODEJS ) )
    {
       clientInfo.type = NODEJS_DRIVER ;
    }
-   else if ( 0 == ossStrcmp( clientName, FAP_MONGO_FIELD_VALUE_JAVA ) )
+   else if ( 0 == ossStrcmp( pClientName, FAP_MONGO_FIELD_VALUE_JAVA ) )
    {
       clientInfo.type = JAVA_DRIVER ;
    }
-   else if ( 0 == ossStrcmp( clientName,
+   else if ( 0 == ossStrcmp( pClientName,
                              FAP_MONGO_FIELD_VALUE_MONGOSHELL ) )
    {
       clientInfo.type = MONGO_SHELL ;
    }
 
-   curStr = ossStrtok( clientVerStrCpy, ".", &lastParsed ) ;
-   while ( '\0' != curStr )
+   pCurStr = ossStrtok( clientVerStrCpy, ".", &pLastParsed ) ;
+   while ( '\0' != pCurStr )
    {
       if( 0 == i )
       {
-         clientInfo.version = ossAtoi( curStr ) ;
+         clientInfo.version = ossAtoi( pCurStr ) ;
       }
       else if( 1 == i )
       {
-         clientInfo.subVersion = ossAtoi( curStr ) ;
+         clientInfo.subVersion = ossAtoi( pCurStr ) ;
       }
       else if( 2 == i )
       {
-         clientInfo.fixVersion = ossAtoi( curStr ) ;
+         clientInfo.fixVersion = ossAtoi( pCurStr ) ;
       }
-      curStr = ossStrtok( lastParsed, ".", &lastParsed ) ;
+      pCurStr = ossStrtok( pLastParsed, ".", &pLastParsed ) ;
       i++ ;
    }
 
@@ -5052,7 +5052,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
-   MsgOpQuery *findAndModify = NULL ;
+   MsgOpQuery *pFindAndModify = NULL ;
    BSONObj sort, selector, hint ;
    BOOLEAN isUpdate = FALSE ;
    BOOLEAN isRemove = FALSE ;
@@ -5061,22 +5061,22 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   findAndModify = ( MsgOpQuery * )sdbMsg.data() ;
-   findAndModify->header.opCode = MSG_BS_QUERY_REQ ;
-   findAndModify->header.TID = 0 ;
-   findAndModify->header.routeID.value = 0 ;
-   findAndModify->header.requestID = _requestID ;
-   findAndModify->version = 0 ;
-   findAndModify->w = 0 ;
-   findAndModify->padding = 0 ;
-   findAndModify->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_MODIFY ;
-   findAndModify->numToSkip = 0 ;
+   pFindAndModify = ( MsgOpQuery * )sdbMsg.data() ;
+   pFindAndModify->header.opCode = MSG_BS_QUERY_REQ ;
+   pFindAndModify->header.TID = 0 ;
+   pFindAndModify->header.routeID.value = 0 ;
+   pFindAndModify->header.requestID = _requestID ;
+   pFindAndModify->version = 0 ;
+   pFindAndModify->w = 0 ;
+   pFindAndModify->padding = 0 ;
+   pFindAndModify->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_MODIFY ;
+   pFindAndModify->numToSkip = 0 ;
    // findAndModify, findOneAndUpdate, findOneAndDelete and findOneAndReplace
    // will only modify and return a single document
-   findAndModify->numToReturn = 1 ;
+   pFindAndModify->numToReturn = 1 ;
 
-   findAndModify->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), findAndModify->nameLength + 1, TRUE ) ;
+   pFindAndModify->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), pFindAndModify->nameLength + 1, TRUE ) ;
 
    try
    {

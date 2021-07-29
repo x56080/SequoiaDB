@@ -57,7 +57,7 @@ namespace fap
 class _mongoSession : public engine::pmdSession, public engine::IRemoteMsgPreprocessor
 {
 public:
-   _mongoSession( SOCKET fd, engine::IResource *resource ) ;
+   _mongoSession( SOCKET fd, engine::IResource *pResource ) ;
    virtual ~_mongoSession() ;
 
    virtual INT32 getServiceType() const ;
@@ -76,8 +76,8 @@ private:
                       BSONObj &errorObj ) ;
    INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj ) ;
 
-   void  _onMsgBegin( MsgHeader *msg ) ;
-   void  _onMsgEnd( INT32 result, MsgHeader *msg ) ;
+   void  _onMsgBegin( MsgHeader *pMsg ) ;
+   void  _onMsgEnd( INT32 result, MsgHeader *pMsg ) ;
 
    INT32 _recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg ) ;
    INT32 _recvMsgFromInterior( engine::pmdEDUEvent &event, BOOLEAN &hasMsg ) ;
@@ -89,9 +89,9 @@ private:
    INT32 _reply( engine::pmdEDUEvent &event ) ;
 
    void  _resetBuffers() ;
-   INT32 _autoCreateCS( const CHAR *csName, BSONObj &errorObj ) ;
-   INT32 _autoCreateCL( const CHAR *clFullName, BSONObj &errorObj ) ;
-   INT32 _autoInsert( const CHAR *clFullName, const BSONObj &matcher,
+   INT32 _autoCreateCS( const CHAR *pCsName, BSONObj &errorObj ) ;
+   INT32 _autoCreateCL( const CHAR *pClFullName, BSONObj &errorObj ) ;
+   INT32 _autoInsert( const CHAR *pClFullName, const BSONObj &matcher,
                       const BSONObj &updatorObj, BSONObj &target,
                       BSONObj &errorObj ) ;
    INT32 _autoKillCursor( UINT64 requestID, INT64 contextID ) ;
@@ -139,7 +139,7 @@ private:
    engine::rtnContextBuf   _contextBuff ;
    mongoMsgBuffer          _inBuffer ;
    mongoMsgBuffer          _tmpBuffer ;
-   engine::IResource      *_resource ;
+   engine::IResource      *_pResource ;
    std::set<INT64>         _cursorList ;
    BOOLEAN                 _isAuthed ;
    INT32                   _requestIDOfPostEvent ;

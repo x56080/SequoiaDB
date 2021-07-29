@@ -71,22 +71,22 @@ static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
    out.reserve( sizeof( MsgOpGetMore ) ) ;
    out.advance( sizeof( MsgOpGetMore ) ) ;
 
-   MsgOpGetMore *getmore = (MsgOpGetMore *)out.data() ;
-   getmore->header.messageLength = sizeof( MsgOpGetMore ) ;
-   getmore->header.opCode = MSG_BS_GETMORE_REQ ;
-   getmore->header.requestID = requestID ;
-   getmore->header.routeID.value = 0 ;
-   getmore->header.TID = 0 ;
-   getmore->contextID = contextID ;
-   getmore->numToReturn = -1 ;
+   MsgOpGetMore *pGetmore = (MsgOpGetMore *)out.data() ;
+   pGetmore->header.messageLength = sizeof( MsgOpGetMore ) ;
+   pGetmore->header.opCode = MSG_BS_GETMORE_REQ ;
+   pGetmore->header.requestID = requestID ;
+   pGetmore->header.routeID.value = 0 ;
+   pGetmore->header.TID = 0 ;
+   pGetmore->contextID = contextID ;
+   pGetmore->numToReturn = -1 ;
 }
 
 /////////////////////////////////////////////////////////////////
 // implement for mongo processor
 
-_mongoSession::_mongoSession( SOCKET fd, engine::IResource *resource )
+_mongoSession::_mongoSession( SOCKET fd, engine::IResource *pResource )
                 : engine::pmdSession( fd ), _masterRead( FALSE ),
-                  _resource( resource ),
+                  _pResource( pResource ),
                   _isAuthed( FALSE ), _requestIDOfPostEvent( 0 ),
                   _opCodeOfPostEvent( 0 ),
                   _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID )
@@ -95,7 +95,7 @@ _mongoSession::_mongoSession( SOCKET fd, engine::IResource *resource )
 
 _mongoSession::~_mongoSession()
 {
-   _resource = NULL ;
+   _pResource = NULL ;
    _resetBuffers() ;
 }
 
@@ -165,7 +165,7 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
                                           engine::pmdEDUEvent &event )
 {
    INT32 rc = SDB_OK ;
-   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+   pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
    UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ; ;
    CHAR *pRes = NULL ;
    UINT32 pResLen = sizeof( fapMongoInnerHeader ) ;
@@ -178,10 +178,10 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
    // so we don't need to post response event
    if ( SDB_OOM == errorCode )
    {
-      rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
-                                PMD_EDU_MEM_NONE,
-                                mongoGetOOMErrResHeader(),
-                                SET_MONGO_MSG_FLAG( eduID() ) ) ;
+      rc = pEduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                 PMD_EDU_MEM_NONE,
+                                 mongoGetOOMErrResHeader(),
+                                 SET_MONGO_MSG_FLAG( eduID() ) ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
@@ -196,10 +196,10 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
       {
          PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
                   "to edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
-         rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
-                                   PMD_EDU_MEM_NONE,
-                                   mongoGetOOMErrResHeader(),
-                                   SET_MONGO_MSG_FLAG( eduID() ) ) ;
+         rc = pEduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                    PMD_EDU_MEM_NONE,
+                                    mongoGetOOMErrResHeader(),
+                                    SET_MONGO_MSG_FLAG( eduID() ) ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
@@ -214,9 +214,9 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
          errResHeader.errorCode = errorCode ;
          ossMemcpy( pRes, (const CHAR*)&errResHeader, pResLen ) ;
 
-         rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
-                                   PMD_EDU_MEM_THREAD, pRes,
-                                   SET_MONGO_MSG_FLAG( eduID() ) ) ;
+         rc = pEduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                                    PMD_EDU_MEM_THREAD, pRes,
+                                    SET_MONGO_MSG_FLAG( eduID() ) ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "edu[%llu] failed to post inner response "
@@ -363,7 +363,7 @@ INT32 _mongoSession::_processNonOwnedClientMsg( const CHAR* pMsg,
    INT32 rc = SDB_OK ;
    INT32 msgLen = ((mongoMsgHeader*)pMsg)->msgLen ;
    CHAR* pReq = NULL ;
-   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+   pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
 
    // It is NOT owned by current session, then check authenticate
    // and post event to the thread which owned this cursor
@@ -386,10 +386,10 @@ INT32 _mongoSession::_processNonOwnedClientMsg( const CHAR* pMsg,
    }
    ossMemcpy( pReq, pMsg, msgLen ) ;
 
-   rc = eduMgr->postEDUPost( cursorInfo.EDUID, PMD_EDU_EVENT_MSG,
-                             PMD_EDU_MEM_THREAD,
-                             pReq,
-                             SET_MONGO_MSG_FLAG( eduID() ) ) ;
+   rc = pEduMgr->postEDUPost( cursorInfo.EDUID, PMD_EDU_EVENT_MSG,
+                              PMD_EDU_MEM_THREAD,
+                              pReq,
+                              SET_MONGO_MSG_FLAG( eduID() ) ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "edu[%llu] failed to post mongo request "
@@ -478,7 +478,7 @@ void _mongoSession::_processRequestMsg( _mongoCommand *&pCommand,
 {
    INT32 rc = SDB_OK ;
    UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ;
-   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+   pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
    CHAR* pRes = NULL ;
 
    rc = mongoGetAndInitCommand( (CHAR*)event._Data, &pCommand, sessCtx ) ;
@@ -512,10 +512,10 @@ void _mongoSession::_processRequestMsg( _mongoCommand *&pCommand,
 
    _eduEventRelease( event ) ;
 
-   rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
-                             PMD_EDU_MEM_THREAD,
-                             pRes,
-                             SET_MONGO_MSG_FLAG( eduID() ) ) ;
+   rc = pEduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                              PMD_EDU_MEM_THREAD,
+                              pRes,
+                              SET_MONGO_MSG_FLAG( eduID() ) ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "edu[%llu] failed to post mongo response to "
@@ -798,7 +798,7 @@ void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
                                     mongoCursorInfo &cursorInfo,
                                     BOOLEAN &isOwned )
 {
-   _mongoCursorMgr* cursorMgr = getMongoCursorMgr() ;
+   _mongoCursorMgr* pCursorMgr = getMongoCursorMgr() ;
    isOwned = TRUE ;
    cursorInfo.cursorID = MONGO_INVALID_CURSORID ;
 
@@ -808,13 +808,13 @@ void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
    }
    else if ( CMD_KILL_CURSORS == pCommand->type() )
    {
-      _mongoKillCursorCommand* killCmd = (_mongoKillCursorCommand*)pCommand ;
+      _mongoKillCursorCommand* pKillCmd = (_mongoKillCursorCommand*)pCommand ;
       // 'cusror.close()' send only one cursor.
       // 'db.runCommand( { killCursors: "bar", cursors: [1,2,...] } )' may send
       // multiple cursors, but we DON'T support it yet.
-      if ( killCmd->cursorList().size() > 0 )
+      if ( pKillCmd->cursorList().size() > 0 )
       {
-         cursorInfo.cursorID = killCmd->cursorList().front() ;
+         cursorInfo.cursorID = pKillCmd->cursorList().front() ;
       }
    }
 
@@ -825,8 +825,8 @@ void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
       if ( _cursorList.find( cursorInfo.cursorID ) == _cursorList.end() )
       {
          mongoCursorInfo cursorInfoTmp ;
-         BOOLEAN foundOut = cursorMgr->find( cursorInfo.cursorID,
-                                             cursorInfoTmp ) ;
+         BOOLEAN foundOut = pCursorMgr->find( cursorInfo.cursorID,
+                                              cursorInfoTmp ) ;
          if ( foundOut )
          {
             cursorInfo.EDUID = cursorInfoTmp.EDUID ;
@@ -841,7 +841,7 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
                                     const MsgOpReply &sdbReply )
 {
    INT32 rc = SDB_OK ;
-   _mongoCursorMgr* cursorMgr = getMongoCursorMgr() ;
+   _mongoCursorMgr* pCursorMgr = getMongoCursorMgr() ;
 
    switch ( pCommand->type() )
    {
@@ -860,7 +860,7 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
             cursorInfo.cursorID = cursorID ;
             cursorInfo.EDUID = eduID() ;
             cursorInfo.needAuth = _isAuthed ;
-            rc = cursorMgr->insert( cursorInfo ) ;
+            rc = pCursorMgr->insert( cursorInfo ) ;
             if ( rc )
             {
                goto error ;
@@ -870,14 +870,14 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
       }
       case CMD_KILL_CURSORS :
       {
-         _mongoKillCursorCommand* killCmd = (_mongoKillCursorCommand*)pCommand ;
-         const vector<INT64>& cursorList = killCmd->cursorList() ;
+         _mongoKillCursorCommand* pKillCmd = (_mongoKillCursorCommand*)pCommand ;
+         const vector<INT64>& cursorList = pKillCmd->cursorList() ;
 
          vector<INT64>::const_iterator it ;
          for( it = cursorList.begin() ; it != cursorList.end() ; it++ )
          {
             _cursorList.erase( *it ) ;
-            cursorMgr->remove( *it ) ;
+            pCursorMgr->remove( *it ) ;
          }
          break ;
       }
@@ -888,9 +888,9 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
          INT64 cursorID = SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ;
          if ( MONGO_INVALID_CURSORID == cursorID )
          {
-            _mongoGetmoreCommand* moreCmd = (_mongoGetmoreCommand*)pCommand ;
-            _cursorList.erase( moreCmd->cursorID() ) ;
-            cursorMgr->remove( moreCmd->cursorID() ) ;
+            _mongoGetmoreCommand* pMoreCmd = (_mongoGetmoreCommand*)pCommand ;
+            _cursorList.erase( pMoreCmd->cursorID() ) ;
+            pCursorMgr->remove( pMoreCmd->cursorID() ) ;
          }
          break ;
       }
@@ -904,52 +904,52 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_autoCreateCS( const CHAR *csName, BSONObj &errorObj )
+INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
 {
-   INT32 rc            = SDB_OK ;
-   MsgOpQuery *query   = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
-   bson::BSONObj obj   = BSON( FIELD_NAME_NAME << csName <<
-                               FIELD_NAME_PAGE_SIZE << 65536 ) ;
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
+   bson::BSONObj obj    = BSON( FIELD_NAME_NAME << pCsName <<
+                                FIELD_NAME_PAGE_SIZE << 65536 ) ;
    bson::BSONObj empty ;
 
    _tmpBuffer.zero() ;
    _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
    _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   query = ( MsgOpQuery * )_tmpBuffer.data() ;
-   query->header.opCode = MSG_BS_QUERY_REQ ;
-   query->header.TID = 0 ;
-   query->header.routeID.value = 0 ;
-   query->header.requestID = 0 ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-   query->nameLength = ossStrlen( cmdName ) ;
+   pQuery = ( MsgOpQuery * )_tmpBuffer.data() ;
+   pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+   pQuery->header.TID = 0 ;
+   pQuery->header.routeID.value = 0 ;
+   pQuery->header.requestID = 0 ;
+   pQuery->version = 0 ;
+   pQuery->w = 0 ;
+   pQuery->padding = 0 ;
+   pQuery->flags = 0 ;
+   pQuery->numToSkip = 0 ;
+   pQuery->numToReturn = -1 ;
+   pQuery->nameLength = ossStrlen( pCmdName ) ;
 
-   _tmpBuffer.write( cmdName, query->nameLength + 1, TRUE ) ;
+   _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    _tmpBuffer.write( obj, TRUE ) ;
    _tmpBuffer.write( empty, TRUE ) ;
    _tmpBuffer.write( empty, TRUE ) ;
    _tmpBuffer.write( empty, TRUE ) ;
    _tmpBuffer.doneLen() ;
 
-   rc = _processMsg( (CHAR*)query, errorObj ) ;
+   rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
 
    if ( SDB_OK == rc )
    {
       PD_LOG( PDEVENT,
               "Session[%s]: Create collection space[%s] automatically",
-              sessionName(), csName ) ;
+              sessionName(), pCsName ) ;
    }
    else
    {
       PD_LOG( PDWARNING,
               "Session[%s]: failed to create collection space[%s] automatically"
-              ", rc: %d", sessionName(), csName, rc ) ;
+              ", rc: %d", sessionName(), pCsName, rc ) ;
       if ( SDB_DMS_CS_EXIST == rc )
       {
          rc = SDB_OK ;
@@ -959,14 +959,14 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *csName, BSONObj &errorObj )
    return rc ;
 }
 
-INT32 _mongoSession::_autoInsert( const CHAR *clFullName,
+INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
                                   const BSONObj &matcher,
                                   const BSONObj &updatorObj,
                                   BSONObj &target,
                                   BSONObj &errorObj )
 {
    INT32 rc = SDB_OK ;
-   MsgOpInsert *insert = NULL ;
+   MsgOpInsert *pInsert = NULL ;
 
    try
    {
@@ -986,18 +986,18 @@ INT32 _mongoSession::_autoInsert( const CHAR *clFullName,
          goto error ;
       }
 
-      insert = ( MsgOpInsert *)_tmpBuffer.data() ;
-      insert->header.opCode = MSG_BS_INSERT_REQ ;
-      insert->header.TID = 0 ;
-      insert->header.routeID.value = 0 ;
-      insert->header.requestID = 0 ;
-      insert->version = 0 ;
-      insert->w = 0 ;
-      insert->padding = 0 ;
-      insert->flags = FLG_INSERT_RETURNNUM ;
+      pInsert = ( MsgOpInsert *)_tmpBuffer.data() ;
+      pInsert->header.opCode = MSG_BS_INSERT_REQ ;
+      pInsert->header.TID = 0 ;
+      pInsert->header.routeID.value = 0 ;
+      pInsert->header.requestID = 0 ;
+      pInsert->version = 0 ;
+      pInsert->w = 0 ;
+      pInsert->padding = 0 ;
+      pInsert->flags = FLG_INSERT_RETURNNUM ;
 
-      insert->nameLength = ossStrlen( clFullName ) ;
-      rc = _tmpBuffer.write( clFullName, insert->nameLength + 1, TRUE ) ;
+      pInsert->nameLength = ossStrlen( pClFullName ) ;
+      rc = _tmpBuffer.write( pClFullName, pInsert->nameLength + 1, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to write cl full name, rc: %d", rc ) ;
@@ -1012,7 +1012,7 @@ INT32 _mongoSession::_autoInsert( const CHAR *clFullName,
       }
       _tmpBuffer.doneLen() ;
 
-      rc = _processMsg( (CHAR*)insert, errorObj ) ;
+      rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
       if ( rc )
       {
          PD_LOG( PDERROR,
@@ -1037,13 +1037,13 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName,
+INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
                                     BSONObj &errorObj )
 {
-   INT32 rc            = SDB_OK ;
-   MsgOpQuery *query   = NULL ;
-   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
-   bson::BSONObj obj   = BSON( FIELD_NAME_NAME << clFullName );
+   INT32 rc             = SDB_OK ;
+   MsgOpQuery *pQuery   = NULL ;
+   const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
+   bson::BSONObj obj    = BSON( FIELD_NAME_NAME << pClFullName );
    bson::BSONObj empty ;
 
    while( TRUE )
@@ -1052,32 +1052,32 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName,
       _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
       _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-      query = ( MsgOpQuery * )_tmpBuffer.data() ;
-      query->header.opCode = MSG_BS_QUERY_REQ ;
-      query->header.TID = 0 ;
-      query->header.routeID.value = 0 ;
-      query->header.requestID = 0 ;
-      query->version = 0 ;
-      query->w = 0 ;
-      query->padding = 0 ;
-      query->flags = 0 ;
-      query->nameLength = ossStrlen( cmdName ) ;
-      query->numToSkip = 0 ;
-      query->numToReturn = -1 ;
+      pQuery = ( MsgOpQuery * )_tmpBuffer.data() ;
+      pQuery->header.opCode = MSG_BS_QUERY_REQ ;
+      pQuery->header.TID = 0 ;
+      pQuery->header.routeID.value = 0 ;
+      pQuery->header.requestID = 0 ;
+      pQuery->version = 0 ;
+      pQuery->w = 0 ;
+      pQuery->padding = 0 ;
+      pQuery->flags = 0 ;
+      pQuery->nameLength = ossStrlen( pCmdName ) ;
+      pQuery->numToSkip = 0 ;
+      pQuery->numToReturn = -1 ;
 
-      _tmpBuffer.write( cmdName, query->nameLength + 1, TRUE ) ;
+      _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
       _tmpBuffer.write( obj, TRUE ) ;
       _tmpBuffer.write( empty, TRUE ) ;
       _tmpBuffer.write( empty, TRUE ) ;
       _tmpBuffer.write( empty, TRUE ) ;
       _tmpBuffer.doneLen() ;
 
-      rc = _processMsg( (CHAR*)query, errorObj ) ;
+      rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
          string csName ;
-         csName.assign( clFullName,
-                        ossStrstr( clFullName, "." ) - clFullName ) ;
+         csName.assign( pClFullName,
+                        ossStrstr( pClFullName, "." ) - pClFullName ) ;
          rc = _autoCreateCS( csName.c_str(), errorObj ) ;
          if ( rc )
          {
@@ -1094,13 +1094,13 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName,
    {
       PD_LOG( PDEVENT,
               "Session[%s]: Create collection[%s] automatically",
-              sessionName(), clFullName ) ;
+              sessionName(), pClFullName ) ;
    }
    else
    {
       PD_LOG( PDWARNING,
               "Session[%s]: failed to create collection[%s] automatically"
-              ", rc: %d", sessionName(), clFullName, rc ) ;
+              ", rc: %d", sessionName(), pClFullName, rc ) ;
       if ( SDB_DMS_EXIST == rc )
       {
          rc = SDB_OK ;
@@ -1113,7 +1113,7 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName,
 INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
 {
    INT32 rc = SDB_OK ;
-   MsgOpKillContexts *kill = NULL ;
+   MsgOpKillContexts *pKill = NULL ;
    BSONObj errorObj ;
    BSONObj returnObjCpy ;
    UINT64 requestIDCpy = _replyHeader.header.requestID ;
@@ -1136,13 +1136,13 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
          PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
          goto error ;
       }
-      kill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
-      kill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
-      kill->header.TID = 0 ;
-      kill->header.routeID.value = 0 ;
-      kill->header.requestID = requestID ;
-      kill->ZERO = 0 ;
-      kill->numContexts = 1 ;
+      pKill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
+      pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+      pKill->header.TID = 0 ;
+      pKill->header.routeID.value = 0 ;
+      pKill->header.requestID = requestID ;
+      pKill->ZERO = 0 ;
+      pKill->numContexts = 1 ;
 
       rc = _tmpBuffer.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
       if ( rc )
@@ -1153,7 +1153,7 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
 
       _tmpBuffer.doneLen() ;
 
-      rc = _processMsg( (CHAR*)kill, errorObj ) ;
+      rc = _processMsg( (CHAR*)pKill, errorObj ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING,
@@ -1438,22 +1438,22 @@ error:
    goto done ;
 }
 
-void _mongoSession::_onMsgBegin( MsgHeader *msg )
+void _mongoSession::_onMsgBegin( MsgHeader *pMsg )
 {
    // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
    _replyHeader.startFrom          = 0 ;
-   _replyHeader.header.opCode      = MAKE_REPLY_TYPE(msg->opCode) ;
-   _replyHeader.header.requestID   = msg->requestID ;
-   _replyHeader.header.TID         = msg->TID ;
+   _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
+   _replyHeader.header.requestID   = pMsg->requestID ;
+   _replyHeader.header.TID         = pMsg->TID ;
    _replyHeader.header.routeID     = engine::pmdGetNodeID() ;
 
    // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
 }
 
-void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
+void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )
 {
    // release buff context
    //_contextBuff.release() ;
@@ -1462,8 +1462,8 @@ void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
    {
       PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "
               "TID: %u, requestID: %llu] failed, rc: %d",
-              sessionName(), msg->opCode, msg->messageLength, msg->TID,
-              msg->requestID, result ) ;
+              sessionName(), pMsg->opCode, pMsg->messageLength, pMsg->TID,
+              pMsg->requestID, result ) ;
    }
 
    // end operator
@@ -1579,7 +1579,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
    if ( headerBuf.usedSize > 0 )
    {
       INT32 rcTmp = SDB_OK ;
-      const mongoResponse *res = (mongoResponse*)headerBuf.data ;
+      const mongoResponse *pRes = (mongoResponse*)headerBuf.data ;
 
       rcTmp = sendData( (CHAR *)&headerBuf, headerBuf.usedSize ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1604,9 +1604,9 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
               pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
               pCommand ? ( (pCommand)->clFullName() ?
               (pCommand)->clFullName() : "" ) : "",
-              res->header.msgLen, res->header.requestId, res->header.responseTo,
-              res->header.opCode, res->reservedFlags, res->cursorId,
-              res->startingFrom, res->nReturned, eduID() ) ;
+              pRes->header.msgLen, pRes->header.requestId,
+              pRes->header.responseTo, pRes->header.opCode, pRes->reservedFlags,
+              pRes->cursorId, pRes->startingFrom, pRes->nReturned, eduID() ) ;
    }
 
 done:
@@ -1663,10 +1663,10 @@ void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
 INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
 {
    INT32 rc = SDB_OK ;
-   _fapMongoInnerHeader* resHeader = (_fapMongoInnerHeader*)event._Data ;
+   _fapMongoInnerHeader* pResHeader = (_fapMongoInnerHeader*)event._Data ;
 
-   if ( resHeader->header.opCode == MONGO_OP_REPLY ||
-        resHeader->header.opCode == MONGO_OP_COMMAND_REPLY )
+   if ( pResHeader->header.opCode == MONGO_OP_REPLY ||
+        pResHeader->header.opCode == MONGO_OP_COMMAND_REPLY )
    {
       rc = sendData( (CHAR*)event._Data, *((INT32*)event._Data) ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1676,19 +1676,19 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
    // It means that the event isn't a normal MongoDB event.
    // It's a _fapMongoInnerHeader. For detail, see the comment of the
    // function fap::_mongoSession::_postInnerErrorEvent
-   else if ( resHeader->header.opCode == MONGO_OP_INNER_REPLY )
+   else if ( pResHeader->header.opCode == MONGO_OP_INNER_REPLY )
    {
       // The command must be getMore or killCursor
       CHAR resMsg[ FAP_MONGO_ERROR_RESPONSE_MAX_LEN ] ;
       INT32 sendDataLen = 0 ;
-      _mongoCursorMgr* cursorMgr = getMongoCursorMgr() ;
+      _mongoCursorMgr* pCursorMgr = getMongoCursorMgr() ;
 
       ossMemset( resMsg, 0, FAP_MONGO_ERROR_RESPONSE_MAX_LEN ) ;
 
-      _buildErrResponseMsg( resMsg, resHeader->errorCode, sendDataLen ) ;
+      _buildErrResponseMsg( resMsg, pResHeader->errorCode, sendDataLen ) ;
 
       _cursorList.erase( _cursorIdOfPostEvent ) ;
-      cursorMgr->remove( _cursorIdOfPostEvent ) ;
+      pCursorMgr->remove( _cursorIdOfPostEvent ) ;
       _autoKillCursor( _requestIDOfPostEvent,
                        MGCURSOID_TO_SDBCTXID ( _cursorIdOfPostEvent ) ) ;
 
@@ -1708,7 +1708,7 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
    {
       rc = SDB_SYS ;
       PD_LOG ( PDERROR, "Unknown opCode: %d, rc: %d",
-               resHeader->header.opCode, rc ) ;
+               pResHeader->header.opCode, rc ) ;
       goto error ;
    }
 

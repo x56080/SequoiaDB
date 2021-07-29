@@ -83,11 +83,11 @@ struct mongoSessionCtx
 
    mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) {}
 
-   void setError( INT32 errCode, const CHAR* errMsg )
+   void setError( INT32 errCode, const CHAR* pErrMsg )
    {
       BSONObjBuilder builder ;
       builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, errMsg ) ;
+      builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
       builder.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
       errorObj = builder.obj() ;
    }

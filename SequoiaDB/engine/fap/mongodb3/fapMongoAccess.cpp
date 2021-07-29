@@ -52,13 +52,13 @@ INT32 _mongoAccess::init( engine::IResource *pResource )
    UINT16 basePort = 0 ;
    if ( NULL != pResource )
    {
-      _resource = pResource ;
+      _pResource = pResource ;
    }
 
    ossMemset( (void *)_serviceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
-   if ( NULL != _resource )
+   if ( NULL != _pResource )
    {
-      basePort = _resource->getLocalPort() ;
+      basePort = _pResource->getLocalPort() ;
       ossItoa( basePort + PORT_OFFSET, _serviceName, OSS_MAX_SERVICENAME ) ;
    }
 
@@ -88,18 +88,17 @@ const CHAR * _mongoAccess::getServiceName() const
 
 engine::pmdSession * _mongoAccess::getSession( SOCKET fd )
 {
-   mongoSession *session = NULL ;
-   session = SDB_OSS_NEW mongoSession( fd, _resource ) ;
-   return session ;
+   mongoSession *pSession = NULL ;
+   pSession = SDB_OSS_NEW mongoSession( fd, _pResource ) ;
+   return pSession ;
 }
 
 void _mongoAccess::releaseSession( engine::pmdSession *pSession )
 {
-   mongoSession *session = dynamic_cast< mongoSession *>( pSession ) ;
-   if ( NULL != session )
+   if ( NULL != pSession )
    {
-      SDB_OSS_DEL session ;
-      session = NULL ;
+      SDB_OSS_DEL pSession ;
+      pSession = NULL ;
    }
 }
 
@@ -107,10 +106,10 @@ void _mongoAccess::_release()
 {
    ossMemset( _serviceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
 
-   if ( NULL != _resource )
+   if ( NULL != _pResource )
    {
       // should not delete here, just make it point to nullptr
-      _resource = NULL ;
+      _pResource = NULL ;
    }
 }
 

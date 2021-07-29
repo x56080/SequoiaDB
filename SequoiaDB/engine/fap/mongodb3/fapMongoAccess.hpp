@@ -79,7 +79,7 @@ private:
    void _release() ;
 
 private:
-   engine::IResource *_resource ;
+   engine::IResource *_pResource ;
    CHAR _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 };
 

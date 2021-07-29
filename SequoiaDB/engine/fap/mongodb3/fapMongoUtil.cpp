@@ -57,8 +57,8 @@ INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
       goto error ;
    }
 
-   _data = ( CHAR *) SDB_OSS_MALLOC( size ) ;
-   if ( NULL == _data )
+   _pData = ( CHAR *) SDB_OSS_MALLOC( size ) ;
+   if ( NULL == _pData )
    {
       rc = SDB_OOM ;
       goto error ;
@@ -88,16 +88,16 @@ INT32 _mongoMsgBuffer::_realloc( const UINT32 size )
       goto done ;
    }
 
-   ptr = ( CHAR * )SDB_OSS_REALLOC( _data, size ) ;
+   ptr = ( CHAR * )SDB_OSS_REALLOC( _pData, size ) ;
    if ( NULL == ptr )
    {
       rc = SDB_OOM ;
       goto error ;
    }
 
-   _data = ptr ;
+   _pData = ptr ;
    _capacity = size ;
-   ossMemset( _data + _size, 0, _capacity - _size ) ;
+   ossMemset( _pData + _size, 0, _capacity - _size ) ;
 
 done:
    return rc ;
@@ -105,14 +105,14 @@ error:
    goto done ;
 }
 
-INT32 _mongoMsgBuffer::write( const CHAR *in, const UINT32 inLen,
+INT32 _mongoMsgBuffer::write( const CHAR *pIn, const UINT32 inLen,
                               BOOLEAN align , INT32 bytes )
 {
    INT32 rc   = SDB_OK ;
    INT32 size = 0 ;        // new size to realloc
    INT32 num  = 0 ;        // number of memory block
 
-   if ( NULL == in )
+   if ( NULL == pIn )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -131,7 +131,7 @@ INT32 _mongoMsgBuffer::write( const CHAR *in, const UINT32 inLen,
       }
    }
 
-   ossMemcpy( _data + _size, in, inLen ) ;
+   ossMemcpy( _pData + _size, pIn, inLen ) ;
    if ( align )
    {
       _size += ossRoundUpToMultipleX( inLen, bytes );
@@ -166,7 +166,7 @@ INT32 _mongoMsgBuffer::write( const BSONObj &obj, BOOLEAN align, INT32 bytes )
       }
    }
 
-   ossMemcpy( _data + _size, obj.objdata(), objsize ) ;
+   ossMemcpy( _pData + _size, obj.objdata(), objsize ) ;
    if ( align )
    {
       _size += ossRoundUpToMultipleX( objsize, bytes ) ;
@@ -292,15 +292,15 @@ BOOLEAN mongoCheckBigEndian()
    return bigEndian ;
 }
 
-INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *fieldName,
+INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *pFieldName,
                           INT32 &value )
 {
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
+   INT32 rc = SDB_OK ;
+   SDB_ASSERT ( pFieldName, "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( pFieldName ) ;
    PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
               "Can't locate field '%s': %s",
-              fieldName,
+              pFieldName,
               obj.toString().c_str() ) ;
    PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
               "Unexpected field type : %s, supposed to be Integer",
@@ -312,35 +312,36 @@ error :
    goto done ;
 }
 
-INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
-                              const CHAR **value )
+INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *pFieldName,
+                              const CHAR *&pValue )
 {
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
+   INT32 rc = SDB_OK ;
+   SDB_ASSERT ( pFieldName && &pValue, "field name and value can't be NULL" ) ;
+   BSONElement ele = obj.getField ( pFieldName ) ;
    PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
               "Can't locate field '%s': %s",
-              fieldName,
+              pFieldName,
               obj.toString().c_str() ) ;
    PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
               "Unexpected field type : %s, supposed to be String",
               obj.toString().c_str()) ;
-   *value = ele.valuestr() ;
+   pValue = ele.valuestr() ;
+
 done :
    return rc ;
 error :
    goto done ;
 }
 
-INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *fieldName,
+INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *pFieldName,
                              BSONObj &value )
 {
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
+   INT32 rc = SDB_OK ;
+   SDB_ASSERT ( pFieldName , "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( pFieldName ) ;
    PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
               "Can't locate field '%s': %s",
-              fieldName,
+              pFieldName,
               obj.toString().c_str() ) ;
    PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
               "Unexpected field type : %s, supposed to be Array",
@@ -352,15 +353,15 @@ error :
    goto done ;
 }
 
-INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *fieldName,
+INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *pFieldName,
                                   INT64 &value )
 {
-   SINT32 rc = SDB_OK ;
-   SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( fieldName ) ;
+   INT32 rc = SDB_OK ;
+   SDB_ASSERT ( pFieldName, "field name can't be NULL" ) ;
+   BSONElement ele = obj.getField ( pFieldName ) ;
    PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
               "Can't locate field '%s': %s",
-              fieldName,
+              pFieldName,
               obj.toString().c_str() ) ;
    PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
               "Unexpected field type : %s, supposed to be number",

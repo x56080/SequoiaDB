@@ -108,8 +108,8 @@ struct _mongoCmdInfo : public SDBObject
    UINT32             nameSize ;
    MONGO_CMD_NEW_FUNC createFunc ;
 
-   _mongoCmdInfo*     sub ;
-   _mongoCmdInfo*     next ;
+   _mongoCmdInfo*     pSub ;
+   _mongoCmdInfo*     pNext ;
 } ;
 
 class _mongoCmdFactory : public SDBObject
@@ -132,7 +132,7 @@ class _mongoCmdFactory : public SDBObject
 
       void _releaseCmdInfo( _mongoCmdInfo *pCmdInfo ) ;
 
-      UINT32 _near( const CHAR *str1, const CHAR *str2 ) ;
+      UINT32 _near( const CHAR *pStr1, const CHAR *pStr2 ) ;
 
    private:
       _mongoCmdInfo *_pCmdInfoRoot ;
@@ -990,8 +990,8 @@ class _mongoIsMasterCommand : public _mongoGlobalCommand
                                      _mongoResponseBuffer &resHeader ) ;
 
    private:
-      INT32 _parseClientInfo( const CHAR* clientName,
-                              const CHAR* clientVerStr,
+      INT32 _parseClientInfo( const CHAR* pClientName,
+                              const CHAR* pClientVerStr,
                               mongoClientInfo &clientInfo ) ;
 } ;
 typedef _mongoIsMasterCommand mongoIsMasterCommand ;

@@ -71,7 +71,7 @@ namespace fap
 //      1( exponent sign ) + 4( exponent ) + 1( '\0' )
 #define FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE   43
 
-   static INT32 isNeedConvertToScientificNotation( const CHAR* inputStr,
+   static INT32 isNeedConvertToScientificNotation( const CHAR* pInputStr,
                                                    BOOLEAN &isNeed )
    {
       INT32  rc = SDB_OK ;
@@ -79,11 +79,11 @@ namespace fap
       const CHAR* p = NULL ;
       isNeed = FALSE ;
 
-      SDB_ASSERT( inputStr != NULL , "Input str can't be NULL!" ) ;
+      SDB_ASSERT( pInputStr != NULL , "Input str can't be NULL!" ) ;
 
       // srcStr is a string converted by IntelDecimal. Only 'E' is included in
       // the string. So we don't need to deal with the case of 'e'.
-      p = ossStrrchr( inputStr, FAP_MONGO_DECIAML_STR_E_CHAR ) ;
+      p = ossStrrchr( pInputStr, FAP_MONGO_DECIAML_STR_E_CHAR ) ;
       if ( NULL == p )
       {
          // srcStr may be -15950735424
@@ -94,7 +94,7 @@ namespace fap
       if ( ossStrlen( p ) <= 2 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", inputStr, rc ) ;
+         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", pInputStr, rc ) ;
          goto error ;
       }
 
@@ -127,9 +127,9 @@ namespace fap
       goto done ;
    }
 
-   static INT32 convertToScientificNotation( const CHAR* inputStr,
+   static INT32 convertToScientificNotation( const CHAR* pInputStr,
                                              UINT32 inputStrSize,
-                                             CHAR* outputStr,
+                                             CHAR* pOutputStr,
                                              UINT32 outputStrSize )
    {
       // eg:
@@ -145,8 +145,8 @@ namespace fap
       UINT32 scale = 0 ;
       UINT32 newScale = 0 ;
 
-      SDB_ASSERT( inputStr != NULL , "Input str can't be NULL!" ) ;
-      SDB_ASSERT( outputStr != NULL , "Output str can't be NULL!" ) ;
+      SDB_ASSERT( pInputStr != NULL , "Input str can't be NULL!" ) ;
+      SDB_ASSERT( pOutputStr != NULL , "Output str can't be NULL!" ) ;
 
       // srcStr doesn't include decimal point( like: -15950735424E-1010 )
       // outputStr includes decimal point( like: -1.5950735424E-1000 )
@@ -171,7 +171,7 @@ namespace fap
          goto error ;
       }
 
-      ossMemcpy( srcStrBuf, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+      ossMemcpy( srcStrBuf, pInputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
 
       p = ossStrtok( srcStrBuf, FAP_MONGO_DECIAML_STR_E_STR, &nextPtr ) ;
       if ( NULL == p )
@@ -184,8 +184,8 @@ namespace fap
       if ( '\0' == nextPtr[0] )
       {
          // srcStr may be -15950735424
-         ossMemcpy( outputStr, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
-         outputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
+         ossMemcpy( pOutputStr, pInputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+         pOutputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
          goto done ;
       }
 
@@ -193,15 +193,15 @@ namespace fap
       if ( ossStrlen( nextPtr ) <= 1 )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", inputStr, rc ) ;
+         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", pInputStr, rc ) ;
          goto error ;
       }
 
       scale = ossAtoi( nextPtr + 1 ) ;
       if ( scale <= 1000 )
       {
-         ossMemcpy( outputStr, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
-         outputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
+         ossMemcpy( pOutputStr, pInputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+         pOutputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
          goto done ;
       }
       else
@@ -220,7 +220,7 @@ namespace fap
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "Invalid decimal mantissa: %s, rc: %d",
-                       inputStr, rc ) ;
+                       pInputStr, rc ) ;
                goto error ;
             }
             // eg: -1E-1010, p = -1
@@ -251,7 +251,7 @@ namespace fap
       }
 
       // '+' or '-' + mantissa + 'E' + '+' or '-' + exponent
-      ossSnprintf( outputStr, FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE,
+      ossSnprintf( pOutputStr, FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE,
                    "%c%c.%sE%c%d",
                    *p, *(p+1), p+2, *nextPtr, newScale ) ;
 
@@ -305,22 +305,22 @@ namespace fap
       goto done ;
    }
 
-   static BOOLEAN hasMongoSpecialStr( const CHAR* decimalStr )
+   static BOOLEAN hasMongoSpecialStr( const CHAR* pDecimalStr )
    {
       BOOLEAN has = FALSE ;
-      INT32   len = ossStrlen( decimalStr ) ;
+      INT32   len = ossStrlen( pDecimalStr ) ;
 
       if ( FAP_MONGO_SPECIAL_STR_LEN == len )
       {
-         if ( ( 0 == ossStrcasecmp( decimalStr,
+         if ( ( 0 == ossStrcasecmp( pDecimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_NAN_STR ) ) ||
-              ( 0 == ossStrcasecmp( decimalStr,
+              ( 0 == ossStrcasecmp( pDecimalStr,
                                     FAP_MONGO_MINUS_SIGN FAP_MONGO_NAN_STR ) ) ||
-              ( 0 == ossStrcasecmp( decimalStr,
+              ( 0 == ossStrcasecmp( pDecimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_MIN_STR ) ) ||
-              ( 0 == ossStrcasecmp( decimalStr,
+              ( 0 == ossStrcasecmp( pDecimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_MAX_STR ) ) ||
-              ( 0 == ossStrcasecmp( decimalStr,
+              ( 0 == ossStrcasecmp( pDecimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_INF_STR ) ) )
          {
             has = TRUE ;

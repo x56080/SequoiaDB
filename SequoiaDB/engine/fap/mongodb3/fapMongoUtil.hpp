@@ -54,17 +54,17 @@ namespace fap
 class _mongoMsgBuffer : public engine::_utilPooledObject
 {
 public:
-   _mongoMsgBuffer() : _data( NULL ), _size( 0 ), _capacity( 0 )
+   _mongoMsgBuffer() : _pData( NULL ), _size( 0 ), _capacity( 0 )
    {
       _alloc( MEMERY_BLOCK_SIZE ) ;
    }
 
    ~_mongoMsgBuffer()
    {
-      if ( NULL != _data )
+      if ( NULL != _pData )
       {
-         SDB_OSS_FREE( _data ) ;
-         _data = NULL ;
+         SDB_OSS_FREE( _pData ) ;
+         _pData = NULL ;
       }
    }
 
@@ -73,25 +73,23 @@ public:
       return 0 == _size ;
    }
 
-   INT32 write( const CHAR *in, const UINT32 inLen,
+   INT32 write( const CHAR *pIn, const UINT32 inLen,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
    INT32 write( const BSONObj &obj,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
-   INT32 read( CHAR* in, const UINT32 len ) ;
-
    INT32 advance( const UINT32 pos ) ;
 
    void zero()
    {
-      ossMemset( _data, 0, _capacity ) ;
+      ossMemset( _pData, 0, _capacity ) ;
       _size = 0 ;
    }
 
    CHAR *data() const
    {
-      return _data ;
+      return _pData ;
    }
 
    const UINT32 size() const
@@ -116,7 +114,7 @@ public:
 
    void doneLen()
    {
-      *(SINT32 *)_data = _size ;
+      *(SINT32 *)_pData = _size ;
    }
 
 private:
@@ -124,7 +122,7 @@ private:
    INT32 _realloc( const UINT32 size ) ;
 
 private:
-   CHAR  *_data ;
+   CHAR  *_pData ;
    UINT32 _size ;
    UINT32 _capacity ;
 } ;
@@ -157,17 +155,17 @@ CHAR* mongoGetOOMErrResHeader() ;
 
 BOOLEAN mongoCheckBigEndian() ;
 
-INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *fieldName,
+INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *pFieldName,
                           INT32 &value ) ;
 
-INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
-                              const CHAR **value ) ;
+INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *pFieldName,
+                              const CHAR *&pValue ) ;
 
-INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *fieldName,
+INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *pFieldName,
                              BSONObj &value ) ;
 
 INT32 mongoGetNumberLongElement ( const BSONObj &obj,
-                                  const CHAR *fieldName,
+                                  const CHAR *pFieldName,
                                   INT64 &value ) ;
 
 }

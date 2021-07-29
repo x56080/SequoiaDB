@@ -137,8 +137,8 @@ public:
 protected:
    INT32 _readIntAndAdvance( INT32 &value ) ;
    INT32 _readIntAndAdvance( INT64 &value ) ;
-   INT32 _readStringAndAdvance( const CHAR *&str ) ;
-   INT32 _readObjectAndAdvance( const CHAR *&data ) ;
+   INT32 _readStringAndAdvance( const CHAR *&pStr ) ;
+   INT32 _readObjectAndAdvance( const CHAR *&pData ) ;
    BOOLEAN _more() const ;
    const CHAR* _current() const { return _pCurrent ;}
 
@@ -261,7 +261,7 @@ class _mongoKillCursorsRequest : public _mongoMessage
 public:
    _mongoKillCursorsRequest()
    : _numCursors( 0 ),
-     _cursorList( NULL ),
+     _pCursorList( NULL ),
      _isInitialized( FALSE )
    {}
 
@@ -279,12 +279,12 @@ public:
    const INT64* cursorIDs() const
    {
       SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-      return _cursorList ;
+      return _pCursorList ;
    }
 
 private:
    INT32        _numCursors ; // number of cursorIDs in message
-   const INT64* _cursorList ;
+   const INT64* _pCursorList ;
    BOOLEAN      _isInitialized ;
 } ;
 typedef _mongoKillCursorsRequest mongoKillCursorsRequest ;
@@ -293,8 +293,8 @@ class _mongoCommandRequest : public _mongoMessage
 {
 public:
    _mongoCommandRequest()
-   : _databaseName( NULL ),
-     _commandName( NULL ),
+   : _pDatabaseName( NULL ),
+     _pCommandName( NULL ),
      _pMetadata( NULL ),
      _pCommandArgs( NULL ),
      _isInitialized( FALSE )
@@ -309,12 +309,12 @@ public:
    const CHAR* databaseName() const
    {
       SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-      return _databaseName ;
+      return _pDatabaseName ;
    }
    const CHAR* commandName() const
    {
       SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-      return _commandName ;
+      return _pCommandName ;
    }
    const CHAR* metadata() const
    {
@@ -328,8 +328,8 @@ public:
    }
 
 private:
-   const CHAR* _databaseName ;
-   const CHAR* _commandName ;
+   const CHAR* _pDatabaseName ;
+   const CHAR* _pCommandName ;
    const CHAR* _pMetadata ;
    const CHAR* _pCommandArgs ;
    BOOLEAN     _isInitialized ;
