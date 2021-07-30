@@ -53,6 +53,8 @@
 #include "vessel/redoLogUtil.h"
 #include "vessel/deltaLogRecord.h"
 #include "vessel/requestContext.h"
+#include "vessel/outerResource.h"
+#include "vessel/IRedoLogger.h"
 
 namespace engine
 {
@@ -399,10 +401,12 @@ namespace vessel
       BOOLEAN locked = FALSE;
       BOOLEAN fullCheckpoint = FALSE;
       BOOLEAN abortCheckpoint = FALSE;
-      DPS_LSN_OFFSET minDirtyLsn = DPS_INVALID_LSN_OFFSET;
+
       DPS_LSN_OFFSET maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET checkpointLsn = DPS_INVALID_LSN_OFFSET;
       UINT32 totalImpCount = 0;
       ossPoolSet<UINT32> segments;
+      IRedoLogger *logger = NULL;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -414,6 +418,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      logger = context->getOuterResource()->logger;
 
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
@@ -429,22 +435,24 @@ namespace vessel
       {
          goto done;
       }
-      minDirtyLsn = _checkpointContext.getMinDirtyLsn();
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != minDirtyLsn, "impossible");
 
-      _checkpointContext.setStatus(lpsCheckpointContext::PREPARE);
+      _checkpointContext.setStatus(lpsCheckpointContext::RUNNING);
       abortCheckpoint = TRUE;
 
-      rc = prepareToCreateCheckpoint(context);
+      fullCheckpoint = (FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize());
+
+      rc = prepareToCreateCheckpoint(context, checkpointLsn, maxDirtyLsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
          goto error;
       }
 
-      fullCheckpoint = (FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize());
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != maxDirtyLsn, "can not be invalid");
+      SDB_ASSERT(checkpointLsn <= maxDirtyLsn, "impossible");
 
-      rc = _logConsole.precreateCheckpoint(0, maxDirtyLsn);
+      rc = _logConsole.precreateCheckpoint(0, checkpointLsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get log console ready to create checkpoint:%d", rc);
@@ -456,7 +464,7 @@ namespace vessel
       /// saved into new base id map file.
       totalImpCount = _allocator.getPageCount();
 
-      rc = prepareToFlushSegments(context, fullCheckpoint, segments);
+      rc = turnMutablePages(context, fullCheckpoint, segments);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create segment list:%d", rc);
@@ -468,8 +476,7 @@ namespace vessel
 
       if (!segments.empty())
       {
-         _checkpointContext.setStatus(lpsCheckpointContext::FLUSH_SEGS);
-         rc = flushWhenCreatingCheckpoint(context, segments);
+         rc = flushSegments(context, segments);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to flush segments:%d", rc);
@@ -477,7 +484,8 @@ namespace vessel
          }
       }
 
-      _checkpointContext.setStatus(lpsCheckpointContext::COMMIT);
+      logger->pushMaxFileLSN(context->getSession(), maxDirtyLsn);
+
       rc = _logConsole.commitCheckpointPrecreated();
       if (SDB_OK != rc)
       {
@@ -487,6 +495,7 @@ namespace vessel
 
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
+
       _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
       if (maxDirtyLsn == _checkpointContext.getMaxDirtyLsn())
       {
@@ -495,23 +504,28 @@ namespace vessel
       }
       else
       {
-         _checkpointContext.setMinDirtyLsn(maxDirtyLsn + 1);
+         _checkpointContext.setMinDirtyLsn(checkpointLsn + 1);
       }
 
       if (fullCheckpoint)
       {
-         _checkpointContext.setStatus(lpsCheckpointContext::CREATE_NEW_BASE);
+         _checkpointContext.setStatus(lpsCheckpointContext::CREATING_NEW_BASE);
          _checkpointContext.getLatch()->release_w();
          locked = FALSE;
+
          rebaseWhenCreatingCheckpoint(totalImpCount,
                                       _checkpointContext.getCheckpoint().offset);
          removeHistoryIdMapAndDeltaLogFiles();
+
          _checkpointContext.getLatch()->lock_w();
          locked = TRUE;
-         
       }
       
       _checkpointContext.setStatus(lpsCheckpointContext::NONE);
+      _checkpointContext.getLatch()->release_w();
+      locked = FALSE;
+
+      endToCreateCheckpoint(context);
 
    done:
       if (locked)
@@ -2231,5 +2245,60 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::turnMutablePages(requestContext *context,
+                                            BOOLEAN isFullCheckpoint,
+                                            ossPoolSet<UINT32> &segments)
+   {
+      INT32 rc = SDB_OK;
+      if (isFullCheckpoint)
+      {
+         rc = _lpidCache.prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
+                                                &segments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get ready to create new base:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _lpidCache.setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
+                                           segments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::flushSegments(requestContext *context,
+                                         const ossPoolSet<UINT32> &segments)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _dpc, "can not be null");
+      SDB_ASSERT(_dpc->isOpen(), "can not be closed");
+
+      for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
+           itr != segments.end(); ++itr)
+      {
+         rc = _dpc->fsyncSegment(*itr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to flush global segment[%d], rc:%d",
+                   *itr, rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

@@ -41,48 +41,12 @@
 #include "vessel/IRedoLogger.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/logRecordContext.h"
+#include <atomic>
 
 using namespace engine::vessel;
 using namespace engine;
 
 static const CHAR *DATA_PATH = "/tmp/vessel_test";
-
-class test_session : public ::engine::vessel::ISession
-{
-   public:
-      test_session():
-      _id(0)
-      {}
-      virtual ~test_session(){}
-
-   public:
-      virtual UINT64 getSessionID()const
-      {
-         return 0;
-      }
-
-      virtual void setLastError(INT32 rc, const CHAR *fmt, ...)
-      {
-         return ;
-      }
-
-      virtual void clearLastError()
-      {
-         return;
-      }
-
-      virtual BOOLEAN quit()const
-      {
-         return FALSE;
-      }
-
-      virtual BOOLEAN nowait()const
-      {
-         return FALSE;
-      }
-   private:
-      UINT32 _id;
-};
 
 class test_logger : public ::engine::vessel::IRedoLogger
 {
@@ -96,11 +60,11 @@ class test_logger : public ::engine::vessel::IRedoLogger
                            const _dpsLogRecord *record,
                            DPS_LSN_OFFSET *lsn)
       {
+         UINT64 t = _lsn.fetch_add(record->alignedLen());
          if (NULL != lsn)
          {
-            *lsn = _lsn;
+            *lsn = t;
          }
-         _lsn += record->alignedLen();
          return SDB_OK;
       }
 
@@ -165,9 +129,59 @@ class test_logger : public ::engine::vessel::IRedoLogger
 
          virtual INT32 abortOplist(::engine::vessel::ISession *session,
                                       DPS_LSN_OFFSET lsn){return SDB_OK;}
+                                      
 
+   public:
+      std::atomic_ullong _lsn;
+};
+
+class test_session : public ::engine::vessel::ISession
+{
+   public:
+      test_session(test_logger *logger):
+      _id(0),
+      _logger(logger)
+      {}
+      virtual ~test_session(){}
+
+   public:
+      virtual UINT64 getSessionID()const
+      {
+         return 0;
+      }
+
+      virtual void setLastError(INT32 rc, const CHAR *fmt, ...)
+      {
+         return ;
+      }
+
+      virtual void clearLastError()
+      {
+         return;
+      }
+
+      virtual BOOLEAN quit()const
+      {
+         return FALSE;
+      }
+
+      virtual BOOLEAN nowait()const
+      {
+         return FALSE;
+      }
+
+      virtual UINT64 getLastLSN()const
+      {
+         return _logger->_lsn.load();
+      }
+
+      virtual void waitForCurrentWritingId()
+      {
+         return ;
+      }
    private:
-      UINT64 _lsn;
+      UINT32 _id = 0;
+      test_logger *_logger = NULL;
 };
 
 #endif//VESSEL_TEST_TEST_DEF_H_

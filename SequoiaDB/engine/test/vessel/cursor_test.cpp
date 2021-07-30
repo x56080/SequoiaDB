@@ -36,47 +36,11 @@
 #include "vessel/cursorKernal.h"
 #include "vessel/ISession.h"
 #include "vessel/vesselImpl.h"
+#include "test_def.h"
 
 #include "gtest/gtest.h"
 
 using namespace engine::vessel;
-
-class test_session : public ISession
-{
-   public:
-      test_session():
-      _id(0)
-      {}
-      virtual ~test_session(){}
-
-   public:
-      virtual UINT64 getSessionID()const
-      {
-         return 0;
-      }
-
-      virtual void setLastError(INT32 rc, const CHAR *fmt, ...)
-      {
-         return ;
-      }
-
-      virtual void clearLastError()
-      {
-         return;
-      }
-
-      virtual BOOLEAN quit()const
-      {
-         return FALSE;
-      }
-
-      virtual BOOLEAN nowait()const
-      {
-         return FALSE;
-      }
-   private:
-      UINT32 _id;
-};
 
 class test_cursor : public cursorKernal
 {
@@ -96,7 +60,7 @@ class test_vessel : public vesselImpl
    public:
 	    test_vessel(){}
 		virtual ~test_vessel(){}
-         virtual INT32 pushMoreToCursor(ISession * session,
+         virtual INT32 pushMoreToCursor(engine::vessel::ISession * session,
                                         cursorKernal *cursor)
          {
             cursor->pushEnd();
@@ -114,7 +78,8 @@ TEST(cursortest, test1)
    slice content;
    INT32 rc = SDB_OK;
    test_vessel db;
-   test_session session;
+   test_logger logger;
+   test_session session(&logger);
    test_cursor cursor;
    rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -150,7 +115,8 @@ TEST(cursortest, test2)
    slice content;
    INT32 rc = SDB_OK;
    test_vessel db;
-   test_session session;
+   test_logger logger;
+   test_session session(&logger);
    test_cursor cursor;
    rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -182,7 +148,8 @@ TEST(cursortest, test3)
    slice content;
    INT32 rc = SDB_OK;
    test_vessel db;
-   test_session session;
+   test_logger logger;
+   test_session session(&logger);
    test_cursor cursor;
    rc = cursor.open(&db, NULL, options);
    ASSERT_EQ(SDB_OK, rc);

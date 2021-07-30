@@ -59,6 +59,8 @@ namespace vessel
          virtual BOOLEAN quit()const = 0;
          virtual void clearLastError() = 0;
          virtual void setLastError(INT32 rc, const CHAR *fmt, ...) = 0;
+         virtual UINT64 getLastLSN()const = 0;
+         virtual void waitForCurrentWritingId() = 0;
 
    };//class ISession
 }//namespace vessel

@@ -53,10 +53,8 @@ namespace vessel
          enum CHECKPOINT_STATUS
          {
             NONE = 0,
-            PREPARE = 1,
-            FLUSH_SEGS = 2,
-            COMMIT = 3,
-            CREATE_NEW_BASE = 4,
+            RUNNING = 1,
+            CREATING_NEW_BASE =  2
          };//enum CHECKPOINT_STATUS
 
       public:

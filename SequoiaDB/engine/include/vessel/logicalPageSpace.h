@@ -151,17 +151,15 @@ namespace vessel
       private:
          /// Under checkpoint x latch.
          /// Must resume x latch if released in func.
-         virtual INT32 prepareToCreateCheckpoint(requestContext *context) = 0;
+         virtual INT32 prepareToCreateCheckpoint(requestContext *context,
+                                                 DPS_LSN_OFFSET &checkpointLsn,
+                                                 DPS_LSN_OFFSET &maxDirtyLsn) = 0;
 
-         virtual INT32 prepareToFlushSegments(requestContext *context,
-                                              BOOLEAN isFullCheckpoint,
-                                              ossPoolSet<UINT32> &segments) = 0;
+         virtual INT32 turnMutablePages(requestContext *context,
+                                        BOOLEAN isFullCheckpoint,
+                                        ossPoolSet<UINT32> &segments);
 
-         virtual INT32 flushWhenCreatingCheckpoint(requestContext *context,
-                                                   const ossPoolSet<UINT32> &segments)
-         {
-            return SDB_VESSEL_INTERNAL_ERR;
-         }
+         virtual void endToCreateCheckpoint(requestContext *context){return;}
   
       protected:
          OSS_INLINE const storageFileCreater &getCreater()const
@@ -296,6 +294,9 @@ namespace vessel
                                             UINT64 deltaLogOffset);
 
          INT32 removeHistoryIdMapAndDeltaLogFiles();
+
+         INT32 flushSegments(requestContext *context,
+                             const ossPoolSet<UINT32> &segments)const;
 
       private:
          INT32 preallocateLpids(requestContext *context,

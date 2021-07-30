@@ -46,6 +46,8 @@
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecord.hpp"
 
+#include <thread> // c++11
+
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -82,7 +84,7 @@ TEST_F(cl_ddl_test, test1)
    vesselImpl db;
    outerResource resource;
    resource.logger = &logger; 
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -141,7 +143,7 @@ TEST_F(cl_ddl_test, test2)
    vesselImpl db;
    outerResource resource;
    resource.logger = &logger; 
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -200,7 +202,7 @@ TEST_F(cl_ddl_test, test3)
    vesselImpl db;
    outerResource resource;
    resource.logger = &logger; 
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -245,6 +247,78 @@ TEST_F(cl_ddl_test, test3)
    
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
+
+}
+
+void thread_create_cl(vesselImpl *db, engine::vessel::ISession *session, UINT32 innerId, UINT32 count)
+{
+   INT32 rc = SDB_OK;
+   createCLOptions clOptions;
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      CHAR name[32] = {0};
+      sprintf(name, "%s%d", "bar", innerId + i);
+      rc = db->createCollection(session, "foo", name, innerId + i, clOptions);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+}
+
+TEST_F(cl_ddl_test, test4)
+{
+   INT32 rc = SDB_OK;
+   test_logger logger;
+   vesselImpl db;
+   outerResource resource;
+   resource.logger = &logger; 
+   test_session session(&logger);
+   openDBOptions options;
+   createCSOptions csOptions;
+   createCLOptions clOptions;
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   UINT32 creatingCount = 65535;
+   UINT32 count = 0;
+   static const UINT32 threadCount = 4;
+   std::thread threads[threadCount];
+   UINT32 innerID = 1;
+   UINT32 countPerThread = creatingCount / threadCount;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(thread_create_cl,
+                                         &db, &session, innerID, countPerThread));
+      innerID += countPerThread;
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.getCollectionCount(&session, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(countPerThread * threadCount, count);
    
+   
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = db.getCollectionCount(&session, "foo", count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(countPerThread * threadCount, count);
+   
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
 
 }

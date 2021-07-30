@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = replicatedLPS.h
+   Source File Name = copyOnWriteLPS.h
 
    Descriptive Name =
 
@@ -33,33 +33,32 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_REPLICATED_LPS_H_
-#define VESSEL_REPLICATED_LPS_H_
+#ifndef VESSEL_COPY_ON_WRITE_LPS_H_
+#define VESSEL_COPY_ON_WRITE_LPS_H_
 
 #include "vessel/logicalPageSpace.h"
 #include "vessel/idMapFile.h"
-#include "vessel/dataStorageFileCluster.h"
+#include "vessel/forwardList.hpp"
+#include "ossSpinLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class logRecordContext;
-
-   class replicatedLPS : public logicalPageSpace
+   class copyOnWriteLPS : public logicalPageSpace
    {
       public:
-         replicatedLPS();
-         virtual ~replicatedLPS();
+         copyOnWriteLPS();
+         virtual ~copyOnWriteLPS();
 
       private:
          virtual UINT32 getIdMapFileHeadFlags()const
          {
-            return ID_MAP_FILE_FLAG_REPLICATED;
+            return ID_MAP_FILE_FLAG_COPY_ON_WRITE;
          }
          virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const
          {
-            return ID_MAP_FILE_FLAG_REPLICATED == flags;
+            return ID_MAP_FILE_FLAG_COPY_ON_WRITE == flags;
          }
 
       private:
@@ -79,10 +78,6 @@ namespace vessel
                                                runtimePageBuffer &rpb);
 
       private:
-         virtual INT32 getPageFromCache(PAGE_ID lpid,
-                                        idMapSlot &slot,
-                                        BOOLEAN &isMutable);
-
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,
                            UINT32 count,
@@ -108,28 +103,19 @@ namespace vessel
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
                                                  DPS_LSN_OFFSET &checkpointLsn,
                                                  DPS_LSN_OFFSET &maxDirtyLsn);
+         
+         virtual void endToCreateCheckpoint(requestContext *context);
+      private:
+         void pushIntoRemovingList(UINT32 count,
+                                   const PAGE_ID *pids);
 
-         virtual INT32 turnMutablePages(requestContext *context,
-                                        BOOLEAN isFullCheckpoint,
-                                        ossPoolSet<UINT32> &segments);
+         void backupAndClearRemovingList();
 
       private:
-         INT32 prepareCopyLog(requestContext *context,
-                              UINT32 pageSize,
-                              logRecordContext *lrc);
-
-         INT32 commit(requestContext *context,
-                        UINT32 pageSize,
-                        const void *pageBuffer,
-                        const GLOBAL_PAGE_ID &gpid,
-                        PAGE_ID lpid,
-                        logRecordContext *lrc);
-
-         void abort(requestContext *context,
-                     logRecordContext *lrc);
-
-   };//class replicatedLPS
+         forwardList<PAGE_ID> *_removingList = NULL;
+         forwardList<PAGE_ID> *_rmlistAfterCheckpoint = NULL;
+   };//class copyOnWriteLPS
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_REPLICATED_LPS_H_
+#endif//VESSEL_COPY_ON_WRITE_LPS_H_

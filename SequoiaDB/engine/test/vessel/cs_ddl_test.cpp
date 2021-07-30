@@ -81,7 +81,7 @@ TEST_F(cs_ddl_test, test1)
    vesselImpl db;
    outerResource resource;
    resource.logger = &logger; 
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -124,7 +124,7 @@ TEST_F(cs_ddl_test, test2)
    outerResource resource;
    resource.logger = &logger; 
    vesselImpl db;
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -187,7 +187,7 @@ TEST_F(cs_ddl_test, test3)
    outerResource resource;
    resource.logger = &logger; 
    vesselImpl db;
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -221,7 +221,7 @@ TEST_F(cs_ddl_test, test4)
    outerResource resource;
    resource.logger = &logger; 
    vesselImpl db;
-   test_session session;
+   test_session session(&logger);
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;

@@ -264,6 +264,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mpids[i].getLpid(), rc);
+            ossPanic();
             goto error;
          }
       }
@@ -393,6 +394,7 @@ namespace vessel
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to remove lpid[%d] in cache:%d", mpids[i].getLpid(), rc);
+            ossPanic();
             goto error;
          }
       }
@@ -813,9 +815,24 @@ namespace vessel
       return;
    }
 
-   INT32 replicatedLPS::prepareToFlushSegments(requestContext *context,
-                                               BOOLEAN isFullCheckpoint,
-                                               ossPoolSet<UINT32> &segments)
+   INT32 replicatedLPS::prepareToCreateCheckpoint(requestContext *context,
+                                                  DPS_LSN_OFFSET &checkpointLsn,
+                                                  DPS_LSN_OFFSET &maxDirtyLsn)
+   {
+      INT32 rc = SDB_OK;
+      DPS_LSN_OFFSET lsn = logicalPageSpace::getCheckpointContext().getMaxDirtyLsn();
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "should not try to prepare if no dirty data");
+      checkpointLsn = lsn;
+      maxDirtyLsn = lsn;
+   done:
+      return rc;
+   error:
+      goto error;
+   }
+
+   INT32 replicatedLPS::turnMutablePages(requestContext *context,
+                                         BOOLEAN isFullCheckpoint,
+                                         ossPoolSet<UINT32> &segments)
    {
       INT32 rc = SDB_OK;
       const storageCoreArgs &args = logicalPageSpace::getStorageCoreArgs();

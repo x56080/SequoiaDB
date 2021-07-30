@@ -59,10 +59,8 @@ namespace vessel
       UINT16 offset = 0;
       recordHead rh;
       recordID rid;
-      INT32 oldLvl = FSM_INVALID_SPACE_LVL;
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
-      BOOLEAN matchedCandidate = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -120,31 +118,41 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCandidate().isValid() &&
-          head->pageSeq == context->getCandidate().getSeq())
+      if (context->getCandidate().isValid())
       {
-         matchedCandidate = TRUE;
+         if (context->getCandidate().getSeq() != head->pageSeq)
+         {
+            PD_LOG(PDERROR, "candidate seq[%d] in context does not match the one[%d] in page",
+                context->getCandidate().getSeq(), head->pageSeq);
+            rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+            goto error;
+         }
+
          if (INVALID_PAGE_ID == context->getCandidate().getLpid())
          {
             context->getCandidate().setLpid(lpb->getLogicalPid());
-         }
-         oldLvl = getFsmSpaceLvl(lpb->getRuntimeBuffer().getPageSize(),
-                                 head->freeSpaceAfterLastSlot);
-         if (oldLvl != context->getCandidate().getSpaceLvl())
-         {
-            context->getCandidate().getInfoPtr()->_lvl = oldLvl;
          }
       }
 
       alignedSize = getAlignedSizeOfNormalRecordAndHead(record.len());
 
       rc = getPosToInsert(head, alignedSize, slotId, offset, totalSize);
-      if (SDB_OK != rc)
+      if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
+      {
+         if (context->getCandidate().isValid() &&
+             FSM_INVALID_SPACE_LVL != context->getCandidate().getInfoPtr()->_lvl)
+         {
+            context->getCandidate().getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
+         }
+         goto error;
+      }
+      else if (SDB_OK != rc)
       {
          PD_LOG(PDDEBUG, "failed to get position to insert:%d", rc);
          goto error;
       }
 
+      SDB_ASSERT(totalSize <= head->freeSpaceAfterLastSlot, "impossible");
       newFreeSize = head->freeSpaceAfterLastSlot - totalSize;
       rs.setType(RDP_SLOT_TYPE_NORMAL);
       rs.setOffset(offset);
@@ -168,9 +176,8 @@ namespace vessel
       rid.setSlotID(slotId);
       context->setRid(rid);
 
-      if (matchedCandidate)
+      if (context->getCandidate().isValid())
       {
-         SDB_ASSERT(context->getCandidate().isValid(), "impossible");
          if (newFreeSize < context->getMinFreeSize())
          {
             context->getCandidate().getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
@@ -179,7 +186,7 @@ namespace vessel
          {
             newLvl = getFsmSpaceLvl(lpb->getRuntimeBuffer().getPageSize(),
                                     newFreeSize);
-            if (newLvl != oldLvl)
+            if (newLvl != context->getCandidate().getInfoPtr()->_lvl)
             {
                context->getCandidate().getInfoPtr()->_lvl = newLvl;
             }

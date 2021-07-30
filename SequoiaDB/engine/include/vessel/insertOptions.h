@@ -50,10 +50,9 @@ namespace vessel
 
          OSS_INLINE ~insertOptions(){}
 
-         OSS_INLINE insertOptions(const insertOptions &o)
-         {}
+         insertOptions(const insertOptions &o) = delete;
 
-         OSS_INLINE insertOptions &operator=(const insertOptions &o)
+         insertOptions &operator=(const insertOptions &o)
          {
             return *this;
          }

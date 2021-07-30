@@ -509,16 +509,14 @@ namespace vessel
       do
       {
          fsmCandidate &candidate = context->getCandidate();
-         if (!candidate.isValid() || candidate.getInfoPtr()->_lvl < targetLvl)
+         rc = findCandidate(context,
+                            targetLvl,
+                            context->getStriping(),
+                            candidate);
+         if (SDB_OK != rc)
          {
-            rc = findCandidate(static_cast<requestContext*>(context),
-                               targetLvl, context->getStriping(),
-                               candidate);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
-               goto error;
-            }
+            PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
+            goto error;
          }
 
          lpid = candidate.getLpid();
@@ -538,7 +536,6 @@ namespace vessel
          {
             PD_LOG(PDDEBUG, "page seq[%] free size may be not correct",
                    candidate.getSeq());
-            candidate.reset();
             rc = SDB_OK;
             continue;
          }
