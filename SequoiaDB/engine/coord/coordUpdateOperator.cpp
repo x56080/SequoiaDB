@@ -149,6 +149,11 @@ namespace engine
          goto error ;
       }
 
+      if ( flag & FLG_UPDATE_UPSERT )
+      {
+         setTrustResult( FALSE ) ;
+      }
+
       MONQUERY_SET_NAME( cb, pCollectionName ) ;
 
       if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
@@ -492,6 +497,8 @@ namespace engine
 
          ((MsgOpInsert*)pBuff)->version = clientVer ;
 
+         insertOpr.setTrustResult( FALSE ) ;
+
          rc = insertOpr.execute( (MsgHeader*)pBuff, cb, contextID, buf ) ;
          if ( rc )
          {
@@ -709,7 +716,8 @@ namespace engine
    void _coordUpdateOperator::_onNodeReply( INT32 processType,
                                             MsgOpReply *pReply,
                                             pmdEDUCB *cb,
-                                            coordSendMsgIn &inMsg )
+                                            coordSendMsgIn &inMsg,
+                                            BOOLEAN oneGroup )
    {
       BOOLEAN inProcessed = FALSE ;
       BOOLEAN upProcessed = FALSE ;
@@ -721,34 +729,41 @@ namespace engine
          try
          {
             BSONObj objResult( ( const CHAR* )pReply + sizeof( MsgOpReply ) ) ;
-            BSONObjIterator itr( objResult ) ;
-            while ( itr.more() )
+            if ( oneGroup && SDB_OK == pReply->flags )
             {
-               BSONElement e = itr.next() ;
-               if ( !moProcessed &&
-                    0 == ossStrcmp( e.fieldName(), FIELD_NAME_MODIFIED_NUM ) )
+               _upResult.setResultObj( objResult, TRUE ) ;
+            }
+            else
+            {
+               BSONObjIterator itr( objResult ) ;
+               while ( itr.more() )
                {
-                  moProcessed = TRUE ;
-                  _upResult.incModifiedNum( (UINT64)e.numberLong() ) ;
-               }
-               else if ( !upProcessed &&
-                         0 == ossStrcmp( e.fieldName(),
-                                         FIELD_NAME_UPDATE_NUM ) )
-               {
-                  upProcessed = TRUE ;
-                  _upResult.incUpdatedNum( (UINT64)e.numberLong() ) ;
-               }
-               else if ( !inProcessed &&
-                         0 == ossStrcmp( e.fieldName(),
-                                         FIELD_NAME_INSERT_NUM ) )
-               {
-                  inProcessed = TRUE ;
-                  _upResult.incInsertedNum( (UINT64)e.numberLong() ) ;
-               }
+                  BSONElement e = itr.next() ;
+                  if ( !moProcessed &&
+                       0 == ossStrcmp( e.fieldName(), FIELD_NAME_MODIFIED_NUM ) )
+                  {
+                     moProcessed = TRUE ;
+                     _upResult.incModifiedNum( (UINT64)e.numberLong() ) ;
+                  }
+                  else if ( !upProcessed &&
+                            0 == ossStrcmp( e.fieldName(),
+                                            FIELD_NAME_UPDATE_NUM ) )
+                  {
+                     upProcessed = TRUE ;
+                     _upResult.incUpdatedNum( (UINT64)e.numberLong() ) ;
+                  }
+                  else if ( !inProcessed &&
+                            0 == ossStrcmp( e.fieldName(),
+                                            FIELD_NAME_INSERT_NUM ) )
+                  {
+                     inProcessed = TRUE ;
+                     _upResult.incInsertedNum( (UINT64)e.numberLong() ) ;
+                  }
 
-               if ( inProcessed && upProcessed && moProcessed )
-               {
-                  break ;
+                  if ( inProcessed && upProcessed && moProcessed )
+                  {
+                     break ;
+                  }
                }
             }
          }
@@ -762,7 +777,7 @@ namespace engine
       if ( !upProcessed )
       {
          _recvNum = 0 ;
-         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg ) ;
+         _coordTransOperator::_onNodeReply( processType, pReply, cb, inMsg, oneGroup ) ;
          _upResult.incUpdatedNum( _recvNum ) ;
       }
    }

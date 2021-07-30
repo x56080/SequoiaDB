@@ -177,7 +177,8 @@ namespace engine
          virtual void               _onNodeReply( INT32 processType,
                                                   MsgOpReply *pReply,
                                                   pmdEDUCB *cb,
-                                                  coordSendMsgIn &inMsg ) ;
+                                                  coordSendMsgIn &inMsg,
+                                                  BOOLEAN oneGroup ) ;
 
       private:
          utilInsertResult  _inResult ;

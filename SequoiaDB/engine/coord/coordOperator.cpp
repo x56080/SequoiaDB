@@ -99,6 +99,7 @@ namespace engine
    {
       _isReadOnly = FALSE ;
       _pResource = NULL ;
+      _trustResult = TRUE ;
    }
 
    _coordOperator::~_coordOperator()
@@ -185,6 +186,8 @@ namespace engine
       UINT32 primaryID = 0 ;
       UINT32 groupID = 0 ;
       BOOLEAN needRetry = FALSE ;
+
+      BOOLEAN oneGroup = _trustResult && ( options._groupLst.size() == 1 ? TRUE : FALSE ) ;
 
       /// set options
       _remoteHandler.enableInterruptWhenFailed( _interruptWhenFailed(),
@@ -295,7 +298,7 @@ namespace engine
          }
 
          // callback for parse
-         _onNodeReply( processType, pReply, cb, inMsg ) ;
+         _onNodeReply( processType, pReply, cb, inMsg, oneGroup ) ;
 
          if ( !result.pushReply( replyEvent, processType ) )
          {
@@ -569,7 +572,8 @@ namespace engine
    void _coordOperator::_onNodeReply( INT32 processType,
                                       MsgOpReply *pReply,
                                       pmdEDUCB *cb,
-                                      coordSendMsgIn &inMsg )
+                                      coordSendMsgIn &inMsg,
+                                      BOOLEAN oneGroup )
    {
       // do nothing
    }

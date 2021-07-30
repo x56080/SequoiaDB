@@ -301,6 +301,11 @@ namespace engine
                                         pmdEDUCB *cb,
                                         coordProcessResult &result ) ;
 
+         void setTrustResult( BOOLEAN trust )
+         {
+            _trustResult = trust ;
+         }
+
       protected:
          virtual BOOLEAN            _isTrans( pmdEDUCB *cb,
                                               MsgHeader *pMsg ) ;
@@ -308,7 +313,8 @@ namespace engine
          virtual void               _onNodeReply( INT32 processType,
                                                   MsgOpReply *pReply,
                                                   pmdEDUCB *cb,
-                                                  coordSendMsgIn &inMsg ) ;
+                                                  coordSendMsgIn &inMsg,
+                                                  BOOLEAN oneGroup ) ;
 
          virtual INT32              _prepareCLOp( coordCataSel &cataSel,
                                                   coordSendMsgIn &inMsg,
@@ -364,6 +370,7 @@ namespace engine
 
       private:
          BOOLEAN              _isReadOnly ;
+         BOOLEAN              _trustResult ;
          string               _strName ;
 
       protected:

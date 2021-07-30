@@ -52,6 +52,7 @@ namespace engine
    utilResult::utilResult( UINT32 mask )
    {
       _resultMask = mask ;
+      _useResult = FALSE ;
    }
 
    utilResult::~utilResult()
@@ -73,7 +74,7 @@ namespace engine
       return OSS_BIT_TEST( _resultMask, mask ) ;
    }
 
-   void utilResult::setResultObj( const BSONObj &obj )
+   void utilResult::setResultObj( const BSONObj &obj, BOOLEAN useResult )
    {
       try
       {
@@ -83,11 +84,14 @@ namespace engine
       {
          PD_LOG( PDERROR, "Save result object occur exception: %s", e.what() ) ;
       }
+
+      _useResult = useResult ;
    }
 
    void utilResult::resetResultObj()
    {
       _resultObj = BSONObj() ;
+      _useResult = FALSE ;
    }
 
    BSONObj utilResult::getResultObj() const
@@ -129,28 +133,40 @@ namespace engine
 
    void utilResult::toBSON( BSONObjBuilder & builder ) const
    {
+      BOOLEAN usedResult = FALSE ;
       if ( !_resultObj.isEmpty() )
       {
-         try
+         if ( _useResult )
          {
-            BSONObjIterator itr( _resultObj ) ;
-            while( itr.more() )
+            builder.appendElements( _resultObj ) ;
+            usedResult = TRUE ;
+         }
+         else
+         {
+            try
             {
-               BSONElement e = itr.next() ;
-               if ( _filterResultElement( e ) )
+               BSONObjIterator itr( _resultObj ) ;
+               while( itr.more() )
                {
-                  builder.append( e ) ;
+                  BSONElement e = itr.next() ;
+                  if ( _filterResultElement( e ) )
+                  {
+                     builder.append( e ) ;
+                  }
                }
             }
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Build result information occur exception: %s",
-                    e.what() ) ;
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Build result information occur exception: %s",
+                       e.what() ) ;
+            }
          }
       }
 
-      _toBSON( builder ) ;
+      if ( !usedResult )
+      {
+         _toBSON( builder ) ;
+      }
    }
 
    /*

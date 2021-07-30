@@ -767,7 +767,8 @@ namespace engine
    void _coordQueryOperator::_onNodeReply( INT32 processType,
                                            MsgOpReply *pReply,
                                            pmdEDUCB *cb,
-                                           coordSendMsgIn &inMsg )
+                                           coordSendMsgIn &inMsg,
+                                           BOOLEAN oneGroup )
    {
       /// do nothing
    }

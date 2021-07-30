@@ -61,7 +61,7 @@ namespace engine
       void              disableMask( UINT32 mask ) ;
       BOOLEAN           isMaskEnabled( UINT32 mask ) const ;
 
-      void              setResultObj( const BSONObj &obj ) ;
+      void              setResultObj( const BSONObj &obj, BOOLEAN useResult ) ;
       void              resetResultObj() ;
       BSONObj           getResultObj() const ;
       BOOLEAN           isResultObjEmpty() const ;
@@ -79,10 +79,10 @@ namespace engine
       virtual void      _toBSON( BSONObjBuilder &builder ) const = 0 ;
       virtual BOOLEAN   _filterResultElement( const BSONElement &e ) const = 0 ;
 
-   private:
+   protected:
       UINT32            _resultMask ;
       BSONObj           _resultObj ;
-
+      BOOLEAN           _useResult ;
    } ;
 
    /*
