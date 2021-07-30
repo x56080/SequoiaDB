@@ -702,9 +702,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    ossSnprintf( info._release, sizeof( info._release ) - 1,
                 "%s", name.release ) ;
    ossSnprintf( arch, sizeof( arch ) - 1, "%s", name.machine ) ;
-#if defined (_PPCLIN64)
-   info._bit = 64 ;
-#elif defined (_ARMLIN64)
+#if defined (_PPCLIN64) || defined (_ARMLIN64) || defined (_ALPHALIN64)
    info._bit = 64 ;
 #else
    if ( 0 == ossStrcmp( arch, "x86_64" ) )

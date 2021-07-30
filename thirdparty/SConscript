@@ -304,9 +304,13 @@ class BoostCompiler(CompilerBase):
                         'program_options,chrono --prefix=./')
         config_args = '-d0 link=static threading=multi variant=' + \
                       self.build_type + ' address-model=' + str(address_mode) +\
-                      ' toolset=gcc runtime-link=static cxxflags="-fPIC"'
+                      ' toolset=gcc runtime-link=static'
         if "arm64" == self.arch:
             config_args += ' architecture=arm'
+        if "alpha64" == self.arch:
+            config_args += ' cxxflags="-fPIC -mieee"'
+        else:
+            config_args += ' cxxflags="-fPIC"'
         self.append_cmd('./b2', config_args)
         return 0
 
@@ -341,10 +345,10 @@ class SpiderMonkeyCompiler(CompilerBase):
                 config_args = '--disable-methodjit'
             elif 'ppc64le' == self.arch:
                 config_args = 'ppc64le'
+            elif 'arm64' == self.arch:
+                config_args += ' --host=aarch64'
             if debugBuild:
                 config_args += ' --enable-debug --disable-optimize'
-            if 'arm64' == self.arch:
-                config_args += ' --host=aarch64'
         self.append_cmd('cd ' + self.build_dir + ' && ../configure ' +
                         comm_config_opt, config_args)
         self.append_cmd('cd ' + self.build_dir + '&& make -j ' +
@@ -658,7 +662,11 @@ if "win32" != guess_os:
     ssl_compiler = SslCompiler('crypto/openssl-1.1.1g')
     components.append(boost_compiler)
     # components.append(spidermonkey_compiler)
-    components.append(ssl_compiler)
+
+    # alpha64(sw_64) dose not supported SSL source compile
+    # we need to use the SSL library that comes with it
+    if "alpha64" != guess_arch:
+        components.append(ssl_compiler)
 
     if "arm64" == guess_arch:
         # in arm64, we are going to build the lib when there have no
@@ -666,7 +674,7 @@ if "win32" != guess_os:
         if usefuse:
             fuse_compiler = FuseCompiler('fuse')
             components.append(fuse_compiler)
-	
+
     if "ppc64le" == guess_arch:
         # in ppc64le, we are going to build the lib when there have no
         # pre-build libs for using

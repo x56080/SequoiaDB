@@ -650,3 +650,70 @@ Aix64:
     The second way to build:
         cd zlib
         scons
+
+Alpha64:
+    Building Prerequisites:
+        g++ 4.8.3
+        libstdc++ 6.0.19
+        Python 2.7.7
+        autoconf 2.13 ( source code in ..\tools\compile\autoconf-2.13 )
+        scons
+
+    Boost 1.60.0:
+        ./bootstrap.sh --prefix=./
+        ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC -mieee"
+        copy boost/stage/lib/* to boost/lib/alphalinux64
+
+    SpiderMonkey 1.8.5:
+        cd thirdparty/parser/sm/js/src
+        autoconf2.13
+        mkdir build-release
+        cd build-release
+        ../configure --host=sw_64 --enable-optimize="-std=gnu++98 -mieee"
+        make
+        cd ..
+        mkdir build-debug
+        cd build-debug
+        ../configure --host=sw_64 --enable-optimize="-std=gnu++98 -mieee" --enable-debug
+        make
+        copy parser/sm/js/src/build-release/dist/include to parser/sm/js/include and
+        parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/alphalinux64.
+        do same operation for build-debug
+
+        Note:
+            autoconf2.13 is required to compile this version of SpiderMonkey. If it's not
+            installed in your system, you can compile and install it from source provided
+            by the sequoiadb repository. The source code path is tools/compile/autoconf-2.13.
+            Compile and install as follows:
+            cd autoconf-2.13
+            ./configure --program-suffix=2.13   # Be sure to use this version number
+            make
+            sudo make install
+            Then check if it's installed successfully:
+            autoconf2.13 --version
+
+    OpenSSL 1.1.1g:
+        # alpha64(sw_64) dose not supported SSL source compile
+        # we need to use the SSL library that comes with it
+        apt install libssl-dev
+        find /usr/ -name "libcrypto.a"
+        find /usr/ -name "libssl.a"
+        # copy the find file to ./lib/alphalinux64/release
+
+    snappy 1.1.0:
+        cd snappy
+        scons
+
+    lz4 1.7.1:
+        cd lz4
+        scons
+
+    zlib 1.2.8:
+        cd zlib
+        ./configure
+        make
+        copy the following file to zlib\lib\alphalinux64
+            libzlib.a
+    The second way to build:
+        cd zlib
+        scons

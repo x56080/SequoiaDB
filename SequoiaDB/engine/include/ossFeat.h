@@ -72,6 +72,10 @@
 #elif defined(__linux__) && (defined(__aarch64__))
    #define _ARMLIN64
    #define _LINUX
+#elif defined(__linux__) && (defined(__sw_64__))
+   #define _ALPHALIN64
+   #define _LINUX
+
 #endif
 
 
@@ -83,7 +87,7 @@
 // architecture
 #if defined ( _WINDOWS32 ) || defined ( _LIN32 )
    #define OSS_ARCH_32
-#elif defined ( _WINDOWS64 ) || defined ( _LIN64 ) || defined ( _PPCLIN64 ) || defined ( _AIX ) || defined ( _ARMLIN64 )
+#elif defined ( _WINDOWS64 ) || defined ( _LIN64 ) || defined ( _PPCLIN64 ) || defined ( _AIX ) || defined ( _ARMLIN64 ) || defined ( _ALPHALIN64 )
    #define OSS_ARCH_64
 #endif
 
@@ -96,6 +100,8 @@
 #define OSS_OSTYPE_PPCLIN64LE          6
 #define OSS_OSTYPE_JVM                 7
 #define OSS_OSTYPE_ARMLIN64            8
+#define OSS_OSTYPE_ALPHALIN64          9
+
 
 #if defined (_WINDOWS32)
 #define OSS_OSTYPE                     OSS_OSTYPE_WIN32
@@ -111,6 +117,8 @@
 #define OSS_OSTYPE                     OSS_OSTYPE_AIX
 #elif defined (_ARMLIN64)
 #define OSS_OSTYPE                     OSS_OSTYPE_ARMLIN64
+#elif defined (_ALPHALIN64)
+#define OSS_OSTYPE                     OSS_OSTYPE_ALPHALIN64
 #endif
 
 #if defined _LINUX

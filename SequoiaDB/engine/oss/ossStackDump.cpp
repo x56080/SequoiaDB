@@ -1092,6 +1092,18 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPST4 );
 }
+#elif defined ( _ALPHALIN64 )
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSDUMPREGSINFO6, "ossDumpRegistersInfo" )
+void ossDumpRegistersInfo( ossSignalContext pContext,
+                           ossPrimitiveFileOp * trapFile )
+{
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSDUMPST6, "ossDumpStackTrace" )
+void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
+{
+}
+
 #endif
 
 #endif  // if defined ( _LINUX )
