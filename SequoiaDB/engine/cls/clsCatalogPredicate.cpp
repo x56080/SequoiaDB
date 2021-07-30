@@ -536,6 +536,16 @@ namespace engine
                {
                   goto error ;
                }
+               // If all sub collections have been chosen for a main collection,
+               // or all group of a non main collection have been chosen, stop
+               // the calculation.
+               if ( ( !pSet->isMainCL() &&
+                      pSet->groupCount() == setItem.size() ) ||
+                    ( pSet->isMainCL() &&
+                      pSet->getSubCLCount() == setItem.size() ) )
+               {
+                  break ;
+               }
                isEnd = _calcNext( vecPos ) ? FALSE : TRUE ;
             }
          }
