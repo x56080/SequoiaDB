@@ -230,6 +230,24 @@ CSV（Comma Separated Value）格式以逗号分隔数值。默认情况下记�
 >       *   例如指定带时区的时间戳：``--timestampfmt="YYYY-MM-DD HH.mm.ssZ"``
 >       *   例如指定东八区时间戳： ``--timestampfmt="YYYY-MM-DD HH.mm.ss+0800"``
 
+##结果字段解析##
+
+导入操作完成后，将会输出如下结果字段：
+
+| 字段名 | 描述 |
+| ------ | ---- | 
+| Parsed records | 解析成功的记录条数 |
+| Parsed failure | 解析失败的记录条数 |
+| Sharding records | 切分成功的记录条数 |
+| Sharding failure | 切分失败的记录条数 |
+| Imported records | 导入成功的记录条数 |
+| Imported failure | 导入失败的记录条数 |
+
+> **Note:**
+>
+> Sharding records 和 Sharding failure 仅在指定集合的属性 AutoSplit 为 true 时统计。
+
+
 ##示例##
 
 * 将数据导入到本地数据库 11810 中集合空间 sample 的集合 employee，导入格式是 csv，数据文件为`test.csv`，第一行为字段定义：
