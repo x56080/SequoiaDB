@@ -226,7 +226,7 @@ TEST_F(cl_ddl_test, test3)
    }
 
    rc = db.createCollection(&session, "foo", "bar65535", 65536, clOptions);
-   ASSERT_EQ(SDB_DMS_NOSPC, rc);
+   ASSERT_EQ(SDB_VESSEL_OUT_OF_MBID_RESOURCE, rc);
 
    rc = db.getCollectionCount(&session, "foo", count);
    ASSERT_EQ(SDB_OK, rc);

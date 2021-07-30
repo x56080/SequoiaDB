@@ -60,6 +60,7 @@ namespace vessel
       }
 
       head = (recordDataPageHead *)(ptr + PAGE_HEAD_SIZE);
+      *head = recordDataPageHead();
       head->version = RDP_VERSION;
       head->clLogcalID = logicalID;
       head->pageSeq = pageSeq;

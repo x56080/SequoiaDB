@@ -248,8 +248,8 @@ namespace vessel
          goto error;
       }
 
-      rc = cursor->push(rh->getSize() - RDP_BIG_RECORD_HEAD_HEAD_LEN,
-                        (const CHAR *)(ptr + RDP_BIG_RECORD_HEAD_HEAD_LEN));
+      rc = cursor->push(rh->getSize() - RDP_RECORD_HEAD_LEN,
+                        (const CHAR *)(ptr + RDP_RECORD_HEAD_LEN));
       if (SDB_OK == rc)
       {
          /// do nothing.

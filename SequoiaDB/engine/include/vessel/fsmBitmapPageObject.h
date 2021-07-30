@@ -110,7 +110,7 @@ namespace vessel
          PAGE_ID _pid = INVALID_PAGE_ID;
          fsmBitmapPage *_page = NULL;
          UINT32 _size = 0;
-         INT32 _stats[FSM_SPACE_LVL_COUNT] = {0};
+         INT32 _stats[FSM_SPACE_LVL_COUNT] = {};
          
    };//class fsmBitmapPageObject
 }//namespace vessel

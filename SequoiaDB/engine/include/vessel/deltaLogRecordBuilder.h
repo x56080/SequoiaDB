@@ -102,7 +102,7 @@ namespace vessel
          INT32 buildReleasingLog(UINT8 count,
                                  const PAGE_ID *pids);
       private:
-         CHAR _buffer[MAX_DELTA_LOG_RECORD_SIZE] = {0};
+         CHAR _buffer[MAX_DELTA_LOG_RECORD_SIZE] = {};
          UINT32 _w = 0;
    };//class deltaLogRecordBuilder
 }//namespace vessel

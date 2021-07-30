@@ -136,7 +136,7 @@ namespace vessel
 
       if (findFirstNonzeroBit(totalBitsCount, 0, (const UINT64 *)ptr, nextFreePid))
       {
-         if (nextFreePid < (INT32)minFreePid)
+         if (nextFreePid < minFreePid)
          {
             PD_LOG(PDSEVERE, "invalid first free pid was found, smp may crashed");
             rc = SDB_VESSEL_PAGE_CRASHED;

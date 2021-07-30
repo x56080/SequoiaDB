@@ -51,6 +51,8 @@ namespace engine
 {
 namespace vessel
 {
+   static const UINT32 ALLOCATOR_PAGE_CAPAITY = 512;
+
    collectionSpace::collectionSpace()
    {
       
@@ -634,13 +636,7 @@ namespace vessel
          PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
          mmapPagePointer ptr;
          PAGE_ID pid = INVALID_PAGE_ID;
-         PAGE_ID lpid = getCrpLpidOfCollection(args.pageSize, i);
-         if (INVALID_PAGE_ID == lpid)
-         {
-            PD_LOG(PDERROR, "failed to get crp lpid of [%d]", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
+         PAGE_ID lpid = COLLECTION_RECORD_PAGE_MIN_LPID + i;
          
          rc = mds->getPageMappingAtNonruntime(context, lpid,
                                               pid, psv, ptr);
@@ -655,7 +651,7 @@ namespace vessel
             goto error;
          }
 
-         rc = validatePage(ptr.get(), PAGE_TYPE_COLLECTION_RECORD,
+         rc = validatePage(ptr.get(), PAGE_TYPE_CL_META,
                            args.pageSize, pid, lpid,
                            psv);
          if (SDB_OK != rc)
@@ -666,10 +662,23 @@ namespace vessel
 
          for (UINT32 j = 0; j < crpCapacity; ++j)
          {
+            UINT32 tmp = i * crpCapacity + j;
+            if (MAX_CL_MB_COUNT <= tmp)
+            {
+               break;
+            }
+
             if (!getCollectionRecordIfValid((const void *)(ptr.get()),
                                             j, record))
             {
                continue;
+            }
+
+            rc = _allocator.ensureBitmapPageCount(tmp / ALLOCATOR_PAGE_CAPAITY + 1);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure bitmap page count:%d", rc);
+               goto error;
             }
 
             rc = initCollection(context, &record);
@@ -886,18 +895,28 @@ namespace vessel
          goto error;
       }
 
-      rc = _allocator.allocateBits(1, &m, 1);
-      if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
+      do
       {
-         PD_LOG(PDERROR, "no free mb id any more");
-         rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
-         goto error;
-      }
-      else if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to find free mb id in allocator:%d", rc);
-         goto error;
-      }
+         rc = _allocator.allocateBits(1, &m, 1);
+         if (SDB_VESSEL_OUT_OF_RESOURCE == rc)
+         {
+            PD_LOG(PDERROR, "no free mb id any more");
+            rc = SDB_VESSEL_OUT_OF_MBID_RESOURCE;
+            goto error;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find free mb id in allocator:%d", rc);
+            goto error;
+         }
+         else if (MAX_CL_MB_COUNT <= m)
+         {
+            m = INVALID_CL_MB_ID;
+            continue;
+         }
+
+         break;
+      } while(TRUE);
 
       _unformalNameIndex.insert(clName.str());
       if (UTIL_IS_VALID_CL_INNERID(innerID))
@@ -967,7 +986,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(65535 == MAX_CL_MB_COUNT, "must be 65535");
       inMemBitmap::options o;
-      static constexpr UINT32 ALLOCATOR_PAGE_CAPAITY = 512;
+
       static constexpr UINT32 CHUNK_SIZE = 16;
       static constexpr UINT32 CAPACITY = (MAX_CL_MB_COUNT +1) / collectionObjHolderGroup::CAPACITY;
 

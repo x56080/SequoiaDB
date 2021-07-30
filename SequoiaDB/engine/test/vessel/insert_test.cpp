@@ -90,12 +90,14 @@ TEST_F(insert_test, test1)
    DPS_TRANS_ID transID;
    utilInsertResult res;
    CHAR pad[1024] = {0};
+
    bson::BSONObjBuilder builder;
    builder.append("a", 1);
    builder.append("b", 2);
    builder.append("c", pad, 1024);
    bson::BSONObj obj = builder.obj();
    slice record(obj.objsize(), obj.objdata());
+
    UINT32 count = 100;
    UINT64 recordCount = 0;
    slice recordSlice;
@@ -114,7 +116,7 @@ TEST_F(insert_test, test1)
    rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 100; ++i)
+   for (UINT32 i = 0; i < count; ++i)
    {
       rc = handler.insert(&session, record, transID,
                           INVALID_STRIPING_ID, insertOptions(), res);

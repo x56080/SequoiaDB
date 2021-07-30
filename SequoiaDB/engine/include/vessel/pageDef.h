@@ -58,7 +58,7 @@ namespace vessel
 
    const static PAGE_TYPE PAGE_TYPE_RECORD = 2;
    const static PAGE_TYPE PAGE_TYPE_CS_META = 3;
-   const static PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
+   const static PAGE_TYPE PAGE_TYPE_CL_META = 4;
    const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
    const static PAGE_TYPE PAGE_TYPE_INDEX_DEF = 1000;
 
@@ -136,7 +136,7 @@ namespace vessel
          return;
       }
 
-      CHAR eyeCatcher[2] = {0};
+      CHAR eyeCatcher[2] = {};
       UINT16 version = 0;
       UINT16 type = INVALID_PAGE_TYPE;
       UINT16 flags = 0;

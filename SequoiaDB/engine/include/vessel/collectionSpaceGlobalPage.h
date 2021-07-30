@@ -70,7 +70,7 @@ namespace vessel
       UINT32 flags = 0;
       UINT32 uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
+      CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
 
       csMetaRecord &operator=(const csMetaRecord &o)
       {

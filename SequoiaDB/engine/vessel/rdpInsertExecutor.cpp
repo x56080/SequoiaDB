@@ -62,6 +62,7 @@ namespace vessel
       INT32 oldLvl = FSM_INVALID_SPACE_LVL;
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
+      BOOLEAN matchedCandidate = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -91,7 +92,7 @@ namespace vessel
 
       rpb = &(lpb->getRuntimeBuffer());
       rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                         PAGE_TYPE_COLLECTION_RECORD,
+                         PAGE_TYPE_RECORD,
                          rpb->getPageSize(),
                          rpb->getGlobalPid().page(),
                          lpb->getLogicalPid(),
@@ -122,6 +123,7 @@ namespace vessel
       if (context->getCandidate().isValid() &&
           head->pageSeq == context->getCandidate().getSeq())
       {
+         matchedCandidate = TRUE;
          if (INVALID_PAGE_ID == context->getCandidate().getLpid())
          {
             context->getCandidate().setLpid(lpb->getLogicalPid());
@@ -166,9 +168,9 @@ namespace vessel
       rid.setSlotID(slotId);
       context->setRid(rid);
 
-      if (context->getCandidate().isValid() &&
-          head->pageSeq == context->getCandidate().getSeq())
+      if (matchedCandidate)
       {
+         SDB_ASSERT(context->getCandidate().isValid(), "impossible");
          if (newFreeSize < context->getMinFreeSize())
          {
             context->getCandidate().getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
@@ -487,7 +489,7 @@ namespace vessel
       SDB_ASSERT(NULL != oldHead, "can not be null");
       SDB_ASSERT(NULL != newHead, "can not be null");
       SDB_ASSERT(NULL != lrc, "can not be null");
-      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+      SDB_ASSERT(lrc->prepared(), "must be prepared");
       
       ossPoolString fullName;
       SDB_ASSERT(!context->getCSName().empty(), "can not be empty");

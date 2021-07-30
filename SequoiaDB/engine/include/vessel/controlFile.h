@@ -178,7 +178,7 @@ namespace vessel
 
             UINT32 sequence = 0;
             std::string name;
-            CHAR buf[CONTROL_FILE_SIZE] = {0};
+            CHAR buf[CONTROL_FILE_SIZE] = {};
             _OSS_FILE file;
          };//struct _fileObj
 

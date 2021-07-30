@@ -99,8 +99,16 @@ namespace vessel
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
+      else if (!holder.tag()->hasMemPage())
+      {
+         SDB_ASSERT(FALSE, "impossible");
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
 
-      if (holder.tag()->isInDirtyList())
+      tag = holder.tag();
+
+      if (tag->isInDirtyList())
       {
          if (tag->getMaxMemDirtyLSN() < lsn)
          {

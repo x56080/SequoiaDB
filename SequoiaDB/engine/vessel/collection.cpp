@@ -140,6 +140,7 @@ namespace vessel
 
       _collectionSpace = cs;
 
+      _record.reset();
       _record.version = COLLECTION_RECORD_VERSION;
       _record.mbID = context->getMBID();
       _record.innerID = innerID;
@@ -151,6 +152,7 @@ namespace vessel
       ossMemcpy(_record.name, clName.str(), clName.strLen());
       _record.compressionType = options.compressionType;
 
+      fsm = cs->getSU()->getMainDataSpace().getFsmFile();
       rc = _fsm.create(context->getMBID(),
                        logicalID, fsm,
                        options.minStriping,
@@ -501,7 +503,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
       UINT32 size = getMaxSizeOfRecordInRdp(context->getRecordToInsert().len());
-      INT32 targetLvl = getFsmSpaceLvl(getpagesize(), size);
+      INT32 targetLvl = getFsmSpaceLvl(getDataPageSize(), size);
       PAGE_ID lpid = INVALID_PAGE_ID;
 
       do
@@ -599,7 +601,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       UINT32 totalRdpCount = _totalRdpCount;
-      PAGE_ID lpids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
+      PAGE_ID lpids[PAGE_COUNT_IN_EXTENT];
       UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
       candidate.reset();
 
@@ -670,6 +672,7 @@ namespace vessel
       UINT32 capacity = 0;
       atomicOperationList oplist;
       atomicOperationList *backup = NULL;
+      BOOLEAN switched = FALSE;
       
       capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -693,6 +696,8 @@ namespace vessel
       
       initer.init(_record.logicalCLID, _totalRdpCount, count);
       context->swtichOplist(&oplist, &backup);
+      switched = TRUE;
+
       rc = mds.allocatePages(context, &initer, count, lpids);
       if (SDB_OK != rc)
       {
@@ -727,7 +732,7 @@ namespace vessel
       firstSeq = _totalRdpCount;
       _totalRdpCount += count;
    done:
-      if (NULL != backup)
+      if (switched)
       {
          context->attachOplist(backup);
       }
@@ -1070,7 +1075,7 @@ namespace vessel
       const routePageHead *head = NULL;
 
       rc = mds.getPageMappingAtNonruntime(context, lpid, pid, psv, ptr);
-      if (SDB_OK == rc)
+      if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get mapping of lpid[%d], rc:%d", lpid, rc);
          goto error;
@@ -1368,6 +1373,7 @@ namespace vessel
 
       atomicOperationList oplist;
       atomicOperationList *backup = NULL;
+      BOOLEAN swtiched = FALSE;
 
       if (COLLECTION_FIRST_ROOT_LVL1 == rootSlot ||
           COLLECTION_SECOND_ROOT_LVL1 == rootSlot)
@@ -1395,6 +1401,8 @@ namespace vessel
       }
 
       context->swtichOplist(&oplist, &backup);
+      swtiched = TRUE;
+
       rc = createNewRoutePage(context, rootLvl, routeLpid);
       if (SDB_OK != rc)
       {
@@ -1425,7 +1433,7 @@ namespace vessel
 
    done:
       lpb.fini();
-      if (NULL != backup)
+      if (swtiched)
       {
          context->attachOplist(backup);
       }
@@ -1482,10 +1490,7 @@ namespace vessel
       out = lpid;
       
    done:
-      if (NULL != backup)
-      {
-         context->attachOplist(backup);
-      }
+      context->attachOplist(backup);
       return rc;
    error:
       out = INVALID_PAGE_ID;

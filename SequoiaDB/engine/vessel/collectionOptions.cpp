@@ -63,6 +63,8 @@ namespace vessel
             goto done;
          }
       }
+
+      r = TRUE;
    done:
       return r;
    }

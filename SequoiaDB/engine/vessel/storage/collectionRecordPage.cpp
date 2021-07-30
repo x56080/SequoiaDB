@@ -71,7 +71,7 @@ namespace vessel
          goto done;
       }
 
-      if (!initCommonPage(PAGE_TYPE_COLLECTION_RECORD, pageSize,
+      if (!initCommonPage(PAGE_TYPE_CL_META, pageSize,
                           pid, lpid, psv, buf))
       {
          goto done;

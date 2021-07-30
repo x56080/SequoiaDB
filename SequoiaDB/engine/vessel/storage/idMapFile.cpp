@@ -154,14 +154,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (count <= storageFile::getSegmentCount())
-      {
-         goto done;
-      }
 
       for (UINT32 i = getSegmentCount(); i < count; ++i)
       {
-         UINT32 offset = 0;
          ossValuePtr ptr = 0;
          rc = storageFile::allocateNewSegment();
          if (SDB_OK != rc)

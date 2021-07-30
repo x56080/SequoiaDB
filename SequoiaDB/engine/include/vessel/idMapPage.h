@@ -53,7 +53,7 @@ namespace vessel
       psv(o.psv),
       pid(o.pid){}
       OSS_INLINE explicit idMapSlot(PAGE_SNAPSHOT_VERION v, PAGE_ID p):
-      psv(p),
+      psv(v),
       pid(p){}
       OSS_INLINE idMapSlot &operator=(const idMapSlot &o)
       {

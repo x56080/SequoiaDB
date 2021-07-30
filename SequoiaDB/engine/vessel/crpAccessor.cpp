@@ -85,7 +85,7 @@ namespace vessel
 
       ptr = (ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer());
 
-      rc = validatePage(ptr, PAGE_TYPE_COLLECTION_RECORD,
+      rc = validatePage(ptr, PAGE_TYPE_CL_META,
                         lpb->getRuntimeBuffer().getPageSize(),
                         lpb->getRuntimeBuffer().getGlobalPid().page(),
                         lpb->getLogicalPid(), lpb->getCowTrigger().getPsv());
@@ -204,7 +204,7 @@ namespace vessel
       rpb = &(lpb->getRuntimeBuffer());
       ptr = (ossValuePtr)(rpb->getReadOnlyBuffer());
 
-      rc = validatePage(ptr, PAGE_TYPE_COLLECTION_RECORD,
+      rc = validatePage(ptr, PAGE_TYPE_CL_META,
                         rpb->getPageSize(),
                         rpb->getGlobalPid().page(),
                         lpb->getLogicalPid(),
@@ -295,7 +295,7 @@ namespace vessel
                                                                  UINT32 i)
    {
       SDB_ASSERT(NULL != rpb, "can not be null");
-      UINT32 offset = COLLECTION_RECORD_LEN * i;
+      UINT32 offset = COLLECTION_DISK_RECORD_LEN * i;
       collectionRecordOnDisk *ptr = rpb->getWritablePtrOfBody<collectionRecordOnDisk>(offset);
       return ptr;
    }
@@ -304,7 +304,7 @@ namespace vessel
                                                                  UINT32 i)
    {
       SDB_ASSERT(NULL != rpb, "can not be null");
-      UINT32 offset = COLLECTION_RECORD_LEN * i;
+      UINT32 offset = COLLECTION_DISK_RECORD_LEN * i;
       const collectionRecordOnDisk *ptr =
                rpb->getReadablePtrOfBody<collectionRecordOnDisk>(offset);
       return ptr;

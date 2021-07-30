@@ -290,7 +290,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 

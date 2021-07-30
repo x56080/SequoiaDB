@@ -53,10 +53,10 @@ namespace vessel
 
       public:
          static const UINT32 PAGE_SIZE = DMS_PAGE_SIZE4K;
-         static const UINT32 PAGE_COUNT_PER_SEGMENT = 256;
+         static const UINT32 PAGE_COUNT_PER_SEGMENT = 1024;
          static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
                                                  PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 64;
+         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 16;
          static const UINT32 MAX_PAGE_COUNT_PER_FILE = PAGE_COUNT_PER_SEGMENT *
                                                        MAX_SEGMENT_COUNT_PER_FILE;
          static const UINT32 MAX_FILE_SIZE = PAGE_SIZE * MAX_PAGE_COUNT_PER_FILE;

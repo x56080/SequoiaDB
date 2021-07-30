@@ -476,7 +476,8 @@ namespace vessel
 
       if (OSS_UNLIKELY(!tuple.isValid() ||
                        tuple._lockingMode != OSS_SHARED_LATCH_MODE_EXCLUSIVE ||
-                       tuple.isWritingPrepared()))
+                       !tuple.isWritingPrepared() ||
+                       !tuple._tag->hasMemPage()))
       {
          PD_LOG(PDERROR, "committed an invalid tuple");
          SDB_ASSERT(FALSE, "invalid tuple to commit");

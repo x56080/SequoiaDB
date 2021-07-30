@@ -101,6 +101,13 @@ namespace vessel
          goto error;
       }
 
+      rc = _storage.occupyPage(pid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to occupy meta page pid:%d", rc);
+         goto error;
+      }
+
       psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
       rc = _storage.getDataPagePtr(pid, ptr);
       if (SDB_OK != rc)

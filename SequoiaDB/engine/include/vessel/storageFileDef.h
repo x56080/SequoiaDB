@@ -191,10 +191,10 @@ namespace vessel
 
       ///WARNING: If someone modified page head, remember to 
       /// update storageFile::createChecksum either.
-      CHAR magicChars[4] = {0};
+      CHAR magicChars[4] = {};
       UINT32 headChecksum = 0;
       UINT32 version = 0;
-      CHAR name[MAX_FILE_NAME_LEN+1] = {0};
+      CHAR name[MAX_FILE_NAME_LEN+1] = {};
       UINT64 createTime = 0;
       UINT32 fingerprint = 0;
       UINT32 secretValue = 0;

@@ -513,7 +513,7 @@ namespace vessel
                                              runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(rpb.isValid(), "can not be valid");
+      SDB_ASSERT(!rpb.isValid(), "can not be valid");
       logicalPageSpace::_runtimePageBufferIniter initer;
       liteCacheAllocateOptions options;
       options.lockMode = mode;

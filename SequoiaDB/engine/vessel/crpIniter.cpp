@@ -90,7 +90,7 @@ namespace vessel
       }
 
       rc = pageInitializer::commitInitLog(context, rpb->getGlobalPid(),
-                                          lpid, psv, PAGE_TYPE_COLLECTION_RECORD,
+                                          lpid, psv, PAGE_TYPE_CL_META,
                                           slice(), &lrc);
       if (SDB_OK != rc)
       {

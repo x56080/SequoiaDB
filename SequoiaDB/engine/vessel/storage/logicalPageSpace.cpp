@@ -967,11 +967,10 @@ namespace vessel
                                          PAGE_ID *lpids)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(32 <= count, "impossible");
+      SDB_ASSERT(count <= 32, "impossible");
       CHAR *buffer = NULL;
       UINT32 bufferSize = 0;
       BOOLEAN rollback = FALSE;
-      SDB_ASSERT(8 == sizeof(mappedLogicalPageId), "must be 8");
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1017,17 +1016,17 @@ namespace vessel
          lpids[i] = ((const mappedLogicalPageId *)buffer)[i].getLpid();
       }
    done:
-      if (rollback)
-      {
-         releasePreallocated(context, count,
-                             (const mappedLogicalPageId *)buffer);
-      }
       if (NULL != buffer)
       {
          context->releaseBuffer(buffer, bufferSize);
       }
       return rc;
    error:
+      if (rollback)
+      {
+         releasePreallocated(context, count,
+                             (const mappedLogicalPageId *)buffer);
+      }
       goto done;
    }
 
