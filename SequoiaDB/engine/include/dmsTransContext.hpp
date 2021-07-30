@@ -93,8 +93,8 @@ namespace engine
 
       protected:
          _rtnIXScanner           *_pScanner ;
-         BOOLEAN                 _isReadonly ;
          BOOLEAN                 _isSame ;
+         BSONObj                 _saveObj ;
 
    } ;
    typedef _dmsIXTransContext dmsIXTransContext ;

@@ -136,6 +136,10 @@ namespace engine
       rc = _pScanner->pauseScan() ;
       if ( SDB_OK == rc )
       {
+         if ( _pScanner->getIndexCB()->unique() )
+         {
+            _saveObj = *_pScanner->getSavedObj() ;
+         }
          rc = _dmsTBTransContext::pause() ;
       }
 
@@ -162,6 +166,18 @@ namespace engine
          PD_LOG( PDERROR, "Resume index scanner failed, rc: %d",
                  rc ) ;
          goto error ;
+      }
+
+      if ( !_isSame && _pScanner->getIndexCB()->unique() )
+      {
+         dmsRecordID rid ;
+         rid.resetMin() ;
+         rc = _pScanner->relocateRID( _saveObj, rid ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Relocate index scanner failed, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
