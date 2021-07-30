@@ -399,6 +399,7 @@ namespace engine
 
          void                 restoreForCrash() ;
          BOOLEAN              isCrashed() const ;
+         void                 setCrashed() ;
 
          void                 enableSync( BOOLEAN enable ) ;
 

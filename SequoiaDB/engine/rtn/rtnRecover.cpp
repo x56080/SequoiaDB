@@ -1219,6 +1219,9 @@ namespace engine
 
          /// flush meta
          _pSU->data()->flushMeta( TRUE ) ;
+
+         // copy data without index, so set index file crashed
+         _pSU->index()->setCrashed() ;
       }
 
    done:

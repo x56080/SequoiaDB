@@ -510,6 +510,19 @@ namespace engine
       return _isCrash ;
    }
 
+   void _dmsStorageBase::setCrashed()
+   {
+
+      ossScopedLock lock( &_commitLatch ) ;
+
+      _isCrash = TRUE ;
+      _commitFlag = 0 ;
+      _dmsHeader->_commitFlag = 0 ;
+
+      /// flush header
+      flushHeader( TRUE ) ;
+   }
+
    void _dmsStorageBase::enableSync( BOOLEAN enable )
    {
       lock() ;
