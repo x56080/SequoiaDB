@@ -7,6 +7,7 @@
 package com.sequoiadb.task;
 
 import java.util.logging.Logger;
+import java.util.Random;
 
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.Fault;
@@ -36,11 +37,14 @@ public class FaultMakeTask extends Task {
     @SuppressWarnings("static-access")
     @Override
     public void run() {
+        Random random = new Random();
         try {
             if ( _randomStartMaxDuration <= 0 ) {
                 Thread.currentThread().sleep( 100 );
             } else {
-                Thread.currentThread().sleep( _randomStartMaxDuration * 1000 );
+                Thread.currentThread().sleep(
+                        random.nextInt( _randomStartMaxDuration * 1000 - 100 )
+                                + 100 );
             }
         } catch ( Exception e ) {
         }
