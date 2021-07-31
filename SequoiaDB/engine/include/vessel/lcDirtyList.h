@@ -69,7 +69,7 @@ namespace vessel
                                UINT64 minLSN,
                                diskIOJob *job);
 
-         UINT32 size(BOOLEAN lock=TRUE);
+         UINT32 getSize(BOOLEAN lock=TRUE);
 
          UINT64 getMinDirtyLSN(BOOLEAN lock=TRUE);
 

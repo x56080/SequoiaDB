@@ -91,6 +91,12 @@ namespace vessel
       return;
    }
 
+   UINT32 lcLRUList::getSize(BOOLEAN lock)
+   {
+      ossXLatchGuard guard(lock ? &_latch : NULL);
+      return _size;
+   }
+
    INT32 lcLRUList::insert(lcPageTagHolder &holder,
                            UINT32 beginTouchCount)
    {

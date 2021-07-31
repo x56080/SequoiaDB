@@ -67,7 +67,7 @@ namespace vessel
       return;
    }
 
-   UINT32 lcDirtyList::size(BOOLEAN lock)
+   UINT32 lcDirtyList::getSize(BOOLEAN lock)
    {
       ossSpinXLatch *latch = lock ? &_latch : NULL;
       ossScopedLock guard(latch);

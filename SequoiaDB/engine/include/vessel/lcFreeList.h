@@ -60,13 +60,18 @@ namespace vessel
          lcFreeList &operator=(const lcFreeList &) = delete;
 
       public:
-         OSS_INLINE UINT32 getPageSize()const
-         {
-            return _pageSize;
-         }
          OSS_INLINE UINT64 getTotalAllocated()const
          {
             return _totalAllocated;
+         }
+         OSS_INLINE UINT32 getMaxPageCount()const
+         {
+            return _options.maxChunkCount * _options.pageCountInChunk;
+         }
+
+         OSS_INLINE UINT32 getPageSize()const
+         {
+            return _pageSize;
          }
 
       public:

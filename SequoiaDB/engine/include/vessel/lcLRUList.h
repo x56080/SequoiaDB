@@ -64,6 +64,8 @@ namespace vessel
                     const liteCacheOptions::lruOptions &options);
          void fini();
 
+         UINT32 getSize(BOOLEAN lock);
+
          /// for user threads
          /// tag under w lock
          INT32 insert(lcPageTagHolder &holder,

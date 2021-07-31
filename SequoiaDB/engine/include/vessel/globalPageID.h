@@ -173,7 +173,7 @@ class globalPageID
 
       OSS_INLINE BOOLEAN operator<(const globalPageID &r)const
       {
-         return 0 < compare(r);
+         return compare(r) < 0;
       }
 
       OSS_INLINE SPACE_ID space() const
