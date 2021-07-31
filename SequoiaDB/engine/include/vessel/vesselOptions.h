@@ -52,35 +52,36 @@ namespace vessel
       class lruOptions : public SDBObject
       {
          public:
-            OSS_INLINE lruOptions():
-                     lruIncTouchCntWhenReadOnly(FALSE),
-                     lruHotTouchCnt(2),
-                     lruColdPercent(0.4),
-                     lruMinSplitSize(512),
-                     lruScanDepth(128),
-                     lruMaxScanPercent(0.6),
-                     lruFlushWaitLockTimeout(-1),
-                     _lruColdMistakeTolerance(10){}
+            lruOptions(){}
+
+            lruOptions(const lruOptions &) = delete;
+            lruOptions &operator=(const lruOptions &o)
+            {
+               ossMemcpy(this, &o, sizeof(lruOptions));
+               return *this;
+            }
+            
                      
          public:
-            BOOLEAN lruIncTouchCntWhenReadOnly;
-            UINT16 lruHotTouchCnt;
-            FLOAT32 lruColdPercent;
-            UINT32 lruMinSplitSize;
-            UINT32 lruScanDepth; /// default scan depth when evicting or flushing
-            FLOAT32 lruMaxScanPercent; /// max scan depth when evicting
-            INT32 lruFlushWaitLockTimeout;
-            UINT32 _lruColdMistakeTolerance;
+            UINT32 lruHotTouchCnt = 2;
+            FLOAT32 lruColdPercent = 0.4;
+            UINT32 lruMinSplitSize = 512;
+            UINT32 lruScanDepth = 128; /// default scan depth when evicting or flushing
+            FLOAT32 lruMaxScanPercent = 0.6; /// max scan depth when evicting
+            INT32 lruFlushWaitLockTimeout = -1;
+            UINT32 _lruColdMistakeTolerance = 10;
       };// class lruOptions
 
       class freeListOptions : public SDBObject
       {
          public:
-            OSS_INLINE freeListOptions():
-            maxChunkCount(128),
-            pageCountInChunk(1024)
+            freeListOptions(){}
+            freeListOptions(const freeListOptions &) = delete;
+            freeListOptions &operator=(const freeListOptions &o)
             {
-
+               maxChunkCount = o.maxChunkCount;
+               pageCountInChunk = o.pageCountInChunk;
+               return *this;
             }
 
             std::string toString()const
@@ -88,28 +89,37 @@ namespace vessel
                return "";
             }
 
-            UINT32 maxChunkCount;
-            UINT32 pageCountInChunk;
+            UINT32 maxChunkCount = 1024;
+            UINT32 pageCountInChunk = 1024;
       };//class freeListOptions
 
       class bucketOptions : public SDBObject
       {
          public:
-            OSS_INLINE bucketOptions():
-            bucketCount(16384),
-            bucketLatchCount(512),
-            minRecycleCount(16){}
+            bucketOptions(){}
+            bucketOptions(const bucketOptions &) = delete;
+            bucketOptions &operator=(const bucketOptions &o)
+            {
+               bucketCount = o.bucketCount;
+               bucketLatchCount = o.bucketLatchCount;
+               return *this;
+            }
 
-            UINT32 bucketCount;
-            UINT32 bucketLatchCount;
-            UINT32 minRecycleCount;
+            UINT32 bucketCount = 16384;
+            UINT32 bucketLatchCount = 512;
       };//class bucketOptions
 
       public:
-      OSS_INLINE liteCacheOptions()
-      {}
+      liteCacheOptions(){}
+      liteCacheOptions(const liteCacheOptions &) = delete;
+      liteCacheOptions &operator=(const liteCacheOptions &o)
+      {
+         bucket = o.bucket;
+         freelist = o.freelist;
+         lru = o.lru;
+         return *this;
+      }
       
-      /// buckets
       
       bucketOptions bucket;
       freeListOptions freelist;

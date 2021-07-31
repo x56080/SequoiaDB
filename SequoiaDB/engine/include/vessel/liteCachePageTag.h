@@ -51,7 +51,6 @@ namespace vessel
 {
    const UINT16 LC_TAG_STATUS_INVALID = 0;
    const UINT16 LC_TAG_STATUS_NORMAL = 1;
-   const UINT16 LC_TAG_STATUS_TO_BE_REMOVED = 2;
 
    const UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
    //const UINT16 LC_TAG_FAST_FLAG_DIRTY = 0x02;
@@ -89,29 +88,6 @@ namespace vessel
          OSS_INLINE const GLOBAL_PAGE_ID &id()const
          {
             return _id;
-         }
-
-      public:
-         OSS_INLINE void setStatusAsNormal()
-         {
-            ossSpinGuard guard(&_pinLatch);
-            _ts.status = LC_TAG_STATUS_NORMAL;
-            return;
-         }
-         OSS_INLINE BOOLEAN testFastFlags(UINT16 flags)
-         {
-            _pinLatch.lock();
-            BOOLEAN r = OSS_BIT_TEST(_ts.flags, flags);
-            _pinLatch.unlock();
-            return r;
-         }
-
-         OSS_INLINE void setFastFlags(UINT16 flags)
-         {
-            _pinLatch.lock();
-            OSS_BIT_SET(_ts.flags, flags);
-            _pinLatch.unlock();
-            return;
          }
 
       public:
@@ -177,21 +153,39 @@ namespace vessel
          }
 
       public:
-         OSS_INLINE void insertIntoBucket(const LC_BUCKET_INNER_INDEX_ITERATOR &itr)
-         {
-            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_BUCKET);
-            _bucketItr = itr;
-         }
-
          OSS_INLINE const LC_BUCKET_INNER_INDEX_ITERATOR &getBucketIterator()const
          {
             return _bucketItr;
          }
 
-         OSS_INLINE void removedFromBucket()
+         OSS_INLINE void setBucketIndex(const LC_BUCKET_INNER_INDEX_ITERATOR &itr)
          {
-            OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_BUCKET);
-            _bucketItr = LC_BUCKET_INNER_INDEX_ITERATOR();
+            _bucketItr = itr;
+         }
+
+         OSS_INLINE liteCachePageTag *getPreInBucket()const
+         {
+            return _preInBucket;
+         }
+
+         OSS_INLINE liteCachePageTag *getNextInBucket()const
+         {
+            return _nextInBucket;
+         }
+
+         OSS_INLINE void setPreInBucket(liteCachePageTag *pre)
+         {
+            _preInBucket = pre;
+         }
+
+         OSS_INLINE void setNextInBucket(liteCachePageTag *next)
+         {
+            _nextInBucket = next;
+         }
+
+         OSS_INLINE void setInBucket()
+         {
+            OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_BUCKET);
          }
 
          OSS_INLINE BOOLEAN isInBucket()const
@@ -292,6 +286,7 @@ namespace vessel
             return _lruNext;
          }
 
+
       public:
          OSS_INLINE BOOLEAN isInDirtyList()const
          {
@@ -339,32 +334,13 @@ namespace vessel
          /** remove tag from bucket begin **/
          /// pin latch is not necessary when performing precheck.
          /// it just affects performance and accuracy.
-         /// WANRING: we can not recycle the tag already set as removed.
          OSS_INLINE BOOLEAN fastTestIfCanBeRecycled(BOOLEAN lock=TRUE)
          {
             BOOLEAN r = FALSE;
             ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
-            r = isNotInAnyList() && isNormalAndUnpinned();
+            r = isNotInAnyList() && !_isPinned();
             return r;
-         }
-
-         /// under rw latch.
-         OSS_INLINE BOOLEAN tryToSetRemoved();
-
-         /// under rw latch
-         /// Used to rollback tag just allocated.
-         /// The tag must not be in any list.
-         /// Will decrease usage count and 
-         /// try to set removed. So do not decrease
-         /// usage count out side again.
-         OSS_INLINE BOOLEAN tryToRollbackNewTag();
-
-         OSS_INLINE BOOLEAN isRemoved(BOOLEAN lock=TRUE)
-         {
-            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
-            ossSpinGuard guard(latch);
-            return (LC_TAG_STATUS_TO_BE_REMOVED == _ts.status);
          }
          /** remove tag in bucket end **/
 
@@ -374,16 +350,23 @@ namespace vessel
          {
             ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
-            return isNormalAndUnpinned() && !isMemPageDirty();
+            return !_isPinned() && !isMemPageDirty();
          }
          
          /** evict tag in lru end **/
+
+         OSS_INLINE BOOLEAN isPinned(BOOLEAN lock=TRUE)
+         {
+            ossSpinLatch *latch = lock ? &_pinLatch : NULL;
+            ossSpinGuard guard(latch);
+            return _isPinned();
+         }
 
          OSS_INLINE BOOLEAN isPendingWrite(BOOLEAN lock=TRUE)
          {
             ossSpinLatch *latch = lock ? &_pinLatch : NULL;
             ossSpinGuard guard(latch);
-            return OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
+            return _isPendingWrite();
          }
 
          /// under dirty list w lock
@@ -391,7 +374,7 @@ namespace vessel
          {
             BOOLEAN r = FALSE;
             ossSpinGuard guard(&_pinLatch);
-            if (isNoPending())
+            if (!_isPendingWrite())
             {
                OSS_BIT_SET(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
                r = TRUE;
@@ -407,20 +390,14 @@ namespace vessel
          }
 
       private:
-         OSS_INLINE BOOLEAN isPinned()const
+         OSS_INLINE BOOLEAN _isPinned()const
          {
             return 0 < _ts.usageCnt || 0 != _ts.flags;
          }
 
-         OSS_INLINE BOOLEAN isNormalAndUnpinned() const
+         OSS_INLINE BOOLEAN _isPendingWrite()const
          {
-            return LC_TAG_STATUS_NORMAL == _ts.status &&
-                   !isPinned();
-         }
-
-         OSS_INLINE BOOLEAN isNoPending()const
-         {
-            return 0 == OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
+            return 0 != OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
          }
          
       private:
@@ -453,6 +430,8 @@ namespace vessel
          UINT64 _maxMemDirtyLSN = DPS_INVALID_LSN_OFFSET;
 
          /// bucket, protected by bucket latch and accessing latch
+         liteCachePageTag *_preInBucket = NULL;
+         liteCachePageTag *_nextInBucket = NULL;
          LC_BUCKET_INNER_INDEX_ITERATOR _bucketItr;
          
          /// lru list, protected by lru latch and accessing latch(except _lruTouchCnt)
@@ -469,6 +448,7 @@ namespace vessel
    OSS_INLINE BOOLEAN liteCachePageTag::incUsageCnt(BOOLEAN lock)
    {
       BOOLEAN r = FALSE;
+      SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
       ossSpinLatch *latch = lock ? &_pinLatch : NULL;
       ossSpinGuard guard(latch);
       if (LC_TAG_STATUS_NORMAL == _ts.status)
@@ -481,36 +461,10 @@ namespace vessel
 
    OSS_INLINE void liteCachePageTag::decUsageCnt()
    {
+      SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
       ossSpinGuard guard(&_pinLatch);
       --_ts.usageCnt;
       return;
-   }
-
-   /// under rw lock
-   /// WARNING: validate other status under rw lock first.
-   OSS_INLINE BOOLEAN liteCachePageTag::tryToSetRemoved()
-   {
-      BOOLEAN r = FALSE;
-      ossSpinGuard guard(&_pinLatch);
-      if (isNormalAndUnpinned())
-      {
-         _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
-         r = TRUE;
-      }
-      return r;
-   }
-
-   OSS_INLINE BOOLEAN liteCachePageTag::tryToRollbackNewTag()
-   {
-      BOOLEAN r = FALSE;
-      ossSpinGuard guard(&_pinLatch);
-      --_ts.usageCnt;
-      if (isNormalAndUnpinned())
-      {
-         _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
-         r = TRUE;
-      }
-      return r;
    }
 } /// end of namespace vessel
 } /// end of namespace engine

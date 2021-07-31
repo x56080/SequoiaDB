@@ -43,22 +43,13 @@ namespace engine
 {
 namespace vessel
 {
-   lcBuckets::lcBuckets()
-   :_minRecycleCount(0),
-   _bucketCount(0), _buckets(NULL),
-    _latchCount(0), _latches(NULL)
-   {
-
-   }
-
    lcBuckets::~lcBuckets()
    {
       fini();
    }
 
    INT32 lcBuckets::init(UINT32 bucketCount,
-                          UINT32 latchCount,
-                          UINT32 minRecycleCount)
+                          UINT32 latchCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _buckets, "do not reinit");
@@ -93,7 +84,6 @@ namespace vessel
 
       _bucketCount = bucketCount;
       _latchCount = latchCount;
-      _minRecycleCount = minRecycleCount;
    done:
       return rc;
    error:
@@ -101,25 +91,23 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBuckets::fini()
+   void lcBuckets::fini()
    {
+      _bucketCount = 0;
       if (NULL != _buckets)
       {
          SDB_OSS_DEL []_buckets;
          _buckets = NULL;
-         _bucketCount = 0;
       }
 
+      _latchCount = 0;
       if (NULL != _latches)
       {
          SDB_OSS_DEL []_latches;
          _latches = NULL;
-         _latchCount = 0;
       }
 
-      _minRecycleCount = 0;
-
-      return SDB_OK;
+      return;
    }
 
 
@@ -132,8 +120,7 @@ namespace vessel
       lcBucket *bucket = NULL;
       getBucketAndLatch(id, latch, bucket);
       ossScopedLock guard(latch);
-      return bucket->ensureTagAndIncUsage(id, _minRecycleCount,
-                                          ptr, holder, isNewTag);
+      return bucket->ensureTagAndIncUsage(id, ptr, holder, isNewTag);
    }
 
    BOOLEAN lcBuckets::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
@@ -146,31 +133,6 @@ namespace vessel
       return bucket->getTagAndIncUsage(id, holder);
    }
 
-   INT32 lcBuckets::releaseRemovedTag(liteCachePageTag *tag)
-   {
-      INT32 rc = SDB_OK;
-      ossSpinXLatch *latch = NULL;
-      lcBucket *bucket = NULL;
-      if (NULL == tag || !tag->id().isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      {
-      getBucketAndLatch(tag->id(), latch, bucket);
-      rc = bucket->releaseRemovedTag(tag);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   } 
-
    void lcBuckets::getBucketAndLatch(const GLOBAL_PAGE_ID &id,
                                     _ossSpinXLatch *&mutex,
                                     lcBucket *&bucket)
@@ -179,7 +141,7 @@ namespace vessel
       UINT32 hash = id.hash();
       UINT32 bucketNO = hash & (_bucketCount - 1);
       lcBucket &b = _buckets[bucketNO];
-      UINT32 latchNO = hash & (_latchCount - 1);
+      UINT32 latchNO = bucketNO & (_latchCount - 1);
       _ossSpinXLatch &m = _latches[latchNO];
       mutex = &m;
       bucket = &b;

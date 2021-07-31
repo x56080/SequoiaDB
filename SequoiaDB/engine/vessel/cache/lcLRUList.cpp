@@ -43,20 +43,13 @@
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
 #include "ossMemPool.hpp"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    lcLRUList::lcLRUList()
-   :_buckets(NULL),
-    _fl(NULL),
-    _size(0),
-    _coldSize(0),
-    _head(NULL),
-    _middle(NULL),
-    _tail(NULL),
-    _evictBegin(NULL)
    {
 
    }
@@ -66,22 +59,18 @@ namespace vessel
 
    }
 
-   INT32 lcLRUList::init(lcBuckets *buckets,
-                          lcFreeList *fl,
+   INT32 lcLRUList::init(lcFreeList *fl,
                           const liteCacheOptions::lruOptions &options)
    {
       INT32 rc = SDB_OK;
-      liteCacheOptions::lruOptions o = options;
 
-      if (OSS_UNLIKELY(NULL == buckets ||
-                       NULL == fl))
+      if (OSS_UNLIKELY(NULL == fl))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _options = o;
-      _buckets = buckets;
+      _options = options;
       _fl = fl;
 
    done:
@@ -90,68 +79,67 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcLRUList::fini()
+   void lcLRUList::fini()
    {
+      _fl = NULL;
       _size = 0;
       _coldSize = 0;
       _head = NULL;
       _middle = NULL;
       _tail = NULL;
       _evictBegin = NULL;
-      return SDB_OK;
+      return;
    }
 
    INT32 lcLRUList::insert(lcPageTagHolder &holder,
-                           UINT32 touchCnt)
+                           UINT32 beginTouchCount)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
       liteCachePageTag *tag = NULL;
-      SDB_ASSERT(holder.valid(), "should be valid");
-      SDB_ASSERT(OSS_SHARED_LATCH_MODE_EXCLUSIVE == holder.getLockMode(), "should holding lock");
+      ossXLatchGuard guard(&_latch, FALSE);
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
          PD_LOG(PDERROR, "insert an invalid tag");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-
-      if (OSS_UNLIKELY(holder.tag()->isInLruList()))
+      else if (OSS_UNLIKELY(holder.tag()->isInLruList()))
       {
          PD_LOG(PDERROR, "can not insert tag which already in lru");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(!holder.tag()->hasMemPage()))
+      else if (OSS_UNLIKELY(!holder.tag()->hasMemPage()))
       {
-         PD_LOG(PDERROR, "can not insert tag with mem page to lru");
+         PD_LOG(PDERROR, "can not insert tag with no mem page to lru");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       tag = holder.tag();
-      _latch.get();
-      locked = TRUE;
+      guard.lock();
 
       if (splited())
       {
          insertToMiddle(tag);
-         tag->setLruTouchCnt(touchCnt);
+         tag->setLruTouchCnt(beginTouchCount);
          tryToTuneRightMiddle();
       }
       else
       {
          insertToHead(tag);
-         tag->setLruTouchCnt(touchCnt);
+         tag->setLruTouchCnt(beginTouchCount);
          if (_size == _options.lruMinSplitSize)
          {
             splitLRU();
@@ -159,10 +147,6 @@ namespace vessel
       }
       
    done:
-      if (locked)
-      {
-         _latch.release();
-      }
       return rc;
    error:
       goto done;
@@ -176,12 +160,14 @@ namespace vessel
       if (OSS_UNLIKELY(!holder.valid()))
       {
          PD_LOG(PDERROR, "try to update an invalid tag");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
          goto error;
       }
       else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_NONE == holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
+         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
@@ -193,12 +179,6 @@ namespace vessel
       }
 
       tag = holder.tag();
-      if (!_options.lruIncTouchCntWhenReadOnly &&
-          OSS_SHARED_LATCH_MODE_SHARED == holder.getLockMode())
-      {
-         goto done;
-      }
-
       if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == holder.getLockMode())
       {
          tag->incLruTouchCnt();
@@ -206,7 +186,7 @@ namespace vessel
       else
       {
          tag->incLruTouchCntWithAtom();
-      }      
+      }    
       
    done:
       return rc;
@@ -222,14 +202,10 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 scanNum = 0;
       liteCachePageTag *itr = NULL;
-      BOOLEAN locked = FALSE;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
-      liteCachePageTag *tagToBeRemoved = NULL;
-
       page.reset();
-      _latch.get();
-      locked = TRUE;
+      ossXLatchGuard guard(&_latch, FALSE);
 
       if (!scanUntilHitMax)
       {
@@ -240,10 +216,10 @@ namespace vessel
          scanNum = _size * _options.lruMaxScanPercent;
       }
 
-      itr = NULL == _evictBegin ? _tail : _evictBegin;
+      guard.lock();
+      itr = (NULL == _evictBegin) ? _tail : _evictBegin;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
-         BOOLEAN removeFromBucket = FALSE;
          liteCachePageTag *tag = itr;
          itr = itr->getLruPre();
          lcPageTagHolder holder;
@@ -262,15 +238,10 @@ namespace vessel
             continue;
          }
 
-         if (!tryToEvictTagFromList(tag, page, removeFromBucket))
+         if (!tryToEvictTagFromList(tag, page))
          {
             ++totalSkipped;
             continue;
-         }
-
-         if (removeFromBucket)
-         {
-            tagToBeRemoved = tag;
          }
          break;
       }
@@ -283,26 +254,7 @@ namespace vessel
       {
          _evictBegin = NULL;
       }
-
-      _latch.release();
-      locked = FALSE;
-
-      if (!page.valid())
-      {
-         rc = SDB_VESSEL_LC_LRU_SCAN_HIT_MAX;
-         goto error;
-      }
-
-      if (NULL != tagToBeRemoved)
-      {
-         _buckets->releaseRemovedTag(tagToBeRemoved);
-      }
-
    done:
-      if (locked)
-      {
-         _latch.release();
-      }
       return rc;
    error:
       goto done;
@@ -318,16 +270,12 @@ namespace vessel
       SDB_ASSERT(NULL != job, "can not be null");
       UINT32 scanNum = std::min(scanDepth, _options.lruScanDepth);
       liteCachePageTag *itr = NULL;
-      BOOLEAN locked = FALSE;
       UINT32 totalEvicted = 0;
       UINT32 totalPending = 0;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
       ossPoolVector<freeListPage> pages;
-      ossPoolList<liteCachePageTag *> toBeRemoved;
-
-      _latch.get();
-      locked = TRUE;
+      ossXLatchGuard guard(&_latch);
  
       itr = _tail;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
@@ -345,22 +293,18 @@ namespace vessel
 
          if (tag->fastTestIfCanBeEvictedFromLru(FALSE))
          {
-            BOOLEAN removeFromBucket = FALSE;
             freeListPage page;
-            if (tryToEvictTagFromList(tag, page, removeFromBucket))
+            if (tryToEvictTagFromList(tag, page))
             {
                pages.push_back(page);
-               if (removeFromBucket)
-               {
-                  toBeRemoved.push_back(tag);
-               }
                ++totalEvicted;
                continue;
             }
          }
 
          /// isMemDirty() not protected by rw latch.
-         /// Which means we may add undirty tag to job.
+         /// We hold the list latch first, here should not
+         /// read fake status.
          if (tag->isMemPageDirty() && tag->setPendingWrite())
          {
             rc = job->addPendingWriteTag(tag);
@@ -385,26 +329,16 @@ namespace vessel
          _evictBegin = NULL;
       }
 
-      _latch.release();
-      locked = FALSE;
+      guard.unlock();
 
       if (NULL != involvedMemPageCount)
       {
          *involvedMemPageCount = totalEvicted + totalPending;
       }
    done:
-      if (locked)
-      {
-         _latch.release();
-      }
       if (!pages.empty())
       {
          _fl->releasePages(pages.size(), pages.data());
-      }
-      for (ossPoolList<liteCachePageTag *>::iterator itr = toBeRemoved.begin();
-           itr != toBeRemoved.end(); ++itr)
-      {
-         _buckets->releaseRemovedTag(*itr);
       }
       return rc;
    error:
@@ -576,13 +510,11 @@ namespace vessel
 
 
    BOOLEAN lcLRUList::tryToEvictTagFromList(liteCachePageTag *tag,
-                                            freeListPage &page,
-                                            BOOLEAN &removeFromBucket)
+                                            freeListPage &page)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != tag, "can not be null");
       lcPageTagHolder holder;
-      removeFromBucket = FALSE;
       
       holder.reset(tag);
       if (!holder.tryLock())
@@ -596,29 +528,11 @@ namespace vessel
          goto done;
       }
 
-      /// if tag is not in dirty list, we try to recycle it.
-      if (!tag->isInDirtyList())
-      {
-         if (tag->tryToSetRemoved())
-         {
-            removeFromBucket = TRUE;
-         }
-         else
-         {
-            /// when tag is not dirty, possible reasons of failure of removing:
-            /// 1. tag is pending write. (can be evicted, but can not be removed)
-            /// 2. tag's usage cnt increased.(can not be evicted)
-            /// here we do not try to evict it again.
-            goto done;
-         }
-      }
-
-      ///from here, if tag is not marked as removed:
-      ///we can be sure that the page will not become a mem dirty page,
+      ///We can be sure that the page will not become a mem dirty page,
       ///coz we are holding w lock.
-      ///but it is possible that other users have increased the reference count and waiting for lock.
-      ///it does not matter, we will not delete tag unless removeFromBucket is true.
-      ///others users may reinsert tag into lru by themselves. 
+      ///But it is possible that other users have increased the reference count and waiting for lock.
+      ///It does not matter, we will not delete tag.
+      ///Others users may reinsert tag into lru by themselves. 
       /// Or, tag is marked as io pending by dirty list. But because mem is not dirty, we
       /// can still go on.
       if (splited())

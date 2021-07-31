@@ -46,15 +46,17 @@ namespace vessel
    class lcBuckets : public SDBObject
    {
       public:
-         lcBuckets();
+         lcBuckets(){}
          ~lcBuckets();
+
+         lcBuckets(const lcBuckets &) = delete;
+         lcBuckets &operator=(const lcBuckets &) = delete;
 
       public:
          INT32 init(UINT32 bucketCount,
-                     UINT32 latchCount,
-                     UINT32 minRecycleCount);
+                     UINT32 latchCount);
 
-         INT32 fini();
+         void fini();
 
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     const mmapPagePointer &ptr,
@@ -64,18 +66,15 @@ namespace vessel
          BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                    lcPageTagHolder &holder);
 
-         INT32 releaseRemovedTag(liteCachePageTag *tag);
-
       private:
          void getBucketAndLatch(const GLOBAL_PAGE_ID &id,
                                 _ossSpinXLatch *&latch,
                                 lcBucket *&bucket);
       private:
-         UINT32 _minRecycleCount;
-         UINT32 _bucketCount;
-         lcBucket* _buckets;
-         UINT32 _latchCount;
-         _ossSpinXLatch *_latches;
+         UINT32 _bucketCount = 0;
+         lcBucket* _buckets = NULL;
+         UINT32 _latchCount = 0;
+         _ossSpinXLatch *_latches = NULL;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

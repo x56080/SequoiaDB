@@ -70,6 +70,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _buckets, "do not reinit");
+      liteCacheOptions options;
 
       if (poolNo < 0)
       {
@@ -85,8 +86,8 @@ namespace vessel
       fini();
 
       _poolNo = poolNo;
-      _options = o;
-      correctOptions(_options);
+      options = o;
+      correctOptions(options);
       
       _buckets = SDB_OSS_NEW lcBuckets();
       if (NULL == _buckets)
@@ -127,9 +128,8 @@ namespace vessel
          goto error;
       }
          
-      rc = _buckets->init(_options.bucket.bucketCount,
-                           _options.bucket.bucketLatchCount,
-                           _options.bucket.minRecycleCount);
+      rc = _buckets->init(options.bucket.bucketCount,
+                           options.bucket.bucketLatchCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup buckets:%d", rc);
@@ -143,7 +143,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _lru->init(_buckets, _fl, _options.lru);
+      rc = _lru->init(_fl, options.lru);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup lru list:%d", rc);
@@ -157,47 +157,26 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::fini()
+   void liteCache::fini()
    {
-      INT32 rc = SDB_OK;
-      if (!isOpen())
-      {
-         goto done;
-      }
       if (NULL != _dl)
       {
-         rc = _dl->fini();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to teardown dirty list:%d", rc);
-         }
+         _dl->fini();
       }
 
       if (NULL != _lru)
       {
-         rc = _lru->fini();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to teardown lru list:%d", rc);
-         }
+         _lru->fini();
       }
 
       if (NULL != _buckets)
       {
-         rc = _buckets->fini();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to teardown _buckets:%d", rc);
-         }
+         _buckets->fini();
       }
 
       if (NULL != _fl)
       {
-         rc = _fl->fini();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to teardown free list:%d", rc);
-         }
+         _fl->fini();
       }
 
       SAFE_OSS_DELETE(_dl);
@@ -205,10 +184,8 @@ namespace vessel
       SAFE_OSS_DELETE(_buckets);
       SAFE_OSS_DELETE(_fl);
       _poolNo = -1;
-      _options = liteCacheOptions();
 
-   done:
-      return SDB_OK;
+      return ;
    }
 
    void liteCache::correctOptions(liteCacheOptions &options)
@@ -351,20 +328,8 @@ namespace vessel
       if (holder.valid())
       {
          SDB_ASSERT(holder.isLocked(), "impossible");
-         if (isNewTag)
-         {
-            BOOLEAN rollback = holder.tag()->tryToRollbackNewTag();
-            holder.autoUnlock();
-            if (rollback)
-            {
-               _buckets->releaseRemovedTag(holder.tag());
-            }
-         }
-         else
-         {
-            holder.autoUnlock();
-            holder.tag()->decUsageCnt();
-         }
+         holder.autoUnlock();
+         holder.tag()->decUsageCnt();
       }
       goto done;
    }
@@ -450,20 +415,8 @@ namespace vessel
    error:
       if (holder.valid())
       {
-         if (isNewTag)
-         {
-            BOOLEAN rollback = holder.tag()->tryToRollbackNewTag();
-            holder.autoUnlock();
-            if (rollback)
-            {
-               _buckets->releaseRemovedTag(holder.tag());
-            }
-         }
-         else
-         {
-            holder.autoUnlock();
-            holder.tag()->decUsageCnt();
-         }
+         holder.autoUnlock();
+         holder.tag()->decUsageCnt();
       }
       goto done;
    }
@@ -566,6 +519,7 @@ namespace vessel
       }
       else
       {
+         ///TODO: If tag is in dirty list, invalid value may be flushed to disk. 
          ossMemset((void *)(page.buf()), 0x0, _fl->getPageSize());
       }
 
@@ -758,6 +712,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 scanLoop = 0;
+      static const UINT32 _MAX_LOOP = 512;
       
       do
       {
@@ -775,26 +730,31 @@ namespace vessel
          else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL == rc)
          {
             rc = _lru->evict(context, 0 < scanLoop, page);
-            if (SDB_OK == rc)
+            if (SDB_OK != rc)
             {
-               goto done;
-            }
-            else if (SDB_VESSEL_LC_LRU_SCAN_HIT_MAX == rc)
-            {
-               rc = SDB_OK;
-               ++scanLoop;
-               continue;
-            }
-            else
-            {
+               PD_LOG(PDERROR, "failed to evict page from lru:%d", rc);
                goto error;
             }
+
+            if (page.valid())
+            {
+               break;
+            }
+            
+            ++scanLoop;
          }
          else
          {
             goto error;
          }
-      } while (TRUE);
+      } while (scanLoop < _MAX_LOOP);
+
+      if (!page.valid())
+      {
+         PD_LOG(PDERROR, "failed to evict page from lru");
+         rc = SDB_VESSEL_LC_LRU_BUSY;
+         goto error;
+      }
 
    done:
       return rc;

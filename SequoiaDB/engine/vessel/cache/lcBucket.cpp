@@ -48,19 +48,20 @@ namespace vessel
 
    lcBucket::~lcBucket()
    {
-      LC_BUCKET_INNER_INDEX_ITERATOR itr = _tags.begin();
-      for (; itr != _tags.end(); ++itr)
+      LC_BUCKET_INNER_INDEX_ITERATOR itr = _tagIndex.begin();
+      for (; itr != _tagIndex.end(); ++itr)
       {
          if (NULL != itr->second)
          {
             SDB_OSS_DEL itr->second;
          }
       }
-      _tags.clear();
+      _tagIndex.clear();
+      _head = NULL;
+      _tail = NULL;
    }
 
    INT32 lcBucket::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &gpid,
-                                        UINT32 minRecycleCount,
                                         const mmapPagePointer &ptr,
                                         lcPageTagHolder &holder,
                                         BOOLEAN &isNewTag)
@@ -82,7 +83,7 @@ namespace vessel
          goto done;
       }
 
-      rc = insertTag(gpid, ptr, minRecycleCount, holder);
+      rc = insertTag(gpid, ptr, holder);
       if (SDB_OK != rc)
       {
          goto error;
@@ -97,50 +98,29 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBucket::releaseRemovedTag(liteCachePageTag *tag)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != tag, "can not be null");
-
-      if (NULL == tag)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!tag->isRemoved())
-      {
-         SDB_ASSERT(FALSE, "can not release the tag not removed");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _tags.erase(tag->getBucketIterator());
-      SDB_OSS_DEL tag;
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    BOOLEAN lcBucket::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                        lcPageTagHolder &holder)
    {  
       BOOLEAN r = FALSE;
       SDB_ASSERT(id.isValid(), "can not be invalid");
       holder.reset(NULL);
-      LC_BUCKET_INNER_INDEX_CONST_ITERATOR lower = _tags.lower_bound(id);
-      for (; lower != _tags.end(); ++lower)
+      LC_BUCKET_INNER_INDEX_CONST_ITERATOR lower = _tagIndex.lower_bound(id);
+      for (; lower != _tagIndex.end(); ++lower)
       {
          if (lower->first != id)
          {
             break;
          }
-         if (lower->second->incUsageCnt())
+         else if (lower->second->incUsageCnt())
          {
             holder.reset(lower->second);
             r = TRUE;
             break;
+         }
+         else
+         {
+            /// tag was removed, just continue
+            continue;
          }
       }
       return r;
@@ -148,7 +128,6 @@ namespace vessel
 
    INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,
                              const mmapPagePointer &ptr,
-                             UINT32 minRecycleCount,
                              lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
@@ -157,7 +136,7 @@ namespace vessel
       SDB_ASSERT(ptr.isValid(), "can not be invalid");
       LC_BUCKET_INNER_INDEX_ITERATOR itr;
 
-      tag = recycleTag(minRecycleCount);
+      tag = recycleTag();
       if (NULL == tag)
       {
          tag = SDB_OSS_NEW liteCachePageTag();
@@ -170,8 +149,10 @@ namespace vessel
 
       tag->firstInit(id, ptr.get());
       tag->incUsageCnt(FALSE);
-      itr = _tags.insert(std::make_pair(id, tag));
-      tag->insertIntoBucket(itr);
+      pushFront(tag);
+      itr = _tagIndex.insert(std::make_pair(id, tag));
+      tag->setBucketIndex(itr);
+      tag->setInBucket();
       holder.reset(tag);
       tag = NULL;
    done:
@@ -181,54 +162,143 @@ namespace vessel
       goto done;
    }
 
-   liteCachePageTag *lcBucket::recycleTag(UINT32 minRecycleCount)
+   void lcBucket::pushFront(liteCachePageTag *tag)
    {
-      liteCachePageTag *tag = NULL;
-      if (_tags.size() < minRecycleCount)
+      SDB_ASSERT(NULL != tag, "can not be null");
+      SDB_ASSERT(NULL == tag->getPreInBucket(), "must be null");
+      SDB_ASSERT(NULL == tag->getNextInBucket(), "must be null");
+      liteCachePageTag *oldHead = _head;
+      _head = tag;
+      _head->setNextInBucket(oldHead);
+      _head->setPreInBucket(NULL);
+
+      if (NULL != oldHead)
+      {
+         oldHead->setPreInBucket(_head);
+      }
+      else
+      {
+         _tail = tag;
+      }
+      return;
+   }
+
+   void lcBucket::pushBack(liteCachePageTag *tag)
+   {
+      SDB_ASSERT(NULL != tag, "can not be null");
+      SDB_ASSERT(NULL == tag->getPreInBucket(), "must be null");
+      SDB_ASSERT(NULL == tag->getNextInBucket(), "must be null");
+      liteCachePageTag *oldTail = _tail;
+      _tail = tag;
+      tag->setPreInBucket(oldTail);
+      tag->setNextInBucket(NULL);
+      if (NULL != oldTail)
+      {
+         oldTail->setNextInBucket(tag);
+      }
+      else
+      {
+         _head = tag;
+      }
+      return;
+   }
+
+   void lcBucket::removeFromList(liteCachePageTag *tag)
+   {
+      SDB_ASSERT(NULL != tag, "can not be null");
+      SDB_ASSERT((NULL != tag->getPreInBucket() || NULL != tag->getNextInBucket()),
+                 "must be in list");
+
+      liteCachePageTag *pre = tag->getPreInBucket();
+      liteCachePageTag *next = tag->getNextInBucket();
+
+      if (NULL != pre)
+      {
+         pre->setNextInBucket(next);
+      }
+      else
+      {
+         _head = next;
+      }
+
+      if (NULL != next)
+      {
+         next->setPreInBucket(pre);
+      }
+      else
+      {
+         _tail = pre;
+      }
+
+      tag->setPreInBucket(NULL);
+      tag->setNextInBucket(NULL);
+      return;
+   }
+
+   liteCachePageTag *lcBucket::popBack()
+   {
+      liteCachePageTag *back = _tail;
+
+      if (NULL == back)
+      {
+         goto done;
+      }
+
+      SDB_ASSERT(NULL == back->getNextInBucket(), "must be null");
+      if (NULL != back->getPreInBucket())
+      {
+         back->getPreInBucket()->setNextInBucket(NULL);
+         _tail = back->getPreInBucket();
+      }
+      else
+      {
+         _head = NULL;
+         _tail = NULL;
+      }
+
+      back->setPreInBucket(NULL);
+   done:
+      return back;
+   }
+
+   liteCachePageTag *lcBucket::recycleTag()
+   {
+      liteCachePageTag *out = NULL;
+      static const UINT32 _MAX_LOOP = 16;
+
+      if (_tagIndex.size() <= _MAX_LOOP)
       {
          return NULL;
       }
 
-      LC_BUCKET_INNER_INDEX_ITERATOR itr = _tags.begin();
-      for (; itr != _tags.end(); ++itr)
+      for (UINT32 i = 0; i < _MAX_LOOP; ++i)
       {
-         tag = itr->second;
+         liteCachePageTag *tag = popBack();
+      
          /// no latch holding, just for fast skip.
-         if (!tag->fastTestIfCanBeRecycled(FALSE))
+         if (tag->fastTestIfCanBeRecycled(FALSE) &&
+             tag->getAccessingLatch().tryLock())
          {
-            continue;
+            if (tag->fastTestIfCanBeRecycled(TRUE))
+            {
+               tag->getAccessingLatch().unlock();
+               _tagIndex.erase(tag->getBucketIterator());
+               tag->reset();
+               out = tag;
+               goto done;
+            }
+            else
+            {
+               tag->getAccessingLatch().unlock();
+               /// do not continue, we must insert tag back to list.
+            }
          }
 
-         /// some one held the latch after our fast check.
-         if (!tag->getAccessingLatch().tryLock())
-         {
-            continue;
-         }
-
-         /// check again under latch
-         if (!tag->isNotInAnyList())
-         {
-            tag->getAccessingLatch().unlock();
-            continue;
-         }
-
-         /// some one pinned tag but 
-         /// failed to test because we did not hold latch. 
-         if (!tag->tryToSetRemoved())
-         {
-            tag->getAccessingLatch().unlock();
-            continue;
-         }
-
-         /// no one can access this tag after removed.
-         tag->getAccessingLatch().unlock();
-         _tags.erase(itr);
-         tag->reset();
-         
-         break;
+         pushFront(tag);
       }
-
-      return tag;
+      
+   done:
+      return out;
    }
 } /// end of namespace vessel
 } /// end of namespace engine

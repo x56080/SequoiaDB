@@ -56,17 +56,18 @@ namespace vessel
       public:
          lcLRUList();
          ~lcLRUList();
+         lcLRUList(const lcLRUList &) = delete;
+         lcLRUList &operator=(const lcLRUList &) = delete;
 
       public:
-         INT32 init(lcBuckets *buckets,
-                     lcFreeList *fl,
-                     const liteCacheOptions::lruOptions &options);
-         INT32 fini();
+         INT32 init(lcFreeList *fl,
+                    const liteCacheOptions::lruOptions &options);
+         void fini();
 
          /// for user threads
          /// tag under w lock
          INT32 insert(lcPageTagHolder &holder,
-                      UINT32 touchCnt = 1);
+                      UINT32 beginTouchCount = 1);
 
          /// for user threads
          /// tag under lock
@@ -75,6 +76,7 @@ namespace vessel
          /// for user threads
          /// should always check free list first.
          /// page scan num will be max(pageCount, lruOptions.lruPageScanNum) when scanUntilHitMax is false
+         /// pageBuf may be invalid when return ok
          INT32 evict(requestContext *context,
                      BOOLEAN scanUntilHitMax,
                      freeListPage &pageBuf);
@@ -108,25 +110,21 @@ namespace vessel
          void removeFromList(liteCachePageTag *tag);
 
          BOOLEAN tryToEvictTagFromList(liteCachePageTag *tag,
-                                       freeListPage &page,
-                                       BOOLEAN &removeFromBucket);
-
-      
+                                       freeListPage &page);
       private:
-         lcBuckets *_buckets;
-         lcFreeList *_fl;
+         lcFreeList *_fl = NULL;
          ossSpinXLatch _latch;
 
          /// options
          liteCacheOptions::lruOptions _options;
 
-         /// real time
-         UINT32 _size;
-         UINT32 _coldSize;
-         liteCachePageTag *_head;
-         liteCachePageTag *_middle;
-         liteCachePageTag *_tail;
-         liteCachePageTag *_evictBegin;
+         /// runtime
+         UINT32 _size = 0;
+         UINT32 _coldSize = 0;
+         liteCachePageTag *_head = NULL;
+         liteCachePageTag *_middle = NULL;
+         liteCachePageTag *_tail = NULL;
+         liteCachePageTag *_evictBegin = NULL;
    }; /// end of class lcLRUList
 } /// end of namespace vessel
 } /// end of namespace engine

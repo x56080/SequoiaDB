@@ -290,7 +290,7 @@ TEST_F(insert_test, test3)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    collectionHandler handler;
-   UINT32 count = 2000000;
+   UINT32 count = 5000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;

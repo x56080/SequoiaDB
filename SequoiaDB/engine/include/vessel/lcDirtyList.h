@@ -56,7 +56,7 @@ namespace vessel
       public:
          INT32 init();
 
-         INT32 fini();
+         void fini();
 
          /// under w lock
          INT32 upsert(DPS_LSN_OFFSET lsn, lcPageTagHolder &holder);

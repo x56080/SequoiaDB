@@ -59,12 +59,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcDirtyList::fini()
+   void lcDirtyList::fini()
    {
       _size = 0;
       _head = NULL;
       _tail = NULL;
-      return SDB_OK;
+      return;
    }
 
    UINT32 lcDirtyList::size(BOOLEAN lock)

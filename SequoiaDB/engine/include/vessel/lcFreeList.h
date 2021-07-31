@@ -71,7 +71,7 @@ namespace vessel
 
       public:
          INT32 init(UINT32 pageSize, const liteCacheOptions::freeListOptions &options);
-         INT32 fini();
+         void fini();
 
 
          INT32 allocate(freeListPage &page);

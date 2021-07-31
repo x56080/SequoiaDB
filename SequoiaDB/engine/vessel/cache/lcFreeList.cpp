@@ -86,7 +86,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcFreeList::fini()
+   void lcFreeList::fini()
    {
       _free.clear();
       if (NULL != _chunks)
@@ -98,7 +98,7 @@ namespace vessel
       _size = 0;
       _pageSize = 0;
       _options = liteCacheOptions::freeListOptions();
-      return SDB_OK;
+      return;
    }
 
 

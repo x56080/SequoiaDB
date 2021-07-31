@@ -70,7 +70,7 @@ class liteCache : public SDBObject
                  UINT32 pageSize,
                  const liteCacheOptions &o);
 
-      INT32 fini();
+      void fini();
 
       OSS_INLINE BOOLEAN isOpen()const
       {
@@ -141,7 +141,6 @@ class liteCache : public SDBObject
 
    private:
       INT32 _poolNo = -1;
-      liteCacheOptions _options;
       lcBuckets *_buckets = NULL;
       lcLRUList *_lru = NULL;
       lcDirtyList *_dl = NULL;

@@ -3019,6 +3019,14 @@
       </code>
 
       <code>
+         <name>SDB_VESSEL_LC_LRU_BUSY</name>
+         <description>
+            <en>Failed to evict mem page from lru</en>
+            <cn>无法从内存池链表中找到可用的内存页</cn>
+         </description>
+      </code>
+
+      <code>
          <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
          <description>
             <en>forbidden operation because of holding wrong type latch</en>
@@ -3151,14 +3159,6 @@
          <description>
             <en>logical page has not been mapped</en>
             <cn>逻辑数据页尚未映射到物理数据页</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_LC_LRU_SCAN_HIT_MAX</name>
-         <description>
-            <en>evicting from lru list hit the max steps</en>
-            <cn>从LRU列表中淘汰页达到最大搜索步长</cn>
          </description>
       </code>
 

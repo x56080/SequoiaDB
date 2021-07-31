@@ -58,6 +58,8 @@ namespace vessel
       _memPage.reset();
 
       _bucketItr = LC_BUCKET_INNER_INDEX_ITERATOR();
+      _preInBucket = NULL;
+      _nextInBucket = NULL;
       
       _lruTouchCnt = 0;
       _lruFlags = 0;

@@ -53,28 +53,37 @@ namespace vessel
       public:
          lcBucket();
          ~lcBucket();
+         lcBucket(const lcBucket &) = delete;
+         lcBucket &operator=(const lcBucket &) = delete;
 
       public:
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                    UINT32 minRecycleCount,
                                     const mmapPagePointer &ptr,
                                     lcPageTagHolder &holder,
                                     BOOLEAN &isNewTag);
 
          BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                    lcPageTagHolder &holder);
-
-         INT32 releaseRemovedTag(liteCachePageTag *tag);
       private:                           
          INT32 insertTag(const GLOBAL_PAGE_ID &id,
                          const mmapPagePointer &ptr,
-                         UINT32 minRecycleCount,
                          lcPageTagHolder &holder);
 
-         liteCachePageTag *recycleTag(UINT32 minRecycleCount);
+         liteCachePageTag *recycleTag();
+
+      private:
+         void pushFront(liteCachePageTag *tag);
+
+         void pushBack(liteCachePageTag *tag);
+
+         void removeFromList(liteCachePageTag *tag);
+
+         liteCachePageTag *popBack();
                                                 
       private:
-         LC_BUCKET_INNER_INDEX _tags;
+         LC_BUCKET_INNER_INDEX _tagIndex;
+         liteCachePageTag *_head = NULL;
+         liteCachePageTag *_tail = NULL;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

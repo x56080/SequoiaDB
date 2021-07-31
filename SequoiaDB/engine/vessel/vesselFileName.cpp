@@ -99,7 +99,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       std::vector<std::string> columns;
-      UINT32 space = 0;
       UINT32 maxColumnSize = FILE_NAME_FORMAT_MAX_COLUMNS;
       if (!shadowSuffixCompatible)
       {
