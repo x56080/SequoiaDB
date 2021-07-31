@@ -605,7 +605,7 @@ namespace vessel
       }
       else
       {
-         UINT16 range = totalStripingCount / _bucketCount;
+         UINT16 range = ossAlignX(totalStripingCount, _bucketCount) / _bucketCount;
          bucketNo = (striping - _minStriping) / range;
          SDB_ASSERT(bucketNo < _bucketCount, "impossible");
       }
