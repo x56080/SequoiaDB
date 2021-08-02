@@ -292,51 +292,52 @@ namespace engine
    INT32 _dmsExtScannerBase::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
-      if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
-      {
-         dmsTBTransContext tbTxContext( _context, _accessType ) ;
-         dpsTransRetInfo   lockConflict ;
-
-         if ( DPS_TRANSLOCK_IS == dpsIntentLockMode( _recordLock ) )
-         {
-            rc = _pTransCB->transLockGetIS( _cb, _pSu->logicalID(),
-                                            _context->mbID(),
-                                            & tbTxContext, &lockConflict ) ;
-         }
-         else if ( DPS_TRANSLOCK_IX == dpsIntentLockMode( _recordLock ) )
-         {
-            rc = _pTransCB->transLockGetIX( _cb, _pSu->logicalID(),
-                                            _context->mbID(),
-                                             & tbTxContext, &lockConflict ) ;
-         }
-         else
-         {
-            goto done ;
-         }
-
-         // this is performance improvement, failed to get lock should not
-         // fail the operation
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDWARNING,
-                     "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
-                     "Conflict ( representative ):"OSS_NEWLINE
-                     "   EDUID:  %llu"OSS_NEWLINE
-                     "   TID:    %u"OSS_NEWLINE
-                     "   LockId: %s"OSS_NEWLINE
-                     "   Mode:   %s"OSS_NEWLINE,
-                     rc,
-                     lockConflict._eduID,
-                     lockConflict._tid,
-                     lockConflict._lockID.toString().c_str(),
-                     lockModeToString( lockConflict._lockType ) ) ;
-            goto error ;
-         }
-         else
-         {
-            _CSCLLockHeld = TRUE ;
-         }
-      }
+      _CSCLLockHeld = TRUE ;
+//      if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
+//      {
+//         dmsTBTransContext tbTxContext( _context, _accessType ) ;
+//         dpsTransRetInfo   lockConflict ;
+//
+//         if ( DPS_TRANSLOCK_IS == dpsIntentLockMode( _recordLock ) )
+//         {
+//            rc = _pTransCB->transLockGetIS( _cb, _pSu->logicalID(),
+//                                            _context->mbID(),
+//                                            & tbTxContext, &lockConflict ) ;
+//         }
+//         else if ( DPS_TRANSLOCK_IX == dpsIntentLockMode( _recordLock ) )
+//         {
+//            rc = _pTransCB->transLockGetIX( _cb, _pSu->logicalID(),
+//                                            _context->mbID(),
+//                                             & tbTxContext, &lockConflict ) ;
+//         }
+//         else
+//         {
+//            goto done ;
+//         }
+//
+//         // this is performance improvement, failed to get lock should not
+//         // fail the operation
+//         if ( SDB_OK != rc )
+//         {
+//            PD_LOG ( PDWARNING,
+//                     "Failed to get CS/CL lock, rc: %d"OSS_NEWLINE
+//                     "Conflict ( representative ):"OSS_NEWLINE
+//                     "   EDUID:  %llu"OSS_NEWLINE
+//                     "   TID:    %u"OSS_NEWLINE
+//                     "   LockId: %s"OSS_NEWLINE
+//                     "   Mode:   %s"OSS_NEWLINE,
+//                     rc,
+//                     lockConflict._eduID,
+//                     lockConflict._tid,
+//                     lockConflict._lockID.toString().c_str(),
+//                     lockModeToString( lockConflict._lockType ) ) ;
+//            goto error ;
+//         }
+//         else
+//         {
+//            _CSCLLockHeld = TRUE ;
+//         }
+//      }
 
    done:
       return rc ;
@@ -348,8 +349,8 @@ namespace engine
    {
       if ( _CSCLLockHeld )
       {
-         _pTransCB->transLockRelease( _cb, _pSu->logicalID(),
-                                      _context->mbID() );
+         //_pTransCB->transLockRelease( _cb, _pSu->logicalID(),
+         //                             _context->mbID() );
          _CSCLLockHeld = FALSE ;
       }
    }
