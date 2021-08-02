@@ -50,7 +50,7 @@ Windows32:
         copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
         do same operation for build-debug
   
-  OpenSSL 1.1.1g:
+  OpenSSL 1.1.1k:
     win32 not used, so not compile and not support.
 
     snappy 1.1.0:
@@ -114,11 +114,11 @@ Windows64:
         copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
         do same operation for build-debug
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
       cd crypto/openssl.1.1g\
       perl Configure VC-WIN64A
       nmake
-      copy the following files to crypto\openssl-1.1.1g\lib\win64:
+      copy the following files to crypto\openssl-1.1.1k\lib\win64:
         libssl.lib libcrypto.lib
 
     snappy 1.1.0:
@@ -183,11 +183,11 @@ Linux32:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.1.1g:
-        cd crypto/openssl-1.1.1g/
+    OpenSSL 1.1.1k:
+        cd crypto/openssl-1.1.1k/
         ./configure
         make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1g/lib/linux32/
+        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1k/lib/linux32/
 
     snappy 1.1.0:
         cd snappy
@@ -251,11 +251,11 @@ Linux64:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.1.1g:
-        cd crypto/openssl-1.1.1g/
+    OpenSSL 1.1.1k:
+        cd crypto/openssl-1.1.1k/
         ./configure
         make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1g/lib/linux64/
+        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1k/lib/linux64/
 
     snappy 1.1.0:
         cd snappy
@@ -315,7 +315,7 @@ PowerLinux64:
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclinux64.
         do same operation for build-debug
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         not compiled.
 
     snappy 1.1.0:
@@ -382,9 +382,9 @@ PowerleLinux64:
             autoconf2.13 --version
 
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         # for release build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         make clean
         chmod +x ./config
         ./config -fPIC
@@ -394,7 +394,7 @@ PowerleLinux64:
         cp libssl.a ./lib/ppclelinux64/release
 
         # for debug build:
-        cd thirdparty/crypto/openssl-1.1.1g/
+        cd thirdparty/crypto/openssl-1.1.1k/
         make clean
         chmod +x ./config
         ./config -fPIC -d
@@ -436,7 +436,7 @@ Aix64:
         ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-maix64" linkflags="-maix64"
         copy boost/stage/lib/* to boost/lib/aix64
 
-    OpenSSL 1.1.1g:
+    OpenSSL 1.1.1k:
         not compiled.
 
     snappy 1.1.0:
