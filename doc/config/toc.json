@@ -290,6 +290,12 @@
                                  "en": "Sequence"
                               },
                               {
+                                 "id": 1627883003,
+                                 "file": "partition",
+                                 "cn": "分区",
+                                 "en": "Partition"
+                              },
+                              {
                                  "id": 1974045910,
                                  "file": "data_type",
                                  "cn": "数据类型映射表",
