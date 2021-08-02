@@ -659,7 +659,7 @@ if "win32" != guess_os:
     # on arm, we can not build sm lib on uos(jira-5452), so we also use the 
     # pre-build sm lib and include files.
     # spidermonkey_compiler = SpiderMonkeyCompiler('parser/sm/js')
-    ssl_compiler = SslCompiler('crypto/openssl-1.1.1g')
+    ssl_compiler = SslCompiler('crypto/openssl-1.1.1k')
     components.append(boost_compiler)
     # components.append(spidermonkey_compiler)
 
