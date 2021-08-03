@@ -354,6 +354,8 @@ namespace engine
       BOOLEAN shardingKeyChanged = FALSE ;
       BOOLEAN hasKeepAutoInc = FALSE ;
 
+      goto done ;
+
       if ( !_cataPtr.get() || (!_cataPtr->isSharded() &&
                                !_cataPtr->hasAutoIncrement()) )
       {
