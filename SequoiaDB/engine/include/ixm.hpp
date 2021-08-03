@@ -304,45 +304,45 @@ namespace engine
             _infoObj = BSONObj( ((const CHAR*)_extent) +
                                 IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
 
-            _isGlobalIndex = _infoObj.getBoolField( IXM_GLOBAL_FIELD ) ;
-            if ( _isGlobalIndex )
-            {
-               BSONObj globalOptions ;
-               BSONElement ele ;
-
-               ele = _infoObj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
-               if ( Object != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of index(%s)",
-                          IXM_GLOBAL_OPTION_FIELD,
-                          _infoObj.toString().c_str() ) ;
-                  return ;
-               }
-
-               globalOptions = ele.embeddedObject() ;
-
-               ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
-               if ( NumberLong != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
-                          FIELD_NAME_CL_UNIQUEID,
-                          globalOptions.toString().c_str() ) ;
-                  return ;
-               }
-
-               _indexCLUID = (utilCLUniqueID) ele.numberLong() ;
-
-               ele = globalOptions.getField( FIELD_NAME_COLLECTION ) ;
-               if ( String != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
-                          FIELD_NAME_COLLECTION,
-                          globalOptions.toString().c_str() ) ;
-                  return ;
-               }
-
-               _indexCLName = ele.valuestr() ;
-            }
+//            _isGlobalIndex = _infoObj.getBoolField( IXM_GLOBAL_FIELD ) ;
+//            if ( _isGlobalIndex )
+//            {
+//               BSONObj globalOptions ;
+//               BSONElement ele ;
+//
+//               ele = _infoObj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
+//               if ( Object != ele.type() )
+//               {
+//                  PD_LOG( PDERROR, "Invalid field(%s) of index(%s)",
+//                          IXM_GLOBAL_OPTION_FIELD,
+//                          _infoObj.toString().c_str() ) ;
+//                  return ;
+//               }
+//
+//               globalOptions = ele.embeddedObject() ;
+//
+//               ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
+//               if ( NumberLong != ele.type() )
+//               {
+//                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
+//                          FIELD_NAME_CL_UNIQUEID,
+//                          globalOptions.toString().c_str() ) ;
+//                  return ;
+//               }
+//
+//               _indexCLUID = (utilCLUniqueID) ele.numberLong() ;
+//
+//               ele = globalOptions.getField( FIELD_NAME_COLLECTION ) ;
+//               if ( String != ele.type() )
+//               {
+//                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
+//                          FIELD_NAME_COLLECTION,
+//                          globalOptions.toString().c_str() ) ;
+//                  return ;
+//               }
+//
+//               _indexCLName = ele.valuestr() ;
+//            }
          }
          catch ( std::exception &e )
          {
