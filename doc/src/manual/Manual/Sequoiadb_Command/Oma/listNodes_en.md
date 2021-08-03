@@ -1,11 +1,10 @@
-
 ##NAME##
 
-listNodes - Lists all nodes in the host where the current Oma object is connected to.
+listNodes - list node information
 
 ##SYNOPSIS##
 
-**oma.listNodes(\<options\>,[filter])**
+**oma.listNodes(\[options\], \[filter\])**
 
 ##CATEGORY##
 
@@ -13,62 +12,120 @@ Oma
 
 ##DESCRIPTION##
 
-Lists all nodes in the host where the current Oma object is connected to.
+This function is used to list the eligible node information of the current sdbcm machine. It displays the information of data node, coord node and catalog node by default.
 
 ##PARAMETERS##
 
-| Name     | Type     | Default | Description | Required or not |
-| -------- | -------- | ------- | ----------- | --------------- |
-| options  | JSON     | Display information about data nodes, coordination nodes and catalog nodes by default | Display specified type node | not |
-| filter   | JSON     | Display all information by default | Filtered conditions | not |
+- options ( *object, optional* )
 
-The detail description of 'options' parameter is as follows:
+    Specify the node type, mode and other parameters through the parameter "options":
 
-| Attributes | Type | Default | Format | Description |
-| ---------- | ---- | ------- | ------ | ----------- |
-| type       | String | db  | { type: "all" }<br>{ type: "db" }<br>{ type: "om" }<br>{ type: "cm" } | Display information about all nodes <br>Display information about data nodes, coordination nodes and catalog nodes<br>Display infomation about om node<br>Display infomation about cm node |
-| mode       | String | run | { mode: "run" }<br>{ mode: "local" } | Display infomation about running nodes<br>Display infomation about local nodes whether run or not | 
-| role       | String | --- | { role: "data" }<br>{ role: "coord" }<br>{ role: "catalog" }<br>{ role: "standalone" }<br>{ role: "om" }<br>{ role: "cm" } | Display infomation about data nodes<br>Display infomation about coord nodes<br>Display infomation about catalog nodes<br>Display infomation about standalone nodes<br>Display infomation about om node<br>Display infomation about cm node |
-| svcname    | String | --- | { svcname: "11790" } | Display node information of the specified port | 
-| showalone  | Bool   | false | { showalone: true }<br>{ showalone: false } | Whether to diplay information about the cm node started in standalone mode |
-| expand     | Bool   | false | { expand: true }<br>{ expand: false } | Whether to display detailed extended configuration |
+    - type ( *string* ): Node type, and the default is "db"
+  
+        The values are as follows:
 
->Note:
+        - "all": All nodes
+        - "db": data node, coord node and catalog node
+        - "om": sdbom node
+        - "cm": sdbcm node
 
->1. Cm node has a standalone startup mode. In addition to the current cm node, you can also start a cm node as a temporary cm node in standalone mode(start the cm node to specify the standalone parameter) and the cm node's default survival time is 5 minutes. 
+        Format: `type: "all"` 
 
->2. When specifying multiple svcnames, you can separate the svcnames with ",".
+    - mode ( *string* ): Node mode, and the default is "run"
 
->3. The optional parameter filterObj supports the AND, the OR, the NOT and exact matching of some fields in the result, and the result set is filtered.
+        The values are as follows:
+
+        - "run": Running node
+        - "local": Local node, whether it is running or not
+
+        Format: `mode: "local"`
+
+    - role ( *string* ): Node role
+
+        The values are as follows:
+
+        - "data": data node
+        - "coord": coord node
+        - "catalog": catalog node
+        - "standalone": standalone node
+        - "om": sdbom node
+        - "cm": sdbcm node
+
+        Format: `role: "data"`
+
+    - svcname ( *string* ): Node port number
+
+        When specifying multiple svcnames, separate them with a comma (,).
+
+        Format: `svcname: "11820, 11830" `
+
+    - showalone ( *boolean* )：Whether to display the sdbcm node information started in [standalone mode][standalone], and the default is false.
+
+        Format: `standalone: true`
+
+    - expand ( *boolean* ): Whether to display the extended information of the node, and the default is false.
+
+        Format: `expand: true`
+
+- filter ( *object, optional* )
+
+    Specify the conditions for filtering node information. It supports to retrieve the node information through [matching symbol][match] $and, $or, $not or exact match.
 
 ##RETURN VALUE##
 
-On success, return rearch result set.
+When the function executes successfully, it will return an object of type BSONArray. Users can get a list of node details through this object. Field descriptions are as follows:
 
-On error, exception will be thrown.
+|Name|Type|Description |
+|------|----|----|
+|svcname|string|Node port number|
+|type|string|Node type|
+|role|string|Node role|
+|pid|int32|Process ID|
+|groupid|int32|Node's replication group ID|
+|nodeid|int32|Node ID|
+|primary|int32|Whether the node is the primary node. 1 means the primary node and 0 means the secondary node.|
+|isalone|int32|Whether the node is started in standalone mode (only valid when the parameter "role" is "cm").|
+|groupname|string|Node's replication group name|
+|starttime|string|Node startup time |
+|dbpath|string|Path to store data files|
+
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v2.0 and above
 
 ##EXAMPLES##
 
-* Display the 11820 node information. 
+Connect to the local cluster management service process sdbcm to obtain information of the node 11830.
 
-	```lang-javascript
-	> var oma = new Oma( "localhost", 11790 )
-    > oma.listNodes( { "svcname": '11820'} )
-    {
-      "svcname": "11820",
-      "type": "sequoiadb",
-      "role": "data",
-      "pid": 23240,
-      "groupid": 1000,
-      "nodeid": 1000,
-      "primary": 0,
-      "isalone": 0,
-      "groupname": "group1",
-      "starttime": "2010-02-05-15.42.00",
-      "dbpath": "/opt/sequoiadb/database/data/11820/"
-    }
-	```
+```lang-javascript
+> var oma = new Oma("localhost", 11790)
+> oma.listNodes({svcname: "11830"})
+{
+  "svcname": "11830",
+  "type": "sequoiadb",
+  "role": "data",
+  "pid": 17984,
+  "groupid": 1001,
+  "nodeid": 1001,
+  "primary": 1,
+  "isalone": 0,
+  "groupname": "group2",
+  "starttime": "2021-07-15-16.27.47",
+  "dbpath": "/opt/sequoiadb/database/data/11830/"
+}
+```
+
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[match]:manual/Manual/Operator/Match_Operator/Readme.md
+[standalone]:manual/Manual/Sequoiadb_Command/Oma/start.md
