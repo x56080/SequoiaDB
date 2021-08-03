@@ -2135,12 +2135,12 @@ namespace engine
                }
             }
 
-            rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
-                                          &_isMainCL, NULL, mainCLName ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
+            //rc = _checkCLStatusAndGetSth( pCollectionName, pQuery->version,
+            //                              &_isMainCL, NULL, mainCLName ) ;
+            //if ( SDB_OK != rc )
+            //{
+            //   goto error ;
+            //}
          }
 
          try
@@ -2314,13 +2314,16 @@ namespace engine
          //check cata
          if ( pCommand->collectionFullName() )
          {
-            rc = _checkCLStatusAndGetSth( pCommand->collectionFullName(),
-                                          pQuery->version, &_isMainCL,
-                                          &replSize, mainCLName, &clUniqueID ) ;
-
-            if ( SDB_OK != rc )
+            if ( CMD_CREATE_COLLECTION == pCommand->type() )
             {
-               goto error ;
+               rc = _checkCLStatusAndGetSth( pCommand->collectionFullName(),
+                                             pQuery->version, &_isMainCL,
+                                             &replSize, mainCLName, &clUniqueID ) ;
+
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
 
             if ( pCommand->writable() )
