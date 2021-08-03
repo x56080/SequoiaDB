@@ -2069,6 +2069,8 @@ namespace engine
       const CHAR *pOrderby             = NULL ;
       const CHAR *pHint                = NULL ;
 
+      rtnContextBase *pContext = NULL ;
+
       rc = msgExtractQuery( (const CHAR*)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
@@ -2131,7 +2133,6 @@ namespace engine
       }
       else
       {
-         rtnContextBase *pContext = NULL ;
          coordQueryOperator opr ;
          rc = opr.init( pResource, eduCB() ) ;
          PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
@@ -2157,30 +2158,31 @@ namespace engine
                     opr.getName(), rc ) ;
             goto error ;
          }
+      }
 
-         // query with return data
-         if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
-              -1 != contextID &&
-              NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )
+      // query with return data
+      if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
+           -1 != contextID &&
+           NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )
+      {
+         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+         if ( rc || pContext->eof() )
          {
-            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-            if ( rc || pContext->eof() )
-            {
-               delayKillContext = contextID ;
-               contextID = -1 ;
-            }
+            delayKillContext = contextID ;
+            contextID = -1 ;
+         }
 
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to query with return data, "
-                       "rc: %d", rc ) ;
-            }
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to query with return data, "
+                    "rc: %d", rc ) ;
          }
       }
+
    done:
       if ( pOpr )
       {

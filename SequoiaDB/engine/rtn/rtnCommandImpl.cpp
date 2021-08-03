@@ -314,6 +314,7 @@ namespace engine
                   pCollection, rc ) ;
          goto error ;
       }
+      context->setHitEnd() ;
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;

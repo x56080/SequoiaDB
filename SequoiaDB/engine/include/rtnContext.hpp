@@ -318,6 +318,7 @@ namespace engine
 
          BOOLEAN  isOpened () const { return _isOpened ; }
          BOOLEAN  eof () const { return _hitEnd ; }
+         void     setHitEnd() { _hitEnd = TRUE ; }
 
          INT32    getReference() const ;
 
