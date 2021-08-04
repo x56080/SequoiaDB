@@ -137,7 +137,10 @@ namespace bson {
         }
 
         ~BSONObjBuilder() {
-            if ( !_doneCalled && _b.buf() && _buf.getSize() == 0 ) {
+            // if done is not been called, and builder is not owned,
+            // which means we are in a sub-object or sub-array builder
+            // need call done to finish the BSON for outer builder
+            if ( !_doneCalled && !owned() ) {
                try {
                    _done();
                } catch ( ... ) {
@@ -156,6 +159,17 @@ namespace bson {
             _doneCalled = false ;
             _b.skipDeplay( 4 ) ;
             _b.reserveBytes(1,true) ;
+        }
+
+        /** Make it look as if "done" has been called, so that our destructor
+         *  is a no-op. Do this if you know that you don't care about the
+         *  contents of the builder you are destroying.
+         *
+         *  Note that it is invalid to call any method other than the
+         *  destructor after invoking this method.
+         */
+        void abandon() {
+            _doneCalled = true;
         }
 
         bool isEmpty() const {
@@ -905,6 +919,8 @@ namespace bson {
         BSONObj done() { return _b.done(); }
 
         void doneFast() { _b.doneFast(); }
+
+        void abandon() { _b.abandon() ; }
 
         template <typename T>
         BSONArrayBuilder& append(const StringData& name, const T& x) {
