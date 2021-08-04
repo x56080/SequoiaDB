@@ -274,7 +274,8 @@ namespace engine
                                           IDmsOprHandler *pHandler,
                                           utilUpdateResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray ) ;
+                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                          const ixmIdxHashBitmap &idxHashBitmap ) ;
 
       virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                          dmsExtRW &extRW,

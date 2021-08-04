@@ -394,6 +394,10 @@ namespace engine
       // runtime CRUD statistics monitor
       monCRUDCB _crudCB ;
 
+      // bitmap to indicate index fields
+      ixmIdxHashBitmap _clIdxHashBitmap ;
+      ixmIdxHashBitmap _idxHashBitmaps[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -425,6 +429,11 @@ namespace engine
          _lobIsCrash             = FALSE ;
          _rcTotalRecords.init( 0 ) ;
          _crudCB.reset() ;
+         _clIdxHashBitmap.resetBitmap() ;
+         for ( UINT32 i = 0 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            _idxHashBitmaps[ i ].resetBitmap() ;
+         }
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -502,6 +511,85 @@ namespace engine
       UINT64 getMaxGlobTransID( )
       {
          return _maxGlobTransID.peek() ;
+      }
+
+      void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         UINT32 bitIndex = ixmIdxHashBitmap::calcIndex( idxFieldName ) ;
+         _clIdxHashBitmap.setBit( bitIndex ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _idxHashBitmaps[ indexID ].setBit( bitIndex ) ;
+         }
+      }
+
+      void unsetIdxHash( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         _clIdxHashBitmap.resetBitmap() ;
+         // move bitmaps after index ID forward
+         for ( UINT32 i = indexID ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+         {
+            if ( i + 1 < IXM_IDX_HASH_MAX_INDEX_NUM &&
+                 !_idxHashBitmaps[ i + 1 ].isEmpty() )
+            {
+               _idxHashBitmaps[ i ].setBitmap( _idxHashBitmaps[ i + 1 ] ) ;
+            }
+            else
+            {
+               if ( !_idxHashBitmaps[ i ].isEmpty() )
+               {
+                  _idxHashBitmaps[ i ].resetBitmap() ;
+               }
+               break ;
+            }
+         }
+      }
+
+      void mergeIdxHash( INT32 indexID )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            _clIdxHashBitmap.unionBitmap( _idxHashBitmaps[ indexID ] ) ;
+         }
+      }
+
+      BOOLEAN testIdxHash( const ixmIdxHashBitmap &idxHash )
+      {
+         return _clIdxHashBitmap.hasIntersaction( idxHash ) ;
+      }
+
+      BOOLEAN testIdxHash( INT32 indexID, const ixmIdxHashBitmap &idxHash )
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return _idxHashBitmaps[ indexID ].hasIntersaction( idxHash ) ;
+         }
+         return TRUE ;
+      }
+
+      BOOLEAN isIdxHashReady() const
+      {
+         return !( _clIdxHashBitmap.isEmpty() ) ;
+      }
+
+      BOOLEAN isIdxHashReady( INT32 indexID ) const
+      {
+         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
+                     "invalid index ID" ) ;
+         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
+         {
+            return !( _idxHashBitmaps[ indexID ].isEmpty() ) ;
+         }
+         // for indexes after first 8 ones, always not ready
+         return FALSE ;
       }
 
       _dmsMBStatInfo ()
@@ -1068,7 +1156,8 @@ namespace engine
                                              IDmsOprHandler *pHandler,
                                              utilUpdateResult *pResult,
                                              dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray ) = 0 ;
+                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                             const ixmIdxHashBitmap &idxHashBitmap ) = 0 ;
 
          virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,

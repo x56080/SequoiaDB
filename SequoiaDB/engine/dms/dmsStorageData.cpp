@@ -202,7 +202,8 @@ namespace engine
                                                 IDmsOprHandler *pHandler,
                                                 utilUpdateResult *pResult,
                                                 dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                                dpsUnqIdxHashArray *pOldUnqIdxHashArray )
+                                                dpsUnqIdxHashArray *pOldUnqIdxHashArray,
+                                                const ixmIdxHashBitmap &idxHashBitmap )
    {
       INT32 rc                     = SDB_OK ;
       UINT32 dmsRecordSize         = 0 ;
@@ -310,7 +311,7 @@ namespace engine
             rc = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                          oriObj, newObj,
                                          recordRW.getRecordID(),
-                                         cb, FALSE, pHandler,
+                                         cb, FALSE, pHandler, idxHashBitmap,
                                          pResult,
                                          pNewUnqIdxHashArray,
                                          pOldUnqIdxHashArray ) ;
@@ -444,7 +445,7 @@ namespace engine
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                              newObj, oriObj,
                                              recordRW.getRecordID(),
-                                             cb, TRUE, NULL ) ;
+                                             cb, TRUE, NULL, idxHashBitmap ) ;
          if ( rc1 )
          {
             PD_LOG ( PDERROR, "Failed to rollback update due to rc %d", rc1 ) ;

@@ -1078,6 +1078,7 @@ namespace engine
       }
 
       context->mb()->_numIndexes -- ;
+      context->mbStat()->unsetIdxHash( indexID ) ;
 
       // log it
       if ( dpscb )
@@ -1232,6 +1233,7 @@ namespace engine
       context->mb()->_indexExtent[indexID] = metaExtentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
+      context->mbStat()->unsetIdxHash( indexID ) ;
 
       // create index callback
       if ( _pDataSu->_pEventHolder )
@@ -1485,6 +1487,7 @@ namespace engine
          context->mb()->_numIndexes++ ;
          context->mb()->_indexHWCount++ ;
          context->mbStat()->_textIdxNum++ ;
+         context->mbStat()->unsetIdxHash( indexID ) ;
 
          rc = handler->onCrtTextIdx( context, getSuName(), indexCB, cb, NULL ) ;
          if ( rc )
@@ -2306,6 +2309,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isRollback,
                                           IDmsOprHandler *pOprHandle,
+                                          const ixmIdxHashBitmap &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                           dpsUnqIdxHashArray *pOldUnqIdxHashArray )
@@ -2320,6 +2324,13 @@ namespace engine
          PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
                  context->toString().c_str() ) ;
          goto error ;
+      }
+
+      // test if we have updated any index fields
+      // if not, nothing need to be changed
+      if ( !_needUpdateIndexes( context, idxHashBitmap ) )
+      {
+         goto done ;
       }
 
       for ( indexID=0; indexID < DMS_COLLECTION_MAX_INDEX; indexID++ )
@@ -2342,6 +2353,10 @@ namespace engine
          // only attempt to insert into normal and creating indexes
          else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
                    indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
+         {
+            continue ;
+         }
+         else if ( !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
          }
@@ -2479,6 +2494,53 @@ namespace engine
    error :
       PD_LOG ( PDERROR, "Failed to deleteindex, rc: %d", rc ) ;
       goto done ;
+   }
+
+   BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
+                                                 const ixmIdxHashBitmap &idxHashBitmap )
+   {
+      SDB_ASSERT( context->isMBLock( EXCLUSIVE ),
+                  "should have exclusive lock on metadata block context" ) ;
+
+      // collections's index hash bitmap is empty, rebuild it
+      // NOTE: for update, we should have $id index at least
+      if ( !( context->mbStat()->isIdxHashReady() ) )
+      {
+         for ( INT32 indexID = 0 ;
+               indexID < DMS_COLLECTION_MAX_INDEX ;
+               ++ indexID )
+         {
+            if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
+            {
+               break ;
+            }
+            else if ( context->mbStat()->isIdxHashReady( indexID ) )
+            {
+               context->mbStat()->mergeIdxHash( indexID ) ;
+               continue ;
+            }
+
+            ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
+                                context ) ;
+
+            // for each key in key pattern, initialize key fields
+            BSONObjIterator iter( indexCB.keyPattern() ) ;
+            while( iter.more() )
+            {
+               BSONElement e = iter.next() ;
+               context->mbStat()->setIdxHash( indexID, e.fieldName() ) ;
+            }
+            // for text index, we need to consider change of oid
+            // NOTE: oid will be stored in ES
+            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                      IXM_EXTENT_TYPE_TEXT ) )
+            {
+               context->mbStat()->setIdxHash( indexID, DMS_ID_KEY_NAME ) ;
+            }
+         }
+      }
+
+      return context->mbStat()->testIdxHash( idxHashBitmap ) ;
    }
 
    // delete all indexes for an oject

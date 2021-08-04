@@ -125,6 +125,7 @@ namespace engine
                                   const dmsRecordID &rid, _pmdEDUCB *cb,
                                   BOOLEAN isRollback,
                                   IDmsOprHandler *pOprHandle,
+                                  const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
@@ -218,6 +219,9 @@ namespace engine
                                  _pmdEDUCB *cb,
                                  IDmsOprHandler *pOprHandle,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
+
+         BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
+                                      const ixmIdxHashBitmap &idxHashBitmap ) ;
 
       private:
          virtual UINT64 _dataOffset() ;

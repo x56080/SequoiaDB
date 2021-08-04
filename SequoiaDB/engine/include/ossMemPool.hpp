@@ -152,6 +152,9 @@ class ossPoolList : public std::list<K, typename ossPoolAllocator<K>::Type > {
 typedef std::basic_string< char, std::char_traits<char>,
                            ossPoolAllocator<char>::Type > ossPoolString ;
 
+typedef std::basic_stringstream< char, std::char_traits< char >,
+                                 ossPoolAllocator< char >::Type > ossPoolStringStream ;
+
 /*
  * Vector
  */
