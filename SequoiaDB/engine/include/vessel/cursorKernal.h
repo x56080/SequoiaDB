@@ -36,7 +36,7 @@
 #ifndef VESSEL_CURSOR_KERNAL_H_
 #define VESSEL_CURSOR_KERNAL_H_
 
-#include "vessel/vesselOptions.h"
+#include "vessel/cursorOptions.h"
 #include "vessel/slice.h"
 #include "vessel/memoryBlock.h"
 #include <initializer_list>
@@ -80,13 +80,14 @@ namespace vessel
          /// mark cursor as SDB_VESSEL_END_OF_CURSOR
          void pushEnd();
 
-         ///WARNING: At any time, you must check the rc code of "push"
-         /// even "hasSpaceToPush" returns TRUE.
-         BOOLEAN hasSpaceToPush(UINT32 size)const;
-
          OSS_INLINE IQueryFilter *getFilter()
          {
             return _filter;
+         }
+         
+         BOOLEAN hitTheLimit()const
+         {
+            return _options.limit <= _totalPushed;
          }
       private:
          INT32 allocateSpaceForPushing(UINT32 dataLen);

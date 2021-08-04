@@ -388,7 +388,14 @@ namespace vessel
             cursor->markLIdPushed(holder->getObj()->getLogicalID());
             cursor->setCLName(holder->getObj()->getName());
             context->unlockMB();
-            continue;
+            if (cursor->hitTheLimit())
+            {
+               break;
+            }
+            else
+            {
+               continue;
+            }
          }
          else /// failed to lock mb
          {
@@ -599,7 +606,14 @@ namespace vessel
       rc = _su->getMainDataSpace().createCheckpoint(context);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create checkpoint:%d", rc);
+         PD_LOG(PDERROR, "failed to create checkpoint on mds:%d", rc);
+         goto error;
+      }
+
+      rc = _su->getIndexSpace().createCheckpoint(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create checkpoint on is:%d", rc);
          goto error;
       }
    done:

@@ -165,10 +165,10 @@ namespace vessel
          }
          else
          {
-            rc = extendPageSpace(&oldCount);
+            rc = extendPageSpace(1, &oldCount);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to extend in-mem bitmap:%d", rc);
+               PD_LOG(PDERROR, "failed to extend page space:%d", rc);
                goto error;
             }
          }
@@ -391,21 +391,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataPageCluster::extendPageSpace(const UINT32 *oldSegmentCount)
+   INT32 dataPageCluster::extendPageSpace(UINT32 segmentCount,
+                                          const UINT32 *oldSegmentCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
 
       ossScopedLock guard(&_extendingLatch);
       UINT32 count = _allocator.getPageCount();
-
-      if (NULL != oldSegmentCount &&
-          *oldSegmentCount < count)
-      {
-         goto done;
-      }
-
-      if (OSS_LIKELY(count == _segmentCountOnDisk))
+      UINT32 targetCount = NULL == oldSegmentCount ?
+                           count : *oldSegmentCount;
+      targetCount += segmentCount;
+      
+      while (_segmentCountOnDisk < targetCount)
       {
          rc = allocateNewSegment();
          if (SDB_OK != rc)
@@ -415,16 +413,19 @@ namespace vessel
          }
          ++_segmentCountOnDisk;
       }
-      
-      SDB_ASSERT(_allocator.getPageCount() < _segmentCountOnDisk, "impossible");
-      rc = _allocator.allocateNewBitmapPage();
-      if (SDB_OK != rc)
+
+      if (count < _segmentCountOnDisk)
       {
-         /// No need to do anything to rollback file.
-         /// Just wait for the next allocating.
-         PD_LOG(PDERROR, "failed to allocate new page in bitmap:%d", rc);
-         goto error;
+         rc = _allocator.allocateNewBitmapPages(_segmentCountOnDisk - count);
+         if (SDB_OK != rc)
+         {
+            /// No need to do anything to rollback file.
+            /// Just wait for the next extending.
+            PD_LOG(PDERROR, "failed to allocate new page in bitmap:%d", rc);
+            goto error;
+         }
       }
+      
    done:
       return rc;
    error:

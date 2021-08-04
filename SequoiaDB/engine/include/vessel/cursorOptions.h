@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.cpp
+   Source File Name = cursorOptions.h
 
    Descriptive Name =
 
@@ -33,33 +33,38 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPage.h"
+#ifndef VESSEL_CURSOR_OPTIONS_H_
+#define VESSEL_CURSOR_OPTIONS_H_
+
+#include "core.hpp"
+#include "oss.hpp"
+#include "ossTypes.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf)
+   class cursorOptions : public SDBObject
    {
-      BOOLEAN r = FALSE;
-      indexDefHead *headPtr = NULL;
-      indexDefHead head;
+      public:
+         cursorOptions(){}
+          ~cursorOptions(){}
+         cursorOptions(const cursorOptions &) = delete;
+         cursorOptions &operator=(const cursorOptions &o)
+         {
+            maxBufSize = o.maxBufSize;
+            initBufSize = o.initBufSize;
+            limit = o.limit;
+            return *this;
+         }
 
-      r = initCommonPage(PAGE_TYPE_INDEX_DEF, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
-
-      headPtr = (indexDefHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_DEF_HEAD_SIZE);
-   done:
-      return r;
-   }
+         ///cursor will try to extend buf only when the buf can not hold at
+         /// least one slice.
+         UINT32 maxBufSize = 16777216; /// 16MB
+         UINT32 initBufSize = 65536;   /// 64KB
+         UINT64 limit = OSS_UINT64_MAX;
+   };
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_CURSOR_OPTIONS_H_

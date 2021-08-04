@@ -40,59 +40,62 @@
 #include "vessel/pageDef.h"
 #include "vessel/vesselIdDef.h"
 #include "dms.hpp"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const static UINT16 INDEX_DEF_RECORD_VERSION = 1;
+   const static UINT32 INDEX_DEF_RECORD_VERSION = 1;
 
 
 #pragma pack(4)
-   struct indexDefRecord
+   struct indexDefHead
    {
-      indexDefRecord()
+      indexDefHead()
       {
       }
 
-      ~indexDefRecord(){}
+      ~indexDefHead(){}
 
-      OSS_INLINE indexDefRecord &operator=(const indexDefRecord &o)
+      OSS_INLINE indexDefHead &operator=(const indexDefHead &o)
       {
-         ossMemcpy(this, &o, sizeof(indexDefRecord));
+         ossMemcpy(this, &o, sizeof(indexDefHead));
          return *this;
       }
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         return INDEX_DEF_RECORD_VERSION == version;
+         return INDEX_DEF_RECORD_VERSION == version &&
+                INDEX_STATUS_INVALID != status &&
+                INVALID_LOGICAL_INDEX_ID != indexLogicalID &&
+                DMS_INVALID_LOGICCLID != clLogicalID &&
+                defObjSize > 0;
       }
 
-      UINT16 version = 0;
-      UINT16 type = INVALID_INDEX_TYPE;
+      UINT32 version = 0;
       UINT32 indexLogicalID = INVALID_LOGICAL_INDEX_ID;
       UINT32 clLogicalID = DMS_INVALID_LOGICCLID;
-      UINT64 flags = 0;
-      UINT32 ordering = 0;
-      UINT8 keyCount = 0;
-      UINT8 status = INDEX_STATUS_INVALID;
-      UINT8 btreePrefixCompressionColumns = 0;
-      UINT8 pad = 0;
+      UINT64 createdTime = 0;
+      UINT64 alteredTime = 0;
+      UINT16 flags = 0;
+      UINT16 status = INDEX_STATUS_INVALID;
       UINT32 btreeRoot = INVALID_PAGE_ID;
-      UINT32 rebuiding = INVALID_CL_PAGE_SEQ;
-      UINT32 lsmCF = 0;
-      UINT32 indexNameLen = 0; /// \0 included in indexNameLen
-      UINT32 indexNameOffset = 0;
-      UINT32 keyPatternLen = 0;/// bsonobj len.
-      UINT32 keyPatternOffset = 0;
-   };//struct indexDefRecord
+      UINT32 rebuilding = INVALID_CL_PAGE_SEQ;
+      UINT32 defObjSize = 0;
+      CHAR pad[32] = {};
+   };//struct indexDefHead
 
-   static const UINT32 INDEX_DEF_RECORD_LEN = sizeof(indexDefRecord);
+   static const UINT32 INDEX_DEF_HEAD_SIZE = sizeof(indexDefHead);
 
 #pragma pack()
 
-   BOOLEAN initIndexDefPage(UINT32 pageSize, UINT32 lpid,
-                            const indexDefRecord &record,
+   static const UINT32 MAX_INDEX_DEF_OBJ_SIZE = 4096 - PAGE_HEAD_SIZE - INDEX_DEF_HEAD_SIZE;
+
+   BOOLEAN initIndexDefPage(UINT32 pageSize,
+                            PAGE_ID pid,
+                            PAGE_ID lpid,
+                            PAGE_SNAPSHOT_VERION psv,
                             CHAR *buf);
 }//namespace vessel
 }//namespace engine

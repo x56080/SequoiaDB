@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.cpp
+   Source File Name = indexDefPageIniter.cpp
 
    Descriptive Name =
 
@@ -33,33 +33,52 @@
 
 ******************************************************************************/
 
+#include "vessel/indexDefPageIniter.h"
+#include "vessel/runtimePageBuffer.h"
 #include "vessel/indexDefPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf)
+   INT32 indexDefPageIniter::initPage(requestContext *context,
+                                       PAGE_ID lpid,
+                                       PAGE_SNAPSHOT_VERION psv,
+                                       runtimePageBuffer *rpb)
    {
-      BOOLEAN r = FALSE;
-      indexDefHead *headPtr = NULL;
-      indexDefHead head;
+      INT32 rc = SDB_OK;
 
-      r = initCommonPage(PAGE_TYPE_INDEX_DEF, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
+      if (NULL == context ||
+          INVALID_PAGE_ID == lpid ||
+          INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+          NULL == rpb ||
+          !rpb->isWritingPrepared())
       {
-         goto done;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
-      headPtr = (indexDefHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_DEF_HEAD_SIZE);
+      SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
+
+      if (!initIndexDefPage(rpb->getPageSize(),
+                           rpb->getGlobalPid().page(),
+                           lpid, psv, (CHAR*)(rpb->getBuffer())))
+      {
+         PD_LOG(PDERROR, "failed to init index def page[%s]",
+                rpb->getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rpb->commit(DPS_INVALID_LSN_OFFSET);
    done:
-      return r;
+      return rc;
+   error:
+      if (NULL != rpb)
+      {
+         rpb->abort();
+      }
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

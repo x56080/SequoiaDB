@@ -86,7 +86,7 @@ namespace vessel
             return *this;
          }
 
-         OSS_INLINE BOOLEAN operator==(const strSlice &r)
+         OSS_INLINE BOOLEAN operator==(const strSlice &r)const
          {
             return strLen() == r.strLen() &&
                    0 == ossStrcmp(str(), r.str());

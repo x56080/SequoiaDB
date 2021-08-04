@@ -50,7 +50,8 @@ namespace vessel
 {
    INT32 createIndexHandler::doit(const collectionHandle &handle,
                                   const strSlice &indexName,
-                                  const indexKeyPattern &keyPattern,
+                                  const bson::BSONObj &keyPattern,
+                                  const indexParameters &params,
                                   const createIndexOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -58,6 +59,7 @@ namespace vessel
       collection *cl = NULL;
       requestContext context;
       spaceIDLockHelper lh(&context);
+      indexKeyPattern pattern;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -69,12 +71,22 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!isValidCreatingIndexArgs(indexName, keyPattern, options))
+      else if (indexName.empty() ||
+               keyPattern.isEmpty() ||
+               !params.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      rc = pattern.set(keyPattern);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build key pattern from obj[%s], rc%d",
+                keyPattern.toString().c_str(), rc);
+         goto error;
+      }
+      
       rc = context.open(getSession(), getEnv(), getOuterResource());
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -103,7 +115,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->createIndex(&context, indexName, keyPattern, options);
+      rc = cl->createIndex(&context, indexName, pattern, params, options);
       if (SDB_OK != rc)
       {
          goto error;

@@ -47,6 +47,7 @@
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
+#include "vessel/indexParameters.h"
 
 
 namespace engine
@@ -115,7 +116,11 @@ namespace vessel
          INT32 createIndex(requestContext *context,
                            const strSlice &indexName,
                            const indexKeyPattern &keyPattern,
+                           const indexParameters &params,
                            const createIndexOptions &options);
+
+         INT32 listIndexes(requestContext *context,
+                           ossPoolVector<bson::BSONObj> &indexes);
 
       public:
          INT32 dump(requestContext *context,
@@ -224,6 +229,15 @@ namespace vessel
    
       private:
          UINT32 getDataPageSize()const;
+
+      private:
+
+         INT32 createIndex(requestContext *context,
+                           const strSlice &indexName,
+                           const indexKeyPattern &pattern,
+                           const indexParameters &params,
+                           INT32 &indexSlot);
+         
       private:
          //ossSpinSLatch _recordLatch;
          collectionRecord _record;

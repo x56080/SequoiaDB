@@ -39,8 +39,9 @@
 #include "vessel/indexDefPage.h"
 #include "ossMemPool.hpp"
 #include "vessel/strSlice.h"
-#include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/memoryBlock.h"
+#include "vessel/indexParameters.h"
 
 namespace engine
 {
@@ -68,26 +69,29 @@ namespace vessel
          {
             return _keyPattern;
          }
+         OSS_INLINE BOOLEAN isOwned()const
+         {
+            return isValid() && _defObj.data() == _mb.getBuffer();
+         }
 
       public:
-         /// estimate size needed on disk.
-         static UINT32 estimate(const strSlice &indexName,
-                                const indexKeyPattern &keyPattern);
 
-         void reset();
+         void fini();
 
-         INT32 set(const indexDefRecord &record,
-                   const strSlice &indexName,
-                   const bson::BSONObj &pattern);
+         INT32 init(const indexDefHead &head,
+                    const slice &defObj);
+
+         INT32 getOwned();
 
       private:
-         INT32 ensureBuffer(UINT32 bufferSize);
+         INT32 _initFromDefObj(const slice &defObj);
       private:
-         indexDefRecord _record;
+         indexDefHead _head;
          strSlice _indexName;
          indexKeyPattern _keyPattern;
-         UINT32 _bufferSize = 0;
-         CHAR *_buffer = NULL;
+         indexParameters _params;
+         slice _defObj;
+         memoryBlock _mb;
    };//class inMemIndexDefObj
 }//namespace vessel
 }//namespace engine

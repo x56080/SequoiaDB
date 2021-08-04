@@ -41,6 +41,7 @@
 #include "vessel/collectionHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/indexParameters.h"
 
 namespace engine
 {
@@ -55,7 +56,8 @@ namespace vessel
       public:
          INT32 doit(const collectionHandle &handle,
                     const strSlice &indexName,
-                    const indexKeyPattern &keyPattern,
+                    const bson::BSONObj &keyPattern,
+                    const indexParameters &params,
                     const createIndexOptions &options);
    };//class createIndexHandler
 }//namespace vessel

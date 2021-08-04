@@ -122,7 +122,7 @@ namespace vessel
 
    UINT64 rdpIniter::pack(UINT32 logicalId, UINT32 sequence)const
    {
-      UINT32 v = logicalId;
+      UINT64 v = logicalId;
       v <<= 32;
       v |= sequence;
       return v;

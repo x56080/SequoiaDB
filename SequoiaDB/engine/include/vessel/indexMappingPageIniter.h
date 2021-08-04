@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = snapshotContainer.h
+   Source File Name = indexMappingPageIniter.h
 
    Descriptive Name =
 
@@ -33,47 +33,28 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_SNAPSHOT_CONTAINER_H_
-#define VESSEL_SNAPSHOT_CONTAINER_H_
+#ifndef VESSEL_INDEX_MAPPING_PAGE_INITER_H_
+#define VESSEL_INDEX_MAPPING_PAGE_INITER_H_
 
-#include "vessel/vesselIdDef.h"
+#include "vessel/pageInitializer.h"
 
 namespace engine
 {
 namespace vessel
 {
-
-   class snapshotContainer : public SDBObject
+   class indexMappingPageIniter : public pageInitializer
    {
       public:
-         snapshotContainer(){}
-         ~snapshotContainer(){}
-
-      private:
-         snapshotContainer(const snapshotContainer &o)
-         {
-
-         }
-
-         snapshotContainer &operator=(const snapshotContainer &o)
-         {
-            return *this;
-         }
+         indexMappingPageIniter(){}
+         virtual ~indexMappingPageIniter(){}
 
       public:
-         SNAPSHOT_ID getOnlineID()const
-         {
-            return 1;
-         }
-
-         BOOLEAN contains(SNAPSHOT_ID snapid,
-                          SPACE_ID sid)
-         {
-            return FALSE;
-         }
-
-   };//class snapshotContainer
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
+   };//class indexMappingPageIniter 
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_SNAPSHOT_CONTAINER_H_
+#endif//VESSEL_INDEX_MAPPING_PAGE_INITER_H_

@@ -472,7 +472,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = segPtr + ((pid & (_headInMem.maxPageCountPerSeg - 1)) * _headInMem.pageSize);
+      ptr = segPtr + ((pid % _headInMem.maxPageCountPerSeg) * _headInMem.pageSize);
    done:
       return rc;
    error:
@@ -539,7 +539,7 @@ namespace vessel
          goto error;
       }
 
-      offsetInSegment = ((pid & (_headInMem.maxPageCountPerSeg - 1)) * _headInMem.pageSize);
+      offsetInSegment = ((pid % _headInMem.maxPageCountPerSeg) * _headInMem.pageSize);
       rc = ossMmapFile::flushBlock(getMMapSegmentID(seg),
                                    offsetInSegment,
                                    _headInMem.pageSize, sync);

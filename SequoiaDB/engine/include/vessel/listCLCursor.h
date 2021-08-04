@@ -38,6 +38,8 @@
 
 #include "vessel/cursorKernal.h"
 #include "ossMemPool.hpp"
+#include "dms.hpp"
+#include "vessel/vesselIdDef.h"
 
 namespace engine
 {

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.cpp
+   Source File Name = indexDefPageIniter.h
 
    Descriptive Name =
 
@@ -33,33 +33,28 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPage.h"
+#ifndef VESSEL_INDEX_DEF_PAGE_INITER_H_
+#define VESSEL_INDEX_DEF_PAGE_INITER_H_
+
+#include "vessel/pageInitializer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf)
+   class indexDefPageIniter : public pageInitializer
    {
-      BOOLEAN r = FALSE;
-      indexDefHead *headPtr = NULL;
-      indexDefHead head;
+      public:
+         indexDefPageIniter(){}
+         virtual ~indexDefPageIniter(){}
 
-      r = initCommonPage(PAGE_TYPE_INDEX_DEF, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
-
-      headPtr = (indexDefHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_DEF_HEAD_SIZE);
-   done:
-      return r;
-   }
+      public:
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
+   };//class indexDefPageIniter
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_INDEX_DEF_PAGE_INITER_H_

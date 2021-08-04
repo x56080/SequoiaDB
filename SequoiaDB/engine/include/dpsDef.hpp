@@ -112,6 +112,7 @@ enum DPS_LOG_TYPE
    LOG_TYPE_DATA_POP     = 0x14,
    LOG_TYPE_ALTER        = 0x15,
    LOG_TYPE_ADDUNIQUEID  = 0x16,
+   LOG_TYPE_IX_CRT_END   = 0x17,
 
    ///vessel log types
    LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT = 0x400,

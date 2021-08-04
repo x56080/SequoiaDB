@@ -153,7 +153,7 @@ namespace vessel
             return _size;
          }
 
-         UINT32 getSize()const
+         UINT32 getSize()
          {
             _latch.lock();
             UINT32 size = _size;

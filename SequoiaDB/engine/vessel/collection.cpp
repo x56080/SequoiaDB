@@ -53,6 +53,10 @@
 #include "vessel/atomicOperationList.h"
 #include "vessel/rdpIniter.h"
 #include "vessel/rdpInsertExecutor.h"
+#include "vessel/indexUtils.h"
+#include "vessel/indexDefPage.h"
+#include "vessel/indexConsole.h"
+#include "vessel/redoLogUtil.h"
 
 namespace engine
 {
@@ -189,12 +193,73 @@ namespace vessel
    INT32 collection::createIndex(requestContext *context,
                                  const strSlice &indexName,
                                  const indexKeyPattern &keyPattern,
+                                 const indexParameters &params,
                                  const createIndexOptions &options)
    {
       INT32 rc = SDB_OK;
+      INT32 indexSlot = -1;
 
-      
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
+      rc = dmsCheckIndexName(indexName.str(), FALSE);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      else if (!keyPattern.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!params.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = createIndex(context, indexName, keyPattern, params, indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::listIndexes(requestContext *context,
+                                 ossPoolVector<bson::BSONObj> &indexes)
+   {
+      INT32 rc = SDB_OK;
+      indexConsole console;
+      indexes.clear();
+
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
+      {
+      ossScopedRWLock guard(&_ddlLatch, SHARED);
+      rc = console.listIndexes(context, indexes);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      }
    done:
       return rc;
    error:
@@ -415,6 +480,10 @@ namespace vessel
             goto error;
          }
 
+         if (cursor->hitTheLimit())
+         {
+            goto done;
+         }
          cursor->incPageSeqAndResetRid();
 
       } while(TRUE);
@@ -486,8 +555,8 @@ namespace vessel
          if (SDB_OK != SDB_VESSEL_CURSOR_NO_SPACE)
          {
             PD_LOG(PDERROR, "failed to get more from page:%d", rc);
-            goto error;
          }
+         goto error;
       }
 
    done:
@@ -1646,5 +1715,170 @@ namespace vessel
       }
       return count;
    }
+
+   INT32 collection::createIndex(requestContext *context,
+                                 const strSlice &indexName,
+                                 const indexKeyPattern &pattern,
+                                 const indexParameters &params,
+                                 INT32 &indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");   
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(!indexName.empty(), "can not be empty");
+      SDB_ASSERT(pattern.isValid(), "must be valid");
+      SDB_ASSERT(params.isValid(), "must be valid");
+
+      bson::BSONObj obj;
+      slice objSlice;
+      ossPoolString fullName;
+      strSlice nameSlice;
+      UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
+      BOOLEAN duplicated = FALSE;
+      PAGE_ID crpLpid = INVALID_PAGE_ID;
+      logicalPageBuffer lpb;
+      crpAccessor accessor;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      indexConsole console;
+      console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
+      BOOLEAN rollbackLog = FALSE;
+      BOOLEAN rollbackIndex = FALSE;
+
+      UINT64 newUniqueIndexes = 0;
+      UINT64 newUonuniqueIndexes = 0;
+
+      ossScopedRWLock guard(&_ddlLatch, EXCLUSIVE);
+
+      indexId = _record.nextIndexId;
+      if (INVALID_LOGICAL_INDEX_ID == indexId)
+      {
+         PD_LOG(PDERROR, "no more available logical index id");
+         rc = SDB_DMS_MAX_INDEX;
+         goto error;
+      }
+
+      rc = console.allocateIndexSlot(indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate new index slot:%d", rc);
+         goto error;
+      }
+
+      rc = console.testIfDuplicated(context, indexName, pattern, duplicated);
+      if (SDB_OK != rc)
+      { 
+         PD_LOG(PDERROR, "failed to test if index duplicated:%d", rc);
+         goto error;
+      }
+
+      if (duplicated)
+      {
+         rc = SDB_IXM_EXIST;
+         goto error;
+      }
+
+      obj = buildIndexDefObj(indexName, pattern, params);
+      if ((INT32)MAX_INDEX_DEF_OBJ_SIZE < obj.objsize())
+      {
+         PD_LOG(PDERROR, "index def obj size over max size:%d", obj.objsize());
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      objSlice.reset(obj.objsize(), obj.objdata());
+
+      fullName.append(_collectionSpace->getCSName());
+      fullName.append(".");
+      fullName.append(_record.name);
+      nameSlice.reset(fullName.c_str(), fullName.size());
+
+      rc = commitCreateIndexLog(context, nameSlice,
+                               indexId, indexSlot, objSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit create index log:%d", rc);
+         goto error;
+      }
+      rollbackLog = TRUE;
+
+      rc = console.createIndex(context, indexSlot, indexId, objSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index on index space:%d", rc);
+         goto error;
+      }
+      rollbackIndex = TRUE;
+
+      if (params.isUnique)
+      {
+         newUniqueIndexes = (_record.uniqueIndexes | ((UINT64)1 << indexSlot));
+         newUonuniqueIndexes = _record.nonUniqueIndexes;
+      }
+      else
+      {
+         newUniqueIndexes = _record.uniqueIndexes;
+         newUonuniqueIndexes = (_record.nonUniqueIndexes | ((UINT64)1 << indexSlot));
+      }
+
+      crpLpid = getCrpLpidOfCollection(getDataPageSize(), _record.mbID);
+      if (INVALID_PAGE_ID == crpLpid)
+      {
+         PD_LOG(PDERROR, "failed to get crp lpid of mbid[%d]", _record.mbID);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = mds.getLogicalPageBuffer(context, crpLpid,
+                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE,
+                                    lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", crpLpid, rc);
+         goto error;
+      }
+
+      rc = accessor.updateIndexInfo(context, _record.mbID,
+                                    newUniqueIndexes,
+                                    newUonuniqueIndexes,
+                                    indexId + 1, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index info:%d", rc);
+         goto error;
+      }
+
+      _record.uniqueIndexes = newUniqueIndexes;
+      _record.nonUniqueIndexes = newUonuniqueIndexes;
+      ++_record.nextIndexId;
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      /// rollback log first, we need a new lsn.
+      if (rollbackLog)
+      {
+         strSlice name(fullName.c_str(), fullName.size());
+         INT32 tmpRc = commitCreateIndexEndLog(context, name,
+                                               indexId, indexSlot, -1);
+         if (SDB_OK != tmpRc)
+         {
+            PD_LOG(PDSEVERE, "failed to commit creating end log, rc:%d", tmpRc);
+         }
+      }
+
+      if (rollbackIndex)
+      {
+         INT32 tmpRc = console.destroyIndexDefPage(context, indexSlot);
+         if (SDB_OK != tmpRc)
+         {
+            PD_LOG(PDSEVERE, "failed to rollback index created[%d,%d], rc:%d",
+                   indexSlot, indexId, tmpRc);
+         }
+      }
+
+      indexSlot = -1;
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

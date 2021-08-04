@@ -520,13 +520,13 @@ namespace vessel
          _checkpointContext.getLatch()->lock_w();
          locked = TRUE;
       }
-      
+
       _checkpointContext.setStatus(lpsCheckpointContext::NONE);
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
-
       endToCreateCheckpoint(context);
 
+   
    done:
       if (locked)
       {
@@ -1044,6 +1044,101 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::releasePages(requestContext *context,
+                                        UINT32 count,
+                                        const PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      dataManagementService *dms = NULL;
+      static const UINT32 _BATCH_COUNT = 16;
+      UINT32 i = 0;
+      ossPoolVector<mappedLogicalPageId> underSnapshot;
+      ossPoolVector<mappedLogicalPageId> notUnderSnapshot;
+      ossPoolVector<PAGE_ID> notReservedLpids;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               0 == count ||
+               NULL == lpids)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      dms = &(context->getEnv()->dms);
+
+      while (i < count)
+      {
+         PAGE_ID lpid = lpids[i++];
+         idMapSlot slot;
+         BOOLEAN isMutable = FALSE;
+         mappedLogicalPageId mappedId;
+         SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+         BOOLEAN snapshotEffective = FALSE;
+         ossPoolVector<mappedLogicalPageId> *vec = NULL;
+         BOOLEAN releaseOld = FALSE;
+
+         INT32 rc = getPageFromCache(lpid, slot, isMutable);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] from cache, rc:%d", lpid, rc);
+            goto error;
+         }
+
+         mappedId.reset(lpid, slot.pid);
+         rc = dms->isSnapshotEffective(getSpaceID(), slot.psv,
+                                      snapshotEffective);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get snapshot status:%d", rc);
+            goto error;
+         }
+
+         if (snapshotEffective)
+         {
+            vec = &underSnapshot;
+            releaseOld = FALSE;
+         }
+         else
+         {
+            vec = &notUnderSnapshot;
+            releaseOld = TRUE;
+         }
+
+         vec->push_back(mappedId);
+         if (_BATCH_COUNT == vec->size())
+         {
+            unmap(context, vec->size(), vec->data(), releaseOld);
+            vec->clear();
+         }
+
+         if (!isReservedLpid(lpid))
+         {
+            notReservedLpids.push_back(lpid);
+         }
+      }
+
+      if (!underSnapshot.empty())
+      {
+         unmap(context, underSnapshot.size(), underSnapshot.data(), FALSE);
+      }
+      if (!notUnderSnapshot.empty())
+      {
+         unmap(context, notUnderSnapshot.size(), notUnderSnapshot.data(), TRUE);
+      }
+      if (!notReservedLpids.empty())
+      {
+         releaseLpidsPreallocated(context, notReservedLpids.size(), notReservedLpids.data());
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
    INT32 logicalPageSpace::openIdMapFiles(SPACE_ID sid,
                                           const strSlice &dir,

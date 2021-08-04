@@ -47,6 +47,7 @@
 #include "vessel/cursorKernal.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/collectionSpace.h"
+#include "vessel/spaceIDLockHelper.h"
 
 
 namespace engine
@@ -530,12 +531,14 @@ namespace vessel
    INT32 vesselImpl::createIndex(ISession *session,
                                  const collectionHandle &handle,
                                  const strSlice &indexName,
-                                 const indexKeyPattern &keyPattern,
+                                 const bson::BSONObj &keyPattern,
+                                 const indexParameters &params,
                                  const createIndexOptions &options)
    {
       INT32 rc = SDB_OK;
       createIndexHandler handler;
-      if (OSS_UNLIKELY(NULL == session))
+      if (OSS_UNLIKELY(NULL == session ||
+                       !handle.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -553,12 +556,77 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.doit(handle, indexName, keyPattern, options);
+      rc = handler.doit(handle, indexName, keyPattern, params, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::listIndexes(ISession *session,
+                                 const collectionHandle &handle,
+                                 ossPoolVector<bson::BSONObj> &indexes)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *cs = NULL;
+      collection *cl = NULL;
+      requestContext context;
+      spaceIDLockHelper lh(&context);
+
+      if (OSS_UNLIKELY(NULL == session ||
+                       !handle.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(session, &_env, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init context:%d", rc);
+         goto error;
+      }
+      rc = lh.lock(handle.getSpaceID(), SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle.getSpaceID(), rc);
+         goto error;
+      }
+      rc = _env.dms.getCSByLockedSpaceID(&context,
+                                          handle.getCSLId(),
+                                          &cs);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
+                                   handle.getCLLId(), SHARED, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cl->listIndexes(&context, indexes);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      if (NULL != cl)
+      {
+         context.unlockMB();
+      }
+      lh.unlock();
       return rc;
    error:
       goto done;

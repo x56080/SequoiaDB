@@ -43,8 +43,9 @@
 #include "vessel/scanCLOptions.h"
 #include "vessel/cursorHandler.h"
 #include "vessel/indexOptions.h"
-#include "vessel/indexKeyPattern.h"
-#include "vessel/vesselOptions.h"
+#include "vessel/indexParameters.h"
+#include "vessel/cursorOptions.h"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -96,8 +97,12 @@ namespace vessel
       public:
          INT32 createIndex(ISession *session,
                            const strSlice &indexName,
-                           const indexKeyPattern &keyPattern,
+                           const bson::BSONObj &keyPattern,
+                           const indexParameters &params,
                            const createIndexOptions &options);
+
+         INT32 listIndexes(ISession *session,
+                           ossPoolVector<bson::BSONObj> &indexes);
 
       public:
          INT32 insert(ISession *session,

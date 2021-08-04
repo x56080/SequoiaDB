@@ -47,7 +47,36 @@ namespace vessel
    {}
 
    copyOnWriteLPS::~copyOnWriteLPS()
-   {}
+   {
+      fini();
+   }
+
+   void copyOnWriteLPS::fini()
+   {
+      if (NULL != _removingList)
+      {
+         _removingList->clear();
+         SDB_OSS_DEL _removingList;
+         _removingList = NULL;
+      }
+      if (NULL != _rmlistAfterCheckpoint)
+      {
+         _rmlistAfterCheckpoint->clear();
+         SDB_OSS_DEL _rmlistAfterCheckpoint;
+         _rmlistAfterCheckpoint = NULL;
+      }
+      return;
+   }
+
+   void copyOnWriteLPS::_close()
+   {
+      fini();
+   }
+
+   void copyOnWriteLPS::_destroy()
+   {
+      fini();
+   }
 
    INT32 copyOnWriteLPS::getRuntimePageBuffer(requestContext *context,
                                               PAGE_ID pid,
@@ -587,7 +616,11 @@ namespace vessel
    void copyOnWriteLPS::endToCreateCheckpoint(requestContext *context)
    {
       static const UINT32 _SIZE = 16;
-      if (NULL != _rmlistAfterCheckpoint)
+      ossScopedRWLock guard(logicalPageSpace::getCheckpointContext().getLatch(), SHARED);
+
+      /// If status is not none, release pids at next ending.
+      if (getCheckpointContext().getStatus() == lpsCheckpointContext::NONE &&
+          NULL != _rmlistAfterCheckpoint)
       {
          ossPoolVector<PAGE_ID> pids;
          pids.reserve(_SIZE);
@@ -611,13 +644,11 @@ namespace vessel
                }
             }
 
-            if (0 == pids.size())
+            if (1 < pids.size())
             {
-               continue;
+               std::sort(pids.begin(), pids.end());
             }
-
-            std::sort(pids.begin(), pids.end());
-            logicalPageSpace::getDataStorageObj()->releasePages(pids.size(), pids.data());
+            getDataStorageObj()->releasePages(pids.size(), pids.data());
          }
 
          SDB_OSS_DEL _rmlistAfterCheckpoint;
@@ -669,7 +700,7 @@ namespace vessel
          goto done;
       }
 
-      while (_removingList->pushForward(pid))
+      while (_removingList->popForward(pid))
       {
          rc = _rmlistAfterCheckpoint->pushForward(pid);
          if (SDB_OK != rc)
@@ -678,6 +709,9 @@ namespace vessel
                    pid, rc);
          }
       }
+
+      SDB_OSS_DEL _removingList;
+      _removingList = NULL;
    done:
       return;
    }

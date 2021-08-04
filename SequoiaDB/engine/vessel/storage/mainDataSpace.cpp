@@ -94,7 +94,7 @@ namespace vessel
       logger = context->getOuterResource()->logger;
 
       SDB_ASSERT(0 == _storage.getTotalSegmentCountAllocated(), "must be empty");
-      rc = _storage.extendPageSpace(NULL);
+      rc = _storage.extendPageSpace(1, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend storage:%d", rc);

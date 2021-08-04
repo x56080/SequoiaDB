@@ -911,6 +911,9 @@ vesselFiles = [
       "vessel/storage/logicalPageIdCache.cpp",
       "vessel/storage/partialImpCache.cpp",
       "vessel/storage/sortedStorageFileList.cpp",
+      "vessel/storage/copyOnWriteLPS.cpp",
+      "vessel/storage/indexMappingPage.cpp",
+      "vessel/storage/indexDefPage.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
       "vessel/handlers/requestHandler.cpp",
@@ -926,6 +929,7 @@ vesselFiles = [
       "vessel/index/indexConsole.cpp",
       "vessel/index/indexKeyPattern.cpp",
       "vessel/index/inMemIndexDefObj.cpp",
+      "vessel/index/indexParameters.cpp",
       "vessel/inMemBitmap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",
@@ -940,12 +944,13 @@ vesselFiles = [
       "vessel/crpAccessor.cpp",
       "vessel/routePageAccessor.cpp",
       "vessel/rdpInsertExecutor.cpp",
-      "vessel/rdpScanner.cpp",
+      "vessel/rdpScanner.cpp", 
       "vessel/utils/redoLogUtil.cpp",
       "vessel/utils/bitmapUtils.cpp",
       "vessel/utils/localThreadSharedPointer.cpp",
       "vessel/utils/storageUtils.cpp",
       "vessel/utils/deltaLogUtils.cpp",
+      "vessel/utils/indexUtils.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
@@ -957,7 +962,6 @@ vesselFiles = [
       "vessel/vesselFileDef.cpp",
       "vessel/vesselFileName.cpp",
       "vessel/vesselOptions.cpp",
-      "vessel/indexOptions.cpp",
       "vessel/logRecordContext.cpp",
       "vessel/memoryBlock.cpp",
       "vessel/lpsCheckpointBlocker.cpp",
@@ -974,19 +978,23 @@ vesselFiles = [
       "vessel/crpIniter.cpp",
       "vessel/routePageIniter.cpp",
       "vessel/pageInitializer.cpp",
-      "vessel/keepHistoryPointerArray.cpp"
+      "vessel/keepHistoryPointerArray.cpp",
+      "vessel/indexDefPageAccessor.cpp",
+      "vessel/indexDefPageIniter.cpp",
+      "vessel/indexMappingPageIniter.cpp",
+      "vessel/indexMappingPageAccessor.cpp"
 ]
 
 #vessel unit test
 vesselTestFiles = [
       "test/vessel/vessel_cftest.cpp",
       "test/vessel/vessel_sbm_test.cpp",
-      "test/vessel/cursor_test.cpp",
       "test/vessel/cs_ddl_test.cpp",
       "test/vessel/cl_ddl_test.cpp",
       "test/vessel/fsm_test.cpp",
       "test/vessel/insert_test.cpp",
-      "test/vessel/filename_test.cpp"
+      "test/vessel/filename_test.cpp",
+      "test/vessel/index_ddl_test.cpp"
 ]
 
 #BSON

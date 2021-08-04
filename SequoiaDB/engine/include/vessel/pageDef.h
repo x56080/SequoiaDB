@@ -55,12 +55,12 @@ namespace vessel
    typedef UINT16 PAGE_TYPE;
    const static PAGE_TYPE INVALID_PAGE_TYPE = 65535;
 
-
-   const static PAGE_TYPE PAGE_TYPE_RECORD = 2;
-   const static PAGE_TYPE PAGE_TYPE_CS_META = 3;
-   const static PAGE_TYPE PAGE_TYPE_CL_META = 4;
-   const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
+   const static PAGE_TYPE PAGE_TYPE_CS_META = 0;
+   const static PAGE_TYPE PAGE_TYPE_CL_META = 1;
+   const static PAGE_TYPE PAGE_TYPE_ROUTE = 2;
+   const static PAGE_TYPE PAGE_TYPE_RECORD = 3;
    const static PAGE_TYPE PAGE_TYPE_INDEX_DEF = 1000;
+   const static PAGE_TYPE PAGE_TYPE_INDEX_MAPPING = 1001;
 
    OSS_INLINE void getPageEyeCatcher(CHAR &e0, CHAR &e1)
    {

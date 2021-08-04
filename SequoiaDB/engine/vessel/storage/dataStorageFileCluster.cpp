@@ -98,7 +98,7 @@ namespace vessel
          goto error;
       }
 
-      segmentInFile = (globalSegmentId & (args.maxSegmentCountPerFile - 1));
+      segmentInFile = globalSegmentId % args.maxSegmentCountPerFile;
       rc = file->fsyncSegment(segmentInFile, TRUE);
       if (SDB_OK != rc)
       {
@@ -415,7 +415,7 @@ namespace vessel
          goto done;
       }
 
-      minSegmentCount = (globalSegmentId & (args.maxSegmentCountPerFile - 1)) + 1;
+      minSegmentCount = globalSegmentId % args.maxSegmentCountPerFile + 1;
       if (file->getSegmentCount() < minSegmentCount)
       {
          isSparse = TRUE;
@@ -679,7 +679,7 @@ namespace vessel
       UINT32 fileId = globalSegment / args.maxSegmentCountPerFile;
       if (NULL != segmentInFile)
       {
-         *segmentInFile = (globalSegment & (args.maxSegmentCountPerFile - 1));
+         *segmentInFile = globalSegment % args.maxSegmentCountPerFile;
       }
       return fileId;
    }

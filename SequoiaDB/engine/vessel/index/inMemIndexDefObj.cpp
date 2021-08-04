@@ -35,116 +35,144 @@
 
 #include "vessel/inMemIndexDefObj.h"
 #include "vessel/indexDef.h"
+#include "ixm_common.hpp"
+#include "msgDef.h"
 #include "../bson/bson.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   UINT32 inMemIndexDefObj::estimate(const strSlice &indexName,
-                                     const indexKeyPattern &keyPattern)
-   {
-      return INDEX_DEF_RECORD_LEN +
-             indexName.strLen() + 1 +
-             keyPattern.getPattern().objsize();
-   }
 
    inMemIndexDefObj::inMemIndexDefObj()
    {}
 
    inMemIndexDefObj::~inMemIndexDefObj()
    {
-      SAFE_OSS_FREE(_buffer);
+      
    }
 
-   void inMemIndexDefObj::reset()
+   void inMemIndexDefObj::fini()
    {
-      _record = indexDefRecord();
-      _indexName.reset();
+      _head = indexDefHead();
+      _indexName.reset(NULL);
       _keyPattern.reset();
+      _params = indexParameters();
+      _defObj.reset();
+      _mb.release();
       return;
    }
 
-   INT32 inMemIndexDefObj::set(const indexDefRecord &record,
-                               const strSlice &indexName,
-                               const bson::BSONObj &pattern)
+   INT32 inMemIndexDefObj::init(const indexDefHead &head,
+                                const slice &defObj)
    {
       INT32 rc = SDB_OK;
-      UINT32 bufferSize = indexName.strLen() + 1 + pattern.objsize();
-      reset();
-      if (!record.isValid() ||
-          indexName.empty() ||
-          !pattern.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (record.indexNameLen != (indexName.strLen() + 1))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if ((INT32)record.keyPatternLen != pattern.objsize())
+      bson::BSONObj obj;
+
+      fini();
+      if (!head.isValid() ||
+          !defObj.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = ensureBuffer(bufferSize);
+      _head = head;
+      _defObj = defObj;
+      rc = _initFromDefObj(defObj);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to init from def obj:%d", rc);
          goto error;
       }
-
-      _record = record;
-      ossMemcpy(_buffer, indexName.str(), indexName.strLen() + 1);
-      _record.indexNameOffset = 0;
-      _indexName.reset(_buffer, indexName.strLen());
-
-      ossMemcpy((_buffer + indexName.strLen() + 1),
-                 pattern.objdata(),
-                 pattern.objsize());
-      _record.keyPatternOffset = indexName.strLen() + 1;
-      rc = _keyPattern.set(bson::BSONObj(_buffer + indexName.strLen() + 1, FALSE));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to set key pattern:%d", rc);
-         goto error;
-      }
-
    done:
       return rc;
    error:
-      reset();
+      fini();
       goto done;
    }
 
-   INT32 inMemIndexDefObj::ensureBuffer(UINT32 bufferSize)
+   INT32 inMemIndexDefObj::getOwned()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 != bufferSize, "impossible");
-      if (bufferSize <= _bufferSize)
+      if (!isValid())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (isOwned())
       {
          goto done;
       }
-      
-      SAFE_OSS_FREE(_buffer);
-      bufferSize = 0;
-      _buffer = (CHAR *)SDB_THREAD_ALLOC(bufferSize);
-      if (NULL == _buffer)
+
+      rc = _mb.reserve(_defObj.len());
+      if (SDB_OK != rc)
       {
-         rc = SDB_OOM;
-         PD_LOG(PDERROR, "faield to allocate mem");
+         PD_LOG(PDERROR, "failed to reserve memory block:%d", rc);
          goto error;
       }
 
-      _bufferSize = bufferSize;
-      ossMemset(_buffer, 0, bufferSize);
+      rc = _mb.copy(_defObj.len(), _defObj.data());
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      _defObj.reset(_mb.getSize(), _mb.getBuffer());
+      rc = _initFromDefObj(_defObj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init from def obj:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
+   }
+
+   INT32 inMemIndexDefObj::_initFromDefObj(const slice &defObj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(defObj.isValid(), "can not be empty");
+      SDB_ASSERT(_head.isValid(), "must be valid");
+      bson::BSONObj obj(defObj.data());
+      bson::BSONElement ele;
+
+      ele = obj.getField(IXM_NAME_FIELD);
+      _indexName.reset(ele.valuestrsafe());
+      if (_indexName.empty())
+      {
+         PD_LOG(PDERROR, "failed to extract index name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      ele = obj.getField(IXM_KEY_FIELD);
+      if (bson::Object != ele.type())
+      {
+         PD_LOG(PDERROR, "failed to extract index key");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      rc = _keyPattern.set(ele.embeddedObject());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to set key pattern from obj:%d", rc);
+         goto error;
+      }
+
+      if (!_params.extractFromBson(obj))
+      {
+         PD_LOG(PDERROR, "failed to extract common options");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
    done:
       return rc;
    error:
       goto done;
    }
-
 }//namespace vessel
 }//namespace engine

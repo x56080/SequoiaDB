@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.cpp
+   Source File Name = indexMappingPageAccessor.h
 
    Descriptive Name =
 
@@ -33,33 +33,35 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPage.h"
+#ifndef VESSEL_INDEX_MAPPING_PAGE_ACCESSOR_H_
+#define VESSEL_INDEX_MAPPING_PAGE_ACCESSOR_H_
+
+#include "vessel/indexMappingPage.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf)
+   class requestContext;
+   class indexMappingPageAccessor : public SDBObject
    {
-      BOOLEAN r = FALSE;
-      indexDefHead *headPtr = NULL;
-      indexDefHead head;
+      public:
+         indexMappingPageAccessor(){}
+         ~indexMappingPageAccessor(){}
 
-      r = initCommonPage(PAGE_TYPE_INDEX_DEF, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
+      public:
+         INT32 getIndexDefPage(requestContext *context,
+                               UINT32 pos,
+                               logicalPageBuffer &lpb,
+                               PAGE_ID &lpid)const;
 
-      headPtr = (indexDefHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_DEF_HEAD_SIZE);
-   done:
-      return r;
-   }
+         INT32 addNewMapping(requestContext *context,
+                             UINT32 pos,
+                             PAGE_ID lpid,
+                             logicalPageBuffer &lpb)const;
+   };//class indexMappingPageAccessor
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_INDEX_MAPPING_PAGE_ACCESSOR_H_

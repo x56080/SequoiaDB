@@ -44,19 +44,23 @@ namespace engine
 namespace vessel
 {
    typedef UINT16 INDEX_TYPE;
-   const INDEX_TYPE INVALID_INDEX_TYPE = 255;
-   const INDEX_TYPE INDEX_TYPE_LSM = 0;
-   const INDEX_TYPE INDEX_TYPE_BTREE = 1;
+   static const INDEX_TYPE INVALID_INDEX_TYPE = 65535;
+   static const INDEX_TYPE INDEX_TYPE_LSM = 0;
+   static const INDEX_TYPE INDEX_TYPE_BTREE = 1;
 
-   static const UINT32 MAX_INDEX_NAME_LEN = 1024;
-   static const UINT32 INVALID_LOGICAL_INDEX_ID = UINT32(-1);
+   static const UINT32 INVALID_LOGICAL_INDEX_ID = (UINT32)(-1);
 
    static const UINT32 MAX_INDEX_COUNT_PER_CL = 64;
 
+   OSS_INLINE BOOLEAN isValidIndexSlot(INT32 slot)
+   {
+      return 0 <= slot && slot < (INT32)MAX_INDEX_COUNT_PER_CL;
+   }
+
    static const UINT32 MAX_INDEX_BTREE_PREFIX_COMPRESSION_COLUMNS = 2;
-   static const UINT32 MAX_BUILDING_INDEX_SORT_BUF_SIZE = 256;
-   static const UINT32 MAX_INDEX_KEY_COUNT = 32;
-   static const UINT32 MAX_INDEX_SAVING_SIZE = 4096;
+   static const UINT32 MAX_INDEX_KEY_COLUMNS = 32;
+
+   static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 4;
 
    enum INDEX_STATUS
    {
@@ -64,10 +68,19 @@ namespace vessel
       INDEX_STATUS_CREATING = 1,
       INDEX_STATUS_REBUIDING = 2,
       INDEX_STATUS_ONLINE = 3,
-      INDEX_STATUS_OFFLINE = 4,
-      INDEX_STATUS_REMOVING = 5,
+      INDEX_STATUS_REMOVING = 4,
    };// enum INDEX_STATUS
 
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_TYPE = "type";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_OPTIONS = "btree";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_LSM_OPTIONS = "lsm";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_PREFIX_COMPRESSION = "PrefixCompression";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY = "ColumnFamily";
+
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_ID = "LogicalIndexId";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_STATUS = "status";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_CREATED_TIME = "CreatedTime";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_ALTERED_TIME = "AlteredTime";
 }//namespace vessel
 }//namespace engine
 

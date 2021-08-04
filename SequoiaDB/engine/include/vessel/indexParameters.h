@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexParameters.h
 
    Descriptive Name =
 
@@ -33,33 +33,55 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
+#ifndef VESSEL_INDEX_PARAMETERS_H_
+#define VESSEL_INDEX_PARAMETERS_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/indexDef.h"
+#include "vessel/strSlice.h"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
+   class indexParameters : public SDBObject
    {
       public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
+         indexParameters(){}
+         ~indexParameters(){}
+         indexParameters &operator=(const indexParameters &o)
          {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
+            type = o.type;
+            isUnique = o.isUnique;
+            enforeced = o.enforeced;
+            notNull = o.notNull;
+            notArray = o.notArray;
+            prefixCompressionColumns = o.prefixCompressionColumns;
             return *this;
          }
+
       public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
+         BOOLEAN isValid()const;
+
+         void exportToBson(bson::BSONObjBuilder &builder)const;
+         BOOLEAN extractFromBson(const bson::BSONObj &obj);
+      public:
+         INDEX_TYPE type = INVALID_INDEX_TYPE;
+         BOOLEAN isUnique = FALSE;
+         BOOLEAN enforeced = FALSE;
+         BOOLEAN notNull = FALSE;
+         BOOLEAN notArray = FALSE;
+
+         /// btree only
+
+         /// 0: no compression
+         /// 1 or 2: the count of columns to be compressed
+         UINT32 prefixCompressionColumns = 0;
+
+         /// lsm only
+         UINT32 columnFamily = 0;
+   };//class indexParameters
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_OPTIONS_H_
+#endif//VESSEL_INDEX_PARAMETERS_H_

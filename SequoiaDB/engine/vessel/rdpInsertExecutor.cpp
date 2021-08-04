@@ -178,7 +178,7 @@ namespace vessel
 
       if (context->getCandidate().isValid())
       {
-         if (newFreeSize < context->getMinFreeSize())
+         if (newFreeSize <= context->getMinFreeSize())
          {
             context->getCandidate().getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
          }

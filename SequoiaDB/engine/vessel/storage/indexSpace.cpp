@@ -34,15 +34,125 @@
 ******************************************************************************/
 
 #include "vessel/indexSpace.h"
-#include "vessel/storageUnit.h"
-#include "vessel/requestContext.h"
-#include "vessel/instanceEnv.h"
+#include "vessel/idMapPage.h"
+#include "vessel/indexDef.h"
+#include "vessel/indexMappingPage.h"
+#include "vessel/indexMappingPageAccessor.h"
 
 namespace engine
 {
 namespace vessel
 {
-   indexSpace::~indexSpace()
-   {}
+   static const UINT32 TOTAL_DIRECT_MAPPED_IMP = 65536 * DIRECT_MAPPING_INDEX_COUNT_PER_CL / ID_MAP_PAGE_CAPACITY;
+
+   UINT32 indexSpace::getReservedImpCount()const
+   {
+      return TOTAL_DIRECT_MAPPED_IMP + 1;
+   }
+
+   PAGE_ID indexSpace::getDirectMappedIndexLpid(CL_MB_ID mbID, INT32 slot)const
+   {
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      if (INVALID_CL_MB_ID != mbID &&
+          isValidIndexSlot(slot) &&
+          slot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+      {
+         lpid = mbID * DIRECT_MAPPING_INDEX_COUNT_PER_CL + slot;
+      }
+      return lpid;
+   }
+
+   PAGE_ID indexSpace::getMappingPageLpid(CL_MB_ID mbID,
+                                          INT32 slot,
+                                          UINT32 &pos)const
+   {
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      static const UINT32 _BEGIN_LPID = TOTAL_DIRECT_MAPPED_IMP *
+                                        ID_MAP_PAGE_CAPACITY;
+
+      if (INVALID_CL_MB_ID != mbID &&
+          isValidIndexSlot(slot) &&
+          (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL <= slot)
+      {
+         UINT32 globalPos = ((MAX_INDEX_COUNT_PER_CL - DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+                             * mbID + slot - DIRECT_MAPPING_INDEX_COUNT_PER_CL);
+         UINT32 pageSize = _storage.getCoreArgs().pageSize;
+         UINT32 capacity = getIndexMappingPageCapacity(pageSize);
+         if (0 == capacity)
+         {
+            goto done;
+         }
+         lpid = (globalPos / capacity) + _BEGIN_LPID;
+         pos = globalPos % capacity;
+         SDB_ASSERT(lpid < getReservedImpCount() * ID_MAP_PAGE_CAPACITY, "impossible");
+      }
+
+   done:
+      return lpid;
+   }
+
+   INT32 indexSpace::getIndexDefPage(requestContext *context,
+                                     CL_MB_ID mbID,
+                                     INT32 slot,
+                                     PAGE_ID &lpid)
+   {
+      INT32 rc = SDB_OK;
+      logicalPageBuffer lpb;
+      
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_CL_MB_ID == mbID ||
+                            !isValidIndexSlot(slot)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (slot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+      {
+         lpid = getDirectMappedIndexLpid(mbID, slot);
+      }
+      else
+      {
+         indexMappingPageAccessor accessor;
+         PAGE_ID mappingPageLpid = INVALID_PAGE_ID;
+         UINT32 pos = -1;
+         mappingPageLpid = getMappingPageLpid(mbID, slot, pos);
+         if (INVALID_PAGE_ID == mappingPageLpid)
+         {
+            PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]",
+                   mbID, slot);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = getLogicalPageBuffer(context, mappingPageLpid,
+                                   OSS_SHARED_LATCH_MODE_SHARED,
+                                   lpb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] buffer:%d",
+                   mappingPageLpid, rc);
+            goto error;
+         }
+
+         rc = accessor.getIndexDefPage(context, pos, lpb, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index def page:%d", rc);
+            goto error;
+         }
+         
+      }
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

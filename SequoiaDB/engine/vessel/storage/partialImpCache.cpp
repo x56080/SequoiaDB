@@ -121,7 +121,6 @@ namespace vessel
    INT32 partialImpCache::drop(UINT32 slotNo, idMapSlot *beforeDropping)
    {
       INT32 rc = SDB_OK;
-      idMapSlot *slot = NULL;
       if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo))
       {
          rc = SDB_OUT_OF_BOUND;
@@ -169,11 +168,13 @@ namespace vessel
             
             SDB_ASSERT(!_buffer[mutableSlot].isFree(), "impossible");
             mutableSegmentIds->insert((_buffer[mutableSlot].pid / pageCountPerSeg));
+            OSS_BIT_CLEAR(_flags, ((UINT64)1 << mutableSlot));
          } while (TRUE);
       }
-
-      _flags = 0;
-   
+      else
+      {
+         _flags = 0;
+      }   
    done:
       return;
    }

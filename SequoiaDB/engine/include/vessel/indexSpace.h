@@ -36,17 +36,52 @@
 #ifndef VESSEL_INDEX_SPACE_H_
 #define VESSEL_INDEX_SPACE_H_
 
-#include "vessel/logicalPageSpace.h"
+#include "vessel/copyOnWriteLPS.h"
+#include "vessel/dataStorageFileCluster.h"
 
 namespace engine
 {
 namespace vessel
 {  
-   class indexSpace
+   class indexSpace : public copyOnWriteLPS
    {
       public:
          indexSpace(){}
-         virtual ~indexSpace();
+         virtual ~indexSpace(){}
+
+      public:
+         virtual SPACE_TYPE getSpaceType()const
+         {
+            return SPACE_TYPE_IDX;
+         }
+
+      private:
+         virtual UINT32 getReservedImpCount()const;
+         virtual UINT32 getFreeBoundOfLpidAllocator()const 
+         {
+            return 0;
+         }
+         virtual UINT32 getFreeBoundOfPageStorage()const
+         {
+            return 0;
+         }
+         virtual dataPageCluster *getDataStorageObj()
+         {
+            return &_storage;
+         }
+
+      public:
+         INT32 getIndexDefPage(requestContext *context,
+                               CL_MB_ID mbID,
+                               INT32 slot,
+                               PAGE_ID &lpid);
+         PAGE_ID getDirectMappedIndexLpid(CL_MB_ID mbID, INT32 slot)const;
+         PAGE_ID getMappingPageLpid(CL_MB_ID mbID,
+                                    INT32 slot,
+                                    UINT32 &pos)const;
+
+      private:
+         dataStorageFileCluster _storage;
    };//class indexSpace
 }//namespace vessel
 }//namespace engine

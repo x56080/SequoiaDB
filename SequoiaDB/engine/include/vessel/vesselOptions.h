@@ -233,26 +233,7 @@ namespace vessel
    class scanIndexOptions
    {}; // class scanIndexOptions
 
-   class cursorOptions : public SDBObject
-   {
-      public:
-         cursorOptions(){}
-          ~cursorOptions(){}
-         cursorOptions(const cursorOptions &) = delete;
-         cursorOptions &operator=(const cursorOptions &o)
-         {
-            maxBufSize = o.maxBufSize;
-            initBufSize = o.initBufSize;
-            limit = o.limit;
-            return *this;
-         }
-
-         ///cursor will try to extend buf only when the buf can not hold at
-         /// least one slice.
-         UINT32 maxBufSize = 16777216; /// 16MB
-         UINT32 initBufSize = 65536;   /// 64KB
-         UINT64 limit = OSS_UINT64_MAX;
-   };
+   
 } /// end of namespace vessel
 } /// end of namespace engine
 #endif

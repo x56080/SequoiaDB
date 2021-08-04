@@ -61,6 +61,9 @@ namespace vessel
             return ID_MAP_FILE_FLAG_COPY_ON_WRITE == flags;
          }
 
+         virtual void _close();
+         virtual void _destroy();
+
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
@@ -110,6 +113,8 @@ namespace vessel
                                    const PAGE_ID *pids);
 
          void backupAndClearRemovingList();
+
+         void fini();
 
       private:
          forwardList<PAGE_ID> *_removingList = NULL;

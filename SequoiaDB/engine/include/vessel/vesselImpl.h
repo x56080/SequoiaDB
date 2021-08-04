@@ -41,6 +41,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/indexParameters.h"
 
 namespace engine
 {
@@ -105,8 +106,13 @@ namespace vessel
          INT32 createIndex(ISession *session,
                            const collectionHandle &handle,
                            const strSlice &indexName,
-                           const indexKeyPattern &keyPattern,
+                           const bson::BSONObj &keyPattern,
+                           const indexParameters &params,
                            const createIndexOptions &options);
+
+         INT32 listIndexes(ISession *session,
+                           const collectionHandle &handle,
+                           ossPoolVector<bson::BSONObj> &indexes);
       
       public:
 
@@ -123,8 +129,8 @@ namespace vessel
                                              UINT64 &count);
 
          public:
-            virtual INT32 pushMoreToCursor(ISession * session,
-                                           cursorKernal *cursor);
+            INT32 pushMoreToCursor(ISession * session,
+                                   cursorKernal *cursor);
       private:
          void fini();
          INT32 flushWholeDirtyList(requestContext *context);

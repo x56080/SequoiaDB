@@ -35,6 +35,8 @@
 
 #include "vessel/indexKeyPattern.h"
 #include "vessel/indexDef.h"
+#include "ossUtil.hpp"
+#include "pdTrace.hpp"
 
 using namespace bson;
 
@@ -56,29 +58,29 @@ namespace vessel
       BSONObjIterator itr(obj);
       while (itr.more())
       {
-         const CHAR *fieldName = NULL;
          BSONElement e = itr.next();
-         if (e.eoo())
+         const CHAR *fieldName = e.fieldName() ;
+         if (e.eoo() || !e.isNumber())
          {
             rc = SDB_INVALIDARG;
             goto error;
          }
 
-         if (MAX_INDEX_KEY_COUNT == _keyCount)
+         if (MAX_INDEX_KEY_COLUMNS == _keyCount)
          {
             rc = SDB_INVALIDARG;
             goto error;
          }
          
-         fieldName = e.fieldName();
          if (NULL == fieldName ||
-             '\0' == fieldName[0])
+             '\0' == fieldName[0] ||
+             NULL != ossStrchr( fieldName, '$'))
          {
             rc = SDB_INVALIDARG;
             goto error;
          }
 
-         if (e.number() < 0)
+         if (e.numberInt() < 0)
          {
             _ordering |= ((UINT32)1 << _keyCount);
          }
@@ -105,6 +107,71 @@ namespace vessel
       _ordering = 0;
       _pattern = bson::BSONObj();
       return;
+   }
+
+   BOOLEAN indexKeyPattern::operator==(const indexKeyPattern &o)const
+   {
+      return _keyCount == o._keyCount &&
+             _ordering == o._ordering &&
+             0 == _pattern.woCompare(o._pattern);
+   }
+
+   void indexKeyPattern::getOwned()
+   {
+      if (!_pattern.isOwned())
+      {
+         _pattern = _pattern.getOwned();
+      }
+   }
+
+   BOOLEAN indexKeyPattern::isCoveredBy(const indexKeyPattern &other)const
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(other.isValid(), "must be valid");
+      BOOLEAN r = TRUE;
+
+      bson::BSONObjIterator itr0(_pattern);
+      bson::BSONObjIterator itr1(other._pattern);
+
+      if (_keyCount > other._keyCount)
+      {
+         r = FALSE;
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < MAX_INDEX_KEY_COLUMNS; ++i)
+      {
+         bson::BSONElement ele0;
+         bson::BSONElement ele1;
+         UINT32 ordering0 = 0;
+         UINT32 ordering1 = 0;
+         UINT32 mask = (UINT32)1 << i;
+
+         if (_keyCount == i)
+         {
+            break;
+         }
+
+         ordering0 = (mask & _ordering);
+         ordering1 = (mask & other._ordering);
+         if (ordering0 != ordering1)
+         {
+            r = FALSE;
+            goto done;
+         }
+
+         ele0 = itr0.next();
+         ele1 = itr1.next();
+
+         if (0 != ossStrcmp(ele0.fieldName(), ele1.fieldName()))
+         {
+            r = FALSE;
+            break;
+         }
+      }
+
+   done:
+      return r;
    }
 }
 }

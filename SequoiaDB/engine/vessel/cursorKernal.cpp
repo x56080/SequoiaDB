@@ -334,33 +334,5 @@ namespace vessel
       }
       return;
    }
-
-   BOOLEAN cursorKernal::hasSpaceToPush(UINT32 size)const
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(isOpen(), "can not be closed");
-      UINT32 realSize = getRealBufSizeOfSlice(size);
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         goto done;
-      }
-      else if (noMorePushing())
-      {
-         goto done;
-      }
-      else if (realSize <= _mb.getFreeCapacity())
-      {
-         r = TRUE;
-         goto done;
-      }
-      else if (_mb.isEmpty() && (realSize <= _options.maxBufSize))
-      {
-         r = TRUE;
-         goto done;
-      }
-   done:
-      return r;
-   }
 }//namespace vessel
 }//namespace engine

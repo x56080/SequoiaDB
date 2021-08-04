@@ -290,10 +290,13 @@ TEST_F(insert_test, test3)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    collectionHandler handler;
-   UINT32 count = 5000000;
+   UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
+
+   createCSOptions csOptions;
+   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -301,7 +304,7 @@ TEST_F(insert_test, test3)
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());

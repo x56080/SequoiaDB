@@ -36,28 +36,36 @@
 #ifndef VESSEL_INDEX_DEF_PAGE_ACCESSOR_H_
 #define VESSEL_INDEX_DEF_PAGE_ACCESSOR_H_
 
-#include "vessel/indexPageAccessor.h"
-#include "vessel/inMemIndexDefObj.h"
+#include "vessel/pageAccessor.h"
+#include "vessel/indexKeyPattern.h"
+#include "vessel/logicalPageBuffer.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexDefPageAccessor : public indexPageAccessor
+   class indexDefPageAccessor : public pageAccessor
    {
       public:
          indexDefPageAccessor(){}
          ~indexDefPageAccessor(){}
 
       public:
-         virtual PAGE_TYPE getPageType()const
-         {
-            return PAGE_TYPE_INDEX_DEF;
-         }
+         INT32 testIndexDef(requestContext *context,
+                            const strSlice &indexName,
+                            const indexKeyPattern &pattern,
+                            const logicalPageBuffer *lpb,
+                            BOOLEAN &duplicated)const;
 
-      public:
-         INT32 getDefObj(requestContext *context,
-                         inMemIndexDefObj &obj);
+         INT32 createIndex(requestContext *context,
+                           UINT32 indexId,
+                           const slice &defObj,
+                           logicalPageBuffer *lpb);
+
+         INT32 dump(requestContext *context,
+                    const logicalPageBuffer *lpb,
+                    bson::BSONObj &obj);
    };//class indexDefPageAccessor 
 }//namespace vessel
 }//namespace engine

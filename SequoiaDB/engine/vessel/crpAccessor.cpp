@@ -291,6 +291,131 @@ namespace vessel
       goto done;
    }
 
+   INT32 crpAccessor::updateIndexInfo(requestContext *context,
+                                      CL_MB_ID mbID,
+                                      UINT64 uniqueIndexes,
+                                      UINT64 nonuniqueIndexes,
+                                      UINT32 indexId,
+                                      logicalPageBuffer *lpb)
+      {
+      INT32 rc = SDB_OK;
+      runtimePageBuffer *rpb = NULL;
+      UINT32 capacity = 0;
+      const collectionRecordOnDisk *readblePtr = NULL;
+      logRecordContext lrc;
+      collectionRecordOnDisk *wptr = NULL;
+      collectionRecord oldRecord;
+      UINT64 mask = COLLECTION_UPDATE_MASK_INDEX_INFO;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_CL_MB_ID == mbID ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rpb = &(lpb->getRuntimeBuffer());
+      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
+                        PAGE_TYPE_CL_META,
+                        rpb->getPageSize(),
+                        rpb->getGlobalPid().page(),
+                        lpb->getLogicalPid(),
+                        lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(rpb->getPageSize(), capacity);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get crp capacity:%d", rc);
+         goto error;
+      }
+
+      readblePtr = getReadableDiskRecordPtr(rpb, mbID % capacity);
+      if (NULL == readblePtr)
+      {
+         PD_LOG(PDERROR, "failed to get readble record ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      if (!readblePtr->record.isValid())
+      {
+         PD_LOG(PDERROR, "record at pos[%d] is invalid", mbID % capacity);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (readblePtr->record.mbID != mbID)
+      {
+         PD_LOG(PDERROR, "mbid[%d] does not match the one on disk[%d]",
+                mbID, readblePtr->record.mbID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      rc = rpb->prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+      readblePtr = NULL;
+
+      rc = prepareUpdateLog(context, rpb, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare create index log record:%d", rc);
+         goto error;
+      }
+
+      wptr = getWritableDiskRecordPtr(rpb, mbID % capacity);
+      if (NULL == wptr)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      oldRecord = wptr->record;
+      wptr->record.nextIndexId = indexId;
+      wptr->record.uniqueIndexes = uniqueIndexes;
+      wptr->record.nonUniqueIndexes = nonuniqueIndexes;
+
+      rc = commitUpdateLog(context, &lrc, rpb->getGlobalPid(),
+                           lpb->getLogicalPid(),
+                           mask, oldRecord, wptr->record);
+      if (SDB_OK != rc)
+      {
+         wptr->record.nextIndexId = oldRecord.nextIndexId;
+         wptr->record.uniqueIndexes = oldRecord.uniqueIndexes;
+         wptr->record.nonUniqueIndexes = oldRecord.nonUniqueIndexes;
+         PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",
+                lrc.getLsn(), rc);
+         ossPanic();
+         goto error;
+      }
+
+      rpb->commit(lrc.getLsn());
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
+      if (NULL != rpb && rpb->isWritingPrepared())
+      {
+         rpb->abort();
+      }
+      goto done;
+   }
+
    collectionRecordOnDisk *crpAccessor::getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
                                                                  UINT32 i)
    {
@@ -494,5 +619,6 @@ namespace vessel
    error:
       goto done;
    }
+
 }//namespace vessel
 }//namespace engine

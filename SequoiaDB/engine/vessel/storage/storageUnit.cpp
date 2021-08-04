@@ -60,6 +60,7 @@ namespace vessel
       {
          _sid = INVALID_SPACE_ID;
          _mds.close();
+         _is.close();
       }
       return;
    }
@@ -102,6 +103,7 @@ namespace vessel
       }
 
       _mds.destroy();
+      _is.destroy();
 
       rc = ensureOtherDirRemoved(context->getEnv()->options.path, dirSlice);
       if (SDB_OK != rc)
@@ -198,6 +200,14 @@ namespace vessel
          goto error;
       }
 
+      rc = createIndexSpace(context, sid, dirSlice,
+                            secretValue, options.indexArgs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create index space:%d", rc);
+         goto error;
+      }
+
       rc = removeStatusFile(*path, dirSlice, sid);
       if (SDB_OK != rc)
       {
@@ -276,6 +286,13 @@ namespace vessel
          PD_LOG(PDERROR, "failed to open main data space:%d", rc);
          goto error;
       }
+
+      rc = openIndexSpace(context, dirSlice, sid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open index space:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -291,6 +308,11 @@ namespace vessel
       SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
 
       _sid = INVALID_SPACE_ID;
+
+      if (_is.isOpen())
+      {
+         _is.destroy();
+      }
       if (_mds.isOpen())
       {
          _mds.destroy();
@@ -888,6 +910,81 @@ namespace vessel
       }
 
       rc = _mds.open(context, sid, dirPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open main data path:%d", rc);
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::createIndexSpace(requestContext *context,
+                                       SPACE_ID sid,
+                                       const strSlice &dir,
+                                       UINT32 secretValue,
+                                       const storageCoreArgs &args)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(args.isValid(), "must be valid");
+
+      const storagePathOptions &path = context->getEnv()->options.path;
+      createLogicalPageSpaceOptions o;
+      CHAR dirPath[OSS_MAX_PATHSIZE + 1] = {0};
+
+      rc = utilBuildFullPath(path.autoGetIndexPath().c_str(),
+                             dir.str(),
+                             OSS_MAX_PATHSIZE + 1,
+                             dirPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build full dir path:%d", rc);
+         goto error;
+      }
+
+      o.sid = sid;
+      o.dir.reset(dirPath);
+      o.dataArgs = args;
+      o.secretValue = secretValue;
+
+      rc = _is.create(context, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create main data space:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::openIndexSpace(requestContext *context,
+                                     const strSlice &dir,
+                                     SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(!dir.empty(), "can not be empty");
+      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+      CHAR dirPath[OSS_MAX_PATHSIZE + 1] = {0};
+      const storagePathOptions &path = context->getEnv()->options.path;
+
+      rc = utilBuildFullPath(path.autoGetIndexPath().c_str(), dir.str(),
+                             OSS_MAX_PATHSIZE + 1, dirPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build path:%d", rc);
+         goto error;
+      }
+
+      rc = _is.open(context, sid, dirPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open main data path:%d", rc);

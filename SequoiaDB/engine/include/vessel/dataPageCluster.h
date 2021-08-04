@@ -92,7 +92,10 @@ namespace vessel
 
          void releasePage(PAGE_ID pid);
 
-         INT32 extendPageSpace(const UINT32 *oldSegmentCount);
+         /// If oldSegmentCount set as valid value,
+         /// will extend space only when (segmentCount + *oldSegmentCount) > current segment count
+         INT32 extendPageSpace(UINT32 segmentCount,
+                               const UINT32 *oldSegmentCount);
 
          INT32 ensurePidSpace(PAGE_ID pid);
       public:

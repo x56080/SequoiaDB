@@ -51,19 +51,6 @@ namespace vessel
    class ISession;
    class requestContext;
 
-/*
-   INT32 initCreateCSLogRecord(const CHAR *name,
-                               const SPACE_ID *sid,
-                               const utilCSUniqueID *uniqueID,
-                               const createCSOptions *options,
-                               dpsLogRecord &lr);*/
-
-   INT32 pushFullNameElement(IRedoLogger *logger,
-                             ISession *session,
-                             logRecordContext *lrc,
-                             const strSlice &csName,
-                             const strSlice &clName);
-
    UINT32 packSidAndType(SPACE_ID sid,
                          SPACE_TYPE spaceType,
                          FILE_TYPE fileType);
@@ -72,6 +59,18 @@ namespace vessel
                          SPACE_ID &sid,
                          SPACE_TYPE &spaceType,
                          FILE_TYPE &fileType);
+
+   INT32 commitCreateIndexLog(requestContext *context,
+                              const strSlice &fullName,
+                              UINT32 indexId,
+                              INT32 indexSlot,
+                              const slice &indexDef);
+
+   INT32 commitCreateIndexEndLog(requestContext *context,
+                                 const strSlice &fullName,
+                                 UINT32 indexId,
+                                 INT32 indexSlot,
+                                 INT32 result);
 
    class lpsLogUtil : public SDBObject
    {

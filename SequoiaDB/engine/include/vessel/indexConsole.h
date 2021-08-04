@@ -38,6 +38,8 @@
 
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
+#include "vessel/slice.h"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
@@ -50,11 +52,7 @@ namespace vessel
    class indexConsole : public SDBObject
    {
       public:
-         indexConsole() = delete;
-         indexConsole(collectionRecord *record,
-                      indexSpace *is):
-         _record(record),
-         _is(is){}
+         indexConsole(){}
          indexConsole(const indexConsole &) = delete;
          indexConsole &operator=(const indexConsole &) = delete;
          ~indexConsole(){}
@@ -62,22 +60,59 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isInitialized()const
          {
-            return NULL != _record && NULL != _is;
+            return NULL != _record;
          }
       public:
+         INT32 init(const collectionRecord *record,
+                    indexSpace *is);
+
+         INT32 allocateIndexSlot(INT32 &indexSlot)const;
+
+         INT32 testIfDuplicated(requestContext *context,
+                                const strSlice &indexName,
+                                const indexKeyPattern &pattern,
+                                BOOLEAN &duplicated)const;
+
          INT32 createIndex(requestContext *context,
-                           const strSlice &indexName,
-                           const indexKeyPattern &pattern,
-                           const createIndexOptions &options);
+                           INT32 indexSlot,
+                           UINT32 indexId,
+                           const slice &defObj)const;
+
+         INT32 markIndexRemoving(requestContext *context,
+                                 INT32 indexSlot,
+                                 UINT32 indexId)const;
+
+         INT32 destroyIndexDefPage(requestContext *context,
+                                   INT32 indexSlot)const;
+
+         INT32 listIndexes(requestContext *context,
+                           ossPoolVector<bson::BSONObj> &indexes)const;
+
+         INT32 dumpIndex(requestContext *context,
+                         INT32 indexSlot,
+                         bson::BSONObj &obj)const;
 
       private:
-         INT32 preallocateIndexIdAndSlot(UINT32 &logicalID, INT32 &slot);
+         void fini();
 
-         INT32 validateIfDuplicated(requestContext *context,
-                                     const strSlice &indexName,
-                                     const indexKeyPattern &pattern);
+         INT32 testIfDuplicated(requestContext *context,
+                                INT32 indexSlot,
+                                const strSlice &indexName,
+                                const indexKeyPattern &pattern,
+                                BOOLEAN &duplicated)const;
+
+         INT32 createDirectMappedIndex(requestContext *context,
+                                       INT32 indexSlot,
+                                       UINT32 indexId,
+                                       const slice &defObj)const;
+
+         INT32 createDoubleMappedIndex(requestContext *context,
+                                       INT32 indexSlot,
+                                       UINT32 indexId,
+                                       const slice &defObj)const;
+
       private:
-         collectionRecord *_record = NULL;
+         const collectionRecord *_record = NULL;
          indexSpace *_is = NULL;
    };//class indexConsole
 }//namespace vessel

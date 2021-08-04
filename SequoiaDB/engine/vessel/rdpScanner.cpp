@@ -125,6 +125,10 @@ namespace vessel
                goto error;
             }
             cursor->setSlot(i);
+            if (cursor->hitTheLimit())
+            {
+               break;
+            }
          }
          else
          {

@@ -46,6 +46,7 @@
 #include "vessel/strSlice.h"
 #include "vessel/mainDataSpace.h"
 #include "vessel/mmapPagePointer.h"
+#include "vessel/indexSpace.h"
 
 namespace engine
 {
@@ -76,6 +77,10 @@ namespace vessel
          {
             return _mds;
          }
+         OSS_INLINE indexSpace &getIndexSpace()
+         {
+            return _is;
+         }
 
       public:
          INT32 create(requestContext *context,
@@ -98,18 +103,6 @@ namespace vessel
          INT32 getCoreArgs(SPACE_TYPE spaceType,
                            FILE_TYPE fileType,
                            storageCoreArgs &args);
-
-      private:
-         INT32 createMainDataSpace(requestContext *context,
-                                   const storagePathOptions &path,
-                                   const strSlice &subDir,
-                                   const createSUOptions &options);
-
-
-         INT32 openMainDataSpace(requestContext *context,
-                                 const strSlice &dir,
-                                 SPACE_ID sid);
-
       private:
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
@@ -154,10 +147,24 @@ namespace vessel
                                    const strSlice &dir,
                                    UINT32 secretValue,
                                    const storageCoreArgs &args);
+
+         INT32 openMainDataSpace(requestContext *context,
+                                 const strSlice &dir,
+                                 SPACE_ID sid);
+
+         INT32 createIndexSpace(requestContext *context,
+                                SPACE_ID sid,
+                                const strSlice &dir,
+                                UINT32 secretValue,
+                                const storageCoreArgs &args);
+
+         INT32 openIndexSpace(requestContext *context,
+                              const strSlice &dir,
+                              SPACE_ID sid);
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
          mainDataSpace _mds;
-
+         indexSpace _is;
 
    };//class storageUnit
 }//namespace vessel

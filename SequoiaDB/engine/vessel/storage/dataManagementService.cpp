@@ -326,13 +326,6 @@ namespace vessel
       storageUnit *su = NULL;
       createSUOptions suOptions;
 
-      rc = _sus.ensure(sid, &su);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate storage unit obj:%d", rc);
-         goto error;
-      }
-      
       suOptions.dataArgs.pageSize = options.dataPageSize;
       suOptions.dataArgs.maxPageCountPerSeg = options.dataSegSize / options.dataPageSize;
       suOptions.dataArgs.maxSegmentCountPerFile = STORAGE_FILE_SIZE / options.dataSegSize;
@@ -345,6 +338,20 @@ namespace vessel
       suOptions.lobArgs.maxPageCountPerSeg = options.lobSegSize / options.lobPageSize;
       /// single lobd file.
       suOptions.lobArgs.maxSegmentCountPerFile = DMS_MAX_PG / suOptions.lobArgs.maxPageCountPerSeg;
+
+      if (!suOptions.isValid())
+      {
+         PD_LOG(PDERROR, "invalid su options");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _sus.ensure(sid, &su);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate storage unit obj:%d", rc);
+         goto error;
+      }
 
       rc = su->create(context, sid, suOptions);
       if (SDB_OK != rc)
@@ -483,15 +490,18 @@ namespace vessel
 
          if (sidLocked)
          {
+            if (cursor->isPushed(obj->getLogicalID()))
+            {
+               cursor->setLastName(obj->getCSName());
+               context->unlockSpaceID();
+               continue;
+            }
+
             rc = obj->dump(context, record);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to dump cs[%d] record, rc:%d", sid, rc);
                goto error;
-            }
-            else if (cursor->isPushed(obj->getLogicalID()))
-            {
-               cursor->setLastName(obj->getCSName());
             }
             else
             {
@@ -510,9 +520,13 @@ namespace vessel
                {
                   cursor->setLastName(obj->getCSName());
                   cursor->markLIdPushed(obj->getLogicalID());
+                  context->unlockSpaceID();
+                  if (cursor->hitTheLimit())
+                  {
+                     goto done;
+                  }
                }
             }
-            context->unlockSpaceID();
          }
          else
          {

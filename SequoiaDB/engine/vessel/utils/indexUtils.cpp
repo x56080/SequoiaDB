@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.cpp
+   Source File Name = indexUtils.cpp
 
    Descriptive Name =
 
@@ -33,33 +33,29 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPage.h"
+#include "vessel/indexUtils.h"
+#include "ossLikely.hpp"
+#include "pdTrace.hpp"
+#include "vessel/indexDef.h"
+#include "ixm_common.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf)
+   bson::BSONObj buildIndexDefObj(const strSlice &indexName,
+                                  const indexKeyPattern &keyPattern,
+                                  const indexParameters &params)
    {
-      BOOLEAN r = FALSE;
-      indexDefHead *headPtr = NULL;
-      indexDefHead head;
+      bson::BSONObjBuilder builder;
+      SDB_ASSERT(!indexName.empty(), "can not be empty");
+      SDB_ASSERT(keyPattern.isValid(), "can not be invalid");
+      SDB_ASSERT(params.isValid(), "can not be inavlid");
 
-      r = initCommonPage(PAGE_TYPE_INDEX_DEF, pageSize,
-                         pid, lpid, psv, buf);
-      if (!r)
-      {
-         goto done;
-      }
-
-      headPtr = (indexDefHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
-      ossMemcpy(headPtr, &head, INDEX_DEF_HEAD_SIZE);
-   done:
-      return r;
+      builder.append(IXM_NAME_FIELD, indexName.str());
+      builder.append(IXM_KEY_FIELD, keyPattern.getPattern());
+      params.exportToBson(builder);
+      return builder.obj();
    }
 }//namespace vessel
 }//namespace engine

@@ -60,6 +60,8 @@ namespace vessel
             _pattern = o._pattern;
             return *this;
          }
+
+         BOOLEAN operator==(const indexKeyPattern &o)const;
       
       public:
          OSS_INLINE BOOLEAN isValid()const
@@ -78,9 +80,16 @@ namespace vessel
          {
             return _pattern;
          }
+         OSS_INLINE BOOLEAN isOwned()const
+         {
+            return _pattern.isOwned();
+         }
+   
       public:
          INT32 set(const bson::BSONObj &obj);
          void reset();
+         void getOwned();
+         BOOLEAN isCoveredBy(const indexKeyPattern &other)const;
 
       private:
          UINT32 _keyCount = 0;
