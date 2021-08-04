@@ -2531,7 +2531,8 @@ namespace engine
                                      BOOLEAN ignoreTypeError,
                                      const BSONObj* shardingKey,
                                      BOOLEAN strictDataMode,
-                                     UINT32 logWriteMod )
+                                     UINT32 logWriteMod,
+                                     BOOLEAN calcIdxHash )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF_LDPTN );
@@ -2614,6 +2615,32 @@ namespace engine
                         "Failed to create new sharding key gen, rc=%d", rc ) ;
             goto error ;
          }
+      }
+
+      // if index hash bitmap is needed, calculate it with updated elements
+      // NOTE: for replace, we don't known origin elements, so can not
+      // calculate index hash bitmap
+      if ( calcIdxHash &&
+           !_isReplace &&
+           _modifierElements.size() <= IXM_IDX_HASH_MAX_FIELD_NUM )
+      {
+         _idxHashBitmap.resetBitmap() ;
+         for ( MODIFIER_VEC::iterator iter = _modifierElements.begin() ;
+               iter != _modifierElements.end() ;
+               ++ iter )
+         {
+            ModifierElement *mthEle = *iter ;
+            _idxHashBitmap.setFieldBit( mthEle->_toModify.fieldName() ) ;
+            if ( RENAME == mthEle->_modType )
+            {
+               // need consider new name for RENAME modify operator
+               _idxHashBitmap.setFieldBit( mthEle->_toModify.valuestr() ) ;
+            }
+         }
+      }
+      else
+      {
+         _idxHashBitmap.setAllBits() ;
       }
 
       _initialized = TRUE ;

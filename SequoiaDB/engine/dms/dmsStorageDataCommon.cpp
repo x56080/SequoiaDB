@@ -1261,6 +1261,8 @@ namespace engine
             BSONObj obj ( recordData.data() ) ;
             // create a new object for updated record
             BSONObj newobj ( recordData.data() );
+            // just copy object, no need to update indexes
+            ixmIdxHashBitmap emptyBitmap ;
 #if _DEBUG
             PD_LOG ( PDDEBUG,
                      "Dummy update record (%s)",
@@ -1268,7 +1270,7 @@ namespace engine
 #endif
             rc = _extentUpdatedRecord( context, extRW, recordRW,
                                        recordData, newobj, cb,
-                                       NULL, NULL, NULL, NULL ) ;
+                                       NULL, NULL, NULL, NULL, emptyBitmap ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to update record from (%s) to (%s), "
@@ -4468,7 +4470,8 @@ namespace engine
                                        dpscb ? pHandler : NULL,
                                        pResult,
                                        pNewUnqIdxHashArray,
-                                       pOldUnqIdxHashArray ) ;
+                                       pOldUnqIdxHashArray,
+                                       modifier.getIdxHashBitmap() ) ;
             if ( rc )
             {
                if ( pResult && pResult->isMaskEnabled( UTIL_RESULT_MASK_ID ) )

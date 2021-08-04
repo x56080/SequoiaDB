@@ -55,6 +55,7 @@ using namespace bson ;
 
 namespace engine
 {
+
    /*
       ModType define
    */
@@ -249,6 +250,7 @@ namespace engine
       BSONObj _modifierPattern ;
       BOOLEAN _initialized ;
       MODIFIER_VEC _modifierElements ;
+      ixmIdxHashBitmap _idxHashBitmap ;
       UINT32  _modifierBits ;
       BOOLEAN _hasModified ;
 
@@ -481,7 +483,8 @@ namespace engine
                           BOOLEAN ignoreTypeError = TRUE,
                           const BSONObj* shardingKey = NULL,
                           BOOLEAN strictDataMode = FALSE,
-                          UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ) ;
+                          UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT,
+                          BOOLEAN calcIdxHash = FALSE ) ;
       void modifierSort() ;
       INT32 modify ( const BSONObj &source, BSONObj &target,
                      BSONObj *srcID = NULL,
@@ -493,6 +496,11 @@ namespace engine
       BSONElement getErrorElement() ;
       OSS_INLINE BOOLEAN isInitialized () const { return _initialized ; }
       OSS_INLINE BOOLEAN hasModified() const { return _hasModified ; }
+
+      OSS_INLINE const ixmIdxHashBitmap &getIdxHashBitmap() const
+      {
+         return _idxHashBitmap ;
+      }
    } ;
    typedef _mthModifier mthModifier ;
 

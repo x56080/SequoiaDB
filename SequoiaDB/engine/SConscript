@@ -817,6 +817,9 @@ clsTestFiles = [
 ixmgenTestFiles = [
       "test/ixmgen/generator.cpp"
       ]
+idxHashTestFiles = [
+      "test/ixmgen/idxHashTest.cpp"
+      ]
 gtsTestFiles = [
       "test/dps/dpsGTSTest.cpp"
       ]
@@ -1057,6 +1060,9 @@ if hasTestcase:
    gtsTest = env.Program("gtsTest", [ gtsTestFiles, gtstest],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   idxHashTest = env.Program("idxHashTest", [ idxHashTestFiles, ixmgentest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1120,6 +1126,7 @@ if hasTestcase:
 #   env.Install( '#/tests', npipeClientTest )
    env.Install( '#/tests', clsTest )
    env.Install( '#/tests', ixmgenTest )
+   env.Install( '#/tests', idxHashTest )
    env.Install( '#/tests', gtsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )
