@@ -407,7 +407,13 @@ namespace engine
    /*
       DMS Other define
    */
-#define DMS_MON_OP_COUNT_INC( _pMonAppCB_, op, delta )
+#define DMS_MON_OP_COUNT_INC( _pMonAppCB_, op, delta )     \
+   {                                                       \
+      if ( NULL != _pMonAppCB_ )                           \
+      {                                                    \
+         _pMonAppCB_->monOperationCountInc( op, delta ) ;  \
+      }                                                    \
+   }
 
    /****************************************************************************
     * Specify the matrix for collection flag and access type, returns TRUE means
