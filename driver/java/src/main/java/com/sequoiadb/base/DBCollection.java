@@ -1822,7 +1822,9 @@ public class DBCollection {
             newHint.put(SdbConstants.FIELD_NAME_HINT, hint);
         }
 
-        AdminRequest request = new AdminRequest(AdminCommand.GET_COUNT, matcher, newHint);
+        QueryRequest request = new QueryRequest(AdminCommand.GET_COUNT,
+                matcher, null, null, newHint, -1, -1,
+                DBQuery.FLG_QUERY_WITH_RETURNDATA );
         SdbReply response = sequoiadb.requestAndResponse(request);
 
         if (response.getFlag() != 0) {

@@ -450,7 +450,7 @@ namespace engine
             return SDB_OPTION_NOT_SUPPORT ;
          }
 
-         void              _onDataEmpty () ;
+         virtual void      _onDataEmpty () ;
          BOOLEAN           _canPrepareMoreData() const { return _canPrepareMore ;}
          INT32             _prepareMoreData( _pmdEDUCB *cb ) ;
          INT32             _prepareDataMonitor ( _pmdEDUCB *cb ) ;

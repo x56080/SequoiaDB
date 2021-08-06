@@ -6344,7 +6344,7 @@ SDB_EXPORT INT32 sdbGetCount1 ( sdbCollectionHandle cHandle,
                       &cs->_pSendBuffer, &cs->_sendBufferSize,
                       &cs->_pReceiveBuffer, &cs->_receiveBufferSize,
                       CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT,
-                      0, 0, -1, -1,
+                      FLG_QUERY_WITH_RETURNDATA, 0, -1, -1,
                       condition, NULL, NULL, &newObj,
                       &cursor ) ;
    if ( SDB_OK != rc )

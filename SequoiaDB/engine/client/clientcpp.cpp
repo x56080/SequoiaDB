@@ -1015,7 +1015,8 @@ do                                                            \
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT,
                                      &condition, NULL, NULL, &newObj,
-                                     0, 0, -1, -1, &pCursor ) ;
+                                     FLG_QUERY_WITH_RETURNDATA, 0, -1, -1,
+                                     &pCursor ) ;
       /// udpate and ignore the update result
       updateCachedVersion( rc, _connection->_getCachedContainer(),
                           _collectionFullName, _version ) ;
