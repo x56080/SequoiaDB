@@ -3144,6 +3144,15 @@ done:
       JUDGE_RC( rc )
 
       /// read cmd first
+      if ( vm.empty() )
+      {
+         std::cout << "sequoiadb: missing arguments" << std::endl ;
+         std::cout << "Try 'sequoiadb --help' for more information." << std::endl ;
+         rc = SDB_INVALIDARG ;
+         utilRC2ShellRC ( rc ) ;
+         goto error ;
+      }
+
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << display << std::endl ;
