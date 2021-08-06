@@ -76,6 +76,18 @@ namespace engine
          virtual INT32  _prepareData( _pmdEDUCB *cb ) ;
          virtual void   _toString( stringstream &ss ) ;
 
+         virtual void      _onDataEmpty ()
+         {
+            if ( !_hitEnd &&
+                 isEmpty() &&
+                 ( 0 == _numToReturn ||
+                   NULL == _pFetch ||
+                   _pFetch->isHitEnd() ) )
+            {
+               _hitEnd = TRUE ;
+            }
+         }
+
       private:
          // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
