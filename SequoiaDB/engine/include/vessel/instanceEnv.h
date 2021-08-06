@@ -43,6 +43,8 @@
 #include "vessel/dataManagementService.h"
 #include "vessel/liteCacheConsole.h"
 #include "vessel/objectLatchMap.hpp"
+#include "vessel/lsm/lsmDB.hpp"
+#include "vessel/backgroundWorkers.h"
 
 namespace engine
 {
@@ -65,6 +67,8 @@ namespace vessel
          LOGICAL_ID_LATCH_MAP lpidLatchMap;
          RECORD_ID_LATCH_MAP ridLatchMap;
          UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
+         lsmDB lsm;
+         backgroundWorkers ioWorkers;
 
    }; /// end of class instanceEnv
 } /// end of namespace vessel

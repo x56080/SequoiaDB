@@ -64,7 +64,9 @@ namespace vessel
                     const liteCacheOptions::lruOptions &options);
          void fini();
 
-         UINT32 getSize(BOOLEAN lock);
+         UINT32 getSizeUnderLock();
+
+         UINT32 getSizeFast()const;
 
          /// for user threads
          /// tag under w lock

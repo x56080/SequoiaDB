@@ -129,4 +129,26 @@ TEST_F(index_ddl_test, test1)
 
    cl.close();
    db.close(&session, closeDBOptions());
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = cl.listIndexes(&session, indexes);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, indexes.size());
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      const bson::BSONObj &obj = indexes.at(i);
+      ASSERT_EQ(INDEX_TYPE_LSM, obj.getIntField(VESSEL_INDEX_FIELD_NAME_TYPE));
+      std::stringstream ss;
+      ss << "index" << i;
+      ASSERT_EQ(0, ss.str().compare(obj.getStringField(IXM_NAME_FIELD)));
+   }
+
+   cl.close();
+   db.close(&session, closeDBOptions());
 }

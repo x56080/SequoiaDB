@@ -75,7 +75,7 @@ namespace vessel
 
       public:
          void reset();
-         void prepare(UINT64 jobID, TYPE type, UINT32 maxTagSize=0);
+         void prepare(UINT32 jobID, TYPE type, UINT32 maxTagSize=0);
          INT32 addPendingWriteTag(liteCachePageTag *tag);
 
          void prepareForDispatching();
@@ -88,11 +88,20 @@ namespace vessel
          /// can not abort dispathed task.
          void abortUndispatchedTasks();
 
+         BOOLEAN isRunning()const
+         {
+            return NONE != _status;
+         }
       public:
          /// callback by diskIOTask 
          void releaseTagsWhenTaskDone(const diskIOTask *task);
 
       public:
+         OSS_INLINE UINT32 getJobID()const
+         {
+            return _jobID;
+         }
+
          OSS_INLINE UINT32 getTagCount()const
          {
             return _tags.size();
@@ -110,7 +119,7 @@ namespace vessel
             }
          }
 
-         OSS_INLINE BOOLEAN needFSync()const
+         OSS_INLINE BOOLEAN isDirtyListJob()const
          {
             return DIRTY_LIST == _jobType;
          }
@@ -123,7 +132,7 @@ namespace vessel
 
       private:
          _STATUS _status;
-         UINT64 _jobID;
+         UINT32 _jobID;
          TYPE _jobType;
          UINT32 _dispatchedCount;
          _TAG_VEC _tags; 

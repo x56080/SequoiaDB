@@ -88,6 +88,7 @@ namespace vessel
       _poolNo = poolNo;
       options = o;
       correctOptions(options);
+      _flushOptions = options.flush;
       
       _buckets = SDB_OSS_NEW lcBuckets();
       if (NULL == _buckets)
@@ -184,6 +185,7 @@ namespace vessel
       SAFE_OSS_DELETE(_buckets);
       SAFE_OSS_DELETE(_fl);
       _poolNo = -1;
+      _flushOptions = liteCacheOptions::flushOptions();
 
       return ;
    }
@@ -232,6 +234,24 @@ namespace vessel
       if (options.lru._lruColdMistakeTolerance > 10)
       {
          options.lru._lruColdMistakeTolerance = 10;
+      }
+
+      if (options.flush.flushDirtyListThreshold < 0.1 ||
+          0.9 < options.flush.flushDirtyListThreshold)
+      {
+         options.flush.flushDirtyListThreshold = 0.4;
+      }
+
+      if (options.flush.flushDirtyListTimeout < 10 ||
+          3600 < options.flush.flushDirtyListTimeout)
+      {
+         options.flush.flushDirtyListTimeout = 300;
+      }
+
+      if (0.1 < options.flush.flushLruListThreshold ||
+          0.9 < options.flush.flushLruListThreshold)
+      {
+         options.flush.flushLruListThreshold = 0.8;
       }
    }
 
@@ -463,15 +483,6 @@ namespace vessel
       return _lru->tryToUpdate(holder);
    }
 
-   UINT64 liteCache::getAllocatedCountFromFreeList()const
-   {
-      if (OSS_LIKELY(NULL != _fl))
-      {
-         return _fl->getTotalAllocated();
-      }
-      return 0;
-   }
-
    INT32 liteCache::allocateMemPageAndInsertIntoLRU(requestContext *context,
                                                     BOOLEAN zeroed,
                                                     lcPageTagHolder &holder)
@@ -541,6 +552,58 @@ namespace vessel
       goto done;
    }
 
+   INT32 liteCache::createIOJobIfNecessary(requestContext *context,
+                                           diskIOJob *job)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 pageCount = 0;
+      UINT32 maxPageCount = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               NULL == job)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(!job->isRunning(), "can not be running");
+
+      maxPageCount = _fl->getMaxPageCount();
+      pageCount = _dl->getSizeFast();
+      if ((maxPageCount * _flushOptions.flushDirtyListThreshold) <= pageCount)
+      {
+         rc = _dl->setPendingWrite(context, 128, DPS_INVALID_LSN_OFFSET, job);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create io job on dirty list:%d", rc);
+            goto error;
+         }
+         
+         goto done;
+      }
+
+      pageCount = _lru->getSizeFast();
+      if ((maxPageCount * _flushOptions.flushLruListThreshold) <= pageCount)
+      {
+         rc = _lru->setPendingWriteOrEvict(context, 128, job, NULL);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create io job on lru list:%d", rc);
+            goto error;
+         }
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 liteCache::batchFlushOrEvictLRU(requestContext *context,
                                         UINT32 scanDepth,
                                         diskIOJob *job,
@@ -581,11 +644,11 @@ namespace vessel
          goto error;
       }
 
-      fsync = task->getJob()->needFSync();
+      fsync = task->getJob()->isDirtyListJob();
       logger = context->getOuterResource()->logger;
       SDB_ASSERT(NULL != logger, "can not be null");
 
-      for (UINT32 i = 0; i < task->getPageCount(); ++i)
+      for (UINT32 i = 0; i < task->getSize(); ++i)
       {
          holder.reset(NULL);
          liteCachePageTag *tag = task->getTag(i);
@@ -658,6 +721,11 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "can not be closed");
       _dl->updateMinDirtyLsn();
+   }
+
+   UINT32 liteCache::getDirtyListSizeFast()const
+   {
+      return _dl->getSizeFast();
    }
 
    INT32 liteCache::fsyncIOTask(requestContext *context,

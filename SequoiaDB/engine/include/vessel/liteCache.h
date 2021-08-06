@@ -102,9 +102,9 @@ class liteCache : public SDBObject
 
       INT32 tryToUpdateLRU(lcPageTagHolder &holder);
 
-      UINT64 getAllocatedCountFromFreeList()const;
-
    public:/// only for background threads
+      INT32 createIOJobIfNecessary(requestContext *context,
+                                   diskIOJob *job);
 
       /// we should call this func when last flushing task almost done
       /// coz we always begin flushing from tail of lru. too much pending tags
@@ -129,6 +129,10 @@ class liteCache : public SDBObject
                           diskIOTask *task);
 
       void updateMinCacheLsn();
+
+   public:
+      UINT32 getDirtyListSizeFast()const;
+
    private:
       INT32 ensureMemPage(requestContext *context, freeListPage &page);
 
@@ -145,6 +149,7 @@ class liteCache : public SDBObject
       lcLRUList *_lru = NULL;
       lcDirtyList *_dl = NULL;
       lcFreeList *_fl = NULL;
+      liteCacheOptions::flushOptions _flushOptions;
 
       //UNIQUE_MUTEX _evictLRULock;
 }; /// end of class liteCache

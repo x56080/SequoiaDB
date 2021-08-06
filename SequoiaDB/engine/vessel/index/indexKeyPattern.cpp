@@ -55,6 +55,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       _keyCount = 0;
       _ordering = 0;
+      INT32 ordering = 0;
       BSONObjIterator itr(obj);
       while (itr.more())
       {
@@ -71,6 +72,21 @@ namespace vessel
             rc = SDB_INVALIDARG;
             goto error;
          }
+
+         ordering = e.numberInt();
+         if (1 == ordering)
+         {
+            /// do nothing
+         }
+         else if (-1 == ordering)
+         {
+            _ordering |= ((UINT32)1 << _keyCount);
+         }
+         else
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
          
          if (NULL == fieldName ||
              '\0' == fieldName[0] ||
@@ -80,10 +96,6 @@ namespace vessel
             goto error;
          }
 
-         if (e.numberInt() < 0)
-         {
-            _ordering |= ((UINT32)1 << _keyCount);
-         }
          ++_keyCount;
       }
 

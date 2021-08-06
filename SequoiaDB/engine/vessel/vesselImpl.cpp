@@ -83,7 +83,7 @@ namespace vessel
 
 
       _open = TRUE;
-      _outerResource.logger = resource->logger;
+      _outerResource = *resource;
       _env.options = options;
       VESSEL_FILE_GLOBAL_OPTIONS::setSparseExtending(options.sparseExtendingFile);
 
@@ -123,6 +123,14 @@ namespace vessel
          goto error;
       }
 
+
+      rc = initLsmDB(options);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm db:%d", rc);
+         goto error;
+      }
+
       rc = _env.dms.open(&context);
       if (SDB_OK != rc)
       {
@@ -130,6 +138,19 @@ namespace vessel
          goto error;
       }
 
+      rc = _env.ioWorkers.init(&_outerResource, &_env, options.ioWorkerCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init background workes:%d", rc);
+         goto error;
+      }
+
+      rc = openCacheWatcher();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cache watcher:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -148,6 +169,8 @@ namespace vessel
          {
             goto error;
          }
+
+         _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context);
       }
@@ -781,6 +804,8 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
+         _cacheWatcher.fini();
+         _env.ioWorkers.fini();
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
          _env.dms.close();
@@ -789,10 +814,60 @@ namespace vessel
          _env.uniqueIndexLathMap.fini();
          _env.spaceLocker.fini();
          _env.options = openDBOptions();
+         if (_env.lsm.isDBOpened())
+         {
+            _env.lsm.closeLsmDB(FALSE, TRUE);
+         }
          _outerResource.logger = NULL;
       }
       return;
    }
 
+   INT32 vesselImpl::initLsmDB(const openDBOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      rocksdb::Status status;
+      LSMConfig conf;
+      conf.createDBIfMissing = TRUE;
+      if (options.path.lsmPath.empty())
+      {
+         PD_LOG(PDERROR, "lsm db path is empty");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      conf.dbPath = options.path.lsmPath;
+      _env.lsm.initLsmDB(conf);
+
+      status = _env.lsm.openLsmDB();
+      if (!status.ok())
+      {
+         PD_LOG(PDERROR, "failed to open lsm db under path[%s], info:[%s]",
+                conf.dbPath.c_str(), status.ToString().c_str());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::openCacheWatcher()
+   {
+      INT32 rc = SDB_OK;
+      rc = _cacheWatcher.init(&_env, &_outerResource);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         goto error;
+      }
+
+      _cacheWatcher.active();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 } // namespace engine

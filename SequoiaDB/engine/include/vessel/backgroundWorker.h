@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = backgroundWorker.h
 
    Descriptive Name =
 
@@ -33,44 +33,46 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#ifndef VESSEL_BACKGRUOND_WORKER_H_
+#define VESSEL_BACKGRUOND_WORKER_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/backgroundEvent.h"
+#include "ossThread.h"
+#include "vessel/autoEventList.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
+   class outerResource;
+   class ISession;
+   class instanceEnv;
 
-   class outerResource : public SDBObject
+   class backgroundWorker : public ossThread
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+         backgroundWorker();
+         virtual ~backgroundWorker();
 
       public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                  NULL != sessionMgr;
-         }
+         INT32 init(outerResource *resource,
+                   instanceEnv *env,
+                   autoEventList<backgroundEvent> *el);
 
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
+         virtual void activeEntry();
+
+      private:
+         void fini();
+         void handleCacheEvent(diskIOTask &task,
+                               autoEventList<backgroundEvent> *rl);
+
+      private:
+         outerResource *_resource = NULL;
+         instanceEnv *_env = NULL;
+         ISession *_session = NULL;
+         autoEventList<backgroundEvent> *_el = NULL;
+   };//class backgroundWorker
 }//namespace vessel
-}//namespace engine
+}//namespce engine
 
-#endif//VESSEL_OUTER_RESOURCE_H_
+#endif//VESSEL_BACKGRUOND_WORKER_H_

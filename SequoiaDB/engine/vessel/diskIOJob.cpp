@@ -84,7 +84,7 @@ namespace vessel
    }
 
 
-   void diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 maxTagSize)
+   void diskIOJob::prepare(UINT32 jobID, TYPE type, UINT32 maxTagSize)
    {
       UINT32 initBufSize = 0 < maxTagSize ? maxTagSize : DEFUALT_BUF_COUNT;
       SDB_ASSERT(NONE == _status, "must be none");
@@ -130,7 +130,7 @@ namespace vessel
          }
          reset();
       }
-      if (DISPATCHING == _status)
+      else if (DISPATCHING == _status)
       {
          if (_dispatchedCount < _tags.size())
          {
@@ -179,7 +179,7 @@ namespace vessel
       if (OSS_LIKELY(NULL != task && task->getJob() == this))
       {
          UINT32 taskID = task->getTaskID();
-         UINT32 count = task->getPageCount();
+         UINT32 count = task->getSize();
          SDB_ASSERT(taskID + count <= _dispatchedCount, "impossible");
          for (UINT32 i = 0; i < count && (i+taskID) < _dispatchedCount; ++i)
          {

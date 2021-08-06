@@ -41,12 +41,14 @@
 #include "vessel/IRedoLogger.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/logRecordContext.h"
+#include "vessel/ISesseionManager.h"
 #include <atomic>
 
 using namespace engine::vessel;
 using namespace engine;
 
 static const CHAR *DATA_PATH = "/tmp/vessel_test";
+static const CHAR *LSM_PATH = "/tmp/vessel_lsm";
 
 class test_logger : public ::engine::vessel::IRedoLogger
 {
@@ -130,7 +132,11 @@ class test_logger : public ::engine::vessel::IRedoLogger
          virtual INT32 abortOplist(::engine::vessel::ISession *session,
                                       DPS_LSN_OFFSET lsn){return SDB_OK;}
                                       
-
+         static test_logger *instance()
+         {
+            static test_logger logger;
+            return &logger;
+         }
    public:
       std::atomic_ullong _lsn;
 };
@@ -139,7 +145,9 @@ class test_session : public ::engine::vessel::ISession
 {
    public:
       test_session(test_logger *logger):
-      _id(0),
+      _id(0),_logger(logger){}
+      test_session(UINT32 id, test_logger *logger):
+      _id(id),
       _logger(logger)
       {}
       virtual ~test_session(){}
@@ -147,7 +155,7 @@ class test_session : public ::engine::vessel::ISession
    public:
       virtual UINT64 getSessionID()const
       {
-         return 0;
+         return _id;
       }
 
       virtual void setLastError(INT32 rc, const CHAR *fmt, ...)
@@ -183,5 +191,31 @@ class test_session : public ::engine::vessel::ISession
       UINT32 _id = 0;
       test_logger *_logger = NULL;
 };
+
+class test_session_mgr : public ::engine::vessel::ISessionManager
+{
+   public:
+      test_session_mgr(){}
+      virtual ~test_session_mgr(){}
+
+   public:
+      virtual ::engine::vessel::ISession *createNewSession()
+      {
+         static std::atomic_int id;
+         test_logger *logger = test_logger::instance();
+         return SDB_OSS_NEW test_session(id++, logger);
+      }
+      virtual void destroySession(::engine::vessel::ISession *session)
+      {
+         SAFE_OSS_DELETE(session);
+      }
+
+      static test_session_mgr *instance()
+      {
+         static test_session_mgr mgr;
+         return &mgr;
+      }
+      
+};//class test_session_mgr
 
 #endif//VESSEL_TEST_TEST_DEF_H_

@@ -91,10 +91,15 @@ namespace vessel
       return;
    }
 
-   UINT32 lcLRUList::getSize(BOOLEAN lock)
+   UINT32 lcLRUList::getSizeUnderLock()
    {
-      ossXLatchGuard guard(lock ? &_latch : NULL);
+      ossXLatchGuard guard(&_latch);
       return _size;
+   }
+
+   UINT32 lcLRUList::getSizeFast()const
+   {
+      return *((volatile UINT32 *)(&_size));
    }
 
    INT32 lcLRUList::insert(lcPageTagHolder &holder,
@@ -230,7 +235,8 @@ namespace vessel
          itr = itr->getLruPre();
          lcPageTagHolder holder;
 
-         if (splited() && (_options.lruHotTouchCnt <= tag->getLruTouchCnt()))
+         if (splited() &&
+             (_options.lruHotTouchCnt <= tag->getLruTouchCnt()))
          {
             ++totalSkipped;
             ++totalMoved;
@@ -273,7 +279,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
-      SDB_ASSERT(NULL != job, "can not be null");
+      SDB_ASSERT(!job->isRunning(), "can not be running");
       UINT32 scanNum = std::min(scanDepth, _options.lruScanDepth);
       liteCachePageTag *itr = NULL;
       UINT32 totalEvicted = 0;
@@ -281,6 +287,8 @@ namespace vessel
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
       ossPoolVector<freeListPage> pages;
+
+      job->prepare(ossRand(), diskIOJob::LRU_LIST, scanDepth);
       ossXLatchGuard guard(&_latch);
  
       itr = _tail;

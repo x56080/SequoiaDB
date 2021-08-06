@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = backgroundWorkers.h
 
    Descriptive Name =
 
@@ -33,44 +33,49 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#ifndef VESSEL_BACKGROUND_WORKERS_H_
+#define VESSEL_BACKGROUND_WORKERS_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "ossMemPool.hpp"
+#include "vessel/autoEventList.hpp"
+#include "vessel/backgroundEvent.h"
+#include "vessel/backgroundWorker.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
+   class outerResource;
+   class instanceEnv;
 
-   class outerResource : public SDBObject
+   class backgroundWorkers : public SDBObject
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+         backgroundWorkers();
+         ~backgroundWorkers();
+         backgroundWorkers(const backgroundWorkers &) = delete;
+         backgroundWorkers &operator=(const backgroundWorkers &) = delete;
 
       public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                  NULL != sessionMgr;
-         }
+         INT32 init(outerResource *resource,
+                    instanceEnv *env,
+                    UINT32 workerCount);
+         void fini();
 
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
+         void pushEvent(const backgroundEvent &event);
+
+      private:
+         typedef ossPoolVector<backgroundWorker> _WORKER_VEC;
+
+      private:
+         outerResource *_or = NULL;
+         instanceEnv *_env = NULL;
+         UINT32 _workerCount = 0;
+         backgroundWorker *_workers = NULL;
+         autoEventList<backgroundEvent> _el;
+         UINT32 _actived = 0;
+   };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_OUTER_RESOURCE_H_
+#endif//VESSEL_BACKGROUND_WORKERS_H_

@@ -57,22 +57,42 @@ class insert_test : public testing::Test
    public:
    static void SetUpTestCase()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
    }
 
    static void TearDownTestCase()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      }
    }
 
    virtual void SetUp()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
    }
 };
 
@@ -86,6 +106,7 @@ TEST_F(insert_test, test1)
    test_session session(&logger);
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
    DPS_TRANS_ID transID;
    utilInsertResult res;
@@ -282,12 +303,14 @@ void thread_insert(vesselImpl *db, test_logger *logger,
 TEST_F(insert_test, test3)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
    openDBOptions options;
+   options.ioWorkerCount = 4;
+   options.cacheOptions.freelist.maxChunkCount = 32;
    options.path.dataPath = DATA_PATH;
    collectionHandler handler;
    UINT32 count = 4000000;
@@ -312,7 +335,7 @@ TEST_F(insert_test, test3)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert, &db, &logger,
+      threads[i] = std::move(std::thread(thread_insert, &db, test_logger::instance(),
                                          "foo", "bar1", countPerThread));
    }
 
@@ -332,12 +355,15 @@ TEST_F(insert_test, test4)
    test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
    test_session session(&logger);
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.ioWorkerCount = 4;
+   options.cacheOptions.freelist.maxChunkCount = 32;
    collectionHandler handler;
-   UINT32 count = 2000000;
+   UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
@@ -512,6 +538,7 @@ TEST_F(insert_test, test6)
    test_session session(&logger);
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.ioWorkerCount = 4;
    collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;

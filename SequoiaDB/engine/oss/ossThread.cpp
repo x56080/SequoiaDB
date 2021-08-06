@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = ossThread.cpp
 
    Descriptive Name =
 
@@ -33,44 +33,37 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "ossThread.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
-namespace vessel
-{
-   class IRedoLogger;
-   class ISessionManager;
+   ossThread::ossThread()
+   {}
 
-   class outerResource : public SDBObject
+   ossThread::~ossThread()
+   {}
+
+   BOOLEAN ossThread::isJoinable()const
    {
-      public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+      return _thread.joinable();
+   }
+   void ossThread::detach()
+   {
+      _thread.detach();
+   }
+   void ossThread::join()
+   {
+      _thread.join();
+   }
 
-      public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                  NULL != sessionMgr;
-         }
+   void ossThread::active()
+   {
+      _thread = std::move(std::thread(ossThread::_activeThread, this));
+   }
 
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
-}//namespace vessel
+   void ossThread::_activeThread(ossThread *o)
+   {
+      o->activeEntry();
+   }
 }//namespace engine
-
-#endif//VESSEL_OUTER_RESOURCE_H_

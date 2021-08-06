@@ -42,6 +42,7 @@
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/indexParameters.h"
+#include "vessel/liteCacheWatcher.h"
 
 namespace engine
 {
@@ -128,17 +129,21 @@ namespace vessel
                                              const collectionHandle &handle,
                                              UINT64 &count);
 
-         public:
-            INT32 pushMoreToCursor(ISession * session,
-                                   cursorKernal *cursor);
+      public:
+         INT32 pushMoreToCursor(ISession * session,
+                                 cursorKernal *cursor);   
+         
       private:
          void fini();
+         INT32 initLsmDB(const openDBOptions &options);
          INT32 flushWholeDirtyList(requestContext *context);
+         INT32 openCacheWatcher();
+
       private:
          BOOLEAN _open = FALSE;
          instanceEnv _env;
          outerResource _outerResource;
-         
+         liteCacheWatcher _cacheWatcher;
    }; /// end of class vesselImpl 
 } /// end of namespace vessel 
 } /// end of namespace engine

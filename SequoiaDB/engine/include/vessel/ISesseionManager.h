@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = ISessionManager.h
 
    Descriptive Name =
 
@@ -33,44 +33,27 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#ifndef VESSEL_I_SESSION_MANAGER_H_
+#define VESSEL_I_SESSION_MANAGER_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/ISession.h"
+#include <thread>
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
-
-   class outerResource : public SDBObject
+   class ISessionManager : public SDBObject
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+         ISessionManager(){}
+         virtual ~ISessionManager(){}
 
       public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                  NULL != sessionMgr;
-         }
-
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
+         virtual ISession *createNewSession() = 0;
+         virtual void destroySession(ISession *session) = 0;
+   };//class ISessionManager
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_OUTER_RESOURCE_H_
+#endif//VESSEL_I_SESSION_MANAGER_H_

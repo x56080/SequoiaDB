@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = ossThread.h
 
    Descriptive Name =
 
@@ -33,44 +33,49 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#ifndef OSS_THREAD_H_
+#define OSS_THREAD_H_
 
 #include "core.hpp"
 #include "oss.hpp"
 
+#include <thread> //c++11
+
 namespace engine
 {
-namespace vessel
-{
-   class IRedoLogger;
-   class ISessionManager;
-
-   class outerResource : public SDBObject
+   class ossThread : public SDBObject
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+         ossThread();
+         virtual ~ossThread();
+         ossThread(const ossThread &) = delete;
+         ossThread &operator=(const ossThread &) = delete;
 
       public:
-         BOOLEAN isValid()const
+         /// implement activeEntry and just call 'active' to start new thread.
+         virtual void activeEntry(){return;}
+
+         void active();
+
+         /// An other way to active new thread.
+         template<class Function, class ... Args>
+         static void active(ossThread &t, Function&& f, Args&& ...args)
          {
-            return NULL != logger &&
-                  NULL != sessionMgr;
+            t._thread = std::move(std::thread(f, args...));
          }
 
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
-}//namespace vessel
+         BOOLEAN isJoinable()const;
+         
+         void detach();
+
+         void join();
+
+      private:
+         static void _activeThread(ossThread *o);
+
+      private:
+         std::thread _thread;
+   };//class ossThread
 }//namespace engine
 
-#endif//VESSEL_OUTER_RESOURCE_H_
+#endif//OSS_THREAD_H_

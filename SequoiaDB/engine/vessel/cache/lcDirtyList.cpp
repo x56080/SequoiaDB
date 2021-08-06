@@ -39,6 +39,7 @@
 #include "ossLikely.hpp"
 #include "dpsLogDef.hpp"
 #include "vessel/diskIOJob.h"
+#include "ossLatchGuard.hpp"
 
 namespace engine
 {
@@ -67,11 +68,15 @@ namespace vessel
       return;
    }
 
-   UINT32 lcDirtyList::getSize(BOOLEAN lock)
+   UINT32 lcDirtyList::getSizeUnderLock()
    {
-      ossSpinXLatch *latch = lock ? &_latch : NULL;
-      ossScopedLock guard(latch);
+      ossXLatchGuard guard(&_latch);
       return _size;
+   }
+
+   UINT32 lcDirtyList::getSizeFast()const
+   {
+      return *((volatile UINT32 *)(&_size));
    }
 
    UINT64 lcDirtyList::getMinDirtyLSN(BOOLEAN lock)
@@ -110,7 +115,7 @@ namespace vessel
 
       if (tag->isInDirtyList())
       {
-         if (tag->getMaxMemDirtyLSN() < lsn)
+         if (!tag->isMemPageDirty() || tag->getMaxMemDirtyLSN() < lsn)
          {
             tag->setMaxMemDirtyLSN(lsn);
          }
@@ -180,8 +185,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       liteCachePageTag *itr = NULL;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
-      SDB_ASSERT(0 == job->getTagCount(), "must be empty");
+      SDB_ASSERT(!job->isRunning(), "must be empty");
 
+      job->prepare(ossRand(), diskIOJob::DIRTY_LIST, scanDepth);
       ossScopedLock guard(&_latch);
 
       itr = _tail;
@@ -190,7 +196,7 @@ namespace vessel
          liteCachePageTag *tag = itr;
          itr = itr->getDirtyListPre();
 
-         if (minLSN < tag->getMinDirtyLSN())
+         if (DPS_INVALID_LSN_OFFSET != minLSN && minLSN < tag->getMinDirtyLSN())
          {
             break;
          }

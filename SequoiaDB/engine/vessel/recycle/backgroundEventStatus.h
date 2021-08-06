@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = backgroundEventStatus.h
 
    Descriptive Name =
 
@@ -33,44 +33,58 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#ifndef VESSEL_BACKGROUND_EVENT_STATUS_H_
+#define VESSEL_BACKGROUND_EVENT_STATUS_H_
 
 #include "core.hpp"
 #include "oss.hpp"
+#include <mutex>//c++11
+#include <condition_variable>//c++11
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
-
-   class outerResource : public SDBObject
+   class backgroundEventStatus : public SDBObject
    {
       public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &) = delete;
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            sessionMgr = o.sessionMgr;
-            return *this;
-         }
+         backgroundEventStatus();
+         ~backgroundEventStatus();
+         backgroundEventStatus(const backgroundEventStatus &) = delete;
+         backgroundEventStatus &operator=(const backgroundEventStatus &) = delete;
 
       public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                  NULL != sessionMgr;
-         }
+         /// not thread safe
+         void reset(UINT32 size);
 
-      public:
-         IRedoLogger *logger = NULL;
-         ISessionManager *sessionMgr = NULL;
-   };//class outerResource
+
+         void finishOne();
+         void abort();
+
+         ///return false if aborted.
+         /// lastStillRunning shoulde be inited as size at first.
+         BOOLEAN wait(UINT32 lastStillRunning,
+                      UINT32 currentSitllRunning);
+
+         void waitForAll(BOOLEAN &aborted);
+
+      private:
+         BOOLEAN _everFinished()const
+         {
+            return _running < _size;
+         }
+         BOOLEAN _isRunning()const
+         {
+            return 0 < _running;
+         }
+      private:
+         std::mutex _mutex;
+         std::condition_variable _cv;
+         UINT32 _size = 0;
+         UINT32 _running = 0;
+         BOOLEAN _aborted = FALSE;
+   };//class backgroundEventStatus
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_OUTER_RESOURCE_H_
+#endif//VESSEL_BACKGROUND_EVENT_STATUS_H_

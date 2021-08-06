@@ -109,6 +109,27 @@ namespace vessel
             UINT32 bucketLatchCount = 512;
       };//class bucketOptions
 
+      class flushOptions : public SDBObject
+      {
+         public:
+            flushOptions(){}
+            ~flushOptions(){}
+            flushOptions(const flushOptions &) = delete;
+            flushOptions &operator=(const flushOptions &o)
+            {
+               flushDirtyListThreshold = o.flushDirtyListThreshold;
+               flushDirtyListTimeout = o.flushDirtyListTimeout;
+               flushLruListThreshold = o.flushLruListThreshold;
+               return *this;
+            }
+
+         public:
+            FLOAT32 flushDirtyListThreshold = 0.4;
+            UINT32 flushDirtyListTimeout = 300; /// seconds
+            FLOAT32 flushLruListThreshold = 0.8;
+         
+      };//class flushOptions
+
       public:
       liteCacheOptions(){}
       liteCacheOptions(const liteCacheOptions &) = delete;
@@ -117,6 +138,7 @@ namespace vessel
          bucket = o.bucket;
          freelist = o.freelist;
          lru = o.lru;
+         flush = o.flush;
          return *this;
       }
       
@@ -124,6 +146,7 @@ namespace vessel
       bucketOptions bucket;
       freeListOptions freelist;
       lruOptions lru;
+      flushOptions flush;
    }; /// end of class liteCacheOptions
 
    class storagePathOptions : public SDBObject
@@ -133,6 +156,7 @@ namespace vessel
          std::string indexPath;
          std::string lobPath;
          std::string lobMetaPath;
+         std::string lsmPath;
 
          const std::string &autoGetIndexPath()const
          {
@@ -159,6 +183,8 @@ namespace vessel
          BOOLEAN sparseExtendingFile = TRUE;
 
          liteCacheOptions cacheOptions;
+
+         UINT32 ioWorkerCount = 16;
 
          UINT32 lpidLatchMapBucketCount = 4096;
          UINT32 lpidLatchMapLatchCount = 256;

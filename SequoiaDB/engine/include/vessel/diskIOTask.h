@@ -49,28 +49,25 @@ namespace vessel
    class diskIOTask : public SDBObject
    {
       public:
-         OSS_INLINE diskIOTask():
-         _taskID(0),
-         _pageCount(0),
-         _job(NULL){}
+         diskIOTask(){}
 
-         OSS_INLINE diskIOTask(UINT32 taskID,
-                               UINT32 pageCount,
-                               diskIOJob *job):
+         diskIOTask(UINT32 taskID,
+                   UINT32 pageCount,
+                   diskIOJob *job):
          _taskID(taskID),
          _pageCount(pageCount),
          _job(job)
          {}
 
-         OSS_INLINE diskIOTask(const diskIOTask &o):
+         diskIOTask(const diskIOTask &o):
          _taskID(o._taskID),
          _pageCount(o._pageCount),
          _job(o._job)
          {}
 
-         OSS_INLINE ~diskIOTask(){}
+         ~diskIOTask(){}
 
-         OSS_INLINE diskIOTask &operator=(const diskIOTask &o)
+         diskIOTask &operator=(const diskIOTask &o)
          {
             _taskID = o._taskID;
             _pageCount = o._pageCount;
@@ -86,7 +83,7 @@ namespace vessel
 
          GLOBAL_PAGE_ID getFirstPID()const;
 
-         OSS_INLINE UINT32 getPageCount()const
+         OSS_INLINE UINT32 getSize()const
          {
             return _pageCount;
          }
@@ -106,9 +103,9 @@ namespace vessel
             return _taskID;
          }
       private:
-         UINT32 _taskID;
-         UINT32 _pageCount;
-         diskIOJob *_job;
+         UINT32 _taskID = 0;
+         UINT32 _pageCount = 0;
+         diskIOJob *_job = NULL;
    };//class diskIOTask
 
 }  /// end of namespace vessel 
