@@ -69,11 +69,11 @@ class index_ddl_test : public testing::Test
 TEST_F(index_ddl_test, test1)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -81,6 +81,7 @@ TEST_F(index_ddl_test, test1)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
 
    createIndexOptions indexOptions;
    indexParameters indexParams;

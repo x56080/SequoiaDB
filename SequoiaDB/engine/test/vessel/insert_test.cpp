@@ -99,11 +99,12 @@ class insert_test : public testing::Test
 TEST_F(insert_test, test1)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
+
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -175,10 +176,12 @@ TEST_F(insert_test, test2)
    test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
    slice record;
    DPS_TRANS_ID transID;
@@ -310,8 +313,8 @@ TEST_F(insert_test, test3)
    test_session session(test_logger::instance());
    openDBOptions options;
    options.ioWorkerCount = 4;
-   options.cacheOptions.freelist.maxChunkCount = 32;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
@@ -360,6 +363,7 @@ TEST_F(insert_test, test4)
    test_session session(&logger);
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    options.ioWorkerCount = 4;
    options.cacheOptions.freelist.maxChunkCount = 32;
    collectionHandler handler;
@@ -485,10 +489,12 @@ TEST_F(insert_test, test5)
    test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
@@ -534,10 +540,12 @@ TEST_F(insert_test, test6)
    test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    options.ioWorkerCount = 4;
    collectionHandler handler;
    UINT32 count = 4000000;

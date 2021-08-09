@@ -170,6 +170,8 @@ namespace vessel
             goto error;
          }
 
+         _cacheWatcher.fini();    
+         _env.ioWorkers.fini(); 
          _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context);
@@ -744,8 +746,6 @@ namespace vessel
 
       do
       {
-         job.prepare(0, diskIOJob::DIRTY_LIST, scanDepth);
-
          rc = _env.cacheConsole.get32KBCache().createDirtyListIOJob(context, scanDepth,
                                                                     DPS_INVALID_LSN_OFFSET,
                                                                     &job);
@@ -781,12 +781,9 @@ namespace vessel
             rc = _env.cacheConsole.get32KBCache().executeIOTask(context, &task);
             if (SDB_OK != rc)
             {
-               task.done();
                PD_LOG(PDERROR, "failed to execute io task:%d", rc);
                goto error;
             }
-
-            task.done();
 
          } while (TRUE);
 
@@ -804,8 +801,8 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
-         _cacheWatcher.fini();
-         _env.ioWorkers.fini();
+         _cacheWatcher.fini();    
+         _env.ioWorkers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
          _env.dms.close();

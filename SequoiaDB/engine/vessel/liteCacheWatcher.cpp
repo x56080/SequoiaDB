@@ -107,7 +107,7 @@ namespace vessel
             else if (backgroundEvent::EVENT_TYPE_FINISHED == event.getType())
             {
                handleFinishedEvent(event);
-               if (!hasRunningTask())
+               if (!quit && !hasRunningTask())
                {
                   createJobIfNecessary(&context);
                }
@@ -137,7 +137,7 @@ namespace vessel
                createJobIfNecessary(&context);
             }
          }
-      } while (!quit || 0 < _runningTaskCount);
+      } while (!quit || hasRunningTask());
 
       return;
    }

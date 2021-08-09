@@ -80,11 +80,12 @@ class cl_ddl_test : public testing::Test
 TEST_F(cl_ddl_test, test1)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -92,6 +93,7 @@ TEST_F(cl_ddl_test, test1)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    cursorHandler cursor;
    slice slice;
    bson::BSONObj record;
@@ -139,11 +141,11 @@ TEST_F(cl_ddl_test, test1)
 TEST_F(cl_ddl_test, test2)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -151,6 +153,7 @@ TEST_F(cl_ddl_test, test2)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -198,11 +201,12 @@ TEST_F(cl_ddl_test, test2)
 TEST_F(cl_ddl_test, test3)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
+
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -210,6 +214,7 @@ TEST_F(cl_ddl_test, test3)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
 
@@ -266,11 +271,12 @@ void thread_create_cl(vesselImpl *db, engine::vessel::ISession *session, UINT32 
 TEST_F(cl_ddl_test, test4)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
+
    vesselImpl db;
    outerResource resource;
-   resource.logger = &logger; 
-   test_session session(&logger);
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -278,6 +284,7 @@ TEST_F(cl_ddl_test, test4)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
    static const UINT32 threadCount = 4;
