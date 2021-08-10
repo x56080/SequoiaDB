@@ -1352,7 +1352,7 @@ namespace engine
 
    INT32 _omManager::deactive ()
    {
-      _netAgent.closeListen() ;
+      _netAgent.shutdownListen() ;
       // stop io
       _netAgent.stop() ;
 

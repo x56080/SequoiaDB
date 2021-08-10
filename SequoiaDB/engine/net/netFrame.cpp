@@ -441,6 +441,9 @@ namespace engine
          rc = ossException2RC( &e ) ;
       }
 
+      // close listen
+      closeListen( NET_FRAME_MASK_ALL ) ;
+
       /// WARNING: try catch each exceptions of each steps during stop
       /// to make sure each step can tell related sessions and net suits to
       /// stop
@@ -530,7 +533,7 @@ namespace engine
       _suiteStopFlag = TRUE ;
       _suiteMtx.release() ;
 
-      closeListen( NET_FRAME_MASK_ALL ) ;
+      shutdownListen( NET_FRAME_MASK_ALL ) ;
       _mainSuitPtr->getIOService().stop() ;
       PD_TRACE_EXIT ( SDB__NETFRAME_STOP );
    }
@@ -1767,6 +1770,57 @@ namespace engine
       return rc ;
    }
 
+   INT32 _netFrame::shutdownListen( UINT32 protocolMask )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_TCP ) &&
+              _acceptor.is_open() )
+         {
+            boost::system::error_code ec ;
+
+            // close native socket
+            boost::asio::detail::socket_ops::shutdown(
+                  _acceptor.native_handle(),
+                  boost::asio::ip::tcp::socket::shutdown_both, ec ) ;
+#if defined (_DEBUG)
+            if ( ec )
+            {
+               PD_LOG( PDDEBUG, "Failed to shutdown socket of acceptor, "
+                       "occur error %s,%d", ec.message().c_str(),
+                       ec.value() ) ;
+            }
+#endif
+
+            // cancel acceptor operation
+            _acceptor.cancel( ec ) ;
+#if defined (_DEBUG)
+            if ( ec )
+            {
+               PD_LOG( PDDEBUG, "Failed to cancel acceptor, "
+                       "occur error %s,%d", ec.message().c_str(),
+                       ec.value() ) ;
+            }
+#endif
+         }
+         if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) &&
+              NULL != _udpMainSuit.get() )
+         {
+            _udpMainSuit->shutdown() ;
+         }
+      }
+      catch( boost::system::system_error &e )
+      {
+         PD_LOG ( PDERROR, "Close listen occur error: %s,%d",
+                  e.what(), e.code().value() ) ;
+         rc = SDB_NETWORK ;
+      }
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__NETFRAME_CLOSE3, "_netFrame::close" )
    void _netFrame::close( const NET_HANDLE &handle,
                           MsgRouteID *pID )
@@ -2235,18 +2289,26 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETFRAME__APTCALLBCK );
       if ( error )
       {
-         PD_LOG ( PDERROR, "Accept connection occur exception: %s, %d",
-                  error.message().c_str(), error.value() ) ;
-
          if ( boost::system::errc::too_many_files_open == error.value() ||
               boost::system::errc::too_many_files_open_in_system ==
               error.value() )
          {
+            // in IO service async callback, safe to call close
             closeListen( NET_FRAME_MASK_TCP ) ;
             PD_LOG( PDERROR, "Can not accept more connections because of "
                     "open files upto limits, restart listening" ) ;
             _restartTimer.startTimer() ;
             pmdIncErrNum( SDB_TOO_MANY_OPEN_FD ) ;
+         }
+         else if ( boost::asio::error::operation_aborted == error.value() )
+         {
+            PD_LOG( PDINFO, "acceptor is closed: %s,%d",
+                    error.message().c_str(), error.value() ) ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Accept connection occur exception: %s, %d",
+                     error.message().c_str(), error.value() ) ;
          }
 
          goto done ;

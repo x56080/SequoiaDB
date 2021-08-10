@@ -282,8 +282,8 @@ namespace engine
       {
          // 1. unreg net from controller
          sdbGetPMDController()->unregNet( _pAgent->getFrame() ) ;
-         // 2. close listen
-         _pAgent->closeListen() ;
+         // 2. shutdown listen
+         _pAgent->shutdownListen() ;
          // 3. stop io
          _pAgent->stop() ;
       }

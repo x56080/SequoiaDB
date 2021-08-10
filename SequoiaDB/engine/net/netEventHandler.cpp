@@ -613,7 +613,8 @@ namespace engine
             goto done ;
          }
          else if ( error.value() == boost::system::errc::operation_canceled ||
-                   error.value() == boost::system::errc::no_such_file_or_directory )
+                   error.value() == boost::system::errc::no_such_file_or_directory ||
+                   error.value() == boost::asio::error::operation_aborted )
          {
             PD_LOG ( PDINFO, "Connection[Handle:%d, Node:%s] has been "
                      "closed: %s,%d", _handle, routeID2String( _id ).c_str(),

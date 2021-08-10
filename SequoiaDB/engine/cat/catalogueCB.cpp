@@ -471,7 +471,7 @@ namespace engine
       // 1. stop listen
       if ( _pNetWork )
       {
-         _pNetWork->closeListen() ;
+         _pNetWork->shutdownListen() ;
       }
 
       // 2. stop io

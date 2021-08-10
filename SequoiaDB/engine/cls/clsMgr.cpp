@@ -985,11 +985,11 @@ namespace engine
       // 2. stop listen
       if ( _replNetRtAgent )
       {
-         _replNetRtAgent->closeListen() ;
+         _replNetRtAgent->shutdownListen() ;
       }
       if ( _shardNetRtAgent )
       {
-         _shardNetRtAgent->closeListen() ;
+         _shardNetRtAgent->shutdownListen() ;
       }
 
       // 3. stop io

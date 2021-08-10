@@ -419,7 +419,7 @@ namespace seadapter
 
    INT32 _seAdptCB::deactive()
    {
-      _svcRtAgent.closeListen() ;
+      _svcRtAgent.shutdownListen() ;
       _dbAssist.routeAgent()->stop() ;
       _svcRtAgent.stop() ;
 

@@ -372,7 +372,8 @@ namespace engine
             goto done ;
          }
          else if ( error.value() == boost::system::errc::operation_canceled ||
-                   error.value() == boost::system::errc::no_such_file_or_directory )
+                   error.value() == boost::system::errc::no_such_file_or_directory ||
+                   error.value() == boost::asio::error::operation_aborted )
          {
             PD_LOG ( PDINFO, "UDP connection has been closed: %s,%d",
                      error.message().c_str(), error.value() ) ;
@@ -410,6 +411,7 @@ namespace engine
       return ;
 
    error_close :
+      // in IO service async callback, safe to call close
       close() ;
       // start timer to listen again
       _restartTimer.startTimer() ;
@@ -475,16 +477,59 @@ namespace engine
 
       boost::system::error_code ec ;
 
-      /// only shutdown, don't call _sock.close
+      /// NOTE: for portable behavior with respect to graceful closure of a
+      /// connected socket, call shutdown before closing the socket
+      _sock.shutdown( udp::socket::shutdown_both, ec ) ;
+#if defined (_DEBUG)
+      if ( ec )
+      {
+         PD_LOG( PDDEBUG, "Failed to shutdown UDP socket, "
+                 "occur error %s,%d", ec.message().c_str(), ec.value() ) ;
+      }
+#endif
+
+      /// WARN: close is not thread safe
       /// because when close, the net-thread will be in asyncRead code.
       /// then close will release socket's descriptor, but asyncRead
       /// will used after, so it cause null pointer exception
-      /// To fix the bug, we call _sock.close in destructor
-      _sock.shutdown( udp::socket::shutdown_both, ec ) ;
+      _sock.close( ec ) ;
+#if defined (_DEBUG)
+      if ( ec )
+      {
+         PD_LOG( PDDEBUG, "Failed to close UDP socket, "
+                 "occur error %s,%d", ec.message().c_str(), ec.value() ) ;
+      }
+#endif
 
       removeAllEH() ;
 
       PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT_CLOSE ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_SHUTDOWN, "_netUDPEventSuit::shutdown" )
+   void _netUDPEventSuit::shutdown()
+   {
+      PD_TRACE_ENTRY( SDB__NETUDPEVENTSUIT_SHUTDOWN ) ;
+
+      boost::system::error_code ec ;
+
+      /// WARN: close is not thread safe
+      /// because when close, the net-thread will be in asyncRead code.
+      /// then close will release socket's descriptor, but asyncRead
+      /// will used after, so it cause null pointer exception
+      /// call shutdown on other threads
+      _sock.shutdown( udp::socket::shutdown_both, ec ) ;
+#if defined (_DEBUG)
+      if ( ec )
+      {
+         PD_LOG( PDDEBUG, "Failed to shutdown UDP socket, "
+                 "occur error %s,%d", ec.message().c_str(), ec.value() ) ;
+      }
+#endif
+
+      removeAllEH() ;
+
+      PD_TRACE_EXIT( SDB__NETUDPEVENTSUIT_SHUTDOWN ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETUDPEVENTSUIT_SETOPT, "_netUDPEventSuit::setOptions" )

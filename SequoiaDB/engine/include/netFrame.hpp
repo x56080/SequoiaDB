@@ -282,7 +282,9 @@ namespace engine
 
          void  close() ;
 
+         // WARNING: close of acceptor is not thread safe
          INT32 closeListen ( UINT32 protocolMask = NET_FRAME_MASK_ALL ) ;
+         INT32 shutdownListen( UINT32 protocolMask = NET_FRAME_MASK_ALL ) ;
 
          void  handleMsg( NET_EH eh ) ;
 

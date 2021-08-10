@@ -104,9 +104,11 @@ namespace engine
             _frame.close( handle ) ;
          }
 
-         OSS_INLINE void closeListen()
+         OSS_INLINE void shutdownListen()
          {
-            _frame.closeListen( NET_FRAME_MASK_ALL ) ;
+            // WARNING: can not call close which is not thread-safe
+            // during asyncAccept of acceptor
+            _frame.shutdownListen( NET_FRAME_MASK_ALL ) ;
          }
 
          OSS_INLINE void disconnectAll()
