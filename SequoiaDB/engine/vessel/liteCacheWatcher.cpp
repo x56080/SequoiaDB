@@ -78,7 +78,7 @@ namespace vessel
 
       _env = env;
       _or = resource;
-      _time = ossGetCurrentMilliseconds();
+      _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
    done:
       return rc;
    error:
@@ -94,6 +94,7 @@ namespace vessel
       backgroundEvent event;
       diskIOJob _job;
       BOOLEAN quit = FALSE;
+      UINT32 flushDirtyListTimeout = _env->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
 
       do
       {
@@ -127,8 +128,7 @@ namespace vessel
             
             SDB_ASSERT(!_job.isRunning(), "impossible");
             UINT64 currentTime = ossGetCurrentMilliseconds();
-            if ((_time + _env->options.cacheOptions.flush.flushDirtyListTimeout) <=
-                  currentTime)
+            if ((_lastFlushDirtyListTime + flushDirtyListTimeout) <= currentTime)
             {
                createDirtyListJobWhenTimeout(&context);
             }
@@ -159,7 +159,7 @@ namespace vessel
       }
       _env = NULL;
       _or = NULL;
-      _time = 0;
+      _lastFlushDirtyListTime = 0;
       _job.reset();
       _runningTaskCount = 0;
    }
@@ -233,7 +233,7 @@ namespace vessel
             {
                _env->cacheConsole.get32KBCache().updateMinCacheLsn();
                /// reset dirty list flushting time.
-               _time = ossGetCurrentMilliseconds();
+               _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
             }
             _job.reset();
          }

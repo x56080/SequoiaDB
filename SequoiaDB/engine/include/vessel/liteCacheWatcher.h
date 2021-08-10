@@ -75,7 +75,7 @@ namespace vessel
          instanceEnv *_env = NULL;
          outerResource *_or = NULL;
          ISession *_session = NULL;
-         UINT64 _time = 0;
+         UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
          diskIOJob _job;
          UINT32 _runningTaskCount = 0;
