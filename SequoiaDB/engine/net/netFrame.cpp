@@ -1793,17 +1793,6 @@ namespace engine
                        ec.value() ) ;
             }
 #endif
-
-            // cancel acceptor operation
-            _acceptor.cancel( ec ) ;
-#if defined (_DEBUG)
-            if ( ec )
-            {
-               PD_LOG( PDDEBUG, "Failed to cancel acceptor, "
-                       "occur error %s,%d", ec.message().c_str(),
-                       ec.value() ) ;
-            }
-#endif
          }
          if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) &&
               NULL != _udpMainSuit.get() )
