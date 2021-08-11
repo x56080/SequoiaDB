@@ -72,7 +72,7 @@ class TestMetedata13482(testlib.SdbTestBase):
          self.fail("delete domain fail") 
       except BaseException as e:
          if not e.code == -214:
-            self.fail("delete domain fail: " + e.detail)         
+            self.fail("delete domain fail: " + str(e))
             
       #create same domain with no option
       self.db.create_domain(self.domain_name)
@@ -120,7 +120,7 @@ class TestMetedata13482(testlib.SdbTestBase):
          self.fail("domain does not exist") 
       except SDBBaseError as e:
          if not e.code == -214:
-            self.fail("drop domain fail: " + e.detail)    
+            self.fail("drop domain fail: " + str(e))
 
       #create same domain with options AutoSplit
       try:
@@ -135,4 +135,4 @@ class TestMetedata13482(testlib.SdbTestBase):
          self.db.drop_domain(self.domain_name)
       except SDBBaseError as e:
          if e.code != -214:
-            self.fail("drop domain fail when teardown: " + e.detail) 
+            self.fail("drop domain fail when teardown: " + str(e))

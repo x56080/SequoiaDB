@@ -78,7 +78,7 @@ class groupException13687(testlib.SdbTestBase):
       try:
          self.db.get_replica_group_by_name(group_name)     
       except SDBBaseError as e:
-         self.fail("check create group fail: " + e.detail)
+         self.fail("check create group fail: " + str(e))
          
    def check_remove_group_success(self, group_name):
       try:
@@ -92,5 +92,5 @@ class groupException13687(testlib.SdbTestBase):
          self.db.remove_replica_group(self.group_name)       
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail("tear down fail: " + e.detail)
+            self.fail("tear down fail: " + str(e))
          

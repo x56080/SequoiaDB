@@ -21,7 +21,7 @@ class TestNumberLong9460(testlib.SdbTestBase):
          self.db.drop_collection_space(self.cs_name)
       except SDBBaseError as e:
          if -34 != e.code:
-            self.fail("drop_cs_fail,detail:" + e.detail)
+            self.fail("drop_cs_fail,detail:" + str(e))
       self.cs = self.db.create_collection_space(self.cs_name)
       self.cl = self.cs.create_collection(self.cl_name, {"ReplSize": 0})
 

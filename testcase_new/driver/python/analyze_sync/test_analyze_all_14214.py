@@ -152,7 +152,7 @@ class TestAnalyzeAll14214(testlib.SdbTestBase):
       try:
          cl.bulk_insert(flag, doc)
       except SDBBaseError as e:   
-         self.fail('insert fail: ' + e.detail) 
+         self.fail('insert fail: ' + str(e))
          
    def insert_same_datas(self, cl, insert_nums, same_value):
       flag = 0
@@ -164,7 +164,7 @@ class TestAnalyzeAll14214(testlib.SdbTestBase):
       try:
          cl.bulk_insert(flag, doc)
       except SDBBaseError as e:   
-         self.fail('insert fail: ' + e.detail)       
+         self.fail('insert fail: ' + str(e))
          
    def check_explain(self, expect_explain, act_explain):
       expect_explain = get_sort_result(expect_explain)

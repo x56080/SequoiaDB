@@ -94,7 +94,7 @@ class TestgetSession14178(testlib.SdbTestBase):
          self.db.disconnect()
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail("tear_down_fail: " + e.detail)
+            self.fail("tear_down_fail: " + str(e))
             
    def insert_datas( self , insert_nums):
       flag = 0
@@ -104,7 +104,7 @@ class TestgetSession14178(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:   
-         self.fail('insert fail: ' + e.detail) 
+         self.fail('insert fail: ' + str(e))
    
    def check_session_attr(self, expect_session_attr, act_session_attr):
       # compare act and expect results

@@ -35,7 +35,7 @@ class TestSession12506(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def check_session(self, opts):
       try:
@@ -48,4 +48,4 @@ class TestSession12506(testlib.SdbTestBase):
          actDataCount= new_cl.get_count()
          self.assertEqual(expectDataCount,actDataCount,str(expectDataCount) + ' is not equal ' + str(actDataCount))
       except SDBBaseError as e:
-         self.fail('set session fail: ' + e.detail)
+         self.fail('set session fail: ' + str(e))

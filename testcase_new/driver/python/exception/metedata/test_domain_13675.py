@@ -42,7 +42,7 @@ class DomainException13675(testlib.SdbTestBase):
          self.assertIn(expect_domain, act_domains)
             
       except SDBBaseError as e:
-         self.fail("check domain fail: " + e.detail)
+         self.fail("check domain fail: " + str(e))
          
    def check_remove_domain_success(self, domain_name):
       try:
@@ -52,7 +52,7 @@ class DomainException13675(testlib.SdbTestBase):
          expect_domain = {'Name': domain_name}
          self.assertNotIn(expect_domain, act_domains)
       except SDBBaseError as e:
-         self.fail("check domain fail: " + e.detail)
+         self.fail("check domain fail: " + str(e))
 
    def check_error_create_domain(self, domain_name):
       try:
@@ -84,4 +84,4 @@ class DomainException13675(testlib.SdbTestBase):
             self.db.drop_domain(self.domain_name)
          except SDBBaseError as e:
             if -214 != e.code:
-               self.fail("teardown fail: " + e.detail) 
+               self.fail("teardown fail: " + str(e))

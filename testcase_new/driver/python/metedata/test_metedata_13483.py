@@ -116,4 +116,4 @@ class TestMetedata13482(testlib.SdbTestBase):
          self.db.drop_domain(domain_name)
       except SDBBaseError as e:
          if e.code != -214:
-            self.fail(msg + e.detail)    
+            self.fail(msg + str(e))

@@ -62,7 +62,7 @@ class TestListCollections12504(testlib.SdbTestBase):
 
          act_result = self.get_act_result(cursor)
       except SDBBaseError as e:
-         self.fail('get list fail: ' + e.detail)
+         self.fail('get list fail: ' + str(e))
       return act_result
       
    def get_list_collectionspaces(self, cond):
@@ -75,7 +75,7 @@ class TestListCollections12504(testlib.SdbTestBase):
 
          act_result = self.get_act_result(cursor)
       except SDBBaseError as e:
-         self.fail('get list fail: ' + e.detail)
+         self.fail('get list fail: ' + str(e))
       return act_result
 
    def get_act_result(self, cursor):

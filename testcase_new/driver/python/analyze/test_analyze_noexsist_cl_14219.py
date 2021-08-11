@@ -33,5 +33,5 @@ class TestAnalyzeInvalidCL14219(testlib.SdbTestBase):
          self.fail('Need Analyze Fail')
       except SDBBaseError as e:  
          if errcode != e.code:      
-            self.fail('insert fail: ' + str(e.code) + ", " + e.detail) 
+            self.fail('insert fail: ' + str(e))
         

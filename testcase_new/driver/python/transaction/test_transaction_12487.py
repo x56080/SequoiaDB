@@ -54,7 +54,7 @@ class TestTransaction12487(testlib.SdbTestBase):
       try:
          self.db.transaction_begin()
       except SDBBaseError as e:
-         self.fail('begin transaction fail: ' + e.detail)
+         self.fail('begin transaction fail: ' + str(e))
 
    def insert_datas(self):
       doc = []
@@ -64,25 +64,25 @@ class TestTransaction12487(testlib.SdbTestBase):
          flags = 0
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def update_datas(self,rule,cond):
       try:
          self.cl.update(rule, condition = cond)
       except SDBBaseError as e:
-         self.fail('update fail: ' + e.detail)
+         self.fail('update fail: ' + str(e))
 
    def remove_datas(self,cond):
       try:
          self.cl.delete(condition = cond)
       except SDBBaseError as e:
-         self.fail('remove fail: ' + e.detail)
+         self.fail('remove fail: ' + str(e))
 
    def commit_transaction(self):
       try:
          self.db.transaction_commit()
       except SDBBaseError as e:
-         self.fail('commit transaction fail: ' + e.detail)
+         self.fail('commit transaction fail: ' + str(e))
 
    def check_result(self,expectRec,cond = None):
       try:
@@ -95,4 +95,4 @@ class TestTransaction12487(testlib.SdbTestBase):
          # check result
          self.assertListEqualUnordered(expectRec, actRec)
       except SDBBaseError as e:
-         self.fail('check result fail: ' + e.detail)
+         self.fail('check result fail: ' + str(e))

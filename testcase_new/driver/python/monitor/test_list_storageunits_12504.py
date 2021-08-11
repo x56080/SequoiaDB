@@ -45,7 +45,7 @@ class TestListStorageUnits12504(testlib.SdbTestBase):
          rg = self.db.get_replica_group_by_name(group_name)
          datadb = rg.get_master().connect()
       except BaseException as e:
-         self.fail('get datadb fail: ' + e.detail)
+         self.fail('get datadb fail: ' + str(e))
       return datadb   
          
    def check_list(self, expect_result, act_result):
