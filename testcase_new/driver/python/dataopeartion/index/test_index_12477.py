@@ -52,7 +52,7 @@ class TestIdIndex12477(testlib.SdbTestBase):
          flags = 0
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def create_id_index(self, opt):
       try:
@@ -62,14 +62,14 @@ class TestIdIndex12477(testlib.SdbTestBase):
             self.cl.create_id_index(options=opt)
       except SDBBaseError as e:
          if not -247 == e.code:
-            self.fail('create index fail: ' + e.detail)
+            self.fail('create index fail: ' + str(e))
 
    def drop_id_index(self):
       try:
          self.cl.drop_id_index()
       except SDBBaseError as e:
          if not -47 == e.code:		
-            self.fail('drop index fail: ' + e.detail)
+            self.fail('drop index fail: ' + str(e))
 
    def check_update_result(self, is_success):
       try:
@@ -82,7 +82,7 @@ class TestIdIndex12477(testlib.SdbTestBase):
             self.fail('NEED UPDATE FAIL')
       except SDBBaseError as e:
          if is_success:
-            self.fail('update fail error: ' + e.detail)
+            self.fail('update fail error: ' + str(e))
          else:
             self.assertEqual(-279, e.code, 'update fail error: ' + e.detail)
 
@@ -93,4 +93,4 @@ class TestIdIndex12477(testlib.SdbTestBase):
          act_name = rec['IndexDef']['name']
          self.assertEqual(expect_name, act_name, expect_name + ' not equal to ' + act_name)
       except SDBBaseError as e:
-         self.fail('check id index fail: ' + e.detail)
+         self.fail('check id index fail: ' + str(e))

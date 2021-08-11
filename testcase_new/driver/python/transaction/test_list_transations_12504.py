@@ -47,7 +47,7 @@ class TestListTransactions12504(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(0, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
              
    def check_list(self, expect_result, act_result):
       is_has_sessionid = False

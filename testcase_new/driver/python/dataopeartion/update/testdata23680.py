@@ -24,7 +24,7 @@ class TestUpdateOneAndDeleteOne23680(testlib.SdbTestBase):
          expectRec = [{"a": 1}, {"a": 1}, {"a": 1}]
          self.checkResult(cursor, expectRec)
       except SDBBaseError as e:
-         self.fail("delete one error: " + e.detail)
+         self.fail("delete one error: " + str(e))
 
       # 匹配多条记录，更新一条
       update = {'$inc': {"a": 5}}
@@ -34,7 +34,7 @@ class TestUpdateOneAndDeleteOne23680(testlib.SdbTestBase):
          expectRec = [{"a": 1}, {"a": 1}, {"a": 6}]
          self.checkResult(cursor, expectRec)
       except SDBBaseError as e:
-         self.fail("update one error: " + e.detail)
+         self.fail("update one error: " + str(e))
 
       # 匹配多条记录，upsert 一条记录
       upsert = {'$inc': {"a": 5}}
@@ -46,7 +46,7 @@ class TestUpdateOneAndDeleteOne23680(testlib.SdbTestBase):
          expectRec = [{"a": 6}, {"a": 6}, {"a": 1}]
          self.checkResult(cursor, expectRec)
       except SDBBaseError as e:
-         self.fail("upsert one error: " + e.detail)
+         self.fail("upsert one error: " + str(e))
 
    def tearDown(self):
       if self.should_clean_env():

@@ -20,12 +20,12 @@ class TestSequence23713(testlib.SdbTestBase):
             self.db.drop_sequence(self.seq_name)
         except SDBBaseError as e:
             if -324 != e.code:
-                self.fail("drop_seq_fail,detail:" + e.detail)
+                self.fail("drop_seq_fail,detail:" + str(e))
         try:
             self.db.drop_sequence(self.seq_name_new)
         except SDBBaseError as e:
             if -324 != e.code:
-                self.fail("drop_seq_fail,detail:" + e.detail)
+                self.fail("drop_seq_fail,detail:" + str(e))
 
     def test(self):
         # create sequence
@@ -87,7 +87,7 @@ class TestSequence23713(testlib.SdbTestBase):
             self.fail("exp failed but act success!!!!")
         except SDBBaseError as e:
             if -324 != e.code:
-                self.fail("drop_seq_fail,detail:" + e.detail)
+                self.fail("drop_seq_fail,detail:" + str(e))
 
     def tearDown(self):
         if self.should_clean_env():
@@ -95,9 +95,9 @@ class TestSequence23713(testlib.SdbTestBase):
                 self.db.drop_sequence(self.seq_name)
             except SDBBaseError as e:
                 if -324 != e.code:
-                    self.fail("drop_seq_fail,detail:" + e.detail)
+                    self.fail("drop_seq_fail,detail:" + str(e))
             try:
                 self.db.drop_sequence(self.seq_name_new)
             except SDBBaseError as e:
                 if -324 != e.code:
-                    self.fail("drop_seq_fail,detail:" + e.detail)
+                    self.fail("drop_seq_fail,detail:" + str(e))

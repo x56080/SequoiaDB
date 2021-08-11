@@ -122,7 +122,7 @@ class TestSave12502(testlib.SdbTestBase):
          self.check_result(condition4, expectCount4)
 			
       except SDBError as e:
-         self.fail('test save fail: ' + e.detail)                    
+         self.fail('test save fail: ' + str(e))
 			
    def tearDown(self):
       if self.should_clean_env():
@@ -142,13 +142,13 @@ class TestSave12502(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def split_cl(self, srcGroupName, destGroupName):
       try:
          self.cl.split_async_by_percent(srcGroupName, destGroupName, 50.0)
       except SDBBaseError as e:
-         self.fail('split fail: ' + e.detail) 
+         self.fail('split fail: ' + str(e))
 
    def check_result(self, cond, expectCount):
       actCount = 0
@@ -156,4 +156,4 @@ class TestSave12502(testlib.SdbTestBase):
          actCount = self.cl.get_count(condition=cond)
          self.assertEqual(actCount, expectCount)
       except SDBBaseError as e:
-         self.fail('check result fail: ' + e.detail)
+         self.fail('check result fail: ' + str(e))

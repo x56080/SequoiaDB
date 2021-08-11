@@ -21,7 +21,7 @@ class TestMeteData12447(testlib.SdbTestBase):
          self.db.drop_collection_space(self.cs_name)
       except SDBBaseError as e:
          if -34 != e.code:
-            self.fail("drop_cs_fail,detail:" + e.detail)
+            self.fail("drop_cs_fail,detail:" + str(e))
       self.db.create_collection_space( self.cs_name )
       
       #get cs and create cl
@@ -74,4 +74,4 @@ class TestMeteData12447(testlib.SdbTestBase):
             self.db.drop_collection_space(self.cs_name)
          except SDBBaseError as e:
             if -34 != e.code:
-               self.fail("tear_down_fail,detail:" + e.detail)
+               self.fail("tear_down_fail,detail:" + str(e))

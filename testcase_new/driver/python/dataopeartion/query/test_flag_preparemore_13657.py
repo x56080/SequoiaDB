@@ -40,7 +40,7 @@ class TestFind13657(testlib.SdbTestBase):
          flags = 0
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
          
    def check_query_result(self, expectResult, **kwargs):
       try:
@@ -49,5 +49,5 @@ class TestFind13657(testlib.SdbTestBase):
          actResult = testlib.get_all_records_noid(cursor)
          self.assertListEqualUnordered(expectResult, actResult)
       except SDBBaseError as e:
-         self.fail('check query fail: ' + e.detail)
+         self.fail('check query fail: ' + str(e))
     

@@ -37,7 +37,7 @@ class TestFind12471(testlib.SdbTestBase):
          flags = 0
          self.cl.bulk_insert(flags, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def get_count(self, expect_count, cond):
       try:
@@ -47,7 +47,7 @@ class TestFind12471(testlib.SdbTestBase):
             act_count = self.cl.get_count(condition = cond)
          self.assertEqual(expect_count, act_count)
       except SDBBaseError as e:
-         self.fail('get count fail: ' + e.detail)
+         self.fail('get count fail: ' + str(e))
 
    def query_datas(self, expectResult):
 	   # find all records

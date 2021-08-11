@@ -87,7 +87,7 @@ class TestGetSlave13794(testlib.SdbTestBase):
          self.db.remove_replica_group(group_name)
       except SDBBaseError as e:
          if -154 != e.code:
-            self.fail(msg + e.detail)    
+            self.fail(msg + str(e))
           
    def is_master(self, data_rg, node):
       is_master = False

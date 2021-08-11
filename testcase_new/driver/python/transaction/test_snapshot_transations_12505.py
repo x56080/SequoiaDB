@@ -48,7 +48,7 @@ class TestSnapshotTransaction12505(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(0, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
              
    def check_snapshot(self, expect_result, act_result):
       is_has_sessionid = False

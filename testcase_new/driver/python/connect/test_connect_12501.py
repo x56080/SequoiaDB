@@ -51,7 +51,7 @@ class TestConnect12501(testlib.SdbTestBase):
       try:
          self.cl.bulk_insert(flag, doc)
       except SDBBaseError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def get_catalog_info(self, cond, expectRec):
       new_db = testlib.default_db()
@@ -72,7 +72,7 @@ class TestConnect12501(testlib.SdbTestBase):
 
          self.check_catalog_result(expectRec, actRec)
       except SDBBaseError as e:
-         self.fail('check catalog fail: ' + e.detail)
+         self.fail('check catalog fail: ' + str(e))
       finally:
          new_db.disconnect()
 
@@ -101,7 +101,7 @@ class TestConnect12501(testlib.SdbTestBase):
             nodeAddrs.append({'host': host_name, 'service': svc_name})
 
       except SDBBaseError as e:
-         self.fail("get groupAdrr fail: " + e.detail)
+         self.fail("get groupAdrr fail: " + str(e))
 
       return nodeAddrs
 
@@ -119,7 +119,7 @@ class TestConnect12501(testlib.SdbTestBase):
             # check data result
             self.check_connect_result(new_db)
       except SDBBaseError as e:
-         self.fail("connect to node fail: " + e.detail)
+         self.fail("connect to node fail: " + str(e))
       finally:
          new_db.disconnect()
 
@@ -131,7 +131,7 @@ class TestConnect12501(testlib.SdbTestBase):
          actCount = new_cl.get_count()
          self.assertEqual(insert_nums, actCount)
       except SDBBaseError as e:
-         self.fail('check node fail: ' + e.detail)
+         self.fail('check node fail: ' + str(e))
 
    def check_disconnect_node(self):
       new_db = testlib.default_db()
@@ -141,11 +141,11 @@ class TestConnect12501(testlib.SdbTestBase):
          expectRec = 0
          self.check_disconnect_result(new_db, expectRec)
       except SDBBaseError as e:
-         self.fail('disconnect node fail: ' + e.detail)
+         self.fail('disconnect node fail: ' + str(e))
 
    def check_disconnect_result(self, new_db, expectRec):
       try:
          actRec = new_db.is_valid()
          self.assertEqual(expectRec, actRec, 'node still valid')
       except SDBBaseError as e:
-         self.fail('check disconnect node fail: ' + e.detail)
+         self.fail('check disconnect node fail: ' + str(e))

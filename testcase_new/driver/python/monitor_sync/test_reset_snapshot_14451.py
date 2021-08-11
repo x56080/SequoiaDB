@@ -48,7 +48,7 @@ class TestResetSnapshot14451(testlib.SdbTestBase):
       try:
          cl.bulk_insert(flag, doc)
       except SDBError as e:
-         self.fail('insert fail: ' + e.detail)
+         self.fail('insert fail: ' + str(e))
 
    def create_statis_info(self, dataDB):
       cs = dataDB.get_collection_space(self.cs_name)
