@@ -5,10 +5,10 @@
 
 | 选择符                                                          | 描述                     | 示例                                              |
 | --------------------------------------------------------------- | ------------------------ | ------------------------------------------------- |
-| [$include][include]     | 选择或移除某个字段       | db.sample.employee.find( {}, { "a": { "$include": 1 } } )     |
-| [$default][default]     | 当字段不存在时返回默认值 | db.sample.employee.find( {}, { "a": { "$default": "myvalue" } } ) |
-| [$elemMatch][elemMatch] | 返回数组内满足条件的元素的集合 | db.sample.employee.find( {}, { "a": { "$elemMatch": { "a": 1 } } } ) |
-| [$elemMatchOne][elemMatchOne] | 返回数组内满足条件的第一个元素的集合 | db.sample.employee.find( {}, { "a": { "$elemMatchOne": { "a": 1 } } } )     |
+| [$include][include]     | 选择或移除某个字段       | db.sample.employee.find({}, {"a": {"$include": 1}})     |
+| [$default][default]     | 当字段不存在时返回默认值 | db.sample.employee.find({}, {"a": {"$default": "myvalue"}}) |
+| [$elemMatch][elemMatch] | 返回数组或者对象中满足条件的元素集合 | db.sample.employee.find({}, {"a": {"$elemMatch": {"a": 1}}}) |
+| [$elemMatchOne][elemMatchOne] | 返回数组或者对象中满足条件的第一个元素 | db.sample.employee.find({}, {"a": {"$elemMatchOne": {"a": 1}}})     |
 
 
 
