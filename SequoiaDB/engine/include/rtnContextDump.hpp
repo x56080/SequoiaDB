@@ -62,8 +62,7 @@ namespace engine
          INT32 monAppend( const BSONObj &result ) ;
 
          void  setMonFetch( rtnFetchBase *pFetch, BOOLEAN ownned ) ;
-         rtnFetchBase* getMonFetch() { return _pFetch ; }
-         BOOLEAN isMonFetchOwnned() const { return _ownnedFetch ; }
+         void  setMonProcessor( IRtnMonProcessor *pProcessor ) ;
 
          INT64 getNumToReturn() const { return _numToReturn ; }
 
@@ -75,18 +74,7 @@ namespace engine
       protected:
          virtual INT32  _prepareData( _pmdEDUCB *cb ) ;
          virtual void   _toString( stringstream &ss ) ;
-
-         virtual void      _onDataEmpty ()
-         {
-            if ( !_hitEnd &&
-                 isEmpty() &&
-                 ( 0 == _numToReturn ||
-                   NULL == _pFetch ||
-                   _pFetch->isHitEnd() ) )
-            {
-               _hitEnd = TRUE ;
-            }
-         }
+         virtual void   _onDataEmpty () ;
 
       private:
          // rest number of records to expect, -1 means select all
@@ -96,6 +84,8 @@ namespace engine
 
          rtnFetchBase               *_pFetch ;
          BOOLEAN                    _ownnedFetch ;
+
+         IRtnMonProcessor           *_pMonProcessor ;
 
    } ;
    typedef _rtnContextDump rtnContextDump ;

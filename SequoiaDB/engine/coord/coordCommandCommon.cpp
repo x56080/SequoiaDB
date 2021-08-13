@@ -46,6 +46,7 @@
 #include "coordTrace.hpp"
 #include "msgMessage.hpp"
 #include "rtn.hpp"
+#include "monDump.hpp"
 
 using namespace bson ;
 
@@ -63,6 +64,21 @@ namespace engine
    {
    }
 
+   BOOLEAN _coordCmdWithLocation::isOpenEmptyContext()
+   {
+      return _getMonProcessor() ? TRUE : FALSE ;
+   }
+
+   BOOLEAN _coordCmdWithLocation::ignoreFailedNodes()
+   {
+      return TRUE ;
+   }
+
+   const CHAR* _coordCmdWithLocation::pushdownCommandName()
+   {
+      return NULL ;
+   }
+
    INT32 _coordCmdWithLocation::execute( MsgHeader *pMsg,
                                          pmdEDUCB *cb,
                                          INT64 &contextID,
@@ -74,10 +90,12 @@ namespace engine
       ROUTE_RC_MAP faileds ;
       SET_ROUTEID sucNodes ;
       rtnContextCoord *pContext = NULL ;
+      IRtnMonProcessor *pMonProcessor = NULL ;
 
       contextID = -1 ;
 
       _preSet( cb, ctrlParam ) ;
+      pMonProcessor = _getMonProcessor() ;
 
       rc = _preExcute( pMsg, cb, ctrlParam, ignoreRCList ) ;
       if ( rc )
@@ -88,7 +106,7 @@ namespace engine
 
       rc = executeOnNodes( pMsg, cb, ctrlParam, _getControlMask(),
                            faileds, _useContext() ? &pContext : NULL,
-                           FALSE, &ignoreRCList, &sucNodes ) ;
+                           this, &ignoreRCList, &sucNodes ) ;
       if ( rc )
       {
          if ( SDB_RTN_CMD_IN_LOCAL_MODE == rc )
@@ -109,6 +127,29 @@ namespace engine
       if ( pContext )
       {
          contextID = pContext->contextID() ;
+      }
+
+      if ( -1 != contextID )
+      {
+         if ( pMonProcessor )
+         {
+            rc = _processWithProcessor( pMsg, pMonProcessor, cb, contextID ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Process with processor failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+
+         if ( ignoreFailedNodes() && faileds.size() > 0 )
+         {
+            rc = _processFailedNodes( pMsg, cb, contextID, faileds ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Process failed nodes failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
       }
 
       rc = _posExcute( pMsg, cb, faileds ) ;
@@ -150,17 +191,166 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordCmdWithLocation::_handleHints( BSONObj &hint, UINT32 mask )
+   IRtnMonProcessor* _coordCmdWithLocation::_getMonProcessor()
+   {
+      return NULL ;
+   }
+
+   INT32 _coordCmdWithLocation::_processFailedNodes( MsgHeader *pMsg,
+                                                     pmdEDUCB *cb,
+                                                     INT64 &contextID,
+                                                     ROUTE_RC_MAP &faileds )
    {
       INT32 rc = SDB_OK ;
+      COORD_SHOWERROR_TYPE showError = _getDefaultShowErrorType() ;
+      COORD_SHOWERRORMODE_TYPE showErrorMode = _getDefaultShowErrorModeType() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnContext *pContext = NULL ;
+      const CHAR *pHint = NULL ;
 
-      rc = coordParseShowErrorHint( hint, _showError, _showErrorMode ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse show error hint, rc: %d" ) ;
+      rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
+                            NULL, NULL, NULL, &pHint ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Extract message failed, rc: %d", rc ) ;
+         goto error ;
+      }
 
-   done :
+      try
+      {
+         BSONObj hint( pHint ) ;
+         rc = coordParseShowErrorHint( hint, COORD_MASK_SHOWERROR_ALL,
+                                       showError, showErrorMode ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Parse show error parameter failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      if ( COORD_SHOWERROR_ONLY == showError )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+
+         rtnContextDump *pDumpContext = NULL ;
+
+         /// create new context
+         rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, &pContext, contextID, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Create context failed, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         pDumpContext = (rtnContextDump*)pContext ;
+         rc = pDumpContext->open( BSONObj(), BSONObj(), -1, 0 ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Open context failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         pContext = rtnCB->contextFind( contextID, cb ) ;
+         if ( !pContext )
+         {
+            PD_LOG( PDERROR, "Context(%lld) is not found", contextID ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      if ( COORD_SHOWERROR_IGNORE != showError )
+      {
+         rc = _buildFailedNodeReply( faileds, pContext, showErrorMode ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build failed node reply failed, rc: %d",
+                     rc ) ;
+      }
+
+   done:
       return rc ;
+   error:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      goto done ;
+   }
 
-   error :
+   INT32 _coordCmdWithLocation::_processWithProcessor( MsgHeader *pMsg,
+                                                       IRtnMonProcessor *pProcessor,
+                                                       pmdEDUCB *cb,
+                                                       INT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnContextDump *pContext = NULL ;
+      INT64 newContextID = -1 ;
+      rtnQueryOptions queryOption ;
+      monDataSetFetch *dsFetch = NULL ;
+
+      rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Extract message failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext **)&pContext,
+                              newContextID, cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Create context failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = pContext->open( queryOption.getSelector(),
+                           queryOption.getQuery(),
+                           queryOption.getLimit(),
+                           queryOption.getSkip() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Open dump context failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      dsFetch = (monDataSetFetch *)( getRtnFetchBuilder()->create(
+                                     RTN_FETCH_DATASET ) ) ;
+      PD_CHECK( NULL != dsFetch, SDB_OOM, error, PDERROR,
+                "Failed to allocate fetcher for context" ) ;
+
+      rc = dsFetch->attachContext( contextID, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to attach context, rc: %d", rc ) ;
+      contextID = newContextID ;
+      newContextID = -1 ;
+
+      pContext->setMonFetch( dsFetch, TRUE ) ;
+      dsFetch = NULL ;
+      pContext->setMonProcessor( pProcessor ) ;
+
+   done:
+      return rc ;
+   error:
+      if ( -1 != newContextID )
+      {
+         rtnCB->contextDelete ( newContextID, cb ) ;
+         newContextID = -1 ;
+      }
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      SAFE_OSS_DELETE( dsFetch ) ;
       goto done ;
    }
 
@@ -385,6 +575,8 @@ namespace engine
    */
    _coordCMDMonBase::_coordCMDMonBase()
    {
+      _showError = _getDefaultShowErrorType() ;
+      _showErrorMode = _getDefaultShowErrorModeType() ;
    }
 
    _coordCMDMonBase::~_coordCMDMonBase()
@@ -565,7 +757,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      rc = coordParseShowErrorHint( hint, _showError, _showErrorMode ) ;
+      rc = coordParseShowErrorHint( hint, mask, _showError, _showErrorMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse show error hint, rc: %d" ) ;
 
       try

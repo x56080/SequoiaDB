@@ -78,7 +78,7 @@ namespace engine
 
       rc = executeOnNodes( pMsg, cb, ctrlParam, mask, failedNodes,
                            _useContext() ? &pContext : NULL,
-                           FALSE, NULL, &sucNodes ) ;
+                           NULL, NULL, &sucNodes ) ;
       if ( rc )
       {
          if ( SDB_RTN_CMD_IN_LOCAL_MODE == rc )

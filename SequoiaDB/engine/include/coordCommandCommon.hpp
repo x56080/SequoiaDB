@@ -39,6 +39,7 @@
 #define COORD_COMMAND_COMMON_HPP__
 
 #include "coordCommandBase.hpp"
+#include "rtnFetchBase.hpp"
 #include "coordFactory.hpp"
 #include "aggrBuilder.hpp"
 
@@ -50,7 +51,7 @@ namespace engine
    /*
       _coordCmdWithLocation define
    */
-   class _coordCmdWithLocation : public _coordCommandBase
+   class _coordCmdWithLocation : public _coordCommandBase, public coordCmdPushdownCtrl
    {
       public:
          _coordCmdWithLocation() ;
@@ -60,6 +61,11 @@ namespace engine
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
                                 rtnContextBuf *buf ) ;
+
+      public:
+         virtual BOOLEAN      isOpenEmptyContext() ;
+         virtual BOOLEAN      ignoreFailedNodes() ;
+         virtual const CHAR*  pushdownCommandName() ;
 
       private:
          virtual BOOLEAN _useContext() = 0 ;
@@ -77,14 +83,16 @@ namespace engine
                                      pmdEDUCB *cb,
                                      ROUTE_RC_MAP &faileds ) ;
 
-         virtual INT32 _handleHints ( BSONObj &hint, UINT32 mask ) ;
-         virtual COORD_SHOWERROR_TYPE _getShowErrorType ()
+         virtual IRtnMonProcessor*     _getMonProcessor() ;
+
+         virtual COORD_SHOWERROR_TYPE  _getDefaultShowErrorType() const
          {
-            return _showError ;
+            return COORD_SHOWERROR_SHOW ;
          }
-         virtual COORD_SHOWERRORMODE_TYPE _getShowErrorModeType ()
+
+         virtual COORD_SHOWERRORMODE_TYPE _getDefaultShowErrorModeType() const
          {
-            return _showErrorMode ;
+            return COORD_SHOWERRORMODE_AGGR ;
          }
 
       protected :
@@ -97,9 +105,16 @@ namespace engine
                               pmdEDUCB * cb,
                               coordCtrlParam & ctrlParam ) ;
 
-      protected:
-         COORD_SHOWERROR_TYPE _showError ;
-         COORD_SHOWERRORMODE_TYPE _showErrorMode ;
+         INT32   _processWithProcessor( MsgHeader *pMsg,
+                                        IRtnMonProcessor *pProcessor,
+                                        pmdEDUCB *cb,
+                                        INT64 &contextID ) ;
+
+         INT32   _processFailedNodes( MsgHeader *pMsg,
+                                      pmdEDUCB *cb,
+                                      INT64 &contextID,
+                                      ROUTE_RC_MAP &faileds ) ;
+
    } ;
    typedef _coordCmdWithLocation coordCmdWithLocation ;
 
@@ -168,12 +183,29 @@ namespace engine
                                 rtnContextBuf *buf ) ;
 
       protected:
-         virtual INT32 _handleHints ( BSONObj &hint, UINT32 mask ) ;
-         virtual COORD_SHOWERROR_TYPE _getShowErrorType ()
+         virtual UINT32 _getShowErrorMask () const
+         {
+            return COORD_MASK_SHOWERROR_ALL ;
+         }
+
+         virtual COORD_SHOWERROR_TYPE  _getDefaultShowErrorType() const
+         {
+            return COORD_SHOWERROR_SHOW ;
+         }
+
+         virtual COORD_SHOWERRORMODE_TYPE _getDefaultShowErrorModeType() const
+         {
+            return COORD_SHOWERRORMODE_AGGR ;
+         }
+
+      protected:
+         INT32 _handleHints ( BSONObj &hint, UINT32 mask ) ;
+
+         COORD_SHOWERROR_TYPE _getShowErrorType ()
          {
             return _showError ;
          }
-         virtual COORD_SHOWERRORMODE_TYPE _getShowErrorModeType ()
+         COORD_SHOWERRORMODE_TYPE _getShowErrorModeType ()
          {
             return _showErrorMode ;
          }
