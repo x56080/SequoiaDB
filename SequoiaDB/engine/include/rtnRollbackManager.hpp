@@ -69,11 +69,11 @@ class _rtnRollbackManager : public SDBObject
    INT32 _readLogAndRollback();
    // Load the record
    INT32 _getRecord(dpsLogRecord *record);
+   
    // Perform the record rollback
-   // @return    True if the record was rolled back, else false
-   BOOLEAN _rollback(const dpsLogRecord &record, BOOLEAN *undone);
+   INT32 _rollback(const dpsLogRecord &record, BOOLEAN *undone);
+   
    // Perform the undo of the current record
-   // @return    True if the record was undone, else false
    INT32 _undo();
 
    //

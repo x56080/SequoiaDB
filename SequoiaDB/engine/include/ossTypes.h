@@ -48,6 +48,7 @@
    #define SDB_INVALID_FH (-1)
 #endif
 
+
 #define SDB_UNUSED(x)      (x)=(x)
 
 // platform dependent data types
@@ -187,12 +188,14 @@ typedef UINT64 EDUID ;
 typedef UINT32 OBJIDX ;
 #define OSS_INVALID_OBJIDX    ( ( OBJIDX ) -1 )
 
-
 // return the minimum of two values
 #define OSS_MIN(a, b) (((a) < (b)) ? (a) : (b))
 //
 // return the maximum of two values
 #define OSS_MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+#define OSS_ROUND(v) (((v) < (0) ) ? ( static_cast<FLOAT64>(ceil((v)-0.5f)) ) :\
+                     ( static_cast<FLOAT64>(floor((v)-0.5f))))
 
 #define ossRoundDownToMultipleX(x,y) (((x)/(y))*(y))
 #define ossRoundUpToMultipleX(x,y) (((x)+((y)-1))-(((x)+((y)-1))%(y)))

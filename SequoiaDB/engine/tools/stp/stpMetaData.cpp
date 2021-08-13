@@ -610,9 +610,9 @@ namespace engine
 
       // calculate slew rate
       // slew rate = source interval / local interval * old slew rate
-      _slewRate = (UINT64)( round( (FLOAT64)( sourceInterval ) /
-                                   (FLOAT64)( localInterval ) *
-                                   (FLOAT64)( oldSlewRate ) ) ) ;
+      _slewRate = (UINT64)( OSS_ROUND( (FLOAT64)( sourceInterval ) /
+                                       (FLOAT64)( localInterval ) *
+                                       (FLOAT64)( oldSlewRate ) ) ) ;
 
       if ( oldSlewRate != _slewRate )
       {

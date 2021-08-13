@@ -956,7 +956,7 @@ public:
    {
       if ( g_isTraceStarted )
       {
-         INT32 n = std::min(numArgs, (UINT32)PD_TRACE_MAX_ARG_NUM) ;
+         INT32 n = OSS_MIN(numArgs, (UINT32)PD_TRACE_MAX_ARG_NUM) ;
 
          va_list list;
 
