@@ -359,7 +359,7 @@ namespace vessel
 
       if (SDB_OK != rc)
       {
-         PD_LOG ( PDERROR, "Path+filename are too long: %s; %s", options.dir,
+         PD_LOG ( PDERROR, "Path+filename are too long: %s, %s", options.dir.str(),
                   fn.getFileName()) ;
          goto error ;
       }
