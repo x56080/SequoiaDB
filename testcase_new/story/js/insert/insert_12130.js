@@ -1,22 +1,26 @@
 /******************************************************************************
-*@Description : seqDB-12130:string和array类型记录（记录长度较大）                   
-*@Author      : 2019-5-29  wuyan modify
-******************************************************************************/
+ * @Description   : seqDB-12130:string和array类型记录（记录长度较大）
+ * @Author        : Wu Yan
+ * @CreateTime    : 2019.05.29
+ * @LastEditTime  : 2021.07.02
+ * @LastEditors   : Zhang Yanan
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "_12130";
 
 main( test );
-function test ()
+
+function test ( args )
 {
-   var clName = COMMCLNAME + "_12130";
-   var cl = readyCL( clName );
-   var expRecords = insertRecords( cl );
-   var actRecords = cl.find();
+   var varCL = args.testCL;
+
+   var expRecords = insertRecords( varCL );
+   var actRecords = varCL.find();
    commCompareResults( actRecords, expRecords );
-   commDropCL( db, COMMCSNAME, clName );
 }
 
 function getRandomString ( len ) 
 {
-   var strLen = parseInt( Math.random() * len );
+   var strLen = parseInt( 1500 + ( Math.random() * len ) );
    var str = "";
    var chars = "ABCDEFGHIJKLMNOPQRATUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
    var maxPos = chars.length;

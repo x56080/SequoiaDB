@@ -1,11 +1,19 @@
+/******************************************************************************
+ * @Description   : seqDB-12265:not组合条件，执行删除
+ *                  seqDB-12266:or组合条件，执行删除
+ *                  seqDB-12268:等值条件，执行删除
+ * @Author        : Wang Wenjing
+ * @CreateTime    : 2017.07.27
+ * @LastEditTime  : 2021.07.19
+ * @LastEditors   : Zhang Yanan
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "_12266";
 
 main( test );
-function test ()
-{
-   var clName = COMMCLNAME + "_12266";
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false, "create collecton 1 failed" );
+function test ( args )
+{
+   var varCL = args.testCL;
 
    var docs = [];
    docs.push( { no: 1002, score: 85, interest: ["movie", "photo"], major: "计算机软件与理论", dep: "计算机学院", info: { name: "Holiday", age: 22, sex: ">女" } } );
@@ -25,13 +33,30 @@ function test ()
    docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 28, sex: "男" } } );
    docs.push( { no: 1016, score: 99, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
    docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
-   cl.insert( docs );
-   cl.remove( { $or: [{ score: { $gte: 85, $lte: 96, $ne: 90 } }, { "info.age": { $gt: 25, $lt: 30 } }, { "info.name": { $nin: ["Kate", "Tom"] } }, { "info.sex": { $in: ["女"] } }] } );
+   varCL.insert( docs );
+
+   varCL.remove( { $or: [{ score: { $gte: 85, $lte: 96, $ne: 90 } }, { "info.age": { $gt: 25, $lt: 30 } }, { "info.name": { $nin: ["Kate", "Tom"] } }, { "info.sex": { $in: ["女"] } }] } );
+
    var expectRes = [];
    expectRes.push( { no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } } );
    expectRes.push( { no: 1016, score: 99, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
 
-   var cursor = cl.find();
+   var cursor = varCL.find();
    commCompareResults( cursor, expectRes );
-   commDropCL( db, COMMCSNAME, clName, false, false, "drop colleciton in the end" );
+
+   varCL.remove( { $not: [{ score: { $gte: 85, $lte: 100, $ne: 90 } }, { "info.age": { $gt: 19, $lt: 30 } }, { "info.sex": { $in: ["男"] } }] } );
+   var expectRes1 = [];
+   expectRes1.push( { no: 1016, score: 99, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
+   var cursor = varCL.find();
+   commCompareResults( cursor, expectRes1 );
+
+   varCL.remove( { "info.name": "Mike" } );
+   var cursor = varCL.find();
+   commCompareResults( cursor, expectRes1 );
+
+   varCL.remove( { "info.name": "Kate" } );
+   expectRes1.splice( 0, 1 );
+
+   var cursor = varCL.find();
+   commCompareResults( cursor, expectRes1 );
 }

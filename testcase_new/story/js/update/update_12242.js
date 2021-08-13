@@ -1,15 +1,20 @@
-// update record.
-// normal case. $set
-main( test );
-function test ()
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
+/******************************************************************************
+ * @Description   : seqDB-12242:unset不存在的字段
+ * @Author        : Zhang Yanan
+ * @CreateTime    : 2017.07.25
+ * @LastEditTime  : 2021.07.03
+ * @LastEditors   : Zhang Yanan
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "_12242";
 
-   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
-   var varCL = varCS.createCL( COMMCLNAME, { ReplSize: 0, Compressed: true } );
+main( test );
+
+function test ( args )
+{
+   var varCL = args.testCL;
 
    var insertCount = 1000;
-   var docs = []
+   var docs = [];
    for( i = 0; i < insertCount; i++ ) 
    {
       docs.push( { a: i, b: "fdafdsaf$#@$@%$#%#@!$#@!$", c: null, d: { id: 1.0, name: "qiu" }, e: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
@@ -19,23 +24,5 @@ function test ()
    varCL.update( { "$unset": { noexist: "" } } )
 
    var rc = varCL.find();
-
-   var recordCount = 0;
-   while( true )
-   {
-      //var record = eval( "("+ rc.current() +")" );
-      var record = rc.current().toObj();
-      if( !compareObj( docs[recordCount], record, false ) )
-      {
-         throw new Error( -1 );
-      }
-
-      recordCount++;
-      if( !rc.next() )
-         break;
-   }
-
-   assert.equal( insertCount, recordCount );
-
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   commCompareResults( rc, docs );
 }

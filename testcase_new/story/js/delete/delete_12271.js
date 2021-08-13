@@ -1,12 +1,18 @@
+/******************************************************************************
+ * @Description   : seqDB-12271:hint指定非条件字段上的索引，执行删除
+ * @Author        : Wang Wenjing
+ * @CreateTime    : 2017.07.27
+ * @LastEditTime  : 2021.07.03
+ * @LastEditors   : Zhang Yanan
+ ******************************************************************************/
+testConf.clName = COMMCLNAME + "12271";
 
 main( test );
-function test ()
-{
-   var clName = COMMCLNAME + "_12271";
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false, "create collecton 1 failed" );
-   cl.createIndex( "ageIndex", { "info.age": 1 }, false );
+function test ( args )
+{
+   var varCL = args.testCL;
+   varCL.createIndex( "ageIndex", { "info.age": 1 }, false );
 
    var docs = [];
    docs.push( { no: 1002, score: 85, interest: ["movie", "photo"], major: "计算机软件与理论", dep: "计算机学院", info: { name: "Holiday", age: 22, sex: ">女" } } );
@@ -26,13 +32,12 @@ function test ()
    docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } } );
    docs.push( { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
    docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
-   cl.insert( docs );
-   cl.remove( { score: { $gte: 90 } }, { "": "ageIndex" } );
+   varCL.insert( docs );
+   varCL.remove( { score: { $gte: 90 } }, { "": "ageIndex" } );
 
    docs.splice( 15, 1 );
    docs.splice( 11, 1 );
    docs.splice( 4, 1 );
-   var cursor = cl.find();
+   var cursor = varCL.find();
    commCompareResults( cursor, docs );
-   commDropCL( db, COMMCSNAME, clName );
 }
