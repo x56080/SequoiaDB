@@ -210,9 +210,11 @@ namespace engine
       rc = _createFetch( cb, &pFetch ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create fetch, rc: %d", rc ) ;
 
-      pFetch->setDataProcessor( _pDataProcessor, TRUE ) ;
       context->setMonFetch( pFetch, TRUE ) ;
       pFetch = NULL ;
+
+      /// set mon processor
+      context->setMonProcessor( _getMonProcessor() ) ;
 
       /// when has orderby
       if ( !orderBy.isEmpty() )

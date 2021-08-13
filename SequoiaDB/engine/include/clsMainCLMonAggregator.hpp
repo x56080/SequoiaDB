@@ -38,9 +38,8 @@
 #ifndef CLS_MAIN_CL_MON_AGGR__HPP__
 #define CLS_MAIN_CL_MON_AGGR__HPP__
 
-#include "rtnFetchBase.hpp"
 #include "clsCatalogAgent.hpp"
-#include "clsShardMgr.hpp"
+#include "monDMS.hpp"
 
 using namespace bson ;
 
@@ -75,11 +74,10 @@ namespace engine
    } ;
    typedef _clsMainCLMonInfo clsMainCLMonInfo ;
 
-
-
    /*
       _clsMainCLMonAggregator define
    */
+   /*
    enum _clsShowMainCLMode
    {
       SHOW_MODE_MAIN = 0,
@@ -88,13 +86,14 @@ namespace engine
    } ;
    typedef _clsShowMainCLMode clsShowMainCLMode ;
 
-   INT32 clsParseShowMainCLModeHint( const BSONObj &hint, clsShowMainCLMode &mode ) ;
-
-
+   INT32 clsParseShowMainCLModeHint( const BSONObj &hint,
+                                     clsShowMainCLMode &mode ) ;
+   */
 
    /*
       _clsMainCLMonAggregator define
    */
+   /*
    class _clsMainCLMonAggregator : public IRtnMonProcessor
    {
       public:
@@ -125,7 +124,7 @@ namespace engine
          _clsCatalogAgent       *_pCatAgent ;
    } ;
    typedef _clsMainCLMonAggregator clsMainCLMonAggregator ;
-
+   */
 }
 
 #endif //CLS_MAIN_CL_MON_AGGR__HPP__

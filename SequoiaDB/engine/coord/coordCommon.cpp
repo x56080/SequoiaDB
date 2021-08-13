@@ -1165,14 +1165,11 @@ namespace engine
    }
 
    INT32 coordParseShowErrorHint ( const BSONObj & hint,
+                                   UINT32 mask,
                                    COORD_SHOWERROR_TYPE & showError,
                                    COORD_SHOWERRORMODE_TYPE & showErrorMode )
    {
       INT32 rc = SDB_OK ;
-
-      // default value
-      showError = COORD_SHOWERROR_SHOW ;
-      showErrorMode = COORD_SHOWERRORMODE_AGGR ;
 
       try
       {
@@ -1188,17 +1185,26 @@ namespace engine
                if ( 0 == ossStrcasecmp( elem.valuestr(),
                                         COORD_SHOWERROR_VALUE_SHOW ) )
                {
-                  showError = COORD_SHOWERROR_SHOW ;
+                  if ( mask & COORD_MASK_SHOWERROR_SHOW )
+                  {
+                     showError = COORD_SHOWERROR_SHOW ;
+                  }
                }
                else if ( 0 == ossStrcasecmp( elem.valuestr(),
                                              COORD_SHOWERROR_VALUE_IGNORE ) )
                {
-                  showError = COORD_SHOWERROR_IGNORE ;
+                  if ( mask & COORD_MASK_SHOWERROR_IGNORE )
+                  {
+                     showError = COORD_SHOWERROR_IGNORE ;
+                  }
                }
                else if ( 0 == ossStrcasecmp( elem.valuestr(),
                                              COORD_SHOWERROR_VALUE_ONLY ) )
                {
-                  showError = COORD_SHOWERROR_ONLY ;
+                  if ( mask & COORD_MASK_SHOWERROR_ONLY )
+                  {
+                     showError = COORD_SHOWERROR_ONLY ;
+                  }
                }
                else
                {
@@ -1215,12 +1221,18 @@ namespace engine
                if ( 0 == ossStrcasecmp( elem.valuestr(),
                                         COORD_SHOWERRORMODE_VALUE_AGGR ) )
                {
-                  showErrorMode = COORD_SHOWERRORMODE_AGGR ;
+                  if ( mask & COORD_MASK_SHOWERRORMODE_AGGR )
+                  {
+                     showErrorMode = COORD_SHOWERRORMODE_AGGR ;
+                  }
                }
                else if ( 0 == ossStrcasecmp( elem.valuestr(),
                                              COORD_SHOWERRORMODE_VALUE_FLAT ) )
                {
-                  showErrorMode = COORD_SHOWERRORMODE_FLAT ;
+                  if ( mask & COORD_MASK_SHOWERRORMODE_FLAT )
+                  {
+                     showErrorMode = COORD_SHOWERRORMODE_FLAT ;
+                  }
                }
                else
                {

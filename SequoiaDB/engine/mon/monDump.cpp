@@ -2088,8 +2088,8 @@ namespace engine
 
 
    INT32 monDetailInfo2Obj( const detailedInfo &info,
-                           INT32 sequence,
-                           BSONObjBuilder &ob )
+                            INT32 sequence,
+                            BSONObjBuilder &ob )
    {
       INT32 rc = SDB_OK ;
       UINT16 flag = info._flag ;
@@ -3111,40 +3111,6 @@ namespace engine
          _builder.reset() ;
          BSONObjBuilder ob( _builder ) ;
          MON_CL_LIST::iterator it = _collectionInfo.begin() ;
-         UINT32 resFlag = 0 ;
-         monCollection clOut ;
-
-         // Aggregate sub cl info into main cl if needed.
-         if ( _pDataProcessor )
-         {
-            do
-            {
-               rc = _pDataProcessor->process( *it, clOut, resFlag ) ;
-               PD_RC_CHECK(rc, PDERROR,
-                           "Failed to process the cl info, rc=%d", rc ) ;
-               if ( resFlag & IRtnMonProcessor::FLAG_OUTPUT )
-               {
-                  _collectionInfo.insert( clOut ) ;
-               }
-               if ( resFlag & IRtnMonProcessor::FLAG_IGNORE )
-               {
-                  _collectionInfo.erase( it ) ;
-                  if ( _collectionInfo.empty() &&
-                       _pDataProcessor->hasDataInProcess() )
-                  {
-                     _pDataProcessor->outputDataInProcess( _collectionInfo );
-                  }
-                  if ( _collectionInfo.empty() )
-                  {
-                     rc = SDB_DMS_EOC ;
-                     _hitEnd = TRUE ;
-                     goto done ;
-                  }
-                  it = _collectionInfo.begin() ;
-               }
-            }
-            while ( resFlag & IRtnMonProcessor::FLAG_IGNORE ) ;
-         }
 
          rc = monCollection2Obj( *it, _addInfoMask, ob ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON obj, rc: %d", rc ) ;

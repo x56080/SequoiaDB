@@ -64,8 +64,8 @@ namespace engine
                _name( name ),
                _type( type ),
                _fetchType( fetchType ),
-               _infoMask( infoMask ),
-               _pDataProcessor( NULL ) {}
+               _infoMask( infoMask )
+         {}
 
          virtual ~_rtnMonInnerBase () ;
 
@@ -80,11 +80,6 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-         void setDataProcessor( IRtnMonProcessor *pDataProcessor )
-         {
-            _pDataProcessor = pDataProcessor ;
-         }
-
       protected:
          INT32           _createFetch( _pmdEDUCB *cb,
                                        _rtnFetchBase **ppFetch ) ;
@@ -96,6 +91,8 @@ namespace engine
          virtual BOOLEAN _isCurrent() const = 0 ;
          virtual BOOLEAN _isDetail() const = 0 ;
          virtual BSONObj _getOptObj() const ;
+
+         virtual IRtnMonProcessor*  _getMonProcessor() { return NULL ; }
 
       protected :
          // help functions
@@ -114,7 +111,6 @@ namespace engine
          RTN_COMMAND_TYPE     _type ;
          INT32                _fetchType ;
          UINT32               _infoMask ;
-         IRtnMonProcessor    *_pDataProcessor ;
    } ;
 
    /*

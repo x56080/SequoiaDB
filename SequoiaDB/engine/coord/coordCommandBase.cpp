@@ -191,7 +191,8 @@ namespace engine
    }
 
    INT32 _coordCommandBase::_buildFailedNodeReply( ROUTE_RC_MAP &failedNodes,
-                                                   rtnContextCoord *pContext )
+                                                   rtnContext *pContext,
+                                                   COORD_SHOWERRORMODE_TYPE modeType )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( pContext != NULL, "pContext can't be NULL!" ) ;
@@ -201,7 +202,7 @@ namespace engine
          BSONObjBuilder builder ;
          coordBuildFailedNodeReply( _pResource, failedNodes, builder ) ;
 
-         if ( COORD_SHOWERRORMODE_FLAT == _getShowErrorModeType() )
+         if ( COORD_SHOWERRORMODE_FLAT == modeType )
          {
             BSONObjIterator itr ( builder.obj().getObjectField(
                                                     FIELD_NAME_ERROR_NODES ) ) ;
@@ -829,7 +830,7 @@ namespace engine
                                             UINT32 mask,
                                             ROUTE_RC_MAP &faileds,
                                             rtnContextCoord **ppContext,
-                                            BOOLEAN openEmptyContext,
+                                            coordCmdPushdownCtrl *pCtrl,
                                             SET_RC *pIgnoreRC,
                                             SET_ROUTEID *pSucNodes )
    {
@@ -1008,7 +1009,7 @@ namespace engine
       }
       if ( pTmpContext && !pTmpContext->isOpened() )
       {
-         if ( openEmptyContext )
+         if ( pCtrl && pCtrl->isOpenEmptyContext() )
          {
             rtnQueryOptions defaultOptions ;
             rc = pTmpContext->open( defaultOptions ) ;
@@ -1053,6 +1054,13 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
       }
 
+      if ( pCtrl && pCtrl->pushdownCommandName() &&
+           '\0' != *( pCtrl->pushdownCommandName() ) )
+      {
+         queryOption.setCLFullName( pCtrl->pushdownCommandName() ) ;
+         needReset = TRUE ;
+      }
+
       /// 7. ensure new msg
       if ( pSrcFilterObjData == pFilterObj->objdata() && !needReset )
       {
@@ -1082,23 +1090,12 @@ namespace engine
                            pTmpContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
 
-      rc = _handleHints( queryOption._hint, _getShowErrorMask() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Handle hints failed, rc: %d", rc ) ;
-
       /// 9. build failed result
-      if ( pTmpContext )
+      if ( pTmpContext && ( !pCtrl || !pCtrl->ignoreFailedNodes() ) )
       {
-         if ( COORD_SHOWERROR_ONLY == _getShowErrorType() )
-         {
-            pTmpContext->killSubContexts( cb ) ;
-         }
-
-         if ( COORD_SHOWERROR_IGNORE != _getShowErrorType() )
-         {
-            rc = _buildFailedNodeReply( faileds, pTmpContext ) ;
-            PD_RC_CHECK( rc, PDERROR, "Build failed node reply failed, rc: %d",
-                        rc ) ;
-         }
+         rc = _buildFailedNodeReply( faileds, pTmpContext ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build failed node reply failed, rc: %d",
+                     rc ) ;
       }
 
    done:
