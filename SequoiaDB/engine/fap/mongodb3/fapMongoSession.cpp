@@ -61,9 +61,12 @@ namespace fap
 
 #define FAP_MONGO_ERROR_RESPONSE_MAX_LEN 128
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDGETMORESDBMSG, "buildGetMoreSdbMsg" )
 static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
                                 mongoMsgBuffer &out )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
+
    if ( !out.empty() )
    {
       out.zero() ;
@@ -79,6 +82,9 @@ static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
    pGetmore->header.TID = 0 ;
    pGetmore->contextID = contextID ;
    pGetmore->numToReturn = -1 ;
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
+   return ;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -99,9 +105,10 @@ _mongoSession::~_mongoSession()
    _resetBuffers() ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RESETBUFFERS, "_mongoSession::_resetBuffers" )
 void _mongoSession::_resetBuffers()
 {
-   // release buff context
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RESETBUFFERS ) ;
    if ( 0 != _contextBuff.size() )
    {
       _contextBuff.release() ;
@@ -111,12 +118,16 @@ void _mongoSession::_resetBuffers()
    {
       _inBuffer.zero() ;
    }
+   PD_TRACE_EXIT( SDB_FAPMONGO_RESETBUFFERS ) ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_EDUEVENTRELEASE, "_mongoSession::_eduEventRelease" )
 void _mongoSession::_eduEventRelease( pmdEDUEvent &event )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_EDUEVENTRELEASE ) ;
    pmdEduEventRelease( event, NULL ) ;
    event.reset() ;
+   PD_TRACE_EXIT( SDB_FAPMONGO_EDUEVENTRELEASE ) ;
 }
 
 INT32 _mongoSession::getServiceType() const
@@ -129,8 +140,10 @@ engine::SDB_SESSION_TYPE _mongoSession::sessionType() const
    return engine::SDB_SESSION_PROTOCOL ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PREPROCESS, "_mongoSession::preProcess" )
 BOOLEAN _mongoSession::preProcess( pmdEDUEvent &event )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PREPROCESS ) ;
    BOOLEAN processed = FALSE ;
 
    // fap and coord are the same thread, with different roles
@@ -141,6 +154,7 @@ BOOLEAN _mongoSession::preProcess( pmdEDUEvent &event )
       processed = TRUE ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_PREPROCESS ) ;
    return processed ;
 }
 
@@ -161,9 +175,11 @@ eg:
    post has failed to process. After, A session need to build a error reponse
    by itself
 */
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_POSTINNERERROREVENT, "_mongoSession::_postInnerErrorEvent" )
 void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
                                           engine::pmdEDUEvent &event )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_POSTINNERERROREVENT ) ;
    INT32 rc = SDB_OK ;
    pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
    UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ; ;
@@ -234,14 +250,17 @@ void _mongoSession::_postInnerErrorEvent( INT32 errorCode,
            eduID(), sourceEDUID ) ;
 
 done:
+   PD_TRACE_EXIT( SDB_FAPMONGO_POSTINNERERROREVENT ) ;
    return ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSCLIENTMSG, "_mongoSession::_processClientMsg" )
 INT32 _mongoSession::_processClientMsg( const CHAR* pMsg,
                                         _mongoCommand *&pCommand,
                                         mongoSessionCtx &sessCtx,
                                         BOOLEAN &msgForwarded )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSCLIENTMSG ) ;
    INT32 rc = SDB_OK ;
    mongoCursorInfo cursorInfo ;
    BOOLEAN needNext = FALSE ;
@@ -304,16 +323,19 @@ done:
                  sessionName(), rc ) ;
       }
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSCLIENTMSG, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSOWNEDCLIENTMSG, "_mongoSession::_processOwnedClientMsg" )
 INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
                                              _mongoCommand *pCommand,
                                              mongoSessionCtx &sessCtx,
                                              BOOLEAN &needNext )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSOWNEDCLIENTMSG ) ;
    INT32 rc = SDB_OK ;
    needNext = FALSE ;
 
@@ -350,16 +372,19 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSOWNEDCLIENTMSG, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSNONOWNEDCLIENTMSG, "_mongoSession::_processNonOwnedClientMsg" )
 INT32 _mongoSession::_processNonOwnedClientMsg( const CHAR* pMsg,
                                                 _mongoCommand *pCommand,
                                                 mongoCursorInfo cursorInfo,
                                                 mongoSessionCtx &sessCtx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSNONOWNEDCLIENTMSG ) ;
    INT32 rc = SDB_OK ;
    INT32 msgLen = ((mongoMsgHeader*)pMsg)->msgLen ;
    CHAR* pReq = NULL ;
@@ -422,17 +447,20 @@ INT32 _mongoSession::_processNonOwnedClientMsg( const CHAR* pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSNONOWNEDCLIENTMSG, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSINTERIORMSG, "_mongoSession::_processInteriorMsg" )
 // Receive message from event, it may be getMore command or killCursor command
 INT32 _mongoSession::_processInteriorMsg( _mongoCommand *&pCommand,
                                           engine::pmdEDUEvent &event,
                                           mongoSessionCtx &sessCtx,
                                           BOOLEAN &hasRecvResponse )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSINTERIORMSG ) ;
    INT32 rc = SDB_OK ;
    hasRecvResponse = FALSE ;
 
@@ -467,15 +495,18 @@ INT32 _mongoSession::_processInteriorMsg( _mongoCommand *&pCommand,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSINTERIORMSG, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSREQUESTMSG, "_mongoSession::_processRequestMsg" )
 void _mongoSession::_processRequestMsg( _mongoCommand *&pCommand,
                                         engine::pmdEDUEvent &event,
                                         mongoSessionCtx &sessCtx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSREQUESTMSG ) ;
    INT32 rc = SDB_OK ;
    UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ;
    pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr() ;
@@ -531,6 +562,7 @@ void _mongoSession::_processRequestMsg( _mongoCommand *&pCommand,
            "successfully", eduID(), sourceEDUID ) ;
 
 done:
+   PD_TRACE_EXIT( SDB_FAPMONGO_PROCESSREQUESTMSG ) ;
    return ;
 }
 
@@ -557,8 +589,10 @@ to A session.
    A session <---------------------- B session
 
 */
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RUN, "_mongoSession::run" )
 INT32 _mongoSession::run()
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RUN ) ;
    INT32 rc  = SDB_OK ;
    CHAR *pMsg = NULL ;
    _mongoCommand* pCommand = NULL ;
@@ -669,14 +703,17 @@ done:
    _eduEventRelease( event ) ;
    _resetBuffers() ;
    disconnect() ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_RUN, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RECVMSGFROMINTERIOR, "_mongoSession::_recvMsgFromInterior" )
 INT32 _mongoSession::_recvMsgFromInterior( engine::pmdEDUEvent &event,
                                            BOOLEAN &hasMsg )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RECVMSGFROMINTERIOR ) ;
    INT32 rc = SDB_OK ;
    pmdEDUEvent tmpEvent ;
    hasMsg = FALSE ;
@@ -725,13 +762,16 @@ INT32 _mongoSession::_recvMsgFromInterior( engine::pmdEDUEvent &event,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_RECVMSGFROMINTERIOR, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RECVMSGFROMCLIENT, "_mongoSession::_recvMsgFromClient" )
 INT32 _mongoSession::_recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_RECVMSGFROMCLIENT ) ;
    INT32 rc = SDB_OK ;
    UINT32 msgSize = 0 ;
    UINT32 headerLen = sizeof( mongoMsgHeader ) ;
@@ -789,15 +829,18 @@ INT32 _mongoSession::_recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg )
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_RECVMSGFROMCLIENT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETCURSORINFO, "_mongoSession::_getCursorInfo" )
 void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
                                     mongoCursorInfo &cursorInfo,
                                     BOOLEAN &isOwned )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETCURSORINFO ) ;
    _mongoCursorMgr* pCursorMgr = getMongoCursorMgr() ;
    isOwned = TRUE ;
    cursorInfo.cursorID = MONGO_INVALID_CURSORID ;
@@ -835,11 +878,16 @@ void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
          }
       }
    }
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_GETCURSORINFO ) ;
+   return ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_MANAGECURSOR, "_mongoSession::_manageCursor" )
 INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
                                     const MsgOpReply &sdbReply )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_MANAGECURSOR ) ;
    INT32 rc = SDB_OK ;
    _mongoCursorMgr* pCursorMgr = getMongoCursorMgr() ;
 
@@ -899,13 +947,16 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_MANAGECURSOR, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOCREATECS, "_mongoSession::_autoCreateCS" )
 INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTOCREATECS ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
@@ -956,15 +1007,18 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
       }
    }
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOCREATECS, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOINSERT, "_mongoSession::_autoInsert" )
 INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
                                   const BSONObj &matcher,
                                   const BSONObj &updatorObj,
                                   BSONObj &target,
                                   BSONObj &errorObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTOINSERT ) ;
    INT32 rc = SDB_OK ;
    MsgOpInsert *pInsert = NULL ;
 
@@ -1029,6 +1083,7 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOINSERT, rc ) ;
    return rc ;
 error:
    _replyHeader.flags = rc ;
@@ -1037,9 +1092,11 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOCEATECL, "_mongoSession::_autoCreateCL" )
 INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
                                     BSONObj &errorObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTOCEATECL ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
@@ -1107,11 +1164,14 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
       }
    }
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOCEATECL, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOKILLCURRSOR, "_mongoSession::_autoKillCursor" )
 INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTOKILLCURRSOR ) ;
    INT32 rc = SDB_OK ;
    MsgOpKillContexts *pKill = NULL ;
    BSONObj errorObj ;
@@ -1181,6 +1241,7 @@ done:
    _replyHeader.contextID = SDB_INVALID_CONTEXTID ;
    _replyHeader.header.requestID = requestIDCpy ;
    _contextBuff = engine::rtnContextBuf( returnObjCpy ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOKILLCURRSOR, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -1259,12 +1320,13 @@ BOOLEAN _mongoSession::_shouldBuildGetMoreMsg( const _mongoCommand *pCommand )
 
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSMSG1, "_mongoSession::_processMsg" )
 INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                                   const _mongoCommand *pCommand,
                                   BSONObj &errorObj )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
-
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSMSG1 ) ;
    INT32 rc = SDB_OK ;
    INT32 orgOpCode = ((MsgHeader*)pMsg)->opCode ;
    BOOLEAN hasBuildGetMore = FALSE ;
@@ -1373,6 +1435,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSMSG1, rc ) ;
    return rc ;
 error:
    _replyHeader.flags = rc ;
@@ -1381,8 +1444,10 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_PROCESSMSG2, "_mongoSession::_processMsg" )
 INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_PROCESSMSG2 ) ;
    INT32   rc           = SDB_OK ;
    BOOLEAN needReply    = FALSE ;
    BOOLEAN needRollback = FALSE ;
@@ -1433,6 +1498,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    _onMsgEnd( rc, (MsgHeader *) pMsg ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSMSG2, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -1470,9 +1536,11 @@ void _mongoSession::_onMsgEnd( INT32 result, MsgHeader *pMsg )
    MON_END_OP( _pEDUCB->getMonAppCB() ) ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDRESPONSE, "_mongoSession::_buildResponse" )
 INT32 _mongoSession::_buildResponse( _mongoCommand *pCommand,
                                      CHAR *&pRes )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDRESPONSE ) ;
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
    INT32 resSize = 0 ;
@@ -1491,14 +1559,17 @@ INT32 _mongoSession::_buildResponse( _mongoCommand *pCommand,
               _contextBuff.size() ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_BUILDRESPONSE, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_REPLY1, "_mongoSession::_reply" )
 INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
                              INT32 errCode, BSONObj &errObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_REPLY1 ) ;
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
 
@@ -1610,14 +1681,17 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_REPLY1, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDERRRESPONSEMSG, "_mongoSession::_buildErrResponseMsg" )
 void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
                                           INT32 &msgLen )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDERRRESPONSEMSG ) ;
    BSONObj errorBson = mongoGetErrorBson( errorCode ) ;
 
    if ( MONGO_OP_QUERY == _opCodeOfPostEvent ||
@@ -1658,10 +1732,15 @@ void _mongoSession::_buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
       // Don't need to reply
       msgLen = 0 ;
    }
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_BUILDERRRESPONSEMSG ) ;
+   return ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_REPLY2, "_mongoSession::_reply" )
 INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_REPLY2 ) ;
    INT32 rc = SDB_OK ;
    _fapMongoInnerHeader* pResHeader = (_fapMongoInnerHeader*)event._Data ;
 
@@ -1714,6 +1793,7 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
 
 done:
    _eduEventRelease( event ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_REPLY2, rc ) ;
    return rc ;
 error:
    goto done ;

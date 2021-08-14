@@ -209,9 +209,11 @@ static void convertCollectionObj( BSONObj& collectionObj )
 }
 
 template< typename T >
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CONVERTMONGOOP2SDB, "convertMongoOperator2Sdb" )
 static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
                                        T &matchConditonBob )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CONVERTMONGOOP2SDB ) ;
    INT32  rc = SDB_OK ;
 
    try
@@ -278,6 +280,7 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CONVERTMONGOOP2SDB, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -565,7 +568,6 @@ static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
                                       mongoSessionCtx &sessCtx )
 {
    SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
-
    INT32 rc = SDB_OK ;
 
    try
@@ -606,12 +608,13 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_MONGOGETANDINITCOM, "mongoGetAndInitCommand" )
 INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                               _mongoCommand **ppCommand,
                               mongoSessionCtx &sessCtx )
 {
    SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
-
+   PD_TRACE_ENTRY( SDB_FAPMONGO_MONGOGETANDINITCOM ) ;
    INT32 rc = SDB_OK ;
    _mongoMessage mongoMsg ;
 
@@ -704,6 +707,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_MONGOGETANDINITCOM, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -714,7 +718,6 @@ INT32 mongoParseSdbReplyMsg( _mongoCommand *pCommand,
                              engine::rtnContextBuf &replyBuf )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
-
    INT32 rc = SDB_OK ;
 
    try
@@ -744,7 +747,6 @@ INT32 mongoPostRunCommand( _mongoCommand *pCommand,
                            _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
-
    INT32 rc = SDB_OK ;
 
    try
@@ -778,11 +780,12 @@ INT32 mongoReleaseCommand ( _mongoCommand **ppCommand )
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GINIT, "_mongoGlobalCommand::init" )
 INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
                                  mongoSessionCtx &ctx )
 {
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GINIT ) ;
    INT32 rc = SDB_OK ;
 
    if ( MONGO_QUERY_MSG == pMsg->type() )
@@ -809,24 +812,26 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
    }
    else
    {
-      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                   "Unknown message type: %d",
-                   pMsg->type() ) ;
+      rc = SDB_INVALIDARG ;
+      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
    }
 
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GBUILDREPLYCOMMON, "_mongoGlobalCommand::_buildReplyCommon" )
 INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GBUILDREPLYCOMMON ) ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
@@ -846,14 +851,16 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_GBUILDREPLYCOMMON ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBINIT, "_mongoDatabaseCommand::init" )
 INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
                                    mongoSessionCtx &ctx )
 {
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DBINIT ) ;
    INT32 rc = SDB_OK ;
 
    if ( MONGO_QUERY_MSG == pMsg->type() )
@@ -893,24 +900,26 @@ INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
    }
    else
    {
-      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                   "Unknown message type: %d",
-                   pMsg->type() ) ;
+      rc = SDB_INVALIDARG ;
+      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
    }
 
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DBINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBBUILDREPLYCOMMON, "_mongoDatabaseCommand::_buildReplyCommon" )
 INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
                                                 engine::rtnContextBuf &bodyBuf,
                                                 _mongoResponseBuffer &headerBuf )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DBBUILDREPLYCOMMON ) ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
@@ -930,15 +939,18 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDREPLYCOMMON ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBBUILDFIRBATCH, "_mongoDatabaseCommand::_buildFirstBatch" )
 void _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf )
 {
    // {xxx}, {xxx}... =>
    // { cursor: { firstBatch: [ {xxx}, {xxx}... ], id: 0, ns: "foo.bar" },
    //   ok: 1 }
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DBBUILDFIRBATCH ) ;
    BSONObjBuilder resultBuilder ;
    BSONObjBuilder cursorBuilder ;
 
@@ -980,13 +992,17 @@ void _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
    resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
    resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
    bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDFIRBATCH ) ;
+   return ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLINIT, "_mongoCollectionCommand::init" )
 INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
                                      mongoSessionCtx &ctx )
 {
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CLINIT ) ;
    INT32 rc = SDB_OK ;
 
    if ( MONGO_QUERY_MSG == pMsg->type() )
@@ -1001,9 +1017,8 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
    }
    else
    {
-      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                   "Unknown message type: %d",
-                   pMsg->type() ) ;
+      rc = SDB_INVALIDARG ;
+      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
    }
 
    _requestID = pMsg->requestID() ;
@@ -1023,13 +1038,16 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CLINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO__CLINIT1, "_mongoCollectionCommand::_init" )
 INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO__CLINIT1 ) ;
    INT32 rc = SDB_OK ;
    const CHAR* pClShortName = NULL ;
    const CHAR* pNameInReq = pReq->fullCollectionName() ;
@@ -1065,13 +1083,16 @@ done:
       _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO__CLINIT1, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO__CLINIT2, "_mongoCollectionCommand::_init" )
 INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO__CLINIT2 ) ;
    INT32 rc = SDB_OK ;
 
    _obj = BSONObj( pReq->metadata() ) ;
@@ -1100,17 +1121,20 @@ done:
       _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO__CLINIT2, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLBUILDREPLYCOMMON, "_mongoCollectionCommand::_buildReplyCommon" )
 INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
                                                   engine::rtnContextBuf &bodyBuf,
                                                   _mongoResponseBuffer &headerBuf,
                                                   BOOLEAN setCursorID )
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CLBUILDREPLYCOMMON ) ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
@@ -1134,15 +1158,18 @@ INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_CLBUILDREPLYCOMMON ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLBUILDFIRBATCH, "_mongoCollectionCommand::_buildFirstBatch" )
 INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
                                                  engine::rtnContextBuf &bodyBuf )
 {
    // {xxx}, {xxx}... =>
    // { cursor: { firstBatch: [ {xxx}, {xxx}... ], id: 0, ns: "foo.bar" },
    //   ok: 1 }
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CLBUILDFIRBATCH ) ;
    INT32 rc = SDB_OK ;
    BSONObjBuilder resultBuilder ;
    BSONObjBuilder cursorBuilder ;
@@ -1212,17 +1239,19 @@ INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
    bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CLBUILDFIRBATCH, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoInsertCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_INSERTBUILDSDBREQ, "_mongoInsertCommand::buildSdbRequest" )
 INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                             mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-
    INT32 rc                = SDB_OK ;
    MsgOpInsert *pInsert    = NULL ;
 
@@ -1263,15 +1292,19 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_INSERTBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_INSERTBUILDMONGOREPLY, "_mongoInsertCommand::buildMongoReply" )
 INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       // reply: { n: 1, ok: 1 }
@@ -1289,16 +1322,17 @@ INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
-
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEBUILDSDBREQ, "_mongoDeleteCommand::buildSdbRequest" )
 INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                             mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-
    INT32 rc          = SDB_OK ;
    MsgOpDelete *pDel = NULL ;
    BSONObj objList, deleteObj, qObj ;
@@ -1364,14 +1398,17 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DELETEBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEPARSESDBREPLY, "_mongoDeleteCommand::parseSdbReply" )
 INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -1409,15 +1446,19 @@ INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DELETEPARSESDBREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEBUILDMONGOREPLY, "_mongoDeleteCommand::buildMongoReply" )
 INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
         SDB_DMS_NOTEXIST == sdbReply.flags )
    {
@@ -1440,15 +1481,17 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DELETEBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoUpdateCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEBUILDSDBREQ, "_mongoUpdateCommand::buildSdbRequest" )
 INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                             mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-
    INT32 rc = SDB_OK ;
    BOOLEAN updateMulti  = FALSE ;
    MsgOpUpdate *pUpdate = NULL ;
@@ -1581,14 +1624,17 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEPARSESDBREPLY, "_mongoUpdateCommand::parseSdbReply" )
 INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf )
+                                          engine::rtnContextBuf &bodyBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -1655,15 +1701,19 @@ INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEPARSESDBREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY, "_mongoUpdateCommand::buildMongoReply" )
 INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       // update reply: { ok: 1, n: 1, nModified: 1 }
@@ -1715,14 +1765,17 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEGETID, "_mongoUpdateCommand::_getId" )
 INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
                                    const BSONObj &updatorObj,
                                    mongoSessionCtx &ctx,
                                    BSONObj &idObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEGETID ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -1796,15 +1849,18 @@ INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEGETID, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEGETIDFROMQUERY, "_mongoUpdateCommand::_getIdFromQuery" )
 INT32 _mongoUpdateCommand::_getIdFromQuery( const BSONObj &queryObj,
                                             mongoSessionCtx &ctx,
                                             BSONObj &idObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEGETIDFROMQUERY ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -1872,6 +1928,7 @@ INT32 _mongoUpdateCommand::_getIdFromQuery( const BSONObj &queryObj,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEGETIDFROMQUERY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -1887,11 +1944,12 @@ _mongoQueryCommand::_mongoQueryCommand()
 {
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_QUERYINIT, "_mongoQueryCommand::init" )
 INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
                                 mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_QUERYINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
    INT32 rc = SDB_OK ;
    const CHAR* ptr = NULL ;
    const CHAR* pNameInReq = NULL ;
@@ -1940,16 +1998,18 @@ done:
    {
       _isInitialized = TRUE ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO_QUERYINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_QUERYBUILDREQ, "_mongoQueryCommand::buildSdbRequest" )
 INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                            mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_QUERYBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    BSONObj cond, orderby, hint ;
@@ -2014,15 +2074,18 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_QUERYBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_QUERYBUILDMONGOREPLY, "_mongoQueryCommand::buildMongoReply" )
 INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                            engine::rtnContextBuf &bodyBuf,
                                            _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_QUERYBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    // build body
@@ -2076,6 +2139,7 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
    res.nReturned = bodyBuf.recordNum() ;
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_QUERYBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
@@ -2143,11 +2207,12 @@ BSONObj _mongoQueryCommand::_getHintObj( const BSONObj &obj )
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDBUILDREQ, "_mongoFindCommand::buildSdbRequest" )
 INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                           mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_FINDBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
-
    INT32      rc      = SDB_OK ;
    MsgOpQuery *pQuery = NULL ;
    BSONObj cond, orderby, hint, selector ;
@@ -2202,15 +2267,18 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_FINDBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDBUILDMONGOREPLY, "_mongoFindCommand::buildMongoReply" )
 INT32 _mongoFindCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                           engine::rtnContextBuf &bodyBuf,
                                           _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_FINDBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
 
    if ( SDB_OK      == sdbReply.flags ||
@@ -2232,6 +2300,7 @@ INT32 _mongoFindCommand::buildMongoReply( const MsgOpReply &sdbReply,
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_FINDBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -2247,11 +2316,12 @@ _mongoGetmoreCommand::_mongoGetmoreCommand()
   _initMsgType( MONGO_UNKNOWN_MSG )
 {}
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREINIT, "_mongoGetmoreCommand::init" )
 INT32 _mongoGetmoreCommand::init( const _mongoMessage *pMsg,
                                   mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
    INT32 rc = SDB_OK ;
 
    if ( MONGO_QUERY_MSG == pMsg->type() )
@@ -2301,13 +2371,16 @@ INT32 _mongoGetmoreCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREINIT1, "_mongoGetmoreCommand::_init" )
 INT32 _mongoGetmoreCommand::_init( const _mongoGetmoreRequest *pReq )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT1 ) ;
    INT32 rc = SDB_OK ;
 
    // get collection full name
@@ -2333,16 +2406,19 @@ done:
       _isInitialized = TRUE ;
       _initMsgType = MONGO_GETMORE_MSG ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREINIT1, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREINIT2, "_mongoGetmoreCommand::_init" )
 INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
 {
    // mongo message:
    // fullCollectionName: "foo.$cmd"
    // { getMore: <cursorID>, collection: "bar", batchSize: 1000 }
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT2 ) ;
    INT32 rc = SDB_OK ;
    const CHAR* pClShortName = NULL ;
    const CHAR* pNameInReq = pReq->fullCollectionName() ;
@@ -2393,13 +2469,16 @@ done:
       _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREINIT2, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREINIT3, "_mongoGetmoreCommand::_init" )
 INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT3 ) ;
    INT32 rc = SDB_OK ;
    const CHAR* pClShortName = NULL ;
    BSONObj obj( pReq->metadata() ) ;
@@ -2444,14 +2523,17 @@ done:
       _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREINIT3, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREBUILDREQ, "_mongoGetmoreCommand::buildSdbRequest" )
 INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                              mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
    MsgOpGetMore *pGetMore = NULL ;
 
    sdbMsg.reserve( sizeof( MsgOpGetMore ) ) ;
@@ -2467,13 +2549,17 @@ INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDGETMOREREPLY, "_mongoGetmoreCommand::_buildGetmoreReply" )
 INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
                                                 engine::rtnContextBuf &bodyBuf,
                                                 _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDGETMOREREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       INT32 offset = 0 ;
@@ -2518,13 +2604,16 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
    res.nReturned = bodyBuf.recordNum() ;
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMOREREPLY ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDQUERYREPLY, "_mongoGetmoreCommand::_buildQueryReply" )
 INT32 _mongoGetmoreCommand::_buildQueryReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDQUERYREPLY ) ;
    INT32 rc = SDB_OK ;
    mongoResponse res ;
 
@@ -2545,15 +2634,18 @@ INT32 _mongoGetmoreCommand::_buildQueryReply( const MsgOpReply &sdbReply,
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_BUILDQUERYREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDCOMMANDREPLY, "_mongoGetmoreCommand::_buildCommandReply" )
 INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
                                                 engine::rtnContextBuf &bodyBuf,
                                                 _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDCOMMANDREPLY ) ;
    INT32 rc = SDB_OK ;
    mongoCommandResponse res ;
 
@@ -2570,15 +2662,18 @@ INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_BUILDCOMMANDREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY, "_mongoGetmoreCommand::buildMongoReply" )
 INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf,
                                              _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    if( MONGO_GETMORE_MSG == _initMsgType )
@@ -2594,15 +2689,18 @@ INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
       _buildCommandReply( sdbReply, bodyBuf, headerBuf ) ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, "_mongoGetmoreCommand::_buildNextBatch" )
 INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf )
 {
    // {xxx}, {xxx}... =>
    // { cursor: { nextBatch: [{xxx}, {xxx}...], id: 0, ns: "foo.bar" },
    //   ok: 1 }
+   PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH ) ;
    INT32 rc = SDB_OK ;
    bson::BSONObjBuilder resultBuilder ;
    bson::BSONObjBuilder cursorBuilder ;
@@ -2672,17 +2770,19 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
    bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoKillCursorCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORINIT, "_mongoKillCursorCommand::init" )
 INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
                                      mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_KILLCURSORINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
-
    INT32 rc = SDB_OK ;
 
    if ( MONGO_KILL_CURSORS_MSG == pMsg->type() )
@@ -2772,14 +2872,17 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_KILLCURSORINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORBUILDREQ, "_mongoKillCursorCommand::buildSdbRequest" )
 INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                 mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_KILLCURSORBUILDREQ ) ;
    INT32 rc                 = SDB_OK ;
    MsgOpKillContexts *pKill = NULL ;
 
@@ -2814,15 +2917,18 @@ INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_KILLCURSORBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY, "_mongoKillCursorCommand::buildMongoReply" )
 INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                 engine::rtnContextBuf &bodyBuf,
                                                 _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    if ( MONGO_KILL_CURSORS_MSG == _initMsgType )
@@ -2858,13 +2964,16 @@ INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCountCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTBUILDSDBREQ, "_mongoCountCommand::buildSdbRequest" )
 INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                            mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
@@ -2929,15 +3038,19 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COUNTBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_COUNTBUILDMONGOREPLY, "_mongoCountCommand::buildMongoReply" )
 INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                            engine::rtnContextBuf &bodyBuf,
                                            _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       // reply: { n: 1, ok: 1 }
@@ -2958,13 +3071,17 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_COUNTBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAggregateCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTSUM, "_mongoAggregateCommand::_convertAggrSumIfExist" )
 void _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
                                                      BSONObjBuilder& builder )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
+
    if ( ele.isABSONObj() && ele.Obj().getIntField( "$sum" ) == 1 )
    {
       // { $group: { _id: ..., total: { $sum: 1 } } } =>
@@ -2975,8 +3092,11 @@ void _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
    {
       builder.append( ele ) ;
    }
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTGROUP, "_mongoAggregateCommand::_convertAggrGroup" )
 void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
                                                 vector<BSONObj>& newStageList )
 {
@@ -2987,6 +3107,8 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
     * { $group: { _id: "$a", total: { $sum: "$b" }, tmp_id_field: "$a" } },
     * { $project: { _id: "$tmp_id_field", total: 1 } }
     */
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
+
    if ( 0 != ossStrcmp( groupObj.firstElementFieldName(), "$group" ) )
    {
       return ;
@@ -3043,11 +3165,15 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
       }
       newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
    }
+
+   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTPROJECT, "_mongoAggregateCommand::_convertAggrProject" )
 INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
                                                    BSONObj& errorObj )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTPROJECT ) ;
    INT32 rc = SDB_OK ;
 
    if ( 0 != ossStrcmp( projectObj.firstElementFieldName(), "$project" ) )
@@ -3107,14 +3233,17 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
    }
 
 done:
+   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTPROJECT ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRBUILDREQ, "_mongoAggregateCommand::buildSdbRequest" )
 INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
@@ -3187,15 +3316,18 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRBUILDREQ ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRBUILDMONGOREPLY, "_mongoAggregateCommand::buildMongoReply" )
 INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                engine::rtnContextBuf &bodyBuf,
                                                _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
 
    if ( _obj.hasField( "cursor" ) )
@@ -3250,15 +3382,18 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
    }
 
 done:
+   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRBUILDMONGOREPLY ) ;
    return rc ;
 error:
    goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDistinctCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DISTINCTBUILDREQ, "_mongoDistinctCommand::buildSdbRequest" )
 INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DISTINCTBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    /* mongo request:
@@ -3317,15 +3452,19 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DISTINCTBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY, "_mongoDistinctCommand::buildMongoReply" )
 INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY ) ;
+
    // reply: { values: [ 1, 3, 4 ], ok: 1 }
    if ( SDB_OK == sdbReply.flags )
    {
@@ -3344,13 +3483,16 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateCLCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRCLBUILDREQ, "_mongoCreateCLCommand::buildSdbRequest" )
 INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRCLBUILDREQ ) ;
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
@@ -3381,13 +3523,17 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRCLBUILDREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY, "_mongoCreateCLCommand::buildMongoReply" )
 INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
@@ -3395,13 +3541,16 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropCLCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPCLBUILDREQ, "_mongoDropCLCommand::buildSdbRequest" )
 INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                             mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPCLBUILDREQ ) ;
    INT32 rc = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
@@ -3433,13 +3582,17 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPCLBUILDREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY, "_mongoDropCLCommand::buildMongoReply" )
 INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( "ns" << _clFullName.c_str() <<
@@ -3455,13 +3608,16 @@ INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListIdxCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTIDXBUILDREQ, "_mongoListIdxCommand::buildSdbRequest" )
 INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                              mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
@@ -3494,13 +3650,16 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTIDXBUILDREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTIDXBUILDMONGOREPLLY, "_mongoListIdxCommand::buildMongoReply" )
 INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf,
                                              _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTIDXBUILDMONGOREPLLY ) ;
    INT32 rc = SDB_OK ;
 
    if ( SDB_OK      == sdbReply.flags ||
@@ -3514,15 +3673,18 @@ INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTIDXBUILDMONGOREPLLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateIdxCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRIDXBUILDREQ, "_mongoCreateIdxCommand::buildSdbRequest" )
 INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc                = SDB_OK ;
@@ -3601,15 +3763,19 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRIDXBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY, "_mongoCreateIdxCommand::buildMongoReply" )
 INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                engine::rtnContextBuf &bodyBuf,
                                                _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
@@ -3617,15 +3783,17 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
-
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropIdxCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPIDXBUILDREQ, "_mongoDropIdxCommand::buildSdbRequest" )
 INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                              mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPIDXBUILDREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
@@ -3666,13 +3834,17 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPIDXBUILDREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY, "_mongoDropIdxCommand::buildMongoReply" )
 INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                              engine::rtnContextBuf &bodyBuf,
                                              _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
@@ -3680,13 +3852,16 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropDatabaseCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPDBBUILDREQ, "_mongoDropDatabaseCommand::buildSdbRequest" )
 INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                   mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPDBBUILDREQ ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
@@ -3720,13 +3895,17 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPDBBUILDREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY, "_mongoDropDatabaseCommand::buildMongoReply" )
 INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   engine::rtnContextBuf &bodyBuf,
                                                   _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( "dropped" << _csName.c_str() <<
@@ -3739,13 +3918,16 @@ INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateUserCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRUSERINIT, "_mongoCreateUserCommand::init" )
 INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
                                      mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRUSERINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
 
    INT32 rc = SDB_OK ;
@@ -3783,14 +3965,17 @@ INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRUSERINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRUSERBUILDREQ, "_mongoCreateUserCommand::buildSdbRequest" )
 INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                 mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRUSERBUILDREQ ) ;
    INT32 rc = SDB_OK ;
    MsgAuthCrtUsr *pCtrUser = NULL ;
    BSONObj obj ;
@@ -3890,21 +4075,26 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRUSERBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY, "_mongoCreateUserCommand::buildMongoReply" )
 INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                 engine::rtnContextBuf &bodyBuf,
                                                 _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
    }
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY ) ;
    return SDB_OK ;
 }
 
@@ -3967,9 +4157,11 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropUserCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPUSERINIT, "_mongoDropUserCommand::init" )
 INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
                                    mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPUSERINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
 
    INT32 rc = SDB_OK ;
@@ -4007,14 +4199,17 @@ INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPUSERINIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPUSERBUILDSDBREQ, "_mongoDropUserCommand::buildSdbRequest" )
 INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPUSERBUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
    MsgAuthDelUsr *pAuth = NULL ;
    BSONObj obj ;
@@ -4046,28 +4241,35 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPUSERBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY, "_mongoDropUserCommand::buildMongoReply" )
 INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
    }
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListUserCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTUSERINIT, "_mongoListUserCommand::init" )
 INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
                                    mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTUSERINIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
 
    INT32 rc = SDB_OK ;
@@ -4105,6 +4307,7 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERINIT, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4175,9 +4378,11 @@ error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTUSERBUILDSDBREQ, "_mongoListUserCommand::buildSdbRequest" )
 INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                               mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTUSERBUILDSDBREQ ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
@@ -4206,13 +4411,16 @@ INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERBUILDSDBREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY, "_mongoListUserCommand::buildMongoReply" )
 INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
 
    if ( SDB_OK == sdbReply.flags )
@@ -4269,15 +4477,18 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoSaslStartCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH1INIT, "_mongoSaslStartCommand::init" )
 INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
                                     mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH1INIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
 
    INT32 rc = SDB_OK ;
@@ -4315,14 +4526,17 @@ INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH1INIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH1BUILDSDBREQ, "_mongoSaslStartCommand::buildSdbRequest" )
 INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH1BUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
    MsgAuthentication *pAuth = NULL ;
    const CHAR* pUserName = NULL ;
@@ -4392,11 +4606,13 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    ctx.userName = pUserName ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH1BUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY, "_mongoSaslStartCommand::buildMongoReply" )
 INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                engine::rtnContextBuf &bodyBuf,
                                                _mongoResponseBuffer &headerBuf )
@@ -4404,6 +4620,7 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
   /* Generate server-first-message on the form:
    * r=client-nonce+server-nonce,s=user-salt,i=iteration-count
    */
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY ) ;
    stringstream ss ;
    string payload ;
    BSONObjBuilder bob ;
@@ -4467,13 +4684,16 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoSaslContinueCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH2INIT, "_mongoSaslContinueCommand::init" )
 INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
                                        mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2INIT ) ;
    SDB_ASSERT( !_isInitialized, "alreadby initialized" ) ;
 
    INT32 rc = SDB_OK ;
@@ -4511,14 +4731,17 @@ INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
    _requestID = pMsg->requestID() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH2INIT, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH2BUILDSDBREQ, "_mongoSaslContinueCommand::buildSdbRequest" )
 INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                   mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2BUILDSDBREQ ) ;
    INT32 rc = SDB_OK ;
    MsgAuthentication *pAuth = NULL ;
    const CHAR* pChannel = NULL ;
@@ -4598,16 +4821,20 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    ctx.authInfo.identify = pChannel ;
    ctx.authInfo.clientProof = pClientProof ;
    ctx.authInfo.type = SDB_AUTH_TYPE_EXTEND_PWD ;
+   
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH2BUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY, "_mongoSaslContinueCommand::buildMongoReply" )
 INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   engine::rtnContextBuf &bodyBuf,
                                                   _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
    BSONObjBuilder bob ;
    BOOLEAN rebuildBuf = FALSE ;
 
@@ -4659,13 +4886,16 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListCollectionCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLBUILDSDBREQ, "_mongoListCollectionCommand::buildSdbRequest" )
 INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                     mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLBUILDSDBREQ ) ;
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
@@ -4708,13 +4938,17 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLBUILDSDBREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY, "_mongoListCollectionCommand::buildMongoReply" )
 INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                     engine::rtnContextBuf &bodyBuf,
                                                     _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY ) ;
+
    if ( SDB_OK      == sdbReply.flags ||
         SDB_DMS_EOC == sdbReply.flags )
    {
@@ -4723,13 +4957,16 @@ INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListDatabaseCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTDBBUILDSDBREQ, "_mongoListDatabaseCommand::buildSdbRequest" )
 INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                   mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTDBBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc             = SDB_OK ;
@@ -4763,13 +5000,17 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTDBBUILDSDBREQ, rc ) ;
    return rc ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY, "_mongoListDatabaseCommand::buildMongoReply" )
 INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   engine::rtnContextBuf &bodyBuf,
                                                   _mongoResponseBuffer &headerBuf )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
+
    if ( SDB_OK == sdbReply.flags )
    {
       BSONObjBuilder bob ;
@@ -4795,6 +5036,7 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+   PD_TRACE_EXIT( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
    return SDB_OK ;
 }
 
@@ -5046,9 +5288,11 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetCmdLineOptsCommand)
 // that the parameters of the commands are different
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindandmodifyCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindAndModifyCommand)
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDANDMODIFYBUILDSDBREQ, "_mongoFindAndModifyCommand::buildSdbRequest" )
 INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                                                    mongoSessionCtx &ctx )
 {
+   PD_TRACE_ENTRY( SDB_FAPMONGO_FINDANDMODIFYBUILDSDBREQ ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
 
    INT32 rc = SDB_OK ;
@@ -5282,11 +5526,13 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_FINDANDMODIFYBUILDSDBREQ, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_FINDANDMODIFYBUILDMONGOREPLY, "_mongoFindAndModifyCommand::buildMongoReply" )
 INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                    engine::rtnContextBuf &bodyBuf,
                                                    _mongoResponseBuffer &headerBuf )
@@ -5304,6 +5550,7 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
       ok: <INT32>
    }
    */
+   PD_TRACE_ENTRY( SDB_FAPMONGO_FINDANDMODIFYBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
    BSONObjBuilder resultBuilder ;
    BOOLEAN hasRecordReturned = ( 0 < bodyBuf.size() ) ;
@@ -5374,6 +5621,7 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
    }
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_FINDANDMODIFYBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;

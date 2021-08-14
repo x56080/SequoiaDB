@@ -45,6 +45,8 @@
 #include "utilCommon.hpp"
 #include "fapMongoMessageDef.hpp"
 #include "fapMongoMessage.hpp"
+#include "fapMongoTrace.hpp"
+#include "pdTrace.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 

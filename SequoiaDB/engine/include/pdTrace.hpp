@@ -173,7 +173,8 @@
 #define PD_TRACE_COMPONENT_SPD     0x04000000
 // query graph manger
 #define PD_TRACE_COMPONENT_QGM     0x08000000
-
+// fap
+#define PD_TRACE_COMPONENT_FAP     0x10000000
 /*
    _pdTraceFormatType define
 */
