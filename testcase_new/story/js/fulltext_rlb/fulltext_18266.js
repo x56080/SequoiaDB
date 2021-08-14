@@ -39,8 +39,7 @@ function test ()
       var doTimes = 1;
       for( ; doTimes <= 600; doTimes++ )
       {
-         isMasterNodeExist( "SYSCatalogGroup" );
-         var curCataMaster = db.getRG( "SYSCatalogGroup" ).getMaster();
+         var curCataMaster = isMasterNodeExist( "SYSCatalogGroup" );
          var curCataMasterNodeName = curCataMaster.getHostName() + ":" + curCataMaster.getServiceName();
          // 切主后，则退出
          if( preCataMasterNodeName != curCataMasterNodeName ) 
