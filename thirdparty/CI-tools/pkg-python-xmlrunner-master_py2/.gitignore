@@ -1,9 +1,0 @@
-# Python bytecode
-*.pyc
-
-# Build directory
-build/*
-dist/*
-
-# Egg info directory
-*.egg-info
