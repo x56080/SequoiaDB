@@ -23,6 +23,8 @@ SDB_EXTERN_C_START
 
 typedef struct Socket Socket ;
 
+INT32 initNetworkTimeout( UINT32 networkTimeout ) ;
+
 INT32 clientConnect ( const CHAR *pHostName,
                       const CHAR *pServiceName,
                       BOOLEAN useSSL,
@@ -34,13 +36,17 @@ void clientDisconnect ( Socket** sock ) ;
 INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
                    INT32 *pSentLen, INT32 timeout ) ;
 // timeout for microsecond ( 1/1000000 sec )
-INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, 
+INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
                    INT32 *pReceivedLen, INT32 timeout ) ;
 
 INT32 disableNagle( Socket* sock ) ;
 SOCKET clientGetRawSocket( Socket* sock ) ;
 INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
                     INT32 keepInterval, INT32 keepCount ) ;
+
+#if !defined (_WINDOWS)
+INT32 clientSetTcpUserTime( SOCKET sock, INT32 tcpUserTime ) ;
+#endif
 
 void clientSetInterruptFunc( Socket* sock, socketInterruptFunc func ) ;
 

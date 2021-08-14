@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <fcntl.h>
 #else
 #include <mstcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
@@ -37,6 +38,10 @@
 #define SOCKET_GETLASTERROR WSAGetLastError()
 #else
 #define SOCKET_GETLASTERROR errno
+#endif
+
+#if defined (_AIX)
+   #define SOL_TCP IPPROTO_TCP
 #endif
 
 struct Socket
@@ -55,21 +60,52 @@ static void _winSockInit( void )
 {
    ossMutexInit( &winSockInitMutex ) ;
 }
+#else
+static INT32 _innerConnect( SOCKET sock, struct sockaddr *sockAddress,
+                            INT32 connectTimeout ) ;
 #endif
 
 static INT32 _disableNagle( SOCKET sock ) ;
 static void _clientDisconnect ( SOCKET sock ) ;
+
 #ifdef SDB_SSL
 static INT32 _clientSecure( Socket* sock ) ;
 #endif
 #define MAX_RECV_RETRIES 5
 #define MAX_SEND_RETRIES 5
 
+// seconds
+static UINT32 S_CONNECT_TIMEOUT   = 10 ;   // connect to server timeout
+// seconds
+static UINT32 S_TCP_USER_TIMEOUT  = 10 ;   // tcp Retransmission time before death
+                                           // (TCP_USER_TIMEOUT after linux kernel 2.6.37)
+static BOOLEAN S_ENABLE_KEEPALIVE = TRUE ; // enable keepalive or not
+// seconds
+static UINT32 S_KEEPALIVE_TIME    = 10 ;   // start keeplives after this time
+                                           // when connection is idle
+static UINT32 S_KEEPALIVE_COUNT   = 3 ;    // number of keepalives before death
+// seconds
+static INT32 S_KEEPALIVE_INTVL    = 1 ;    // interval between keepalives
+
+
+INT32 initNetworkTimeout( UINT32 networkTimeout )
+{
+   S_CONNECT_TIMEOUT    = networkTimeout ;
+   S_TCP_USER_TIMEOUT   = networkTimeout ;
+   S_KEEPALIVE_TIME     = networkTimeout ;
+
+   if ( networkTimeout <= 0 )
+   {
+      S_ENABLE_KEEPALIVE = FALSE ;
+   }
+
+   return SDB_OK ;
+}
 
 INT32 clientConnect ( const CHAR *pHostName,
-                      const CHAR *pServiceName,
-                      BOOLEAN useSSL,
-                      Socket** sock )
+                       const CHAR *pServiceName,
+                       BOOLEAN useSSL,
+                       Socket** sock )
 {
    INT32 rc = SDB_OK ;
    struct hostent *hp = NULL ;
@@ -81,7 +117,6 @@ INT32 clientConnect ( const CHAR *pHostName,
 #if defined (_WINDOWS)
    static ossOnce initOnce = OSS_ONCE_INIT;
 #endif
-
 
    if ( !sock )
    {
@@ -121,7 +156,7 @@ INT32 clientConnect ( const CHAR *pHostName,
    INT32 error             = 0 ;
    CHAR hbuf[8192]         = { 0 } ;
    hp                      = &hent ;
-   if ( (0 == gethostbyname_r ( pHostName, &hent, hbuf, sizeof(hbuf), 
+   if ( (0 == gethostbyname_r ( pHostName, &hent, hbuf, sizeof(hbuf),
                                 &retval, &error )) && NULL != retval )
 #elif defined (_AIX)
    struct hostent hent ;
@@ -133,9 +168,9 @@ INT32 clientConnect ( const CHAR *pHostName,
       UINT32 *pAddr = (UINT32 *)hp->h_addr_list[0] ;
       if ( pAddr )
       {
-         sockAddress.sin_addr.s_addr = *( pAddr ) ;  
+         sockAddress.sin_addr.s_addr = *( pAddr ) ;
       }
-      else 
+      else
       {
          rc = SDB_SYS ;
          goto error ;
@@ -164,17 +199,42 @@ INT32 clientConnect ( const CHAR *pHostName,
       goto error ;
    }
 
+#if defined (_WINDOWS)
    rc = connect ( rawSocket, (struct sockaddr *) &sockAddress,
-                    sizeof( sockAddress ) ) ;
+                  sizeof( sockAddress ) ) ;
+#else
+   if ( S_CONNECT_TIMEOUT <= 0 )
+   {
+      rc = connect ( rawSocket, (struct sockaddr *) &sockAddress,
+                     sizeof( sockAddress ) ) ;
+   }
+   else
+   {
+      rc = _innerConnect( rawSocket, (struct sockaddr *)&sockAddress,
+                          S_CONNECT_TIMEOUT ) ;
+   }
+#endif
+
    if ( rc )
    {
       rc = SDB_NETWORK ;
       goto error ;
    }
 
-   setKeepAlive( rawSocket, 1, OSS_SOCKET_KEEP_IDLE,
-                 OSS_SOCKET_KEEP_INTERVAL,
-                 OSS_SOCKET_KEEP_CONTER ) ;
+   if ( S_ENABLE_KEEPALIVE )
+   {
+      setKeepAlive( rawSocket, 1, S_KEEPALIVE_TIME,
+                    S_KEEPALIVE_INTVL,
+                    S_KEEPALIVE_COUNT) ;
+   }
+
+#if !defined (_WINDOWS)
+   if ( S_TCP_USER_TIMEOUT > 0 )
+   {
+      clientSetTcpUserTime( rawSocket, S_TCP_USER_TIMEOUT ) ;
+   }
+#endif
+
    _disableNagle( rawSocket ) ;
 
    s = (Socket*) SDB_OSS_MALLOC ( sizeof( Socket ) ) ;
@@ -315,7 +375,7 @@ INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   
+
    // set keep alive options
 #if defined (_WINDOWS)
    alive_in.onoff             = keepAlive ;
@@ -343,9 +403,6 @@ INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
       rc = SDB_SYS ;
       goto error ;
    }
-   #if defined (_AIX)
-      #define SOL_TCP IPPROTO_TCP
-   #endif
    rc = setsockopt( sock, SOL_TCP, TCP_KEEPIDLE,
                     ( void *)&keepIdle, sizeof(keepIdle) ) ;
    if ( SDB_OK != rc )
@@ -374,6 +431,31 @@ done:
 error:
    goto done ;
 }
+
+#if !defined (_WINDOWS)
+INT32 clientSetTcpUserTime( SOCKET sock, INT32 tcpUserTime )
+{
+   INT32 rc = SDB_OK ;
+   if ( 0 == sock )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   rc = setsockopt( sock, SOL_TCP, TCP_USER_TIMEOUT,
+                    ( void *)&tcpUserTime, sizeof(tcpUserTime) ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+#endif
 
 static INT32 _disableNagle( SOCKET sock )
 {
@@ -407,6 +489,78 @@ INT32 disableNagle( Socket* sock )
 
    return rc ;
 }
+
+#if !defined (_WINDOWS)
+static INT32 _innerConnect( SOCKET sock, struct sockaddr *sockAddress,
+                            INT32 connectTimeout )
+{
+   INT32 rc = SDB_OK ;
+   INT32 flags = 0;
+
+   // get previous flags
+   flags = fcntl( sock, F_GETFL, 0 ) ;
+   if ( -1 == flags )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   // set no blocking
+   if ( -1 == fcntl( sock, F_SETFL, flags | O_NONBLOCK ) )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   errno = 0 ;
+   rc = connect( sock, sockAddress, sizeof(*sockAddress) ) ;
+   if ( rc < 0 )
+   {
+      struct timeval maxSelectTime ;
+      fd_set fds ;
+
+      if ( errno != EINPROGRESS )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // else means in progress, let's select unitl timeout
+
+      maxSelectTime.tv_sec = connectTimeout ;
+      maxSelectTime.tv_usec = 0 ;
+
+      FD_ZERO ( &fds ) ;
+      FD_SET ( sock, &fds ) ;
+      rc = select( sock + 1, NULL, &fds, NULL, &maxSelectTime ) ;
+      // 0 means timeout
+      if ( 0 == rc )
+      {
+         rc = SDB_TIMEOUT ;
+         goto error ;
+      }
+      else if ( -1 == rc )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      // else success
+   }
+   // else rc == 0 means socket is connectted immediately
+
+   // restore to previous flags
+   rc = fcntl( sock, F_SETFL, flags ) ;
+   if ( 0 != rc )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+#endif
 
 static void _clientDisconnect ( SOCKET sock )
 {
@@ -442,7 +596,7 @@ done:
    return ;
 }
 
-INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len, 
+INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
                    INT32 *pSentLen, INT32 timeout )
 {
    INT32 rc = SDB_OK ;
@@ -581,7 +735,7 @@ error :
    goto done ;
 }
 
-INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, 
+INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
                    INT32 *pReceivedLen, INT32 timeout )
 {
    INT32 rc = SDB_OK ;
@@ -664,7 +818,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
          if ( WSAEINTR == rc )
 #else
          if ( EINTR == rc )
-#endif 
+#endif
          {
             if ( NULL == sock->isInterruptFunc || !sock->isInterruptFunc() )
             {

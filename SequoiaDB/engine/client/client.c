@@ -2155,6 +2155,12 @@ SDB_EXPORT INT32 initClient( sdbClientConf* config )
    {
       goto error ;
    }
+
+   rc = initNetworkTimeout( config->networkTimeout ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
 done:
    return rc ;
 error:

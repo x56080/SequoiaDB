@@ -126,6 +126,8 @@ typedef struct _sdbClientConf
 {
    BOOLEAN enableCacheStrategy ; /**< The flag to OPEN the cache strategy */
    UINT32  cacheTimeInterval ;   /**< The life cycle(in seconds) of cached object */
+
+   UINT32  networkTimeout ;      /**< The timeout(in seconds) when network error */
 } sdbClientConf ;
 
 
