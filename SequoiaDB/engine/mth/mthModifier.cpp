@@ -4121,7 +4121,15 @@ namespace engine
 
             if ( !utilAddIsOverflow( arg1, arg2, result) )
             {
-               resBuilder.append( "", result ) ;
+               if ( NumberInt == existType && utilCanConvertToINT32( result ) )
+               {
+                  // keep int if possible
+                  resBuilder.append( "", (INT32)result ) ;
+               }
+               else
+               {
+                  resBuilder.append( "", result ) ;
+               }
             }
             else if ( !strictMode )
             {

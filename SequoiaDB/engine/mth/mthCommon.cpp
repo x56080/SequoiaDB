@@ -2179,6 +2179,11 @@ namespace engine
             outBuilder.append( name, result ) ;
             flag |= MTH_OPERATION_FLAG_OVERFLOW ; // overflow
          }
+         else if ( NumberInt == in.type() && utilCanConvertToINT32( i ) )
+         {
+            // keep int if possible
+            outBuilder.append( name, (INT32)i ) ;
+         }
          else
          {
             outBuilder.append( name, i ) ;
@@ -2198,7 +2203,7 @@ namespace engine
          else
          {
             outBuilder.append( name, i64 );
-            flag |= MTH_OPERATION_FLAG_OVERFLOW ; //
+            flag |= MTH_OPERATION_FLAG_OVERFLOW ; // overflow
          }
       }
 
@@ -2309,6 +2314,10 @@ namespace engine
 
             outBuilder.append( name, result ) ;
             flag |= MTH_OPERATION_FLAG_OVERFLOW ; // overflow
+         }
+         else if ( NumberInt == in.type() && utilCanConvertToINT32( i ) )
+         {
+            outBuilder.append( name, (INT32)i ) ;
          }
          else
          {
@@ -2441,6 +2450,11 @@ namespace engine
             outBuilder.append( name, result ) ;
             flag |= MTH_OPERATION_FLAG_OVERFLOW ; // overflow
          }
+         else if ( NumberInt == in.type() && utilCanConvertToINT32( i ) )
+         {
+            // keep int if possible
+            outBuilder.append( name, (INT32)i ) ;
+         }
          else
          {
             outBuilder.append( name, i ) ;
@@ -2569,7 +2583,15 @@ namespace engine
          if ( !utilDivIsOverflow( divide, r ) )
          {
             result = divide / r ;
-            outBuilder.append( name, result ) ;
+            if ( NumberInt == in.type() && utilCanConvertToINT32( result ) )
+            {
+               // keep int if possible
+               outBuilder.append( name, (INT32)result ) ;
+            }
+            else
+            {
+               outBuilder.append( name, result ) ;
+            }
          }
          else
          {

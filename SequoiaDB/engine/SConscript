@@ -820,6 +820,9 @@ ixmgenTestFiles = [
 idxHashTestFiles = [
       "test/ixmgen/idxHashTest.cpp"
       ]
+mthUpdateTestFiles = [
+      "test/mth/mthUpdateTest.cpp"
+      ]
 bsonBuilderTestFiles = [
       "test/bson/bsonBuilderTest.cpp"
       ]
@@ -956,6 +959,7 @@ env.StaticLibrary('stpclient', stpClientFiles)
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
+mthtest = env.Object('mthtest', gtestMainFile)
 bsonbuildertest = env.Object('bsonbuildertest', gtestMainFile)
 gtstest = env.Object( 'gtstest', gtestMainFile )
 sqltest2 = env.Object('sqltest2', gtestMainFile)
@@ -1067,6 +1071,9 @@ if hasTestcase:
    idxHashTest = env.Program("idxHashTest", [ idxHashTestFiles, ixmgentest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   mthUpdateTest = env.Program("mthUpdateTest", [ mthUpdateTestFiles, mthtest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    bsonBuilderTest = env.Program( "bsonBuilderTest", [ bsonBuilderTestFiles, bsonbuildertest ],
           LIBDEPS=[ "qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient" ],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1134,6 +1141,7 @@ if hasTestcase:
    env.Install( '#/tests', clsTest )
    env.Install( '#/tests', ixmgenTest )
    env.Install( '#/tests', idxHashTest )
+   env.Install( '#/tests', mthUpdateTest )
    env.Install( '#/tests', bsonBuilderTest )
    env.Install( '#/tests', gtsTest )
    env.Install( '#/tests', construct )
