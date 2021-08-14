@@ -4,6 +4,7 @@ listBackup - list the backup information
 
 ##SYNOPSIS##
 
+**db.listBackup([options], [cond], [sel], [sort])**
 
 ##CATEGORY##
 

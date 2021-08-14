@@ -6,6 +6,8 @@
 .PP
 listBackup \- list the backup information
 .SH SYNOPSIS
+.PP
+\f[B]db.listBackup([options], [cond], [sel], [sort])\f[]
 .SH CATEGORY
 .PP
 Sdb
