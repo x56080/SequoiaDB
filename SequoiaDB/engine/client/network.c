@@ -442,6 +442,7 @@ INT32 clientSetTcpUserTime( SOCKET sock, INT32 tcpUserTime )
       goto error ;
    }
 
+#if defined TCP_USER_TIMEOUT
    rc = setsockopt( sock, SOL_TCP, TCP_USER_TIMEOUT,
                     ( void *)&tcpUserTime, sizeof(tcpUserTime) ) ;
    if ( SDB_OK != rc )
@@ -449,6 +450,7 @@ INT32 clientSetTcpUserTime( SOCKET sock, INT32 tcpUserTime )
       rc = SDB_SYS ;
       goto error ;
    }
+#endif
 
 done:
    return rc ;
