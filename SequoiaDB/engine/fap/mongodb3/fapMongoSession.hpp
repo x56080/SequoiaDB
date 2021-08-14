@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = mongoSession.hpp
+   Source File Name = fapMongoSession.hpp
 
    Descriptive Name =
 
@@ -28,9 +28,9 @@
    Restrictions: N/A
 
    Change Activity:
-   defect Date        Who Description
-   ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+   defect Date        Who         Description
+   ====== =========== =========== ==============================================
+          07/03/2021  fangjiabin  Initial Draft
 
    Last Changed =
 
@@ -45,6 +45,8 @@
 #include "fapMongoUtil.hpp"
 #include "fapMongoCommand.hpp"
 #include "pmdRemoteSession.hpp"
+#include "fapMongoCursor.hpp"
+#include "ossQueue.hpp"
 
 namespace fap
 {
@@ -69,24 +71,23 @@ protected:
    virtual void  _onAttach() {}
    virtual void  _onDetach() {}
 
-protected:
+private:
    INT32 _processMsg( const CHAR *pMsg, const _mongoCommand *pCommand,
                       BSONObj &errorObj ) ;
    INT32 _processMsg( const CHAR *pMsg, BSONObj &errorObj ) ;
+
    void  _onMsgBegin( MsgHeader *msg ) ;
    void  _onMsgEnd( INT32 result, MsgHeader *msg ) ;
-   INT32 _recvMsg( CHAR *&pMsg,
-                   BOOLEAN &recvFromEvent,
-                   engine::pmdEDUEvent &event ) ;
-   INT32 _recvFromSocket( CHAR *&pMsg, BOOLEAN &recvSomething ) ;
+
+   INT32 _recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg ) ;
+   INT32 _recvMsgFromInterior( engine::pmdEDUEvent &event, BOOLEAN &hasMsg ) ;
+
    INT32 _buildResponse( _mongoCommand *pCommand,
                          CHAR *&pRes ) ;
-   INT32 _reply( _mongoCommand *pCommand ) ;
    INT32 _reply( _mongoCommand *pCommand, const CHAR* pMsg,
                  INT32 errCode, BSONObj &errObj ) ;
    INT32 _reply( engine::pmdEDUEvent &event ) ;
 
-private:
    void  _resetBuffers() ;
    INT32 _autoCreateCS( const CHAR *csName, BSONObj &errorObj ) ;
    INT32 _autoCreateCL( const CHAR *clFullName, BSONObj &errorObj ) ;
@@ -95,10 +96,9 @@ private:
                       BSONObj &errorObj ) ;
    INT32 _autoKillCursor( UINT64 requestID, INT64 contextID ) ;
 
-   BOOLEAN _isOwnedCursor( const _mongoCommand *pCommand,
-                           UINT64 &ownedEDUID,
-                           BOOLEAN &needAuth,
-                           INT64 &cursorID ) ;
+   void  _getCursorInfo( const _mongoCommand *pCommand,
+                         mongoCursorInfo &cursorInfo,
+                         BOOLEAN &isOwned ) ;
    INT32 _manageCursor( const _mongoCommand *pCommand,
                         const MsgOpReply &sdbReply ) ;
 
@@ -112,23 +112,41 @@ private:
    void    _buildErrResponseMsg( CHAR* pMsg, INT32 errorCode,
                                  INT32 &msgLen ) ;
 
+   INT32   _processClientMsg( const CHAR* pMsg,
+                              _mongoCommand *&pCommand,
+                              mongoSessionCtx &sessCtx,
+                              BOOLEAN &msgForwarded ) ;
+   INT32   _processOwnedClientMsg( const CHAR* pMsg,
+                                   _mongoCommand *pCommand,
+                                   mongoSessionCtx &sessCtx,
+                                   BOOLEAN &needNext ) ;
+   INT32   _processNonOwnedClientMsg( const CHAR* pMsg,
+                                      _mongoCommand *pCommand,
+                                      mongoCursorInfo cursorInfo,
+                                      mongoSessionCtx &sessCtx ) ;
+
+   INT32   _processInteriorMsg( _mongoCommand *&pCommand,
+                                engine::pmdEDUEvent &event,
+                                mongoSessionCtx &sessCtx,
+                                BOOLEAN &hasRecvResponse ) ;
+   void    _processRequestMsg( _mongoCommand *&pCommand,
+                               engine::pmdEDUEvent &event,
+                               mongoSessionCtx &sessCtx ) ;
+
 private:
    MsgOpReply              _replyHeader ;
    BOOLEAN                 _masterRead ;
    engine::rtnContextBuf   _contextBuff ;
-
    msgBuffer               _inBuffer ;
    msgBuffer               _tmpBuffer ;
    engine::IResource      *_resource ;
-
    std::set<INT64>         _cursorList ;
-   BOOLEAN                 _needWaitResponse ;
-
    BOOLEAN                 _isAuthed ;
-   queue<engine::pmdEDUEvent> _tmpEventQue ;
    INT32                   _requestIDOfPostEvent ;
    INT32                   _opCodeOfPostEvent ;
    INT64                   _cursorIdOfPostEvent ;
+   ossQueue<engine::pmdEDUEvent> _fapEvents ;
+   ossQueue<engine::pmdEDUEvent> _coordEvents ;
 } ;
 
 typedef _mongoSession mongoSession ;

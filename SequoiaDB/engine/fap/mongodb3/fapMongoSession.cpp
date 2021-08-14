@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = mongoSession.cpp
+   Source File Name = fapMongoSession.cpp
 
    Descriptive Name =
 
@@ -28,14 +28,14 @@
    Restrictions: N/A
 
    Change Activity:
-   defect Date        Who Description
-   ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+   defect Date        Who         Description
+   ====== =========== =========== ==============================================
+          07/03/2021  fangjiabin  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#include "mongoSession.hpp"
+#include "fapMongoSession.hpp"
 #include "pmdEDUMgr.hpp"
 #include "pmdEnv.hpp"
 #include "monCB.hpp"
@@ -45,7 +45,6 @@
 #include "rtn.hpp"
 #include "pmd.hpp"
 #include "sdbInterface.hpp"
-#include "fapMongoCursor.hpp"
 
 using namespace engine ;
 
@@ -86,10 +85,11 @@ static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
 // implement for mongo processor
 
 _mongoSession::_mongoSession( SOCKET fd, engine::IResource *resource )
-   : engine::pmdSession( fd ), _masterRead( FALSE ),
-     _resource( resource ), _needWaitResponse( FALSE ), _isAuthed( FALSE ),
-     _requestIDOfPostEvent( 0 ), _opCodeOfPostEvent( 0 ),
-     _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID )
+                : engine::pmdSession( fd ), _masterRead( FALSE ),
+                  _resource( resource ),
+                  _isAuthed( FALSE ), _requestIDOfPostEvent( 0 ),
+                  _opCodeOfPostEvent( 0 ),
+                  _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID )
 {
 }
 
@@ -133,10 +133,11 @@ BOOLEAN _mongoSession::preProcess( pmdEDUEvent &event )
 {
    BOOLEAN processed = FALSE ;
 
+   // fap and coord are the same thread, with different roles
    if ( PMD_EDU_EVENT_MSG == event._eventType &&
         IS_MONGO_MSG( event._userData ) )
    {
-      _tmpEventQue.push( event ) ;
+      _fapEvents.push( event ) ;
       processed = TRUE ;
    }
 
@@ -236,16 +237,338 @@ done:
    return ;
 }
 
+INT32 _mongoSession::_processClientMsg( const CHAR* pMsg,
+                                        _mongoCommand *&pCommand,
+                                        mongoSessionCtx &sessCtx,
+                                        BOOLEAN &msgForwarded )
+{
+   INT32 rc = SDB_OK ;
+   mongoCursorInfo cursorInfo ;
+   BOOLEAN needNext = FALSE ;
+   BOOLEAN needReply = TRUE ;
+   BOOLEAN isOwned = TRUE ;
+   msgForwarded = FALSE ;
+
+   if ( NULL == pMsg )
+   {
+      needReply = FALSE ;
+      goto done ;
+   }
+
+   rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   // receive message from socket, check this operation is owned by
+   // current session or not
+   _getCursorInfo( pCommand, cursorInfo, isOwned ) ;
+
+next:
+   rc = mongoBuildSdbMsg( &pCommand, sessCtx, _inBuffer ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   if ( isOwned )
+   {
+      rc = _processOwnedClientMsg( pMsg, pCommand, sessCtx, needNext ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] failed to process owned client "
+                   "msg, rc: %d", sessionName(), rc ) ;
+
+      if ( needNext )
+      {
+         goto next ;
+      }
+   }
+   else
+   {
+      rc = _processNonOwnedClientMsg( pMsg, pCommand, cursorInfo, sessCtx ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] failed to process non-owned client "
+                   "msg, rc: %d", sessionName(), rc ) ;
+      needReply = FALSE ;
+      msgForwarded = TRUE ;
+   }
+
+done:
+   if ( needReply )
+   {
+      rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Session[%s] failed to reply, rc: %d",
+                 sessionName(), rc ) ;
+      }
+   }
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
+                                             _mongoCommand *pCommand,
+                                             mongoSessionCtx &sessCtx,
+                                             BOOLEAN &needNext )
+{
+   INT32 rc = SDB_OK ;
+   needNext = FALSE ;
+
+   if ( pCommand->needProcessByEngine() )
+   {
+      rc = _processMsg( _inBuffer.data(), pCommand, sessCtx.errorObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _manageCursor( pCommand, _replyHeader ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( CMD_SASL_CONTINUE == pCommand->type() && SDB_OK == rc )
+      {
+         _isAuthed = TRUE ;
+      }
+   }
+
+   rc = mongoParseSdbReplyMsg( pCommand, _replyHeader, _contextBuff ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   if ( !pCommand->hasProcessAllMsg() )
+   {
+      needNext = TRUE ;
+      goto done ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoSession::_processNonOwnedClientMsg( const CHAR* pMsg,
+                                                _mongoCommand *pCommand,
+                                                mongoCursorInfo cursorInfo,
+                                                mongoSessionCtx &sessCtx )
+{
+   INT32 rc = SDB_OK ;
+   INT32 msgLen = ((mongoMsgHeader*)pMsg)->msgLen ;
+   CHAR* pReq = NULL ;
+   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+
+   // It is NOT owned by current session, then check authenticate
+   // and post event to the thread which owned this cursor
+   if ( cursorInfo.needAuth && !_isAuthed )
+   {
+      rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
+      PD_LOG( PDERROR, "Not authorized to execute %s command, "
+              "rc: %d", pCommand->name(), rc ) ;
+      goto error ;
+   }
+
+   pReq = (CHAR*)SDB_THREAD_ALLOC( msgLen ) ;
+   if ( NULL == pReq )
+   {
+      rc = SDB_OOM ;
+      PD_LOG( PDERROR, "edu[%llu] will post mongo request to "
+              "edu[%llu] but edu[%llu] failed to alloc memory, "
+              "rc: %d", eduID(), cursorInfo.EDUID, eduID(), rc ) ;
+      goto error ;
+   }
+   ossMemcpy( pReq, pMsg, msgLen ) ;
+
+   rc = eduMgr->postEDUPost( cursorInfo.EDUID, PMD_EDU_EVENT_MSG,
+                             PMD_EDU_MEM_THREAD,
+                             pReq,
+                             SET_MONGO_MSG_FLAG( eduID() ) ) ;
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "edu[%llu] failed to post mongo request "
+               "to edu[%llu], rc: %d", eduID(), cursorInfo.EDUID, rc ) ;
+
+      if ( pReq )
+      {
+         SDB_THREAD_FREE( pReq ) ;
+      }
+
+      goto error ;
+   }
+
+   pReq = NULL ;
+
+   PD_LOG( PDDEBUG, "edu[%llu] post mongo request to edu[%llu] "
+           "successfully", eduID(), cursorInfo.EDUID ) ;
+
+   // we need to wait for response event
+   _requestIDOfPostEvent = ((mongoMsgHeader*)pMsg)->requestId ;
+   _opCodeOfPostEvent = ((mongoMsgHeader*)pMsg)->opCode ;
+
+   if ( MONGO_OP_KILL_CURSORS == ((mongoMsgHeader*)pMsg)->opCode )
+   {
+      _cursorIdOfPostEvent = MONGO_INVALID_CURSORID ;
+   }
+   else
+   {
+      _cursorIdOfPostEvent = cursorInfo.cursorID ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+// Receive message from event, it may be getMore command or killCursor command
+INT32 _mongoSession::_processInteriorMsg( _mongoCommand *&pCommand,
+                                          engine::pmdEDUEvent &event,
+                                          mongoSessionCtx &sessCtx,
+                                          BOOLEAN &hasRecvResponse )
+{
+   INT32 rc = SDB_OK ;
+   hasRecvResponse = FALSE ;
+
+   if ( NULL == event._Data )
+   {
+      goto done ;
+   }
+
+   if ( IS_MONGO_REQUEST( event._Data ) )
+   {
+      PD_LOG( PDDEBUG,
+              "edu[%llu] wait mongo request from edu[%llu]",
+              eduID(), UNSET_MONGO_MSG_FLAG( event._userData ) ) ;
+      _processRequestMsg( pCommand, event, sessCtx ) ;
+   }
+   else if ( IS_MONGO_RESPONSE( event._Data ) )
+   {
+      PD_LOG( PDDEBUG,
+              "edu[%llu] wait mongo response from edu[%llu]",
+              eduID(), UNSET_MONGO_MSG_FLAG( event._userData ) ) ;
+      rc = _reply( event ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] failed to send response msg, "
+                   "rc: %d", sessionName(), rc ) ;
+      hasRecvResponse = TRUE ;
+   }
+   else
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Unknown msg, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+void _mongoSession::_processRequestMsg( _mongoCommand *&pCommand,
+                                        engine::pmdEDUEvent &event,
+                                        mongoSessionCtx &sessCtx )
+{
+   INT32 rc = SDB_OK ;
+   UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ;
+   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+   CHAR* pRes = NULL ;
+
+   rc = mongoGetAndInitCommand( (CHAR*)event._Data, &pCommand, sessCtx ) ;
+   if ( rc )
+   {
+      _postInnerErrorEvent( rc, event ) ;
+      goto done ;
+   }
+
+   rc = mongoBuildSdbMsg( &pCommand, sessCtx, _inBuffer ) ;
+   if ( rc )
+   {
+      _postInnerErrorEvent( rc, event ) ;
+      goto done ;
+   }
+
+   _processMsg( _inBuffer.data(), pCommand, sessCtx.errorObj ) ;
+
+   rc = _buildResponse( pCommand, pRes ) ;
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "edu[%llu] failed to build response of "
+               "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+      _postInnerErrorEvent( rc, event ) ;
+      if ( pRes )
+      {
+         SDB_THREAD_FREE( pRes ) ;
+      }
+      goto done ;
+   }
+
+   _eduEventRelease( event ) ;
+
+   rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
+                             PMD_EDU_MEM_THREAD,
+                             pRes,
+                             SET_MONGO_MSG_FLAG( eduID() ) ) ;
+   if ( rc )
+   {
+      PD_LOG ( PDERROR, "edu[%llu] failed to post mongo response to "
+               "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
+      if ( pRes )
+      {
+         SDB_THREAD_FREE( pRes ) ;
+      }
+      goto done ;
+   }
+
+   PD_LOG( PDDEBUG, "edu[%llu] post mongo response to edu[%llu] "
+           "successfully", eduID(), sourceEDUID ) ;
+
+done:
+   return ;
+}
+
+/*
+
+eg:
+
+Query command is executed in two steps: query operation and getMore operation
+
+In SequoiaDB, these two operations must be performed in the same session.
+But in MongoDB, these two operations can be performed in different session.
+
+Under a query command, when we receive query operation message in A session,
+and receive getMore operation message in B session, we need to forward the
+getMore message to Session B for execution, and B session will send response
+to A session.
+
+              getMore request msg
+   A session ----------------------> B session
+                                         |
+                                         | process msg
+                                         |
+              getMore response msg       V
+   A session <---------------------- B session
+
+*/
 INT32 _mongoSession::run()
 {
    INT32 rc  = SDB_OK ;
    CHAR *pMsg = NULL ;
    _mongoCommand* pCommand = NULL ;
-   pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
    mongoSessionCtx sessCtx ;
    _pmdRemoteSessionSite *pSite = NULL ;
-   BOOLEAN needPostResponse = FALSE ;
    pmdEDUEvent event ;
+   BOOLEAN hasMsg = TRUE ;
+   BOOLEAN needWaitResponse = FALSE ;
+   BOOLEAN hasRecvResponse = FALSE ;
+   BOOLEAN msgForwarded = FALSE ;
 
    pSite = ( _pmdRemoteSessionSite* )(eduCB()->getRemoteSite()) ;
    // In standalone mode, pSite is NULL
@@ -263,231 +586,66 @@ INT32 _mongoSession::run()
    {
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
-         _pEDUCB->resetInterrupt() ;
-         _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
-         _pEDUCB->resetLsn() ;
+         if ( hasMsg )
+         {
+            _pEDUCB->resetInterrupt() ;
+            _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
+            _pEDUCB->resetLsn() ;
 
-         // receive message
-         BOOLEAN recvFromEvent = FALSE ;
-         needPostResponse = FALSE ;
+            _resetBuffers() ;
+            sessCtx.resetError() ;
+            sessCtx.sessionName = sessionName() ;
+            sessCtx.eduID = eduID() ;
 
-         rc = _recvMsg( pMsg, recvFromEvent, event ) ;
+            if ( pCommand )
+            {
+               mongoReleaseCommand( &pCommand ) ;
+            }
+
+            hasMsg = FALSE ;
+         }
+
+         if ( !needWaitResponse )
+         {
+            rc = _recvMsgFromClient( pMsg, hasMsg ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Session[%s] recevie message from client failed, "
+                         "rc: %d", sessionName(), rc ) ;
+
+            if ( hasMsg )
+            {
+               rc = _processClientMsg( pMsg, pCommand, sessCtx,
+                                       msgForwarded ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Session[%s] failed to process client msg, rc: %d",
+                            sessionName(), rc ) ;
+
+               if ( msgForwarded )
+               {
+                  needWaitResponse = TRUE ;
+               }
+
+               continue;
+            }
+         }
+
+         rc = _recvMsgFromInterior( event, hasMsg ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Session[%s] recevie message failed, rc: %d",
-                      sessionName(), rc ) ;
+                      "Session[%s] recevie message from interior failed, "
+                      "rc: %d", sessionName(), rc ) ;
 
-         if ( recvFromEvent )
+         if ( hasMsg )
          {
-            needPostResponse = TRUE ;
-         }
-
-         // convert mongo message to command
-         _resetBuffers() ;
-         sessCtx.resetError() ;
-         sessCtx.sessionName = sessionName() ;
-         sessCtx.eduID = eduID() ;
-
-         if ( pCommand )
-         {
-            mongoReleaseCommand( &pCommand ) ;
-         }
-
-         rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx ) ;
-         if ( rc )
-         {
-            if ( needPostResponse )
-            {
-               _postInnerErrorEvent( rc, event ) ;
-               continue ;
-            }
-            rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
+            rc = _processInteriorMsg( pCommand, event, sessCtx,
+                                      hasRecvResponse ) ;
             PD_RC_CHECK( rc, PDERROR,
-                         "Session[%s] failed to reply, rc: %d",
+                         "Session[%s] failed to process interior msg, rc: %d",
                          sessionName(), rc ) ;
-            continue ;
-         }
 
-next:
-         rc = mongoBuildSdbMsg( &pCommand, sessCtx, _inBuffer ) ;
-         if ( rc )
-         {
-            if ( needPostResponse )
+            if ( hasRecvResponse )
             {
-               _postInnerErrorEvent( rc, event ) ;
-               continue ;
+               needWaitResponse = FALSE ;
             }
-            rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Session[%s] failed to reply, rc: %d",
-                         sessionName(), rc ) ;
-            continue ;
-         }
-
-         if ( !recvFromEvent )
-         {
-            // receive message from socket, check this operation is owned by
-            // current session or not
-            UINT64 ownedEDUID = 0 ;
-            BOOLEAN needAuth = FALSE ;
-            INT64 cursorID = MONGO_INVALID_CURSORID ;
-            BOOLEAN isOwned = _isOwnedCursor( pCommand, ownedEDUID, needAuth,
-                                              cursorID ) ;
-            if ( isOwned )
-            {
-               // It is owned by current session, then process it
-               if ( pCommand->needProcessByEngine() )
-               {
-                  rc = _processMsg( _inBuffer.data(), pCommand,
-                                    sessCtx.errorObj ) ;
-
-                  _manageCursor( pCommand, _replyHeader ) ;
-
-                  if ( CMD_SASL_CONTINUE == pCommand->type() && SDB_OK == rc )
-                  {
-                     _isAuthed = TRUE ;
-                  }
-               }
-
-               if ( SDB_OK != _replyHeader.flags || SDB_OK != rc )
-               {
-                  rc = _reply( pCommand ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Session[%s] failed to reply, rc: %d",
-                               sessionName(), rc ) ;
-                  continue ;
-               }
-
-               rc = mongoParseSdbReplyMsg( pCommand, _replyHeader, _contextBuff ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Session[%s] failed to parse sdb reply msg, rc: %d",
-                            sessionName(), rc ) ;
-
-               if ( !pCommand->hasProcessAllMsg() )
-               {
-                  goto next ;
-               }
-
-               rc = _reply( pCommand ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Session[%s] failed to reply, rc: %d",
-                            sessionName(), rc ) ;
-            }
-            else
-            {
-               // It is NOT owned by current session, then check authenticate
-               // and post event to the thread which owned this cursor
-               INT32 msgLen = ((mongoMsgHeader*)pMsg)->msgLen ;
-               CHAR* pReq = NULL ;
-
-               if ( needAuth && !_isAuthed )
-               {
-                  rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
-                  PD_LOG( PDERROR, "Not authorized to execute %s command, "
-                          "rc: %d", pCommand->name(), rc ) ;
-                  rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Session[%s] failed to reply, rc: %d",
-                               sessionName(), rc ) ;
-                  continue ;
-               }
-
-               pReq = (CHAR*)SDB_THREAD_ALLOC( msgLen ) ;
-               if ( NULL == pReq )
-               {
-                  rc = SDB_OOM ;
-                  PD_LOG( PDERROR, "edu[%llu] will post mongo request to "
-                          "edu[%llu] but edu[%llu] failed to alloc memory, "
-                          "rc: %d", eduID(), ownedEDUID, eduID(), rc ) ;
-
-                  rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Session[%s] failed to reply, rc: %d",
-                               sessionName(), rc ) ;
-                  continue ;
-               }
-               ossMemcpy( pReq, pMsg, msgLen ) ;
-
-               rc = eduMgr->postEDUPost( ownedEDUID, PMD_EDU_EVENT_MSG,
-                                         PMD_EDU_MEM_THREAD,
-                                         pReq,
-                                         SET_MONGO_MSG_FLAG( eduID() ) ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDERROR, "edu[%llu] failed to post mongo request "
-                           "to edu[%llu], rc: %d", eduID(), ownedEDUID, rc ) ;
-
-                  if ( pReq )
-                  {
-                     SDB_THREAD_FREE( pReq ) ;
-                  }
-
-                  rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Session[%s] failed to reply, rc: %d",
-                               sessionName(), rc ) ;
-                  continue ;
-               }
-
-               PD_LOG( PDDEBUG, "edu[%llu] post mongo request to edu[%llu] "
-                       "successfully", eduID(), ownedEDUID ) ;
-
-               // we need to wait for response event
-               _needWaitResponse = TRUE ;
-               _requestIDOfPostEvent = ((mongoMsgHeader*)pMsg)->requestId ;
-               _opCodeOfPostEvent = ((mongoMsgHeader*)pMsg)->opCode ;
-
-               if ( MONGO_OP_KILL_CURSORS == ((mongoMsgHeader*)pMsg)->opCode )
-               {
-                  _cursorIdOfPostEvent = MONGO_INVALID_CURSORID ;
-               }
-               else
-               {
-                  _cursorIdOfPostEvent = cursorID ;
-               }
-            }
-         }
-         else
-         {
-            // receive message from event, it may be getMore command
-            // or killCursor command
-            UINT64 sourceEDUID = UNSET_MONGO_MSG_FLAG( event._userData ) ;
-
-            rc = _processMsg( _inBuffer.data(), pCommand, sessCtx.errorObj ) ;
-
-            // build response
-            CHAR* pRes = NULL ;
-            rc = _buildResponse( pCommand, pRes ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "edu[%llu] failed to build response of "
-                        "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
-               _postInnerErrorEvent( rc, event ) ;
-               if ( pRes )
-               {
-                  SDB_THREAD_FREE( pRes ) ;
-               }
-               continue ;
-            }
-
-            _eduEventRelease( event ) ;
-
-            rc = eduMgr->postEDUPost( sourceEDUID, PMD_EDU_EVENT_MSG,
-                                      PMD_EDU_MEM_THREAD,
-                                      pRes,
-                                      SET_MONGO_MSG_FLAG( eduID() ) ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "edu[%llu] failed to post mongo response to "
-                        "edu[%llu], rc: %d", eduID(), sourceEDUID, rc ) ;
-               if ( pRes )
-               {
-                  SDB_THREAD_FREE( pRes ) ;
-               }
-               continue ;
-            }
-
-            PD_LOG( PDDEBUG, "edu[%llu] post mongo response to edu[%llu] "
-                    "successfully", eduID(), sourceEDUID ) ;
          }
       }
    }
@@ -516,138 +674,118 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_recvFromSocket( CHAR *&pMsg, BOOLEAN &recvSomething )
+INT32 _mongoSession::_recvMsgFromInterior( engine::pmdEDUEvent &event,
+                                           BOOLEAN &hasMsg )
+{
+   INT32 rc = SDB_OK ;
+   pmdEDUEvent tmpEvent ;
+   hasMsg = FALSE ;
+
+   while ( !_fapEvents.empty() )
+   {
+      _fapEvents.try_pop( tmpEvent ) ;
+      _pEDUCB->postEvent( tmpEvent ) ;
+   }
+
+   while( !_pEDUCB->isInterrupted() && !_pEDUCB->isDisconnected() &&
+          _pEDUCB->waitEvent( event, 0 )  )
+   {
+      // fap and coord are the same thread, with different roles
+      if ( PMD_EDU_EVENT_MSG != event._eventType ||
+           !IS_MONGO_MSG( event._userData ) )
+      {
+         // When Query preRead receive query response, it will send out
+         // GETMORE request to data node immediately. At this time we may
+         // get GETMORE response, and we just ignore it.
+         try
+         {
+            _coordEvents.push( event ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when push coord event: "
+                    "%s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+         // event may be released by other threads using event in
+         // _coordEvents, so we must reset event after pushing
+         event.reset() ;
+         PD_LOG( PDDEBUG, "wait unexpected event" ) ;
+         continue ;
+      }
+
+      while ( !_coordEvents.empty() )
+      {
+         _coordEvents.try_pop( tmpEvent ) ;
+         _pEDUCB->postEvent( tmpEvent ) ;
+      }
+      hasMsg = TRUE ;
+      break ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoSession::_recvMsgFromClient( CHAR *&pMsg, BOOLEAN &hasMsg )
 {
    INT32 rc = SDB_OK ;
    UINT32 msgSize = 0 ;
    UINT32 headerLen = sizeof( mongoMsgHeader ) ;
-   recvSomething = FALSE ;
+   pmdEDUEvent tmpEvent ;
+   hasMsg = FALSE ;
 
-   // receive message len
-   rc = recvData( (CHAR*)&msgSize, sizeof(UINT32), 10 ) ;
-   if ( SDB_TIMEOUT == rc )
+   while ( !_fapEvents.empty() )
    {
-      rc = SDB_OK ;
-      goto done ;
-   }
-   if ( SDB_APP_FORCED == rc )
-   {
-      goto error ;
-   }
-   PD_RC_CHECK( rc, PDERROR,
-                "Session[%s] failed to receive message, rc: %d",
-                sessionName(), rc ) ;
-
-   PD_CHECK( msgSize >= headerLen && msgSize <= SDB_MAX_MSG_LENGTH,
-             SDB_INVALIDARG, error, PDERROR,
-             "Session[%s] receive message size[%d] is invalid",
-             msgSize ) ;
-
-   // alloc memory
-   pMsg = getBuff( msgSize ) ;
-   PD_CHECK( pMsg, SDB_OOM, error, PDERROR, "Out of memory" ) ;
-   *(UINT32*)pMsg = msgSize ;
-
-   // receive rest of message
-   rc = recvData( pMsg + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
-   if ( SDB_APP_FORCED == rc )
-   {
-      goto error ;
-   }
-   PD_RC_CHECK( rc, PDERROR,
-                "Session[%s] failed to receive rest of message, rc: %d",
-                sessionName(), rc ) ;
-
-   recvSomething = TRUE ;
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 _mongoSession::_recvMsg( CHAR *&pMsg,
-                               BOOLEAN &recvFromEvent,
-                               pmdEDUEvent &event )
-{
-   INT32 rc = SDB_OK ;
-   queue<pmdEDUEvent> tmpEventQue ;
-   BOOLEAN recvSomething = FALSE ;
-
-   while ( !_tmpEventQue.empty() )
-   {
-      _pEDUCB->postEvent( _tmpEventQue.front() ) ;
-      _tmpEventQue.pop() ;
+      _fapEvents.try_pop( tmpEvent ) ;
+      _pEDUCB->postEvent( tmpEvent ) ;
    }
 
-  /* Wait message from socket for a short time, if receive nothing, then wait
-   * for event. Loop util receive something.
-   *
-   * If current thread has posted a request event to other thread, we need to
-   * wait for response event. No need to wait from socket, because mongo client
-   * will not send any message util it receive a reply.
-   */
-   while( !recvSomething &&
-          !_pEDUCB->isInterrupted() && !_pEDUCB->isDisconnected() )
+   if( !_pEDUCB->isInterrupted() && !_pEDUCB->isDisconnected() )
    {
-      // receive from socket first
-      if ( !_needWaitResponse )
+      rc = recvData( (CHAR*)&msgSize, sizeof(UINT32), 10 ) ;
+      if ( SDB_TIMEOUT == rc )
       {
-         rc = _recvFromSocket( pMsg, recvSomething ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         if ( recvSomething )
-         {
-            recvFromEvent = FALSE ;
-            break ;
-         }
+         rc = SDB_OK ;
+         goto done ;
       }
-
-      // if receive nothing from socket, then wait event
-      while( _pEDUCB->waitEvent( event, 0 ) )
+      if ( SDB_APP_FORCED == rc )
       {
-         if ( PMD_EDU_EVENT_MSG != event._eventType ||
-              !IS_MONGO_MSG( event._userData ) )
-         {
-            // When Query preRead receive query response, it will send out
-            // GETMORE request to data node immediately. At this time we may
-            // get GETMORE response, and we just ignore it.
-            tmpEventQue.push( event ) ;
-            // event may be released by other threads using event in tmpEventQue,
-            // so we must reset event after pushing
-            event.reset() ;
-            PD_LOG( PDDEBUG, "wait unexpected event" ) ;
-            continue ;
-         }
-         if ( IS_MONGO_REQUEST( event._Data ) )
-         {
-            pMsg = (CHAR*)event._Data ;
-            recvFromEvent = TRUE ;
-            recvSomething = TRUE ;
-            PD_LOG( PDDEBUG,
-                    "edu[%llu] wait mongo request from edu[%llu]",
-                    eduID(), UNSET_MONGO_MSG_FLAG( event._userData ) ) ;
-            break ;
-         }
-         else if ( IS_MONGO_RESPONSE( event._Data ) )
-         {
-            rc = _reply( event ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Session[%s] failed to send response msg, "
-                         "rc: %d", sessionName(), rc ) ;
-         }
+         goto error ;
       }
-   }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] failed to receive message, rc: %d",
+                   sessionName(), rc ) ;
 
-   _pEDUCB->incEventCount() ;
-   pmdGetKRCB()->getMonDBCB()->addReceiveNum() ;
+      PD_CHECK( msgSize >= headerLen && msgSize <= SDB_MAX_MSG_LENGTH,
+                SDB_INVALIDARG, error, PDERROR,
+                "Session[%s] receive message size[%d] is invalid",
+                msgSize ) ;
 
-   while ( !tmpEventQue.empty() )
-   {
-      _pEDUCB->postEvent( tmpEventQue.front() ) ;
-      tmpEventQue.pop() ;
+      // alloc memory
+      pMsg = getBuff( msgSize ) ;
+      PD_CHECK( pMsg, SDB_OOM, error, PDERROR, "Out of memory" ) ;
+      *(UINT32*)pMsg = msgSize ;
+
+      // receive rest of message
+      rc = recvData( pMsg + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
+      if ( SDB_APP_FORCED == rc )
+      {
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] failed to receive rest of message, rc: %d",
+                   sessionName(), rc ) ;
+
+      while ( !_coordEvents.empty() )
+      {
+         _coordEvents.try_pop( tmpEvent ) ;
+         _pEDUCB->postEvent( tmpEvent ) ;
+      }
+      hasMsg = TRUE ;
    }
 
 done:
@@ -656,19 +794,17 @@ error:
    goto done ;
 }
 
-BOOLEAN _mongoSession::_isOwnedCursor( const _mongoCommand *pCommand,
-                                       UINT64 &ownedEDUID,
-                                       BOOLEAN &needAuth,
-                                       INT64 &cursorID )
+void _mongoSession::_getCursorInfo( const _mongoCommand *pCommand,
+                                    mongoCursorInfo &cursorInfo,
+                                    BOOLEAN &isOwned )
 {
-   BOOLEAN isOwned = TRUE ;
-   ownedEDUID = eduID() ;
-   cursorID = MONGO_INVALID_CURSORID ;
    _mongoCursorMgr* cursorMgr = getMongoCursorMgr() ;
+   isOwned = TRUE ;
+   cursorInfo.cursorID = MONGO_INVALID_CURSORID ;
 
    if ( CMD_GETMORE == pCommand->type() )
    {
-      cursorID = ((_mongoGetmoreCommand*)pCommand)->cursorID() ;
+      cursorInfo.cursorID = ((_mongoGetmoreCommand*)pCommand)->cursorID() ;
    }
    else if ( CMD_KILL_CURSORS == pCommand->type() )
    {
@@ -678,28 +814,27 @@ BOOLEAN _mongoSession::_isOwnedCursor( const _mongoCommand *pCommand,
       // multiple cursors, but we DON'T support it yet.
       if ( killCmd->cursorList().size() > 0 )
       {
-         cursorID = killCmd->cursorList().front() ;
+         cursorInfo.cursorID = killCmd->cursorList().front() ;
       }
    }
 
-   if ( cursorID != MONGO_INVALID_CURSORID )
+   if ( cursorInfo.cursorID != MONGO_INVALID_CURSORID )
    {
       // First look up the cursor from local list. If nothing is found, then
       // look up from cursor mgr. The local list is to reduce access cursor mgr.
-      if ( _cursorList.find( cursorID ) == _cursorList.end() )
+      if ( _cursorList.find( cursorInfo.cursorID ) == _cursorList.end() )
       {
-         mongoCursorInfo cursorInfo ;
-         BOOLEAN foundOut = cursorMgr->find( cursorID, cursorInfo ) ;
+         mongoCursorInfo cursorInfoTmp ;
+         BOOLEAN foundOut = cursorMgr->find( cursorInfo.cursorID,
+                                             cursorInfoTmp ) ;
          if ( foundOut )
          {
-            ownedEDUID = cursorInfo.EDUID ;
-            needAuth = cursorInfo.needAuth ;
+            cursorInfo.EDUID = cursorInfoTmp.EDUID ;
+            cursorInfo.needAuth = cursorInfoTmp.needAuth ;
             isOwned = FALSE ;
          }
       }
    }
-
-   return isOwned ;
 }
 
 INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
@@ -726,6 +861,10 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
             cursorInfo.EDUID = eduID() ;
             cursorInfo.needAuth = _isAuthed ;
             rc = cursorMgr->insert( cursorInfo ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
          break ;
       }
@@ -759,7 +898,10 @@ INT32 _mongoSession::_manageCursor( const _mongoCommand *pCommand,
          break ;
    }
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoSession::_autoCreateCS( const CHAR *csName, BSONObj &errorObj )
@@ -895,7 +1037,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName, BSONObj &errorObj )
+INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName,
+                                    BSONObj &errorObj )
 {
    INT32 rc            = SDB_OK ;
    MsgOpQuery *query   = NULL ;
@@ -1131,7 +1274,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
 
    while ( TRUE )
    {
-      _processMsg( pMsg, errorObj ) ;
+      rc = _processMsg( pMsg, errorObj ) ;
 
       // auto create cs/cl
       if ( SDB_DMS_CS_NOTEXIST == _replyHeader.flags )
@@ -1248,20 +1391,10 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    _onMsgBegin( (MsgHeader *) pMsg ) ;
 
    _contextBuff.release() ;
+
    rc = getProcessor()->processMsg( (MsgHeader *) pMsg, _contextBuff,
                                     _replyHeader.contextID,
                                     needReply, needRollback, retBuilder ) ;
-   if ( rc && needRollback )
-   {
-      PD_LOG( PDDEBUG,
-              "Session rolling back operation[opCode: %d], rc: %d",
-              ((MsgHeader*)pMsg)->opCode, rc ) ;
-
-      INT32 rcTmp = getProcessor()->doRollback() ;
-      PD_RC_CHECK( rcTmp, PDERROR,
-                   "Session failed to rollback trans info, rc: %d",
-                   rcTmp ) ;
-   }
 
    _replyHeader.numReturned = _contextBuff.recordNum() ;
    _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
@@ -1272,6 +1405,18 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
       errorObj = fapMongoGetErrorBson( rc ) ;
       _contextBuff = engine::rtnContextBuf( errorObj ) ;
       _replyHeader.numReturned = 1 ;
+
+      if ( needRollback )
+      {
+         PD_LOG( PDDEBUG,
+                 "Session rolling back operation[opCode: %d], rc: %d",
+                 ((MsgHeader*)pMsg)->opCode, rc ) ;
+
+         INT32 rcTmp = getProcessor()->doRollback() ;
+         PD_RC_CHECK( rcTmp, PDERROR,
+                      "Session failed to rollback trans info, rc: %d",
+                      rcTmp ) ;
+      }
    }
    else
    {
@@ -1351,80 +1496,19 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_reply( _mongoCommand *pCommand )
-{
-   INT32 rc = SDB_OK ;
-   _mongoResponseBuffer headerBuf ;
-
-   rc = mongoPostRunCommand( pCommand, _replyHeader, _contextBuff, headerBuf ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Session[%s] failed to build response, rc: %d",
-                sessionName(), rc ) ;
-
-   PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
-           "command: %s, clFullName: %s, eduID: %llu ] done",
-           ossGetCurrentThreadID(),
-           sessionName(),
-           (pCommand)->name() ? (pCommand)->name() : "",
-           (pCommand)->clFullName() ? (pCommand)->clFullName() : "",
-           eduID() ) ;
-
-   // send response
-   if ( headerBuf.usedSize > 0 )
-   {
-      INT32 rcTmp = SDB_OK ;
-      const mongoResponse *res = (mongoResponse*)headerBuf.data ;
-
-      rcTmp = sendData( (CHAR *)&headerBuf, headerBuf.usedSize ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Session[%s] failed to send response header, rc: %d",
-                   sessionName(), rcTmp ) ;
-
-      if ( _contextBuff.data() )
-      {
-         rcTmp = sendData( _contextBuff.data(), _contextBuff.size() ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Session[%s] failed to send response body, rc: %d",
-                      sessionName(), rcTmp ) ;
-      }
-
-      PD_LOG( PDDEBUG, "Send mongodb reply msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %s, msgHead: { msgLen: %d,"
-              " requestId: %d, responseTo: %d, opCode: %d, reservedFlags: %d,"
-              " cursorId: %llu, startingFrom: %d, nReturned: %d }, "
-              "eduID: %llu ] done",
-              ossGetCurrentThreadID(),
-              sessionName(),
-              (pCommand)->name() ? (pCommand)->name() : "",
-              (pCommand)->clFullName() ? (pCommand)->clFullName() : "",
-              res->header.msgLen, res->header.requestId, res->header.responseTo,
-              res->header.opCode, res->reservedFlags, res->cursorId,
-              res->startingFrom, res->nReturned, eduID() ) ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
 INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
                              INT32 errCode, BSONObj &errObj )
 {
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
 
-   SDB_ASSERT( errCode != SDB_OK, "Invalid error code" ) ;
+   if ( errCode )
+   {
+      if ( errObj.isEmpty() )
+      {
+         errObj = fapMongoGetErrorBson( errCode ) ;
+      }
 
-   if ( errObj.isEmpty() )
-   {
-      errObj = fapMongoGetErrorBson( errCode ) ;
-      _contextBuff = engine::rtnContextBuf( errObj ) ;
-      _replyHeader.numReturned = 1 ;
-      _replyHeader.flags = errCode ;
-   }
-   else
-   {
       _contextBuff = engine::rtnContextBuf( errObj ) ;
       _replyHeader.numReturned = 1 ;
       _replyHeader.flags = errCode ;
@@ -1437,14 +1521,6 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to build response, rc: %d",
                    sessionName(), rc ) ;
-
-      PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %s, eduID: %llu ] done",
-              ossGetCurrentThreadID(),
-              sessionName(),
-              (pCommand)->name() ? (pCommand)->name() : "",
-              (pCommand)->clFullName() ? (pCommand)->clFullName() : "",
-              eduID() ) ;
    }
    else
    {
@@ -1488,15 +1564,16 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
          res.nReturned = _contextBuff.recordNum() ;
          headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
       }
-
-      PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %st, eduID: %llu ] done",
-              ossGetCurrentThreadID(),
-              sessionName(),
-              pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
-              pCommand ? ( (pCommand)->clFullName() ?
-              (pCommand)->clFullName() : "" ) : "", eduID() ) ;
    }
+
+   PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
+           "command: %s, clFullName: %s, eduID: %llu ] done",
+           ossGetCurrentThreadID(),
+           sessionName(),
+           pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
+           pCommand ? ( (pCommand)->clFullName() ?
+           (pCommand)->clFullName() : "" ) : "",
+           eduID() ) ;
 
    // send response
    if ( headerBuf.usedSize > 0 )
@@ -1587,8 +1664,6 @@ INT32 _mongoSession::_reply( engine::pmdEDUEvent &event )
 {
    INT32 rc = SDB_OK ;
    _fapMongoInnerHeader* resHeader = (_fapMongoInnerHeader*)event._Data ;
-
-   _needWaitResponse = FALSE ;
 
    if ( resHeader->header.opCode == MONGO_OP_REPLY ||
         resHeader->header.opCode == MONGO_OP_COMMAND_REPLY )

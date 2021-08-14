@@ -39,7 +39,7 @@
 #define _SDB_MONGO_MESSAGE_HPP_
 
 #include "ossUtil.hpp"
-#include "mongodef.hpp"
+#include "fapMongodef.hpp"
 #include "pd.hpp"
 
 namespace fap
