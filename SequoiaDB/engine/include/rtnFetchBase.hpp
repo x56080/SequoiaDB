@@ -40,6 +40,7 @@
 #include "ossMemPool.hpp"
 #include "monDMS.hpp"
 #include "../bson/bson.h"
+#include "utilPooledAutoPtr.hpp"
 
 using namespace bson ;
 
@@ -107,6 +108,7 @@ namespace engine
          virtual BOOLEAN   eof() const = 0 ;
    } ;
    typedef _IRtnMonProcessor IRtnMonProcessor ;
+   typedef utilSharePtr<IRtnMonProcessor>       IRtnMonProcessorPtr ;
 
    /*
       _rtnFetchBase define

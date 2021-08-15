@@ -66,7 +66,7 @@ namespace engine
 
    BOOLEAN _coordCmdWithLocation::isOpenEmptyContext()
    {
-      return _getMonProcessor() ? TRUE : FALSE ;
+      return _getMonProcessor().get() ? TRUE : FALSE ;
    }
 
    BOOLEAN _coordCmdWithLocation::ignoreFailedNodes()
@@ -90,12 +90,12 @@ namespace engine
       ROUTE_RC_MAP faileds ;
       SET_ROUTEID sucNodes ;
       rtnContextCoord *pContext = NULL ;
-      IRtnMonProcessor *pMonProcessor = NULL ;
+      IRtnMonProcessorPtr monProcessorPtr ;
 
       contextID = -1 ;
 
       _preSet( cb, ctrlParam ) ;
-      pMonProcessor = _getMonProcessor() ;
+      monProcessorPtr = _getMonProcessor() ;
 
       rc = _preExcute( pMsg, cb, ctrlParam, ignoreRCList ) ;
       if ( rc )
@@ -131,9 +131,9 @@ namespace engine
 
       if ( -1 != contextID )
       {
-         if ( pMonProcessor )
+         if ( monProcessorPtr.get() )
          {
-            rc = _processWithProcessor( pMsg, pMonProcessor, cb, contextID ) ;
+            rc = _processWithProcessor( pMsg, monProcessorPtr, cb, contextID ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Process with processor failed, rc: %d", rc ) ;
@@ -191,9 +191,9 @@ namespace engine
       return SDB_OK ;
    }
 
-   IRtnMonProcessor* _coordCmdWithLocation::_getMonProcessor()
+   IRtnMonProcessorPtr _coordCmdWithLocation::_getMonProcessor()
    {
-      return NULL ;
+      return IRtnMonProcessorPtr() ;
    }
 
    INT32 _coordCmdWithLocation::_processFailedNodes( MsgHeader *pMsg,
@@ -287,7 +287,7 @@ namespace engine
    }
 
    INT32 _coordCmdWithLocation::_processWithProcessor( MsgHeader *pMsg,
-                                                       IRtnMonProcessor *pProcessor,
+                                                       IRtnMonProcessorPtr processorPtr,
                                                        pmdEDUCB *cb,
                                                        INT64 &contextID )
    {
@@ -335,7 +335,7 @@ namespace engine
 
       pContext->setMonFetch( dsFetch, TRUE ) ;
       dsFetch = NULL ;
-      pContext->setMonProcessor( pProcessor ) ;
+      pContext->setMonProcessor( processorPtr ) ;
 
    done:
       return rc ;

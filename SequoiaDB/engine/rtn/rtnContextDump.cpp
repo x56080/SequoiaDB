@@ -55,7 +55,6 @@ namespace engine
       _numToSkip   = 0 ;
       _pFetch      = NULL ;
       _ownnedFetch = FALSE ;
-      _pMonProcessor = NULL ;
    }
 
    _rtnContextDump::~_rtnContextDump()
@@ -66,8 +65,6 @@ namespace engine
          _pFetch = NULL ;
       }
       _ownnedFetch = FALSE ;
-
-      _pMonProcessor = NULL ;
    }
 
    void _rtnContextDump::setMonFetch( rtnFetchBase *pFetch,
@@ -81,9 +78,9 @@ namespace engine
       _ownnedFetch = ownned ;
    }
 
-   void _rtnContextDump::setMonProcessor( IRtnMonProcessor *pProcessor )
+   void _rtnContextDump::setMonProcessor( IRtnMonProcessorPtr monProcessorPtr )
    {
-      _pMonProcessor = pProcessor ;
+      _monProcessorPtr = monProcessorPtr ;
    }
 
    const CHAR* _rtnContextDump::name() const
@@ -257,6 +254,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasOut = FALSE ;
+      IRtnMonProcessor *pMonProcessor = _monProcessorPtr.get() ;
 
       if ( !_pFetch || _pFetch->isHitEnd() )
       {
@@ -292,9 +290,9 @@ namespace engine
                goto error ;
             }
 
-            if ( _pMonProcessor )
+            if ( pMonProcessor )
             {
-               rc = _pMonProcessor->pushIn( obj ) ;
+               rc = pMonProcessor->pushIn( obj ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Push obj[%s] to processor failed, rc: %d",
@@ -304,7 +302,7 @@ namespace engine
 
                do
                {
-                  rc = _pMonProcessor->output( obj, hasOut ) ;
+                  rc = pMonProcessor->output( obj, hasOut ) ;
                   if ( rc )
                   {
                      PD_LOG( PDERROR, "Get output from processor failed, "
@@ -323,7 +321,7 @@ namespace engine
                   }
                   else if ( _pFetch->isHitEnd() )
                   {
-                     rc = _pMonProcessor->done( hasOut ) ;
+                     rc = pMonProcessor->done( hasOut ) ;
                      if ( rc )
                      {
                         PD_LOG( PDERROR, "Done processor failed, rc: %d",
@@ -331,7 +329,7 @@ namespace engine
                         goto error ;
                      }
                   }
-               } while( hasOut && !_pMonProcessor->eof() ) ;
+               } while( hasOut && !pMonProcessor->eof() ) ;
             }
             else
             {

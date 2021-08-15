@@ -62,7 +62,7 @@ namespace engine
          INT32 monAppend( const BSONObj &result ) ;
 
          void  setMonFetch( rtnFetchBase *pFetch, BOOLEAN ownned ) ;
-         void  setMonProcessor( IRtnMonProcessor *pProcessor ) ;
+         void  setMonProcessor( IRtnMonProcessorPtr monProcessorPtr ) ;
 
          INT64 getNumToReturn() const { return _numToReturn ; }
 
@@ -85,7 +85,7 @@ namespace engine
          rtnFetchBase               *_pFetch ;
          BOOLEAN                    _ownnedFetch ;
 
-         IRtnMonProcessor           *_pMonProcessor ;
+         IRtnMonProcessorPtr        _monProcessorPtr ;
 
    } ;
    typedef _rtnContextDump rtnContextDump ;
