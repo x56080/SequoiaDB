@@ -83,7 +83,7 @@ namespace engine
                                      pmdEDUCB *cb,
                                      ROUTE_RC_MAP &faileds ) ;
 
-         virtual IRtnMonProcessor*     _getMonProcessor() ;
+         virtual IRtnMonProcessorPtr   _getMonProcessor() ;
 
          virtual COORD_SHOWERROR_TYPE  _getDefaultShowErrorType() const
          {
@@ -106,7 +106,7 @@ namespace engine
                               coordCtrlParam & ctrlParam ) ;
 
          INT32   _processWithProcessor( MsgHeader *pMsg,
-                                        IRtnMonProcessor *pProcessor,
+                                        IRtnMonProcessorPtr processorPtr,
                                         pmdEDUCB *cb,
                                         INT64 &contextID ) ;
 

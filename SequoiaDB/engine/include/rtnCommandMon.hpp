@@ -92,7 +92,10 @@ namespace engine
          virtual BOOLEAN _isDetail() const = 0 ;
          virtual BSONObj _getOptObj() const ;
 
-         virtual IRtnMonProcessor*  _getMonProcessor() { return NULL ; }
+         virtual IRtnMonProcessorPtr   _getMonProcessor()
+         {
+            return IRtnMonProcessorPtr() ;
+         }
 
       protected :
          // help functions
