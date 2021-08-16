@@ -6,10 +6,10 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
 
 ### 安装前准备
 
-- 下载 [SequoiaDB 最新数据库安装包](http://download.sequoiadb.com/cn/sequoiadb_latest)，并上传到目标主机上
+- 下载 [SequoiaDB 最新数据库安装包](https://download.sequoiadb.com/cn/sequoiadb_latest)，并上传到目标主机上
 
   ```lang-bash
-  $ wget --content-disposition http://download.sequoiadb.com/cn/sequoiadb_latest
+  $ wget --content-disposition https://download.sequoiadb.com/cn/sequoiadb_latest
   ```
 - 安装过程需要使用操作系统 root 用户权限
 - 确保系统满足[硬件和软件要求](installation/system/system_requirement.md)
