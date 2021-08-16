@@ -41,7 +41,7 @@ public:
   //                  0x0 index key
   //                  0x1 checkpoint
   // * '_':         nothing, is just for readability
-  // * IndexID:     sdbIndexID, unique index id, { csID, clID, indexLLID }
+  // * IndexID:     globalIndexID, unique index id, { csID, clID, indexLLID }
   // * Ordering:    Ordering, key object ordering information
   // * EncodedKey:  ixmKey, key object, the raw data stream
   // * RowID:       vessel::recordID, record id
@@ -111,8 +111,8 @@ public:
            LSM_COMP_CHECK_SLICE_LENGTH_FOR_NEXT_FIELD( lsmIdxIDSz )
 
            // extract IndexID field
-           sdbIndexID *a_pIdxID = (sdbIndexID*)(aStart + aOffset),
-                      *b_pIdxID = (sdbIndexID*)(bStart + bOffset);
+           globalIndexID *a_pIdxID = (globalIndexID*)(aStart + aOffset),
+                      *b_pIdxID = (globalIndexID*)(bStart + bOffset);
            // move offset to next field
            aOffset += lsmIdxIDSz;
            bOffset += lsmIdxIDSz;
@@ -282,15 +282,11 @@ const rocksdb::Comparator* lsmKeyComparator()
 //
 
 // calculate the length of full data key( i.e., with all fields/elements )
-UINT32 lsmCalFullDataKeyLen( BOOLEAN bAppOpLSN, const ixmKey & keyObj )
+UINT32 lsmCalFullDataKeyLen(UINT32 ixmKeySize)
 {
-   UINT32 result ;
-   result = keyObj.dataSize();
-   if ( bAppOpLSN )
-   {
-      result += lsmLsnSz;
-   }
-   result += lsmEntryTypeSz +        // EntryType
+   UINT32 result = 0;
+   result += ixmKeySize +
+             lsmEntryTypeSz +        // EntryType
              lsmIdxIDSz +            // IndexID
              lsmOrdSz +              // Ordering
              lsmRidSz +              // RowID
@@ -310,21 +306,18 @@ if ( NULL == _ptr_ )                                        \
    return offset ;                                          \
 }
 
+/*
 UINT32 lsmEstDataKeyLen
 (
-   BOOLEAN                  bAppendOpLSN,       // if log operation LSN
-   const sdbIndexID       * pIdxID,             // indexID
+   const globalIndexID       * pIdxID,             // indexID
    const Ordering         * pOrdering,          // ordering
    const ixmKey           * pKeyObj,            // keyObj
-   const vessel::recordID * pRid,               // rowid
+   const dmsRecordID      * pRid,               // rowid
    const UINT64           * pLSN,               // lsn
    const DPS_TRANS_ID     * pTransID            // transID
 )
 {
    UINT32 offset = 0 ;
-
-   // if append log operation LSN
-   offset += ( bAppendOpLSN ) ? lsmLsnSz : 0 ;
 
    // EntryType
    offset += lsmEntryTypeSz ;
@@ -354,7 +347,7 @@ UINT32 lsmEstDataKeyLen
    offset += lsmTxIDSz ;
 
    return offset ;
-}
+}*/
 
 
 // Encode data entry fields into raw memory buffer.
@@ -373,16 +366,39 @@ if ( NULL == _ptr_ )                                                 \
    return offset ;                                                   \
 }
 
+#define LSM_PACK_COLUMN_OR_GOTO_ERROR(_buf_, _bufSz_, _data_, _dataSz_) \
+do\
+{\
+   if ((_bufSz_) < (offset + (_dataSz_)))\
+   {\
+      rc = SDB_INVALIDARG;\
+      goto error;\
+   }\
+   ossMemcpy((CHAR*)(_buf_) + offset, (_data_), (_dataSz_));\
+   offset += (_dataSz_);\
+} while(FALSE)
+
+#define LSM_UNPACK_COLUMN_OR_GOTO_ERROR(_buf_, _bufSz_, _data_, _dataSz_) \
+do\
+{\
+   if ((_bufSz_) < (offset + (_dataSz_)))\
+   {\
+      rc = SDB_INVALIDARG;\
+      goto error;\
+   }\
+   ossMemcpy((_data_), ((CHAR*)(_buf_) + offset), (_dataSz_));\
+   offset += (_dataSz_);\
+} while(FALSE)
+
+/*
 UINT32 lsmPackDataKey
 (
    CHAR                   * buf,                // buffer address
    UINT32                   bufSz,              // buffer size
-   BOOLEAN                  bAppendOpLSN,       // if append log operation LSN
-   UINT64                   opLSN,              // log operation LSN
-   const sdbIndexID       * pIdxID,             // indexID
+   const globalIndexID       * pIdxID,             // indexID
    const Ordering         * pOrdering,          // ordering
    const ixmKey           * pKeyObj,            // keyObj
-   const vessel::recordID * pRid,               // rowid
+   const dmsRecordID      * pRid,               // rowid
    const UINT64           * pLSN,               // lsn
    const DPS_TRANS_ID     * pTransID            // transID
 )
@@ -392,8 +408,7 @@ UINT32 lsmPackDataKey
 
    // verify if the buffer size is big enough
    if ( ( NULL == buf ) ||
-        ( bufSz < lsmEstDataKeyLen( bAppendOpLSN,
-                                    pIdxID,
+        ( bufSz < lsmEstDataKeyLen( pIdxID,
                                     pOrdering,
                                     pKeyObj,
                                     pRid,
@@ -446,8 +461,92 @@ UINT32 lsmPackDataKey
    }
 
    return offset ;
+}*/
+
+INT32 lsmUnpackIndexFullKey
+(
+   const CHAR             * buf,        // buffer address
+   UINT32                 bufSz,      // buffer size
+   globalIndexID          &idxID,       // indexID
+   orderingWrapper        &ordering,  // ordering
+   ixmKey                 &key,  // key
+   dmsRecordID            &rid,  // rowid
+   UINT64                 &lsn,  // lsn
+   DPS_TRANS_ID           &transID   // transID
+)
+{
+   INT32 rc = SDB_OK;
+   UINT8  entryType = LSM_ENTRY_TYPE_DATA ;
+   UINT32 offset = 0;
+   if (NULL == buf || 0 == bufSz)
+   {
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &entryType, sizeof(entryType));
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &idxID, sizeof(globalIndexID));
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &ordering, sizeof(orderingWrapper));
+
+   key.assign(ixmKey(buf + offset));
+   offset += key.dataSize();
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(dmsRecordID));
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &lsn, sizeof(UINT64));
+
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &transID, sizeof(DPS_TRANS_ID));
+done:
+   return rc;
+error:
+   goto done;
 }
 
+INT32 lsmPackIndexFullKey
+(
+   CHAR                   * buf,        // buffer address
+   UINT32                   bufSz,      // buffer size
+   const globalIndexID    &idxID,       // indexID
+   const orderingWrapper  &ordering,  // ordering
+   const ixmKey           &key,  // keyObj
+   const dmsRecordID      &rid,  // rowid
+   UINT64                 lsn,  // lsn
+   const DPS_TRANS_ID     &transID   // transID
+)
+{
+   INT32 rc = SDB_OK;
+   UINT8  entryType = LSM_ENTRY_TYPE_DATA ;
+   UINT32 offset = 0;
+   UINT32 keyDataSize = (UINT32)(key.dataSize());
+   
+   if (NULL == buf || !key.isValid())
+   {
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &entryType, sizeof(entryType));
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &idxID, sizeof(globalIndexID));
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &ordering, sizeof(orderingWrapper));
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, key.data(), keyDataSize);
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(dmsRecordID));
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &lsn, sizeof(UINT64));
+
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &transID, sizeof(DPS_TRANS_ID));
+
+
+done:
+   return rc;
+error:
+   goto done;
+}
 
 UINT32 lsmPackDataValue
 (
@@ -534,7 +633,7 @@ void lsmUnpackDataKey
 (
    const rocksdb::Slice & aSlice,           // slice
    const BOOLEAN          bAllocBuf,        // if allocate buffer for keyObj
-   sdbIndexID           * pIdxID,           // indexID
+   globalIndexID           * pIdxID,           // indexID
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
@@ -701,7 +800,7 @@ void lsmUnpackCKPTEntry
 BOOLEAN lsmIsSameIdxId
 (
    const rocksdb::Slice & aSlice,
-   const sdbIndexID & idxId
+   const globalIndexID & idxId
 )
 {
    const UINT32 aSize  = aSlice.size();       // the length of aSlice
@@ -724,7 +823,7 @@ BOOLEAN lsmIsSameIdxId
    offset += lsmEntryTypeSz;
 
    // IndexID
-   sdbIndexID * pIdxId = (sdbIndexID*)(aSlice.data() + offset) ;
+   globalIndexID * pIdxId = (globalIndexID*)(aSlice.data() + offset) ;
    if ( idxId == *pIdxId )
    {
       return TRUE ;
@@ -739,8 +838,8 @@ BOOLEAN lsmIsSameIndexKey
 (
    const rocksdb::Slice   & aSlice,
    const ixmKey           * pKeyObj,
-   const vessel::recordID * pRid,
-   const sdbIndexID       * pIdxId
+   const dmsRecordID      * pRid,
+   const globalIndexID       * pIdxId
 )
 {
    const CHAR * aStart = aSlice.data();       // the address of aSlice
@@ -765,7 +864,7 @@ BOOLEAN lsmIsSameIndexKey
    // IndexID
    if ( pIdxId )
    {
-      sdbIndexID * pMyIdxId = (sdbIndexID*)(aSlice.data() + offset) ;
+      globalIndexID * pMyIdxId = (globalIndexID*)(aSlice.data() + offset) ;
       if ( !( *pIdxId == *pMyIdxId ) )
       {
          return FALSE ;
@@ -814,7 +913,7 @@ BOOLEAN lsmIsSameIndexKey
       {
          return FALSE ;
       }
-      vessel::recordID *pMyRid = (vessel::recordID*)(aStart + offset) ;
+      dmsRecordID *pMyRid = (dmsRecordID*)(aStart + offset) ;
       if ( !( *pRid == *pMyRid ) )
       {
          return FALSE;
@@ -876,42 +975,6 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
          }
       }
    }
-}
-
-
-// Input:
-//   K:  packed key, normally it is readed from rocksdb
-//   V:  packed value associated with key
-void lsmKeyEntry::init( const rocksdb::Slice & K, const rocksdb::Slice & V )
-{
-   BSONObj tmpObj ;
-   if ( _keyObj.isOwned() )
-   {
-      tmpObj = _keyObj ;
-   }
-   reset() ;
-
-   if ( ! K.empty() )
-   {
-      CHAR * buf = NULL;
-      lsmUnpackDataKey( K, FALSE,
-                        NULL,       /* IndexID  */
-                        NULL,       /* Ordering */
-                        &buf,
-                        NULL,       /* buffer size */
-                        &_rid, &_dataLsn, &_transID );
-      if ( buf )
-      {
-         BufBuilder builder;
-         builder.reset();
-         _keyObj = ixmKey(buf).toBson(&builder).getOwned() ;
-      }
-   }
-   if ( ! V.empty() )
-   {
-      lsmUnpackDataValue( V, &_flag, &_rbsPos ) ;
-   }
-   return ;
 }
 
 

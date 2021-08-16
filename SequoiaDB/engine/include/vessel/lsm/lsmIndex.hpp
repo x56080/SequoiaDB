@@ -39,7 +39,9 @@
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmDB.hpp"
 #include "rtnPredicate.hpp"     // VEC_ELE_CMP
+#include "vessel/lsm/lsmIndexValue.hpp"
 #include "rocksdb/rocksdb_namespace.h"
+#include "vessel/lsm/lsmOwnedRecord.h"
 
 using namespace bson ;
 using namespace rocksdb ;
@@ -98,8 +100,9 @@ public:
   void operator= ( const lsmIndex & ) = delete;
 
   // initialization
-  INT32 init( LSMDB * lsmdb, const indexMeta & idxMeta ) ;
+  INT32 init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta ) ;
   BOOLEAN isInitialized() const { return _initalized; }
+  void fini();
 
   /*
     locate an index key entry stored in rocksdb that matches the passed
@@ -166,10 +169,10 @@ public:
       K3C 0_{cs:1,cl:2,idx:3}_{5,"t1",  1}_{pg:2,slt:1}_3_{sn:1,nd:3}
   */
   INT32 locate( const INT32              direction,
-                const ixmKey           & keyObj,
-                const vessel::recordID & rid,
-                lsmKeyEntry            & keyEntry,
-                BOOLEAN                * pFound ) ;
+                const ixmKey           & key,
+                const dmsRecordID      & rid,
+                lsmOwnedRecord         & out,
+                BOOLEAN                & exactlyMatched) ;
 
   /*
      advance to next index key entry that matches the passed in parameter
@@ -226,7 +229,7 @@ public:
   */
   INT32 advance( const INT32        direction,
                  const lsmKeyEntry & searchKey,
-                 lsmKeyEntry       & keyEntry ) ;
+                 lsmOwnedRecord    & out ) ;
 
 
   /*
@@ -291,7 +294,7 @@ public:
                    const BOOLEAN            skipToNext,
                    const VEC_ELE_CMP      & matchElement,
                    const VEC_BOOLEAN      & matchInclusive,
-                   lsmKeyEntry            & keyEntry );
+                   lsmOwnedRecord         & out );
 
   /*
      advance to the next smallest/greatest key entry matches the pushed down
@@ -363,7 +366,9 @@ public:
                     const BOOLEAN            skipToNext,
                     const VEC_ELE_CMP      & matchElement,
                     const VEC_BOOLEAN      & matchInclusive,
-                    lsmKeyEntry            & keyEntry ) ;
+                    lsmOwnedRecord          & out ) ;
+
+
   /*
      insert a key entry into rocksdb
      Note:
@@ -371,11 +376,8 @@ public:
 
      For LSM( rocksdb ) index entry, it is packed with following format :
         Key:   EntryType_IndexID_Ordering_EncodedKey_RowID_DataLSN_TransID
-        Value: NULL           -- for new entry
-               Flag_RBSOffset -- for entry marked as deleted
      Here
       * EntryType:   UINT8, entry type, LSM_ENTRY_TYPE_DATA = 0x0, index key
-      * '_':         nothing, is just for readability
       * IndexID:     sdbIndexID, unique index id, { csID, clID, indexLLID }
       * Ordering:    Ordering, key object( BSON object ) ordering
       * EncodedKey:  ixmKey, key object, the raw data of a ixmKey
@@ -385,19 +387,12 @@ public:
 
      Input:
        keyEntry: the key entry and value to be inserted into rocksdb
-       logLSN:   the LSN for this insert operation
-       pBatch:   pointer to rocksdb::WriteBatch, if inserting is going to
-                 be done via a writeBatch. It is the caller to decide to
-                 write/commit the batch or abort the operations.
-                 If this pointer is NULL, the inserting will be treated
-                 as a single operation.
+
      Return:
        SDB_OK: normal return
        otherwise any popped error code
   */
-  INT32 keyInsert( const lsmKeyEntry    & keyEntry,
-                   const UINT64           logLSN,
-                   rocksdb::WriteBatch  * pBatch = NULL ) ;
+  INT32 keyInsert(const lsmKeyEntry &key);
 
 
   /*
@@ -434,11 +429,12 @@ public:
        SDB_OK: normal return
        otherwise any popped error code
   */
+ /*
    INT32 keyDelete( const BOOLEAN            blsmIdx,
                     const lsmKeyEntry      & origKeyEntry,
                     const lsmKeyEntry      & keyEntry,
                     const UINT64             logLSN,
-                    rocksdb::WriteBatch    * pBatch = NULL ) ;
+                    rocksdb::WriteBatch    * pBatch = NULL ) ;*/
 
   /*
      delete an index entry without saving its old version
@@ -455,8 +451,7 @@ public:
        otherwise any popped error code
   */
   INT32 keyRemove( const lsmKeyEntry   & keyEntry,
-                   const UINT64          logLSN,
-                   rocksdb::WriteBatch * pBatch = NULL );
+                   const UINT64          logLSN );
 
   /*
      truncate an index
@@ -490,6 +485,9 @@ protected:
   // free the rocksdb::Slice buffer, and clear that Slice
   void _freeAndClear( rocksdb::Slice & aSlice );
 
+  INT32 packFullIndexKey(const lsmKeyEntry &ke,
+                         rocksdb::Slice &keySlice);
+
   // allocate and copy the content into a rocksdb::Slice
   INT32 _allocAndCopy( const CHAR * keyAddr,
                       const UINT32 keySize,
@@ -502,7 +500,7 @@ protected:
                        const lsmKeyEntry & keyEntry,
                        rocksdb::Slice    & K ) ;
 
-  INT32 _advance( const INT32 direction, lsmKeyEntry & keyEntry ) ;
+  INT32 _advance( const INT32 direction, lsmOwnedRecord & out ) ;
 
   // locate to or advance to the next of the smallest/greatest key entry matches
   // the pushed down verb and searching key object, prevKey, regarding the scan
@@ -514,7 +512,7 @@ protected:
                     const BOOLEAN            skipToNext,
                     const VEC_ELE_CMP      & matchElement,
                     const VEC_BOOLEAN      & matchInclusive,
-                    lsmKeyEntry            & keyEntry ) ;
+                    lsmOwnedRecord         & out ) ;
 
   // destory/close an iterator
   void _closeIter()
@@ -541,7 +539,7 @@ private:
   // parameter, searchKey( rocksdb::Slice ), regarding the searching direction.
   INT32 _locate( const INT32              direction,
                  const rocksdb::Slice   & searchKey,
-                 lsmKeyEntry            & keyEntry ) ;
+                 lsmOwnedRecord         & out ) ;
 
   // insert a key entry packed with following format into rocksdb:
   //   Key:   EntryType_IndexID_Ordering_EncodedKey_RowID_DataLSN_TransID
@@ -564,9 +562,7 @@ private:
 
 protected:
    LSMDB *          _lsmdb ;
-   indexMeta        _idxMeta ;
-   sdbIndexID       _idxId ;
-   const Ordering * _pOrdering;
+   lsmIndexMeta      _idxMeta ;
    CHAR             _uBuf[ lsmMinDataKeySz ] ;
    CHAR             _lBuf[ lsmMinDataKeySz ] ;
    rocksdb::Slice   _uKey;
@@ -608,7 +604,7 @@ public:
    void operator= ( const lsmIdxRepeatableReadOnly & ) = delete;
 
    // create iterator after initialization
-   INT32 init( LSMDB * lsmdb, const indexMeta & idxMeta )
+   INT32 init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta )
    {
       INT32 rc = lsmIndex::init( lsmdb, idxMeta );
       if ( SDB_OK == rc )
@@ -639,7 +635,7 @@ public:
    // reuse iterator instead of destroy / create each time
    INT32 advance( const INT32         direction,
                   const lsmKeyEntry & searchKey,
-                  lsmKeyEntry       & keyEntry ) ;
+                  lsmOwnedRecord       & out ) ;
 
    // this class is designed solely for read-only with isolation RR mode
    // so disable all update operations.

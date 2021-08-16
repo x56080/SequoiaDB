@@ -37,6 +37,7 @@
 #define VESSEL_RECORD_ID_H_
 
 #include "vessel/pageDef.h"
+#include "dms.hpp"
 
 namespace engine
 {
@@ -91,6 +92,11 @@ namespace vessel
 
          }
 
+         OSS_INLINE BOOLEAN operator<=(const recordID &r)const
+         {
+            return *this < r || *this == r;
+         }
+
          OSS_INLINE ~recordID(){}
 
          OSS_INLINE void setPageID(PAGE_ID id)
@@ -117,6 +123,15 @@ namespace vessel
          {
             return INVALID_RECORD_SLOT_ID != _slot &&
                    INVALID_PAGE_ID != _page;
+         }
+
+         OSS_INLINE dmsRecordID toDMSRid()const
+         {
+            if (valid())
+            {
+               return dmsRecordID(_page, _slot);
+            }
+            return dmsRecordID();
          }
 
       private:

@@ -106,14 +106,17 @@ namespace vessel
 
          void tryToTuneRightMiddle();
          void tryToTuneLeftMiddle();
-         void removeTagAndTuneMiddle(liteCachePageTag *tag);
+         void removeTagAndTuneMiddle(BOOLEAN isCold,
+                                     liteCachePageTag *tag);
 
-         void moveToHead(liteCachePageTag *tag);
+         void moveToHead(BOOLEAN isCold,
+                         liteCachePageTag *tag);
          void insertToMiddle(liteCachePageTag *tag);
          void insertToHead(liteCachePageTag *tag);
          void removeFromList(liteCachePageTag *tag);
 
          BOOLEAN tryToEvictTagFromList(liteCachePageTag *tag,
+                                       BOOLEAN isCold,
                                        freeListPage &page);
       private:
          lcFreeList *_fl = NULL;

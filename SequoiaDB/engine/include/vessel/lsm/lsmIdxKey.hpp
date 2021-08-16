@@ -38,7 +38,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.h"
-#include "vessel/lsm/lsmIdxID.hpp"
+#include "vessel/globalIndexID.h"
 #include "../bson/bson.h"
 #include "../bson/ordering.h"
 #include "vessel/recordID.h"
@@ -48,9 +48,9 @@
 #include "rocksdb/rocksdb_namespace.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/comparator.h"
+#include "dpsDef.hpp"
+#include "vessel/orderingWrapper.h"
 
-using namespace bson ;
-using namespace rocksdb ;
 namespace engine
 {
 namespace vessel
@@ -101,42 +101,66 @@ namespace vessel
 
 
 // calculate the length of full data key( i.e., with all fields/elements )
-extern UINT32 lsmCalFullDataKeyLen(BOOLEAN bAppOpLSN, const ixmKey &keyObj );
+extern UINT32 lsmCalFullDataKeyLen(UINT32 ixmKeySize);
 
 // Estimate the total size of memory when construct a slice from the input.
 // Return vaule, the total number of bytes needed to construct the slice
 // Note:
 //   if a pointer of a field is NULL, this field and subsequent fields
 //   will not be counted in.
+/*
 extern UINT32 lsmEstDataKeyLen
 (
-   BOOLEAN                  bAppendOpLSN,       // if append log operation LSN
-   const sdbIndexID       * pIdxID,             // indexID
+   const globalIndexID    * pIdxID,             // indexID
    const Ordering         * pOrdering  = NULL,  // ordering
    const ixmKey           * pKeyObj    = NULL,  // keyObj
-   const vessel::recordID * pRid       = NULL,  // rowid
+   const dmsRecordID      * pRid       = NULL,  // rowid
    const UINT64           * pDataLSN   = NULL,  // dataLSN
    const DPS_TRANS_ID     * pTransID   = NULL   // transID
-) ;
+) ;*/
 
 // Pack data entry fields into raw memory buffer.
 // Return value, the total number of bytes written into the buffer.
 // Note:
 //   if a field pointer is NULL, this field and the subsequent fields
 //   will be discarded.
+
+/*
 extern UINT32 lsmPackDataKey
 (
    CHAR                   * buf,                // buffer address
    UINT32                   bufSz,              // buffer size
-   BOOLEAN                  bAppendOpLSN,       // if append log operation LSN
-   UINT64                   opLSN,              // log operation LSN
-   const sdbIndexID       * pIdxID,             // indexID
+   const globalIndexID    * pIdxID,             // indexID
    const Ordering         * pOrdering  = NULL,  // ordering
    const ixmKey           * pKeyObj    = NULL,  // keyObj
-   const vessel::recordID * pRid       = NULL,  // rowid
+   const dmsRecordID      * pRid       = NULL,  // rowid
    const UINT64           * pLSN       = NULL,  // lsn
    const DPS_TRANS_ID     * pTransID   = NULL   // transID
-) ;
+) ;*/
+
+extern INT32 lsmPackIndexFullKey
+(
+   CHAR                   * buf,        // buffer address
+   UINT32                   bufSz,      // buffer size
+   const globalIndexID    &idxID,       // indexID
+   const orderingWrapper  &ordering,  // ordering
+   const ixmKey           &key,  // keyObj
+   const dmsRecordID      &rid,  // rowid
+   UINT64                 lsn,  // lsn
+   const DPS_TRANS_ID     &transID   // transID
+);
+
+extern INT32 lsmUnpackIndexFullKey
+(
+   const CHAR             * buf,        // buffer address
+   UINT32                 bufSz,      // buffer size
+   globalIndexID          &idxID,       // indexID
+   orderingWrapper        &ordering,  // ordering
+   ixmKey                 &key,  // key
+   dmsRecordID            &rid,  // rowid
+   UINT64                 &lsn,  // lsn
+   DPS_TRANS_ID           &transID   // transID
+);
 
 
 extern UINT32 lsmPackDataValue
@@ -176,7 +200,7 @@ extern void lsmUnpackDataKey
 (
    const rocksdb::Slice & aSlice,           // slice
    const BOOLEAN          bAllocBuf,        // if allocate buffer for keyObj
-   sdbIndexID           * pIdxID,           // indexID
+   globalIndexID        * pIdxID,           // indexID
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
@@ -211,7 +235,7 @@ extern void lsmUnpackCKPTEntry
 extern BOOLEAN lsmIsSameIdxId
 (
    const rocksdb::Slice & aSlice,
-   const sdbIndexID     & idxId
+   const globalIndexID  & idxId
 ) ;
 
 
@@ -221,8 +245,8 @@ extern BOOLEAN lsmIsSameIndexKey
 (
    const rocksdb::Slice   & aSlice,
    const ixmKey           * pKeyObj = NULL,
-   const vessel::recordID * pRid    = NULL,
-   const sdbIndexID       * pIdxId  = NULL
+   const dmsRecordID      * pRid    = NULL,
+   const vessel::globalIndexID    * pIdxId  = NULL
 ) ;
 
 // update the packed data entry to the most adjacent one,
@@ -231,11 +255,12 @@ extern void lsmUpdateDataEntryToMostAdjacent(rocksdb::Slice a, INT32 direction);
 
 const UINT32 lsmEntryTypeSz    = sizeof( UINT8 ) ;
 const UINT32 lsmOrdSz          = sizeof( Ordering ) ;
-const UINT32 lsmRidSz          = sizeof(recordID);
+const UINT32 lsmRidSz          = sizeof(dmsRecordID);
 const UINT32 lsmLsnSz          = sizeof( UINT64 ) ;
 const UINT32 lsmTxIDSz         = sizeof( DPS_TRANS_ID ) ;
 const UINT32 lsmFlagSz         = sizeof( UINT8 );
 const UINT32 lsmRBSPosSz       = sizeof( dmsRBSOffset ) ;
+const UINT32 lsmIdxIDSz        = GLOBAL_INDEX_ID_SIZE;
 const UINT32 lsmDummyKeyObjSz  = 6 ; // ixmKeyOwned(BSONObj()).dataSize();
 const UINT32 lsmMinDataKeySz   = lsmEntryTypeSz + lsmIdxIDSz
                                  + lsmOrdSz + lsmDummyKeyObjSz + lsmRidSz
@@ -249,112 +274,58 @@ class lsmKeyEntry : public SDBObject
 public:
    lsmKeyEntry()
    {
-      _dataLsn = 0 ;
-      _flag    = LSM_ENTRY_FLAG_NORMAL ;
-      _rid     = vessel::recordID(0,0);
+      _dataLsn = DPS_INVALID_LSN_OFFSET ;
    }
 
-   // Input parameter
-   //   K:  packed key, normally it is readed from rocksdb
-   //   V:  packed value associated with key
-   void init( const rocksdb::Slice & K, const rocksdb::Slice & V );
+   lsmKeyEntry( const lsmKeyEntry & rhs ) = delete;
 
-   void init( const BSONObj          & keyObj,
-              const vessel::recordID & rid,
-              const UINT64             dataLsn,
-              const DPS_TRANS_ID     & transID,
-              const UINT8              flag,
-              const dmsRBSOffset     & rbsPos )
+   lsmKeyEntry & operator= ( const lsmKeyEntry &rhs ) = delete;
+
+   BOOLEAN isValid()const
    {
-      _keyObj  = keyObj.getOwned() ;
-      _rid     = rid;
-      _dataLsn = dataLsn;
-      _transID = transID;
-      _flag    = flag;
-      _rbsPos  = rbsPos;
+      return _key.isValid();
    }
 
-   lsmKeyEntry( const rocksdb::Slice & K, const rocksdb::Slice & V )
-   {
-      _dataLsn = 0 ;
-      _flag    = LSM_ENTRY_FLAG_NORMAL ;
-      _rid     = vessel::recordID(0,0);
-      init( K,V ) ;
-   }
-
-   lsmKeyEntry( const lsmKeyEntry & rhs )
-   {
-      _keyObj  = rhs._keyObj.getOwned() ;
-      _rid     = rhs._rid;
-      _dataLsn = rhs._dataLsn;
-      _transID = rhs._transID;
-      _flag    = rhs._flag;
-      _rbsPos  = rhs._rbsPos;
-   }
-
-   lsmKeyEntry & operator= ( const lsmKeyEntry &rhs )
-   {
-      _keyObj  = rhs._keyObj.getOwned() ;
-      _rid     = rhs._rid;
-      _dataLsn = rhs._dataLsn;
-      _transID = rhs._transID;
-      _flag    = rhs._flag;
-      _rbsPos  = rhs._rbsPos;
-      return *this ;
-   }
-
-   void shallowCopy( const BSONObj          & keyObj,
-                     const vessel::recordID & rid,
+   void shallowCopy( const ixmKey          & key,
+                     const dmsRecordID & rid,
                      const UINT64             dataLsn,
-                     const DPS_TRANS_ID     & transID,
-                     const UINT8              flag,
-                     const dmsRBSOffset     & rbsPos )
+                     const DPS_TRANS_ID     & transID)
    {
-      _keyObj  = keyObj ;
+      _key.assign(key);
       _rid     = rid;
       _dataLsn = dataLsn;
       _transID = transID;
-      _flag    = flag;
-      _rbsPos  = rbsPos;
    }
 
    void shallowCopy( const lsmKeyEntry &rhs )
    {
-      _keyObj  = rhs._keyObj ;
+      _key.assign(rhs._key) ;
       _rid     = rhs._rid;
       _dataLsn = rhs._dataLsn;
       _transID = rhs._transID;
-      _flag    = rhs._flag;
-      _rbsPos  = rhs._rbsPos;
+
    }
 
    void reset()
    {
-      _keyObj  = BSONObj() ;
-      _rid     = vessel::recordID(0,0);
-      _dataLsn = 0 ;
+      _key.assign(ixmKey());
+      _rid     = dmsRecordID();
+      _dataLsn = DPS_INVALID_LSN_OFFSET ;
       _transID = DPS_TRANS_ID();
-      _flag    = LSM_ENTRY_FLAG_NORMAL;
-      _rbsPos  = dmsRBSOffset();
    }
 
    virtual ~lsmKeyEntry() {}
 
-   OSS_INLINE BSONObj getKeyObj() const { return _keyObj; }
-   OSS_INLINE vessel::recordID getRid() const { return _rid; }
+   OSS_INLINE const ixmKey &getKey() const { return _key; }
+   OSS_INLINE const dmsRecordID &getRid() const { return _rid; }
    OSS_INLINE UINT64 getDataLsn() const { return _dataLsn; }
-   OSS_INLINE DPS_TRANS_ID getTransID() const { return _transID; }
-   OSS_INLINE UINT8 getFlag() const { return _flag; }
-   OSS_INLINE dmsRBSOffset getRBSPos() const { return _rbsPos; }
+   OSS_INLINE const DPS_TRANS_ID &getTransID() const { return _transID; }
 
 protected:
-   BSONObj          _keyObj;
-   vessel::recordID _rid;
-   UINT64           _dataLsn;
-   DPS_TRANS_ID     _transID;
-
-   UINT8            _flag;     // delete flag
-   dmsRBSOffset     _rbsPos;
+   ixmKey          _key;
+   dmsRecordID     _rid;
+   UINT64          _dataLsn = DPS_INVALID_LSN_OFFSET;
+   DPS_TRANS_ID    _transID;
 } ;
 
 

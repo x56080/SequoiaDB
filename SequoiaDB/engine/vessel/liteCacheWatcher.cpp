@@ -235,6 +235,10 @@ namespace vessel
                /// reset dirty list flushting time.
                _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
             }
+            else
+            {
+               _env->cacheConsole.get32KBCache().resetLRUEvictBegin();
+            }
             _job.reset();
          }
       }

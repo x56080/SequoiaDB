@@ -521,10 +521,6 @@ namespace vessel
                   cursor->setLastName(obj->getCSName());
                   cursor->markLIdPushed(obj->getLogicalID());
                   context->unlockSpaceID();
-                  if (cursor->hitTheLimit())
-                  {
-                     goto done;
-                  }
                }
             }
          }
@@ -676,6 +672,7 @@ namespace vessel
          goto error;
       }
 
+      context->setCSLidUnderLock(tmp->getLogicalID());
       *out = tmp;
    done:
       return rc;
@@ -730,6 +727,7 @@ namespace vessel
          goto error;
       }
 
+      context->setCSLidUnderLock(tmp->getLogicalID());
       *obj = tmp;
    done:
       return rc;
@@ -825,6 +823,7 @@ namespace vessel
             {
                if (0 == ossStrcmp(nameSlice.str(), obj->getCSName()))
                {
+                  context->setCSLidUnderLock(obj->getLogicalID());
                   *out = obj;
                   goto done;
                }
@@ -844,6 +843,7 @@ namespace vessel
             }
          }
 
+         context->setCSLidUnderLock(obj->getLogicalID());
          *out = obj;
          break;
       } while (TRUE);

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexExecutor.h
 
    Descriptive Name =
 
@@ -33,43 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
+#ifndef VESSEL_INDEX_EXECUTOR_H_
+#define VESSEL_INDEX_EXECUTOR_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/inMemIndexDefObj.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
+   class indexExecutor : public SDBObject
    {
       public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
+         indexExecutor(){}
+         virtual ~indexExecutor();
 
-   class rebuildIndexOptions : public SDBObject
-   {
       public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
+         void reset()
+         {
+            _def.fini();
+         }
+         inMemIndexDefObj &getDefObj()
+         {
+            return _def;
+         }
+         BOOLEAN isDefObjValidAndOwned()const
+         {
+            return _def.isValid() && _def.isOwned();
+         }
+      private:
+         inMemIndexDefObj _def;
+   };//class indexExecutor
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_OPTIONS_H_
+#endif//VESSEL_INDEX_EXECUTOR_H_

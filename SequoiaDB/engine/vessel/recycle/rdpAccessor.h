@@ -51,7 +51,6 @@ namespace vessel
    class logicalPageBuffer;
    class insertContext;
    class scanCLCursor;
-   class scanCLContext;
 
    class rdpAccessor : public pageAccessor
    {

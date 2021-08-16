@@ -62,7 +62,6 @@ namespace vessel
       _nextInBucket = NULL;
       
       _lruTouchCnt = 0;
-      _lruFlags = 0;
       _lruPre = NULL;
       _lruNext = NULL;
 

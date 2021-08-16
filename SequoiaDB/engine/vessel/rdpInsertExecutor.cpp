@@ -157,7 +157,7 @@ namespace vessel
       rs.setType(RDP_SLOT_TYPE_NORMAL);
       rs.setOffset(offset);
 
-      rh.setSize(alignedSize);
+      rh.setSize(RDP_RECORD_HEAD_LEN + record.len());
       rh.setCompressionType(context->getCompressionType());
       rh.setTransInfo(context->getTransID().getNodeID(),
                       context->getTransID().getSN());

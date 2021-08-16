@@ -38,8 +38,8 @@
 
 #include "vessel/cursorKernal.h"
 #include "vessel/collectionHandle.h"
-#include "vessel/recordID.h"
 #include "vessel/scanCLOptions.h"
+#include "vessel/scanEntry.h"
 
 namespace engine
 {
@@ -62,9 +62,8 @@ namespace vessel
          {
             _handle = handle;
             _options = options;
-            _seq = 0;
             _lpid = INVALID_PAGE_ID;
-            _slot = INVALID_RECORD_SLOT_ID;
+            _toScan.reset();
             return;
          }
          OSS_INLINE const collectionHandle &getHandle()const
@@ -75,40 +74,40 @@ namespace vessel
          {
             return _options;
          }
-         OSS_INLINE UINT32 getPageSeq()const
-         {
-            return _seq;
-         }
          OSS_INLINE PAGE_ID getLpid()const
          {
             return _lpid;
          }
-         OSS_INLINE RECORD_SLOT_ID getSlotID()const
+         OSS_INLINE void incToScanPage()
          {
-            return _slot;
-         }
-         OSS_INLINE void incPageSeqAndResetRid()
-         {
-            ++_seq;
             _lpid = INVALID_PAGE_ID;
-            _slot = INVALID_RECORD_SLOT_ID;
+            _toScan.incSeqAndZeroSlot();
+         }
+         OSS_INLINE void setToScanSlot(RECORD_SLOT_ID slot)
+         {
+            _toScan.reset(_toScan.getSeq(), slot);
          }
 
          OSS_INLINE void setLpid(PAGE_ID lpid)
          {
             _lpid = lpid;
          }
-         OSS_INLINE void setSlot(RECORD_SLOT_ID slot)
+         OSS_INLINE const scanEntry &getToScanEntry()const
          {
-            _slot = slot;
+            return _toScan;
          }
+
+      public:
+         INT32 getNext(ISession *session,
+                       slice &record,
+                       recordID *rid = NULL,
+                       DPS_TRANS_ID *transID = NULL);
 
       private:
          scanCLOptions _options;
          collectionHandle _handle;
-         UINT32 _seq = 0;
          PAGE_ID _lpid = INVALID_PAGE_ID;
-         RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
+         scanEntry _toScan;
    };//class scanCLCursor
 }//namespace vessel
 }//namespace engine

@@ -65,9 +65,9 @@ namespace vessel
    enum INDEX_STATUS
    {
       INDEX_STATUS_INVALID = 0,
-      INDEX_STATUS_CREATING = 1,
-      INDEX_STATUS_REBUIDING = 2,
-      INDEX_STATUS_ONLINE = 3,
+      INDEX_STATUS_BUILDING = 1,
+      INDEX_STATUS_NORMAL = 2,
+      INDEX_STATUS_TRUNCATING = 3,
       INDEX_STATUS_REMOVING = 4,
    };// enum INDEX_STATUS
 
@@ -78,6 +78,7 @@ namespace vessel
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY = "ColumnFamily";
 
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_ID = "LogicalIndexId";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_SLOT = "IndexSlot";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_STATUS = "status";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_CREATED_TIME = "CreatedTime";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_ALTERED_TIME = "AlteredTime";

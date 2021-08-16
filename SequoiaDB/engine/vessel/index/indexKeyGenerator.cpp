@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexKeyGenerator.cpp
 
    Descriptive Name =
 
@@ -33,43 +33,37 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/indexKeyGenerator.h"
+#include "pdTrace.hpp"
+#include "ixmIndexKey.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
+   INT32 indexKeyGenForBsonRecord(const bson::BSONObj &pattern,
+                                  BOOLEAN notArray,
+                                  const slice &record,
+                                  _ixmKeyBuilder *builder,
+                                  bson::BSONObjSet &keys)
    {
-      public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
+      INT32 rc = SDB_OK;
+      _ixmIndexKeyGen keygen(pattern);
+      keygen.setNotArray(notArray);
+      keygen.setKeyBuilder(builder);
+      bson::BSONObj obj(record.data());
 
-   class rebuildIndexOptions : public SDBObject
-   {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
+      rc = keygen.getKeys(obj, keys);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to generate keys:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_INDEX_OPTIONS_H_

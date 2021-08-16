@@ -137,6 +137,13 @@ namespace vessel
          {
             return _sid;
          }
+
+         void setCSLidUnderLock(UINT32 csLid);
+
+         OSS_INLINE UINT32 getCSLogicalID()const
+         {
+            return _csLogicalId;
+         }
       public:
          INT32 lockMB(CL_MB_ID mbID,
                       ossRWMutex *latch,
@@ -229,6 +236,7 @@ namespace vessel
 
          SPACE_ID _sid = INVALID_SPACE_ID;
          OSS_LATCH_MODE _sidLockedMode = SHARED;
+         UINT32 _csLogicalId = DMS_INVALID_LOGICCSID;
 
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
          OSS_LATCH_MODE _mbLockMode = SHARED;

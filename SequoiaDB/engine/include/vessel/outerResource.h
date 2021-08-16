@@ -38,6 +38,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "vessel/indexKeyGenerator.h"
 
 namespace engine
 {
@@ -45,17 +46,22 @@ namespace vessel
 {
    class IRedoLogger;
    class ISessionManager;
+   class IIndexKeyGenerator;
 
    class outerResource : public SDBObject
    {
       public:
          outerResource(){}
          ~outerResource(){}
-         outerResource(const outerResource &) = delete;
+         outerResource(const outerResource &o):
+         logger(o.logger),
+         sessionMgr(o.sessionMgr),
+         indexKeyGen(o.indexKeyGen){}
          outerResource &operator=(const outerResource &o)
          {
             logger = o.logger;
             sessionMgr = o.sessionMgr;
+            indexKeyGen = o.indexKeyGen;
             return *this;
          }
 
@@ -63,12 +69,14 @@ namespace vessel
          BOOLEAN isValid()const
          {
             return NULL != logger &&
-                  NULL != sessionMgr;
+                   NULL != sessionMgr &&
+                   !(!indexKeyGen);
          }
 
       public:
          IRedoLogger *logger = NULL;
          ISessionManager *sessionMgr = NULL;
+         INDEX_KEY_GENERATOR indexKeyGen;
    };//class outerResource
 }//namespace vessel
 }//namespace engine

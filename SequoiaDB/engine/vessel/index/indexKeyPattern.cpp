@@ -53,12 +53,11 @@ namespace vessel
    INT32 indexKeyPattern::set(const bson::BSONObj &obj)
    {
       INT32 rc = SDB_OK;
-      _keyCount = 0;
-      _ordering = 0;
-      INT32 ordering = 0;
+      reset();
       BSONObjIterator itr(obj);
       while (itr.more())
       {
+         INT32 ordering = 0;
          BSONElement e = itr.next();
          const CHAR *fieldName = e.fieldName() ;
          if (e.eoo() || !e.isNumber())
@@ -84,6 +83,7 @@ namespace vessel
          }
          else
          {
+            PD_LOG(PDERROR, "invalid key pattern ordering");
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -134,6 +134,11 @@ namespace vessel
       {
          _pattern = _pattern.getOwned();
       }
+   }
+
+   orderingWrapper indexKeyPattern::getOrdering()const
+   {
+      return orderingWrapper(_ordering, _keyCount);
    }
 
    BOOLEAN indexKeyPattern::isCoveredBy(const indexKeyPattern &other)const

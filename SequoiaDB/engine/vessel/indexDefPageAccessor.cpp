@@ -107,7 +107,8 @@ namespace vessel
          goto error;
       }
 
-      rc = obj.init(*head, slice(head->defObjSize, (const CHAR *)ptr));
+      rc = obj.init(*head, slice(head->defObjSize, (const CHAR *)ptr),
+                    lpb->getLogicalPid());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init in-mem index obj:%d", rc);
@@ -165,7 +166,7 @@ namespace vessel
       head.clLogicalID = context->getCLLid();
       head.createdTime = ossGetCurrentMilliseconds();
       head.alteredTime = head.createdTime;
-      head.status = INDEX_STATUS_CREATING;
+      head.status = INDEX_STATUS_BUILDING;
       head.defObjSize = defObj.len();
 
       rc = lpb->getRuntimeBuffer().prepareToWrite(context);
@@ -271,5 +272,169 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 indexDefPageAccessor::updateIndexStatus(requestContext *context,
+                                                 INDEX_STATUS newStatus,
+                                                 logicalPageBuffer *lpb)
+   {
+      INT32 rc = SDB_OK;
+      const indexDefHead *readableHead = NULL;
+      indexDefHead *head = NULL;
+
+      if (NULL == context ||
+          NULL == lpb ||
+          !lpb->isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
+                        PAGE_TYPE_INDEX_DEF,
+                        lpb->getRuntimeBuffer().getPageSize(),
+                        lpb->getRuntimeBuffer().getGlobalPid().page(),
+                        lpb->getLogicalPid(),
+                        lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      if (NULL == readableHead)
+      {
+         PD_LOG(PDERROR, "failed to get readable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!readableHead->isValid())
+      {
+         PD_LOG(PDERROR, "index def page head is not valid");
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+      else if (context->getCLLid() != readableHead->clLogicalID)
+      {
+         PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
+                context->getCLLid(), readableHead->clLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      rc = lpb->prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+      readableHead = NULL;
+
+      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexDefHead>(0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      head->status = newStatus;
+      lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
+   done:
+      return rc;
+   error:
+      if (NULL != lpb && lpb->getRuntimeBuffer().isWritingPrepared())
+      {
+         lpb->getRuntimeBuffer().abort();
+      }
+      goto done;
+   }
+
+   INT32 indexDefPageAccessor::getOwnedInMemDefObj(requestContext *context,
+                                                   const logicalPageBuffer *lpb,
+                                                   inMemIndexDefObj &obj)
+   {
+      INT32 rc = SDB_OK;
+      const indexDefHead *readableHead = NULL;
+      ossValuePtr ptr = 0;
+      slice objSlice;
+      obj.fini();
+
+      if (NULL == context ||
+          NULL == lpb ||
+          !lpb->isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
+                        PAGE_TYPE_INDEX_DEF,
+                        lpb->getRuntimeBuffer().getPageSize(),
+                        lpb->getRuntimeBuffer().getGlobalPid().page(),
+                        lpb->getLogicalPid(),
+                        lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      if (NULL == readableHead)
+      {
+         PD_LOG(PDERROR, "failed to get readable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!readableHead->isValid())
+      {
+         PD_LOG(PDERROR, "index def page head is not valid");
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+      else if (context->getCLLid() != readableHead->clLogicalID)
+      {
+         PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
+                context->getCLLid(), readableHead->clLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      rc = lpb->getRuntimeBuffer().getReadablePtrOfBodyWithRc(INDEX_DEF_HEAD_SIZE,
+                                                              readableHead->defObjSize,
+                                                              ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get def obj ptr:%d", rc);
+         goto error;
+      }
+
+      objSlice.reset(readableHead->defObjSize, (const CHAR *)ptr);
+
+      rc = obj.init(*readableHead, objSlice, lpb->getLogicalPid());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init in-mem obj:%d", rc);
+         goto error;
+      }
+
+      rc = obj.getOwned();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get owned:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      obj.fini();
+      goto done;
+   }
+                                                 
 }//namespace vessel
 }//namespace engine

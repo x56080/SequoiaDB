@@ -35,87 +35,57 @@
 #ifndef LSMINDEXMETA_HPP_
 #define LSMINDEXMETA_HPP_
 
-#include "vessel/lsm/lsmIdxID.hpp"  // sdbIndexID
+#include "vessel/globalIndexID.h"
 #include "rocksdb/rocksdb_namespace.h"
-
-using namespace bson ;
-using namespace rocksdb ;
+#include "vessel/orderingWrapper.h"
 
 namespace engine
 {
 namespace vessel
 {
 
-enum SDB_INDEX_TYPE
-{
-   SDB_INDEX_INVALID = 0,
-   SDB_INDEX_BTREE,  // btree index
-   SDB_INDEX_LSM,    // lsm( rocksdb ) index
-   SDB_INDEX_MAX = SDB_INDEX_LSM
-};
-
-
-class indexKeyOrdering : public SDBObject
+class lsmIndexMeta : public SDBObject
 {
 public:
-  indexKeyOrdering( const Ordering &order ) : _ordering( order ) {}
-  ~indexKeyOrdering() {}
-  const Ordering* getOrdering() const { return & _ordering ; }
-private:
-  Ordering _ordering ;
-} ;
-
-
-class indexMeta : public SDBObject
-{
-public:
-  indexMeta(){ _type = SDB_INDEX_INVALID ; _pOrder = NULL; }
-  indexMeta
+  lsmIndexMeta(){}
+  explicit lsmIndexMeta
   (
-     SDB_INDEX_TYPE     type,
-     const sdbIndexID & idxId,
-     const BSONObj    & keyPattern
-  )
+     const globalIndexID & idxId,
+     const orderingWrapper & ordering
+  ):
+  _idxId(idxId),
+  _ordering(ordering)
   {
      SDB_ASSERT( (idxId.isValid()), "Invalid IndexID" ) ;
-     _type  = type;
-     _idxId = idxId ;
-     _keyPattern = keyPattern.getOwned() ;
-     _pOrder = SDB_OSS_NEW indexKeyOrdering( Ordering::make( _keyPattern ) ) ;
-     SDB_ASSERT( (_pOrder), "Failed to construct key ordering info" ) ;
   }
 
-  virtual ~indexMeta()
+  virtual ~lsmIndexMeta()
   {
-     if ( _pOrder )
-     {
-        SDB_OSS_DEL _pOrder ;
-        _pOrder = NULL ;
-     }
   }
 
-  indexMeta& operator= ( const indexMeta &rhs )
+  lsmIndexMeta& operator= ( const lsmIndexMeta &rhs )
   {
-     _type       = rhs._type ;
      _idxId      = rhs._idxId ;
-     _keyPattern = rhs._keyPattern.getOwned();
-     _pOrder     = SDB_OSS_NEW indexKeyOrdering(Ordering::make( _keyPattern ));
+     _ordering   = rhs._ordering;
      return *this ;
   }
 
-  OSS_INLINE SDB_INDEX_TYPE getIdxType() const { return _type; }
-  OSS_INLINE sdbIndexID getIdxId() const { return _idxId; }
-  OSS_INLINE const Ordering * getOrdering() const { return _pOrder->getOrdering(); }
-  OSS_INLINE BSONObj getKeyPattern() const { return _keyPattern ; }
+  OSS_INLINE const globalIndexID &getIdxId() const { return _idxId; }
+  OSS_INLINE const bson::Ordering *getBsonOrdering() const
+  { return _ordering.toBsonOrdering(); }
+
+  OSS_INLINE const orderingWrapper &getOrdering()const
+  {
+     return _ordering;
+  }
+  //OSS_INLINE BSONObj getKeyPattern() const { return _keyPattern ; }
   OSS_INLINE BOOLEAN isValid() const
   {
-     return ( ( SDB_INDEX_INVALID != _type ) && _pOrder && _idxId.isValid() ) ;
+     return _idxId.isValid() ;
   }
 protected:
-  SDB_INDEX_TYPE     _type ;
-  sdbIndexID         _idxId ;  // { UINT32 _csID, UINT32 _clID, UINT32 _idxLID }
-  BSONObj            _keyPattern ;
-  indexKeyOrdering * _pOrder ;
+  globalIndexID      _idxId ;  // { UINT32 _csID, UINT32 _clID, UINT32 _idxLID }
+  orderingWrapper    _ordering;
 };
 
 

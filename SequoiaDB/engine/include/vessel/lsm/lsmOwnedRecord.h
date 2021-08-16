@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = scanCLContext.h
+   Source File Name = lsmOwnedRecord.h
 
    Descriptive Name =
 
@@ -33,72 +33,55 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_SCAN_CL_CONTEXT_H_
-#define VESSEL_SCAN_CL_CONTEXT_H_
+#ifndef VESSEL_LSM_OWNED_RECORD_H_
+#define VESSEL_LSM_OWNED_RECORD_H_
 
-#include "vessel/requestContext.h"
-#include "vessel/recordID.h"
+#include "vessel/lsm/lsmIdxKey.hpp"
+#include "vessel/lsm/lsmIndexValue.hpp"
+#include "ixmKey.hpp"
+#include "rocksdb/slice.h"
 #include "vessel/memoryBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class scanCLContext : public requestContext
+   class lsmOwnedRecord : public SDBObject
    {
       public:
-         scanCLContext(){}
-         virtual ~scanCLContext(){}
-      public:
+         lsmOwnedRecord();
+         ~lsmOwnedRecord();
 
-         void setScanning(const recordID &rid)
+         lsmOwnedRecord(const lsmOwnedRecord &) = delete;
+         lsmOwnedRecord &operator=(const lsmOwnedRecord &) = delete;
+
+      public:
+         INT32 init(const rocksdb::Slice &k,
+                    const rocksdb::Slice &v);
+
+         void fini();
+
+         OSS_INLINE BOOLEAN isValid()const
          {
-            _scanning = rid;
+            return _key.isValid();
          }
-         const recordID &getScanning()const
+      
+         OSS_INLINE const lsmKeyEntry &getKey()const
          {
-            return _scanning;
+            return _key;
          }
-         const recordID &getNext()const
+         OSS_INLINE const lsmIndexValue &getValue()const
          {
-            return _next;
+            return _value;
          }
-         void setNext(const recordID &rid)
-         {
-            _next = rid;
-         }
-         BOOLEAN hasNext()const
-         {
-            return _next.valid();
-         }
-         memoryBlock &getMemBlock()
-         {
-            return _mb;
-         }
-         BOOLEAN isOverflow()const
-         {
-            return _overflow;
-         }
-         BOOLEAN isBigRecord()const
-         {
-            return _bigRecord;
-         }
-         void setOverflow()
-         {
-            _overflow = TRUE;
-         }
-         void setBigRecord()
-         {
-            _bigRecord = TRUE;
-         }
+
+         INT32 copy(const lsmOwnedRecord &o);
       private:
-         BOOLEAN _overflow = FALSE;
-         BOOLEAN _bigRecord = FALSE;
-         recordID _scanning;
-         recordID _next;
+         lsmKeyEntry _key;
+         lsmIndexValue _value;
          memoryBlock _mb;
-   };//class scanCLContext
+   };//class lsmOwnedRecord
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_SCAN_CL_CONTEXT_H_
+#endif//VESSEL_LSM_OWNED_RECORD_H_

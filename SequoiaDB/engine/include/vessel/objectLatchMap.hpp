@@ -100,6 +100,10 @@ namespace vessel
       public:
          recordIdLatchKey(){}
          ~recordIdLatchKey(){}
+         explicit recordIdLatchKey(SPACE_ID sid,
+                                   PAGE_ID lpid,
+                                   RECORD_SLOT_ID slot):
+                  _sid(sid), _slot(slot), _lpid(lpid){}
          recordIdLatchKey(const recordIdLatchKey &o):
          _sid(o._sid),
          _slot(o._slot),

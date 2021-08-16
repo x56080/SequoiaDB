@@ -245,6 +245,44 @@ namespace vessel
             goto done;
          }
 
+         /// User should always validate o outside.
+         INT32 get(const KEY &k, object &o)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(!o.isValid(), "impossible");
+            UINT32 hash = 0;
+            _bucket *bucket = NULL;
+            ossSpinXLatch *latch = NULL;
+            _item *itemFound = NULL;
+            UINT32 bucketNo = 0;
+            o._i = NULL;
+
+            if (OSS_UNLIKELY(!isOpen()))
+            {
+               rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+               goto error;
+            }
+
+            hash = k.hash();
+            bucket = getBucket(hash, bucketNo);
+            latch = getBucketLatch(bucketNo);
+            latch->get();
+            itemFound = find(bucket, k);
+            if (NULL != itemFound)
+            {
+               ++(itemFound->_shared);
+               o._i = itemFound;
+            }   
+         done:
+            if (NULL != latch)
+            {
+               latch->release();
+            }
+            return rc;
+         error:
+            goto done;
+         }
+            
          void release(object &o)
          {
             SDB_ASSERT(isOpen(), "must be open");

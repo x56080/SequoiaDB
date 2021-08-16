@@ -48,20 +48,21 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/indexParameters.h"
-
+#include "vessel/unstableIndexContext.h"
 
 namespace engine
 {
    class _dpsLogRecord;
+   class _dmsIxmKeySorter;
 namespace vessel
 {
    class collectionSpace;
    class requestContext;
    class insertContext;
    class scanCLCursor;
-   class scanCLContext;
    class IQueryFilter;
-   
+   class inMemIndexDefObj;
+
    class collection: public SDBObject
    {
       public:
@@ -129,7 +130,7 @@ namespace vessel
          INT32 insert(insertContext *context,
                       utilInsertResult &res);
 
-         INT32 getMoreWhenScan(scanCLContext *context,
+         INT32 getMoreWhenScan(requestContext *context,
                                scanCLCursor *cursor);
 
          INT32 getTotalCountInRdpHead(requestContext *context,
@@ -155,7 +156,7 @@ namespace vessel
                                       const createCLOptions &options);
 
       private:
-         INT32 getMoreFromPageInCursor(scanCLContext *context,
+         INT32 getMoreFromPageInCursor(requestContext *context,
                                        scanCLCursor *cursor);
 
          INT32 getRecordCountInPageHead(requestContext *context,
@@ -226,17 +227,51 @@ namespace vessel
                                     PAGE_ID routePgaeLpid,
                                     UINT32 pos,
                                     PAGE_ID &lpid);
+
+         
    
       private:
          UINT32 getDataPageSize()const;
 
       private:
 
-         INT32 createIndex(requestContext *context,
-                           const strSlice &indexName,
-                           const indexKeyPattern &pattern,
-                           const indexParameters &params,
-                           INT32 &indexSlot);
+         INT32 _createIndex(requestContext *context,
+                            const strSlice &indexName,
+                            const indexKeyPattern &pattern,
+                            const indexParameters &params,
+                            INT32 &indexSlot);
+
+         /// unstable context must created first.
+         INT32 onlineBuildIndex(requestContext *context,
+                                 INT32 indexSlot,
+                                 UINT32 sortBufferSize);
+
+      private: 
+         INT32 testIfIndexDuplicated(requestContext *context,
+                                     const strSlice &indexName,
+                                     const indexKeyPattern &pattern,
+                                     BOOLEAN &duplicated);
+
+         INT32 endToBuildIndex(requestContext *context,
+                               INT32 indexSlot);
+
+         INT32 buildIndexBySortingAndUpdateContext(requestContext *context,
+                                                   unstableIndexContext *uic,
+                                                   UINT32 maxRdpCount,
+                                                   memoryBlock &sortBuffer);
+
+         INT32 fillSorterAndUpdateEntry(requestContext *context,
+                                        _dmsIxmKeySorter *sorter,
+                                        UINT32 maxRdpCount,
+                                        unstableIndexContext *uic);
+/*
+         INT32 mergeSorterAndContextIntoIndex(requestContext *context,
+                                              inMemIndexDefObj *def,
+                                              _dmsIxmKeySorter *sorter,
+                                              unstableIndexContext *uic);*/
+
+      private:
+         typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;
          
       private:
          //ossSpinSLatch _recordLatch;
@@ -246,7 +281,9 @@ namespace vessel
          UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
 
-         ossRWMutex _ddlLatch;
+         unstableIndexContextMap _unstableIndexes;
+
+         ossRWMutex _dmlLatch;
          ossSpinXLatch _extendingLatch;
    };//class collection
 }//namespace vessel

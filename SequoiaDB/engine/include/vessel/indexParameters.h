@@ -74,8 +74,10 @@ namespace vessel
 
          /// btree only
 
+         /// valid range[0, 2]
          /// 0: no compression
          /// 1 or 2: the count of columns to be compressed
+         /// others value: invalid
          UINT32 prefixCompressionColumns = 0;
 
          /// lsm only

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexObject.cpp
 
    Descriptive Name =
 
@@ -33,43 +33,52 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/indexObject.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
+   INT32 indexObject::init(INT32 indexSlot,
+                           UINT32 indexId,
+                           const strSlice &indexName,
+                           const indexKeyPattern &pattern,
+                           const indexParameters &params)
    {
-      public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
+      INT32 rc = SDB_OK;
+      fini();
 
-   class rebuildIndexOptions : public SDBObject
+      if (!isValidIndexSlot(indexSlot) ||
+          INVALID_LOGICAL_INDEX_ID == indexId ||
+          indexName.empty() ||
+          !pattern.isValid() ||
+          !params.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _indexSlot = indexSlot;
+      _indexId = indexId;
+      _indexName.assign(indexName.str(), indexName.strLen());
+      _pattern = pattern;
+      _pattern.getOwned();
+      _params = params;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void indexObject::fini()
    {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
+      _indexSlot = -1;
+      _indexId = INVALID_LOGICAL_INDEX_ID;
+      _indexName.clear();
+      _pattern.reset();
+      _params = indexParameters();
+      return;
+   }
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_INDEX_OPTIONS_H_

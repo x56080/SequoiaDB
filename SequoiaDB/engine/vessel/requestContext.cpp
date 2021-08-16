@@ -211,7 +211,16 @@ namespace vessel
          _env->spaceLocker.unlock(_sid, _sidLockedMode);
          _sid = INVALID_SPACE_ID;
          _sidLockedMode = SHARED;
+         _csLogicalId = DMS_INVALID_LOGICCSID;
       }
+      return;
+   }
+
+   void requestContext::setCSLidUnderLock(UINT32 csLid)
+   {
+      SDB_ASSERT(isSpaceIdLocked(), "must be locked");
+      SDB_ASSERT(DMS_INVALID_LOGICCSID != csLid, "can not be invalid");
+      _csLogicalId = csLid;
       return;
    }
 

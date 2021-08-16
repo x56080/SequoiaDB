@@ -73,15 +73,43 @@ namespace vessel
          {
             return isValid() && _defObj.data() == _mb.getBuffer();
          }
+         OSS_INLINE PAGE_ID getLpid()const
+         {
+            return _lpid;
+         }
+         OSS_INLINE const indexDefHead &getHead()const
+         {
+            return _head;
+         }
+         OSS_INLINE const indexParameters &getParameters()const
+         {
+            return _params;
+         }
+         OSS_INLINE UINT32 getIndexID()const
+         {
+            return isValid() ? _head.indexLogicalID : INVALID_LOGICAL_INDEX_ID;
+         }
+         OSS_INLINE INDEX_TYPE getIndexType()const
+         {
+            return isValid() ? _params.type : INVALID_INDEX_TYPE;
+         }
+
+         OSS_INLINE slice getDefObj()const
+         {
+            return _defObj;
+         }
 
       public:
 
          void fini();
 
          INT32 init(const indexDefHead &head,
-                    const slice &defObj);
+                    const slice &defObj,
+                    PAGE_ID lpid);
 
          INT32 getOwned();
+
+         void setStatus(INDEX_STATUS status);
 
       private:
          INT32 _initFromDefObj(const slice &defObj);
@@ -91,6 +119,7 @@ namespace vessel
          indexKeyPattern _keyPattern;
          indexParameters _params;
          slice _defObj;
+         PAGE_ID _lpid = INVALID_PAGE_ID;
          memoryBlock _mb;
    };//class inMemIndexDefObj
 }//namespace vessel

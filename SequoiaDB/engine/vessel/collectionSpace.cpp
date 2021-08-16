@@ -388,14 +388,7 @@ namespace vessel
             cursor->markLIdPushed(holder->getObj()->getLogicalID());
             cursor->setCLName(holder->getObj()->getName());
             context->unlockMB();
-            if (cursor->hitTheLimit())
-            {
-               break;
-            }
-            else
-            {
-               continue;
-            }
+            continue;
          }
          else /// failed to lock mb
          {

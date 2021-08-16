@@ -42,12 +42,15 @@
 #include "dpsLogRecord.hpp"
 #include "vessel/logRecordContext.h"
 #include "vessel/ISesseionManager.h"
+#include "vessel/indexKeyGenerator.h"
+#include "vessel/outerResource.h"
 #include <atomic>
 
 using namespace engine::vessel;
 using namespace engine;
 
 static const CHAR *DATA_PATH = "/tmp/vessel_test";
+//static const CHAR *DATA_PATH = "/opt/test/vessel_test";
 static const CHAR *LSM_PATH = "/tmp/vessel_lsm";
 
 class test_logger : public ::engine::vessel::IRedoLogger
@@ -131,6 +134,11 @@ class test_logger : public ::engine::vessel::IRedoLogger
 
          virtual INT32 abortOplist(::engine::vessel::ISession *session,
                                       DPS_LSN_OFFSET lsn){return SDB_OK;}
+
+         virtual DPS_LSN_OFFSET getMinFileLsn()
+         {
+            return _lsn.load();
+         } 
                                       
          static test_logger *instance()
          {
@@ -217,5 +225,22 @@ class test_session_mgr : public ::engine::vessel::ISessionManager
       }
       
 };//class test_session_mgr
+
+class test_outer_resource
+{
+   public:
+      test_outer_resource(){}
+      ~test_outer_resource(){}
+
+   public:
+      static ::engine::vessel::outerResource getResource()
+      {
+         ::engine::vessel::outerResource r;
+         r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
+         r.logger = test_logger::instance();
+         r.sessionMgr = test_session_mgr::instance();
+         return r;
+      }
+};//class test_outer_resource
 
 #endif//VESSEL_TEST_TEST_DEF_H_

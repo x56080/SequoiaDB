@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexObject.h
 
    Descriptive Name =
 
@@ -33,43 +33,47 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
+#ifndef VESSEL_INDEX_OBJECT_H_
+#define VESSEL_INDEX_OBJECT_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/indexKeyPattern.h"
+#include "vessel/indexDef.h"
+#include "vessel/indexParameters.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
+   class indexObject : public SDBObject
    {
       public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
+         indexObject();
+         ~indexObject();
+
+      public:
+         INT32 init(INT32 indexSlot,
+                    UINT32 indexId,
+                    const strSlice &indexName,
+                    const indexKeyPattern &pattern,
+                    const indexParameters &params);
+
+         void fini();
+
+         OSS_INLINE BOOLEAN isValid()const
          {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
+            return INVALID_LOGICAL_INDEX_ID != _indexId;
          }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
 
-   class rebuildIndexOptions : public SDBObject
-   {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
+
+      private:
+         INT32 _indexSlot = -1;
+         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+         ossPoolString _indexName;
+         indexKeyPattern _pattern;
+         indexParameters _params;
+   };//class indexObject
 }//namespace vessel
-}//namespace engine
+}//namesapce engine
 
-#endif//VESSEL_INDEX_OPTIONS_H_
+#endif//VESSEL_INDEX_OBJECT_H_

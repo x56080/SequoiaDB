@@ -40,9 +40,13 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/slice.h"
 #include "vessel/strSlice.h"
+#include "vessel/inMemIndexDefObj.h"
+#include "ixmKey.hpp"
+#include "vessel/recordID.h"
 
 namespace engine
 {
+   class dmsRBSOffset;
 namespace vessel
 {
    struct collectionRecord;
@@ -65,10 +69,14 @@ namespace vessel
       public:
          INT32 init(const collectionRecord *record,
                     indexSpace *is);
+         void fini();
+
+      public:
 
          INT32 allocateIndexSlot(INT32 &indexSlot)const;
 
          INT32 testIfDuplicated(requestContext *context,
+                                INT32 indexSlot,
                                 const strSlice &indexName,
                                 const indexKeyPattern &pattern,
                                 BOOLEAN &duplicated)const;
@@ -78,12 +86,8 @@ namespace vessel
                            UINT32 indexId,
                            const slice &defObj)const;
 
-         INT32 markIndexRemoving(requestContext *context,
-                                 INT32 indexSlot,
-                                 UINT32 indexId)const;
-
-         INT32 destroyIndexDefPage(requestContext *context,
-                                   INT32 indexSlot)const;
+         INT32 releaseIndexSlot(requestContext *context,
+                                INT32 indexSlot);
 
          INT32 listIndexes(requestContext *context,
                            ossPoolVector<bson::BSONObj> &indexes)const;
@@ -92,15 +96,37 @@ namespace vessel
                          INT32 indexSlot,
                          bson::BSONObj &obj)const;
 
+         INT32 updateIndexStatus(requestContext *context,
+                                 INT32 indexSlot,
+                                 INDEX_STATUS status);
+
+         INT32 getOwnedIndexDefObj(requestContext *context,
+                                   INT32 indexSlot,
+                                   inMemIndexDefObj &obj);
+
+      public:
+         INT32 insert(requestContext *context,
+                      const inMemIndexDefObj &def,
+                      const ixmKey &key,
+                      const DPS_TRANS_ID &transID,
+                      DPS_LSN_OFFSET lsn,
+                      const dmsRecordID &rid);
+
+         INT32 insertWhenBuild(requestContext *context,
+                               INDEX_TYPE type,
+                               INT32 indexSlot,
+                               const indexKeyPattern &pattern,
+                               const ixmKey &key,
+                               const dmsRecordID &rid);
+
       private:
-         void fini();
-
-         INT32 testIfDuplicated(requestContext *context,
-                                INT32 indexSlot,
-                                const strSlice &indexName,
-                                const indexKeyPattern &pattern,
-                                BOOLEAN &duplicated)const;
-
+         INT32 lsmInsert(requestContext *context,
+                         const inMemIndexDefObj &def,
+                         const ixmKey &key,
+                         const DPS_TRANS_ID &transID,
+                         DPS_LSN_OFFSET lsn,
+                         const dmsRecordID &rid);
+      private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,
                                        UINT32 indexId,
@@ -110,6 +136,10 @@ namespace vessel
                                        INT32 indexSlot,
                                        UINT32 indexId,
                                        const slice &defObj)const;
+
+      private:
+         BOOLEAN testIndexSlot(const collectionRecord *record,
+                               INT32 indexSlot)const;
 
       private:
          const collectionRecord *_record = NULL;

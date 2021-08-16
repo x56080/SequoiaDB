@@ -68,11 +68,11 @@ namespace vessel
       UINT32 clLogcalID = DMS_INVALID_LOGICCLID;
       UINT32 pageSeq = INVALID_CL_PAGE_SEQ;
       UINT16 totalSlotCount = 0;
-      UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
       UINT16 recordCount = 0;
-      UINT16 dicSlot = INVALID_RECORD_SLOT_ID;
       UINT16 totalFreeSpace = 0;
       UINT16 freeSpaceAfterLastSlot = 0;
+      UINT16 firstFreeSlot = INVALID_RECORD_SLOT_ID;
+      UINT16 dicSlot = INVALID_RECORD_SLOT_ID;
       UINT16 minStriping = INVALID_STRIPING_ID;
       UINT16 maxStriping = INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
@@ -110,6 +110,13 @@ namespace vessel
          return *this;
       }
 
+      OSS_INLINE BOOLEAN operator==(const recordSlot &o)const
+      {
+         return _type == o._type &&
+                _flags == o._flags &&
+                _offset == o._flags;
+      }
+
       OSS_INLINE void setType(UINT8 type)
       {
          _type = type;
@@ -137,6 +144,19 @@ namespace vessel
       OSS_INLINE BOOLEAN isInvisible()const
       {
          return 0 != OSS_BIT_TEST(_flags, RDP_SLOT_FLAG_INVISIBLE);
+      }
+      OSS_INLINE BOOLEAN isValidAndVisible()const
+      {
+         return isValid() && !isInvisible();
+      }
+
+      OSS_INLINE BOOLEAN isNormalRecordHead()const
+      {
+         return isValid() && RDP_SLOT_TYPE_NORMAL == _type;
+      }
+      OSS_INLINE BOOLEAN isBigRecordHead()const
+      {
+         return isValid() && RDP_SLOT_TYPE_BIG_RECORD_HEAD == _type;
       }
 
       OSS_INLINE void setInvisible()

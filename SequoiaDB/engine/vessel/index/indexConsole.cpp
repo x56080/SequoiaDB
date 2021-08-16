@@ -44,6 +44,12 @@
 #include "vessel/indexMappingPageAccessor.h"
 #include "vessel/requestContext.h"
 #include "vessel/indexDef.h"
+#include "vessel/globalIndexID.h"
+#include "vessel/instanceEnv.h"
+#include "dmsRBSSUMgr.hpp"
+
+#include "vessel/lsm/lsmIndexMeta.hpp"
+#include "vessel/lsm/lsmIndex.hpp"
 
 namespace engine
 {
@@ -108,54 +114,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::testIfDuplicated(requestContext *context,
-                                        const strSlice &indexName,
-                                        const indexKeyPattern &pattern,
-                                        BOOLEAN &duplicated)const
-   {
-      INT32 rc = SDB_OK;
-       UINT64 indexes = 0;
-
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            indexName.empty() ||
-                            !pattern.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      indexes = (_record->uniqueIndexes | _record->nonUniqueIndexes);
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
-      {
-         UINT64 mask = (UINT64)1 << i;
-         if (0 == OSS_BIT_TEST(indexes, mask))
-         {
-            continue;
-         }
-
-         rc = testIfDuplicated(context, i, indexName, pattern, duplicated);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to test if index def duplicated:%d", rc);
-            goto error;
-         }
-
-         if (duplicated)
-         {
-            break;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 indexConsole::createIndex(requestContext *context,
                                    INT32 indexSlot,
                                    UINT32 indexId,
@@ -200,20 +158,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::markIndexRemoving(requestContext *context,
-                                         INT32 indexSlot,
-                                         UINT32 indexId)const
-   {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
-   }
-
-   INT32 indexConsole::destroyIndexDefPage(requestContext *context,
-                                           INT32 indexSlot)const
-   {
-      SDB_ASSERT(FALSE, "TODO");
-      return SDB_OK;
-   }
 
    INT32 indexConsole::listIndexes(requestContext *context,
                                    ossPoolVector<bson::BSONObj> &indexes)const
@@ -278,6 +222,13 @@ namespace vessel
          goto error;
       }
 
+      if (!testIndexSlot(_record, indexSlot))
+      {
+         PD_LOG(PDERROR, "index with slot[%d] does not exist", indexSlot);
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+
       rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
       if (SDB_OK != rc)
       {
@@ -301,6 +252,192 @@ namespace vessel
       }
    done:
       lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::releaseIndexSlot(requestContext *context,
+                                        INT32 indexSlot)
+   {
+      SDB_ASSERT(FALSE, "TODO");
+      return SDB_OK;
+   }
+
+   INT32 indexConsole::updateIndexStatus(requestContext *context,
+                                         INT32 indexSlot,
+                                         INDEX_STATUS status)
+   {
+      INT32 rc = SDB_OK;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      logicalPageBuffer lpb;
+      indexDefPageAccessor accessor;
+
+      if (!isInitialized())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               !isValidIndexSlot(indexSlot) ||
+               INDEX_STATUS_INVALID == status)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, lpid,
+                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.updateIndexStatus(context, status, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index status:%d", rc);
+         goto error;
+      }
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::getOwnedIndexDefObj(requestContext *context,
+                                           INT32 indexSlot,
+                                           inMemIndexDefObj &obj)
+   {
+      INT32 rc = SDB_OK;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      logicalPageBuffer lpb;
+      indexDefPageAccessor accessor;
+      obj.fini();
+
+      if (!isInitialized())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               !isValidIndexSlot(indexSlot))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(context, lpid,
+                                     OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.getOwnedInMemDefObj(context, &lpb, obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get owned in-mem obj:%d", rc);
+         goto error;
+      }
+   done:
+      lpb.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::insert(requestContext *context,
+                              const inMemIndexDefObj &def,
+                              const ixmKey &key,
+                              const DPS_TRANS_ID &transID,
+                              DPS_LSN_OFFSET lsn,
+                              const dmsRecordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !def.isValid() ||
+                            !key.isValid() ||
+                            DPS_INVALID_LSN_OFFSET == lsn ||
+                            !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (INDEX_TYPE_LSM == def.getIndexType())
+      {
+         rc = lsmInsert(context, def, key, transID, lsn, rid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::lsmInsert(requestContext *context,
+                                 const inMemIndexDefObj &def,
+                                 const ixmKey &key,
+                                 const DPS_TRANS_ID &transID,
+                                 DPS_LSN_OFFSET lsn,
+                                 const dmsRecordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      globalIndexID gid(context->getCSLogicalID(),
+                        context->getCLLid(),
+                        def.getIndexID());
+      lsmIndexMeta lsmMeta(gid, def.getKeyPattern().getOrdering());
+      lsmIndex lsm;
+      lsmKeyEntry lsmEntry;
+      dmsRBSOffset dummy;
+
+      rc = lsm.init(&context->getEnv()->lsm, lsmMeta);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
+         goto error;
+      }
+
+      lsmEntry.shallowCopy(key, rid, lsn, transID);
+
+      rc = lsm.keyInsert(lsmEntry);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
+         goto error;
+      }
+   done:
       return rc;
    error:
       goto done;
@@ -484,14 +621,24 @@ namespace vessel
                                         BOOLEAN &duplicated)const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      SDB_ASSERT(!indexName.empty(), "can not be empty");
-      SDB_ASSERT(pattern.isValid(), "must be valid");
-      
+    
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !isValidIndexSlot(indexSlot) ||
+                            indexName.empty() ||
+                            !pattern.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
       if (SDB_OK != rc)
@@ -527,5 +674,14 @@ namespace vessel
       return;
    }
 
+   BOOLEAN indexConsole::testIndexSlot(const collectionRecord *record,
+                                       INT32 indexSlot)const
+   {
+      SDB_ASSERT(NULL != record, "can not be null");
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
+      UINT64 indexes = (record->uniqueIndexes | record->nonUniqueIndexes);
+      UINT64 mask = ((UINT64)1 << indexSlot);
+      return (0 != OSS_BIT_TEST(indexes, mask));
+   }
 }//namespace vessel
 }//namespace engine

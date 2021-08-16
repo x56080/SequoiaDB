@@ -53,9 +53,6 @@ namespace vessel
    const UINT16 LC_TAG_STATUS_NORMAL = 1;
 
    const UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
-   //const UINT16 LC_TAG_FAST_FLAG_DIRTY = 0x02;
-
-   const UINT32 LC_TAG_LRU_FLAG_COLD = 0x01;
 
    const UINT32 LC_TAG_FLAG_IN_BUCKET = 0x01;
    const UINT32 LC_TAG_FLAG_IN_DIRTY_LIST = 0x02;
@@ -204,17 +201,12 @@ namespace vessel
          }
          /// under lru lock and w lock
          OSS_INLINE void insertIntoLru(liteCachePageTag *pre,
-                                       liteCachePageTag *next,
-                                       BOOLEAN isCold)
+                                       liteCachePageTag *next)
          {
             OSS_BIT_SET(_flags, LC_TAG_FLAG_IN_LRU_LIST);
             _lruPre = pre;
             _lruNext = next;
             _lruTouchCnt = 0;
-            if (isCold)
-            {
-               OSS_BIT_SET(_lruFlags, LC_TAG_LRU_FLAG_COLD);
-            }
          }
 
          OSS_INLINE void removeFromLru()
@@ -222,23 +214,7 @@ namespace vessel
             _lruPre = NULL;
             _lruNext = NULL;
             _lruTouchCnt = 0;
-            _lruFlags = 0;
             OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_LRU_LIST);
-         }
-
-         OSS_INLINE void setLruCold()
-         {
-            OSS_BIT_SET(_lruFlags, LC_TAG_LRU_FLAG_COLD);
-         }
-
-         OSS_INLINE void setLruUncold()
-         {
-            OSS_BIT_CLEAR(_lruFlags, LC_TAG_LRU_FLAG_COLD);
-         }
-
-         OSS_INLINE BOOLEAN isLruCold()const
-         {
-            return OSS_BIT_TEST(_lruFlags, LC_TAG_LRU_FLAG_COLD);
          }
 
          OSS_INLINE void setLruTouchCnt(UINT32 n)
@@ -436,7 +412,6 @@ namespace vessel
          
          /// lru list, protected by lru latch and accessing latch(except _lruTouchCnt)
          UINT32 _lruTouchCnt = 0;
-         UINT32 _lruFlags = 0;
          liteCachePageTag *_lruPre = NULL;
          liteCachePageTag *_lruNext = NULL;
 

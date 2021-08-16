@@ -3275,5 +3275,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_INDEX_BUILDING_TERMINATED</name>
+         <description>
+            <en>the creating of index is terminated</en>
+            <cn>索引创建被终止</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

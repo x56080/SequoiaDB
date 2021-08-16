@@ -36,17 +36,16 @@
 #ifndef VESSEL_RDP_SCANNER_H_
 #define VESSEL_RDP_SCANNER_H_
 
+#include "vessel/recordID.h"
 #include "vessel/recordDataPage.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class scanCLContext;
    class requestContext;
-   class scanCLCursor;
    class logicalPageBuffer;
-   class runtimePageBuffer;
 
    class rdpScanner : public SDBObject
    {
@@ -57,20 +56,29 @@ namespace vessel
          rdpScanner &operator=(const rdpScanner &) = delete;
 
       public:
-         INT32 getMore(scanCLContext *context,
-                       const logicalPageBuffer *lpb,
-                       scanCLCursor *cursor)const;
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return NULL != _head;
+         }
+         INT32 open(requestContext *context,
+                    const logicalPageBuffer *lpb);
+         void close();
 
-         INT32 getRecourdCountInHead(requestContext *context,
-                                     const logicalPageBuffer *lpb,
-                                     UINT32 &count)const;
+         UINT32 getTotalSlotCount()const;
+
+         INT32 getSlot(UINT32 pos, recordSlot &rs)const;
+
+         ///WARNING: User must parse recordSlice according rh.
+         INT32 getNormalRecordHeadAndBody(UINT32 pos,
+                                          recordHead &rh,
+                                          slice &bodySlice)const;
+
+         const recordDataPageHead &getPageHead()const;
+
 
       private:
-
-         INT32 getNormalRecord(scanCLContext *context,
-                               const recordSlot &slot,
-                               const runtimePageBuffer *rpb,
-                               scanCLCursor *cursor)const;
+         const logicalPageBuffer *_lpb = NULL;
+         const recordDataPageHead *_head = NULL;
       
    };
 }//namespace vessel

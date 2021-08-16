@@ -46,7 +46,7 @@ namespace vessel
 {
 
 // initialization
-INT32 lsmIndex::init( LSMDB * lsmdb, const indexMeta & idxMeta )
+INT32 lsmIndex::init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta )
 {
    INT32 rc = SDB_OK;
 
@@ -60,21 +60,39 @@ INT32 lsmIndex::init( LSMDB * lsmdb, const indexMeta & idxMeta )
    }
    _lsmdb     = lsmdb ;
    _idxMeta   = idxMeta ;
-   _pOrdering = _idxMeta.getOrdering() ;
-   _idxId     = _idxMeta.getIdxId() ;
 
    // construct upper_bound, lower_bound key and ReadOptions
-   sdbIndexID upIdxId = _idxId ;
-   upIdxId._idxLID++ ;
-   vessel::recordID dummyRid(0,0);
+   globalIndexID upIdxId(_idxMeta.getIdxId().getLogicalCSID(),
+                         _idxMeta.getIdxId().getLogicalCSID(),
+                         _idxMeta.getIdxId().getLogicalIndexID() + 1);
+
+   dmsRecordID dummyRid(0,0);
    UINT64 dummyLsn = ((UINT64)(-1));
    DPS_TRANS_ID dummyTxID;
    BSONObj dummyObj ;
    ixmKeyOwned dummyKey( dummyObj );
-   lsmPackDataKey( _uBuf, lsmMinDataKeySz, FALSE, -1, &upIdxId,
-                   _pOrdering, &dummyKey, &dummyRid, &dummyLsn, &dummyTxID ) ;
-   lsmPackDataKey( _lBuf, lsmMinDataKeySz, FALSE, -1, &_idxId,
-                   _pOrdering, &dummyKey, &dummyRid, &dummyLsn, &dummyTxID ) ;
+
+   rc = lsmPackIndexFullKey(_uBuf, lsmMinDataKeySz,
+                            upIdxId, _idxMeta.getOrdering(),
+                            dummyKey, dummyRid,
+                            dummyLsn, dummyTxID);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to build ukey:%d", rc);
+      goto error;
+   }
+
+   rc = lsmPackIndexFullKey(_lBuf, lsmMinDataKeySz,
+                            _idxMeta.getIdxId(),
+                            _idxMeta.getOrdering(),
+                            dummyKey, dummyRid,
+                            dummyLsn, dummyTxID);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to build lkey:%d", rc);
+      goto error;
+   }
+
    _uKey = rocksdb::Slice( _uBuf, lsmMinDataKeySz ) ;
    _lKey = rocksdb::Slice( _lBuf, lsmMinDataKeySz ) ;
 
@@ -85,7 +103,24 @@ INT32 lsmIndex::init( LSMDB * lsmdb, const indexMeta & idxMeta )
    _rOpt.auto_prefix_mode     = true;
 
    _initalized                = TRUE;
+
+done:
    return rc ;
+error:
+   fini();
+   goto done;
+}
+
+void lsmIndex::fini()
+{
+   _lsmdb = NULL;
+   _idxMeta = lsmIndexMeta();
+   _uKey.clear();
+   _lKey.clear();
+   _rOpt = rocksdb::ReadOptions();
+   _initalized = FALSE;
+   _it = NULL;
+   _reUseIter = FALSE;
 }
 
 
@@ -127,33 +162,40 @@ INT32 lsmIndex::_allocAndCopy( const CHAR * keyAddr,
 }
 
 
-INT32 lsmIndex::_allocAndCopy( const BOOLEAN       bPackLogLSN,
-                               const UINT64        logLSN,
-                               const lsmKeyEntry & keyEntry,
-                               rocksdb::Slice    & K )
+INT32 lsmIndex::packFullIndexKey(const lsmKeyEntry &ke,
+                                 rocksdb::Slice &out)
 {
    INT32 rc = SDB_OK;
-   CHAR * buf = NULL;
-   ixmKeyOwned keyObj( keyEntry.getKeyObj() );
-   UINT32 bufSz = lsmCalFullDataKeyLen( bPackLogLSN, keyObj );
-   buf = (CHAR*)SDB_THREAD_ALLOC( bufSz );
+   SDB_ASSERT(ke.isValid(), "must be valid");
+   SDB_ASSERT(out.empty(), "must be empty");
+   UINT32 keyDataSize = (UINT32)(ke.getKey().dataSize());
+   UINT32 bufSize = lsmCalFullDataKeyLen(keyDataSize);
+   CHAR * buf = (CHAR*)SDB_THREAD_ALLOC( bufSize );
    if ( NULL == buf )
    {
       return ( rc = SDB_OOM );
    }
-   ossMemset( buf, 0, bufSz ) ;
-   vessel::recordID rid = keyEntry.getRid() ;
-   UINT64 dataLsn       = keyEntry.getDataLsn();
-   DPS_TRANS_ID txID    = keyEntry.getTransID() ;
-   lsmPackDataKey( buf, bufSz, bPackLogLSN, logLSN,
-                   &_idxId,
-                   _pOrdering,
-                   &keyObj,
-                   &rid,
-                   &dataLsn,
-                   &txID ) ;
-   K = rocksdb::Slice( buf, bufSz );
-   return rc ;
+   ossMemset(buf, 0, bufSize) ;
+   
+   rc = lsmPackIndexFullKey(buf, bufSize,
+                            _idxMeta.getIdxId(),
+                            _idxMeta.getOrdering(),
+                            ke.getKey(),
+                            ke.getRid(),
+                            ke.getDataLsn(),
+                            ke.getTransID());
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to pack full lsm index key:%d", rc);
+      goto error;
+   }
+
+   out = rocksdb::Slice(buf, bufSize);
+
+done:
+   return rc;
+error:
+   goto done;
 }
 
 
@@ -216,40 +258,35 @@ INT32 lsmIndex::_allocAndCopy( const BOOLEAN       bPackLogLSN,
    K3B 0_{cs:1,cl:2,idx:3}_{5,"t0",  2}_{pg:1,slt:1}_3_{sn:1,nd:3}
    K3C 0_{cs:1,cl:2,idx:3}_{5,"t1",  1}_{pg:2,slt:1}_3_{sn:1,nd:3}
 */
-INT32 lsmIndex::locate( const INT32              direction,
-                        const ixmKey           & keyObj,
-                        const vessel::recordID & rid,
-                        lsmKeyEntry            & keyEntry,
-                        BOOLEAN                * pFound )
+INT32 lsmIndex::locate( const INT32            direction,
+                        const ixmKey           & key,
+                        const dmsRecordID      & rid,
+                        lsmOwnedRecord         & out,
+                        BOOLEAN                & exactlyMatched )
 
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    INT32 rc = SDB_IXM_EOC ;
    // key entry saved in rocksdb is sorted on lsn field in descending order
    UINT64 dataLsn = ( direction > 0 ) ? ((UINT64)(-1)) : 0 ;
-   CHAR * buf     = NULL;
-   UINT32 bufSz   = 0, dataLen = 0;
-   // construct rocksdb::Slice searchSlice for searching in rocksdb
-   bufSz = lsmCalFullDataKeyLen( FALSE, keyObj );
-   buf   = (CHAR*)SDB_THREAD_ALLOC( bufSz );
-   if ( NULL == buf )
-   {
-      return ( rc = SDB_OOM );
-   }
-   ossMemset( buf, 0, bufSz ) ;
-   dataLen = lsmPackDataKey( buf, bufSz,
-                             FALSE,        // if pack logOpLSN
-                             -1,           // logOpLSN
-                             &_idxId,      // indexID
-                             _pOrdering,   // ordering
-                             &keyObj,      // keyObj
-                             &rid,         // rid
-                             &dataLsn ) ;  // dataLsn
-   rocksdb::Slice searchSlice( buf, dataLen );
+   rocksdb::Slice searchSlice;
+   lsmKeyEntry entry;
+   exactlyMatched = FALSE;
 
-   if ( pFound )
+   out.fini();
+
+   if (!key.isValid())
    {
-      *pFound = FALSE ;
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   entry.shallowCopy(key, rid, dataLsn, DPS_TRANS_ID());
+   rc = packFullIndexKey(entry, searchSlice);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to pack full search key:%d", rc);
+      goto error;
    }
 
    // create a DB iterator
@@ -263,18 +300,16 @@ INT32 lsmIndex::locate( const INT32              direction,
    {
       _it->SeekForPrev( searchSlice ) ;
    }
-   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxId ) )
+   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxMeta.getIdxId() ) )
    {
       rc = SDB_OK ;
-      if ( pFound )
+      rc = out.init( _it->key(), _it->value() ) ;
+      if (SDB_OK != rc)
       {
-         // validate if it has same keyObj and rid
-         if ( lsmIsSameIndexKey( _it->key(), &keyObj, &rid ) )
-         {
-            *pFound = TRUE ;
-         }
+         PD_LOG(PDERROR, "failed to init owned index record");
+         goto error;
       }
-      keyEntry.init( _it->key(), _it->value() ) ;
+      exactlyMatched = lsmIsSameIndexKey( _it->key(), &key, &rid );
    }
 
    if ( FALSE == _reUseIter )
@@ -282,19 +317,24 @@ INT32 lsmIndex::locate( const INT32              direction,
       _closeIter();
    }
 
-   if ( buf )
+   
+
+done:
+   if (!searchSlice.empty())
    {
-      SDB_THREAD_FREE( buf );
+      _freeAndClear(searchSlice);
    }
    return rc ;
+error:
+   goto done;
 }
 
 
 // an internal helper function, locate an index entry matches the passed in
 // parameter, searchKey( rocksdb::Slice ), regarding the searching direction.
-INT32 lsmIndex::_locate( const INT32              direction,
+INT32 lsmIndex::_locate( const INT32            direction,
                          const rocksdb::Slice   & searchKey,
-                         lsmKeyEntry            & keyEntry )
+                         lsmOwnedRecord         & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
 
@@ -312,14 +352,21 @@ INT32 lsmIndex::_locate( const INT32              direction,
    {
       it->SeekForPrev( searchKey ) ;
    }
-   if ( it->Valid() && lsmIsSameIdxId( it->key(), _idxId ) )
+   if ( it->Valid() && lsmIsSameIdxId( it->key(), _idxMeta.getIdxId() ) )
    {
-      rc = SDB_OK;
-      keyEntry.init( it->key(), it->value() ) ;
+      rc = out.init( it->key(), it->value() ) ;
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init owned index record");
+         goto error;
+      }
    }
 
+done:
    delete it ;
    return rc ;
+error:
+   goto done;
 }
 
 
@@ -378,16 +425,17 @@ INT32 lsmIndex::_locate( const INT32              direction,
 */
 INT32 lsmIndex::advance( const INT32        direction,
                          const lsmKeyEntry & searchKey,
-                         lsmKeyEntry       & keyEntry )
+                         lsmOwnedRecord    & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
-   INT32 rc = SDB_IXM_EOC ;
+   INT32 rc = SDB_OK ;
    // construct rocksdb::Slice searchSlice
    rocksdb::Slice searchSlice ;
-   rc = _allocAndCopy( FALSE, -1, searchKey, searchSlice );
-   if ( rc )
+
+   rc = packFullIndexKey(searchKey, searchSlice);
+   if (SDB_OK != rc)
    {
-      return rc ;
+      goto error;
    }
 
    // create DB iterator and seek
@@ -401,7 +449,7 @@ INT32 lsmIndex::advance( const INT32        direction,
    {
       _it->SeekForPrev( searchSlice ) ;
    }
-   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxId ) )
+   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxMeta.getIdxId() ) )
    {
       // if it is same as the searchKey, move to next
       if ( 0 == lsmKeyComparator()->Compare( _it->key(), searchSlice ) )
@@ -411,14 +459,18 @@ INT32 lsmIndex::advance( const INT32        direction,
          if ( SDB_OK == rc )
          {
             lsmUpdateDataEntryToMostAdjacent( tmpKey, direction );
-            rc = _locate( direction, tmpKey, keyEntry ) ;
+            rc = _locate( direction, tmpKey, out ) ;
             _freeAndClear( tmpKey );
          }
       }
       else
       {
-         rc = SDB_OK;
-         keyEntry.init( _it->key(), _it->value() ) ;
+         rc = out.init(_it->key(), _it->value());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init owned record:%d", rc);
+            goto error;
+         }         
       }
    }
 
@@ -427,12 +479,15 @@ INT32 lsmIndex::advance( const INT32        direction,
       _closeIter();
    }
 
+done:
    _freeAndClear( searchSlice );
    return rc ;
+error:
+   goto done;
 }
 
 
-INT32 lsmIndex::_advance( const INT32 direction, lsmKeyEntry & keyEntry )
+INT32 lsmIndex::_advance( const INT32 direction, lsmOwnedRecord & out )
 {
    SDB_ASSERT( ( NULL != _it ), "Iterator hasn't been opened !" );
    INT32 rc = SDB_IXM_EOC ;
@@ -447,13 +502,20 @@ INT32 lsmIndex::_advance( const INT32 direction, lsmKeyEntry & keyEntry )
       {
          _it->Prev() ;
       }
-      if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxId ) )
+      if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxMeta.getIdxId() ) )
       {
-         rc = SDB_OK ;
-         keyEntry.init( _it->key(), _it->value() ) ;
+         rc = out.init(_it->key(), _it->value());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init owned record:%d", rc);
+            goto error;
+         }  
       }
    }
+done:
    return rc ;
+error:
+   goto done;
 }
 
 
@@ -495,27 +557,27 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
                             const BOOLEAN            skipToNext,
                             const VEC_ELE_CMP      & matchElement,
                             const VEC_BOOLEAN      & matchInclusive,
-                            lsmKeyEntry            & keyEntry )
+                            lsmOwnedRecord         & out )
 {
    INT32  rc = SDB_IXM_EOC, result  = 0 ;
    BufBuilder builder;
    BSONObj prevKeyBson, locateBson, curKeyBson ;
-   vessel::recordID rid ;
-   lsmKeyEntry tKeyEntry;
+   dmsRecordID rid;
+   lsmOwnedRecord entryRecord;
    INT32 nFields = 0 ;
    BOOLEAN bLocateObjMatch = FALSE ;
+   BOOLEAN exactlyMatched = FALSE;
+   out.fini();
 
    if ( direction > 0 )
    {
       // set to Min
-      rid.setPageID( 0 );
-      rid.setSlotID( 0 );
+      rid.resetMin();
    }
    else
    {
       // set to Max
-      rid.setPageID( INVALID_PAGE_ID );
-      rid.setSlotID( INVALID_RECORD_SLOT_ID );
+      rid.resetMax();
    }
 
    // prepare key( ixmKey ) for pre-search/locate
@@ -538,7 +600,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
 
    // locate the first position regarding the pervKey and direction
    ixmKeyOwned locateIxmKey( locateBson ) ;
-   rc = locate( direction, locateIxmKey, rid, tKeyEntry, NULL );
+   rc = locate( direction, locateIxmKey, rid, entryRecord, exactlyMatched );
    if ( rc )
    {
       return rc ;
@@ -551,7 +613,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
       lsmKeyEntry tmpKeyEntry;
       try
       {
-         curKeyBson = _buildKeyObj( tKeyEntry.getKeyObj(),
+         curKeyBson = _buildKeyObj( entryRecord.getKey().getKey().toBson(),
                                     keepFieldsNum, skipToNext,
                                     matchElement, matchInclusive,
                                     direction ) ;
@@ -564,7 +626,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
       // compare the keyObj extracted from current key entry with
       // the keyObj built for locate operation, if they are same,
       // then move to next key entry when perform advance operation
-      if ( 0 == curKeyBson.woCompare( locateBson, *_pOrdering ) )
+      if ( 0 == curKeyBson.woCompare( locateBson, *_idxMeta.getBsonOrdering() ) )
       {
          if ( ! bNextOnly )
          {
@@ -572,15 +634,15 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
             break ;
          }
 
-         tmpKeyEntry.shallowCopy( tKeyEntry ) ;
+         tmpKeyEntry.shallowCopy( entryRecord.getKey() ) ;
 
          if ( FALSE == _reUseIter )
          {
-            rc = advance( direction, tmpKeyEntry, tKeyEntry ) ;
+            rc = advance( direction, tmpKeyEntry, entryRecord ) ;
          }
          else
          {
-            rc = _advance( direction, tKeyEntry ) ;
+            rc = _advance( direction, entryRecord ) ;
          }
          if ( rc )
          {
@@ -597,11 +659,11 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
    while ( TRUE )
    {
       lsmKeyEntry tmpKeyEntry;
-      result = _ixmExtent::_keyCmp( tKeyEntry.getKeyObj(),
+      result = _ixmExtent::_keyCmp( entryRecord.getKey().getKey().toBson(),
                                     prevKeyBson,
                                     keepFieldsNum, skipToNext,
                                     matchElement, matchInclusive,
-                                    *_pOrdering, direction ) ;
+                                    *_idxMeta.getBsonOrdering(), direction ) ;
 
       /*
          _ixmExtent::_keyCmp may 'confuse' keyLocate operation. For example,
@@ -622,19 +684,24 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
 
       if ( result * direction >= 0 )
       {
-         rc = SDB_OK;
-         keyEntry = tKeyEntry ;
-         break ;
+         rc = out.copy(entryRecord);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to copy entry record:%d", rc);
+            goto error;
+         }
+         
+         goto done;
       }
 
-      tmpKeyEntry.shallowCopy( tKeyEntry ) ;
+      tmpKeyEntry.shallowCopy( entryRecord.getKey() ) ;
       if ( FALSE == _reUseIter )
       {
-         rc = advance( direction, tmpKeyEntry, tKeyEntry ) ;
+         rc = advance( direction, tmpKeyEntry, entryRecord ) ;
       }
       else
       {
-         rc = _advance( direction, tKeyEntry ) ;
+         rc = _advance( direction, entryRecord ) ;
       }
 
       if ( rc )
@@ -642,7 +709,11 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
          break ;
       }
    }
+
+done:
    return rc ;
+error:
+   goto done;
 }
 
 /*
@@ -707,7 +778,7 @@ INT32 lsmIndex::keyLocate( const INT32              direction,
                            const BOOLEAN            skipToNext,
                            const VEC_ELE_CMP      & matchElement,
                            const VEC_BOOLEAN      & matchInclusive,
-                           lsmKeyEntry            & keyEntry )
+                           lsmOwnedRecord         & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    return _keySearch( FALSE,
@@ -717,7 +788,7 @@ INT32 lsmIndex::keyLocate( const INT32              direction,
                       skipToNext,
                       matchElement,
                       matchInclusive,
-                      keyEntry );
+                      out );
 }
 
 /*
@@ -790,7 +861,7 @@ INT32 lsmIndex::keyAdvance( const INT32              direction,
                             const BOOLEAN            skipToNext,
                             const VEC_ELE_CMP      & matchElement,
                             const VEC_BOOLEAN      & matchInclusive,
-                            lsmKeyEntry            & keyEntry )
+                            lsmOwnedRecord            & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
 
@@ -801,7 +872,7 @@ INT32 lsmIndex::keyAdvance( const INT32              direction,
                       skipToNext,
                       matchElement,
                       matchInclusive,
-                      keyEntry );
+                      out );
 }
 
 
@@ -857,30 +928,42 @@ INT32 lsmIndex::_keyInsert( const rocksdb::Slice & key,
      SDB_OK: normal return
      otherwise any popped error code
 */
-INT32 lsmIndex::keyInsert( const lsmKeyEntry   & keyEntry,
-                           const UINT64          logLSN,
-                           rocksdb::WriteBatch * pBatch )
+INT32 lsmIndex::keyInsert(const lsmKeyEntry &key)
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    INT32 rc   = SDB_OK;
-   rocksdb::Slice key, value ;
-   // construct rocksdb K-V pair
-   rc = _allocAndCopy( TRUE, logLSN, keyEntry, key ) ;
-   if ( SDB_OK == rc )
+   rocksdb::Slice ks, vs;
+
+   if (!key.isValid())
    {
-      if ( LSM_ENTRY_FLAG_DELETED == keyEntry.getFlag() )
-      {
-         CHAR buf[ lsmFlagSz + lsmRBSPosSz ];
-         lsmPackDataValue( buf, (lsmFlagSz + lsmRBSPosSz),
-                           keyEntry.getFlag(), keyEntry.getRBSPos() );
-         value = rocksdb::Slice( buf, (lsmFlagSz + lsmRBSPosSz) );
-      }
-      // insert into rocksdb
-      rc = _keyInsert( key, value, pBatch ) ;
-      _freeAndClear( key ) ;
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   rc = packFullIndexKey(key, ks);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to pack full index key:%d", rc);
+      goto error;
+   }
+
+   rc = _keyInsert(ks, vs, NULL);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to insert key:%d", rc);
+      goto error;
+   }
+
+done:
+   if (!ks.empty())
+   {
+      _freeAndClear(ks);
    }
    return rc ;
+error:
+   goto done;
 }
+
 
 
 // Mark a key entry as deleted and save the old version
@@ -942,6 +1025,7 @@ INT32 lsmIndex::_keyDelete( const BOOLEAN blsmIdx,
    return rc ;
 }
 
+
 /*
    Mark a key entry as deleted and save the old version
 
@@ -971,6 +1055,8 @@ INT32 lsmIndex::_keyDelete( const BOOLEAN blsmIdx,
      SDB_OK: normal return
      otherwise any popped error code
 */
+
+/*
 INT32 lsmIndex::keyDelete( const BOOLEAN            blsmIdx,
                            const lsmKeyEntry      & origKeyEntry,
                            const lsmKeyEntry      & keyEntry,
@@ -1007,6 +1093,7 @@ INT32 lsmIndex::keyDelete( const BOOLEAN            blsmIdx,
    }
    return rc ;
 }
+*/
 
 
 // delete an entry from rocksdb without saving its old version
@@ -1043,19 +1130,33 @@ INT32 lsmIndex::_keyRemove( const rocksdb::Slice & key,
      otherwise any popped error code
 */
 INT32 lsmIndex::keyRemove( const lsmKeyEntry   & keyEntry,
-                           const UINT64          logLSN,
-                           rocksdb::WriteBatch * pBatch )
+                           const UINT64          logLSN )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
 
    rocksdb::Slice key;
-   INT32 rc = _allocAndCopy( TRUE, logLSN, keyEntry, key ) ;
-   if ( SDB_OK == rc )
+   INT32 rc = packFullIndexKey(keyEntry, key);
+   if (SDB_OK != rc)
    {
-      rc = _keyRemove( key, pBatch ) ;
-      _freeAndClear( key );
+      PD_LOG(PDERROR, "failed to pack full key:%d", rc);
+      goto error;
+   }
+   
+   rc = _keyRemove( key, NULL ) ;
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to remove index key:%d", rc);
+      goto error;
+   }
+
+done:
+   if (!key.empty())
+   {
+      _freeAndClear(key);
    }
    return rc ;
+error:
+   goto done;
 }
 
 
@@ -1096,16 +1197,18 @@ INT32 lsmIndex::dropIndex( UINT64 logLSN )
 
 INT32 lsmIdxRepeatableReadOnly::advance( const INT32        direction,
                                          const lsmKeyEntry & searchKey,
-                                         lsmKeyEntry       & keyEntry )
+                                         lsmOwnedRecord       & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    INT32 rc = SDB_IXM_EOC ;
    // construct rocksdb::Slice searchSlice
    rocksdb::Slice searchSlice ;
-   rc = _allocAndCopy( FALSE, -1, searchKey, searchSlice );
-   if ( rc )
+   out.fini();
+
+   rc = packFullIndexKey(searchKey, searchSlice);
+   if (SDB_OK != rc)
    {
-      return rc ;
+      goto error;
    }
 
    _openIter() ;
@@ -1118,7 +1221,7 @@ INT32 lsmIdxRepeatableReadOnly::advance( const INT32        direction,
    {
       _it->SeekForPrev( searchSlice ) ;
    }
-   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxId ) )
+   if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxMeta.getIdxId() ) )
    {
       // if it is same as the searchKey, move to next
       if ( 0 == lsmKeyComparator()->Compare( _it->key(), searchSlice ) )
@@ -1131,20 +1234,34 @@ INT32 lsmIdxRepeatableReadOnly::advance( const INT32        direction,
          {
             _it->Prev() ;
          }
-         if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxId ) )
+         if ( _it->Valid() && lsmIsSameIdxId( _it->key(), _idxMeta.getIdxId() ) )
          {
-            rc = SDB_OK;
-            keyEntry.init( _it->key(), _it->value() ) ;
+            rc = out.init(_it->key(), _it->value());
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
          }
       }
       else
       {
-         rc = SDB_OK;
-         keyEntry.init( _it->key(), _it->value() ) ;
+         rc = out.init(_it->key(), _it->value());
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
    }
-   _freeAndClear( searchSlice );
+  
+
+done:
+   if (!searchSlice.empty())
+   {
+       _freeAndClear( searchSlice );
+   }
    return rc ;
+error:
+   goto done;
 }
 
 

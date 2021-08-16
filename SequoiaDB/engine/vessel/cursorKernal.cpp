@@ -227,7 +227,7 @@ namespace vessel
       return push(content.len(), content.data());
    }
 
-   INT32 cursorKernal::pushFragments(std::initializer_list<std::pair<UINT32, const CHAR *>> il)
+   INT32 cursorKernal::pushFragments(std::initializer_list<std::pair<UINT32, const void *>> il)
    {
       INT32 rc = SDB_OK;
       UINT32 len = 0;

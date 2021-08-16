@@ -47,7 +47,6 @@
 #include "vessel/routePage.h"
 #include "vessel/routePageAccessor.h"
 #include "vessel/scanCLCursor.h"
-#include "vessel/scanCLContext.h"
 #include "vessel/rdpScanner.h"
 #include "vessel/routePageIniter.h"
 #include "vessel/atomicOperationList.h"
@@ -57,6 +56,12 @@
 #include "vessel/indexDefPage.h"
 #include "vessel/indexConsole.h"
 #include "vessel/redoLogUtil.h"
+#include "vessel/unstableIndexContext.h"
+#include "rtnIxmKeySorter.hpp"
+#include "vessel/indexKeyGenerator.h"
+#include "vessel/outerResource.h"
+#include "vessel/recordReader.h"
+#include "ixmIndexKey.hpp"
 
 namespace engine
 {
@@ -197,6 +202,10 @@ namespace vessel
                                  const createIndexOptions &options)
    {
       INT32 rc = SDB_OK;
+      UINT32 sortBufSize = 0;
+      static const UINT32 _MIN_SORT_BUF_SIZE = 16;
+      static const UINT32 _MAX_SORT_BUF_SIZE = 4096;
+      static const UINT32 _DEFAULT_SORT_BUF_SIZE = 64;
       INT32 indexSlot = -1;
 
       if (!isOpen())
@@ -221,12 +230,38 @@ namespace vessel
          goto error;
       }
 
-      rc = createIndex(context, indexName, keyPattern, params, indexSlot);
+      rc = _createIndex(context, indexName, keyPattern, params, indexSlot);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create index:%d", rc);
+         PD_LOG(PDERROR, "failed to create index[%s]:%d", indexName.str(), rc);
          goto error;
       }
+
+      sortBufSize = options.sortBufferSize;
+      if (sortBufSize < _MIN_SORT_BUF_SIZE ||
+          _MAX_SORT_BUF_SIZE < sortBufSize)
+      {
+         sortBufSize = _DEFAULT_SORT_BUF_SIZE;
+      }
+      sortBufSize *= 1048576; /// 1MB
+
+      if (!options.blockDML)
+      {
+         rc = onlineBuildIndex(context,
+                                indexSlot,
+                                sortBufSize);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rebuild index[%s], rc:%d", indexName.str(), rc);
+         goto error;
+      }
+      
    done:
       return rc;
    error:
@@ -253,7 +288,7 @@ namespace vessel
 
       console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
       {
-      ossScopedRWLock guard(&_ddlLatch, SHARED);
+      ossScopedRWLock guard(&_dmlLatch, SHARED);
       rc = console.listIndexes(context, indexes);
       if (SDB_OK != rc)
       {
@@ -425,7 +460,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getMoreWhenScan(scanCLContext *context,
+   INT32 collection::getMoreWhenScan(requestContext *context,
                                      scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
@@ -444,7 +479,7 @@ namespace vessel
       {
          PAGE_ID lpid = cursor->getLpid();
 
-         if (_totalRdpCount <= cursor->getPageSeq())
+         if (_totalRdpCount <= cursor->getToScanEntry().getSeq())
          {
             cursor->pushEnd();
             goto done;
@@ -452,17 +487,17 @@ namespace vessel
 
          if (INVALID_PAGE_ID == lpid)
          {
-            rc = getLpidBySequence(context, cursor->getPageSeq(), lpid);
+            rc = getLpidBySequence(context, cursor->getToScanEntry().getSeq(), lpid);
             if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
             {
                rc = SDB_OK;
-               cursor->incPageSeqAndResetRid();
+               cursor->incToScanPage();
                continue;
             }
             else if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d",
-                      cursor->getPageSeq(), rc);
+                      cursor->getToScanEntry().getSeq(), rc);
                goto error;
             }
             cursor->setLpid(lpid);
@@ -479,13 +514,6 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get more from seq saved:%d", rc);
             goto error;
          }
-
-         if (cursor->hitTheLimit())
-         {
-            goto done;
-         }
-         cursor->incPageSeqAndResetRid();
-
       } while(TRUE);
    done:
       return rc;
@@ -512,13 +540,15 @@ namespace vessel
          goto error;
       }
 
-      rc = scanner.getRecourdCountInHead(context, &lpb, count);
+      rc = scanner.open(context, &lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get record count of lpid[%d], rc:%d",
+         PD_LOG(PDERROR, "failed to open scanner of lpid[%d], rc:%d",
                 lpid, rc);
          goto error;
       }
+
+      count = scanner.getPageHead().recordCount;
    done:
       lpb.fini();
       return rc;
@@ -526,41 +556,73 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getMoreFromPageInCursor(scanCLContext *context,
+   INT32 collection::getMoreFromPageInCursor(requestContext *context,
                                              scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       SDB_ASSERT(NULL != cursor, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != cursor->getLpid(), "can not be invalid");
-      
-      rdpScanner scanner;
-      logicalPageBuffer lpb;
+
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
-
-      rc = mds.getLogicalPageBuffer(context,
-                                    cursor->getLpid(),
-                                    OSS_SHARED_LATCH_MODE_SHARED,
-                                    lpb);
+      recordReader rr;
+      memoryBlock mb;
+      
+      rc = rr.init(context, cursor->getLpid(), &mds,
+                   cursor->getToScanEntry().getSlot(), &mb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
-                cursor->getLpid(), rc);
+         PD_LOG(PDERROR, "failed to init record reader:%d", rc);
          goto error;
       }
 
-      rc = scanner.getMore(context, &lpb, cursor);
-      if (SDB_OK != rc)
+      do
       {
-         if (SDB_OK != SDB_VESSEL_CURSOR_NO_SPACE)
+         slice record;
+         recordID rid;
+         DPS_TRANS_ID transId;
+         BOOLEAN hitTheEnd = FALSE;
+         rc = rr.fetchNextToReader(hitTheEnd);
+         if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get more from page:%d", rc);
+            PD_LOG(PDERROR, "failed to fetch next:%d", rc);
+            goto error;
          }
-         goto error;
-      }
+         else if (hitTheEnd)
+         {
+            cursor->incToScanPage();
+            break;
+         }
 
+         cursor->setToScanSlot(rid.getSlotID());
+
+         if (rr.isCurrentRecordIsTombstone())
+         {
+            SDB_ASSERT(FALSE, "TODO");
+         }
+
+         rid = rr.getCurrentRid();
+         transId.setNodeID(rr.getCurrentRecordHead().getTransNode());
+         transId.setSN(rr.getCurrentRecordHead().getTransSN());
+         record = rr.getCurrentRecordBody();
+
+         rc = cursor->pushFragments({std::make_pair(sizeof(recordID), &rid),
+                                     std::make_pair(sizeof(DPS_TRANS_ID), &transId),
+                                     std::make_pair(record.len(), record.data())});
+         if (SDB_OK != rc)
+         {
+            if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
+            {
+               PD_LOG(PDERROR, "failed to push record to cursor:%d", rc);
+            }
+            goto error;
+         }
+
+         cursor->setToScanSlot(rid.getSlotID() + 1);
+      } while (TRUE);
+      
    done:
-      lpb.fini();
+      rr.fini();
       return rc;
    error:
       goto done;
@@ -1716,11 +1778,11 @@ namespace vessel
       return count;
    }
 
-   INT32 collection::createIndex(requestContext *context,
-                                 const strSlice &indexName,
-                                 const indexKeyPattern &pattern,
-                                 const indexParameters &params,
-                                 INT32 &indexSlot)
+   INT32 collection::_createIndex(requestContext *context,
+                                  const strSlice &indexName,
+                                  const indexKeyPattern &pattern,
+                                  const indexParameters &params,
+                                  INT32 &indexSlot)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");   
@@ -1729,6 +1791,7 @@ namespace vessel
       SDB_ASSERT(pattern.isValid(), "must be valid");
       SDB_ASSERT(params.isValid(), "must be valid");
 
+      indexSlot = -1;
       bson::BSONObj obj;
       slice objSlice;
       ossPoolString fullName;
@@ -1743,11 +1806,13 @@ namespace vessel
       console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
       BOOLEAN rollbackLog = FALSE;
       BOOLEAN rollbackIndex = FALSE;
+      BOOLEAN rollbackUnstableIndexes = FALSE;
+      unstableIndexContext *uic = NULL;
 
       UINT64 newUniqueIndexes = 0;
       UINT64 newUonuniqueIndexes = 0;
 
-      ossScopedRWLock guard(&_ddlLatch, EXCLUSIVE);
+      ossScopedRWLock guard(&_dmlLatch, EXCLUSIVE);
 
       indexId = _record.nextIndexId;
       if (INVALID_LOGICAL_INDEX_ID == indexId)
@@ -1764,7 +1829,7 @@ namespace vessel
          goto error;
       }
 
-      rc = console.testIfDuplicated(context, indexName, pattern, duplicated);
+      rc = testIfIndexDuplicated(context, indexName, pattern, duplicated);
       if (SDB_OK != rc)
       { 
          PD_LOG(PDERROR, "failed to test if index duplicated:%d", rc);
@@ -1786,6 +1851,18 @@ namespace vessel
       }
 
       objSlice.reset(obj.objsize(), obj.objdata());
+
+      rc = _unstableIndexes.insert(indexSlot, indexId,
+                                   indexName, pattern,
+                                   INDEX_STATUS_BUILDING,
+                                   &uic);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
+                indexName.str(), rc);
+         goto error;
+      }
+      rollbackUnstableIndexes = TRUE;
 
       fullName.append(_collectionSpace->getCSName());
       fullName.append(".");
@@ -1850,10 +1927,16 @@ namespace vessel
       _record.uniqueIndexes = newUniqueIndexes;
       _record.nonUniqueIndexes = newUonuniqueIndexes;
       ++_record.nextIndexId;
+
    done:
       lpb.fini();
       return rc;
    error:
+      if (rollbackUnstableIndexes)
+      {
+         _unstableIndexes.erase(indexSlot);
+      }
+
       /// rollback log first, we need a new lsn.
       if (rollbackLog)
       {
@@ -1868,17 +1951,448 @@ namespace vessel
 
       if (rollbackIndex)
       {
-         INT32 tmpRc = console.destroyIndexDefPage(context, indexSlot);
+         INT32 tmpRc = console.releaseIndexSlot(context, indexSlot);
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to rollback index created[%d,%d], rc:%d",
                    indexSlot, indexId, tmpRc);
          }
       }
-
+      
       indexSlot = -1;
       goto done;
    }
 
+   INT32 collection::buildIndexBySortingAndUpdateContext(requestContext *context,
+                                                         unstableIndexContext *uic,
+                                                         UINT32 maxRdpCount,
+                                                         memoryBlock &sortBuffer)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != uic, "can not be null");
+      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
+      SDB_ASSERT(0 < sortBuffer.getCapacity(), "can not be zero");
+
+      rtnIxmKeySorterCreator creator;
+      dmsIxmKeySorter *sorter = NULL;
+      scanEntry entry;
+      orderingWrapper ow = uic->getPattern().getOrdering();
+
+      if (!uic->getNextRebuildingRangeBound(entry))
+      {
+         PD_LOG(PDERROR, "last batch may not completed yet");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+      if (maxRdpCount <= entry.getSeq())
+      {
+         goto done;
+      }
+
+      ow = uic->getPattern().getOrdering();
+
+      rc = creator.createSorter(sortBuffer.getCapacity(),
+                                sortBuffer.getBuffer(),
+                                dmsIxmKeyComparer(*ow.toBsonOrdering()),
+                                &sorter);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create sorter:%d", rc);
+         goto error;
+      }
+
+
+      rc = fillSorterAndUpdateEntry(context, sorter, maxRdpCount, uic);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fill sorter:%d", rc);
+         goto error;
+      }
+
+      rc = sorter->sort();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to sort index keys:%d", rc);
+         goto error;
+      }
+
+      //rc = mergeSorterAndContextIntoIndex(context, &obj, sorter, uic);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to merge data into index:%d", rc);
+         goto error;
+      }
+
+   done:
+      if (NULL != sorter)
+      {
+         creator.releaseSorter(sorter);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::fillSorterAndUpdateEntry(requestContext *context,
+                                              _dmsIxmKeySorter *sorter,
+                                              UINT32 maxRdpCount,
+                                              unstableIndexContext *uic)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != uic, "can not be null");
+      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
+      memoryBlock mb;
+      mainDataSpace *mds = &(_collectionSpace->getSU()->getMainDataSpace());
+      scanEntry entry;
+      bson::BSONObjSet keySet;
+      INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
+      _ixmKeyBuilder builder(FALSE);
+
+      if (!uic->getNextRebuildingRangeBound(entry))
+      {
+         PD_LOG(PDERROR, "failed to get next scan range");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      while (entry.getSeq() < maxRdpCount)
+      {
+         recordReader rr;
+         PAGE_ID lpid = INVALID_PAGE_ID;
+         rc = getLpidBySequence(context, entry.getSeq(), lpid);
+         if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+         {
+            PD_LOG(PDDEBUG, "page seq[%d] does not exist", entry.getSeq());
+            entry.incSeqAndZeroSlot();
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d", entry.getSeq(), rc);
+            goto error;
+         }
+
+         rc = rr.init(context, lpid, mds, entry.getSlot(), &mb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init record reader on lpid[%d]:%d", lpid, rc);
+            goto error;
+         }
+
+         do
+         {
+            keySet.clear();
+
+            slice record;
+            BOOLEAN hitThePageEnd = FALSE;
+            rc = rr.fetchNextToReader(hitThePageEnd);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to fetch the next record:%d", rc);
+               goto error;
+            }
+            else if (hitThePageEnd)
+            {
+               entry.incSeqAndZeroSlot();
+               /// update context with page latch
+               uic->updateRebuildingHighBound(entry);
+               rr.fini();
+
+               /// break to scan the next page.
+               break;
+            }
+
+            SDB_ASSERT(!rr.isCurrentRecordIsTombstone(), "TODO");
+            record = rr.getCurrentRecordBody();
+            SDB_ASSERT(record.isValid(), "impossible");
+
+            rc = keyGen(uic->getPattern().getPattern(), 
+                        uic->getParams().notArray,
+                        record,
+                        &builder, keySet);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to generate index key:%d", rc);
+               goto error;
+            }
+
+            rc = sorter->push(keySet, dmsRecordID(lpid, rr.getCurrentRid().getSlotID()));
+            if (SDB_DMS_EOC == rc)
+            {
+               entry.reset(entry.getSeq(), rr.getCurrentRid().getSlotID());
+               uic->updateRebuildingHighBound(entry);
+               rr.fini();
+               goto done;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push key into sorter:%d", rc);
+               goto error;
+            }
+            else
+            {
+               continue;
+            }
+         } while (TRUE);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::onlineBuildIndex(requestContext *context,
+                                      INT32 indexSlot,
+                                      UINT32 sortBufferSize)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
+      SDB_ASSERT(0 < sortBufferSize, "can not be zero");
+
+      static const UINT32 _ENDING_LOOP_RDP_COUNT = 2;
+      memoryBlock mb;
+      unstableIndexContext *uic = NULL;
+      scanEntry entry;
+
+      rc = mb.reserve(sortBufferSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve memory size:%d", rc);
+         goto error;
+      }
+
+      do
+      {
+         ossRWMutexGuard guard(&_dmlLatch, SHARED);
+         /// _totalRdpCount is not protected by latch here.
+         UINT32 currentRdpCount = _totalRdpCount;
+         uic = _unstableIndexes.findBuidingContext(indexSlot);
+         if (NULL == uic)
+         {
+            PD_LOG(PDERROR, "index[%d] is not building", indexSlot);
+            rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
+            goto error;
+         }
+
+         if (!uic->getNextRebuildingRangeBound(entry))
+         {
+            PD_LOG(PDERROR, "failed to get next building range");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (currentRdpCount <= (entry.getSeq() + _ENDING_LOOP_RDP_COUNT))
+         {
+            break;
+         }
+         
+         rc = buildIndexBySortingAndUpdateContext(context, uic, currentRdpCount, mb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to build index[%d], rc:%d", indexSlot, rc);
+            goto error;
+         }
+      } while (TRUE);
+
+      {
+         ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+         uic = _unstableIndexes.findBuidingContext(indexSlot);
+         if (NULL == uic)
+         {
+            PD_LOG(PDERROR, "index[%d] is not building", indexSlot);
+            rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
+            goto error;
+         }
+
+         do
+         {
+            if (!uic->getNextRebuildingRangeBound(entry))
+            {
+               PD_LOG(PDERROR, "failed to get next building range");
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+            else if (entry.getSeq() == _totalRdpCount)
+            {
+               break;
+            }
+
+            rc = buildIndexBySortingAndUpdateContext(context, uic, _totalRdpCount, mb);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to build index[%d], rc:%d", indexSlot, rc);
+               goto error;
+            }
+         } while(TRUE);
+
+         rc = endToBuildIndex(context, indexSlot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to finish building index[%], rc:%d", indexSlot, rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+/*
+   INT32 collection::mergeSorterAndContextIntoIndex(requestContext *context,
+                                                    inMemIndexDefObj *def,
+                                                    _dmsIxmKeySorter *sorter,
+                                                    unstableIndexContext *uic)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != def, "can not be null");
+      SDB_ASSERT(NULL != sorter, "can not be null");
+      SDB_ASSERT(NULL != uic, "can not be null");
+
+      bson::BufBuilder builder;
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      ossPoolList<unstableIndexContext::keyOperation> deltas;
+
+      indexConsole console;
+      rc = console.init(&_record, &is);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index console:%d", rc);
+         goto error;
+      }
+
+      do
+      {
+         ixmKey key;
+         dmsRecordID dmsRid;
+
+         rc = sorter->fetch(key, dmsRid);
+         if (SDB_DMS_EOC == rc)
+         {
+            rc = SDB_OK;
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch key from sorter:%d", rc);
+            goto error;
+         }
+
+         rc = console.insert(context, *def,
+                             key, DPS_TRANS_ID(),
+                             context->getSession()->getLastLSN(),
+                             dmsRid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
+                   def->getIndexName().str(), rc);
+            goto error;
+         }
+      } while (TRUE);
+
+      while (!uic->endToBuildCurrentRangeOrPopKeys(deltas))
+      {
+         SDB_ASSERT(FALSE, "todo");
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+   */
+
+   INT32 collection::endToBuildIndex(requestContext *context,
+                                     INT32 indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
+
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+
+      rc = console.init(&_record, &is);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init console:%d", rc);
+         goto error;
+      }
+
+      rc = console.updateIndexStatus(context, indexSlot, INDEX_STATUS_NORMAL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index[%d] status to normal:%d", indexSlot, rc);
+         goto error;
+      }
+
+      _unstableIndexes.erase(indexSlot);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::testIfIndexDuplicated(requestContext *context,
+                                           const strSlice &indexName,
+                                           const indexKeyPattern &pattern,
+                                           BOOLEAN &duplicated)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(!indexName.empty(), "can not be empty");
+      SDB_ASSERT(pattern.isValid(), "can not be invalid");
+
+      duplicated = FALSE;
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      UINT64 indexes = 0;
+
+      rc = console.init(&_record, &is);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index console:%d", rc);
+         goto error;
+      }
+
+      indexes = (_record.uniqueIndexes | _record.nonUniqueIndexes);
+      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      {
+         unstableIndexContext *uic = NULL;
+         UINT64 mask = (UINT64)1 << i;
+         if (0 == OSS_BIT_TEST(indexes, mask))
+         {
+            continue;
+         }
+
+         uic = _unstableIndexes.find(i);
+         if (NULL == uic)
+         {
+            rc = console.testIfDuplicated(context, i, indexName, pattern, duplicated);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to test index slot[%d], rc:%d", i, rc);
+               goto error;
+            }
+
+            if (duplicated)
+            {
+               goto done;
+            }
+         }
+         else if (uic->testIfDuplicatedIfBuilding(indexName, pattern))
+         {
+            duplicated = TRUE;
+            goto done;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

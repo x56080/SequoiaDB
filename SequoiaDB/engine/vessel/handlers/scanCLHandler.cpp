@@ -38,7 +38,6 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/scanCLContext.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/spaceIDLockHelper.h"
 
@@ -51,7 +50,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
-      scanCLContext context;
+      requestContext context;
       spaceIDLockHelper lh(&context);
       const collectionHandle *handle = NULL;
 

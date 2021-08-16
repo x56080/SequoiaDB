@@ -40,6 +40,8 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/slice.h"
+#include "vessel/indexDef.h"
+#include "vessel/inMemIndexDefObj.h"
 
 namespace engine
 {
@@ -62,6 +64,14 @@ namespace vessel
                            UINT32 indexId,
                            const slice &defObj,
                            logicalPageBuffer *lpb);
+
+         INT32 updateIndexStatus(requestContext *context,
+                                 INDEX_STATUS newStatus,
+                                 logicalPageBuffer *lpb);
+
+         INT32 getOwnedInMemDefObj(requestContext *context,
+                                   const logicalPageBuffer *lpb,
+                                   inMemIndexDefObj &obj);
 
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,

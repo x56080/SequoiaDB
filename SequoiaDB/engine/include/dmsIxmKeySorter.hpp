@@ -41,12 +41,12 @@ namespace engine
    class _dmsIxmKeyComparer
    {
    public:
-      _dmsIxmKeyComparer( bson::Ordering& order )
+      _dmsIxmKeyComparer( const bson::Ordering& order )
       : _order( order )
       {
       }
 
-      bool operator()( const ixmKey& key1, const ixmKey& key2 )
+      bool operator()( const ixmKey& key1, const ixmKey& key2 ) const
       {
          return ( key1.woCompare( key2, _order ) < 0 ) ;
       }
@@ -75,6 +75,10 @@ namespace engine
       virtual INT32 reset() = 0 ;
       virtual INT64 bufferSize() const { return _bufSize ; }
       virtual INT64 usedBufferSize() const = 0 ;
+      virtual INT64 getKeyNum()const = 0;
+
+      virtual INT32 push(const bson::BSONObjSet &keySet,
+                         const dmsRecordID& recordID) = 0;
 
    protected:
       INT64                _bufSize ;

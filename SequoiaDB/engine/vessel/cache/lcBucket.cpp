@@ -263,29 +263,36 @@ namespace vessel
 
    liteCachePageTag *lcBucket::recycleTag()
    {
-      liteCachePageTag *out = NULL;
       static const UINT32 _MAX_LOOP = 16;
+      static const UINT32 _RECYCLE_THRESHOLD = 8;
+      liteCachePageTag *out = NULL;
+      UINT32 maxLoop = 0;
 
-      if (_tagIndex.size() <= _MAX_LOOP)
+      if (_tagIndex.size() < _RECYCLE_THRESHOLD)
       {
-         return NULL;
+         goto done;
       }
 
-      for (UINT32 i = 0; i < _MAX_LOOP; ++i)
-      {
-         liteCachePageTag *tag = popBack();
+      maxLoop = _tagIndex.size() < _MAX_LOOP?
+                _tagIndex.size() : _MAX_LOOP;
       
+      for (UINT32 i = 0; i < maxLoop; ++i)
+      {      
+         liteCachePageTag *tag = popBack();
          /// no latch holding, just for fast skip.
          if (tag->fastTestIfCanBeRecycled(FALSE) &&
              tag->getAccessingLatch().tryLock())
          {
-            if (tag->fastTestIfCanBeRecycled(TRUE))
+            /// Now, we are hoding bucket latch and tag accessing latch.
+            /// We do not need to hold pin latch to check if tag can
+            /// be recycled.
+            if (tag->fastTestIfCanBeRecycled(FALSE))
             {
                tag->getAccessingLatch().unlock();
                _tagIndex.erase(tag->getBucketIterator());
                tag->reset();
                out = tag;
-               goto done;
+               break;
             }
             else
             {

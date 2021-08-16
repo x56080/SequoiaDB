@@ -89,7 +89,7 @@ namespace vessel
                return "";
             }
 
-            UINT32 maxChunkCount = 1024;
+            UINT32 maxChunkCount = 128;
             UINT32 pageCountInChunk = 1024;
       };//class freeListOptions
 

@@ -85,6 +85,8 @@ namespace vessel
          /// 
          virtual INT32 abortOplist(ISession *session,
                                    DPS_LSN_OFFSET lsn) = 0;
+
+         virtual DPS_LSN_OFFSET getMinFileLsn() = 0;
    };//class IRedoLogger
 }//namespace vessel
 }//namespace engine

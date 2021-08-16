@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexKeyGenerator.h
 
    Descriptive Name =
 
@@ -33,43 +33,31 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
+#ifndef VESSEL_INDEX_KEY_GENERATOR_H_
+#define VESSEL_INDEX_KEY_GENERATOR_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/slice.h"
+#include "../bson/util/builder.h"
+#include "../bson/bson.hpp"
+#include <functional> //c++11
 
 namespace engine
 {
+   class _ixmKeyBuilder;
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
-   {
-      public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
+   typedef std::function<INT32(const bson::BSONObj &pattern,
+                               BOOLEAN notArray,
+                               const slice &record,
+                               _ixmKeyBuilder *builder,
+                               bson::BSONObjSet &keys)> INDEX_KEY_GENERATOR;
 
-   class rebuildIndexOptions : public SDBObject
-   {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
+   INT32 indexKeyGenForBsonRecord(const bson::BSONObj &pattern,
+                                  BOOLEAN notArray,
+                                  const slice &record,
+                                  _ixmKeyBuilder *builder,
+                                  bson::BSONObjSet &keys);
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_OPTIONS_H_
+#endif//VESSEL_INDEX_KEY_GENERATOR_H_

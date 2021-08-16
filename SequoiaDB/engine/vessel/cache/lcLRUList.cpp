@@ -215,8 +215,10 @@ namespace vessel
       liteCachePageTag *itr = NULL;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
+      BOOLEAN hitTheMiddle = FALSE;
       page.reset();
-      ossXLatchGuard guard(&_latch, FALSE);
+
+      ossXLatchGuard guard(&_latch);
 
       if (!scanUntilHitMax)
       {
@@ -227,11 +229,14 @@ namespace vessel
          scanNum = _size * _options.lruMaxScanPercent;
       }
 
-      guard.lock();
       itr = (NULL == _evictBegin) ? _tail : _evictBegin;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
          liteCachePageTag *tag = itr;
+         if (splited() && !hitTheMiddle && tag == _middle)
+         {
+            hitTheMiddle = TRUE;
+         }
          itr = itr->getLruPre();
          lcPageTagHolder holder;
 
@@ -240,7 +245,7 @@ namespace vessel
          {
             ++totalSkipped;
             ++totalMoved;
-            moveToHead(tag);
+            moveToHead(!hitTheMiddle, tag);
             continue;
          }
 
@@ -250,7 +255,7 @@ namespace vessel
             continue;
          }
 
-         if (!tryToEvictTagFromList(tag, page))
+         if (!tryToEvictTagFromList(tag, !hitTheMiddle, page))
          {
             ++totalSkipped;
             continue;
@@ -258,7 +263,7 @@ namespace vessel
          break;
       }
 
-      if (NULL != itr && splited() && itr->isLruCold())
+      if (NULL != itr && splited() && !hitTheMiddle)
       {
          _evictBegin = itr;
       }
@@ -287,6 +292,7 @@ namespace vessel
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
       ossPoolVector<freeListPage> pages;
+      BOOLEAN hitTheMiddle = FALSE;
 
       job->prepare(ossRand(), diskIOJob::LRU_LIST, scanDepth);
       ossXLatchGuard guard(&_latch);
@@ -295,11 +301,15 @@ namespace vessel
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
          liteCachePageTag *tag = itr;
+         if (splited() && !hitTheMiddle && tag == _middle)
+         {
+            hitTheMiddle = TRUE;
+         }
          itr = itr->getLruPre();
 
          if (splited() && (_options.lruHotTouchCnt <= tag->getLruTouchCnt()))
          {
-            moveToHead(tag);
+            moveToHead(!hitTheMiddle, tag);
             ++totalSkipped;
             ++totalMoved;
             continue;
@@ -308,7 +318,7 @@ namespace vessel
          if (tag->fastTestIfCanBeEvictedFromLru(FALSE))
          {
             freeListPage page;
-            if (tryToEvictTagFromList(tag, page))
+            if (tryToEvictTagFromList(tag, !hitTheMiddle, page))
             {
                pages.push_back(page);
                ++totalEvicted;
@@ -334,7 +344,7 @@ namespace vessel
          ++totalSkipped;
       }
 
-      if (NULL != itr && splited() && itr->isLruCold())
+      if (NULL != itr && splited() && !hitTheMiddle)
       {
          _evictBegin = itr;
       }
@@ -375,7 +385,7 @@ namespace vessel
       liteCachePageTag *next = _middle->getLruNext();
       next->setLruPre(tag);
       _middle->setLruNext(tag);
-      tag->insertIntoLru(_middle, next, TRUE);
+      tag->insertIntoLru(_middle, next);
       return;
    }
 
@@ -387,17 +397,10 @@ namespace vessel
       liteCachePageTag *tag = _tail;
       for (UINT32 i = 0; i < steps && NULL != tag; ++i)
       {
-         tag->setLruCold();
          tag = tag->getLruPre();
       }
       _coldSize = steps;
       _middle = tag;
-
-      for (;NULL != tag;)
-      {
-         tag->setLruUncold();
-         tag = tag->getLruPre();
-      }
       return;
    }
 
@@ -421,7 +424,6 @@ namespace vessel
       for (UINT32 i = 0; i < tuneSize; ++i)
       {
          _middle = _middle->getLruNext();
-         _middle->setLruUncold();
       }
       _coldSize -= tuneSize;
    done:
@@ -441,7 +443,6 @@ namespace vessel
       tuneSize = minColdSize - _coldSize;
       for (UINT32 i = 0; i < tuneSize; ++i)
       {
-         _middle->setLruCold();
          _middle = _middle->getLruPre();
       }
       _coldSize += tuneSize;
@@ -449,12 +450,10 @@ namespace vessel
       return;
    }
 
-   void lcLRUList::moveToHead(liteCachePageTag *tag)
+   void lcLRUList::moveToHead(BOOLEAN isCold,
+                              liteCachePageTag *tag)
    {
       SDB_ASSERT(splited(), "impossible");
-
-      BOOLEAN cold = tag->isLruCold();
-
       if (_middle == tag)
       {
          /// middle is not cold, do not --coldsize
@@ -465,7 +464,7 @@ namespace vessel
       insertToHead(tag);
       tag->setLruTouchCnt(0);
 
-      if (cold)
+      if (isCold)
       {
          --_coldSize;
          tryToTuneLeftMiddle();
@@ -511,19 +510,20 @@ namespace vessel
          liteCachePageTag *oldHead = _head;
          _head = tag;
          oldHead->setLruPre(tag);
-         tag->insertIntoLru(NULL, oldHead, FALSE);
+         tag->insertIntoLru(NULL, oldHead);
       }
       else
       {
          _head = tag;
          _tail = tag;
-         tag->insertIntoLru(NULL, NULL, FALSE);
+         tag->insertIntoLru(NULL, NULL);
       }
       return;
    }
 
 
    BOOLEAN lcLRUList::tryToEvictTagFromList(liteCachePageTag *tag,
+                                            BOOLEAN isCold,
                                             freeListPage &page)
    {
       BOOLEAN r = FALSE;
@@ -551,7 +551,7 @@ namespace vessel
       /// can still go on.
       if (splited())
       {
-         removeTagAndTuneMiddle(tag);
+         removeTagAndTuneMiddle(isCold, tag);
       }
       else
       {
@@ -567,10 +567,10 @@ namespace vessel
       return r;
    }
 
-   void lcLRUList::removeTagAndTuneMiddle(liteCachePageTag *tag)
+   void lcLRUList::removeTagAndTuneMiddle(BOOLEAN isCold,
+                                          liteCachePageTag *tag)
    {
       SDB_ASSERT(splited(), "must be splited");
-      BOOLEAN cold = tag->isLruCold(); 
       if (_options.lruMinSplitSize < _size)
       {
          if (_middle == tag)
@@ -579,7 +579,7 @@ namespace vessel
          }
          removeFromList(tag);
 
-         if (cold)
+         if (isCold)
          {
             --_coldSize;
             tryToTuneLeftMiddle();
@@ -589,10 +589,14 @@ namespace vessel
             tryToTuneRightMiddle();
          }
       }
+      else if (_options.lruMinSplitSize == _size)
+      {
+         removeFromList(tag);
+         cancelSplit();         
+      }
       else
       {
          removeFromList(tag);
-         cancelSplit();
       }
    }
 

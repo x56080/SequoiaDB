@@ -35,120 +35,20 @@
 
 #include "vessel/rdpScanner.h"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/scanCLContext.h"
-#include "vessel/scanCLCursor.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 rdpScanner::getMore(scanCLContext *context,
-                              const logicalPageBuffer *lpb,
-                              scanCLCursor *cursor)const
-   {
-      INT32 rc = SDB_OK;
-      RECORD_SLOT_ID slotId = INVALID_RECORD_SLOT_ID;
-      const recordDataPageHead *head = NULL;
-      const runtimePageBuffer *rpb = NULL;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       NULL == lpb ||
-                       !lpb->isValid() ||
-                       NULL == cursor ||
-                       !cursor->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rpb = &(lpb->getRuntimeBuffer());
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                         PAGE_TYPE_RECORD, rpb->getPageSize(),
-                         rpb->getGlobalPid().page(),
-                         lpb->getLogicalPid(),
-                         lpb->getCowTrigger().getPsv());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
-         goto error;
-      }
-
-      head = rpb->getReadablePtrOfBody<recordDataPageHead>(0);
-      if (NULL == head)
-      {
-         PD_LOG(PDERROR, "faile to get readable head ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (head->clLogcalID != cursor->getHandle().getCLLId())
-      {
-         PD_LOG(PDERROR, "logical id does not match[%d,%d]",
-                head->clLogcalID, cursor->getHandle().getCLLId());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-      else if (head->pageSeq != cursor->getPageSeq())
-      {
-         PD_LOG(PDERROR, "page sequence does not match[%d,%d]",
-                head->pageSeq, cursor->getPageSeq());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      slotId = INVALID_RECORD_SLOT_ID == cursor->getSlotID() ?
-               0 : cursor->getSlotID() + 1;
-
-      for (RECORD_SLOT_ID i = slotId; i < head->totalSlotCount; ++i)
-      {
-         UINT32 offset = RECORD_PAGE_HEAD_LEN + (i * RDP_RSLOT_SIZE);
-         const recordSlot *slotPtr = rpb->getReadablePtrOfBody<recordSlot>(offset);
-         if (NULL == slotPtr)
-         {
-            PD_LOG(PDERROR, "failed to get readble slot ptr[%d]", i);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         if (!slotPtr->isValid() || slotPtr->isInvisible())
-         {
-            cursor->setSlot(i);
-            continue;
-         }
-
-         if (slotPtr->getType() == RDP_SLOT_TYPE_NORMAL)
-         {
-            rc = getNormalRecord(context, *slotPtr, rpb, cursor);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            cursor->setSlot(i);
-            if (cursor->hitTheLimit())
-            {
-               break;
-            }
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "TODO");
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 rdpScanner::getRecourdCountInHead(requestContext *context,
-                                           const logicalPageBuffer *lpb,
-                                           UINT32 &count)const
+   INT32 rdpScanner::open(requestContext *context,
+                          const logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
       const recordDataPageHead *head = NULL;
       const runtimePageBuffer *rpb = NULL;
 
+      close();
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
                        !lpb->isValid()))
@@ -178,13 +78,6 @@ namespace vessel
          goto error;
       }
 
-      if (NULL == head)
-      {
-         PD_LOG(PDERROR, "faile to get readable head ptr");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
       if (head->clLogcalID != context->getCLLid())
       {
          PD_LOG(PDERROR, "logical id does not match[%d,%d]",
@@ -193,85 +86,140 @@ namespace vessel
          goto error;
       }
 
-      count = head->recordCount;
+      _lpb = lpb;
+      _head = head;
+   done:
+      return rc;
+   error:
+      close();
+      goto done;
+   }
+
+   void rdpScanner::close()
+   {
+      _lpb = NULL;
+      _head = NULL;
+   }
+
+   UINT32 rdpScanner::getTotalSlotCount()const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      return NULL == _head ? 0 : _head->totalSlotCount;
+   }
+
+   INT32 rdpScanner::getSlot(UINT32 pos, recordSlot &rs)const
+   {
+      INT32 rc = SDB_OK;
+      const recordSlot *slot = NULL;
+      UINT32 offset = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if ((UINT32)(_head->totalSlotCount) <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      offset = RECORD_PAGE_HEAD_LEN + pos * RDP_RSLOT_SIZE;
+      slot = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordSlot>(offset);
+      if (NULL == slot)
+      {
+         PD_LOG(PDERROR, "failed to get readable ptr of slot[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rs = *slot;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 rdpScanner::getNormalRecord(scanCLContext *context,
-                                     const recordSlot &slot,
-                                     const runtimePageBuffer *rpb,
-                                     scanCLCursor *cursor)const
+   INT32 rdpScanner::getNormalRecordHeadAndBody(UINT32 pos,
+                                                recordHead &rh,
+                                                slice &bodySlice)const
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(slot.isValid(), "can not be invalid");
-      SDB_ASSERT(RDP_SLOT_TYPE_NORMAL == slot.getType(), "must be normal");
-      SDB_ASSERT(NULL != rpb, "can not be null");
-      SDB_ASSERT(NULL != cursor, "can not be null");
+      const recordSlot *slot = NULL;
+      const recordHead *head = NULL;
+      ossValuePtr recordBody = 0;
+      UINT32 offset = 0;
+      bodySlice.reset();
 
-      ossValuePtr ptr = 0;
-      const recordHead *rh = rpb->getReadablePtrOfBody<recordHead>(slot.getOffset());
-      if (NULL == rh)
+      if (OSS_UNLIKELY(!isOpen()))
       {
-         PD_LOG(PDERROR, "failed to get ptr of record head");
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if ((UINT32)(_head->totalSlotCount) <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      offset = RECORD_PAGE_HEAD_LEN + pos * RDP_RSLOT_SIZE;
+      slot = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordSlot>(offset);
+      if (NULL == slot)
+      {
+         PD_LOG(PDERROR, "failed to get readable ptr of slot[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (!slot->isValidAndVisible())
+      {
+         PD_LOG(PDERROR, "can not get invisible record at slot[%d]", pos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (!slot->isNormalRecordHead())
+      {
+         PD_LOG(PDERROR, "can not read slot[%d] as normal record head", pos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      head = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordHead>(slot->getOffset());
+      if (NULL == head)
+      {
+         PD_LOG(PDERROR, "failed to get record head");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      if (OSS_UNLIKELY(rh->getSize() <= RDP_RECORD_HEAD_LEN))
+      SDB_ASSERT(!head->isDependent(), "impossible");
+
+      if (RDP_RECORD_HEAD_LEN < head->getSize())
       {
-         PD_LOG(PDERROR, "invalid record size[%d]", rh->getSize());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         rc = _lpb->getRuntimeBuffer().
+               getReadablePtrOfBodyWithRc(slot->getOffset() + RDP_RECORD_HEAD_LEN,
+                                          head->getSize() - RDP_RECORD_HEAD_LEN,
+                                          recordBody);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get readble record body ptr:%d", rc);
+            goto error;
+         }
+
+         bodySlice.reset(head->getSize() - RDP_RECORD_HEAD_LEN,
+                           (const CHAR *)recordBody);
       }
 
-      if (OSS_UNLIKELY(rh->isDependent() || rh->isTombstone()))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (rh->isOverflow())
-      {
-         SDB_ASSERT(FALSE, "TODO");
-      }
-      else if (rh->isCompressed())
-      {
-         SDB_ASSERT(FALSE, "TODO");
-      }
-
-      rc = rpb->getReadablePtrOfBodyWithRc(slot.getOffset(), rh->getSize(), ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get ptr of record[%d,%d], rc:%d",
-                slot.getOffset(), rh->getSize(), rc);
-         goto error;
-      }
-
-      rc = cursor->push(rh->getSize() - RDP_RECORD_HEAD_LEN,
-                        (const CHAR *)(ptr + RDP_RECORD_HEAD_LEN));
-      if (SDB_OK == rc)
-      {
-         /// do nothing.
-      }
-      else if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-      {
-         goto error;
-      }
-      else
-      {
-         PD_LOG(PDERROR, "failed to push data to cursor:%d", rc);
-         goto error;
-      }
-
+      rh = *head;
    done:
       return rc;
    error:
       goto done;
+   }
+
+   const recordDataPageHead &rdpScanner::getPageHead()const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      return *_head;
    }
 }//namesapce vessel
 }//namespace engine

@@ -58,7 +58,9 @@ namespace vessel
 
       ~indexDefHead(){}
 
-      OSS_INLINE indexDefHead &operator=(const indexDefHead &o)
+      indexDefHead(const indexDefHead &) = delete;
+
+      indexDefHead &operator=(const indexDefHead &o)
       {
          ossMemcpy(this, &o, sizeof(indexDefHead));
          return *this;
@@ -81,7 +83,6 @@ namespace vessel
       UINT16 flags = 0;
       UINT16 status = INDEX_STATUS_INVALID;
       UINT32 btreeRoot = INVALID_PAGE_ID;
-      UINT32 rebuilding = INVALID_CL_PAGE_SEQ;
       UINT32 defObjSize = 0;
       CHAR pad[32] = {};
    };//struct indexDefHead

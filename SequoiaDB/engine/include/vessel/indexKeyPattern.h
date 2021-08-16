@@ -39,6 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "../bson/bson.hpp"
+#include "vessel/orderingWrapper.h"
 
 namespace engine
 {
@@ -72,10 +73,9 @@ namespace vessel
          {
             return _keyCount;
          }
-         OSS_INLINE UINT32 getOrdering()const
-         {
-            return _ordering;
-         }
+
+         orderingWrapper getOrdering()const;
+
          OSS_INLINE const bson::BSONObj getPattern()const
          {
             return _pattern;

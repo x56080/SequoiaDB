@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexOptions.h
+   Source File Name = indexRebuilder.cpp
 
    Descriptive Name =
 
@@ -33,43 +33,12 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_OPTIONS_H_
-#define VESSEL_INDEX_OPTIONS_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/indexRebuilder.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexOptions : public SDBObject
-   {
-      public:
-         createIndexOptions(){}
-         ~createIndexOptions(){}
-         createIndexOptions(const createIndexOptions &) = delete;
-         createIndexOptions &operator=(const createIndexOptions &o)
-         {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
-            return *this;
-         }
-      public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
-   };//class createIndexOptions
 
-   class rebuildIndexOptions : public SDBObject
-   {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_INDEX_OPTIONS_H_

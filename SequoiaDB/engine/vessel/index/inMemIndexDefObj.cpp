@@ -60,18 +60,21 @@ namespace vessel
       _params = indexParameters();
       _defObj.reset();
       _mb.release();
+      _lpid = INVALID_PAGE_ID;
       return;
    }
 
    INT32 inMemIndexDefObj::init(const indexDefHead &head,
-                                const slice &defObj)
+                                const slice &defObj,
+                                PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       bson::BSONObj obj;
 
       fini();
       if (!head.isValid() ||
-          !defObj.isValid())
+          !defObj.isValid() ||
+          INVALID_PAGE_ID == lpid)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -79,6 +82,7 @@ namespace vessel
 
       _head = head;
       _defObj = defObj;
+      _lpid = lpid;
       rc = _initFromDefObj(defObj);
       if (SDB_OK != rc)
       {
@@ -173,6 +177,13 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void inMemIndexDefObj::setStatus(INDEX_STATUS status)
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      _head.status = status;
+      return;
    }
 }//namespace vessel
 }//namespace engine

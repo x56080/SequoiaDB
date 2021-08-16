@@ -101,7 +101,7 @@ TEST_F(insert_test, test1)
    INT32 rc = SDB_OK;
 
    vesselImpl db;
-   outerResource resource;
+   outerResource resource = test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance();
    test_session session(test_logger::instance());
@@ -175,7 +175,7 @@ TEST_F(insert_test, test2)
    INT32 rc = SDB_OK;
    test_logger logger;
    vesselImpl db;
-   outerResource resource;
+   outerResource resource = test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance();
    test_session session(test_logger::instance());
@@ -307,7 +307,7 @@ TEST_F(insert_test, test3)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
+   outerResource resource= test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance(); 
    test_session session(test_logger::instance());
@@ -315,6 +315,8 @@ TEST_F(insert_test, test3)
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
+   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
+   options.cacheOptions.freelist.maxChunkCount = 1024;
    collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
@@ -357,7 +359,7 @@ TEST_F(insert_test, test4)
    INT32 rc = SDB_OK;
    test_logger logger;
    vesselImpl db;
-   outerResource resource;
+   outerResource resource = test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance(); 
    test_session session(&logger);
@@ -488,7 +490,7 @@ TEST_F(insert_test, test5)
    INT32 rc = SDB_OK;
    test_logger logger;
    vesselImpl db;
-   outerResource resource;
+   outerResource resource = test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance();
    test_session session(test_logger::instance());
@@ -539,7 +541,7 @@ TEST_F(insert_test, test6)
    INT32 rc = SDB_OK;
    test_logger logger;
    vesselImpl db;
-   outerResource resource;
+   outerResource resource = test_outer_resource::getResource();
    resource.logger = test_logger::instance();
    resource.sessionMgr = test_session_mgr::instance();
    test_session session(test_logger::instance());

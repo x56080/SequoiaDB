@@ -75,7 +75,7 @@ namespace vessel
          INT32 push(const slice &content);
          INT32 push(UINT32 len, const CHAR *data);
          /// push one record with multi memory fragments
-         INT32 pushFragments(std::initializer_list<std::pair<UINT32, const CHAR *>> il);
+         INT32 pushFragments(std::initializer_list<std::pair<UINT32, const void *>> il);
 
          /// mark cursor as SDB_VESSEL_END_OF_CURSOR
          void pushEnd();
@@ -84,11 +84,7 @@ namespace vessel
          {
             return _filter;
          }
-         
-         BOOLEAN hitTheLimit()const
-         {
-            return _options.limit <= _totalPushed;
-         }
+      
       private:
          INT32 allocateSpaceForPushing(UINT32 dataLen);
          BOOLEAN noMorePushing()const;
