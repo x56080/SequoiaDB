@@ -519,7 +519,8 @@ static INT32 _innerConnect( SOCKET sock, struct sockaddr *sockAddress,
    if ( rc < 0 )
    {
       struct timeval maxSelectTime ;
-      fd_set fds ;
+      fd_set fdsW ;
+      fd_set fdsR ;
 
       if ( errno != EINPROGRESS )
       {
@@ -531,9 +532,11 @@ static INT32 _innerConnect( SOCKET sock, struct sockaddr *sockAddress,
       maxSelectTime.tv_sec = connectTimeout ;
       maxSelectTime.tv_usec = 0 ;
 
-      FD_ZERO ( &fds ) ;
-      FD_SET ( sock, &fds ) ;
-      rc = select( sock + 1, NULL, &fds, NULL, &maxSelectTime ) ;
+      FD_ZERO ( &fdsR ) ;
+      FD_SET ( sock, &fdsR ) ;
+      FD_ZERO ( &fdsW ) ;
+      FD_SET ( sock, &fdsW ) ;
+      rc = select( sock + 1, &fdsR, &fdsW, NULL, &maxSelectTime ) ;
       // 0 means timeout
       if ( 0 == rc )
       {
@@ -546,6 +549,49 @@ static INT32 _innerConnect( SOCKET sock, struct sockaddr *sockAddress,
          goto error ;
       }
       // else success
+
+      if ( FD_ISSET(sock, &fdsW) )
+      {
+         if ( FD_ISSET(sock, &fdsR) )
+         {
+            // readable & writable:
+            // 1. connection is failure.
+            // 2. connection is established and receive server's message immediately.
+            // retry to connect and confirm which situation above
+            rc = connect( sock, sockAddress, sizeof(*sockAddress) ) ;
+            if ( 0 != rc )
+            {
+               INT32 sockErr = 0 ;
+               INT32 sockErrLen = 0 ;
+               rc = getsockopt( sock, SOL_SOCKET, SO_ERROR, &sockErr,
+                                (socklen_t *)&sockErrLen ) ;
+               if ( 0 != rc )
+               {
+                  rc = SDB_SYS ;
+                  goto error ;
+               }
+
+               if ( EISCONN != sockErr )
+               {
+                  rc = SDB_NETWORK ;
+                  goto error ;
+               }
+
+               rc = SDB_OK ;
+            }
+         }
+         else
+         {
+            // connection is established beforce receiving server's message.
+            rc = SDB_OK ;
+         }
+      }
+      else
+      {
+         // readable only is impossible, return SDB_SYS
+         rc = SDB_SYS ;
+         goto error ;
+      }
    }
    // else rc == 0 means socket is connectted immediately
 
