@@ -4950,7 +4950,8 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
 
    try
    {
-      if ( SDB_OK == sdbReply.flags )
+      if ( SDB_OK == sdbReply.flags ||
+           SDB_IXM_REDEF == sdbReply.flags )
       {
          bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
