@@ -114,6 +114,21 @@ namespace vessel
             return _obj.getIndexName();
          }
 
+         BOOLEAN isBuilding()const
+         {
+            return INDEX_STATUS_BUILDING == _status;
+         }
+
+         BOOLEAN isRemoving()const
+         {
+            return INDEX_STATUS_REMOVING == _status;
+         }
+
+         BOOLEAN isTruncating()const
+         {
+            return INDEX_STATUS_TRUNCATING == _status;
+         }
+
          BOOLEAN testIfDuplicatedIfBuilding(const strSlice &name,
                                             const indexKeyPattern &pattern)const;
 
@@ -133,6 +148,8 @@ namespace vessel
          void updateRebuildingHighBound(const scanEntry &highBound);
 
          BOOLEAN getNextRebuildingRangeBound(scanEntry &bound);
+
+         void terminateBuilding();
 
       private:
          BOOLEAN upsertKeyOperation(const scanEntry &entry,
@@ -175,14 +192,19 @@ namespace vessel
 
          void erase(INT32 indexSlot);
 
+         /// 
          unstableIndexContext *find(INT32 indexSlot)const;
 
-         unstableIndexContext *findBuidingContext(INT32 indexSlot)const;
+         OSS_INLINE UINT64 getBitmap()const
+         {
+            return _bitmap;
+         }
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> UNSTABLE_INDEX_MAP;
 
       private:
+         UINT64 _bitmap = 0;
          UNSTABLE_INDEX_MAP _map;
    };//class unstableIndexContextMap
 }//namespace vessel

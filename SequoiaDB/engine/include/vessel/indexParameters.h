@@ -72,16 +72,19 @@ namespace vessel
          BOOLEAN notNull = FALSE;
          BOOLEAN notArray = FALSE;
 
-         /// btree only
+         /******* btree only bein   *******/
 
          /// valid range[0, 2]
          /// 0: no compression
-         /// 1 or 2: the count of columns to be compressed
+         /// 1 or 2: the count of columns to be compressed. (2 is not recommended)
          /// others value: invalid
          UINT32 prefixCompressionColumns = 0;
+         /******* btree only end   *******/
 
-         /// lsm only
+
+         /******* lsm only bein   *******/
          UINT32 columnFamily = 0;
+         /******* lsm only bein   *******/
    };//class indexParameters
 }//namespace vessel
 }//namespace engine

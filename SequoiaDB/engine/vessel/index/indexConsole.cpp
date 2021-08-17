@@ -79,41 +79,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::allocateIndexSlot(INT32 &indexSlot)const
-   {
-      INT32 rc = SDB_OK;
-      indexSlot = -1;
-      UINT64 indexes = 0;
-      UINT64 mask = 1;
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      indexes = (_record->uniqueIndexes | _record->nonUniqueIndexes);
-      if (OSS_UINT64_MAX == indexes)
-      {
-         rc = SDB_DMS_MAX_INDEX;
-         goto error;
-      }
-
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
-      {
-         if (0 == OSS_BIT_TEST(indexes, mask))
-         {
-            indexSlot = i;
-            break;
-         }
-         mask <<= 1;
-      }
-      SDB_ASSERT(0 <= indexSlot, "impossible");
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 indexConsole::createIndex(requestContext *context,
                                    INT32 indexSlot,
                                    UINT32 indexId,
@@ -158,49 +123,6 @@ namespace vessel
       goto done;
    }
 
-
-   INT32 indexConsole::listIndexes(requestContext *context,
-                                   ossPoolVector<bson::BSONObj> &indexes)const
-   {
-      INT32 rc = SDB_OK;
-      UINT64 allIndexes = 0;
-
-      if (!isInitialized())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      allIndexes = (_record->uniqueIndexes | _record->nonUniqueIndexes);
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
-      {
-         bson::BSONObj obj;
-         UINT64 mask = 1;
-         mask <<= i;
-         if (0 == OSS_BIT_TEST(allIndexes, mask))
-         {
-            continue;
-         }
-
-         rc = dumpIndex(context, i, obj);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed ot dump index[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         indexes.push_back(obj);
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
    INT32 indexConsole::dumpIndex(requestContext *context,
                                  INT32 indexSlot,
@@ -426,7 +348,6 @@ namespace vessel
       lsmIndexMeta lsmMeta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
-      dmsRBSOffset dummy;
 
       rc = lsm.init(&context->getEnv()->lsm, lsmMeta);
       if (SDB_OK != rc)
@@ -688,6 +609,75 @@ namespace vessel
       UINT64 indexes = (record->uniqueIndexes | record->nonUniqueIndexes);
       UINT64 mask = ((UINT64)1 << indexSlot);
       return (0 != OSS_BIT_TEST(indexes, mask));
+   }
+
+   INT32 indexConsole::truncateIndex(requestContext *context,
+                                     INT32 indexSlot,
+                                     const indexObject &obj)
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !isValidIndexSlot(indexSlot) ||
+                            !obj.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (INDEX_TYPE_LSM == obj.getIndexType())
+      {
+         rc = lsmTruncate(context, obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to truncate lsm index:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::lsmTruncate(requestContext *context,
+                                   const indexObject &obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(obj.isValid(), "must be valid");
+      globalIndexID gid(context->getCSLogicalID(),
+                        context->getCLLid(),
+                        obj.getIndexID());
+      lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
+      lsmIndex lsm;
+
+      rc = lsm.init(&context->getEnv()->lsm, meta);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
+         goto error;
+      }
+
+      rc = lsm.truncateIndex(context->getSession()->getLastLSN());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate lsm index[%s]:%d",
+                obj.getIndexName().str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

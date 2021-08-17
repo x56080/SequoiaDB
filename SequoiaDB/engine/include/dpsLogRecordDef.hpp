@@ -167,9 +167,11 @@ namespace engine
    {
       ///vessel format
       /// DPS_LOG_PUBLIC_FULLNAME
+
       DPS_LOG_IXCRT_END_IX_SLOT = 100,
       DPS_LOG_IXCRT_END_IX_INDEX_ID = 101,
-      DPS_LOG_IXCRT_END_RC = 102
+      DPS_LOG_IXCRT_END_IX_NAME = 102,
+      DPS_LOG_IXCRT_END_RC = 103
    };
 
    enum DPS_LOG_IXDEL

@@ -68,6 +68,7 @@ namespace vessel
 
    INT32 commitCreateIndexEndLog(requestContext *context,
                                  const strSlice &fullName,
+                                 const strSlice &indexName,
                                  UINT32 indexId,
                                  INT32 indexSlot,
                                  INT32 result);

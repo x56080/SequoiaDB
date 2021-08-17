@@ -93,6 +93,11 @@ namespace vessel
          return INVALID_STRIPING_ID != minStriping;
       }
 
+      OSS_INLINE UINT64 getIndexSlotBitmap()const
+      {
+         return nonUniqueIndexes | uniqueIndexes;
+      }
+
       void reset()
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
@@ -109,7 +114,6 @@ namespace vessel
          compressionDic = INVALID_PAGE_ID;
          uniqueIndexes = 0;
          nonUniqueIndexes = 0;
-         nextIndexId = 0;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
       }
@@ -136,7 +140,6 @@ namespace vessel
       /// index begin
       UINT64 uniqueIndexes = 0;
       UINT64 nonUniqueIndexes = 0;
-      UINT32 nextIndexId = 0;
       
       /// index end
    };//class collectionRecord

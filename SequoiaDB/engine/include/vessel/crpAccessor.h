@@ -70,17 +70,7 @@ namespace vessel
                                CL_MB_ID mbID,
                                UINT64 uniqueIndexes,
                                UINT64 nonuniqueIndexes,
-                               UINT32 indexId,
                                logicalPageBuffer *lpb);
-
-         INT32 createIndex(requestContext *context,
-                           CL_MB_ID mbID,
-                           INT32 slot,
-                           UINT32 indexId,
-                           BOOLEAN isUnique,
-                           const slice &defObj,
-                           const strSlice &csName,
-                           logicalPageBuffer *lpb);
 
       private:
          collectionRecordOnDisk *getWritableDiskRecordPtr(const runtimePageBuffer *rpb,

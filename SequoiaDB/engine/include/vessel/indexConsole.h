@@ -72,9 +72,6 @@ namespace vessel
          void fini();
 
       public:
-
-         INT32 allocateIndexSlot(INT32 &indexSlot)const;
-
          INT32 testIfDuplicated(requestContext *context,
                                 INT32 indexSlot,
                                 const strSlice &indexName,
@@ -89,8 +86,9 @@ namespace vessel
          INT32 releaseIndexSlot(requestContext *context,
                                 INT32 indexSlot);
 
-         INT32 listIndexes(requestContext *context,
-                           ossPoolVector<bson::BSONObj> &indexes)const;
+         INT32 truncateIndex(requestContext *context,
+                             INT32 indexSlot,
+                             const indexObject &obj);
 
          INT32 dumpIndex(requestContext *context,
                          INT32 indexSlot,
@@ -127,6 +125,9 @@ namespace vessel
                          const DPS_TRANS_ID &transID,
                          DPS_LSN_OFFSET lsn,
                          const dmsRecordID &rid);
+
+         INT32 lsmTruncate(requestContext *context,
+                           const indexObject &obj);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,

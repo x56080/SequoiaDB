@@ -170,6 +170,7 @@ namespace vessel
 
    INT32 commitCreateIndexEndLog(requestContext *context,
                                  const strSlice &fullName,
+                                 const strSlice &indexName,
                                  UINT32 indexId,
                                  INT32 indexSlot,
                                  INT32 result)
@@ -180,7 +181,8 @@ namespace vessel
       logRecordContext lrc;
 
       if (NULL == context ||
-          fullName.empty())
+          fullName.empty() ||
+          indexName.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -195,6 +197,7 @@ namespace vessel
       lrc.prepush(fullName.strLen() + 1);
       lrc.prepush(sizeof(INT32));
       lrc.prepush(sizeof(UINT32));
+      lrc.prepush(indexName.strLen() + 1);
       lrc.prepush(sizeof(INT32));
       lrc.prepushDone();
 
@@ -232,6 +235,16 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push element index slot:%d", rc);
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, &lrc,
+                                        DPS_LOG_IXCRT_END_IX_NAME,
+                                        indexName.strLen() + 1,
+                                        indexName.str());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push element indexname:%d", rc);
          goto error;
       }
 

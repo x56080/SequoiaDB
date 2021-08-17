@@ -295,7 +295,6 @@ namespace vessel
                                       CL_MB_ID mbID,
                                       UINT64 uniqueIndexes,
                                       UINT64 nonuniqueIndexes,
-                                      UINT32 indexId,
                                       logicalPageBuffer *lpb)
       {
       INT32 rc = SDB_OK;
@@ -383,7 +382,6 @@ namespace vessel
       }
 
       oldRecord = wptr->record;
-      wptr->record.nextIndexId = indexId;
       wptr->record.uniqueIndexes = uniqueIndexes;
       wptr->record.nonUniqueIndexes = nonuniqueIndexes;
 
@@ -392,7 +390,6 @@ namespace vessel
                            mask, oldRecord, wptr->record);
       if (SDB_OK != rc)
       {
-         wptr->record.nextIndexId = oldRecord.nextIndexId;
          wptr->record.uniqueIndexes = oldRecord.uniqueIndexes;
          wptr->record.nonUniqueIndexes = oldRecord.nonUniqueIndexes;
          PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",

@@ -107,7 +107,7 @@ namespace vessel
    BOOLEAN unstableIndexContext::endToBuildCurrentRangeOrPopKeys(ossPoolList<keyOperation> &keys)
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(!keys.empty(), "must be empty");
+      SDB_ASSERT(keys.empty(), "must be empty");
       
       ossXLatchGuard guard(&_latch);
 
@@ -225,6 +225,12 @@ namespace vessel
               pattern.isCoveredBy(_obj.getPattern()));
    }
 
+   void unstableIndexContext::terminateBuilding()
+   {
+      SDB_ASSERT(isBuilding(), "must be building");
+      _status = INDEX_STATUS_REMOVING;
+   }
+
    ///////////////unstableIndexContextMap
    unstableIndexContextMap::unstableIndexContextMap()
    {}
@@ -280,6 +286,8 @@ namespace vessel
          goto error;
       }
 
+      OSS_BIT_SET(_bitmap, ((UINT64)1 << indexSlot));
+
       if (NULL != context)
       {
          *context = uic;
@@ -299,6 +307,7 @@ namespace vessel
       {
          SDB_OSS_DEL itr->second;
          _map.erase(itr);
+         OSS_BIT_CLEAR(_bitmap, ((UINT64)1 << indexSlot));
       }
       return;
    }
@@ -311,17 +320,6 @@ namespace vessel
       if (_map.end() != itr)
       {
          context = itr->second;
-      }
-      return context;
-   }
-
-   unstableIndexContext *unstableIndexContextMap::findBuidingContext(INT32 indexSlot)const
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      unstableIndexContext *context = find(indexSlot);
-      if (NULL != context && INDEX_STATUS_BUILDING != context->getStatus())
-      {
-         context = NULL;
       }
       return context;
    }

@@ -240,20 +240,30 @@ namespace vessel
                             const indexParameters &params,
                             INT32 &indexSlot);
 
-         /// unstable context must created first.
+         /// unstable context must be created first.
          INT32 onlineBuildIndex(requestContext *context,
                                  INT32 indexSlot,
                                  UINT32 sortBufferSize);
 
-      private: 
+         /// unstable context must be created first.
+         /// status can be truncating or removing.
+         INT32 truncateIndex(requestContext *context,
+                             INT32 indexSlot);
+
+         /// unstable context must be created first.
+         INT32 rollbackCreatingIndex(requestContext *context,
+                                     INT32 indexSlot);
+
+      private:/// need protection by ddl latch
+
          INT32 testIfIndexDuplicated(requestContext *context,
                                      const strSlice &indexName,
                                      const indexKeyPattern &pattern,
                                      BOOLEAN &duplicated);
 
          /// get x latch first
-         INT32 endToBuildIndex(requestContext *context,
-                               INT32 indexSlot);
+         INT32 indexBuildDone(requestContext *context,
+                              unstableIndexContext *uic);
 
          INT32 buildIndexBySortingAndUpdateContext(requestContext *context,
                                                    unstableIndexContext *uic,
@@ -268,6 +278,16 @@ namespace vessel
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
                                               _dmsIxmKeySorter *sorter,
                                               unstableIndexContext *uic);
+         ///get x latch first
+         INT32 terminateIndexBuilding(requestContext *context,
+                                      INT32 indexSlot);
+
+         INT32 allocateIndexSlot();
+
+         OSS_INLINE UINT64 getIndexSlotBitmap()const
+         {
+            return _record.getIndexSlotBitmap() | _unstableIndexes.getBitmap();
+         }
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;
@@ -281,6 +301,7 @@ namespace vessel
          freeSpaceMap _fsm;
 
          unstableIndexContextMap _unstableIndexes;
+         UINT32 _nextIndexId = 0;
 
          ossRWMutex _dmlLatch;
          ossSpinXLatch _extendingLatch;
