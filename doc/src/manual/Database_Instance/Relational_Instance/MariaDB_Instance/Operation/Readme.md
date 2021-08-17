@@ -1,4 +1,4 @@
-SequoiaDB 巨杉数据库支持创建 MariaDB 实例，完全兼容 MariaDB 语法和协议。
+SequoiaDB 巨杉数据库支持创建 MariaDB 实例，且完全兼容 MariaDB。
 
 本章主要介绍 MariaDB 实例的相关操作：
 

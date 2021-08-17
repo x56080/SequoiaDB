@@ -1,7 +1,7 @@
 
 用户可以在 SequoiaDB 巨杉数据库中创建多种类型的数据库实例，以满足上层不同应用程序的需求。数据库实例的访问与使用方式和传统关系型数据库完全兼容，同时其底层所使用的数据从逻辑上完全独立，每个实例拥有自己独立的权限管理、数据管控、甚至可以选择部署在独立的硬件环境或共享设备中。
 
-SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型数据库实例，并且完全兼容 MySQL、MariaDB、PostgreSQL 和 SparkSQL 的语法及协议。用户可以使用 SQL 语句访问 SequoiaDB
+SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型数据库实例，并且完全兼容 MySQL、MariaDB、PostgreSQL 和 SparkSQL。用户可以使用 SQL 语句访问 SequoiaDB
 ，完成对数据的增、删、查、改操作以及其他语法操作。
 
 本章将主要介绍四种关系型数据库实例的操作与开发，帮助用户学习如何创建不同类型的数据库实例，并实现应用程序从传统数据库进行无缝迁移，大幅度降低应用程序开发者的学习成本。

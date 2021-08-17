@@ -1,4 +1,4 @@
-SequoiaDB 巨杉数据库支持创建 PostgreSQL 实例，完全兼容 PostgreSQL 语法和协议。
+SequoiaDB 巨杉数据库支持创建 PostgreSQL 实例，且完全兼容 PostgreSQL。
 
 本章主要介绍 PostgreSQL 实例的相关操作：
 
