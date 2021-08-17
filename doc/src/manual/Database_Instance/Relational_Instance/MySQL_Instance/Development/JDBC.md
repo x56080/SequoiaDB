@@ -16,7 +16,7 @@
     </dependencies>
     ```
 
-2. 假设本地有默认安装的 MySQL 实例，存在 root 用户密码为 123456，连接到该实例并准备样例使用的数据库 db 和表 tb
+2. 假设本地有默认安装的 MySQL 实例，存在 sadbadmin 用户，密码为 123456，连接到该实例并准备样例使用的数据库 db 和表 tb
 
     ```lang-sql
     CREATE DATABASE db;
@@ -44,7 +44,7 @@
     		String hostName = "127.0.0.1";
     		String port = "3306";
     		String databaseName = "db";
-    		String myUser = "root";
+    		String myUser = "sdbadmin";
     		String myPasswd = "123456";
     		String url = "jdbc:mysql://" + hostName + ":" + port + "/" + databaseName + "?useSSL=false";
     		Connection conn = DriverManager.getConnection(url, myUser, myPasswd);
