@@ -76,7 +76,7 @@ namespace vessel
       public:
          IRedoLogger *logger = NULL;
          ISessionManager *sessionMgr = NULL;
-         INDEX_KEY_GENERATOR indexKeyGen;
+         INDEX_KEY_GENERATOR indexKeyGen = indexKeyGenForBsonRecord;
    };//class outerResource
 }//namespace vessel
 }//namespace engine

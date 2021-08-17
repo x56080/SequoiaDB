@@ -34,9 +34,9 @@
 ******************************************************************************/
 
 #include "vessel/indexDefPageAccessor.h"
-#include "vessel/inMemIndexDefObj.h"
 #include "vessel/indexDefPage.h"
 #include "vessel/requestContext.h"
+#include "vessel/indexUtils.h"
 
 namespace engine
 {
@@ -49,10 +49,12 @@ namespace vessel
                                             BOOLEAN &duplicated)const
    {
       INT32 rc = SDB_OK;
-      inMemIndexDefObj obj;
       const runtimePageBuffer *rpb = NULL;
       const indexDefHead *head = NULL;
       ossValuePtr ptr = 0;
+      indexKeyPattern indexPattern;
+      strSlice nameSlice;
+      bson::BSONObj defObj;
 
       if (OSS_UNLIKELY(NULL == context ||
                        indexName.empty() ||
@@ -107,16 +109,16 @@ namespace vessel
          goto error;
       }
 
-      rc = obj.init(*head, slice(head->defObjSize, (const CHAR *)ptr),
-                    lpb->getLogicalPid());
+      defObj = bson::BSONObj((const CHAR *)ptr);
+      rc = indexUtils::parseIndexDefObj(defObj, &nameSlice, &indexPattern, NULL);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init in-mem index obj:%d", rc);
+         PD_LOG(PDERROR, "failed to parse index def obj:%d", rc);
          goto error;
       }
 
-      duplicated = (indexName == obj.getIndexName()) ||
-                    pattern.isCoveredBy(obj.getKeyPattern());
+      duplicated = (indexName == nameSlice) ||
+                    pattern.isCoveredBy(indexPattern);
    done:
       return rc;
    error:
@@ -201,11 +203,10 @@ namespace vessel
 
    INT32 indexDefPageAccessor::dump(requestContext *context,
                                     const logicalPageBuffer *lpb,
-                                    bson::BSONObj &obj)
+                                    bson::BSONObjBuilder &builder)
    {
       INT32 rc = SDB_OK;
       const indexDefHead *head = NULL;
-      bson::BSONObjBuilder builder;
       bson::BSONObj defObj;
       ossValuePtr ptr = 0;
 
@@ -266,7 +267,6 @@ namespace vessel
       builder.appendIntOrLL(VESSEL_INDEX_FIELD_NAME_CREATED_TIME, head->createdTime);
       builder.appendIntOrLL(VESSEL_INDEX_FIELD_NAME_ALTERED_TIME, head->alteredTime);
       builder.appendElements(defObj);
-      obj = builder.obj();
    done:
       return rc;
    error:
@@ -341,6 +341,7 @@ namespace vessel
       }
 
       head->status = newStatus;
+      head->alteredTime = ossGetCurrentMilliseconds();
       lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
    done:
       return rc;
@@ -352,14 +353,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexDefPageAccessor::getOwnedInMemDefObj(requestContext *context,
-                                                   const logicalPageBuffer *lpb,
-                                                   inMemIndexDefObj &obj)
+   INT32 indexDefPageAccessor::getIndexObject(requestContext *context,
+                                              const logicalPageBuffer *lpb,
+                                              indexObject &obj,
+                                              BOOLEAN getOwned)
    {
       INT32 rc = SDB_OK;
       const indexDefHead *readableHead = NULL;
       ossValuePtr ptr = 0;
-      slice objSlice;
+      bson::BSONObj defObj;
+      indexKeyPattern pattern;
+      indexParameters params;
+      strSlice indexName;
       obj.fini();
 
       if (NULL == context ||
@@ -414,21 +419,28 @@ namespace vessel
          goto error;
       }
 
-      objSlice.reset(readableHead->defObjSize, (const CHAR *)ptr);
-
-      rc = obj.init(*readableHead, objSlice, lpb->getLogicalPid());
+      defObj = bson::BSONObj((const CHAR *)ptr);
+      rc = indexUtils::parseIndexDefObj(defObj, &indexName, &pattern, &params);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init in-mem obj:%d", rc);
+         PD_LOG(PDERROR, "failed to parse def obj:%d", rc);
          goto error;
       }
 
-      rc = obj.getOwned();
+      rc = obj.shallowInit(readableHead->indexLogicalID,
+                           indexName,
+                           pattern, params);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get owned:%d", rc);
+         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
          goto error;
       }
+
+      if (getOwned)
+      {
+         obj.getOwned();
+      }
+      
    done:
       return rc;
    error:

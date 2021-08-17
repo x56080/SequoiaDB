@@ -43,9 +43,9 @@ namespace engine
 {
 namespace vessel
 {
-   bson::BSONObj buildIndexDefObj(const strSlice &indexName,
-                                  const indexKeyPattern &keyPattern,
-                                  const indexParameters &params)
+   bson::BSONObj indexUtils::buildIndexDefObj(const strSlice &indexName,
+                                              const indexKeyPattern &keyPattern,
+                                              const indexParameters &params)
    {
       bson::BSONObjBuilder builder;
       SDB_ASSERT(!indexName.empty(), "can not be empty");
@@ -56,6 +56,61 @@ namespace vessel
       builder.append(IXM_KEY_FIELD, keyPattern.getPattern());
       params.exportToBson(builder);
       return builder.obj();
+   }
+
+   INT32 indexUtils::parseIndexDefObj(const bson::BSONObj &obj,
+                                       strSlice *indexName,
+                                       indexKeyPattern *keyPattern,
+                                       indexParameters *params)
+   {
+      INT32 rc = SDB_OK;
+
+      if (NULL != indexName)
+      {
+         indexName->reset();
+         bson::BSONElement ele = obj.getField(IXM_NAME_FIELD);
+         if (bson::String != ele.type())
+         {
+            PD_LOG(PDERROR, "index name not found");
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+         indexName->reset(ele.valuestr());
+      }
+
+      if (NULL != keyPattern)
+      {
+         keyPattern->reset();
+         bson::BSONElement ele = obj.getField(IXM_KEY_FIELD);
+         if (bson::Object != ele.type())
+         {
+            PD_LOG(PDERROR, "index key define not found");
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         rc = keyPattern->set(ele.embeddedObject());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set key pattern from obj:%d", rc);
+            goto error;
+         }
+      }
+
+      if (NULL != params)
+      {
+         if (!params->extractFromBson(obj))
+         {
+            PD_LOG(PDERROR, "failed to extract common options");
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

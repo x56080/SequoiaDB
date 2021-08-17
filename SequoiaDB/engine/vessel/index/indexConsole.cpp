@@ -210,6 +210,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
+      bson::BSONObjBuilder builder;
 
       if (!isInitialized())
       {
@@ -244,12 +245,15 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.dump(context, &lpb, obj);
+      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_SLOT, indexSlot);
+      rc = accessor.dump(context, &lpb, builder);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to dump index info:%d", rc);
          goto error;
       }
+
+      obj = builder.obj();
    done:
       lpb.fini();
       return rc;
@@ -314,15 +318,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::getOwnedIndexDefObj(requestContext *context,
-                                           INT32 indexSlot,
-                                           inMemIndexDefObj &obj)
+   INT32 indexConsole::getOwnedIndexObj(requestContext *context,
+                                        INT32 indexSlot,
+                                        indexObject &obj)
    {
       INT32 rc = SDB_OK;
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
-      obj.fini();
 
       if (!isInitialized())
       {
@@ -351,7 +354,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.getOwnedInMemDefObj(context, &lpb, obj);
+      rc = accessor.getIndexObject(context, &lpb, obj, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get owned in-mem obj:%d", rc);
@@ -365,7 +368,8 @@ namespace vessel
    }
 
    INT32 indexConsole::insert(requestContext *context,
-                              const inMemIndexDefObj &def,
+                              INT32 indexSlot,
+                              const indexObject &obj,
                               const ixmKey &key,
                               const DPS_TRANS_ID &transID,
                               DPS_LSN_OFFSET lsn,
@@ -378,7 +382,8 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            !def.isValid() ||
+                            !isValidIndexSlot(indexSlot) ||
+                            !obj.isValid() ||
                             !key.isValid() ||
                             DPS_INVALID_LSN_OFFSET == lsn ||
                             !rid.isValid()))
@@ -387,9 +392,9 @@ namespace vessel
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == def.getIndexType())
+      if (INDEX_TYPE_LSM == obj.getIndexType())
       {
-         rc = lsmInsert(context, def, key, transID, lsn, rid);
+         rc = lsmInsert(context, obj, key, transID, lsn, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
@@ -407,17 +412,18 @@ namespace vessel
    }
 
    INT32 indexConsole::lsmInsert(requestContext *context,
-                                 const inMemIndexDefObj &def,
+                                 const indexObject &obj,
                                  const ixmKey &key,
                                  const DPS_TRANS_ID &transID,
                                  DPS_LSN_OFFSET lsn,
                                  const dmsRecordID &rid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(obj.isValid(), "must be valid");
       globalIndexID gid(context->getCSLogicalID(),
                         context->getCLLid(),
-                        def.getIndexID());
-      lsmIndexMeta lsmMeta(gid, def.getKeyPattern().getOrdering());
+                        obj.getIndexID());
+      lsmIndexMeta lsmMeta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
       dmsRBSOffset dummy;

@@ -40,6 +40,8 @@
 #include "vessel/slice.h"
 #include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
+#include "vessel/recordID.h"
+#include "dpsTransID.hpp"
 
 namespace engine
 {
@@ -67,6 +69,34 @@ namespace vessel
 
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
+
+         /// cursor type must be CURSOR_TYPE_SCAN_COLLECTION
+         INT32 getNextWhenScanCL(ISession *session,
+                                 slice &record,
+                                 recordID *rid = NULL,
+                                 DPS_TRANS_ID *transID = NULL);
+
+      private:
+         template <class T, class ... Args>
+         INT32 _getNext(ISession *session, Args && ...args)
+         {
+            INT32 rc = SDB_OK;
+            if (!_cursor.isValid())
+            {
+               rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+               goto error;
+            }
+
+            rc = _cursor.get<T>->getNext(session, args...);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         done:
+            return rc;
+         error:
+            goto done;
+         }
 
       private:
          localThreadSharedPointer _cursor;

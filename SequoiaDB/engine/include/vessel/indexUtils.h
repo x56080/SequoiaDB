@@ -45,9 +45,24 @@ namespace engine
 {
 namespace vessel
 {
-   bson::BSONObj buildIndexDefObj(const strSlice &indexName,
-                                  const indexKeyPattern &keyPattern,
-                                  const indexParameters &params);
+   class indexUtils : public SDBObject
+   {
+      public:
+         ~indexUtils() = delete;
+
+      public:
+         static bson::BSONObj buildIndexDefObj(const strSlice &indexName,
+                                                const indexKeyPattern &keyPattern,
+                                                const indexParameters &params);
+
+         /// if output set as null, it will not be parsed.
+         static INT32 parseIndexDefObj(const bson::BSONObj &obj,
+                                       strSlice *indexName,
+                                       indexKeyPattern *keyPattern,
+                                       indexParameters *params);
+   };//class indexUtils
+
+   
 }//namespace vessel
 }//namesapce engine
 

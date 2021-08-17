@@ -40,9 +40,9 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/slice.h"
 #include "vessel/strSlice.h"
-#include "vessel/inMemIndexDefObj.h"
 #include "ixmKey.hpp"
 #include "vessel/recordID.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
@@ -100,28 +100,29 @@ namespace vessel
                                  INT32 indexSlot,
                                  INDEX_STATUS status);
 
-         INT32 getOwnedIndexDefObj(requestContext *context,
-                                   INT32 indexSlot,
-                                   inMemIndexDefObj &obj);
+         INT32 getOwnedIndexObj(requestContext *context,
+                                INT32 indexSlot,
+                                indexObject &obj);
 
       public:
          INT32 insert(requestContext *context,
-                      const inMemIndexDefObj &def,
+                      INT32 indexSlot,
+                      const indexObject &obj,
                       const ixmKey &key,
                       const DPS_TRANS_ID &transID,
                       DPS_LSN_OFFSET lsn,
                       const dmsRecordID &rid);
 
-         INT32 insertWhenBuild(requestContext *context,
-                               INDEX_TYPE type,
-                               INT32 indexSlot,
-                               const indexKeyPattern &pattern,
-                               const ixmKey &key,
-                               const dmsRecordID &rid);
+         INT32 insert(requestContext *context,
+                      INT32 indexSlot,
+                      const ixmKey &key,
+                      const DPS_TRANS_ID &transID,
+                      DPS_LSN_OFFSET lsn,
+                      const dmsRecordID &rid);
 
       private:
          INT32 lsmInsert(requestContext *context,
-                         const inMemIndexDefObj &def,
+                         const indexObject &obj,
                          const ixmKey &key,
                          const DPS_TRANS_ID &transID,
                          DPS_LSN_OFFSET lsn,

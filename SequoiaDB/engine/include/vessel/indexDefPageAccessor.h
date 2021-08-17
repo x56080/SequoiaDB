@@ -41,7 +41,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/slice.h"
 #include "vessel/indexDef.h"
-#include "vessel/inMemIndexDefObj.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
@@ -69,13 +69,14 @@ namespace vessel
                                  INDEX_STATUS newStatus,
                                  logicalPageBuffer *lpb);
 
-         INT32 getOwnedInMemDefObj(requestContext *context,
-                                   const logicalPageBuffer *lpb,
-                                   inMemIndexDefObj &obj);
+         INT32 getIndexObject(requestContext *context,
+                              const logicalPageBuffer *lpb,
+                              indexObject &obj,
+                              BOOLEAN getOwned=TRUE);
 
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,
-                    bson::BSONObj &obj);
+                    bson::BSONObjBuilder &builder);
    };//class indexDefPageAccessor 
 }//namespace vessel
 }//namespace engine

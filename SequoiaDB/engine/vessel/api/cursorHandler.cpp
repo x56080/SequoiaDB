@@ -35,6 +35,7 @@
 
 #include "vessel/cursorHandler.h"
 #include "vessel/cursorKernal.h"
+#include "vessel/scanCLCursor.h"
 
 namespace engine
 {
@@ -91,6 +92,34 @@ namespace vessel
       }
       
       return SDB_VESSEL_RESOURCES_NOT_INIT;
+   }
+
+   INT32 cursorHandler::getNextWhenScanCL(ISession *session,
+                                          slice &record,
+                                          recordID *rid,
+                                          DPS_TRANS_ID *transID)
+   {
+      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (CURSOR_TYPE_SCAN_COLLECTION != _cursor.get<cursorKernal>()->getType())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = _cursor.get<scanCLCursor>()->getNext(session, record, rid, transID);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

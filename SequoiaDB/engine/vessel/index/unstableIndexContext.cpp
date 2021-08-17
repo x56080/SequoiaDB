@@ -52,50 +52,37 @@ namespace vessel
    {
       _indexSlot = -1;
       _obj.fini();
+      _status = INDEX_STATUS_INVALID;
       _rebuildingLow.reset();
       _rebuildingHigh.reset();
       _keys.clear();
    }
 
    INT32 unstableIndexContext::init(INT32 indexSlot,
-                                    const inMemIndexDefObj &obj)
+                                    const indexObject &obj,
+                                    INDEX_STATUS status)
    {
       INT32 rc = SDB_OK;
+      fini();
+
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
                        !obj.isValid() ||
-                       INDEX_STATUS_INVALID == obj.getHead().status ||
-                       INDEX_STATUS_NORMAL == obj.getHead().status))
+                       INDEX_STATUS_INVALID ==status ||
+                       INDEX_STATUS_NORMAL == status))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       _indexSlot = indexSlot;
-      rc = _obj.init(obj.getHead(), obj.getDefObj(), obj.getLpid());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init in-mem obj:%d", rc);
-         goto error;
-      }
-
-      rc = _obj.getOwned();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get obj owned:%d", rc);
-         goto error;
-      }
+      _obj.shallowCopy(obj);
+      _obj.getOwned();
+      _status = status;
    done:
       return rc;
    error:
       fini();
       goto done;
-   }
-
-   void unstableIndexContext::setAsRemoving()
-   {
-      SDB_ASSERT(_obj.isValid(), "must be valid");
-      _obj.setStatus(INDEX_STATUS_REMOVING);
-      return;
    }
 
    BOOLEAN unstableIndexContext::insertKeys(const scanEntry &entry,
@@ -235,7 +222,7 @@ namespace vessel
    {
       return INDEX_STATUS_BUILDING == getStatus() &&
               (_obj.getIndexName() == name ||
-              pattern.isCoveredBy(_obj.getKeyPattern()));
+              pattern.isCoveredBy(_obj.getPattern()));
    }
 
    ///////////////unstableIndexContextMap
@@ -256,15 +243,16 @@ namespace vessel
    }
 
    INT32 unstableIndexContextMap::insert(INT32 indexSlot,
-                                         const inMemIndexDefObj &obj,
+                                         const indexObject &obj,
+                                         INDEX_STATUS status,
                                          unstableIndexContext **context)
    {
       INT32 rc = SDB_OK;
       unstableIndexContext *uic = NULL;
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
                        !obj.isValid() ||
-                       INDEX_STATUS_INVALID == obj.getHead().status ||
-                       INDEX_STATUS_NORMAL == obj.getHead().status))
+                       INDEX_STATUS_INVALID == status ||
+                       INDEX_STATUS_NORMAL == status))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -278,7 +266,7 @@ namespace vessel
          goto error;
       }
 
-      rc = uic->init(indexSlot, obj);
+      rc = uic->init(indexSlot, obj, status);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init context:%d", rc);

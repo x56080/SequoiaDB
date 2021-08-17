@@ -40,17 +40,15 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexObject::init(INT32 indexSlot,
-                           UINT32 indexId,
-                           const strSlice &indexName,
-                           const indexKeyPattern &pattern,
-                           const indexParameters &params)
+   INT32 indexObject::shallowInit(UINT32 indexId,
+                                  const strSlice &indexName,
+                                  const indexKeyPattern &pattern,
+                                  const indexParameters &params)
    {
       INT32 rc = SDB_OK;
       fini();
 
-      if (!isValidIndexSlot(indexSlot) ||
-          INVALID_LOGICAL_INDEX_ID == indexId ||
+      if (INVALID_LOGICAL_INDEX_ID == indexId ||
           indexName.empty() ||
           !pattern.isValid() ||
           !params.isValid())
@@ -59,11 +57,9 @@ namespace vessel
          goto error;
       }
 
-      _indexSlot = indexSlot;
       _indexId = indexId;
-      _indexName.assign(indexName.str(), indexName.strLen());
+      _nameSlice = indexName;
       _pattern = pattern;
-      _pattern.getOwned();
       _params = params;
    done:
       return rc;
@@ -71,10 +67,55 @@ namespace vessel
       goto done;
    }
 
+   INT32 indexObject::init(UINT32 indexId,
+                           const strSlice &indexName,
+                           const indexKeyPattern &pattern,
+                           const indexParameters &params)
+   {
+      INT32 rc = SDB_OK;
+      rc = shallowInit(indexId, indexName, pattern, params);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      getOwned();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void indexObject::shallowCopy(const indexObject &o)
+   {
+      fini();
+      if (o.isValid())
+      {
+         shallowInit(o._indexId, o._nameSlice, o._pattern, o._params);
+      }
+   }
+
+   BOOLEAN indexObject::isOwned()const
+   {
+      return !_indexName.empty();
+   }
+
+   void indexObject::getOwned()
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      if (isValid() && !isOwned())
+      {
+         _indexName.assign(_nameSlice.str(), _nameSlice.strLen());
+         _nameSlice.reset(_indexName.c_str(), _indexName.size());
+         _pattern.getOwned();
+      }
+      return;
+   }
+
    void indexObject::fini()
    {
-      _indexSlot = -1;
       _indexId = INVALID_LOGICAL_INDEX_ID;
+      _nameSlice.reset();
       _indexName.clear();
       _pattern.reset();
       _params = indexParameters();

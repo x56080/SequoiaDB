@@ -41,7 +41,7 @@
 #include "../bson/bson.hpp"
 #include "ossMemPool.hpp"
 #include "vessel/scanEntry.h"
-#include "vessel/inMemIndexDefObj.h"
+#include "vessel/indexObject.h"
 
 namespace engine
 {
@@ -84,11 +84,10 @@ namespace vessel
 
       public:
          INT32 init(INT32 indexSlot,
-                    const inMemIndexDefObj &obj);
+                    const indexObject &obj,
+                    INDEX_STATUS status);
 
          void fini();
-
-         void setAsRemoving();
 
          INT32 getIndexSlot()const
          {
@@ -97,17 +96,17 @@ namespace vessel
 
          UINT32 getIndexId()const
          {
-            return _obj.getHead().indexLogicalID;
+            return _obj.getIndexID();
          }
 
          INDEX_STATUS getStatus()const
          {
-            return (INDEX_STATUS)(_obj.getHead().status);
+            return _status;
          }
 
-         const indexKeyPattern &getPattern()const
+         const indexObject &getIndexObj()const
          {
-            return _obj.getKeyPattern();
+            return _obj;
          }
 
          const strSlice &getName()const
@@ -135,11 +134,6 @@ namespace vessel
 
          BOOLEAN getNextRebuildingRangeBound(scanEntry &bound);
 
-         const indexParameters &getParams()const
-         {
-            return _obj.getParameters();
-         }
-
       private:
          BOOLEAN upsertKeyOperation(const scanEntry &entry,
                                     const bson::BSONObjSet *inserting,
@@ -150,7 +144,8 @@ namespace vessel
 
       private:
          INT32 _indexSlot = -1;
-         inMemIndexDefObj _obj;
+         indexObject _obj;
+         INDEX_STATUS _status = INDEX_STATUS_INVALID;
          ossSpinXLatch _latch;
 
          /// scanning range is [_rebuildingLow, _rebuildingHigh)
@@ -173,7 +168,8 @@ namespace vessel
 
       public:
          INT32 insert(INT32 indexSlot,
-                      const inMemIndexDefObj &obj,
+                      const indexObject &obj,
+                      INDEX_STATUS status,
                       unstableIndexContext **context=NULL);
 
 

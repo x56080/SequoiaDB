@@ -48,27 +48,59 @@ namespace vessel
    class indexObject : public SDBObject
    {
       public:
-         indexObject();
-         ~indexObject();
+         indexObject(){}
+         ~indexObject(){}
+         indexObject(const indexObject &) = delete;
+         indexObject &operator=(const indexObject &) = delete;
 
       public:
-         INT32 init(INT32 indexSlot,
-                    UINT32 indexId,
+         INT32 init(UINT32 indexId,
                     const strSlice &indexName,
                     const indexKeyPattern &pattern,
                     const indexParameters &params);
 
+         INT32 shallowInit(UINT32 indexId,
+                            const strSlice &indexName,
+                            const indexKeyPattern &pattern,
+                            const indexParameters &params);
+
+         void shallowCopy(const indexObject &o);
+
          void fini();
+
+         void getOwned();
+
+         BOOLEAN isOwned()const;
 
          OSS_INLINE BOOLEAN isValid()const
          {
             return INVALID_LOGICAL_INDEX_ID != _indexId;
          }
+         OSS_INLINE UINT32 getIndexID()const
+         {
+            return _indexId;
+         }
+         OSS_INLINE const strSlice &getIndexName()const
+         {
+            return _nameSlice;
+         }
+         OSS_INLINE const indexParameters &getParams()const
+         {
+            return _params;
+         }
+         OSS_INLINE const indexKeyPattern &getPattern()const
+         {
+            return _pattern;
+         }
+         OSS_INLINE INDEX_TYPE getIndexType()const
+         {
+            return _params.type;
+         }
 
 
       private:
-         INT32 _indexSlot = -1;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+         strSlice _nameSlice;
          ossPoolString _indexName;
          indexKeyPattern _pattern;
          indexParameters _params;

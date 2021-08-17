@@ -61,7 +61,6 @@ namespace vessel
    class insertContext;
    class scanCLCursor;
    class IQueryFilter;
-   class inMemIndexDefObj;
 
    class collection: public SDBObject
    {
@@ -252,6 +251,7 @@ namespace vessel
                                      const indexKeyPattern &pattern,
                                      BOOLEAN &duplicated);
 
+         /// get x latch first
          INT32 endToBuildIndex(requestContext *context,
                                INT32 indexSlot);
 
@@ -264,11 +264,10 @@ namespace vessel
                                         _dmsIxmKeySorter *sorter,
                                         UINT32 maxRdpCount,
                                         unstableIndexContext *uic);
-/*
+
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
-                                              inMemIndexDefObj *def,
                                               _dmsIxmKeySorter *sorter,
-                                              unstableIndexContext *uic);*/
+                                              unstableIndexContext *uic);
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;

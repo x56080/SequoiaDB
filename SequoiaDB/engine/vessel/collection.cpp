@@ -594,14 +594,13 @@ namespace vessel
             break;
          }
 
-         cursor->setToScanSlot(rid.getSlotID());
-
          if (rr.isCurrentRecordIsTombstone())
          {
             SDB_ASSERT(FALSE, "TODO");
          }
 
          rid = rr.getCurrentRid();
+         cursor->setToScanSlot(rid.getSlotID());
          transId.setNodeID(rr.getCurrentRecordHead().getTransNode());
          transId.setSN(rr.getCurrentRecordHead().getTransSN());
          record = rr.getCurrentRecordBody();
@@ -1808,6 +1807,7 @@ namespace vessel
       BOOLEAN rollbackIndex = FALSE;
       BOOLEAN rollbackUnstableIndexes = FALSE;
       unstableIndexContext *uic = NULL;
+      indexObject indexObj;
 
       UINT64 newUniqueIndexes = 0;
       UINT64 newUonuniqueIndexes = 0;
@@ -1842,7 +1842,7 @@ namespace vessel
          goto error;
       }
 
-      obj = buildIndexDefObj(indexName, pattern, params);
+      obj = indexUtils::buildIndexDefObj(indexName, pattern, params);
       if ((INT32)MAX_INDEX_DEF_OBJ_SIZE < obj.objsize())
       {
          PD_LOG(PDERROR, "index def obj size over max size:%d", obj.objsize());
@@ -1852,8 +1852,14 @@ namespace vessel
 
       objSlice.reset(obj.objsize(), obj.objdata());
 
-      rc = _unstableIndexes.insert(indexSlot, indexId,
-                                   indexName, pattern,
+      rc = indexObj.shallowInit(indexId, indexName, pattern, params);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
+         goto error;
+      }
+
+      rc = _unstableIndexes.insert(indexSlot, indexObj,
                                    INDEX_STATUS_BUILDING,
                                    &uic);
       if (SDB_OK != rc)
@@ -1976,7 +1982,7 @@ namespace vessel
       rtnIxmKeySorterCreator creator;
       dmsIxmKeySorter *sorter = NULL;
       scanEntry entry;
-      orderingWrapper ow = uic->getPattern().getOrdering();
+      orderingWrapper ow = uic->getIndexObj().getPattern().getOrdering();
 
       if (!uic->getNextRebuildingRangeBound(entry))
       {
@@ -1989,8 +1995,6 @@ namespace vessel
       {
          goto done;
       }
-
-      ow = uic->getPattern().getOrdering();
 
       rc = creator.createSorter(sortBuffer.getCapacity(),
                                 sortBuffer.getBuffer(),
@@ -2017,7 +2021,7 @@ namespace vessel
          goto error;
       }
 
-      //rc = mergeSorterAndContextIntoIndex(context, &obj, sorter, uic);
+      rc = mergeSorterAndContextIntoIndex(context, sorter, uic);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to merge data into index:%d", rc);
@@ -2108,8 +2112,8 @@ namespace vessel
             record = rr.getCurrentRecordBody();
             SDB_ASSERT(record.isValid(), "impossible");
 
-            rc = keyGen(uic->getPattern().getPattern(), 
-                        uic->getParams().notArray,
+            rc = keyGen(uic->getIndexObj().getPattern().getPattern(), 
+                        uic->getIndexObj().getParams().notArray,
                         record,
                         &builder, keySet);
             if (SDB_OK != rc)
@@ -2240,18 +2244,16 @@ namespace vessel
       goto done;
    }
 
-/*
+
    INT32 collection::mergeSorterAndContextIntoIndex(requestContext *context,
-                                                    inMemIndexDefObj *def,
                                                     _dmsIxmKeySorter *sorter,
                                                     unstableIndexContext *uic)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != def, "can not be null");
       SDB_ASSERT(NULL != sorter, "can not be null");
       SDB_ASSERT(NULL != uic, "can not be null");
+      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
 
-      bson::BufBuilder builder;
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       ossPoolList<unstableIndexContext::keyOperation> deltas;
 
@@ -2280,14 +2282,15 @@ namespace vessel
             goto error;
          }
 
-         rc = console.insert(context, *def,
+         rc = console.insert(context, uic->getIndexSlot(),
+                             uic->getIndexObj(),
                              key, DPS_TRANS_ID(),
                              context->getSession()->getLastLSN(),
                              dmsRid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
-                   def->getIndexName().str(), rc);
+                   uic->getName().str(), rc);
             goto error;
          }
       } while (TRUE);
@@ -2302,7 +2305,7 @@ namespace vessel
    error:
       goto done;
    }
-   */
+   
 
    INT32 collection::endToBuildIndex(requestContext *context,
                                      INT32 indexSlot)

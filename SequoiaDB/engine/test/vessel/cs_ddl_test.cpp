@@ -158,7 +158,7 @@ TEST_F(cs_ddl_test, test2)
       }
       else
       {
-         ASSERT_TRUE(FALSE);
+         ASSERT_EQ(rc, SDB_NOSPC);
       }
    }
 

@@ -162,6 +162,8 @@ namespace vessel
                slot = recordSlot();
                continue;
             }
+
+            break;   
          }
 
          if (!slot.isValidAndVisible())
