@@ -931,6 +931,8 @@ vesselFiles = [
       "vessel/index/indexKeyPattern.cpp",
       "vessel/index/inMemIndexDefObj.cpp",
       "vessel/index/indexParameters.cpp",
+      "vessel/index/unstableIndexContext.cpp",
+      "vessel/index/indexKeyGenerator.cpp",
       "vessel/inMemBitmap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",
@@ -986,13 +988,15 @@ vesselFiles = [
       "vessel/indexMappingPageAccessor.cpp",
       "vessel/liteCacheWatcher.cpp",
       "vessel/backgroundWorker.cpp",
-      "vessel/backgroundWorkers.cpp"
+      "vessel/backgroundWorkers.cpp",
+      "vessel/recordReader.cpp"
 ]
 
 lsmFiles = [
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
-      "vessel/lsm/lsmIndex.cpp"
+      "vessel/lsm/lsmIndex.cpp",
+      "vessel/lsm/lsmOwnedRecord.cpp"
 ]
 
 #vessel unit test
