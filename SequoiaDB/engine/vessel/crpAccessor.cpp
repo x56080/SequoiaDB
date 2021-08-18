@@ -66,7 +66,6 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       collectionRecordOnDisk *recordPtr = NULL;
       UINT32 capacity;
-      ossValuePtr ptr = 0;
       CHAR *fullNameBuffer = NULL;
       UINT32 bufferSize = 0;
       strSlice clNameSlice;
@@ -83,12 +82,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = (ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer());
-
-      rc = validatePage(ptr, PAGE_TYPE_CL_META,
-                        lpb->getRuntimeBuffer().getPageSize(),
-                        lpb->getRuntimeBuffer().getGlobalPid().page(),
-                        lpb->getLogicalPid(), lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_CL_META);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -189,7 +183,6 @@ namespace vessel
       collectionRecordOnDisk *wptr = NULL;
       collectionRecord oldRecord;
       UINT32 capacity = 0;
-      ossValuePtr ptr = 0;
       const runtimePageBuffer *rpb = NULL;
       
       if (OSS_UNLIKELY(NULL == context ||
@@ -202,13 +195,8 @@ namespace vessel
       }
 
       rpb = &(lpb->getRuntimeBuffer());
-      ptr = (ossValuePtr)(rpb->getReadOnlyBuffer());
 
-      rc = validatePage(ptr, PAGE_TYPE_CL_META,
-                        rpb->getPageSize(),
-                        rpb->getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_CL_META);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -316,12 +304,7 @@ namespace vessel
       }
 
       rpb = &(lpb->getRuntimeBuffer());
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                        PAGE_TYPE_CL_META,
-                        rpb->getPageSize(),
-                        rpb->getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_CL_META);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",

@@ -72,7 +72,7 @@ namespace vessel
    done:
       return rc;
    error:
-      goto error;
+      goto done;
    }
 
    INT32 replicatedLPS::map(requestContext *context,

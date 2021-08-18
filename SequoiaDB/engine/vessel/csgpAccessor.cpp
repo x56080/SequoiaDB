@@ -34,12 +34,8 @@
 ******************************************************************************/
 
 #include "vessel/csgpAccessor.h"
-#include "vessel/collectionSpaceGlobalPage.h"
 #include "pdTrace.hpp"
-#include "vessel/IRedoLogger.h"
-#include "vessel/logRecordContext.h"
-#include "dpsLogRecordDef.hpp"
-#include "vessel/outerResource.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
@@ -52,5 +48,55 @@ namespace vessel
 
    csgpAccessor::~csgpAccessor()
    {}
+
+   INT32 csgpAccessor::read(requestContext *context,
+                            const logicalPageBuffer *lpb,
+                            csMetaRecord &cmr)
+   {
+      INT32 rc = SDB_OK;
+      const runtimePageBuffer *rpb = NULL;
+      const csMetaRecord *record = NULL;
+
+      if (NULL == context ||
+          NULL == lpb ||
+          !lpb->isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rpb = &(lpb->getRuntimeBuffer());
+      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
+                         PAGE_TYPE_CS_META, rpb->getPageSize(),
+                         rpb->getGlobalPid().page(),
+                         lpb->getLogicalPid(),
+                         lpb->getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                rpb->getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      record = rpb->getReadablePtrOfBody<csMetaRecord>(0);
+      if (NULL == record)
+      {
+         PD_LOG(PDERROR, "failed to get readable record ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!record->isValid())
+      {
+         PD_LOG(PDERROR, "collection space meta data is not valid");
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+      cmr = *record;      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

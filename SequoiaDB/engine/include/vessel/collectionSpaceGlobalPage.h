@@ -61,6 +61,8 @@ namespace vessel
       CMR_TYPE_NORMAL = 1,
    };
 
+   static const PAGE_ID COLLECTION_SPACE_GP_LPID = 0;
+
 #pragma pack(4)
    struct csMetaRecord
    {

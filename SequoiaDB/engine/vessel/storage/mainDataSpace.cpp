@@ -67,7 +67,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       mmapPagePointer ptr;
-      PAGE_ID lpid = 0;
+      PAGE_ID lpid = COLLECTION_SPACE_GP_LPID;
       PAGE_ID pid = 0;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
       ISession *session = NULL;
@@ -219,11 +219,10 @@ namespace vessel
                                                csMetaRecord &record)
    {
       INT32 rc = SDB_OK;
-      mmapPagePointer ptr;
       UINT32 pageSize = 0;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
       const csMetaRecord *recordOnDisk = NULL;
+      logicalPageBuffer lpb;
+      csgpAccessor accessor;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -234,30 +233,20 @@ namespace vessel
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
 
-      rc = logicalPageSpace::getPageMappingAtNonruntime(context, 0, pid, psv, ptr);
+      rc = getLogicalPageBuffer(context, COLLECTION_SPACE_GP_LPID,
+                                OSS_SHARED_LATCH_MODE_SHARED, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page mapping of meta page:%d", rc);
          goto error;
       }
 
-      rc = validatePage(ptr.get(), PAGE_TYPE_CS_META, pageSize,
-                        pid, 0, psv);
+      rc = accessor.read(context, &lpb, record);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to validate page:%d", rc);
+         PD_LOG(PDERROR, "failed to read meta data:%d", rc);
          goto error;
       }
-
-      recordOnDisk = (const csMetaRecord *)(ptr.get() + PAGE_HEAD_SIZE);
-      if (!recordOnDisk->isValid())
-      {
-         PD_LOG(PDERROR, "failed to read valid meta data record");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      
-      record = *recordOnDisk;
 
    done:
       return rc;

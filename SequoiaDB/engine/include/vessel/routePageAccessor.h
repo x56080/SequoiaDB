@@ -58,13 +58,14 @@ namespace vessel
                       const PAGE_ID *lpids,
                       logicalPageBuffer *lpb);
 
-         /// pos can not be sout of current size
+         /// pos can not be out of current size
          INT32 get(requestContext *context,
                    UINT32 pos,
                    const logicalPageBuffer *lpb,
                    PAGE_ID &lpid)const;
 
          INT32 getSizeAndLast(requestContext *context,
+                              INT32 targetLvl,
                               const logicalPageBuffer *lpb,
                               UINT32 &size,
                               PAGE_ID &last)const;

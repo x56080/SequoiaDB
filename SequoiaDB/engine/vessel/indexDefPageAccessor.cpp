@@ -67,12 +67,7 @@ namespace vessel
       duplicated = FALSE;
       rpb = &(lpb->getRuntimeBuffer());
 
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                        PAGE_TYPE_INDEX_DEF,
-                        rpb->getPageSize(),
-                        rpb->getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -150,12 +145,7 @@ namespace vessel
          goto error;
       }
 
-      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
-                        PAGE_TYPE_INDEX_DEF,
-                        lpb->getRuntimeBuffer().getPageSize(),
-                        lpb->getRuntimeBuffer().getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -218,12 +208,7 @@ namespace vessel
          goto error;
       }
 
-      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
-                        PAGE_TYPE_INDEX_DEF,
-                        lpb->getRuntimeBuffer().getPageSize(),
-                        lpb->getRuntimeBuffer().getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -289,12 +274,7 @@ namespace vessel
          goto error;
       }
 
-      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
-                        PAGE_TYPE_INDEX_DEF,
-                        lpb->getRuntimeBuffer().getPageSize(),
-                        lpb->getRuntimeBuffer().getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -375,12 +355,7 @@ namespace vessel
          goto error;
       }
 
-      rc = validatePage((ossValuePtr)(lpb->getRuntimeBuffer().getReadOnlyBuffer()),
-                        PAGE_TYPE_INDEX_DEF,
-                        lpb->getRuntimeBuffer().getPageSize(),
-                        lpb->getRuntimeBuffer().getGlobalPid().page(),
-                        lpb->getLogicalPid(),
-                        lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",

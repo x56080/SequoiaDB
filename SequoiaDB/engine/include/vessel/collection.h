@@ -145,7 +145,6 @@ namespace vessel
          /// User should always validate count and element when return SDB_OK.
          /// Count never shrink but element may be removed.
          INT32 getCountAndLastEleInRoutePage(requestContext *context,
-                                             UINT32 capacity,
                                              PAGE_ID lpid,
                                              INT32 lvl,
                                              UINT32 &count,
@@ -288,6 +287,8 @@ namespace vessel
          {
             return _record.getIndexSlotBitmap() | _unstableIndexes.getBitmap();
          }
+
+         INT32 initIndexesWhenOpen(requestContext *context);
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;

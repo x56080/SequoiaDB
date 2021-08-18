@@ -115,6 +115,16 @@ TEST_F(index_ddl_test, test1)
       ASSERT_EQ(SDB_OK, rc);
    }
 
+   {
+      std::stringstream ss;
+      ss << "index" << 64;
+      std::string indexName = ss.str();
+      strSlice nameSlice(indexName.c_str(), indexName.size());
+      bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
+      rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+      ASSERT_EQ(SDB_DMS_MAX_INDEX, rc);
+   }
+
    rc = cl.listIndexes(&session, indexes);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, indexes.size());
@@ -198,7 +208,7 @@ TEST_F(index_ddl_test, test2)
    rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 10000; ++i)
+   for (UINT32 i = 0; i < 100000; ++i)
    {
       utilInsertResult  r;
       builder.reset();

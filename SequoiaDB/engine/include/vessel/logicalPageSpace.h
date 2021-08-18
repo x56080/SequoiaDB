@@ -127,11 +127,12 @@ namespace vessel
 
       public:
          /// WARNING: Can not guarantee data consistency!
+         /*
          INT32 getPageMappingAtNonruntime(requestContext *context,
                                           PAGE_ID lpid,
                                           PAGE_ID &pid,
                                           PAGE_SNAPSHOT_VERION &psv,
-                                          mmapPagePointer &ptr);
+                                          mmapPagePointer &ptr);*/
 
       public:
          FILE_TYPE getStorageFileType()const;

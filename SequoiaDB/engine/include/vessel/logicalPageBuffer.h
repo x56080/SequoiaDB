@@ -85,6 +85,8 @@ namespace vessel
          void commit(DPS_LSN_OFFSET lsn);
          void abort();
 
+         INT32 validatePage(PAGE_TYPE type)const;
+
       private:
          void init(logicalPageSpace *lps,
                    PAGE_SNAPSHOT_VERION psv,

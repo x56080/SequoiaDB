@@ -83,10 +83,7 @@ namespace vessel
       lid = context->getCLLid();
       rpb = &(lpb->getRuntimeBuffer());
 
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                         PAGE_TYPE_ROUTE, rpb->getPageSize(),
-                         rpb->getGlobalPid().page(), lpb->getLogicalPid(),
-                         lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -200,6 +197,7 @@ namespace vessel
    }
 
    INT32 routePageAccessor::getSizeAndLast(requestContext *context,
+                                           INT32 targetLvl,
                                            const logicalPageBuffer *lpb,
                                            UINT32 &size,
                                            PAGE_ID &last)const
@@ -209,8 +207,11 @@ namespace vessel
       const routePageHead *readableHead = NULL;
       UINT32 offset = 0;
       const PAGE_ID *ptr = NULL;
+      size = 0;
+      last = INVALID_PAGE_ID;
 
       if (OSS_UNLIKELY(NULL == context ||
+                       !isValidRoutePageLvl(targetLvl) ||
                        DMS_INVALID_LOGICCLID == context->getCLLid() ||
                        NULL == lpb ||
                        !lpb->isValid()))
@@ -221,11 +222,7 @@ namespace vessel
 
       rpb = &(lpb->getRuntimeBuffer());
 
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                         PAGE_TYPE_ROUTE, rpb->getPageSize(),
-                         rpb->getGlobalPid().page(),
-                         lpb->getLogicalPid(),
-                         lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -245,6 +242,14 @@ namespace vessel
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
                 context->getCLLid(), readableHead->logicalId);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      if (readableHead->lvl != targetLvl)
+      {
+         PD_LOG(PDERROR, "lvl in head[%d] does not match target[%d]",
+                readableHead->lvl, targetLvl);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -291,11 +296,7 @@ namespace vessel
 
       rpb = &(lpb->getRuntimeBuffer());
 
-      rc = validatePage((ossValuePtr)(rpb->getReadOnlyBuffer()),
-                         PAGE_TYPE_ROUTE, rpb->getPageSize(),
-                         rpb->getGlobalPid().page(),
-                         lpb->getLogicalPid(),
-                         lpb->getCowTrigger().getPsv());
+      rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",

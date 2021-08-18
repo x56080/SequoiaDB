@@ -640,13 +640,10 @@ namespace vessel
 
       for (UINT32 i = 0; i < totalCrpCount; ++i)
       {
-         PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-         mmapPagePointer ptr;
-         PAGE_ID pid = INVALID_PAGE_ID;
          PAGE_ID lpid = COLLECTION_RECORD_PAGE_MIN_LPID + i;
-         
-         rc = mds->getPageMappingAtNonruntime(context, lpid,
-                                              pid, psv, ptr);
+         logicalPageBuffer lpb;
+
+         rc = mds->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
          if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
          {
             rc = SDB_OK;
@@ -654,16 +651,14 @@ namespace vessel
          }
          else if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get mapping of lpid[%d], rc:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", lpid, rc);
             goto error;
          }
 
-         rc = validatePage(ptr.get(), PAGE_TYPE_CL_META,
-                           args.pageSize, pid, lpid,
-                           psv);
+         rc = lpb.validatePage(PAGE_TYPE_CL_META);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to validate page[%d], rc:%d", pid, rc);
+            PD_LOG(PDERROR, "collection record page[%d] may be broken:%d", lpid, rc);
             goto error;
          }
 
@@ -675,7 +670,7 @@ namespace vessel
                break;
             }
 
-            if (!getCollectionRecordIfValid((const void *)(ptr.get()),
+            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getReadOnlyBuffer(),
                                             j, record))
             {
                continue;
@@ -712,6 +707,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != record, "can not be null");
       SDB_ASSERT(record->isValid(), "can not be invalid");
+      SDB_ASSERT(!context->isMbLocked(), "can not be locked");
 
       collectionObjHolder *holder = NULL;
       collection *cl = NULL;
@@ -739,6 +735,14 @@ namespace vessel
          goto error;
       }
 
+      rc = context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock mb[%d]:%d", record->mbID, rc);
+         goto error;
+      }
+      context->setCLLoigcalIdUnderLock(record->logicalCLID);
+
       rc = cl->initWhenOpen(context, *record, this);
       if (SDB_OK != rc)
       {
@@ -759,6 +763,7 @@ namespace vessel
       }
       
    done:
+      context->unlockMB();
       return rc;
    error:
       goto done;

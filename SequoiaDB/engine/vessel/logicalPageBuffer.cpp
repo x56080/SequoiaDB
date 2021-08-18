@@ -107,5 +107,26 @@ namespace vessel
       }
    }
 
+   INT32 logicalPageBuffer::validatePage(PAGE_TYPE type)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
+
+      rc = ::engine::vessel::validatePage((ossValuePtr)(_rpb.getReadOnlyBuffer()),
+                                          type, _rpb.getPageSize(),
+                                          _rpb.getGlobalPid().page(),
+                                          getLogicalPid(),
+                                          getCowTrigger().getPsv());
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

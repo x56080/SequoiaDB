@@ -814,6 +814,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 logicalPageSpace::getPageMappingAtNonruntime(requestContext *context,
                                                       PAGE_ID lpid,
                                                       PAGE_ID &pid,
@@ -865,6 +866,7 @@ namespace vessel
       ptr.reset();
       goto done;
    }
+   */
 
    INT32 logicalPageSpace::initAndMapPages(requestContext *context,
                                            pageInitializer *initer,

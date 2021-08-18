@@ -1071,6 +1071,7 @@ namespace vessel
       for (ossPoolList<SPACE_ID>::const_iterator itr = sidList.begin();
            itr != sidList.end(); ++itr)
       {
+         spaceIDLockHelper lh(context);
          collectionSpace *obj = NULL;
          storageUnit *su = NULL;
          rc = _sus.get(*itr, &su);
@@ -1085,6 +1086,15 @@ namespace vessel
          {
             PD_LOG(PDERROR, "failed to alloate mem");
             rc = SDB_OOM;
+            goto error;
+         }
+
+         /// not necessary locking, just to
+         /// ensure runtime latches can work.
+         rc = lh.lock(*itr, EXCLUSIVE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", *itr, rc);
             goto error;
          }
 

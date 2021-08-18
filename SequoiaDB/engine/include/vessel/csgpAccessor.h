@@ -38,20 +38,23 @@
 
 #include "vessel/pageAccessor.h"
 #include "vessel/collectionSpaceGlobalPage.h"
-#include "vessel/storageFileDef.h"
-#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   
+   class logicalPageBuffer;
    ///collection space global page
    class csgpAccessor : public pageAccessor
    {
       public:
          csgpAccessor();
          virtual ~csgpAccessor();
+
+      public:
+         INT32 read(requestContext *context,
+                    const logicalPageBuffer *lpb,
+                    csMetaRecord &cmr);
       
    };//class csgpAccessor
 }//class vessel

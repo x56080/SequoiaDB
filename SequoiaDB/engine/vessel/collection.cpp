@@ -1005,7 +1005,7 @@ namespace vessel
                                                             COLLECTION_SECOND_ROOT_LVL1);
       _totalRdpCount = _totalLvl0Count * capacity;
 
-      rc = getCountAndLastEleInRoutePage(context, capacity,
+      rc = getCountAndLastEleInRoutePage(context,
                                          _record.routePages[COLLECTION_ROOT_LVL2],
                                          COLLECTION_ROUTE_PAGE_LVL2,
                                          lvl1Count, lastLvl1);
@@ -1023,7 +1023,7 @@ namespace vessel
       _totalLvl0Count += ((lvl1Count - 1) * capacity);
       _totalRdpCount = _totalLvl0Count * capacity;
 
-      rc = getCountAndLastEleInRoutePage(context, capacity,
+      rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl1,
                                          COLLECTION_ROUTE_PAGE_LVL1,
                                          lvl0Count, lastLvl0);
@@ -1041,7 +1041,7 @@ namespace vessel
       _totalLvl0Count += lvl0Count;
       _totalRdpCount += ((lvl0Count - 1) * capacity);
 
-      rc = getCountAndLastEleInRoutePage(context, capacity,
+      rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl0,
                                          COLLECTION_ROUTE_PAGE_LVL0,
                                          rdpCount, lastRdp);
@@ -1096,7 +1096,7 @@ namespace vessel
       }
       _totalRdpCount = _totalLvl0Count * capacity;
 
-      rc = getCountAndLastEleInRoutePage(context, capacity,
+      rc = getCountAndLastEleInRoutePage(context,
                                          lpid,
                                          COLLECTION_ROUTE_PAGE_LVL1,
                                          lvl0Count, lastLvl0);
@@ -1114,7 +1114,7 @@ namespace vessel
       _totalLvl0Count += lvl0Count;
       _totalRdpCount += ((lvl0Count - 1) * capacity);
 
-      rc = getCountAndLastEleInRoutePage(context, capacity,
+      rc = getCountAndLastEleInRoutePage(context,
                                          lastLvl0,
                                          COLLECTION_ROUTE_PAGE_LVL0,
                                          rdpCount, lastRdp);
@@ -1143,17 +1143,7 @@ namespace vessel
       UINT32 rdpCount = 0;
       PAGE_ID lastRdp = INVALID_PAGE_ID;
 
-      UINT32 pageSize = _collectionSpace->getSU()->getMainDataSpace().
-                        getStorageCoreArgs().pageSize;
-      UINT32 capacity = getCapacityOfRoutePage(pageSize);
-      if (0 == capacity)
-      {
-         PD_LOG(PDERROR, "failed to get capacity of route page");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = getCountAndLastEleInRoutePage(context, capacity, lpid,
+      rc = getCountAndLastEleInRoutePage(context, lpid,
                                          COLLECTION_ROUTE_PAGE_LVL0,
                                          rdpCount, lastRdp);
       if (SDB_OK != rc)
@@ -1233,7 +1223,6 @@ namespace vessel
 
 
    INT32 collection::getCountAndLastEleInRoutePage(requestContext *context,
-                                                   UINT32 capacity,
                                                    PAGE_ID lpid,
                                                    INT32 lvl,
                                                    UINT32 &count,
@@ -1241,62 +1230,25 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < capacity, "can not be zero");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(isValidRoutePageLvl(lvl), "must be valid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
 
-      PAGE_ID pid = INVALID_PAGE_ID;
-      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      mmapPagePointer ptr;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
-      const routePageHead *head = NULL;
+      logicalPageBuffer lpb;
+      routePageAccessor accessor;
 
-      rc = mds.getPageMappingAtNonruntime(context, lpid, pid, psv, ptr);
+      rc = mds.getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get mapping of lpid[%d], rc:%d", lpid, rc);
+         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
 
-      rc = validatePage(ptr.get(), PAGE_TYPE_ROUTE,
-                        mds.getStorageCoreArgs().pageSize,
-                        pid, lpid, psv);
+      rc = accessor.getSizeAndLast(context, lvl, &lpb, count, element);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to validate pid[%d], rc:%d", pid, rc);
+         PD_LOG(PDERROR, "failed to get size and last element on page[%d]:%d", lpid, rc);
          goto error;
-      }
-
-      head = (const routePageHead *)(ptr.get() + PAGE_HEAD_SIZE);
-      if (_record.logicalCLID != head->logicalId)
-      {
-         PD_LOG(PDERROR, "cl logical ids not same[%d,%d]",
-                _record.logicalCLID, head->logicalId);
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-      else if (capacity < head->size)
-      {
-         PD_LOG(PDERROR, "invalid count in head:%d", head->size);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      else if (lvl != head->lvl)
-      {
-         PD_LOG(PDERROR, "lvl in head [%d] is not target page lvl[%d] in page[%d]",
-                head->lvl, lvl, lpid);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      count = head->size;
-      if (0 < count)
-      {
-         UINT32 offset = PAGE_HEAD_SIZE + ROUTE_PAGE_HEAD_SIZE;
-         offset += (count - 1) * sizeof(PAGE_ID);
-         const PAGE_ID *tmp = (const PAGE_ID *)(ptr.get() + offset);
-         element = *tmp;
       }
    done:
       return rc;
@@ -1725,7 +1677,8 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.getSizeAndLast(context, &lpb, currentLvl1Count, lvl1);
+      rc = accessor.getSizeAndLast(context, COLLECTION_ROUTE_PAGE_LVL2,
+                                   &lpb, currentLvl1Count, lvl1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get size:%d", rc);
@@ -2649,6 +2602,15 @@ namespace vessel
 
    done:
       return indexSlot;
+   }
+
+   INT32 collection::initIndexesWhenOpen(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine
