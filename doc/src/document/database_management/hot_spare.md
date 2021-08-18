@@ -34,7 +34,7 @@
 2. 创建一个新的热备节点
 
    ```lang-javascript
-   var node1 = dataRG.createNode("sdbserver",11860,"/opt/sequoiadb/database/data/11860")
+   var node1 = spareRG.createNode("sdbserver",11860,"/opt/sequoiadb/database/data/11860")
    ```
 
 3. 启动新增的热备节点
