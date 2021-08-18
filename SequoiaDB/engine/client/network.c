@@ -90,6 +90,12 @@ static INT32 S_KEEPALIVE_INTVL    = 1 ;    // interval between keepalives
 
 INT32 initNetworkTimeout( UINT32 networkTimeout )
 {
+   // ignore unreasonable timeout
+   if ( networkTimeout < 0 || networkTimeout > 7200 )
+   {
+      networkTimeout = S_CONNECT_TIMEOUT ;
+   }
+
    S_CONNECT_TIMEOUT    = networkTimeout ;
    S_TCP_USER_TIMEOUT   = networkTimeout ;
    S_KEEPALIVE_TIME     = networkTimeout ;
