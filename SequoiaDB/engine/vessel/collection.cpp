@@ -62,6 +62,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/recordReader.h"
 #include "ixmIndexKey.hpp"
+#include "vessel/indexDefPageAccessor.h"
 
 namespace engine
 {
@@ -115,6 +116,13 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to open free space map of cl[%d], rc:%d",
                 record.mbID, rc);
+         goto error;
+      }
+
+      rc = initIndexesWhenOpen(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index context:%d", rc);
          goto error;
       }
    done:
@@ -265,7 +273,7 @@ namespace vessel
          if (SDB_VESSEL_INDEX_BUILDING_TERMINATED != rc)
          {
             ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
-            tmpRc = terminateIndexBuilding(context, indexSlot);
+            tmpRc = terminateIndexBuilding(context, indexSlot, TRUE);
             if (SDB_OK != tmpRc)
             {
                PD_LOG(PDSEVERE, "failed to terminate index[%d] building:%d",
@@ -317,16 +325,10 @@ namespace vessel
          goto error;
       }
 
-      
-      rc = console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
       guard.autoLock();
-      bitmap = getIndexSlotBitmap();
+      bitmap = _indexContext.getIndexSlotBitmap();
 
       for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
@@ -1804,30 +1806,23 @@ namespace vessel
       indexConsole console;
 
       BOOLEAN rollbackLog = FALSE;
-      BOOLEAN rollbackIndex = FALSE;
       BOOLEAN rollbackUnstableIndexes = FALSE;
-      unstableIndexContext *uic = NULL;
       indexObject indexObj;
 
       ossScopedRWLock guard(&_dmlLatch, EXCLUSIVE);
 
-      rc = console.init(&_record, &(_collectionSpace->getSU()->getIndexSpace()));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
-      if (INVALID_LOGICAL_INDEX_ID == _nextIndexId)
+      if (_indexContext.hasNoMoreIndexId())
       {
          PD_LOG(PDINFO, "no more available logical index id");
          rc = SDB_DMS_MAX_INDEX;
          goto error;
       }
 
-      indexId = _nextIndexId;
+      indexId = _indexContext.getNextIndexId();
 
-      indexSlot = allocateIndexSlot();
+      indexSlot = _indexContext.findFreeIndexSlot();
       if (!isValidIndexSlot(indexSlot))
       {
          PD_LOG(PDINFO, "no more available index slot");
@@ -1865,9 +1860,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _unstableIndexes.insert(indexSlot, indexObj,
-                                   INDEX_STATUS_BUILDING,
-                                   &uic);
+      rc = _indexContext.unfreeSlotAndSetBuilding(indexSlot, indexObj);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
@@ -1888,7 +1881,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to commit create index log:%d", rc);
          goto error;
       }
-      ++_nextIndexId;
       rollbackLog = TRUE;
 
       rc = console.createIndex(context, indexSlot, indexId, objSlice);
@@ -1897,14 +1889,13 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create index on index space:%d", rc);
          goto error;
       }
-      rollbackIndex = TRUE;
       
    done:
       return rc;
    error:
       if (rollbackUnstableIndexes)
       {
-         _unstableIndexes.erase(indexSlot);
+         _indexContext.freeSlotAndEraseUnstableIndex(indexSlot);
       }
 
       /// rollback log first, we need a new lsn.
@@ -1917,16 +1908,6 @@ namespace vessel
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to commit creating end log, rc:%d", tmpRc);
-         }
-      }
-
-      if (rollbackIndex)
-      {
-         INT32 tmpRc = console.releaseIndexSlot(context, indexSlot);
-         if (SDB_OK != tmpRc)
-         {
-            PD_LOG(PDSEVERE, "failed to rollback index created[%d,%d], rc:%d",
-                   indexSlot, indexId, tmpRc);
          }
       }
       
@@ -2137,7 +2118,7 @@ namespace vessel
          ossRWMutexGuard guard(&_dmlLatch, SHARED);
          /// _totalRdpCount is not protected by latch here.
          UINT32 currentRdpCount = _totalRdpCount;
-         uic = _unstableIndexes.find(indexSlot);
+         uic = _indexContext.findUnstableIndex(indexSlot);
          if (NULL == uic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
@@ -2173,7 +2154,7 @@ namespace vessel
 
       {
          ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
-         uic = _unstableIndexes.find(indexSlot);
+         uic = _indexContext.findUnstableIndex(indexSlot);
          if (NULL == uic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
@@ -2235,12 +2216,7 @@ namespace vessel
       ossPoolList<unstableIndexContext::keyOperation> deltas;
 
       indexConsole console;
-      rc = console.init(&_record, &is);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &is);
 
       do
       {
@@ -2291,19 +2267,12 @@ namespace vessel
       SDB_ASSERT(NULL != uic, "can not be null");
       SDB_ASSERT(uic->isBuilding(), "must be building");
 
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
       UINT32 indexId = uic->getIndexId();
       INT32 indexSlot = uic->getIndexSlot();
       ossPoolString fullName;
       strSlice nameSlice;
-      logicalPageBuffer lpb;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      crpAccessor accessor;
-      UINT64 uniqueIndexes = 0;
-      UINT64 nonuniqeIndexes = 0;
-      UINT64 mask = 1;
 
 
       fullName.append(_collectionSpace->getCSName());
@@ -2311,12 +2280,7 @@ namespace vessel
       fullName.append(_record.name);
       nameSlice.reset(fullName.c_str(), fullName.size());
 
-      rc = console.init(&_record, &is);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &is);
 
       rc = console.updateIndexStatus(context, indexSlot,
                                      INDEX_STATUS_NORMAL);
@@ -2326,43 +2290,6 @@ namespace vessel
                 indexSlot, rc);
          goto error;
       }
-
-      mask <<= uic->getIndexSlot();
-      uniqueIndexes = _record.uniqueIndexes;
-      nonuniqeIndexes = _record.nonUniqueIndexes;
-      if (uic->getIndexObj().getParams().isUnique)
-      {
-         OSS_BIT_SET(uniqueIndexes, mask);
-      }
-      else
-      {
-         OSS_BIT_SET(nonuniqeIndexes, mask);
-      }
-
-      lpid = getCrpLpidOfCollection(getDataPageSize(), _record.mbID);
-      if (INVALID_PAGE_ID == lpid)
-      {
-         PD_LOG(PDERROR, "failed to get crp lpid");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = mds.getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.updateIndexInfo(context, _record.mbID,
-                                    uniqueIndexes, nonuniqeIndexes, &lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update collection record:%d", rc);
-         goto error;
-      }
-
-      lpb.fini();
 
       rc = commitCreateIndexEndLog(context, nameSlice,
                                    uic->getName(),
@@ -2376,12 +2303,9 @@ namespace vessel
          goto error;
       }
 
-      _unstableIndexes.erase(indexSlot);
+      _indexContext.eraseUnstableIndex(indexSlot);
       uic = NULL;
-      _record.uniqueIndexes = uniqueIndexes;
-      _record.nonUniqueIndexes = nonuniqeIndexes;
    done:
-      lpb.fini();
       return rc;
    error:
       goto done;
@@ -2404,19 +2328,14 @@ namespace vessel
       UINT64 indexes = 0;
       UINT64 mask = 1;
 
-      rc = console.init(&_record, &is);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &is);
 
-      indexes = getIndexSlotBitmap();
+      indexes = _indexContext.getIndexSlotBitmap();
       for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
          if (0 != OSS_BIT_TEST(indexes, mask))
          {
-            unstableIndexContext *uic = _unstableIndexes.find(i);
+            unstableIndexContext *uic = _indexContext.findUnstableIndex(i);
             if (NULL == uic)
             {
                rc = console.testIfDuplicated(context, i, indexName, pattern, duplicated);
@@ -2431,7 +2350,7 @@ namespace vessel
                   goto done;
                }
             }
-            else if (uic->testIfDuplicatedIfBuilding(indexName, pattern))
+            else if (uic->testDuplicatedIfBuilding(indexName, pattern))
             {
                duplicated = TRUE;
                goto done;
@@ -2458,7 +2377,7 @@ namespace vessel
       indexConsole console;
 
       ossRWMutexGuard guard(&_dmlLatch, SHARED);
-      uic = _unstableIndexes.find(indexSlot);
+      uic = _indexContext.findUnstableIndex(indexSlot);
       if (NULL == uic)
       {
          PD_LOG(PDERROR, "context of index[%d] not found", indexSlot);
@@ -2472,12 +2391,7 @@ namespace vessel
          goto error;
       }
 
-      rc = console.init(&_record, &is);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &is);
 
       rc = console.truncateIndex(context, indexSlot, uic->getIndexObj());
       if (SDB_OK != rc)
@@ -2492,11 +2406,12 @@ namespace vessel
    }
 
    INT32 collection::terminateIndexBuilding(requestContext *context,
-                                            INT32 indexSlot)
+                                            INT32 indexSlot,
+                                            BOOLEAN remove)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
-      unstableIndexContext *uic = _unstableIndexes.find(indexSlot);
+      unstableIndexContext *uic = _indexContext.findUnstableIndex(indexSlot);
       if (NULL == uic)
       {
          PD_LOG(PDERROR, "index[%d] context not found", indexSlot);
@@ -2506,11 +2421,11 @@ namespace vessel
       else if (!uic->isBuilding())
       {
          PD_LOG(PDERROR, "index[%d] not building", indexSlot);
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      uic->terminateBuilding();
+      uic->terminateBuilding(remove);
    done:
       return rc;
    error:
@@ -2532,7 +2447,7 @@ namespace vessel
 
       ossRWMutexGuard(&_dmlLatch, EXCLUSIVE);
 
-      uic = _unstableIndexes.find(indexSlot);
+      uic = _indexContext.findUnstableIndex(indexSlot);
       if (NULL == uic)
       {
          PD_LOG(PDERROR, "index[%d] context not found", indexSlot);
@@ -2540,12 +2455,7 @@ namespace vessel
          goto error;
       }
 
-      rc = console.init(&_record, &is);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index console:%d", rc);
-         goto error;
-      }
+      console.init(_record.mbID, &is);
 
       fullName.append(_collectionSpace->getCSName());
       fullName.append(".");
@@ -2563,10 +2473,10 @@ namespace vessel
          goto error;
       }
 
-      _unstableIndexes.erase(indexSlot);
+      _indexContext.freeSlotAndEraseUnstableIndex(indexSlot);
       uic = NULL;
 
-      rc = console.releaseIndexSlot(context, indexSlot);
+      rc = console.releaseIndexDefPage(context, indexSlot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to release index def page:%d", rc);
@@ -2578,35 +2488,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::allocateIndexSlot()
-   {
-      INT32 indexSlot = -1;
-      UINT64 indexes = (_record.uniqueIndexes | _record.nonUniqueIndexes);
-      indexes |= _unstableIndexes.getBitmap();
-      UINT64 mask = 1;
-
-      if (OSS_UINT64_MAX == indexes)
-      {
-         goto done;
-      }
-      
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
-      {
-         if (0 == OSS_BIT_TEST(indexes, mask))
-         {
-            indexSlot = i;
-            break;
-         }
-         mask <<= 1;
-      }
-
-   done:
-      return indexSlot;
-   }
-
    INT32 collection::initIndexesWhenOpen(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      indexDefPageAccessor accessor;
+
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+
+      console.init(_record.mbID, &is);
+
+      rc = console.loadIndexesWhenStartup(context, &_indexContext);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index context:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:

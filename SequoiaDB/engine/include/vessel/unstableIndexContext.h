@@ -129,8 +129,8 @@ namespace vessel
             return INDEX_STATUS_TRUNCATING == _status;
          }
 
-         BOOLEAN testIfDuplicatedIfBuilding(const strSlice &name,
-                                            const indexKeyPattern &pattern)const;
+         BOOLEAN testDuplicatedIfBuilding(const strSlice &name,
+                                          const indexKeyPattern &pattern)const;
 
          BOOLEAN insertKeys(const scanEntry &entry,
                             const bson::BSONObjSet &keys);
@@ -149,7 +149,7 @@ namespace vessel
 
          BOOLEAN getNextRebuildingRangeBound(scanEntry &bound);
 
-         void terminateBuilding();
+         void terminateBuilding(BOOLEAN remove);
 
       private:
          BOOLEAN upsertKeyOperation(const scanEntry &entry,
@@ -172,41 +172,6 @@ namespace vessel
          _KEY_MAP _keys;
          
    };//class unstableIndexContext
-
-   typedef ossPoolMap<INT32, unstableIndexContext*> UNSTABLE_INDEX_MAP;
-
-   class unstableIndexContextMap : public SDBObject
-   {
-      public:
-         unstableIndexContextMap();
-         ~unstableIndexContextMap();
-         unstableIndexContextMap(const unstableIndexContextMap &) = delete;
-         unstableIndexContextMap &operator=(const unstableIndexContextMap &) = delete;
-
-      public:
-         INT32 insert(INT32 indexSlot,
-                      const indexObject &obj,
-                      INDEX_STATUS status,
-                      unstableIndexContext **context=NULL);
-
-
-         void erase(INT32 indexSlot);
-
-         /// 
-         unstableIndexContext *find(INT32 indexSlot)const;
-
-         OSS_INLINE UINT64 getBitmap()const
-         {
-            return _bitmap;
-         }
-
-      private:
-         typedef ossPoolMap<INT32, unstableIndexContext*> UNSTABLE_INDEX_MAP;
-
-      private:
-         UINT64 _bitmap = 0;
-         UNSTABLE_INDEX_MAP _map;
-   };//class unstableIndexContextMap
 }//namespace vessel
 }//namespace engine
 

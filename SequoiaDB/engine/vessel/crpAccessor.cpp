@@ -279,6 +279,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 crpAccessor::updateIndexInfo(requestContext *context,
                                       CL_MB_ID mbID,
                                       UINT64 uniqueIndexes,
@@ -395,6 +396,7 @@ namespace vessel
       }
       goto done;
    }
+   */
 
    collectionRecordOnDisk *crpAccessor::getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
                                                                  UINT32 i)

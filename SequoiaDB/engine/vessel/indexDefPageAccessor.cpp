@@ -123,7 +123,7 @@ namespace vessel
    INT32 indexDefPageAccessor::createIndex(requestContext *context,
                                            UINT32 indexId,
                                            const slice &defObj,
-                                           logicalPageBuffer *lpb)
+                                           logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
       indexDefHead head;
@@ -193,7 +193,7 @@ namespace vessel
 
    INT32 indexDefPageAccessor::dump(requestContext *context,
                                     const logicalPageBuffer *lpb,
-                                    bson::BSONObjBuilder &builder)
+                                    bson::BSONObjBuilder &builder)const
    {
       INT32 rc = SDB_OK;
       const indexDefHead *head = NULL;
@@ -260,7 +260,7 @@ namespace vessel
 
    INT32 indexDefPageAccessor::updateIndexStatus(requestContext *context,
                                                  INDEX_STATUS newStatus,
-                                                 logicalPageBuffer *lpb)
+                                                 logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
       const indexDefHead *readableHead = NULL;
@@ -336,7 +336,8 @@ namespace vessel
    INT32 indexDefPageAccessor::getIndexObject(requestContext *context,
                                               const logicalPageBuffer *lpb,
                                               indexObject &obj,
-                                              BOOLEAN getOwned)
+                                              BOOLEAN getOwned,
+                                              indexDefHead *out)const
    {
       INT32 rc = SDB_OK;
       const indexDefHead *readableHead = NULL;
@@ -415,13 +416,17 @@ namespace vessel
       {
          obj.getOwned();
       }
+
+      if (NULL != out)
+      {
+         *out = *readableHead;
+      }
       
    done:
       return rc;
    error:
       obj.fini();
       goto done;
-   }
-                                                 
+   }      
 }//namespace vessel
 }//namespace engine

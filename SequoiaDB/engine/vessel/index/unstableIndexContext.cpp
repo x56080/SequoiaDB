@@ -217,111 +217,25 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN unstableIndexContext::testIfDuplicatedIfBuilding(const strSlice &name,
-                                                            const indexKeyPattern &pattern)const
+   BOOLEAN unstableIndexContext::testDuplicatedIfBuilding(const strSlice &name,
+                                                          const indexKeyPattern &pattern)const
    {
       return INDEX_STATUS_BUILDING == getStatus() &&
               (_obj.getIndexName() == name ||
               pattern.isCoveredBy(_obj.getPattern()));
    }
 
-   void unstableIndexContext::terminateBuilding()
+   void unstableIndexContext::terminateBuilding(BOOLEAN remove)
    {
       SDB_ASSERT(isBuilding(), "must be building");
-      _status = INDEX_STATUS_REMOVING;
-   }
-
-   ///////////////unstableIndexContextMap
-   unstableIndexContextMap::unstableIndexContextMap()
-   {}
-
-   unstableIndexContextMap::~unstableIndexContextMap()
-   {
-      UNSTABLE_INDEX_MAP::const_iterator itr = _map.begin();
-      for (; itr != _map.end(); ++itr)
+      if (remove)
       {
-         if (NULL != itr->second)
-         {
-            SDB_OSS_DEL itr->second;
-         }
+         _status = INDEX_STATUS_REMOVING;
       }
-      _map.clear();
-   }
-
-   INT32 unstableIndexContextMap::insert(INT32 indexSlot,
-                                         const indexObject &obj,
-                                         INDEX_STATUS status,
-                                         unstableIndexContext **context)
-   {
-      INT32 rc = SDB_OK;
-      unstableIndexContext *uic = NULL;
-      if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
-                       !obj.isValid() ||
-                       INDEX_STATUS_INVALID == status ||
-                       INDEX_STATUS_NORMAL == status))
+      else
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         _status = INDEX_STATUS_TRUNCATING;
       }
-
-      uic = SDB_OSS_NEW unstableIndexContext();
-      if (NULL == uic)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = uic->init(indexSlot, obj, status);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init context:%d", rc);
-         goto error;
-      }
-
-      if (!_map.insert(std::make_pair(indexSlot, uic)).second)
-      {
-         PD_LOG(PDERROR, "duplicated index slot:%d", indexSlot);
-         rc = SDB_VESSEL_DUPLICATED_KEY;
-         goto error;
-      }
-
-      OSS_BIT_SET(_bitmap, ((UINT64)1 << indexSlot));
-
-      if (NULL != context)
-      {
-         *context = uic;
-      }
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(uic);
-      goto done;
-   }
-
-   void unstableIndexContextMap::erase(INT32 indexSlot)
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      UNSTABLE_INDEX_MAP::const_iterator itr = _map.find(indexSlot);
-      if (_map.end() != itr)
-      {
-         SDB_OSS_DEL itr->second;
-         _map.erase(itr);
-         OSS_BIT_CLEAR(_bitmap, ((UINT64)1 << indexSlot));
-      }
-      return;
-   }
-
-   unstableIndexContext *unstableIndexContextMap::find(INT32 indexSlot)const
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      unstableIndexContext *context = NULL;
-      UNSTABLE_INDEX_MAP::const_iterator itr = _map.find(indexSlot);
-      if (_map.end() != itr)
-      {
-         context = itr->second;
-      }
-      return context;
    }
 }//namespace vessel
 }//namespace engine

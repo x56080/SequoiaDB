@@ -42,6 +42,7 @@
 #include "vessel/slice.h"
 #include "vessel/indexDef.h"
 #include "vessel/indexObject.h"
+#include "vessel/indexDefPage.h"
 
 namespace engine
 {
@@ -63,20 +64,24 @@ namespace vessel
          INT32 createIndex(requestContext *context,
                            UINT32 indexId,
                            const slice &defObj,
-                           logicalPageBuffer *lpb);
+                           logicalPageBuffer *lpb)const;
 
          INT32 updateIndexStatus(requestContext *context,
                                  INDEX_STATUS newStatus,
-                                 logicalPageBuffer *lpb);
+                                 logicalPageBuffer *lpb)const;
 
+         /// WARNING: Do not accesses obj any more after fini lpb if
+         /// not owned.
          INT32 getIndexObject(requestContext *context,
                               const logicalPageBuffer *lpb,
                               indexObject &obj,
-                              BOOLEAN getOwned=TRUE);
+                              BOOLEAN getOwned = TRUE,
+                              indexDefHead *out = NULL)const;
 
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,
-                    bson::BSONObjBuilder &builder);
+                    bson::BSONObjBuilder &builder)const;
+
    };//class indexDefPageAccessor 
 }//namespace vessel
 }//namespace engine

@@ -193,7 +193,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isInLruList()const
          {
-            /// Do not user lru pre/next ptr to check if in lru list.
+            /// Do not use lru pre/next ptr to check if in lru list.
             /// Ptrs may modified with out holding accessing latch by lru.
             /// Or, if this is only one tuple in list, both pre and next
             /// are null.
@@ -207,6 +207,7 @@ namespace vessel
             _lruPre = pre;
             _lruNext = next;
             _lruTouchCnt = 0;
+            _lruTouchCntUpdatedTime = 0;
          }
 
          OSS_INLINE void removeFromLru()
@@ -214,6 +215,7 @@ namespace vessel
             _lruPre = NULL;
             _lruNext = NULL;
             _lruTouchCnt = 0;
+            _lruTouchCntUpdatedTime = 0;
             OSS_BIT_CLEAR(_flags, LC_TAG_FLAG_IN_LRU_LIST);
          }
 
@@ -227,11 +229,6 @@ namespace vessel
             ++_lruTouchCnt;
          }
 
-         OSS_INLINE void incLruTouchCntWithAtom()
-         {
-            ossFetchAndIncrement32(&_lruTouchCnt);
-         }
-
          OSS_INLINE UINT32 fetchLruTouchCnt()
          {
             return ossAtomicFetch32(&_lruTouchCnt);
@@ -240,6 +237,16 @@ namespace vessel
          OSS_INLINE UINT32 getLruTouchCnt()const
          {
             return _lruTouchCnt;
+         }
+
+         OSS_INLINE UINT64 getLruTouchCntUpdatedTime()const
+         {
+            return _lruTouchCntUpdatedTime;
+         }
+
+         OSS_INLINE void setLruTouchCntUpdatedTime(UINT64 millis)
+         {
+            _lruTouchCntUpdatedTime = millis;
          }
 
          OSS_INLINE void setLruPre(liteCachePageTag *pre)
@@ -412,6 +419,7 @@ namespace vessel
          
          /// lru list, protected by lru latch and accessing latch(except _lruTouchCnt)
          UINT32 _lruTouchCnt = 0;
+         UINT64 _lruTouchCntUpdatedTime = 0;
          liteCachePageTag *_lruPre = NULL;
          liteCachePageTag *_lruNext = NULL;
 

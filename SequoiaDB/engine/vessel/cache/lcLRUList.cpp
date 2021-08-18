@@ -145,12 +145,14 @@ namespace vessel
       {
          insertToMiddle(tag);
          tag->setLruTouchCnt(beginTouchCount);
+         tag->setLruTouchCntUpdatedTime(ossGetCurrentMilliseconds());
          tryToTuneRightMiddle();
       }
       else
       {
          insertToHead(tag);
          tag->setLruTouchCnt(beginTouchCount);
+         tag->setLruTouchCntUpdatedTime(ossGetCurrentMilliseconds());
          if (_size == _options.lruMinSplitSize)
          {
             splitLRU();
@@ -167,6 +169,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       liteCachePageTag *tag = NULL;
+      UINT64 currentMillis = 0;
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -175,7 +178,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_NONE == holder.getLockMode()))
+      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
          SDB_ASSERT(FALSE, "impossible");
@@ -189,15 +192,14 @@ namespace vessel
          goto error;
       }
 
+      currentMillis = ossGetCurrentMilliseconds();
       tag = holder.tag();
-      if (OSS_SHARED_LATCH_MODE_EXCLUSIVE == holder.getLockMode())
+      if ((_options._lruTouchCountFrozenTime + tag->getLruTouchCntUpdatedTime()) <
+           currentMillis)
       {
          tag->incLruTouchCnt();
-      }
-      else
-      {
-         tag->incLruTouchCntWithAtom();
-      }    
+         tag->setLruTouchCntUpdatedTime(currentMillis);
+      }   
       
    done:
       return rc;

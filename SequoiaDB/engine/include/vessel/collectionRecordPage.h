@@ -59,7 +59,6 @@ namespace vessel
    const static UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
 
    const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x01ull;
-   const static UINT64 COLLECTION_UPDATE_MASK_INDEX_INFO = 0x02ull;
 
    enum COLLECTION_TYPE
    {
@@ -93,11 +92,6 @@ namespace vessel
          return INVALID_STRIPING_ID != minStriping;
       }
 
-      OSS_INLINE UINT64 getIndexSlotBitmap()const
-      {
-         return nonUniqueIndexes | uniqueIndexes;
-      }
-
       void reset()
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
@@ -112,8 +106,6 @@ namespace vessel
          maxStriping = INVALID_STRIPING_ID;
          compressionType = UTIL_COMPRESSOR_INVALID;
          compressionDic = INVALID_PAGE_ID;
-         uniqueIndexes = 0;
-         nonUniqueIndexes = 0;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
       }
@@ -136,12 +128,6 @@ namespace vessel
       {INVALID_PAGE_ID,INVALID_PAGE_ID, INVALID_PAGE_ID,INVALID_PAGE_ID};
 
       UINT32 compressionDic = INVALID_PAGE_ID;
-
-      /// index begin
-      UINT64 uniqueIndexes = 0;
-      UINT64 nonUniqueIndexes = 0;
-      
-      /// index end
    };//class collectionRecord
    const UINT32 COLLECTION_RECORD_LEN = sizeof(collectionRecord);
 

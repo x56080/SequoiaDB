@@ -51,6 +51,7 @@ namespace vessel
       UINT32 capacity = 0;
       const PAGE_ID *page = NULL;
       runtimePageBuffer *rpb = NULL;
+      lpid = INVALID_PAGE_ID;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !lpb.isValid()))
@@ -91,13 +92,15 @@ namespace vessel
          goto error;
       }
       
-      if (INVALID_PAGE_ID == *page)
+      if (INVALID_PAGE_ID != *page)
       {
-         rc = SDB_VESSEL_PAGE_NOT_EXISTS;
+         lpid = *page;
+      }
+      else
+      {
+         rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-
-      lpid = *page;
    done:
       return rc;
    error:

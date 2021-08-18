@@ -71,6 +71,7 @@ namespace vessel
          }
 
       public:
+         ///lpid may be invalid 
          INT32 getIndexDefPage(requestContext *context,
                                CL_MB_ID mbID,
                                INT32 slot,

@@ -145,6 +145,7 @@ namespace vessel
                                storageUnit *su)
    {
       INT32 rc = SDB_OK;
+      
       SDB_ASSERT(!isOpen(), "do not reopen");
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == su ||
@@ -153,6 +154,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      SDB_ASSERT(context->getSpaceID() == su->getSpaceID(), "must be same");
 
       _isOpen = TRUE;
       _su = su;
@@ -163,6 +166,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to read meta data when open:%d", rc);
          goto error;
       }
+      context->setCSLidUnderLock(_recordInMem.logicalID);
 
       rc = initInMemStructures();
       if (SDB_OK != rc)

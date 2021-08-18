@@ -3091,14 +3091,6 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_PAGE_NOT_EXISTS</name>
-         <description>
-            <en>page does not exist</en>
-            <cn>数据页不存在</cn>
-         </description>
-      </code>
-
-      <code>
          <name>SDB_VESSEL_FS_UPPER_LIMIT</name>
          <description>
             <en>the space of file reaches the upper limit</en>

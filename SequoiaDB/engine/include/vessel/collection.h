@@ -48,7 +48,7 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/indexParameters.h"
-#include "vessel/unstableIndexContext.h"
+#include "vessel/collectionIndexContext.h"
 
 namespace engine
 {
@@ -279,14 +279,8 @@ namespace vessel
                                               unstableIndexContext *uic);
          ///get x latch first
          INT32 terminateIndexBuilding(requestContext *context,
-                                      INT32 indexSlot);
-
-         INT32 allocateIndexSlot();
-
-         OSS_INLINE UINT64 getIndexSlotBitmap()const
-         {
-            return _record.getIndexSlotBitmap() | _unstableIndexes.getBitmap();
-         }
+                                      INT32 indexSlot,
+                                      BOOLEAN remove);
 
          INT32 initIndexesWhenOpen(requestContext *context);
 
@@ -301,8 +295,7 @@ namespace vessel
          UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
 
-         unstableIndexContextMap _unstableIndexes;
-         UINT32 _nextIndexId = 0;
+         collectionIndexContext _indexContext;
 
          ossRWMutex _dmlLatch;
          ossSpinXLatch _extendingLatch;

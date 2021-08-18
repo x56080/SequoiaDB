@@ -54,8 +54,7 @@ namespace vessel
    {
       PAGE_ID lpid = INVALID_PAGE_ID;
       if (INVALID_CL_MB_ID != mbID &&
-          isValidIndexSlot(slot) &&
-          slot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
+          isValidIndexSlot(slot))
       {
          lpid = mbID * DIRECT_MAPPING_INDEX_COUNT_PER_CL + slot;
       }

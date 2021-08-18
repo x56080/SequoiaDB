@@ -220,7 +220,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 pageSize = 0;
-      const csMetaRecord *recordOnDisk = NULL;
       logicalPageBuffer lpb;
       csgpAccessor accessor;
 

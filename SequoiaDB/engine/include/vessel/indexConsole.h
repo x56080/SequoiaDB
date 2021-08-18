@@ -43,15 +43,15 @@
 #include "ixmKey.hpp"
 #include "vessel/recordID.h"
 #include "vessel/indexObject.h"
+#include "vessel/indexSpace.h"
 
 namespace engine
 {
    class dmsRBSOffset;
 namespace vessel
 {
-   struct collectionRecord;
-   class indexSpace;
    class requestContext;
+   class collectionIndexContext;
 
    class indexConsole : public SDBObject
    {
@@ -64,11 +64,10 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isInitialized()const
          {
-            return NULL != _record;
+            return INVALID_CL_MB_ID != _mbID;
          }
       public:
-         INT32 init(const collectionRecord *record,
-                    indexSpace *is);
+         void init(CL_MB_ID mbID, indexSpace *is);
          void fini();
 
       public:
@@ -83,8 +82,8 @@ namespace vessel
                            UINT32 indexId,
                            const slice &defObj)const;
 
-         INT32 releaseIndexSlot(requestContext *context,
-                                INT32 indexSlot);
+         INT32 releaseIndexDefPage(requestContext *context,
+                                   INT32 indexSlot);
 
          INT32 truncateIndex(requestContext *context,
                              INT32 indexSlot,
@@ -101,6 +100,9 @@ namespace vessel
          INT32 getOwnedIndexObj(requestContext *context,
                                 INT32 indexSlot,
                                 indexObject &obj);
+
+         INT32 loadIndexesWhenStartup(requestContext *context,
+                                      collectionIndexContext *indexContext);
 
       public:
          INT32 insert(requestContext *context,
@@ -140,11 +142,7 @@ namespace vessel
                                        const slice &defObj)const;
 
       private:
-         BOOLEAN testIndexSlot(const collectionRecord *record,
-                               INT32 indexSlot)const;
-
-      private:
-         const collectionRecord *_record = NULL;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
          indexSpace *_is = NULL;
    };//class indexConsole
 }//namespace vessel

@@ -47,6 +47,7 @@
 #include "vessel/globalIndexID.h"
 #include "vessel/instanceEnv.h"
 #include "dmsRBSSUMgr.hpp"
+#include "vessel/collectionIndexContext.h"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -55,28 +56,21 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexConsole::init(const collectionRecord *record,
-                            indexSpace *is)
+   void indexConsole::init(CL_MB_ID mbID, indexSpace *is)
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!isInitialized(), "do not reinit");
-      if (NULL == record || !record->isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (NULL == is || !is->isOpen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _record = record;
+      SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
+      SDB_ASSERT(NULL != is, "can not be null");
+      SDB_ASSERT(is->isOpen(), "must be open");
+      _mbID = mbID;
       _is = is;
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
+   }
+
+   void indexConsole::fini()
+   {
+      _mbID = INVALID_CL_MB_ID;
+      _is = NULL;
+      return;
    }
 
    INT32 indexConsole::createIndex(requestContext *context,
@@ -145,14 +139,7 @@ namespace vessel
          goto error;
       }
 
-      if (!testIndexSlot(_record, indexSlot))
-      {
-         PD_LOG(PDERROR, "index with slot[%d] does not exist", indexSlot);
-         rc = SDB_IXM_NOTEXIST;
-         goto error;
-      }
-
-      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid of index[%d], rc:%d", indexSlot, rc);
@@ -183,8 +170,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::releaseIndexSlot(requestContext *context,
-                                        INT32 indexSlot)
+   INT32 indexConsole::releaseIndexDefPage(requestContext *context,
+                                           INT32 indexSlot)
    {
       SDB_ASSERT(FALSE, "TODO");
       return SDB_OK;
@@ -212,7 +199,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
@@ -261,7 +248,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
@@ -390,10 +377,10 @@ namespace vessel
       lpidLockHelper lh;
 
       UINT32 pos = 0;
-      PAGE_ID mappingPage = _is->getMappingPageLpid(_record->mbID, indexSlot, pos);
+      PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
       if (INVALID_PAGE_ID == mappingPage)
       {
-         PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]", _record->mbID, indexSlot);
+         PD_LOG(PDERROR, "failed to get mapping page of [%d,%d]", _mbID, indexSlot);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -494,7 +481,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       lpidLockHelper lh;
 
-      lpid = _is->getDirectMappedIndexLpid(_record->mbID, indexSlot);
+      lpid = _is->getDirectMappedIndexLpid(_mbID, indexSlot);
       if (INVALID_PAGE_ID == lpid)
       {
          PD_LOG(PDERROR, "failed to get lpid of index def page");
@@ -567,7 +554,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getIndexDefPage(context, _record->mbID, indexSlot, lpid);
+      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get index def page of slot[%d]:%d", indexSlot, rc);
@@ -592,23 +579,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   void indexConsole::fini()
-   {
-      _record = NULL;
-      _is = NULL;
-      return;
-   }
-
-   BOOLEAN indexConsole::testIndexSlot(const collectionRecord *record,
-                                       INT32 indexSlot)const
-   {
-      SDB_ASSERT(NULL != record, "can not be null");
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
-      UINT64 indexes = (record->uniqueIndexes | record->nonUniqueIndexes);
-      UINT64 mask = ((UINT64)1 << indexSlot);
-      return (0 != OSS_BIT_TEST(indexes, mask));
    }
 
    INT32 indexConsole::truncateIndex(requestContext *context,
@@ -677,6 +647,162 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 indexConsole::loadIndexesWhenStartup(requestContext *context,
+                                              collectionIndexContext *indexContext)
+   {
+      INT32 rc = SDB_OK;
+      indexDefPageAccessor accessor;
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               NULL == indexContext)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      indexContext->fini();
+
+      for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
+      {
+         indexObject indexObj;
+         indexDefHead head;
+         logicalPageBuffer lpb;
+         PAGE_ID lpid = _is->getDirectMappedIndexLpid(_mbID, i);
+         SDB_ASSERT(INVALID_PAGE_ID != lpid, "impossible");
+         BOOLEAN mapped = FALSE;
+
+         rc = _is->isLogicalPageMapped(context, lpid, mapped);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get test if lpid[%d] mapped:%d", lpid, rc);
+            goto error;
+         }
+         
+         if (!mapped)
+         {
+            continue;
+         }
+
+         rc = _is->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = accessor.getIndexObject(context, &lpb, indexObj, FALSE, &head);
+         if (SDB_IXM_NOTEXIST == rc)
+         {
+            PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index def page head in page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         if (indexContext->getNextIndexId() <= head.indexLogicalID)
+         {
+            indexContext->setNextIndexId(head.indexLogicalID + 1);
+         }
+
+         if (INDEX_STATUS_NORMAL == head.status)
+         {
+            indexContext->unfreeIndexSlot(i, indexObj.getParams().isUnique);
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "TODO");
+         }
+      }
+
+      for (INT32 i = (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL;
+           i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      {
+         indexObject indexObj;
+         indexDefHead head;
+         logicalPageBuffer lpb;
+         UINT32 pos = 0;
+         PAGE_ID lpid = INVALID_PAGE_ID;
+         PAGE_ID mappingLpid = _is->getMappingPageLpid(_mbID, i, pos);
+         SDB_ASSERT(INVALID_PAGE_ID != mappingLpid, "impossible");
+         BOOLEAN mapped = FALSE;
+
+         rc = _is->isLogicalPageMapped(context, mappingLpid, mapped);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get test if lpid[%d] mapped:%d", lpid, rc);
+            goto error;
+         }
+         
+         if (!mapped)
+         {
+            continue;
+         }
+
+         rc = _is->getIndexDefPage(context, _mbID, i, lpid);
+         if (SDB_IXM_NOTEXIST == rc)
+         {
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index def lpid of slot[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = _is->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         rc = accessor.getIndexObject(context, &lpb, indexObj, FALSE, &head);
+         if (SDB_IXM_NOTEXIST == rc)
+         {
+            PD_LOG(PDDEBUG, "index[%d] def page is not valid", i);
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index def page head in page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+
+         if (indexContext->getNextIndexId() <= head.indexLogicalID)
+         {
+            indexContext->setNextIndexId(head.indexLogicalID + 1);
+         }
+
+         if (INDEX_STATUS_NORMAL == head.status)
+         {
+            indexContext->unfreeIndexSlot(i, indexObj.getParams().isUnique);
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "TODO");
+         }
+      }
+   done:
+      return rc;
+   error:
+      if (NULL != indexContext)
+      {
+         indexContext->fini();
+      }
       goto done;
    }
 }//namespace vessel

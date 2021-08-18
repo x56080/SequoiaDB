@@ -70,6 +70,7 @@ namespace vessel
             FLOAT32 lruMaxScanPercent = 0.6; /// max scan depth when evicting
             INT32 lruFlushWaitLockTimeout = -1;
             UINT32 _lruColdMistakeTolerance = 10;
+            UINT32 _lruTouchCountFrozenTime = 100;
       };// class lruOptions
 
       class freeListOptions : public SDBObject
@@ -124,7 +125,7 @@ namespace vessel
             }
 
          public:
-            FLOAT32 flushDirtyListThreshold = 0.4;
+            FLOAT32 flushDirtyListThreshold = 0.6;
             UINT32 flushDirtyListTimeout = 300; /// seconds
             FLOAT32 flushLruListThreshold = 0.8;
          

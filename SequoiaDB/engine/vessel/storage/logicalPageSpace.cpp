@@ -659,6 +659,72 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::isLogicalPageMapped(requestContext *context,
+                                                PAGE_ID lpid,
+                                                BOOLEAN &mapped)
+   {
+      INT32 rc = SDB_OK;
+      lpidLockHelper lh;
+      BOOLEAN isMutablePage = FALSE;
+      idMapSlot slot;
+      mapped = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validateLpidBeforeGet(lpid);
+      if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
+      {
+         rc = SDB_OK;
+         mapped = FALSE;
+         goto done;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "can not get lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      if (!context->testLpidLocked(getSpaceType(), lpid, NULL))
+      {
+         rc = lh.lock(context, getSpaceType(), lpid, OSS_SHARED_LATCH_MODE_SHARED);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = getPageFromCache(lpid, slot, isMutablePage);
+      if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
+      {
+         rc = SDB_OK;
+         mapped = FALSE;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
+         goto error;
+      }
+      else
+      {
+         mapped = TRUE;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 logicalPageSpace::makeBufferWritable(requestContext *context,
                                               logicalPageBuffer &lpb)
    {

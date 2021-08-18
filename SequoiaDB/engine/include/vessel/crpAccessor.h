@@ -65,12 +65,13 @@ namespace vessel
          INT32 updateRoutePages(requestContext *context,
                                 const collectionRecord &record,
                                 logicalPageBuffer *lpb);
-
+/*
          INT32 updateIndexInfo(requestContext *context,
                                CL_MB_ID mbID,
                                UINT64 uniqueIndexes,
                                UINT64 nonuniqueIndexes,
                                logicalPageBuffer *lpb);
+                               */
 
       private:
          collectionRecordOnDisk *getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
