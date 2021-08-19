@@ -51,7 +51,7 @@ $ bin/mysql -S database/3306/mysqld.sock -u root
 
 > **Note:** 
 >  
-> SequoiaSQL-MySQL 实例默认无密码，所以无需输入 -p 选项。
+> MySQL 实例默认无密码，所以无需输入 -p 选项。
 
 ###通过 TCP/IP 连接###
       

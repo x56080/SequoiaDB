@@ -1,64 +1,6 @@
 本文档将介绍 SequoiaDB 巨杉数据库中 MariaDB 实例的相关配置。
 
-## 支持的建表选项
-
-| 选项 | 默认值 | 描述 |
-| ---- | ------ | ---- |
-| AUTO_INCREMENT | 1 | 自增字段的起始值，SequoiaDB 的自增字段不是严格递增，而是趋势递增；如果配置严格递增的自增字段，需将参数 AcquireSize 设置为 1，具体说明可参考 SequoiaDB [自增字段][sequence]章节 |
-| CHARACTER SET | utf8mb4 | 字符数据的字符集 |
-| COLLATE | utf8mb4_bin | 字符数据的比较规则，不支持忽略大小写的字符比较规则，字符比较对大小写敏感 |
-| COMMENT | "" | 表备注信息，用于指定更多 SequoiaDB 引擎的选项，可参考[自定义表配置][config] |
-| ENGINE | SEQUOIADB | 表存储引擎。必须指定为 SEQUOIADB 才能使用本分布式存储引擎，一般无需显式指定 |
-
-**示例**：
-
-- 通过 COMMENT 创建压缩类型为"snappy"的表
-
-    ```lang-sql
-    MariaDB [db]> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
-    ```
-
-- 指定表自增字段起始值为 1000，并严格递增
-
-    ```lang-sql
-    MariaDB [db]> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) COMMENT='Strict auto_increment field for example, sequoiadb:{ table_options: { "AutoIncrement": { "Field": "id", "StartValue": 1000, "AcquireSize": 1 } } }';
-    ```
-
-## 自定义表配置
-
-用户在 MariaDB 上创建表时，可以在表选项 COMMENT 中指定关键词"sequoiadb" ，并在其后添加一个 json 对象用于传入自定义的表配置参数。格式如下：
-
-```lang-ini
-COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|false>] }"
-```
-
-具体配置参数如下表:
-
-| 参数名 | 类型 | 描述 | 是否必填 |
-| ------ | --- | ------ | ------ |
-| string | string |用户自定义注释字符串 | 否 |
-| table_options | json | 创建集合的相关参数，详细参数可参考 [SequoiaDB 创建集合选项][createCL]| 否 |
-| auto_partition | boolean | 是否创建分区表，取值为 false 则显式创建非分区表| 否 |
-
-**示例**
-
-- 在 SequoiaDB 上创建根据时间进行范围切分的表
-
-    ```lang-sql
-    MariaDB [company]> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
-        -> ENGINE=sequoiadb
-        -> COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
-    ```
-
-- 在引擎配置项 sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为 false 显式创建普通表
-
-    ```lang-sql
-    MariaDB [company]> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-        -> ENGINE=sequoiadb 
-        -> COMMENT='sequoiadb:{ auto_partition: false }';
-    ```
-
-## SequoiaDB引擎配置修改方式
+##SequoiaDB 引擎配置修改方式##
 
 配置参数有以下三种修改方式：
 
@@ -88,9 +30,9 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
     >
     > 通过命令行方式修改的配置为临时有效，当重启 MariaDB 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。 
 
-## SequoiaDB引擎配置使用说明
+##SequoiaDB 引擎配置使用说明##
 
-### 配置 SequoiaDB 连接与鉴权
+###配置 SequoiaDB 连接与鉴权###
 
 **sequoiadb_conn_addr** 
 
@@ -135,7 +77,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 >* 以上配置在命令行修改后，均在建立新连接时才生效，不影响旧连接。
 >* 两种密码都配置的情况下，优先使用明文密码。
 
-### 配置自动分区功能
+###配置自动分区功能###
 
 **sequoiadb_auto_partition**
 
@@ -152,7 +94,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 >
 > 自动分区时，主键或唯一索引只在建表时对应分区键，建表后添加、删除主键或唯一索引都不会更改分区键。
 
-### 配置默认副本数
+###配置默认副本数###
 
 **sequoiadb_replica_size** 
 
@@ -163,7 +105,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-### 配置批量插入
+###配置批量插入###
 
 **sequoiadb_use_bulk_insert**
 
@@ -183,7 +125,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-### 配置性能优化参数
+###配置性能优化参数###
 
 **sequoiadb_selector_pushdown_threshold**
 
@@ -209,7 +151,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
-### 配置事务功能
+###配置事务功能###
 
 **sequoiadb_use_transaction**
 
@@ -248,7 +190,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global, Session
 + 是否支持在线修改生效：是
 
-### 配置统计信息分析
+###配置统计信息分析###
 
 **sequoiadb_stats_mode**
 
@@ -292,7 +234,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-### 配置 SequoiaDB 节点优先级
+###配置 SequoiaDB 节点优先级###
 
 **sequoiadb_preferred_instance**
 
@@ -334,7 +276,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 >
 > 事务模式下，所有操作均在主节点进行。因此上述配置需在无事务模式下修改，否则无效。
 
-### 其它配置
+###其它配置###
 
 **sequoiadb_alter_table_overhead_threshold**
 
@@ -375,7 +317,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-## MariaDB常用系统配置
+##MariaDB 常用系统配置##
 
 | 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
 | ---------------------- | ----   | -------- | ---------- | ------- | ---- |
@@ -400,7 +342,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 [^_^]:
     本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
-[config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md#自定义表配置
+[config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/database_and_table_operation.md#自定义表配置
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md

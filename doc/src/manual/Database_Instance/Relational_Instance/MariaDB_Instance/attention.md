@@ -1,4 +1,7 @@
-**MariaDB 实例组件使用注意事项**
+[^_^]:
+    MariaDB 实例-注意事项
+
+本文档将介绍 MariaDB 实例组件的注意事项。
 
 - MariaDB 实例不支持创建外键。
 
@@ -43,6 +46,6 @@
 
 [^_^]:
      本文使用的所有引用和链接
-[config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md
+[config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/database_and_table_operation.md#自定义表配置
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md

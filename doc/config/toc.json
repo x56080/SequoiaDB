@@ -260,15 +260,15 @@
                   {
                      "id": 1575355389,
                      "dir": "MariaDB_Instance",
-                     "cn": "MariaDB实例",
+                     "cn": "MariaDB 实例",
                      "en": "MariaDB Instance",
                      "top": true,
                      "contents": [
                         {
-                           "id": 1575355401,
-                           "dir": "Operation",
-                           "cn": "操作",
-                           "en": "Operation",
+                           "id": 1630121854,
+                           "dir": "Installation",
+                           "cn": "安装",
+                           "en": "Installation",
                            "contents": [
                               {
                                  "id": 1575355415,
@@ -277,46 +277,42 @@
                                  "en": "Install and Deploy"
                               },
                               {
-                                 "id": 1921595283,
-                                 "file": "connection",
-                                 "cn": "使用",
-                                 "en": "Connection"
-                              },
-                              {
-                                 "id": 1966551297,
-                                 "file": "config",
-                                 "cn": "配置",
-                                 "en": "Configuration"
-                              },
-                              {
-                                 "id": 1972505575,
-                                 "file": "ha",
-                                 "cn": "高可用",
-                                 "en": "High Availability"
-                              },
-                              {
                                  "id": 1608537553,
                                  "file": "instance_group",
                                  "cn": "实例组",
                                  "en": "Instance Group"
                               },
                               {
-                                 "id": 1595583874,
-                                 "file": "sdb_maria_ctl",
-                                 "cn": "实例管理工具",
-                                 "en": "Instance management tool"
+                                 "id": 1972505575,
+                                 "file": "ha",
+                                 "cn": "元数据同步工具",
+                                 "en": "High Availability"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1575355401,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [
+                              {
+                                 "id": 1921595283,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
                               },
                               {
-                                 "id": 1619750356,
-                                 "file": "federal_query",
-                                 "cn": "联邦查询",
-                                 "en": "federal query"
+                                 "id": 1630121584,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
                               },
                               {
-                                 "id": 1608019035,
-                                 "file": "sequence",
-                                 "cn": "序列",
-                                 "en": "Sequence"
+                                 "id": 1630121579,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
                               },
                               {
                                  "id": 1627883003,
@@ -325,22 +321,36 @@
                                  "en": "Partition"
                               },
                               {
-                                 "id": 1974045910,
-                                 "file": "data_type",
-                                 "cn": "数据类型映射表",
-                                 "en": "data type map table"
+                                 "id": 1608019035,
+                                 "file": "sequence",
+                                 "cn": "序列",
+                                 "en": "Sequence"
                               },
                               {
-                                 "id": 1921595284,
-                                 "file": "attention",
-                                 "cn": "注意事项",
-                                 "en": "attention"
+                                 "id": 1619750356,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1630121565,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1966551297,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Configuration"
                               },
                               {
-                                 "id": 1955382544,
-                                 "file": "error_code",
-                                 "cn": "错误码",
-                                 "en": "Error Code"
+                                 "id": 1595583874,
+                                 "file": "sdb_maria_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance management tool"
                               },
                               {
                                  "id": 1575355422,
@@ -354,7 +364,25 @@
                                  "cn": "卸载",
                                  "en": "Uninstall"
                               }
-                           ]  
+                           ]
+                        },
+                        {
+                           "id": 1974045910,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "data type map table"
+                        },
+                        {
+                           "id": 1955382544,
+                           "file": "error_code",
+                           "cn": "错误码",
+                           "en": "Error Code"
+                        },
+                        {
+                           "id": 1921595284,
+                           "file": "attention",
+                           "cn": "注意事项",
+                           "en": "attention"
                         }
                      ]
                   },
