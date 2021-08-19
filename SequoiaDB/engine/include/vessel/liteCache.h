@@ -97,7 +97,7 @@ class liteCache : public SDBObject
 
    public:/// only for callback
       INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
-                                            BOOLEAN zeroed,
+                                            BOOLEAN initFromDisk,
                                             lcPageTagHolder &holder);
 
       INT32 tryToUpdateLRU(lcPageTagHolder &holder);

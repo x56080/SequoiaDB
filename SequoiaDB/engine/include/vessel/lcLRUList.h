@@ -71,7 +71,7 @@ namespace vessel
          /// for user threads
          /// tag under w lock
          INT32 insert(lcPageTagHolder &holder,
-                      UINT32 beginTouchCount = 1);
+                      UINT32 beginTouchCount = 0);
 
          /// for user threads
          /// tag under lock

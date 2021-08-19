@@ -413,7 +413,9 @@ namespace vessel
       holder.lock();
       if (!holder.tag()->isInLruList())
       {
-         rc = allocateMemPageAndInsertIntoLRU(context, TRUE, holder);
+         rc = allocateMemPageAndInsertIntoLRU(context,
+                                              holder.tag()->isInDirtyList(),
+                                              holder);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate mem for tag:%d", rc);
@@ -484,7 +486,7 @@ namespace vessel
    }
 
    INT32 liteCache::allocateMemPageAndInsertIntoLRU(requestContext *context,
-                                                    BOOLEAN zeroed,
+                                                    BOOLEAN initFromDisk,
                                                     lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
@@ -524,20 +526,15 @@ namespace vessel
       }
 
       /// 2. copy data and init tag's mem page
-      if (!zeroed)
+      if (initFromDisk)
       {
          ossMemcpy((void *)(page.buf()), (const void *)diskPtr, _fl->getPageSize());
-      }
-      else
-      {
-         ///TODO: If tag is in dirty list, invalid value may be flushed to disk. 
-         ossMemset((void *)(page.buf()), 0x0, _fl->getPageSize());
       }
 
       tag->setMemPage(page);
 
       /// 3. insert into lru
-      rc = _lru->insert(holder, (zeroed ? 0 : 1));
+      rc = _lru->insert(holder, 0);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert tag[%s] into lru:%d",

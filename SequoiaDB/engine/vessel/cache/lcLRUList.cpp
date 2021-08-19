@@ -107,6 +107,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       liteCachePageTag *tag = NULL;
+      UINT64 cunrrentMillis = ossGetCurrentMilliseconds();
       ossXLatchGuard guard(&_latch, FALSE);
 
       if (OSS_UNLIKELY(!holder.valid()))
@@ -145,14 +146,14 @@ namespace vessel
       {
          insertToMiddle(tag);
          tag->setLruTouchCnt(beginTouchCount);
-         tag->setLruTouchCntUpdatedTime(ossGetCurrentMilliseconds());
+         tag->setLruTouchCntUpdatedTime(cunrrentMillis);
          tryToTuneRightMiddle();
       }
       else
       {
          insertToHead(tag);
          tag->setLruTouchCnt(beginTouchCount);
-         tag->setLruTouchCntUpdatedTime(ossGetCurrentMilliseconds());
+         tag->setLruTouchCntUpdatedTime(cunrrentMillis);
          if (_size == _options.lruMinSplitSize)
          {
             splitLRU();
@@ -465,6 +466,8 @@ namespace vessel
       removeFromList(tag);
       insertToHead(tag);
       tag->setLruTouchCnt(0);
+      tag->setLruTouchCntUpdatedTime(0);
+      /// should we update lru updated time here?
 
       if (isCold)
       {
