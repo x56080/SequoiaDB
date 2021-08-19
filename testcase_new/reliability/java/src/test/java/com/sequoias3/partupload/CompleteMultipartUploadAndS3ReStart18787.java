@@ -92,7 +92,7 @@ public class CompleteMultipartUploadAndS3ReStart18787 extends S3TestBase {
     }
 
     public class CompleteMultipartUpload extends OperateTask {
-        private List< PartETag > partEtags = new ArrayList<>();
+        private List< PartETag > partEtags = new ArrayList< >();
         private String uploadId;
         private AmazonS3 s3Client1 = CommLibS3.buildS3Client();
 
@@ -108,8 +108,9 @@ public class CompleteMultipartUploadAndS3ReStart18787 extends S3TestBase {
                 PartUploadUtils.completeMultipartUpload( s3Client1, bucketName,
                         keyName, uploadId, partEtags );
             } catch ( AmazonS3Exception e ) {
-                // e:0 Get connection failed.
-                if ( e.getStatusCode() != 0 && e.getStatusCode() != 500 ) {
+                // e:0 Get connection failed.e:404 NoSuchUpload.
+                if ( e.getStatusCode() != 0 && e.getStatusCode() != 500
+                        && e.getStatusCode() != 404 ) {
                     throw new Exception( keyName, e );
                 }
             } catch ( SdkClientException e ) {
@@ -136,7 +137,7 @@ public class CompleteMultipartUploadAndS3ReStart18787 extends S3TestBase {
                 1024 * 1024 * 7 };
         int partNumbers = 10;
         int filePosition = 0;
-        List< PartETag > partEtags = new ArrayList<>();
+        List< PartETag > partEtags = new ArrayList< >();
         for ( int i = 0; i < partNumbers; i++ ) {
             // 分段号从2开始，不存在为1的分段号
             int partNumber = i + 2;
