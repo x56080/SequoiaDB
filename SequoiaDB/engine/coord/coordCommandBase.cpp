@@ -199,25 +199,39 @@ namespace engine
 
       if ( failedNodes.size() > 0 )
       {
-         BSONObjBuilder builder ;
-         coordBuildFailedNodeReply( _pResource, failedNodes, builder ) ;
-
-         if ( COORD_SHOWERRORMODE_FLAT == modeType )
+         try
          {
-            BSONObjIterator itr ( builder.obj().getObjectField(
-                                                    FIELD_NAME_ERROR_NODES ) ) ;
-            BSONElement elem ;
-            while ( itr.more() )
+            BSONObj boErrorNodes ;
+            BSONObjBuilder builder ;
+            coordBuildFailedNodeReply( _pResource, failedNodes, builder ) ;
+            boErrorNodes = builder.obj() ;
+
+            if ( COORD_SHOWERRORMODE_FLAT == modeType )
             {
-               elem = itr.next() ;
-               rc = pContext->append( elem.Obj() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d", rc ) ;
+               BSONObjIterator itr(
+                     boErrorNodes.getObjectField( FIELD_NAME_ERROR_NODES ) ) ;
+               BSONElement elem ;
+               while ( itr.more() )
+               {
+                  elem = itr.next() ;
+                  rc = pContext->append( elem.Obj() ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d",
+                               rc ) ;
+               }
+            }
+            else
+            {
+               rc = pContext->append( boErrorNodes ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d",
+                            rc ) ;
             }
          }
-         else
+         catch ( exception &e )
          {
-            rc = pContext->append( builder.obj() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to append obj, rc: %d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build failed node reply, "
+                    "occur exception %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
          }
       }
 

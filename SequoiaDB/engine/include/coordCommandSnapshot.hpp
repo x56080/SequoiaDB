@@ -166,7 +166,10 @@ namespace engine
          virtual const CHAR *getIntrCMDName() ;
          virtual const CHAR *getInnerAggrContent() ;
 
-         virtual UINT32 _getShowErrorMask () { return COORD_MASK_SHOWERROR ; }
+         virtual UINT32 _getShowErrorMask () const
+         {
+            return COORD_MASK_SHOWERROR ;
+         }
    } ;
    typedef _coordCMDSnapshotDataBase coordCMDSnapshotDataBase ;
 
@@ -195,7 +198,10 @@ namespace engine
          virtual const CHAR *getIntrCMDName() ;
          virtual const CHAR *getInnerAggrContent() ;
 
-         virtual UINT32 _getShowErrorMask () { return COORD_MASK_SHOWERROR ; }
+         virtual UINT32 _getShowErrorMask () const
+         {
+            return COORD_MASK_SHOWERROR ;
+         }
    } ;
    typedef _coordCMDSnapshotSystem coordCMDSnapshotSystem ;
 
