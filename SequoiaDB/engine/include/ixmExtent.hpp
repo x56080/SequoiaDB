@@ -398,7 +398,8 @@ namespace engine
                       BOOLEAN &result ) ;
       INT32 advance ( ixmRecordID &keyRID, INT32 direction ) const ;
       INT32 exists ( const ixmKey &key, const Ordering &order,
-                     const ixmIndexCB *indexCB, BOOLEAN &result ) const ;
+                     const ixmIndexCB *indexCB, BOOLEAN &result,
+                     ixmRecordID &keyRID, dmsRecordID &rid ) const ;
       dmsExtentID getRoot() const ;
       INT32 findSingle ( const ixmKey &key, const Ordering &order,
                          dmsRecordID &rid, ixmIndexCB *indexCB ) const ;
