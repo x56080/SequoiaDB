@@ -141,7 +141,7 @@ namespace engine
             }
          }
 
-         if ( ignoreFailedNodes() && faileds.size() > 0 )
+         if ( ignoreFailedNodes() )
          {
             rc = _processFailedNodes( pMsg, cb, contextID, faileds ) ;
             if ( rc )
