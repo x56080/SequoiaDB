@@ -90,7 +90,8 @@ private:
 
    void  _resetBuffers() ;
    INT32 _autoCreateCS( const CHAR *pCsName, BSONObj &errorObj ) ;
-   INT32 _autoCreateCL( const CHAR *pClFullName, BSONObj &errorObj ) ;
+   INT32 _autoCreateCL( const CHAR *pCSName, const CHAR *pClFullName, 
+                        BSONObj &errorObj ) ;
    INT32 _autoInsert( const CHAR *pClFullName, const BSONObj &matcher,
                       const BSONObj &updatorObj, BSONObj &target,
                       BSONObj &errorObj ) ;

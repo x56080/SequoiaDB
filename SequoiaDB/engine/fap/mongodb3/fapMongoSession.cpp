@@ -144,13 +144,24 @@ engine::SDB_SESSION_TYPE _mongoSession::sessionType() const
 BOOLEAN _mongoSession::preProcess( pmdEDUEvent &event )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_PREPROCESS ) ;
+   INT32 rc = SDB_OK ;
    BOOLEAN processed = FALSE ;
 
    // fap and coord are the same thread, with different roles
    if ( PMD_EDU_EVENT_MSG == event._eventType &&
         IS_MONGO_MSG( event._userData ) )
    {
-      _fapEvents.push( event ) ;
+      try
+      {
+         _fapEvents.push( event ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when pushing event: %s, "
+                 "rc: %d", e.what(), rc ) ;
+         _postInnerErrorEvent( rc, event ) ;
+      }
       processed = TRUE ;
    }
 
@@ -359,7 +370,7 @@ INT32 _mongoSession::_processOwnedClientMsg( const CHAR* pMsg,
       }
    }
 
-   rc = mongoParseSdbReplyMsg( pCommand, _replyHeader, _contextBuff ) ;
+   rc = pCommand->parseSdbReply( _replyHeader, _contextBuff ) ;
    if ( rc )
    {
       goto error ;
@@ -616,78 +627,69 @@ INT32 _mongoSession::run()
    PD_CHECK( FALSE == mongoCheckBigEndian(), SDB_SYS, error, PDERROR,
              "Big endian is not support" ) ;
 
-   try
+   while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
    {
-      while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
+      if ( hasMsg )
       {
-         if ( hasMsg )
+         _pEDUCB->resetInterrupt() ;
+         _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
+         _pEDUCB->resetLsn() ;
+
+         _resetBuffers() ;
+         sessCtx.resetError() ;
+         sessCtx.sessionName = sessionName() ;
+         sessCtx.eduID = eduID() ;
+
+         if ( pCommand )
          {
-            _pEDUCB->resetInterrupt() ;
-            _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
-            _pEDUCB->resetLsn() ;
-
-            _resetBuffers() ;
-            sessCtx.resetError() ;
-            sessCtx.sessionName = sessionName() ;
-            sessCtx.eduID = eduID() ;
-
-            if ( pCommand )
-            {
-               mongoReleaseCommand( &pCommand ) ;
-            }
-
-            hasMsg = FALSE ;
+            mongoReleaseCommand( &pCommand ) ;
          }
 
-         if ( !needWaitResponse )
-         {
-            rc = _recvMsgFromClient( pMsg, hasMsg ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Session[%s] recevie message from client failed, "
-                         "rc: %d", sessionName(), rc ) ;
+         hasMsg = FALSE ;
+      }
 
-            if ( hasMsg )
-            {
-               rc = _processClientMsg( pMsg, pCommand, sessCtx,
-                                       msgForwarded ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Session[%s] failed to process client msg, rc: %d",
-                            sessionName(), rc ) ;
-
-               if ( msgForwarded )
-               {
-                  needWaitResponse = TRUE ;
-               }
-
-               continue;
-            }
-         }
-
-         rc = _recvMsgFromInterior( event, hasMsg ) ;
+      if ( !needWaitResponse )
+      {
+         rc = _recvMsgFromClient( pMsg, hasMsg ) ;
          PD_RC_CHECK( rc, PDERROR,
-                      "Session[%s] recevie message from interior failed, "
+                      "Session[%s] recevie message from client failed, "
                       "rc: %d", sessionName(), rc ) ;
 
          if ( hasMsg )
          {
-            rc = _processInteriorMsg( pCommand, event, sessCtx,
-                                      hasRecvResponse ) ;
+            rc = _processClientMsg( pMsg, pCommand, sessCtx,
+                                    msgForwarded ) ;
             PD_RC_CHECK( rc, PDERROR,
-                         "Session[%s] failed to process interior msg, rc: %d",
+                         "Session[%s] failed to process client msg, rc: %d",
                          sessionName(), rc ) ;
 
-            if ( hasRecvResponse )
+            if ( msgForwarded )
             {
-               needWaitResponse = FALSE ;
+               needWaitResponse = TRUE ;
             }
+
+            continue;
          }
       }
-   }
-   catch( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG ( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
-      goto error ;
+
+      rc = _recvMsgFromInterior( event, hasMsg ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Session[%s] recevie message from interior failed, "
+                   "rc: %d", sessionName(), rc ) ;
+
+      if ( hasMsg )
+      {
+         rc = _processInteriorMsg( pCommand, event, sessCtx,
+                                   hasRecvResponse ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Session[%s] failed to process interior msg, rc: %d",
+                      sessionName(), rc ) ;
+
+         if ( hasRecvResponse )
+         {
+            needWaitResponse = FALSE ;
+         }
+      }
    }
 
 done:
@@ -960,9 +962,7 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
-   bson::BSONObj obj    = BSON( FIELD_NAME_NAME << pCsName <<
-                                FIELD_NAME_PAGE_SIZE << 65536 ) ;
-   bson::BSONObj empty ;
+   BSONObj obj, empty ;
 
    _tmpBuffer.zero() ;
    _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
@@ -981,6 +981,18 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
 
+   try
+   {
+      obj = BSON( FIELD_NAME_NAME << pCsName << FIELD_NAME_PAGE_SIZE << 65536 ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb createCS "
+              "request: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    _tmpBuffer.write( obj, TRUE ) ;
    _tmpBuffer.write( empty, TRUE ) ;
@@ -989,7 +1001,6 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
    _tmpBuffer.doneLen() ;
 
    rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
-
    if ( SDB_OK == rc )
    {
       PD_LOG( PDEVENT,
@@ -1007,8 +1018,11 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
       }
    }
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOCREATECS, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOINSERT, "_mongoSession::_autoInsert" )
@@ -1022,63 +1036,54 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    INT32 rc = SDB_OK ;
    MsgOpInsert *pInsert = NULL ;
 
-   try
+   rc = mongoGenerateNewRecord( matcher, updatorObj, target ) ;
+   if ( rc )
    {
-      rc = mongoGenerateNewRecord( matcher, updatorObj, target ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to generate new record, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      _tmpBuffer.zero() ;
-      _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
-      rc = _tmpBuffer.advance( sizeof( MsgOpInsert ) - 4 ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      pInsert = ( MsgOpInsert *)_tmpBuffer.data() ;
-      pInsert->header.opCode = MSG_BS_INSERT_REQ ;
-      pInsert->header.TID = 0 ;
-      pInsert->header.routeID.value = 0 ;
-      pInsert->header.requestID = 0 ;
-      pInsert->version = 0 ;
-      pInsert->w = 0 ;
-      pInsert->padding = 0 ;
-      pInsert->flags = FLG_INSERT_RETURNNUM ;
-
-      pInsert->nameLength = ossStrlen( pClFullName ) ;
-      rc = _tmpBuffer.write( pClFullName, pInsert->nameLength + 1, TRUE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to write cl full name, rc: %d", rc ) ;
-         goto error ;
-      }
-      rc = _tmpBuffer.write( target, TRUE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to write the record we will insert, "
-                 "rc: %d", rc ) ;
-         goto error ;
-      }
-      _tmpBuffer.doneLen() ;
-
-      rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR,
-                 "Session[%s]: failed to insert automatically"
-                 ", rc: %d", sessionName(), rc ) ;
-         goto error ;
-      }
+      PD_LOG( PDERROR, "Failed to generate new record, rc: %d", rc ) ;
+      goto error ;
    }
-   catch( std::exception &e )
+
+   _tmpBuffer.zero() ;
+   _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
+   rc = _tmpBuffer.advance( sizeof( MsgOpInsert ) - 4 ) ;
+   if ( rc )
    {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Auto insert exception: %s, rc: %d", e.what(), rc ) ;
+      PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
+      goto error ;
+   }
+
+   pInsert = ( MsgOpInsert *)_tmpBuffer.data() ;
+   pInsert->header.opCode = MSG_BS_INSERT_REQ ;
+   pInsert->header.TID = 0 ;
+   pInsert->header.routeID.value = 0 ;
+   pInsert->header.requestID = 0 ;
+   pInsert->version = 0 ;
+   pInsert->w = 0 ;
+   pInsert->padding = 0 ;
+   pInsert->flags = FLG_INSERT_RETURNNUM ;
+
+   pInsert->nameLength = ossStrlen( pClFullName ) ;
+   rc = _tmpBuffer.write( pClFullName, pInsert->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to write cl full name, rc: %d", rc ) ;
+      goto error ;
+   }
+   rc = _tmpBuffer.write( target, TRUE ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to write the record we will insert, "
+              "rc: %d", rc ) ;
+      goto error ;
+   }
+   _tmpBuffer.doneLen() ;
+
+   rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR,
+              "Session[%s]: failed to insert automatically"
+              ", rc: %d", sessionName(), rc ) ;
       goto error ;
    }
 
@@ -1093,15 +1098,15 @@ error:
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOCEATECL, "_mongoSession::_autoCreateCL" )
-INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
+INT32 _mongoSession::_autoCreateCL( const CHAR *pCSName,
+                                    const CHAR *pClFullName,
                                     BSONObj &errorObj )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_AUTOCEATECL ) ;
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
-   bson::BSONObj obj    = BSON( FIELD_NAME_NAME << pClFullName );
-   bson::BSONObj empty ;
+   BSONObj obj, empty ;
 
    while( TRUE )
    {
@@ -1122,6 +1127,18 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
       pQuery->numToSkip = 0 ;
       pQuery->numToReturn = -1 ;
 
+      try
+      {
+         obj = BSON( FIELD_NAME_NAME << pClFullName ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building sdb createCL "
+                 "request: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
       _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
       _tmpBuffer.write( obj, TRUE ) ;
       _tmpBuffer.write( empty, TRUE ) ;
@@ -1132,10 +1149,7 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
       rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
-         string csName ;
-         csName.assign( pClFullName,
-                        ossStrstr( pClFullName, "." ) - pClFullName ) ;
-         rc = _autoCreateCS( csName.c_str(), errorObj ) ;
+         rc = _autoCreateCS( pCSName, errorObj ) ;
          if ( rc )
          {
             break ;
@@ -1164,8 +1178,11 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pClFullName,
       }
    }
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_AUTOCEATECL, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AUTOKILLCURRSOR, "_mongoSession::_autoKillCursor" )
@@ -1179,61 +1196,51 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    UINT64 requestIDCpy = _replyHeader.header.requestID ;
    INT32 flagsCpy = _replyHeader.flags ;
 
-   try
+   // _contextBuff will be released in _processMsg,
+   // so we should call getOwned()
+   if ( NULL != _contextBuff.data() )
    {
-      // _contextBuff will be released in _processMsg,
-      // so we should call getOwned()
-      if ( NULL != _contextBuff.data() )
-      {
-         returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
-      }
-
-      _tmpBuffer.zero() ;
-      _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
-      _tmpBuffer.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
-         goto error ;
-      }
-      pKill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
-      pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
-      pKill->header.TID = 0 ;
-      pKill->header.routeID.value = 0 ;
-      pKill->header.requestID = requestID ;
-      pKill->ZERO = 0 ;
-      pKill->numContexts = 1 ;
-
-      rc = _tmpBuffer.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to write contextID, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      _tmpBuffer.doneLen() ;
-
-      rc = _processMsg( (CHAR*)pKill, errorObj ) ;
-      if ( rc )
-      {
-         PD_LOG( PDWARNING,
-                 "Session[%s]: failed to kill cursor[cursorID: %lld] "
-                 "automatically, rc: %d",
-                 sessionName(), contextID, rc ) ;
-         goto error ;
-      }
-      else
-      {
-         PD_LOG( PDEVENT, "Session[%s] kill cursor[cursorID: %lld] "
-                 "automatically", sessionName(), contextID ) ;
-      }
+      returnObjCpy = BSONObj( _contextBuff.data() ).getOwned() ;
    }
-   catch( std::exception &e )
+
+   _tmpBuffer.zero() ;
+   _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
+   _tmpBuffer.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+   if ( rc )
    {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when killing cursor: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
       goto error ;
+   }
+   pKill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
+   pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+   pKill->header.TID = 0 ;
+   pKill->header.routeID.value = 0 ;
+   pKill->header.requestID = requestID ;
+   pKill->ZERO = 0 ;
+   pKill->numContexts = 1 ;
+
+   rc = _tmpBuffer.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to write contextID, rc: %d", rc ) ;
+      goto error ;
+   }
+
+   _tmpBuffer.doneLen() ;
+
+   rc = _processMsg( (CHAR*)pKill, errorObj ) ;
+   if ( rc )
+   {
+      PD_LOG( PDWARNING,
+              "Session[%s]: failed to kill cursor[cursorID: %lld] "
+              "automatically, rc: %d",
+              sessionName(), contextID, rc ) ;
+      goto error ;
+   }
+   else
+   {
+      PD_LOG( PDEVENT, "Session[%s] kill cursor[cursorID: %lld] "
+              "automatically", sessionName(), contextID ) ;
    }
 
 done:
@@ -1364,7 +1371,8 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       {
          if ( _shouldAutoCrtCL( pCommand ) )
          {
-            rc = _autoCreateCL( pCommand->clFullName(), errorObj ) ;
+            rc = _autoCreateCL( pCommand->csName(), pCommand->clFullName(), 
+                                errorObj ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to auto create cl, rc: %d", rc ) ;
@@ -1545,7 +1553,7 @@ INT32 _mongoSession::_buildResponse( _mongoCommand *pCommand,
    _mongoResponseBuffer headerBuf ;
    INT32 resSize = 0 ;
 
-   rc = mongoPostRunCommand( pCommand, _replyHeader, _contextBuff, headerBuf ) ;
+   rc = pCommand->buildMongoReply( _replyHeader, _contextBuff, headerBuf ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Session[%s] failed to build response, rc: %d",
                 sessionName(), rc ) ;
@@ -1587,8 +1595,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
 
    if ( pCommand && pCommand->isInitialized() )
    {
-      rc = mongoPostRunCommand( pCommand, _replyHeader,
-                                _contextBuff, headerBuf ) ;
+      rc = pCommand->buildMongoReply( _replyHeader, _contextBuff, headerBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to build response, rc: %d",
                    sessionName(), rc ) ;

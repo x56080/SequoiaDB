@@ -62,8 +62,9 @@ static void appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
    bodyBuf = engine::rtnContextBuf( msgBuf.data(), msgBuf.size(), 2 ) ;
 }
 
-static void escapeDot( string& collectionFullName )
+static INT32 escapeDot( string& collectionFullName )
 {
+   INT32 rc = SDB_OK ;
    BOOLEAN firstLoop = TRUE ;
    string::size_type pos = 0 ;
 
@@ -82,15 +83,32 @@ static void escapeDot( string& collectionFullName )
       }
       else
       {
-         collectionFullName.replace( pos, 1, "%2E" ) ;
+         try
+         {
+            collectionFullName.replace( pos, 1, "%2E" ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when replacing string: "
+                    "%s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
          pos += 3 ;
       }
    }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
-static void unescapeDot( string& collectionName )
+static INT32 unescapeDot( string& collectionName )
 {
+   INT32 rc = SDB_OK ;
    string::size_type pos = 0 ;
+
    while( TRUE )
    {
       pos = collectionName.find( "%2E", pos ) ;
@@ -100,14 +118,30 @@ static void unescapeDot( string& collectionName )
       }
       else
       {
-         collectionName.replace( pos, 3, "." ) ;
+         try
+         {
+            collectionName.replace( pos, 3, "." ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when replacing string: "
+                    "%s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
          pos++ ;
       }
    }
+
+done:
+   return rc ;
+error:
+   goto done ;   
 }
 
-static void convertProjection( BSONObj &proj )
+static INT32 convertProjection( BSONObj &proj )
 {
+   INT32 rc = SDB_OK ;
    BSONObjBuilder newBuilder ;
    BOOLEAN hasId = FALSE ;
    BOOLEAN addInclude = FALSE ;
@@ -121,58 +155,72 @@ static void convertProjection( BSONObj &proj )
       goto done ;
    }
 
-   while ( i.more() )
+   try
    {
-      BSONElement e = i.next() ;
-      if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
+      while ( i.more() )
       {
-         hasId = TRUE ;
-      }
-      if ( Object == e.type() && '$' == e.Obj().firstElementFieldName()[0] )
-      {
-         hasOperator = TRUE ;
-         newBuilder.append( e ) ;
-      }
-      else
-      {
-         // { b: 1 } => { b: { $include: 1 } }
-         newBuilder.append( e.fieldName(),
-                            BSON( "$include" << ( e.trueValue() ? 1 : 0 ) ) ) ;
-         if ( e.trueValue() )
+         BSONElement e = i.next() ;
+         if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
          {
-            addInclude = TRUE ;
+            hasId = TRUE ;
+         }
+         if ( Object == e.type() && '$' == e.Obj().firstElementFieldName()[0] )
+         {
+            hasOperator = TRUE ;
+            newBuilder.append( e ) ;
          }
          else
          {
-            addExclude = TRUE ;
-            if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
+            // { b: 1 } => { b: { $include: 1 } }
+            newBuilder.append( e.fieldName(),
+                               BSON( "$include" << 
+                                     ( e.trueValue() ? 1 : 0 ) ) ) ;
+            if ( e.trueValue() )
             {
-               addIdExclude = TRUE ;
+               addInclude = TRUE ;
+            }
+            else
+            {
+               addExclude = TRUE ;
+               if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
+               {
+                  addIdExclude = TRUE ;
+               }
             }
          }
       }
-   }
 
-   if ( !hasOperator && !hasId && !addExclude )
+      if ( !hasOperator && !hasId && !addExclude )
+      {
+         newBuilder.append( "_id", BSON( "$include" << 1 ) ) ;
+      }
+
+      proj = newBuilder.obj() ;
+
+      if ( addIdExclude && addInclude )
+      {
+         proj = proj.filterFieldsUndotted( BSON( "_id" << 1 ), false ) ;
+      }
+   }
+   catch ( std::exception &e )
    {
-      newBuilder.append( "_id", BSON( "$include" << 1 ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when converting projection: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
-   proj = newBuilder.obj() ;
-
-   if ( addIdExclude && addInclude )
-   {
-      proj = proj.filterFieldsUndotted( BSON( "_id" << 1 ), false ) ;
-   }
-
+   
 done:
-   return ;
+   return rc ;
+error:
+   goto done ;
 }
 
-static void convertIndexObj( BSONObj& indexObj, string clFullName )
+static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
 {
+   INT32 rc = SDB_OK ;
    BSONObjBuilder builder ;
-   BSONObj sdbIdxDef = indexObj.getObjectField( "IndexDef" ) ;
+   BSONObj sdbIdxDef ;
 
    // listIndexes command may send getMore message, we should convert fullname:
    //     foo.$cmd.listIndexes.bar => foo.bar
@@ -181,31 +229,74 @@ static void convertIndexObj( BSONObj& indexObj, string clFullName )
    {
       clFullName.erase( pos, sizeof( "$cmd.listIndexes" ) ) ;
    }
-   unescapeDot( clFullName ) ;
 
-   // build
-   builder.append( "v", sdbIdxDef.getIntField( "v" ) ) ;
-   if ( sdbIdxDef.getBoolField( "unique" ) &&
-        sdbIdxDef.getBoolField( "enforced" ) )
+   rc = unescapeDot( clFullName ) ;
+   if ( rc )
    {
-      builder.append( "unique", true ) ;
+      goto error ;
    }
-   builder.append( "key", sdbIdxDef.getObjectField( "key" ) ) ;
-   builder.append( "name", sdbIdxDef.getStringField( "name" ) ) ;
-   builder.append( "ns", clFullName.c_str() ) ;
 
-   indexObj = builder.obj() ;
+   try
+   {
+      sdbIdxDef = indexObj.getObjectField( "IndexDef" ) ;
+      builder.append( "v", sdbIdxDef.getIntField( "v" ) ) ;
+      if ( sdbIdxDef.getBoolField( "unique" ) &&
+           sdbIdxDef.getBoolField( "enforced" ) )
+      {
+         builder.append( "unique", true ) ;
+      }
+      builder.append( "key", sdbIdxDef.getObjectField( "key" ) ) ;
+      builder.append( "name", sdbIdxDef.getStringField( "name" ) ) ;
+      builder.append( "ns", clFullName.c_str() ) ;
+
+      indexObj = builder.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building bson : %s, rc: %d", 
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
-static void convertCollectionObj( BSONObj& collectionObj )
+static INT32 convertCollectionObj( BSONObj& collectionObj )
 {
+   INT32 rc = SDB_OK ;
    // { Name: "foo.bar" } => { name: "bar" }
-   const CHAR* _pClFullName = collectionObj.getStringField( "Name" ) ;
-   string clShortName = ossStrstr( _pClFullName, "." ) + 1 ;
+   const CHAR* _pClFullName = NULL ;
+   string clShortName ;
 
-   unescapeDot( clShortName ) ;
+   try
+   {
+      _pClFullName = collectionObj.getStringField( "Name" ) ;
+      clShortName = ossStrstr( _pClFullName, "." ) + 1 ;
+      
+      rc = unescapeDot( clShortName ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
-   collectionObj = BSON( "name" << clShortName.c_str() ) ;
+      collectionObj = BSON( "name" << clShortName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when converting collection obj:"
+              " %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 template< typename T >
@@ -268,14 +359,11 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
          }
       }
    }
-   catch( std::bad_alloc )
+   catch ( std::exception &e )
    {
-      rc = SDB_OOM ;
-      goto error ;
-   }
-   catch( std::exception )
-   {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when converting mongodb op: "
+              "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -530,31 +618,20 @@ INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
 
    INT32 rc = SDB_OK ;
 
-   try
-   {
-      sdbMsg.zero() ;
+   sdbMsg.zero() ;
 
-      // build message
-      rc = (*ppCommand)->buildSdbRequest( sdbMsg, sessCtx ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to build sdb message for command[%s], rc: %d",
-                   (*ppCommand)->name(), rc ) ;
+   rc = (*ppCommand)->buildSdbRequest( sdbMsg, sessCtx ) ;
+   PD_RC_CHECK( rc, PDERROR,
+                "Failed to build sdb message for command[%s], rc: %d",
+                (*ppCommand)->name(), rc ) ;
 
-      PD_LOG( PDDEBUG, "Init and build sdb msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %s, eduID: %llu ] done",
-              ossGetCurrentThreadID(),
-              sessCtx.sessionName.c_str(),
-              (*ppCommand)->name() ? (*ppCommand)->name() : "",
-              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "",
-              sessCtx.eduID ) ;
-   }
-   catch( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Build command[%s] sdb msg exception: %s, rc: %d",
-              *ppCommand ? (*ppCommand)->name() : "", e.what(), rc ) ;
-      goto error ;
-   }
+   PD_LOG( PDDEBUG, "Build sdb msg[ tid: %d, session: %s, "
+           "command: %s, clFullName: %s, eduID: %llu ] done",
+           ossGetCurrentThreadID(),
+           sessCtx.sessionName,
+           (*ppCommand)->name() ? (*ppCommand)->name() : "",
+           (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "",
+           sessCtx.eduID ) ;
 
 done:
    return rc ;
@@ -570,37 +647,25 @@ static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
    SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
    INT32 rc = SDB_OK ;
 
-   try
+   *ppCommand = getMongoCmdFactory()->create( pCommandName ) ;
+   if ( NULL == *ppCommand )
    {
-      // get command
-      *ppCommand = getMongoCmdFactory()->create( pCommandName ) ;
-      if ( NULL == *ppCommand )
-      {
-         rc = SDB_OPTION_NOT_SUPPORT ;
+      CHAR err[ 64 ] = { 0 } ;
+      
+      rc = SDB_OPTION_NOT_SUPPORT ;
+      PD_LOG( PDERROR,
+              "Unknown command name for mongo request: %s",
+              pCommandName ) ;
 
-         CHAR err[ 64 ] = {0} ;
-         ossSnprintf( err, 63, "Command '%s' is not supported", pCommandName ) ;
-         sessCtx.setError( rc, err ) ;
-
-         PD_LOG( PDERROR,
-                 "Unknown command name for mongo request: %s",
-                 pCommandName ) ;
-         goto error ;
-      }
-
-      // init command
-      rc = (*ppCommand)->init( pMsg, sessCtx ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to init command[%s], rc: %d",
-                   (*ppCommand)->name(), rc ) ;
+      ossSnprintf( err, 63, "Command '%s' is not supported", pCommandName ) ;
+      sessCtx.setError( rc, err ) ;
+      goto error ;
    }
-   catch ( std::exception &e )
-   {
-      PD_LOG ( PDERROR,
-               "Init command[%s] exception: %s",
-               *ppCommand ? (*ppCommand)->name() : "", e.what() ) ;
-      rc = SDB_INVALIDARG ;
-   }
+
+   rc = (*ppCommand)->init( pMsg, sessCtx ) ;
+   PD_RC_CHECK( rc, PDERROR,
+                "Failed to init command[%s], rc: %d",
+                (*ppCommand)->name(), rc ) ;      
 
 done:
    return rc ;
@@ -701,70 +766,22 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
    }
    else
    {
-      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                   "Unknown message type: %d",
-                   mongoMsg.opCode() ) ;
-   }
-
-done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_MONGOGETANDINITCOM, rc ) ;
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 mongoParseSdbReplyMsg( _mongoCommand *pCommand,
-                             const MsgOpReply &sdbReply,
-                             engine::rtnContextBuf &replyBuf )
-{
-   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
-   INT32 rc = SDB_OK ;
-
-   try
-   {
-      rc = pCommand->parseSdbReply( sdbReply, replyBuf ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to parse sdb reply msg, rc: %d",
-                   rc ) ;
-   }
-   catch( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Parse sdb reply msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d", 
+              mongoMsg.opCode(), rc ) ;
       goto error ;
    }
 
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 mongoPostRunCommand( _mongoCommand *pCommand,
-                           const MsgOpReply &sdbReply,
-                           engine::rtnContextBuf &replyBuf,
-                           _mongoResponseBuffer &headerBuf )
-{
-   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
-   INT32 rc = SDB_OK ;
-
-   try
-   {
-      rc = pCommand->buildMongoReply( sdbReply, replyBuf, headerBuf ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to build reply for command[%s], rc: %d",
-                   pCommand->name(), rc ) ;
-   }
-   catch ( std::exception &e )
-   {
-      rc = ossException2RC( &e ) ;
-      PD_LOG ( PDERROR,
-               "Post run command[%s] exception: %s",
-               pCommand->name(), e.what() ) ;
-   }
+   PD_LOG( PDDEBUG, "Init mongo msg[ tid: %d, session: %s, "
+           "command: %s, clFullName: %s, eduID: %llu ] done",
+           ossGetCurrentThreadID(),
+           sessCtx.sessionName,
+           (*ppCommand)->name() ? (*ppCommand)->name() : "",
+           (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "",
+           sessCtx.eduID ) ;
 
 done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_MONGOGETANDINITCOM, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -797,7 +814,6 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -807,15 +823,16 @@ INT32 _mongoGlobalCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
    {
       rc = SDB_INVALIDARG ;
-      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
+      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d", pMsg->type(), rc ) ;
+      goto error ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -855,6 +872,73 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
    return SDB_OK ;
 }
 
+INT32 _mongoDatabaseCommand::_queryMsgInit( const _mongoMessage *pMsg )
+{
+   INT32 rc = SDB_OK ;
+   const CHAR* pCommandName = NULL ;
+   const CHAR* pNameInReq = NULL ;
+   const CHAR* ptr = NULL ;
+   const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
+
+   _obj = BSONObj( pReq->query() ) ;
+   pCommandName = _obj.firstElementFieldName() ;
+
+   SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
+               "Invalid command name" ) ;
+
+   pNameInReq = pReq->fullCollectionName() ;
+   ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
+             "Invalid collectionFullName for mongo %s request: %s",
+             name(), pNameInReq ) ;
+   try
+   {
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d", 
+              e.what(), rc ) ;
+      goto error ;
+   }   
+
+   _initMsgType = MONGO_QUERY_MSG ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoDatabaseCommand::_commandMsgInit( const _mongoMessage *pMsg )
+{
+   INT32 rc = SDB_OK ;
+   const _mongoCommandRequest* pReq = (_mongoCommandRequest*)pMsg ;
+
+   SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
+               "Invalid command name" ) ;
+
+   try
+   {
+      _csName = pReq->databaseName() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d", 
+              e.what(), rc ) ;
+      goto error ;
+   } 
+
+   _initMsgType = MONGO_COMMAND_MSG ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBINIT, "_mongoDatabaseCommand::init" )
 INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
                                    mongoSessionCtx &ctx )
@@ -865,45 +949,30 @@ INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
 
    if ( MONGO_QUERY_MSG == pMsg->type() )
    {
-      const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
-
-      _obj = BSONObj( pReq->query() ) ;
-
-      // check command name
-      const CHAR* pCommandName = _obj.firstElementFieldName() ;
-      SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
-                  "Invalid command name" ) ;
-
-      // get cs name
-      const CHAR* pNameInReq = pReq->fullCollectionName() ;
-      const CHAR* ptr = ossStrstr( pNameInReq,
-                                   FAP_MONGO_FIELD_NAME_CMD ) ;
-      PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
-                "Invalid collectionFullName for mongo %s request: %s",
-                name(), pNameInReq ) ;
-      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
-
-      _isInitialized = TRUE ;
-      _initMsgType = MONGO_QUERY_MSG ;
+      rc = _queryMsgInit( pMsg ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init query msg, rc: %d", rc ) ;
+         goto error ;
+      }
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
    {
-      const _mongoCommandRequest* pReq = (_mongoCommandRequest*)pMsg ;
-
-      SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
-                  "Invalid command name" ) ;
-
-      _csName = pReq->databaseName() ;
-
-      _isInitialized = TRUE ;
-      _initMsgType = MONGO_COMMAND_MSG ;
+      rc = _commandMsgInit( pMsg ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init command msg, rc: %d", rc ) ;
+         goto error ;
+      }      
    }
    else
    {
       rc = SDB_INVALIDARG ;
-      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
+      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d", pMsg->type(), rc ) ;
+      goto error ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -944,57 +1013,77 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBBUILDFIRBATCH, "_mongoDatabaseCommand::_buildFirstBatch" )
-void _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
-                                              engine::rtnContextBuf &bodyBuf )
+INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
+                                               engine::rtnContextBuf &bodyBuf )
 {
    // {xxx}, {xxx}... =>
    // { cursor: { firstBatch: [ {xxx}, {xxx}... ], id: 0, ns: "foo.bar" },
    //   ok: 1 }
    PD_TRACE_ENTRY( SDB_FAPMONGO_DBBUILDFIRBATCH ) ;
+   INT32 rc = SDB_OK ;
    BSONObjBuilder resultBuilder ;
    BSONObjBuilder cursorBuilder ;
 
    if ( SDB_OK != sdbReply.flags && SDB_DMS_EOC != sdbReply.flags )
    {
-      return ;
+      goto done ;
    }
 
-   BSONArrayBuilder arr( cursorBuilder.subarrayStart( "firstBatch" ) ) ;
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      INT32 offset = 0 ;
-      while ( offset < bodyBuf.size() )
+      BSONArrayBuilder arr( cursorBuilder.subarrayStart( "firstBatch" ) ) ;
+      if ( SDB_OK == sdbReply.flags )
       {
-         BSONObj obj( bodyBuf.data() + offset ) ;
-         offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
-
-         if ( CMD_LIST_COLLECTION == type() )
+         INT32 offset = 0 ;
+         while ( offset < bodyBuf.size() )
          {
-            convertCollectionObj( obj ) ;
+            BSONObj obj( bodyBuf.data() + offset ) ;
+            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+
+            if ( CMD_LIST_COLLECTION == type() )
+            {
+               rc = convertCollectionObj( obj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+                          rc ) ;
+                  goto error ;
+               }
+            }
+            arr.append( obj ) ;
          }
-         arr.append( obj ) ;
       }
-   }
-   arr.done() ;
+      arr.done() ;
 
-   if ( CMD_LIST_COLLECTION == type() )
+      if ( CMD_LIST_COLLECTION == type() )
+      {
+         /* listCL
+          *  request: "foo.$cmd" { listCollections: 1 }
+          *  reply:   { ... ns: "foo.$cmd.listCollections" ... }
+          */
+         string ns = csName() ;
+         ns += ".$cmd.listCollections" ;
+         cursorBuilder.append( "ns", ns.c_str() ) ;
+      }
+
+      cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
+      resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
+      resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+   }
+   catch ( std::exception &e )
    {
-      /* listCL
-       *  request: "foo.$cmd" { listCollections: 1 }
-       *  reply:   { ... ns: "foo.$cmd.listCollections" ... }
-       */
-      string ns = csName() ;
-      ns += ".$cmd.listCollections" ;
-      cursorBuilder.append( "ns", ns.c_str() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building first batch : "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
-   cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
-   resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
-   resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
-
+   
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDFIRBATCH ) ;
-   return ;
+   return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLINIT, "_mongoCollectionCommand::init" )
@@ -1009,16 +1098,27 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
    {
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
       rc = _init( pReq ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init query msg, rc: %d", rc ) ;
+         goto error ;
+      }
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
    {
       const _mongoCommandRequest* pReq = (_mongoCommandRequest*)pMsg ;
       rc = _init( pReq ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init command msg, rc: %d", rc ) ;
+         goto error ;
+      }      
    }
    else
    {
       rc = SDB_INVALIDARG ;
-      PD_RC_CHECK( rc, PDERROR, "Unknown message type: %d", pMsg->type() ) ;
+      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d", pMsg->type(), rc ) ;
+      goto error ;
    }
 
    _requestID = pMsg->requestID() ;
@@ -1026,15 +1126,25 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
    if ( needConvertDecimal() &&
         mongoIsSupportDecimal( ctx.clientInfo ) )
    {
-      BSONObjBuilder sdbMsgObjBob( _obj.objsize() ) ;
-      rc = mongoDecimal2SdbDecimal( _obj, sdbMsgObjBob ) ;
-      if ( rc )
+      try
       {
-         ctx.setError( rc, "Invalid decimal" ) ;
-         PD_LOG( PDERROR, "Failed to convert mongo msg to sdb msg: %d", rc ) ;
+         BSONObjBuilder sdbMsgObjBob( _obj.objsize() ) ;
+         rc = mongoDecimal2SdbDecimal( _obj, sdbMsgObjBob ) ;
+         if ( rc )
+         {
+            ctx.setError( rc, "Invalid decimal" ) ;
+            PD_LOG( PDERROR, "Failed to convert mongo msg to sdb msg: %d", rc ) ;
+            goto error ;
+         }
+         _obj = sdbMsgObjBob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building new decimal "
+                 "bson : %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
-      _obj = sdbMsgObjBob.obj() ;
    }
 
 done:
@@ -1051,31 +1161,46 @@ INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
    INT32 rc = SDB_OK ;
    const CHAR* pClShortName = NULL ;
    const CHAR* pNameInReq = pReq->fullCollectionName() ;
+   const CHAR* pCommandName = NULL ;
+   const CHAR* ptr = NULL ;
 
    _obj = BSONObj( pReq->query() ) ;
 
-   // check command name
-   const CHAR* pCommandName = _obj.firstElementFieldName() ;
+   pCommandName = _obj.firstElementFieldName() ;
    SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                "Invalid command name" ) ;
 
-   // get cs name
-   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
-   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
-             "Invalid collectionFullName for mongo %s request: %s",
-             name(), pNameInReq ) ;
-   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
-
-   // get collection full name
    rc = mongoGetStringElement( _obj, pCommandName, pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pCommandName, rc ) ;
 
-   _clFullName = _csName ;
-   _clFullName += "." ;
-   _clFullName += pClShortName ;
-   escapeDot( _clFullName ) ;
+   ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
+             "Invalid collectionFullName for mongo %s request: %s",
+             name(), pNameInReq ) ;\
+             
+   try
+   {
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+
+      _clFullName = _csName ;
+      _clFullName += "." ;
+      _clFullName += pClShortName ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName and clName:"
+              " %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
+
+   rc = escapeDot( _clFullName ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
 done:
    if ( SDB_OK == rc )
@@ -1094,27 +1219,40 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO__CLINIT2 ) ;
    INT32 rc = SDB_OK ;
+   const CHAR* pClShortName = NULL ;
 
    _obj = BSONObj( pReq->metadata() ) ;
 
-   // check command name
    SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
                "Invalid command name" ) ;
 
-   // get cs cl name
-   _csName = pReq->databaseName() ;
-
-   const CHAR* pClShortName = NULL ;
    rc = mongoGetStringElement( _obj, pReq->commandName(), pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pReq->commandName(), rc ) ;
 
-   _clFullName = _csName ;
-   _clFullName += "." ;
-   _clFullName += pClShortName ;
-   escapeDot( _clFullName ) ;
+   try
+   {
+      _csName = pReq->databaseName() ;
+      
+      _clFullName = _csName ;
+      _clFullName += "." ;
+      _clFullName += pClShortName ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName and clName:"
+              " %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }  
 
+   rc = escapeDot( _clFullName ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+   
 done:
    if ( SDB_OK == rc )
    {
@@ -1178,65 +1316,80 @@ INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
         SDB_DMS_CS_NOTEXIST != sdbReply.flags &&
         SDB_DMS_NOTEXIST != sdbReply.flags)
    {
-      return SDB_OK ;
+      goto done ;
    }
 
-   BSONArrayBuilder arr( cursorBuilder.subarrayStart( "firstBatch" ) ) ;
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      INT32 offset = 0 ;
-      BSONObjBuilder decimalConvertBob ;
-      BOOLEAN hasDecimal = FALSE ;
-
-      while ( offset < bodyBuf.size() )
+      BSONArrayBuilder arr( cursorBuilder.subarrayStart( "firstBatch" ) ) ;
+      if ( SDB_OK == sdbReply.flags )
       {
-         BSONObj obj( bodyBuf.data() + offset ) ;
-         offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+         INT32 offset = 0 ;
+         BSONObjBuilder decimalConvertBob ;
+         BOOLEAN hasDecimal = FALSE ;
 
-         if ( CMD_LIST_INDEX == type() )
+         while ( offset < bodyBuf.size() )
          {
-            convertIndexObj( obj, clFullName() ) ;
-            arr.append( obj ) ;
-         }
-         else
-         {
-            rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to convert sdb record to mongo record, "
-                         "rc: %d", rc ) ;
+            BSONObj obj( bodyBuf.data() + offset ) ;
+            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
 
-            if ( hasDecimal )
+            if ( CMD_LIST_INDEX == type() )
             {
-               arr.append( decimalConvertBob.done() ) ;
-               decimalConvertBob.reset() ;
+               rc = convertIndexObj( obj, clFullName() ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
+                  goto error ;
+               }
+               arr.append( obj ) ;
             }
             else
             {
-               arr.append( obj ) ;
+               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to convert sdb record to mongo record, "
+                            "rc: %d", rc ) ;
+
+               if ( hasDecimal )
+               {
+                  arr.append( decimalConvertBob.done() ) ;
+                  decimalConvertBob.reset() ;
+               }
+               else
+               {
+                  arr.append( obj ) ;
+               }
             }
          }
       }
-   }
-   arr.done() ;
+      arr.done() ;
 
-   if ( CMD_LIST_INDEX == type() )
-   {
-      // listIndexes reply:   { ... ns: "foo.$cmd.listIndexes.bar" ... }
-      string ns = _clFullName ;
-      string::size_type pos = ns.find( '.' ) ;
-      ns.insert( pos, ".$cmd.listIndexes" ) ;
-      cursorBuilder.append( "ns", ns.c_str() ) ;
-   }
-   else
-   {
-      // real query or aggregate reply:   { ... ns: "foo.bar" ... }
-      cursorBuilder.append( "ns", clFullName() ) ;
-   }
+      if ( CMD_LIST_INDEX == type() )
+      {
+         // listIndexes reply:   { ... ns: "foo.$cmd.listIndexes.bar" ... }
+         string ns = _clFullName ;
+         string::size_type pos = ns.find( '.' ) ;
+         ns.insert( pos, ".$cmd.listIndexes" ) ;
+         cursorBuilder.append( "ns", ns.c_str() ) ;
+      }
+      else
+      {
+         // real query or aggregate reply:   { ... ns: "foo.bar" ... }
+         cursorBuilder.append( "ns", clFullName() ) ;
+      }
 
-   cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
-   resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
-   resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+      cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
+      resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
+      resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building first batch: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_CLBUILDFIRBATCH, rc ) ;
@@ -1254,6 +1407,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
    INT32 rc                = SDB_OK ;
    MsgOpInsert *pInsert    = NULL ;
+   BSONObj docList ;
 
    sdbMsg.reserve( sizeof( MsgOpInsert ) ) ;
    sdbMsg.advance( sizeof( MsgOpInsert ) - 4 ) ;
@@ -1272,11 +1426,12 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.write( _clFullName.c_str(), pInsert->nameLength + 1, TRUE ) ;
 
    // get records to be insert
-   BSONObj docList ;
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DOCUMENTS, docList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_DOCUMENTS, rc ) ;
+
+   try
    {
       BSONObjIterator it( docList ) ;
       while ( it.more() )
@@ -1287,9 +1442,15 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    docList.toString().c_str(), name() ) ;
          sdbMsg.write( ele.Obj(), TRUE ) ;
       }
+      sdbMsg.doneLen() ;
    }
-
-   sdbMsg.doneLen() ;
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb insert request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_INSERTBUILDSDBREQ, rc ) ;
@@ -1304,26 +1465,36 @@ INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
-
-   if ( SDB_OK == sdbReply.flags )
+   INT32 rc = SDB_OK ;
+   
+   try
    {
-      // reply: { n: 1, ok: 1 }
-      BSONObj resObj( bodyBuf.data() ) ;
-      BSONObjBuilder bob ;
-
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      if ( resObj.hasField( "InsertedNum" ) )
+      if ( SDB_OK == sdbReply.flags )
       {
-         bob.append( "n", resObj.getIntField( "InsertedNum" ) ) ;
-      }
+         // reply: { n: 1, ok: 1 }
+         BSONObj resObj( bodyBuf.data() ) ;
+         BSONObjBuilder bob ;
 
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bob.append( "n", resObj.getIntField( "InsertedNum" ) ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo insert reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteCommand)
@@ -1360,42 +1531,51 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_DELETES, rc ) ;
 
-   if ( !_hasBuildMsgVec )
+   try
    {
-      BSONObjIterator itr( objList ) ;
-      while( itr.more() )
+      if ( !_hasBuildMsgVec )
       {
-         BSONElement ele = itr.next() ;
-         if ( Object != ele.type() )
+         BSONObjIterator itr( objList ) ;
+         while( itr.more() )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Invalid deletes field. The type of element in "
-                    "deletes must be Object, rc: %d", rc ) ;
-            goto error ;
+            BSONElement ele = itr.next() ;
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid deletes field. The type of element in "
+                       "deletes must be Object, rc: %d", rc ) ;
+               goto error ;
+            }
+            _msgVec.push_back( ele ) ;
          }
-         _msgVec.push_back( ele ) ;
+         _hasBuildMsgVec = TRUE ;
       }
-      _hasBuildMsgVec = TRUE ;
+
+      deleteObj = _msgVec[_msgIndex++].embeddedObject() ;
+      qObj = deleteObj.getObjectField( "q" ) ;
+      _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
+
+      if ( 1 == deleteObj.getIntField( "limit" ) )
+      {
+         pDel->flags |= FLG_DELETE_ONE ;
+      }
+
+      rc = convertMongoOperator2Sdb( qObj, operatorBob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert mongo operator to sdb operator, rc: %d",
+                   rc ) ;
+
+      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      sdbMsg.write( BSONObj(), TRUE ) ; // hint
+      sdbMsg.doneLen() ;
    }
-
-   deleteObj = _msgVec[_msgIndex++].embeddedObject() ;
-   qObj = deleteObj.getObjectField( "q" ) ;
-   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
-
-   if ( 1 == deleteObj.getIntField( "limit" ) )
+   catch ( std::exception &e )
    {
-      pDel->flags |= FLG_DELETE_ONE ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb delete request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
-   rc = convertMongoOperator2Sdb( qObj, operatorBob ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Failed to convert mongo operator to sdb operator, rc: %d",
-                rc ) ;
-
-   sdbMsg.write( operatorBob.obj(), TRUE ) ;
-   sdbMsg.write( BSONObj(), TRUE ) ; // hint
-
-   sdbMsg.doneLen() ;
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DELETEBUILDSDBREQ, rc ) ;
@@ -1440,8 +1620,8 @@ INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
    catch( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Parse delete sdb reply msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing sdb delete reply "
+              "msg: %s, rc: %d", e.what(), rc ) ;      
       goto error ;
    }
 
@@ -1458,31 +1638,45 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-        SDB_DMS_NOTEXIST == sdbReply.flags )
+   try
    {
-      // reply: { n: 1, ok: 1 }
-      BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-
-      if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+      if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
            SDB_DMS_NOTEXIST == sdbReply.flags )
       {
-         bob.append( "n", 0 ) ;
-      }
-      else
-      {
-         bob.append( "n", (INT32)_deletedNum ) ;
-      }
+         // reply: { n: 1, ok: 1 }
+         BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+              SDB_DMS_NOTEXIST == sdbReply.flags )
+         {
+            bob.append( "n", 0 ) ;
+         }
+         else
+         {
+            bob.append( "n", (INT32)_deletedNum ) ;
+         }
+
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo delete "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DELETEBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoUpdateCommand)
@@ -1521,107 +1715,116 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_UPDATES, rc ) ;
 
-   if ( !_hasBuildMsgVec )
+   try
    {
-      BSONObjIterator itr( objList ) ;
-      while( itr.more() )
+      if ( !_hasBuildMsgVec )
       {
-         BSONElement ele = itr.next() ;
-         if ( Object != ele.type() )
+         BSONObjIterator itr( objList ) ;
+         while( itr.more() )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Invalid updates field. The type of element in "
-                    "updates must be Object, rc: %d", rc ) ;
+            BSONElement ele = itr.next() ;
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid updates field. The type of element in "
+                       "updates must be Object, rc: %d", rc ) ;
+               goto error ;
+            }
+            _msgVec.push_back( ele ) ;
+         }
+         _hasBuildMsgVec = TRUE ;
+      }
+
+      updateObj   = _msgVec[_msgIndex++].embeddedObject() ;
+      query       = updateObj.getObjectField( "q" ) ;
+      updator     = updateObj.getObjectField( "u" ) ;
+      updateMulti = updateObj.getBoolField( "multi" ) ;
+      _isUpsert   = updateObj.getBoolField( "upsert" ) ;
+      _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
+
+      // set flag
+      if ( FALSE == updateMulti )
+      {
+         pUpdate->flags |= FLG_UPDATE_ONE ;
+      }
+      if ( _isUpsert )
+      {
+         pUpdate->flags |= FLG_UPDATE_UPSERT ;
+      }
+
+      // if updator without operator, convert to $replace
+      if( 0 == updator.nFields() ||
+          updator.firstElementFieldName()[0] != '$' )
+      {
+         if ( updateMulti )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            ctx.setError( 9, "Multi update only works with $ operators" ) ;
             goto error ;
          }
-         _msgVec.push_back( ele ) ;
-      }
-      _hasBuildMsgVec = TRUE ;
-   }
-
-   updateObj   = _msgVec[_msgIndex++].embeddedObject() ;
-   query       = updateObj.getObjectField( "q" ) ;
-   updator     = updateObj.getObjectField( "u" ) ;
-   updateMulti = updateObj.getBoolField( "multi" ) ;
-   _isUpsert   = updateObj.getBoolField( "upsert" ) ;
-   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
-
-   // set flag
-   if ( FALSE == updateMulti )
-   {
-      pUpdate->flags |= FLG_UPDATE_ONE ;
-   }
-   if ( _isUpsert )
-   {
-      pUpdate->flags |= FLG_UPDATE_UPSERT ;
-   }
-
-   // if updator without operator, convert to $replace
-   if( 0 == updator.nFields() ||
-       updator.firstElementFieldName()[0] != '$' )
-   {
-      if ( updateMulti )
-      {
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         ctx.setError( 9, "Multi update only works with $ operators" ) ;
-         goto error ;
-      }
-      updator = BSON( "$replace" << updator ) ;
-   }
-
-   // upsert operation requires _id to return
-   if ( _isUpsert )
-   {
-      _idObj = BSONObj() ;
-      // get the _id from the query condition or the update condition
-      rc = _getId( query, updator, ctx, _idObj ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get _id from the query condition[%s] "
-                 "or the update condition[%s], rc: %d",
-                 query.toString().c_str(), updator.toString().c_str(), rc ) ;
-         goto error ;
+         updator = BSON( "$replace" << updator ) ;
       }
 
-      // filter $setOnInsert
-      if ( updator.hasField( "$setOnInsert" ) )
+      // upsert operation requires _id to return
+      if ( _isUpsert )
       {
-         setOnObj = updator.getObjectField( "$setOnInsert" ) ;
-         updator = updator.filterFieldsUndotted( BSON( "$setOnInsert" << 1 ),
-                                                 false ) ;
-         if( 0 == updator.nFields() )
+         _idObj = BSONObj() ;
+         // get the _id from the query condition or the update condition
+         rc = _getId( query, updator, ctx, _idObj ) ;
+         if ( rc )
          {
-            updator = BSON( "$set" << BSONObj() ) ;
+            PD_LOG( PDERROR, "Failed to get _id from the query condition[%s] "
+                    "or the update condition[%s], rc: %d",
+                    query.toString().c_str(), updator.toString().c_str(), rc ) ;
+            goto error ;
+         }
+
+         // filter $setOnInsert
+         if ( updator.hasField( "$setOnInsert" ) )
+         {
+            setOnObj = updator.getObjectField( "$setOnInsert" ) ;
+            updator = updator.filterFieldsUndotted( BSON( "$setOnInsert" << 1 ),
+                                                    false ) ;
+            if( 0 == updator.nFields() )
+            {
+               updator = BSON( "$set" << BSONObj() ) ;
+            }
+         }
+
+         // add _id to $SetOnInsert if _id doesn't exist
+         if ( _idObj.isEmpty() )
+         {
+            OID oid = OID::gen() ;
+            _idObj = BSON( "_id" << oid ) ;
+
+            BSONObjBuilder bob ;
+            bob.append( "_id", oid ) ;
+            bob.appendElements( setOnObj ) ;
+            hint = BSON( FIELD_NAME_SET_ON_INSERT << bob.obj() ) ;
+         }
+         else
+         {
+            hint = BSON( FIELD_NAME_SET_ON_INSERT << setOnObj ) ;
          }
       }
 
-      // add _id to $SetOnInsert if _id doesn't exist
-      if ( _idObj.isEmpty() )
-      {
-         OID oid = OID::gen() ;
-         _idObj = BSON( "_id" << oid ) ;
+      rc = convertMongoOperator2Sdb( query, operatorBob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert mongo operator to sdb operator, rc: %d",
+                   rc ) ;
 
-         BSONObjBuilder bob ;
-         bob.append( "_id", oid ) ;
-         bob.appendElements( setOnObj ) ;
-         hint = BSON( FIELD_NAME_SET_ON_INSERT << bob.obj() ) ;
-      }
-      else
-      {
-         hint = BSON( FIELD_NAME_SET_ON_INSERT << setOnObj ) ;
-      }
+      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      sdbMsg.write( updator, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
+      sdbMsg.doneLen() ;
    }
-
-   rc = convertMongoOperator2Sdb( query, operatorBob ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Failed to convert mongo operator to sdb operator, rc: %d",
-                rc ) ;
-
-   sdbMsg.write( operatorBob.obj(), TRUE ) ;
-   sdbMsg.write( updator, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
-
-   sdbMsg.doneLen() ;
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb update request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEBUILDSDBREQ, rc ) ;
@@ -1695,8 +1898,8 @@ INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
    catch( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Parse update sdb reply msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when parsing sdb update reply "
+              "msg: %s, rc: %d", e.what(), rc ) ;  
       goto error ;
    }
 
@@ -1713,60 +1916,74 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      // update reply: { ok: 1, n: 1, nModified: 1 }
-      // upsert reply: { ok: 1, n: 1, nModified: 0,
-      //                 upserted: [ { index: 0, _id: xxx } ] }
-      BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-
-      //n
-      if ( _insertedNum > 0 )
+      if ( SDB_OK == sdbReply.flags )
       {
-         bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
-      }
-      else
-      {
-         bob.append( "n", (INT32)_updatedNum ) ;
-      }
+         // update reply: { ok: 1, n: 1, nModified: 1 }
+         // upsert reply: { ok: 1, n: 1, nModified: 0,
+         //                 upserted: [ { index: 0, _id: xxx } ] }
+         BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
-      //nModified
-      bob.append( "nModified", (INT32)_modifiedNum ) ;
-
-      //upserted
-      if ( _insertedNum > 0 )
-      {
-         BSONArrayBuilder sub( bob.subarrayStart( "upserted" ) ) ;
-
-         ossPoolMap<INT32, BSONObj>::iterator iter ;
-         iter = _idObjMap.begin() ;
-         while( iter != _idObjMap.end() )
+         //n
+         if ( _insertedNum > 0 )
          {
-            sub.append( BSON( "index" << iter->first <<
-                              "_id" << iter->second.getField( "_id" ) ) ) ;
-            iter++ ;
+            bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
+         }
+         else
+         {
+            bob.append( "n", (INT32)_updatedNum ) ;
          }
 
-         sub.done() ;
+         //nModified
+         bob.append( "nModified", (INT32)_modifiedNum ) ;
+
+         //upserted
+         if ( _insertedNum > 0 )
+         {
+            BSONArrayBuilder sub( bob.subarrayStart( "upserted" ) ) ;
+
+            ossPoolMap<INT32, BSONObj>::iterator iter ;
+            iter = _idObjMap.begin() ;
+            while( iter != _idObjMap.end() )
+            {
+               sub.append( BSON( "index" << iter->first <<
+                                 "_id" << iter->second.getField( "_id" ) ) ) ;
+               iter++ ;
+            }
+
+            sub.done() ;
+         }
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
       }
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bob.append( "n", 0 ) ;
+         bob.append( "nModified", 0 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
    }
-   else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-             SDB_DMS_NOTEXIST == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bob.append( "n", 0 ) ;
-      bob.append( "nModified", 0 ) ;
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo update reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEGETID, "_mongoUpdateCommand::_getId" )
@@ -1955,14 +2172,13 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
    const CHAR* pNameInReq = NULL ;
    const _mongoQueryRequest* pReq = NULL ;
 
-   // convert request
    PD_CHECK( MONGO_QUERY_MSG == pMsg->type(),
              SDB_INVALIDARG, error, PDERROR,
              "Unknown message type: %d",
              pMsg->type() ) ;
+   
    pReq = (_mongoQueryRequest*)pMsg ;
 
-   // get cs name and cl name
    pNameInReq = pReq->fullCollectionName() ;
 
    ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
@@ -1975,11 +2191,25 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
              "Invalid collectionFullName for mongo %s request: %s",
              name(), pNameInReq ) ;
 
-   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
-   _clFullName = pNameInReq ;
-   escapeDot( _clFullName ) ;
+   try
+   {
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+      _clFullName = pNameInReq ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName and clName: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
-   // get query
+   rc = escapeDot( _clFullName ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    _skip = pReq->nToSkip() ;
    _nReturn = pReq->nToReturn() ;
    _query = BSONObj( pReq->query() ) ;
@@ -1988,7 +2218,6 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
       _selector = BSONObj( pReq->selector() ) ;
    }
 
-   // set client type
    _client = ctx.clientInfo.type ;
 
    _requestID = pMsg->requestID() ;
@@ -2054,25 +2283,53 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       pQuery->numToReturn = -_nReturn ;
    }
 
-   convertProjection( _selector ) ;
+   rc = convertProjection( _selector ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // eg: cl.find( { $query: {a:1}, $orderby: {b:1}, $hint: "aIdx" } )
-   cond    = _getQueryObj( _query ) ;
-   orderby = _getSortObj( _query ) ;
-   hint    = _getHintObj( _query ) ;
+   rc = _getQueryObj( _query, cond ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+   
+   rc = _getSortObj( _query, orderby ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+   
+   rc = _getHintObj( _query, hint ) ;
+   if ( rc )
+   {
+      goto error ;
+   }   
 
    rc = convertMongoOperator2Sdb( cond, operatorBob ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to convert mongo operator to sdb operator, rc: %d",
                 rc ) ;
 
-   sdbMsg.write( operatorBob.obj(), TRUE ) ;
+   try
+   {
+      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb query request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    sdbMsg.write( _selector, TRUE ) ;
    sdbMsg.write( orderby, TRUE ) ;
    sdbMsg.write( hint, TRUE ) ;
-
    sdbMsg.doneLen() ;
-
+   
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_QUERYBUILDREQ, rc ) ;
    return rc ;
@@ -2087,6 +2344,8 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_QUERYBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
+   mongoResponse res ;
 
    // build body
    if ( sdbReply.numReturned > 1 )
@@ -2115,17 +2374,28 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // reply: { $err: "xxx", code: 1234 }
          BSONObj resObj( bodyBuf.data() ) ;
-         BSONObj newObj = BSON( FAP_MONGO_DOLLAR FAP_MONGO_FIELD_NAME_ERR <<
-                                resObj.getStringField(
-                                FAP_MONGO_FIELD_NAME_ERRMSG ) <<
-                                FAP_MONGO_FIELD_NAME_CODE <<
-                                resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) ) ;
+         BSONObj newObj ; 
+
+         try
+         {
+            newObj = BSON( FAP_MONGO_DOLLAR FAP_MONGO_FIELD_NAME_ERR <<
+                           resObj.getStringField(
+                           FAP_MONGO_FIELD_NAME_ERRMSG ) <<
+                           FAP_MONGO_FIELD_NAME_CODE <<
+                           resObj.getIntField( FAP_MONGO_FIELD_NAME_CODE ) ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building query mongo"
+                    " reply msg: %s, rc: %d", e.what(), rc ) ;      
+            goto error ;
+         }         
+         
          bodyBuf = engine::rtnContextBuf( newObj ) ;
       }
    }
 
-   // build header
-   mongoResponse res ;
    res.header.msgLen = sizeof( mongoResponse ) + bodyBuf.size() ;
    res.header.responseTo = _requestID ;
    if ( sdbReply.flags != SDB_OK && sdbReply.flags != SDB_DMS_EOC )
@@ -2139,71 +2409,116 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
    res.nReturned = bodyBuf.recordNum() ;
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_QUERYBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
-BSONObj _mongoQueryCommand::_getQueryObj( const BSONObj &obj )
+INT32 _mongoQueryCommand::_getQueryObj( const BSONObj &obj, BSONObj &query )
 {
-   bson::BSONObj query ;
-   if ( obj.hasField( "$query" ) )
-   {
-      query = obj.getObjectField( "$query" ) ;
-   }
-   else if ( obj.hasField( "query" ) )
-   {
-      query = obj.getObjectField( "query" ) ;
-   }
-   else
-   {
-      query = obj;
-   }
+   INT32 rc = SDB_OK ;
 
-   return query ;
+   try
+   {
+      if ( obj.hasField( "$query" ) )
+      {
+         query = obj.getObjectField( "$query" ) ;
+      }
+      else if ( obj.hasField( "query" ) )
+      {
+         query = obj.getObjectField( "query" ) ;
+      }
+      else
+      {
+         query = obj;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting query obj: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
-BSONObj _mongoQueryCommand::_getSortObj( const BSONObj &obj )
+INT32 _mongoQueryCommand::_getSortObj( const BSONObj &obj, BSONObj &sort )
 {
-   bson::BSONObj sort ;
-   if ( obj.hasField( "$orderby" ) )
-   {
-      sort = obj.getObjectField( "$orderby" ) ;
-   }
-   else if ( obj.hasField( "orderby" ) )
-   {
-      sort = obj.getObjectField( "orderby" ) ;
-   }
+   INT32 rc = SDB_OK ;
 
-   return sort ;
+   try
+   {
+      if ( obj.hasField( "$orderby" ) )
+      {
+         sort = obj.getObjectField( "$orderby" ) ;
+      }
+      else if ( obj.hasField( "orderby" ) )
+      {
+         sort = obj.getObjectField( "orderby" ) ;
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting sort obj: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
-BSONObj _mongoQueryCommand::_getHintObj( const BSONObj &obj )
+INT32 _mongoQueryCommand::_getHintObj( const BSONObj &obj, BSONObj &hint )
 {
-   bson::BSONObj hint ;
-   if ( obj.hasField( "$hint" ) )
-   {
-      if ( String == obj.getField( "$hint" ).type() )
-      {
-         hint = BSON( "" << obj.getStringField( "$hint" ) ) ;
-      }
-      else if ( obj.getField( "$hint" ).isABSONObj() )
-      {
-         hint = obj.getObjectField( "$hint" ) ;
-      }
-   }
-   else if ( obj.hasField( "hint" ) )
-   {
-      if ( String == obj.getField( "hint" ).type() )
-      {
-         hint = BSON( "" << obj.getStringField( "hint" ) ) ;
-      }
-      else if ( obj.getField( "hint" ).isABSONObj() )
-      {
-         hint = obj.getObjectField( "hint" ) ;
-      }
-   }
+   INT32 rc = SDB_OK ;
 
-   return hint ;
+   try
+   {
+      if ( obj.hasField( "$hint" ) )
+      {
+         if ( String == obj.getField( "$hint" ).type() )
+         {
+            hint = BSON( "" << obj.getStringField( "$hint" ) ) ;
+         }
+         else if ( obj.getField( "$hint" ).isABSONObj() )
+         {
+            hint = obj.getObjectField( "$hint" ) ;
+         }
+      }
+      else if ( obj.hasField( "hint" ) )
+      {
+         if ( String == obj.getField( "hint" ).type() )
+         {
+            hint = BSON( "" << obj.getStringField( "hint" ) ) ;
+         }
+         else if ( obj.getField( "hint" ).isABSONObj() )
+         {
+            hint = obj.getObjectField( "hint" ) ;
+         }
+      }
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting hint obj: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindCommand)
@@ -2236,35 +2551,49 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = _clFullName.length() ;
    sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
 
-   cond     = _obj.getObjectField( "filter" ) ;
-   orderby  = _obj.getObjectField( "sort" ) ;
-   selector = _obj.getObjectField( "projection" ) ;
-
-   convertProjection( selector ) ;
-
-   if ( _obj.hasField( "hint" ) )
+   try
    {
-      hint = BSON( "" << _obj.getStringField( "hint" ) ) ;
-   }
-   if ( _obj.hasField( "limit" ) )
-   {
-      pQuery->numToReturn = _obj.getIntField( "limit" ) ;
-   }
-   if ( _obj.hasField( "skip" ) )
-   {
-      pQuery->numToSkip = _obj.getIntField( "skip" ) ;
-   }
+      cond     = _obj.getObjectField( "filter" ) ;
+      orderby  = _obj.getObjectField( "sort" ) ;
+      selector = _obj.getObjectField( "projection" ) ;
 
-   rc = convertMongoOperator2Sdb( cond, operatorBob ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Failed to convert mongo operator to sdb operator, rc: %d",
-                rc ) ;
+      rc = convertProjection( selector ) ;
+      if ( rc )
+      {
+         goto error ;
+      }   
 
-   sdbMsg.write( operatorBob.obj(), TRUE ) ;
-   sdbMsg.write( selector, TRUE ) ;
-   sdbMsg.write( orderby, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
-   sdbMsg.doneLen() ;
+      if ( _obj.hasField( "hint" ) )
+      {
+         hint = BSON( "" << _obj.getStringField( "hint" ) ) ;
+      }
+      if ( _obj.hasField( "limit" ) )
+      {
+         pQuery->numToReturn = _obj.getIntField( "limit" ) ;
+      }
+      if ( _obj.hasField( "skip" ) )
+      {
+         pQuery->numToSkip = _obj.getIntField( "skip" ) ;
+      }
+
+      rc = convertMongoOperator2Sdb( cond, operatorBob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert mongo operator to sdb operator, rc: %d",
+                   rc ) ;
+
+      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      sdbMsg.write( selector, TRUE ) ;
+      sdbMsg.write( orderby, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
+      sdbMsg.doneLen() ;      
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb find request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_FINDBUILDREQ, rc ) ;
@@ -2328,16 +2657,28 @@ INT32 _mongoGetmoreCommand::init( const _mongoMessage *pMsg,
    {
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
       rc = _init( pReq ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
    }
    else if ( MONGO_GETMORE_MSG == pMsg->type() )
    {
       const _mongoGetmoreRequest* pReq = (_mongoGetmoreRequest*)pMsg ;
       rc = _init( pReq ) ;
+      if ( rc )
+      {
+         goto error ;
+      }      
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
    {
       const _mongoCommandRequest* pReq = (_mongoCommandRequest*)pMsg ;
       rc = _init( pReq ) ;
+      if ( rc )
+      {
+         goto error ;
+      }      
    }
    else
    {
@@ -2382,22 +2723,30 @@ INT32 _mongoGetmoreCommand::_init( const _mongoGetmoreRequest *pReq )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT1 ) ;
    INT32 rc = SDB_OK ;
+   const CHAR* pNameInReq = NULL ;
+   const CHAR* ptr = NULL ;
 
-   // get collection full name
-   const CHAR* pNameInReq = pReq->fullCollectionName() ;
-   _clFullName = pNameInReq ;
+   try
+   {
+      pNameInReq = pReq->fullCollectionName() ;
+      _clFullName = pNameInReq ;
 
-   // get cs name
-   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_DOT ) ;
-   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
-             "Invalid collectionFullName for mongo %s request: %s",
-             name(), pNameInReq ) ;
-   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
-
-   // get cursorID
+      ptr = ossStrstr( pNameInReq, FAP_MONGO_DOT ) ;
+      PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
+                "Invalid collectionFullName for mongo %s request: %s",
+                name(), pNameInReq ) ;
+      
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when initing getMore request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _cursorID = pReq->cursorID() ;
-
-   // get returned number
    _nToReturn = pReq->nToReturn() ;
 
 done:
@@ -2421,39 +2770,47 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
    PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREINIT2 ) ;
    INT32 rc = SDB_OK ;
    const CHAR* pClShortName = NULL ;
-   const CHAR* pNameInReq = pReq->fullCollectionName() ;
+   const CHAR* pNameInReq = NULL ;
    BSONObj obj( pReq->query() ) ;
+   const CHAR* ptr = NULL ;
+   const CHAR* pCommandName = NULL ;
 
-   // check command name
-   const CHAR* pCommandName = obj.firstElementFieldName() ;
+   pCommandName = obj.firstElementFieldName() ;
    SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                "Invalid command name" ) ;
 
-   // get cs name
-   const CHAR* ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
-   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
-             "Invalid collectionFullName for mongo %s request: %s",
-             name(), pNameInReq ) ;
-   _csName.assign( pNameInReq, ptr - pNameInReq ) ;
-
-   // get collection full name
    rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION,
                                pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
 
-   _clFullName = _csName ;
-   _clFullName += "." ;
-   _clFullName += pClShortName ;
-
-   // get cursorID
+   pNameInReq = pReq->fullCollectionName() ;
+   ptr = ossStrstr( pNameInReq, FAP_MONGO_FIELD_NAME_CMD ) ;
+   PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
+             "Invalid collectionFullName for mongo %s request: %s",
+             name(), pNameInReq ) ;
+   
+   try
+   {
+      _csName.assign( pNameInReq, ptr - pNameInReq ) ;
+      _clFullName = _csName ;
+      _clFullName += "." ;
+      _clFullName += pClShortName ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName and clName"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    rc = mongoGetNumberLongElement( obj, pCommandName, _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pCommandName, rc ) ;
 
-   // get returned number
    rc = mongoGetIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
    if ( SDB_FIELD_NOT_EXIST == rc )
    {
@@ -2483,31 +2840,35 @@ INT32 _mongoGetmoreCommand::_init( const _mongoCommandRequest *pReq )
    const CHAR* pClShortName = NULL ;
    BSONObj obj( pReq->metadata() ) ;
 
-   // check command name
    SDB_ASSERT( 0 == ossStrcmp( pReq->commandName(), name() ),
                "Invalid command name" ) ;
 
-   // get cs name
-   _csName = pReq->databaseName() ;
-
-   // get cl name
    rc = mongoGetStringElement( obj, FAP_MONGO_FIELD_NAME_COLLECTION,
                                pClShortName ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_COLLECTION, rc ) ;
 
-   _clFullName = _csName ;
-   _clFullName += "." ;
-   _clFullName += pClShortName ;
+   try
+   {
+      _csName = pReq->databaseName() ;
+      _clFullName = _csName ;
+      _clFullName += "." ;
+      _clFullName += pClShortName ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting csName and clName"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
-   // get cursorID
    rc = mongoGetNumberLongElement( obj, pReq->commandName(), _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 pReq->commandName(), rc ) ;
 
-   // get returned number
    rc = mongoGetIntElement( obj, FAP_MONGO_FIELD_NAME_BATCHSIZE, _nToReturn ) ;
    if ( SDB_FIELD_NOT_EXIST == rc )
    {
@@ -2559,6 +2920,8 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
                                                 _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDGETMOREREPLY ) ;
+   INT32 rc = SDB_OK ;
+   mongoResponse res ;
 
    if ( SDB_OK == sdbReply.flags )
    {
@@ -2571,11 +2934,22 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
 
          if ( GETMORE_LISTINDEX == _type )
          {
-            convertIndexObj( obj, _clFullName ) ;
+            rc = convertIndexObj( obj, _clFullName ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
+               goto error ;
+            }
          }
          else if ( GETMORE_LISTCOLLECTION == _type )
          {
-            convertCollectionObj( obj ) ;
+            rc = convertCollectionObj( obj ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+                       rc ) ;
+               goto error ;
+            }            
          }
 
          _msgBuf.write( obj.objdata(), obj.objsize() ) ;
@@ -2589,7 +2963,6 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
       bodyBuf = engine::rtnContextBuf() ;
    }
 
-   mongoResponse res ;
    res.header.msgLen = sizeof( mongoResponse ) + bodyBuf.size() ;
    res.header.responseTo = _requestID ;
    if ( SDB_RTN_CONTEXT_NOTEXIST == sdbReply.flags )
@@ -2604,8 +2977,11 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
    res.nReturned = bodyBuf.recordNum() ;
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMOREREPLY ) ;
-   return SDB_OK ;
+   return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDQUERYREPLY, "_mongoGetmoreCommand::_buildQueryReply" )
@@ -2675,22 +3051,41 @@ INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
 
    if( MONGO_GETMORE_MSG == _initMsgType )
    {
-      _buildGetmoreReply( sdbReply, bodyBuf, headerBuf ) ;
+      rc = _buildGetmoreReply( sdbReply, bodyBuf, headerBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build getMore reply, rc: %d", rc ) ;
+         goto error ;
+      }
    }
    else if( MONGO_QUERY_MSG == _initMsgType )
    {
-      _buildQueryReply( sdbReply, bodyBuf, headerBuf ) ;
+      rc = _buildQueryReply( sdbReply, bodyBuf, headerBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build query reply, rc: %d", rc ) ;
+         goto error ;
+      }      
    }
-   if( MONGO_COMMAND_MSG == _initMsgType )
+   else if( MONGO_COMMAND_MSG == _initMsgType )
    {
-      _buildCommandReply( sdbReply, bodyBuf, headerBuf ) ;
+      rc = _buildCommandReply( sdbReply, bodyBuf, headerBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build command reply, rc: %d", rc ) ;
+         goto error ;
+      }      
    }
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, "_mongoGetmoreCommand::_buildNextBatch" )
@@ -2707,67 +3102,89 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
 
    if ( SDB_OK != sdbReply.flags && SDB_DMS_EOC != sdbReply.flags )
    {
-      return SDB_OK ;
+      goto done ;
    }
 
-   bson::BSONArrayBuilder arr( cursorBuilder.subarrayStart( "nextBatch" ) ) ;
-   INT32 offset = 0 ;
-   BSONObjBuilder decimalConvertBob ;
-   BOOLEAN hasDecimal = FALSE ;
-
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      while ( offset < bodyBuf.size() )
-      {
-         bson::BSONObj obj( bodyBuf.data() + offset ) ;
-         offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
-         if ( GETMORE_LISTINDEX == _type )
-         {
-            convertIndexObj( obj, _clFullName ) ;
-            arr.append( obj ) ;
-         }
-         else if ( GETMORE_LISTCOLLECTION == _type )
-         {
-            convertCollectionObj( obj ) ;
-            arr.append( obj ) ;
-         }
-         else
-         {
-            rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to convert sdb record to mongo record, "
-                         "rc: %d", rc ) ;
+      bson::BSONArrayBuilder arr( cursorBuilder.subarrayStart( "nextBatch" ) ) ;
+      INT32 offset = 0 ;
+      BSONObjBuilder decimalConvertBob ;
+      BOOLEAN hasDecimal = FALSE ;
 
-            if ( hasDecimal )
+      if ( SDB_OK == sdbReply.flags )
+      {
+         while ( offset < bodyBuf.size() )
+         {
+            bson::BSONObj obj( bodyBuf.data() + offset ) ;
+            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+            if ( GETMORE_LISTINDEX == _type )
             {
-               arr.append( decimalConvertBob.done() ) ;
-               decimalConvertBob.reset() ;
+               rc = convertIndexObj( obj, _clFullName ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
+                  goto error ;
+               }            
+               arr.append( obj ) ;
+            }
+            else if ( GETMORE_LISTCOLLECTION == _type )
+            {
+               rc = convertCollectionObj( obj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+                          rc ) ;
+                  goto error ;
+               }            
+               arr.append( obj ) ;
             }
             else
             {
-               arr.append( obj ) ;
+               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, 
+                                             hasDecimal ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to convert sdb record to mongo record, "
+                            "rc: %d", rc ) ;
+
+               if ( hasDecimal )
+               {
+                  arr.append( decimalConvertBob.done() ) ;
+                  decimalConvertBob.reset() ;
+               }
+               else
+               {
+                  arr.append( obj ) ;
+               }
             }
          }
       }
-   }
-   arr.done() ;
+      arr.done() ;
 
-   /* getMore message may come from three command:
-    * 1. listIndexes
-    *           request: { getMore: <>, collection: "$cmd.listIndexes.bar" }
-    *           reply:   { ... ns: "foo.$cmd.listIndexes.bar" ... }
-    * 2. listCL
-    *           request: { getMore: <>, collection: "$cmd.listCollections" }
-    *           reply:   { ... ns: "foo.$cmd.listCollections" ... }
-    * 3. real query
-    *           request: { getMore: <>, collection: bar" }
-    *           reply:   { ... ns: "foo.bar" ... }
-    */
-   cursorBuilder.append( "ns", _clFullName.c_str() ) ;
-   cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
-   resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
-   resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+      /* getMore message may come from three command:
+       * 1. listIndexes
+       *           request: { getMore: <>, collection: "$cmd.listIndexes.bar" }
+       *           reply:   { ... ns: "foo.$cmd.listIndexes.bar" ... }
+       * 2. listCL
+       *           request: { getMore: <>, collection: "$cmd.listCollections" }
+       *           reply:   { ... ns: "foo.$cmd.listCollections" ... }
+       * 3. real query
+       *           request: { getMore: <>, collection: bar" }
+       *           reply:   { ... ns: "foo.bar" ... }
+       */
+      cursorBuilder.append( "ns", _clFullName.c_str() ) ;
+      cursorBuilder.append( "id", SDBCTXID_TO_MGCURSOID( sdbReply.contextID ) ) ;
+      resultBuilder.append( "cursor", cursorBuilder.obj() ) ;
+      resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building next batch"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, rc ) ;
@@ -2787,31 +3204,90 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
 
    if ( MONGO_KILL_CURSORS_MSG == pMsg->type() )
    {
-      const _mongoKillCursorsRequest* pReq = (_mongoKillCursorsRequest*)pMsg ;
+      rc = _killCursorMsgInit( pMsg ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+   else if ( MONGO_QUERY_MSG == pMsg->type() )
+   {
+      rc = _queryMsgInit( pMsg ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+   else if ( MONGO_COMMAND_MSG == pMsg->type() )
+   {
+      rc = _commandMsgInit( pMsg ) ;
+      if ( rc )
+      {
+         goto error ;
+      }      
+   }
+   else
+   {
+      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
+                   "Unknown message type: %d",
+                   pMsg->type() ) ;
+   }
 
-      // get cursorID list
+   _isInitialized = TRUE ;
+   _requestID = pMsg->requestID() ;
+
+done:
+   PD_TRACE_EXITRC( SDB_FAPMONGO_KILLCURSORINIT, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoKillCursorCommand::_killCursorMsgInit( const _mongoMessage *pMsg )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      const _mongoKillCursorsRequest* pReq = (_mongoKillCursorsRequest*)pMsg ;
       const INT64 *pCursorID = pReq->cursorIDs() ;
+
       for( INT32 i = 0 ; i < pReq->numCursors() ; i++ )
       {
          _killCursorList.push_back( *pCursorID ) ;
          pCursorID += sizeof( INT64 ) ;
       }
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_KILL_CURSORS_MSG ;
    }
-   else if ( MONGO_QUERY_MSG == pMsg->type() )
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when initing killCursor msg: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;   
+}
+
+INT32 _mongoKillCursorCommand::_queryMsgInit( const _mongoMessage *pMsg ) 
+{
+   INT32 rc = SDB_OK ;
+
+   try
    {
       const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
       BSONObj arr ;
       BSONObj obj( pReq->query() ) ;
 
-      // check command name
       const CHAR* pCommandName = obj.firstElementFieldName() ;
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      // get cursorID list
       rc = mongoGetArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s], rc: %d",
@@ -2828,10 +3304,27 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
          }
       }
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
-   else if ( MONGO_COMMAND_MSG == pMsg->type() )
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when initing query msg: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;  
+}
+
+INT32 _mongoKillCursorCommand::_commandMsgInit( const _mongoMessage *pMsg ) 
+{
+   INT32 rc = SDB_OK ;
+
+   try
    {
       const _mongoCommandRequest* pReq = (_mongoCommandRequest*)pMsg ;
       BSONObj obj, arr ;
@@ -2841,7 +3334,6 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
                 "Invalid command name for mongo %s request: %s",
                 name(), pReq->commandName() ) ;
 
-      // get cursorID list
       obj = BSONObj( pReq->metadata() ) ;
       rc = mongoGetArrayElement( obj, FAP_MONGO_FIELD_NAME_CURSORS, arr ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -2859,23 +3351,20 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
          }
       }
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
-   else
+   catch ( std::exception &e )
    {
-      PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                   "Unknown message type: %d",
-                   pMsg->type() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when initing command msg: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
-   _requestID = pMsg->requestID() ;
-
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_KILLCURSORINIT, rc ) ;
    return rc ;
 error:
-   goto done ;
+   goto done ;  
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORBUILDREQ, "_mongoKillCursorCommand::buildSdbRequest" )
@@ -2930,42 +3419,56 @@ INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY ) ;
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( MONGO_KILL_CURSORS_MSG == _initMsgType )
+   try
    {
-      // do not reply
-      headerBuf.usedSize = 0 ;
-   }
-   else if ( MONGO_QUERY_MSG == _initMsgType )
-   {
-      if ( SDB_OK == sdbReply.flags )
+      if ( MONGO_KILL_CURSORS_MSG == _initMsgType )
       {
-         bodyBuf = engine::rtnContextBuf(
-                   BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         // do not reply
+         headerBuf.usedSize = 0 ;
       }
-      mongoResponse res ;
-      res.header.msgLen = sizeof( mongoResponse ) + bodyBuf.size() ;
-      res.header.responseTo = _requestID ;
-      res.nReturned = bodyBuf.recordNum() ;
-      headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
-   }
-   else if ( MONGO_COMMAND_MSG == _initMsgType )
-   {
-      if ( SDB_OK == sdbReply.flags )
+      else if ( MONGO_QUERY_MSG == _initMsgType )
       {
-         bodyBuf = engine::rtnContextBuf(
-                   BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         if ( SDB_OK == sdbReply.flags )
+         {
+            bodyBuf = engine::rtnContextBuf(
+                      BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         }
+         mongoResponse res ;
+         res.header.msgLen = sizeof( mongoResponse ) + bodyBuf.size() ;
+         res.header.responseTo = _requestID ;
+         res.nReturned = bodyBuf.recordNum() ;
+         headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
       }
-      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      else if ( MONGO_COMMAND_MSG == _initMsgType )
+      {
+         if ( SDB_OK == sdbReply.flags )
+         {
+            bodyBuf = engine::rtnContextBuf(
+                      BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         }
+         appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
-      mongoCommandResponse res ;
-      res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
-      res.header.responseTo = _requestID ;
-      headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
+         mongoCommandResponse res ;
+         res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
+         res.header.responseTo = _requestID ;
+         headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
+      }
    }
-
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo killCursor"
+              " reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+      
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCountCommand)
@@ -3000,42 +3503,52 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   if ( _obj.hasField( "skip" ) )
+   try
    {
-      pQuery->numToSkip = _obj.getIntField( "skip" ) ;
+      if ( _obj.hasField( "skip" ) )
+      {
+         pQuery->numToSkip = _obj.getIntField( "skip" ) ;
+      }
+      if ( _obj.hasField( "limit" ) )
+      {
+         pQuery->numToReturn = _obj.getIntField( "limit" ) ;
+      }
+
+      // mongo command: db.bar.count( { a: 1 }, { hint: "aIdx" } )
+      // sdb msg: matcher: { a: 1 }
+      //          hint:    { Collection: "bar", Hint: { "": "aIdx" } }
+      matcher = _obj.getObjectField( "query" ) ;
+
+      if ( _obj.hasField( "hint" ) )
+      {
+         hint = BSON( FIELD_NAME_COLLECTION <<
+                      _clFullName.c_str() <<
+                      FIELD_NAME_HINT <<
+                      BSON( "" << _obj.getStringField( "hint" ) ) ) ;
+      }
+      else
+      {
+         hint = BSON( FIELD_NAME_COLLECTION << _clFullName.c_str() ) ;
+      }
+
+      rc = convertMongoOperator2Sdb( matcher, operatorBob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert mongo operator to sdb operator, rc: %d",
+                   rc ) ;
+
+      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
+      sdbMsg.doneLen() ;      
    }
-   if ( _obj.hasField( "limit" ) )
+   catch ( std::exception &e )
    {
-      pQuery->numToReturn = _obj.getIntField( "limit" ) ;
-   }
-
-   // mongo command: db.bar.count( { a: 1 }, { hint: "aIdx" } )
-   // sdb msg: matcher: { a: 1 }
-   //          hint:    { Collection: "bar", Hint: { "": "aIdx" } }
-   matcher = _obj.getObjectField( "query" ) ;
-
-   if ( _obj.hasField( "hint" ) )
-   {
-      hint = BSON( FIELD_NAME_COLLECTION <<
-                   _clFullName.c_str() <<
-                   FIELD_NAME_HINT <<
-                   BSON( "" << _obj.getStringField( "hint" ) ) ) ;
-   }
-   else
-   {
-      hint = BSON( FIELD_NAME_COLLECTION << _clFullName.c_str() ) ;
-   }
-
-   rc = convertMongoOperator2Sdb( matcher, operatorBob ) ;
-   PD_RC_CHECK( rc, PDERROR,
-                "Failed to convert mongo operator to sdb operator, rc: %d",
-                rc ) ;
-
-   sdbMsg.write( operatorBob.obj(), TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
-   sdbMsg.doneLen() ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb count request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_COUNTBUILDSDBREQ, rc ) ;
@@ -3050,55 +3563,84 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                            _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_COUNTBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      // reply: { n: 1, ok: 1 }
-      BSONObj resObj( bodyBuf.data() ) ;
-      BSONObjBuilder bob ;
-      bob.append( "n", resObj.getIntField( "Total" ) ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         // reply: { n: 1, ok: 1 }
+         BSONObj resObj( bodyBuf.data() ) ;
+         BSONObjBuilder bob ;
+         bob.append( "n", resObj.getIntField( "Total" ) ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         BSONObjBuilder bob ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bob.append( "n", 0 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
    }
-   else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-             SDB_DMS_NOTEXIST == sdbReply.flags )
+   catch( std::exception &e )
    {
-      BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bob.append( "n", 0 ) ;
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo count reply"
+              ": %s, rc: %d", e.what(), rc ) ;    
+      goto error ;
    }
-
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_COUNTBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAggregateCommand)
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTSUM, "_mongoAggregateCommand::_convertAggrSumIfExist" )
-void _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
-                                                     BSONObjBuilder& builder )
+INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
+                                                      BSONObjBuilder& builder )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( ele.isABSONObj() && ele.Obj().getIntField( "$sum" ) == 1 )
+   try
    {
-      // { $group: { _id: ..., total: { $sum: 1 } } } =>
-      // { $group: { _id: ..., total: { $count: "$_id" } } }
-      builder.append( ele.fieldName(), BSON( "$count" << "$_id" ) ) ;
+      if ( ele.isABSONObj() && ele.Obj().getIntField( "$sum" ) == 1 )
+      {
+         // { $group: { _id: ..., total: { $sum: 1 } } } =>
+         // { $group: { _id: ..., total: { $count: "$_id" } } }
+         builder.append( ele.fieldName(), BSON( "$count" << "$_id" ) ) ;
+      }
+      else
+      {
+         builder.append( ele ) ;
+      }
    }
-   else
+   catch ( std::exception &e )
    {
-      builder.append( ele ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when coverting mongo $sum to sdb"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
+   
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
+   return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTGROUP, "_mongoAggregateCommand::_convertAggrGroup" )
-void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
-                                                vector<BSONObj>& newStageList )
+INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
+                                                 vector<BSONObj>& newStageList )
 {
    /* cl.aggregate( { $group: { _id: "$a" ) )
     * MongoDB return { _id: <value of a> }, but SequoiaDB return all fields.
@@ -3108,65 +3650,89 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
     * { $project: { _id: "$tmp_id_field", total: 1 } }
     */
    PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
+   INT32 rc = SDB_OK ;
 
    if ( 0 != ossStrcmp( groupObj.firstElementFieldName(), "$group" ) )
    {
-      return ;
+      goto done ;
    }
 
-   BSONObj groupValue = groupObj.getObjectField( "$group" ) ;
-   const CHAR* pIdValue = groupValue.getStringField( "_id" ) ;
-
-   if ( '$' == pIdValue[0] )
+   try
    {
-      BSONObjBuilder bobGroup, bobProj ;
-      BSONObjIterator itr( groupValue ) ;
-      while ( itr.more() )
-      {
-         BSONElement e = itr.next() ;
-         _convertAggrSumIfExist( e, bobGroup ) ;
-         if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
-         {
-            bobProj.append( "_id", "$tmp_id_field" ) ;
-         }
-         else
-         {
-            bobProj.append( e.fieldName(), 1 ) ;
-         }
-      }
-      bobGroup.append( "tmp_id_field", pIdValue ) ;
+      BSONObj groupValue = groupObj.getObjectField( "$group" ) ;
+      const CHAR* pIdValue = groupValue.getStringField( "_id" ) ;
 
-      newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
-      newStageList.push_back( BSON( "$project" << bobProj.obj() ) ) ;
+      if ( '$' == pIdValue[0] )
+      {
+         BSONObjBuilder bobGroup, bobProj ;
+         BSONObjIterator itr( groupValue ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            rc = _convertAggrSumIfExist( e, bobGroup ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            
+            if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
+            {
+               bobProj.append( "_id", "$tmp_id_field" ) ;
+            }
+            else
+            {
+               bobProj.append( e.fieldName(), 1 ) ;
+            }
+         }
+         bobGroup.append( "tmp_id_field", pIdValue ) ;
+
+         newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
+         newStageList.push_back( BSON( "$project" << bobProj.obj() ) ) ;
+      }
+      else
+      {
+         // When Pyrhon driver execute count_documents command, it will enter
+         // this branch.
+
+         // In MongoDB, if the value of _id field is null or any other constant
+         // value, it means no grouping.
+         // In SequoiaDB, the value[0] of _id field must be '$',
+         // otherwise an error -6 will be reported. If _id field isn't specified,
+         // it means no grouping.
+
+         // eg: groupValue = { "$group": { xxx, "_id": 1 } }.
+         // So we should convert groupValue to { "$group": { xxx } }
+         BSONObjBuilder bobGroup ;
+         BSONObjIterator itr( groupValue ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( "_id", e.fieldName() ) )
+            {
+               continue ;
+            }
+            rc = _convertAggrSumIfExist( e, bobGroup ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
+      }
    }
-   else
+   catch ( std::exception &e )
    {
-      // When Pyrhon driver execute count_documents command, it will enter
-      // this branch.
-
-      // In MongoDB, if the value of _id field is null or any other constant
-      // value, it means no grouping.
-      // In SequoiaDB, the value[0] of _id field must be '$',
-      // otherwise an error -6 will be reported. If _id field isn't specified,
-      // it means no grouping.
-
-      // eg: groupValue = { "$group": { xxx, "_id": 1 } }.
-      // So we should convert groupValue to { "$group": { xxx } }
-      BSONObjBuilder bobGroup ;
-      BSONObjIterator itr( groupValue ) ;
-      while ( itr.more() )
-      {
-         BSONElement e = itr.next() ;
-         if ( 0 == ossStrcmp( "_id", e.fieldName() ) )
-         {
-            continue ;
-         }
-         _convertAggrSumIfExist( e, bobGroup ) ;
-      }
-      newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when coverting mongo $group to "
+              "sdb: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
+   
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
+   return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTPROJECT, "_mongoAggregateCommand::_convertAggrProject" )
@@ -3178,60 +3744,70 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
 
    if ( 0 != ossStrcmp( projectObj.firstElementFieldName(), "$project" ) )
    {
-      return rc ;
-   }
-
-   /* MongoDB return _id field by default, but SequoiaDB doesn't return _id
-    * field by default. So we should convert:
-    * { $project: { a: 1 } }  ==>  { $project: { id: 1, a: 1 } }
-    *
-    * MongoDB support exclusion of fields, but SequoiaDB not support.
-    * { $project: { a: 0, b: 0 } } is not supported.
-    * { $project: { a: 1, _id: 0 } } is supported.
-    */
-   BSONObj projValue = projectObj.getObjectField( "$project" ) ;
-   BOOLEAN foundId = FALSE ;
-   BOOLEAN foundInclude = FALSE ;
-   BSONObjIterator i( projValue );
-
-   if ( projValue.isEmpty() )
-   {
       goto done ;
    }
 
-   while ( i.more() )
+   try
    {
-      BSONElement e = i.next();
-      if ( !foundId && 0 == ossStrcmp( e.fieldName(), "_id" ) )
+      /* MongoDB return _id field by default, but SequoiaDB doesn't return _id
+       * field by default. So we should convert:
+       * { $project: { a: 1 } }  ==>  { $project: { id: 1, a: 1 } }
+       *
+       * MongoDB support exclusion of fields, but SequoiaDB not support.
+       * { $project: { a: 0, b: 0 } } is not supported.
+       * { $project: { a: 1, _id: 0 } } is supported.
+       */
+      BSONObj projValue = projectObj.getObjectField( "$project" ) ;
+      BOOLEAN foundId = FALSE ;
+      BOOLEAN foundInclude = FALSE ;
+      BSONObjIterator i( projValue );
+
+      if ( projValue.isEmpty() )
       {
-         foundId = TRUE ;
+         goto done ;
       }
-      if ( !foundInclude && e.trueValue() )
+
+      while ( i.more() )
       {
-         foundInclude = TRUE ;
+         BSONElement e = i.next();
+         if ( !foundId && 0 == ossStrcmp( e.fieldName(), "_id" ) )
+         {
+            foundId = TRUE ;
+         }
+         if ( !foundInclude && e.trueValue() )
+         {
+            foundInclude = TRUE ;
+         }
+      }
+
+      if ( !foundInclude )
+      {
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         BSONObjBuilder builder ;
+         builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_ERRMSG,
+                         "Exclusion fields is not supported" ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODE, rc ) ;
+         errorObj = builder.obj() ;
+         goto error ;
+      }
+
+      if ( !foundId )
+      {
+         BSONObjBuilder builder ;
+         builder.append( "_id", 1 ) ;
+         builder.appendElements( projValue ) ;
+         projectObj = BSON( "$project" << builder.obj() ) ;
       }
    }
-
-   if ( !foundInclude )
+   catch ( std::exception &e )
    {
-      rc = SDB_OPTION_NOT_SUPPORT ;
-      BSONObjBuilder builder ;
-      builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      builder.append( FAP_MONGO_FIELD_NAME_ERRMSG,
-                      "Exclusion fields is not supported" ) ;
-      builder.append( FAP_MONGO_FIELD_NAME_CODE, rc ) ;
-      errorObj = builder.obj() ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when coverting mongo $project to "
+              "sdb: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-
-   if ( !foundId )
-   {
-      BSONObjBuilder builder ;
-      builder.append( "_id", 1 ) ;
-      builder.appendElements( projValue ) ;
-      projectObj = BSON( "$project" << builder.obj() ) ;
-   }
-
+   
 done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTPROJECT ) ;
    return rc ;
@@ -3264,56 +3840,72 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->nameLength = _clFullName.length() ;
    sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
 
-   /* eg: { pipeline: [ { $match: { b: 1 } },
-                        { $group: { _id: "$a", b: { $sum: "$b" } } }
-                      ] } */
-   BSONObjIterator it( _obj.getObjectField( "pipeline" ) ) ;
-   while ( it.more() )
+   try
    {
-      BSONElement ele = it.next() ;
-      if ( ele.type() != Object )
+      /* eg: { pipeline: [ { $match: { b: 1 } },
+                           { $group: { _id: "$a", b: { $sum: "$b" } } }
+                         ] } */
+      BSONObjIterator it( _obj.getObjectField( "pipeline" ) ) ;
+      while ( it.more() )
       {
-         sdbMsg.write( ele.rawdata(), ele.size(), TRUE ) ;
-         continue ;
-      }
-
-      BSONObj oneStage = ele.Obj() ;
-      if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$project" ) )
-      {
-         rc = _convertAggrProject( oneStage, ctx.errorObj ) ;
-         if ( rc )
+         BSONElement ele = it.next() ;
+         if ( ele.type() != Object )
          {
-            goto error ;
+            sdbMsg.write( ele.rawdata(), ele.size(), TRUE ) ;
+            continue ;
          }
-         sdbMsg.write( oneStage, TRUE ) ;
-      }
-      else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$group" ) )
-      {
-         std::vector<BSONObj> newStageList ;
-         _convertAggrGroup( oneStage, newStageList ) ;
-         for( std::vector<BSONObj>::iterator it = newStageList.begin() ;
-              it != newStageList.end() ; it++ )
+
+         BSONObj oneStage = ele.Obj() ;
+         if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$project" ) )
          {
-            sdbMsg.write( *it, TRUE ) ;
+            rc = _convertAggrProject( oneStage, ctx.errorObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            sdbMsg.write( oneStage, TRUE ) ;
+         }
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$group" ) )
+         {
+            std::vector<BSONObj> newStageList ;
+            
+            rc = _convertAggrGroup( oneStage, newStageList ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            
+            for( std::vector<BSONObj>::iterator it = newStageList.begin() ;
+                 it != newStageList.end() ; it++ )
+            {
+               sdbMsg.write( *it, TRUE ) ;
+            }
+         }
+         else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$match" ) )
+         {
+            BSONObjBuilder operatorBob ;
+
+            rc = convertMongoOperator2Sdb( oneStage, operatorBob ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to convert mongo operator to sdb operator, ",
+                         "rc: %d", rc ) ;
+
+            sdbMsg.write( operatorBob.obj(), TRUE ) ;
+         }
+         else
+         {
+            sdbMsg.write( oneStage, TRUE ) ;
          }
       }
-      else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$match" ) )
-      {
-         BSONObjBuilder operatorBob ;
-
-         rc = convertMongoOperator2Sdb( oneStage, operatorBob ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to convert mongo operator to sdb operator, ",
-                      "rc: %d", rc ) ;
-
-         sdbMsg.write( operatorBob.obj(), TRUE ) ;
-      }
-      else
-      {
-         sdbMsg.write( oneStage, TRUE ) ;
-      }
+      sdbMsg.doneLen() ;
    }
-   sdbMsg.doneLen() ;
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb aggr request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AGGRBUILDREQ ) ;
@@ -3330,55 +3922,65 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
    PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
 
-   if ( _obj.hasField( "cursor" ) )
+   try
    {
-      if ( SDB_OK      == sdbReply.flags ||
-           SDB_DMS_EOC == sdbReply.flags ||
-           SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-           SDB_DMS_NOTEXIST == sdbReply.flags )
+      if ( _obj.hasField( "cursor" ) )
       {
-         if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+         if ( SDB_OK      == sdbReply.flags ||
+              SDB_DMS_EOC == sdbReply.flags ||
+              SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
               SDB_DMS_NOTEXIST == sdbReply.flags )
          {
-            bodyBuf = engine::rtnContextBuf() ;
+            if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                 SDB_DMS_NOTEXIST == sdbReply.flags )
+            {
+               bodyBuf = engine::rtnContextBuf() ;
+            }
+
+            rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build first batch, rc: %d", rc ) ;
          }
 
-         rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to build first batch, rc: %d", rc ) ;
+         _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
       }
-
-      _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
-   }
-   else
-   {
-      // reply: { result: [ {xxx}, {xxx}, ... ], ok: 1 }
-      if ( SDB_OK == sdbReply.flags )
+      else
       {
-         BSONObjBuilder bob ;
-         BSONArrayBuilder arr( bob.subarrayStart( "result" ) ) ;
-         INT32 offset = 0 ;
-         while ( offset < bodyBuf.size() )
+         // reply: { result: [ {xxx}, {xxx}, ... ], ok: 1 }
+         if ( SDB_OK == sdbReply.flags )
          {
-            BSONObj obj( bodyBuf.data() + offset ) ;
-            arr.append( obj ) ;
-            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+            BSONObjBuilder bob ;
+            BSONArrayBuilder arr( bob.subarrayStart( "result" ) ) ;
+            INT32 offset = 0 ;
+            while ( offset < bodyBuf.size() )
+            {
+               BSONObj obj( bodyBuf.data() + offset ) ;
+               arr.append( obj ) ;
+               offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+            }
+            arr.done() ;
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+
+            bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
          }
-         arr.done() ;
-         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         else if ( SDB_DMS_EOC == sdbReply.flags ||
+                   SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                   SDB_DMS_NOTEXIST == sdbReply.flags )
+         {
+            bodyBuf = engine::rtnContextBuf( BSON( "result" << BSONArray() <<
+                                                   FAP_MONGO_FIELD_NAME_OK <<
+                                                   1 ) ) ;
+         }
 
-         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         _buildReplyCommon( sdbReply, bodyBuf, headerBuf, TRUE ) ;
       }
-      else if ( SDB_DMS_EOC == sdbReply.flags ||
-                SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-                SDB_DMS_NOTEXIST == sdbReply.flags )
-      {
-         bodyBuf = engine::rtnContextBuf( BSON( "result" << BSONArray() <<
-                                                FAP_MONGO_FIELD_NAME_OK <<
-                                                1 ) ) ;
-      }
-
-      _buildReplyCommon( sdbReply, bodyBuf, headerBuf, TRUE ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo aggr reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
 done:
@@ -3420,36 +4022,46 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->nameLength = _clFullName.length() ;
    sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
 
-   std::string distinctfield = "$" ;
-   distinctfield += _obj.getStringField( "key" ) ;
-
-   // distinct( "a", { b: 1 } ) =>
-   // { $match: { b: 1 } },
-   // { $group: { _id: "$a" } },
-   // { $group: { _id: null, values: { $addtoset: "$a" } } }
-   if ( _obj.hasField( "query" ) )
+   try
    {
-      match = BSON( "$match" << _obj.getField( "query" ) ) ;
+      std::string distinctfield = "$" ;
+      distinctfield += _obj.getStringField( "key" ) ;
+
+      // distinct( "a", { b: 1 } ) =>
+      // { $match: { b: 1 } },
+      // { $group: { _id: "$a" } },
+      // { $group: { _id: null, values: { $addtoset: "$a" } } }
+      if ( _obj.hasField( "query" ) )
+      {
+         match = BSON( "$match" << _obj.getField( "query" ) ) ;
+      }
+
+      group1 = BSON( "$group" << BSON( "_id" << distinctfield ) ) ;
+
+      builder.appendNull( "_id" ) ;
+      builder.append( "values", BSON( "$addtoset" << distinctfield ) ) ;
+      group2 = BSON( "$group" << builder.done() ) ;
+
+      if ( !match.isEmpty() )
+      {
+         rc = convertMongoOperator2Sdb( match, operatorBob ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to convert mongo operator to sdb operator, rc: %d",
+                      rc ) ;
+         sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      }
+
+      sdbMsg.write( group1, TRUE ) ;
+      sdbMsg.write( group2, TRUE ) ;
+      sdbMsg.doneLen() ;
    }
-
-   group1 = BSON( "$group" << BSON( "_id" << distinctfield ) ) ;
-
-   builder.appendNull( "_id" ) ;
-   builder.append( "values", BSON( "$addtoset" << distinctfield ) ) ;
-   group2 = BSON( "$group" << builder.done() ) ;
-
-   if ( !match.isEmpty() )
+   catch ( std::exception &e )
    {
-      rc = convertMongoOperator2Sdb( match, operatorBob ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to convert mongo operator to sdb operator, rc: %d",
-                   rc ) ;
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
-   }
-
-   sdbMsg.write( group1, TRUE ) ;
-   sdbMsg.write( group2, TRUE ) ;
-   sdbMsg.doneLen() ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb distinct request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DISTINCTBUILDREQ, rc ) ;
@@ -3464,27 +4076,41 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   // reply: { values: [ 1, 3, 4 ], ok: 1 }
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      BSONObjBuilder bob ;
-      bob.appendElements( BSONObj( bodyBuf.data() ) ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      // reply: { values: [ 1, 3, 4 ], ok: 1 }
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObjBuilder bob ;
+         bob.appendElements( BSONObj( bodyBuf.data() ) ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags ||
+                SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( "values" << BSONArray() <<
+                                                FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-   else if ( SDB_DMS_EOC == sdbReply.flags ||
-             SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
-             SDB_DMS_NOTEXIST == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      bodyBuf = engine::rtnContextBuf( BSON( "values" << BSONArray() <<
-                                             FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo distinct reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateCLCommand)
@@ -3496,6 +4122,7 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
+   BSONObj cond, empty ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3514,8 +4141,18 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToReturn = -1 ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   BSONObj cond, empty ;
-   cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
+   try
+   {
+      cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb createCL request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }   
+   
    sdbMsg.write( cond, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
@@ -3523,8 +4160,11 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_CTRCLBUILDREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY, "_mongoCreateCLCommand::buildMongoReply" )
@@ -3533,16 +4173,30 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createCL reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropCLCommand)
@@ -3554,6 +4208,7 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
+   BSONObj cond, empty ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3573,8 +4228,18 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToReturn = -1 ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   BSONObj cond, empty ;
-   cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
+   try
+   {
+      cond = BSON( FIELD_NAME_NAME << _clFullName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb dropCL request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }  
+   
    sdbMsg.write( cond, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
@@ -3582,8 +4247,11 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DROPCLBUILDREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY, "_mongoDropCLCommand::buildMongoReply" )
@@ -3592,24 +4260,38 @@ INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( "ns" << _clFullName.c_str() <<
-                                             FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( "ns" << _clFullName.c_str() <<
+                                                FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+      else if ( SDB_DMS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_CS_NOTEXIST == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 0 <<
+                                                FAP_MONGO_FIELD_NAME_ERRMSG <<
+                                                "ns not found" ) ) ;
+      }
    }
-   else if ( SDB_DMS_NOTEXIST == sdbReply.flags ||
-             SDB_DMS_CS_NOTEXIST == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 0 <<
-                                             FAP_MONGO_FIELD_NAME_ERRMSG <<
-                                             "ns not found" ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createCL reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListIdxCommand)
@@ -3623,6 +4305,7 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
+   BSONObj empty, cond ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3642,16 +4325,30 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   BSONObj empty ;
+   try
+   {
+      cond = BSON( FIELD_NAME_COLLECTION << _clFullName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb listIdx request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   } 
+   
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( BSON( FIELD_NAME_COLLECTION << _clFullName.c_str() ), TRUE ) ;
+   sdbMsg.write( cond, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTIDXBUILDREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTIDXBUILDMONGOREPLLY, "_mongoListIdxCommand::buildMongoReply" )
@@ -3690,6 +4387,8 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
+   BSONObj objList, obj, indexObj ;
+   BSONObjBuilder bob ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3711,57 +4410,63 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
    // { createIndexes: "bar", indexes: [ { key: {a:1}, name: "aIdx" } ] }
-   BSONObj objList, obj ;
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_INDEXES, objList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_INDEXES, rc ) ;
 
-   if ( !_hasBuildMsgVec )
+   try
    {
-      BSONObjIterator itr( objList ) ;
-      while( itr.more() )
+      if ( !_hasBuildMsgVec )
       {
-         BSONElement ele = itr.next() ;
-         if ( Object != ele.type() )
+         BSONObjIterator itr( objList ) ;
+         while( itr.more() )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Invalid indexes field. The type of element in "
-                    "indexes must be Object, rc: %d", rc ) ;
-            goto error ;
+            BSONElement ele = itr.next() ;
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid indexes field. The type of element in "
+                       "indexes must be Object, rc: %d", rc ) ;
+               goto error ;
+            }
+            _msgVec.push_back( ele ) ;
          }
-         _msgVec.push_back( ele ) ;
+         _hasBuildMsgVec = TRUE ;
       }
-      _hasBuildMsgVec = TRUE ;
+
+      obj = _msgVec[_msgIndex++].embeddedObject() ;
+      _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
+
+      // mongo unique index => sequoiadb unique enforce index
+      // { key: {a:1}, name: "aIdx", unique: true } =>
+      // { Index: { key: {a:1}, name: "aIdx", unique: true, enforced: true },
+      //   Collection: "foo.bar" }
+      indexObj = BSON( IXM_FIELD_NAME_KEY <<
+                       obj.getObjectField( "key" ) <<
+                       IXM_FIELD_NAME_NAME <<
+                       obj.getStringField( "name") <<
+                       IXM_FIELD_NAME_UNIQUE <<
+                       obj.getBoolField( "unique" ) <<
+                       IXM_FIELD_NAME_ENFORCED <<
+                       obj.getBoolField( "unique" ) );
+      bob.append( FIELD_NAME_INDEX, indexObj ) ;
+      bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
+
+      sdbMsg.write( bob.obj(), TRUE ) ;
+      sdbMsg.write( BSONObj(), TRUE ) ;
+      sdbMsg.write( BSONObj(), TRUE ) ;
+      sdbMsg.write( BSONObj(), TRUE ) ;
+      sdbMsg.doneLen() ;
    }
-
-   obj = _msgVec[_msgIndex++].embeddedObject() ;
-   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
-
+   catch ( std::exception &e )
    {
-   // mongo unique index => sequoiadb unique enforce index
-   // { key: {a:1}, name: "aIdx", unique: true } =>
-   // { Index: { key: {a:1}, name: "aIdx", unique: true, enforced: true },
-   //   Collection: "foo.bar" }
-   BSONObjBuilder bob ;
-   BSONObj indexObj = BSON( IXM_FIELD_NAME_KEY <<
-                            obj.getObjectField( "key" ) <<
-                            IXM_FIELD_NAME_NAME <<
-                            obj.getStringField( "name") <<
-                            IXM_FIELD_NAME_UNIQUE <<
-                            obj.getBoolField( "unique" ) <<
-                            IXM_FIELD_NAME_ENFORCED <<
-                            obj.getBoolField( "unique" ) );
-   bob.append( FIELD_NAME_INDEX, indexObj ) ;
-   bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
-
-   sdbMsg.write( bob.obj(), TRUE ) ;
-   sdbMsg.write( BSONObj(), TRUE ) ;
-   sdbMsg.write( BSONObj(), TRUE ) ;
-   sdbMsg.write( BSONObj(), TRUE ) ;
-   sdbMsg.doneLen() ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb createIdx "
+              "request: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
+   
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_CTRIDXBUILDREQ, rc ) ;
    return rc ;
@@ -3775,16 +4480,31 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createIdx "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDeleteIdxCommand)
@@ -3799,6 +4519,7 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
+   BSONObj empty, cond ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3818,15 +4539,24 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   // mongo message:
-   // { deleteIndexes: "bar", index: "aIdx" } or
-   // { dropIndexes: "bar", index: "aIdx" }
-   BSONObj empty ;
-   BSONObj cond = BSON( FIELD_NAME_COLLECTION <<
-                        _clFullName.c_str() <<
-                        FIELD_NAME_INDEX <<
-                        BSON( "" << _obj.getStringField( "index" ) ) ) ;
-
+   try
+   {
+      // mongo message:
+      // { deleteIndexes: "bar", index: "aIdx" } or
+      // { dropIndexes: "bar", index: "aIdx" }
+      cond = BSON( FIELD_NAME_COLLECTION <<
+                   _clFullName.c_str() <<
+                   FIELD_NAME_INDEX <<
+                   BSON( "" << _obj.getStringField( "index" ) ) ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb dropIdx request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    sdbMsg.write( cond, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
@@ -3834,8 +4564,11 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DROPIDXBUILDREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY, "_mongoDropIdxCommand::buildMongoReply" )
@@ -3844,16 +4577,31 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                              _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo dropIdx reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoDropDatabaseCommand)
@@ -3865,6 +4613,7 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
+   BSONObj obj, empty ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -3885,8 +4634,17 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToReturn = -1 ;
    sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
 
-   BSONObj obj, empty ;
-   obj = BSON( FIELD_NAME_NAME << _csName.c_str() ) ;
+   try
+   {
+      obj = BSON( FIELD_NAME_NAME << _csName.c_str() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb dropDB request"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
@@ -3895,8 +4653,11 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DROPDBBUILDREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY, "_mongoDropDatabaseCommand::buildMongoReply" )
@@ -3905,21 +4666,36 @@ INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( "dropped" << _csName.c_str() <<
-                                             FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( "dropped" << _csName.c_str() <<
+                                              FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
+      else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-   else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo dropDB reply"
+              ": %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoCreateUserCommand)
@@ -3941,7 +4717,6 @@ INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -3952,7 +4727,6 @@ INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       _obj = BSONObj( pReq->metadata() ) ;
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -3962,6 +4736,7 @@ INT32 _mongoCreateUserCommand::init( const _mongoMessage *pMsg,
                    pMsg->type() ) ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -4066,8 +4841,8 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    catch( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Build createUser msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb createUser "
+              "request: %s, rc: %d", e.what(), rc ) ;      
       goto error ;
    }
 
@@ -4087,15 +4862,31 @@ INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                 _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createUser "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 INT32 _mongoCreateUserCommand::_checkAuthMechanisms( const BSONElement &mechanismsEle,
@@ -4175,7 +4966,6 @@ INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -4186,7 +4976,6 @@ INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       _obj = BSONObj( pReq->metadata() ) ;
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -4196,6 +4985,7 @@ INT32 _mongoDropUserCommand::init( const _mongoMessage *pMsg,
                    pMsg->type() ) ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -4213,6 +5003,7 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc = SDB_OK ;
    MsgAuthDelUsr *pAuth = NULL ;
    BSONObj obj ;
+   const CHAR* pUserName = NULL ;
 
    sdbMsg.reserve( sizeof( MsgAuthDelUsr ) ) ;
    sdbMsg.advance( sizeof( MsgAuthDelUsr ) ) ;
@@ -4223,20 +5014,31 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAuth->header.routeID.value = 0 ;
    pAuth->header.requestID = _requestID ;
 
-   // eg: { dropUser: "myuser" }
-   const CHAR* pUserName = _obj.getStringField( name() ) ;
-   if ( 0 != ossStrcmp( pUserName, ctx.userName.c_str() ) )
+   try
    {
-      rc = SDB_OPTION_NOT_SUPPORT ;
-      ctx.setError( rc, "Only current user can be dropped" ) ;
+      // eg: { dropUser: "myuser" }
+      pUserName = _obj.getStringField( name() ) ;
+      if ( 0 != ossStrcmp( pUserName, ctx.userName.c_str() ) )
+      {
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         ctx.setError( rc, "Only current user can be dropped" ) ;
+         goto error ;
+      }
+
+      obj = BSON( SDB_AUTH_USER << pUserName <<
+                  SDB_AUTH_NONCE << ctx.authInfo.nonce <<
+                  SDB_AUTH_IDENTIFY << ctx.authInfo.identify <<
+                  SDB_AUTH_PROOF << ctx.authInfo.clientProof <<
+                  SDB_AUTH_TYPE << ctx.authInfo.type ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb dropUser "
+              "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-
-   obj = BSON( SDB_AUTH_USER << pUserName <<
-               SDB_AUTH_NONCE << ctx.authInfo.nonce <<
-               SDB_AUTH_IDENTIFY << ctx.authInfo.identify <<
-               SDB_AUTH_PROOF << ctx.authInfo.clientProof <<
-               SDB_AUTH_TYPE << ctx.authInfo.type ) ;
+   
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
 
@@ -4253,15 +5055,31 @@ INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      if ( SDB_OK == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo dropUser "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListUserCommand)
@@ -4283,7 +5101,6 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -4294,7 +5111,6 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       _obj = BSONObj( pReq->metadata() ) ;
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -4303,7 +5119,8 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
                    "Unknown message type: %d",
                    pMsg->type() ) ;
    }
-
+   
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -4361,14 +5178,11 @@ INT32 _mongoListUserCommand::_getUsernames( vector<string> &usernames )
          goto error ;
       }
    }
-   catch( std::bad_alloc )
+   catch ( std::exception &e )
    {
-      rc = SDB_OOM ;
-      goto error ;
-   }
-   catch( std::exception )
-   {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting usernames: "
+              "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -4423,55 +5237,66 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      BSONObjBuilder bob ;
-      BSONArrayBuilder arr( bob.subarrayStart( FAP_MONGO_FIELD_NAME_USERS ) ) ;
-      INT32   offset = 0 ;
-      BOOLEAN returnAllUsers = FALSE ;
-      vector<string> usernames ;
-
-      rc = _getUsernames( usernames ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to get usernames, rc: %d", rc ) ;
-
-      if ( 0 == usernames.size() )
+      if ( SDB_OK == sdbReply.flags )
       {
-         returnAllUsers = TRUE ;
-      }
+         BSONObjBuilder bob ;
+         BSONArrayBuilder arr( 
+            bob.subarrayStart( FAP_MONGO_FIELD_NAME_USERS ) ) ;
+         INT32   offset = 0 ;
+         BOOLEAN returnAllUsers = FALSE ;
+         vector<string> usernames ;
 
-      while ( offset < bodyBuf.size() )
-      {
-         // { User: "myuser", ... } => { user: "myuser" }
-         BSONObj obj( bodyBuf.data() + offset ) ;
-         const CHAR* pUser = obj.getStringField( FIELD_NAME_USER ) ;
+         rc = _getUsernames( usernames ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get usernames, rc: %d", rc ) ;
 
-         if ( returnAllUsers )
+         if ( 0 == usernames.size() )
          {
-            arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
+            returnAllUsers = TRUE ;
          }
-         else
+
+         while ( offset < bodyBuf.size() )
          {
-            for ( UINT32 i = 0; i < usernames.size(); i++ )
+            // { User: "myuser", ... } => { user: "myuser" }
+            BSONObj obj( bodyBuf.data() + offset ) ;
+            const CHAR* pUser = obj.getStringField( FIELD_NAME_USER ) ;
+
+            if ( returnAllUsers )
             {
-               if ( 0 == ossStrcmp( usernames[i].c_str(), pUser ) )
+               arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
+            }
+            else
+            {
+               for ( UINT32 i = 0; i < usernames.size(); i++ )
                {
-                  arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
+                  if ( 0 == ossStrcmp( usernames[i].c_str(), pUser ) )
+                  {
+                     arr.append( BSON( FAP_MONGO_FIELD_NAME_USER << pUser ) ) ;
+                  }
                }
             }
+            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
          }
-         offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
-      }
-      arr.done() ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         arr.done() ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         BSONObj obj = BSON( FAP_MONGO_FIELD_NAME_USERS << BSONArray() <<
+                             FAP_MONGO_FIELD_NAME_OK << 1 ) ;
+         bodyBuf = engine::rtnContextBuf( obj ) ;
+      }
    }
-   else if ( SDB_DMS_EOC == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      BSONObj obj = BSON( FAP_MONGO_FIELD_NAME_USERS << BSONArray() <<
-                          FAP_MONGO_FIELD_NAME_OK << 1 ) ;
-      bodyBuf = engine::rtnContextBuf( obj ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo listUser "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
@@ -4502,7 +5327,6 @@ INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -4513,7 +5337,6 @@ INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       _obj = BSONObj( pReq->metadata() ) ;
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -4523,6 +5346,7 @@ INT32 _mongoSaslStartCommand::init( const _mongoMessage *pMsg,
                    pMsg->type() ) ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -4548,62 +5372,72 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    CHAR payloadCpy[ FAP_MONGO_PAYLOADD_MAX_SIZE ] = { 0 } ;
    BSONObj obj ;
 
-   // get payload
-   BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
-   pPayload = ele.binData( payloadLen ) ;
-   if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
+   try
    {
-      rc = SDB_INVALIDARG ;
+      // get payload
+      BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
+      pPayload = ele.binData( payloadLen ) ;
+      if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
+
+     /* The two allowed payload forms are:
+      * n,,n=encoded-username,r=client-nonce
+      * n,a=authzid,n=encoded-username,r=client-nonce
+      */
+      p = ossStrtok( payloadCpy, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      pUserName = p + 2 ;
+
+      p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      pClientNonce = p + 2 ;
+
+      // build message
+      sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
+      sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+
+      pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
+      pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
+      pAuth->header.TID = 0 ;
+      pAuth->header.routeID.value = 0 ;
+      pAuth->header.requestID = _requestID ;
+
+      obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_1 <<
+                  SDB_AUTH_USER << pUserName <<
+                  SDB_AUTH_NONCE << pClientNonce <<
+                  SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
+      sdbMsg.write( obj, TRUE ) ;
+      sdbMsg.doneLen() ;
+
+      ctx.userName = pUserName ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb auth1 "
+              "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-
-   ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
-
-  /* The two allowed payload forms are:
-   * n,,n=encoded-username,r=client-nonce
-   * n,a=authzid,n=encoded-username,r=client-nonce
-   */
-   p = ossStrtok( payloadCpy, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   pUserName = p + 2 ;
-
-   p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   pClientNonce = p + 2 ;
-
-   // build message
-   sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
-   sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
-
-   pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
-   pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
-   pAuth->header.TID = 0 ;
-   pAuth->header.routeID.value = 0 ;
-   pAuth->header.requestID = _requestID ;
-
-   obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_1 <<
-               SDB_AUTH_USER << pUserName <<
-               SDB_AUTH_NONCE << pClientNonce <<
-               SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
-   sdbMsg.write( obj, TRUE ) ;
-   sdbMsg.doneLen() ;
-
-   ctx.userName = pUserName ;
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH1BUILDSDBREQ, rc ) ;
@@ -4626,66 +5460,80 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
    BSONObjBuilder bob ;
    BSONObj replyObj( bodyBuf.data() ) ;
    BOOLEAN rebuildBuf = FALSE ;
+   INT32 rc = SDB_OK ;
 
-   if ( replyObj.isEmpty() )
+   try
    {
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_ERRMSG,
-                  "Authentication has been disabled, "
-                  "you don't need to execute 'db.auth()' " ) ;
-      rebuildBuf = TRUE ;
-   }
-   else
-   {
-      if ( SDB_OK == sdbReply.flags )
-      {
-         const CHAR* pSalt = replyObj.getStringField( SDB_AUTH_SALT ) ;
-         UINT32 iterationCount = replyObj.getIntField( SDB_AUTH_ITERATIONCOUNT ) ;
-         const CHAR* pNonce = replyObj.getStringField( SDB_AUTH_NONCE ) ;
-
-         ss << FAP_MONGO_SASL_MSG_RANDOM  FAP_MONGO_EQUAL << pNonce
-            << FAP_MONGO_COMMA
-            << FAP_MONGO_SASL_MSG_SALT    FAP_MONGO_EQUAL << pSalt
-            << FAP_MONGO_COMMA
-            << FAP_MONGO_SASL_MSG_ITERATE FAP_MONGO_EQUAL << iterationCount ;
-
-         payload = ss.str() ;
-         bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, payload.length(),
-                            BinDataGeneral, payload.c_str() ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_DONE, false ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_CONVERID, 1 ) ;
-         rebuildBuf = TRUE ;
-      }
-      else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == sdbReply.flags )
-      {
-         bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
-         rebuildBuf = TRUE ;
-      }
-      else if ( SDB_AUTH_INCOMPATIBLE == sdbReply.flags )
+      if ( replyObj.isEmpty() )
       {
          bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
          bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
          bob.append( FAP_MONGO_FIELD_NAME_ERRMSG,
-                     getErrDesp( SDB_AUTH_INCOMPATIBLE ) ) ;
+                     "Authentication has been disabled, "
+                     "you don't need to execute 'db.auth()' " ) ;
          rebuildBuf = TRUE ;
       }
-   }
+      else
+      {
+         if ( SDB_OK == sdbReply.flags )
+         {
+            const CHAR* pSalt = replyObj.getStringField( SDB_AUTH_SALT ) ;
+            UINT32 iterationCount = replyObj.getIntField( SDB_AUTH_ITERATIONCOUNT ) ;
+            const CHAR* pNonce = replyObj.getStringField( SDB_AUTH_NONCE ) ;
 
-   if ( rebuildBuf )
+            ss << FAP_MONGO_SASL_MSG_RANDOM  FAP_MONGO_EQUAL << pNonce
+               << FAP_MONGO_COMMA
+               << FAP_MONGO_SASL_MSG_SALT    FAP_MONGO_EQUAL << pSalt
+               << FAP_MONGO_COMMA
+               << FAP_MONGO_SASL_MSG_ITERATE FAP_MONGO_EQUAL << iterationCount ;
+
+            payload = ss.str() ;
+            bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, payload.length(),
+                               BinDataGeneral, payload.c_str() ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_DONE, false ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_CONVERID, 1 ) ;
+            rebuildBuf = TRUE ;
+         }
+         else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == sdbReply.flags )
+         {
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
+            rebuildBuf = TRUE ;
+         }
+         else if ( SDB_AUTH_INCOMPATIBLE == sdbReply.flags )
+         {
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_ERRMSG,
+                        getErrDesp( SDB_AUTH_INCOMPATIBLE ) ) ;
+            rebuildBuf = TRUE ;
+         }
+      }
+
+      if ( rebuildBuf )
+      {
+         // Only when rebuildBuf is true can set bodyBuf, otherwise the original
+         // content will be overwritten with empty bson.
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      }
+   }
+   catch ( std::exception &e )
    {
-      // Only when rebuildBuf is true can set bodyBuf, otherwise the original
-      // content will be overwritten with empty bson.
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo auth1 "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoSaslContinueCommand)
@@ -4707,7 +5555,6 @@ INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
       SDB_ASSERT( 0 == ossStrcmp( pCommandName, name() ),
                   "Invalid command name" ) ;
 
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_QUERY_MSG ;
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
@@ -4718,7 +5565,6 @@ INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
                   "Invalid command name" ) ;
 
       _obj = BSONObj( pReq->metadata() ) ;
-      _isInitialized = TRUE ;
       _initMsgType = MONGO_COMMAND_MSG ;
    }
    else
@@ -4728,6 +5574,7 @@ INT32 _mongoSaslContinueCommand::init( const _mongoMessage *pMsg,
                    pMsg->type() ) ;
    }
 
+   _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
 done:
@@ -4754,74 +5601,84 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    CHAR payloadCpy[ FAP_MONGO_PAYLOADD_MAX_SIZE ] = { 0 } ;
    BSONObj obj ;
 
-   // get payload
-   BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
-   pPayload = ele.binData( payloadLen ) ;
-   if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
+   try
    {
-      rc = SDB_INVALIDARG ;
+      // get payload
+      BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_PAYLOAD ) ;
+      pPayload = ele.binData( payloadLen ) ;
+      if ( payloadLen > FAP_MONGO_PAYLOADD_MAX_SIZE )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if( 0 == payloadLen || 'v' == payload[0] )
+      {
+         // step 3 format: { payload: "" } or { payload: "v=ServerSignature" }
+         _step = MONGO_AUTH_STEP3 ;
+         goto done ;
+      }
+
+      ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
+
+     /* The payload forms is:
+      * c=channel-binding(base64),r=client-nonce+server-nonce,p=ClientProof
+      */
+      p = ossStrtok( payloadCpy, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      pChannel = p + 2 ;
+
+      p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      pNonce = p + 2 ;
+
+      p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      pClientProof = p + 2 ;
+
+      // build message
+      sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
+      sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+
+      pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
+      pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
+      pAuth->header.TID = 0 ;
+      pAuth->header.routeID.value = 0 ;
+      pAuth->header.requestID = _requestID ;
+
+      obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
+                  SDB_AUTH_USER << ctx.userName <<
+                  SDB_AUTH_NONCE << pNonce <<
+                  SDB_AUTH_IDENTIFY << pChannel <<
+                  SDB_AUTH_PROOF << pClientProof <<
+                  SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
+      sdbMsg.write( obj, TRUE ) ;
+      sdbMsg.doneLen() ;
+
+      ctx.authInfo.nonce = pNonce ;
+      ctx.authInfo.identify = pChannel ;
+      ctx.authInfo.clientProof = pClientProof ;
+      ctx.authInfo.type = SDB_AUTH_TYPE_EXTEND_PWD ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb auth2 "
+              "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   if( 0 == payloadLen || 'v' == pPayload[0] )
-   {
-      // step 3 format: { payload: "" } or { payload: "v=ServerSignature" }
-      _step = MONGO_AUTH_STEP3 ;
-      goto done ;
-   }
 
-   ossMemcpy( payloadCpy, pPayload, payloadLen ) ;
-
-  /* The payload forms is:
-   * c=channel-binding(base64),r=client-nonce+server-nonce,p=ClientProof
-   */
-   p = ossStrtok( payloadCpy, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   pChannel = p + 2 ;
-
-   p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   pNonce = p + 2 ;
-
-   p = ossStrtok( NULL, FAP_MONGO_COMMA, &nextPtr ) ;
-   if ( NULL == p )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   pClientProof = p + 2 ;
-
-   // build message
-   sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
-   sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
-
-   pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
-   pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
-   pAuth->header.TID = 0 ;
-   pAuth->header.routeID.value = 0 ;
-   pAuth->header.requestID = _requestID ;
-
-   obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
-               SDB_AUTH_USER << ctx.userName <<
-               SDB_AUTH_NONCE << pNonce <<
-               SDB_AUTH_IDENTIFY << pChannel <<
-               SDB_AUTH_PROOF << pClientProof <<
-               SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
-   sdbMsg.write( obj, TRUE ) ;
-   sdbMsg.doneLen() ;
-
-   ctx.authInfo.nonce = pNonce ;
-   ctx.authInfo.identify = pChannel ;
-   ctx.authInfo.clientProof = pClientProof ;
-   ctx.authInfo.type = SDB_AUTH_TYPE_EXTEND_PWD ;
-   
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH2BUILDSDBREQ, rc ) ;
    return rc ;
@@ -4837,57 +5694,71 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
    PD_TRACE_ENTRY( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
    BSONObjBuilder bob ;
    BOOLEAN rebuildBuf = FALSE ;
+   INT32 rc = SDB_OK ;
 
-   if ( MONGO_AUTH_STEP2 == _step )
+   try
    {
-     /* Generate successful authentication server-final-message on the form:
-      * v=ServerSignature
-      *
-      * or failed authentication server-final-message on the form:
-      * e=message
-      */
-      if ( SDB_OK == sdbReply.flags )
+      if ( MONGO_AUTH_STEP2 == _step )
       {
-         BSONObj replyObj( bodyBuf.data() ) ;
-         const CHAR* pServerProof = replyObj.getStringField( SDB_AUTH_PROOF ) ;
-         string payload = FAP_MONGO_SASL_MSG_VALUE FAP_MONGO_EQUAL ;
-         payload += pServerProof ;
+        /* Generate successful authentication server-final-message on the form:
+         * v=ServerSignature
+         *
+         * or failed authentication server-final-message on the form:
+         * e=message
+         */
+         if ( SDB_OK == sdbReply.flags )
+         {
+            BSONObj replyObj( bodyBuf.data() ) ;
+            const CHAR* pServerProof = replyObj.getStringField( SDB_AUTH_PROOF ) ;
+            string payload = FAP_MONGO_SASL_MSG_VALUE FAP_MONGO_EQUAL ;
+            payload += pServerProof ;
 
-         bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, payload.length(),
-                            BinDataGeneral, payload.c_str() ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_DONE, false ) ;
+            bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, payload.length(),
+                               BinDataGeneral, payload.c_str() ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_DONE, false ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_CONVERID, 1 ) ;
+            rebuildBuf = TRUE ;
+         }
+         else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == sdbReply.flags )
+         {
+            bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
+            bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
+            rebuildBuf = TRUE ;
+         }
+      }
+      else if ( MONGO_AUTH_STEP3 == _step )
+      {
+         bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, 0, BinDataGeneral, "" ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_DONE, true ) ;
          bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
          bob.append( FAP_MONGO_FIELD_NAME_CONVERID, 1 ) ;
          rebuildBuf = TRUE ;
       }
-      else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == sdbReply.flags )
+
+      if ( rebuildBuf )
       {
-         bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_CODE, 18 ) ;
-         bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, "Authentication failed." ) ;
-         rebuildBuf = TRUE ;
+         // Only when rebuildBuf is true can set bodyBuf, otherwise the original
+         // content will be overwritten with empty bson.
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
       }
    }
-   else if ( MONGO_AUTH_STEP3 == _step )
+   catch ( std::exception &e )
    {
-      bob.appendBinData( FAP_MONGO_FIELD_NAME_PAYLOAD, 0, BinDataGeneral, "" ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_DONE, true ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_CONVERID, 1 ) ;
-      rebuildBuf = TRUE ;
-   }
-
-   if ( rebuildBuf )
-   {
-      // Only when rebuildBuf is true can set bodyBuf, otherwise the original
-      // content will be overwritten with empty bson.
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo auth2 "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListCollectionCommand)
@@ -4899,6 +5770,10 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpQuery *pQuery      = NULL ;
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+   BSONObj empty ;
+   BSONObjBuilder builder ;
+   string lowBound ;
+   string upBound ;   
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
@@ -4921,25 +5796,34 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    // filter cs[foo]'s collections
    // condition: { Name: { $gt: "foo.", $lt: "foo/" }, ... }
-   BSONObj empty ;
-   BSONObjBuilder builder ;
+   try
+   {
+      lowBound = _csName ;
+      lowBound += "." ;
+      upBound = _csName ;
+      upBound += "/" ;
+      builder.appendElements( _obj.getObjectField( "filter" ) ) ;
+      builder.append( "Name", BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
 
-   string lowBound = _csName ;
-   lowBound += "." ;
-   string upBound = _csName ;
-   upBound += "/" ;
-   builder.appendElements( _obj.getObjectField( "filter" ) ) ;
-   builder.append( "Name", BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
-
-   sdbMsg.write( builder.obj(), TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-
-   sdbMsg.doneLen() ;
-
+      sdbMsg.write( builder.obj(), TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.doneLen() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb "
+              "listCollections request: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLBUILDSDBREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY, "_mongoListCollectionCommand::buildMongoReply" )
@@ -4948,17 +5832,26 @@ INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                     _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
    if ( SDB_OK      == sdbReply.flags ||
         SDB_DMS_EOC == sdbReply.flags )
    {
-      _buildFirstBatch( sdbReply, bodyBuf ) ;
+      rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build first batch, rc: %d", rc ) ;
+         goto error ;
+      }
    }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoListDatabaseCommand)
@@ -5010,34 +5903,48 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   _mongoResponseBuffer &headerBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
+   INT32 rc = SDB_OK ;
 
-   if ( SDB_OK == sdbReply.flags )
+   try
    {
-      BSONObjBuilder bob ;
-      BSONArrayBuilder arr( bob.subarrayStart( "databases" ) ) ;
-      INT32 offset = 0 ;
-      while ( offset < bodyBuf.size() )
+      if ( SDB_OK == sdbReply.flags )
       {
-         BSONObj obj( bodyBuf.data() + offset ) ;
-         // { Name: "cs" } => { name: "cs" }
-         arr.append( BSON( "name" << obj.getStringField( "Name" ) ) ) ;
-         offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+         BSONObjBuilder bob ;
+         BSONArrayBuilder arr( bob.subarrayStart( "databases" ) ) ;
+         INT32 offset = 0 ;
+         while ( offset < bodyBuf.size() )
+         {
+            BSONObj obj( bodyBuf.data() + offset ) ;
+            // { Name: "cs" } => { name: "cs" }
+            arr.append( BSON( "name" << obj.getStringField( "Name" ) ) ) ;
+            offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
+         }
+         arr.done() ;
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+
+         bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
       }
-      arr.done() ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-
-      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+      else if ( SDB_DMS_EOC == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf( BSON( "databases" << BSONArray() <<
+                                          FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      }
    }
-   else if ( SDB_DMS_EOC == sdbReply.flags )
+   catch ( std::exception &e )
    {
-      bodyBuf = engine::rtnContextBuf( BSON( "databases" << BSONArray() <<
-                                             FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo "
+              "listDatabase reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetLogCommand)
@@ -5045,15 +5952,30 @@ INT32 _mongoGetLogCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
-   bson::BSONObjBuilder bob ;
-   bob.append( "totalLinesWritten", 0 ) ;
-   bob.append( "log", BSONArray() ) ;
-   bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      bson::BSONObjBuilder bob ;
+      bob.append( "totalLinesWritten", 0 ) ;
+      bob.append( "log", BSONArray() ) ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo getLog "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoIsmasterCommand)
@@ -5066,29 +5988,40 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
    rc = _mongoGlobalCommand::init( pMsg, ctx ) ;
    if ( rc )
    {
+      PD_LOG( PDERROR, "Failed to init isMaster command, rc: %d", rc ) ;
       goto error ;
    }
 
-   if ( MONGO_QUERY_MSG == pMsg->type() && !ctx.hasParsedClientInfo )
+   try
    {
-      const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
-
-      BSONObj obj = BSONObj( pReq->query() ) ;
-      if ( obj.hasField( "client" ) )
+      if ( MONGO_QUERY_MSG == pMsg->type() && !ctx.hasParsedClientInfo )
       {
-         BSONObj clientObj = obj.getObjectField( "client" ) ;
-         BSONObj driverObj = clientObj.getObjectField( "driver" ) ;
-         const CHAR* pDriverName   = driverObj.getStringField( "name" ) ;
-         const CHAR* pDriverVerStr = driverObj.getStringField( "version" ) ;
+         const _mongoQueryRequest* pReq = (_mongoQueryRequest*)pMsg ;
 
-         rc = _parseClientInfo( pDriverName, pDriverVerStr, ctx.clientInfo ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to parse client info, rc: %d", rc ) ;
+         BSONObj obj = BSONObj( pReq->query() ) ;
+         if ( obj.hasField( "client" ) )
+         {
+            BSONObj clientObj = obj.getObjectField( "client" ) ;
+            BSONObj driverObj = clientObj.getObjectField( "driver" ) ;
+            const CHAR* pDriverName   = driverObj.getStringField( "name" ) ;
+            const CHAR* pDriverVerStr = driverObj.getStringField( "version" ) ;
 
-         ctx.hasParsedClientInfo = TRUE ;
+            rc = _parseClientInfo( pDriverName, pDriverVerStr, ctx.clientInfo ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse client info, rc: %d", rc ) ;
+
+            ctx.hasParsedClientInfo = TRUE ;
+         }
       }
    }
-
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when initing isMaster command: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
 done:
    return rc ;
 error:
@@ -5099,20 +6032,35 @@ INT32 _mongoIsMasterCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                               engine::rtnContextBuf &bodyBuf,
                                               _mongoResponseBuffer &headerBuf )
 {
-   BSONObjBuilder bob ;
-   bob.appendBool( "ismaster", TRUE ) ;
-   bob.append( "maxBsonObjectSize", 16*1024*1024 ) ;
-   bob.append( "maxMessageSizeBytes", SDB_MAX_MSG_LENGTH ) ;
-   bob.append( "maxWriteBatchSize", 1000 ) ;
-   bob.append( "maxWireVersion", 4 ) ; // correspions to mongodb3.2
-   bob.append( "minWireVersion", 0 ) ;
-   bob.append( "msg", "isdbgrid" ) ;
-   bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjBuilder bob ;
+      bob.appendBool( "ismaster", TRUE ) ;
+      bob.append( "maxBsonObjectSize", 16*1024*1024 ) ;
+      bob.append( "maxMessageSizeBytes", SDB_MAX_MSG_LENGTH ) ;
+      bob.append( "maxWriteBatchSize", 1000 ) ;
+      bob.append( "maxWireVersion", 4 ) ; // correspions to mongodb3.2
+      bob.append( "minWireVersion", 0 ) ;
+      bob.append( "msg", "isdbgrid" ) ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo isMaster "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoIsMasterCommand::_parseClientInfo( const CHAR* pClientName,
@@ -5185,97 +6133,183 @@ INT32 _mongoBuildInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                engine::rtnContextBuf &bodyBuf,
                                                _mongoResponseBuffer &headerBuf )
 {
-   bson::BSONObjBuilder bob ;
-   bob.append( "version", "3.2.22" ) ;
-   // versionArray is important, it affects the protocol of messages
-   // sent by mongo client
-   bson::BSONArrayBuilder sub( bob.subarrayStart( "versionArray" ) ) ;
-   sub.append( 3 ) ;
-   sub.append( 2 ) ;
-   sub.append( 22 ) ;
-   sub.append( 0 ) ;
-   sub.done() ;
-   bob.append( "maxBsonObjectSize", 16*1024*1024 ) ;
-   bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-   bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   INT32 rc = SDB_OK ;
+   
+   try
+   {
+      BSONObjBuilder bob ;
+      bob.append( "version", "3.2.22" ) ;
+      // versionArray is important, it affects the protocol of messages
+      // sent by mongo client
+      bson::BSONArrayBuilder sub( bob.subarrayStart( "versionArray" ) ) ;
+      sub.append( 3 ) ;
+      sub.append( 2 ) ;
+      sub.append( 22 ) ;
+      sub.append( 0 ) ;
+      sub.done() ;
+      bob.append( "maxBsonObjectSize", 16*1024*1024 ) ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo buildInfo "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetLastErrorCommand)
 INT32 _mongoGetLastErrorCommand::init( const _mongoMessage *pMsg,
                                        mongoSessionCtx &ctx )
 {
+   INT32 rc = SDB_OK ;
+
    _errorInfoObj = ctx.lastErrorObj.getOwned() ;
 
-   return _mongoGlobalCommand::init( pMsg, ctx ) ;
+   rc = _mongoGlobalCommand::init( pMsg, ctx ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to init getLastError command, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                   engine::rtnContextBuf &bodyBuf,
                                                   _mongoResponseBuffer &headerBuf )
 {
+   INT32       rc = SDB_OK ;
    INT32       errCode = SDB_OK ;
-   BSONElement codeEle = _errorInfoObj.getField( FAP_MONGO_FIELD_NAME_CODE ) ;
+   BSONElement codeEle ;
    bson::BSONObjBuilder bob ;
 
-   if ( !codeEle.eoo() )
+   try
    {
-      errCode = codeEle.numberInt() ;
-   }
+      codeEle = _errorInfoObj.getField( FAP_MONGO_FIELD_NAME_CODE ) ;
+      if ( !codeEle.eoo() )
+      {
+         errCode = codeEle.numberInt() ;
+      }
 
-   if ( SDB_OK == errCode )
+      if ( SDB_OK == errCode )
+      {
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bob.appendNull( FAP_MONGO_FIELD_NAME_ERR ) ;
+      }
+      else
+      {
+         bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
+         bob.append( FAP_MONGO_FIELD_NAME_ERR,
+                 _errorInfoObj.getStringField( FAP_MONGO_FIELD_NAME_ERRMSG ) ) ;
+      }
+
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
+   catch ( std::exception &e )
    {
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bob.appendNull( FAP_MONGO_FIELD_NAME_ERR ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo getLastError "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
    }
-   else
-   {
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_ERR,
-                  _errorInfoObj.getStringField( FAP_MONGO_FIELD_NAME_ERRMSG ) ) ;
-   }
-
-   bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
-
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoLogoutCommand)
 INT32 _mongoLogoutCommand::init( const _mongoMessage *pMsg,
                                  mongoSessionCtx &ctx )
 {
+   INT32 rc = SDB_OK ;
+
    // errorObj indicates the error information of the current command. However,
    // executing the logout command is always successful. So we need to reset
    // errorObj to empty.
    ctx.errorObj = BSONObj() ;
 
-   return _mongoGlobalCommand::init( pMsg, ctx ) ;
+   rc = _mongoGlobalCommand::init( pMsg, ctx ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to init logout command, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoLogoutCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                             engine::rtnContextBuf &bodyBuf,
                                             _mongoResponseBuffer &headerBuf )
 {
-   bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo logout "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoDummyCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                            engine::rtnContextBuf &bodyBuf,
                                            _mongoResponseBuffer &headerBuf )
 {
-   bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo logout "
+              "reply: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
-   return SDB_OK ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoWhatsMyUriCommand)
@@ -5460,7 +6494,12 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                goto error ;
             }
             selector = ele.embeddedObject() ;
-            convertProjection( selector ) ;
+
+            rc = convertProjection( selector ) ;
+            if ( rc )
+            {
+               goto error ;
+            }            
          }
          else if ( 0 == ossStrcmp( ele.fieldName(),
                                    FAP_MONGO_FIELD_NAME_UPSERT  ) )
@@ -5514,8 +6553,8 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    catch( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Build findAndModify sdb msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when building sdb findAndModify "
+              "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -5615,8 +6654,8 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
    catch( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "Build findAndModify reply msg exception: %s, rc: %d",
-              e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo findAndModify"
+              " reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 

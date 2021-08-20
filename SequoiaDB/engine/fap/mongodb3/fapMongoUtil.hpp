@@ -43,8 +43,6 @@
 #include "ossMem.hpp"
 #include "../../bson/bson.hpp"
 #include "utilCommon.hpp"
-#include "fapMongoMessageDef.hpp"
-#include "fapMongoMessage.hpp"
 #include "fapMongoTrace.hpp"
 #include "pdTrace.hpp"
 

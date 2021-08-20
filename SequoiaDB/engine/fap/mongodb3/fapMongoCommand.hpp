@@ -144,18 +144,9 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                               _mongoCommand **ppCommand,
                               mongoSessionCtx &sessCtx ) ;
 
-INT32 mongoPostRunCommand( _mongoCommand *pCommand,
-                           const MsgOpReply &sdbReply,
-                           engine::rtnContextBuf &replyBuf,
-                           _mongoResponseBuffer &headerBuf ) ;
-
 INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
                         mongoSessionCtx &sessCtx,
                         mongoMsgBuffer &sdbMsg ) ;
-
-INT32 mongoParseSdbReplyMsg( _mongoCommand *pCommand,
-                             const MsgOpReply &sdbReply,
-                             engine::rtnContextBuf &replyBuf ) ;
 
 INT32 mongoReleaseCommand( _mongoCommand **ppCommand ) ;
 
@@ -230,12 +221,16 @@ class _mongoDatabaseCommand : public _mongoCommand
          return SDB_OK ;
       }
 
+   private:
+      INT32 _queryMsgInit( const _mongoMessage *pMsg ) ;
+      INT32 _commandMsgInit( const _mongoMessage *pMsg ) ;
+
    protected:
       INT32 _buildReplyCommon( const MsgOpReply &sdbReply,
                                engine::rtnContextBuf &bodyBuf,
                                _mongoResponseBuffer &headerBuf ) ;
-      void _buildFirstBatch( const MsgOpReply &sdbReply,
-                             engine::rtnContextBuf &bodyBuf ) ;
+      INT32 _buildFirstBatch( const MsgOpReply &sdbReply,
+                              engine::rtnContextBuf &bodyBuf ) ;
 
    protected:
       string         _csName ;
@@ -430,9 +425,9 @@ class _mongoQueryCommand : public _mongoCommand
       virtual BOOLEAN isInitialized() const       { return _isInitialized ; }
 
    private:
-      BSONObj _getQueryObj( const BSONObj &obj ) ;
-      BSONObj _getSortObj( const BSONObj &obj ) ;
-      BSONObj _getHintObj( const BSONObj &obj ) ;
+      INT32 _getQueryObj( const BSONObj &obj, BSONObj &query ) ;
+      INT32 _getSortObj( const BSONObj &obj, BSONObj &sort ) ;
+      INT32 _getHintObj( const BSONObj &obj, BSONObj &hint ) ;
 
    private:
       string _csName ;
@@ -575,6 +570,11 @@ class _mongoKillCursorCommand : public _mongoCommand
       const vector<INT64>& cursorList() const     { return _killCursorList ; }
 
    private:
+      INT32 _killCursorMsgInit( const _mongoMessage *pMsg ) ;
+      INT32 _queryMsgInit( const _mongoMessage *pMsg ) ;
+      INT32 _commandMsgInit( const _mongoMessage *pMsg ) ;
+
+   private:
       vector<INT64> _killCursorList ;
       INT32 _requestID ;
       BOOLEAN _isInitialized ;
@@ -622,9 +622,9 @@ class _mongoAggregateCommand : public _mongoCollectionCommand
    private:
       INT32 _convertAggrProject( BSONObj& projectObj,
                                  BSONObj& errorObj ) ;
-      void _convertAggrSumIfExist( const BSONElement& ele,
+      INT32 _convertAggrSumIfExist( const BSONElement& ele,
                                    BSONObjBuilder& builder ) ;
-      void _convertAggrGroup( const BSONObj& groupObj,
+      INT32 _convertAggrGroup( const BSONObj& groupObj,
                               vector<BSONObj>& newStageList ) ;
 } ;
 typedef _mongoAggregateCommand mongoAggregateCommand ;

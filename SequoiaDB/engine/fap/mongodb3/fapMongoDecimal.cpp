@@ -291,14 +291,14 @@ namespace fap
             }
          }
       }
-      catch( std::exception &e )
+      catch ( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Determine whether there is deciaml in the "
-                 "record exception: %s, rc: %d", e.what(), rc ) ;
+         PD_LOG( PDERROR, "An exception occurred when determining whether "
+                 "there is deciaml in the record: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
-
+      
    done:
       return rc ;
    error:
@@ -330,20 +330,37 @@ namespace fap
       return has ;
    }
 
-   static void convertSdbMaxAndMin2Inf( string &decimalStr )
+   static INT32 convertSdbMaxAndMin2Inf( string &decimalStr )
    {
-      if ( FAP_MONGO_MAX_OR_MIN_STR_LEN == decimalStr.length() )
+      INT32 rc = SDB_OK ;
+
+      try
       {
-         if ( 0 == ossStrcasecmp( decimalStr.c_str(), FAP_MONGO_MAX_STR ) )
+         if ( FAP_MONGO_MAX_OR_MIN_STR_LEN == decimalStr.length() )
          {
-            decimalStr = FAP_MONGO_PLUS FAP_MONGO_INF_STR ;
-         }
-         else if ( 0 == ossStrcasecmp( decimalStr.c_str(),
-                                       FAP_MONGO_MIN_STR ) )
-         {
-            decimalStr = FAP_MONGO_MINUS_SIGN FAP_MONGO_INF_STR ;
+            if ( 0 == ossStrcasecmp( decimalStr.c_str(), FAP_MONGO_MAX_STR ) )
+            {
+               decimalStr = FAP_MONGO_PLUS FAP_MONGO_INF_STR ;
+            }
+            else if ( 0 == ossStrcasecmp( decimalStr.c_str(),
+                                          FAP_MONGO_MIN_STR ) )
+            {
+               decimalStr = FAP_MONGO_MINUS_SIGN FAP_MONGO_INF_STR ;
+            }
          }
       }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when converting MAX or MIN to "
+                 "INF: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
 #if defined( _ARMLIN64 )
@@ -442,7 +459,11 @@ namespace fap
                string value = ele.numberDecimal().toString() ;
                BID_UINT128 dec128 ;
 
-               convertSdbMaxAndMin2Inf( value ) ;
+               rc = convertSdbMaxAndMin2Inf( value ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
 
                dec128 = bid128_from_string(
                         const_cast< CHAR* >( value.c_str() ), 0,
@@ -462,8 +483,8 @@ namespace fap
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Convert sdb decimal to mongo decimal "
-                 "exception: %s, rc: %d", e.what(), rc ) ;
+         PD_LOG( PDERROR, "An exception occurred when converting sdb "
+                 "decimal to mongo decimal: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -513,7 +534,11 @@ namespace fap
                string value = ele.numberDecimal().toString() ;
                BID_UINT128 dec128 ;
 
-               convertSdbMaxAndMin2Inf( value ) ;
+               rc = convertSdbMaxAndMin2Inf( value ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
 
                dec128 = bid128_from_string(
                         const_cast< CHAR* >( value.c_str() ), 0,
@@ -532,8 +557,8 @@ namespace fap
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Convert sdb decimal to mongo decimal "
-                 "exception: %s, rc: %d", e.what(), rc ) ;
+         PD_LOG( PDERROR, "An exception occurred when converting sdb "
+                 "decimal to mongo decimal: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -650,8 +675,8 @@ namespace fap
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Convert mongo decimal to sdb decimal "
-                 "exception: %s, rc: %d", e.what(), rc ) ;
+         PD_LOG( PDERROR, "An exception occurred when converting mongo "
+                 "decimal to sdb decimal: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -765,8 +790,8 @@ namespace fap
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Convert mongo decimal to sdb decimal "
-                 "exception: %s, rc: %d", e.what(), rc ) ;
+         PD_LOG( PDERROR, "An exception occurred when converting mongo "
+                 "decimal to sdb decimal: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 

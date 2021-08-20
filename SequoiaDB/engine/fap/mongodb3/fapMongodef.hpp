@@ -40,6 +40,7 @@
 
 #include "../../bson/bson.hpp"
 #include "fapMongoMessageDef.hpp"
+#include "fapMongoUtil.hpp"
 
 using namespace bson ;
 
@@ -78,18 +79,33 @@ struct mongoSessionCtx
    BSONObj lastErrorObj ;
    string userName ;
    mongoAuthInfo authInfo ;
-   string sessionName ;
+   const CHAR* sessionName ;
    UINT64 eduID ;
 
-   mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) {}
+   mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) 
+   {
+      sessionName = NULL ;
+   }
 
    void setError( INT32 errCode, const CHAR* pErrMsg )
    {
+      INT32 rc = SDB_OK ;
       BSONObjBuilder builder ;
-      builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
-      builder.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
-      errorObj = builder.obj() ;
+
+      try
+      {
+         builder.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_ERRMSG, pErrMsg ) ;
+         builder.append( FAP_MONGO_FIELD_NAME_CODE, errCode ) ;
+         errorObj = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when set error obj : %s, "
+                 "rc: %d", e.what(), rc ) ;
+         errorObj = mongoGetErrorBson( rc ) ;
+      }
    }
 
    void resetError()
@@ -128,41 +144,6 @@ struct mongoSessionCtx
 
 } ;
 
-enum insertOption
-{
-   INSERT_CONTINUE_ON_ERROR = 1 << 0,
-} ;
-
-enum removeOption
-{
-   REMOVE_JUSTONE   = 1 << 0,
-   REMOVE_BROADCASE = 1 << 1,
-} ;
-
-enum updateOption
-{
-   UPDATE_UPSERT    = 1 << 0,
-   UPDATE_MULTI     = 1 << 1,
-   UPDATE_BROADCAST = 1 << 2,
-} ;
-
-enum queryOption
-{
-   QUERY_CURSOR_TAILABLE   = 1 << 1,
-   QUERY_SLAVE_OK          = 1 << 2,
-   QUERY_OPLOG_REPLAY      = 1 << 3,
-   QUERY_NO_CURSOR_TIMEOUT = 1 << 4,
-   QUERY_AWAIT_DATA        = 1 << 5,
-   QUERY_EXHAUST           = 1 << 6,
-   QUERY_PARTIAL_RESULTS   = 1 << 7,
-   QUERY_ALL_SUPPORTED     = QUERY_CURSOR_TAILABLE | QUERY_SLAVE_OK |
-                             QUERY_OPLOG_REPLAY | QUERY_NO_CURSOR_TIMEOUT |
-                             QUERY_AWAIT_DATA | QUERY_EXHAUST |
-   QUERY_PARTIAL_RESULTS,
-} ;
-
-#define SDB_AUTH_SOURCE_FAP "fap-mongo"
-
 /* The id of cursor, Mongo client name it "cusorId",
  * Sequoiadb name it "contextId".
  */
@@ -178,11 +159,5 @@ enum queryOption
         ( mongoCursorId - 1 )
 #define SDBCTXID_TO_MGCURSOID( sdbCtxId ) \
         ( sdbCtxId + 1 )
-
-#define CS_NAME_SIZE       DMS_COLLECTION_SPACE_NAME_SZ
-#define CL_FULL_NAME_SIZE  DMS_COLLECTION_SPACE_NAME_SZ +   \
-                           DMS_COLLECTION_NAME_SZ + 1
-
-
 }
 #endif

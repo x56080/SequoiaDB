@@ -300,15 +300,27 @@ INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *pFieldName,
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pFieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( pFieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              pFieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be Integer",
-              obj.toString().c_str()) ;
-   value = ele.numberInt() ;
+
+   try
+   {
+      BSONElement ele = obj.getField ( pFieldName ) ;
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+                 "Can't locate field '%s': %s",
+                 pFieldName,
+                 obj.toString().c_str() ) ;
+      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
+                 "Unexpected field type : %s, supposed to be Integer",
+                 obj.toString().c_str()) ;
+      value = ele.numberInt() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting int ele: %s, rc: %d", 
+              e.what(), rc ) ;
+      goto error ;
+   }
+   
 done :
    return rc ;
 error :
@@ -320,15 +332,26 @@ INT32 mongoGetStringElement ( const BSONObj &obj, const CHAR *pFieldName,
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pFieldName && &pValue, "field name and value can't be NULL" ) ;
-   BSONElement ele = obj.getField ( pFieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              pFieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be String",
-              obj.toString().c_str()) ;
-   pValue = ele.valuestr() ;
+
+   try
+   {
+      BSONElement ele = obj.getField ( pFieldName ) ;
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+                 "Can't locate field '%s': %s",
+                 pFieldName,
+                 obj.toString().c_str() ) ;
+      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                 "Unexpected field type : %s, supposed to be String",
+                 obj.toString().c_str()) ;
+      pValue = ele.valuestr() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting string ele: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
 
 done :
    return rc ;
@@ -341,15 +364,27 @@ INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *pFieldName,
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pFieldName , "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( pFieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              pFieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be Array",
-              obj.toString().c_str()) ;
-   value = ele.embeddedObject() ;
+
+   try
+   {
+      BSONElement ele = obj.getField ( pFieldName ) ;
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+                 "Can't locate field '%s': %s",
+                 pFieldName,
+                 obj.toString().c_str() ) ;
+      PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDWARNING,
+                 "Unexpected field type : %s, supposed to be Array",
+                 obj.toString().c_str()) ;
+      value = ele.embeddedObject() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting array ele: "
+              "%s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
 done :
    return rc ;
 error :
@@ -361,15 +396,27 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *pFieldName,
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pFieldName, "field name can't be NULL" ) ;
-   BSONElement ele = obj.getField ( pFieldName ) ;
-   PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
-              "Can't locate field '%s': %s",
-              pFieldName,
-              obj.toString().c_str() ) ;
-   PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
-              "Unexpected field type : %s, supposed to be number",
-              obj.toString().c_str()) ;
-   value = ele.numberLong() ;
+
+   try
+   {
+      BSONElement ele = obj.getField ( pFieldName ) ;
+      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDWARNING,
+                 "Can't locate field '%s': %s",
+                 pFieldName,
+                 obj.toString().c_str() ) ;
+      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDWARNING,
+                 "Unexpected field type : %s, supposed to be number",
+                 obj.toString().c_str()) ;
+      value = ele.numberLong() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting numberlong ele: %s, "
+              "rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+   
 done :
    return rc ;
 error :
