@@ -317,9 +317,11 @@ namespace vessel
                                          storageUnit **out)
    {
       INT32 rc = SDB_OK;
+      OSS_LATCH_MODE lockingMode = SHARED;
       SDB_ASSERT(_sus.isInitialized(), "must be inited");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->getSpaceIDLockedMode() == EXCLUSIVE, "must holding lock");
+      SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
+      SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
       SDB_ASSERT(options.isValid(), "can not be invalid");
 
       SPACE_ID sid = context->getSpaceID();
@@ -382,8 +384,10 @@ namespace vessel
                                          collectionSpace **out)
    {
       INT32 rc = SDB_OK;
+      OSS_LATCH_MODE lockingMode = SHARED;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(EXCLUSIVE == context->getSpaceIDLockedMode(), "must holding lock");
+      SDB_ASSERT(context->isSpaceIdLocked(&lockingMode), "must holding lock");
+      SDB_ASSERT(EXCLUSIVE == lockingMode, "must be exslusive");
       SDB_ASSERT(NULL != out, "can not be null");
 
       SPACE_ID sid = context->getSpaceID();
@@ -672,7 +676,8 @@ namespace vessel
          goto error;
       }
 
-      context->setCSLidUnderLock(tmp->getLogicalID());
+      context->initSpaceContextUnderLock(tmp->getLogicalID(),
+                                         strSlice(tmp->getCSName()));
       *out = tmp;
    done:
       return rc;
@@ -727,7 +732,8 @@ namespace vessel
          goto error;
       }
 
-      context->setCSLidUnderLock(tmp->getLogicalID());
+      context->initSpaceContextUnderLock(tmp->getLogicalID(),
+                                         strSlice(tmp->getCSName()));
       *obj = tmp;
    done:
       return rc;
@@ -782,7 +788,8 @@ namespace vessel
       SDB_ASSERT(!nameSlice.empty(), "can not be empty");
       SDB_ASSERT(NULL != out, "can not be null");
       SDB_ASSERT(!context->isSpaceIdLocked(), "can not be locked");
-      BOOLEAN locked = FALSE;
+
+      ossRWMutexGuard guard(&_latch, SHARED, FALSE);
    
       do
       {
@@ -790,8 +797,9 @@ namespace vessel
          SPACE_ID sid = INVALID_SPACE_ID;
          UINT32 lid = DMS_INVALID_LOGICCSID;
          BOOLEAN sidLocked = FALSE;
-         _latch.lock_r();
-         locked = TRUE;
+         
+         guard.autoLock();
+
          if (!testCS(nameSlice, lid, sid, &obj))
          {
             rc = SDB_DMS_CS_NOTEXIST;
@@ -805,25 +813,24 @@ namespace vessel
             goto error;
          }
 
-         _latch.release_r();
-         locked = FALSE;
+         guard.autoUnlock();
 
-         if (!sidLocked)
+         if (sidLocked)
+         {
+            context->initSpaceContextUnderLock(obj->getLogicalID(),
+                                               strSlice(obj->getCSName()));
+            *out = obj;
+            break;
+         }
+         else
          {
             obj = NULL;
-            rc = context->lockSpaceID(sid, mode);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d", sid, rc);
-               goto error;
-            }
 
-            rc = getCSByLockedSpaceID(context, DMS_INVALID_LOGICCSID, &obj);
+            rc = getCSBySpaceID(context, sid, DMS_INVALID_LOGICCSID, mode, &obj);
             if (SDB_OK == rc)
             {
                if (0 == ossStrcmp(nameSlice.str(), obj->getCSName()))
                {
-                  context->setCSLidUnderLock(obj->getLogicalID());
                   *out = obj;
                   goto done;
                }
@@ -842,17 +849,9 @@ namespace vessel
                goto error;
             }
          }
-
-         context->setCSLidUnderLock(obj->getLogicalID());
-         *out = obj;
-         break;
       } while (TRUE);
       
    done:
-      if (locked)
-      {
-         _latch.release_r();
-      }
       return rc;
    error:
       goto done;

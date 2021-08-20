@@ -57,7 +57,6 @@ namespace vessel
    INT32 crpAccessor::createCL(requestContext *context,
                                const collectionRecord &record,
                                const createCLOptions &options,
-                               const strSlice &csName,
                                logicalPageBuffer *lpb)
    {
       INT32 rc = SDB_OK;
@@ -74,7 +73,7 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
                        !options.isValid() ||
-                       csName.empty() ||
+                       context->getCSName().empty() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -100,7 +99,7 @@ namespace vessel
       slot = record.mbID % capacity;
       clNameSlice.reset(record.name);
       SDB_ASSERT(!clNameSlice.empty(), "can not be empty");
-      bufferSize = csName.strLen() + clNameSlice.strLen() + 2;
+      bufferSize = context->getCSName().strLen() + clNameSlice.strLen() + 2;
       fullNameBuffer = context->allocateBuffer(bufferSize);
       if (NULL == fullNameBuffer)
       {
@@ -108,11 +107,15 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
-      ossMemcpy(fullNameBuffer, csName.str(), csName.strLen());
-      fullNameBuffer[csName.strLen()] = '.';
-      ossMemcpy(fullNameBuffer + csName.strLen() + 1,
-                clNameSlice.str(), clNameSlice.strLen());
-      fullNameBuffer[bufferSize - 1] = '\0'; 
+      
+      if (!buildFullName(bufferSize, fullNameBuffer,
+                         context->getCSName(),
+                         clNameSlice))
+      {
+         PD_LOG(PDERROR, "failed to build full name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       rc = lpb->prepareToWrite(context);
       if (SDB_OK != rc)
@@ -139,7 +142,7 @@ namespace vessel
          goto error;
       }
 
-      ossMemset(recordPtr, 0, COLLECTION_RECORD_LEN);
+      ossMemset(recordPtr, 0, COLLECTION_DISK_RECORD_LEN);
       recordPtr->record = record;
 
       rc = commitCreateCLLog(context, bufferSize, fullNameBuffer,
@@ -148,7 +151,7 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to commit log[%lld], rc:%d", lsn, rc);
-         ossMemset(recordPtr, 0, COLLECTION_RECORD_LEN);
+         ossMemset(recordPtr, 0, COLLECTION_DISK_RECORD_LEN);
          ossPanic();
          goto error;
       }

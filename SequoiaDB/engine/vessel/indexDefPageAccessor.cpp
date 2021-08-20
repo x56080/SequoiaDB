@@ -89,10 +89,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCLLid() != head->clLogicalID)
+      if (context->getLogicalCLID() != head->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getCLLid(), head->clLogicalID);
+                context->getLogicalCLID(), head->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -155,7 +155,7 @@ namespace vessel
 
       head.version = INDEX_DEF_RECORD_VERSION;
       head.indexLogicalID = indexId;
-      head.clLogicalID = context->getCLLid();
+      head.clLogicalID = context->getLogicalCLID();
       head.createdTime = ossGetCurrentMilliseconds();
       head.alteredTime = head.createdTime;
       head.status = INDEX_STATUS_BUILDING;
@@ -230,10 +230,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCLLid() != head->clLogicalID)
+      if (context->getLogicalCLID() != head->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getCLLid(), head->clLogicalID);
+                context->getLogicalCLID(), head->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -296,10 +296,10 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-      else if (context->getCLLid() != readableHead->clLogicalID)
+      else if (context->getLogicalCLID() != readableHead->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getCLLid(), readableHead->clLogicalID);
+                context->getLogicalCLID(), readableHead->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -378,10 +378,10 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
-      else if (context->getCLLid() != readableHead->clLogicalID)
+      else if (context->getLogicalCLID() != readableHead->clLogicalID)
       {
          PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getCLLid(), readableHead->clLogicalID);
+                context->getLogicalCLID(), readableHead->clLogicalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

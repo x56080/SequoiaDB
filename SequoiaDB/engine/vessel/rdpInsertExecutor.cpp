@@ -39,6 +39,7 @@
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/fsmCandidate.h"
+#include "vessel/redoLogUtil.h"
 
 namespace engine
 {
@@ -58,7 +59,6 @@ namespace vessel
       UINT32 totalSize = 0;
       UINT16 offset = 0;
       recordHead rh;
-      recordID rid;
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
 
@@ -69,13 +69,14 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!context->clInfoIsValid()))
+      else if (OSS_UNLIKELY(DMS_INVALID_LOGICCLID == context->getLogicalCLID()))
       {
+         SDB_ASSERT(FALSE, "can not be invalid");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      record = context->getRecordToInsert();
+      record = context->getOriginalRecord();
       if (!record.isValid())
       {
          rc = SDB_INVALIDARG;
@@ -105,10 +106,10 @@ namespace vessel
          goto error;
       }
 
-      if (head->clLogcalID != context->getCLLid())
+      if (head->clLogcalID != context->getLogicalCLID())
       {
          PD_LOG(PDERROR, "logical id[%d] in context does not match the one[%d] in page",
-                context->getCLLid(), head->clLogcalID);
+                context->getLogicalCLID(), head->clLogcalID);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -167,9 +168,6 @@ namespace vessel
 
       /// do not access old page ptr any more.
       head = NULL;
-      rid.setPageID(lpb->getLogicalPid());
-      rid.setSlotID(slotId);
-      context->setRid(rid);
 
       if (context->getCandidate().isValid())
       {
@@ -210,7 +208,7 @@ namespace vessel
       recordDataPageHead *head = NULL;
       recordSlot *slotPtr = NULL;
       ossValuePtr recordPtr = 0;
-      slice record = context->getRecordToInsert();
+      slice record = context->getOriginalRecord();
       SDB_ASSERT(0 < record.len(), "can not be empty");
       logRecordContext lrc;
       recordID rid;
@@ -282,6 +280,9 @@ namespace vessel
          goto error;
       }
 
+      context->setDmlLSN(lrc.getLsn());
+      context->setDmlRid(rid);
+      context->setPageSequence(head->pageSeq);
       rpb->commit(lrc.getLsn());
 
    done:
@@ -444,9 +445,9 @@ namespace vessel
       {
          lrc->prepush(sizeof(DPS_TRANS_ID));
       }
-      if (0 < context->getUniqueKeyCount())
+      if (0 < context->getUniqueKeyHashSize())
       {
-         lrc->prepush(context->getUniqueKeyCount() << 1);
+         lrc->prepush(context->getUniqueKeyHashSize() << 2);
       }
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
       lrc->prepush(sizeof(recordID));
@@ -454,10 +455,6 @@ namespace vessel
       lrc->prepush(RECORD_PAGE_HEAD_LEN);
       lrc->prepush(RDP_RSLOT_SIZE);
       lrc->prepush(recordHeadAndBodySize);
-      if (context->isCompressed())
-      {
-         lrc->prepush(context->getOriginalRecord().len());
-      }
       if (INVALID_STRIPING_ID != context->getStriping())
       { 
          lrc->prepush(sizeof(UINT16));
@@ -493,18 +490,33 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
       
-      ossPoolString fullName;
+      CHAR *fullNameBuffer = NULL;
+      UINT32 fullNameBufferSize = context->getCSName().strLen() + 
+                                  context->getCLName().strLen() + 2;
       SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
       SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
-      fullName.reserve(context->getCSName().strLen() + 
-                       context->getCLName().strLen() + 2);
-      fullName.append(context->getCSName().str());
-      fullName.append(".");
-      fullName.append(context->getCLName().str());
+      
+      fullNameBuffer = context->allocateBuffer(fullNameBufferSize);
+      if (NULL == fullNameBuffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      if (!buildFullName(fullNameBufferSize,
+                         fullNameBuffer,
+                         context->getCSName(),
+                         context->getCLName()))
+      {
+         PD_LOG(PDERROR, "failed to build full name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_FULLNAME,
-                                     fullName.size() + 1,
-                                     fullName.c_str(), lrc);
+                                     fullNameBufferSize,
+                                     fullNameBuffer, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -520,11 +532,13 @@ namespace vessel
             goto error;
          }
       }
-      if (0 < context->getUniqueKeyCount())
+      if (0 < context->getUniqueKeyHashSize())
       {
+         const UINT32 *hash = context->getUniqueKeyHashes();
+         SDB_ASSERT(NULL != hash, "impossible");
          rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_NEW_UNQIDX_HASH,
-                                        (context->getUniqueKeyCount() << 1),
-                                        context->getUniqueKeys(), lrc);
+                                        (context->getUniqueKeyHashSize() << 2),
+                                        hash, lrc);
          if (SDB_OK != rc)
          {
             goto error;
@@ -579,17 +593,6 @@ namespace vessel
          goto error;
       }
 
-      if (context->isCompressed())
-      {
-         rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_RDP_INSERT_UNCOMPRESSED_RECORD,
-                                        context->getOriginalRecord().len(),
-                                        context->getOriginalRecord().data(), lrc);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
       if (INVALID_STRIPING_ID != context->getStriping())
       {
          UINT16 striping = context->getStriping();
@@ -610,6 +613,10 @@ namespace vessel
          goto error;
       }
    done:
+      if (NULL != fullNameBuffer)
+      {
+         context->releaseBuffer(fullNameBuffer, fullNameBufferSize);
+      }
       return rc;
    error:
       goto done;

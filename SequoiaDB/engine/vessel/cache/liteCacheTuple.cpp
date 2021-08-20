@@ -117,7 +117,7 @@ namespace vessel
       if (!_tag->isInLruList())
       {
          lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
-         rc = _pool->allocateMemPageAndInsertIntoLRU(context, FALSE, holder);
+         rc = _pool->allocateMemPageAndInsertIntoLRU(context, TRUE, holder);
          if (SDB_OK != rc)
          {
             goto error;

@@ -272,10 +272,8 @@ extern const rocksdb::Comparator* lsmKeyComparator();
 class lsmKeyEntry : public SDBObject
 {
 public:
-   lsmKeyEntry()
-   {
-      _dataLsn = DPS_INVALID_LSN_OFFSET ;
-   }
+   lsmKeyEntry(){}
+   virtual ~lsmKeyEntry() {}
 
    lsmKeyEntry( const lsmKeyEntry & rhs ) = delete;
 
@@ -313,8 +311,6 @@ public:
       _dataLsn = DPS_INVALID_LSN_OFFSET ;
       _transID = DPS_TRANS_ID();
    }
-
-   virtual ~lsmKeyEntry() {}
 
    OSS_INLINE const ixmKey &getKey() const { return _key; }
    OSS_INLINE const dmsRecordID &getRid() const { return _rid; }

@@ -74,10 +74,10 @@ namespace vessel
          goto error;
       }
 
-      if (head->clLogcalID != context->getCLLid())
+      if (head->clLogcalID != context->getLogicalCLID())
       {
          PD_LOG(PDERROR, "logical id does not match[%d,%d]",
-                head->clLogcalID, context->getCLLid());
+                head->clLogcalID, context->getLogicalCLID());
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

@@ -50,17 +50,7 @@ namespace vessel
       _options = insertOptions();
       _striping = INVALID_STRIPING_ID;
       _originalRecord.reset();
-      _compressionType = UTIL_COMPRESSOR_INVALID;
-      _compressionMB.release();
       _candidate.reset();
-      _rid = recordID();
-   }
-
-   slice insertContext::getRecordToInsert()const
-   {
-      return isCompressed() ?
-             _compressionMB.getSlice() :
-             _originalRecord;
    }
 
 }//namespace vessel

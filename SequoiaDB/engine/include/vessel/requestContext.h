@@ -44,6 +44,7 @@
 #include "vessel/lpsCheckpointBlocker.h"
 #include "vessel/objectLatchMap.hpp"
 #include "dms.hpp"
+#include "vessel/collectionHandle.h"
 
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
    do\
@@ -64,6 +65,124 @@ namespace vessel
    class instanceEnv;
    class outerResource;
    class atomicOperationList;
+   class spaceIDLocker;
+
+   class collectionSpaceContext : public SDBObject
+   {
+      public:
+         collectionSpaceContext(){}
+         ~collectionSpaceContext();
+         collectionSpaceContext(const collectionSpaceContext &) = delete;
+         collectionSpaceContext &operator=(const collectionSpaceContext &) = delete;
+
+      public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return INVALID_SPACE_ID != _sid;
+         }
+
+         INT32 lockSid(SPACE_ID sid,
+                       OSS_LATCH_MODE mode,
+                       spaceIDLocker *locker);
+
+         INT32 tryLockSid(SPACE_ID sid,
+                          OSS_LATCH_MODE mode,
+                          spaceIDLocker *locker,
+                          BOOLEAN &locked);
+
+         void close(spaceIDLocker *locker);
+
+         OSS_INLINE SPACE_ID getSpaceID()const
+         {
+            return _sid;
+         }
+
+         OSS_LATCH_MODE getLockingMode()const;
+
+         OSS_INLINE void setLogicalCSID(UINT32 lcsid)
+         {
+            _lid = lcsid;
+         }
+         OSS_INLINE UINT32 getLogicalCSID()const
+         {
+            return _lid;
+         }
+         OSS_INLINE void setCSName(const strSlice &name)
+         {
+            _csName = name;
+         }
+         OSS_INLINE const strSlice &getCSName()const
+         {
+            return _csName;
+         }
+
+      private:
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         OSS_LATCH_MODE _mode = SHARED;
+         UINT32 _lid = DMS_INVALID_LOGICCSID;
+         strSlice _csName;
+
+   };//class collectionSpaceContext
+
+   class collectionContext : public SDBObject
+   { 
+      public:
+         collectionContext(){}
+         ~collectionContext();
+         collectionContext(const collectionContext &) = delete;
+         collectionContext &operator=(const collectionContext &) = delete;
+
+      public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return INVALID_CL_MB_ID != _mbID;
+         }
+
+         void lockMB(CL_MB_ID mbID,
+                      ossRWMutex *latch,
+                      OSS_LATCH_MODE mode);
+
+         BOOLEAN tryLockMB(CL_MB_ID mbID,
+                         ossRWMutex *latch,
+                         OSS_LATCH_MODE mode);
+                         
+         void close();
+
+         BOOLEAN isMbIDLocked(OSS_LATCH_MODE *mode=NULL)const;
+
+         void initUnderLock(UINT32 logicalCLID, const strSlice &clName);
+
+         OSS_INLINE CL_MB_ID getMBID()const
+         {
+            return _mbID;
+         }
+
+         OSS_INLINE void setLogicalCLID(UINT32 lclid)
+         {
+            _lid = lclid;
+         }
+
+         OSS_INLINE UINT32 getLogicalCLID()const
+         {
+            return _lid;
+         }
+
+         OSS_INLINE void setCLName(const strSlice &clName)
+         {
+            _name = clName;
+         }
+         OSS_INLINE const strSlice &getCLName()const
+         {
+            return _name;
+         }
+      private:
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         OSS_LATCH_MODE _mode = SHARED;
+         ossRWMutex *_mbLatch = NULL;
+         UINT32 _lid = DMS_INVALID_LOGICCLID;
+         strSlice _name;
+
+   };//class collectionContext
 
    class requestContext : public SDBObject
    {
@@ -115,71 +234,60 @@ namespace vessel
          INT32 tryLockSpaceID(SPACE_ID sid,
                               OSS_LATCH_MODE mode,
                               BOOLEAN &locked);
-   
+
          void unlockSpaceID();
 
-         OSS_INLINE BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=NULL)const
-         {
-            BOOLEAN r = INVALID_SPACE_ID != _sid;
-            if (r && NULL != mode)
-            {
-               *mode = _sidLockedMode;
-            }
-            return r;
-         }
+         BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=NULL)const;
 
-         OSS_INLINE OSS_LATCH_MODE getSpaceIDLockedMode()const
-         {
-            return _sidLockedMode;
-         }
+         void initSpaceContextUnderLock(UINT32 lcsid,
+                                        const strSlice &csName);
 
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _sid;
+            return _spaceContext.getSpaceID();
          }
 
-         void setCSLidUnderLock(UINT32 csLid);
-
-         OSS_INLINE UINT32 getCSLogicalID()const
+         OSS_INLINE UINT32 getLogicalCSID()const
          {
-            return _csLogicalId;
+            return _spaceContext.getLogicalCSID();
+         }
+
+         OSS_INLINE const strSlice &getCSName()const
+         {
+            return _spaceContext.getCSName();
          }
       public:
-         INT32 lockMB(CL_MB_ID mbID,
+         /// space must be locked first
+         void lockMB(CL_MB_ID mbID,
                       ossRWMutex *latch,
                       OSS_LATCH_MODE mode);
 
-         INT32 tryLockMB(CL_MB_ID mbID,
-                         ossRWMutex *latch,
-                         OSS_LATCH_MODE mode,
-                         BOOLEAN &locked);
+         BOOLEAN tryLockMB(CL_MB_ID mbID,
+                           ossRWMutex *latch,
+                           OSS_LATCH_MODE mode);
 
-         void setCLLoigcalIdUnderLock(UINT32 lid);
+         void initCollectionContextUnderLock(UINT32 logicalCLID,
+                                             const strSlice &clName);
 
-         OSS_INLINE UINT32 getCLLid()const
+         OSS_INLINE UINT32 getLogicalCLID()const
          {
-            return _clLogicalId;
+            return _clContext.getLogicalCLID();
+         }
+         OSS_INLINE const strSlice &getCLName()const
+         {
+            return _clContext.getCLName();
          }
 
          void unlockMB();
 
-         OSS_INLINE BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const
-         {
-            BOOLEAN r = INVALID_CL_MB_ID != _mbID;
-            if (r && NULL != mode)
-            {
-               *mode = _mbLockMode;
-            }
-            return r;
-         }
+         BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const;
+
          OSS_INLINE CL_MB_ID getMBID()const
          {
-            return _mbID;
+            return _clContext.getMBID();
          }
-         OSS_INLINE OSS_LATCH_MODE getMBLockMode()const
-         {
-            return _mbLockMode;
-         }
+
+         collectionHandle getCollectionHandle()const;
 
       public:
          /// no timeout. no recursive locking.
@@ -192,8 +300,9 @@ namespace vessel
                                 PAGE_ID lpid,
                                 OSS_SHARED_LATCH_MODE *mode);
 
-         INT32 unlockUpgradeLpidAndLock(SPACE_TYPE type,
-                                        PAGE_ID lpid);
+         /// must lock upgrade first
+         INT32 lockLpidFromUpgrade(SPACE_TYPE type,
+                                   PAGE_ID lpid);
 
       public:
          INT32 blockCheckpoint(SPACE_TYPE type,
@@ -234,24 +343,15 @@ namespace vessel
          instanceEnv *_env = NULL;
          outerResource *_outerResource = NULL;
 
-         SPACE_ID _sid = INVALID_SPACE_ID;
-         OSS_LATCH_MODE _sidLockedMode = SHARED;
-         UINT32 _csLogicalId = DMS_INVALID_LOGICCSID;
-
-         CL_MB_ID _mbID = INVALID_CL_MB_ID;
-         OSS_LATCH_MODE _mbLockMode = SHARED;
-         ossRWMutex *_mbLatch = NULL;
-         UINT32 _clLogicalId = DMS_INVALID_LOGICCLID;
-
+         collectionSpaceContext _spaceContext;
+         collectionContext _clContext;
          objectSharedLatchContext<logicalIdLatchKey> _lpidLatchContext;
+         lpsCheckpointBlocker _blocker;
 
          UINT32 _bufAllocated = 0;
          CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];
 
          atomicOperationList *_oplist = NULL;
-
-         lpsCheckpointBlocker _blocker;
-         
    };//class requestContext
 }
 }

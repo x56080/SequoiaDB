@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lpidLockHelper.h
+   Source File Name = indexHandle.h
 
    Descriptive Name =
 
@@ -33,62 +33,52 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LPID_LOCK_HELPER_H_
-#define VESSEL_LPID_LOCK_HELPER_H_
+#ifndef VESSEL_INDEX_HANDLE_H_
+#define VESSEL_INDEX_HANDLE_H_
 
-#include "ossLatch.hpp"
-#include "vessel/vesselFileDef.h"
-#include "vessel/pageIdentifier.h"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   class lpidLockHelper : public SDBObject
+   class indexHandle : public SDBObject
    {
       public:
-         OSS_INLINE lpidLockHelper()
-         {}
-
-         OSS_INLINE ~lpidLockHelper()
+         indexHandle(){}
+         explicit indexHandle(INT32 indexSlot, UINT32 indexId):
+         _indexSlot(indexSlot),
+         _indexId(indexId){}
+         ~indexHandle(){}
+         indexHandle(const indexHandle &o):
+         _indexSlot(o._indexSlot),
+         _indexId(o._indexId){}
+         indexHandle &operator=(const indexHandle &o)
          {
-            unlock();
+            _indexSlot = o._indexSlot;
+            _indexId = o._indexId;
+            return *this;
          }
 
       public:
-         OSS_INLINE PAGE_ID getLpid()const
+         OSS_INLINE BOOLEAN isValid()const
          {
-            return _lpid;
+            return INVALID_LOGICAL_INDEX_ID != _indexId && isValidIndexSlot(_indexSlot);
          }
-
-         INT32 lock(requestContext *context,
-                  SPACE_TYPE type,
-                  PAGE_ID lpid,
-                  OSS_SHARED_LATCH_MODE mode); 
-
-         void unlock();
-
-         /// lock upgrade first
-         INT32 lockLpidFromUpgrade();
-
-         OSS_INLINE BOOLEAN isLocked()const
+         OSS_INLINE INT32 getIndexSlot()const
          {
-            return OSS_SHARED_LATCH_MODE_NONE != _mode;
+            return _indexSlot;
          }
-
-         OSS_INLINE OSS_SHARED_LATCH_MODE getLockMode()
+         OSS_INLINE UINT32 getIndexId()const
          {
-            return _mode;
+            return _indexId;
          }
 
       private:
-         requestContext *_context = NULL;
-         SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         PAGE_ID _lpid = INVALID_PAGE_ID;
-         OSS_SHARED_LATCH_MODE _mode = OSS_SHARED_LATCH_MODE_NONE;
-   };//class lpidLockHelper
+         INT32 _indexSlot = -1;
+         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+   };//class indexHandle
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_LPID_LOCK_HELPER_H_
+#endif//VESSEL_INDEX_HANDLE_H_

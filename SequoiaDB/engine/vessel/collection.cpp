@@ -384,8 +384,7 @@ namespace vessel
          goto error;
       }
       
-      csName.reset(_collectionSpace->getCSName());
-      rc = accessor.createCL(context, _record, options, csName, &lpb);
+      rc = accessor.createCL(context, _record, options, &lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create cl on crp:%d", rc);
@@ -420,6 +419,10 @@ namespace vessel
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 == context->getUniqueKeyHashSize(), "must be zero");
+      dmlIndexRequestArray ra;
+      ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
+      UINT32 indexCount = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -439,9 +442,25 @@ namespace vessel
          goto error;
       }
 
-      if (UTIL_COMPRESSOR_INVALID != _record.compressionType)
+      guard.autoLock();
+
+      indexCount = _indexContext.getUnfreeIndexSlotCount();
+      if (0 < indexCount)
       {
-         SDB_ASSERT(FALSE, "todo");
+         /// build unique indexes keys.
+         rc = buildDmlIndexRequests(context, context->getOriginalRecord(), ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to build unique index requests:%d", rc);
+            goto error;
+         }
+
+         rc = constraintCheck(context, ra, res);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to do constraint check:%d", rc);
+            goto error;
+         }
       }
 
       if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().len()))
@@ -457,7 +476,19 @@ namespace vessel
       {
          SDB_ASSERT(FALSE, "todo");
       }
+
+      if (0 < indexCount)
+      {
+         rc = insertIndexRequests(context, ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert data to index:%d", rc);
+            SDB_ASSERT(FALSE, "TODO");
+            goto error;
+         }
+      }
    done:
+      context->unlockRidsAndUniqueKeys();
       return rc;
    error:
       goto done;
@@ -685,7 +716,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 size = getMaxSizeOfRecordInRdp(context->getRecordToInsert().len());
+      UINT32 size = getMaxSizeOfRecordInRdp(context->getOriginalRecord().len());
       INT32 targetLvl = getFsmSpaceLvl(getDataPageSize(), size);
       PAGE_ID lpid = INVALID_PAGE_ID;
 
@@ -1799,7 +1830,8 @@ namespace vessel
       indexSlot = -1;
       bson::BSONObj obj;
       slice objSlice;
-      ossPoolString fullName;
+      CHAR *fullNameBuffer = NULL;
+      UINT32 fullNameBufferSize = 0;
       strSlice nameSlice;
       UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
       BOOLEAN duplicated = FALSE;
@@ -1869,10 +1901,29 @@ namespace vessel
       }
       rollbackUnstableIndexes = TRUE;
 
-      fullName.append(_collectionSpace->getCSName());
-      fullName.append(".");
-      fullName.append(_record.name);
-      nameSlice.reset(fullName.c_str(), fullName.size());
+      SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
+      SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
+      fullNameBufferSize = context->getCSName().strLen() +
+                           context->getCLName().strLen() + 2;
+
+      fullNameBuffer = context->allocateBuffer(fullNameBufferSize);
+      if (NULL == fullNameBuffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      if (!buildFullName(fullNameBufferSize,
+                         fullNameBuffer,
+                         context->getCSName(),
+                         context->getCLName()))
+      {
+         PD_LOG(PDERROR, "failed to build full name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
 
       rc = commitCreateIndexLog(context, nameSlice,
                                indexId, indexSlot, objSlice);
@@ -1891,6 +1942,10 @@ namespace vessel
       }
       
    done:
+      if (NULL != fullNameBuffer)
+      {
+         context->releaseBuffer(fullNameBuffer, fullNameBufferSize);
+      }
       return rc;
    error:
       if (rollbackUnstableIndexes)
@@ -1902,8 +1957,7 @@ namespace vessel
       if (rollbackLog)
       {
          SDB_ASSERT(SDB_OK != rc, "impossible");
-         strSlice name(fullName.c_str(), fullName.size());
-         INT32 tmpRc = commitCreateIndexEndLog(context, name, indexName,
+         INT32 tmpRc = commitCreateIndexEndLog(context, nameSlice, indexName,
                                                indexId, indexSlot, rc);
          if (SDB_OK != tmpRc)
          {
@@ -1997,7 +2051,6 @@ namespace vessel
       scanEntry entry;
       bson::BSONObjSet keySet;
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
-      _ixmKeyBuilder builder(FALSE);
 
       if (!uic->getNextRebuildingRangeBound(entry))
       {
@@ -2061,7 +2114,7 @@ namespace vessel
             rc = keyGen(uic->getIndexObj().getPattern().getPattern(), 
                         uic->getIndexObj().getParams().notArray,
                         record,
-                        &builder, keySet);
+                        keySet);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to generate index key:%d", rc);
@@ -2213,7 +2266,7 @@ namespace vessel
       SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
 
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-      ossPoolList<unstableIndexContext::keyOperation> deltas;
+      ossPoolList<unstableIndexContext::mergingKey*> deltas;
 
       indexConsole console;
       console.init(_record.mbID, &is);
@@ -2256,6 +2309,11 @@ namespace vessel
    done:
       return rc;
    error:
+      for (ossPoolList<unstableIndexContext::mergingKey*>::iterator itr = deltas.begin();
+           itr != deltas.end(); ++itr)
+      {
+         SDB_OSS_DEL *itr;
+      }
       goto done;
    }
    
@@ -2271,14 +2329,34 @@ namespace vessel
       indexConsole console;
       UINT32 indexId = uic->getIndexId();
       INT32 indexSlot = uic->getIndexSlot();
-      ossPoolString fullName;
+      CHAR *fullNameBuffer = NULL;
+      UINT32 fullNameBufferSize = 0;
       strSlice nameSlice;
 
 
-      fullName.append(_collectionSpace->getCSName());
-      fullName.append(".");
-      fullName.append(_record.name);
-      nameSlice.reset(fullName.c_str(), fullName.size());
+      SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
+      SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
+      fullNameBufferSize = context->getCSName().strLen() +
+                           context->getCLName().strLen() + 2;
+
+      fullNameBuffer = context->allocateBuffer(fullNameBufferSize);
+      if (NULL == fullNameBuffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      if (!buildFullName(fullNameBufferSize,
+                         fullNameBuffer,
+                         context->getCSName(),
+                         context->getCLName()))
+      {
+         PD_LOG(PDERROR, "failed to build full name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
 
       console.init(_record.mbID, &is);
 
@@ -2306,6 +2384,10 @@ namespace vessel
       _indexContext.eraseUnstableIndex(indexSlot);
       uic = NULL;
    done:
+      if (NULL != fullNameBuffer)
+      {
+         context->releaseBuffer(fullNameBuffer, fullNameBufferSize);
+      }
       return rc;
    error:
       goto done;
@@ -2507,6 +2589,165 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collection::buildDmlIndexRequests(requestContext *context,
+                                           const slice &record,
+                                           dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
+      UINT64 bitmap = _indexContext.getIndexSlotBitmap();
+      INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
+      bson::BSONObjSet keySet;
+      indexConsole console;
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+   
+      if (0 == bitmap)
+      {
+         goto done;
+      }
+
+      console.init(_record.mbID, &is);
+      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      {
+         UINT64 mask = ((UINT64)1 << i);
+         if (0 == OSS_BIT_TEST(bitmap, mask))
+         {
+            continue;
+         }
+
+         keySet.clear();
+         const indexObject *obj = NULL;
+         indexObject ownedObj;
+
+         unstableIndexContext *uic = _indexContext.findUnstableIndex(i);
+         if (NULL == uic)
+         {   
+            rc = console.getOwnedIndexObj(context, i, ownedObj, NULL);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get index obj of slo[%d], rc:%d", i, rc);
+               goto error;
+            }
+
+            obj = &ownedObj;
+         }
+         else if (uic->isBuilding())
+         {
+            /// The obj in context will not be released until
+            /// we release dml s latch.
+            /// So we do not need to copy obj here.
+            obj = &(uic->getIndexObj());
+         }
+         else
+         {
+            continue;
+         }
+
+         rc = keyGen(obj->getPattern().getPattern(),
+                     obj->getParams().notArray,
+                     record, keySet);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to generate index keys:%d", rc);
+            goto error;
+         }
+
+         rc = ra.append(i, *obj, keySet, TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set index request at pos[%d], rc:%d", i, rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::constraintCheck(dmlContext *context,
+                                     const dmlIndexRequestArray &ra,
+                                     utilInsertResult &res)
+   {
+      INT32 rc = SDB_OK;
+      if (0 == ra.getUniqueIndexCount())
+      {
+         goto done;
+      }
+
+      rc = context->lockUniqueIndexKeys(ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
+         goto error;
+      }
+
+      SDB_ASSERT(FALSE, "TODO");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::insertIndexRequests(dmlContext *context,
+                                         const dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(context->isDmlPositionSet(), "must be set");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != context->getDmlLSN(), "can not be invalid");
+
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      console.init(_record.mbID, &is);
+
+      for (UINT32 i = 0; i < ra.getSize(); ++i)
+      {
+         const dmlIndexRequest *ir = ra.get(i);
+         SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
+         unstableIndexContext *uic = _indexContext.
+                                 findUnstableIndex(ir->getIndexSlot());
+         if (NULL == uic)
+         {
+            rc = console.dmlInsert(context, *ir);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert key into index:%d", rc);
+               goto error;
+            }
+         }
+         else if (uic->isBuilding())
+         {
+         
+            scanEntry entry = context->getScanEntry();
+            BOOLEAN refused = FALSE;
+            rc = uic->insertKeys(entry, ir->getKeys(), refused);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert merging keys into context:%d", rc);
+               goto error;
+            }
+            if (refused)
+            {
+               rc = console.dmlInsert(context, *ir);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to insert key into index:%d", rc);
+                  goto error;
+               }
+            }
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "should not build request");
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 }//namespace vessel

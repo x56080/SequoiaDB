@@ -87,7 +87,7 @@ namespace vessel
                goto error;
             }
             _locked = TRUE;
-         done:
+      done:
             return rc;
          error:
             goto done;

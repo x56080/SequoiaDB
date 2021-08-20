@@ -934,6 +934,7 @@ vesselFiles = [
       "vessel/index/indexKeyGenerator.cpp",
       "vessel/index/indexObject.cpp",
       "vessel/index/collectionIndexContext.cpp",
+      "vessel/index/dmlIndexRequest.cpp",
       "vessel/inMemBitmap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",

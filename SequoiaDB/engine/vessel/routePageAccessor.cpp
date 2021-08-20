@@ -61,7 +61,7 @@ namespace vessel
       UINT32 lid = DMS_INVALID_LOGICCLID;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCLID == context->getCLLid() ||
+                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
                        0 == count ||
                        NULL == lpids ||
                        NULL == lpb ||
@@ -80,7 +80,7 @@ namespace vessel
          }
       }
 
-      lid = context->getCLLid();
+      lid = context->getLogicalCLID();
       rpb = &(lpb->getRuntimeBuffer());
 
       rc = lpb->validatePage(PAGE_TYPE_ROUTE);
@@ -212,7 +212,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidRoutePageLvl(targetLvl) ||
-                       DMS_INVALID_LOGICCLID == context->getCLLid() ||
+                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -238,10 +238,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCLLid() != readableHead->logicalId)
+      if (context->getLogicalCLID() != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
-                context->getCLLid(), readableHead->logicalId);
+                context->getLogicalCLID(), readableHead->logicalId);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -286,7 +286,7 @@ namespace vessel
       const PAGE_ID *ptr = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCLID == context->getCLLid() ||
+                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -312,10 +312,10 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCLLid() != readableHead->logicalId)
+      if (context->getLogicalCLID() != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
-                context->getCLLid(), readableHead->logicalId);
+                context->getLogicalCLID(), readableHead->logicalId);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

@@ -62,19 +62,29 @@ namespace vessel
 
       public:
          void fini();
-         UINT64 getIndexSlotBitmap()const;
 
-         /// unfree bitmap = (slot bitmap | abnormal bitmap)
-         UINT64 getUnfreeSlotBitmap()const;
+         OSS_INLINE UINT64 getUniqueIndexBitmap()const
+         {
+            return _uniqueIndexes;
+         }
+         OSS_INLINE UINT64 getNonuniqueIndexBitmap()const
+         {
+            return _nonUniqueIdexes;
+         }
+         OSS_INLINE UINT64 getIndexSlotBitmap()const
+         {
+            return (_uniqueIndexes | _nonUniqueIdexes);
+         }
          void incNextIndexId();
          void setNextIndexId(UINT32 id)
          {
             _nextIndexId = id;
          }
          INT32 findFreeIndexSlot()const;
-         void freeIndexSlot(INT32 indexSlot, BOOLEAN isUnique);
          void unfreeIndexSlot(INT32 indexSlot, BOOLEAN isUnique);
-         void markAbnormal(INT32 indexSlot);
+
+         UINT32 getUnfreeIndexSlotCount()const;
+         UINT32 getNormalIndexCount()const;
 
       public:
          INT32 unfreeSlotAndSetBuilding(INT32 indexSlot,
@@ -100,7 +110,7 @@ namespace vessel
          UINT32 _nextIndexId = 0;
          UINT64 _uniqueIndexes = 0;
          UINT64 _nonUniqueIdexes = 0;
-         UINT64 _abnormalIndexes = 0;
+
          _UNSTABLE_INDEX_MAP _unstatbleIndexMap;
    };//collectionIndexContext
 }//namespace vessel

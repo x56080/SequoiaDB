@@ -197,7 +197,7 @@ namespace vessel
          INT32 ensure(const KEY &k, object &o)
          {
             INT32 rc = SDB_OK;
-            SDB_ASSERT(!o.isValid(), "impossible");
+            SDB_ASSERT(k.isValid() && !o.isValid(), "impossible");
             UINT32 hash = 0;
             _bucket *bucket = NULL;
             ossSpinXLatch *latch = NULL;
@@ -249,7 +249,7 @@ namespace vessel
          INT32 get(const KEY &k, object &o)
          {
             INT32 rc = SDB_OK;
-            SDB_ASSERT(!o.isValid(), "impossible");
+            SDB_ASSERT(k.isValid() && !o.isValid(), "impossible");
             UINT32 hash = 0;
             _bucket *bucket = NULL;
             ossSpinXLatch *latch = NULL;

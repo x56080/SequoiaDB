@@ -48,6 +48,8 @@
 #include "vessel/instanceEnv.h"
 #include "dmsRBSSUMgr.hpp"
 #include "vessel/collectionIndexContext.h"
+#include "vessel/dmlContext.h"
+#include "ixmKey.hpp"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -229,7 +231,8 @@ namespace vessel
 
    INT32 indexConsole::getOwnedIndexObj(requestContext *context,
                                         INT32 indexSlot,
-                                        indexObject &obj)
+                                        indexObject &obj,
+                                        indexDefHead *head)
    {
       INT32 rc = SDB_OK;
       PAGE_ID lpid = INVALID_PAGE_ID;
@@ -263,7 +266,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.getIndexObject(context, &lpb, obj, TRUE);
+      rc = accessor.getIndexObject(context, &lpb, obj, TRUE, head);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get owned in-mem obj:%d", rc);
@@ -329,8 +332,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(obj.isValid(), "must be valid");
-      globalIndexID gid(context->getCSLogicalID(),
-                        context->getCLLid(),
+      globalIndexID gid(context->getLogicalCSID(),
+                        context->getLogicalCLID(),
                         obj.getIndexID());
       lsmIndexMeta lsmMeta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
@@ -354,6 +357,37 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 indexConsole::lsmInsert(dmlContext *context,
+                                 const dmlIndexRequest &request)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(request.isValid(), "must be valid");
+
+      for (ossPoolList<bson::BSONObj>::const_iterator itr = request.getKeys().begin();
+           itr != request.getKeys().end(); ++itr)
+      {
+         dmsRecordID dmsRid(context->getDmlRid().getPageID(),
+                            context->getDmlRid().getSlotID());
+         rc = lsmInsert(context,
+                        request.getIndexObj(),
+                        ixmKeyOwned(*itr),
+                        context->getTransID(),
+                        context->getDmlLSN(),
+                        dmsRid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert data into lsm index[%d], rc:%d",
+                   request.getIndexSlot(), rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 
@@ -624,8 +658,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(obj.isValid(), "must be valid");
-      globalIndexID gid(context->getCSLogicalID(),
-                        context->getCLLid(),
+      globalIndexID gid(context->getLogicalCSID(),
+                        context->getLogicalCLID(),
                         obj.getIndexID());
       lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
@@ -803,6 +837,44 @@ namespace vessel
       {
          indexContext->fini();
       }
+      goto done;
+   }
+
+   INT32 indexConsole::dmlInsert(dmlContext *context,
+                                 const dmlIndexRequest &request)
+   {
+      INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               !context->isDmlPositionSet() ||
+               !request.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (INDEX_TYPE_LSM == request.getIndexType())
+      {
+         rc = lsmInsert(context, request);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert data into lsm index[%d], rc:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+   done:
+      return rc;
+   error:
       goto done;
    }
 }//namespace vessel

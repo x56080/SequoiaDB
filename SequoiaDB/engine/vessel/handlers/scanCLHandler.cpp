@@ -111,11 +111,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != cl)
-      {
-         context.unlockMB();
-      }
-      lh.unlock();
       context.close();
       return rc;
    error:

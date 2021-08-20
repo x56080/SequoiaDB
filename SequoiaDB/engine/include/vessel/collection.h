@@ -49,6 +49,7 @@
 #include "vessel/collectionOptions.h"
 #include "vessel/indexParameters.h"
 #include "vessel/collectionIndexContext.h"
+#include "vessel/dmlIndexRequest.h"
 
 namespace engine
 {
@@ -61,6 +62,7 @@ namespace vessel
    class insertContext;
    class scanCLCursor;
    class IQueryFilter;
+   class dmlContext;
 
    class collection: public SDBObject
    {
@@ -135,6 +137,18 @@ namespace vessel
          INT32 getTotalCountInRdpHead(requestContext *context,
                                       UINT64 &count);
 
+      private:
+         INT32 buildDmlIndexRequests(requestContext *context,
+                                     const slice &record,
+                                     dmlIndexRequestArray &ra);
+
+         INT32 constraintCheck(dmlContext *context,
+                               const dmlIndexRequestArray &ra,
+                               utilInsertResult &res);
+
+         INT32 insertIndexRequests(dmlContext *context,
+                                   const dmlIndexRequestArray &ra);
+
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
          INT32 initPageSequenceByRootLvL2(requestContext *context);
@@ -173,7 +187,7 @@ namespace vessel
                              STRIPING_ID striping,
                              fsmCandidate &candidate);
          
-         /// user should hold _newPageLatch first
+         /// user should hold _extendingLatch first
          INT32 allocateNewRecordDataPages(requestContext *context,
                                           UINT32 count,
                                           UINT32 &firstSeq,
@@ -283,6 +297,9 @@ namespace vessel
                                       BOOLEAN remove);
 
          INT32 initIndexesWhenOpen(requestContext *context);
+
+      private:
+         
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;

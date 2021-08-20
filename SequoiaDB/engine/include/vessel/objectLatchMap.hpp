@@ -41,6 +41,7 @@
 #include "ossLatch.hpp"
 #include "vessel/recordID.h"
 #include "vessel/vesselFileDef.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -101,42 +102,44 @@ namespace vessel
          recordIdLatchKey(){}
          ~recordIdLatchKey(){}
          explicit recordIdLatchKey(SPACE_ID sid,
-                                   PAGE_ID lpid,
-                                   RECORD_SLOT_ID slot):
-                  _sid(sid), _slot(slot), _lpid(lpid){}
+                                   CL_MB_ID mbID,
+                                   const recordID &rid):
+                  _sid(sid), _mbID(mbID), _rid(rid){}
+
          recordIdLatchKey(const recordIdLatchKey &o):
          _sid(o._sid),
-         _slot(o._slot),
-         _lpid(o._lpid){}
+         _mbID(o._mbID),
+         _rid(o._rid){}
+
          recordIdLatchKey &operator=(const recordIdLatchKey &o)
          {
             _sid = o._sid;
-            _slot = o._slot;
-            _lpid = o._lpid;
+            _mbID = o._mbID;
+            _rid = o._rid;
             return *this;
          }
          OSS_INLINE BOOLEAN operator==(const recordIdLatchKey &o)const
          {
             return _sid == o._sid &&
-                   _slot == o._slot &&
-                   _lpid == o._lpid;
+                   _mbID == o._mbID &&
+                   _rid == o._rid;
          }
          OSS_INLINE UINT32 hash()const
          {
-            return _sid + _slot + _lpid;
+            return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
             return INVALID_SPACE_ID != _sid &&
-                   INVALID_RECORD_SLOT_ID != _slot &&
-                   INVALID_PAGE_ID != _lpid;
+                   INVALID_CL_MB_ID != _mbID &&
+                   _rid.valid();
          }
 
       public:
          SPACE_ID _sid = INVALID_SPACE_ID;
-         RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
-         PAGE_ID _lpid = INVALID_PAGE_ID;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         recordID _rid;
    };//class recordIdLatchKey
 
    typedef class sharedObjectMap<recordIdLatchKey, ossSharedLatch> RECORD_ID_LATCH_MAP;
@@ -147,40 +150,59 @@ namespace vessel
          uniqueIndexLatchKey(){}
          ~uniqueIndexLatchKey(){}
          explicit uniqueIndexLatchKey(SPACE_ID sid,
-                                      UINT16 hash):
+                                      CL_MB_ID mbID,
+                                      UINT32 hash):
                   _sid(sid),
-                  _key(hash){}
+                  _mbID(mbID),
+                  _hash(hash){}
+
          uniqueIndexLatchKey(const uniqueIndexLatchKey &o):
          _sid(o._sid),
-         _key(o._key)
+         _mbID(o._mbID),
+         _hash(o._hash)
          {}
          uniqueIndexLatchKey &operator=(const uniqueIndexLatchKey &o)
          {
             _sid = o._sid;
-            _key = o._key;
+            _mbID = o._mbID;
+            _hash = o._hash;
             return *this;
          }
 
       public:
          OSS_INLINE BOOLEAN operator==(const uniqueIndexLatchKey &o)const
          {
-            return _sid == o._sid && _key == o._key;
+            return _sid == o._sid &&
+                   _mbID == o._mbID &&
+                   _hash == o._hash;
          }
          OSS_INLINE UINT32 hash()const
          {
-            return _sid + _key;
+            return _sid + _mbID + _hash;
          }
          OSS_INLINE SPACE_ID getSpaceID()const
          {
             return _sid;
          }
-         OSS_INLINE UINT16 getKeyHash()const
+         OSS_INLINE CL_MB_ID getMbID()const
          {
-            return _key;
+            return _mbID;
          }
+         OSS_INLINE UINT32 getHash()const
+         {
+            return _hash;
+         }
+
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return INVALID_SPACE_ID != _sid &&
+                   INVALID_CL_MB_ID != _mbID;
+         }
+
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
-         UINT16 _key = 0;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         UINT32 _hash = 0;
    };//class uniqueIndexLatchKey
 
    ///WARNING: UNIQUE_INDEX_LATCH_MAP's object is x latch, do not use objectSharedLatchContext.
@@ -399,7 +421,7 @@ namespace vessel
             goto done;
          }
 
-         _latchSlot *find(const logicalIdLatchKey &key,
+         _latchSlot *find(const KEY &key,
                           UINT32 &pos)
          {
             _latchSlot *out = NULL;

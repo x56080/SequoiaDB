@@ -87,6 +87,8 @@ namespace vessel
 
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter end
+
+//////////////logicalPageSpace
    logicalPageSpace::~logicalPageSpace()
    {
       fini();
@@ -105,13 +107,7 @@ namespace vessel
       _idMapFiles.close();
       _allocator.fini();
       _logConsole.fini();
-      
-      if (NULL != _dpc)
-      {
-         _dpc->close();
-         _dpc = NULL;
-      }
-
+      _dpc = NULL;
       _checkpointContext.fini();
       _creater.fini();
       return;
@@ -763,7 +759,7 @@ namespace vessel
 
       if (OSS_SHARED_LATCH_MODE_UPGRADE == lpb._lh.getLockMode())
       {
-         lpb._lh.unlockUpgradeAndLock();
+         lpb._lh.lockLpidFromUpgrade();
       }
 
       rc = context->getEnv()->dms.isSnapshotEffective(getSpaceID(),

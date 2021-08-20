@@ -49,13 +49,11 @@ namespace vessel
    typedef std::function<INT32(const bson::BSONObj &pattern,
                                BOOLEAN notArray,
                                const slice &record,
-                               _ixmKeyBuilder *builder,
                                bson::BSONObjSet &keys)> INDEX_KEY_GENERATOR;
 
    INT32 indexKeyGenForBsonRecord(const bson::BSONObj &pattern,
                                   BOOLEAN notArray,
                                   const slice &record,
-                                  _ixmKeyBuilder *builder,
                                   bson::BSONObjSet &keys);
 }//namespace vessel
 }//namespace engine

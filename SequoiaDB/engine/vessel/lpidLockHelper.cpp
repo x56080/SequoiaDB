@@ -92,16 +92,17 @@ namespace vessel
       return;
    }
 
-   INT32 lpidLockHelper::unlockUpgradeAndLock()
+   INT32 lpidLockHelper::lockLpidFromUpgrade()
    {
       INT32 rc = SDB_OK;
       if (OSS_SHARED_LATCH_MODE_UPGRADE != _mode)
       {
+         SDB_ASSERT(FALSE, "lock upgrade first");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      rc = _context->unlockUpgradeLpidAndLock(_type, _lpid);
+      rc = _context->lockLpidFromUpgrade(_type, _lpid);
       if (SDB_OK != rc)
       {
          goto error;

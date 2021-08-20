@@ -44,6 +44,7 @@
 #include "vessel/recordID.h"
 #include "vessel/indexObject.h"
 #include "vessel/indexSpace.h"
+#include "vessel/dmlIndexRequest.h"
 
 namespace engine
 {
@@ -52,6 +53,8 @@ namespace vessel
 {
    class requestContext;
    class collectionIndexContext;
+   class dmlContext;
+   class indexDefHead;
 
    class indexConsole : public SDBObject
    {
@@ -99,7 +102,8 @@ namespace vessel
 
          INT32 getOwnedIndexObj(requestContext *context,
                                 INT32 indexSlot,
-                                indexObject &obj);
+                                indexObject &obj,
+                                indexDefHead *head=NULL);
 
          INT32 loadIndexesWhenStartup(requestContext *context,
                                       collectionIndexContext *indexContext);
@@ -113,13 +117,10 @@ namespace vessel
                       DPS_LSN_OFFSET lsn,
                       const dmsRecordID &rid);
 
-         INT32 insert(requestContext *context,
-                      INT32 indexSlot,
-                      const ixmKey &key,
-                      const DPS_TRANS_ID &transID,
-                      DPS_LSN_OFFSET lsn,
-                      const dmsRecordID &rid);
+         INT32 dmlInsert(dmlContext *context,
+                         const dmlIndexRequest &request);
 
+         
       private:
          INT32 lsmInsert(requestContext *context,
                          const indexObject &obj,
@@ -127,6 +128,9 @@ namespace vessel
                          const DPS_TRANS_ID &transID,
                          DPS_LSN_OFFSET lsn,
                          const dmsRecordID &rid);
+
+         INT32 lsmInsert(dmlContext *context,
+                         const dmlIndexRequest &request);
 
          INT32 lsmTruncate(requestContext *context,
                            const indexObject &obj);

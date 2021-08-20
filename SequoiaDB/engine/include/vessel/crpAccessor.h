@@ -58,7 +58,6 @@ namespace vessel
          INT32 createCL(requestContext *context,
                         const collectionRecord &record,
                         const createCLOptions &options,
-                        const strSlice &csName,
                         logicalPageBuffer *lpb);
 
          /// record on disk must be valid.

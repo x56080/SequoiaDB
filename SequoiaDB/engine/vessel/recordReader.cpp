@@ -176,7 +176,8 @@ namespace vessel
          {
             RECORD_ID_LATCH_MAP::object latchObj;
             recordIdLatchKey latchKey(_context->getSpaceID(),
-                                      _lpid, _nextSlot);
+                                      _context->getMBID(),
+                                      recordID(_lpid, _nextSlot));
             rc = latchMap->get(latchKey, latchObj);
             if (SDB_OK != rc)
             {

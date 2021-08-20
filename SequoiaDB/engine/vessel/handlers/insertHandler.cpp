@@ -56,8 +56,6 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       insertContext context;
-      strSlice csName;
-      strSlice clName;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -96,9 +94,6 @@ namespace vessel
          goto error;
       }
 
-      csName.reset(cs->getCSName());
-      clName.reset(cl->getName());
-      context.setCLInfo(csName, clName);
       context.setTransID(transID);
       context.setOptions(options);
       context.setStriping(striping);
@@ -116,14 +111,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != cl)
-      {
-         context.unlockMB();
-      }
-      if (NULL != cs)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:

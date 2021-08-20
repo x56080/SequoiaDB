@@ -46,6 +46,8 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/requestContext.h"
 #include "dms.hpp"
+#include "vessel/dmlIndexRequest.h"
+#include "vessel/scanEntry.h"
 
 namespace engine
 {
@@ -63,22 +65,6 @@ namespace vessel
       public:
          virtual void close();
 
-         void setCLInfo(const strSlice &csName,
-                         const strSlice &clName);
-
-         OSS_INLINE const strSlice &getCSName()const
-         {
-            return _csName;
-         }
-         OSS_INLINE const strSlice &getCLName()const
-         {
-            return _clName;
-         }
-         OSS_INLINE BOOLEAN clInfoIsValid()const
-         {
-            return !_csName.empty() &&
-                   !_clName.empty();
-         }
          OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
          {
             _transID = transID;
@@ -87,50 +73,113 @@ namespace vessel
          {
             return _transID;
          }
-         OSS_INLINE UINT32 getUniqueKeyCount()const
+         OSS_INLINE UINT32 getUniqueKeyHashSize()const
          {
             return _uniqueKeyHash.size();
          }
-         OSS_INLINE const UINT16 *getUniqueKeys()const
+         OSS_INLINE const UINT32 *getUniqueKeyHashes()const
          {
-            return _uniqueKeyHash.data();
+            return _uniqueKeyHash.empty() ? NULL : _uniqueKeyHash.data();
          }
 
-         /// add key before hold locks.
-         void addUniqueKey(UINT16 key);
-
-         INT32 lockUniqueIndexKeys();
+         INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &requests);
 
          void unlockUniqueKeys();
 
-         UINT32 getLockingUniqueKeyCount()const
-         {
-            return _uniqueKeyContext.size();
-         }
-
-         void setMinFreeSize(UINT32 size)
+         OSS_INLINE void setMinFreeSize(UINT32 size)
          {
             _minFreeSize = size;
          }
-         UINT32 getMinFreeSize()const
+         OSS_INLINE UINT32 getMinFreeSize()const
          {
             return _minFreeSize;
          }
+         OSS_INLINE void setCompressionType(UTIL_COMPRESSOR_TYPE type)
+         {
+            _compressionType = type;
+         }
+         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
+         {
+            return _compressionType;
+         }
+
+         OSS_INLINE const recordID &getDmlRid()const
+         {
+            return _rid;
+         }
+         OSS_INLINE void setDmlRid(const recordID &rid)
+         {
+            _rid = rid;
+         }
+         OSS_INLINE BOOLEAN isDmlPositionSet()const
+         {
+            return _rid.valid() && INVALID_CL_PAGE_SEQ != _pageSequence;
+         }
+         OSS_INLINE void setDmlLSN(DPS_LSN_OFFSET lsn)
+         {
+            _lsn = lsn;
+         }
+         OSS_INLINE DPS_LSN_OFFSET getDmlLSN()const
+         {
+            return _lsn;
+         }
+         OSS_INLINE void setPageSequence(UINT32 s)
+         {
+            _pageSequence = s;
+         }
+         OSS_INLINE scanEntry getScanEntry()const
+         {
+            return scanEntry(_pageSequence, _rid.getSlotID());
+         }
+         OSS_INLINE void setHasIndexReq(BOOLEAN hasIndexReq)
+         {
+            _hasIndexReq = hasIndexReq;
+         }
+         OSS_INLINE BOOLEAN hasIndexReq()const
+         {
+            return _hasIndexReq;
+         }
+
+         INT32 tryToLockRid(const recordID &rid,
+                            OSS_SHARED_LATCH_MODE mode,
+                            BOOLEAN &locked);
+
+         /// WARNING: Always try lock rid under page latch!
+         INT32 lockRid(const recordID &rid,
+                       OSS_SHARED_LATCH_MODE mode);
+
+         void unlockRid(const recordID &rid);
+
+         void unlockRids();
+
+         void unlockRidsAndUniqueKeys();
+
       private:
          void fini();
 
+         void buildUniqueKeyHash(const dmlIndexRequestArray &requests,
+                                 ossPoolVector<UINT32> &hashArray)const;
+
          INT32 _lockUniqueIndexKeys();
+
+         void loopTryLock();
 
       private:
          typedef ossPoolVector<UNIQUE_INDEX_LATCH_MAP::object> _UNIQUE_KEY_CONTEXT;
 
       private:
-         strSlice _csName;
-         strSlice _clName;
-         DPS_TRANS_ID _transID;
-         ossPoolVector<UINT16> _uniqueKeyHash;
-         _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
          UINT32 _minFreeSize = 0;
+         UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
+         DPS_TRANS_ID _transID;
+         BOOLEAN _hasIndexReq = FALSE;
+
+         ossPoolVector<UINT32> _uniqueKeyHash;
+         _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
+         objectSharedLatchContext<recordIdLatchKey> _ridLatchContext;
+
+         DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
+         recordID _rid;
+         UINT32 _pageSequence = INVALID_CL_PAGE_SEQ;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

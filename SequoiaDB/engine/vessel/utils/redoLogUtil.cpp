@@ -274,6 +274,27 @@ namespace vessel
       goto done;
    }
 
+   BOOLEAN buildFullName(UINT32 bufferSize,
+                         CHAR *buffer,
+                         const strSlice &csName,
+                         const strSlice &clName)
+   {
+      SDB_ASSERT(NULL != buffer, "can not be null");
+      SDB_ASSERT(!csName.empty(), "can not be empty");
+      SDB_ASSERT(!clName.empty(), "can not be empty");
+      BOOLEAN r = FALSE;
+      UINT32 nameSize = csName.strLen() + clName.strLen() + 2;
+      if (nameSize <= bufferSize)
+      {
+         ossMemcpy(buffer, csName.str(), csName.strLen());
+         buffer[csName.strLen()] = '.';
+         ossMemcpy(buffer + csName.strLen() + 1, clName.str(), clName.strLen());
+         buffer[nameSize] = '\0';
+         r = TRUE;
+      }
+      return r;
+   }
+
 /////////////logicalPageSapceLogUtil begin
    INT32 lpsLogUtil::prepare(requestContext *context,
                               const deltaLogRecord &dlr,

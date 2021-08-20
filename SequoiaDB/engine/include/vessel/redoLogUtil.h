@@ -73,6 +73,11 @@ namespace vessel
                                  INT32 indexSlot,
                                  INT32 result);
 
+   BOOLEAN buildFullName(UINT32 bufferSize,
+                         CHAR *buffer,
+                         const strSlice &csName,
+                         const strSlice &clName);
+
    class lpsLogUtil : public SDBObject
    {
       public:

@@ -58,7 +58,6 @@ namespace vessel
       _nextIndexId = 0;
       _uniqueIndexes = 0;
       _nonUniqueIdexes = 0;
-      _abnormalIndexes = 0;
       return;
    }
 
@@ -79,9 +78,14 @@ namespace vessel
    {
       SDB_ASSERT(64 == MAX_INDEX_COUNT_PER_CL, "must be 64");
       INT32 indexSlot = -1;
-      UINT64 bitmap = getUnfreeSlotBitmap();
+      UINT64 bitmap = getIndexSlotBitmap();
       UINT64 mask = 1;
       
+      if (OSS_UINT64_MAX == bitmap)
+      {
+         goto done;
+      }
+
       for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
          if (0 == OSS_BIT_TEST(bitmap, mask))
@@ -92,33 +96,8 @@ namespace vessel
          mask <<= 1;
       }
 
+   done:
       return indexSlot;
-   }
-
-   UINT64 collectionIndexContext::getIndexSlotBitmap()const
-   {
-      return (_uniqueIndexes | _nonUniqueIdexes);
-   }
-
-   UINT64 collectionIndexContext::getUnfreeSlotBitmap()const
-   {
-      return getIndexSlotBitmap() | _abnormalIndexes;
-   }
-
-   void collectionIndexContext::freeIndexSlot(INT32 indexSlot, BOOLEAN isUnique)
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      UINT64 mask = 1;
-      mask <<= indexSlot;
-      if (isUnique)
-      {
-         OSS_BIT_CLEAR(_uniqueIndexes, mask);
-      }
-      else
-      {
-         OSS_BIT_CLEAR(_nonUniqueIdexes, mask);
-      }
-      return;
    }
 
    void collectionIndexContext::unfreeIndexSlot(INT32 indexSlot, BOOLEAN isUnique)
@@ -144,6 +123,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       unstableIndexContext *uic = NULL;
+      UINT64 mask = 1;
+
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
                        !obj.isValid() ||
                        INDEX_STATUS_INVALID == status ||
@@ -153,11 +134,7 @@ namespace vessel
          goto error;
       }
 
-      if (0 < _unstatbleIndexMap.count(indexSlot))
-      {
-         rc = SDB_VESSEL_DUPLICATED_KEY;
-         goto error;
-      }
+      mask <<= indexSlot;
 
       uic = SDB_OSS_NEW unstableIndexContext();
       if (NULL == uic)
@@ -174,7 +151,12 @@ namespace vessel
          goto error;
       }
 
-      _unstatbleIndexMap.insert(std::make_pair(indexSlot, uic));
+      if (!_unstatbleIndexMap.insert(std::make_pair(indexSlot, uic)).second)
+      {
+         PD_LOG(PDERROR, "failed to insert index slot[%d] into map");
+         rc = SDB_VESSEL_DUPLICATED_KEY;
+         goto error;
+      }
 
       if (NULL != out)
       {
@@ -213,15 +195,6 @@ namespace vessel
       return uic;
    }
 
-   void collectionIndexContext::markAbnormal(INT32 indexSlot)
-   {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
-      UINT64 mask = 1;
-      mask <<= indexSlot;
-      OSS_BIT_SET(_abnormalIndexes, mask);
-      return;
-   }
-
    INT32 collectionIndexContext::unfreeSlotAndSetBuilding(INT32 indexSlot,
                                                           const indexObject &obj,
                                                           unstableIndexContext **out)
@@ -238,7 +211,7 @@ namespace vessel
       }
 
       mask <<= indexSlot;
-      bitmap = getUnfreeSlotBitmap();
+      bitmap = getIndexSlotBitmap();
       if (0 != OSS_BIT_TEST(bitmap, mask))
       {
          PD_LOG(PDERROR, "index slot[%d] is unfree", indexSlot);
@@ -284,6 +257,7 @@ namespace vessel
          BOOLEAN isUnique = itr->second->getIndexObj().getParams().isUnique;
          SDB_OSS_DEL itr->second;
          _unstatbleIndexMap.erase(itr);
+
          if (isUnique)
          {
             OSS_BIT_CLEAR(_uniqueIndexes, mask);
@@ -295,6 +269,18 @@ namespace vessel
          r = TRUE;
       }
       return r;
+   }
+
+   UINT32 collectionIndexContext::getUnfreeIndexSlotCount()const
+   {
+      return ossGetNonZeroBitCount64(getIndexSlotBitmap());
+   }
+
+   UINT32 collectionIndexContext::getNormalIndexCount()const
+   {
+      UINT32 count = ossGetNonZeroBitCount64(getIndexSlotBitmap());
+      SDB_ASSERT(_unstatbleIndexMap.size() <= count, "impossible");
+      return count - _unstatbleIndexMap.size();
    }
 }//namespace vessel
 }//namespace engine

@@ -42,6 +42,7 @@
 #include "ossMemPool.hpp"
 #include "vessel/scanEntry.h"
 #include "vessel/indexObject.h"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -56,31 +57,19 @@ namespace vessel
          unstableIndexContext &operator=(const unstableIndexContext &) = delete;
 
       public:
-         struct keyOperation : public SDBObject
+         struct mergingKey : public _utilPooledObject
          {
-            keyOperation(){}
-            ~keyOperation(){}
+            mergingKey(){}
+            ~mergingKey(){}
 
-            keyOperation(const keyOperation &o):
-            entry(o.entry),
-            inserting(o.inserting),
-            discarded(o.discarded)
-            {}
+            mergingKey(const mergingKey &o) = delete;
 
-            keyOperation &operator=(const keyOperation &o)
-            {
-               entry = o.entry;
-               inserting = o.inserting;
-               discarded = o.discarded;
-               return *this;
-            }
+            mergingKey &operator=(const mergingKey &o) = delete;
 
             scanEntry entry;
-            bson::BSONArray inserting;
-            bson::BSONArray discarded;
-         };//struct keyOperation
-
-         typedef ossPoolMap<scanEntry, keyOperation> _KEY_MAP;
+            ossPoolList<bson::BSONObj> inserting;
+            ossPoolList<bson::BSONObj> discarded;
+         };//struct mergingKey
 
       public:
          INT32 init(INT32 indexSlot,
@@ -132,18 +121,24 @@ namespace vessel
          BOOLEAN testDuplicatedIfBuilding(const strSlice &name,
                                           const indexKeyPattern &pattern)const;
 
-         BOOLEAN insertKeys(const scanEntry &entry,
-                            const bson::BSONObjSet &keys);
+         /// must be building
+         INT32 insertKeys(const scanEntry &entry,
+                          const ossPoolList<bson::BSONObj> &keys,
+                          BOOLEAN &refused);
 
-         BOOLEAN updateKeys(const scanEntry &entry,
-                            const bson::BSONObjSet &oldKeys,
-                            const bson::BSONObjSet &newKeys);
+         /// must be building
+         INT32 updateKeys(const scanEntry &entry,
+                          const ossPoolList<bson::BSONObj> &oldKeys,
+                          const ossPoolList<bson::BSONObj> &newKeys,
+                          BOOLEAN &refuse);
 
-         BOOLEAN deleteKeys(const scanEntry &entry,
-                            const bson::BSONObjSet &keys);
+         /// must be building
+         INT32 deleteKeys(const scanEntry &entry,
+                          const ossPoolList<bson::BSONObj> &keys,
+                          BOOLEAN &refuse);
 
          /// return false when keys not empty
-         BOOLEAN endToBuildCurrentRangeOrPopKeys(ossPoolList<keyOperation> &keys);
+         BOOLEAN endToBuildCurrentRangeOrPopKeys(ossPoolList<mergingKey*> &keys);
 
          void updateRebuildingHighBound(const scanEntry &highBound);
 
@@ -152,12 +147,12 @@ namespace vessel
          void terminateBuilding(BOOLEAN remove);
 
       private:
-         BOOLEAN upsertKeyOperation(const scanEntry &entry,
-                                    const bson::BSONObjSet *inserting,
-                                    const bson::BSONObjSet *discarded);
+         INT32 upsertBuildingKeys(const scanEntry &entry,
+                                  const ossPoolList<bson::BSONObj> *inserting,
+                                  const ossPoolList<bson::BSONObj> *discarded,
+                                  BOOLEAN &refused);
 
-         BOOLEAN isRebuilding(const scanEntry &entry,
-                              BOOLEAN &rebuilded)const;
+         INT32 getEntryBuildingStatus(const scanEntry &entry)const;
 
       private:
          INT32 _indexSlot = -1;
@@ -166,10 +161,10 @@ namespace vessel
          ossSpinXLatch _latch;
 
          /// scanning range is [_rebuildingLow, _rebuildingHigh)
-         scanEntry _rebuildingLow;
-         scanEntry _rebuildingHigh;
+         scanEntry _buildingLow;
+         scanEntry _buildingHigh;
 
-         _KEY_MAP _keys;
+         ossPoolList<mergingKey *> _mergingKeys;
          
    };//class unstableIndexContext
 }//namespace vessel

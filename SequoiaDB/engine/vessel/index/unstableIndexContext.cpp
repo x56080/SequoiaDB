@@ -53,9 +53,14 @@ namespace vessel
       _indexSlot = -1;
       _obj.fini();
       _status = INDEX_STATUS_INVALID;
-      _rebuildingLow.reset();
-      _rebuildingHigh.reset();
-      _keys.clear();
+      _buildingLow.reset();
+      _buildingHigh.reset();
+      for (ossPoolList<mergingKey *>::iterator itr = _mergingKeys.begin();
+           itr != _mergingKeys.end(); ++itr)
+      {
+         SDB_OSS_DEL *itr;
+      }
+      _mergingKeys.clear();
    }
 
    INT32 unstableIndexContext::init(INT32 indexSlot,
@@ -85,26 +90,29 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN unstableIndexContext::insertKeys(const scanEntry &entry,
-                                           const bson::BSONObjSet &keys)
+   INT32 unstableIndexContext::insertKeys(const scanEntry &entry,
+                                          const ossPoolList<bson::BSONObj> &keys,
+                                          BOOLEAN &refused)
    {
-      return upsertKeyOperation(entry, &keys, NULL);
+      return upsertBuildingKeys(entry, &keys, NULL, refused);
    }
 
-   BOOLEAN unstableIndexContext::updateKeys(const scanEntry &entry,
-                                            const bson::BSONObjSet &oldKeys,
-                                            const bson::BSONObjSet &newKeys)
+   INT32 unstableIndexContext::updateKeys(const scanEntry &entry,
+                                          const ossPoolList<bson::BSONObj> &oldKeys,
+                                          const ossPoolList<bson::BSONObj> &newKeys,
+                                          BOOLEAN &refused)
    {
-      return upsertKeyOperation(entry, &newKeys, &oldKeys);
+      return upsertBuildingKeys(entry, &newKeys, &oldKeys, refused);
    }
 
-   BOOLEAN unstableIndexContext::deleteKeys(const scanEntry &entry,
-                                            const bson::BSONObjSet &keys)
+   INT32 unstableIndexContext::deleteKeys(const scanEntry &entry,
+                                          const ossPoolList<bson::BSONObj> &keys,
+                                          BOOLEAN &refused)
    {
-      return upsertKeyOperation(entry, NULL, &keys);
+      return upsertBuildingKeys(entry, NULL, &keys, refused);
    }
 
-   BOOLEAN unstableIndexContext::endToBuildCurrentRangeOrPopKeys(ossPoolList<keyOperation> &keys)
+   BOOLEAN unstableIndexContext::endToBuildCurrentRangeOrPopKeys(ossPoolList<mergingKey *> &keys)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(keys.empty(), "must be empty");
@@ -112,19 +120,19 @@ namespace vessel
       ossXLatchGuard guard(&_latch);
 
       SDB_ASSERT(INDEX_STATUS_BUILDING == getStatus(), "must be rebuilding");
-      SDB_ASSERT(_rebuildingLow <= _rebuildingHigh, "impossible");
-      if (!_keys.empty())
+      SDB_ASSERT(_buildingLow <= _buildingHigh, "impossible");
+      if (!_mergingKeys.empty())
       {
-         for (_KEY_MAP::const_iterator itr = _keys.begin();
-              itr != _keys.end(); ++itr)
+         for (ossPoolList<mergingKey *>::const_iterator itr = _mergingKeys.begin();
+              itr != _mergingKeys.end(); ++itr)
          {
-            keys.push_back(itr->second);
+            keys.push_back(*itr);
          }
-         _keys.clear();
+         _mergingKeys.clear();
       }
       else
       {
-         _rebuildingLow = _rebuildingHigh;
+         _buildingLow = _buildingHigh;
          r = TRUE;
       }
    
@@ -135,8 +143,8 @@ namespace vessel
    {
       ossXLatchGuard guard(&_latch);
       SDB_ASSERT(INDEX_STATUS_BUILDING == getStatus(), "must be rebuilding");
-      SDB_ASSERT(_rebuildingHigh < highBound, "must be over current high bound");
-      _rebuildingHigh = highBound;
+      SDB_ASSERT(_buildingHigh < highBound, "must be over current high bound");
+      _buildingHigh = highBound;
       return;
    }
 
@@ -146,75 +154,86 @@ namespace vessel
       ossXLatchGuard guard(&_latch);
       SDB_ASSERT(INDEX_STATUS_BUILDING == getStatus(), "must be rebuilding");
       if (INDEX_STATUS_BUILDING == getStatus() &&
-          _rebuildingLow == _rebuildingHigh)
+          _buildingLow == _buildingHigh)
       {
-         bound = _rebuildingLow;
+         bound = _buildingLow;
          r = TRUE;
       }
       return r;
    }
 
-   BOOLEAN unstableIndexContext::upsertKeyOperation(const scanEntry &entry,
-                                                    const bson::BSONObjSet *inserting,
-                                                    const bson::BSONObjSet *discarded)
+   INT32 unstableIndexContext::upsertBuildingKeys(const scanEntry &entry,
+                                                  const ossPoolList<bson::BSONObj> *inserting,
+                                                  const ossPoolList<bson::BSONObj> *discarded,
+                                                  BOOLEAN &refused)
    {
-      BOOLEAN r = FALSE;
-      BOOLEAN rebuilded = FALSE;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isBuilding(), "must be building");
       SDB_ASSERT(!(NULL == inserting && NULL == discarded), "impossible");
 
+      mergingKey *mk = NULL;
       ossXLatchGuard guard(&_latch);
-
-      if (INDEX_STATUS_BUILDING != getStatus())
+      INT32 buildingStatus = getEntryBuildingStatus(entry);
+      if (buildingStatus < 0)
       {
-         r = TRUE;
+         refused = TRUE;
+         goto done;
+      }
+      else if (0 < buildingStatus)
+      {
+         refused = FALSE;
          goto done;
       }
 
-      if (isRebuilding(entry, rebuilded))
+      mk = SDB_OSS_NEW mergingKey();
+      if (NULL == mk)
       {
-         keyOperation op;
-         op.entry = entry;
-
-         bson::BSONArrayBuilder builder;
-
-         if (NULL != inserting)
-         {
-            for (bson::BSONObjSet::const_iterator itr = inserting->begin();
-               itr != inserting->end(); ++itr)
-            {
-               builder.append(*itr);
-            }
-         }
-         op.inserting = builder.arr();
-         
-         if (NULL != discarded)
-         {
-            for (bson::BSONObjSet::const_iterator itr = discarded->begin();
-               itr != discarded->end(); ++itr)
-            {
-               builder.append(*itr);
-            }
-         }
-         op.discarded = builder.arr();
-
-         _keys[entry] = op;
-         r = TRUE;
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
       }
-      else if (!rebuilded)
+
+      mk->entry = entry;
+      if (NULL != inserting)
       {
-         r = TRUE;
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = inserting->begin();
+               itr != inserting->end(); ++itr)
+         {
+            /// Can not use getOwned to save key here.
+            /// We do not know when key obj released by user thread.
+            mk->inserting.push_back(itr->copy());
+         }
+      }
+      if (NULL != discarded)
+      {
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = discarded->begin();
+               itr != discarded->end(); ++itr)
+         {
+            mk->discarded.push_back(itr->copy());
+         }
       }
    done:
-      return r;
+      return rc;
+   error:
+      SAFE_OSS_DELETE(mk);
+      goto done;
    }
 
-   BOOLEAN unstableIndexContext::isRebuilding(const scanEntry &entry,
-                                               BOOLEAN &rebuilded)const
+   INT32 unstableIndexContext::getEntryBuildingStatus(const scanEntry &entry)const
    {
-      SDB_ASSERT(INDEX_STATUS_BUILDING == getStatus(), "must be rebuilding");
-      BOOLEAN r = _rebuildingLow <= entry && entry < _rebuildingHigh;
-      rebuilded = entry < _rebuildingLow;
-      return r;
+      SDB_ASSERT(INDEX_STATUS_BUILDING == getStatus(), "must be building");
+      if (entry < _buildingLow)
+      {
+         return -1;
+      }
+      else if(entry < _buildingHigh)
+      {
+         return 0;
+      }
+      else
+      {
+         return 1;
+      }
    }
 
    BOOLEAN unstableIndexContext::testDuplicatedIfBuilding(const strSlice &name,

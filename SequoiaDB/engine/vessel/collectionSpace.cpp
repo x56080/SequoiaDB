@@ -73,10 +73,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       bson::BSONObj optionsObj;
       slice optionsSlice;
+      OSS_LATCH_MODE mode = SHARED;
       SDB_ASSERT(!isOpen(), "do not recreate");
       
       if (OSS_UNLIKELY(NULL == context ||
-                       EXCLUSIVE != context->getSpaceIDLockedMode() ||
+                       !context->isSpaceIdLocked(&mode) ||
+                       EXCLUSIVE != mode ||
                        DMS_COLLECTION_SPACE_NAME_SZ < name.strLen() ||
                        name.empty() ||
                        DMS_INVALID_LOGICCSID == logicalID ||
@@ -166,7 +168,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to read meta data when open:%d", rc);
          goto error;
       }
-      context->setCSLidUnderLock(_recordInMem.logicalID);
+      context->initSpaceContextUnderLock(_recordInMem.logicalID,
+                                         strSlice(_recordInMem.name));
 
       rc = initInMemStructures();
       if (SDB_OK != rc)
@@ -243,12 +246,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context->lockMB(mbID, &(holder->getLatch()), EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock mb[%d], rc:%d", mbID, rc);
-         goto error;
-      }
+      context->lockMB(mbID, &(holder->getLatch()), EXCLUSIVE);
       locked = TRUE;
 
       SDB_ASSERT(holder->isFree(), "must be free");
@@ -346,12 +344,7 @@ namespace vessel
             goto error;
          }
 
-         rc = context->tryLockMB(mbID, &(holder->getLatch()), SHARED, mbLocked);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to lock mb:%d", rc);
-            goto error;
-         }
+         mbLocked = context->tryLockMB(mbID, &(holder->getLatch()), SHARED);
 
          if (mbLocked)
          {
@@ -480,12 +473,7 @@ namespace vessel
             goto error;
          }
 
-         rc = context->tryLockMB(mbID, &(holder->getLatch()), mode, mbLocked);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to lock mb[%d], rc:%d", mbID, rc);
-            goto error;
-         }
+         mbLocked = context->tryLockMB(mbID, &(holder->getLatch()), mode);
 
          if (!mbLocked)
          {
@@ -510,8 +498,10 @@ namespace vessel
             goto error;
          }
 
+         SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
          *obj = holder->getObj();
-         context->setCLLoigcalIdUnderLock(holder->getObj()->getLogicalID());
+         context->initCollectionContextUnderLock(holder->getObj()->getLogicalID(),
+                                                 strSlice(holder->getObj()->getName()));
          break;
       } while (TRUE);
    done:
@@ -553,11 +543,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context->lockMB(mbID, &(holder->getLatch()), mode);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      context->lockMB(mbID, &(holder->getLatch()), mode);
       locked = TRUE;
 
       if (holder->isFree())
@@ -573,7 +559,9 @@ namespace vessel
          goto error;
       }
 
-      context->setCLLoigcalIdUnderLock(holder->getObj()->getLogicalID());
+      SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
+      context->initCollectionContextUnderLock(holder->getObj()->getLogicalID(),
+                                              strSlice(holder->getObj()->getName()));
 
       *obj = holder->getObj();
    done:
@@ -739,13 +727,9 @@ namespace vessel
          goto error;
       }
 
-      rc = context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock mb[%d]:%d", record->mbID, rc);
-         goto error;
-      }
-      context->setCLLoigcalIdUnderLock(record->logicalCLID);
+      context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
+      context->initCollectionContextUnderLock(record->logicalCLID,
+                                              strSlice(record->name));
 
       rc = cl->initWhenOpen(context, *record, this);
       if (SDB_OK != rc)

@@ -44,13 +44,11 @@ namespace vessel
    INT32 indexKeyGenForBsonRecord(const bson::BSONObj &pattern,
                                   BOOLEAN notArray,
                                   const slice &record,
-                                  _ixmKeyBuilder *builder,
                                   bson::BSONObjSet &keys)
    {
       INT32 rc = SDB_OK;
       _ixmIndexKeyGen keygen(pattern);
       keygen.setNotArray(notArray);
-      keygen.setKeyBuilder(builder);
       bson::BSONObj obj(record.data());
 
       rc = keygen.getKeys(obj, keys);
