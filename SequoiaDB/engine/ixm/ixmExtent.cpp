@@ -146,11 +146,13 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FIND, "_ixmExtent::find" )
    INT32 _ixmExtent::find ( const ixmIndexCB *indexCB, const ixmKey &key,
                             const dmsRecordID &rid, const Ordering &order,
-                            UINT16 &pos, BOOLEAN dupAllowed, BOOLEAN &found ) const
+                            UINT16 &pos, BOOLEAN dupAllowed, BOOLEAN &found,
+                            BOOLEAN &foundUnused ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_FIND );
       found = FALSE ;
+      foundUnused = FALSE ;
       // use binary search, start from 0 and totalKeyNodeNum-1
       INT32 low = 0 ;
       INT32 high = _extentHead->_totalKeyNodeNum-1 ;
@@ -203,6 +205,11 @@ namespace engine
                   // accurate location to insert the key, because we are
                   // allowing two completely undefined keys even if in unique
                   // index
+               }
+               else
+               {
+                  // need to check further for insert key
+                  foundUnused = TRUE ;
                }
             }
             // if duplicate is allowed, let's continue compare the RID
@@ -1188,7 +1195,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__INSERT );
-      BOOLEAN found = FALSE ;
+      BOOLEAN found = FALSE, foundUnused = FALSE, dupChecked = FALSE ;
       UINT16 pos = 0 ;
       dmsExtentID ch = DMS_INVALID_EXTENT ;
       // sanity check
@@ -1205,8 +1212,10 @@ namespace engine
          goto error ;
       }
    retry :
+      foundUnused = FALSE ;
       // try to locate where the insert should happen
-      rc = find ( indexCB, key, rid, order, pos, dupAllowed, found ) ;
+      rc = find ( indexCB, key, rid, order, pos, dupAllowed, found,
+                  foundUnused ) ;
       if ( rc )
       {
          if ( SDB_IXM_DUP_KEY == rc )
@@ -1265,6 +1274,50 @@ namespace engine
          rc = SDB_IXM_IDENTICAL_KEY ;
          goto error ;
       }
+      if ( !dupAllowed && foundUnused && !dupChecked &&
+           ( indexCB->enforced() || !key.isUndefined () ) )
+      {
+         // NOTE: there is an issue in earlier versions
+         // ( SEQUOIADBMAINSTREAM-7298 ), a unused key may cause
+         // duplicated insert keys, we had removed unused key to fix the
+         // issue, and this will require to rebuild the unique index.
+         // And for old unique index without rebuild, we need a further
+         // check to find out whether a duplicated key has been already
+         // inserted
+         dmsExtentID rootExtent = indexCB->getRoot() ;
+         ixmExtent root( rootExtent, _pIndexSu ) ;
+         ixmRecordID tmpIdxRID ;
+         dmsRecordID tmpRID ;
+         BOOLEAN tmpFound = FALSE ;
+
+         rc = root.exists( key, order, indexCB, tmpFound, tmpIdxRID,
+                           tmpRID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to locate key %s to find "
+                      "duplicated keys, rc: %d", key.toString().c_str(),
+                      rc ) ;
+
+         if ( tmpFound )
+         {
+            if ( tmpRID == rid )
+            {
+               rc = SDB_IXM_IDENTICAL_KEY ;
+               PD_LOG( PDERROR, "Failed to insert key [%s], "
+                       "same keys are pointing to same record",
+                       key.toString().c_str() ) ;
+            }
+            else
+            {
+               rc = SDB_IXM_DUP_KEY ;
+               PD_LOG( PDERROR, "Failed to insert key [%s], duplicated "
+                       "key is found", key.toString().c_str() ) ;
+            }
+            goto error ;
+         }
+
+         // we have mblatch, so check once is enough
+         dupChecked = TRUE ;
+      }
+
       ch = getChildExtentID( pos ) ;
       // if there's no child, of course we will insert into the current page
       // and if there is child, but rchild is specified, this means the function
@@ -1896,7 +1949,8 @@ namespace engine
       SDB_ASSERT ( 1 == direction || -1 == direction, "Invalid direction" ) ;
       UINT16 pos ;
       dmsExtentID childExtent ;
-      rc = find ( indexCB, key, rid, order, pos, TRUE, found ) ;
+      BOOLEAN foundUnused = FALSE ;
+      rc = find ( indexCB, key, rid, order, pos, TRUE, found, foundUnused ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to find in locate" ) ;
@@ -1953,7 +2007,8 @@ namespace engine
    // output in result
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
    INT32 _ixmExtent::exists ( const ixmKey &key, const Ordering &order,
-                             const ixmIndexCB *indexCB, BOOLEAN &result ) const
+                              const ixmIndexCB *indexCB, BOOLEAN &result,
+                              ixmRecordID &idxRID, dmsRecordID &rid ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_EXIST );
@@ -1983,6 +2038,11 @@ namespace engine
             // compare the on-disk key and the one we are looking for, if they
             // match that means we got exists
             result = ixmKey(extent.getKeyData(indexrid._slot)).woEqual(key) ;
+            if ( result )
+            {
+               idxRID = indexrid ;
+               rid = kn->_rid ;
+            }
             goto done ;
          }
          // advance to next keynode
