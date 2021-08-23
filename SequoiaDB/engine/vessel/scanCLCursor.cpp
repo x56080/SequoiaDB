@@ -34,6 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/scanCLCursor.h"
+#include "vessel/recordCursorRow.h"
 
 namespace engine
 {
@@ -41,14 +42,30 @@ namespace vessel
 {
    static const UINT32 MIN_CONTENT_SIZE = sizeof(recordID) + sizeof(DPS_TRANS_ID);
 
-   INT32 scanCLCursor::getNext(ISession *session,
-                               slice &record,
-                               recordID *rid,
-                               DPS_TRANS_ID *transID)
+   INT32 scanCLCursor::getNextRow(ISession *session,
+                                  cursorRow *row)
    {
       INT32 rc = SDB_OK;
       slice content;
-      UINT32 offset = 0;
+      const recordID *rid = NULL;
+      const DPS_TRANS_ID *transID = NULL;
+      slice record;
+      recordCursorRow *recordRow = NULL;
+
+      if (OSS_UNLIKELY(NULL == row ||
+                       CURSOR_TYPE_SCAN_COLLECTION != row->getCursorType()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      recordRow = static_cast<recordCursorRow *>(row);
+      if (OSS_UNLIKELY(NULL == recordRow))
+      {
+         PD_LOG(PDERROR, "failed to cast row ptr to record cursor row");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       rc = cursorKernal::getNext(session, content);
       if (SDB_OK != rc)
@@ -63,19 +80,13 @@ namespace vessel
          goto error;
       }
 
-      if (NULL != rid)
-      {
-         *rid = *((const recordID *)((ossValuePtr)(content.data()) + offset));
-      }
-      offset += sizeof(recordID);
+      rid = (const recordID *)(content.data());
+      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
+      record.reset(content.len() - MIN_CONTENT_SIZE,
+                   (const CHAR *)((ossValuePtr)(content.data()) + MIN_CONTENT_SIZE));
 
-      if (NULL != transID)
-      {
-         *transID = *((const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + offset));
-      }
-      offset += sizeof(DPS_TRANS_ID);
+      recordRow->shallowCopy(*rid, *transID, record);
 
-      record.reset(content.len() - MIN_CONTENT_SIZE, content.data() + MIN_CONTENT_SIZE);
    done:
       return rc;
    error:

@@ -42,6 +42,7 @@
 #include <initializer_list>
 #include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
+#include "vessel/cursorRow.h"
 
 namespace engine
 {
@@ -62,6 +63,9 @@ namespace vessel
       public:
          virtual CURSOR_TYPE getType()const = 0;
 
+         virtual INT32 getNextRow(ISession *session,
+                                  cursorRow *row){return SDB_VESSEL_INTERNAL_ERR;}
+
       public:
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,
@@ -77,7 +81,7 @@ namespace vessel
          /// push one record with multi memory fragments
          INT32 pushFragments(std::initializer_list<std::pair<UINT32, const void *>> il);
 
-         /// mark cursor as SDB_VESSEL_END_OF_CURSOR
+         /// mark cursor as SDB_VESSEL_EOC
          void pushEnd();
 
          OSS_INLINE IQueryFilter *getFilter()

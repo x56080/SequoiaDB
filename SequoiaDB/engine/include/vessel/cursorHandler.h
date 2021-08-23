@@ -40,8 +40,7 @@
 #include "vessel/slice.h"
 #include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
-#include "vessel/recordID.h"
-#include "dpsTransID.hpp"
+#include "vessel/cursorRow.h"
 
 namespace engine
 {
@@ -67,14 +66,12 @@ namespace vessel
          
          void close();
 
-         ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
+         ///return SDB_VESSEL_EOC when hit the end.
+         ///WARNING: shallow copy
          INT32 getNext(ISession *session, slice &content);
 
-         /// cursor type must be CURSOR_TYPE_SCAN_COLLECTION
-         INT32 getNextWhenScanCL(ISession *session,
-                                 slice &record,
-                                 recordID *rid = NULL,
-                                 DPS_TRANS_ID *transID = NULL);
+         ///return SDB_VESSEL_EOC when hit the end.
+         INT32 getNextRow(ISession *session, cursorRow &row);
 
       private:
          template <class T, class ... Args>

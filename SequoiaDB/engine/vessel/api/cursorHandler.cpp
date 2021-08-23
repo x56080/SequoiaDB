@@ -94,10 +94,8 @@ namespace vessel
       return SDB_VESSEL_RESOURCES_NOT_INIT;
    }
 
-   INT32 cursorHandler::getNextWhenScanCL(ISession *session,
-                                          slice &record,
-                                          recordID *rid,
-                                          DPS_TRANS_ID *transID)
+   INT32 cursorHandler::getNextRow(ISession *session,
+                                   cursorRow &row)
    {
       INT32 rc = SDB_OK;
       if (!isOpen())
@@ -111,7 +109,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _cursor.get<scanCLCursor>()->getNext(session, record, rid, transID);
+      rc = _cursor.get<cursorKernal>()->getNextRow(session, &row);
       if (SDB_OK != rc)
       {
          goto error;

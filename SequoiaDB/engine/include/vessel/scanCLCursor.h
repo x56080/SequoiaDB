@@ -98,10 +98,8 @@ namespace vessel
          }
 
       public:
-         INT32 getNext(ISession *session,
-                       slice &record,
-                       recordID *rid = NULL,
-                       DPS_TRANS_ID *transID = NULL);
+         virtual INT32 getNextRow(ISession *session,
+                                  cursorRow *row);
 
       private:
          scanCLOptions _options;

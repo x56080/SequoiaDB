@@ -47,6 +47,7 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
+#include "vessel/recordCursorRow.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -122,7 +123,7 @@ TEST_F(insert_test, test1)
 
    UINT32 count = 100;
    UINT64 recordCount = 0;
-   slice recordSlice;
+   recordCursorRow recordRow;
 
    cursorHandler cursor;
 
@@ -154,14 +155,14 @@ TEST_F(insert_test, test1)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordSlice.data());
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -195,7 +196,7 @@ TEST_F(insert_test, test2)
    record.reset(obj.objsize(), obj.objdata());
    UINT32 count = 100;
    UINT64 recordCount = 0;
-   slice recordSlice;
+   recordCursorRow recordRow;
 
    cursorHandler cursor;
 
@@ -228,13 +229,13 @@ TEST_F(insert_test, test2)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
-      bson::BSONObj obj(recordSlice.data());
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -259,14 +260,14 @@ TEST_F(insert_test, test2)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordSlice.data());
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -303,7 +304,7 @@ void thread_insert(vesselImpl *db, test_logger *logger,
    handler.close();
 }
 
-TEST_F(insert_test, test3)
+TEST_F(insert_test, test3_1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -317,6 +318,55 @@ TEST_F(insert_test, test3)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    options.cacheOptions.freelist.maxChunkCount = 1024;
+   collectionHandler handler;
+   UINT32 count = 6000000;
+   static const UINT32 threadCount = 6;
+   std::thread threads[threadCount];
+   UINT32 countPerThread = count / threadCount;
+
+   createCSOptions csOptions;
+   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
+
+   closeDBOptions co;
+   co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(thread_insert, &db, test_logger::instance(),
+                                         "foo", "bar1", countPerThread));
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(insert_test, test3_2)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource= test_outer_resource::getResource();
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
+   openDBOptions options;
+   options.ioWorkerCount = 4;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   options.cacheOptions.freelist.maxChunkCount = 64;
    collectionHandler handler;
    UINT32 count = 6000000;
    static const UINT32 threadCount = 6;
@@ -376,7 +426,7 @@ TEST_F(insert_test, test4)
 
    cursorHandler cursor;
    UINT64 recordCount = 0;
-   slice recordSlice;
+   recordCursorRow recordRow;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -410,13 +460,13 @@ TEST_F(insert_test, test4)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
-      bson::BSONObj obj(recordSlice.data());
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -441,14 +491,14 @@ TEST_F(insert_test, test4)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordSlice.data());
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -559,7 +609,7 @@ TEST_F(insert_test, test6)
 
    cursorHandler cursor;
    UINT64 recordCount = 0;
-   slice recordSlice;
+   recordCursorRow recordRow;
 
    createCLOptions clOptions;
    clOptions.freeSizeReserved = 0;
@@ -598,13 +648,13 @@ TEST_F(insert_test, test6)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
-      bson::BSONObj obj(recordSlice.data());
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
@@ -629,14 +679,14 @@ TEST_F(insert_test, test6)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      recordSlice.reset();
-      rc = cursor.getNextWhenScanCL(&session, recordSlice);
+      recordRow.reset();
+      rc = cursor.getNextRow(&session, recordRow);
       ASSERT_EQ(SDB_OK, rc);
-      bson::BSONObj obj(recordSlice.data());
+      bson::BSONObj obj(recordRow.getRecord().data());
       ASSERT_EQ(1, obj.getIntField("a"));
       ASSERT_EQ(2, obj.getIntField("b"));
    }
-   rc = cursor.getNextWhenScanCL(&session, recordSlice);
+   rc = cursor.getNextRow(&session, recordRow);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
    cursor.close();
