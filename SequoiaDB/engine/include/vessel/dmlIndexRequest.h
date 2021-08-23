@@ -91,11 +91,20 @@ namespace vessel
          {
             return _obj;
          }
+
+         OSS_INLINE void setIngnored()
+         {
+            _ignored = TRUE;
+         }
+         OSS_INLINE BOOLEAN isIgnored()const
+         {
+            return _ignored;
+         }
       private:
          INT32 _indexSlot = -1;
          ossPoolList<bson::BSONObj> _keys;
          indexObject _obj;
-
+         BOOLEAN _ignored = FALSE;
    };//class dmlIndexRequest
 
    class dmlIndexRequestArray : public SDBObject

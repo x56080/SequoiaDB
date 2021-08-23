@@ -204,7 +204,7 @@ extern void lsmUnpackDataKey
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
-   vessel::recordID     * pRid,             // rowid
+   dmsRecordID          * pRid,             // rowid
    UINT64               * pLSN,             // lsn
    DPS_TRANS_ID         * pTransID,         // transID
    UINT64               * pOpLSN    = NULL  // log operation LSN
@@ -246,7 +246,7 @@ extern BOOLEAN lsmIsSameIndexKey
    const rocksdb::Slice   & aSlice,
    const ixmKey           * pKeyObj = NULL,
    const dmsRecordID      * pRid    = NULL,
-   const vessel::globalIndexID    * pIdxId  = NULL
+   const globalIndexID    * pIdxId  = NULL
 ) ;
 
 // update the packed data entry to the most adjacent one,

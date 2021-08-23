@@ -149,6 +149,9 @@ namespace vessel
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);
 
+         INT32 ingnoreBuildingRequests(dmlContext *context,
+                                       dmlIndexRequestArray &ra);
+
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
          INT32 initPageSequenceByRootLvL2(requestContext *context);

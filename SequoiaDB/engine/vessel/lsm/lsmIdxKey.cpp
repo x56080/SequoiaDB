@@ -637,7 +637,7 @@ void lsmUnpackDataKey
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
-   vessel::recordID     * pRid,             // rowid
+   dmsRecordID          * pRid,             // rowid
    UINT64               * pLSN,             // lsn
    DPS_TRANS_ID         * pTransID,         // transID
    UINT64               * pOpLSN            // log operation LSN

@@ -51,6 +51,7 @@
 #include "vessel/dmlContext.h"
 #include "ixmKey.hpp"
 
+
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
 
@@ -357,37 +358,6 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 indexConsole::lsmInsert(dmlContext *context,
-                                 const dmlIndexRequest &request)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(request.isValid(), "must be valid");
-
-      for (ossPoolList<bson::BSONObj>::const_iterator itr = request.getKeys().begin();
-           itr != request.getKeys().end(); ++itr)
-      {
-         dmsRecordID dmsRid(context->getLastDmlRid().getPageID(),
-                            context->getLastDmlRid().getSlotID());
-         rc = lsmInsert(context,
-                        request.getIndexObj(),
-                        ixmKeyOwned(*itr),
-                        context->getTransID(),
-                        context->getLastDmlLSN(),
-                        dmsRid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert data into lsm index[%d], rc:%d",
-                   request.getIndexSlot(), rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 
@@ -837,10 +807,13 @@ namespace vessel
       goto done;
    }
 
+
    INT32 indexConsole::dmlInsert(dmlContext *context,
-                                 const dmlIndexRequest &request)
+                                 const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
+      lsmInsertBatch lsmBatch;
+      rocksdb::Status status;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -848,30 +821,86 @@ namespace vessel
          goto error;
       }
       else if (NULL == context ||
-               !context->isDmlPositionSet() ||
-               !request.isValid())
+               !context->isDmlPositionSet())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (INDEX_TYPE_LSM == request.getIndexType())
+      else if (ra.isEmpty())
       {
-         rc = lsmInsert(context, request);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert data into lsm index[%d], rc:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "TODO");
+         goto done;
       }
 
+      rc = createLsmBatch(context, ra, lsmBatch);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create lsm batch:%d", rc);
+         goto error;
+      }
+
+      /// TODO: insert btree first
+
+      status = context->getEnv()->lsm.Write(lsmBatch.getBatch());
+      if (!status.ok())
+      {
+         PD_LOG(PDERROR, "failed to write lsm batch:%s", status.getState());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 indexConsole::createLsmBatch(dmlContext *context,
+                                      const dmlIndexRequestArray &ra,
+                                      lsmInsertBatch &lsmBatch)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(context->isDmlPositionSet(), "must be set");
+
+      lsmBatch.clear();
+      UINT32 size = ra.getSize();
+      for (UINT32 i = 0; i < size; ++i)
+      {
+         const dmlIndexRequest *ir = ra.get(i);
+         SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
+         if (ir->isIgnored() ||
+             ir->getIndexType() != INDEX_TYPE_LSM)
+         {
+            continue;
+         }
+
+         globalIndexID gid(context->getLogicalCSID(),
+                           context->getLogicalCLID(),
+                           ir->getIndexObj().getIndexID());
+         lsmIndexMeta meta(gid, ir->getIndexObj().getPattern().getOrdering());
+
+
+         ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeys().begin();
+         for (; itr != ir->getKeys().end(); ++itr)
+         {
+            ixmKeyOwned key(*itr);
+            lsmKeyEntry ke;
+            dmsRecordID rid(context->getLastDmlRid().getPageID(),
+                            context->getLastDmlRid().getSlotID());
+
+            ke.shallowCopy(key, rid, context->getLastDmlLSN(), context->getTransID());
+            rc = lsmBatch.put(meta, ke, NULL);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
+               goto error;
+            }
+         }
+
+      }
+   done:
+      return rc;
+   error:
+      lsmBatch.clear();
       goto done;
    }
 }//namespace vessel

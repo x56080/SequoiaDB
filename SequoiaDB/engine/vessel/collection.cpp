@@ -481,11 +481,18 @@ namespace vessel
 
       if (0 < indexCount)
       {
-         rc = insertIndexRequests(context, ra);
+         rc = ingnoreBuildingRequests(context, ra);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert data to index:%d", rc);
-            SDB_ASSERT(FALSE, "TODO");
+            goto error;
+         }
+
+         rc = insertIndexRequests(context, ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert data into index:%d", rc);
+            SDB_ASSERT(FALSE, "TODO");/// rollback record
             goto error;
          }
       }
@@ -2700,27 +2707,36 @@ namespace vessel
                                          const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(context->isDmlPositionSet(), "must be set");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != context->getLastDmlLSN(), "can not be invalid");
-
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
       console.init(_record.mbID, &is);
 
+      rc = console.dmlInsert(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert indexes:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::ingnoreBuildingRequests(dmlContext *context,
+                                             dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
-         const dmlIndexRequest *ir = ra.get(i);
+         dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
          unstableIndexContext *uic = _indexContext.
                                  findUnstableIndex(ir->getIndexSlot());
          if (NULL == uic)
          {
-            rc = console.dmlInsert(context, *ir);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to insert key into index:%d", rc);
-               goto error;
-            }
+            continue;
          }
          else if (uic->isBuilding())
          {
@@ -2732,14 +2748,10 @@ namespace vessel
                PD_LOG(PDERROR, "failed to insert merging keys into context:%d", rc);
                goto error;
             }
-            if (refused)
+
+            if (!refused)
             {
-               rc = console.dmlInsert(context, *ir);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to insert key into index:%d", rc);
-                  goto error;
-               }
+               ir->setIngnored();   
             }
          }
          else
@@ -2747,11 +2759,9 @@ namespace vessel
             SDB_ASSERT(FALSE, "should not build request");
          }
       }
-
    done:
       return rc;
    error:
-      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 }//namespace vessel

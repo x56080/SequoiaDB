@@ -45,6 +45,7 @@
 #include "vessel/indexObject.h"
 #include "vessel/indexSpace.h"
 #include "vessel/dmlIndexRequest.h"
+#include "vessel/lsm/lsmInsertBatch.h"
 
 namespace engine
 {
@@ -118,7 +119,7 @@ namespace vessel
                       const dmsRecordID &rid);
 
          INT32 dmlInsert(dmlContext *context,
-                         const dmlIndexRequest &request);
+                         const dmlIndexRequestArray &ra);
 
          
       private:
@@ -129,11 +130,12 @@ namespace vessel
                          DPS_LSN_OFFSET lsn,
                          const dmsRecordID &rid);
 
-         INT32 lsmInsert(dmlContext *context,
-                         const dmlIndexRequest &request);
-
          INT32 lsmTruncate(requestContext *context,
                            const indexObject &obj);
+
+         INT32 createLsmBatch(dmlContext *context,
+                              const dmlIndexRequestArray &ra,
+                              lsmInsertBatch &lsmBatch);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,
