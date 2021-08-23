@@ -276,7 +276,7 @@ namespace vessel
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode mode;
       LOGICAL_ID_LATCH_MAP::object lpidLatchObj;
 
       _clContext.close();
@@ -466,12 +466,12 @@ namespace vessel
 
    INT32 requestContext::lockLpid(SPACE_TYPE type,
                                   PAGE_ID lpid,
-                                  OSS_SHARED_LATCH_MODE mode)
+                                  const ossSharedLatchMode &mode)
    {
       INT32 rc = SDB_OK;
       logicalIdLatchKey key;
       LOGICAL_ID_LATCH_MAP::object obj;
-      OSS_SHARED_LATCH_MODE m = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode m;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -480,7 +480,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
                             INVALID_PAGE_ID == lpid ||
-                            OSS_SHARED_LATCH_MODE_NONE == mode))
+                            mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -494,10 +494,10 @@ namespace vessel
 
       key = logicalIdLatchKey(_spaceContext.getSpaceID(), type, lpid);
 
-      if (_lpidLatchContext.test(key, NULL))
+      if (_lpidLatchContext.test(key, &m))
       {
          PD_LOG(PDERROR, "[%d,%d,%d] already locked:%d", 
-                key._sid, key._type, key._lpid, m);
+                key._sid, key._type, key._lpid, m.getModeEnum());
          SDB_ASSERT(FALSE, "do not relock");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -536,7 +536,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       logicalIdLatchKey key;
       LOGICAL_ID_LATCH_MAP::object obj;
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode mode;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -574,7 +574,7 @@ namespace vessel
 
    BOOLEAN requestContext::testLpidLocked(SPACE_TYPE type,
                                           PAGE_ID lpid,
-                                          OSS_SHARED_LATCH_MODE *mode)
+                                          ossSharedLatchMode *mode)
    {
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(_spaceContext.isOpen(), "must be open");

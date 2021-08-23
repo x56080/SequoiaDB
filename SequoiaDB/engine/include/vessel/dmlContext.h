@@ -103,50 +103,50 @@ namespace vessel
             return _compressionType;
          }
 
-         OSS_INLINE const recordID &getDmlRid()const
+         OSS_INLINE const recordID &getLastDmlRid()const
          {
             return _rid;
          }
-         OSS_INLINE void setDmlRid(const recordID &rid)
+         OSS_INLINE void setLastDmlRid(const recordID &rid)
          {
             _rid = rid;
          }
          OSS_INLINE BOOLEAN isDmlPositionSet()const
          {
-            return _rid.valid() && INVALID_CL_PAGE_SEQ != _pageSequence;
+            return _rid.valid() && INVALID_CL_PAGE_SEQ != _seq;
          }
-         OSS_INLINE void setDmlLSN(DPS_LSN_OFFSET lsn)
+         OSS_INLINE void setLastDmlLSN(DPS_LSN_OFFSET lsn)
          {
             _lsn = lsn;
          }
-         OSS_INLINE DPS_LSN_OFFSET getDmlLSN()const
+         OSS_INLINE DPS_LSN_OFFSET getLastDmlLSN()const
          {
             return _lsn;
          }
-         OSS_INLINE void setPageSequence(UINT32 s)
+         OSS_INLINE void setLastDmlPageSeq(UINT32 s)
          {
-            _pageSequence = s;
+            _seq = s;
          }
-         OSS_INLINE scanEntry getScanEntry()const
+         OSS_INLINE scanEntry getLastDmlScanEntry()const
          {
-            return scanEntry(_pageSequence, _rid.getSlotID());
+            return scanEntry(_seq, _rid.getSlotID());
          }
-         OSS_INLINE void setHasIndexReq(BOOLEAN hasIndexReq)
+         OSS_INLINE void setLockRid(BOOLEAN lock)
          {
-            _hasIndexReq = hasIndexReq;
+            _lockRid = lock;
          }
-         OSS_INLINE BOOLEAN hasIndexReq()const
+         OSS_INLINE BOOLEAN needToLockRid()const
          {
-            return _hasIndexReq;
+            return _lockRid;
          }
 
          INT32 tryToLockRid(const recordID &rid,
-                            OSS_SHARED_LATCH_MODE mode,
+                            const ossSharedLatchMode &mode,
                             BOOLEAN &locked);
 
          /// WARNING: Always try lock rid under page latch!
          INT32 lockRid(const recordID &rid,
-                       OSS_SHARED_LATCH_MODE mode);
+                       const ossSharedLatchMode &mode);
 
          void unlockRid(const recordID &rid);
 
@@ -171,7 +171,7 @@ namespace vessel
          UINT32 _minFreeSize = 0;
          UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
          DPS_TRANS_ID _transID;
-         BOOLEAN _hasIndexReq = FALSE;
+         BOOLEAN _lockRid = FALSE;
 
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
@@ -179,7 +179,7 @@ namespace vessel
 
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
-         UINT32 _pageSequence = INVALID_CL_PAGE_SEQ;
+         UINT32 _seq = INVALID_CL_PAGE_SEQ;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

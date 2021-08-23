@@ -233,7 +233,7 @@ namespace vessel
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
 
       rc = getLogicalPageBuffer(context, COLLECTION_SPACE_GP_LPID,
-                                OSS_SHARED_LATCH_MODE_SHARED, lpb);
+                                ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED), lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page mapping of meta page:%d", rc);

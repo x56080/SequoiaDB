@@ -66,12 +66,12 @@ namespace vessel
       _minFreeSize = 0;
       _compressionType = UTIL_COMPRESSOR_INVALID;
       _transID.reset();
-      _hasIndexReq = FALSE;
+      _lockRid = FALSE;
       _uniqueKeyHash.clear();
       _uniqueKeyContext.clear();
       _rid = recordID();
       _lsn = DPS_INVALID_LSN_OFFSET;
-      _pageSequence = INVALID_CL_PAGE_SEQ;
+      _seq = INVALID_CL_PAGE_SEQ;
       return;
    }
 
@@ -252,7 +252,7 @@ namespace vessel
    }
 
    INT32 dmlContext::tryToLockRid(const recordID &rid,
-                                  OSS_SHARED_LATCH_MODE mode,
+                                  const ossSharedLatchMode &mode,
                                   BOOLEAN &locked)
    {
       INT32 rc = SDB_OK;
@@ -270,7 +270,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!rid.valid() ||
-                            OSS_SHARED_LATCH_MODE_NONE == mode))
+                             mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -306,7 +306,7 @@ namespace vessel
    }
 
    INT32 dmlContext::lockRid(const recordID &rid,
-                             OSS_SHARED_LATCH_MODE mode)
+                             const ossSharedLatchMode &mode)
    {
       INT32 rc = SDB_OK;
       recordIdLatchKey key(getSpaceID(), getMBID(), rid);
@@ -322,7 +322,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!rid.valid() ||
-                            OSS_SHARED_LATCH_MODE_NONE == mode))
+                            mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -356,7 +356,7 @@ namespace vessel
       recordIdLatchKey key(getSpaceID(), getMBID(), rid);
       RECORD_ID_LATCH_MAP *latchMap = NULL;
       RECORD_ID_LATCH_MAP::object latchObj;
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode mode;
       INT32 rc = SDB_OK;
 
       if (OSS_UNLIKELY(!requestContext::isOpen() ||
@@ -391,7 +391,7 @@ namespace vessel
    {
       RECORD_ID_LATCH_MAP *latchMap = NULL;
       RECORD_ID_LATCH_MAP::object latchObj;
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode mode;
 
       if (_ridLatchContext.isEmpty())
       {

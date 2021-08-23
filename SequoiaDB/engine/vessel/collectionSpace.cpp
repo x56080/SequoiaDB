@@ -616,6 +616,7 @@ namespace vessel
       mainDataSpace *mds = &(_su->getMainDataSpace());
       collectionRecord record;
       UINT32 totalCrpCount = 0;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       rc = getCapacityOfCLRecordPage(args.pageSize, crpCapacity);
       if (SDB_OK != rc)
@@ -635,7 +636,7 @@ namespace vessel
          PAGE_ID lpid = COLLECTION_RECORD_PAGE_MIN_LPID + i;
          logicalPageBuffer lpb;
 
-         rc = mds->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+         rc = mds->getLogicalPageBuffer(context, lpid, mode, lpb);
          if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
          {
             rc = SDB_OK;
@@ -820,6 +821,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
 
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       atomicOperationList *oplist = NULL;
       crpIniter initer;
       lpidLockHelper lh;
@@ -834,7 +836,7 @@ namespace vessel
       }
 
       rc = lh.lock(context, mds->getSpaceType(),
-                   lpid, OSS_SHARED_LATCH_MODE_EXCLUSIVE);
+                   lpid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get exlusive latch of lpid[%d], rc:%d", lpid, rc);

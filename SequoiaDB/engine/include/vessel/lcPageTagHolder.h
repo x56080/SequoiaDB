@@ -48,13 +48,12 @@ namespace vessel
       public:
          OSS_INLINE lcPageTagHolder(){}
          OSS_INLINE explicit lcPageTagHolder(liteCachePageTag *tag,
-                                             OSS_SHARED_LATCH_MODE mode):
+                                             const ossSharedLatchMode &mode):
                              _tag(tag), _mode(mode){}
          OSS_INLINE ~lcPageTagHolder()
          {
             /// WARNING: holder's destructor will not release lock automaticly.
             _tag = NULL;
-            _mode = OSS_SHARED_LATCH_MODE_NONE;
          }
 
          lcPageTagHolder(const lcPageTagHolder &r) = delete;
@@ -74,44 +73,47 @@ namespace vessel
          OSS_INLINE void reset(liteCachePageTag *tag)
          {
             _tag = tag;
-            _mode = OSS_SHARED_LATCH_MODE_NONE;
+            _mode.setNone();
          }
 
          OSS_INLINE void autoUnlock()
          {
-            if (NULL != _tag && OSS_SHARED_LATCH_MODE_NONE != _mode)
+            if (NULL != _tag && !_mode.isNone())
             {
                _tag->getAccessingLatch().unlockWith(_mode);
-               _mode = OSS_SHARED_LATCH_MODE_NONE;
+               _mode.setNone();
             }
             return;
          }
 
          OSS_INLINE BOOLEAN isLocked()const
          {
-            return _mode != OSS_SHARED_LATCH_MODE_NONE;
+            return !_mode.isNone();
          }
 
          OSS_INLINE void lock()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_NONE), "impossible");
+            const ossSharedLatchMode M;
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().lock();
-            _mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
+            _mode.setExclusive();
          }
 
          OSS_INLINE void unlock()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_EXCLUSIVE), "impossible");
+            const ossSharedLatchMode M(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().unlock();
-            _mode = OSS_SHARED_LATCH_MODE_NONE;
+            _mode.setNone();
          }
 
          OSS_INLINE BOOLEAN tryLock()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_NONE), "impossible");
+            const ossSharedLatchMode M;
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             if (_tag->getAccessingLatch().tryLock())
             {
-               _mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
+               _mode.setExclusive();
                return TRUE;
             }
             return FALSE;
@@ -119,47 +121,52 @@ namespace vessel
 
          OSS_INLINE void lockShared()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_NONE), "impossible");
+            const ossSharedLatchMode M;
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().lockShared();
-            _mode = OSS_SHARED_LATCH_MODE_SHARED;
+            _mode.setShared();
          }
 
          OSS_INLINE void lockUpgrade()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_NONE), "impossible");
+            const ossSharedLatchMode M;
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().lockUpgrade();
-            _mode = OSS_SHARED_LATCH_MODE_UPGRADE;
+            _mode.setUpgrade();
          }
 
          OSS_INLINE void unlockUpgradeAndLock()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_UPGRADE), "impossible");
+            const ossSharedLatchMode M(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().unlockUpgradeAndLock();
-            _mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
+            _mode.setExclusive();
          }
 
          OSS_INLINE void unlockAndlockUpgrade()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_EXCLUSIVE), "impossible");
+            const ossSharedLatchMode M(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().unlockAndLockUpgrade();
-            _mode = OSS_SHARED_LATCH_MODE_UPGRADE;
+            _mode.setUpgrade();
          }
 
-         OSS_INLINE void lockWithMode(OSS_SHARED_LATCH_MODE mode)
+         OSS_INLINE void lockWithMode(const ossSharedLatchMode &mode)
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_NONE), "impossible");
+            SDB_ASSERT(isValidAndLockingTypeIs(ossSharedLatchMode()), "impossible");
             _tag->getAccessingLatch().lockWith(mode);
             _mode = mode;
          }
 
          OSS_INLINE void unlockAndLockShared()
          {
-            SDB_ASSERT(isValidAndLocking(OSS_SHARED_LATCH_MODE_EXCLUSIVE), "impossible");
+            const ossSharedLatchMode M(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+            SDB_ASSERT(isValidAndLockingTypeIs(M), "impossible");
             _tag->getAccessingLatch().unlockAndLockShared();
-            _mode = OSS_SHARED_LATCH_MODE_SHARED;
+            _mode.setShared();
          }
 
-         OSS_INLINE OSS_SHARED_LATCH_MODE getLockMode()const
+         OSS_INLINE const ossSharedLatchMode &getLockMode()const
          {
             return _mode;
          }
@@ -174,13 +181,13 @@ namespace vessel
             return _tag;
          }
       private:
-         OSS_INLINE BOOLEAN isValidAndLocking(OSS_SHARED_LATCH_MODE mode)const
+         OSS_INLINE BOOLEAN isValidAndLockingTypeIs(const ossSharedLatchMode &mode)const
          {
             return NULL != _tag && mode == _mode;
          }
       private:
          liteCachePageTag *_tag = NULL;
-         OSS_SHARED_LATCH_MODE _mode = OSS_SHARED_LATCH_MODE_NONE;
+         ossSharedLatchMode _mode;
    }; /// end of class lcPageTagHolder
 } /// end of namespace vessel
 } /// end of namespace engine

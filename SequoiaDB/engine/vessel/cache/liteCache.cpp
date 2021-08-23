@@ -270,7 +270,7 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isOpen() ||
                        !gpid.isValid() ||
-                       OSS_SHARED_LATCH_MODE_NONE == options.lockMode))
+                       options.lockMode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -424,7 +424,7 @@ namespace vessel
       }
 
       /// Do not update lru.
-      rc = tuple.init(holder.tag(), OSS_SHARED_LATCH_MODE_EXCLUSIVE,
+      rc = tuple.init(holder.tag(), holder.getLockMode(),
                       this, TRUE);
       if (SDB_OK != rc)
       {
@@ -450,9 +450,9 @@ namespace vessel
       lcPageTagHolder holder;
 
       if (OSS_UNLIKELY(!tuple.isValid() ||
-                       tuple._lockingMode != OSS_SHARED_LATCH_MODE_EXCLUSIVE ||
+                       !tuple._holder.getLockMode().isExclusive() ||
                        !tuple.isWritingPrepared() ||
-                       !tuple._tag->hasMemPage()))
+                       !tuple._holder.tag()->hasMemPage()))
       {
          PD_LOG(PDERROR, "committed an invalid tuple");
          SDB_ASSERT(FALSE, "invalid tuple to commit");
@@ -469,12 +469,11 @@ namespace vessel
          goto done;
       }
 
-      holder = lcPageTagHolder(tuple._tag, (OSS_SHARED_LATCH_MODE)tuple._lockingMode);
-      rc = _dl->upsert(lsn, holder);
+      rc = _dl->upsert(lsn, tuple._holder);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to upsert dirty list with lsn[%lld], page[%s], rc:%d",
-                lsn, tuple._tag->id().toString().c_str(), rc);
+                lsn, tuple._holder.tag()->id().toString().c_str(), rc);
       }
    done:
       return;
@@ -500,7 +499,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(!holder.getLockMode().isExclusive()))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -679,7 +678,7 @@ namespace vessel
          /// to avoid fsyncing each page separately, we remove all the pages from dirty list first.
          if (fsync)
          {
-            if (OSS_SHARED_LATCH_MODE_UPGRADE == holder.getLockMode())
+            if (holder.getLockMode().isUpgrade())
             {
                holder.unlockUpgradeAndLock();
             }

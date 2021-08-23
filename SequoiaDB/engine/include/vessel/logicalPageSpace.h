@@ -99,7 +99,7 @@ namespace vessel
 
          INT32 getLogicalPageBuffer(requestContext *context,
                                     PAGE_ID lpid,
-                                    OSS_SHARED_LATCH_MODE mode,
+                                    const ossSharedLatchMode &mode,
                                     logicalPageBuffer &lpb);
 
          INT32 isLogicalPageMapped(requestContext *context,
@@ -258,7 +258,7 @@ namespace vessel
       private:/// for data storage.
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
-                                            OSS_SHARED_LATCH_MODE mode,
+                                            const ossSharedLatchMode &mode,
                                             const runtimePageBuffer::options &o,
                                             runtimePageBuffer &rpb) = 0;
 

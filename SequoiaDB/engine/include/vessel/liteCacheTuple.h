@@ -38,13 +38,13 @@
 
 #include "dpsDef.hpp"
 #include "ossLatch.hpp"
+#include "vessel/lcPageTagHolder.h"
 
 namespace engine
 {
 namespace vessel
 {
    class liteCache;
-   class liteCachePageTag;
    class requestContext;
 
    ///WARNING: Should not share tulpe in multiple threads.
@@ -66,7 +66,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _tag;
+            return NULL != _pool;
          }
 
          void release();
@@ -84,18 +84,16 @@ namespace vessel
       
       private:/// for liteCache
          INT32 init(liteCachePageTag *tag,
-                    OSS_SHARED_LATCH_MODE mode,
+                    const ossSharedLatchMode &mode,
                     liteCache *pool,
                     BOOLEAN isWritingPrepared);
 
          BOOLEAN isWritingPrepared()const;
 
       private:
-         ///All are null or All are not null.
-         liteCachePageTag *_tag = NULL;
          liteCache *_pool = NULL;
-         UINT16 _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
-         UINT16 _flags = 0;
+         lcPageTagHolder _holder;
+         UINT32 _flags = 0;
    };//class liteCacheTuple
 
 } /// end of namespace vessel

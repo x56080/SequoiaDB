@@ -158,6 +158,28 @@ namespace vessel
       rh.setTransInfo(context->getTransID().getNodeID(),
                       context->getTransID().getSN());
 
+      if (context->needToLockRid())
+      {
+         recordID lockRid(lpb->getLogicalPid(), slotId);
+         BOOLEAN locked = FALSE;
+         ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+         
+         rc = context->tryToLockRid(lockRid, mode, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
+                   lockRid.getPageID(), lockRid.getSlotID(), rc);
+            goto error;
+         }
+         else if (!locked)
+         {
+            PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
+                   lockRid.getPageID(), lockRid.getSlotID());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
+
       rc = insertWithNormalHead(context, slotId,
                                 rs, rh, lpb);
       if (SDB_OK != rc)
@@ -280,9 +302,9 @@ namespace vessel
          goto error;
       }
 
-      context->setDmlLSN(lrc.getLsn());
-      context->setDmlRid(rid);
-      context->setPageSequence(head->pageSeq);
+      context->setLastDmlLSN(lrc.getLsn());
+      context->setLastDmlRid(rid);
+      context->setLastDmlPageSeq(head->pageSeq);
       rpb->commit(lrc.getLsn());
 
    done:

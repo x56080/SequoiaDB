@@ -293,12 +293,12 @@ namespace vessel
          /// no timeout. no recursive locking.
          INT32 lockLpid(SPACE_TYPE type,
                         PAGE_ID lpid,
-                        OSS_SHARED_LATCH_MODE mode);
+                        const ossSharedLatchMode &mode);
 
          void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
          BOOLEAN testLpidLocked(SPACE_TYPE type,
                                 PAGE_ID lpid,
-                                OSS_SHARED_LATCH_MODE *mode);
+                                ossSharedLatchMode *mode);
 
          /// must lock upgrade first
          INT32 lockLpidFromUpgrade(SPACE_TYPE type,

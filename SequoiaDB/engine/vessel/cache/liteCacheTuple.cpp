@@ -47,7 +47,7 @@ namespace vessel
    static const UINT16 TUPLE_FLAG_WRITING_PREPARED = 0x01;
 
    INT32 liteCacheTuple::init(liteCachePageTag *tag,
-                              OSS_SHARED_LATCH_MODE mode,
+                              const ossSharedLatchMode &mode,
                               liteCache *pool,
                               BOOLEAN isWritingPrepared)
    {
@@ -55,7 +55,7 @@ namespace vessel
       release();
 
       if (NULL == tag ||
-          OSS_SHARED_LATCH_MODE_NONE == mode ||
+          mode.isNone() ||
           NULL == pool)
       {
          rc = SDB_INVALIDARG;
@@ -63,20 +63,19 @@ namespace vessel
       }
       else if (isWritingPrepared &&
                (!tag->hasMemPage() ||
-                OSS_SHARED_LATCH_MODE_EXCLUSIVE != mode))
+                !mode.isExclusive()))
       {
          SDB_ASSERT(FALSE, "impossible");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _tag = tag;
       _pool = pool;
       if (isWritingPrepared)
       {
          OSS_BIT_SET(_flags, TUPLE_FLAG_WRITING_PREPARED);
       }
-      _lockingMode = mode;
+      _holder = lcPageTagHolder(tag, mode);
 
    done:
       return rc;
@@ -102,22 +101,20 @@ namespace vessel
       {
          goto done;
       }
-      else if (OSS_SHARED_LATCH_MODE_NONE == _lockingMode ||
-               OSS_SHARED_LATCH_MODE_SHARED == _lockingMode)
+      else if (_holder.getLockMode().isNone()||
+               _holder.getLockMode().isShared())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (OSS_SHARED_LATCH_MODE_UPGRADE == _lockingMode)
+      else if (_holder.getLockMode().isUpgrade())
       {
-         _tag->getAccessingLatch().unlockUpgradeAndLock();
-         _lockingMode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
+         _holder.unlockUpgradeAndLock();
       }
 
-      if (!_tag->isInLruList())
+      if (!_holder.tag()->isInLruList())
       {
-         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
-         rc = _pool->allocateMemPageAndInsertIntoLRU(context, TRUE, holder);
+         rc = _pool->allocateMemPageAndInsertIntoLRU(context, TRUE, _holder);
          if (SDB_OK != rc)
          {
             goto error;
@@ -125,8 +122,7 @@ namespace vessel
       }
       else
       {
-         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
-         _pool->tryToUpdateLRU(holder);
+         _pool->tryToUpdateLRU(_holder);
       }
 
       OSS_BIT_SET(_flags, TUPLE_FLAG_WRITING_PREPARED);
@@ -145,13 +141,13 @@ namespace vessel
          goto done;
       }
 
-      if (_tag->hasMemPage())
+      if (_holder.tag()->hasMemPage())
       {
-         ptr = _tag->getMemPage().buf();
+         ptr = _holder.tag()->getMemPage().buf();
       }
       else
       {
-         ptr = _tag->getDiskPagePtr();
+         ptr = _holder.tag()->getDiskPagePtr();
       }
 
    done:
@@ -168,8 +164,8 @@ namespace vessel
          goto done;
       }
 
-      SDB_ASSERT(_tag->hasMemPage(), "impossible");
-      ptr = _tag->getMemPage().buf();
+      SDB_ASSERT(_holder.tag()->hasMemPage(), "impossible");
+      ptr = _holder.tag()->getMemPage().buf();
    done:
       return ptr;
    }
@@ -178,12 +174,10 @@ namespace vessel
    {
       if (isValid())
       {
-         lcPageTagHolder holder(_tag, (OSS_SHARED_LATCH_MODE)_lockingMode);
-         holder.autoUnlock();
-         _tag->decUsageCnt();
-         _tag = NULL;
+         _holder.autoUnlock();
+         _holder.tag()->decUsageCnt();
+         _holder.reset(NULL);
          _pool = NULL;
-         _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
          _flags = 0;
       }
       return;
@@ -202,15 +196,13 @@ namespace vessel
       tuple.release();
       if (isValid())
       {
-         tuple._tag = _tag;
          tuple._pool = _pool;
-         tuple._lockingMode = _lockingMode;
          tuple._flags = _flags;
+         tuple._holder = _holder;
 
-         _tag = NULL;
          _pool = NULL;
-         _lockingMode = OSS_SHARED_LATCH_MODE_NONE;
          _flags = 0;
+         _holder.reset(NULL);
       }
       return;
    }

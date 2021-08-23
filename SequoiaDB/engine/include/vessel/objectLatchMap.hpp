@@ -238,7 +238,7 @@ namespace vessel
             }
 
             LATCH_OBJECT obj;
-            OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+            ossSharedLatchMode mode;
          };//struct _latchSlot
 
       public:
@@ -264,10 +264,10 @@ namespace vessel
          }
 
          INT32 push(const LATCH_OBJECT &obj,
-                    OSS_SHARED_LATCH_MODE mode)
+                    const ossSharedLatchMode &mode)
          {
             INT32 rc = SDB_OK;
-            if (OSS_UNLIKELY(!obj.isValid() || OSS_SHARED_LATCH_MODE_NONE == mode))
+            if (OSS_UNLIKELY(!obj.isValid() || mode.isNone()))
             {
                rc = SDB_INVALIDARG;
                goto error;
@@ -290,7 +290,7 @@ namespace vessel
 
          INT32 pop(const KEY &key,
                    LATCH_OBJECT &obj,
-                   OSS_SHARED_LATCH_MODE &mode)
+                   ossSharedLatchMode &mode)
          {
             INT32 rc = SDB_OK;
             _latchSlot *slot = NULL;
@@ -317,7 +317,7 @@ namespace vessel
             goto done;
          }
 
-         BOOLEAN pop(LATCH_OBJECT &obj, OSS_SHARED_LATCH_MODE &mode)
+         BOOLEAN pop(LATCH_OBJECT &obj, ossSharedLatchMode &mode)
          {
             BOOLEAN r = FALSE;
             if (0 == _size)
@@ -352,13 +352,13 @@ namespace vessel
                rc = SDB_VESSEL_KEY_NOT_FOUND;
                goto error;
             }
-            if (OSS_SHARED_LATCH_MODE_UPGRADE != slot->mode)
+            if (!(slot->mode.isUpgrade()))
             {
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
                goto error;
             }
 
-            slot->mode = OSS_SHARED_LATCH_MODE_EXCLUSIVE;
+            slot->mode.setExclusive();
             obj = slot->obj;
          done:
             return rc;
@@ -367,7 +367,7 @@ namespace vessel
          }
 
          BOOLEAN test(const KEY &key,
-                      OSS_SHARED_LATCH_MODE *mode)
+                      ossSharedLatchMode *mode)
          {
             BOOLEAN r = FALSE;
             _latchSlot *slot = NULL;

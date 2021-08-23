@@ -67,7 +67,7 @@ namespace vessel
       private:
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
-                                            OSS_SHARED_LATCH_MODE mode,
+                                            const ossSharedLatchMode &mode,
                                             const runtimePageBuffer::options &o,
                                             runtimePageBuffer &rpb);
 

@@ -117,7 +117,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(!holder.getLockMode().isExclusive()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
          SDB_ASSERT(FALSE, "impossible");
@@ -179,7 +179,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_EXCLUSIVE != holder.getLockMode()))
+      else if (OSS_UNLIKELY(!holder.getLockMode().isExclusive()))
       {
          PD_LOG(PDERROR, "holding wrong type lock");
          SDB_ASSERT(FALSE, "impossible");

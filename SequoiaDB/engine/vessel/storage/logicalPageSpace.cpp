@@ -594,7 +594,7 @@ namespace vessel
 
    INT32 logicalPageSpace::getLogicalPageBuffer(requestContext *context,
                                                 PAGE_ID lpid,
-                                                OSS_SHARED_LATCH_MODE mode,
+                                                const ossSharedLatchMode &mode,
                                                 logicalPageBuffer &lpb)
    {
       INT32 rc = SDB_OK;
@@ -611,7 +611,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(NULL == context ||
                             INVALID_PAGE_ID == lpid ||
-                            OSS_SHARED_LATCH_MODE_NONE == mode))
+                            mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -692,7 +692,8 @@ namespace vessel
 
       if (!context->testLpidLocked(getSpaceType(), lpid, NULL))
       {
-         rc = lh.lock(context, getSpaceType(), lpid, OSS_SHARED_LATCH_MODE_SHARED);
+         rc = lh.lock(context, getSpaceType(), lpid,
+                      ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", rc);
@@ -716,6 +717,7 @@ namespace vessel
          mapped = TRUE;
       }
    done:
+      /// auto unlock by lock helper.
       return rc;
    error:
       goto done;
@@ -746,8 +748,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(OSS_SHARED_LATCH_MODE_NONE == lpb._lh.getLockMode() ||
-                            OSS_SHARED_LATCH_MODE_SHARED == lpb._lh.getLockMode()))
+      else if (OSS_UNLIKELY(lpb._lh.getLockMode().isNone() ||
+                            lpb._lh.getLockMode().isShared()))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -757,7 +759,7 @@ namespace vessel
          goto done;
       }
 
-      if (OSS_SHARED_LATCH_MODE_UPGRADE == lpb._lh.getLockMode())
+      if (lpb._lh.getLockMode().isUpgrade())
       {
          lpb._lh.lockLpidFromUpgrade();
       }
@@ -814,7 +816,7 @@ namespace vessel
                                                     pageInitializer *initer)
    {
       INT32 rc = SDB_OK;
-      OSS_SHARED_LATCH_MODE mode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode mode;
       idMapSlot slot;
       BOOLEAN isMutable = FALSE;
       PAGE_ID pid = INVALID_PAGE_ID;
@@ -838,7 +840,7 @@ namespace vessel
          goto error;
       }
       else if (!context->testLpidLocked(getSpaceType(), lpid, &mode) ||
-               OSS_SHARED_LATCH_MODE_EXCLUSIVE != mode)
+               !mode.isExclusive())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -992,7 +994,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(lpb.isValid(), "can not be invalid");
-      SDB_ASSERT(OSS_SHARED_LATCH_MODE_EXCLUSIVE == lpb._lh.getLockMode(), "must be exclusive");
+      SDB_ASSERT(lpb._lh.getLockMode().isExclusive(), "must be exclusive");
 
       runtimePageBuffer &rpb = lpb._rpb;
       PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();

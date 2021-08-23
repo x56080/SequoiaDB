@@ -366,6 +366,7 @@ namespace vessel
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       UINT32 pageSize = getDataPageSize();
       strSlice csName;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       PAGE_ID lpid = getCrpLpidOfCollection(pageSize, _record.mbID);
       if (INVALID_PAGE_ID == lpid)
@@ -375,8 +376,7 @@ namespace vessel
          goto error;
       }
       
-      rc = mds.getLogicalPageBuffer(context, lpid,
-                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page buffer of lpid[%d], rc:%d",
@@ -461,6 +461,8 @@ namespace vessel
             PD_LOG(PDERROR, "failed to do constraint check:%d", rc);
             goto error;
          }
+
+         context->setLockRid(TRUE);
       }
 
       if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().len()))
@@ -615,8 +617,9 @@ namespace vessel
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       logicalPageBuffer lpb;
       rdpScanner scanner;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = mds.getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
@@ -777,9 +780,9 @@ namespace vessel
       logicalPageBuffer lpb;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       rdpInsertExecutor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
-      rc = mds.getLogicalPageBuffer(context, lpid,
-                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
@@ -884,6 +887,7 @@ namespace vessel
       atomicOperationList oplist;
       atomicOperationList *backup = NULL;
       BOOLEAN switched = FALSE;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       
       capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -923,8 +927,7 @@ namespace vessel
          goto error;
       }
 
-      rc = mds.getLogicalPageBuffer(context, lvl0Lpid,
-                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = mds.getLogicalPageBuffer(context, lvl0Lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
@@ -1269,8 +1272,9 @@ namespace vessel
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       logicalPageBuffer lpb;
       routePageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = mds.getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", lpid, rc);
@@ -1398,9 +1402,9 @@ namespace vessel
       routePageAccessor accessor;
       logicalPageBuffer lpb;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = mds.getLogicalPageBuffer(context, routePgaeLpid,
-                                    OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = mds.getLogicalPageBuffer(context, routePgaeLpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
@@ -1537,6 +1541,7 @@ namespace vessel
       atomicOperationList oplist;
       atomicOperationList *backup = NULL;
       BOOLEAN swtiched = FALSE;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (COLLECTION_FIRST_ROOT_LVL1 == rootSlot ||
           COLLECTION_SECOND_ROOT_LVL1 == rootSlot)
@@ -1573,8 +1578,7 @@ namespace vessel
          goto error;
       }
 
-      rc = mds.getLogicalPageBuffer(context, crpLpid,
-                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = mds.getLogicalPageBuffer(context, crpLpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid:%d, rc:%d",
@@ -1624,6 +1628,7 @@ namespace vessel
       logicalPageBuffer lpb;
       routePageAccessor accessor;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       context->swtichOplist(&oplist, &backup);
 
@@ -1634,8 +1639,7 @@ namespace vessel
          goto error;
       }
 
-      rc = mds.getLogicalPageBuffer(context, father,
-                                    OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = mds.getLogicalPageBuffer(context, father, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", father, rc);
@@ -1675,6 +1679,7 @@ namespace vessel
       UINT32 minCount = 0;
       UINT32 currentLvl1Count = 0;
       PAGE_ID lvl1 = INVALID_PAGE_ID;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       UINT32 capacity = getCapacityOfRoutePage(getDataPageSize());
       if (OSS_UNLIKELY(0 == capacity))
@@ -1703,7 +1708,7 @@ namespace vessel
 
       rc = mds.getLogicalPageBuffer(context,
                                     _record.routePages[COLLECTION_ROOT_LVL2],
-                                    OSS_SHARED_LATCH_MODE_SHARED, lpb);
+                                    mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get root lvl2:%d", rc);
@@ -2696,7 +2701,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(context->isDmlPositionSet(), "must be set");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != context->getDmlLSN(), "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != context->getLastDmlLSN(), "can not be invalid");
 
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
@@ -2719,8 +2724,7 @@ namespace vessel
          }
          else if (uic->isBuilding())
          {
-         
-            scanEntry entry = context->getScanEntry();
+            scanEntry entry = context->getLastDmlScanEntry();
             BOOLEAN refused = FALSE;
             rc = uic->insertKeys(entry, ir->getKeys(), refused);
             if (SDB_OK != rc)

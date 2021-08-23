@@ -129,6 +129,7 @@ namespace vessel
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
       bson::BSONObjBuilder builder;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (!isInitialized())
       {
@@ -148,8 +149,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getLogicalPageBuffer(context, lpid,
-                                     OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -187,6 +187,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (!isInitialized())
       {
@@ -208,8 +209,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getLogicalPageBuffer(context, lpid,
-                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE, lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -238,6 +238,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (!isInitialized())
       {
@@ -258,8 +259,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getLogicalPageBuffer(context, lpid,
-                                     OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -369,13 +369,13 @@ namespace vessel
       for (ossPoolList<bson::BSONObj>::const_iterator itr = request.getKeys().begin();
            itr != request.getKeys().end(); ++itr)
       {
-         dmsRecordID dmsRid(context->getDmlRid().getPageID(),
-                            context->getDmlRid().getSlotID());
+         dmsRecordID dmsRid(context->getLastDmlRid().getPageID(),
+                            context->getLastDmlRid().getSlotID());
          rc = lsmInsert(context,
                         request.getIndexObj(),
                         ixmKeyOwned(*itr),
                         context->getTransID(),
-                        context->getDmlLSN(),
+                        context->getLastDmlLSN(),
                         dmsRid);
          if (SDB_OK != rc)
          {
@@ -409,6 +409,7 @@ namespace vessel
       indexDefPageAccessor accessor;
       indexMappingPageAccessor mappingAccessor;
       lpidLockHelper lh;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       UINT32 pos = 0;
       PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
@@ -419,8 +420,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_IDX, mappingPage,
-                   OSS_SHARED_LATCH_MODE_EXCLUSIVE);
+      rc = lh.lock(context, SPACE_TYPE_IDX, mappingPage, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", mappingPage, rc);
@@ -451,9 +451,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getLogicalPageBuffer(context, lpid,
-                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE,
-                                     lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -468,9 +466,7 @@ namespace vessel
       }
 
       lpb.fini();
-      rc = _is->getLogicalPageBuffer(context, mappingPage,
-                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE,
-                                     lpb);
+      rc = _is->getLogicalPageBuffer(context, mappingPage, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", mappingPage, rc);
@@ -514,6 +510,7 @@ namespace vessel
       indexDefPageAccessor accessor;
       PAGE_ID lpid = INVALID_PAGE_ID;
       lpidLockHelper lh;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       lpid = _is->getDirectMappedIndexLpid(_mbID, indexSlot);
       if (INVALID_PAGE_ID == lpid)
@@ -523,7 +520,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_IDX, lpid, OSS_SHARED_LATCH_MODE_EXCLUSIVE);
+      rc = lh.lock(context, SPACE_TYPE_IDX, lpid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -539,9 +536,7 @@ namespace vessel
 
       lh.unlock();
 
-      rc = _is->getLogicalPageBuffer(context, lpid,
-                                     OSS_SHARED_LATCH_MODE_EXCLUSIVE,
-                                     lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
@@ -573,6 +568,7 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -595,7 +591,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _is->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -689,6 +685,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexDefPageAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -725,7 +722,7 @@ namespace vessel
             continue;
          }
 
-         rc = _is->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+         rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
@@ -796,7 +793,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _is->getLogicalPageBuffer(context, lpid, OSS_SHARED_LATCH_MODE_SHARED, lpb);
+         rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);

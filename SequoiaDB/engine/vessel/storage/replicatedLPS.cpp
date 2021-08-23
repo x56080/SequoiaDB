@@ -510,7 +510,7 @@ namespace vessel
 
    INT32 replicatedLPS::getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,
-                                             OSS_SHARED_LATCH_MODE mode,
+                                             const ossSharedLatchMode &mode,
                                              const runtimePageBuffer::options &o,
                                              runtimePageBuffer &rpb)
    {
@@ -525,7 +525,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                       INVALID_PAGE_ID == pid ||
-                      OSS_SHARED_LATCH_MODE_NONE == mode))
+                      mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;

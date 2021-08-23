@@ -130,7 +130,7 @@ namespace vessel
          }
 
          rc = getLogicalPageBuffer(context, mappingPageLpid,
-                                   OSS_SHARED_LATCH_MODE_SHARED,
+                                   ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED),
                                    lpb);
          if (SDB_OK != rc)
          {

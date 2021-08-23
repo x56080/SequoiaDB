@@ -80,7 +80,7 @@ namespace vessel
 
    INT32 copyOnWriteLPS::getRuntimePageBuffer(requestContext *context,
                                               PAGE_ID pid,
-                                              OSS_SHARED_LATCH_MODE mode,
+                                              const ossSharedLatchMode &mode,
                                               const runtimePageBuffer::options &o,
                                               runtimePageBuffer &rpb)
    {
@@ -94,7 +94,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                       INVALID_PAGE_ID == pid ||
-                      OSS_SHARED_LATCH_MODE_NONE == mode))
+                      mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -134,9 +134,10 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       runtimePageBuffer::options o;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       rc = this->getRuntimePageBuffer(context, pid,
-                                      OSS_SHARED_LATCH_MODE_EXCLUSIVE, /// usless actually
+                                      mode, /// usless actually
                                       o, rpb);
       if (SDB_OK != rc)
       {

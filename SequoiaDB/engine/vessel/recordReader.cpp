@@ -252,7 +252,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      rc = _mds->getLogicalPageBuffer(_context, _lpid, OSS_SHARED_LATCH_MODE_SHARED, _lpb);
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      rc = _mds->getLogicalPageBuffer(_context, _lpid, mode, _lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", _lpid, rc);

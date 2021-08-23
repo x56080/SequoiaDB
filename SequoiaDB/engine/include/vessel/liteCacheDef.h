@@ -58,7 +58,7 @@ namespace vessel
       liteCacheAllocateOptions(const liteCacheAllocateOptions &) = delete;
       liteCacheAllocateOptions &operator=(const liteCacheAllocateOptions &o) = delete;
 
-      OSS_SHARED_LATCH_MODE lockMode = OSS_SHARED_LATCH_MODE_NONE;
+      ossSharedLatchMode lockMode;
       enum LC_ALLOCATE_MODE mode = NORMAL;
       INT32 lockTimeout = -1;
    };

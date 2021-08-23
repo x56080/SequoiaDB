@@ -65,7 +65,7 @@ namespace vessel
          INT32 lock(requestContext *context,
                   SPACE_TYPE type,
                   PAGE_ID lpid,
-                  OSS_SHARED_LATCH_MODE mode); 
+                  const ossSharedLatchMode &mode); 
 
          void unlock();
 
@@ -74,10 +74,10 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isLocked()const
          {
-            return OSS_SHARED_LATCH_MODE_NONE != _mode;
+            return !_mode.isNone();
          }
 
-         OSS_INLINE OSS_SHARED_LATCH_MODE getLockMode()
+         OSS_INLINE const ossSharedLatchMode &getLockMode()
          {
             return _mode;
          }
@@ -86,7 +86,7 @@ namespace vessel
          requestContext *_context = NULL;
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
          PAGE_ID _lpid = INVALID_PAGE_ID;
-         OSS_SHARED_LATCH_MODE _mode = OSS_SHARED_LATCH_MODE_NONE;
+         ossSharedLatchMode _mode;
    };//class lpidLockHelper
 }//namespace vessel
 }//namespace engine
