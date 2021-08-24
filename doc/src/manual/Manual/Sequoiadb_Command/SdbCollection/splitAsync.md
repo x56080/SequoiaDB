@@ -4,9 +4,9 @@ splitAsync - 异步切分数据记录
 
 ##语法##
 
-**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)**
+**db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<percent\>)**
 
-**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
+**db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
 
 ##类别##
 
@@ -20,7 +20,7 @@ SdbCollection
 
 ###范围切分###
 
-db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])
+db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<condition\>, [endcondition])
 
 | 参数名 | 类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -36,7 +36,7 @@ db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condit
 
 ###百分比切分###
 
-db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)
+db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<percent\>)
 
 | 参数名 | 类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |

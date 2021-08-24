@@ -4,9 +4,9 @@ splitAsync - split data records asynchronously
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)**
+**db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<percent\>)**
 
-**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
+**db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
 
 ##CATEGORY##
 
@@ -20,7 +20,7 @@ This function is used to split the data records in the source partition group in
 
 ###Range split###
 
-db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])
+db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<condition\>, [endcondition])
 
 | Name | Type| Description | Required or not |
 | ------ | -------- | ------ | -------- |
@@ -36,7 +36,7 @@ db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condit
 
 ###Percentage split###
 
-db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)
+db.collectionspace.collection.splitAsync(\<source group\>, \<target group\>, \<percent\>)
 
 | Name | Type| Description | Required or not |
 | ------ | -------- | ------ | -------- |

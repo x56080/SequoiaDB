@@ -8,10 +8,10 @@
 splitAsync \- 异步切分数据记录
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.split(<source group>, <target group>,
+\f[B]db.collectionspace.collection.splitAsync(<source group>, <target group>,
 <percent>)\f[]
 .PP
-\f[B]db.collectionspace.collection.split(<source group>, <target group>,
+\f[B]db.collectionspace.collection.splitAsync(<source group>, <target group>,
 <condition>, [endcondition])\f[]
 .SH 类别
 .PP
@@ -22,8 +22,8 @@ SdbCollection
 .SH 参数
 .SS 范围切分
 .PP
-db.collectionspace.collection.split(<source group>, <target group>, <condition>,
-[endcondition])
+db.collectionspace.collection.splitAsync(<source group>, <target group>,
+<condition>, [endcondition])
 .PP
 .TS
 tab(@);
@@ -101,7 +101,8 @@ Partition（分区数）必须为整型，不能为其他的类型。
 .RE
 .SS 百分比切分
 .PP
-db.collectionspace.collection.split(<source group>, <target group>, <percent>)
+db.collectionspace.collection.splitAsync(<source group>, <target group>,
+<percent>)
 .PP
 .TS
 tab(@);

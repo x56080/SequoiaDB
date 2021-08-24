@@ -8,10 +8,10 @@
 splitAsync \- split data records asynchronously
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.split(<source group>, <target group>,
+\f[B]db.collectionspace.collection.splitAsync(<source group>, <target group>,
 <percent>)\f[]
 .PP
-\f[B]db.collectionspace.collection.split(<source group>, <target group>,
+\f[B]db.collectionspace.collection.splitAsync(<source group>, <target group>,
 <condition>, [endcondition])\f[]
 .SH CATEGORY
 .PP
@@ -25,8 +25,8 @@ same domain.
 .SH PARAMETERS
 .SS Range split
 .PP
-db.collectionspace.collection.split(<source group>, <target group>, <condition>,
-[endcondition])
+db.collectionspace.collection.splitAsync(<source group>, <target group>,
+<condition>, [endcondition])
 .PP
 .TS
 tab(@);
@@ -106,7 +106,8 @@ integer, not other types.
 .RE
 .SS Percentage split
 .PP
-db.collectionspace.collection.split(<source group>, <target group>, <percent>)
+db.collectionspace.collection.splitAsync(<source group>, <target group>,
+<percent>)
 .PP
 .TS
 tab(@);
