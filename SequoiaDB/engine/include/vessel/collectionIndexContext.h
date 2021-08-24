@@ -59,6 +59,14 @@ namespace vessel
          {
             return INVALID_LOGICAL_INDEX_ID == _nextIndexId;
          }
+         OSS_INLINE BOOLEAN hasUnstableIndexes()const
+         {
+            return !_unstatbleIndexMap.empty();
+         }
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return 0 == getIndexSlotBitmap();
+         }
 
       public:
          void fini();

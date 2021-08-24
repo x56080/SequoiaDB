@@ -92,7 +92,7 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (0 == requests.getUniqueIndexCount())
+      else if (requests.isEmpty())
       {
          goto done;
       }
@@ -122,8 +122,8 @@ namespace vessel
          uniqueIndexLatchKey keyHash;
          UNIQUE_INDEX_LATCH_MAP::object obj;
          dmlIndexRequest *r = requests.get(i);
-         SDB_ASSERT(NULL == r || r->isValid(), "impossible");
-         if (NULL == r || !r->isUnique())
+         SDB_ASSERT(NULL != r && r->isValid(), "impossible");
+         if (!r->withConstraint())
          {
             continue;
          }

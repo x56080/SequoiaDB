@@ -48,6 +48,8 @@ namespace engine
 {
 namespace vessel
 {
+   class dmlContext;
+
    class unstableIndexContext : public SDBObject
    {
       public:
@@ -67,6 +69,9 @@ namespace vessel
             mergingKey &operator=(const mergingKey &o) = delete;
 
             scanEntry entry;
+            PAGE_ID lpid = INVALID_PAGE_ID;
+            DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+            DPS_TRANS_ID transID;
             ossPoolList<bson::BSONObj> inserting;
             ossPoolList<bson::BSONObj> discarded;
          };//struct mergingKey
@@ -122,18 +127,18 @@ namespace vessel
                                           const indexKeyPattern &pattern)const;
 
          /// must be building
-         INT32 insertKeys(const scanEntry &entry,
+         INT32 insertKeys(dmlContext *context,
                           const ossPoolList<bson::BSONObj> &keys,
                           BOOLEAN &refused);
 
          /// must be building
-         INT32 updateKeys(const scanEntry &entry,
+         INT32 updateKeys(dmlContext *context,
                           const ossPoolList<bson::BSONObj> &oldKeys,
                           const ossPoolList<bson::BSONObj> &newKeys,
                           BOOLEAN &refuse);
 
          /// must be building
-         INT32 deleteKeys(const scanEntry &entry,
+         INT32 deleteKeys(dmlContext *context,
                           const ossPoolList<bson::BSONObj> &keys,
                           BOOLEAN &refuse);
 
@@ -147,7 +152,7 @@ namespace vessel
          void terminateBuilding(BOOLEAN remove);
 
       private:
-         INT32 upsertBuildingKeys(const scanEntry &entry,
+         INT32 upsertBuildingKeys(dmlContext *context,
                                   const ossPoolList<bson::BSONObj> *inserting,
                                   const ossPoolList<bson::BSONObj> *discarded,
                                   BOOLEAN &refused);

@@ -43,6 +43,29 @@ namespace engine
 {
 namespace vessel
 {
+   class buildIndexOptions : public SDBObject
+   {
+      public:
+         buildIndexOptions(){}
+         ~buildIndexOptions(){}
+         buildIndexOptions(const buildIndexOptions &) = delete;
+         buildIndexOptions &operator=(const buildIndexOptions &o)
+         {
+            sortBufferSize = o.sortBufferSize;
+            blockDML = o.blockDML;
+            return *this;
+         }
+
+      public:
+         BOOLEAN isSortingDisabled()const
+         {
+            return 0 == sortBufferSize;
+         }
+      public:
+         UINT32 sortBufferSize = 64;//MB
+         BOOLEAN blockDML = FALSE;
+   };//class buildIndexOptions
+
    class createIndexOptions : public SDBObject
    {
       public:
@@ -51,24 +74,12 @@ namespace vessel
          createIndexOptions(const createIndexOptions &) = delete;
          createIndexOptions &operator=(const createIndexOptions &o)
          {
-            sortBufferSize = o.sortBufferSize;
-            blockDML = o.blockDML;
+            build = o.build;
             return *this;
          }
       public:
-         UINT32 sortBufferSize = 64;/// MB
-         BOOLEAN blockDML = FALSE;
+         buildIndexOptions build;
    };//class createIndexOptions
-
-   class rebuildIndexOptions : public SDBObject
-   {
-      public:
-         rebuildIndexOptions(){}
-         ~rebuildIndexOptions(){}
-      public:
-         UINT32 sortBufferSize = 64;//MB
-         BOOLEAN blockDML = FALSE;
-   };//class rebuildIndexOptions
 }//namespace vessel
 }//namespace engine
 

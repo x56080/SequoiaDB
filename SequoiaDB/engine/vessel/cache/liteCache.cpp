@@ -423,7 +423,7 @@ namespace vessel
          }
       }
 
-      /// Do not update lru.
+      /// We do not want to update touch count twice, set writing prepared as true.
       rc = tuple.init(holder.tag(), holder.getLockMode(),
                       this, TRUE);
       if (SDB_OK != rc)
@@ -533,7 +533,7 @@ namespace vessel
       tag->setMemPage(page);
 
       /// 3. insert into lru
-      rc = _lru->insert(holder, 0);
+      rc = _lru->insert(holder);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert tag[%s] into lru:%d",

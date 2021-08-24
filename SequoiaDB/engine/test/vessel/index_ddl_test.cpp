@@ -208,7 +208,7 @@ TEST_F(index_ddl_test, test2)
    rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 100000; ++i)
+   for (UINT32 i = 0; i < 1000000; ++i)
    {
       utilInsertResult  r;
       builder.reset();
@@ -266,3 +266,5 @@ TEST_F(index_ddl_test, test2)
    cl.close();
    db.close(&session, closeDBOptions());
 }
+
+

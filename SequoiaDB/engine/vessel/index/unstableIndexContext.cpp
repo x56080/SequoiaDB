@@ -37,6 +37,7 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "ossLatchGuard.hpp"
+#include "vessel/dmlContext.h"
 
 namespace engine
 {
@@ -90,26 +91,26 @@ namespace vessel
       goto done;
    }
 
-   INT32 unstableIndexContext::insertKeys(const scanEntry &entry,
+   INT32 unstableIndexContext::insertKeys(dmlContext *context,
                                           const ossPoolList<bson::BSONObj> &keys,
                                           BOOLEAN &refused)
    {
-      return upsertBuildingKeys(entry, &keys, NULL, refused);
+      return upsertBuildingKeys(context, &keys, NULL, refused);
    }
 
-   INT32 unstableIndexContext::updateKeys(const scanEntry &entry,
+   INT32 unstableIndexContext::updateKeys(dmlContext *context,
                                           const ossPoolList<bson::BSONObj> &oldKeys,
                                           const ossPoolList<bson::BSONObj> &newKeys,
                                           BOOLEAN &refused)
    {
-      return upsertBuildingKeys(entry, &newKeys, &oldKeys, refused);
+      return upsertBuildingKeys(context, &newKeys, &oldKeys, refused);
    }
 
-   INT32 unstableIndexContext::deleteKeys(const scanEntry &entry,
+   INT32 unstableIndexContext::deleteKeys(dmlContext *context,
                                           const ossPoolList<bson::BSONObj> &keys,
                                           BOOLEAN &refused)
    {
-      return upsertBuildingKeys(entry, NULL, &keys, refused);
+      return upsertBuildingKeys(context, NULL, &keys, refused);
    }
 
    BOOLEAN unstableIndexContext::endToBuildCurrentRangeOrPopKeys(ossPoolList<mergingKey *> &keys)
@@ -162,27 +163,36 @@ namespace vessel
       return r;
    }
 
-   INT32 unstableIndexContext::upsertBuildingKeys(const scanEntry &entry,
+   INT32 unstableIndexContext::upsertBuildingKeys(dmlContext *context,
                                                   const ossPoolList<bson::BSONObj> *inserting,
                                                   const ossPoolList<bson::BSONObj> *discarded,
                                                   BOOLEAN &refused)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(context->isDmlPositionSet(), "must be set");
       SDB_ASSERT(isBuilding(), "must be building");
       SDB_ASSERT(!(NULL == inserting && NULL == discarded), "impossible");
 
+      scanEntry entry = context->getLastDmlScanEntry();
       mergingKey *mk = NULL;
       ossXLatchGuard guard(&_latch);
+
       INT32 buildingStatus = getEntryBuildingStatus(entry);
-      if (buildingStatus < 0)
+      if (0 < buildingStatus)
+      {
+         /// not builded yet, pretend upserted.
+         refused = FALSE;
+         goto done;
+      }
+      else if (!_obj.getParams().isUnique && buildingStatus < 0)
       {
          refused = TRUE;
          goto done;
       }
-      else if (0 < buildingStatus)
+      else
       {
          refused = FALSE;
-         goto done;
       }
 
       mk = SDB_OSS_NEW mergingKey();
@@ -194,12 +204,16 @@ namespace vessel
       }
 
       mk->entry = entry;
+      mk->lpid = context->getLastDmlRid().getPageID();
+      mk->lsn = context->getLastDmlLSN();
+      mk->transID = context->getTransID();
+
       if (NULL != inserting)
       {
          for (ossPoolList<bson::BSONObj>::const_iterator itr = inserting->begin();
                itr != inserting->end(); ++itr)
          {
-            /// Can not use getOwned to save key here.
+            /// Can not use getOwned to save keys here.
             /// We do not know when key obj released by user thread.
             mk->inserting.push_back(itr->copy());
          }
@@ -212,6 +226,8 @@ namespace vessel
             mk->discarded.push_back(itr->copy());
          }
       }
+
+      _mergingKeys.push_back(mk);
    done:
       return rc;
    error:

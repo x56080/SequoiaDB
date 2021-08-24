@@ -72,7 +72,7 @@ namespace vessel
          /// when call "fetchNextToReader".
          INT32 fetchNextToReader(BOOLEAN &hitTheEnd);
 
-         BOOLEAN isCurrentRecordIsTombstone()const;
+         BOOLEAN currentRecordIsTombstone()const;
          recordID getCurrentRid()const;
          const recordHead &getCurrentRecordHead()const
          {

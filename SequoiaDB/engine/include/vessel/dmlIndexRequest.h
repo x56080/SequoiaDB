@@ -63,8 +63,7 @@ namespace vessel
 
          void init(INT32 indexSlot,
                    const indexObject &obj,
-                   const bson::BSONObjSet &keys,
-                   BOOLEAN getOwned=TRUE);
+                   const bson::BSONObjSet &keys);
 
          void fini();
 
@@ -77,9 +76,10 @@ namespace vessel
          {
             return _obj.getIndexType();
          }
-         OSS_INLINE BOOLEAN isUnique()const
+         OSS_INLINE BOOLEAN withConstraint()const
          {
-            return _obj.getParams().isUnique;
+            return _obj.getParams().isUnique &&
+                   !_building;
          }
 
          const ossPoolList<bson::BSONObj> &getKeys()const
@@ -92,19 +92,29 @@ namespace vessel
             return _obj;
          }
 
-         OSS_INLINE void setIngnored()
+         OSS_INLINE void setBuilding()
          {
-            _ignored = TRUE;
+            _building = TRUE;
          }
-         OSS_INLINE BOOLEAN isIgnored()const
+         OSS_INLINE BOOLEAN isBuilding()const
          {
-            return _ignored;
+            return _building;
+         }
+         OSS_INLINE void setPushedIntoBuildingContext()
+         {
+            _pushedIntoBuildingContext = TRUE;
+         }
+
+         OSS_INLINE BOOLEAN isPushedIntoBuildingContext()const
+         {
+            return _pushedIntoBuildingContext;
          }
       private:
          INT32 _indexSlot = -1;
          ossPoolList<bson::BSONObj> _keys;
          indexObject _obj;
-         BOOLEAN _ignored = FALSE;
+         BOOLEAN _building = FALSE;
+         BOOLEAN _pushedIntoBuildingContext = FALSE;
    };//class dmlIndexRequest
 
    class dmlIndexRequestArray : public SDBObject
@@ -125,10 +135,6 @@ namespace vessel
          {
             return 0 == _requests.size();
          }
-         OSS_INLINE UINT32 getUniqueIndexCount()const
-         {
-            return _uniqueIndexCount;
-         }
 
          dmlIndexRequest *get(UINT32 i)const;
 
@@ -138,10 +144,9 @@ namespace vessel
          INT32 append(INT32 indexSlot,
                       const indexObject &obj,
                       const bson::BSONObjSet &keys,
-                      BOOLEAN getOwned=TRUE);
+                      dmlIndexRequest **out=NULL);
       private:
-         UINT32 _uniqueIndexCount = 0;
-         _utilArray<dmlIndexRequest *> _requests;
+         _utilArray<dmlIndexRequest *, 8> _requests;
    };//class dmlIndexRequestArray
 }//namespace vessel
 }//nameapace engine

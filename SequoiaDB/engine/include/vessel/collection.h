@@ -69,6 +69,8 @@ namespace vessel
       public:
          collection();
          ~collection();
+         collection(const collection &) = delete;
+         collection &operator=(const collection &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isOpen()const
@@ -149,8 +151,8 @@ namespace vessel
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);
 
-         INT32 ingnoreBuildingRequests(dmlContext *context,
-                                       dmlIndexRequestArray &ra);
+         INT32 insertNewKeysToUnstableContext(dmlContext *context,
+                                              dmlIndexRequestArray &ra);
 
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
@@ -256,10 +258,19 @@ namespace vessel
                             const indexParameters &params,
                             INT32 &indexSlot);
 
+         INT32 buildIndexInContext(requestContext *context,
+                                   INT32 indexSlot,
+                                   INDEX_TYPE type,
+                                   const buildIndexOptions &o);
+
          /// unstable context must be created first.
          INT32 onlineBuildIndex(requestContext *context,
-                                 INT32 indexSlot,
-                                 UINT32 sortBufferSize);
+                                INT32 indexSlot);
+
+         /// unstable context must be created first.
+         INT32 onlineBuildIndexBySorting(requestContext *context,
+                                         INT32 indexSlot,
+                                         UINT64 sortBufferSize);
 
          /// unstable context must be created first.
          /// status can be truncating or removing.
@@ -286,6 +297,10 @@ namespace vessel
                                                    UINT32 maxRdpCount,
                                                    memoryBlock &sortBuffer);
 
+         INT32 buildIndexAndUpdateContext(requestContext *context,
+                                          unstableIndexContext *uic,
+                                          UINT32 maxRdpCount);
+
          INT32 fillSorterAndUpdateEntry(requestContext *context,
                                         _dmsIxmKeySorter *sorter,
                                         UINT32 maxRdpCount,
@@ -294,6 +309,10 @@ namespace vessel
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
                                               _dmsIxmKeySorter *sorter,
                                               unstableIndexContext *uic);
+
+         INT32 endToBuildCurrentRange(requestContext *context,
+                                      unstableIndexContext *uic);
+         
          ///get x latch first
          INT32 terminateIndexBuilding(requestContext *context,
                                       INT32 indexSlot,

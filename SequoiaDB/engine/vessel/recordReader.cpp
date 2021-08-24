@@ -242,7 +242,7 @@ namespace vessel
       return rid;
    }
 
-   BOOLEAN recordReader::isCurrentRecordIsTombstone()const
+   BOOLEAN recordReader::currentRecordIsTombstone()const
    {
       SDB_ASSERT(isCurrentRecordAvailable(), "must be valid");
       return _currentRecordHead.isTombstone();

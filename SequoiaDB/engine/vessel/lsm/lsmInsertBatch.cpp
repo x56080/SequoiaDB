@@ -54,9 +54,9 @@ namespace vessel
       UINT32 keyObjSize = 0;
       UINT32 fullKeySize = 0;
       UINT32 bufferSize = 0;
-      CHAR *buffer = NULL;
       rocksdb::Slice k, v;
       rocksdb::Status status;
+      _mb.resize(0);
 
       if (OSS_UNLIKELY(!meta.isValid() ||
                        !ke.isValid()))
@@ -73,15 +73,15 @@ namespace vessel
          bufferSize += sizeof(lsmIndexValue);
       }
 
-      buffer = (CHAR *)SDB_THREAD_ALLOC(bufferSize);
-      if (NULL == buffer)
+      rc = _mb.reserve(bufferSize);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
+         PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
          goto error;
       }
 
-      rc = lsmPackIndexFullKey(buffer, bufferSize,
+      rc = lsmPackIndexFullKey(_mb.getBuffer(),
+                               bufferSize,
                                meta.getIdxId(),
                                meta.getOrdering(),
                                ke.getKey(),
@@ -93,12 +93,12 @@ namespace vessel
          PD_LOG(PDERROR, "failed to pack full key:%d", rc);
          goto error;
       }
-      k = rocksdb::Slice(buffer, fullKeySize);
+      k = rocksdb::Slice(_mb.getBuffer(), fullKeySize);
 
       if (NULL != value)
       {
-         ossMemcpy(buffer + fullKeySize, value, sizeof(lsmIndexValue));
-         v = rocksdb::Slice(buffer+ fullKeySize, sizeof(lsmIndexValue));
+         ossMemcpy((CHAR *)(_mb.getBuffer()) + fullKeySize, value, sizeof(lsmIndexValue));
+         v = rocksdb::Slice((CHAR *)(_mb.getBuffer()) + fullKeySize, sizeof(lsmIndexValue));
       }
 
       status = _batch.Put(k, v);
@@ -109,30 +109,16 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-
-      _vec.push_back(buffer);
    done:
       return rc;
    error:
-      if (NULL != buffer)
-      {
-         SDB_THREAD_FREE(buffer);
-      }
       goto done;
    }
 
    void lsmInsertBatch::clear()
    {
       _batch.Clear();
-      for (UINT32 i = 0; i < _vec.size(); ++i)
-      {
-         CHAR *buffer = _vec.at(i);
-         if (NULL != buffer)
-         {
-            SDB_THREAD_FREE(buffer);
-         }
-      }
-      _vec.clear();
+      _mb.release();
       return;
    }
 }//namespace vessel

@@ -46,12 +46,13 @@ namespace vessel
       _indexSlot = -1;
       _keys.clear();
       _obj.fini();
+      _building = FALSE;
+      _pushedIntoBuildingContext = FALSE;
    }
 
    void dmlIndexRequest::init(INT32 indexSlot,
                               const indexObject &obj,
-                              const bson::BSONObjSet &keys,
-                              BOOLEAN getOwned)
+                              const bson::BSONObjSet &keys)
    {
       SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
       SDB_ASSERT(obj.isValid(), "must be valid");
@@ -59,22 +60,12 @@ namespace vessel
       _indexSlot = indexSlot;
       _keys.clear();
       _obj.shallowCopy(obj);
-      if (getOwned)
-      {
-         _obj.getOwned();
-      }
+      _obj.getOwned();
 
       for (bson::BSONObjSet::const_iterator itr = keys.begin();
            itr != keys.end(); ++itr)
       {
-         if (getOwned)
-         {
-            _keys.push_back(itr->getOwned());
-         }
-         else
-         {
-            _keys.push_back(*itr);
-         }
+         _keys.push_back(itr->getOwned());
       }
 
       return;
@@ -98,13 +89,12 @@ namespace vessel
          }
       }
       _requests.clear();
-      _uniqueIndexCount = 0;
    }
 
    INT32 dmlIndexRequestArray::append(INT32 indexSlot,
                                       const indexObject &obj,
                                       const bson::BSONObjSet &keys,
-                                      BOOLEAN getOwned)
+                                      dmlIndexRequest **out)
    {
       INT32 rc = SDB_OK;
       dmlIndexRequest *req = NULL;
@@ -137,10 +127,11 @@ namespace vessel
          goto error;
       }
 
-      req->init(indexSlot, obj, keys, getOwned);
-      if (obj.getParams().isUnique)
+      req->init(indexSlot, obj, keys);
+
+      if (NULL != out)
       {
-         ++_uniqueIndexCount;
+         *out = req;
       }
    done:
       return rc;

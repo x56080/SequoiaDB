@@ -256,6 +256,10 @@ namespace vessel
          {
             return UTIL_COMPRESSOR_INVALID != _compressionType;
          }
+         OSS_INLINE DPS_TRANS_ID getTransID()const
+         {
+            return DPS_TRANS_ID(_transSN, _transNode);
+         }
 
       private:
          UINT16 _size = 0;

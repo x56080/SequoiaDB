@@ -831,14 +831,14 @@ namespace vessel
          goto done;
       }
 
+      /// TODO: insert btree first
+
       rc = createLsmBatch(context, ra, lsmBatch);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create lsm batch:%d", rc);
          goto error;
       }
-
-      /// TODO: insert btree first
 
       status = context->getEnv()->lsm.Write(lsmBatch.getBatch());
       if (!status.ok())
@@ -867,8 +867,8 @@ namespace vessel
       {
          const dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
-         if (ir->isIgnored() ||
-             ir->getIndexType() != INDEX_TYPE_LSM)
+         if (ir->getIndexType() != INDEX_TYPE_LSM ||
+             ir->isPushedIntoBuildingContext())
          {
             continue;
          }

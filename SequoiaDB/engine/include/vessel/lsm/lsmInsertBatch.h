@@ -36,11 +36,11 @@
 #ifndef VESSE_LSM_INSERT_BATCH_H_
 #define VESSE_LSM_INSERT_BATCH_H_
 
-#include "ossMemPool.hpp"
 #include "vessel/lsm/lsmIdxKey.hpp"
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "rocksdb/write_batch.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -57,7 +57,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isEmpty()const
          {
-            return _vec.empty();
+            return 0 == _batch.Count();
          }
 
          INT32 put(const lsmIndexMeta &meta,
@@ -72,11 +72,8 @@ namespace vessel
          }
 
       private:
-         typedef ossPoolVector<CHAR *> _BUFFER_VEC;
-
-      private:
-         _BUFFER_VEC _vec;
          rocksdb::WriteBatch _batch;
+         memoryBlock _mb;
    };//class lsmInsertBatch
 }//namespace vessel
 }//namesapce engine
