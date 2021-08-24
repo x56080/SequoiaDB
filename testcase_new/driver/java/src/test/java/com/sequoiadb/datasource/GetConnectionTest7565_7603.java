@@ -24,7 +24,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 
-
 public class GetConnectionTest7565_7603 extends DataSourceTestBase {
     private SequoiadbDatasource datasource;
     private Sequoiadb sdb;
@@ -266,6 +265,9 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             option.setMaxCount( oldPoolSize - 100 );
             // option.setMaxCount(oldPoolSize);
             datasource.updateDatasourceOptions( option );
+            Assert.assertEquals(
+                    datasource.getDatasourceOptions().getMaxCount(),
+                    oldPoolSize - 100 );
             // 检查已经分配出去的连接
             for ( int k = 0; k < dbs.size(); ++k ) {
                 Sequoiadb db = dbs.get( k );
@@ -279,8 +281,8 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
         } catch ( BaseException e ) {
             System.out.println( "current get connection number " + dbs.size() );
             e.printStackTrace();
-            //SEQUOIADBMAINSTREAM-3625 暂时屏蔽该测试点
-            if(e.getErrorCode()!=-254){
+            // SEQUOIADBMAINSTREAM-3625 暂时屏蔽该测试点
+            if ( e.getErrorCode() != -254 ) {
                 Assert.assertFalse( true, e.getMessage() );
             }
         }
