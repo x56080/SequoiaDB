@@ -29,10 +29,15 @@
 
 SDB_EXTERN_C_START
 
+/** define page size to 4k */
 #define SDB_PAGESIZE_4K           4096
+/** define page size to 8k */
 #define SDB_PAGESIZE_8K           8192
+/** define page size to 16k */
 #define SDB_PAGESIZE_16K          16384
+/** define page size to 32k */
 #define SDB_PAGESIZE_32K          32768
+/** define page size to 64k */
 #define SDB_PAGESIZE_64K          65536
 /** 0 means using database's default pagesize, it 64k now */
 #define SDB_PAGESIZE_DEFAULT      0
@@ -53,6 +58,7 @@ enum _SDB_LOB_SEEK
 } ;
 typedef enum _SDB_LOB_SEEK SDB_LOB_SEEK ;
 
+/** define sequoiadb invalid handle */
 #define SDB_INVALID_HANDLE       ((ossValuePtr) 0)
 typedef ossValuePtr sdbConnectionHandle   ;
 typedef ossValuePtr sdbCSHandle           ;
