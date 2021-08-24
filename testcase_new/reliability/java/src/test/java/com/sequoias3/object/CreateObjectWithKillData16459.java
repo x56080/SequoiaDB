@@ -1,8 +1,22 @@
 package com.sequoias3.object;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
+import com.amazonaws.services.s3.model.ListVersionsRequest;
+import com.amazonaws.services.s3.model.S3VersionSummary;
+import com.amazonaws.services.s3.model.VersionListing;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -15,23 +29,13 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
 import com.sequoias3.commlibs3.s3utils.UserUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * test content: 开启版本控制，创建对象过程中db端节点异常 testlink-case: seqDB-16459
- * 
+ * @Description seqDB-16459： 开启版本控制，创建对象过程中db端节点异常
  * @author wangkexin
  * @Date 2019.01.09
+ * @updateAuthor wuyan
+ * @updateDate 2021.8.24
  * @version 1.00
  */
 public class CreateObjectWithKillData16459 extends S3TestBase {
@@ -39,17 +43,24 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
     private String bucketName = "bucket16459";
     private String keyName = "key16459";
     private String roleName = "normal";
-    private List< String > keyNames = new ArrayList<>();
+    private List< String > keyNames = new ArrayList< >();
     private Random random = new Random();
-    private Map< String, String > keyAndMd5Map = new ConcurrentHashMap< String, String >();
     private List< String > putObjectList = new CopyOnWriteArrayList< String >();
     private int objectNum = 100;
     private String[] accessKeys = null;
+    private String currContent = "";
     private AmazonS3 s3Client = null;
+    private GroupMgr groupMgr = null;
     private boolean runSuccess = false;
 
     @BeforeClass
     private void setUp() throws Exception {
+
+        groupMgr = GroupMgr.getInstance();
+        // CheckBusiness(true),检测当前集群环境，若存在异常返回false，
+        if ( !groupMgr.checkBusiness( 20 ) ) {
+            throw new SkipException( "checkBusiness return false" );
+        }
         CommLibS3.clearUser( userName );
         accessKeys = UserUtils.createUser( userName, roleName );
         s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ], accessKeys[ 1 ] );
@@ -60,15 +71,15 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
         for ( int i = 0; i < objectNum; i++ ) {
             keyNames.add( keyName + "_" + i );
         }
+
+        int writeSize = random.nextInt( 1024 );
+        currContent = ObjectUtils.getRandomString( writeSize );
     }
 
     @Test
     public void testCreateObject() throws Exception {
         TaskMgr mgr = new TaskMgr();
-
-        GroupMgr groupMgr = GroupMgr.getInstance();
         List< GroupWrapper > dataGroups = groupMgr.getAllDataGroup();
-
         for ( int i = 0; i < dataGroups.size(); i++ ) {
             String groupName = dataGroups.get( i ).getGroupName();
             GroupWrapper group = groupMgr.getGroupByName( groupName );
@@ -118,11 +129,7 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
             AmazonS3 s3Client = CommLibS3.buildS3Client( accessKeys[ 0 ],
                     accessKeys[ 1 ] );
             try {
-                int writeSize = random.nextInt( 1024 );
-                String currContent = ObjectUtils.getRandomString( writeSize );
-                String currmd5 = TestTools.getMD5( currContent.getBytes() );
                 s3Client.putObject( bucketName, keyName, currContent );
-                keyAndMd5Map.put( keyName, currmd5 );
                 putObjectList.add( keyName );
             } catch ( AmazonServiceException e ) {
                 if ( e.getStatusCode() != 500 ) {
@@ -140,13 +147,12 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
         List< String > remainObjects = new ArrayList< String >();
         remainObjects.addAll( keyNames );
         remainObjects.removeAll( putObjectList );
-        for ( String keyName : remainObjects ) {
-            int writeSize = random.nextInt( 1024 );
-            String currContent = ObjectUtils.getRandomString( writeSize );
 
-            s3Client.putObject( bucketName, keyName, currContent );
-            keyAndMd5Map.put( keyName,
-                    TestTools.getMD5( currContent.getBytes() ) );
+        for ( String keyName : remainObjects ) {
+            // 如果对象实际上传成功未返回，则该对象不再重复上传
+            if ( !s3Client.doesObjectExist( currContent, keyName ) ) {
+                s3Client.putObject( bucketName, keyName, currContent );
+            }
         }
 
         VersionListing versions = s3Client.listVersions(
@@ -155,13 +161,14 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
         Assert.assertEquals( objects.size(), keyNames.size(),
                 "putObjectList : " + putObjectList.toString() + "  ,objects="
                         + printVersionKeys( objects ) );
+
+        String expMd5 = TestTools.getMD5( currContent.getBytes() );
         for ( S3VersionSummary obj : objects ) {
             String key = obj.getKey();
-            String expEtag = keyAndMd5Map.get( key );
             String actEtag = obj.getETag();
             Assert.assertEquals( obj.getVersionId(), "0",
                     "objectName is : " + key );
-            Assert.assertEquals( actEtag, expEtag, "objectName is : " + key );
+            Assert.assertEquals( actEtag, expMd5, "objectName is : " + key );
         }
     }
 
