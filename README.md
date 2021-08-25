@@ -121,7 +121,7 @@ Building Drivers:
 	C/C++ Client:
 		scons --client
 	PHP Client:
-		cd driver/php5
+		cd driver/php
 		scons --phpversion=5.4.6
 		Note:
 			PHP source code is located in thirdparty/php directory
