@@ -170,6 +170,11 @@ function dealParamArr()
             case $opt in
                  -h | --help    ) helpInfo                                     ;;
                  -V | --version ) version "$export_tool"                       ;;
+                 -w | --password) contains "$1" "${opt_list[*]}"
+                                  if [ "$?" = 0 -o "$1" = "" ]; then
+                                      read -p "password:" -s value
+                                      echo
+                                  fi                                           ;;
                  --debug        ) opt_debug="true";  opt=""; continue          ;;
                  --replace      ) opt_general_params="$opt_general_params $opt";
                                   opt=""; continue                             ;;
