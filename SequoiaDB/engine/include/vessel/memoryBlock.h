@@ -48,9 +48,11 @@ namespace vessel
    {
       public:
          memoryBlock(){}
+         memoryBlock(memoryBlock &&o);
          ~memoryBlock();
          memoryBlock(const memoryBlock &) = delete;
          memoryBlock &operator=(const memoryBlock &) = delete;
+         memoryBlock &operator=(memoryBlock &&o);
 
       public:
          OSS_INLINE UINT32 getSize()const

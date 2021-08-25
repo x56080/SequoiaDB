@@ -38,7 +38,7 @@
 
 #include "vessel/sharedObjectMap.hpp"
 #include "vessel/vesselIdDef.h"
-#include "ossLatch.hpp"
+#include "ossSharedLatch.hpp"
 #include "vessel/recordID.h"
 #include "vessel/vesselFileDef.h"
 #include "pdTrace.hpp"

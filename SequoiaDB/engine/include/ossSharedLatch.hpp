@@ -1,0 +1,256 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = ossSharedLatch.hpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef OSS_SHARED_LATCH_HPP_
+#define OSS_SHARED_LATCH_HPP_
+
+#include "ossLatch.hpp"
+#include <boost/thread/shared_mutex.hpp>
+
+
+enum OSS_SHARED_LATCH_MODE_ENUM
+{
+   OSS_SHARED_LATCH_MODE_ENUM_NONE = 0,
+   OSS_SHARED_LATCH_MODE_ENUM_SHARED = 1,
+   OSS_SHARED_LATCH_MODE_ENUM_UPGRADE = 2,
+   OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE = 3,
+};//enum OSS_SHARED_LATCH_MODE
+
+class ossSharedLatchMode : public SDBObject
+{
+   public:
+      OSS_INLINE ossSharedLatchMode(){}
+      OSS_INLINE ~ossSharedLatchMode(){}
+      OSS_INLINE ossSharedLatchMode(const ossSharedLatchMode &o):
+      _m(o._m){}
+      OSS_INLINE ossSharedLatchMode &operator=(const ossSharedLatchMode &o)
+      {
+         _m = o._m;
+         return *this;
+      }
+      OSS_INLINE ossSharedLatchMode &operator=(OSS_SHARED_LATCH_MODE_ENUM m)
+      {
+         _m = m;
+         return *this;
+      }
+      OSS_INLINE explicit ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM m):
+      _m(m){}
+
+      OSS_INLINE BOOLEAN operator==(const ossSharedLatchMode &o)const
+      {
+         return o._m == _m;
+      }
+   public:
+      OSS_INLINE OSS_SHARED_LATCH_MODE_ENUM getModeEnum()const
+      {
+         return _m;
+      }
+      OSS_INLINE BOOLEAN isExclusive()const
+      {
+         return OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE == _m;
+      }
+      OSS_INLINE void setExclusive()
+      {
+         _m = OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE;
+      }
+      OSS_INLINE BOOLEAN isUpgrade()const
+      {
+         return OSS_SHARED_LATCH_MODE_ENUM_UPGRADE == _m;
+      }
+      OSS_INLINE void setUpgrade()
+      {
+         _m = OSS_SHARED_LATCH_MODE_ENUM_UPGRADE;
+      }
+      OSS_INLINE BOOLEAN isShared()const
+      {
+         return OSS_SHARED_LATCH_MODE_ENUM_SHARED == _m;
+      }
+      OSS_INLINE void setShared()
+      {
+         _m = OSS_SHARED_LATCH_MODE_ENUM_SHARED;
+      }
+      OSS_INLINE BOOLEAN isNone()const
+      {
+         return OSS_SHARED_LATCH_MODE_ENUM_NONE == _m;
+      }
+      OSS_INLINE void setNone()
+      {
+         _m = OSS_SHARED_LATCH_MODE_ENUM_NONE;
+      }
+
+   private:
+      OSS_SHARED_LATCH_MODE_ENUM _m = OSS_SHARED_LATCH_MODE_ENUM_NONE;
+};//class ossSharedLatchMode
+
+class ossSharedLatch : public SDBObject
+{
+   public:
+      ossSharedLatch(){}
+      ~ossSharedLatch(){}
+      ossSharedLatch(const ossSharedLatch &) = delete;
+      ossSharedLatch &operator=(const ossSharedLatch &) = delete;
+   public:
+      void lockShared()
+      {
+         _mutex.lock_shared();
+      }
+      BOOLEAN tryLockShared()
+      {
+         return _mutex.try_lock_shared();
+      }
+      void unlockShared()
+      {
+         _mutex.unlock_shared();
+      }
+      
+
+      void lockUpgrade()
+      {
+         _mutex.lock_upgrade();
+      }
+      BOOLEAN tryLockUpgrade()
+      {
+         return _mutex.try_lock_upgrade();
+      }
+      void unlockUpgrade()
+      {
+         _mutex.unlock_upgrade();
+      }
+
+      void lock()
+      {
+         _mutex.lock();
+      }
+      BOOLEAN tryLock()
+      {
+         return _mutex.try_lock();
+      }
+      void unlock()
+      {
+         _mutex.unlock();
+      }
+
+      void lockWith(const ossSharedLatchMode &m)
+      {
+         if (m.isShared())
+         {
+            lockShared();
+         }
+         else if (m.isUpgrade())
+         {
+            lockUpgrade();
+         }
+         else if (m.isExclusive())
+         {
+            lock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return;
+      }
+
+      BOOLEAN tryLockWith(const ossSharedLatchMode &m)
+      {
+         BOOLEAN r = FALSE;
+         if (m.isShared())
+         {
+            r = tryLockShared();
+         }
+         else if (m.isUpgrade())
+         {
+            r = tryLockUpgrade();
+         }
+         else if (m.isExclusive())
+         {
+            r = tryLock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return r;
+      }
+
+      void unlockWith(const ossSharedLatchMode &m)
+      {
+         if (m.isShared())
+         {
+            unlockShared();
+         }
+         else if (m.isUpgrade())
+         {
+            unlockUpgrade();
+         }
+         else if (m.isExclusive())
+         {
+            unlock();
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return;
+      }
+
+      void unlockUpgradeAndLock()
+      {
+         _mutex.unlock_upgrade_and_lock();
+      }
+
+      /// will not release upgrade if return false.
+      BOOLEAN tryUnlockUpgradeAndLock()
+      {
+         return _mutex.try_unlock_upgrade_and_lock();
+      }
+      void unlockUpgradeAndLockShared()
+      {
+         _mutex.unlock_upgrade_and_lock_shared();
+      }
+      void unlockAndLockUpgrade()
+      {
+         _mutex.unlock_and_lock_upgrade();
+      }
+      void unlockAndLockShared()
+      {
+         _mutex.unlock_and_lock_shared();
+      }
+
+   private:
+      boost::shared_mutex _mutex;
+};//class ossSharedLatch
+
+#endif//OSS_SHARED_LATCH_HPP_

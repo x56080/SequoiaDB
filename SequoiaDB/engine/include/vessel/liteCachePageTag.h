@@ -41,7 +41,7 @@
 #include "dpsDef.hpp"
 #include "vessel/freeListPage.h"
 #include "ossSpinLatch.hpp"
-#include "ossLatch.hpp"
+#include "ossSharedLatch.hpp"
 #include "utilPooledObject.hpp"
 #include "vessel/lcBucketInnerIndex.h"
 

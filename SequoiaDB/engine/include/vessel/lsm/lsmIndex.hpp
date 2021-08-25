@@ -170,7 +170,7 @@ public:
   */
   INT32 locate( const INT32              direction,
                 const ixmKey           & key,
-                const dmsRecordID      & rid,
+                const recordID         & rid,
                 lsmOwnedRecord         & out,
                 BOOLEAN                & exactlyMatched) ;
 

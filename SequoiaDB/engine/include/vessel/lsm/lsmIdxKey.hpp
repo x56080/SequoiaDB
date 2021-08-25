@@ -114,7 +114,7 @@ extern UINT32 lsmEstDataKeyLen
    const globalIndexID    * pIdxID,             // indexID
    const Ordering         * pOrdering  = NULL,  // ordering
    const ixmKey           * pKeyObj    = NULL,  // keyObj
-   const dmsRecordID      * pRid       = NULL,  // rowid
+   const recordID      * pRid       = NULL,  // rowid
    const UINT64           * pDataLSN   = NULL,  // dataLSN
    const DPS_TRANS_ID     * pTransID   = NULL   // transID
 ) ;*/
@@ -133,7 +133,7 @@ extern UINT32 lsmPackDataKey
    const globalIndexID    * pIdxID,             // indexID
    const Ordering         * pOrdering  = NULL,  // ordering
    const ixmKey           * pKeyObj    = NULL,  // keyObj
-   const dmsRecordID      * pRid       = NULL,  // rowid
+   const recordID      * pRid       = NULL,  // rowid
    const UINT64           * pLSN       = NULL,  // lsn
    const DPS_TRANS_ID     * pTransID   = NULL   // transID
 ) ;*/
@@ -145,7 +145,7 @@ extern INT32 lsmPackIndexFullKey
    const globalIndexID    &idxID,       // indexID
    const orderingWrapper  &ordering,  // ordering
    const ixmKey           &key,  // keyObj
-   const dmsRecordID      &rid,  // rowid
+   const recordID      &rid,  // rowid
    UINT64                 lsn,  // lsn
    const DPS_TRANS_ID     &transID   // transID
 );
@@ -157,7 +157,7 @@ extern INT32 lsmUnpackIndexFullKey
    globalIndexID          &idxID,       // indexID
    orderingWrapper        &ordering,  // ordering
    ixmKey                 &key,  // key
-   dmsRecordID            &rid,  // rowid
+   recordID               &rid,  // rowid
    UINT64                 &lsn,  // lsn
    DPS_TRANS_ID           &transID   // transID
 );
@@ -204,7 +204,7 @@ extern void lsmUnpackDataKey
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
-   dmsRecordID          * pRid,             // rowid
+   recordID          * pRid,             // rowid
    UINT64               * pLSN,             // lsn
    DPS_TRANS_ID         * pTransID,         // transID
    UINT64               * pOpLSN    = NULL  // log operation LSN
@@ -245,7 +245,7 @@ extern BOOLEAN lsmIsSameIndexKey
 (
    const rocksdb::Slice   & aSlice,
    const ixmKey           * pKeyObj = NULL,
-   const dmsRecordID      * pRid    = NULL,
+   const recordID      * pRid    = NULL,
    const globalIndexID    * pIdxId  = NULL
 ) ;
 
@@ -255,16 +255,20 @@ extern void lsmUpdateDataEntryToMostAdjacent(rocksdb::Slice a, INT32 direction);
 
 const UINT32 lsmEntryTypeSz    = sizeof( UINT8 ) ;
 const UINT32 lsmOrdSz          = sizeof( Ordering ) ;
-const UINT32 lsmRidSz          = sizeof(dmsRecordID);
+const UINT32 lsmRidSz          = sizeof(recordID);
 const UINT32 lsmLsnSz          = sizeof( UINT64 ) ;
 const UINT32 lsmTxIDSz         = sizeof( DPS_TRANS_ID ) ;
 const UINT32 lsmFlagSz         = sizeof( UINT8 );
 const UINT32 lsmRBSPosSz       = sizeof( dmsRBSOffset ) ;
 const UINT32 lsmIdxIDSz        = GLOBAL_INDEX_ID_SIZE;
 const UINT32 lsmDummyKeyObjSz  = 6 ; // ixmKeyOwned(BSONObj()).dataSize();
+const UINT32 lsmMinIxmKeySz = 1;
 const UINT32 lsmMinDataKeySz   = lsmEntryTypeSz + lsmIdxIDSz
                                  + lsmOrdSz + lsmDummyKeyObjSz + lsmRidSz
                                  + lsmLsnSz + lsmTxIDSz ;
+const UINT32 LSM_MIN_FULL_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz +
+                                     lsmOrdSz + lsmMinIxmKeySz +
+                                     lsmRidSz + lsmLsnSz + lsmTxIDSz;
 
 // Return SDB LSM key comparator
 extern const rocksdb::Comparator* lsmKeyComparator();
@@ -285,7 +289,7 @@ public:
    }
 
    void shallowCopy( const ixmKey          & key,
-                     const dmsRecordID & rid,
+                     const recordID & rid,
                      const UINT64             dataLsn,
                      const DPS_TRANS_ID     & transID)
    {
@@ -307,19 +311,19 @@ public:
    void reset()
    {
       _key.assign(ixmKey());
-      _rid     = dmsRecordID();
+      _rid     = recordID();
       _dataLsn = DPS_INVALID_LSN_OFFSET ;
       _transID = DPS_TRANS_ID();
    }
 
    OSS_INLINE const ixmKey &getKey() const { return _key; }
-   OSS_INLINE const dmsRecordID &getRid() const { return _rid; }
+   OSS_INLINE const recordID &getRid() const { return _rid; }
    OSS_INLINE UINT64 getDataLsn() const { return _dataLsn; }
    OSS_INLINE const DPS_TRANS_ID &getTransID() const { return _transID; }
 
 protected:
    ixmKey          _key;
-   dmsRecordID     _rid;
+   recordID     _rid;
    UINT64          _dataLsn = DPS_INVALID_LSN_OFFSET;
    DPS_TRANS_ID    _transID;
 } ;

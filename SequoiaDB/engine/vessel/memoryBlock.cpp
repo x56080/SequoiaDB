@@ -42,6 +42,27 @@ namespace engine
 {
 namespace vessel
 {
+   memoryBlock::memoryBlock(memoryBlock &&o)
+   {
+      _buffer = o._buffer;
+      _capacity = o._capacity;
+      _size = o._size;
+      o._buffer = NULL;
+      o._capacity = 0;
+      o._size = 0;
+   }
+
+   memoryBlock &memoryBlock::operator=(memoryBlock &&o)
+   {
+      _buffer = o._buffer;
+      _capacity = o._capacity;
+      _size = o._size;
+      o._buffer = NULL;
+      o._capacity = 0;
+      o._size = 0;
+      return *this;
+   }
+
    memoryBlock::~memoryBlock()
    {
       release();

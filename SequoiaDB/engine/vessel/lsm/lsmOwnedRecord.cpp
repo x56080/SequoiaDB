@@ -62,7 +62,7 @@ namespace vessel
       globalIndexID indexId;
       orderingWrapper ow;
       ixmKey key;
-      dmsRecordID rid;
+      recordID rid;
       UINT64 lsn = DPS_INVALID_LSN_OFFSET;
       DPS_TRANS_ID transID;
       UINT32 keyDataSize = 0;

@@ -2184,7 +2184,7 @@ namespace vessel
                                    ixmKeyOwned(*itr),
                                    rr.getCurrentRecordHead().getTransID(),
                                    context->getSession()->getLastLSN(),
-                                   rr.getCurrentRid().toDMSRid());
+                                   rr.getCurrentRid());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert key into index[%s], rc:%d",
@@ -2589,7 +2589,7 @@ namespace vessel
                              uic->getIndexObj(),
                              key, DPS_TRANS_ID(),
                              context->getSession()->getLastLSN(),
-                             dmsRid);
+                             recordID(dmsRid._extent, dmsRid._offset));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",

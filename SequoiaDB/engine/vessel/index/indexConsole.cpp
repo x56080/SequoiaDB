@@ -50,7 +50,7 @@
 #include "vessel/collectionIndexContext.h"
 #include "vessel/dmlContext.h"
 #include "ixmKey.hpp"
-
+#include "ossSharedLatch.hpp"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -286,7 +286,7 @@ namespace vessel
                               const ixmKey &key,
                               const DPS_TRANS_ID &transID,
                               DPS_LSN_OFFSET lsn,
-                              const dmsRecordID &rid)
+                              const recordID &rid)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isInitialized()))
@@ -299,7 +299,7 @@ namespace vessel
                             !obj.isValid() ||
                             !key.isValid() ||
                             DPS_INVALID_LSN_OFFSET == lsn ||
-                            !rid.isValid()))
+                            !rid.valid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -329,7 +329,7 @@ namespace vessel
                                  const ixmKey &key,
                                  const DPS_TRANS_ID &transID,
                                  DPS_LSN_OFFSET lsn,
-                                 const dmsRecordID &rid)
+                                 const recordID &rid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(obj.isValid(), "must be valid");
@@ -884,7 +884,7 @@ namespace vessel
          {
             ixmKeyOwned key(*itr);
             lsmKeyEntry ke;
-            dmsRecordID rid(context->getLastDmlRid().getPageID(),
+            recordID rid(context->getLastDmlRid().getPageID(),
                             context->getLastDmlRid().getSlotID());
 
             ke.shallowCopy(key, rid, context->getLastDmlLSN(), context->getTransID());

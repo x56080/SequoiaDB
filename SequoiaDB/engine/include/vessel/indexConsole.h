@@ -116,7 +116,7 @@ namespace vessel
                       const ixmKey &key,
                       const DPS_TRANS_ID &transID,
                       DPS_LSN_OFFSET lsn,
-                      const dmsRecordID &rid);
+                      const recordID &rid);
 
          INT32 dmlInsert(dmlContext *context,
                          const dmlIndexRequestArray &ra);
@@ -128,7 +128,7 @@ namespace vessel
                          const ixmKey &key,
                          const DPS_TRANS_ID &transID,
                          DPS_LSN_OFFSET lsn,
-                         const dmsRecordID &rid);
+                         const recordID &rid);
 
          INT32 lsmTruncate(requestContext *context,
                            const indexObject &obj);

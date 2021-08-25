@@ -134,6 +134,21 @@ namespace vessel
             return dmsRecordID();
          }
 
+         OSS_INLINE void reset(const dmsRecordID &rid)
+         {
+            if (rid.isValid())
+            {
+               SDB_ASSERT(rid._offset < INVALID_RECORD_SLOT_ID, "out of bound");
+               _page = rid._extent;
+               _slot = rid._offset;
+            }
+            else
+            {
+               _page = INVALID_PAGE_ID;
+               _slot = INVALID_RECORD_SLOT_ID;
+            }
+         }
+
       private:
          PAGE_ID _page;
          RECORD_SLOT_ID _slot;

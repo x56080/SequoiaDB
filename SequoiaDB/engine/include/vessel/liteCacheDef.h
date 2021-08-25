@@ -38,7 +38,7 @@
 
 #include "ossTypes.hpp"
 #include "ossUtil.hpp"
-#include "ossLatch.hpp"
+#include "ossSharedLatch.hpp"
 
 namespace engine
 {

@@ -66,7 +66,7 @@ INT32 lsmIndex::init( LSMDB * lsmdb, const lsmIndexMeta & idxMeta )
                          _idxMeta.getIdxId().getLogicalCSID(),
                          _idxMeta.getIdxId().getLogicalIndexID() + 1);
 
-   dmsRecordID dummyRid(0,0);
+   recordID dummyRid(0,0);
    UINT64 dummyLsn = ((UINT64)(-1));
    DPS_TRANS_ID dummyTxID;
    BSONObj dummyObj ;
@@ -260,7 +260,7 @@ error:
 */
 INT32 lsmIndex::locate( const INT32            direction,
                         const ixmKey           & key,
-                        const dmsRecordID      & rid,
+                        const recordID      & rid,
                         lsmOwnedRecord         & out,
                         BOOLEAN                & exactlyMatched )
 
@@ -562,7 +562,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
    INT32  rc = SDB_IXM_EOC, result  = 0 ;
    BufBuilder builder;
    BSONObj prevKeyBson, locateBson, curKeyBson ;
-   dmsRecordID rid;
+   recordID rid;
    lsmOwnedRecord entryRecord;
    INT32 nFields = 0 ;
    BOOLEAN bLocateObjMatch = FALSE ;
@@ -572,12 +572,12 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
    if ( direction > 0 )
    {
       // set to Min
-      rid.resetMin();
+      rid = recordID(0,0);
    }
    else
    {
       // set to Max
-      rid.resetMax();
+      //invalid rid is max
    }
 
    // prepare key( ixmKey ) for pre-search/locate

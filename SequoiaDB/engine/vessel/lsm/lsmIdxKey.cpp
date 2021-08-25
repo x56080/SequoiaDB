@@ -312,7 +312,7 @@ UINT32 lsmEstDataKeyLen
    const globalIndexID       * pIdxID,             // indexID
    const Ordering         * pOrdering,          // ordering
    const ixmKey           * pKeyObj,            // keyObj
-   const dmsRecordID      * pRid,               // rowid
+   const recordID      * pRid,               // rowid
    const UINT64           * pLSN,               // lsn
    const DPS_TRANS_ID     * pTransID            // transID
 )
@@ -398,7 +398,7 @@ UINT32 lsmPackDataKey
    const globalIndexID       * pIdxID,             // indexID
    const Ordering         * pOrdering,          // ordering
    const ixmKey           * pKeyObj,            // keyObj
-   const dmsRecordID      * pRid,               // rowid
+   const recordID      * pRid,               // rowid
    const UINT64           * pLSN,               // lsn
    const DPS_TRANS_ID     * pTransID            // transID
 )
@@ -470,7 +470,7 @@ INT32 lsmUnpackIndexFullKey
    globalIndexID          &idxID,       // indexID
    orderingWrapper        &ordering,  // ordering
    ixmKey                 &key,  // key
-   dmsRecordID            &rid,  // rowid
+   recordID            &rid,  // rowid
    UINT64                 &lsn,  // lsn
    DPS_TRANS_ID           &transID   // transID
 )
@@ -493,7 +493,7 @@ INT32 lsmUnpackIndexFullKey
    key.assign(ixmKey(buf + offset));
    offset += key.dataSize();
 
-   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(dmsRecordID));
+   LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(recordID));
 
    LSM_UNPACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &lsn, sizeof(UINT64));
 
@@ -511,7 +511,7 @@ INT32 lsmPackIndexFullKey
    const globalIndexID    &idxID,       // indexID
    const orderingWrapper  &ordering,  // ordering
    const ixmKey           &key,  // keyObj
-   const dmsRecordID      &rid,  // rowid
+   const recordID         &rid,  // rowid
    UINT64                 lsn,  // lsn
    const DPS_TRANS_ID     &transID   // transID
 )
@@ -535,7 +535,7 @@ INT32 lsmPackIndexFullKey
 
    LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, key.data(), keyDataSize);
 
-   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(dmsRecordID));
+   LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &rid, sizeof(recordID));
 
    LSM_PACK_COLUMN_OR_GOTO_ERROR(buf, bufSz, &lsn, sizeof(UINT64));
 
@@ -637,7 +637,7 @@ void lsmUnpackDataKey
    Ordering             * pOrdering,        // ordering
    CHAR               * * pObjdata,         // keyObj raw data
    UINT32               * pObjSz,           // keyObj objsize
-   dmsRecordID          * pRid,             // rowid
+   recordID          * pRid,             // rowid
    UINT64               * pLSN,             // lsn
    DPS_TRANS_ID         * pTransID,         // transID
    UINT64               * pOpLSN            // log operation LSN
@@ -838,7 +838,7 @@ BOOLEAN lsmIsSameIndexKey
 (
    const rocksdb::Slice   & aSlice,
    const ixmKey           * pKeyObj,
-   const dmsRecordID      * pRid,
+   const recordID      * pRid,
    const globalIndexID       * pIdxId
 )
 {
@@ -913,7 +913,7 @@ BOOLEAN lsmIsSameIndexKey
       {
          return FALSE ;
       }
-      dmsRecordID *pMyRid = (dmsRecordID*)(aStart + offset) ;
+      recordID *pMyRid = (recordID*)(aStart + offset) ;
       if ( !( *pRid == *pMyRid ) )
       {
          return FALSE;
