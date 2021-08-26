@@ -546,6 +546,66 @@ namespace engine
       goto done ;
    }
 
+   INT32 _ixmIndexCB::_initGlobIndexInfo() const
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( GLOB_INDEX_IS_INITED() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         _isGlobalIndex = _infoObj.getBoolField( IXM_GLOBAL_FIELD ) ;
+         if ( _isGlobalIndex )
+         {
+            BSONObj globalOptions ;
+            BSONElement ele ;
+
+            ele = _infoObj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
+            PD_CHECK( Object == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s] from index [%s]",
+                       IXM_GLOBAL_OPTION_FIELD,
+                       _infoObj.toString().c_str() ) ;
+            globalOptions = ele.embeddedObject() ;
+
+            ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
+            PD_CHECK( NumberLong == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s] from global option [%s]",
+                      FIELD_NAME_CL_UNIQUEID,
+                      globalOptions.toString().c_str() ) ;
+            _indexCLUID = (utilCLUniqueID) ele.numberLong() ;
+
+            ele = globalOptions.getField( FIELD_NAME_COLLECTION ) ;
+            PD_CHECK( String == ele.type(), SDB_SYS, error, PDERROR,
+                      "Failed to get field [%s] from global option [%s]",
+                      FIELD_NAME_COLLECTION,
+                      globalOptions.toString().c_str() ) ;
+            _indexCLName = ele.valuestr() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to extract global index info from "
+                 "index pattern, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      SET_GLOB_INDEX_INITED() ;
+
+   done:
+      return rc ;
+
+   error:
+      // reset on error
+      _isGlobalIndex = FALSE ;
+      _indexCLUID = UTIL_UNIQUEID_NULL ;
+      _indexCLName = NULL ;
+      goto done ;
+   }
+
    /*
       Local static variable define
    */

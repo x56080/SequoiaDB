@@ -222,6 +222,8 @@ namespace engine
       #define SET_CREATE_TIME_INITED()       ( _fieldInitedFlag |= 0x00008000 )
       #define REBUILD_TIME_IS_INITED()       ( _fieldInitedFlag &  0x00010000 )
       #define SET_REBUILD_TIME_INITED()      ( _fieldInitedFlag |= 0x00010000 )
+      #define GLOB_INDEX_IS_INITED()         ( _fieldInitedFlag &  0x00020000 )
+      #define SET_GLOB_INDEX_INITED()        ( _fieldInitedFlag |= 0x00020000 )
 
    private:
 #pragma pack(1)
@@ -261,9 +263,9 @@ namespace engine
       // extent ID for the control block extent
       dmsExtentID _extentID ;
 
-      BOOLEAN _isGlobalIndex ;
-      utilCLUniqueID _indexCLUID ;
-      const CHAR * _indexCLName ;
+      mutable BOOLEAN _isGlobalIndex ;
+      mutable utilCLUniqueID _indexCLUID ;
+      mutable const CHAR * _indexCLName ;
 
       mutable UINT8 _indexObjVersion ;
       mutable BSONObj _keyPattern ;
@@ -309,46 +311,6 @@ namespace engine
          {
             _infoObj = BSONObj( ((const CHAR*)_extent) +
                                 IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
-
-            _isGlobalIndex = _infoObj.getBoolField( IXM_GLOBAL_FIELD ) ;
-            if ( _isGlobalIndex )
-            {
-               BSONObj globalOptions ;
-               BSONElement ele ;
-
-               ele = _infoObj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
-               if ( Object != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of index(%s)",
-                          IXM_GLOBAL_OPTION_FIELD,
-                          _infoObj.toString().c_str() ) ;
-                  return ;
-               }
-
-               globalOptions = ele.embeddedObject() ;
-
-               ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
-               if ( NumberLong != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
-                          FIELD_NAME_CL_UNIQUEID,
-                          globalOptions.toString().c_str() ) ;
-                  return ;
-               }
-
-               _indexCLUID = (utilCLUniqueID) ele.numberLong() ;
-
-               ele = globalOptions.getField( FIELD_NAME_COLLECTION ) ;
-               if ( String != ele.type() )
-               {
-                  PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
-                          FIELD_NAME_COLLECTION,
-                          globalOptions.toString().c_str() ) ;
-                  return ;
-               }
-
-               _indexCLName = ele.valuestr() ;
-            }
          }
          catch ( std::exception &e )
          {
@@ -848,6 +810,12 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
+
+         if ( !GLOB_INDEX_IS_INITED() )
+         {
+            _initGlobIndexInfo() ;
+         }
+
          return _isGlobalIndex ;
       }
 
@@ -855,6 +823,12 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
+
+         if ( !GLOB_INDEX_IS_INITED() )
+         {
+            _initGlobIndexInfo() ;
+         }
+
          return _indexCLUID ;
       }
 
@@ -862,6 +836,12 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
+
+         if ( !GLOB_INDEX_IS_INITED() )
+         {
+            _initGlobIndexInfo() ;
+         }
+
          return _indexCLName ;
       }
 
@@ -1078,6 +1058,8 @@ namespace engine
       UINT64 getRebuildTime() const ;
       // update rebuild time in index CB
       INT32 updateRebuildTime( UINT64 rebuildTime ) ;
+   protected:
+      INT32 _initGlobIndexInfo() const ;
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 

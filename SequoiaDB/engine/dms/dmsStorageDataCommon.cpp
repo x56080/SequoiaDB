@@ -3256,7 +3256,6 @@ namespace engine
       CHAR                *pMergedData = NULL ;
       _dmsCompressorEntry *compressorEntry =
                                     &_compressorEntry[context->mbID()] ;
-      UINT32               textIdxNum  = 0 ;
       IDmsExtDataHandler  *handler  = NULL ;
       BOOLEAN markInsert            = FALSE ;
       BOOLEAN highConcurrentMode    = FALSE ;
@@ -3488,8 +3487,7 @@ namespace engine
             goto error ;
          }
 
-         textIdxNum = context->mbStat()->_textIdxNum ;
-         if ( textIdxNum > 0 )
+         if ( context->mbStat()->_textIdxNum > 0 )
          {
             handler = getExtDataHandler() ;
             if ( handler )
@@ -3766,7 +3764,6 @@ namespace engine
       dmsExtent *pExtent            = NULL ;
       dmsRecord *pRecord            = NULL ;
       dmsRecordData recordData ;
-      UINT32 textIdxNum             = 0 ;
       IDmsExtDataHandler *handler   = NULL ;
       BOOLEAN inTrans               = FALSE ;
       BOOLEAN hasWaitLock           = FALSE ;
@@ -3905,8 +3902,7 @@ namespace engine
                      delObject = delObject.getOwned() ;
                   }
 
-                  textIdxNum = context->mbStat()->_textIdxNum ;
-                  if ( textIdxNum > 0 )
+                  if ( context->mbStat()->_textIdxNum > 0 )
                   {
                      handler = getExtDataHandler() ;
                      if ( handler )
@@ -4260,7 +4256,6 @@ namespace engine
       const dmsExtent *pExtent    = NULL ;
       const dmsRecord *pRecord    = NULL ;
       dmsRecordData    recordData ;
-      UINT32           textIdxNum = 0 ;
       IDmsExtDataHandler *handler = NULL ;
 
       dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
@@ -4397,8 +4392,7 @@ namespace engine
                goto done ;
             }
 
-            textIdxNum = context->mbStat()->_textIdxNum ;
-            if ( textIdxNum > 0 )
+            if ( context->mbStat()->_textIdxNum > 0 )
             {
                handler = getExtDataHandler() ;
                if ( handler )

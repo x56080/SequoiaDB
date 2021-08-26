@@ -320,6 +320,7 @@ namespace engine
                                         BSONObj &originalObj,
                                         BSONObj &newObj,
                                         _pmdEDUCB *cb,
+                                        const ixmIdxHashBitmap &idxHashBitmap,
                                         utilWriteResult *pResult = NULL ) ;
 
          INT32    _globalIndexesInsert( _dmsMBContext *context,
@@ -328,7 +329,8 @@ namespace engine
                                         _pmdEDUCB *cb,
                                         utilWriteResult *pResult = NULL ) ;
 
-         BOOLEAN  _needProcessGlobalIndex( _pmdEDUCB *cb ) ;
+         BOOLEAN  _needProcessGlobalIndex( _dmsMBContext *context,
+                                           _pmdEDUCB *cb ) ;
          BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
                                       const ixmIdxHashBitmap &idxHashBitmap ) ;
 

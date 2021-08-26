@@ -62,6 +62,7 @@ namespace engine
       _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
       _indexObj = indexObj.copy() ;
       _hasAddUnique = FALSE ;
+      _hasAddGlobal = FALSE ;
       _csLID = DMS_INVALID_LOGICCSID ;
       _clLID = DMS_INVALID_LOGICCLID ;
       _dpsCB = dpsCB ;
@@ -80,7 +81,7 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       const CHAR *pCLShortName = NULL ;
 
-      if ( _hasAddUnique )
+      if ( _hasAddUnique || _hasAddGlobal )
       {
          rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
                                                 &su, &pCLShortName,
@@ -109,8 +110,16 @@ namespace engine
             goto done ;
          }
 
-         mbContext->mbStat()->_uniqueIdxNum-- ;
-         _hasAddUnique = FALSE ;
+         if ( _hasAddUnique )
+         {
+            mbContext->mbStat()->_uniqueIdxNum-- ;
+            _hasAddUnique = FALSE ;
+         }
+         if ( _hasAddGlobal )
+         {
+            mbContext->mbStat()->_globIdxNum -- ;
+            _hasAddGlobal = FALSE ;
+         }
       }
 
    done:
@@ -216,11 +225,17 @@ namespace engine
       {
          case RTN_JOB_CREATE_INDEX :
             {
+               BOOLEAN isUnique = FALSE ;
+               BOOLEAN isGlobal = FALSE ;
+
                _jobName = "CreateIndex-" ;
                // need to get the index name
                _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
 
-               if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
+               isUnique = _indexObj.getBoolField( IXM_UNIQUE_FIELD ) ;
+               isGlobal = _indexObj.getBoolField( IXM_GLOBAL_FIELD ) ;
+
+               if ( isUnique || isGlobal )
                {
                   rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                                  EXCLUSIVE ) ;
@@ -231,8 +246,16 @@ namespace engine
                      goto error ;
                   }
 
-                  mbContext->mbStat()->_uniqueIdxNum++ ;
-                  _hasAddUnique = TRUE ;
+                  if ( isUnique )
+                  {
+                     mbContext->mbStat()->_uniqueIdxNum++ ;
+                     _hasAddUnique = TRUE ;
+                  }
+                  if ( isGlobal )
+                  {
+                     mbContext->mbStat()->_globIdxNum ++ ;
+                     _hasAddGlobal = TRUE ;
+                  }
                   _csLID = su->LogicalCSID() ;
                   _clLID = mbContext->clLID() ;
                }

@@ -1959,6 +1959,14 @@ void inspectIndexDef ( OSSFILE &file, UINT32 pageSize, UINT16 collectionID,
                gMBStat._uniqueIdxNum += 1 ;
             }
          }
+         if ( indexDef.hasField ( IXM_GLOBAL_FIELD ) )
+         {
+            BSONElement e = indexDef.getField( IXM_GLOBAL_FIELD ) ;
+            if ( e.booleanSafe() )
+            {
+               gMBStat._globIdxNum += 1 ;
+            }
+         }
       }
       catch( std::exception & )
       {
@@ -2695,10 +2703,12 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
                          " ****The collection index info****"OSS_NEWLINE
                          "   Total Index Pages      : %u"OSS_NEWLINE
                          "   Total Index Free Space : %llu"OSS_NEWLINE
-                         "   Unique Index Number    : %u"OSS_NEWLINE,
+                         "   Unique Index Number    : %u"OSS_NEWLINE
+                         "   Global Index Number    : %u"OSS_NEWLINE,
                          gMBStat._totalIndexPages,
                          gMBStat._totalIndexFreeSpace,
-                         gMBStat._uniqueIdxNum ) ;
+                         gMBStat._uniqueIdxNum,
+                         gMBStat._globIdxNum ) ;
       len += ossSnprintf(gBuffer + len, gBufferSize - len, OSS_NEWLINE);
       flushOutput( gBuffer, len ) ;
    }
