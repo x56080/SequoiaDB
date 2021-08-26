@@ -1,5 +1,14 @@
 package com.sequoias3.region;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
@@ -11,18 +20,9 @@ import com.sequoiadb.task.TaskMgr;
 import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.s3utils.RegionUtils;
 import com.sequoias3.commlibs3.s3utils.bean.Region;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * test content: 删除区域过程中db端节点异常 testlink-case: seqDB-17344
- * 
+ * @Description seqDB-17344:删除区域过程中db端节点异常
  * @author wangkexin
  * @Date 2019.01.29
  * @version 1.00
@@ -46,7 +46,8 @@ public class DeleteRegionWithKillData17344 extends S3TestBase {
         }
     }
 
-    @Test // 可能遇到已知问题 SEQUOIADBMAINSTREAM-5197
+    // 可能遇到已知问题 SEQUOIADBMAINSTREAM-5197
+    @Test(enabled = false)
     public void testDeleteRegion() throws Exception {
         TaskMgr mgr = new TaskMgr();
         GroupMgr groupMgr = GroupMgr.getInstance();
