@@ -51,15 +51,32 @@ namespace fap
 #define FAP_MONGO_PAYLOADD_MAX_SIZE 128
 #define FAP_MONGO_CLIENT_VERSION_STR_MAX_SIZE 128
 
-static void appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
-                                mongoMsgBuffer &msgBuf )
+static INT32 appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
+                                 mongoMsgBuffer &msgBuf )
 {
+   INT32 rc = SDB_OK ;
    BSONObj empty ;
    BSONObj org( bodyBuf.data() ) ;
    msgBuf.zero() ;
-   msgBuf.write( org.objdata(), org.objsize() ) ;
-   msgBuf.write( empty.objdata(), empty.objsize() ) ;
+   
+   rc = msgBuf.write( org.objdata(), org.objsize() ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = msgBuf.write( empty.objdata(), empty.objsize() ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    bodyBuf = engine::rtnContextBuf( msgBuf.data(), msgBuf.size(), 2 ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 static INT32 escapeDot( string& collectionFullName )
@@ -849,10 +866,16 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
    PD_TRACE_ENTRY( SDB_FAPMONGO_GBUILDREPLYCOMMON ) ;
+   INT32 rc = SDB_OK ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
+         goto error ;
+      }
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -868,8 +891,11 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_GBUILDREPLYCOMMON ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 INT32 _mongoDatabaseCommand::_queryMsgInit( const _mongoMessage *pMsg )
@@ -989,10 +1015,16 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
    PD_TRACE_ENTRY( SDB_FAPMONGO_DBBUILDREPLYCOMMON ) ;
+   INT32 rc = SDB_OK ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
+         goto error ;
+      }
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -1008,8 +1040,11 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDREPLYCOMMON ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DBBUILDFIRBATCH, "_mongoDatabaseCommand::_buildFirstBatch" )
@@ -1273,10 +1308,16 @@ INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 {
    SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
    PD_TRACE_ENTRY( SDB_FAPMONGO_CLBUILDREPLYCOMMON ) ;
+   INT32 rc = SDB_OK ;
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
+         goto error ;
+      }
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -1296,8 +1337,11 @@ INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
       headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
    }
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_CLBUILDREPLYCOMMON ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CLBUILDFIRBATCH, "_mongoCollectionCommand::_buildFirstBatch" )
@@ -1409,8 +1453,17 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    MsgOpInsert *pInsert    = NULL ;
    BSONObj docList ;
 
-   sdbMsg.reserve( sizeof( MsgOpInsert ) ) ;
-   sdbMsg.advance( sizeof( MsgOpInsert ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpInsert ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpInsert ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pInsert = ( MsgOpInsert *)sdbMsg.data() ;
    pInsert->header.opCode = MSG_BS_INSERT_REQ ;
@@ -1421,9 +1474,13 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pInsert->w = 0 ;
    pInsert->padding = 0 ;
    pInsert->flags = FLG_INSERT_RETURNNUM ;
-
    pInsert->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pInsert->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pInsert->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // get records to be insert
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DOCUMENTS, docList ) ;
@@ -1440,7 +1497,12 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          PD_CHECK( ele.type() == Object, SDB_INVALIDARG, error, PDERROR,
                    "Invalid object[%s] in mongo %s request",
                    docList.toString().c_str(), name() ) ;
-         sdbMsg.write( ele.Obj(), TRUE ) ;
+
+         rc = sdbMsg.write( ele.Obj(), TRUE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
       sdbMsg.doneLen() ;
    }
@@ -1509,8 +1571,17 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj objList, deleteObj, qObj ;
    BSONObjBuilder operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpDelete ) ) ;
-   sdbMsg.advance( sizeof( MsgOpDelete ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpDelete ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpDelete ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pDel = ( MsgOpDelete *)sdbMsg.data() ;
    pDel->header.opCode = MSG_BS_DELETE_REQ ;
@@ -1521,9 +1592,13 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pDel->w = 0 ;
    pDel->padding = 0 ;
    pDel->flags = FLG_DELETE_RETURNNUM ;
-
    pDel->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pDel->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pDel->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // { delete: "bar", deletes: [ { q: {xxx}, limit: 0 } ] }
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_DELETES, objList ) ;
@@ -1565,8 +1640,18 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    "Failed to convert mongo operator to sdb operator, rc: %d",
                    rc ) ;
 
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
-      sdbMsg.write( BSONObj(), TRUE ) ; // hint
+      rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( BSONObj(), TRUE ) ; // hint
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -1692,8 +1777,17 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj query, updator, hint, setOnObj, objList, updateObj ;
    BSONObjBuilder operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpUpdate ) ) ;
-   sdbMsg.advance( sizeof( MsgOpUpdate ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpUpdate ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpUpdate ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pUpdate = ( MsgOpUpdate *)sdbMsg.data() ;
    pUpdate->header.opCode = MSG_BS_UPDATE_REQ ;
@@ -1704,9 +1798,13 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pUpdate->w = 0 ;
    pUpdate->padding = 0 ;
    pUpdate->flags = FLG_UPDATE_RETURNNUM ;
-
    pUpdate->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pUpdate->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pUpdate->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // { update: "bar",
    //   updates: [ { q: {xxx}, u: {xxx}, upsert: false, multi: true } ... ] }
@@ -1813,9 +1911,24 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    "Failed to convert mongo operator to sdb operator, rc: %d",
                    rc ) ;
 
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
-      sdbMsg.write( updator, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
+      rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( updator, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( hint, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -2244,8 +2357,17 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj cond, orderby, hint ;
    BSONObjBuilder operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -2256,9 +2378,13 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
    pQuery->flags = FLG_QUERY_WITH_RETURNDATA ;
-
    pQuery->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery->numToSkip = _skip ;
    if ( _nReturn > 0 )
@@ -2315,7 +2441,11 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 
    try
    {
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
    }
    catch ( std::exception &e )
    {
@@ -2325,9 +2455,24 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
    
-   sdbMsg.write( _selector, TRUE ) ;
-   sdbMsg.write( orderby, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
+   rc = sdbMsg.write( _selector, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( orderby, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( hint, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    sdbMsg.doneLen() ;
    
 done:
@@ -2354,8 +2499,14 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
       _msgBuf.zero() ;
       while ( offset < bodyBuf.size() )
       {
-         bson::BSONObj obj( bodyBuf.data() + offset ) ;
-         _msgBuf.write( obj.objdata(), obj.objsize() ) ;
+         BSONObj obj( bodyBuf.data() + offset ) ;
+
+         rc = _msgBuf.write( obj.objdata(), obj.objsize() ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
          offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
       }
       bodyBuf = engine::rtnContextBuf( _msgBuf.data(),
@@ -2533,8 +2684,17 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj cond, orderby, hint, selector ;
    BSONObjBuilder operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -2547,9 +2707,13 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->flags = FLG_QUERY_WITH_RETURNDATA ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-
    pQuery->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -2581,10 +2745,30 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    "Failed to convert mongo operator to sdb operator, rc: %d",
                    rc ) ;
 
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
-      sdbMsg.write( selector, TRUE ) ;
-      sdbMsg.write( orderby, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
+      rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( selector, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( orderby, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( hint, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;      
    }
    catch ( std::exception &e )
@@ -2896,9 +3080,19 @@ INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
    MsgOpGetMore *pGetMore = NULL ;
+   INT32 rc = SDB_OK ;
 
-   sdbMsg.reserve( sizeof( MsgOpGetMore ) ) ;
-   sdbMsg.advance( sizeof( MsgOpGetMore ) ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpGetMore ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpGetMore ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pGetMore = ( MsgOpGetMore * )sdbMsg.data() ;
    pGetMore->header.opCode = MSG_BS_GETMORE_REQ ;
@@ -2907,11 +3101,13 @@ INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pGetMore->header.requestID = _requestID ;
    pGetMore->contextID = MGCURSOID_TO_SDBCTXID( _cursorID ) ;
    pGetMore->numToReturn = _nToReturn ;
-
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
    return SDB_OK ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDGETMOREREPLY, "_mongoGetmoreCommand::_buildGetmoreReply" )
@@ -2952,7 +3148,11 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
             }            
          }
 
-         _msgBuf.write( obj.objdata(), obj.objsize() ) ;
+         rc = _msgBuf.write( obj.objdata(), obj.objsize() ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
       bodyBuf = engine::rtnContextBuf( _msgBuf.data(),
                                        _msgBuf.size(),
@@ -3031,7 +3231,13 @@ INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build next batch, rc: %d", rc ) ;
    }
-   appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+   
+   rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
+      goto error ;
+   }
 
    res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
    res.header.responseTo = _requestID ;
@@ -3382,8 +3588,17 @@ INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   sdbMsg.reserve( sizeof( MsgOpKillContexts ) ) ;
-   sdbMsg.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpKillContexts ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pKill = ( MsgOpKillContexts * )sdbMsg.data() ;
    pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
@@ -3399,7 +3614,11 @@ INT32 _mongoKillCursorCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       INT64 contextID = MGCURSOID_TO_SDBCTXID( *it ) ;
       if ( contextID != SDB_INVALID_CONTEXTID )
       {
-         sdbMsg.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
+         rc = sdbMsg.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
    }
 
@@ -3448,8 +3667,14 @@ INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bodyBuf = engine::rtnContextBuf(
                       BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
          }
-         appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
-
+         
+         rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
+            goto error ;
+         }
+         
          mongoCommandResponse res ;
          res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
          res.header.responseTo = _requestID ;
@@ -3485,8 +3710,17 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj empty, hint, matcher ;
    BSONObjBuilder operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -3499,9 +3733,13 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->flags = 0 ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
 
    try
    {
@@ -3536,11 +3774,31 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                    "Failed to convert mongo operator to sdb operator, rc: %d",
                    rc ) ;
 
-      sdbMsg.write( operatorBob.obj(), TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
-      sdbMsg.doneLen() ;      
+      rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( hint, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
    {
@@ -3825,8 +4083,17 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc                = SDB_OK ;
    MsgOpAggregate *pAggre  = NULL ;
 
-   sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
-   sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pAggre = ( MsgOpAggregate * )sdbMsg.data() ;
    pAggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
@@ -3838,7 +4105,12 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->padding = 0 ;
    pAggre->flags = 0 ;
    pAggre->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -3851,7 +4123,11 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          BSONElement ele = it.next() ;
          if ( ele.type() != Object )
          {
-            sdbMsg.write( ele.rawdata(), ele.size(), TRUE ) ;
+            rc = sdbMsg.write( ele.rawdata(), ele.size(), TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
             continue ;
          }
 
@@ -3863,7 +4139,12 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             {
                goto error ;
             }
-            sdbMsg.write( oneStage, TRUE ) ;
+            
+            rc = sdbMsg.write( oneStage, TRUE ) ;
+            if ( rc )
+            {
+               goto error;
+            }
          }
          else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$group" ) )
          {
@@ -3878,7 +4159,11 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             for( std::vector<BSONObj>::iterator it = newStageList.begin() ;
                  it != newStageList.end() ; it++ )
             {
-               sdbMsg.write( *it, TRUE ) ;
+               rc = sdbMsg.write( *it, TRUE ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
             }
          }
          else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$match" ) )
@@ -3890,13 +4175,22 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                          "Failed to convert mongo operator to sdb operator, ",
                          "rc: %d", rc ) ;
 
-            sdbMsg.write( operatorBob.obj(), TRUE ) ;
+            rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
          else
          {
-            sdbMsg.write( oneStage, TRUE ) ;
+            rc = sdbMsg.write( oneStage, TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
+      
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -4006,8 +4300,17 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj match, group1, group2 ;
    BSONObjBuilder builder, operatorBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
-   sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpAggregate ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pAggre = ( MsgOpAggregate * )sdbMsg.data() ;
    pAggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
@@ -4018,9 +4321,13 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->w = 0 ;
    pAggre->padding = 0 ;
    pAggre->flags = 0 ;
-
    pAggre->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -4048,11 +4355,25 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to convert mongo operator to sdb operator, rc: %d",
                       rc ) ;
-         sdbMsg.write( operatorBob.obj(), TRUE ) ;
+         rc = sdbMsg.write( operatorBob.obj(), TRUE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
-      sdbMsg.write( group1, TRUE ) ;
-      sdbMsg.write( group2, TRUE ) ;
+      rc = sdbMsg.write( group1, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( group2, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -4124,8 +4445,17 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
    BSONObj cond, empty ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -4139,7 +4469,12 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
 
    try
    {
@@ -4153,10 +4488,29 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }   
    
-   sdbMsg.write( cond, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
 
    sdbMsg.doneLen() ;
 
@@ -4179,14 +4533,15 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
+         bodyBuf = engine::rtnContextBuf( 
+            BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when building mongo createCL reply"
-              ": %s, rc: %d", e.what(), rc ) ;
+      PD_LOG( PDERROR, "An exception occurred when building mongo createCL "
+              "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
    
@@ -4210,15 +4565,23 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
    BSONObj cond, empty ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
@@ -4226,7 +4589,12 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
 
    try
    {
@@ -4240,10 +4608,29 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }  
    
-   sdbMsg.write( cond, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
 
    sdbMsg.doneLen() ;
 
@@ -4307,15 +4694,23 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
    BSONObj empty, cond ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
@@ -4323,7 +4718,12 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -4337,10 +4737,29 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    } 
    
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( cond, TRUE ) ;
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
+
+   rc = sdbMsg.write( cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error;
+   }
 
    sdbMsg.doneLen() ;
 
@@ -4390,24 +4809,36 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj objList, obj, indexObj ;
    BSONObjBuilder bob ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
    pQuery->flags = 0 ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // { createIndexes: "bar", indexes: [ { key: {a:1}, name: "aIdx" } ] }
    rc = mongoGetArrayElement( _obj, FAP_MONGO_FIELD_NAME_INDEXES, objList ) ;
@@ -4453,10 +4884,30 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       bob.append( FIELD_NAME_INDEX, indexObj ) ;
       bob.append( FIELD_NAME_COLLECTION, _clFullName.c_str() ) ;
 
-      sdbMsg.write( bob.obj(), TRUE ) ;
-      sdbMsg.write( BSONObj(), TRUE ) ;
-      sdbMsg.write( BSONObj(), TRUE ) ;
-      sdbMsg.write( BSONObj(), TRUE ) ;
+      rc = sdbMsg.write( bob.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( BSONObj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( BSONObj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( BSONObj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -4521,15 +4972,23 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
    BSONObj empty, cond ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
@@ -4537,7 +4996,12 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -4557,10 +5021,29 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
    
-   sdbMsg.write( cond, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    sdbMsg.doneLen() ;
 
@@ -4615,24 +5098,36 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
    BSONObj obj, empty ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
    pQuery->flags = 0 ;
-
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -4646,10 +5141,29 @@ INT32 _mongoDropDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   sdbMsg.write( obj, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( obj, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    sdbMsg.doneLen() ;
 
@@ -4759,8 +5273,17 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BOOLEAN digestPasswd = TRUE ;
    string  md5PwdStr ;
 
-   sdbMsg.reserve( sizeof( MsgAuthCrtUsr ) ) ;
-   sdbMsg.advance( sizeof( MsgAuthCrtUsr ) ) ;
+   rc = sdbMsg.reserve( sizeof( MsgAuthCrtUsr ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgAuthCrtUsr ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pCtrUser = ( MsgAuthCrtUsr * )sdbMsg.data() ;
    pCtrUser->header.opCode = MSG_AUTH_CRTUSR_REQ ;
@@ -4846,7 +5369,12 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   sdbMsg.write( obj, TRUE ) ;
+   rc = sdbMsg.write( obj, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    sdbMsg.doneLen() ;
 
 done:
@@ -5005,8 +5533,17 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj obj ;
    const CHAR* pUserName = NULL ;
 
-   sdbMsg.reserve( sizeof( MsgAuthDelUsr ) ) ;
-   sdbMsg.advance( sizeof( MsgAuthDelUsr ) ) ;
+   rc = sdbMsg.reserve( sizeof( MsgAuthDelUsr ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgAuthDelUsr ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pAuth = ( MsgAuthDelUsr * )sdbMsg.data() ;
    pAuth->header.opCode = MSG_AUTH_DELUSR_REQ ;
@@ -5039,7 +5576,12 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
    
-   sdbMsg.write( obj, TRUE ) ;
+   rc = sdbMsg.write( obj, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    sdbMsg.doneLen() ;
 
 done:
@@ -5200,9 +5742,19 @@ INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
+   BSONObj empty ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -5216,17 +5768,44 @@ INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
-   BSONObj empty ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERBUILDSDBREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY, "_mongoListUserCommand::buildMongoReply" )
@@ -5412,9 +5991,17 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       }
       pClientNonce = p + 2 ;
 
-      // build message
-      sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
-      sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+      rc = sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
       pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
@@ -5426,7 +6013,13 @@ INT32 _mongoSaslStartCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                   SDB_AUTH_USER << pUserName <<
                   SDB_AUTH_NONCE << pClientNonce <<
                   SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
-      sdbMsg.write( obj, TRUE ) ;
+
+      rc = sdbMsg.write( obj, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
 
       ctx.userName = pUserName ;
@@ -5611,7 +6204,7 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      if( 0 == payloadLen || 'v' == payload[0] )
+      if( 0 == payloadLen || 'v' == pPayload[0] )
       {
          // step 3 format: { payload: "" } or { payload: "v=ServerSignature" }
          _step = MONGO_AUTH_STEP3 ;
@@ -5647,9 +6240,17 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       }
       pClientProof = p + 2 ;
 
-      // build message
-      sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
-      sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+      rc = sdbMsg.reserve( sizeof( MsgAuthentication ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       pAuth = ( MsgAuthentication * ) sdbMsg.data() ;
       pAuth->header.opCode = MSG_AUTH_VERIFY1_REQ ;
@@ -5663,7 +6264,13 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                   SDB_AUTH_IDENTIFY << pChannel <<
                   SDB_AUTH_PROOF << pClientProof <<
                   SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
-      sdbMsg.write( obj, TRUE ) ;
+      
+      rc = sdbMsg.write( obj, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
 
       ctx.authInfo.nonce = pNonce ;
@@ -5775,24 +6382,36 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    string lowBound ;
    string upBound ;   
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
    pQuery->flags = 0 ;
-
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    // filter cs[foo]'s collections
    // condition: { Name: { $gt: "foo.", $lt: "foo/" }, ... }
@@ -5805,10 +6424,30 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       builder.appendElements( _obj.getObjectField( "filter" ) ) ;
       builder.append( "Name", BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
 
-      sdbMsg.write( builder.obj(), TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
+      rc = sdbMsg.write( builder.obj(), TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error;
+      }
+
+      rc = sdbMsg.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = sdbMsg.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -5865,36 +6504,70 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    INT32 rc             = SDB_OK ;
    MsgOpQuery *pQuery   = NULL ;
    const CHAR *pCmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
+   BSONObj empty ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )sdbMsg.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
    pQuery->header.TID = 0 ;
    pQuery->header.routeID.value = 0 ;
    pQuery->header.requestID = _requestID ;
-
    pQuery->version = 0 ;
    pQuery->w = 0 ;
    pQuery->padding = 0 ;
    pQuery->flags = 0 ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
-   BSONObj empty ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
-   sdbMsg.write( empty, TRUE ) ;
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    sdbMsg.doneLen() ;
 
+done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTDBBUILDSDBREQ, rc ) ;
    return rc ;
+error:
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY, "_mongoListDatabaseCommand::buildMongoReply" )
@@ -6336,8 +7009,17 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BOOLEAN isRemove = FALSE ;
    BSONObjBuilder operatorBob, hintBob ;
 
-   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pFindAndModify = ( MsgOpQuery * )sdbMsg.data() ;
    pFindAndModify->header.opCode = MSG_BS_QUERY_REQ ;
@@ -6352,9 +7034,14 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    // findAndModify, findOneAndUpdate, findOneAndDelete and findOneAndReplace
    // will only modify and return a single document
    pFindAndModify->numToReturn = 1 ;
-
    pFindAndModify->nameLength = _clFullName.length() ;
-   sdbMsg.write( _clFullName.c_str(), pFindAndModify->nameLength + 1, TRUE ) ;
+   
+   rc = sdbMsg.write( _clFullName.c_str(), pFindAndModify->nameLength + 1,
+                      TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    try
    {
@@ -6558,10 +7245,30 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       goto error ;
    }
 
-   sdbMsg.write( _cond, TRUE ) ;
-   sdbMsg.write( selector, TRUE ) ;
-   sdbMsg.write( sort, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
+   rc = sdbMsg.write( _cond, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( selector, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( sort, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = sdbMsg.write( hint, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    sdbMsg.doneLen() ;
 
 done:

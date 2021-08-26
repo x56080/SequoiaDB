@@ -62,19 +62,31 @@ namespace fap
 #define FAP_MONGO_ERROR_RESPONSE_MAX_LEN 128
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDGETMORESDBMSG, "buildGetMoreSdbMsg" )
-static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
-                                mongoMsgBuffer &out )
+static INT32 buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
+                                 mongoMsgBuffer &out )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
+   INT32 rc = SDB_OK ;
+   MsgOpGetMore *pGetmore = NULL ;
 
    if ( !out.empty() )
    {
       out.zero() ;
    }
-   out.reserve( sizeof( MsgOpGetMore ) ) ;
-   out.advance( sizeof( MsgOpGetMore ) ) ;
 
-   MsgOpGetMore *pGetmore = (MsgOpGetMore *)out.data() ;
+   rc = out.reserve( sizeof( MsgOpGetMore ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = out.advance( sizeof( MsgOpGetMore ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   pGetmore = (MsgOpGetMore *)out.data() ;
    pGetmore->header.messageLength = sizeof( MsgOpGetMore ) ;
    pGetmore->header.opCode = MSG_BS_GETMORE_REQ ;
    pGetmore->header.requestID = requestID ;
@@ -83,8 +95,11 @@ static void buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
    pGetmore->contextID = contextID ;
    pGetmore->numToReturn = -1 ;
 
+done:
    PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
-   return ;
+   return rc ;
+error:
+   goto done ;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -965,8 +980,18 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
    BSONObj obj, empty ;
 
    _tmpBuffer.zero() ;
-   _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
-   _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   
+   rc = _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
    pQuery = ( MsgOpQuery * )_tmpBuffer.data() ;
    pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -993,11 +1018,36 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
       goto error ;
    }
    
-   _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
-   _tmpBuffer.write( obj, TRUE ) ;
-   _tmpBuffer.write( empty, TRUE ) ;
-   _tmpBuffer.write( empty, TRUE ) ;
-   _tmpBuffer.write( empty, TRUE ) ;
+   rc = _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = _tmpBuffer.write( obj, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = _tmpBuffer.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = _tmpBuffer.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
+   rc = _tmpBuffer.write( empty, TRUE ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    _tmpBuffer.doneLen() ;
 
    rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
@@ -1044,11 +1094,16 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    }
 
    _tmpBuffer.zero() ;
-   _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
+   
+   rc = _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+
    rc = _tmpBuffer.advance( sizeof( MsgOpInsert ) - 4 ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -1063,19 +1118,19 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    pInsert->flags = FLG_INSERT_RETURNNUM ;
 
    pInsert->nameLength = ossStrlen( pClFullName ) ;
+   
    rc = _tmpBuffer.write( pClFullName, pInsert->nameLength + 1, TRUE ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Failed to write cl full name, rc: %d", rc ) ;
       goto error ;
    }
+   
    rc = _tmpBuffer.write( target, TRUE ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Failed to write the record we will insert, "
-              "rc: %d", rc ) ;
       goto error ;
    }
+   
    _tmpBuffer.doneLen() ;
 
    rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
@@ -1111,8 +1166,18 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pCSName,
    while( TRUE )
    {
       _tmpBuffer.zero() ;
-      _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
-      _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
+      
+      rc = _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _tmpBuffer.advance( sizeof( MsgOpQuery ) - 4 ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
 
       pQuery = ( MsgOpQuery * )_tmpBuffer.data() ;
       pQuery->header.opCode = MSG_BS_QUERY_REQ ;
@@ -1139,11 +1204,36 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pCSName,
          goto error ;
       }
 
-      _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
-      _tmpBuffer.write( obj, TRUE ) ;
-      _tmpBuffer.write( empty, TRUE ) ;
-      _tmpBuffer.write( empty, TRUE ) ;
-      _tmpBuffer.write( empty, TRUE ) ;
+      rc = _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _tmpBuffer.write( obj, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _tmpBuffer.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _tmpBuffer.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _tmpBuffer.write( empty, TRUE ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       _tmpBuffer.doneLen() ;
 
       rc = _processMsg( (CHAR*)pQuery, errorObj ) ;
@@ -1204,13 +1294,19 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    }
 
    _tmpBuffer.zero() ;
-   _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
-   _tmpBuffer.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+   
+   rc = _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
       goto error ;
    }
+
+   rc = _tmpBuffer.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
+   
    pKill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
    pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
    pKill->header.TID = 0 ;
@@ -1222,7 +1318,6 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    rc = _tmpBuffer.write( (CHAR*)&contextID, sizeof( SINT64 ) ) ;
    if ( rc )
    {
-      PD_LOG( PDERROR, "Failed to write contextID, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -1418,8 +1513,14 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       }
       else if ( !hasBuildGetMore && _shouldBuildGetMoreMsg( pCommand ) )
       {
-         buildGetMoreSdbMsg( _replyHeader.header.requestID,
-                             _replyHeader.contextID, _inBuffer ) ;
+         rc = buildGetMoreSdbMsg( _replyHeader.header.requestID,
+                                  _replyHeader.contextID, _inBuffer ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to build sdb getMore msg, rc: %d", rc ) ;
+            goto error;
+         }
+         
          hasBuildGetMore = TRUE ;
          // In SequoiaDB, count command is executed in three steps:
          // first: count, and return a cursor
@@ -1611,21 +1712,22 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       {
          BSONObj empty ;
          BSONObj org( _contextBuff.data() ) ;
+         
          _tmpBuffer.zero() ;
+         
          rc = _tmpBuffer.write( org.objdata(), org.objsize() ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to write data we will reply, "
-                    "rc: %d", rc ) ;
             goto error ;
          }
+
+         
          rc = _tmpBuffer.write( empty.objdata(), empty.objsize() ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to write data we will reply, "
-                    "rc: %d", rc ) ;
             goto error ;
          }
+         
          _contextBuff = rtnContextBuf( _tmpBuffer.data(), _tmpBuffer.size(), 2 ) ;
 
          mongoCommandResponse res ;

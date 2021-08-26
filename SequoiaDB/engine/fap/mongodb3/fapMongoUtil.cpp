@@ -47,6 +47,23 @@ namespace fap
 
 static _mongoErrorObjAssit errorObjAssit ;
 
+_mongoMsgBuffer::_mongoMsgBuffer()
+{
+   _pData = NULL ;
+   _size = 0 ;
+   _capacity = 0 ;
+   _alloc( MEMERY_BLOCK_SIZE ) ;
+}
+
+_mongoMsgBuffer::~_mongoMsgBuffer()
+{
+   if ( NULL != _pData )
+   {
+      SDB_OSS_FREE( _pData ) ;
+      _pData = NULL ;
+   }
+}
+
 INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
@@ -54,6 +71,7 @@ INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
    if( 0 ==  size )
    {
       rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "Malloc size can't be 0, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -61,6 +79,7 @@ INT32 _mongoMsgBuffer::_alloc( const UINT32 size )
    if ( NULL == _pData )
    {
       rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Failed to malloc memory, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -79,6 +98,7 @@ INT32 _mongoMsgBuffer::_realloc( const UINT32 size )
    if ( 0 == size )
    {
       rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "Realloc size can't be 0, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -92,6 +112,7 @@ INT32 _mongoMsgBuffer::_realloc( const UINT32 size )
    if ( NULL == ptr )
    {
       rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Failed to realloc memory, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -115,6 +136,8 @@ INT32 _mongoMsgBuffer::write( const CHAR *pIn, const UINT32 inLen,
    if ( NULL == pIn )
    {
       rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "The content to be written can't be null, "
+               "rc: %d", rc ) ;
       goto error ;
    }
 
@@ -189,6 +212,7 @@ INT32 _mongoMsgBuffer::advance( const UINT32 pos )
    if ( pos > _capacity )
    {
       rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Position must be less than capacity, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -198,6 +222,34 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 _mongoMsgBuffer::reserve( const UINT32 size )
+{
+   INT32 rc = SDB_OK ;
+
+   if ( size < _capacity )
+   {
+      goto done ;
+   }
+
+   rc = _realloc( size ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to realloc memory, rc: %d", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+void _mongoMsgBuffer::zero()
+{
+   ossMemset( _pData, 0, _capacity ) ;
+   _size = 0 ;
 }
 
 _mongoErrorObjAssit::_mongoErrorObjAssit()

@@ -54,24 +54,8 @@ namespace fap
 class _mongoMsgBuffer : public engine::_utilPooledObject
 {
 public:
-   _mongoMsgBuffer() : _pData( NULL ), _size( 0 ), _capacity( 0 )
-   {
-      _alloc( MEMERY_BLOCK_SIZE ) ;
-   }
-
-   ~_mongoMsgBuffer()
-   {
-      if ( NULL != _pData )
-      {
-         SDB_OSS_FREE( _pData ) ;
-         _pData = NULL ;
-      }
-   }
-
-   BOOLEAN empty() const
-   {
-      return 0 == _size ;
-   }
+   _mongoMsgBuffer() ;
+   ~_mongoMsgBuffer() ;
 
    INT32 write( const CHAR *pIn, const UINT32 inLen,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
@@ -81,10 +65,13 @@ public:
 
    INT32 advance( const UINT32 pos ) ;
 
-   void zero()
+   void zero() ;
+
+   INT32 reserve( const UINT32 size ) ;
+
+   BOOLEAN empty() const
    {
-      ossMemset( _pData, 0, _capacity ) ;
-      _size = 0 ;
+      return 0 == _size ;
    }
 
    CHAR *data() const
@@ -100,16 +87,6 @@ public:
    const UINT32 capacity() const
    {
       return _capacity ;
-   }
-
-   void reserve( const UINT32 size )
-   {
-      if ( size < _capacity )
-      {
-         return ;
-      }
-
-      _realloc( size ) ;
    }
 
    void doneLen()
