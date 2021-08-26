@@ -1,4 +1,7 @@
-**MySQL实例组件使用注意事项**
+[^_^]:
+    MySQL 实例-注意事项
+
+本文档将介绍使用 MySQL 实例组件的注意事项。
 
 - MySQL 实例不支持创建外键。
 
@@ -31,8 +34,8 @@
     * 自增字段数值增长到自身类型最大值时，会报“序列值超出范围”错误且插入数据失败。
 
 [^_^]:
-    本文使用到的所有连接及引用。
-[config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md
+    本文使用到的所有连接及引用
+[config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/database_and_table_operation.md#自定义表配置
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
 [auto_increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#自增字段
 

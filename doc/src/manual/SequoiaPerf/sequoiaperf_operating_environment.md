@@ -46,7 +46,7 @@ SequoiaPerf 可以使用以下浏览器：
 [^_^]:
     本文使用的所有引用及链接
 
-[cluster]:manual/Deployment/cluster_deployement.md
+[cluster]:manual/Deployment/cluster_deployment.md
 [ntp]:https://www.pool.ntp.org/en/use.html
 [coord]:manual/Distributed_Engine/Architecture/Node/coord_node.md
 

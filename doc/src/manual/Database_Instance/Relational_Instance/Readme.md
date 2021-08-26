@@ -12,19 +12,20 @@ SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型
 |开发|[MySQL 驱动下载][engine_download]<br>[JDBC 驱动][JDBC]<br>[ODBC 驱动][ODBC]|[PostgreSQL 驱动下载][engine]<br>[JDBC][JD]<br>[ODBC][OD]|[Spark 驱动下载][download]<br>[JDBC][BC]|
 
 
-[sdb_mysql_ctl]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/sdb_mysql_ctl.md
+[^_^]:
+     本文使用的所有引用及链接
+[sdb_mysql_ctl]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/sdb_mysql_ctl.md
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
-[setup]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/install_deploy.md
-[service]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/sequoiasql_mysql.md
-[mysql_ha]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/ha.md
-[mysql_instance_group]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/instance_group.md
-[upgrade]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/upgrade.md
+[setup]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Installation/install_deploy.md
+[mysql_ha]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Installation/ha.md
+[mysql_instance_group]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Installation/instance_group.md
+[upgrade]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/upgrade.md
 [usage]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/connection.md
-[config]: manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md
-[data_type]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/data_type.md
-[attention]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/attention.md
-[error_code]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/error_code.md
-[uninstall]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/uninstall.md
+[config]: manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/config.md
+[data_type]:manual/Database_Instance/Relational_Instance/MySQL_Instance/data_type.md
+[attention]:manual/Database_Instance/Relational_Instance/MySQL_Instance/attention.md
+[error_code]:manual/Database_Instance/Relational_Instance/MySQL_Instance/error_code.md
+[uninstall]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/uninstall.md
 [engine_download]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Development/engine_download.md
 [JDBC]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Development/JDBC.md
 [ODBC]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Development/ODBC.md

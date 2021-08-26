@@ -31,9 +31,9 @@ SequoiaDB Shell 包含的类如下：
      本文使用的所有引用及链接
 [Global]:manual/Manual/Sequoiadb_Command/Global
 [Sdb]:manual/Manual/Sequoiadb_Command/Sdb
-[SecureSdb]:manual/Manual/Sequoiadb_Command/SecureSdb
+[SecureSdb]:manual/Manual/Sequoiadb_Command/SecureSdb.md
 [SdbCS]:manual/Manual/Sequoiadb_Command/SdbCS
-[SdbCollection]:manual/Manual/Sequoiadb_Command/SdbCollection
+[SdbCollection]:manual/Manual/Sequoiadb_Command/SdbCollection/Readme.md
 [SdbCursor]:manual/Manual/Sequoiadb_Command/SdbCursor
 [SdbQuery]:manual/Manual/Sequoiadb_Command/SdbQuery
 [SdbReplicaGroup]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup
@@ -53,4 +53,4 @@ SequoiaDB Shell 包含的类如下：
 [System]:manual/Manual/Sequoiadb_Command/System
 [AuxiliaryObjects]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects
 [SpecialObjects]:manual/Manual/Sequoiadb_Command/SpecialObjects
-[location]:manual/Manual/Sequoiadb_Command/location
+[location]:manual/Manual/Sequoiadb_Command/location.md

@@ -282,7 +282,7 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
     本文所用到的所有链接和引用
 
 [engine_install]:manual/Deployment/engine_install.md
-[install_deploy]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/install_deploy.md
+[install_deploy]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Installation/install_deploy.md
 [quickdeploy]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/quickdeploy.md
 [setup]:manual/Quick_Start/quick_deployment.md#清除SequoiaDB及MySQL实例组件
 [quickstart_1]:images/Quick_Start/quickstart_1.png

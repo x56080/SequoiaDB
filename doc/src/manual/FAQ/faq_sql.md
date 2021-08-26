@@ -24,5 +24,5 @@
 
 [^_^]:
      本文使用的所有引用及链接
-[error_code]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/error_code.md
+[error_code]:manual/Database_Instance/Relational_Instance/MySQL_Instance/error_code.md
 [sdb_faq]:manual/FAQ/faq_sdb.md

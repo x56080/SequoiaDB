@@ -159,7 +159,7 @@ v2.0 及以上版本
 [^_^]:
     本文使用的所有引用及链接
 [location]:manual/Manual/Sequoiadb_Command/location.md
-[snapshot]:manual/Manual/Snapshot/snapshot.md
+[snapshot]:manual/Manual/Snapshot/Readme.md
 [SDB_SNAP_SESSIONS]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
 [SDB_SNAP_SESSIONS_CURRENT]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS_CURRENT.md
 [SDB_SNAP_DATABASE]:manual/Manual/Snapshot/SDB_SNAP_DATABASE.md

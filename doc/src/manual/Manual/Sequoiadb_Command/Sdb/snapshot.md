@@ -196,7 +196,7 @@ v2.0 及以上版本
 
 [^_^]:
      本文使用的所有引用及链接
-[snapshot]:manual/Manual/Snapshot/snapshot.md
+[snapshot]:manual/Manual/Snapshot/Readme.md
 [location]:manual/Manual/Sequoiadb_Command/location.md
 [shotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

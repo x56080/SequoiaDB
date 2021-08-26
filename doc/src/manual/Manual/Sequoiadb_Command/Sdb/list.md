@@ -104,7 +104,7 @@ v2.0 及以上版本
 [^_^]:
      本文使用的所有引用及链接
 [location]:manual/Manual/Sequoiadb_Command/location.md
-[list_info]:manual/Manual/List/list.md
+[list_info]:manual/Manual/List/Readme.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

@@ -385,6 +385,6 @@ ha_inst_group_clear 工具用于清除实例组或者实例的配置信息。
 [^_^]:
 
     本文使用到的所有连接及引用。
-[instance_group]:images/Database_Instance/Relational_Instance/MySQL_Instance/Operation/instance_group.png
+[instance_group]:images/Database_Instance/Relational_Instance/MySQL_Instance/Installation/instance_group.png
 [sdb_maria_ctl]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/sdb_maria_ctl.md
 [sdb_snap_configs]:manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md

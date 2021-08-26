@@ -107,43 +107,25 @@
                "dir": "Relational_Instance",
                "cn": "关系型数据库实例",
                "en": "Relational Instance",
-               "top": true,
                "contents": [
                   {
                      "id": 1521595228,
                      "dir": "MySQL_Instance",
-                     "cn": "MySQL实例",
+                     "cn": "MySQL 实例",
                      "en": "MySQL Instance",
+                     "top": true,
                      "contents": [
                         {
-                           "id": 1574045901,
-                           "dir": "Operation",
-                           "cn": "操作",
-                           "en": "Operation",
+                           "id": 1628062061,
+                           "dir": "Installation",
+                           "cn": "安装",
+                           "en": "Installation",
                            "contents": [
                               {
                                  "id": 1521595270,
                                  "file": "install_deploy",
                                  "cn": "安装部署",
                                  "en": "Install and Deploy"
-                              },  
-                              {
-                                 "id": 1521595283,
-                                 "file": "connection",
-                                 "cn": "使用",
-                                 "en": "Connection"
-                              },
-                              {
-                                 "id": 1566551297,
-                                 "file": "config",
-                                 "cn": "配置",
-                                 "en": "Configuration"
-                              },
-                              {
-                                 "id": 1572505575,
-                                 "file": "ha",
-                                 "cn": "高可用",
-                                 "en": "High Availability"
                               },
                               {
                                  "id": 1608537490,
@@ -152,16 +134,36 @@
                                  "en": "Instance Group"
                               },
                               {
-                                 "id": 1595583537,
-                                 "file": "sdb_mysql_ctl",
-                                 "cn": "实例管理工具",
-                                 "en": "Instance management tool"
+                                 "id": 1572505575,
+                                 "file": "ha",
+                                 "cn": "元数据同步工具",
+                                 "en": "High Availability"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1574045901,
+                           "dir": "Operation",
+                           "cn": "操作",
+                           "en": "Operation",
+                           "contents": [ 
+                              {
+                                 "id": 1521595283,
+                                 "file": "connection",
+                                 "cn": "连接",
+                                 "en": "Connection"
                               },
                               {
-                                 "id": 1619750158,
-                                 "file": "federal_query",
-                                 "cn": "联邦查询",
-                                 "en": "federal query"
+                                 "id": 1628062041,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
+                              },
+                              {
+                                 "id": 1628062048,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
                               },
                               {
                                  "id": 1589347299,
@@ -170,22 +172,30 @@
                                  "en": "Partition"
                               },
                               {
-                                 "id": 1574045910,
-                                 "file": "data_type",
-                                 "cn": "数据类型映射表",
-                                 "en": "data type map table"
+                                 "id": 1619750158,
+                                 "file": "federal_query",
+                                 "cn": "联邦查询",
+                                 "en": "federal query"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1628060723,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1566551297,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Configuration"
                               },
                               {
-                                 "id": 1521595284,
-                                 "file": "attention",
-                                 "cn": "注意事项",
-                                 "en": "attention"
-                              },
-                              {
-                                 "id": 1555382544,
-                                 "file": "error_code",
-                                 "cn": "错误码",
-                                 "en": "Error Code"
+                                 "id": 1595583537,
+                                 "file": "sdb_mysql_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance management tool"
                               },
                               {
                                  "id": 1556198260,
@@ -204,28 +214,46 @@
                         {
                            "id": 1595583528,
                            "dir": "Development",
-                           "cn": "开发",
+                           "cn": "驱动",
                            "en": "Development",
                            "contents": [
                               {
                                  "id": 1603248345,
                                  "file": "engine_download",
-                                 "cn": "MySQL驱动下载",
+                                 "cn": "MySQL 驱动下载",
                                  "en": "Engine Download"
                               },
                               {
                                  "id": 1603248355,
                                  "file": "JDBC",
-                                 "cn": "JDBC驱动",
+                                 "cn": "JDBC 驱动",
                                  "en": "JDBC Engine"
                               },
                               {
                                  "id": 1603248361,
                                  "file": "ODBC",
-                                 "cn": "ODBC驱动",
+                                 "cn": "ODBC 驱动",
                                  "en": "ODBC Engine"
                               }
                            ]
+                        },
+                        {
+                           "id": 1574045910,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "data type map table"
+                        },
+                        {
+                           "id": 1555382544,
+                           "file": "error_code",
+                           "cn": "错误码",
+                           "en": "Error Code"
+                        },
+                        {
+                           "id": 1521595284,
+                           "file": "attention",
+                           "cn": "注意事项",
+                           "en": "attention"
                         }
                      ]
                   },
@@ -234,6 +262,7 @@
                      "dir": "MariaDB_Instance",
                      "cn": "MariaDB实例",
                      "en": "MariaDB Instance",
+                     "top": true,
                      "contents": [
                         {
                            "id": 1575355401,
@@ -334,6 +363,7 @@
                      "dir": "PostgreSQL_Instance",
                      "cn": "PostgreSQL实例",
                      "en": "PostgreSQL Instance",
+                     "top": true,
                      "contents": [
                         {
                            "id": 1519627742,
@@ -400,6 +430,7 @@
                      "dir": "SparkSQL_Instance",
                      "cn": "Spark实例",
                      "en": "Spark Instance",
+                     "top": true,
                      "contents": [
                         {
                            "id": 1603248417,

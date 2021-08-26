@@ -261,7 +261,7 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[snapshot]:manual/Manual/Snapshot/snapshot.md
+[snapshot]:manual/Manual/Snapshot/Readme.md
 [SNAP_CONFIGS]:manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md
 [SNAP_QUERIES]:manual/Manual/Snapshot/SDB_SNAP_QUERIES.md
 [SNAP_LOCKWAITS]:manual/Manual/Snapshot/SDB_SNAP_LOCKWAITS.md

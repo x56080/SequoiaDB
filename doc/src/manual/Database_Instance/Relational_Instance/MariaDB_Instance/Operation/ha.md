@@ -224,5 +224,5 @@ last_parse_row = 123
 [^_^]:
 
     本文使用到的所有连接及引用。
-[meta_sync]:images/Database_Instance/Relational_Instance/MySQL_Instance/Operation/meta_sync.png
+[meta_sync]:images/Database_Instance/Relational_Instance/MySQL_Instance/Installation/meta_sync.png
 [connection]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/connection.md
