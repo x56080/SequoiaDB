@@ -16,16 +16,10 @@ SdbCollection
 .PP
 该函数用于获取当前集合中指定的索引信息。
 .SH 参数
-.IP \[bu] 2
-name ( \f[I]string\f[]， \f[I]必填\f[] )
 .PP
-被指定的索引名。
-.RS
+name（ \f[I]string，必填\f[] ）
 .PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-索引名不能是空串，含点（.）或者美元符号（$），且长度不超过127B。
-.RE
+索引名，长度不能超过 127B，且不能是空串、含点（.）或含美元符号（$）
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 BSONObj
@@ -34,7 +28,7 @@ name ( \f[I]string\f[]， \f[I]必填\f[] )
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]getIndex()\f[]函数常见异常如下：
+\f[C]getIndex()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -44,7 +38,7 @@ T{
 T}@T{
 错误码
 T}@T{
-错误名
+错误类型
 T}@T{
 可能发生的原因
 T}@T{
@@ -77,13 +71,12 @@ T}
 .PP
 v1.10 及以上版本
 .SH 示例
-.IP \[bu] 2
-获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在。
-.RS 2
+.PP
+获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在
 .IP
 .nf
 \f[C]
->\ db.sample.employee.getIndex(\ "ageIndex"\ )
+>\ db.sample.employee.getIndex("ageIndex")
 \f[]
 .fi
 .PP
@@ -112,4 +105,3 @@ v1.10 及以上版本
 }
 \f[]
 .fi
-.RE

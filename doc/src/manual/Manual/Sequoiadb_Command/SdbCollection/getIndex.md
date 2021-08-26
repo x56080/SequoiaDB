@@ -4,7 +4,7 @@ getIndex - 获取指定索引
 
 ##语法##
 
-**db.collectionspace.collection.getIndex\(\<name\>\)**
+**db.collectionspace.collection.getIndex(\<name\>)**
 
 ##类别##
 
@@ -16,13 +16,9 @@ SdbCollection
 
 ##参数##
 
-* name ( *string*， *必填* )
+name（ *string，必填* ）
 
-被指定的索引名。
-
-> **Note:**
->
-> * 索引名不能是空串，含点（.）或者美元符号（$），且长度不超过127B。
+索引名，长度不能超过 127B，且不能是空串、含点（.）或含美元符号（$）
 
 ##返回值##
 
@@ -32,13 +28,13 @@ SdbCollection
 
 ##错误##
 
-`getIndex()`函数常见异常如下：
+`getIndex()` 函数常见异常如下：
 
-|错误码|错误名|可能发生的原因|解决办法|
-|------|------|--------------|--------|
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | -------- | -------------- | -------- |
 | -47  | SDB_IXM_NOTEXIST | 索引不存在 | 检查索引是否存在 |
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
@@ -46,38 +42,40 @@ v1.10 及以上版本
 
 ##示例##
 
-* 获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在。
+获取集合 sample.employee 下名为 ageIndex 的索引信息，假设 ageIndex 已存在
 
-    ```lang-javascript
-    > db.sample.employee.getIndex( "ageIndex" )
-    ```
+```lang-javascript
+> db.sample.employee.getIndex("ageIndex")
+```
 
-    结果如下：
+结果如下：
 
-    ```lang-text
-    {
-     "IndexDef": {
-         "name": "ageIndex",
-         "_id": {
-           "$oid": "5f4f3b938f5a48a0c3a5f3ad"
-         },
-         "key": {
-           "age": 1
-         },
-         "v": 0,
-        "unique": true,
-         "dropDups": false,
-         "enforced": false,
-         "NotNull": false,
-         "NotArray": false
-      },
-      "IndexFlag": "Normal",
-      "Type": "Positive"
-    }
-    ```
+```lang-json
+{
+ "IndexDef": {
+     "name": "ageIndex",
+     "_id": {
+       "$oid": "5f4f3b938f5a48a0c3a5f3ad"
+     },
+     "key": {
+       "age": 1
+     },
+     "v": 0,
+    "unique": true,
+     "dropDups": false,
+     "enforced": false,
+     "NotNull": false,
+     "NotArray": false
+  },
+  "IndexFlag": "Normal",
+  "Type": "Positive"
+}
+```
 
 [^_^]:
      本文使用的所有引用及链接
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
