@@ -1260,13 +1260,13 @@
                   {
                      "id": 1627442024,
                      "file": "collectionspace_operation",
-                     "cn": "库操作",
+                     "cn": "集合空间操作",
                      "en": "CollectionSpace Operation"
                   },
                   {
                      "id": 1627442029,
                      "file": "collection_operation",
-                     "cn": "表操作",
+                     "cn": "集合操作",
                      "en": "Collection Operation"
                   }
                ]
