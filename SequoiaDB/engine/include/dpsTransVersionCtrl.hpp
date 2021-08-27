@@ -53,6 +53,7 @@
 #include "rtnPredicate.hpp"
 #include "dmsRBSMgr.hpp"
 #include <boost/shared_ptr.hpp>
+#include "inclusiveVec.h"
 
 using namespace bson ;
 
@@ -454,7 +455,7 @@ namespace engine
       INT32 keyLocate( INDEX_TREE_CPOS &pos, const BSONObj &prevKey,
                        INT32 keepFieldsNum, BOOLEAN skipToNext,
                        const VEC_ELE_CMP &matchEle,
-                       const VEC_BOOLEAN &matchInclusive,
+                       const inclusiveVec &matchInclusive,
                        INT32 direction ) const ;
 
       // Advance the pushed down verb and locate the key
@@ -462,7 +463,7 @@ namespace engine
                         const BSONObj &prevKey,
                         INT32 keepFieldsNum, BOOLEAN skipToNext,
                         const VEC_ELE_CMP &matchEle,
-                        const VEC_BOOLEAN &matchInclusive,
+                        const inclusiveVec &matchInclusive,
                         INT32 direction ) const ;
 
       void  setDeleted() { _isValid = FALSE ; }
@@ -576,7 +577,7 @@ namespace engine
                                  INT32 keepFieldsNum,
                                  BOOLEAN skipToNext,
                                  const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
+                                 const inclusiveVec &matchInclusive,
                                  INT32 direction ) const ;
 
    private:

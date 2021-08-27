@@ -63,6 +63,7 @@
 #include "vessel/recordReader.h"
 #include "ixmIndexKey.hpp"
 #include "vessel/indexDefPageAccessor.h"
+#include "vessel/indexScanner.h"
 
 namespace engine
 {
@@ -440,8 +441,8 @@ namespace vessel
             if (SDB_IXM_DUP_KEY != rc)
             {
                PD_LOG(PDERROR, "failed to check constraint:%d", rc);
-               goto error;
             }
+            goto error;
          }
       }
 
@@ -2709,8 +2710,14 @@ namespace vessel
       indexes = _indexContext.getIndexSlotBitmap();
       for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
+         if (0 == indexes)
+         {
+            break;
+         }
+
          if (0 != OSS_BIT_TEST(indexes, mask))
          {
+            OSS_BIT_CLEAR(indexes, mask);
             unstableIndexContext *uic = _indexContext.findUnstableIndex(i);
             if (NULL == uic)
             {
@@ -2897,19 +2904,20 @@ namespace vessel
       indexConsole console;
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
    
-      if (0 == bitmap)
-      {
-         goto done;
-      }
-
       console.init(_record.mbID, &is);
       for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
+         if (0 == bitmap)
+         {
+            break;
+         }
+
          UINT64 mask = ((UINT64)1 << i);
          if (0 == OSS_BIT_TEST(bitmap, mask))
          {
             continue;
          }
+         OSS_BIT_CLEAR(bitmap, mask);
 
          keySet.clear();
          const indexObject *obj = NULL;
@@ -2972,6 +2980,7 @@ namespace vessel
                                      utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
+      recordID rid;
 
       if (ra.isEmpty() || 0 == _indexContext.getUniqueIndexBitmap())
       {
@@ -2985,7 +2994,38 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(FALSE, "TODO");
+      for (UINT32 i = 0; i < ra.getSize(); ++i)
+      {
+         
+         dmlIndexRequest *req = ra.get(i);
+         SDB_ASSERT(NULL != req && req->isValid(), "impossible");
+         if (!req->withConstraint())
+         {
+            continue;
+         }
+
+         ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
+         for (; itr != req->getKeys().end(); ++itr)
+         {
+            rc = indexScanner::findOne(context, req->getIndexSlot(),
+                                    req->getIndexObj(), *itr, rid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to find key in index:%d", rc);
+               goto error;
+            }
+
+            if (rid.valid())
+            {
+               PD_LOG(PDDEBUG, "duplidated key[%s] found in index[%s], rid[%d,%d]",
+                      itr->toString().c_str(),
+                      req->getIndexObj().getIndexName().str(),
+                      rid.getPageID(), rid.getSlotID());
+               rc = SDB_IXM_DUP_KEY;
+               goto error;
+            }
+         }
+      }
    done:
       return rc;
    error:

@@ -308,6 +308,8 @@ public:
 
    }
 
+   INT32 shallowCopy(const rocksdb::Slice &fullEntry);
+
    void reset()
    {
       _key.assign(ixmKey());

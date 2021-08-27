@@ -68,6 +68,11 @@ namespace vessel
             return _page == o._page && _slot == o._slot;
          }
 
+         OSS_INLINE BOOLEAN operator!=(const recordID &o)const
+         {
+            return _page != o._page || _slot != o._slot;
+         }
+
          OSS_INLINE recordID &operator=(const recordID &id)
          {
             _page = id._page;

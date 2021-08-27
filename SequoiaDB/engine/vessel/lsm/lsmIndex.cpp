@@ -524,7 +524,7 @@ BSONObj lsmIndex::_buildKeyObj( const BSONObj     & prevKey,
                                 INT32               keepFieldsNum,
                                 BOOLEAN             skipToNext,
                                 const VEC_ELE_CMP & matchEle,
-                                const VEC_BOOLEAN & matchInclusive,
+                                const inclusiveVec & matchInclusive,
                                 INT32               direction ) const
 {
    UINT32 index = 0 ;
@@ -556,7 +556,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
                             const INT32              keepFieldsNum,
                             const BOOLEAN            skipToNext,
                             const VEC_ELE_CMP      & matchElement,
-                            const VEC_BOOLEAN      & matchInclusive,
+                            const inclusiveVec      & matchInclusive,
                             lsmOwnedRecord         & out )
 {
    INT32  rc = SDB_IXM_EOC, result  = 0 ;
@@ -777,7 +777,7 @@ INT32 lsmIndex::keyLocate( const INT32              direction,
                            const INT32              keepFieldsNum,
                            const BOOLEAN            skipToNext,
                            const VEC_ELE_CMP      & matchElement,
-                           const VEC_BOOLEAN      & matchInclusive,
+                           const inclusiveVec      & matchInclusive,
                            lsmOwnedRecord         & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
@@ -860,7 +860,7 @@ INT32 lsmIndex::keyAdvance( const INT32              direction,
                             const INT32              keepFieldsNum,
                             const BOOLEAN            skipToNext,
                             const VEC_ELE_CMP      & matchElement,
-                            const VEC_BOOLEAN      & matchInclusive,
+                            const inclusiveVec      & matchInclusive,
                             lsmOwnedRecord            & out )
 {
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );

@@ -37,6 +37,7 @@
 #define LSM_INDEX_VALUE_HPP_
 
 #include "dms.hpp"
+#include "vessel/lsm/lsmIdxKey.hpp"
 
 namespace engine
 {
@@ -51,18 +52,32 @@ namespace vessel
 
          lsmIndexValue(const lsmIndexValue &o):
          _flags(o._flags),
+         _pad(o._pad),
          _rbsOffsetCL(o._rbsOffsetCL),
          _rbsOffsetLid(o._rbsOffsetLid){}
 
          lsmIndexValue &operator=(const lsmIndexValue &o)
          {
             _flags = o._flags;
+            _pad = o._pad;
             _rbsOffsetCL = o._rbsOffsetCL;
             _rbsOffsetLid = o._rbsOffsetLid;
             return *this;
          }
 
       public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return (LSM_ENTRY_FLAG_NORMAL == _flags ||
+                    LSM_ENTRY_FLAG_DELETED == _flags) &&
+                    0 == _pad; 
+         }
+         OSS_INLINE BOOLEAN isDelete()const
+         {
+            SDB_ASSERT(isValid(), "must be valid");
+            return 0 != OSS_BIT_TEST(_flags, LSM_ENTRY_FLAG_DELETED);
+         }
+
          OSS_INLINE UINT16 getFlags()const
          {
             return _flags;
@@ -80,13 +95,15 @@ namespace vessel
                                INT16 rbsOffsetLid = -1)
          {
             _flags = flags;
+            _pad = 0;
             _rbsOffsetCL = rbsOffsetCL;
             _rbsOffsetLid = rbsOffsetLid;
             return;
          }
 
       private:
-         UINT16 _flags = 0;
+         UINT8 _flags = LSM_ENTRY_FLAG_INVALID;
+         UINT8 _pad = 0;
          UINT16 _rbsOffsetCL = DMS_INVALID_CLID;
          INT64 _rbsOffsetLid = -1;
    };//class lsmIndexValue

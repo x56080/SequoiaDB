@@ -977,6 +977,33 @@ void lsmUpdateDataEntryToMostAdjacent( rocksdb::Slice a, INT32 direction )
    }
 }
 
+INT32 lsmKeyEntry::shallowCopy(const rocksdb::Slice &fullEntry)
+{
+   INT32 rc = SDB_OK;
+   globalIndexID indexId;
+   orderingWrapper ordering;
 
+   if (fullEntry.size() < LSM_MIN_FULL_KEY_SIZE)
+   {
+      rc = SDB_INVALIDARG;
+      goto error;
+   }
+
+   rc = lsmUnpackIndexFullKey(fullEntry.data(),
+                              fullEntry.size(),
+                              indexId,
+                              ordering,
+                              _key, _rid, _dataLsn, _transID);
+   if (SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "failed to unpack full key:%d", rc);
+      goto error;
+   }
+done:
+   return rc;
+error:
+   reset();
+   goto done;
+}
 } // namespace vessel
 } // namespace engine

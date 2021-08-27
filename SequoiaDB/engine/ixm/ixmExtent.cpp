@@ -2233,14 +2233,14 @@ namespace engine
                                const BSONObj &prevKey,
                                INT32 keepFieldsNum, BOOLEAN skipToNext,
                                const VEC_ELE_CMP &matchEle,
-                               const VEC_BOOLEAN &matchInclusive,
+                               const inclusiveVec &matchInclusive,
                                const Ordering &o, INT32 direction )
    {
       PD_TRACE_ENTRY ( SDB_IXMEXT__KEYCMP );
       BSONObjIterator ll ( currentKey ) ;
       BSONObjIterator rr ( prevKey ) ;
       VEC_ELE_CMP::const_iterator eleItr = matchEle.begin() ;
-      VEC_BOOLEAN ::const_iterator incItr = matchInclusive.begin() ;
+      UINT32 incVecPos = 0;
       UINT32 mask = 1 ;
       INT32 retCode = 0 ;
       // match keepFieldsNum fields
@@ -2251,7 +2251,7 @@ namespace engine
          // skip those fields since we don't want to match them from
          // startstopkey iterator
          ++eleItr ;
-         ++incItr ;
+         ++incVecPos ;
          INT32 result = curEle.woCompare ( prevEle, FALSE ) ;
          if ( o.descending ( mask ))
             result = -result ;
@@ -2291,13 +2291,13 @@ namespace engine
          // when getting here, that means the key matches expectation, then
          // let's see if we want inclusive predicate. If not we need to return
          // the negative of direction ( -1 for forward scan, otherwise 1 )
-         if ( !*incItr )
+         if (!matchInclusive[incVecPos])
          {
             retCode = -direction ;
             goto done ;
          }
          // when get here, it means key match AND inclusive
-         ++incItr ;
+         ++incVecPos ;
       }
    done :
       PD_TRACE_EXITRC ( SDB_IXMEXT__KEYCMP, retCode );
@@ -2311,7 +2311,7 @@ namespace engine
    INT32 _ixmExtent::_keyFind ( UINT16 l, UINT16 h, const BSONObj &prevKey,
                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
                                 const VEC_ELE_CMP &matchEle,
-                                const VEC_BOOLEAN &matchInclusive,
+                                const inclusiveVec &matchInclusive,
                                 const Ordering &o, INT32 direction,
                                 ixmRecordID &bestIxmRID,
                                 dmsExtentID &resultExtent, _pmdEDUCB *cb ) const
@@ -2413,7 +2413,7 @@ namespace engine
    INT32 _ixmExtent::keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
                                  INT32 keepFieldsNum, BOOLEAN skipToNext,
                                  const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
+                                 const inclusiveVec &matchInclusive,
                                  const Ordering &o, INT32 direction,
                                  _pmdEDUCB *cb ) const
    {
@@ -2581,7 +2581,7 @@ namespace engine
    INT32 _ixmExtent::keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
                                  INT32 keepFieldsNum, BOOLEAN skipToNext,
                                  const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
+                                 const inclusiveVec &matchInclusive,
                                  const Ordering &o, INT32 direction,
                                  _pmdEDUCB *cb ) const
    {

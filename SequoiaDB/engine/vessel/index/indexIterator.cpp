@@ -34,62 +34,87 @@
 ******************************************************************************/
 
 #include "vessel/indexIterator.h"
+#include "vessel/indexUtils.h"
+#include "vessel/instanceEnv.h"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
+#include "vessel/lsm/lsmIndexIterator.h"
 
 namespace engine
 {
 namespace vessel
 {
-///////////////  indexIteratorKernal
-
-
-INT32 indexIteratorKernal::_open(requestContext *context,
-                                 const indexHandle &handle,
-                                 const orderingWrapper &ordering,
-                                 INT32 direction,
-                                 rtnPredicateListIterator *predicate,
-                                 memoryBlock &entryBuffer)
-{
-   INT32 rc = SDB_OK;
-   if (OSS_UNLIKELY(NULL == context ||
-                    !handle.isValid() ||
-                    (1 != direction && -1 != direction) ||
-                    NULL == predicate))
+   indexIterator *createIndexIterator(INDEX_TYPE type)
    {
-      rc = SDB_INVALIDARG;
-      goto error;
+      if (INDEX_TYPE_LSM == type)
+      {
+         return SDB_OSS_NEW lsmIndexIterator();
+      }
+      else if (INDEX_TYPE_BTREE)
+      {
+         SDB_ASSERT(FALSE, "TODO");
+         return NULL;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "invalid type");
+         return NULL;
+      }
    }
 
-   _context = context;
-   _handle = handle;
-   _ordering = ordering;
-   _direction = direction;
-   _predicate = predicate;
-   _entryBuffer = &entryBuffer;
+   indexIterator::~indexIterator()
+   {
+      _close();
+   }
 
-done:
-   return rc;
-error:
-   goto done;
-}
+   void indexIterator::_open(requestContext *context,
+                           const indexHandle &handle,
+                           const orderingWrapper &ordering,
+                           INT32 direction)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(handle.isValid(), "can not be invalid");
+      _context = context; 
+      _handle = handle;
+      _ordering = ordering;
+      _forwardDirection = indexUtils::isForwardDirection(direction);
+      return;
+   }
 
-void indexIteratorKernal::_close()
-{
-   _context = NULL;
-   _handle = indexHandle();
-   _ordering = orderingWrapper();
-   _direction = 1;
-   _predicate = NULL;
-   _entryBuffer = NULL;
-   return;
-}
+   void indexIterator::_close()
+   {
+      if (NULL != _context)
+      {
+         unlockAllRids();
+         _context = NULL;
+         _handle = indexHandle();
+         _ordering = orderingWrapper();
+         _forwardDirection = TRUE;
+      }
+      return;
+   }
 
-///////////////  indexIteratorKernal end
+   void indexIterator::unlockAllRids()
+   {
+      if (NULL == _context)
+      {
+         SDB_ASSERT(_rlc.isEmpty(), "must be empty");
+      }
+      else if (!_rlc.isEmpty())
+      {
+         RECORD_ID_LATCH_MAP::object obj;
+         ossSharedLatchMode mode;
+         RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
 
+         while (_rlc.pop(obj, mode))
+         {
+            obj.getValue().unlockWith(mode);
+            lm.release(obj);
+         }
+      }
 
-
-///////////////  indexIterator
+      return;
+   }
 
 }//namespace vessel
 }//namespace engine

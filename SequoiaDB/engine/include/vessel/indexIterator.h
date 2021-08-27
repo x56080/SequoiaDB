@@ -37,120 +37,134 @@
 #define VESSEL_INDEX_ITERATOR_H_
 
 #include "vessel/indexDef.h"
-#include "vessel/memoryBlock.h"
 #include "vessel/indexHandle.h"
 #include "utilPooledObject.hpp"
 #include "ixmKey.hpp"
 #include "dms.hpp"
 #include "vessel/requestContext.h"
-#include "rtnPredicate.hpp"
 #include "vessel/orderingWrapper.h"
-#include "vessel/memoryBlock.h"
+#include "inclusiveVec.h"
+#include "vessel/indexHandle.h"
+#include "vessel/slice.h"
+#include "rtnPredicate.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexIteratorKernal : public _utilPooledObject
+   class indexIterator : public _utilPooledObject
    {
       public:
-         indexIteratorKernal(){}
-         virtual ~indexIteratorKernal(){}
-         indexIteratorKernal(const indexIteratorKernal &) = delete;
-         indexIteratorKernal &operator=(const indexIteratorKernal &) = delete;
+         indexIterator(){}
+         virtual ~indexIterator();
+         indexIterator(const indexIterator &) = delete;
+         indexIterator &operator=(const indexIterator &) = delete;
 
       public:
          OSS_INLINE const indexHandle &getHandle()const
          {
             return _handle;
          }
-         OSS_INLINE INT32 getDirection()const
+         OSS_INLINE BOOLEAN isForward()const
          {
-            return _direction;
+            return _forwardDirection;
          }
-         OSS_INLINE const bson::Ordering *getOrdering()const
+         OSS_INLINE const orderingWrapper &getOrdering()const
          {
-            return _ordering.toBsonOrdering();
+            return _ordering;
          }
 
       public:
          virtual INDEX_TYPE getIndexType()const = 0;
 
       public:
-         virtual BOOLEAN isValid()const = 0;
-
          virtual INT32 open(requestContext *context,
                             const indexHandle &handle,
                             const orderingWrapper &ordering,
-                            INT32 direction,
-                            rtnPredicateListIterator *predicate,
-                            memoryBlock &entryBuffer) = 0;
+                            INT32 direction) = 0;
 
          virtual void close() = 0;
 
-         virtual INT32 getNext(BOOLEAN &hitTheEnd) = 0;
+         virtual void pause() = 0;
+
+         virtual INT32 resume() = 0;
+
+         virtual INT32 seek(const bson::BSONObj &prevKey,
+                            INT32 fieldCountToCmpInPrev,
+                            BOOLEAN upperBound,
+                            const VEC_ELE_CMP &matchEles,
+                            const inclusiveVec &matchInclusive) = 0;
+
+         virtual INT32 seek(const bson::BSONObj &key,
+                            BOOLEAN upperBound) = 0;
+
+         virtual INT32 seek(const bson::BSONObj &key,
+                            const recordID &rid,
+                            BOOLEAN upperBound) = 0;
+
+         virtual INT32 seek(const slice &entry,
+                            BOOLEAN upperBound) = 0;
+         
+         /// move to next position from current
+         /// until hit the different key or rid.
+         virtual INT32 nextDiffKeyOrRid() = 0;
+
+         /// move to next position from current
+         /// until hit the matched tuple.
+         virtual INT32 nextTo(const bson::BSONObj &prevKey,
+                              INT32 fieldCountToCmpInPrev,
+                              BOOLEAN upperBound,
+                              const VEC_ELE_CMP &matchEles,
+                              const inclusiveVec &matchInclusive) = 0;
+
+         /// move to next postion from current.
+         virtual INT32 next() = 0;
+
+         virtual BOOLEAN isReadyToRead()const = 0;
 
       public:
-         /// The functions to access current data saved in iterator.
-         /// User should always call 'getNext' first and ensure iterator not hits the end.
+         /// The functions to access current tuple saved in iterator.
+         /// User should always call 'isReadyToRead' first.
 
-         virtual UINT64 getCurrentLSN()const = 0;
-         virtual ixmKey getCurrentKey()const = 0;
-         virtual DPS_TRANS_ID getCurrentTransID()const = 0;
-         virtual dmsRecordID getCurrentRid()const = 0;
+         virtual BOOLEAN isMarkedRemoved()const = 0;
+         virtual UINT64 getLSN()const = 0;
+         virtual void getKey(ixmKey &key)const = 0;
+         virtual DPS_TRANS_ID getTransID()const = 0;
+         virtual recordID getRid()const = 0;
+         virtual slice getValue()const = 0;
+         virtual UINT32 getEntrySize()const = 0;
+         virtual INT32 copyKeyEntry(UINT32 bufferSize,
+                                    CHAR *buffer)const = 0;
 
       protected:
-         OSS_INLINE rtnPredicateListIterator *getPredicate()
+
+         OSS_INLINE BOOLEAN _isOpen()const
          {
-            return _predicate;
+            return NULL != _context;
          }
 
-         INT32 _open(requestContext *context,
-                     const indexHandle &handle,
-                     const orderingWrapper &ordering,
-                     INT32 direction,
-                     rtnPredicateListIterator *predicate,
-                     memoryBlock &entryBuffer);
-
+         void _open(requestContext *context,
+                    const indexHandle &handle,
+                    const orderingWrapper &ordering,
+                    INT32 direction);
          void _close();
 
-         memoryBlock &getEntryBuffer()const
+         requestContext *getContext()const
          {
-            return *_entryBuffer;
+            return _context;
          }
 
+         void unlockAllRids();
       private:
          requestContext *_context = NULL;
          indexHandle _handle;
          orderingWrapper _ordering;
-         INT32 _direction = 1;
-         rtnPredicateListIterator *_predicate = NULL;
-         memoryBlock *_entryBuffer = NULL;
-   };//class indexIteratorKernal
-
-   class indexIterator : public SDBObject
-   {
-      public:
-         indexIterator(){}
-         ~indexIterator(){}
-         indexIterator(const indexIterator &) = delete;
-         indexIterator &operator=(const indexIterator &) = delete;
-         indexIterator(indexIterator &&o);
-         indexIterator &operator=(indexIterator &&o);
-
-      public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return NULL != _kernal;
-         }
-
-      public:
-
-
-      private:
-         indexIteratorKernal *_kernal = NULL;
+         BOOLEAN _forwardDirection = TRUE;
+         RID_LATCH_CONTEXT _rlc;
    };//class indexIterator
+
+   extern indexIterator *createIndexIterator(INDEX_TYPE type);
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_ENTRY_H_
+#endif//VESSEL_INDEX_ITERATOR_H_

@@ -40,6 +40,7 @@
 #include "vessel/indexKeyPattern.h"
 #include "../bson/bson.hpp"
 #include "vessel/indexParameters.h"
+#include "rtnPredicate.hpp"
 
 namespace engine
 {
@@ -60,6 +61,17 @@ namespace vessel
                                        strSlice *indexName,
                                        indexKeyPattern *keyPattern,
                                        indexParameters *params);
+
+         static OSS_INLINE BOOLEAN isForwardDirection(INT32 direction)
+         {
+            return 0 <= direction;
+         }
+
+         /// return builder.done() if outer builder is not null
+         static bson::BSONObj buildKeyToSeek(const bson::BSONObj &key,
+                                             INT32 keyFieldsToCmp,
+                                             const VEC_ELE_CMP & matchEle,
+                                             bson::BufBuilder *outerBuilder);
    };//class indexUtils
 
    

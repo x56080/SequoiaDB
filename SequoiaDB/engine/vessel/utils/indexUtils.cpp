@@ -112,5 +112,35 @@ namespace vessel
    error:
       goto done;
    }
+
+   bson::BSONObj indexUtils::buildKeyToSeek(const bson::BSONObj &key,
+                                            INT32 keyFieldsToCmp,
+                                            const VEC_ELE_CMP & matchEle,
+                                            bson::BufBuilder *outerBuilder)
+   {
+      bson::BufBuilder b;
+      BSONObjBuilder builder(NULL == outerBuilder ? b : *outerBuilder);
+      BSONObjIterator itr(key);
+      INT32 index = 0;
+      for (; index < keyFieldsToCmp; ++index)
+      {
+         SDB_ASSERT(itr.more(), "must be more");
+         builder.appendAs(itr.next(), "");
+      }
+
+      for (; index < (INT32)(matchEle.size()); ++index)
+      {
+         builder.appendAs(*(matchEle.at(index)), "");
+      }
+
+      if (NULL == outerBuilder)
+      {
+         return builder.obj();
+      }
+      else
+      {
+         return builder.done();
+      }
+   }
 }//namespace vessel
 }//namespace engine

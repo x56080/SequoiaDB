@@ -47,22 +47,42 @@ class index_ddl_test : public testing::Test
    public:
    static void SetUpTestCase()
    {
-      fs::path testPath(DATA_PATH);
-      fs::remove_all(testPath);
-      fs::create_directory(testPath);
+      {
+         fs::path testPath(DATA_PATH);
+         fs::remove_all(testPath);
+         fs::create_directory(testPath);
+      }
+      {
+         fs::path testPath(LSM_PATH);
+         fs::remove_all(testPath);
+         fs::create_directory(testPath);
+      }
    }
 
    static void TearDownTestCase()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      }
    }
 
    virtual void SetUp()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
    }
 };
 
@@ -194,7 +214,7 @@ TEST_F(index_ddl_test, test2)
    ossPoolVector<bson::BSONObj> indexes;
    bson::BSONObjBuilder builder;
 
-   UINT32 count = 1;
+   UINT32 count = 8;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -208,7 +228,7 @@ TEST_F(index_ddl_test, test2)
    rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 1000000; ++i)
+   for (UINT32 i = 0; i < 200000; ++i)
    {
       utilInsertResult  r;
       builder.reset();
@@ -220,10 +240,13 @@ TEST_F(index_ddl_test, test2)
       ASSERT_EQ(rc, SDB_OK);
    }
 
+   for (UINT32 i = 0; i < count; ++i)
    {
-      std::string indexName = "index0";
+      std::stringstream ss;
+      ss << "index" << i;
+      std::string indexName = ss.str();
       strSlice nameSlice(indexName.c_str(), indexName.size());
-      bson::BSONObj patternObj = BSON("a" << 1);
+      bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
       rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
       ASSERT_EQ(SDB_OK, rc);
    }
@@ -233,10 +256,13 @@ TEST_F(index_ddl_test, test2)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, indexes.size());
 
+   for (UINT32 i = 0; i < count; ++i)
    {
-      const bson::BSONObj &obj = indexes.at(0);
+      std::stringstream ss;
+      ss << "index" << i;
+      const bson::BSONObj &obj = indexes.at(i);
       ASSERT_EQ(INDEX_TYPE_LSM, obj.getIntField(VESSEL_INDEX_FIELD_NAME_TYPE));
-      std::string name("index0");
+      std::string name = ss.str();
       ASSERT_EQ(0, name.compare(obj.getStringField(IXM_NAME_FIELD)));
       ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
    }
@@ -255,10 +281,13 @@ TEST_F(index_ddl_test, test2)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, indexes.size());
 
+   for (UINT32 i = 0; i < count; ++i)
    {
-      const bson::BSONObj &obj = indexes.at(0);
+      std::stringstream ss;
+      ss << "index" << i;
+      const bson::BSONObj &obj = indexes.at(i);
       ASSERT_EQ(INDEX_TYPE_LSM, obj.getIntField(VESSEL_INDEX_FIELD_NAME_TYPE));
-      std::string name("index0");
+      std::string name = ss.str();
       ASSERT_EQ(0, name.compare(obj.getStringField(IXM_NAME_FIELD)));
       ASSERT_EQ(INDEX_STATUS_NORMAL, obj.getIntField(VESSEL_INDEX_FIELD_NAME_STATUS));
    }
@@ -267,4 +296,169 @@ TEST_F(index_ddl_test, test2)
    db.close(&session, closeDBOptions());
 }
 
+/// unique index
+TEST_F(index_ddl_test, test3)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource;
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
+   openDBOptions options;
+   createCSOptions csOptions;
+   createCLOptions clOptions;
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
 
+   createIndexOptions indexOptions;
+   indexParameters indexParams;
+   indexParams.type = INDEX_TYPE_LSM;
+   indexParams.isUnique = TRUE;
+   collectionHandler cl;
+   
+   ossPoolVector<bson::BSONObj> indexes;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   std::string indexName("a");
+   strSlice nameSlice(indexName.c_str(), indexName.size());
+   bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
+   rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   bson::BSONObjBuilder builder;
+   for (UINT32 i = 0; i < 1000; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = cl.insert(&session, record, DPS_TRANS_ID(),
+                     INVALID_STRIPING_ID, insertOptions(), res);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   for (UINT32 i = 0; i < 1000; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = cl.insert(&session, record, DPS_TRANS_ID(),
+                     INVALID_STRIPING_ID, insertOptions(), res);
+      ASSERT_EQ(SDB_IXM_DUP_KEY, rc);
+   }
+
+   cl.close();
+   db.close(&session, closeDBOptions());
+}
+
+void duplicated_insert(vesselImpl *db, test_logger *logger,
+                       const CHAR *csName, const CHAR *clName,
+                       UINT32 count, UINT32 range)
+{
+   test_session session(logger);
+   bson::BSONObjBuilder builder;
+   collectionHandler handler;
+   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      UINT32 r = ossRand() % range;
+      builder.reset();
+      builder.append("a", r);
+      bson::BSONObj obj = builder.done();
+      slice record;
+      record.reset(obj.objsize(), obj.objdata());
+      utilInsertResult res;
+      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+                          INVALID_STRIPING_ID,
+                          insertOptions(), res);
+      ASSERT_TRUE((SDB_OK == rc || SDB_IXM_DUP_KEY == rc));
+   }
+   handler.close();
+}
+
+/// unique index
+TEST_F(index_ddl_test, test4)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource;
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
+   openDBOptions options;
+   createCSOptions csOptions;
+   createCLOptions clOptions;
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   createIndexOptions indexOptions;
+   indexParameters indexParams;
+   indexParams.type = INDEX_TYPE_LSM;
+   indexParams.isUnique = TRUE;
+   collectionHandler cl;
+
+   static const UINT32 threadCount = 6;
+   std::thread threads[threadCount];
+   UINT32 range = 100;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   std::string indexName("a");
+   strSlice nameSlice(indexName.c_str(), indexName.size());
+   bson::BSONObj patternObj = BSON(indexName.c_str() << 1);
+   rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(duplicated_insert, &db, test_logger::instance(),
+                                         "foo", "bar", 100000, range));
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   UINT64 recordCount = 0;
+   rc = cl.getTotalRecordCountInPageHead(&session, recordCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_GE(range, recordCount);
+   ASSERT_GT(recordCount, 0);
+
+   cl.close();
+   db.close(&session, closeDBOptions());
+}

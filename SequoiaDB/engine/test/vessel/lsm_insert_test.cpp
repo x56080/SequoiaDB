@@ -122,9 +122,7 @@ void thread_insert(lsmDB *db, UINT32 count)
       bson::BSONObj obj = builder.done();
       ::engine::ixmKeyOwned key(obj);
       lsmKeyEntry entry;
-      ::engine::dmsRecordID rid;
-      rid._extent = i;
-      rid._offset = i;
+      ::engine::vessel::recordID rid(i, i);
       entry.shallowCopy(key, rid, i, transID);
       rc = lsm.keyInsert(entry);
       ASSERT_EQ(SDB_OK, rc);

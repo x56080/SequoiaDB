@@ -74,6 +74,11 @@ namespace vessel
                    _indexLid == o._indexLid;
          }
 
+         BOOLEAN operator!=(const globalIndexID &o)const
+         {
+            return !(*this == o);
+         }
+
          BOOLEAN operator<(const globalIndexID &o)const
          {
             if (_csLid < o._csLid)

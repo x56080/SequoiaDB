@@ -129,7 +129,7 @@ namespace vessel
          }
 
          for (ossPoolList<bson::BSONObj>::const_iterator itr = r->getKeys().begin();
-              itr != r->getKeys().end(); ++r)
+              itr != r->getKeys().end(); ++itr)
          {
             UINT32 hash = BSON_HASHER::hashObj(*itr) + r->getIndexSlot();
             hashArray.push_back(hash);
@@ -156,7 +156,7 @@ namespace vessel
          _uniqueKeyHash.resize(std::distance(_uniqueKeyHash.begin(), itr));
       }
 
-      for (UINT32 i = 1; i < _uniqueKeyHash.size(); ++i)
+      for (UINT32 i = 0; i < _uniqueKeyHash.size(); ++i)
       {
          UNIQUE_INDEX_LATCH_MAP::object obj;
          uniqueIndexLatchKey key(requestContext::getSpaceID(),
@@ -230,7 +230,7 @@ namespace vessel
 
    void dmlContext::unlockUniqueKeys()
    {
-      if (_ridLatchContext.isEmpty())
+      if (_uniqueKeyContext.empty())
       {
          goto done;
       }

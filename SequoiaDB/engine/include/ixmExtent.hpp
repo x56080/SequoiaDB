@@ -218,7 +218,7 @@ namespace engine
       INT32 _keyFind ( UINT16 low, UINT16 high, const BSONObj &prevKey,
                        INT32 keepFieldsNum, BOOLEAN skipToNext,
                        const VEC_ELE_CMP &matchEle,
-                       const VEC_BOOLEAN &matchInclusive,
+                       const inclusiveVec &matchInclusive,
                        const Ordering &o,
                        INT32 direction,
                        ixmRecordID &bestIxmRID,
@@ -242,7 +242,7 @@ namespace engine
       static INT32 _keyCmp ( const BSONObj &currentKey, const BSONObj &prevKey,
                              INT32 keepFieldsNum, BOOLEAN skipToNext,
                              const VEC_ELE_CMP &matchEle,
-                             const VEC_BOOLEAN &matchInclusive,
+                             const inclusiveVec &matchInclusive,
                              const Ordering &o, INT32 direction ) ;
 
    public:
@@ -442,13 +442,13 @@ namespace engine
       INT32 keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
                         INT32 keepFieldsNum, BOOLEAN skipToNext,
                         const VEC_ELE_CMP &matchEle,
-                        const VEC_BOOLEAN &matchInclusive,
+                        const inclusiveVec &matchInclusive,
                         const Ordering &o, INT32 direction,
                         _pmdEDUCB *cb ) const ;
       INT32 keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
                          INT32 keepFieldsNum, BOOLEAN skipToNext,
                          const VEC_ELE_CMP &matchEle,
-                         const VEC_BOOLEAN &matchInclusive,
+                         const inclusiveVec &matchInclusive,
                          const Ordering &o, INT32 direction,
                          _pmdEDUCB *cb ) const ;
       INT32 dumpIndexExtentIntoLog() const ;

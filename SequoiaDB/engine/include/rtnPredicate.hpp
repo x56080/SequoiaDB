@@ -46,6 +46,7 @@
 #include <string>
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
+#include "inclusiveVec.h"
 
 using namespace bson ;
 using namespace std ;
@@ -745,7 +746,7 @@ namespace engine
    private :
       const rtnPredicateList &_predList ;
       VEC_ELE_CMP       _cmp ;
-      VEC_BOOLEAN       _inc ;
+      inclusiveVec      _inc ;
       VEC_INT32         _currentKey ;
       VEC_INT32         _prevKey ;
       // this variable is passed to ixm. When this variable is TRUE, it means we
@@ -755,7 +756,7 @@ namespace engine
       _rtnPredicateListIterator ( const rtnPredicateList &predList ) ;
       INT32 advance ( const BSONObj &curr ) ;
       const VEC_ELE_CMP &cmp() const { return _cmp ; }
-      const VEC_BOOLEAN &inc() const { return _inc ; }
+      const inclusiveVec &inc() const { return _inc ; }
       void reset() ;
       BOOLEAN after() { return _after ; }
       INT32 syncState( const _rtnPredicateListIterator *source ) ;

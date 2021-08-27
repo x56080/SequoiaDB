@@ -42,6 +42,7 @@
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "rocksdb/rocksdb_namespace.h"
 #include "vessel/lsm/lsmOwnedRecord.h"
+#include "inclusiveVec.h"
 
 using namespace bson ;
 using namespace rocksdb ;
@@ -293,7 +294,7 @@ public:
                    const INT32              keepFieldsNum,
                    const BOOLEAN            skipToNext,
                    const VEC_ELE_CMP      & matchElement,
-                   const VEC_BOOLEAN      & matchInclusive,
+                   const inclusiveVec      & matchInclusive,
                    lsmOwnedRecord         & out );
 
   /*
@@ -365,7 +366,7 @@ public:
                     const INT32              keepFieldsNum,
                     const BOOLEAN            skipToNext,
                     const VEC_ELE_CMP      & matchElement,
-                    const VEC_BOOLEAN      & matchInclusive,
+                    const inclusiveVec      & matchInclusive,
                     lsmOwnedRecord          & out ) ;
 
 
@@ -479,7 +480,7 @@ protected:
                         INT32 keepFieldsNum,
                         BOOLEAN skipToNext,
                         const VEC_ELE_CMP &matchEle,
-                        const VEC_BOOLEAN &matchInclusive,
+                        const inclusiveVec &matchInclusive,
                         INT32 direction ) const ;
 
   // free the rocksdb::Slice buffer, and clear that Slice
@@ -511,7 +512,7 @@ protected:
                     const INT32              keepFieldsNum,
                     const BOOLEAN            skipToNext,
                     const VEC_ELE_CMP      & matchElement,
-                    const VEC_BOOLEAN      & matchInclusive,
+                    const inclusiveVec      & matchInclusive,
                     lsmOwnedRecord         & out ) ;
 
   // destory/close an iterator

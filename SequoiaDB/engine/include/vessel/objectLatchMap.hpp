@@ -465,6 +465,8 @@ namespace vessel
          _latchSlot *_slots = _staticBuf;
 
    };//class objectSharedLatchContext
+
+   typedef objectSharedLatchContext<recordIdLatchKey> RID_LATCH_CONTEXT;
 }//namespace vessel
 }//namespace engine
 
