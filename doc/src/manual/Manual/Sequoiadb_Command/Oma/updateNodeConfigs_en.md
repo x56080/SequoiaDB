@@ -1,11 +1,10 @@
-
 ##NAME##
 
-updateNodeConfigs - Use the new configuration information to update the contents in the configuration file of the specified SequoiaDB node.
+updateNodeConfigs - update node configuration information
 
 ##SYNOPSIS##
 
-**oma.updateNodeConfigs(\<svcname\>,\<config\>)**
+**oma.updateNodeConfigs(\<svcname\>, \<config\>)**
 
 ##CATEGORY##
 
@@ -13,52 +12,53 @@ Oma
 
 ##DESCRIPTION##
 
-Use the new configuration information to update the contents in the configuration file of the specified SequoiaDB node.
-
-
-**Note:**
-
-* The updated configuration information needs to restart the node to take effect.
+This function is used to update the configuration information of the specified node. After the update, users need to restart the node or use [reloadConf()][reloadConf] to reload the configuration file to make the configuration effective.
 
 ##DESCRIPTION##
 
-* `svcname` ( *Int | String*， *Required* )
+- svcname ( *number/string, required* )
 
-	The port of the node.
+	The port of the node
 
-* `config` ( *Object*， *Required* )
+- config ( *object, required* )
 
-	Node configuration information, specific reference database configuration.
+	Node configuration information. Such as update log size, whether to open the transaction and so on. For detail can refer to [Configuration item parameters][config].
 
 ##RETURN VALUE##
 
-On success, no return value.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-the exceptions of `updateNodeConfigs()` are as below:
+The common exceptions of `updateNodeConfigs()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
-| -6 | SDB_INVALIDARG | Parameter error. | Check if the parameters are correct. |
+| -6 | SDB_INVALIDARG | Parameter error | Check if the port number and configuration information are correct |
 | -259 | SDB_OUT_OF_BOUND | No node port number or configuration information entered | Enter the node port number or configuration information |
 
-When error happens, use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)
-to get the error message or use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)
-to get the error code. See [troubleshooting](manual/FAQ/faq_sdb.md) for
-more details.
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-##HISTORY##
+##VERSION##
 
-since v2.0
+v3.2 and above
 
 ##EXAMPLES##
 
-1. Update the configuration information of the node with port number 11810.
+Update the configuration item parameter "diaglevel" of node 11810 to 3.
 
-	```lang-javascript
-	> var oma = new Oma( "localhost", 11790 )
-	> oma.setNodeConfigs( 11810, { diaglevel: 3 } )
-	```
+```lang-javascript
+> var oma = new Oma("localhost", 11790)
+> oma.updateNodeConfigs(11810, {diaglevel: 3})
+```
+
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[reloadConf]:manual/Manual/Sequoiadb_Command/Sdb/reloadConf.md
+[config]:manual/Manual/Database_Configuration/configuration_parameters.md
