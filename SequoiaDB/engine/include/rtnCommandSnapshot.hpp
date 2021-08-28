@@ -37,6 +37,7 @@
 #include "rtnCommandMon.hpp"
 #include "monDump.hpp"
 #include "rtnFetchBase.hpp"
+#include "rtnDetectDeadlock.hpp"
 
 using namespace bson ;
 
@@ -794,7 +795,85 @@ namespace engine
          virtual BOOLEAN _isCurrent() const ;
          virtual BSONObj _getOptObj() const ;
    } ;
+
+   class _rtnSnapshotTransWaits : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotTransWaits()
+            : _rtnSnapshot( NAME_SNAPSHOT_TRANSWAITS,
+                            CMD_NAME_SNAPSHOT_TRANSWAITS_INTR,
+                            CMD_SNAPSHOT_TRANSWAITS,
+                            RTN_FETCH_TRANSWAITS,
+                            MON_MASK_NODE_NAME )
+         {}
+
+         virtual ~_rtnSnapshotTransWaits() {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+   } ;
+
+   class _rtnSnapshotTransWaitsInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotTransWaitsInner()
+            : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_TRANSWAITS_INTR,
+                                 CMD_SNAPSHOT_TRANSWAITS,
+                                 RTN_FETCH_TRANSWAITS,
+                                 MON_MASK_NODE_NAME )
+         {}
+
+         virtual ~_rtnSnapshotTransWaitsInner() {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+   } ;
+
+   class _rtnSnapshotTransDeadlock : public _rtnSnapshot
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotTransDeadlock()
+            : _rtnSnapshot( NAME_SNAPSHOT_TRANSDEADLOCK,
+                            CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR,
+                            CMD_SNAPSHOT_TRANSDEADLOCK,
+                            RTN_FETCH_TRANSWAITS,
+                            MON_MASK_NODE_NAME )
+         {}
+
+         virtual ~_rtnSnapshotTransDeadlock() {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+         virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
+      protected:
+   } ;
+
+   class _rtnSnapshotTransDeadlockInner : public _rtnSnapshotInner
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSnapshotTransDeadlockInner()
+            : _rtnSnapshotInner( CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR,
+                                 CMD_SNAPSHOT_TRANSDEADLOCK,
+                                 RTN_FETCH_TRANSWAITS,
+                                 MON_MASK_NODE_NAME )
+         {}
+
+         virtual ~_rtnSnapshotTransDeadlockInner() {}
+
+      protected:
+         virtual BOOLEAN _isCurrent() const ;
+         virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
+      protected:
+   } ;
+
 }
 
 #endif //RTN_COMMAND_SNAPSHOT_HPP_
-

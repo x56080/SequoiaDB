@@ -34,6 +34,7 @@
    Last Changed =     JT  10/28/2018, locking performance improvement
 
 *******************************************************************************/
+#include "dpsDeadlockDetector.hpp"
 #include "dpsTransLockMgr.hpp"
 #include "dpsTransExecutor.hpp"
 #include "dpsTransLockCallback.hpp"
@@ -44,6 +45,7 @@
 #include "dpsTrace.hpp"
 #include "pdTrace.hpp"
 #include "sdbInterface.hpp"   // IContext
+#include "msg.h"              // MsgRouteID
 
 #include <stdio.h>
 #if 0
@@ -3942,6 +3944,132 @@ nextLock:
       }
 
       // release bucket latch
+      _releaseOpLatch( bktIdx ) ;
+   }
+
+
+   // return TRUE if a LRB in waiter or upgrade queue
+   BOOLEAN dpsTransLockManager::_isInWaiterOrUpgradeQueue
+   (
+      const dpsTransLRBHeader * pLRBHdr,
+      const dpsTransLRB       * pLRB
+   )
+   {
+      if ( pLRB && pLRBHdr && ( pLRBHdr == pLRB->lrbHdr ) )
+      {
+         if ( pLRBHdr->upgradeLRB )
+         {
+            dpsTransLRB *plrb = pLRBHdr->upgradeLRB;
+            while ( plrb )
+            {
+               if ( plrb == pLRB )
+               {
+                  return TRUE ;
+               }
+               plrb = plrb->nextLRB ;
+            }
+         }
+         if ( pLRBHdr->waiterLRB )
+         {
+            dpsTransLRB *plrb = pLRBHdr->waiterLRB;
+            while ( plrb )
+            {
+               if ( plrb == pLRB )
+               {
+                  return TRUE ;
+               }
+               plrb = plrb->nextLRB ;
+            }
+         }
+      }
+      return FALSE ;
+   }
+
+
+   void dpsTransLockManager::snapWaitInfo
+   (
+      _dpsTransExecutor       * pExctr,
+      dpsTransLRB             * pWaiterLRB,
+      const dpsTransLockId    & lockId,
+      DPS_TRANS_WAIT_SET      & waitInfoSet
+   )
+   {
+      ossTickConversionFactor factor ;
+      ossTick endTick ;
+
+      dpsDBNodeID nodeID ; // will get nodeID in snapshot, no need to get it here
+      UINT32 bktIdx = _getBucketNo( lockId ) ;
+
+      endTick.sample() ;
+      _acquireOpLatch( bktIdx ) ;
+
+      if ( pWaiterLRB && pExctr && ( pExctr == pWaiterLRB->dpsTxExectr ) )
+      {
+         DPS_TRANS_ID  waiterTransId  = pExctr->getNormalizedTransID();
+         UINT64            waiterCost = pExctr->getReservedSpace() ;
+         ISession *        pWaiterSes = pExctr->getExecutor()->getSession() ;
+         EDUID        waiterSessionID = pExctr->getEDUID();
+         UINT64       waiterRelatedID = pWaiterSes->identifyID();
+         MsgRouteID  waiterRelatedNID = pWaiterSes->identifyNID();
+         UINT32      waiterRelatedTID = pWaiterSes->identifyTID();
+         EDUID waiterRelatedSessionID = pWaiterSes->identifyEDUID();
+
+         dpsTransLRBHeader *pLRBHdr = _LockHdrBkt[bktIdx].lrbHdr ;
+         if ( waiterTransId.isValid() && _getLRBHdrByLockId( lockId, pLRBHdr ) )
+         {
+            if ( ( pWaiterLRB->lrbHdr == pLRBHdr ) &&
+                 ( pLRBHdr->ownerLRB ) &&
+                 _isInWaiterOrUpgradeQueue( pLRBHdr, pWaiterLRB ) )
+            {
+               DPS_TRANS_ID holderTransId ;
+               ISession    *pHolderSes ;
+               dpsTransLRB *pLRB = pLRBHdr->ownerLRB ;
+               while ( pLRB )
+               {
+                  holderTransId = pLRB->dpsTxExectr->getNormalizedTransID() ;
+                  pHolderSes = pLRB->dpsTxExectr->getExecutor()->getSession();
+                  if ( ( waiterTransId != holderTransId ) &&
+                       holderTransId.isValid() )
+                  {
+                     UINT32 seconds = 0, microseconds = 0 ;
+                     ossTickDelta delta = endTick - pWaiterLRB->beginTick ;
+                     delta.convertToTime( factor, seconds, microseconds ) ;
+                     UINT64 durationInMicroseconds =
+                        (UINT64)( seconds * 1000 + microseconds / 1000 );
+
+                     dpsTransWait waitInfo(
+                        waiterTransId, holderTransId, nodeID,
+                        durationInMicroseconds,// wait time 
+                        waiterCost,            // Cost 
+                        pLRB->dpsTxExectr->getReservedSpace(),
+                        waiterSessionID,       // sessionID
+                        pLRB->dpsTxExectr->getEDUID(),
+                        waiterRelatedID,       // RelatedID 
+                        pHolderSes->identifyID(),
+                        waiterRelatedTID,      // RelatedTID
+                        pHolderSes->identifyTID(),
+                        waiterRelatedSessionID,// Related SessionID
+                        pHolderSes->identifyEDUID(),
+                        waiterRelatedNID,      // RelatedNID, i.e., MsgRouteID
+                        pHolderSes->identifyNID() );
+                     try
+                     {
+                        waitInfoSet.insert( waitInfo ) ;
+                     }
+                     catch( std::exception &e )
+                     {
+                        PD_LOG( PDERROR,
+                                "Exception captured: %s, "
+                                "when dump transaction waiting info",
+                                e.what() ) ;
+                     }
+                  }
+                  pLRB = pLRB->nextLRB ;
+               }
+            }
+         }
+      }
+
       _releaseOpLatch( bktIdx ) ;
    }
 

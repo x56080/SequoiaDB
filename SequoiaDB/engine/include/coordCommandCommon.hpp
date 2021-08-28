@@ -83,7 +83,7 @@ namespace engine
                                      pmdEDUCB *cb,
                                      ROUTE_RC_MAP &faileds ) ;
 
-         virtual IRtnMonProcessorPtr   _getMonProcessor() ;
+         virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
 
          virtual COORD_SHOWERROR_TYPE  _getDefaultShowErrorType() const
          {

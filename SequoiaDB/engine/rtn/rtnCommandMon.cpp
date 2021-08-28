@@ -163,6 +163,7 @@ namespace engine
 
       rtnContextDump *context = NULL ;
       rtnFetchBase *pFetch = NULL ;
+      IRtnMonProcessorPtr monProcessor ;
 
       BSONObj matcher ;
       BSONObj selector ;
@@ -214,7 +215,10 @@ namespace engine
       pFetch = NULL ;
 
       /// set mon processor
-      context->setMonProcessor( _getMonProcessor() ) ;
+      rc = _getMonProcessor( monProcessor ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to acquire an IRtnMonProcessor obj, rc: %d", rc ) ;
+      context->setMonProcessor( monProcessor ) ;
 
       /// when has orderby
       if ( !orderBy.isEmpty() )

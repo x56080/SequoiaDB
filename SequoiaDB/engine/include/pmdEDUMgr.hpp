@@ -165,7 +165,8 @@ namespace engine
 #if defined(SDB_ENGINE)
          INT32             beginDumpEDUTrans( EDUID eduID,
                                               pmdTransExecutor **executor,
-                                              monTransInfo &transInfo ) ;
+                                              monTransInfo &transInfo,
+                                              BOOLEAN bDumpTransInfo = TRUE ) ;
          INT32             endDumpEDUTrans( EDUID eduID ) ;
 #endif //SDB_ENGINE
 

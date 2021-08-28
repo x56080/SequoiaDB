@@ -483,6 +483,12 @@ namespace engine
          INT32       _convertSnapshotIndexStats( restAdaptor * pAdaptor,
                                                  restRequest &request,
                                                  MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTransWaits ( restAdaptor * pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader ** msg ) ;
+         INT32       _convertSnapshotTransDeadlock( restAdaptor * pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader ** msg ) ;
          INT32       _buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                     const CHAR *pSql, UINT64 reqID ) ;
          INT32       _convertExec( restAdaptor *pAdaptor, restRequest &request,

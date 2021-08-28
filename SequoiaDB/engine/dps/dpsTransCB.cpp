@@ -2589,6 +2589,33 @@ namespace engine
       FOR_EACH_CMAP_ELEMENT_END
    }
 
+   void dpsTransCB::snapTransLockWaiterLRB( DPS_TX_WAIT_LRB_SET & txWaiterLRBSet )
+   {
+      // for each element in concurrent map
+      FOR_EACH_CMAP_ELEMENT_S( TRANS_CB_MAP, _cbMap )
+      {
+         dpsTransExecutor *exe = it->second->getTransExecutor();
+         dpsTxWaitLRB waitInfo;
+
+         waitInfo.eduID = it->second->getID() ;
+         if ( exe && exe->getTransWaitingLRBInfo( waitInfo ) )
+         {
+            try
+            {
+               txWaiterLRBSet.insert( waitInfo );
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to collect waiter LRB, exception captured: %s",
+                       e.what() ) ;
+               break ;
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+   }
+
    UINT32 dpsTransCB::getTransMapSize()
    {
       // need lock to get size

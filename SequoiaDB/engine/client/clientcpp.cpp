@@ -8881,6 +8881,12 @@ do                                                            \
       case SDB_SNAP_INDEXSTATS :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_INDEXSTATS ;
          break ;
+      case SDB_SNAP_TRANSWAITS :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+         break ;
+      case SDB_SNAP_TRANSDEADLOCK :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;

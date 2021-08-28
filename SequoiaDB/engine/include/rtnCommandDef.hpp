@@ -92,6 +92,8 @@ namespace engine
 #define NAME_SNAPSHOT_LATCHWAITS             CMD_NAME_SNAPSHOT_LATCHWAITS
 #define NAME_SNAPSHOT_LOCKWAITS              CMD_NAME_SNAPSHOT_LOCKWAITS
 #define NAME_SNAPSHOT_INDEXSTATS             CMD_NAME_SNAPSHOT_INDEXSTATS
+#define NAME_SNAPSHOT_TRANSWAITS             CMD_NAME_SNAPSHOT_TRANSWAITS
+#define NAME_SNAPSHOT_TRANSDEADLOCK          CMD_NAME_SNAPSHOT_TRANSDEADLOCK
 #define NAME_TEST_COLLECTION                 CMD_NAME_TEST_COLLECTION
 #define NAME_TEST_COLLECTIONSPACE            CMD_NAME_TEST_COLLECTIONSPACE
 #define NAME_SET_PDLEVEL                     CMD_NAME_SET_PDLEVEL
@@ -316,6 +318,9 @@ namespace engine
       CMD_RESTORE_TO_TIME                    = 264,
       CMD_RESTORE_ABORT                      = 265,
       CMD_RESTORE_PREPARE                    = 266,
+
+      CMD_SNAPSHOT_TRANSWAITS                = 267,
+      CMD_SNAPSHOT_TRANSDEADLOCK             = 268,
       CMD_UNKNOW                             = 65535
    };
 

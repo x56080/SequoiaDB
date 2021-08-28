@@ -837,6 +837,7 @@ namespace engine
       BOOLEAN  addTransCB( const DPS_TRANS_ID &transID, _pmdEDUCB *eduCB ) ;
       void     delTransCB( const DPS_TRANS_ID &transID ) ;
       void     dumpTransEDUList( TRANS_EDU_LIST  &eduList ) ;
+      void     snapTransLockWaiterLRB( DPS_TX_WAIT_LRB_SET & txWaiterLRBSet ) ;
       UINT32   getTransCBSize() ;
       void     termAllTrans() ;
       UINT32   getTransMapSize() ;

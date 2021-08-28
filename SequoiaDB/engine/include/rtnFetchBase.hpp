@@ -89,6 +89,9 @@ namespace engine
 
       RTN_FETCH_DATASET,               /// fetch from inner data set
 
+      RTN_FETCH_TRANSWAITS,            /// transaction waits
+      RTN_FETCH_TRANSDEADLOCK,         /// transaction deadlock 
+
       RTN_FETCH_MAX
    } ;
 

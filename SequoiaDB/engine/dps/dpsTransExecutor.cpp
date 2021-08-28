@@ -1063,4 +1063,33 @@ namespace engine
       PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
    }
 
+   // get the waiting LRB and lockId if this executor is waiting for a
+   // trans lock and it has opened a transaction and has associated with
+   // _tmsDataTransContext
+   BOOLEAN _dpsTransExecutor::getTransWaitingLRBInfo
+   (
+      dpsTxWaitLRB & exctrWaitInfo,
+      LOCKMGR_TYPE   lockMgrType
+   )
+   {
+      BOOLEAN result = FALSE ;
+      {
+         acquireLRBAccessingLock( lockMgrType ) ;
+         dpsTransLRB *pLRB = _waiter[ lockMgrType ] ;
+         if ( pLRB )
+         {
+            exctrWaitInfo.pLRB   = pLRB ;
+            exctrWaitInfo.lockId = pLRB->lrbHdr->lockId ;
+            result = TRUE;
+         }
+         releaseLRBAccessingLock( lockMgrType ) ;
+      }
+      return result ;
+   }
+
+   DPS_TRANS_ID _dpsTransExecutor::getNormalizedTransID()
+   {
+      return getExecutor()->getTransID().getOrigTransID() ;
+   }
+
 }

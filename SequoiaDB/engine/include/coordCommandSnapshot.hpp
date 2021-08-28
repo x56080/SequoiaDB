@@ -40,6 +40,7 @@
 
 #include "coordCommandCommon.hpp"
 #include "coordFactory.hpp"
+#include "rtnDetectDeadlock.hpp"
 
 using namespace bson ;
 
@@ -665,6 +666,67 @@ namespace engine
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotIndexStatsIntr coordCMDSnapshotIndexStatsIntr ;
+
+   /*
+      _coordCMDSnapshotTransWaits define
+   */
+   class _coordCMDSnapshotTransWaits : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransWaits() ;
+         virtual ~_coordCMDSnapshotTransWaits() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTransWaits coordCMDSnapshotTransWaits ;
+
+   /*
+      _coordCMDSnapshotTransWaitsIntr define
+   */
+   class _coordCMDSnapshotTransWaitsIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransWaitsIntr() ;
+         virtual ~_coordCMDSnapshotTransWaitsIntr() ;
+   } ;
+   typedef _coordCMDSnapshotTransWaitsIntr coordCMDSnapshotTransWaitsIntr ;
+
+   /*
+      _coordCMDSnapshotTransDeadlock define
+   */
+   class _coordCMDSnapshotTransDeadlock : public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransDeadlock() ;
+         virtual ~_coordCMDSnapshotTransDeadlock() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotTransDeadlock coordCMDSnapshotTransDeadlock ;
+
+   /*
+      _coordCMDSnapshotTransDeadlockIntr define
+   */
+   class _coordCMDSnapshotTransDeadlockIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotTransDeadlockIntr() ;
+         virtual ~_coordCMDSnapshotTransDeadlockIntr() ;
+         virtual const CHAR* pushdownCommandName() ;
+      protected:
+         virtual INT32 _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
+         virtual COORD_SHOWERROR_TYPE _getDefaultShowErrorType() const
+         {
+            return COORD_SHOWERROR_IGNORE ;
+         }
+   } ;
+   typedef _coordCMDSnapshotTransDeadlockIntr coordCMDSnapshotTransDeadlockIntr;
 
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

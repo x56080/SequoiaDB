@@ -285,19 +285,25 @@ namespace engine
             rc = _pFetch->fetch( obj ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "MonFetch[%s] fetch object failed, rc: %d",
-                       _pFetch->getName(), rc ) ;
-               goto error ;
+               if ( !( ( SDB_DMS_EOC == rc ) && pMonProcessor ) )
+               {
+                  PD_LOG( PDERROR, "MonFetch[%s] fetch object failed, rc: %d",
+                          _pFetch->getName(), rc ) ;
+                  goto error ;
+               }
             }
 
             if ( pMonProcessor )
             {
-               rc = pMonProcessor->pushIn( obj ) ;
-               if ( rc )
+               if ( SDB_OK == rc )
                {
-                  PD_LOG( PDERROR, "Push obj[%s] to processor failed, rc: %d",
-                          obj.toString().c_str(), rc ) ;
-                  goto error ;
+                  rc = pMonProcessor->pushIn( obj ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Push obj[%s] to processor failed, rc: %d",
+                             obj.toString().c_str(), rc ) ;
+                     goto error ;
+                  }
                }
 
                do

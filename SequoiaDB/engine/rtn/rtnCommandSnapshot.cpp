@@ -544,4 +544,74 @@ namespace engine
    {
       return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
    }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotTransWaits )
+
+   BOOLEAN _rtnSnapshotTransWaits::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotTransWaitsInner )
+
+   BOOLEAN _rtnSnapshotTransWaitsInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotTransDeadlock )
+
+   BOOLEAN _rtnSnapshotTransDeadlock::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   INT32 _rtnSnapshotTransDeadlock::_getMonProcessor( IRtnMonProcessorPtr &ptr )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnDetectDeadlockPtr tmpPtr =
+         rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotTransDeadlockInner )
+
+   BOOLEAN _rtnSnapshotTransDeadlockInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   INT32 _rtnSnapshotTransDeadlockInner::_getMonProcessor
+   (
+      IRtnMonProcessorPtr & ptr
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnDetectDeadlockPtr tmpPtr =
+         rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
+   }
+
 }

@@ -839,13 +839,15 @@ namespace engine
 
    void monAppendSessionIdentify( BSONObjBuilder &ob,
                                   UINT64 relatedNID,
-                                  UINT32 relatedTID )
+                                  UINT32 relatedTID,
+                                  const CHAR * fieldName = NULL )
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
       /// IP:00000000, PORT:0000, TID:00000000
       /// SNPRINTF will truncate the last char, so need + 2
-      CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+      //CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
+      CHAR szTmp[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 } ;
 
       if ( 0 != relatedNID )
       {
@@ -858,7 +860,14 @@ namespace engine
       }
       ossSnprintf( szTmp, sizeof(szTmp)-1, "%08x%04x%08x",
                    ip, (UINT16)port, relatedTID ) ;
-      ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
+      if ( NULL == fieldName )
+      {
+         ob.append( FIELD_NAME_RELATED_ID, szTmp ) ;
+      }
+      else
+      {
+         ob.append( fieldName, szTmp ) ;
+      }
    }
 
    #define MON_CPU_USAGE_STR_SIZE 20
@@ -5979,6 +5988,199 @@ namespace engine
 
    error:
       _clear() ;
+      goto done ;
+   }
+
+   /*
+      _monTransWaitsFetch implement
+   */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monTransWaitsFetch )
+
+   _monTransWaitsFetch::_monTransWaitsFetch()
+      : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_TRANSWAITS )
+   {
+      _nodeId.reset() ;
+      _addInfoMask = 0 ;
+      _waitInfoSet.clear() ;
+   }
+
+   _monTransWaitsFetch::~_monTransWaitsFetch()
+   {
+      _waitInfoSet.clear() ;
+   }
+
+   INT32 _monTransWaitsFetch::init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj )
+   {
+      NodeID selfID = pmdGetNodeID() ;
+      _nodeId.nodeID  = selfID.columns.nodeID ;
+      _nodeId.groupID = selfID.columns.groupID ;
+      _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
+
+      monTransInfo transInfo ;
+      dpsTransCB * pTransCB = pmdGetKRCB()->getTransCB() ;
+      pmdEDUMgr *  eduMgr   = pmdGetKRCB()->getEDUMgr() ;
+      if ( pTransCB && eduMgr )
+      {
+         dpsTransLockManager *pLockMgr = pTransCB->getLockMgrHandle() ;
+         if ( pLockMgr )
+         {
+            DPS_TX_WAIT_LRB_SET txWaitLRBSet ;
+            // get lock waiter's LRB
+            pTransCB->snapTransLockWaiterLRB( txWaitLRBSet ) ;
+            if ( ! txWaitLRBSet.empty() )
+            {
+               _waitInfoSet.clear() ;
+
+              // collect transaction waitng info for each waiting executor
+               DPS_TX_WAIT_LRB_SET_IT it = txWaitLRBSet.begin() ;
+               while ( it != txWaitLRBSet.end() )
+               {
+                  dpsTxWaitLRB txWaiterLRB = *it ;
+
+                  pmdTransExecutor *pExecutor = NULL ;
+                  if ( SDB_OK == eduMgr->beginDumpEDUTrans( txWaiterLRB.eduID,
+                                                            &pExecutor,
+                                                            transInfo,
+                                                            FALSE ) )
+                  {
+                     pLockMgr->snapWaitInfo( pExecutor,
+                                             txWaiterLRB.pLRB,
+                                             txWaiterLRB.lockId,
+                                             _waitInfoSet ) ;
+                     eduMgr->endDumpEDUTrans( txWaiterLRB.eduID ) ;
+                  }
+                  it++;
+               }
+            }
+            txWaitLRBSet.clear();
+         }
+      }
+      _hitEnd = _waitInfoSet.empty() ? TRUE : FALSE ;
+      return SDB_OK ;
+   }
+
+   const CHAR* _monTransWaitsFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_TRANSWAITS ;
+   }
+
+   INT32 _monTransWaitsFetch::fetch( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      rc = _fetchNext( obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _monTransWaitsFetch::_fetchNext( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _waitInfoSet.empty() )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      // convert waitInfo set into a BSONObj
+      try
+      {
+         _builder.reset() ;
+         BSONObjBuilder ob ( _builder ) ;
+         CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+
+         DPS_TRANS_WAIT_SET_IT itr = _waitInfoSet.begin();
+         if ( itr != _waitInfoSet.end() )
+         {
+            dpsTransWait info = *itr ;
+            // system info, nodeName
+            monAppendSystemInfo( ob, _addInfoMask ) ;
+            // groupID
+            ob.append( FIELD_NAME_GROUPID,(INT32)_nodeId.groupID );
+            // nodeID
+            ob.append( FIELD_NAME_NODEID,(INT32)_nodeId.nodeID );
+            // wait time
+            ob.append( FIELD_NAME_WAITTIME, (INT64)info.waitTime ) ;
+            // waiter transId
+            dpsTransIDToString( info.waiter, strTransID, DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_WAITER_TRANSID, strTransID ) ;
+            // holder transId
+            dpsTransIDToString( info.holder, strTransID, DPS_TRANS_STR_LEN ) ;
+            ob.append( FIELD_NAME_HOLDER_TRANSID, strTransID ) ;
+            // waiter trans cost 
+            ob.append( FIELD_NAME_WAITER_TRANS_COST,(INT64)info.waiterCost );
+            // holder trans cost 
+            ob.append( FIELD_NAME_HOLDER_TRANS_COST,(INT64)info.holderCost );
+            // waiter sessionID
+            ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID );
+            // holder sessionID
+            ob.append( FIELD_NAME_HOLDER_SESSIONID,(INT64)info.holderSessionID );
+            // waiter RelatedID
+            monAppendSessionIdentify( ob,
+                                      info.waiterRelatedID,
+                                      info.waiterRelatedTID,
+                                      FIELD_NAME_WAITER_RELATED_ID ) ;
+            // holder RelatedID
+            monAppendSessionIdentify( ob,
+                                      info.holderRelatedID,
+                                      info.holderRelatedTID,
+                                      FIELD_NAME_HOLDER_RELATED_ID ) ;
+            // waiter related sessionID
+            ob.append( FIELD_NAME_WAITER_RELATED_SESSIONID,
+                       (INT64)info.waiterRelatedSessionID ) ;
+            // holder related sessionID 
+            ob.append( FIELD_NAME_HOLDER_RELATED_SESSIONID,
+                       (INT64)info.holderRelatedSessionID ) ;
+            // waiter related GroupID
+            ob.append( FIELD_NAME_WAITER_RELATED_GROUPID,
+                       (INT32)info.waiterRelatedNID.columns.groupID );
+            // holder related GroupID
+            ob.append( FIELD_NAME_HOLDER_RELATED_GROUPID,
+                       (INT32)info.holderRelatedNID.columns.groupID );
+            // waiter related NodeID
+            ob.append( FIELD_NAME_WAITER_RELATED_NODEID,
+                       (INT32)info.waiterRelatedNID.columns.nodeID );
+            // holder related NodeID
+            ob.append( FIELD_NAME_HOLDER_RELATED_NODEID,
+                       (INT32)info.holderRelatedNID.columns.nodeID );
+
+            _waitInfoSet.erase( itr ) ;
+         }
+         obj = ob.done();
+         if ( _waitInfoSet.size() == 0 )
+         {
+            _hitEnd = TRUE ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception captured: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

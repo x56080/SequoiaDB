@@ -349,6 +349,14 @@ namespace engine
          void                 setUseTransLock( BOOLEAN use ) ;
          BOOLEAN              useTransLock() const ;
 
+         // get the waiting LRB and lockId if this executor is waiting for a
+         // trans lock and it has opened a transaction and has associated with
+         // _tmsDataTransContext
+         BOOLEAN getTransWaitingLRBInfo( dpsTxWaitLRB & waitInfo,
+                                         LOCKMGR_TYPE
+                                         lockMgrType = LOCKMGR_TRANS_LOCK ) ;
+         DPS_TRANS_ID getNormalizedTransID() ;
+
          /*
             LSN to record map functions
          */
@@ -523,6 +531,8 @@ namespace engine
          // pass arbitration time flag )
          void resetTransTime() ;
 
+         UINT64   getReservedSpace() const ;
+
       protected:
          void                 initTransConf( INT32 isolation,
                                              UINT32 timeout,
@@ -543,8 +553,6 @@ namespace engine
                                                BOOLEAN globTrans ) ;
 
          void     addReservedSpace( const UINT64 len ) ;
-
-         UINT64   getReservedSpace() const ;
 
          void     resetLogSpace() ;
 

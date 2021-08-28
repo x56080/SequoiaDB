@@ -300,7 +300,8 @@ rtnFiles = [
       "rtn/rtnLobLockSectionMgr.cpp",
       "rtn/rtnLocalTaskMgr.cpp",
       "rtn/rtnLocalTaskFactory.cpp",
-      "rtn/rtnLocalTask.cpp"
+      "rtn/rtnLocalTask.cpp",
+      "rtn/rtnDetectDeadlock.cpp"
       ]
 
 msgFiles = [
@@ -506,7 +507,8 @@ dpsFiles = [
       "dps/dpsArchiveInfo.cpp",
       "dps/dpsArchiveFile.cpp",
       "dps/dpsArchiveFileMgr.cpp",
-      "dps/dpsUtil.cpp"
+      "dps/dpsUtil.cpp",
+      "dps/dpsDeadlockDetector.cpp"
       ]
 
 omsvcFiles = [
