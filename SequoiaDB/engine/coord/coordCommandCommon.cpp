@@ -66,7 +66,9 @@ namespace engine
 
    BOOLEAN _coordCmdWithLocation::isOpenEmptyContext()
    {
-      return _getMonProcessor().get() ? TRUE : FALSE ;
+      IRtnMonProcessorPtr ptr;
+      _getMonProcessor( ptr ) ;
+      return ptr.get() ? TRUE : FALSE ;
    }
 
    BOOLEAN _coordCmdWithLocation::ignoreFailedNodes()
@@ -95,7 +97,15 @@ namespace engine
       contextID = -1 ;
 
       _preSet( cb, ctrlParam ) ;
-      monProcessorPtr = _getMonProcessor() ;
+
+      rc = _getMonProcessor( monProcessorPtr ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR,
+                 "Pre-excute failed to acquire an IRtnMonProcessor obj, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
 
       rc = _preExcute( pMsg, cb, ctrlParam, ignoreRCList ) ;
       if ( rc )
@@ -191,9 +201,10 @@ namespace engine
       return SDB_OK ;
    }
 
-   IRtnMonProcessorPtr _coordCmdWithLocation::_getMonProcessor()
+   INT32 _coordCmdWithLocation::_getMonProcessor( IRtnMonProcessorPtr & ptr )
    {
-      return IRtnMonProcessorPtr() ;
+      ptr = IRtnMonProcessorPtr() ;
+      return SDB_OK ;
    }
 
    INT32 _coordCmdWithLocation::_processFailedNodes( MsgHeader *pMsg,

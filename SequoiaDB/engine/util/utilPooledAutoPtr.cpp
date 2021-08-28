@@ -191,6 +191,27 @@ namespace engine
       return recordPtr ;
    }
 
+   _utilPooledAutoPtr _utilPooledAutoPtr::makeRaw( CHAR *ptr,
+                                                   UTIL_ALLOC_TYPE type )
+   {
+      _utilPooledAutoPtr recordPtr ;
+
+      if ( ptr )
+      {
+         recordPtr._ptr = ptr ;
+         recordPtr._pRef = (INT64 *)( ptr - sizeof( INT64 ) ) ;
+         recordPtr._allocType = type ;
+         if ( recordPtr._pRef )
+         {
+            INT64 orgRef = ossFetchAndIncrement64( recordPtr._pRef ) ;
+            SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
+      }
+
+      return recordPtr ;
+   }
+
    CHAR* _utilPooledAutoPtr::get()
    {
       return _ptr ;

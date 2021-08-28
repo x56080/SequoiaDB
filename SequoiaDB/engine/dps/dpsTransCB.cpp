@@ -593,6 +593,37 @@ namespace engine
       }
    }
 
+
+   void dpsTransCB::snapTransLockWaiterLRB( DPS_TX_WAIT_LRB_SET & txWaiterLRBSet )
+   {
+      ossScopedLock _lock( &_CBMapMutex ) ;
+
+      TRANS_CB_MAP::iterator iter = _cbMap.begin() ;
+      while( iter != _cbMap.end() )
+      {
+         dpsTransExecutor *exe = iter->second->getTransExecutor();
+         dpsTxWaitLRB waitInfo;
+
+         waitInfo.eduID = iter->second->getID() ;
+         if ( exe->getTransWaitingLRBInfo( waitInfo ) )
+         {
+            try
+            {
+               txWaiterLRBSet.insert( waitInfo );
+            }
+            catch ( std::exception & e )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to collect waiter LRB, exception captured: %s",
+                       e.what() ) ;
+               break ;
+            }
+         }
+         ++iter ;
+      }
+   }
+
+
    TRANS_MAP *dpsTransCB::getTransMap()
    {
       return &_TransMap;

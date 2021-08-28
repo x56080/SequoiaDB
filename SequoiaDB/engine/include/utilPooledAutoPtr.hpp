@@ -85,6 +85,9 @@ namespace engine
          static _utilPooledAutoPtr make( CHAR *ptr,
                                          UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
 
+         // NOTICE: ptr must be created by utilPooledAutoPtr
+         static _utilPooledAutoPtr makeRaw( CHAR *ptr,
+                                            UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
       private:
          _utilPooledAutoPtr( CHAR *ptr, UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
 
@@ -130,9 +133,20 @@ namespace engine
 
          static utilSharePtr alloc( UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
 
+         // NOTICE: ptr must call construct after allocRaw
+         static utilSharePtr allocRaw( const CHAR *pFile,
+                                       UINT32 line,
+                                       UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
+         // NOTICE: ptr must call construct after allocRaw
+         static utilSharePtr allocRaw( UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
+
          static utilSharePtr make( T *ptr,
                                    UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
 
+         // NOTICE: ptr must be created by utilPooledAutoPtr
+         static utilSharePtr makeRaw( T *ptr,
+                                      UTIL_ALLOC_TYPE type = ALLOC_TC ) ;
       public:
          T*          get() { return _ptr ; }
          const T*    get() const { return _ptr ; }
@@ -270,6 +284,44 @@ namespace engine
    }
 
    template< typename T >
+   utilSharePtr<T> utilSharePtr<T>::allocRaw( const CHAR *pFile,
+                                              UINT32 line,
+                                              UTIL_ALLOC_TYPE type )
+   {
+      utilSharePtr<T> recordPtr ;
+      UINT32 realSZ = sizeof( T ) + sizeof( INT64 ) ;
+      CHAR *ptr = NULL ;
+
+      if ( ALLOC_OSS == type )
+      {
+         ptr = ( CHAR* )ossMemAlloc( realSZ, pFile, line ) ;
+      }
+      else if ( ALLOC_POOL == type )
+      {
+         ptr = ( CHAR* )utilPoolAlloc( realSZ, pFile, line ) ;
+      }
+      else
+      {
+         ptr = ( CHAR* )utilThreadAlloc( realSZ, pFile, line ) ;
+      }
+
+      if ( ptr )
+      {
+         *(INT64*)ptr = 1 ;
+         recordPtr._pRef = (INT64*)ptr ;
+         recordPtr._ptr = (T*)( ptr + sizeof( INT64 ) ) ;
+         recordPtr._allocType = type ;
+      }
+      return recordPtr ;
+   }
+
+   template< typename T >
+   utilSharePtr<T> utilSharePtr<T>::allocRaw( UTIL_ALLOC_TYPE type )
+   {
+      return allocRaw( __FILE__, __LINE__, type ) ;
+   }
+
+   template< typename T >
    utilSharePtr<T> utilSharePtr<T>::make( T *ptr,
                                           UTIL_ALLOC_TYPE type )
    {
@@ -298,6 +350,28 @@ namespace engine
             recordPtr._allocType = type ;
          }
       }
+      return recordPtr ;
+   }
+
+   template< typename T >
+   utilSharePtr<T> utilSharePtr<T>::makeRaw( T *ptr,
+                                             UTIL_ALLOC_TYPE type )
+   {
+      utilSharePtr<T> recordPtr ;
+
+      if ( ptr )
+      {
+         recordPtr._ptr = ptr ;
+         recordPtr._pRef = (INT64 *)( (CHAR *)ptr - sizeof( INT64 ) ) ;
+         recordPtr._allocType = type ;
+         if ( recordPtr._pRef )
+         {
+            INT64 orgRef = ossFetchAndIncrement64( recordPtr._pRef ) ;
+            SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
+      }
+
       return recordPtr ;
    }
 

@@ -969,6 +969,10 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotLatchWaits },
          { CMD_NAME_SNAPSHOT_LOCKWAITS,
                                  &RestToMSGTransfer::_convertSnapshotLockWaits },
+         { CMD_NAME_SNAPSHOT_TRANSWAITS,
+                                 &RestToMSGTransfer::_convertSnapshotTransWaits },
+         { CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
+                                 &RestToMSGTransfer::_convertSnapshotTransDeadlock },
          { CMD_NAME_LIST_LOBS,   &RestToMSGTransfer::_convertListLobs },
          { OM_LOGIN_REQ,         &RestToMSGTransfer::_convertLogin },
          { REST_CMD_NAME_EXEC,   &RestToMSGTransfer::_convertExec },
@@ -3855,6 +3859,24 @@ namespace engine
                                                       MsgHeader ** msg )
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_LOCKWAITS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTransWaits ( restAdaptor * pAdaptor,
+                                                         restRequest &request,
+                                                         MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotTransDeadlock ( restAdaptor * pAdaptor,
+                                                            restRequest &request,
+                                                             MsgHeader ** msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
    }

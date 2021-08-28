@@ -355,7 +355,8 @@ namespace engine
 #if defined( SDB_ENGINE )
    INT32 _pmdEDUMgr::beginDumpEDUTrans( EDUID eduID,
                                         pmdTransExecutor **executor,
-                                        monTransInfo &transInfo )
+                                        monTransInfo &transInfo,
+                                        BOOLEAN bDumpTransInfo )
    {
       INT32 rc = SDB_OK ;
       MAP_EDUCB_IT it ;
@@ -407,7 +408,10 @@ namespace engine
             continue ;
          }
 
-         cb->dumpTransInfo( transInfo ) ;
+         if ( bDumpTransInfo )
+         {
+            cb->dumpTransInfo( transInfo ) ;
+         }
          *executor = cb->getTransExecutor() ;
          break ;
       }

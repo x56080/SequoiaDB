@@ -998,5 +998,113 @@ namespace engine
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotLockWaitsIntr,
                                       CMD_NAME_SNAPSHOT_LOCKWAITS_INTR,
                                       TRUE ) ;
-}
 
+
+   /*
+    * _coordCMDSnapshotTransWaits implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaits,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaits::_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   _coordCMDSnapshotTransWaits::~_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransWaitsIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaitsIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaitsIntr::_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransWaitsIntr::~_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlock implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlock,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlock::_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlock::~_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlockIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlockIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlockIntr::_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlockIntr::~_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   INT32 _coordCMDSnapshotTransDeadlockIntr::_getMonProcessor
+   (
+      IRtnMonProcessorPtr & ptr
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnDetectDeadlockPtr tmpPtr =
+         rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlockIntr::pushdownCommandName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+   }
+
+}

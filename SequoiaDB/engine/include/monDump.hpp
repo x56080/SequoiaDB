@@ -791,7 +791,39 @@ namespace engine
 
    typedef class _monDataSetFetch monDataSetFetch ;
 
+
+   /*
+      _monTransWaitsFetch define
+   */
+   class _monTransWaitsFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+      public:
+         _monTransWaitsFetch() ;
+         virtual ~_monTransWaitsFetch() ;
+
+         virtual INT32        init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj = BSONObj() ) ;
+
+         virtual const CHAR*  getName() const ;
+
+      public:
+         virtual INT32        fetch( BSONObj &obj ) ;
+
+      protected :
+        INT32                 _fetchNext( BSONObj &obj ) ;
+
+      private:
+         UINT32               _addInfoMask ;
+         DPS_TRANS_WAIT_SET   _waitInfoSet ;
+         dpsDBNodeID          _nodeId      ;
+   } ;
+   typedef _monTransWaitsFetch monTransWaitsFetch ;
+
 }
 
 #endif //MONDUMP_HPP_
-

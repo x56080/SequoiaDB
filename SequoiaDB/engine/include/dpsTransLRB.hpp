@@ -70,20 +70,6 @@ namespace engine
       UINT8               status ;     // 1 byte for status, wake up
       UINT8               pad[1] ;     // 1 byte for padding
 
-      dpsTransLRB()
-      : dpsTxExectr( NULL ),
-        eduLrbNext( NULL ),
-        eduLrbPrev( NULL ),
-        lrbHdr( NULL ),
-        nextLRB( NULL ),
-        prevLRB( NULL ),
-        refCounter( 0 ),
-        lockMode( DPS_TRANSLOCK_MAX ),
-        originMode( DPS_TRANSLOCK_MAX ),
-        status( DPS_LRB_STATUS_NONE )
-      {
-      }
-
       dpsTransLRB( _dpsTransExecutor  *_dpsTxExectr,
                    DPS_TRANSLOCK_TYPE  _lockMode,
                    dpsTransLRBHeader  *_lrbHdr )
@@ -254,6 +240,69 @@ namespace engine
       {
       }
    } ; // 56 bytes in total
+
+   /*
+    * trans executor info for deadlock detection
+    */
+   class dpsTxWaitLRB : public utilPooledObject
+   {
+   public:
+       void reset()
+       {
+          eduID  = PMD_INVALID_EDUID ;
+          pLRB   = NULL ;
+          lockId.reset() ;
+       }
+
+       dpsTxWaitLRB()
+       {
+          reset();
+       }
+
+       dpsTxWaitLRB( const dpsTxWaitLRB & rhs )
+       {
+          eduID  = rhs.eduID ;
+          pLRB   = rhs.pLRB ;
+          lockId = rhs.lockId ;
+       }
+
+       dpsTxWaitLRB( EDUID                  eduId,
+                     dpsTransLRB          * plrb,
+                     const dpsTransLockId & lockID )
+       {
+          eduID  = eduId ;
+          pLRB   = plrb ;
+          lockId = lockID ;
+       }
+
+       virtual ~dpsTxWaitLRB() { }
+
+       dpsTxWaitLRB & operator= ( const dpsTxWaitLRB & rhs )
+       {
+          eduID  = rhs.eduID ;
+          pLRB   = rhs.pLRB ;
+          lockId = rhs.lockId ;
+          return *this ;
+       }
+
+       BOOLEAN operator== ( const dpsTxWaitLRB &rhs ) const
+       {
+          return ( eduID == rhs.eduID ) ;
+       }
+
+       BOOLEAN operator< ( const dpsTxWaitLRB &rhs ) const
+       {
+          return ( eduID < rhs.eduID ) ;
+       }
+
+   public:
+       EDUID          eduID;
+       dpsTransLRB  * pLRB ;
+       dpsTransLockId lockId ;
+   } ;
+   typedef ossPoolSet< dpsTxWaitLRB >     DPS_TX_WAIT_LRB_SET ;
+   typedef DPS_TX_WAIT_LRB_SET::iterator  DPS_TX_WAIT_LRB_SET_IT ;
+
 }
 
 #endif // DPSTRANSLRB_HPP_

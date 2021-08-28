@@ -39,6 +39,7 @@
 #ifndef DPSTRANSLOCKMANAGER_HPP_
 #define DPSTRANSLOCKMANAGER_HPP_
 
+#include "dpsDeadlockDetector.hpp"
 #include "dpsTransLRB.hpp"
 #include "dpsTransLockDef.hpp"
 #include "dpsTransDef.hpp"
@@ -230,6 +231,17 @@ namespace engine
          const dpsTransLockId & lockId,
          INT8                 & owningLockMode,
          UINT32               & refCount
+      ) ;
+
+      // snap lockWait info for a given waiterLRB
+      // similar as dumpEDUTransInfo, this function currently called from
+      // sdb snapshot( monDump.cpp )
+      void snapWaitInfo
+      (
+         _dpsTransExecutor    * pExctr,
+         dpsTransLRB          * pWaiterLRB,
+         const dpsTransLockId & lockId,
+         DPS_TRANS_WAIT_SET   & waitInfoSet
       ) ;
 
    private:
@@ -454,6 +466,13 @@ namespace engine
 
       // wait a lock till be woken up, lock timeout elapsed, or be interrupted
       INT32 _waitLock( _dpsTransExecutor * dpsTxExectr ) ;
+
+      // check if a LRB in waiter or upgrade queue
+      BOOLEAN _isInWaiterOrUpgradeQueue
+      (
+         const dpsTransLRBHeader * pLRBHdr,
+         const dpsTransLRB       * pLRB
+      ) ;
 
       // format LRB to string, flat one line
       CHAR * _LRBToString ( dpsTransLRB * lrb, CHAR * pBuf, UINT32 bufSz ) ;
