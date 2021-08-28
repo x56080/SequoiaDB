@@ -1,7 +1,7 @@
 [^_^]:
     webSphere Readme
 
-WebSphere 是包含了编写、运行和监视的随需应变 Web 应用程序，同时也是跨平台、跨产品解决方案所需要的基础中间设施。
+WebSphere 是 IBM 的网络基础架构软件，其包含的 WebSphere Application Server 是面向企业应用的灵活且高度安全的 Java 服务器运行时环境。
 
 本章文档将从如下方面介绍基于 SequoiaDB 巨杉数据库存储引擎的 WebSphere 服务：
 
