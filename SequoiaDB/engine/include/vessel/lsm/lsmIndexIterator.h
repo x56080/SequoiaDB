@@ -61,7 +61,7 @@ namespace vessel
          virtual INT32 open(requestContext *context,
                             const indexHandle &handle,
                             const orderingWrapper &ordering,
-                            INT32 direction);
+                            BOOLEAN forward);
 
          virtual void close();
 
@@ -106,6 +106,7 @@ namespace vessel
          virtual UINT32 getEntrySize()const;
          virtual INT32 copyKeyEntry(UINT32 bufferSize,
                                     CHAR *buffer)const;
+         virtual INT32 copyKeyEntryToBuffer(indexEntryBuffer &buffer) const;
 
       private:
          INT32 upperBoundKey(const bson::BSONObj &key);

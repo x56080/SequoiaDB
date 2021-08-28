@@ -3275,5 +3275,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_LATCH_OBJ_BUSY</name>
+         <description>
+            <en>the latch object is busy</en>
+            <cn>锁对象忙碌导致无法获取</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

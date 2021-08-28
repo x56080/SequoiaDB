@@ -47,6 +47,7 @@
 #include "vessel/indexHandle.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
+#include "vessel/indexEntryBuffer.h"
 
 namespace engine
 {
@@ -67,7 +68,7 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isForward()const
          {
-            return _forwardDirection;
+            return _forward;
          }
          OSS_INLINE const orderingWrapper &getOrdering()const
          {
@@ -81,12 +82,13 @@ namespace vessel
          virtual INT32 open(requestContext *context,
                             const indexHandle &handle,
                             const orderingWrapper &ordering,
-                            INT32 direction) = 0;
+                            BOOLEAN forward) = 0;
 
          virtual void close() = 0;
 
          virtual void pause() = 0;
 
+         /// lower bound of last key entry.
          virtual INT32 resume() = 0;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
@@ -110,7 +112,7 @@ namespace vessel
          virtual INT32 nextDiffKeyOrRid() = 0;
 
          /// move to next position from current
-         /// until hit the matched tuple.
+         /// until hit the matched entry.
          virtual INT32 nextTo(const bson::BSONObj &prevKey,
                               INT32 fieldCountToCmpInPrev,
                               BOOLEAN upperBound,
@@ -135,6 +137,7 @@ namespace vessel
          virtual UINT32 getEntrySize()const = 0;
          virtual INT32 copyKeyEntry(UINT32 bufferSize,
                                     CHAR *buffer)const = 0;
+         virtual INT32 copyKeyEntryToBuffer(indexEntryBuffer &buffer) const = 0;
 
       protected:
 
@@ -146,21 +149,18 @@ namespace vessel
          void _open(requestContext *context,
                     const indexHandle &handle,
                     const orderingWrapper &ordering,
-                    INT32 direction);
+                    BOOLEAN forward);
          void _close();
 
          requestContext *getContext()const
          {
             return _context;
          }
-
-         void unlockAllRids();
       private:
          requestContext *_context = NULL;
          indexHandle _handle;
          orderingWrapper _ordering;
-         BOOLEAN _forwardDirection = TRUE;
-         RID_LATCH_CONTEXT _rlc;
+         BOOLEAN _forward = TRUE;
    };//class indexIterator
 
    extern indexIterator *createIndexIterator(INDEX_TYPE type);

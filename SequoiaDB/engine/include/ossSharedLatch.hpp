@@ -205,6 +205,30 @@ class ossSharedLatch : public SDBObject
          return r;
       }
 
+      BOOLEAN tryLockWith(const ossSharedLatchMode &m,
+                          UINT32 millis)
+      {
+         BOOLEAN r = FALSE;
+         if (m.isShared())
+         {
+            r = _mutex.try_lock_shared_for(boost::chrono::milliseconds(millis));
+         
+         }
+         else if (m.isUpgrade())
+         {
+            r = _mutex.try_lock_upgrade_for(boost::chrono::milliseconds(millis));
+         }
+         else if (m.isExclusive())
+         {
+            r = _mutex.try_lock_for(boost::chrono::milliseconds(millis));
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid mode");
+         }
+         return r;
+      }
+
       void unlockWith(const ossSharedLatchMode &m)
       {
          if (m.isShared())

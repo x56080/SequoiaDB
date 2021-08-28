@@ -187,8 +187,7 @@ namespace vessel
    class requestContext : public SDBObject
    {
       public:
-         OSS_INLINE requestContext()
-         {}
+         OSS_INLINE requestContext(){}
          requestContext(const requestContext &) = delete;
          requestContext &operator=(const requestContext &) = delete;
          virtual ~requestContext();

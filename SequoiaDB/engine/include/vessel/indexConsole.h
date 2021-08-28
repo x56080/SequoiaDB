@@ -121,6 +121,12 @@ namespace vessel
          INT32 dmlInsert(dmlContext *context,
                          const dmlIndexRequestArray &ra);
 
+         /// Must hold unique key latch first.
+         static INT32 checkUniqueConstraint(requestContext *context,
+                                            INT32 indexSlot,
+                                            const indexObject &indexObj,
+                                            const bson::BSONObj &key,
+                                            recordID &rid);
          
       private:
          INT32 lsmInsert(requestContext *context,

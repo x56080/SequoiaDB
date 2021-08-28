@@ -39,6 +39,7 @@
 #include "ossLikely.hpp"
 #include "vessel/instanceEnv.h"
 #include "utilBsonHash.hpp"
+#include "vessel/objectLatchHelper.hpp"
 
 namespace engine
 {
@@ -236,15 +237,10 @@ namespace vessel
       }
 
       {
+      objectLatchHelper<uniqueIndexLatchKey> lh;
       SDB_ASSERT(requestContext::isOpen(), "can not be closed");
       UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->uniqueIndexLathMap;
-      _UNIQUE_KEY_CONTEXT::reverse_iterator ritr = _uniqueKeyContext.rbegin();
-      for (; ritr != _uniqueKeyContext.rend(); ++ritr)
-      {
-         ritr->getValue().release();
-         latchMap.release(*ritr);
-      }
-      _uniqueKeyContext.clear();
+      lh.releaseAll(latchMap, _uniqueKeyContext);
       _uniqueKeyHash.clear();
       }
    done:
@@ -390,8 +386,7 @@ namespace vessel
    void dmlContext::unlockRids()
    {
       RECORD_ID_LATCH_MAP *latchMap = NULL;
-      RECORD_ID_LATCH_MAP::object latchObj;
-      ossSharedLatchMode mode;
+      objectLatchHelper<recordIdLatchKey> lh;
 
       if (_ridLatchContext.isEmpty())
       {
@@ -407,12 +402,7 @@ namespace vessel
       }
 
       latchMap = &(getEnv()->ridLatchMap);
-      while (_ridLatchContext.pop(latchObj, mode))
-      {
-         latchObj.getValue().unlockWith(mode);
-         latchMap->release(latchObj);
-      }
-
+      lh.releaseAll(*latchMap, _ridLatchContext);
    done:
       return;
    }

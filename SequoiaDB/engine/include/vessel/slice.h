@@ -51,9 +51,11 @@ namespace vessel
       public:
          OSS_INLINE slice():_len(0), _data(NULL){}
          OSS_INLINE slice(UINT32 len, const CHAR *data):
-                    _len(len), _data(data){}
+                    _len(len), _data(data)
+                    {}
          OSS_INLINE slice(UINT32 len, const void *data):
-                    _len(len), _data((const CHAR *)data){}
+                    _len(len), _data((const CHAR *)data)
+                    {}
          OSS_INLINE slice(const slice &r):
                     _len(r._len), _data(r._data){}
 
@@ -77,7 +79,14 @@ namespace vessel
             return _data;
          }
 
-         OSS_INLINE void reset(UINT32 len = 0, const CHAR *data = NULL)
+         OSS_INLINE void reset()
+         {
+            _len = 0;
+            _data = NULL;
+            return;
+         }
+
+         OSS_INLINE void reset(UINT32 len, const CHAR *data)
          {
             _len = len;
             _data = data;

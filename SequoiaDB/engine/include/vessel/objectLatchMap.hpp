@@ -458,7 +458,7 @@ namespace vessel
          }
 
       private:
-         static constexpr UINT32 DEFAULT_CAPACITY = 4;
+         static constexpr UINT32 DEFAULT_CAPACITY = 2;
          UINT32 _capacity = DEFAULT_CAPACITY;
          UINT32 _size = 0;
          _latchSlot _staticBuf[DEFAULT_CAPACITY];
@@ -467,6 +467,7 @@ namespace vessel
    };//class objectSharedLatchContext
 
    typedef objectSharedLatchContext<recordIdLatchKey> RID_LATCH_CONTEXT;
+   typedef objectSharedLatchContext<logicalIdLatchKey> LPID_LATCH_CONTEXT;
 }//namespace vessel
 }//namespace engine
 

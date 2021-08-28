@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexIterator.cpp
+   Source File Name = indexEntryBuffer.cpp
 
    Descriptive Name =
 
@@ -33,65 +33,68 @@
 
 ******************************************************************************/
 
-#include "vessel/indexIterator.h"
-#include "vessel/indexUtils.h"
-#include "vessel/instanceEnv.h"
+#include "vessel/indexEntryBuffer.h"
+#include "vessel/lsm/lsmIdxKey.hpp"
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
-#include "vessel/lsm/lsmIndexIterator.h"
+#include "vessel/btreeIndexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   indexIterator *createIndexIterator(INDEX_TYPE type)
+   indexEntryBuffer::~indexEntryBuffer()
    {
+      _mb.release();
+   }
+
+   slice indexEntryBuffer::getEntry()const
+   {
+      return slice(_mb.getSize(), _mb.getBuffer());
+   }
+
+   INT32 indexEntryBuffer::save(INDEX_TYPE type,
+                                const slice &entry)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 minEntrySize = 0;
+
       if (INDEX_TYPE_LSM == type)
       {
-         return SDB_OSS_NEW lsmIndexIterator();
+         minEntrySize = LSM_MIN_FULL_KEY_SIZE;
       }
-      else if (INDEX_TYPE_BTREE)
+      else if (INDEX_TYPE_BTREE == type)
       {
-         SDB_ASSERT(FALSE, "TODO");
-         return NULL;
+         minEntrySize = BTREE_MIN_ENTRY_SIZE;
       }
       else
       {
-         SDB_ASSERT(FALSE, "invalid type");
-         return NULL;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
-   }
 
-   indexIterator::~indexIterator()
-   {
-      _close();
-   }
-
-   void indexIterator::_open(requestContext *context,
-                           const indexHandle &handle,
-                           const orderingWrapper &ordering,
-                           BOOLEAN forward)
-   {
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(handle.isValid(), "can not be invalid");
-      _context = context; 
-      _handle = handle;
-      _ordering = ordering;
-      _forward = forward;
-      return;
-   }
-
-   void indexIterator::_close()
-   {
-      if (NULL != _context)
+      if (entry.len() < minEntrySize)
       {
-         _context = NULL;
-         _handle = indexHandle();
-         _ordering = orderingWrapper();
-         _forward = TRUE;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
-      return;
+
+      rc = _mb.copy(entry.len(), entry.data());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to save index entry:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-}//namespace vessel
-}//namespace engine
+   void indexEntryBuffer::reset()
+   {
+      _mb.resize(0);
+   }
+} // namespace vessel
+
+} // namespace engine

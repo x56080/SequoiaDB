@@ -54,6 +54,7 @@ namespace vessel
 
    memoryBlock &memoryBlock::operator=(memoryBlock &&o)
    {
+      release();
       _buffer = o._buffer;
       _capacity = o._capacity;
       _size = o._size;
@@ -153,13 +154,15 @@ namespace vessel
          goto error;
       }
 
-      rc = resize(size);
+      resize(0);
+      rc = reserve(size);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       ossMemcpy(_buffer, buffer, size);
+      _size = size;
    done:
       return rc;
    error:

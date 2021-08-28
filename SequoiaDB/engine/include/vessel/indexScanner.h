@@ -40,12 +40,14 @@
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
+#include "vessel/objectLatchMap.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    class requestContext;
+   class indexScanContext;
 
    class indexScanner : public SDBObject
    {
@@ -60,26 +62,28 @@ namespace vessel
          }
 
       public:
-         INT32 open(requestContext *context,
-                    INT32 indexSlot,
-                    const indexObject &indexObj, 
-                    INT32 direction);
+         INT32 open(indexScanContext *context,
+                    const indexObject &indexObj);
 
          void close();
 
-      public: /// open first
+         /// return SDB_IXM_EOC when hit the end.
+         /// scanner will be closed after returning any error.
+         INT32 next(recordID &rid);
 
-      public:
-         static INT32 findOne(requestContext *context,
-                              INT32 indexSlot,
-                              const indexObject &indexObj,
-                              const bson::BSONObj &key,
-                              recordID &rid);
+      private:
+         INT32 prepareToScan(rtnPredicateListIterator *predicate);
+         INT32 prepareToScan(const slice &entry);
+         INT32 matchCurrentOrSeekNext(recordID &rid);
+         INT32 lockCurrentRid(BOOLEAN &locked);
+         INT32 waitCurrentRid(UINT32 millis, BOOLEAN &timeout);
          
       private:
-         requestContext *_context = NULL;
-         indexIterator *_itr = NULL;
+         indexScanContext *_context = NULL;
+         indexIterator *_iterator = NULL;
+         RID_LATCH_CONTEXT _rlc;
          BOOLEAN _seeked = FALSE;
+         bson::BufBuilder _builder;
    };//class indexScanner
 
 } // namespace vessel

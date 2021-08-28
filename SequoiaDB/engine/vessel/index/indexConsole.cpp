@@ -51,6 +51,7 @@
 #include "vessel/dmlContext.h"
 #include "ixmKey.hpp"
 #include "ossSharedLatch.hpp"
+#include "vessel/indexIterator.h"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -901,6 +902,87 @@ namespace vessel
       return rc;
    error:
       lsmBatch.clear();
+      goto done;
+   }
+
+   INT32 indexConsole::checkUniqueConstraint(requestContext *context,
+                                             INT32 indexSlot,
+                                             const indexObject &indexObj,
+                                             const bson::BSONObj &key,
+                                             recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      indexHandle handle;
+      indexIterator *iterator = NULL;
+      rid = recordID();
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
+                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !isValidIndexSlot(indexSlot) ||
+                       !indexObj.isValid() ||
+                       !indexObj.getParams().isUnique))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handle = indexHandle(indexSlot, indexObj.getIndexID());
+      iterator = createIndexIterator(indexObj.getIndexType());
+      if (NULL == iterator)
+      {
+         PD_LOG(PDERROR, "failed to allocate itr obj");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = iterator->open(context, handle,
+                          indexObj.getPattern().getOrdering(), 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open iterator:%d", rc);
+         goto error;
+      }
+      
+      rc = iterator->seek(key, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key:%d", rc);
+         goto error;
+      }
+
+      while (iterator->isReadyToRead())
+      {
+         if (iterator->isMarkedRemoved())
+         {
+            rc = iterator->nextDiffKeyOrRid();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get next tuple:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            ixmKey ik;
+            iterator->getKey(ik);
+            _ixmKeyOwned ownedKey(key);
+            if (ik.woEqual(ownedKey))
+            {
+               rid = iterator->getRid();
+               SDB_ASSERT(rid.valid(), "impossible");
+            }
+            break;
+         }
+      }
+   done:
+      if (NULL != iterator)
+      {
+         iterator->close();
+         SDB_OSS_DEL iterator;
+      }
+      return rc;
+   error:
       goto done;
    }
 }//namespace vessel

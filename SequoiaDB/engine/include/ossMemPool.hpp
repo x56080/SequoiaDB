@@ -57,6 +57,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <unordered_set> // c++11
 
 /*
  * Memory pool ideal for allocation of objects one chunk at a time, such as
@@ -115,16 +116,20 @@ class ossPoolSet : public std::set<K, Compare, typename ossPoolAllocator<K>::Typ
    */
 };
 
+
 /*
  * Unordered Set utilizing memory pool
  */
-template < typename K, typename Hash, typename Equal >
-class ossPoolUnordedSet : public boost::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
+
+
+//template < typename K, typename Hash, typename Equal >
+//class ossPoolUnordedSet : public boost::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
   /**
    * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
    * DO NOT USE THIS CLASS IN POLYMORPHISM
    */
-};
+//};
+
 
 /*
  * Multi Set utilizing memory pool
@@ -220,6 +225,17 @@ public:
     * DO NOT USE THIS CLASS IN POLYMORPHISM
     */
 } ;
+
+/*
+ * Unordered Set utilizing memory pool
+ */
+template < typename K, typename Hash=std::hash<K>, typename Equal=std::equal_to<K>>
+class ossPoolUnorderedSet : public std::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
+  /**
+   * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+   * DO NOT USE THIS CLASS IN POLYMORPHISM
+   */
+};
 
 #endif
 

@@ -808,6 +808,22 @@ namespace vessel
       goto done;
    }
 
+   INT32 lsmIndexIterator::copyKeyEntryToBuffer(indexEntryBuffer &buffer) const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_isReadyToRead(), "must be valid");
+      rc = buffer.save(INDEX_TYPE_LSM, slice(_itr->key().size(), _itr->key().data()));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to save entry to buffer:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    void lsmIndexIterator::pause()
    {
       return;

@@ -39,6 +39,11 @@
 #include "vessel/indexIterator.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
+#include "vessel/indexScanContext.h"
+#include "vessel/objectLatchHelper.hpp"
+#include "vessel/instanceEnv.h"
+#include "vessel/indexEntryBuffer.h"
+#include "rtnPredicate.hpp"
 
 namespace engine
 {
@@ -49,41 +54,42 @@ namespace vessel
       close();
    }
 
-   INT32 indexScanner::open(requestContext *context,
-                            INT32 indexSlot,
-                            const indexObject &indexObj, 
-                            INT32 direction)
+   INT32 indexScanner::open(indexScanContext *context,
+                            const indexObject &indexObj)
    {
       INT32 rc = SDB_OK;
       indexHandle handle;
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !isValidIndexSlot(indexSlot) ||
+                       !context->isScanning() ||
                        !indexObj.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
+      
+      SDB_ASSERT(context->getHandle().getIndexId() == indexObj.getIndexID(), "must be same");
 
       _context = context;
-      _itr = createIndexIterator(indexObj.getIndexType());
-      if (NULL == _itr)
+      _iterator = createIndexIterator(indexObj.getIndexType());
+      if (NULL == _iterator)
       {
          PD_LOG(PDERROR, "failed to create new itr obj");
          rc = SDB_OOM;
          goto error;
       }
 
-      handle = indexHandle(indexSlot, indexObj.getIndexID());
-      rc = _itr->open(context, handle,
-                      indexObj.getPattern().getOrdering(),
-                      direction);
+      rc = _iterator->open(context, context->getHandle(),
+                           indexObj.getPattern().getOrdering(),
+                           context->isForward());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open index iterator:%d", rc);
+         PD_LOG(PDERROR, "failed to open iterator of index[%s], rc:%d",
+                indexObj.getIndexName().str(), rc);
          goto error;
       }
+
    done:
       return rc;
    error:
@@ -95,93 +101,299 @@ namespace vessel
    {
       if (NULL != _context)
       {
-         if (NULL != _itr)
+         if (NULL != _iterator)
          {
-            _itr->close();
-            SDB_OSS_DEL _itr;
+            _iterator->close();
+            SDB_OSS_DEL _iterator;
+            _iterator = NULL;
          }
-
-         _seeked = FALSE;
+         if (!_rlc.isEmpty())
+         {
+            objectLatchHelper<recordIdLatchKey> lh;
+            RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
+            lh.releaseAll(lm, _rlc);
+         }
          _context = NULL;
+         _seeked = FALSE;
+         _builder.reset();
       }
       return;
    }
 
-   INT32 indexScanner::findOne(requestContext *context,
-                               INT32 indexSlot,
-                               const indexObject &indexObj,
-                               const bson::BSONObj &key,
-                               recordID &rid)
+   INT32 indexScanner::next(recordID &rid)
    {
       INT32 rc = SDB_OK;
-      indexHandle handle;
-      indexIterator *iterator = NULL;
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
-                       !isValidIndexSlot(indexSlot) ||
-                       !indexObj.isValid()))
+      if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rid = recordID();
-      handle = indexHandle(indexSlot, indexObj.getIndexID());
-      iterator = createIndexIterator(indexObj.getIndexType());
-      if (NULL == iterator)
+      if (!_seeked)
       {
-         PD_LOG(PDERROR, "failed to allocate itr obj");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = iterator->open(context, handle,
-                          indexObj.getPattern().getOrdering(), 1);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open iterator:%d", rc);
-         goto error;
-      }
-
-      rc = iterator->seek(key, FALSE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to seek key:%d", rc);
-         goto error;
-      }
-
-      while (iterator->isReadyToRead())
-      {
-         if (iterator->isMarkedRemoved())
+         if (_context->getEntryBuffer()->isValid())
          {
-            rc = iterator->nextDiffKeyOrRid();
+            rc = prepareToScan(_context->getEntryBuffer()->getEntry());
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to get next tuple:%d", rc);
+               PD_LOG(PDERROR, "failed to prepare scan by entry:%d", rc);
                goto error;
             }
          }
          else
          {
-            ixmKey ik;
-            iterator->getKey(ik);
-            _ixmKeyOwned ownedKey(key);
-            if (ik.woEqual(ownedKey))
+            rc = prepareToScan(_context->getPredicate());
+            if (SDB_OK != rc)
             {
-               rid = iterator->getRid();
-               SDB_ASSERT(rid.valid(), "impossible");
+               PD_LOG(PDERROR, "failed to prepare scan by predicate:%d", rc);
+               goto error;
             }
-            break;
          }
       }
-   done:
-      if (NULL != iterator)
+      else
       {
-         iterator->close();
-         SDB_OSS_DEL iterator;
+         rc = _iterator->nextDiffKeyOrRid();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get next key or rid:%d", rc);
+            goto error;
+         }
       }
+
+      if (!_iterator->isReadyToRead())
+      {
+         rc = SDB_IXM_EOC;
+         goto error;
+      }
+
+      rc = matchCurrentOrSeekNext(rid);
+      if (SDB_OK != rc)
+      {
+         if (SDB_IXM_EOC != rc)
+         {
+            PD_LOG(PDERROR, "failed to match or seek next:%d", rc);
+         }
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      close();
+      goto done;
+   }
+
+   INT32 indexScanner::prepareToScan(rtnPredicateListIterator *predicate)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!_seeked, "can not be seeked");
+      SDB_ASSERT(NULL != _iterator, "can not be null");
+
+      rc = _iterator->seek(bson::BSONObj(), 0, FALSE,
+                           predicate->cmp(), predicate->inc());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek predicate:%d", rc);
+         goto error;
+      }
+      _seeked = TRUE;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexScanner::prepareToScan(const slice &entry)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!_seeked, "can not be seeked");
+      SDB_ASSERT(entry.isValid(), "must be valid");
+      SDB_ASSERT(NULL != _iterator, "can not be null");
+     
+      rc = _iterator->seek(entry, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek last entry:%d", rc);
+         goto error;
+      }
+      _seeked = TRUE;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexScanner::matchCurrentOrSeekNext(recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(NULL != _iterator && _iterator->isReadyToRead(), "must be ready");
+      rid = recordID();
+      rtnPredicateListIterator *predicate = _context->getPredicate();
+      UNORDERED_RID_SET *ridSet = _context->getRidSet();
+      SDB_ASSERT(NULL != predicate, "can not be null");
+      SDB_ASSERT(NULL != ridSet, "can not be null");
+
+      do
+      {
+         if (_iterator->isMarkedRemoved())
+         {
+            rc = _iterator->nextDiffKeyOrRid();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get next key and rid:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            _builder.reset();
+            ixmKey key;
+            _iterator->getKey(key);
+            bson::BSONObj keyObj = key.toBson(&_builder);
+            INT32 res = predicate->advance(keyObj);
+            if (-2 == res)
+            {
+               rc = SDB_IXM_EOC;
+               goto error;
+            }
+            else if (0 <= res)
+            {
+               rc = _iterator->nextTo(keyObj, res,
+                                      predicate->after(),
+                                      predicate->cmp(),
+                                      predicate->inc());
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to get next tuple from iterator:%d", rc);
+                  goto error;
+               }
+            }
+            else
+            {
+               BOOLEAN locked = FALSE;
+               recordID currentRid = _iterator->getRid();
+               if (0 < ridSet->count(currentRid))
+               {
+                  rc = _iterator->nextDiffKeyOrRid();
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to get next tuple from iterator:%d, rc");
+                     goto error;
+                  }
+                  continue;
+               }
+
+               rc = lockCurrentRid(locked);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to lock current rid:%d", rc);
+                  goto error;
+               }
+
+               if (locked)
+               {
+                  rc = _iterator->copyKeyEntryToBuffer(*(_context->getEntryBuffer()));
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to copy key entry:%d", rc);
+                     goto error;
+                  }
+
+                  rid = currentRid;
+                  goto done;
+               }
+               else
+               {
+                  UINT32 millis = 60000; /// 1 mins
+                  BOOLEAN timeout = FALSE;
+                  _iterator->pause();
+                  rc = waitCurrentRid(millis, timeout);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to wait latch obj:%d", rc);
+                     goto error;
+                  }
+                  else if (timeout)
+                  {
+                     PD_LOG(PDERROR, "timeout to wait latch obj[%d,%d], mb[%d,%d]",
+                            currentRid.getPageID(), currentRid.getSlotID(),
+                            _context->getSpaceID(), _context->getMBID());
+                     rc = SDB_VESSEL_LATCH_OBJ_BUSY;
+                     goto error;
+                  }
+
+                  rc = _iterator->resume();
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to resume iterator:%d", rc);
+                     goto error;
+                  }
+               }
+            }
+         }
+      } while (_iterator->isReadyToRead());
+
+      rc = SDB_IXM_EOC;
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexScanner::lockCurrentRid(BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != _iterator && _iterator->isReadyToRead(), "must be ready");
+      objectLatchHelper<recordIdLatchKey> lh;
+      RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
+      ossSharedLatchMode mode;
+      mode.setShared();
+      recordID rid = _iterator->getRid();
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      recordIdLatchKey key(_context->getSpaceID(),
+                           _context->getMBID(),
+                           rid);
+      rc = lh.tryLock(lm, _rlc, key, mode, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid:%d", rc);
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexScanner::waitCurrentRid(UINT32 millis, BOOLEAN &timeout)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != _iterator && _iterator->isReadyToRead(), "must be ready");
+      objectLatchHelper<recordIdLatchKey> lh;
+      RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
+      ossSharedLatchMode mode;
+      mode.setShared();
+      recordID rid = _iterator->getRid();
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      recordIdLatchKey key(_context->getSpaceID(),
+                           _context->getMBID(),
+                           rid);
+
+      rc = lh.waitFor(lm, key, mode, millis, timeout);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to wait rid latch:%d", rc);
+         goto error;
+      }
+   done:
       return rc;
    error:
       goto done;
