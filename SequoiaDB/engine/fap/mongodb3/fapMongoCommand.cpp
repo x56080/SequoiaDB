@@ -892,8 +892,8 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_GBUILDREPLYCOMMON ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GBUILDREPLYCOMMON, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -1041,8 +1041,8 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDREPLYCOMMON ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DBBUILDREPLYCOMMON, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -1115,7 +1115,7 @@ INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
    }
    
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DBBUILDFIRBATCH ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DBBUILDFIRBATCH, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -1338,8 +1338,8 @@ INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_CLBUILDREPLYCOMMON ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CLBUILDREPLYCOMMON, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -1528,7 +1528,7 @@ INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
    INT32 rc = SDB_OK ;
-   
+
    try
    {
       if ( SDB_OK == sdbReply.flags )
@@ -1550,10 +1550,15 @@ INT32 _mongoInsertCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_INSERTBUILDMONGOREPLY ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_INSERTBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -1671,7 +1676,7 @@ error:
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_DELETEPARSESDBREPLY, "_mongoDeleteCommand::parseSdbReply" )
 INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
-                                             engine::rtnContextBuf &bodyBuf )
+                                          engine::rtnContextBuf &bodyBuf )
 {
    PD_TRACE_ENTRY( SDB_FAPMONGO_DELETEPARSESDBREPLY ) ;
    INT32 rc = SDB_OK ;
@@ -1755,11 +1760,16 @@ INT32 _mongoDeleteCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DELETEBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DELETEBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -2090,11 +2100,16 @@ INT32 _mongoUpdateCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -2561,8 +2576,8 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_QUERYBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_QUERYBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -2810,7 +2825,12 @@ INT32 _mongoFindCommand::buildMongoReply( const MsgOpReply &sdbReply,
                    "Failed to build first batch, rc: %d", rc ) ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_FINDBUILDMONGOREPLY, rc ) ;
@@ -3104,8 +3124,8 @@ INT32 _mongoGetmoreCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    sdbMsg.doneLen() ;
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDREQ ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDREQ, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -3178,7 +3198,7 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
    headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMOREREPLY ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_BUILDGETMOREREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -3288,8 +3308,8 @@ INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -3688,10 +3708,10 @@ INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
               " reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-      
+
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_KILLCURSORBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -3851,11 +3871,16 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_COUNTBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_COUNTBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -3890,7 +3915,7 @@ INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
    }
    
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTSUM, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -3987,7 +4012,7 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
    }
    
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTGROUP, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4067,7 +4092,7 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
    }
    
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRCONVERTPROJECT ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTPROJECT, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4202,7 +4227,7 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRBUILDREQ ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRBUILDREQ, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4236,7 +4261,12 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                          "Failed to build first batch, rc: %d", rc ) ;
          }
 
-         _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+         rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+            goto error ;
+         }
       }
       else
       {
@@ -4266,7 +4296,12 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                    1 ) ) ;
          }
 
-         _buildReplyCommon( sdbReply, bodyBuf, headerBuf, TRUE ) ;
+         rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+            goto error ;
+         }
       }
    }
    catch ( std::exception &e )
@@ -4278,7 +4313,7 @@ INT32 _mongoAggregateCommand::buildMongoReply( const MsgOpReply &sdbReply,
    }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AGGRBUILDMONGOREPLY ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4425,11 +4460,16 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DISTINCTBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -4545,11 +4585,16 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRCLBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -4672,11 +4717,16 @@ INT32 _mongoDropCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPCLBUILDMONGOREPLLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -4786,7 +4836,12 @@ INT32 _mongoListIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
                    "Failed to build first batch, rc: %d", rc ) ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTIDXBUILDMONGOREPLLY, rc ) ;
@@ -4949,11 +5004,16 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRIDXBUILDMONGOREPLLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -5078,11 +5138,16 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPIDXBUILDMONGOREPLLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -5203,11 +5268,16 @@ INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPDBBUILDMONGOREPLLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -5408,11 +5478,16 @@ INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_CTRUSERBUILDMONGOREPLLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -5615,11 +5690,16 @@ INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_DROPUSERBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -5878,7 +5958,12 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTUSERBUILDMONGOREPLY, rc ) ;
@@ -6120,11 +6205,16 @@ INT32 _mongoSaslStartCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH1BUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -6359,11 +6449,16 @@ INT32 _mongoSaslContinueCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_AUTH2BUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -6484,10 +6579,15 @@ INT32 _mongoListCollectionCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY ) ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLBUILDMONGOREPLY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -6611,11 +6711,16 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY ) ;
-   return SDB_OK ;
+   PD_TRACE_EXITRC( SDB_FAPMONGO_LISTDBBUILDMONGOREPLY, rc ) ;
+   return rc ;
 error:
    goto done ;
 }
@@ -6643,7 +6748,12 @@ INT32 _mongoGetLogCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -6728,7 +6838,12 @@ INT32 _mongoIsMasterCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -6832,7 +6947,12 @@ INT32 _mongoBuildInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -6901,7 +7021,12 @@ INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -6951,7 +7076,12 @@ INT32 _mongoLogoutCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
    
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -6977,7 +7107,12 @@ INT32 _mongoDummyCommand::buildMongoReply( const MsgOpReply &sdbReply,
       goto error ;
    }
 
-   _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   if ( rc )
+   {
+      PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+      goto error ;
+   }
 
 done:
    return rc ;
@@ -7356,7 +7491,12 @@ INT32 _mongoFindAndModifyCommand::buildMongoReply( const MsgOpReply &sdbReply,
          bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
       }
 
-      _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+      rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build common reply, rc: %d", rc ) ;
+         goto error ;
+      }
    }
    catch( std::exception &e )
    {
