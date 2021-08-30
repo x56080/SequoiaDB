@@ -1043,6 +1043,9 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
                  connection->_pSendBuffer, sizeof( MsgSysInfoRequest ) ) ;
    if ( SDB_OK != rc )
    {
+      // send failed
+      // no need to send disconnect, close socket directly
+      _sdbDisconnect_inner( (sdbConnectionHandle)connection ) ;
       goto error ;
    }
 
