@@ -43,24 +43,18 @@ namespace vessel
 {
    void dmlIndexRequest::fini()
    {
-      _indexSlot = -1;
+      _index = NULL;
       _keys.clear();
-      _obj.fini();
-      _building = FALSE;
-      _pushedIntoBuildingContext = FALSE;
+      _merged = FALSE;
    }
 
-   void dmlIndexRequest::init(INT32 indexSlot,
-                              const indexObject &obj,
+   void dmlIndexRequest::init(indexContext *index,
                               const bson::BSONObjSet &keys)
    {
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
-      SDB_ASSERT(obj.isValid(), "must be valid");
+      SDB_ASSERT(NULL != index && index->isValid(), "must be valid");
       SDB_ASSERT(!keys.empty(), "can not be empty");
-      _indexSlot = indexSlot;
+      _index = index;
       _keys.clear();
-      _obj.shallowCopy(obj);
-      _obj.getOwned();
 
       for (bson::BSONObjSet::const_iterator itr = keys.begin();
            itr != keys.end(); ++itr)
@@ -89,18 +83,18 @@ namespace vessel
          }
       }
       _requests.clear();
+      _constraintIndexCount = 0;
+      _building = 0;
    }
 
-   INT32 dmlIndexRequestArray::append(INT32 indexSlot,
-                                      const indexObject &obj,
-                                      const bson::BSONObjSet &keys,
-                                      dmlIndexRequest **out)
+   INT32 dmlIndexRequestArray::append(indexContext *index,
+                                      const bson::BSONObjSet &keys)
    {
       INT32 rc = SDB_OK;
       dmlIndexRequest *req = NULL;
 
-      if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
-                       !obj.isValid() ||
+      if (OSS_UNLIKELY(NULL == index ||
+                       !index->isValid() ||
                        keys.empty()))
       {
          rc = SDB_INVALIDARG;
@@ -127,12 +121,16 @@ namespace vessel
          goto error;
       }
 
-      req->init(indexSlot, obj, keys);
-
-      if (NULL != out)
+      req->init(index, keys);
+      if (req->withConstraint())
       {
-         *out = req;
+         ++_constraintIndexCount;
       }
+      if (index->isBuilding())
+      {
+         ++_building;
+      }
+
    done:
       return rc;
    error:

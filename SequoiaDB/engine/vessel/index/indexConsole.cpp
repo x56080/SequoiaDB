@@ -47,7 +47,7 @@
 #include "vessel/globalIndexID.h"
 #include "vessel/instanceEnv.h"
 #include "dmsRBSSUMgr.hpp"
-#include "vessel/collectionIndexContext.h"
+#include "vessel/indexContextMap.h"
 #include "vessel/dmlContext.h"
 #include "ixmKey.hpp"
 #include "ossSharedLatch.hpp"
@@ -652,7 +652,7 @@ namespace vessel
    }
 
    INT32 indexConsole::loadIndexesWhenStartup(requestContext *context,
-                                              collectionIndexContext *indexContext)
+                                              indexContextMap *indexes)
    {
       INT32 rc = SDB_OK;
       indexDefPageAccessor accessor;
@@ -664,13 +664,13 @@ namespace vessel
          goto error;
       }
       else if (NULL == context ||
-               NULL == indexContext)
+               NULL == indexes)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      indexContext->fini();
+      indexes->fini();
 
       for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
       {
@@ -713,18 +713,11 @@ namespace vessel
             goto error;
          }
 
-         if (indexContext->getNextIndexId() <= head.indexLogicalID)
+         rc = indexes->insertWhenStartup(i, indexObj, (INDEX_STATUS)(head.status));
+         if (SDB_OK != rc)
          {
-            indexContext->setNextIndexId(head.indexLogicalID + 1);
-         }
-
-         if (INDEX_STATUS_NORMAL == head.status)
-         {
-            indexContext->unfreeIndexSlot(i, indexObj.getParams().isUnique);
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "TODO");
+            PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
+            goto error;
          }
       }
 
@@ -784,26 +777,19 @@ namespace vessel
             goto error;
          }
 
-         if (indexContext->getNextIndexId() <= head.indexLogicalID)
+         rc = indexes->insertWhenStartup(i, indexObj, (INDEX_STATUS)(head.status));
+         if (SDB_OK != rc)
          {
-            indexContext->setNextIndexId(head.indexLogicalID + 1);
-         }
-
-         if (INDEX_STATUS_NORMAL == head.status)
-         {
-            indexContext->unfreeIndexSlot(i, indexObj.getParams().isUnique);
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "TODO");
+            PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
+            goto error;
          }
       }
    done:
       return rc;
    error:
-      if (NULL != indexContext)
+      if (NULL != indexes)
       {
-         indexContext->fini();
+         indexes->fini();
       }
       goto done;
    }
@@ -868,16 +854,16 @@ namespace vessel
       {
          const dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
-         if (ir->getIndexType() != INDEX_TYPE_LSM ||
-             ir->isPushedIntoBuildingContext())
+         if (ir->getContext()->getObj().getParams().type != INDEX_TYPE_LSM ||
+             ir->isMerged())
          {
             continue;
          }
 
          globalIndexID gid(context->getLogicalCSID(),
                            context->getLogicalCLID(),
-                           ir->getIndexObj().getIndexID());
-         lsmIndexMeta meta(gid, ir->getIndexObj().getPattern().getOrdering());
+                           ir->getContext()->getIndexID());
+         lsmIndexMeta meta(gid, ir->getContext()->getObj().getPattern().getOrdering());
 
 
          ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeys().begin();

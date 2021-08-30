@@ -190,21 +190,5 @@ namespace vessel
          _pool->commit(lsn, *this);
       }
    }
-
-   void liteCacheTuple::moveTo(liteCacheTuple &tuple)
-   {
-      tuple.release();
-      if (isValid())
-      {
-         tuple._pool = _pool;
-         tuple._flags = _flags;
-         tuple._holder = _holder;
-
-         _pool = NULL;
-         _flags = 0;
-         _holder.reset(NULL);
-      }
-      return;
-   }
 } /// end of namesapce vessel
 } /// end of namespace engine

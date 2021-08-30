@@ -48,7 +48,7 @@
 #include "vessel/indexKeyPattern.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/indexParameters.h"
-#include "vessel/collectionIndexContext.h"
+#include "vessel/indexContextMap.h"
 #include "vessel/dmlIndexRequest.h"
 
 namespace engine
@@ -63,6 +63,7 @@ namespace vessel
    class scanCLCursor;
    class IQueryFilter;
    class dmlContext;
+   class buildingIndexContext;
 
    class collection: public SDBObject
    {
@@ -151,7 +152,7 @@ namespace vessel
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);
 
-         INT32 insertNewKeysToUnstableContext(dmlContext *context,
+         INT32 insertNewKeysToBuildingContext(dmlContext *context,
                                               dmlIndexRequestArray &ra);
 
       private:/// Used only when openning/creating.
@@ -258,6 +259,10 @@ namespace vessel
                             const indexParameters &params,
                             INT32 &indexSlot);
 
+         INT32 rollbackCreatingIndex(requestContext *context,
+                                     INT32 indexSlot,
+                                     INT32 reason);
+
          INT32 buildIndexInContext(requestContext *context,
                                    INT32 indexSlot,
                                    INDEX_TYPE type,
@@ -272,16 +277,13 @@ namespace vessel
                                          INT32 indexSlot,
                                          UINT64 sortBufferSize);
 
-         /// unstable context must be created first.
-         /// status can be truncating or removing.
+         INT32 removeIndex(requestContext *context,
+                           INT32 indexSlot);
+                                    
          INT32 truncateIndex(requestContext *context,
                              INT32 indexSlot);
 
-         /// unstable context must be created first.
-         INT32 rollbackCreatingIndex(requestContext *context,
-                                     INT32 indexSlot);
-
-      private:/// need protection by ddl latch
+      private:/// need protection by dml latch
 
          INT32 testIfIndexDuplicated(requestContext *context,
                                      const strSlice &indexName,
@@ -290,38 +292,33 @@ namespace vessel
 
          /// get x latch first
          INT32 indexBuildDone(requestContext *context,
-                              unstableIndexContext *uic);
+                              indexContext *ic);
 
          INT32 buildIndexBySortingAndUpdateContext(requestContext *context,
-                                                   unstableIndexContext *uic,
+                                                   indexContext *ic,
                                                    UINT32 maxRdpCount,
                                                    memoryBlock &sortBuffer);
 
          INT32 buildIndexAndUpdateContext(requestContext *context,
-                                          unstableIndexContext *uic,
+                                          indexContext *ic,
                                           UINT32 maxRdpCount);
 
          INT32 fillSorterAndUpdateEntry(requestContext *context,
+                                        indexContext *ic,
                                         _dmsIxmKeySorter *sorter,
-                                        UINT32 maxRdpCount,
-                                        unstableIndexContext *uic);
+                                        UINT32 maxRdpCount);
 
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
-                                              _dmsIxmKeySorter *sorter,
-                                              unstableIndexContext *uic);
+                                              indexContext *ic,
+                                              _dmsIxmKeySorter *sorter);
 
          INT32 endToBuildCurrentRange(requestContext *context,
-                                      unstableIndexContext *uic);
-         
-         ///get x latch first
-         INT32 terminateIndexBuilding(requestContext *context,
-                                      INT32 indexSlot,
-                                      BOOLEAN remove);
+                                      buildingIndexContext *buildingContext);
 
          INT32 initIndexesWhenOpen(requestContext *context);
 
-      private:
-         
+         INT32 fixUnstatbleIndexesWhenOpen(requestContext *context);
+
 
       private:
          typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;
@@ -334,7 +331,7 @@ namespace vessel
          UINT32 _totalRdpCount = 0;
          freeSpaceMap _fsm;
 
-         collectionIndexContext _indexContext;
+         indexContextMap _indexes;
 
          ossRWMutex _dmlLatch;
          ossSpinXLatch _extendingLatch;

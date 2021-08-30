@@ -125,7 +125,7 @@ namespace vessel
       _gpid = gpid;
       _pageSize = pageSize;
       _flags = o.toFlags();
-      tuple.moveTo(_tuple);
+      _tuple = std::move(tuple);
       _buffer = _tuple.getReadableBuffer();
    done:
       return rc;

@@ -53,7 +53,7 @@ namespace engine
 namespace vessel
 {
    class requestContext;
-   class collectionIndexContext;
+   class indexContextMap;
    class dmlContext;
    class indexDefHead;
 
@@ -107,7 +107,7 @@ namespace vessel
                                 indexDefHead *head=NULL);
 
          INT32 loadIndexesWhenStartup(requestContext *context,
-                                      collectionIndexContext *indexContext);
+                                      indexContextMap *indexes);
 
       public:
          INT32 insert(requestContext *context,

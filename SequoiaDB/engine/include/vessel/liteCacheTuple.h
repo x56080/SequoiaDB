@@ -48,7 +48,7 @@ namespace vessel
    class requestContext;
 
    ///WARNING: Should not share tulpe in multiple threads.
-   class liteCacheTuple
+   class liteCacheTuple : public SDBObject
    {
       friend class liteCache;
       public:
@@ -58,6 +58,36 @@ namespace vessel
          OSS_INLINE ~liteCacheTuple()
          {
             release();
+         }
+
+         liteCacheTuple(liteCacheTuple &&o):
+         _pool(NULL),
+         _flags(0)
+         {
+            if (o.isValid())
+            {
+               _pool = o._pool;
+               _holder = o._holder;
+               _flags = o._flags;
+               o._pool = NULL;
+               o._holder.reset(NULL);
+               o._flags = 0;
+            }
+         }
+
+         liteCacheTuple &operator=(liteCacheTuple &&o)
+         {
+            release();
+            if (o.isValid())
+            {
+               _pool = o._pool;
+               _holder = o._holder;
+               _flags = o._flags;
+               o._pool = NULL;
+               o._holder.reset(NULL);
+               o._flags = 0;
+            }
+            return *this;
          }
 
          liteCacheTuple &operator=(const liteCacheTuple &) = delete;
@@ -78,9 +108,6 @@ namespace vessel
          ossValuePtr getWritableBuffer()const;
 
          INT32 prepareToWrite(requestContext *context);
-
-         /// Strongly recommend that do not input valid tuple.
-         void moveTo(liteCacheTuple &tuple);
       
       private:/// for liteCache
          INT32 init(liteCachePageTag *tag,

@@ -98,6 +98,11 @@ namespace vessel
             return _seq == o._seq && _slot == o._slot;
          }
 
+         OSS_INLINE BOOLEAN operator!=(const scanEntry &o)const
+         {
+            return _seq != o._seq || _slot != o._slot;
+         }
+
          OSS_INLINE BOOLEAN operator<=(const scanEntry &o)const
          {
             return *this < o || *this == o;

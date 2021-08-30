@@ -132,7 +132,7 @@ namespace vessel
          for (ossPoolList<bson::BSONObj>::const_iterator itr = r->getKeys().begin();
               itr != r->getKeys().end(); ++itr)
          {
-            UINT32 hash = BSON_HASHER::hashObj(*itr) + r->getIndexSlot();
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + r->getContext()->getIndexSlot();
             hashArray.push_back(hash);
          }
       }

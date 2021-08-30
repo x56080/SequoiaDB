@@ -41,7 +41,7 @@
 #include "ossMemPool.hpp"
 #include "utilArray.hpp"
 #include "utilPooledObject.hpp"
-#include "vessel/indexObject.h"
+#include "vessel/indexContext.h"
 
 namespace engine
 {
@@ -58,63 +58,44 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return isValidIndexSlot(_indexSlot);
+            return NULL != _index;
          }
 
-         void init(INT32 indexSlot,
-                   const indexObject &obj,
+         void init(indexContext *index,
                    const bson::BSONObjSet &keys);
 
          void fini();
-
-
-         OSS_INLINE INT32 getIndexSlot()const
-         {
-            return _indexSlot;
-         }
-         OSS_INLINE INDEX_TYPE getIndexType()const
-         {
-            return _obj.getIndexType();
-         }
-         OSS_INLINE BOOLEAN withConstraint()const
-         {
-            return _obj.getParams().isUnique &&
-                   !_building;
-         }
 
          const ossPoolList<bson::BSONObj> &getKeys()const
          {
             return _keys;
          }
 
-         const indexObject &getIndexObj()const
+         indexContext *getContext()const
          {
-            return _obj;
+            return _index;
          }
 
-         OSS_INLINE void setBuilding()
+         OSS_INLINE void setMerged()
          {
-            _building = TRUE;
-         }
-         OSS_INLINE BOOLEAN isBuilding()const
-         {
-            return _building;
-         }
-         OSS_INLINE void setPushedIntoBuildingContext()
-         {
-            _pushedIntoBuildingContext = TRUE;
+            _merged = TRUE;
          }
 
-         OSS_INLINE BOOLEAN isPushedIntoBuildingContext()const
+         OSS_INLINE BOOLEAN isMerged()const
          {
-            return _pushedIntoBuildingContext;
+            return _merged;
+         }
+
+         OSS_INLINE BOOLEAN withConstraint()const
+         {
+            SDB_ASSERT(isValid(), "must be valid");
+            return _index->getObj().getParams().isUnique &&
+                   _index->isNormal();
          }
       private:
-         INT32 _indexSlot = -1;
+         indexContext *_index = NULL;
          ossPoolList<bson::BSONObj> _keys;
-         indexObject _obj;
-         BOOLEAN _building = FALSE;
-         BOOLEAN _pushedIntoBuildingContext = FALSE;
+         BOOLEAN _merged = FALSE;
    };//class dmlIndexRequest
 
    class dmlIndexRequestArray : public SDBObject
@@ -141,12 +122,21 @@ namespace vessel
          void clear();
 
          ///The appending better to be orderd as index slot.
-         INT32 append(INT32 indexSlot,
-                      const indexObject &obj,
-                      const bson::BSONObjSet &keys,
-                      dmlIndexRequest **out=NULL);
+         INT32 append(indexContext *index,
+                      const bson::BSONObjSet &keys);
+
+         BOOLEAN withoutConstraint()const
+         {
+            return 0 == _constraintIndexCount;
+         }
+         BOOLEAN hasBuildingIndex()const
+         {
+            return 0 < _building;
+         }
       private:
          _utilArray<dmlIndexRequest *, 8> _requests;
+         UINT32 _constraintIndexCount = 0;
+         UINT32 _building = 0;
    };//class dmlIndexRequestArray
 }//namespace vessel
 }//nameapace engine

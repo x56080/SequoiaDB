@@ -56,7 +56,6 @@
 #include "vessel/indexDefPage.h"
 #include "vessel/indexConsole.h"
 #include "vessel/redoLogUtil.h"
-#include "vessel/unstableIndexContext.h"
 #include "rtnIxmKeySorter.hpp"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
@@ -64,6 +63,7 @@
 #include "ixmIndexKey.hpp"
 #include "vessel/indexDefPageAccessor.h"
 #include "vessel/indexScanner.h"
+#include "vessel/buildingIndexContext.h"
 
 namespace engine
 {
@@ -201,6 +201,7 @@ namespace vessel
       _totalLvl0Count = 0;
       _totalRdpCount = 0;
       _fsm.close();
+      _indexes.fini();
       return;
    }
 
@@ -245,34 +246,21 @@ namespace vessel
       rc = buildIndexInContext(context, indexSlot, params.type, options.build);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build index[%s], rc:%d",
-                indexName.str(), rc);
-         INT32 tmpRc = SDB_OK;
-
          if (SDB_VESSEL_INDEX_BUILDING_TERMINATED != rc)
          {
-            ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
-            tmpRc = terminateIndexBuilding(context, indexSlot, TRUE);
-            if (SDB_OK != tmpRc)
-            {
-               PD_LOG(PDSEVERE, "failed to terminate index[%d] building:%d",
-                      indexSlot, tmpRc);
-               ossPanic();
-            }
+            PD_LOG(PDERROR, "failed to build index[%s], rc:%d",
+                   indexName.str(), rc);
          }
-
-         tmpRc = truncateIndex(context, indexSlot);
+         else
+         {
+            PD_LOG(PDINFO, "index[%s] creating terminated", indexName.str());
+         }
+         INT32 tmpRc = rollbackCreatingIndex(context, indexSlot, rc);
          if (SDB_OK != tmpRc)
          {
-            PD_LOG(PDSEVERE, "failed to truncate index[%d], rc:%d", indexSlot, tmpRc);
-            goto error;
-         }
-
-         tmpRc = rollbackCreatingIndex(context, indexSlot);
-         if (SDB_OK != tmpRc)
-         {
-            PD_LOG(PDSEVERE, "failed to rollback index[%d], rc:%d", indexSlot, tmpRc);
-            goto error;
+            PD_LOG(PDERROR, "failed to rollback index creating[%s], rc:%d",
+                   indexName.str(), rc);
+            ossPanic();
          }
          goto error;
       }
@@ -287,10 +275,7 @@ namespace vessel
                                  ossPoolVector<bson::BSONObj> &indexes)
    {
       INT32 rc = SDB_OK;
-      indexConsole console;
       indexes.clear();
-      UINT64 bitmap = 0;
-      UINT64 mask = 1;
       ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
 
       if (!isOpen())
@@ -304,27 +289,14 @@ namespace vessel
          goto error;
       }
 
-      console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
-
       guard.autoLock();
-      bitmap = _indexContext.getIndexSlotBitmap();
 
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      for (indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+           itr != _indexes.end(); ++itr)
       {
-         if (0 != OSS_BIT_TEST(bitmap, mask))
-         {
-            bson::BSONObj obj;
-            rc = console.dumpIndex(context, i, obj);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to dump index[%d], rc:%d", i, rc);
-               goto error;
-            }
-
-            indexes.push_back(obj);
-         }
-
-         mask <<= 1;
+         bson::BSONObjBuilder builder;
+         itr->second->dump(builder);
+         indexes.push_back(builder.obj());
       }
    done:
       return rc;
@@ -422,30 +394,24 @@ namespace vessel
 
       guard.autoLock();
 
-      if (!_indexContext.isEmpty())
+      /// build indexes keys.
+      rc = buildDmlIndexRequests(context, context->getOriginalRecord(), ra);
+      if (SDB_OK != rc)
       {
-         /// build indexes keys.
-         rc = buildDmlIndexRequests(context, context->getOriginalRecord(), ra);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR,"failed to build unique index requests:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR,"failed to build unique index requests:%d", rc);
+         goto error;
       }
 
-      if (!ra.isEmpty() && 0 != _indexContext.getUniqueIndexBitmap())
+      rc = constraintCheck(context, ra, res);
+      if (SDB_OK != rc)
       {
-         rc = constraintCheck(context, ra, res);
-         if (SDB_OK != rc)
+         if (SDB_IXM_DUP_KEY != rc)
          {
-            if (SDB_IXM_DUP_KEY != rc)
-            {
-               PD_LOG(PDERROR, "failed to check constraint:%d", rc);
-            }
-            goto error;
+            PD_LOG(PDERROR, "failed to check constraint:%d", rc);
          }
+         goto error;
       }
-
+      
       if (!ra.isEmpty())
       {
          context->setLockRid(TRUE);
@@ -465,25 +431,23 @@ namespace vessel
          SDB_ASSERT(FALSE, "todo");
       }
 
-      if (!ra.isEmpty())
+      if (ra.hasBuildingIndex())
       {
-         if (_indexContext.hasUnstableIndexes())
-         {
-            rc = insertNewKeysToUnstableContext(context, ra);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to insert data to index:%d", rc);
-               goto error;
-            }
-         }
-
-         rc = insertIndexRequests(context, ra);
+         rc = insertNewKeysToBuildingContext(context, ra);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to insert data into index:%d", rc);
+            PD_LOG(PDERROR, "failed to insert keys into building context:%d", rc);
             SDB_ASSERT(FALSE, "TODO");/// rollback record
             goto error;
          }
+      }
+
+      rc = insertIndexRequests(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert data into index:%d", rc);
+         SDB_ASSERT(FALSE, "TODO");/// rollback record
+         goto error;
       }
    done:
       context->unlockRidsAndUniqueKeys();
@@ -1839,26 +1803,15 @@ namespace vessel
       indexConsole console;
 
       BOOLEAN rollbackLog = FALSE;
-      BOOLEAN rollbackUnstableIndexes = FALSE;
       indexObject indexObj;
 
       ossScopedRWLock guard(&_dmlLatch, EXCLUSIVE);
 
       console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
-      if (_indexContext.hasNoMoreIndexId())
+      if (!_indexes.isAllowedToCreateMore())
       {
-         PD_LOG(PDINFO, "no more available logical index id");
-         rc = SDB_DMS_MAX_INDEX;
-         goto error;
-      }
-
-      indexId = _indexContext.getNextIndexId();
-
-      indexSlot = _indexContext.findFreeIndexSlot();
-      if (!isValidIndexSlot(indexSlot))
-      {
-         PD_LOG(PDINFO, "no more available index slot");
+         PD_LOG(PDINFO, "no more available logical index id or slot");
          rc = SDB_DMS_MAX_INDEX;
          goto error;
       }
@@ -1886,22 +1839,6 @@ namespace vessel
 
       objSlice.reset(obj.objsize(), obj.objdata());
 
-      rc = indexObj.shallowInit(indexId, indexName, pattern, params);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
-         goto error;
-      }
-
-      rc = _indexContext.unfreeSlotAndSetBuilding(indexSlot, indexObj);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
-                indexName.str(), rc);
-         goto error;
-      }
-      rollbackUnstableIndexes = TRUE;
-
       SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
       SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
       fullNameBufferSize = context->getCSName().strLen() +
@@ -1926,6 +1863,28 @@ namespace vessel
       }
       nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
 
+      rc = _indexes.allocateIndexIdAndSlot(indexId, indexSlot);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failedto allocate index id or slot%d", rc);
+         goto error;
+      }
+
+      rc = indexObj.shallowInit(indexId, indexName, pattern, params);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
+         goto error;
+      }
+
+      rc = _indexes.insert(indexSlot, indexObj, INDEX_STATUS_BUILDING);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
+                indexName.str(), rc);
+         goto error;
+      }
+
       rc = commitCreateIndexLog(context, nameSlice,
                                indexId, indexSlot, objSlice);
       if (SDB_OK != rc)
@@ -1949,9 +1908,9 @@ namespace vessel
       }
       return rc;
    error:
-      if (rollbackUnstableIndexes)
+      if (isValidIndexSlot(indexSlot))
       {
-         _indexContext.freeSlotAndEraseUnstableIndex(indexSlot);
+         _indexes.erase(indexSlot);
       }
 
       /// rollback log first, we need a new lsn.
@@ -2022,21 +1981,27 @@ namespace vessel
    }
 
    INT32 collection::buildIndexBySortingAndUpdateContext(requestContext *context,
-                                                         unstableIndexContext *uic,
+                                                         indexContext *ic,
                                                          UINT32 maxRdpCount,
                                                          memoryBlock &sortBuffer)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != uic, "can not be null");
-      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
+      SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
       SDB_ASSERT(0 < sortBuffer.getCapacity(), "can not be zero");
 
       rtnIxmKeySorterCreator creator;
       dmsIxmKeySorter *sorter = NULL;
       scanEntry entry;
-      orderingWrapper ow = uic->getIndexObj().getPattern().getOrdering();
+      orderingWrapper ow = ic->getObj().getPattern().getOrdering();
+      buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(ic->getUnstatbleContext());
+      if (OSS_UNLIKELY(NULL == buildingContext))
+      {
+         PD_LOG(PDERROR, "failed to get building context ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
-      if (!uic->getNextRebuildingRangeBound(entry))
+      if (!buildingContext->getNextBuildingBound(entry))
       {
          PD_LOG(PDERROR, "last batch may not completed yet");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2059,7 +2024,7 @@ namespace vessel
       }
 
 
-      rc = fillSorterAndUpdateEntry(context, sorter, maxRdpCount, uic);
+      rc = fillSorterAndUpdateEntry(context, ic, sorter, maxRdpCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fill sorter:%d", rc);
@@ -2073,7 +2038,7 @@ namespace vessel
          goto error;
       }
 
-      rc = mergeSorterAndContextIntoIndex(context, sorter, uic);
+      rc = mergeSorterAndContextIntoIndex(context, ic, sorter);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to merge data into index:%d", rc);
@@ -2091,11 +2056,12 @@ namespace vessel
    }
 
    INT32 collection::buildIndexAndUpdateContext(requestContext *context,
-                                                unstableIndexContext *uic,
+                                                indexContext *ic,
                                                 UINT32 maxRdpCount)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != uic && uic->isBuilding(), "must be building");
+      SDB_ASSERT(NULL != ic && ic->isBuilding(), "can not be null");
+      buildingIndexContext *buildingContext = NULL;
       scanEntry entry;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
@@ -2105,7 +2071,15 @@ namespace vessel
       indexConsole console;
       bson::BSONObjSet keySet;
 
-      if (!uic->getNextRebuildingRangeBound(entry))
+      buildingContext = dynamic_cast<buildingIndexContext *>(ic->getUnstatbleContext());
+      if (OSS_UNLIKELY(NULL == buildingContext))
+      {
+         PD_LOG(PDERROR, "failed to get building context ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!buildingContext->getNextBuildingBound(entry))
       {
          PD_LOG(PDERROR, "failed to get next scan range");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2123,7 +2097,7 @@ namespace vessel
          {
             PD_LOG(PDDEBUG, "page seq[%d] does not exist", entry.getSeq());
             entry.incSeqAndZeroSlot();
-            uic->updateRebuildingHighBound(entry);
+            buildingContext->updateBuildingHighBound(entry);
             rc = SDB_OK;
             continue;
          }
@@ -2155,7 +2129,7 @@ namespace vessel
             {
                entry.incSeqAndZeroSlot();
                /// update context with page latch
-               uic->updateRebuildingHighBound(entry);
+               buildingContext->updateBuildingHighBound(entry);
                rr.fini();
 
                /// break to scan the next page.
@@ -2166,8 +2140,8 @@ namespace vessel
             record = rr.getCurrentRecordBody();
             SDB_ASSERT(record.isValid(), "impossible");
 
-            rc = keyGen(uic->getIndexObj().getPattern().getPattern(), 
-                        uic->getIndexObj().getParams().notArray,
+            rc = keyGen(ic->getObj().getPattern().getPattern(), 
+                        ic->getObj().getParams().notArray,
                         record,
                         keySet);
             if (SDB_OK != rc)
@@ -2180,8 +2154,8 @@ namespace vessel
                  itr != keySet.end(); ++itr)
             {
                rc = console.insert(context,
-                                   uic->getIndexSlot(),
-                                   uic->getIndexObj(),
+                                   ic->getIndexSlot(),
+                                   ic->getObj(),
                                    ixmKeyOwned(*itr),
                                    rr.getCurrentRecordHead().getTransID(),
                                    context->getSession()->getLastLSN(),
@@ -2189,14 +2163,14 @@ namespace vessel
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert key into index[%s], rc:%d",
-                         uic->getName().str(), rc);
+                         ic->getObj().getIndexName().str(), rc);
                   goto error;
                }
             }
          } while (TRUE);
       }
 
-      rc = endToBuildCurrentRange(context, uic);
+      rc = endToBuildCurrentRange(context, buildingContext);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to end to build current range:%d", rc);
@@ -2209,20 +2183,26 @@ namespace vessel
    }
 
    INT32 collection::fillSorterAndUpdateEntry(requestContext *context,
+                                              indexContext *ic,
                                               _dmsIxmKeySorter *sorter,
-                                              UINT32 maxRdpCount,
-                                              unstableIndexContext *uic)
+                                              UINT32 maxRdpCount)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != uic, "can not be null");
-      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
+      SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
       memoryBlock mb;
       mainDataSpace *mds = &(_collectionSpace->getSU()->getMainDataSpace());
       scanEntry entry;
       bson::BSONObjSet keySet;
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
+      buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(ic->getUnstatbleContext());
+      if (OSS_UNLIKELY(NULL == buildingContext))
+      {
+         PD_LOG(PDERROR, "failed to get building context ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
-      if (!uic->getNextRebuildingRangeBound(entry))
+      if (!buildingContext->getNextBuildingBound(entry))
       {
          PD_LOG(PDERROR, "failed to get next scan range");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2238,7 +2218,7 @@ namespace vessel
          {
             PD_LOG(PDDEBUG, "page seq[%d] does not exist", entry.getSeq());
             entry.incSeqAndZeroSlot();
-            uic->updateRebuildingHighBound(entry);
+            buildingContext->updateBuildingHighBound(entry);
             rc = SDB_OK;
             continue;
          }
@@ -2271,7 +2251,7 @@ namespace vessel
             {
                entry.incSeqAndZeroSlot();
                /// update context with page latch
-               uic->updateRebuildingHighBound(entry);
+               buildingContext->updateBuildingHighBound(entry);
                rr.fini();
 
                /// break to scan the next page.
@@ -2282,8 +2262,8 @@ namespace vessel
             record = rr.getCurrentRecordBody();
             SDB_ASSERT(record.isValid(), "impossible");
 
-            rc = keyGen(uic->getIndexObj().getPattern().getPattern(), 
-                        uic->getIndexObj().getParams().notArray,
+            rc = keyGen(ic->getObj().getPattern().getPattern(), 
+                        ic->getObj().getParams().notArray,
                         record,
                         keySet);
             if (SDB_OK != rc)
@@ -2296,7 +2276,7 @@ namespace vessel
             if (SDB_DMS_EOC == rc)
             {
                entry.reset(entry.getSeq(), rr.getCurrentRid().getSlotID());
-               uic->updateRebuildingHighBound(entry);
+               buildingContext->updateBuildingHighBound(entry);
                rr.fini();
                goto done;
             }
@@ -2328,23 +2308,35 @@ namespace vessel
       {
          scanEntry buildEntry;
          UINT32 currentRdpCount = 0;
-         unstableIndexContext *uic = NULL;
+         indexContext *ic = NULL;
+         buildingIndexContext *buildingContext = NULL;
+
          ossRWMutexGuard guard(&_dmlLatch, SHARED);
-         uic = _indexContext.findUnstableIndex(indexSlot);
-         if (NULL == uic)
+
+         ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
+         if (NULL == ic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         else if (!uic->isBuilding())
+
+         buildingContext = dynamic_cast<buildingIndexContext *>(ic->getUnstatbleContext());
+         if (OSS_UNLIKELY(NULL == buildingContext))
          {
-            PD_LOG(PDERROR, "index[%d] building terminated", indexSlot);
+            PD_LOG(PDERROR, "failed to get building context ptr");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (buildingContext->isTerminated())
+         {
+            PD_LOG(PDINFO, "index[%d] building terminated", ic->getIndexSlot());
             rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
             goto error;
          }
 
-         if (!uic->getNextRebuildingRangeBound(buildEntry))
+         if (!buildingContext->getNextBuildingBound(buildEntry))
          {
             PD_LOG(PDERROR, "failed to get next building range");
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2359,11 +2351,11 @@ namespace vessel
             break;
          }
 
-         rc = buildIndexAndUpdateContext(context, uic, currentRdpCount);
+         rc = buildIndexAndUpdateContext(context, ic, currentRdpCount);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to build index[%s] and update context:%d",
-                   uic->getName().str(), rc);
+                   ic->getObj().getIndexName().str(), rc);
             goto error;
          }
 
@@ -2372,21 +2364,31 @@ namespace vessel
       {
          ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
          scanEntry buildEntry;
-         unstableIndexContext *uic = _indexContext.findUnstableIndex(indexSlot);
-         if (NULL == uic)
+         buildingIndexContext *buildingContext = NULL;
+         indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
+         if (NULL == ic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         else if (!uic->isBuilding())
+
+         buildingContext = dynamic_cast<buildingIndexContext *>(ic->getUnstatbleContext());
+         if (OSS_UNLIKELY(NULL == buildingContext))
          {
-            PD_LOG(PDERROR, "index[%d] building terminated", indexSlot);
+            PD_LOG(PDERROR, "failed to get building context ptr");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (buildingContext->isTerminated())
+         {
+            PD_LOG(PDINFO, "index[%d] building terminated", ic->getIndexSlot());
             rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
             goto error;
          }
 
-         if (!uic->getNextRebuildingRangeBound(buildEntry))
+         if (!buildingContext->getNextBuildingBound(buildEntry))
          {
             PD_LOG(PDERROR, "failed to get next building range");
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2395,20 +2397,20 @@ namespace vessel
 
          if (buildEntry.getSeq() < _totalRdpCount)
          {
-            rc = buildIndexAndUpdateContext(context, uic, _totalRdpCount);
+            rc = buildIndexAndUpdateContext(context, ic, _totalRdpCount);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to build index[%s] and update context:%d",
-                     uic->getName().str(), rc);
+                     ic->getObj().getIndexName().str(), rc);
                goto error;
             }
          }
 
-         rc = indexBuildDone(context, uic);
+         rc = indexBuildDone(context, ic);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to finish building index[%s], rc:%d",
-                   uic->getName().str(), rc);
+                   ic->getObj().getIndexName().str(), rc);
             goto error;
          }
       }
@@ -2429,7 +2431,6 @@ namespace vessel
 
       static const UINT32 _ENDING_LOOP_RDP_COUNT = 2;
       memoryBlock mb;
-      unstableIndexContext *uic = NULL;
       scanEntry entry;
 
       rc = mb.reserve(sortBufferSize);
@@ -2443,21 +2444,31 @@ namespace vessel
       {
          ossRWMutexGuard guard(&_dmlLatch, SHARED);
          UINT32 currentRdpCount = 0;
-         uic = _indexContext.findUnstableIndex(indexSlot);
-         if (NULL == uic)
+         buildingIndexContext *buildingContext = NULL;
+         indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
+         if (NULL == ic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         else if (!uic->isBuilding())
+
+         buildingContext = dynamic_cast<buildingIndexContext *>(ic->getUnstatbleContext());
+         if (OSS_UNLIKELY(NULL == buildingContext))
          {
-            PD_LOG(PDERROR, "index[%d] building terminated", indexSlot);
+            PD_LOG(PDERROR, "failed to get building context ptr");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (buildingContext->isTerminated())
+         {
+            PD_LOG(PDINFO, "index[%d] building terminated", ic->getIndexSlot());
             rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
             goto error;
          }
 
-         if (!uic->getNextRebuildingRangeBound(entry))
+         if (!buildingContext->getNextBuildingBound(entry))
          {
             PD_LOG(PDERROR, "failed to get next building range");
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2472,7 +2483,7 @@ namespace vessel
             break;
          }
          
-         rc = buildIndexBySortingAndUpdateContext(context, uic, currentRdpCount, mb);
+         rc = buildIndexBySortingAndUpdateContext(context, ic, currentRdpCount, mb);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to build index[%d], rc:%d", indexSlot, rc);
@@ -2482,23 +2493,33 @@ namespace vessel
 
       {
          ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
-         uic = _indexContext.findUnstableIndex(indexSlot);
-         if (NULL == uic)
+         buildingIndexContext *buildingContext = NULL;
+         indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
+         if (NULL == ic)
          {
             PD_LOG(PDERROR, "index[%d] not found", indexSlot);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         else if (!uic->isBuilding())
+
+         buildingContext = dynamic_cast<buildingIndexContext *>(ic->getUnstatbleContext());
+         if (OSS_UNLIKELY(NULL == buildingContext))
          {
-            PD_LOG(PDERROR, "index[%d] building terminated", indexSlot);
+            PD_LOG(PDERROR, "failed to get building context ptr");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         if (buildingContext->isTerminated())
+         {
+            PD_LOG(PDINFO, "index[%d] building terminated", ic->getIndexSlot());
             rc = SDB_VESSEL_INDEX_BUILDING_TERMINATED;
             goto error;
          }
 
          do
          {
-            if (!uic->getNextRebuildingRangeBound(entry))
+            if (!buildingContext->getNextBuildingBound(entry))
             {
                PD_LOG(PDERROR, "failed to get next building range");
                rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2509,7 +2530,7 @@ namespace vessel
                break;
             }
 
-            rc = buildIndexBySortingAndUpdateContext(context, uic, _totalRdpCount, mb);
+            rc = buildIndexBySortingAndUpdateContext(context, ic, _totalRdpCount, mb);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to build index[%d], rc:%d", indexSlot, rc);
@@ -2517,11 +2538,11 @@ namespace vessel
             }
          } while(TRUE);
 
-         rc = indexBuildDone(context, uic);
+         rc = indexBuildDone(context, ic);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to finish building index[%s], rc:%d",
-                   uic->getName().str(), rc);
+                   ic->getObj().getIndexName().str(), rc);
             goto error;
          }
       }
@@ -2532,42 +2553,44 @@ namespace vessel
    }
 
    INT32 collection::endToBuildCurrentRange(requestContext *context,
-                                            unstableIndexContext *uic)
+                                            buildingIndexContext *buildingContext)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != uic && uic->isBuilding(), "must be building");
+      SDB_ASSERT(NULL != buildingContext, "can not be null");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-      ossPoolList<unstableIndexContext::mergingKey*> deltas;
+      indexMergingRecordList mrl;
       indexConsole console;
       console.init(_record.mbID, &is);
 
-      while (!uic->endToBuildCurrentRangeOrPopKeys(deltas))
+      while (!buildingContext->endToBuildCurrentRange(mrl))
       {
          SDB_ASSERT(FALSE, "TODO");
       }
    done:
       return rc;
    error:
-      for (ossPoolList<unstableIndexContext::mergingKey*>::iterator itr = deltas.begin();
-           itr != deltas.end(); ++itr)
-      {
-         SDB_OSS_DEL *itr;
-      }
       goto done;
    }
 
 
    INT32 collection::mergeSorterAndContextIntoIndex(requestContext *context,
-                                                    _dmsIxmKeySorter *sorter,
-                                                    unstableIndexContext *uic)
+                                                    indexContext *ic,
+                                                    _dmsIxmKeySorter *sorter)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != sorter, "can not be null");
-      SDB_ASSERT(NULL != uic, "can not be null");
-      SDB_ASSERT(INDEX_STATUS_BUILDING == uic->getStatus(), "must be building");
+      SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
       console.init(_record.mbID, &is);
+      buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext *>
+                                              (ic->getUnstatbleContext());
+      if (OSS_UNLIKELY(NULL == buildingContext))
+      {
+         PD_LOG(PDERROR, "failed to get building context ptr");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       do
       {
@@ -2586,20 +2609,20 @@ namespace vessel
             goto error;
          }
 
-         rc = console.insert(context, uic->getIndexSlot(),
-                             uic->getIndexObj(),
+         rc = console.insert(context, ic->getIndexSlot(),
+                             ic->getObj(),
                              key, DPS_TRANS_ID(),
                              context->getSession()->getLastLSN(),
                              recordID(dmsRid._extent, dmsRid._offset));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
-                   uic->getName().str(), rc);
+                   ic->getObj().getIndexName().str(), rc);
             goto error;
          }
       } while (TRUE);
 
-      rc = endToBuildCurrentRange(context, uic);
+      rc = endToBuildCurrentRange(context, buildingContext);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to end to build current range:%d", rc);
@@ -2614,16 +2637,15 @@ namespace vessel
    
 
    INT32 collection::indexBuildDone(requestContext *context,
-                                     unstableIndexContext *uic)
+                                     indexContext *ic)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != uic, "can not be null");
-      SDB_ASSERT(uic->isBuilding(), "must be building");
+      SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
 
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      UINT32 indexId = uic->getIndexId();
-      INT32 indexSlot = uic->getIndexSlot();
+      UINT32 indexId = ic->getIndexID();
+      INT32 indexSlot = ic->getIndexSlot();
       CHAR *fullNameBuffer = NULL;
       UINT32 fullNameBufferSize = 0;
       strSlice nameSlice;
@@ -2665,7 +2687,7 @@ namespace vessel
       }
 
       rc = commitCreateIndexEndLog(context, nameSlice,
-                                   uic->getName(),
+                                   ic->getObj().getIndexName(),
                                    indexId,
                                    indexSlot,
                                    SDB_OK);
@@ -2676,8 +2698,7 @@ namespace vessel
          goto error;
       }
 
-      _indexContext.eraseUnstableIndex(indexSlot);
-      uic = NULL;
+      ic->setNormalFromBuilding();
    done:
       if (NULL != fullNameBuffer)
       {
@@ -2700,47 +2721,27 @@ namespace vessel
       SDB_ASSERT(pattern.isValid(), "can not be invalid");
 
       duplicated = FALSE;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-      indexConsole console;
-      UINT64 indexes = 0;
-      UINT64 mask = 1;
-
-      console.init(_record.mbID, &is);
-
-      indexes = _indexContext.getIndexSlotBitmap();
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+      for (indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+           itr != _indexes.end(); ++itr)
       {
-         if (0 == indexes)
+         if (!itr->second->isNormal() && !itr->second->isBuilding())
          {
-            break;
+            continue;
          }
 
-         if (0 != OSS_BIT_TEST(indexes, mask))
+         if (itr->second->getObj().getIndexName() == indexName)
          {
-            OSS_BIT_CLEAR(indexes, mask);
-            unstableIndexContext *uic = _indexContext.findUnstableIndex(i);
-            if (NULL == uic)
-            {
-               rc = console.testIfDuplicated(context, i, indexName, pattern, duplicated);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to test index slot[%d], rc:%d", i, rc);
-                  goto error;
-               }
-
-               if (duplicated)
-               {
-                  goto done;
-               }
-            }
-            else if (uic->testDuplicatedIfBuilding(indexName, pattern))
-            {
-               duplicated = TRUE;
-               goto done;
-            }
+            PD_LOG(PDINFO, "duplidated index name[%s]", indexName.str());
+            duplicated = TRUE;
+            goto done;
          }
-
-         mask <<= 1;     
+         if (pattern.isCoveredBy(itr->second->getObj().getPattern()))
+         {
+            PD_LOG(PDINFO, "duplidated index pattern[%s]",
+                   itr->second->getObj().getIndexName().str());
+            duplicated = TRUE;
+            goto done;
+         }
       }
 
    done:
@@ -2749,89 +2750,24 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::truncateIndex(requestContext *context,
-                                   INT32 indexSlot)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
 
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-      unstableIndexContext *uic = NULL;
-      indexConsole console;
-
-      ossRWMutexGuard guard(&_dmlLatch, SHARED);
-      uic = _indexContext.findUnstableIndex(indexSlot);
-      if (NULL == uic)
-      {
-         PD_LOG(PDERROR, "context of index[%d] not found", indexSlot);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      else if (!uic->isRemoving() && !uic->isTruncating())
-      {
-         PD_LOG(PDERROR, "invalid index status[%d]", uic->getStatus());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      console.init(_record.mbID, &is);
-
-      rc = console.truncateIndex(context, indexSlot, uic->getIndexObj());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to truncate index[%d]:%d", indexSlot, rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collection::terminateIndexBuilding(requestContext *context,
-                                            INT32 indexSlot,
-                                            BOOLEAN remove)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValidIndexSlot(indexSlot), "must be valid");
-      unstableIndexContext *uic = _indexContext.findUnstableIndex(indexSlot);
-      if (NULL == uic)
-      {
-         PD_LOG(PDERROR, "index[%d] context not found", indexSlot);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-      else if (!uic->isBuilding())
-      {
-         PD_LOG(PDERROR, "index[%d] not building", indexSlot);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      uic->terminateBuilding(remove);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collection::rollbackCreatingIndex(requestContext *context,
-                                           INT32 indexSlot)
+/*
+   INT32 collection::rollbackCreatingIndexLog(requestContext *context,
+                                              INT32 indexSlot)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
 
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      unstableIndexContext *uic = NULL;
       ossPoolString fullName;
       strSlice fullNameSlice;
-      logicalPageBuffer lpb;
+      indexContext *ic = NULL;
 
       ossRWMutexGuard(&_dmlLatch, EXCLUSIVE);
 
-      uic = _indexContext.findUnstableIndex(indexSlot);
-      if (NULL == uic)
+      ic = _indexes.find(indexSlot);
+      if (NULL == ic)
       {
          PD_LOG(PDERROR, "index[%d] context not found", indexSlot);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -2870,6 +2806,7 @@ namespace vessel
    error:
       goto done;
    }
+   */
 
    INT32 collection::initIndexesWhenOpen(requestContext *context)
    {
@@ -2881,11 +2818,35 @@ namespace vessel
 
       console.init(_record.mbID, &is);
 
-      rc = console.loadIndexesWhenStartup(context, &_indexContext);
+      rc = console.loadIndexesWhenStartup(context, &_indexes);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index context:%d", rc);
          goto error;
+      }
+
+      rc = fixUnstatbleIndexesWhenOpen(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fix unstatble indexes:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::fixUnstatbleIndexesWhenOpen(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+      for (; itr != _indexes.end(); ++itr)
+      {
+         if (!itr->second->isNormal())
+         {
+            SDB_ASSERT(FALSE, "TODO");
+         }
       }
    done:
       return rc;
@@ -2898,58 +2859,22 @@ namespace vessel
                                            dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      UINT64 bitmap = _indexContext.getIndexSlotBitmap();
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       bson::BSONObjSet keySet;
-      indexConsole console;
-      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
-   
-      console.init(_record.mbID, &is);
-      for (INT32 i = 0; i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
+
+      for (indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+           itr != _indexes.end(); ++itr)
       {
-         if (0 == bitmap)
-         {
-            break;
-         }
-
-         UINT64 mask = ((UINT64)1 << i);
-         if (0 == OSS_BIT_TEST(bitmap, mask))
-         {
-            continue;
-         }
-         OSS_BIT_CLEAR(bitmap, mask);
-
          keySet.clear();
-         const indexObject *obj = NULL;
-         indexObject ownedObj;
-         dmlIndexRequest *req = NULL;
-
-         unstableIndexContext *uic = _indexContext.findUnstableIndex(i);
-         if (NULL == uic)
-         {   
-            rc = console.getOwnedIndexObj(context, i, ownedObj, NULL);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get index obj of slo[%d], rc:%d", i, rc);
-               goto error;
-            }
-
-            obj = &ownedObj;
-         }
-         else if (uic->isBuilding())
-         {
-            /// The obj in context will not be released until
-            /// we release dml s latch.
-            /// So we do not need to copy obj here.
-            obj = &(uic->getIndexObj());
-         }
-         else
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+         if (!ic->isNormal() && !ic->isBuilding())
          {
             continue;
          }
 
-         rc = keyGen(obj->getPattern().getPattern(),
-                     obj->getParams().notArray,
+         rc = keyGen(ic->getObj().getPattern().getPattern(),
+                     ic->getObj().getParams().notArray,
                      record, keySet);
          if (SDB_OK != rc)
          {
@@ -2957,16 +2882,11 @@ namespace vessel
             goto error;
          }
 
-         rc = ra.append(i, *obj, keySet, &req);
+         rc = ra.append(itr->second, keySet);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to set index request at pos[%d], rc:%d", i, rc);
+            PD_LOG(PDERROR, "failed to set index request at pos[%d], rc:%d", itr->first, rc);
             goto error;
-         }
-
-         if ( NULL != uic)
-         {
-            req->setBuilding();
          }
       }
    done:
@@ -2982,7 +2902,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       recordID rid;
 
-      if (ra.isEmpty() || 0 == _indexContext.getUniqueIndexBitmap())
+      if (ra.withoutConstraint())
       {
          goto done;
       }
@@ -3007,8 +2927,8 @@ namespace vessel
          ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
          for (; itr != req->getKeys().end(); ++itr)
          {
-            rc = indexConsole::checkUniqueConstraint(context, req->getIndexSlot(),
-                                                     req->getIndexObj(), *itr, rid);
+            rc = indexConsole::checkUniqueConstraint(context, req->getContext()->getIndexSlot(),
+                                                     req->getContext()->getObj(), *itr, rid);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to find key in index:%d", rc);
@@ -3019,7 +2939,7 @@ namespace vessel
             {
                PD_LOG(PDDEBUG, "duplidated key[%s] found in index[%s], rid[%d,%d]",
                       itr->toString().c_str(),
-                      req->getIndexObj().getIndexName().str(),
+                      req->getContext()->getObj().getIndexName().str(),
                       rid.getPageID(), rid.getSlotID());
                rc = SDB_IXM_DUP_KEY;
                goto error;
@@ -3053,7 +2973,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::insertNewKeysToUnstableContext(dmlContext *context,
+   INT32 collection::insertNewKeysToBuildingContext(dmlContext *context,
                                                     dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
@@ -3061,16 +2981,30 @@ namespace vessel
       {
          dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
-         if (!ir->isBuilding())
+         if (!ir->getContext()->isBuilding())
          {
             continue;
          }
-         unstableIndexContext *uic = _indexContext.
-                                 findUnstableIndex(ir->getIndexSlot());
-         SDB_ASSERT(NULL != uic && uic->isBuilding(), "impossible");
-         scanEntry entry = context->getLastDmlScanEntry();
+
+         scanEntry entry;
          BOOLEAN refused = FALSE;
-         rc = uic->insertKeys(context, ir->getKeys(), refused);
+         unstableIndexContext *uic = ir->getContext()->getUnstatbleContext();
+         buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(uic);
+         if (OSS_UNLIKELY(NULL == buildingContext))
+         {
+            PD_LOG(PDERROR, "failed to get building context ptr");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = buildingContext->insert(ir->getContext()->getObj().getParams().isUnique,
+                                      context->getLastDmlScanEntry(),
+                                      context->getLastDmlRid().getPageID(),
+                                      context->getLastDmlLSN(),
+                                      context->getTransID(),
+                                      ir->getKeys(),
+                                      refused);
+
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert merging keys into context:%d", rc);
@@ -3079,8 +3013,165 @@ namespace vessel
 
          if (!refused)
          {
-            ir->setPushedIntoBuildingContext();   
+            ir->setMerged();
          }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::rollbackCreatingIndex(requestContext *context,
+                                           INT32 indexSlot,
+                                           INT32 reason)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(SDB_OK != reason, "can not be ok");
+      SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
+      SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
+
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      console.init(_record.mbID, &is);
+      strSlice nameSlice;
+      UINT32 fullNameBufferSize = context->getCSName().strLen() +
+                                  context->getCLName().strLen() + 2;
+
+      CHAR *fullNameBuffer = context->allocateBuffer(fullNameBufferSize);
+      if (NULL == fullNameBuffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      if (!buildFullName(fullNameBufferSize,
+                         fullNameBuffer,
+                         context->getCSName(),
+                         context->getCLName()))
+      {
+         PD_LOG(PDERROR, "failed to build full name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
+
+      {
+         ossRWMutexGuard guard(&_dmlLatch, SHARED);
+         indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
+         if (NULL == ic)
+         {
+            PD_LOG(PDERROR, "failed to find index context[%d]", indexSlot);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         rc = commitCreateIndexEndLog(context, nameSlice, ic->getObj().getIndexName(),
+                                            ic->getObj().getIndexID(), indexSlot, reason);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to commit create index end log:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = removeIndex(context, indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove index[%d], rc:%d", indexSlot, rc);
+         goto error;
+      }
+
+      rc = truncateIndex(context, indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate index[%d], rc:%d", indexSlot, rc);
+         goto error;
+      }
+
+      rc = console.releaseIndexDefPage(context, indexSlot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to release index[%d] def page:%d", indexSlot, rc);
+         goto error;
+      }
+
+      {
+         ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+         _indexes.erase(indexSlot);
+      }
+   done:
+      if (NULL != fullNameBuffer)
+      {
+         context->releaseBuffer(fullNameBuffer, fullNameBufferSize);
+      }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeIndex(requestContext *context,
+                                 INT32 indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+      console.init(_record.mbID, &is);
+      indexContext *ic = _indexes.find(indexSlot);
+      if (NULL == ic)
+      {
+         PD_LOG(PDERROR, "failed to find index context[%d]", indexSlot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = console.updateIndexStatus(context, indexSlot, INDEX_STATUS_REMOVING);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update index status:%d", rc);
+         goto error;
+      }
+
+      ic->setRemoving();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::truncateIndex(requestContext *context,
+                                   INT32 indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
+      ossRWMutexGuard guard(&_dmlLatch, SHARED);
+      console.init(_record.mbID, &is);
+      indexContext *ic = _indexes.find(indexSlot);
+      if (NULL == ic)
+      {
+         PD_LOG(PDERROR, "failed to find index context[%d]", indexSlot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!ic->isRemoving() || ic->isTruncating())
+      {
+         PD_LOG(PDERROR, "index[%d] with wrong status[%d]", ic->getStatus());
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = console.truncateIndex(context, indexSlot, ic->getObj());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to truncate index[%d], rc:%d", indexSlot, rc);
+         goto error;
       }
    done:
       return rc;
