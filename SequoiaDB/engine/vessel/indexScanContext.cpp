@@ -34,68 +34,55 @@
 ******************************************************************************/
 
 #include "vessel/indexScanContext.h"
-#include "vessel/objectLatchHelper.hpp"
 #include "vessel/instanceEnv.h"
+#include "vessel/indexScanCursor.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   indexScanContext::~indexScanContext()
-   {
-      closeIndexScan();
-   }
-
-   INT32 indexScanContext::openIndexScan(const indexHandle &handle,
-                                         _rtnPredicateListIterator *predicate,
-                                         indexEntryBuffer *entryBuffer,
-                                         UNORDERED_RID_SET *ridSet,
-                                         BOOLEAN forward)
-   {
-      INT32 rc = SDB_OK;
-      closeIndexScan();
-
-      if (OSS_UNLIKELY(!handle.isValid() ||
-                       NULL == predicate ||
-                       NULL == entryBuffer ||
-                       NULL == ridSet))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!requestContext::isOpen()))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      _handle = handle;
-      _predicate = predicate;
-      _entryBuffer = entryBuffer;
-      _ridSet = ridSet;
-      _forward = forward;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    void indexScanContext::close()
    {
-      closeIndexScan();
+      _cursor = NULL;
       requestContext::close();
       return;
    }
 
-   void indexScanContext::closeIndexScan()
+   void indexScanContext::attachIndexScanCursor(indexScanCursor *cursor)
    {
-      _handle = indexHandle();
-      _predicate = NULL;
-      _entryBuffer = NULL;
-      _ridSet = NULL;
-      _forward = TRUE;
-      return;
+      SDB_ASSERT(NULL != cursor, "can not be null");
+      _cursor = cursor;
+   }
+
+   const indexHandle &indexScanContext::getHandle()const
+   {
+      SDB_ASSERT(isCursorAttached(), "must be attached");
+      return _cursor->getIndexHandle();
+   }
+
+   indexEntryBuffer *indexScanContext::getEntryBuffer()const
+   {
+      SDB_ASSERT(isCursorAttached(), "must be attached");
+      return _cursor->getEntryBuffer();
+   }
+   
+   rtnPredicateListIterator *indexScanContext::getPredicate()const
+   {
+      SDB_ASSERT(isCursorAttached(), "must be attached");
+      return _cursor->getPredicate();
+   }
+   
+   UNORDERED_RID_SET *indexScanContext::getRidSet()const
+   {
+      SDB_ASSERT(isCursorAttached(), "must be attached");
+      return _cursor->getScannedSet();
+   }
+
+   const indexScanOptions &indexScanContext::getOptions()const
+   {
+      SDB_ASSERT(isCursorAttached(), "must be attached");
+      return _cursor->getOptions();
    }
 
 } // namespace vessel

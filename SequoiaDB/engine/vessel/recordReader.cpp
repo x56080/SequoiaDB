@@ -139,7 +139,7 @@ namespace vessel
       {     
          recordSlot slot;
          UINT32 totalSlotCount = 0;
-         /// Once we release lpid latch, page may be upadted.
+         /// Once we release lpid latch, page may be updated.
          DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
          SDB_ASSERT(DPS_INVALID_LSN_OFFSET != minFileLsn, "impossible");
          SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "impossible");
@@ -228,6 +228,65 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 recordReader::read(requestContext *context,
+                            const recordID &rid,
+                            mainDataSpace *mds,
+                            memoryBlock *mb)
+   {
+      INT32 rc = SDB_OK;
+      recordSlot rs;
+      fini();
+      if (OSS_UNLIKELY(NULL == context ||
+                       !rid.valid() ||
+                       NULL == mds ||
+                       !mds->isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _context = context;
+      _lpid = rid.getPageID();
+      _nextSlot = rid.getSlotID();
+      _mds = mds;
+      _buffer = NULL == mb ? &_mb : mb;
+      _buffer->resize(0);
+
+      rc = openScanner();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open scanner:%d", rc);
+         goto error;
+      }
+
+      rc = _scanner.getSlot(_nextSlot, rs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get slot[%d, %d], rc:%d",
+               _lpid, _nextSlot, rc);
+         goto error;
+      }
+
+      if (!rs.isValidAndVisible())
+      {
+         rc = SDB_DMS_RECORD_NOTEXIST;
+         goto error;
+      }
+
+      rc = fetchRecord(_nextSlot, rs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fetch record[%d,%d], rc:%d",
+                  _lpid, _nextSlot, rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
       goto done;
    }
 

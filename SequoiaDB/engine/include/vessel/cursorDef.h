@@ -49,6 +49,7 @@ namespace vessel
       CURSOR_TYPE_LIST_COLLECTION_SPACE = 1,
       CURSOR_TYPE_LIST_COLLECTION = 2,
       CURSOR_TYPE_SCAN_COLLECTION = 3,
+      CURSOR_TYPE_INDEX_SCAN = 4,
    };
 }//namespace vessel
 }//namespace engine

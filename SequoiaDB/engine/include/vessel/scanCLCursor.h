@@ -38,7 +38,7 @@
 
 #include "vessel/cursorKernal.h"
 #include "vessel/collectionHandle.h"
-#include "vessel/scanCLOptions.h"
+#include "vessel/collectionOptions.h"
 #include "vessel/scanEntry.h"
 
 namespace engine
@@ -58,7 +58,7 @@ namespace vessel
          }
 
          void resetToScan(const collectionHandle &handle,
-                          const scanCLOptions &options)
+                          const collectionScanOptions &options)
          {
             _handle = handle;
             _options = options;
@@ -70,7 +70,7 @@ namespace vessel
          {
             return _handle;
          }
-         OSS_INLINE const scanCLOptions &getOptions()const
+         OSS_INLINE const collectionScanOptions &getOptions()const
          {
             return _options;
          }
@@ -102,7 +102,7 @@ namespace vessel
                                   cursorRow *row);
 
       private:
-         scanCLOptions _options;
+         collectionScanOptions _options;
          collectionHandle _handle;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          scanEntry _toScan;

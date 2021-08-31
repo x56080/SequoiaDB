@@ -48,6 +48,7 @@
 #include "../bson/bson.hpp"
 #include "pd.hpp"
 #include "vessel/recordCursorRow.h"
+#include "vessel/collectionOptions.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -150,7 +151,7 @@ TEST_F(insert_test, test1)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -224,7 +225,7 @@ TEST_F(insert_test, test2)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -253,7 +254,7 @@ TEST_F(insert_test, test2)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
 
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    handler.close();
@@ -455,7 +456,7 @@ TEST_F(insert_test, test4)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -484,7 +485,7 @@ TEST_F(insert_test, test4)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
 
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    handler.close();
@@ -643,7 +644,7 @@ TEST_F(insert_test, test6)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
    
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)
@@ -672,7 +673,7 @@ TEST_F(insert_test, test6)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(count, recordCount);
 
-   rc = handler.openScanCursor(&session, NULL, scanCLOptions(), cursorOptions(), cursor);
+   rc = handler.openScanCursor(&session, NULL, collectionScanOptions(), cursorOptions(), cursor);
    ASSERT_EQ(SDB_OK, rc);
 
    handler.close();

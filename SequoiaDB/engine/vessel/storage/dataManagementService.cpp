@@ -509,7 +509,7 @@ namespace vessel
             }
             else
             {
-               rc = cursor->push(record.objsize(), record.objdata());
+               rc = cursor->pushData(record.objsize(), record.objdata());
                if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
                {
                   rc = SDB_OK;
@@ -525,6 +525,10 @@ namespace vessel
                   cursor->setLastName(obj->getCSName());
                   cursor->markLIdPushed(obj->getLogicalID());
                   context->unlockSpaceID();
+                  if (!cursor->isWaitingMorePushing())
+                  {
+                     goto done;
+                  }
                }
             }
          }

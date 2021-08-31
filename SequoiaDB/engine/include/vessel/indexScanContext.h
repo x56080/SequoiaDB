@@ -41,64 +41,42 @@
 #include "vessel/requestContext.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
    class indexEntryBuffer;
+   class indexScanCursor;
 
    class indexScanContext : public requestContext
    {
       public:
          indexScanContext(){}
-         ~indexScanContext();
+         ~indexScanContext(){}
 
       public:
-         OSS_INLINE const indexHandle &getHandle()const
+         const indexHandle &getHandle()const;
+         indexEntryBuffer *getEntryBuffer()const;
+         rtnPredicateListIterator *getPredicate()const;
+         UNORDERED_RID_SET *getRidSet()const;
+         const indexScanOptions &getOptions()const;
+         indexScanCursor *getCursor()
          {
-            return _handle;
+            return _cursor;
          }
-         OSS_INLINE indexEntryBuffer *getEntryBuffer()const
+         OSS_INLINE BOOLEAN isCursorAttached()const
          {
-            return _entryBuffer;
-         }
-         OSS_INLINE _rtnPredicateListIterator *getPredicate()const
-         {
-            return _predicate;
-         }
-         OSS_INLINE BOOLEAN isForward()const
-         {
-            return _forward;
-         }
-         OSS_INLINE UNORDERED_RID_SET *getRidSet()const
-         {
-            return _ridSet;
-         }
-
-         OSS_INLINE BOOLEAN isScanning()const
-         {
-            return _handle.isValid();
+            return NULL != _cursor;
          }
       public:
-         INT32 openIndexScan(const indexHandle &handle,
-                             _rtnPredicateListIterator *predicate,
-                             indexEntryBuffer *entryBuffer,
-                             UNORDERED_RID_SET *ridSet,
-                             BOOLEAN forward);
-
-         void closeIndexScan();
+         void attachIndexScanCursor(indexScanCursor *cursor);
 
          virtual void close();
 
       private:
-         
-      private:
-         indexHandle _handle;
-         indexEntryBuffer *_entryBuffer = NULL;
-         _rtnPredicateListIterator *_predicate = NULL;
-         UNORDERED_RID_SET *_ridSet = NULL;
-         BOOLEAN _forward = TRUE;
+         indexScanCursor *_cursor = NULL;         
    };//class indexScanContext
 } // namespace vessel
 

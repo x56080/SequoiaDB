@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = scanCLHandler.cpp
+   Source File Name = indexScanHandler.cpp
 
    Descriptive Name =
 
@@ -33,26 +33,26 @@
 
 ******************************************************************************/
 
-#include "vessel/scanCLHandler.h"
-#include "vessel/scanCLCursor.h"
+#include "vessel/indexScanHandler.h"
+#include "vessel/indexScanCursor.h"
+#include "vessel/indexScanContext.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/scanCLCursor.h"
 #include "vessel/spaceIDLockHelper.h"
+#include "vessel/instanceEnv.h"
+#include "vessel/indexHandle.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 scanCLHandler::doit(scanCLCursor *cursor)
+   INT32 indexScanHandler::doit(indexScanCursor *cursor)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
-      requestContext context;
+      indexScanContext context;
       spaceIDLockHelper lh(&context);
-      const collectionHandle *handle = NULL;
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -60,7 +60,13 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!cursor->getHandle().isValid()))
+      else if (OSS_UNLIKELY(!cursor->getCLHandle().isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(cursor->getIndexName().empty() &&
+                            INVALID_LOGICAL_INDEX_ID == cursor->getIndexId()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -80,32 +86,33 @@ namespace vessel
          goto error;
       }
 
-      handle = &(cursor->getHandle());
-
-      rc = lh.lock(handle->getSpaceID(), SHARED);
-      if (SDB_OK != rc)
+      rc = lh.lock(cursor->getCLHandle().getSpaceID(), SHARED);
+      if (OSS_UNLIKELY(SDB_OK != rc))
       {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle->getSpaceID(), rc);
+         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d",
+                cursor->getCLHandle().getSpaceID(), rc);
          goto error;
       }
 
       rc = getEnv()->dms.getCSByLockedSpaceID(&context,
-                                                      handle->getCSLId(),
-                                                      &cs);
+                                              cursor->getCLHandle().getCSLId(),
+                                              &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, cursor->getHandle().getMbId(),
-                                   cursor->getHandle().getCLLId(),
+      rc = cs->getCollectionByMBID(&context, cursor->getCLHandle().getMbId(),
+                                   cursor->getCLHandle().getCLLId(),
                                    SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cl->getMoreWhenScan(&context, cursor);
+      context.attachIndexScanCursor(cursor);
+
+      rc = cl->getMoreWhenIndexScan(&context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -116,5 +123,7 @@ namespace vessel
    error:
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+
+} // namespace vessel
+  
+} // namespace engine

@@ -369,7 +369,7 @@ namespace vessel
                goto error;
             }
 
-            rc = cursor->push(record.objsize(), record.objdata());
+            rc = cursor->pushData(record.objsize(), record.objdata());
             if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
             {
                context->unlockMB();
@@ -385,7 +385,14 @@ namespace vessel
             cursor->markLIdPushed(holder->getObj()->getLogicalID());
             cursor->setCLName(holder->getObj()->getName());
             context->unlockMB();
-            continue;
+            if (!cursor->isWaitingMorePushing())
+            {
+               break;
+            }
+            else
+            {
+               continue;
+            }
          }
          else /// failed to lock mb
          {

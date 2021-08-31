@@ -543,6 +543,10 @@ namespace vessel
          }
          break;
       }
+      case CURSOR_TYPE_INDEX_SCAN:
+      {
+         
+      }
       default:
          rc = SDB_INVALIDARG;
          goto error;

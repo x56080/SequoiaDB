@@ -38,6 +38,7 @@
 #include "vessel/vesselImpl.h"
 #include "vessel/IQueryFilter.h"
 #include "vessel/scanCLCursor.h"
+#include "vessel/indexScanCursor.h"
 
 namespace engine
 {
@@ -99,7 +100,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (!isOpen())
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
       else if (NULL == session ||
@@ -123,7 +124,7 @@ namespace vessel
 
    INT32 collectionHandler::openScanCursor(ISession *session,
                                            IQueryFilter *filter,
-                                           const scanCLOptions &scanOptions,
+                                           const collectionScanOptions &scanOptions,
                                            const cursorOptions &cursorOptions,
                                            cursorHandler &cursor)
    {
@@ -137,7 +138,8 @@ namespace vessel
       }
       else if (!isOpen())
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
       }
 
       kernal = SDB_OSS_NEW scanCLCursor();
@@ -164,6 +166,7 @@ namespace vessel
       SAFE_OSS_DELETE(kernal);
       goto done;
    }
+   
 
    INT32 collectionHandler::getTotalRecordCountInPageHead(ISession *session,
                                                           UINT64 &count)
@@ -188,6 +191,53 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collectionHandler::openIndexScanCursor(ISession *session,
+                                                const strSlice &indexName,
+                                                const rtnPredicateList &predicate,
+                                                const indexScanOptions &scanOptions,
+                                                const cursorOptions &co,
+                                                cursorHandler &cursor)
+   {
+      INT32 rc = SDB_OK;
+      indexScanCursor *kernal = NULL;
+      if (OSS_UNLIKELY(NULL == session ||
+                       indexName.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == scanOptions.stepLength))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      kernal = SDB_OSS_NEW indexScanCursor(scanOptions, predicate, _handle, indexName);
+      if (OSS_UNLIKELY(NULL == kernal))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = kernal->open(_db, NULL, co);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open cursor kernal:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(kernal);
       goto done;
    }
 }//namespace vessel

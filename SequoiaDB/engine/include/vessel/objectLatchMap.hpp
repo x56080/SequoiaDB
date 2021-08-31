@@ -42,6 +42,7 @@
 #include "vessel/recordID.h"
 #include "vessel/vesselFileDef.h"
 #include "pdTrace.hpp"
+#include "xxHashInc.h"
 
 namespace engine
 {
@@ -126,7 +127,8 @@ namespace vessel
          }
          OSS_INLINE UINT32 hash()const
          {
-            return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
+            //return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
+            return XXH3_64bits(this, 10);
          }
 
          OSS_INLINE BOOLEAN isValid()const

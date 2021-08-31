@@ -64,6 +64,8 @@ namespace vessel
    class IQueryFilter;
    class dmlContext;
    class buildingIndexContext;
+   class indexScanContext;
+   class indexScanCursor;
 
    class collection: public SDBObject
    {
@@ -139,6 +141,20 @@ namespace vessel
 
          INT32 getTotalCountInRdpHead(requestContext *context,
                                       UINT64 &count);
+
+         INT32 getMoreWhenIndexScan(indexScanContext *context);
+
+      private:
+         INT32 testIndex(requestContext *context,
+                         const strSlice &indexName,
+                         indexHandle &ih);
+
+         INT32 testIndex(requestContext *context,
+                         UINT32 indexId,
+                         INT32 &indexSlot);
+
+         INT32 _getMoreWhenIndexScan(indexScanContext *context,
+                                     indexContext *ic);
 
       private:
          INT32 buildDmlIndexRequests(requestContext *context,
@@ -245,9 +261,6 @@ namespace vessel
                                     PAGE_ID routePgaeLpid,
                                     UINT32 pos,
                                     PAGE_ID &lpid);
-
-         
-   
       private:
          UINT32 getDataPageSize()const;
 

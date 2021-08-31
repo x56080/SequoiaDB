@@ -71,6 +71,17 @@ namespace vessel
          /// scanner will be closed after returning any error.
          INT32 next(recordID &rid);
 
+         /// pause will not release rid lock which holding.
+         void pause();
+
+         INT32 resume();
+
+         OSS_INLINE BOOLEAN isPaused()const
+         {
+            return _paused;
+         }
+
+         void releaseRidLock();
       private:
          INT32 prepareToScan(rtnPredicateListIterator *predicate);
          INT32 prepareToScan(const slice &entry);
@@ -78,11 +89,13 @@ namespace vessel
          INT32 lockCurrentRid(BOOLEAN &locked);
          INT32 waitCurrentRid(UINT32 millis, BOOLEAN &timeout);
          
+         
       private:
          indexScanContext *_context = NULL;
          indexIterator *_iterator = NULL;
          RID_LATCH_CONTEXT _rlc;
          BOOLEAN _seeked = FALSE;
+         BOOLEAN _paused = FALSE;
          bson::BufBuilder _builder;
    };//class indexScanner
 

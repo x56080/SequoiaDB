@@ -59,18 +59,28 @@ namespace vessel
          recordReader &operator=(const recordReader &) = delete;
 
       public:
+         void fini();
+
+         /// loop reading
          INT32 init(requestContext *context,
                     PAGE_ID lpid,
                     mainDataSpace *mds,
                     RECORD_SLOT_ID seek = 0,
                     memoryBlock *mb=NULL);
 
-         void fini();
-
-         /// Always fetch first before any reading.
+         /// Always fetch before any reading.
          /// WARNING:Any data of current record will be released
-         /// when call "fetchNextToReader".
+         /// when call "fetch*" functions.
          INT32 fetchNextToReader(BOOLEAN &hitTheEnd);
+         /// loop reading end
+
+         /// point read
+         /// rid must be locked first
+         INT32 read(requestContext *context,
+                    const recordID &rid,
+                    mainDataSpace *mds,
+                    memoryBlock *mb=NULL);
+
 
          BOOLEAN currentRecordIsTombstone()const;
          recordID getCurrentRid()const;

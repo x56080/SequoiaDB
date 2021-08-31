@@ -66,6 +66,11 @@ namespace vessel
          virtual INT32 getNextRow(ISession *session,
                                   cursorRow *row){return SDB_VESSEL_INTERNAL_ERR;}
 
+         virtual UINT32 getStepLengthInLoop()const
+         {
+            return (UINT32)(-1);
+         }
+
       public:
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,
@@ -76,10 +81,10 @@ namespace vessel
          INT32 getNext(ISession *session, slice &content);
          
          /// push completed record
-         INT32 push(const slice &content);
-         INT32 push(UINT32 len, const CHAR *data);
-         /// push one record with multi memory fragments
-         INT32 pushFragments(std::initializer_list<std::pair<UINT32, const void *>> il);
+         INT32 pushData(UINT32 len, const CHAR *data);
+
+         /// push "ONE RECORD" with multi memory fragments
+         INT32 pushDataFragments(std::initializer_list<slice> il);
 
          /// mark cursor as SDB_VESSEL_EOC
          void pushEnd();
@@ -88,10 +93,13 @@ namespace vessel
          {
             return _filter;
          }
+
+         BOOLEAN isWaitingMorePushing()const;
       
       private:
          INT32 allocateSpaceForPushing(UINT32 dataLen);
-         BOOLEAN noMorePushing()const;
+         
+         BOOLEAN hitTheEnd()const;
          OSS_INLINE UINT32 getRealBufSizeOfSlice(UINT32 dataLen)const
          {
             return sizeof(UINT32) + dataLen;
@@ -103,9 +111,9 @@ namespace vessel
       
       private:
          cursorOptions _options;
-         UINT64 _totalPushed = 0;
          UINT32 _flags = 0;
          memoryBlock _mb;
+         UINT32 _pushedThisLoop = 0;
          UINT32 _read = 0; /// buffer size read.
          vesselImpl *_db = NULL;
          IQueryFilter *_filter = NULL;

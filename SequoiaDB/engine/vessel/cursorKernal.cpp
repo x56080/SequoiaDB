@@ -45,7 +45,7 @@ namespace engine
 namespace vessel
 {
    UINT32 CURSOR_FLAG_IS_OPEN = 0x01;
-   UINT32 CURSOR_FLAG_NO_MORE_PUSHING = 0x02;
+   UINT32 CURSOR_FLAG_HIT_THE_END = 0x02;
 
    cursorKernal::~cursorKernal()
    {
@@ -99,7 +99,6 @@ namespace vessel
    void cursorKernal::close()
    {
       _options = cursorOptions();
-      _totalPushed = 0;
       _flags = 0;
       _mb.release();
       _read = 0;
@@ -122,12 +121,13 @@ namespace vessel
 
       if (!hasMoreDataToFetch())
       {
-         if (noMorePushing())
+         if (hitTheEnd())
          {
             rc = SDB_VESSEL_EOC;
             goto error;
          }
 
+         _pushedThisLoop = 0;
          _read = 0;
          _mb.resize(0);
          rc = _db->pushMoreToCursor(session, this);
@@ -138,9 +138,9 @@ namespace vessel
 
          if (!hasMoreDataToFetch())
          {
-            if (!noMorePushing())
+            if (!hitTheEnd())
             {
-               PD_LOG(PDERROR, "pushed nothing but flag not set");
+               PD_LOG(PDERROR, "pushed nothing but flag not hit the end");
                rc = SDB_VESSEL_INTERNAL_ERR;
             }
             else
@@ -165,13 +165,18 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN cursorKernal::noMorePushing()const
+   BOOLEAN cursorKernal::isWaitingMorePushing()const
    {
-      return (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_NO_MORE_PUSHING)) ||
-             (_totalPushed == _options.limit);
+      return !hitTheEnd() && _pushedThisLoop < getStepLengthInLoop();
+             
    }
 
-   INT32 cursorKernal::push(UINT32 len, const CHAR *data)
+   BOOLEAN cursorKernal::hitTheEnd()const
+   {
+      return (0 != OSS_BIT_TEST(_flags, CURSOR_FLAG_HIT_THE_END));
+   }
+
+   INT32 cursorKernal::pushData(UINT32 len, const CHAR *data)
    {
       INT32 rc = SDB_OK;
       UINT32 oldSize = 0;
@@ -186,7 +191,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (noMorePushing())
+      else if (!isWaitingMorePushing())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
@@ -215,19 +220,14 @@ namespace vessel
          goto error;
       }
 
-      ++_totalPushed;
+      ++_pushedThisLoop;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 cursorKernal::push(const slice &content)
-   {
-      return push(content.len(), content.data());
-   }
-
-   INT32 cursorKernal::pushFragments(std::initializer_list<std::pair<UINT32, const void *>> il)
+   INT32 cursorKernal::pushDataFragments(std::initializer_list<slice> il)
    {
       INT32 rc = SDB_OK;
       UINT32 len = 0;
@@ -238,7 +238,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (noMorePushing())
+      else if (!isWaitingMorePushing())
       {
          rc = SDB_VESSEL_CURSOR_NO_SPACE;
          goto error;
@@ -246,13 +246,13 @@ namespace vessel
 
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         if (0 == i->first || NULL == i->second)
+         if (!i->isValid())
          {
             SDB_ASSERT(FALSE, "invalid fragment");
             rc = SDB_INVALIDARG;
             goto error;
          }
-         len += i->first;
+         len += i->len();
       }
 
       rc = allocateSpaceForPushing(len);
@@ -272,7 +272,7 @@ namespace vessel
 
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         rc = _mb.append(i->first, i->second);
+         rc = _mb.append(i->len(), i->data());
          if (SDB_OK != rc)
          {
             _mb.resize(oldSize);
@@ -281,7 +281,7 @@ namespace vessel
          }
       }
       
-      ++_totalPushed;
+      ++_pushedThisLoop;
    done:
       return rc;
    error:
@@ -330,7 +330,7 @@ namespace vessel
    {
       if (OSS_LIKELY(isOpen()))
       {
-         OSS_BIT_SET(_flags, CURSOR_FLAG_NO_MORE_PUSHING);
+         OSS_BIT_SET(_flags, CURSOR_FLAG_HIT_THE_END);
       }
       return;
    }

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = cursorOptions.h
+   Source File Name = index_keygen_test.cpp
 
    Descriptive Name =
 
@@ -33,36 +33,26 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CURSOR_OPTIONS_H_
-#define VESSEL_CURSOR_OPTIONS_H_
+#include "vessel/indexKeyGenerator.h"
+#include <gtest/gtest.h>
+#include "vessel/slice.h"
 
-#include "core.hpp"
-#include "oss.hpp"
-#include "ossTypes.hpp"
 
-namespace engine
+
+TEST(index_key_gen, test1)
 {
-namespace vessel
-{
-   class cursorOptions : public SDBObject
+   bson::BSONObjBuilder builder;
+   builder.append("a", 1);
+   bson::BSONObj pattern = builder.obj();
+
+   /// reuse as record
+   ::engine::vessel::slice record(pattern.objsize(), pattern.objdata());
+   bson::BSONObjSet keys;
+
+   for (UINT32 i = 0; i < 1000000; ++i)
    {
-      public:
-         cursorOptions(){}
-          ~cursorOptions(){}
-         cursorOptions(const cursorOptions &) = delete;
-         cursorOptions &operator=(const cursorOptions &o)
-         {
-            maxBufSize = o.maxBufSize;
-            initBufSize = o.initBufSize;
-            return *this;
-         }
-
-         ///cursor will try to extend buf only when the buf can not hold at
-         /// least one slice.
-         UINT32 maxBufSize = 16777216; /// 16MB
-         UINT32 initBufSize = 65536;   /// 64KB
-   };
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_CURSOR_OPTIONS_H_
+      keys.clear();
+      INT32 rc = ::engine::vessel::indexKeyGenForBsonRecord(pattern, FALSE, record, keys);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+}

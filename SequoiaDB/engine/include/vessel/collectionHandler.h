@@ -40,12 +40,13 @@
 #include "vessel/collectionHandle.h"
 #include "utilInsertResult.hpp"
 #include "dpsTransID.hpp"
-#include "vessel/scanCLOptions.h"
 #include "vessel/cursorHandler.h"
 #include "vessel/indexOptions.h"
 #include "vessel/indexParameters.h"
 #include "vessel/cursorOptions.h"
 #include "../bson/bson.hpp"
+#include "vessel/collectionOptions.h"
+#include "rtnPredicate.hpp"
 
 namespace engine
 {
@@ -119,9 +120,16 @@ namespace vessel
          /// You can call their "close" functions in any order.
          INT32 openScanCursor(ISession *session,
                               IQueryFilter *filter,
-                              const scanCLOptions &scanOptions,
+                              const collectionScanOptions &scanOptions,
                               const cursorOptions &cursorOptions,
                               cursorHandler &cursor);
+
+         INT32 openIndexScanCursor(ISession *session,
+                                   const strSlice &indexName,
+                                   const rtnPredicateList &predicate,
+                                   const indexScanOptions &scanOptions,
+                                   const cursorOptions &co,
+                                   cursorHandler &cursor);
           
       private:
          collectionHandle _handle;

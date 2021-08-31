@@ -125,7 +125,7 @@ namespace vessel
             }
 
          public:
-            FLOAT32 flushDirtyListThreshold = 0.8;
+            FLOAT32 flushDirtyListThreshold = 0.9;
             UINT32 flushDirtyListTimeout = 300; /// seconds
             FLOAT32 flushLruListThreshold = 0.75;
          

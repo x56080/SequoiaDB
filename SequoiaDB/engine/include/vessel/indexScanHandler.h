@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = cursorOptions.h
+   Source File Name = indexScanHandler.h
 
    Descriptive Name =
 
@@ -33,36 +33,27 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CURSOR_OPTIONS_H_
-#define VESSEL_CURSOR_OPTIONS_H_
+#ifndef VESSEL_INDEX_SCAN_HANDLER_H_
+#define VESSEL_INDEX_SCAN_HANDLER_H_
 
-#include "core.hpp"
-#include "oss.hpp"
-#include "ossTypes.hpp"
+#include "vessel/requestHandler.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class cursorOptions : public SDBObject
+   class indexScanCursor;
+   class indexScanHandler : public requestHandler
    {
       public:
-         cursorOptions(){}
-          ~cursorOptions(){}
-         cursorOptions(const cursorOptions &) = delete;
-         cursorOptions &operator=(const cursorOptions &o)
-         {
-            maxBufSize = o.maxBufSize;
-            initBufSize = o.initBufSize;
-            return *this;
-         }
+         indexScanHandler(){}
+         virtual ~indexScanHandler(){}
 
-         ///cursor will try to extend buf only when the buf can not hold at
-         /// least one slice.
-         UINT32 maxBufSize = 16777216; /// 16MB
-         UINT32 initBufSize = 65536;   /// 64KB
-   };
-}//namespace vessel
-}//namespace engine
+         INT32 doit(indexScanCursor *cursor);
+   };//class indexScanHandler
+} // namespace vessel
+  
+} // namespace engine
 
-#endif//VESSEL_CURSOR_OPTIONS_H_
+
+#endif//VESSEL_INDEX_SCAN_HANDLER_H_

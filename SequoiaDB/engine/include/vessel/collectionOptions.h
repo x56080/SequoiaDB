@@ -72,6 +72,74 @@ namespace vessel
          STRIPING_ID maxStriping = INVALID_STRIPING_ID;
          //UINT32 stripingBucketCount = 1;
    };// class createCLOptions
+
+   class baseScanOptions : public SDBObject
+   {
+      public:
+         baseScanOptions(){}
+         ~baseScanOptions(){}
+         baseScanOptions(const baseScanOptions &o):
+         scanForShare(o.scanForShare),
+         scanForUpdate(o.scanForUpdate)
+         {}
+         baseScanOptions &operator=(const baseScanOptions &o)
+         {
+            scanForShare = o.scanForShare;
+            scanForUpdate = o.scanForUpdate;
+            return *this;
+         }
+
+      public:
+         BOOLEAN scanForShare = FALSE;
+         BOOLEAN scanForUpdate = FALSE;
+   };//class baseScanOptions
+
+   class collectionScanOptions : public SDBObject
+   {
+      public:
+         collectionScanOptions(){}
+         ~collectionScanOptions(){}
+         collectionScanOptions(const collectionScanOptions &o):
+         base(o.base),
+         stepLength(o.stepLength){}
+         collectionScanOptions &operator=(const collectionScanOptions &o)
+         {
+            base = o.base;
+            stepLength = o.stepLength;
+            return *this;
+         }
+
+      public:
+          baseScanOptions base;
+          UINT32 stepLength = (UINT32)(-1);
+   };//class collectionScanOptions
+
+   class indexScanOptions : public SDBObject
+   {
+      public:
+         indexScanOptions(){}
+         ~indexScanOptions(){}
+         indexScanOptions(const indexScanOptions &o):
+         base(o.base),
+         stepLength(o.stepLength),
+         indexCover(o.indexCover),
+         forward(o.forward)
+         {}
+         indexScanOptions &operator=(const indexScanOptions &o)
+         {
+            base = o.base;
+            stepLength = o.stepLength;
+            indexCover = o.indexCover;
+            forward = o.forward;
+            return *this;
+         }
+
+      public:
+         baseScanOptions base;
+         UINT32 stepLength = 1;
+         BOOLEAN indexCover = FALSE;
+         BOOLEAN forward = TRUE;
+   };//class indexScanOptions
 }//namespace vessel
 }//namespace engine
 

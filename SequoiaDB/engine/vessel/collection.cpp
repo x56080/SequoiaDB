@@ -64,6 +64,8 @@
 #include "vessel/indexDefPageAccessor.h"
 #include "vessel/indexScanner.h"
 #include "vessel/buildingIndexContext.h"
+#include "vessel/indexScanContext.h"
+#include "vessel/indexScanCursor.h"
 
 namespace engine
 {
@@ -506,6 +508,82 @@ namespace vessel
       goto done;
    }
 
+   INT32 collection::testIndex(requestContext *context,
+                               const strSlice &indexName,
+                               indexHandle &ih)
+   {
+      INT32 rc = SDB_OK;
+      ih = indexHandle();
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            indexName.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+           itr != _indexes.end(); ++itr)
+      {
+         indexContext *ic = itr->second;
+         if (ic->isNormal() && (ic->getObj().getIndexName() == indexName))
+         {
+            ih = indexHandle(itr->first, ic->getIndexID());
+            goto done;
+         }
+      }
+
+      rc = SDB_IXM_NOTEXIST;
+      goto error;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::testIndex(requestContext *context,
+                               UINT32 indexId,
+                               INT32 &indexSlot)
+   {
+      INT32 rc = SDB_OK;
+      indexSlot = -1;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_LOGICAL_INDEX_ID == indexId))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+           itr != _indexes.end(); ++itr)
+      {
+         indexContext *ic = itr->second;
+         if (ic->isNormal() && (ic->getObj().getIndexID() == indexId))
+         {
+            indexSlot = itr->first;
+            goto done;
+         }
+      }
+
+      rc = SDB_IXM_NOTEXIST;
+      goto error;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::getMoreWhenScan(requestContext *context,
                                      scanCLCursor *cursor)
    {
@@ -518,6 +596,12 @@ namespace vessel
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            NULL == cursor))
+      {
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
@@ -652,9 +736,9 @@ namespace vessel
          transId.setSN(rr.getCurrentRecordHead().getTransSN());
          record = rr.getCurrentRecordBody();
 
-         rc = cursor->pushFragments({std::make_pair(sizeof(recordID), &rid),
-                                     std::make_pair(sizeof(DPS_TRANS_ID), &transId),
-                                     std::make_pair(record.len(), record.data())});
+         rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+                                         slice(sizeof(DPS_TRANS_ID), &transId),
+                                         record});
          if (SDB_OK != rc)
          {
             if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
@@ -665,10 +749,85 @@ namespace vessel
          }
 
          cursor->setToScanSlot(rid.getSlotID() + 1);
+         if (!cursor->isWaitingMorePushing())
+         {
+            break;
+         }
       } while (TRUE);
       
    done:
       rr.fini();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::getMoreWhenIndexScan(indexScanContext *context)
+   {
+      INT32 rc = SDB_OK;
+      indexContext *ic = NULL;
+      ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !context->isCursorAttached()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      guard.autoLock();
+
+      if (!context->getHandle().isValid())
+      {
+         indexHandle h;
+         if (INVALID_LOGICAL_INDEX_ID != context->getCursor()->getIndexId())
+         {
+            INT32 indexSlot = -1;
+            rc = testIndex(context, context->getCursor()->getIndexId(), indexSlot);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+            h = indexHandle(indexSlot, context->getCursor()->getIndexId());
+         }
+         else if (!context->getCursor()->getIndexName().empty())
+         {
+            rc = testIndex(context, context->getCursor()->getIndexName(), h);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         }
+         else
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         context->getCursor()->setIndexHandle(h);
+      }
+
+      ic = _indexes.find(context->getHandle().getIndexSlot());
+      if (NULL == ic)
+      {
+         PD_LOG(PDERROR, "index[%d] not found", context->getHandle().getIndexSlot());
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+      else if (ic->getIndexID() != context->getHandle().getIndexId())
+      {
+         PD_LOG(PDERROR, "index handle[%d,%d] not found",
+                context->getHandle().getIndexId(),
+                context->getHandle().getIndexSlot());
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+   done:
       return rc;
    error:
       goto done;
@@ -3176,6 +3335,109 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collection::_getMoreWhenIndexScan(indexScanContext *context,
+                                           indexContext *ic)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && context->isCursorAttached(), "can not be invalid");
+      SDB_ASSERT(NULL != ic && ic->isNormal(), "must be normal");
+
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      memoryBlock mb;
+      recordReader rr;
+      const indexScanOptions &o = context->getOptions();
+      SDB_ASSERT(0 < o.stepLength, "can not be zero");
+      indexScanCursor *cursor = context->getCursor();
+      indexScanner scanner;
+      rc = scanner.open(context, ic->getObj());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open index scanner:%d", rc);
+         goto error;
+      }
+
+      do
+      {
+         recordID rid;
+         if (scanner.isPaused())
+         {
+            rc = scanner.resume();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to resume scanner:%d", rc);
+               goto error;
+            }
+         }
+
+         rc = scanner.next(rid);
+         if (SDB_IXM_EOC == rc)
+         {
+            rc = SDB_OK;
+            cursor->pushEnd();
+            goto done;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get next rid from scanner:%d", rc);
+            goto error;
+         }
+
+         if (o.indexCover)
+         {
+            rc = cursor->pushData(sizeof(recordID), (const CHAR *)(&rid));
+            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+            {
+               rc = SDB_OK;
+               goto done;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
+               goto error;
+            }
+            
+            scanner.releaseRidLock();
+         }
+         else
+         {
+            scanner.pause();
+            DPS_TRANS_ID transID;
+            rc = rr.read(context, rid, &mds, &mb);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to read record[%d,%d], rc:%d",
+                      rid.getPageID(), rid.getSlotID(), rc);
+               goto error;
+            }
+
+            transID = rr.getCurrentRecordHead().getTransID();
+            rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+                                            slice(sizeof(DPS_TRANS_ID), &transID),
+                                            rr.getCurrentRecordBody()});
+            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+            {
+               rc = SDB_OK;
+               goto done;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
+               goto error;
+            }
+
+            rr.fini();
+            scanner.releaseRidLock();
+         }
+      } while (cursor->isWaitingMorePushing());
+      
+   done:
+      scanner.close();
+      return rc;
+   error:
+      rr.fini();
       goto done;
    }
 }//namespace vessel

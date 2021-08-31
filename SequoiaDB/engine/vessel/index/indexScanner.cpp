@@ -62,7 +62,7 @@ namespace vessel
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isScanning() ||
+                       !context->isCursorAttached() ||
                        !indexObj.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -82,7 +82,7 @@ namespace vessel
 
       rc = _iterator->open(context, context->getHandle(),
                            indexObj.getPattern().getOrdering(),
-                           context->isForward());
+                           context->getOptions().forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open iterator of index[%s], rc:%d",
@@ -107,12 +107,7 @@ namespace vessel
             SDB_OSS_DEL _iterator;
             _iterator = NULL;
          }
-         if (!_rlc.isEmpty())
-         {
-            objectLatchHelper<recordIdLatchKey> lh;
-            RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
-            lh.releaseAll(lm, _rlc);
-         }
+         releaseRidLock();
          _context = NULL;
          _seeked = FALSE;
          _builder.reset();
@@ -153,6 +148,8 @@ namespace vessel
       }
       else
       {
+         releaseRidLock();
+
          rc = _iterator->nextDiffKeyOrRid();
          if (SDB_OK != rc)
          {
@@ -396,6 +393,54 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   void indexScanner::releaseRidLock()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      if (!_rlc.isEmpty())
+      {
+         objectLatchHelper<recordIdLatchKey> lh;
+         RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
+         lh.releaseAll(lm, _rlc);
+      }
+      return;
+   }
+
+   void indexScanner::pause()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(!_paused, "already paused");
+      if (!_paused)
+      {
+         _iterator->pause();
+         _paused = TRUE;
+      }
+      return;
+   }
+
+   INT32 indexScanner::resume()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(_paused, "already paused");
+
+      if (_paused)
+      {
+         rc = _iterator->resume();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to resume iterator:%d", rc);
+            goto error;
+         }
+
+         _paused = FALSE;
+      }
+   done:
+      return rc;
+   error:
+      close();
       goto done;
    }
 } // namespace vessel   
