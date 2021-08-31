@@ -52,6 +52,11 @@
 #define TOKEN_MAX_LENGTH             256
 #define CIPHER_STRING_MAX_LENGTH     TOKEN_MAX_LENGTH + RANDOM_ARRAY_MAX_LENGTH
 
+#define LINUX_ID_SALT_LENGTH         13
+// Linux users' salt and encrypted are drawn from the set [a-zA-Z0-9./]
+#define SALT_CHARACTER_SET           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./"
+#define SALT_CHARACTER_SET_COUNT     64 
+ 
 #ifdef _LINUX
 #define UTIL_USER_DIRECTORY            "HOME"
 #else
@@ -898,3 +903,43 @@ error:
    goto done ;
 }
 
+#if defined(_LINUX)
+INT32 utilCipherLinuxUserEncrypt( const CHAR *clearText, CHAR *cipherText,
+                                  UINT32 cipherTextLen )
+{
+   INT32     rc                                      = SDB_OK ;
+   UINT32    randTmp                                 = 0 ;
+   uint32_t  i                                       = 3 ;
+   CHAR      *cipherTmp                              = NULL ;
+   CHAR      linuxSaltString[LINUX_ID_SALT_LENGTH]   = { '\0' } ;
+   
+   if ( NULL == clearText )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   // Generate random salt string according to the set
+   for ( ; i < LINUX_ID_SALT_LENGTH -2; i++ )
+   {
+      randTmp = _sdbRand() % SALT_CHARACTER_SET_COUNT ;
+      linuxSaltString[i] = SALT_CHARACTER_SET[randTmp] ;
+   }
+   
+   // '$id$salt$encrypted' stands for the linux users' password format 
+   //  Generate linux user password according to this format 
+   linuxSaltString[0] = '$' ;
+   linuxSaltString[1] = '6' ;  /* '6' represents 'sha-512'  */
+   linuxSaltString[2] = '$' ;
+   linuxSaltString[LINUX_ID_SALT_LENGTH - 2] = '$' ;
+   linuxSaltString[LINUX_ID_SALT_LENGTH - 1] = '\0' ;
+
+   cipherTmp = ossCrypt( clearText, linuxSaltString ) ;
+   ossMemcpy( cipherText, cipherTmp, cipherTextLen ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+#endif

@@ -7,31 +7,43 @@
 addUser \- add an operating system user
 .SH SYNOPSIS
 .PP
-\f[B]System.addUser(<users>)\f[]
+\f[B]System.addUser(<User>, [options])\f[]
 .SH CATEGORY
 .PP
 System
 .SH DESCRIPTION
 .PP
 This function is used to add an operating system user.
+When adding a user through this function, root privileges are required.
 .SH PARAMETERS
 .PP
-users ( \f[I]object, required\f[] )
-.PP
-The user\[aq]s attributes can be set through the users parameter:
+The parameters are divided into those that can be specified when adding a user
+with a ciphertext password, and those that can be specified when adding a user
+with a plaintext password.
 .IP \[bu] 2
-name ( \f[I]string\f[] ): User name.
-This parameter is required.
+User ( \f[I]object, required\f[] )
 .RS 2
 .PP
-Format: \f[C]name:\ "username"\f[]
+Specify the system username and password.
+The specific way can refer to the User object.
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Only SequoiaDB v3.4.4 and above support for specifying User objects.
 .RE
+.RE
+.IP \[bu] 2
+options ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+The user\[aq]s attributes can be specified through the parameter "options":
 .IP \[bu] 2
 gid ( \f[I]string\f[] ): Specify the name or ID of the user primary group.
 .RS 2
 .PP
 This parameter must be specified as an existing user group.
-If not specified, a user group with the same name as the parameter name will be
+If not specified, a user group with the same name as the User object will be
 created by default.
 .PP
 Format: \f[C]gid:\ "groupName"\f[] or \f[C]gid:\ "2003"\f[]
@@ -56,14 +68,15 @@ Format: \f[C]createDir:\ true\f[]
 .RE
 .IP \[bu] 2
 dir ( \f[I]string\f[] ): Specify the user directory, which takes effect only
-when the parameter createDir is true.
+when the parameter "createDir" is true.
 .RS 2
 .PP
 This parameter cannot specify an existing directory.
-If not specified, a directory with the same name as the parameter name will be
+If not specified, a directory with the same name as the User object will be
 created in the \f[C]/home\f[] directory as the user directory.
 .PP
 Format: \f[C]dir:\ "userHomeDir"\f[]
+.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -80,13 +93,28 @@ For more details, refer to Troubleshooting.
 .PP
 v3.2 and above
 .SH EXAMPLES
-.PP
-Add a new system user named "newUser".
-Specify the user group as root, and create a user directory
-\f[C]/home/newUser\f[].
+.IP \[bu] 2
+Use the User object to add a new system user with name "newUser" and password
+"newUserPwd".
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.addUser({name:\ "newUser",\ gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+>\ var\ u\ =\ new\ User("newUser",\ "newUserPwd")
+>\ System.addUser(u)
 \f[]
 .fi
+.RE
+.IP \[bu] 2
+Add a new system user with name "newUser" and specify the password through the
+interactive interface.
+At the same time, specify the user group as root, and create a user directory
+\f[C]/home/newUser\f[].
+.RS 2
+.IP
+.nf
+\f[C]
+>\ System.addUser(User("newUser").promptPassword(),\ {gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+\f[]
+.fi
+.RE

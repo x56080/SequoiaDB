@@ -7,30 +7,37 @@
 addUser \- 新增操作系统用户
 .SH 语法
 .PP
-\f[B]System.addUser(<users>)\f[]
+\f[B]System.addUser(<User>, [options])\f[]
 .SH 类别
 .PP
 System
 .SH 描述
 .PP
-该函数用于新增操作系统用户。
+该函数用于新增操作系统用户。通过该函数新增用户时，需要使用 root 权限。
 .SH 参数
-.PP
-users（ \f[I]object，必填\f[] ）
-.PP
-通过参数 users 可以设置用户的属性：
 .IP \[bu] 2
-name（ \f[I]string\f[] ）：用户名，该参数必填
+User（ \f[I]object，必填\f[] ）
 .RS 2
 .PP
-格式：\f[C]name:\ "username"\f[]
+指定系统用户名和密码，具体使用可参考 User 对象
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+仅 SequoiaDB v3.4.4 及以上版本支持指定 User 对象。
 .RE
+.RE
+.IP \[bu] 2
+options （ \f[I]object，选填\f[] ）
+.RS 2
+.PP
+通过参数 options 可以指定用户的属性：
 .IP \[bu] 2
 gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
 .RS 2
 .PP
 该参数可以是用户组的组名或组
-ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
+ID，且指定的用户组必须已存在。如果不指定，则默认创建与 User 对象同名的用户组。
 .PP
 格式：\f[C]gid:\ "groupName"\f[] 或 \f[C]gid:\ "2003"\f[]
 .RE
@@ -54,10 +61,11 @@ createDir（ \f[I]boolean\f[] ）：是否创建用户目录，默认为 false
 dir（ \f[I]string\f[] ）：指定用户目录，仅参数 createDir 为 true 时生效
 .RS 2
 .PP
-该参数不能指定已存在的目录。如果不指定，将会在 \f[C]/home\f[] 目录下创建与参数
-name 同名的目录作为用户目录。
+该参数不能指定已存在的目录。如果不指定，将会在 \f[C]/home\f[] 目录下创建与 User
+对象同名的目录作为用户目录。
 .PP
 格式：\f[C]dir:\ "userHomeDir"\f[]
+.RE
 .RE
 .SH 返回值
 .PP
@@ -72,12 +80,25 @@ name 同名的目录作为用户目录。
 .PP
 v3.2 及以上版本
 .SH 示例
-.PP
-新增名为“newUser”的系统用户，并指定用户组为 root，同时创建用户目录
-\f[C]/home/newUser\f[]
+.IP \[bu] 2
+使用 User 对象新增用户名为“newUser”，密码为“newUserPwd”的系统用户
+.RS 2
 .IP
 .nf
 \f[C]
->\ System.addUser({name:\ "newUser",\ gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+>\ var\ u\ =\ new\ User("newUser",\ "newUserPwd")
+>\ System.addUser(u)
 \f[]
 .fi
+.RE
+.IP \[bu] 2
+新增用户名为“newUser”的系统用户，并通过交互式界面指定密码；同时，指定用户组为
+root，创建用户目录 \f[C]/home/newUser\f[]
+.RS 2
+.IP
+.nf
+\f[C]
+>\ System.addUser(User("newUser").promptPassword(),\ {gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+\f[]
+.fi
+.RE

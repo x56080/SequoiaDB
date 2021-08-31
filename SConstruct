@@ -597,6 +597,8 @@ if guess_os == "linux":
     env.Append( LIBS=['dl'] )
     # -lpthread
     env.Append( LIBS=["pthread"] )
+    # -lcrypt
+    env.Append( LIBS=['crypt'] )
     # GNU
     env.Append( CPPDEFINES=[ "_GNU_SOURCE" ] )
     # in case for 32 bit linux or compiling 32 bit in 64 env
