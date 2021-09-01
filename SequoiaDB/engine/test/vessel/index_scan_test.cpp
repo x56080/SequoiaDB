@@ -453,3 +453,104 @@ TEST_F(index_scan_test, test3)
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
+
+///backword scan
+TEST_F(index_scan_test, test4)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource= test_outer_resource::getResource();
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance(); 
+   test_session session(test_logger::instance());
+   openDBOptions options;
+   options.ioWorkerCount = 4;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   collectionHandler handler;
+   UINT32 count = 1000;
+
+   indexParameters params;
+   params.type = INDEX_TYPE_LSM;
+
+   bson::BSONObj pattern = BSON("a" << 1);
+   strSlice indexName("index1");
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&session, indexName,
+                              pattern, params, createIndexOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   bson::BSONObjBuilder builder;
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i+1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+                          INVALID_STRIPING_ID,
+                          insertOptions(), res);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+
+   mthMatchTree mt;
+   indexScanOptions o;
+   o.indexCover = FALSE;
+   o.forward = FALSE;
+   cursorOptions co;
+
+   {
+      builder.reset();
+      bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
+      subBuilder.append("$lt", count);
+      subBuilder.done();
+      bson::BSONObj query = builder.done();
+
+      rc = mt.loadPattern(query, FALSE);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateSet ps;
+      rc = mt.calcPredicate(ps, NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateList predicates;
+      UINT32 lvl = 0;
+      rc = predicates.initialize(ps, pattern, -1, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      cursorHandler cursor;
+      rc = handler.openIndexScanCursor(&session, indexName,
+                                       predicates, o, co, cursor);
+      ASSERT_EQ(SDB_OK, rc);
+
+      recordCursorRow row;
+      for (INT32 i = count - 1; i >= 0; --i)
+      {
+         recordCursorRow row;
+         rc = cursor.getNextRow(&session, row);
+         ASSERT_EQ(SDB_OK, rc);
+         bson::BSONObj recordObj(row.getRecord().data());
+         ASSERT_EQ(i, recordObj.getIntField("a"));
+      }
+
+      rc = cursor.getNextRow(&session, row);
+      ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      mt.clear();
+   }
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
