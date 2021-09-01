@@ -234,6 +234,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to open cursor kernal:%d", rc);
          goto error;
       }
+
+      cursor = cursorHandler(kernal);
    done:
       return rc;
    error:

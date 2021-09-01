@@ -128,7 +128,7 @@ namespace vessel
          OSS_INLINE UINT32 hash()const
          {
             //return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
-            return XXH3_64bits(this, 10);
+            return _sid + _mbID + _rid.hash();
          }
 
          OSS_INLINE BOOLEAN isValid()const

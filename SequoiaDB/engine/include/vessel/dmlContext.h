@@ -175,7 +175,7 @@ namespace vessel
 
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
-         objectSharedLatchContext<recordIdLatchKey> _ridLatchContext;
+         RID_LATCH_CONTEXT _ridLatchContext;
 
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;

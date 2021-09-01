@@ -925,6 +925,7 @@ vesselFiles = [
       "vessel/handlers/scanCLHandler.cpp",
       "vessel/handlers/countCLHandler.cpp",
       "vessel/handlers/createIndexHandler.cpp",
+      "vessel/handlers/indexScanHandler.cpp",
       "vessel/api/cursorHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/index/indexConsole.cpp",
@@ -948,6 +949,7 @@ vesselFiles = [
       "vessel/csgpAccessor.cpp",
       "vessel/requestContext.cpp",
       "vessel/insertContext.cpp",
+      "vessel/dataScanContext.cpp",
       "vessel/indexScanContext.cpp",
       "vessel/dmlContext.cpp",
       "vessel/collection.cpp",
@@ -997,7 +999,8 @@ vesselFiles = [
       "vessel/backgroundWorker.cpp",
       "vessel/backgroundWorkers.cpp",
       "vessel/recordReader.cpp",
-      "vessel/scanCLCursor.cpp"
+      "vessel/scanCLCursor.cpp",
+      "vessel/indexScanCursor.cpp"
 ]
 
 lsmFiles = [
@@ -1020,7 +1023,8 @@ vesselTestFiles = [
       "test/vessel/filename_test.cpp",
       "test/vessel/index_ddl_test.cpp",
       "test/vessel/lsm_insert_test.cpp",
-      "test/vessel/index_keygen_test.cpp"
+      "test/vessel/index_keygen_test.cpp",
+      "test/vessel/index_scan_test.cpp"
 ]
 
 #BSON

@@ -77,6 +77,56 @@ namespace vessel
             context.clear();
          }
 
+         void autoUnlock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
+                         objectSharedLatchContext<KEY> &context,
+                         const KEY &key)
+         {
+            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+            ossSharedLatchMode mode;
+            INT32 rc = context.pop(key, obj, mode);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "object latch key not found");
+               SDB_ASSERT(FALSE, "object latch key not found");
+            }
+            else
+            {
+               obj.getValue().unlockWith(mode);
+               latchMap.release(obj);
+            }
+            return;
+         }
+
+         INT32 lock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
+                    objectSharedLatchContext<KEY> &context,
+                    const KEY &k,
+                    ossSharedLatchMode mode)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(!mode.isNone(), "can not be none");
+            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+            rc = latchMap.ensure(k, obj);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
+               goto error;
+            }
+
+            rc = context.push(obj, mode);
+            if (SDB_OK != rc)
+            {
+               latchMap.release(obj);
+               PD_LOG(PDERROR, "failed to push obj into context:%d", rc);
+               goto error;
+            }
+
+            obj.getValue().lockWith(mode);
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
          INT32 tryLock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                        objectSharedLatchContext<KEY> &context,
                        const KEY &k,

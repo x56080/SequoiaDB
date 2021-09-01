@@ -76,6 +76,9 @@ namespace vessel
             return _o.stepLength;
          }
 
+         virtual INT32 getNextRow(ISession *session,
+                                  cursorRow *row);
+
       public:
          OSS_INLINE const strSlice &getIndexName()const
          {

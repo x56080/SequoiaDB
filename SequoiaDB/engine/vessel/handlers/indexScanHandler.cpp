@@ -38,7 +38,6 @@
 #include "vessel/indexScanContext.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
-#include "vessel/spaceIDLockHelper.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/indexHandle.h"
 
@@ -52,7 +51,6 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       indexScanContext context;
-      spaceIDLockHelper lh(&context);
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -86,10 +84,10 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(cursor->getCLHandle().getSpaceID(), SHARED);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = context.lockSpaceID(cursor->getCLHandle().getSpaceID(), SHARED);
+      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d",
+         PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d",
                 cursor->getCLHandle().getSpaceID(), rc);
          goto error;
       }

@@ -48,7 +48,7 @@
 #include "vessel/scanCLCursor.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/spaceIDLockHelper.h"
-
+#include "vessel/indexScanCursor.h"
 
 namespace engine
 {
@@ -545,7 +545,19 @@ namespace vessel
       }
       case CURSOR_TYPE_INDEX_SCAN:
       {
-         
+         indexScanHandler handler;
+         rc = handler.init(&_env, session, &_outerResource);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         rc = handler.doit(static_cast<indexScanCursor*>(cursor));
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         break;
       }
       default:
          rc = SDB_INVALIDARG;

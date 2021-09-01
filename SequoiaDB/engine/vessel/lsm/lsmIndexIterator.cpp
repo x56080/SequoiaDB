@@ -569,7 +569,6 @@ namespace vessel
       SDB_ASSERT(NULL != _itr, "not init yet");
 
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      recordID ridBound;
       memoryBlock mb;
 
       if (indexIterator::isForward())

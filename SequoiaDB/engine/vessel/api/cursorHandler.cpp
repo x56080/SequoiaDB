@@ -103,11 +103,6 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (CURSOR_TYPE_SCAN_COLLECTION != _cursor.get<cursorKernal>()->getType())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
 
       rc = _cursor.get<cursorKernal>()->getNextRow(session, &row);
       if (SDB_OK != rc)

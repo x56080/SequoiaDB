@@ -40,7 +40,6 @@
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
-#include "vessel/objectLatchMap.hpp"
 
 namespace engine
 {
@@ -80,20 +79,17 @@ namespace vessel
          {
             return _paused;
          }
-
-         void releaseRidLock();
       private:
          INT32 prepareToScan(rtnPredicateListIterator *predicate);
          INT32 prepareToScan(const slice &entry);
          INT32 matchCurrentOrSeekNext(recordID &rid);
-         INT32 lockCurrentRid(BOOLEAN &locked);
+         INT32 tryLockCurrentRid(BOOLEAN &locked);
          INT32 waitCurrentRid(UINT32 millis, BOOLEAN &timeout);
          
          
       private:
          indexScanContext *_context = NULL;
          indexIterator *_iterator = NULL;
-         RID_LATCH_CONTEXT _rlc;
          BOOLEAN _seeked = FALSE;
          BOOLEAN _paused = FALSE;
          bson::BufBuilder _builder;

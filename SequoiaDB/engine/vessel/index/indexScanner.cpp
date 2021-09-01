@@ -107,9 +107,10 @@ namespace vessel
             SDB_OSS_DEL _iterator;
             _iterator = NULL;
          }
-         releaseRidLock();
+
          _context = NULL;
          _seeked = FALSE;
+         _paused = FALSE;
          _builder.reset();
       }
       return;
@@ -146,10 +147,14 @@ namespace vessel
             }
          }
       }
+      else if (isPaused())
+      {
+         PD_LOG(PDERROR, "can not get next by paused scanner");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
       else
       {
-         releaseRidLock();
-
          rc = _iterator->nextDiffKeyOrRid();
          if (SDB_OK != rc)
          {
@@ -284,7 +289,7 @@ namespace vessel
                   continue;
                }
 
-               rc = lockCurrentRid(locked);
+               rc = tryLockCurrentRid(locked);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to lock current rid:%d", rc);
@@ -301,6 +306,7 @@ namespace vessel
                   }
 
                   rid = currentRid;
+                  ridSet->insert(rid);
                   goto done;
                }
                else
@@ -342,24 +348,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexScanner::lockCurrentRid(BOOLEAN &locked)
+   INT32 indexScanner::tryLockCurrentRid(BOOLEAN &locked)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != _iterator && _iterator->isReadyToRead(), "must be ready");
-      objectLatchHelper<recordIdLatchKey> lh;
-      RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
+
       ossSharedLatchMode mode;
       mode.setShared();
-      recordID rid = _iterator->getRid();
-      SDB_ASSERT(rid.valid(), "can not be invalid");
-      recordIdLatchKey key(_context->getSpaceID(),
-                           _context->getMBID(),
-                           rid);
-      rc = lh.tryLock(lm, _rlc, key, mode, locked);
+      rc = _context->tryLockRid(mode, _iterator->getRid(), locked);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock rid:%d", rc);
+         PD_LOG(PDERROR, "failed to try to lock rid:%d", rc);
          goto error;
       }
       
@@ -394,18 +394,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   void indexScanner::releaseRidLock()
-   {
-      SDB_ASSERT(isOpen(), "can not be closed");
-      if (!_rlc.isEmpty())
-      {
-         objectLatchHelper<recordIdLatchKey> lh;
-         RECORD_ID_LATCH_MAP &lm = _context->getEnv()->ridLatchMap;
-         lh.releaseAll(lm, _rlc);
-      }
-      return;
    }
 
    void indexScanner::pause()

@@ -257,8 +257,6 @@ namespace vessel
 
    }; /// end of class updateOptions
 
-   class scanIndexOptions
-   {}; // class scanIndexOptions
 
    
 } /// end of namespace vessel

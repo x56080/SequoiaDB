@@ -179,8 +179,8 @@ public:
            LSM_COMP_CHECK_SLICE_LENGTH_FOR_NEXT_FIELD( lsmLsnSz )
 
            // extract LSN field
-           UINT64 aLSN = static_cast<UINT64>(a[aOffset]),
-                  bLSN = static_cast<UINT64>(b[bOffset]);
+           UINT64 aLSN = *((const UINT64 *)(aStart + aOffset));
+           UINT64 bLSN = *((const UINT64 *)(bStart + bOffset));
            // move to next field
            aOffset += lsmLsnSz;
            bOffset += lsmLsnSz;

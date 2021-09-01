@@ -38,6 +38,7 @@
 
 #include "vessel/pageDef.h"
 #include "dms.hpp"
+#include "xxHashInc.h"
 
 namespace engine
 {
@@ -152,6 +153,14 @@ namespace vessel
                _page = INVALID_PAGE_ID;
                _slot = INVALID_RECORD_SLOT_ID;
             }
+         }
+
+         OSS_INLINE UINT32 hash()const
+         {
+            UINT64 v = _page;
+            v <<= 32;
+            v |= _slot;
+            return XXH3_64bits(&v, sizeof(v));
          }
 
       private:

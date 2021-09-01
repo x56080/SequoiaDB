@@ -39,7 +39,7 @@
 #include "vessel/collection.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/scanCLCursor.h"
-#include "vessel/spaceIDLockHelper.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -51,7 +51,6 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
-      spaceIDLockHelper lh(&context);
       const collectionHandle *handle = NULL;
 
       if (OSS_UNLIKELY(NULL == cursor ||
@@ -82,7 +81,7 @@ namespace vessel
 
       handle = &(cursor->getHandle());
 
-      rc = lh.lock(handle->getSpaceID(), SHARED);
+      rc = context.lockSpaceID(handle->getSpaceID(), SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle->getSpaceID(), rc);

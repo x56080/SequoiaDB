@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = scanCLCursor.cpp
+   Source File Name = indexScanCursor.cpp
 
    Descriptive Name =
 
@@ -33,15 +33,15 @@
 
 ******************************************************************************/
 
-#include "vessel/scanCLCursor.h"
+#include "vessel/indexScanCursor.h".
 #include "vessel/recordCursorRow.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 scanCLCursor::getNextRow(ISession *session,
-                                  cursorRow *row)
+   INT32 indexScanCursor::getNextRow(ISession *session,
+                                     cursorRow *row)
    {
       INT32 rc = SDB_OK;
       slice content;
@@ -85,9 +85,12 @@ namespace vessel
 
       rid = (const recordID *)(content.data());
       transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
-      record.reset(content.len() - recordCursorRow::MIN_CONTENT_SIZE,
-                   (const CHAR *)((ossValuePtr)(content.data()) + recordCursorRow::MIN_CONTENT_SIZE));
-
+      if (!_o.indexCover)
+      {
+         record.reset(content.len() - recordCursorRow::MIN_CONTENT_SIZE,
+                      (const CHAR *)((ossValuePtr)(content.data()) +
+                       recordCursorRow::MIN_CONTENT_SIZE));
+      }
       recordRow->shallowCopy(*rid, *transID, record);
 
    done:
@@ -95,5 +98,6 @@ namespace vessel
    error:
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+} // namespace vessel
+
+} // namespace engine

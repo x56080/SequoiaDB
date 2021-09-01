@@ -45,5 +45,6 @@
 #include "vessel/scanCLHandler.h"
 #include "vessel/countCLHandler.h"
 #include "vessel/createIndexHandler.h"
+#include "vessel/indexScanHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

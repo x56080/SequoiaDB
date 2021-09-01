@@ -167,7 +167,7 @@ namespace vessel
 
    BOOLEAN cursorKernal::isWaitingMorePushing()const
    {
-      return !hitTheEnd() && _pushedThisLoop < getStepLengthInLoop();
+      return !hitTheEnd() && (_pushedThisLoop < getStepLengthInLoop());
              
    }
 

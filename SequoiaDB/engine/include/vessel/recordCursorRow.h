@@ -64,10 +64,12 @@ namespace vessel
          }
 
       public:
-         virtual CURSOR_TYPE getCursorType()const
+         virtual CURSOR_ROW_TYPE getType()const
          {
-            return CURSOR_TYPE_SCAN_COLLECTION;
+            return CURSOR_ROW_TYPE_RECORD;
          }
+
+         static const UINT32 MIN_CONTENT_SIZE = sizeof(recordID) + sizeof(DPS_TRANS_ID);
 
       public:
          OSS_INLINE const recordID &getRid()const

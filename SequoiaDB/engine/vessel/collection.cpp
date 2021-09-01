@@ -827,6 +827,16 @@ namespace vessel
          rc = SDB_IXM_NOTEXIST;
          goto error;
       }
+
+      rc = _getMoreWhenIndexScan(context, ic);
+      if (SDB_OK != rc)
+      {
+         if (SDB_IXM_EOC != rc)
+         {
+            PD_LOG(PDERROR, "failed to get next from index:%d", rc);
+         }
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -3362,6 +3372,8 @@ namespace vessel
       do
       {
          recordID rid;
+         DPS_TRANS_ID transID;
+
          if (scanner.isPaused())
          {
             rc = scanner.resume();
@@ -3387,7 +3399,8 @@ namespace vessel
 
          if (o.indexCover)
          {
-            rc = cursor->pushData(sizeof(recordID), (const CHAR *)(&rid));
+            rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+                                            slice(sizeof(DPS_TRANS_ID), &transID)});
             if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
             {
                rc = SDB_OK;
@@ -3398,13 +3411,11 @@ namespace vessel
                PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
                goto error;
             }
-            
-            scanner.releaseRidLock();
          }
          else
          {
             scanner.pause();
-            DPS_TRANS_ID transID;
+            
             rc = rr.read(context, rid, &mds, &mb);
             if (SDB_OK != rc)
             {
@@ -3429,8 +3440,9 @@ namespace vessel
             }
 
             rr.fini();
-            scanner.releaseRidLock();
          }
+
+         context->unlockRid(rid);
       } while (cursor->isWaitingMorePushing());
       
    done:

@@ -36,9 +36,8 @@
 #ifndef VESSEL_INDEX_SCAN_CONTEXT_H_
 #define VESSEL_INDEX_SCAN_CONTEXT_H_
 
-#include "vessel/requestContext.h"
+#include "vessel/dataScanContext.h"
 #include "vessel/indexHandle.h"
-#include "vessel/requestContext.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/collectionOptions.h"
@@ -50,7 +49,7 @@ namespace vessel
    class indexEntryBuffer;
    class indexScanCursor;
 
-   class indexScanContext : public requestContext
+   class indexScanContext : public dataScanContext
    {
       public:
          indexScanContext(){}
@@ -76,7 +75,7 @@ namespace vessel
          virtual void close();
 
       private:
-         indexScanCursor *_cursor = NULL;         
+         indexScanCursor *_cursor = NULL;
    };//class indexScanContext
 } // namespace vessel
 

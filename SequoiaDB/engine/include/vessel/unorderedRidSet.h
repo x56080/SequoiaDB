@@ -38,7 +38,6 @@
 
 #include "vessel/recordID.h"
 #include "ossMemPool.hpp"
-#include "xxHashInc.h"
 
 namespace engine
 {
@@ -48,10 +47,7 @@ namespace vessel
    {
       OSS_INLINE std::size_t operator()(const recordID &rid)const
       {
-         UINT64 v = rid.getPageID();
-         v <<= 32;
-         v |= rid.getSlotID();
-         return XXH3_64bits(&v, 8);
+         return rid.hash();
       }
    };//struct ridHash
    typedef ossPoolUnorderedSet<recordID, ridHash> UNORDERED_RID_SET;
