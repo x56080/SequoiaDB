@@ -2987,10 +2987,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_OBJ, "_rtnPredicateList::obj" )
-   BSONObj _rtnPredicateList::obj() const
+   BSONObj _rtnPredicateList::obj( BOOLEAN needAbbrev ) const
    {
       PD_TRACE_ENTRY ( SDB__RTNPREDLIST_OBJ ) ;
       BSONObjBuilder b ;
+      // always client readable for predicate bounds
+      BSONObjBuilderOption option( true, needAbbrev ) ;
       for ( INT32 i = 0; i<(INT32)_predicates.size(); i++ )
       {
          BSONArrayBuilder a ( b.subarrayStart("") ) ;
@@ -2999,23 +3001,25 @@ namespace engine
                j != _predicates[i]._startStopKeys.end() ;
                ++ j )
          {
-            a << BSONArray ( BSON_ARRAY ( j->_startKey._bound <<
-                       j->_stopKey._bound ).clientReadable() ) ;
+            BSONArrayBuilder subArray( a.subarrayStart() ) ;
+            subArray.appendEx( j->_startKey._bound, option ) ;
+            subArray.appendEx( j->_stopKey._bound, option ) ;
+            subArray.doneFast() ;
          }
-         a.done () ;
+         a.doneFast() ;
       }
       PD_TRACE_EXIT ( SDB__RTNPREDLIST_OBJ ) ;
       return b.obj() ;
    }
    string _rtnPredicateList::toString() const
    {
-      return obj().toString(false, false) ;
+      return obj( FALSE ).toString(false, false) ;
    }
 
-   BSONObj _rtnPredicateList::getBound() const
+   BSONObj _rtnPredicateList::getBound( BOOLEAN needAbbrev ) const
    {
       BSONObjBuilder builder ;
-      BSONObj predicate = obj() ;
+      BSONObj predicate = obj( needAbbrev ) ;
       BSONObjIterator i( predicate ) ;
       BSONObjIterator j( _keyPattern ) ;
       while ( i.more() && j.more() )

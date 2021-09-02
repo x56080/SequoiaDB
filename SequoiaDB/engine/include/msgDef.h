@@ -395,6 +395,7 @@
 #define FIELD_NAME_OVERWRITE                 "OverWrite"
 #define FIELD_NAME_DETAIL                    "Detail"
 #define FIELD_NAME_ESTIMATE                  "Estimate"
+#define FIELD_NAME_ABBREV                    "Abbrev"
 #define FIELD_NAME_SEARCH                    "Search"
 #define FIELD_NAME_EVALUATE                  "Evaluate"
 #define FIELD_NAME_EXPAND                    "Expand"

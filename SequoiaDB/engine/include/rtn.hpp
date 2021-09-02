@@ -222,7 +222,7 @@ namespace engine
                     SINT64 &contextID,
                     rtnContextBase **ppContext = NULL,
                     BOOLEAN enablePrefetch = FALSE,
-                    BOOLEAN keepSearchPaths = FALSE ) ;
+                    const rtnExplainOptions *expOptions = NULL ) ;
 
    INT32 rtnSort ( rtnContext **ppContext,
                    const BSONObj &orderBy,

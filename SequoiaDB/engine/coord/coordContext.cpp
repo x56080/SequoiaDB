@@ -1618,7 +1618,7 @@ namespace engine
 
       _explainCoordPath.setCollectionName( options.getCLFullName() ) ;
 
-      if ( _needRun )
+      if ( _expOptions.isNeedRun() )
       {
          queryContext->setEnableMonContext( TRUE ) ;
       }
@@ -1650,7 +1650,7 @@ namespace engine
 
       SDB_ASSERT( NULL != context, "query context is invalid" ) ;
 
-      if ( _needRun )
+      if ( _expOptions.isNeedRun() )
       {
          // Calculate wait time
          rtnContextCoord * coordContext = NULL ;
@@ -1664,7 +1664,7 @@ namespace engine
          _explainCoordPath.getContextMonitor().setWaitTime( waitTime ) ;
       }
 
-      if ( _needDetail )
+      if ( _expOptions.isNeedDetail() )
       {
          rc = _explainCoordPath.evaluate() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to evaluate MERGE path, "
@@ -1697,12 +1697,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for node info, "
                       "rc: %d", rc ) ;
 
-         rc = _buildBSONQueryOptions( builder, FALSE ) ;
+         rc = _buildBSONQueryOptions( builder, _expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for query options, "
-                      "rc: %d", rc ) ;
-
-         rc = _explainCoordPath.toBSONExplainInfo( builder, OPT_EXPINFO_MASK_NONE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
 
          rc = explainContext->append( builder.obj() ) ;

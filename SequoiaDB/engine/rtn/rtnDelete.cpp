@@ -154,7 +154,7 @@ namespace engine
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
          // plan is released when exiting the function
-         rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+         rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for delete"
                       ", rc: %d", options._fullName, rc ) ;
 

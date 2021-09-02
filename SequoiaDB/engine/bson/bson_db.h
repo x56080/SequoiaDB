@@ -106,4 +106,287 @@ namespace bson {
         return *_builder;
     }
 
+   #define BSON_ABBREV_MIN_SIZE     ( 100 )
+   #define BSON_ABBREV_MAX_SIZE     ( 160 )
+   #define BSON_ABBREV_REPEAT_SIZE  ( 10 )
+   #define BSON_ABBREV_PREFIX_SIZE  ( 60 )
+   #define BSON_ABBREV_REMAIN_SIZE  ( 30 )
+   #define BSON_ABBREV_BUFFER_SIZE  ( 64 )
+   #define BSON_ABBREV_STRING_SIZE  ( BSON_ABBREV_BUFFER_SIZE - 1 )
+
+   inline StringData BSONObjBuilder::_genAbbrevStr( StackBufBuilder &builder,
+                                                    const StringData &value )
+   {
+      const char *valuePtr = value.data() ;
+      unsigned valueLen = value.size() ;
+
+      if ( valueLen > BSON_ABBREV_MIN_SIZE )
+      {
+         StringData tempValue( valuePtr, BSON_ABBREV_PREFIX_SIZE ) ;
+         builder.appendStr( tempValue, false ) ;
+
+         unsigned printedLen = BSON_ABBREV_PREFIX_SIZE ;
+         unsigned remainLen = valueLen - BSON_ABBREV_PREFIX_SIZE ;
+         const char *repeatPtr = valuePtr + BSON_ABBREV_PREFIX_SIZE ;
+         const char *remainPtr = valuePtr + BSON_ABBREV_PREFIX_SIZE + 1 ;
+
+         while ( TRUE )
+         {
+            if ( *repeatPtr != *remainPtr || '\0' == *remainPtr )
+            {
+               unsigned repeatLen = remainPtr - repeatPtr ;
+               if ( repeatLen > BSON_ABBREV_REPEAT_SIZE )
+               {
+                  char tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = { 0 } ;
+                  unsigned tempLen = 0 ;
+                  snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
+                            "...<%c repeat %u times>...", *repeatPtr,
+                            repeatLen ) ;
+                  tempLen = strlen( tempBuffer ) ;
+                  if ( tempLen + printedLen < BSON_ABBREV_MAX_SIZE )
+                  {
+                     StringData tempValue( tempBuffer, tempLen ) ;
+                     builder.appendStr( tempValue, false ) ;
+                     printedLen += tempLen ;
+                     remainLen -= repeatLen ;
+                  }
+                  else
+                  {
+                     // too long
+                     break ;
+                  }
+                  repeatPtr = remainPtr ;
+               }
+               else
+               {
+                  break ;
+               }
+
+               if ( '\0' == *remainPtr )
+               {
+                  break ;
+               }
+            }
+            else
+            {
+               ++ remainPtr ;
+            }
+         }
+
+         // if the remain size is still too long, print in abbreviation mode
+         if ( remainLen > BSON_ABBREV_REMAIN_SIZE )
+         {
+            char tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = { 0 } ;
+            snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
+                      " ...<%u characters more>...", remainLen ) ;
+            builder.appendStr( tempBuffer, true ) ;
+         }
+         else
+         {
+            // otherwise, print  the remain characters
+            StringData remainValue( remainPtr, remainLen ) ;
+            builder.appendStr( remainValue, true ) ;
+         }
+
+         valuePtr = builder.buf() ;
+         valueLen = builder.len() - 1 ;
+      }
+
+      return StringData( valuePtr, valueLen ) ;
+   }
+
+   inline BSONObjBuilder &BSONObjBuilder::appendEx(
+                                             const StringData &fieldName,
+                                             const BSONElement &element,
+                                             const BSONObjBuilderOption &option )
+   {
+      if ( option.isEnabled() )
+      {
+         // append value
+         switch ( element.type() )
+         {
+            // $minKey
+            case MinKey:
+            {
+               if ( option.isClientReadable )
+               {
+                  BSONObjBuilder mBuilder( subobjStart( fieldName) ) ;
+                  mBuilder.append( "$minElement", 1 ) ;
+                  mBuilder.doneFast() ;
+               }
+               else
+               {
+                  appendAs( element, fieldName ) ;
+               }
+               break ;
+            }
+            // $maxKey
+            case MaxKey:
+            {
+               if ( option.isClientReadable )
+               {
+                  BSONObjBuilder mBuilder( subobjStart( fieldName) ) ;
+                  mBuilder.append( "$maxElement", 1 ) ;
+                  mBuilder.doneFast() ;
+               }
+               else
+               {
+                  appendAs( element, fieldName ) ;
+               }
+               break ;
+            }
+            // array
+            case Array:
+            {
+               BSONObj subObject = element.embeddedObject() ;
+               BSONArrayBuilder subArrBuilder( subarrayStart( fieldName ) ) ;
+               BSONObjIterator subArrIter( subObject ) ;
+               while( subArrIter.more() )
+               {
+                  BSONElement subArrEle( subArrIter.next() ) ;
+                  subArrBuilder.appendEx( subArrEle, option ) ;
+               }
+               subArrBuilder.doneFast() ;
+               break ;
+            }
+            case Object:
+            {
+               appendEx( fieldName, element.embeddedObject(), option ) ;
+               break ;
+            }
+            case BinData:
+            {
+               if ( option.isAbbrevMode )
+               {
+                  // append in base64 mode
+                  BSONObjBuilder binBuilder( subobjStart( fieldName ) ) ;
+                  int dataLen = 0 ;
+                  const char *dataBuf = element.binDataClean( dataLen ) ;
+                  bool binPrinted = false ;
+                  if ( dataLen > 0 )
+                  {
+                     TrivialAllocator al ;
+                     int base64Len = getEnBase64Size( dataLen ) ;
+                     char *base64Buf = (char *)al.Malloc( base64Len + 1 ) ;
+                     if ( NULL != base64Buf )
+                     {
+                        memset( base64Buf, 0, base64Len + 1 ) ;
+                        if ( base64Encode( dataBuf, dataLen,
+                                           base64Buf, base64Len ) >= 0 )
+                        {
+                           StringData base64Value( base64Buf, base64Len ) ;
+                           StackBufBuilder binValueBuilder ;
+                           StringData binValue = _genAbbrevStr( binValueBuilder,
+                                                                base64Value ) ;
+                           binBuilder.append( "$binary", binValue ) ;
+                           binPrinted = true ;
+                        }
+                        al.Free( base64Buf ) ;
+                     }
+                  }
+
+                  if ( !binPrinted )
+                  {
+                     binBuilder.append( "$binary", "" ) ;
+                  }
+                  binBuilder.append( "$type", (INT32)( element.binDataType() ) ) ;
+                  binBuilder.doneFast() ;
+               }
+               else
+               {
+                  appendAs( element, fieldName ) ;
+               }
+               break ;
+            }
+            case CodeWScope:
+            {
+               if ( option.isAbbrevMode )
+               {
+                  // code field
+                  StackBufBuilder codeBuilder ;
+                  const char *codeValuePtr = element.codeWScopeCode() ;
+                  unsigned codeValueLen = strlen( codeValuePtr ) ;
+                  StringData origValue( codeValuePtr, codeValueLen ) ;
+                  StringData codeValue = _genAbbrevStr( codeBuilder,
+                                                        origValue ) ;
+
+                  // scope field
+                  BSONObjBuilder scopeBuilder( 0 ) ;
+                  scopeBuilder.appendEx( element.codeWScopeObject(), option ) ;
+                  BSONObj scopeObject = scopeBuilder.done() ;
+
+                  appendCodeWScope( fieldName, codeValue, scopeObject ) ;
+               }
+               else
+               {
+                  appendAs( element, fieldName ) ;
+               }
+               break ;
+            }
+            case Code:
+            case Symbol:
+            case bson::String:
+            {
+               if ( option.isAbbrevMode )
+               {
+                  StackBufBuilder valueBuilder ;
+                  const char *stringValuePtr = element.valuestr() ;
+                  unsigned stringValueLen = element.valuestrsize() - 1 ;
+                  StringData origValue( stringValuePtr, stringValueLen ) ;
+                  StringData stringValue = _genAbbrevStr( valueBuilder,
+                                                          origValue ) ;
+                  if ( Code == element.type() )
+                  {
+                     appendCode( fieldName, stringValue ) ;
+                  }
+                  else if ( Symbol == element.type() )
+                  {
+                     appendSymbol( fieldName, stringValue ) ;
+                  }
+                  else
+                  {
+                     append( fieldName, stringValue ) ;
+                  }
+               }
+               else
+               {
+                  appendAs( element, fieldName ) ;
+               }
+               break ;
+            }
+            default:
+            {
+               appendAs( element, fieldName ) ;
+               break ;
+            }
+         }
+      }
+      else
+      {
+         appendAs( element, fieldName ) ;
+      }
+
+      return ( *this ) ;
+   }
+
+   inline BSONObjBuilder &BSONObjBuilder::appendEx(
+                                          const BSONObj &object,
+                                          const BSONObjBuilderOption &option )
+   {
+      if ( option.isEnabled() )
+      {
+         BSONObjIterator iter( object ) ;
+         while ( iter.more() )
+         {
+            BSONElement element( iter.next() ) ;
+            appendEx( element, option ) ;
+         }
+      }
+      else
+      {
+         appendElements( object ) ;
+      }
+      return (*this) ;
+   }
+
 }

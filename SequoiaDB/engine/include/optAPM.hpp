@@ -373,10 +373,10 @@ namespace engine
          // Try to get access plan from cache, if could not get access plan
          // from cache, create one
          INT32 getAccessPlan ( const rtnQueryOptions &options,
-                               BOOLEAN keepSearchPaths,
                                dmsStorageUnit *su,
                                dmsMBContext *mbContext,
-                               optAccessPlanRuntime &planRuntime ) ;
+                               optAccessPlanRuntime &planRuntime,
+                               const rtnExplainOptions *expOptions = NULL ) ;
 
          // Create access plan directly without caching
          INT32 getTempAccessPlan ( const rtnQueryOptions &options,
@@ -480,17 +480,17 @@ namespace engine
 
       protected :
          INT32 _getCLAccessPlan ( const rtnQueryOptions &options,
-                                  BOOLEAN keepSearchPaths,
                                   dmsStorageUnit *su,
                                   dmsMBContext *mbContext,
-                                  optAccessPlanRuntime &planRuntime ) ;
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
 
          INT32 _getCLAccessPlan ( const rtnQueryOptions &options,
                                   OPT_PLAN_CACHE_LEVEL cacheLevel,
-                                  BOOLEAN keepSearchPaths,
                                   dmsStorageUnit *su,
                                   dmsMBContext *mbContext,
-                                  optAccessPlanRuntime &planRuntime ) ;
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
 
          INT32 _getMainCLAccessPlan ( const rtnQueryOptions &options,
                                       dmsStorageUnit *su,

@@ -148,7 +148,8 @@ namespace engine
 
          string toString () const ;
 
-         virtual INT32 toBSON ( BSONObjBuilder &builder ) const ;
+         INT32 toBSON( BSONObjBuilder &builder,
+                       const rtnExplainOptions *expOptions = NULL ) const ;
 
          /// Plan cache related
          OSS_INLINE const optAccessPlanKey &getKey () const
@@ -179,6 +180,11 @@ namespace engine
          OSS_INLINE UINT32 getKeyCode () const
          {
             return _key.getKeyCode () ;
+         }
+
+         OSS_INLINE BOOLEAN canCache() const
+         {
+            return _key.canCache() ;
          }
 
          OSS_INLINE void setActivityID ( INT32 activityID )

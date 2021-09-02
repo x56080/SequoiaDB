@@ -607,9 +607,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPPATH_TOBSON, "_optExplainPath::toBSON" )
    INT32 _optExplainPath::toBSON ( BSONObjBuilder & builder,
-                                   BOOLEAN needExpand,
-                                   BOOLEAN needFlatten,
-                                   UINT16 mask) const
+                                   const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -618,7 +616,7 @@ namespace engine
       if ( NULL != _pRootNode )
       {
          BSONObjBuilder pathBuilder( builder.subobjStart( OPT_FIELD_PLAN_PATH ) ) ;
-         _pRootNode->toBSON( builder, needExpand, needFlatten, mask ) ;
+         _pRootNode->toBSON( builder, expOptions ) ;
          pathBuilder.done() ;
       }
       else
@@ -1023,15 +1021,16 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPSCANPATH_TOBSON, "_optExplainScanPath::toBSON" )
    INT32 _optExplainScanPath::toBSON ( BSONObjBuilder & builder,
-                                       BOOLEAN needExpand,
-                                       BOOLEAN needFlatten,
-                                       UINT16 mask ) const
+                                       const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTEXPSCANPATH_TOBSON ) ;
 
-      rc = _toBSONPlanInfo( builder ) ;
+      rtnExplainOptions tempOptions( expOptions ) ;
+      tempOptions.setNeedFlatten( FALSE ) ;
+
+      rc = _toBSONPlanInfo( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for plan information, "
                    "rc: %d", rc ) ;
 
@@ -1039,7 +1038,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for match configuration, "
                    "rc: %d", rc ) ;
 
-      rc = _optExplainPath::toBSON( builder, needExpand, FALSE, mask ) ;
+      rc = _optExplainPath::toBSON( builder, tempOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to output BSON from explain path, "
                       "rc: %d", rc ) ;
 
@@ -1085,7 +1084,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPSCANPATH_TOBSONBASIC, "_optExplainScanPath::toBSONBasic" )
-   INT32 _optExplainScanPath::toBSONBasic ( BSONObjBuilder & builder ) const
+   INT32 _optExplainScanPath::toBSONBasic ( BSONObjBuilder & builder,
+                                            const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -1103,7 +1103,9 @@ namespace engine
          builder.appendBool( OPT_FIELD_USE_EXT_SORT,
                              OPT_PLAN_SORT == _pRootNode->getType() ) ;
 
-         builder.append( OPT_FIELD_QUERY, _pScanNode->getMatcher() ) ;
+         builder.appendEx( OPT_FIELD_QUERY,
+                           _pScanNode->getMatcher(),
+                           expOptions.getBuilderOption() ) ;
 
          if ( IXSCAN == scanType &&
               !_pScanNode->getIXBound().isEmpty() )
@@ -1125,7 +1127,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPSCANPATH__TOBSONPLANINFO, "_optExplainScanPath::_toBSONPlanInfo" )
-   INT32 _optExplainScanPath::_toBSONPlanInfo ( BSONObjBuilder & builder ) const
+   INT32 _optExplainScanPath::_toBSONPlanInfo ( BSONObjBuilder & builder,
+                                                const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -1141,7 +1144,8 @@ namespace engine
                          optAccessPlanKey::getCacheLevelName( _cacheLevel ) ) ;
          if ( !_parameters.isEmpty() )
          {
-            builder.append( _parameters.firstElement() ) ;
+            builder.appendEx( _parameters.firstElement(),
+                              expOptions.getBuilderOption() ) ;
          }
       }
       else

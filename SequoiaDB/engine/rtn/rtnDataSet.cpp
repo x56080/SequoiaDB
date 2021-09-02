@@ -87,7 +87,7 @@ namespace engine
       _cb = cb ;
       rtnQueryOptions tempOptions( options ) ;
       INT32 rc = rtnQuery( tempOptions, _cb, sdbGetDMSCB(), _rtnCB,
-                           _contextID, NULL, FALSE, FALSE ) ;
+                           _contextID, NULL, FALSE, NULL ) ;
       _lastErr = rc ;
 
       return rc ;

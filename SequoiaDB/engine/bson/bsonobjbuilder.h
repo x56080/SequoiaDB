@@ -88,6 +88,43 @@ namespace bson {
         string _longName;
     };
 
+    /*
+       BSONObjBuilderOption define
+     */
+    class BSONObjBuilderOption
+    {
+    public:
+       BSONObjBuilderOption()
+       : isClientReadable( false ),
+         isAbbrevMode( false )
+       {
+       }
+
+       BSONObjBuilderOption( bool isClientReadable,
+                             bool isAbbrevMode )
+       : isClientReadable( isClientReadable ),
+         isAbbrevMode( isAbbrevMode )
+       {
+       }
+
+       ~BSONObjBuilderOption() {}
+
+       void reset()
+       {
+          isClientReadable = false ;
+          isAbbrevMode = false ;
+       }
+
+       bool isEnabled() const
+       {
+          return isClientReadable || isAbbrevMode ;
+       }
+
+    public:
+       bool isClientReadable ;
+       bool isAbbrevMode ;
+    } ;
+
     /** Utility for creating a BSONObj.
         See also the BSON() and BSON_ARRAY() macros.
     */
@@ -215,6 +252,40 @@ namespace bson {
             _b.appendStr(fieldName);
             _b.appendBuf((void *) subObj.objdata(), subObj.objsize());
             return *this;
+        }
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const BSONElement &element,
+                                  const BSONObjBuilderOption &option )
+        {
+           return appendEx( element.fieldName(), element, option ) ;
+        }
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const StringData &fieldName,
+                                  const BSONElement &element,
+                                  const BSONObjBuilderOption &option ) ;
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const BSONObj &object,
+                                  const BSONObjBuilderOption &option ) ;
+
+        /** append element with builder options **/
+        BSONObjBuilder &appendEx( const StringData &fieldName,
+                                  const BSONObj &subObject,
+                                  const BSONObjBuilderOption &option )
+        {
+           if ( option.isEnabled() )
+           {
+              BSONObjBuilder subBuilder( subobjStart( fieldName ) ) ;
+              subBuilder.appendEx( subObject, option ) ;
+              subBuilder.doneFast() ;
+           }
+           else
+           {
+              append( fieldName, subObject ) ;
+           }
+           return (*this) ;
         }
 
         /** add a subobject as a member */
@@ -862,6 +933,9 @@ namespace bson {
             return data;
         }
 
+        StringData _genAbbrevStr( StackBufBuilder &builder,
+                                  const StringData &value ) ;
+
         BufBuilder &_b;
         BufBuilder _buf;
         int _offset;
@@ -899,6 +973,13 @@ namespace bson {
         BSONArrayBuilder& append(const BSONElement& e) {
             _b.appendAs(e, num());
             return *this;
+        }
+
+        BSONArrayBuilder &appendEx( const BSONElement &e,
+                                    const BSONObjBuilderOption &option )
+        {
+           _b.appendEx( num(), e, option ) ;
+           return *this ;
         }
 
         template <typename T>

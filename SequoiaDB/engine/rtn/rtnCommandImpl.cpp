@@ -1139,7 +1139,7 @@ namespace engine
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
       // plan is released in context destructor
-      rc = apm->getAccessPlan( copiedOptions, FALSE, su, mbContext, planRuntime ) ;
+      rc = apm->getAccessPlan( copiedOptions, su, mbContext, planRuntime, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
                    "context %lld, rc: %d", pCollectionName,
                    context->contextID(), rc ) ;

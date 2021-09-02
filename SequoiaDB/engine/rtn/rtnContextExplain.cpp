@@ -53,14 +53,6 @@ namespace engine
     */
    _rtnExplainBase::_rtnExplainBase ()
    : _rtnSubContextHolder(),
-     _explainMask( OPT_NODE_EXPLAIN_MASK_NONE ),
-     _needDetail( FALSE ),
-     _needEstimate( FALSE ),
-     _needRun( FALSE ),
-     _needSearch( FALSE ),
-     _needEvaluate( FALSE ),
-     _needExpand( FALSE ),
-     _needFlatten( FALSE ),
      _explainStarted( FALSE ),
      _explainRunned( FALSE ),
      _explainPrepared( FALSE ),
@@ -173,7 +165,9 @@ namespace engine
          _explainStarted = TRUE ;
       }
 
-      if ( !_explainRunned && ( _needRun || _needCollectSubExplains() ) )
+      if ( !_explainRunned &&
+           ( _expOptions.isNeedRun() ||
+             _needCollectSubExplains() ) )
       {
          for ( ; ; )
          {
@@ -186,7 +180,8 @@ namespace engine
             }
             else if ( SDB_OK == rc )
             {
-               if ( _needRun && _needReturnDataInRun() )
+               if ( _expOptions.isNeedRun() &&
+                    _needReturnDataInRun() )
                {
                   rc = explainContext->appendObjs( contextBuf.data(),
                                                    contextBuf.size(),
@@ -322,75 +317,85 @@ namespace engine
       BOOLEAN hasMask = TRUE ;
       BOOLEAN hasOption = FALSE ;
 
+      UINT16 showMask = OPT_NODE_EXPLAIN_MASK_NONE ;
+      BOOLEAN needDetail = FALSE ;
+      BOOLEAN needEstimate = FALSE ;
+      BOOLEAN needRun = FALSE ;
+      BOOLEAN needSearch = FALSE ;
+      BOOLEAN needEvaluate = FALSE ;
+      BOOLEAN needExpand = FALSE ;
+      BOOLEAN needFlatten = FALSE ;
+      BOOLEAN needAbbrev = FALSE ;
+
       // Run option
-      rc = _parseBoolOption( options, FIELD_NAME_RUN, _needRun,
+      rc = _parseBoolOption( options, FIELD_NAME_RUN, needRun,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_RUN, rc ) ;
 
       // Detail option
-      rc = _parseBoolOption( options, FIELD_NAME_DETAIL, _needDetail,
+      rc = _parseBoolOption( options, FIELD_NAME_DETAIL, needDetail,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
       // Expand option
-      rc = _parseBoolOption( options, FIELD_NAME_EXPAND, _needExpand,
+      rc = _parseBoolOption( options, FIELD_NAME_EXPAND, needExpand,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_EXPAND, rc ) ;
 
       if ( hasOption )
       {
-         _needDetail = TRUE ;
+         needDetail = TRUE ;
       }
 
       // Flatten option
-      rc = _parseBoolOption( options, FIELD_NAME_FLATTEN, _needFlatten,
+      rc = _parseBoolOption( options, FIELD_NAME_FLATTEN, needFlatten,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_FLATTEN, rc ) ;
 
       if ( hasOption )
       {
-         _needExpand = TRUE ;
-         _needDetail = TRUE ;
+         needExpand = TRUE ;
+         needDetail = TRUE ;
       }
 
       // Search option
-      rc = _parseBoolOption( options, FIELD_NAME_SEARCH, _needSearch,
+      rc = _parseBoolOption( options, FIELD_NAME_SEARCH, needSearch,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_SEARCH, rc ) ;
 
       if ( hasOption )
       {
-         _needDetail = TRUE ;
-         _needExpand = TRUE ;
+         needDetail = TRUE ;
+         needExpand = TRUE ;
       }
 
       // Evaluate option
-      rc = _parseBoolOption( options, FIELD_NAME_EVALUATE, _needEvaluate,
+      rc = _parseBoolOption( options, FIELD_NAME_EVALUATE, needEvaluate,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_EVALUATE, rc ) ;
 
       if ( hasOption )
       {
-         _needDetail = TRUE ;
-         _needExpand = TRUE ;
-         _needSearch = TRUE ;
+         needDetail = TRUE ;
+         needExpand = TRUE ;
+         needSearch = TRUE ;
       }
 
       // Filter option, convert to mask
       rc = _parseMaskOption( options, FIELD_NAME_FILTER, hasMask,
-                             _explainMask ) ;
+                             showMask ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_FILTER, rc ) ;
 
       if ( hasMask )
       {
-         _needDetail = TRUE ;
+         needDetail = TRUE ;
       }
 
       // Location option
@@ -400,46 +405,45 @@ namespace engine
 
       if ( hasOption )
       {
-         _needDetail = TRUE ;
+         needDetail = TRUE ;
       }
 
       // Estimate option
-      rc = _parseBoolOption ( options, FIELD_NAME_ESTIMATE, _needEstimate,
-                              hasOption, _needDetail ) ;
+      rc = _parseBoolOption ( options, FIELD_NAME_ESTIMATE, needEstimate,
+                              hasOption, needDetail ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_ESTIMATE, rc ) ;
 
       if ( hasOption )
       {
-         _needDetail = TRUE ;
+         needDetail = TRUE ;
       }
 
       // Reset explain mask
-      if ( _needDetail )
+      if ( needDetail )
       {
-         if ( _needEstimate )
-         {
-            OSS_BIT_SET( _explainMask, OPT_NODE_EXPLAIN_MASK_ESTIMATE ) ;
-         }
-         else
-         {
-            OSS_BIT_CLEAR( _explainMask, OPT_NODE_EXPLAIN_MASK_ESTIMATE ) ;
-         }
-         if ( _needRun )
-         {
-            OSS_BIT_SET( _explainMask, OPT_NODE_EXPLAIN_MASK_RUN ) ;
-         }
-         else
-         {
-            OSS_BIT_CLEAR( _explainMask, OPT_NODE_EXPLAIN_MASK_RUN ) ;
-         }
+         // no mask is explicit given, set all
          if ( !hasMask )
          {
-            OSS_BIT_SET( _explainMask, OPT_NODE_EXPLAIN_MASK_INPUT |
-                                       OPT_NODE_EXPLAIN_MASK_FILTER |
-                                       OPT_NODE_EXPLAIN_MASK_OUTPUT ) ;
+            OSS_BIT_SET( showMask, OPT_NODE_EXPLAIN_MASK_ALL ) ;
          }
       }
+
+      // Abbreviation option
+      rc = _parseBoolOption( options, FIELD_NAME_ABBREV, needAbbrev,
+                             hasOption, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
+                   FIELD_NAME_ABBREV, rc ) ;
+
+      _expOptions.setShowMask( showMask ) ;
+      _expOptions.setNeedDetail( needDetail ) ;
+      _expOptions.setNeedEstimate( needEstimate ) ;
+      _expOptions.setNeedRun( needRun ) ;
+      _expOptions.setNeedSearch( needSearch ) ;
+      _expOptions.setNeedEvaluate( needEvaluate ) ;
+      _expOptions.setNeedExpand( needExpand ) ;
+      _expOptions.setNeedFlatten( needFlatten ) ;
+      _expOptions.setNeedAbbrev( needAbbrev ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_RTNEXPBASE__PARSEEXPOPTS, rc ) ;
@@ -673,7 +677,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNEXPBASE__BLDBSONOPTS, "_rtnExplainBase::_buildBSONQueryOptions" )
    INT32 _rtnExplainBase::_buildBSONQueryOptions ( BSONObjBuilder & builder,
-                                                   BOOLEAN needDetail ) const
+                                                   const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -683,13 +687,22 @@ namespace engine
                       NULL != _queryOptions.getCLFullName() ?
                       _queryOptions.getCLFullName() :
                       "" ) ;
-      builder.append( OPT_FIELD_QUERY, _queryOptions.getQuery() ) ;
+      builder.appendEx( OPT_FIELD_QUERY,
+                        _queryOptions.getQuery(),
+                        expOptions.getBuilderOption() ) ;
 
-      if ( needDetail )
+      if ( expOptions.isNeedDetail() )
       {
-         builder.append( OPT_FIELD_SORT, _queryOptions.getOrderBy() ) ;
-         builder.append( OPT_FIELD_SELECTOR, _queryOptions.getSelector() ) ;
-         builder.append( OPT_FIELD_HINT, _queryOptions.getHint() ) ;
+         builder.appendEx( OPT_FIELD_SORT,
+                           _queryOptions.getOrderBy(),
+                           expOptions.getBuilderOption() ) ;
+         builder.appendEx( OPT_FIELD_SELECTOR,
+                           _queryOptions.getSelector(),
+                           expOptions.getBuilderOption() ) ;
+         builder.appendEx( OPT_FIELD_HINT,
+                           _queryOptions.getHint(),
+                           expOptions.getBuilderOption() ) ;
+
          builder.append( OPT_FIELD_SKIP, _queryOptions.getSkip() ) ;
          builder.append( OPT_FIELD_RETURN, _queryOptions.getLimit() ) ;
          builder.append( OPT_FIELD_FLAG, _queryOptions.getFlag() ) ;
@@ -713,6 +726,7 @@ namespace engine
    _rtnContextExplain::_rtnContextExplain ( INT64 contextID,
                                             UINT64 eduID )
    : _rtnContextBase( contextID, eduID ),
+     _fromLocal( FALSE ),
      _explainScanPath( getPlanAllocator() )
    {
    }
@@ -774,7 +788,7 @@ namespace engine
 
    void _rtnContextExplain::_toString ( stringstream & ss )
    {
-      ss << ",NeedRun:" << _needRun ;
+      ss << ",NeedRun:" << _expOptions.isNeedRun() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCONTEXTEXPLAIN__OPENSUBCTX, "_rtnContextExplain::_openSubContext" )
@@ -795,7 +809,7 @@ namespace engine
       rtnContext * queryContext = NULL ;
 
       rc = rtnQuery( options, cb, dmsCB, rtnCB, queryContextID, &queryContext,
-                     FALSE, _needSearch ) ;
+                     FALSE, &_expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query data, rc: %d", rc ) ;
 
       PD_CHECK( NULL != queryContext, SDB_SYS, error, PDERROR,
@@ -837,7 +851,7 @@ namespace engine
 
       try
       {
-         const optAccessPlanRuntime * planRuntime = NULL ;
+         optAccessPlanRuntime * planRuntime = NULL ;
 
          // Generate explain path from plan runtime
          PD_CHECK( NULL != context, SDB_SYS, error, PDERROR,
@@ -852,7 +866,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to generate explain path, "
                       "rc: %d", rc ) ;
 
-         _explainScanPath.setSearchOptions( _needSearch, _needEvaluate ) ;
+         _explainScanPath.setSearchOptions( _expOptions.isNeedSearch(),
+                                            _expOptions.isNeedEvaluate() ) ;
       }
       catch ( std::exception & e )
       {
@@ -884,28 +899,32 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for node information, "
                    "rc: %d", rc ) ;
 
-      if ( _needDetail )
+      if ( _expOptions.isNeedDetail() )
       {
-         rc = _buildBSONQueryOptions( builder, TRUE ) ;
+         rtnExplainOptions tempOptions( _expOptions ) ;
+         tempOptions.setNeedFlatten( FALSE ) ;
+
+         rc = _buildBSONQueryOptions( builder, _expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for query options, "
                       "rc: %d", rc ) ;
 
-         rc = _explainScanPath.toBSONExplainInfo( builder, OPT_EXPINFO_MASK_ALL ) ;
+         rc = _explainScanPath.toBSONExplainInfo( builder,
+                                                  OPT_EXPINFO_MASK_ALL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
 
-         rc = _explainScanPath.toBSON( builder, _needExpand, FALSE,
-                                       _explainMask ) ;
+         rc = _explainScanPath.toBSON( builder, tempOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for explain details, "
                       "rc: %d", rc ) ;
       }
       else
       {
-         rc = _explainScanPath.toBSONBasic( builder ) ;
+         rc = _explainScanPath.toBSONBasic( builder, _expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for basic explain, "
                       "rc: %d", rc ) ;
 
-         rc = _explainScanPath.toBSONExplainInfo( builder, OPT_EXPINFO_MASK_ALL ) ;
+         rc = _explainScanPath.toBSONExplainInfo( builder,
+                                                  OPT_EXPINFO_MASK_ALL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
       }
@@ -960,7 +979,7 @@ namespace engine
          {
             BSONObj explainResult ;
             ossTickDelta queryTime, waitTime ;
-            BOOLEAN needExplain = FALSE ;
+            BOOLEAN needChildExplain = FALSE ;
             BOOLEAN needParse = FALSE ;
 
             rc = contextBuf.nextObj( explainResult ) ;
@@ -972,14 +991,17 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get explain from buffer, "
                          "rc: %d", rc ) ;
 
-            needExplain = _needChildExplain( dataID, explainResult ) ;
+            // check if node ID is needed for output
+            needChildExplain = _needChildExplain( dataID, explainResult ) ;
 
             if ( _explainIDSet.end() == _explainIDSet.find( dataID ) )
             {
                ossTick startTimestamp, endTimestamp ;
                endTimestamp.sample() ;
 
-               needParse = _needDetail ;
+               // not found in explained list, need parse the whole object
+               // for detail mode
+               needParse = _expOptions.isNeedDetail() ;
 
                rtnExplainTimestampList::iterator endIter =
                                           _endTimestampList.find( dataID ) ;
@@ -1023,7 +1045,7 @@ namespace engine
 
                rc = getExplainMergePath()->addChildExplain(
                         explainResult, queryTime, waitTime, needParse,
-                        needExplain, _explainMask ) ;
+                        needChildExplain, _expOptions ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to add child explain, "
                             "rc: %d", rc ) ;
 
@@ -1031,11 +1053,12 @@ namespace engine
             }
             else
             {
+               // found in explained list
                needParse = FALSE ;
 
                rc = getExplainMergePath()->addChildExplain(
                         explainResult, queryTime, waitTime, needParse,
-                        needExplain, _explainMask ) ;
+                        needChildExplain, _expOptions ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to add child explain, "
                             "rc: %d", rc ) ;
             }
@@ -1208,7 +1231,8 @@ namespace engine
 
       hasMore = FALSE ;
 
-      if ( _needDetail && _needFlatten )
+      if ( _expOptions.isNeedDetail() &&
+           _expOptions.isNeedFlatten() )
       {
          if ( !_mainExplainOutputted )
          {
@@ -1221,7 +1245,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build sub explains, "
                       "rc: %d", rc ) ;
       }
-      else if ( _needDetail )
+      else if ( _expOptions.isNeedDetail() )
       {
          rc = _buildMainExplain( explainContext, hasMore ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build main explain, "
@@ -1260,7 +1284,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for node info, "
                       "rc: %d", rc ) ;
 
-         rc = _buildBSONQueryOptions( builder, TRUE ) ;
+         rc = _buildBSONQueryOptions( builder, _expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for query options, "
                       "rc: %d", rc ) ;
 
@@ -1269,8 +1293,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
 
-         rc = getExplainMergePath()->toBSON( builder, _needExpand,
-                                             _needFlatten, _explainMask ) ;
+         rc = getExplainMergePath()->toBSON( builder, _expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to output BSON from explain path, "
                       "rc: %d", rc ) ;
 
@@ -1278,7 +1301,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed append explain result to context "
                       "[%lld], rc: %d", explainContext->contextID(), rc ) ;
 
-         hasMore = _needFlatten ;
+         hasMore = _expOptions.isNeedFlatten() ;
       }
       else
       {

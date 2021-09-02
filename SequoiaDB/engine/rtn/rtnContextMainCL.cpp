@@ -345,7 +345,7 @@ namespace engine
                                       clName.c_str() ) ;
 
          rc = rtnQuery( subCLOptions, cb, sdbGetDMSCB(), rtnCB, context,
-                        &contextObj, TRUE, FALSE ) ;
+                        &contextObj, TRUE, NULL ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to query on cl:%s, rc:%d",
@@ -1013,7 +1013,7 @@ namespace engine
 
       _explainMergePath.setCollectionName( options.getCLFullName() ) ;
 
-      if ( _needRun )
+      if ( _expOptions.isNeedRun() )
       {
          queryContext->setEnableMonContext( TRUE ) ;
       }
@@ -1045,7 +1045,7 @@ namespace engine
 
       SDB_ASSERT( NULL != context, "query context is invalid" ) ;
 
-      if ( _needDetail )
+      if ( _expOptions.isNeedDetail() )
       {
          rc = _explainMergePath.evaluate() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to evaluate MERGE path, "
@@ -1076,10 +1076,6 @@ namespace engine
 
       rc = _explainMergePath.toSimpleBSON( builder ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build simple explain result, "
-                   "rc: %d", rc ) ;
-
-      rc = _explainMergePath.toBSONExplainInfo( builder, OPT_EXPINFO_MASK_NONE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                    "rc: %d", rc ) ;
 
       rc = explainContext->append( builder.obj() ) ;
