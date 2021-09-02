@@ -3230,7 +3230,7 @@ namespace engine
          PD_LOG( PDEVENT, "Begin to rollback all trans..." ) ;
          std::cout << "Begin to rollback all trans..." << std::endl ;
          // rollback trans
-         rc = rtnTransRollbackAll( cb ) ;
+         rc = rtnTransRollbackAll( cb, 0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to rollback all trans, rc: %d",
                       rc ) ;
       }

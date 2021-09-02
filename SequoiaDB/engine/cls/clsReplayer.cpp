@@ -816,7 +816,7 @@ namespace engine
       if ( DPS_INVALID_TRANS_ID != transID &&
            transCB->isRollback( transID ) )
       {
-         eduCB->startTransRollback() ;
+         eduCB->startTransRollback( TRUE ) ;
          startedRollback = TRUE ;
       }
 

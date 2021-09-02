@@ -114,6 +114,7 @@ namespace engine
       _pUncompressBuff  = NULL ;
       _uncompressBuffLen= 0 ;
       _isDoTransRollback= FALSE ;
+      _isTakeOverTransRB= FALSE ;
       _pClientSock      = NULL ;
 
       _alignedMem       = NULL ;

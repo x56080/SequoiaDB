@@ -3675,29 +3675,6 @@ namespace engine
       return (dmsCachedPlanMgr *)getSUCache( DMS_CACHE_TYPE_PLAN ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_FIXTRANSMBSTATS, "_dmsStorageUnit::fixTransMBStat" )
-   void _dmsStorageUnit::fixTransMBStat ()
-   {
-      PD_TRACE_ENTRY( SDB__DMSSU_FIXTRANSMBSTATS ) ;
-
-      if ( NULL == _pDataSu )
-      {
-         PD_LOG( PDINFO, "storage data unit for [%s] is empty", CSName() ) ;
-         return ;
-      }
-
-      for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
-      {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
-         {
-            _pDataSu->_mbStatInfo[ i ]._rcTotalRecords.init(
-                              _pDataSu->_mbStatInfo[ i ]._totalRecords ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__DMSSU_FIXTRANSMBSTATS ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLEARMBCRUDCB, "_dmsStorageUnit::clearMBCRUDCB" )
    void _dmsStorageUnit::clearMBCRUDCB ()
    {

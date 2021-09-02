@@ -556,9 +556,6 @@ namespace engine
          dmsCachedPlanMgr *getCachedPlanMgr () ;
 
       public :
-         // transaction helper functions
-         void fixTransMBStat () ;
-
          // monitor CRUD helper functions
          void clearMBCRUDCB () ;
 

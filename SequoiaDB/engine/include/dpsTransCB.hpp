@@ -294,7 +294,7 @@ namespace engine
       BOOLEAN hasRBPendingTrans() ;
 
       INT32 startRollbackTask() ;
-      INT32 stopRollbackTask() ;
+      INT32 stopRollbackTask( UINT64 doRollbackID ) ;
       BOOLEAN isDoRollback() const { return _doRollback ; }
       INT32   waitRollback( UINT64 millicSec = -1 ) ;
 
@@ -529,6 +529,7 @@ namespace engine
 
       BOOLEAN           _isOn ;
       BOOLEAN           _doRollback ;
+      UINT64            _doRollbackID ;
       ossEvent          _rollbackEvent ;
 
       monSpinXLatch     _lsnMapMutex ;

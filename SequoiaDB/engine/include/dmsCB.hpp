@@ -471,8 +471,6 @@ namespace engine
       void  aquireCSMutex( const CHAR *pCSName ) ;
       void  releaseCSMutex( const CHAR *pCSName ) ;
 
-      void fixTransMBStats () ;
-
       void clearAllCRUDCB () ;
       INT32 clearSUCRUDCB ( const CHAR * collectionSpace ) ;
       INT32 clearMBCRUDCB ( const CHAR * collection ) ;
