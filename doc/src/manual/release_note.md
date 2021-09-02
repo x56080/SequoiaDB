@@ -46,7 +46,6 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
   - 兼容 MariaDB 协议；
   - 增加参数 sequoiadb_rollback_on_timeout ，开启时当事务锁超时回滚整个事务；
   - sdb_sql_ctl 改名为 sdb_mysql_ctl 和 sdb_pg_ctl；
-- 兼容 mongodb 3.x/4.x 协议，可以直接使用 mongodb 驱动进行访问；
 - 全文索引支持Elasticearch 6.8.5版本；
 - 系统 limit 配置支持 stack size，并统一单位为 byte；
 
@@ -85,7 +84,6 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品�
 - 导入工具支持空字符串的 Decimal 类型；
 - 导入工具支持将 Decimal 转换为其它类型；
 - 导入工具支持将 null 转换为 Date/Timestamp 类型；
-- 优化 SequoiaFS 启动、停止和参数配置；
 - 支持 TRACE 的结果导出到客户端本地；
 - SAC
   - 提供图形化性能监控工具(SequoiaPerf)，简化端到端的慢查询性能分析；

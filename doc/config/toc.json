@@ -885,82 +885,8 @@
                           ]
                        }
                      ]
-                  },
-                  {
-                    "id": 1525955869,
-                    "dir": "File_Instance",
-                    "cn": "Posix 文件系统实例",
-                    "en": "Posix Instance",
-                    "contents": [
-                      {
-                         "id": 1525955905,
-                         "file": "install_deploy",
-                         "cn": "安装部署",
-                         "en": "Install and Deploy"
-                      },
-                      {
-                         "id": 1525956050,
-                         "dir": "Operation",
-                         "cn": "使用",
-                         "en": "Operation",
-                         "contents": [
-                           {
-                           "id": 1525956060,
-                           "file": "mount",
-                           "cn": "挂载目录",
-                           "en": "Mount"
-                           },
-                           {
-                           "id": 1525956070,
-                           "file": "unmount",
-                           "cn": "卸载目录",
-                           "en": "Unmount"
-                           }
-                        ]
-                      }, 
-                      {
-                         "id": 1525956080,
-                         "dir": "Management",
-                         "cn": "管理",
-                         "en": "Management",
-                         "contents": [
-                           {
-                           "id": 1525956090,
-                           "file": "sequoiafsconfig",
-                           "cn": "配置管理",
-                           "en": "ConfigManagement"
-                           },
-                           {
-                           "id": 1525956100,
-                           "file": "sequoiafsbash",
-                           "cn": "SequoiaFS 启停",
-                           "en": "Bash"
-                           }   
-                         ]
-                      },
-                      {
-                         "id": 1525956110,
-                         "dir": "Development",
-                         "cn": "开发",
-                         "en": "Development",
-                         "contents": [
-                           {
-                           "id": 1525956120,
-                           "file": "datadefine",
-                           "cn": "数据设计",
-                           "en": "Datadefine"
-                           },
-                           {
-                           "id": 1525956130,
-                           "file": "fileapi",
-                           "cn": "API",
-                           "en": "API"
-                           }
-                        ]
-                     }
-                  ]
-                }
-              ]
+                  }
+               ]
             }
          ]
       },
@@ -1240,20 +1166,6 @@
                      "file": "compression_encryption",
                      "cn": "数据压缩",
                      "en": "Compression Encryption"
-                  },
-                  {
-                    "id": 1580978421,
-                    "dir": "Foreign_Protocol",
-                    "cn": "外部数据库协议兼容",
-                    "en": "foreign database protocol compatible",
-                    "contents": [
-                      {
-                         "id": 1580978422,
-                         "file": "mongodb_protocol",
-                         "cn": "MongoDB协议兼容",
-                         "en": "MongoDB protocol compatible"
-                      }
-                    ]
                   },
                   {
                      "id": 1589351530,
