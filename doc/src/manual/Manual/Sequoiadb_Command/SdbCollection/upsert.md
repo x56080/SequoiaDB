@@ -57,7 +57,7 @@ options 选项：
 | 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
 | ------ | -------- | -------------- | -------- |
 | -178     | SDB_UPDATE_SHARD_KEY|分区集合上不支持更新分区键| KeepShardingKey 设置为 false，不更新分区键   |
-| -345     |SDB_AUTH_INCOMPATIBLE| JustOne 跨多个分区或者多个子表 | 修改匹配条件，或者不使用 JustOne |
+| -347     |SDB_COORD_UPDATE_MULTI_NODES|参数 JustOne 为 true 时，跨多个分区或多个子表更新记录 | 修改匹配条件或不使用参数 JustOne |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 

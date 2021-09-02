@@ -49,7 +49,7 @@ The common exceptions of `remove()` function are as follows:
   
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
-| -346     | SDB_DMS_UNQIUEID_UPGRADE|"JustOne" is across multiple partitions or multiple sub-tables. | Modify the matching conditions or do not use "JustOne". |
+| -348     | SDB_COORD_DELETE_MULTI_NODES|When the parameter "JustOne" is true, delete records across multiple partitions or subtables. | Modify the matching conditions or do not use the parameter "JustOne". |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 

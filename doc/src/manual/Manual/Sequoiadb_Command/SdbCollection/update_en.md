@@ -56,7 +56,7 @@ The common exceptions of `update()` function are as follows:
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
 | -178     |SDB_UPDATE_SHARD_KEY| Update partition key is not supported on partition collection. | The value of "KeepShardingKey" is false, partition key is not updated. |
-| -345     |SDB_AUTH_INCOMPATIBLE|"JustOne" is across multiple partitions or multiple sub-tables | Modify the matching conditions or do not use "JustOne". |
+| -347     |SDB_COORD_UPDATE_MULTI_NODES|When the parameter "JustOne" is true, update records across multiple partitions or subtables. | Modify the matching conditions or do not use the parameter "JustOne". |
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 

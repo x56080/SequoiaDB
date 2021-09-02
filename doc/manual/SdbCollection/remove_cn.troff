@@ -232,22 +232,36 @@ _
 T{
 1
 T}@T{
-\-346
+\-348
 T}@T{
-SDB_DMS_UNQIUEID_
+SDB_COORD_DELETE_MULTI_
 T}@T{
-JustOne 跨多个分区
+参数 JustOne 为 true
 T}@T{
-修改匹配条件，
+修改匹配条件或
 T}
 T{
 T}@T{
 T}@T{
-UPGRADE
+NODES
 T}@T{
-或者多个子表
+时，跨多个分区
 T}@T{
-或者不使用 JustOne
+不使用参数 JustOne
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+或多个子表删除
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+记录
+T}@T{
 T}
 .TE
 .PP

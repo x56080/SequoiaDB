@@ -415,19 +415,20 @@ T}
 T{
 2
 T}@T{
-\-345
+\-347
 T}@T{
-SDB_AUTH_INCOMPATIBLE
+SDB_COORD_UPDATE_MULTI_
 T}@T{
-"JustOne" is across
+When the parameter "
 T}@T{
 Modify the matching
 T}
 T{
 T}@T{
 T}@T{
+NODES
 T}@T{
-multiple partitions or
+JustOne" is true,
 T}@T{
 conditions or do not
 T}
@@ -435,9 +436,24 @@ T{
 T}@T{
 T}@T{
 T}@T{
-multiple sub\-tables
+update records across
 T}@T{
-use "JustOne".
+use the parameter "
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+multiple partitions or
+T}@T{
+JustOne".
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+subtables.
+T}@T{
 T}
 .TE
 .PP

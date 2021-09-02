@@ -427,21 +427,36 @@ T}
 T{
 2
 T}@T{
-\-345
+\-347
 T}@T{
-SDB_AUTH_INCOMPATIBLE
+SDB_COORD_UPDATE_MULTI_
 T}@T{
-JustOne 跨多个分区
+参数 JustOne 为 true
 T}@T{
-修改匹配条件，
+修改匹配条件或
+T}
+T{
+T}@T{
+T}@T{
+NODES
+T}@T{
+时，跨多个分区
+T}@T{
+不使用参数 JustOne
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-或者多个子表
+或多个子表更新
 T}@T{
-或者不使用 JustOne
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+记录
+T}@T{
 T}
 .TE
 .PP

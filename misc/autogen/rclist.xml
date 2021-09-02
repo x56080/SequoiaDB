@@ -2781,16 +2781,16 @@
       <code>
          <name>SDB_COORD_UPDATE_MULTI_NODES</name>
          <description>
-            <en>Update one can't be used in multiple nodes or sub-collections</en>
-            <cn>“只更新一条”操作不能在多个节点或子表上执行</cn>
+            <en>Update one can't be used in multiple partitions or sub-collections</en>
+            <cn>“只更新一条”操作不能在多个分区或子表上执行</cn>
          </description>
       </code>
 
       <code>
          <name>SDB_COORD_DELETE_MULTI_NODES</name>
          <description>
-            <en>Delete one can't be used in multiple nodes or sub-collections</en>
-            <cn>“只删除一条” 操作不能在多个节点或子表上执行</cn>
+            <en>Delete one can't be used in multiple partitions or sub-collections</en>
+            <cn>“只删除一条” 操作不能在多个分区或子表上执行</cn>
          </description>
       </code>
 
