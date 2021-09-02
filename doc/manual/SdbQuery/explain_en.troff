@@ -1324,6 +1324,31 @@ T}@T{
 T}@T{
 true.
 T}
+T{
+11
+T}@T{
+Abbrev
+T}@T{
+bool
+T}@T{
+false
+T}@T{
+Whether to output
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+strings in abbreviation
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+mode.
+T}
 .TE
 .SH Normal access plan
 .PP

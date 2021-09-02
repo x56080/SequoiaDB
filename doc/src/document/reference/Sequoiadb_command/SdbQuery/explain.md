@@ -34,6 +34,7 @@ options 参数详细说明如下：
 | SubCollections | 字符串 或者 数组 | 表示对访问计划的结果按照子表进行过滤。<br>SubCollections 选项只在带有主子表的访问计划时生效。<br>SubCollections 选项可以选择某个子表名，或者子表名的数组，表示只显示指定子表的访问计划。<br>SubCollections 选项为 [] 或者 null 表示为不进行过滤。<br>如果 SubCollections 选项显式设置，Detail 选项自动设置为 true。  | 空 |
 | Search         | 布尔型           | 表示是否查看查询优化器搜索过的访问计划，并查看查询优化器选择的结果。<br>Search 选项为 true 表示展示查询优化器的选择过程。<br>Search 选项为 false 表示不展示查询优化器的选择过程。<br>如果 Search 选项显式设置，Detail 选项和 Expand 选项自动设置为 true。 | false |
 | Evaluate       | 布尔型           | 表示是否查看查询优化器搜索过的访问计划的计算过程。<br>Evaluate 选项为 true 表示展示查询优化器的计算过程。<br>Evaluate 选项为 false 表示不展示查询优化器的计算过程。<br>如果 Evaluate 选项显式设置，Detail 选项、Search 选项和 Expand 选项自动设置成 true。 | false |
+| Abbrev         | 布尔型           | 表示是否对过长的字符串进行简略输出。| false |
 
 ##普通的访问计划##
 
