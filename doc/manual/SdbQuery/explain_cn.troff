@@ -1290,6 +1290,31 @@ T}@T{
 置成 true。
 T}@T{
 T}
+T{
+11
+T}@T{
+Abbrev
+T}@T{
+布尔型
+T}@T{
+表示是否对过长
+T}@T{
+false
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+的字符串进行简
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+略输出。
+T}@T{
+T}
 .TE
 .SH 普通的访问计划
 .PP

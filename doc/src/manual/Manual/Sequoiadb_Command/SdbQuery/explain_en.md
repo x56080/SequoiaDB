@@ -35,6 +35,7 @@ The detail description of 'options' parameter is as follow:
 | SubCollections | string / string array | --- | The results of the access plan are filtered according to the sub-table. <br>The SubCollections option only takes effect when an access plan with primary child tables is used. <br>The SubCollections option can select a sub-table name, or an array of sub-table names, to indicate that only the access plan for the specified sub-table is displayed. <br>The SubCollections option is [] or null for no filtering. <br>If SubCollections is explicitly set, Detail is automatically set to true. |
 | Search         | bool | false | Whether to view the access plan that the query optimizer has searched for and to view the results of the query optimizer selection. <br>Show the selection process of the query optimizer if Search is true. <br>Otherwise, it won't show them.<br>If Search  is explicitly set, Detail and Expand are automatically set to true. |
 | Evaluate       | bool | false | Whether to view the calculation process of the access plan that the query optimizer has searched for. <br>Shows the calculation process of the query optimizer if Evaluate is true. <br>Otherwise it won't show them.<br>If Evaluate is explicitly set, Detail, Search and Expand are automatically set to true. |
+| Abbrev         | bool | false | Whether to output strings in abbreviation mode. |
 
 ##Normal access plan##
 
