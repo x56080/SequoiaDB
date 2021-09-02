@@ -1,10 +1,11 @@
+
 ##名称##
 
 setUserConfigs - 修改操作系统用户的配置
 
 ##语法##
 
-**System.setUserConfigs(\<User\>, [options])**
+**System.setUserConfigs(\<options\>)**
 
 ##类别##
 
@@ -12,51 +13,48 @@ System
 
 ##描述##
 
-该函数用于修改操作系统用户的用户组、附加组、用户目录等配置。通过该函数修改用户配置时，需要使用 root 权限。
+该函数用于修改操作系统用户的用户组、附加组、用户目录等配置。
 
 ##参数##
 
-- User（ *object，必填* ）
+options（ *object，必填* ）
 
-    指定需要修改的系统用户和密码，具体使用可参考 [User][User] 对象
+通过参数 options 可以修改用户的属性：
 
-    > **Note:**
-    >
-    > 仅 SequoiaDB v3.4.4 及以上版本支持指定 User 对象。
+- name（ *string* ）：指定需要修改的用户，该参数必填
 
-- options（ *object，选填* ）
+    格式：`name: "username"`
 
-    通过参数 options 可以修改用户的属性：
-    
-    - gid（ *string* ）：指定用户的初始组(主组)
-    
-        该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。如果不指定，则默认创建与 User 对象同名的用户组。
-    
-        格式：`gid: "groupName"` 或 `gid: "2003"`
-    
-    - groups（ *string* ）：指定附加组
-    
-        该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
-    
-        格式：`groups: "groupName1,groupName2,groupName3"` 或 `groups: "2004,2005,2006"`
-    
-    - isAppend（ *boolean* ）：指定是否追加附加组，默认为 false
-    
-        该参数需要配合参数 groups 使用。当指定了 groups 且设置 isAppend 为 true，将会追加该用户的附加组；当指定了 groups 且设置 isAppend 为 false，将会替换原有的附加组。
-    
-        格式：`isAppend: true`
-    
-    - isMove（ *boolean* ）：指定是否移动到新指定的目录，默认为 false
-    
-        该参数为 ture 时必须指定参数 dir 的值。
-    
-        格式：`isMove: true`
-    
-    - dir（ *string* ）：指定新的用户目录，仅参数 isMove 为 true 时生效
-    
-        该参数不能指定已存在的目录。指定的新目录将保留原用户目录的数据，而原用户目录将会被移除。
-    
-        格式：`dir: "userHomeDir"`
+- gid（ *string* ）：指定用户的初始组(主组)
+
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
+
+    格式：`gid: "groupName"` 或 `gid: "2003"`
+
+- groups（ *string* ）：指定附加组
+
+    该参数可以是用户组的组名或组 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
+
+    格式：`groups: "groupName1,groupName2,groupName3"` 或 `groups: "2004,2005,2006"`
+
+
+- isAppend（ *boolean* ）：指定是否追加附加组，默认为 false
+
+    该参数需要配合参数 groups 使用。当指定了 groups 且设置 isAppend 为 true，将会追加该用户的附加组；当指定了 groups 且设置 isAppend 为 false，将会替换原有的附加组。
+
+    格式：`isAppend: true`
+
+- isMove（ *boolean* ）：指定是否移动到新指定的目录，默认为 false
+
+    该参数为 ture 时必须指定参数 dir 的值。
+
+    格式：`isMove: true`
+
+- dir（ *string* ）：指定新的用户目录，仅参数 isMove 为 true 时生效
+
+    该参数不能指定已存在的目录。指定的新目录将保留原用户目录的数据，而原用户目录将会被移除。
+
+    格式：`dir: "userHomeDir"`
 
 ##返回值##
 
@@ -74,21 +72,14 @@ v3.2 及以上版本
 
 ##示例##
 
-* 修改指定用户的 home 目录
+修改指定用户组中 `newUser` 用户的 home 目录
 
-    ```lang-javascript
-    > System.setUserConfigs(User("newUser"), {dir: "/home/userName", isMove: true})
-    ```
-
-* 通过交互式界面修改指定用户的密码
-
-    ```lang-javascript
-    > System.setUserConfigs(User("newUser").promptPassword())
-    ```
+```lang-javascript
+> System.setUserConfigs({name: "newUser", gid: "groupName", dir: "/home/userName", isMove: true})
+```
 
 [^_^]:
     本文使用的所有引用及链接
-[User]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/User.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

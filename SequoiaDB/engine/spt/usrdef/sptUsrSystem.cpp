@@ -34,11 +34,6 @@
 #include "sptUsrSystem.hpp"
 #include "ossSocket.hpp"
 #include "sptUsrSystemCommon.hpp"
-#include "sptDBUser.hpp"
-#include "utilCipher.hpp"
-#define FIELD_NAME              "name"
-#define FIELD_PASSWORD          "passwd"
-#define LINUX_PASSWORD_LENGTH   99
 using namespace bson ;
 using std::pair ;
 
@@ -135,89 +130,6 @@ namespace engine
       JS_ADD_STATIC_FUNC_WITHATTR( "_createSshKey", createSshKey, 0 )
       JS_ADD_STATIC_FUNC_WITHATTR( "_getHomePath", getHomePath, 0 )
    JS_MAPPING_END()
-
-
-   static INT32 parseUserInfo( const _sptArguments &arg,
-                               BSONObj &userObj,
-                               BSONObj &detail )
-   {
-#if defined (_LINUX)
-      INT32 rc        = SDB_OK ;
-      string          userName ;
-      string          password ;
-      BSONObj         options ;
-      BSONObjBuilder  userBuilder ;
-      CHAR            cipherPassword[LINUX_PASSWORD_LENGTH] = { '\0' } ;
-      sptDBUser       *pUser = NULL ;
-
-      rc = arg.getUserObj( 0, sptDBUser::__desc, ( const void** )&pUser ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "The first argument "
-                                   "is not a User object" ) ;            
-         goto error ;
-      }
-
-      rc = arg.getBsonobj( 0, userObj ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to get User obj" ) ;
-         goto error ;
-      }
-
-      userName = userObj.getStringField( SPT_USER_NAME ) ;
-      password = pUser->getPasswd() ;
-      userBuilder.append( FIELD_NAME, userName ) ;
-      if ( !password.empty() )
-      {
-         rc = utilCipherLinuxUserEncrypt( password.c_str(), 
-                                          cipherPassword,    LINUX_PASSWORD_LENGTH ) ;
-         if ( SDB_OK != rc )
-         {
-            detail = BSON( SPT_ERR << "Failed to encrypt the password" ) ;
-            goto error ;
-         }
-         userBuilder.append( FIELD_PASSWORD, cipherPassword ) ;
-      }   
-
-      if ( arg.argc() > 1 )
-      {
-         if ( !arg.isNull( 1 ) )
-         {
-            rc = arg.getBsonobj( 1, options ) ;
-            if ( SDB_OK != rc )
-            {
-               detail = BSON( SPT_ERR << "Failed to get Option obj" ) ;
-               goto error ;
-            }
-            BSONObjIterator it(options) ;
-            while ( it.more() )
-            {
-               BSONElement e = it.next() ;
-               if ( e.eoo() )
-               { 
-                  break ; 
-               }
-               if ( 0 != ossStrcmp( e.fieldName(), FIELD_NAME ) )
-               {
-                  if ( 0 != ossStrcmp( e.fieldName(), FIELD_PASSWORD )
-                       || password.empty() )
-                  {
-                     userBuilder.append( e ) ;
-                  }
-               }
-            }
-         }
-      }    
-      userObj = userBuilder.obj() ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-#elif defined (_WINDOWS)
-      return SDB_OK ;
-#endif
-   }
 
    _sptUsrSystem::_sptUsrSystem()
    {
@@ -743,6 +655,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string hostname ;
       string err ;
+
       if ( 0 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -976,50 +889,19 @@ namespace engine
    {
       INT32 rc          = SDB_OK ;
       BSONObj           userObj ;
-      string            objectName ; 
       string            err ;
-
       // check argument and build cmd
-      if ( 0 == arg.argc() )
+      rc = arg.getBsonobj( 0, userObj ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "User information is not specified" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         detail = BSON( SPT_ERR << "userObj must be config" ) ;
       }
+      else if ( SDB_INVALIDARG == rc )
+      {
+         detail = BSON( SPT_ERR << "userObj must be BSONObj" ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get userObj, rc: %d", rc ) ;
 
-      if ( arg.argc() > 2 )
-      {
-         detail = BSON( SPT_ERR << "Too many arguments" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( !arg.isNull(0) )
-      {
-         objectName = arg.getUserObjClassName( 0 ) ;
-      }
-
-      if ( SPT_USER_NAME == objectName )
-      {
-         rc = parseUserInfo( arg, userObj, detail ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = arg.getBsonobj( 0, userObj ) ;
-         if ( SDB_OUT_OF_BOUND == rc )
-         {
-            detail = BSON( SPT_ERR << "userObj must be config" ) ;
-         }
-         else if ( SDB_INVALIDARG == rc )
-         {
-            detail = BSON( SPT_ERR << "userObj must be BSONObj" ) ;
-         }
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get user information, rc: %d", rc ) ;
       rc = _sptUsrSystemCommon::addUser( userObj, err ) ;
       if( SDB_OK != rc )
       {
@@ -1069,50 +951,19 @@ namespace engine
    {
       INT32 rc          = SDB_OK ;
       BSONObj           optionObj ;
-      string            objectName ; 
       string            err ;
-
       // check argument and build cmd
-      if ( 0 == arg.argc() )
+      rc = arg.getBsonobj( 0, optionObj ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "User information is not specified" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         detail = BSON( SPT_ERR << "optionObj must be config" ) ;
       }
+      else if ( SDB_INVALIDARG == rc )
+      {
+         detail = BSON( SPT_ERR << "optionObj must be BSONObj" ) ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get optionObj, rc: %d", rc ) ;
 
-      if ( arg.argc() > 2 )
-      {
-         detail = BSON( SPT_ERR << "Too many arguments" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( !arg.isNull(0) )
-      {
-         objectName = arg.getUserObjClassName( 0 ) ;
-      }
-
-      if ( SPT_USER_NAME == objectName )
-      {
-         rc = parseUserInfo( arg, optionObj, detail ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = arg.getBsonobj( 0, optionObj ) ;
-         if ( SDB_OUT_OF_BOUND == rc )
-         {
-            detail = BSON( SPT_ERR << "optionObj must be config" ) ;
-         }
-         else if ( SDB_INVALIDARG == rc )
-         {
-            detail = BSON( SPT_ERR << "optionObj must be BSONObj" ) ;
-         }         
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get user information, rc: %d", rc ) ;
       rc = _sptUsrSystemCommon::setUserConfigs( optionObj, err ) ;
       if( SDB_OK != rc )
       {

@@ -46,7 +46,6 @@
 #include <strings.h>
 #include <pthread.h>
 #include <signal.h>
-#include <crypt.h>
 #else
 #include <io.h>
 #endif
@@ -79,7 +78,6 @@ INT32 ossStrToInt ( const CHAR *pBuffer, INT32 *number ) ;
 #define ossFdopen(x,y) fdopen(x,y)
 #define OSS_LL_PRINT_FORMAT   "%lld"
 #define ossStrcasecmp(x,y)  strcasecmp(x,y)
-#define ossCrypt(x,y) crypt(x,y)
 #elif defined (_WINDOWS)
 #define ossStrncpy(x,y,z) strncpy(x,y,z)
 #define ossStrncat(x,y,z) strncat(x,y,z)

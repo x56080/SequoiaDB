@@ -48,7 +48,5 @@ INT32  utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
 INT32  utilDecryptUserCipher( const CHAR *user, const CHAR *token,
                               const CHAR *path, CHAR *connectionUser,
                               CHAR *clearText ) ;
-INT32  utilCipherLinuxUserEncrypt( const CHAR *clearText, CHAR *cipherText,
-                                   UINT32 cipherTextLen ) ;
 
 #endif /* UTILCIPHER_H_ */

@@ -7,7 +7,7 @@
 setUserConfigs \- set the configuration of operating system user
 .SH SYNOPSIS
 .PP
-\f[B]System.setUserConfigs(<User>, [options])\f[]
+\f[B]System.setUserConfigs(<options>)\f[]
 .SH CATEGORY
 .PP
 System
@@ -15,33 +15,24 @@ System
 .PP
 This function is used to modify the user group, additional group, user directory
 and other configurations of the operating system user.
-When modifying user configuration through this function, root privileges are
-required.
 .SH PARAMETERS
+.PP
+options ( \f[I]object, required\f[] )
+.PP
+The user\[aq]s attributes can be modified through the options parameter:
 .IP \[bu] 2
-User ( \f[I]object, required\f[] )
+name ( \f[I]string\f[] ): Specify the user who needs to be modified.
+This parameter is required.
 .RS 2
 .PP
-Specify the system username and password to be modified.
-The specific way can refer to the User object.
-.RS
-.PP
-\f[B]Note:\f[]
-.PP
-Only SequoiaDB v3.4.4 and above support for specifying User objects.
+Format: \f[C]name:\ "username"\f[]
 .RE
-.RE
-.IP \[bu] 2
-options ( \f[I]object, optional\f[] )
-.RS 2
-.PP
-The user\[aq]s attributes can be modified through the parameter "options":
 .IP \[bu] 2
 gid ( \f[I]string\f[] ): Specify the name or ID of the user primary group.
 .RS 2
 .PP
 This parameter must be specified as an existing user group.
-If not specified, a user group with the same name as the User object will be
+If not specified, a user group with the same name as the parameter name will be
 created by default.
 .PP
 Format: \f[C]gid:\ "groupName"\f[] or \f[C]gid:\ "2003"\f[]
@@ -75,13 +66,13 @@ isMove ( \f[I]boolean\f[] ): Whether to move the newly specified directory, the
 default is false.
 .RS 2
 .PP
-When this parameter is true, the value of parameter "dir" must be specified.
+When this parameter is true, the value of parameter dir must be specified.
 .PP
 Format: \f[C]isMove:\ true\f[]
 .RE
 .IP \[bu] 2
 dir ( \f[I]string\f[] ): Specify a new user directory, which only takes effect
-when the parameter "isMove" is true.
+when the parameter isMove is true.
 .RS 2
 .PP
 This parameter cannot specify an existing directory.
@@ -89,7 +80,6 @@ The specified new directory will retain the data of the original user directory,
 and the original user directory will be deleted.
 .PP
 Format: \f[C]dir:\ "userHomeDir"\f[]
-.RE
 .RE
 .SH RETURN VALUE
 .PP
@@ -102,27 +92,12 @@ be printed.
 When the exception happens，use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
 For more details, refer to Troubleshooting.
-.SH VERSION
-.PP
-v3.2 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Modify the home directory of the specified user.
-.RS 2
+.PP
+Modify the home directory of user \f[C]newUser\f[] in the specified user group.
 .IP
 .nf
 \f[C]
->\ System.setUserConfigs((User("newUser"),\ {dir:\ "/home/userName",\ isMove:\ true})
+>\ System.setUserConfigs({name:\ "newUser",\ gid:\ "groupName",\ dir:\ "/home/userName",\ isMove:\ true})
 \f[]
 .fi
-.RE
-.IP \[bu] 2
-Modify the password of the specified user through the interactive interface.
-.RS 2
-.IP
-.nf
-\f[C]
->\ System.setUserConfigs((User("newUser").promptPassword())
-\f[]
-.fi
-.RE
