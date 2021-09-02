@@ -636,7 +636,7 @@ namespace engine
       rtnQueryOptions options( matcher, selector, orderBy, hint,
                                pCollectionName, numToSkip, numToReturn, flags ) ;
       rc = rtnQuery( options, cb, dmsCB, rtnCB, contextID, ppContext,
-                     enablePrefetch, FALSE ) ;
+                     enablePrefetch, NULL ) ;
 
       PD_TRACE_EXITRC( SDB_RTNQUERY, rc ) ;
       return rc ;
@@ -650,7 +650,7 @@ namespace engine
                     SINT64 &contextID,
                     rtnContextBase **ppContext,
                     BOOLEAN enablePrefetch,
-                    BOOLEAN keepSearchPaths )
+                    const rtnExplainOptions *expOptions )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNQUERY_OPTIONS ) ;
@@ -839,8 +839,8 @@ namespace engine
       // plan is released in context destructor
       // selector, numToSkip and numToReturn are not considered in plan cache
       // now, so put dummy ones to find the plan
-      rc = apm->getAccessPlan( options, keepSearchPaths, su, mbContext,
-                               (*planRuntime) ) ;
+      rc = apm->getAccessPlan( options, su, mbContext, (*planRuntime),
+                               expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
                    "context %lld, rc: %d", options.getCLFullName(), contextID,
                    rc ) ;

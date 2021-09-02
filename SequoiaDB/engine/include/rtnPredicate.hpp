@@ -686,9 +686,10 @@ namespace engine
          UINT32 size() { return _predicates.size(); }
          BSONObj startKey() const ;
          BSONObj endKey() const ;
-         BSONObj obj() const ;
+         BSONObj obj( BOOLEAN needAbbrev ) const ;
          BOOLEAN matchesKey ( const BSONObj &key ) const ;
          string toString() const ;
+         BSONObj getBound( BOOLEAN needAbbrev ) const ;
          BSONObj getBound() const ;
          BOOLEAN isAllRange() const ;
 

@@ -211,6 +211,16 @@ namespace engine
             _isNewPlan = isNewPlan ;
          }
 
+         OSS_INLINE void setExplainOptions( const rtnExplainOptions *expOptions )
+         {
+            _expOptions = expOptions ;
+         }
+
+         OSS_INLINE const rtnExplainOptions *getExplainOptions() const
+         {
+            return _expOptions ;
+         }
+
          INT32 bindParamPlan ( optAccessPlanHelper &planHelper,
                                optAccessPlan *plan ) ;
 
@@ -370,6 +380,8 @@ namespace engine
          // Used for main CL plan, bind sub-collection and index
          BOOLEAN                 _ownedPlanInfo ;
          optCLScanInfo *         _clScanInfo ;
+
+         const rtnExplainOptions * _expOptions ;
    } ;
 
    typedef class _optAccessPlanRuntime optAccessPlanRuntime ;

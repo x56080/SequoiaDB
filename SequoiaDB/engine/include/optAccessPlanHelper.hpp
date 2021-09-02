@@ -44,6 +44,7 @@
 #include "ossUtil.hpp"
 #include "optCommon.hpp"
 #include "mthMatchRuntime.hpp"
+#include "rtnQueryOptions.hpp"
 
 namespace engine
 {
@@ -134,7 +135,7 @@ namespace engine
          _optAccessPlanHelper ( OPT_PLAN_CACHE_LEVEL cacheLevel,
                                 const optAccessPlanConfig &planConfig,
                                 const mthNodeConfig &mthConfig,
-                                BOOLEAN keepSearchPaths ) ;
+                                const rtnExplainOptions *expOptions ) ;
 
          virtual ~_optAccessPlanHelper () ;
 
@@ -192,14 +193,14 @@ namespace engine
             return ( _predicateSet.getSize() == 0 ) ;
          }
 
-         OSS_INLINE void setKeepSearchPaths ( BOOLEAN keepSearchPaths )
+         OSS_INLINE const rtnExplainOptions *getExplainOptions() const
          {
-            _keepSearchPaths = keepSearchPaths ;
+            return _expOptions ;
          }
 
-         OSS_INLINE BOOLEAN isKeepSearchPaths () const
+         OSS_INLINE BOOLEAN isKeepPaths () const
          {
-            return _keepSearchPaths ;
+            return NULL != _expOptions && _expOptions->isNeedSearch() ;
          }
 
       protected :
@@ -223,7 +224,8 @@ namespace engine
          // The CPU cost of the matcher
          UINT32            _estCPUCost ;
 
-         BOOLEAN           _keepSearchPaths ;
+         // explain options
+         const rtnExplainOptions * _expOptions ;
    } ;
 
    typedef class _optAccessPlanHelper optAccessPlanHelper ;

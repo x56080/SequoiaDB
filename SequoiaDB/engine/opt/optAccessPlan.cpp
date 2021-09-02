@@ -129,22 +129,35 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACPLAN_TOBSON, "_optAccessPlan::toBSON" )
-   INT32 _optAccessPlan::toBSON ( BSONObjBuilder &builder ) const
+   INT32 _optAccessPlan::toBSON ( BSONObjBuilder &builder,
+                                  const rtnExplainOptions *expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__OPTACPLAN_TOBSON ) ;
 
+      BSONObjBuilderOption builderOption ;
+
+      // copy builder option
+      if ( NULL != expOptions )
+      {
+         builderOption = expOptions->getBuilderOption() ;
+      }
+
       builder.append( OPT_FIELD_CACHE_LEVEL,
                       optAccessPlanKey::getCacheLevelName( getCacheLevel() ) ) ;
 
       // Selector, skip and limit are not used in cached
-      builder.append( OPT_FIELD_QUERY,
-                      _key.getNormalizedQuery().isEmpty() ?
-                      _key.getQuery() :
-                      _key.getNormalizedQuery() ) ;
-      builder.append( OPT_FIELD_SORT, _key.getOrderBy() ) ;
-      builder.append( OPT_FIELD_HINT, _key.getHint() ) ;
+      builder.appendEx( OPT_FIELD_QUERY,
+                        _key.getNormalizedQuery().isEmpty() ?
+                              _key.getQuery() :
+                              _key.getNormalizedQuery(),
+                        builderOption ) ;
+      builder.appendEx( OPT_FIELD_SORT, _key.getOrderBy(),
+                        builderOption ) ;
+      builder.appendEx( OPT_FIELD_HINT, _key.getHint(),
+                        builderOption ) ;
+
       builder.appendBool( OPT_FIELD_SORTED_IDX_REQURED,
                           _key.isSortedIdxRequired() ) ;
       builder.appendBool( OPT_FIELD_EST_FROM_STAT, isEstimatedFromStat() ) ;
@@ -1050,7 +1063,7 @@ namespace engine
       rc = _prepareSUCaches( su, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare for optimize, rc: %d", rc ) ;
 
-      if ( planHelper.isKeepSearchPaths() )
+      if ( planHelper.isKeepPaths() )
       {
          rc = _createSearchPaths() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create search path list, "
@@ -1161,6 +1174,10 @@ namespace engine
 
       if ( IXSCAN == path.getScanType() )
       {
+         const rtnExplainOptions *explainOptions =
+                                             planHelper.getExplainOptions() ;
+         BOOLEAN isAbbrev = NULL != explainOptions &&
+                            explainOptions->isNeedAbbrev() ;
          rtnPredicateList predList ;
          UINT32 addedLevel = 0 ;
          rc = predList.initialize( planHelper.getPredicateSet(),
@@ -1169,7 +1186,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to generate index bounds, "
                       "rc: %d", rc ) ;
 
-         path.getScanNode()->setIXBound( predList.getBound() ) ;
+         path.getScanNode()->setIXBound( predList.getBound( isAbbrev ) ) ;
       }
 
       _searchPaths->push_back( path ) ;

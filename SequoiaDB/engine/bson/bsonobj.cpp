@@ -1246,29 +1246,9 @@ namespace bson {
     }
 
     BSONObj BSONObj::clientReadable() const {
+        BSONObjBuilderOption option( true, false );
         BSONObjBuilder b;
-        BSONObjIterator i( *this );
-        while( i.moreWithEOO() ) {
-            BSONElement e = i.next();
-            if ( e.eoo() )
-                break;
-            switch( e.type() ) {
-            case MinKey: {
-                BSONObjBuilder m;
-                m.append( "$minElement", 1 );
-                b.append( e.fieldName(), m.done() );
-                break;
-            }
-            case MaxKey: {
-                BSONObjBuilder m;
-                m.append( "$maxElement", 1 );
-                b.append( e.fieldName(), m.done() );
-                break;
-            }
-            default:
-                b.append( e );
-            }
-        }
+        b.appendEx( *this, option );
         return b.obj();
     }
 

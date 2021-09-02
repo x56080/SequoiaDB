@@ -242,6 +242,11 @@ namespace engine
             return _query.isEmpty() ;
          }
 
+         OSS_INLINE UINT32 getQuerySize() const
+         {
+            return (UINT32)( _query.objsize() ) ;
+         }
+
          /// OrderBy
          OSS_INLINE void setOrderBy ( const BSONObj & orderBy )
          {
@@ -276,6 +281,11 @@ namespace engine
          OSS_INLINE UINT32 getOrderByHash () const
          {
             return ossHash( _orderBy.objdata(), _orderBy.objsize() ) ;
+         }
+
+         OSS_INLINE UINT32 getOrderBySize() const
+         {
+            return _orderBy.objsize() ;
          }
 
          /// Hint
@@ -314,6 +324,12 @@ namespace engine
             return ossHash( _hint.objdata(), _hint.objsize() ) ;
          }
 
+         OSS_INLINE UINT32 getHintSize() const
+         {
+            return _hint.objsize() ;
+         }
+
+         // insertor
          OSS_INLINE void setInsertor( const BSONObj &insertor )
          {
             // reuse selector as insertor
@@ -388,6 +404,189 @@ namespace engine
    } ;
 
    typedef class _rtnQueryOptions rtnQueryOptions ;
+
+   /*
+      _rtnExplainOptions
+    */
+   class _rtnExplainOptions : public SDBObject
+   {
+   public:
+      _rtnExplainOptions()
+      : _showMask( 0 ),
+        _needDetail( FALSE ),
+        _needEstimate( FALSE ),
+        _needRun( FALSE ),
+        _needSearch( FALSE ),
+        _needEvaluate( FALSE ),
+        _needExpand( FALSE ),
+        _needFlatten( FALSE ),
+        _needAbbrev( FALSE ),
+        _genBuilderOption( FALSE ),
+        _builderOption()
+      {
+      }
+
+      _rtnExplainOptions( const _rtnExplainOptions &options )
+      : _showMask( options._showMask ),
+        _needDetail( options._needDetail ),
+        _needEstimate( options._needEstimate ),
+        _needRun( options._needRun ),
+        _needSearch( options._needSearch ),
+        _needEvaluate( options._needEvaluate ),
+        _needExpand( options._needExpand ),
+        _needFlatten( options._needFlatten ),
+        _needAbbrev( options._needAbbrev ),
+        _genBuilderOption( FALSE ),
+        _builderOption()
+      {
+      }
+
+      ~_rtnExplainOptions()
+      {
+      }
+
+      _rtnExplainOptions &operator =( const _rtnExplainOptions &options )
+      {
+         _showMask = options._showMask ;
+         _needDetail = options._needDetail ;
+         _needEstimate = options._needEstimate ;
+         _needRun = options._needRun ;
+         _needSearch = options._needSearch ;
+         _needEvaluate = options._needEvaluate ;
+         _needExpand = options._needExpand ;
+         _needFlatten = options._needFlatten ;
+         _needAbbrev = options._needAbbrev ;
+         _genBuilderOption = FALSE ;
+         _builderOption.reset() ;
+         return ( *this ) ;
+      }
+
+      OSS_INLINE UINT16 getShowMask() const
+      {
+         return _showMask ;
+      }
+
+      OSS_INLINE void setShowMask( UINT16 mask )
+      {
+         _showMask = mask ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedDetail() const
+      {
+         return _needDetail ;
+      }
+
+      OSS_INLINE void setNeedDetail( BOOLEAN needDetail )
+      {
+         _needDetail = needDetail ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedEstimate() const
+      {
+         return _needEstimate ;
+      }
+
+      OSS_INLINE void setNeedEstimate( BOOLEAN needEstimate )
+      {
+         _needEstimate = needEstimate ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedRun() const
+      {
+         return _needRun ;
+      }
+
+      OSS_INLINE void setNeedRun( BOOLEAN needRun )
+      {
+         _needRun = needRun ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedSearch() const
+      {
+         return _needSearch ;
+      }
+
+      OSS_INLINE void setNeedSearch( BOOLEAN needSearch )
+      {
+         _needSearch = needSearch ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedEvaluate() const
+      {
+         return _needEvaluate ;
+      }
+
+      OSS_INLINE void setNeedEvaluate( BOOLEAN needEvaluate )
+      {
+         _needEvaluate = needEvaluate ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedExpand() const
+      {
+         return _needExpand ;
+      }
+
+      OSS_INLINE void setNeedExpand( BOOLEAN needExpand )
+      {
+         _needExpand = needExpand ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedFlatten() const
+      {
+         return _needFlatten ;
+      }
+
+      OSS_INLINE void setNeedFlatten( BOOLEAN needFlatten )
+      {
+         _needFlatten = needFlatten ;
+      }
+
+      OSS_INLINE BOOLEAN isNeedAbbrev() const
+      {
+         return _needAbbrev ;
+      }
+
+      OSS_INLINE void setNeedAbbrev( BOOLEAN needAbbrev )
+      {
+         _needAbbrev = needAbbrev ;
+      }
+
+      OSS_INLINE const BSONObjBuilderOption &getBuilderOption() const
+      {
+         if ( !_genBuilderOption )
+         {
+            _builderOption.isClientReadable = false ;
+            _builderOption.isAbbrevMode = _needAbbrev ;
+         }
+         return _builderOption ;
+      }
+
+   protected:
+      // mask of explain information to be shown ( e.g. input, output, etc )
+      UINT16      _showMask ;
+      // indicates whether to show details of explain
+      BOOLEAN     _needDetail ;
+      // indicates whether to show estimate details of explain
+      BOOLEAN     _needEstimate ;
+      // indicates whether to run the explained access plan
+      BOOLEAN     _needRun ;
+      // indicates whether to keep search paths in explain result
+      BOOLEAN     _needSearch ;
+      // indicates whether to show evaluation ( cost based optimization )
+      // of access plan
+      BOOLEAN     _needEvaluate ;
+      // indicates whether to expand all details of explain
+      BOOLEAN     _needExpand ;
+      // indicates whether to flatten details of explain into multiple rows
+      BOOLEAN     _needFlatten ;
+      // indicates whether to output explain in abbreviation mode
+      BOOLEAN     _needAbbrev ;
+
+      mutable BOOLEAN _genBuilderOption ;
+      mutable BSONObjBuilderOption _builderOption ;
+   } ;
+
+   typedef class _rtnExplainOptions rtnExplainOptions ;
 
 }
 

@@ -336,9 +336,7 @@ namespace engine
          virtual void clearPath () ;
 
          virtual INT32 toBSON ( BSONObjBuilder & builder,
-                                BOOLEAN needExpand,
-                                BOOLEAN needFlatten,
-                                UINT16 mask ) const ;
+                                const rtnExplainOptions &expOptions ) const ;
 
          INT32 setExplainStart ( pmdEDUCB * cb ) ;
 
@@ -450,14 +448,14 @@ namespace engine
 
       public :
          virtual INT32 toBSON ( BSONObjBuilder & builder,
-                                BOOLEAN needExpand,
-                                BOOLEAN needFlatten,
-                                UINT16 mask ) const ;
+                                const rtnExplainOptions &expOptions ) const ;
 
-         INT32 toBSONBasic ( BSONObjBuilder & builder ) const ;
+         INT32 toBSONBasic ( BSONObjBuilder & builder,
+                             const rtnExplainOptions &expOptions ) const ;
 
       protected :
-         INT32 _toBSONPlanInfo ( BSONObjBuilder & builder ) const ;
+         INT32 _toBSONPlanInfo ( BSONObjBuilder & builder,
+                                 const rtnExplainOptions &expOptions ) const ;
 
          INT32 _toBSONSearchParameters ( BSONObjBuilder & builder ) const ;
 
@@ -498,12 +496,12 @@ namespace engine
                                             const ossTickDelta & waitTime,
                                             BOOLEAN needParse,
                                             BOOLEAN needChildExplain,
-                                            UINT16 mask )
+                                            const rtnExplainOptions &expOptions )
          {
             SDB_ASSERT( NULL != _pMergeNode, "merge node is invalid" ) ;
             return _pMergeNode->addChildExplain(
                         _pAllocator, childExplain, queryTime, waitTime,
-                        needParse, needChildExplain, mask ) ;
+                        needParse, needChildExplain, expOptions ) ;
          }
 
          OSS_INLINE optExplainResultList & getChildExplains ()

@@ -267,35 +267,33 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE_TOBSON, "_optPlanNode::toBSON" )
    INT32 _optPlanNode::toBSON ( BSONObjBuilder & builder,
-                                BOOLEAN needExpand,
-                                BOOLEAN needFlatten,
-                                UINT16 mask ) const
+                                const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTPLANNODE_TOBSON ) ;
 
-      rc = _toBSONBasic( builder, mask ) ;
+      rc = _toBSONBasic( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for basic information, "
                    "rc: %d", rc ) ;
 
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_ESTIMATE ) )
+      if ( expOptions.isNeedEstimate() )
       {
-         rc = _toBSONEstimate( builder, mask ) ;
+         rc = _toBSONEstimate( builder, expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for estimate "
                       "information, rc: %d", rc ) ;
       }
 
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_RUN ) )
+      if ( expOptions.isNeedRun() )
       {
          rc = _toBSONRun( builder ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
       }
 
-      if ( !needFlatten )
+      if ( !expOptions.isNeedFlatten() )
       {
-         rc = _toBSONChildNodes( builder, needExpand, mask ) ;
+         rc = _toBSONChildNodes( builder, expOptions.isNeedExpand() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for child nodes, "
                       "rc: %d", rc ) ;
       }
@@ -309,7 +307,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE_FROMBSON, "_optPlanNode::fromBSON" )
-   INT32 _optPlanNode::fromBSON ( const BSONObj & object, UINT16 mask )
+   INT32 _optPlanNode::fromBSON ( const BSONObj & object,
+                                  const rtnExplainOptions &expOptions )
    {
       INT32 rc = SDB_OK ;
 
@@ -319,9 +318,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for basic information, "
                    "rc: %d", rc ) ;
 
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_ESTIMATE ) )
+      if ( expOptions.isNeedEstimate() )
       {
-         rc = _fromBSONEstimate( object, mask ) ;
+         rc = _fromBSONEstimate( object, expOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for estimate "
                       "information, rc: %d", rc ) ;
       }
@@ -335,20 +334,23 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE__TOBSONEST, "_optPlanNode::_toBSONEstimate" )
-   INT32 _optPlanNode::_toBSONEstimate ( BSONObjBuilder &builder, UINT16 mask ) const
+   INT32 _optPlanNode::_toBSONEstimate ( BSONObjBuilder &builder,
+                                         const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTPLANNODE__TOBSONEST ) ;
+
+      UINT16 showMask = expOptions.getShowMask() ;
 
       BSONObjBuilder estimateBuilder( builder.subobjStart( OPT_FIELD_ESTIMATE ) ) ;
 
       rc = _toBSONEstimateImpl( estimateBuilder ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build estimate BSON, rc: %d", rc ) ;
 
-      mask &= _getExplainEstimateMask() ;
+      showMask &= _getExplainEstimateMask() ;
 
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_INPUT ) )
+      if ( OSS_BIT_TEST( showMask, OPT_NODE_EXPLAIN_MASK_INPUT ) )
       {
          BSONObjBuilder subBuilder( estimateBuilder.subobjStart( OPT_FIELD_INPUT ) ) ;
          rc = _toBSONEstimateInput( subBuilder ) ;
@@ -356,7 +358,7 @@ namespace engine
                       "rc: %d", rc ) ;
          subBuilder.done() ;
       }
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_FILTER ) )
+      if ( OSS_BIT_TEST( showMask, OPT_NODE_EXPLAIN_MASK_FILTER ) )
       {
          BSONObjBuilder subBuilder( estimateBuilder.subobjStart( OPT_FIELD_FILTER ) ) ;
          rc = _toBSONEstimateFilter( subBuilder ) ;
@@ -364,7 +366,7 @@ namespace engine
                       "rc: %d", rc ) ;
          subBuilder.done() ;
       }
-      if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_OUTPUT ) )
+      if ( OSS_BIT_TEST( showMask, OPT_NODE_EXPLAIN_MASK_OUTPUT ) )
       {
          BSONObjBuilder subBuilder( estimateBuilder.subobjStart( OPT_FIELD_OUTPUT ) ) ;
          rc = _toBSONEstimateOutput( subBuilder ) ;
@@ -385,7 +387,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE__FROMBSONEST, "_optPlanNode::_fromBSONEstimate" )
    INT32 _optPlanNode::_fromBSONEstimate ( const BSONObj & object,
-                                              UINT16 mask )
+                                           const rtnExplainOptions &expOptions )
    {
       INT32 rc = SDB_OK ;
 
@@ -394,6 +396,7 @@ namespace engine
       try
       {
          BSONObj estimateObj ;
+         UINT16 showMask = expOptions.getShowMask() ;
 
          rc = rtnGetObjElement( object, OPT_FIELD_ESTIMATE, estimateObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
@@ -403,9 +406,9 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to rebuild from estimate BSON, "
                       "rc: %d", rc ) ;
 
-         mask &= _getExplainEstimateMask() ;
+         showMask &= _getExplainEstimateMask() ;
 
-         if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_OUTPUT ) )
+         if ( OSS_BIT_TEST( showMask, OPT_NODE_EXPLAIN_MASK_OUTPUT ) )
          {
             BSONObj estimateOutputObj ;
 
@@ -611,8 +614,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE__TOBSONCHILDNODES, "_optPlanNode::_toBSONChildNodes" )
    INT32 _optPlanNode::_toBSONChildNodes ( BSONObjBuilder &builder,
-                                           BOOLEAN needExpand,
-                                           UINT16 mask ) const
+                                           BOOLEAN needPlanPath ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -623,7 +625,7 @@ namespace engine
          BSONArrayBuilder subBuilder(
                      builder.subarrayStart( _getBSONChildArrayName() ) ) ;
 
-         rc = _toBSONChildNodesImpl( subBuilder, needExpand, mask ) ;
+         rc = _toBSONChildNodesImpl( subBuilder, needPlanPath ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for child nodes, "
                       "rc: %d", rc ) ;
 
@@ -639,13 +641,17 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE__TOBSONRETOPTS, "_optPlanNode::_toBSONReturnOptions" )
-   INT32 _optPlanNode::_toBSONReturnOptions ( BSONObjBuilder & builder ) const
+   INT32 _optPlanNode::_toBSONReturnOptions ( BSONObjBuilder & builder,
+                                              const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTPLANNODE__TOBSONRETOPTS ) ;
 
-      builder.append( OPT_FIELD_SELECTOR, _returnOptions.getSelector() ) ;
+      builder.appendEx( OPT_FIELD_SELECTOR,
+                        _returnOptions.getSelector(),
+                        expOptions.getBuilderOption() ) ;
+
       builder.append( OPT_FIELD_SKIP, _returnOptions.getSkip() ) ;
       builder.append( OPT_FIELD_RETURN, _returnOptions.getLimit() ) ;
 
@@ -1319,7 +1325,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__TOBSONBASIC, "_optTbScanNode::_toBSONBasic" )
    INT32 _optTbScanNode::_toBSONBasic ( BSONObjBuilder & builder,
-                                        UINT16 mask ) const
+                                        const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -1328,9 +1334,11 @@ namespace engine
       builder.append( OPT_FIELD_OPERATOR, getName() ) ;
       builder.append( OPT_FIELD_COLLECTION,
                       NULL == _pCollection ? "" : _pCollection ) ;
-      builder.append( OPT_FIELD_QUERY, _runtimeMatcher ) ;
+      builder.appendEx( OPT_FIELD_QUERY,
+                        _runtimeMatcher,
+                        expOptions.getBuilderOption() ) ;
 
-      rc = _toBSONReturnOptions( builder ) ;
+      rc = _toBSONReturnOptions( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for return options, "
                    "rc: %d", rc ) ;
 
@@ -2329,7 +2337,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN__TOBSONBASIC, "_optIxScanNode::_toBSONBasic" )
    INT32 _optIxScanNode::_toBSONBasic ( BSONObjBuilder & builder,
-                                        UINT16 mask ) const
+                                        const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -2345,13 +2353,16 @@ namespace engine
       }
       else
       {
+         // already readably
          builder.append( OPT_FIELD_IX_BOUND, _runtimeIXBound ) ;
       }
-      builder.append( OPT_FIELD_QUERY, _runtimeMatcher ) ;
+      builder.appendEx( OPT_FIELD_QUERY,
+                        _runtimeMatcher,
+                        expOptions.getBuilderOption() ) ;
       builder.appendBool( OPT_FIELD_NEED_MATCH, _needMatch ) ;
       builder.appendBool( OPT_FIELD_INDEX_COVER, _indexCover ) ;
 
-      rc = _toBSONReturnOptions( builder ) ;
+      rc = _toBSONReturnOptions( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for return options, "
                    "rc: %d", rc ) ;
 
@@ -2809,16 +2820,19 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTSORT__TOBSONBASIC, "_optSortNode::_toBSONBasic" )
    INT32 _optSortNode::_toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const
+                                      const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTSORT__TOBSONBASIC ) ;
 
       builder.append( OPT_FIELD_OPERATOR, getName() ) ;
-      builder.append( OPT_FIELD_SORT, _orderBy ) ;
 
-      _toBSONReturnOptions( builder ) ;
+      builder.appendEx( OPT_FIELD_SORT,
+                        _orderBy,
+                        expOptions.getBuilderOption() ) ;
+
+      _toBSONReturnOptions( builder, expOptions ) ;
 
       PD_RC_CHECK( rc, PDERROR, "Failed to generate BSON for return options, "
                    "rc: %d", rc ) ;
@@ -2926,8 +2940,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTSORT__TOBSONCHILDNODESIMPL, "_optSortNode::_toBSONChildNodesImpl" )
    INT32 _optSortNode::_toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                               BOOLEAN needExpand,
-                                               UINT16 mask ) const
+                                               const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -2939,15 +2952,24 @@ namespace engine
       const optScanNode *pScanNode =
                   dynamic_cast<const optScanNode *>( pChildNode ) ;
 
+      // copy options
+      rtnExplainOptions tempOptions( expOptions ) ;
+
       SDB_ASSERT( NULL != pScanNode, "child node is invalid" ) ;
 
-      if ( !needExpand )
+      if ( !expOptions.isNeedExpand() )
       {
-         mask = OPT_NODE_EXPLAIN_MASK_NONE ;
+         // no need to build run and estimate to output BSON
+         tempOptions.setShowMask( OPT_NODE_EXPLAIN_MASK_NONE ) ;
+         tempOptions.setNeedRun( FALSE ) ;
+         tempOptions.setNeedEstimate( FALSE ) ;
       }
+      // no need to be flatten, scan node and sort node should be in
+      // one record in flatten mode
+      tempOptions.setNeedFlatten( FALSE ) ;
 
       BSONObjBuilder subBuilder( builder.subobjStart() ) ;
-      pScanNode->toBSON( subBuilder, needExpand, FALSE, mask ) ;
+      pScanNode->toBSON( subBuilder, tempOptions ) ;
       subBuilder.done() ;
 
       PD_TRACE_EXITRC( SDB_OPTSORT__TOBSONCHILDNODESIMPL, rc ) ;
@@ -3132,7 +3154,7 @@ namespace engine
                                               const ossTickDelta & waitTime,
                                               BOOLEAN needParse,
                                               BOOLEAN needChildExplain,
-                                              UINT16 mask )
+                                              const rtnExplainOptions &expOptions )
    {
       INT32 rc = SDB_OK ;
 
@@ -3217,7 +3239,7 @@ namespace engine
             PD_CHECK( newNode, SDB_OOM, error, PDERROR,
                       "Failed to allocate %s node", optrName ) ;
 
-            rc = newNode->fromBSON( pathObject, mask ) ;
+            rc = newNode->fromBSON( pathObject, expOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for %s node, "
                          "rc: %d", optrName, rc ) ;
 
@@ -3339,7 +3361,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTMERGENODEBASE_TOSIMPLEBSON ) ;
 
-      rc = _toBSONChildNodes( builder, TRUE, OPT_NODE_EXPLAIN_MASK_ALL ) ;
+      rc = _toBSONChildNodes( builder, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to generate BSON for child nodes, "
                    "rc: %d" ) ;
 
@@ -3353,21 +3375,23 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODEBASE__TOBSONBASIC, "_optMergeNodeBase::_toBSONBasic" )
    INT32 _optMergeNodeBase::_toBSONBasic ( BSONObjBuilder & builder,
-                                           UINT16 mask ) const
+                                           const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_OPTMERGENODEBASE__TOBSONBASIC ) ;
 
       builder.append( OPT_FIELD_OPERATOR, getName() ) ;
-      builder.append( OPT_FIELD_SORT, _orderBy ) ;
+      builder.appendEx( OPT_FIELD_SORT,
+                        _orderBy,
+                        expOptions.getBuilderOption() ) ;
       builder.appendBool( OPT_FIELD_NEED_REORDER, _needReorder ) ;
 
-      rc = _toBSONChildList( builder, mask ) ;
+      rc = _toBSONChildList( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for child list, "
                    "rc: %d", rc ) ;
 
-      rc = _toBSONReturnOptions( builder ) ;
+      rc = _toBSONReturnOptions( builder, expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for return options, "
                    "rc: %d", rc ) ;
 
@@ -3431,7 +3455,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODEBASE__TOBSONCHILDLST, "_optMergeNodeBase::_toBSONChildList" )
    INT32 _optMergeNodeBase::_toBSONChildList ( BSONObjBuilder & builder,
-                                               UINT16 mask ) const
+                                               const rtnExplainOptions &expOptions ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -3449,14 +3473,14 @@ namespace engine
 
          summaryBuilder.append( OPT_FIELD_SUMMARY_NAME, iter->_name ) ;
 
-         if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_ESTIMATE ) )
+         if ( expOptions.isNeedEstimate() )
          {
             summaryBuilder.append( OPT_FIELD_SUMMARY_EST_COST,
                                    (double)( iter->_estTotalCost *
                                              OPT_COST_TO_SEC ) ) ;
          }
 
-         if ( OSS_BIT_TEST( mask, OPT_NODE_EXPLAIN_MASK_RUN ) )
+         if ( expOptions.isNeedRun() )
          {
             summaryBuilder.append( OPT_FIELD_QUERY_TIME_SPENT, iter->_queryTime ) ;
             summaryBuilder.append( OPT_FIELD_WAIT_TIME_SPENT, iter->_waitTime ) ;
@@ -3474,7 +3498,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODEBASE__TOBSONMERGECHILDNODES, "_optMergeNodeBase::_toBSONMergeChildNodes" )
    INT32 _optMergeNodeBase::_toBSONMergeChildNodes ( BSONArrayBuilder & builder,
-                                                     BOOLEAN needExpand,
+                                                     BOOLEAN needPlanPath,
                                                      BOOLEAN needNodeInfo ) const
    {
       INT32 rc = SDB_OK ;
@@ -3508,7 +3532,7 @@ namespace engine
             else if ( 0 == ossStrcmp( subElement.fieldName(),
                                       OPT_FIELD_PLAN_PATH ) &&
                       Object == subElement.type() &&
-                      ! needExpand )
+                      !needPlanPath )
             {
                // Skip plan path
                continue ;

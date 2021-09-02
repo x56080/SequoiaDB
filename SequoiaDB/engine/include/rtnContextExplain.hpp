@@ -137,7 +137,7 @@ namespace engine
          INT32 _buildBSONNodeInfo ( BSONObjBuilder & builder ) const ;
 
          INT32 _buildBSONQueryOptions ( BSONObjBuilder & builder,
-                                        BOOLEAN needDetail ) const ;
+                                        const rtnExplainOptions &expOptions ) const ;
 
          optPlanAllocator*          getPlanAllocator() ;
 
@@ -146,16 +146,8 @@ namespace engine
       protected :
          /// Query options
          rtnQueryOptions _queryOptions ;
-
          /// Explain options
-         UINT16 _explainMask ;
-         BOOLEAN _needDetail ;
-         BOOLEAN _needEstimate ;
-         BOOLEAN _needRun ;
-         BOOLEAN _needSearch ;
-         BOOLEAN _needEvaluate ;
-         BOOLEAN _needExpand ;
-         BOOLEAN _needFlatten ;
+         rtnExplainOptions _expOptions ;
 
          /// Explain status
          BOOLEAN _explainStarted ;

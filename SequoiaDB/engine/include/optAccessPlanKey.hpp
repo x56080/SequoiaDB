@@ -230,6 +230,16 @@ namespace engine
             return OPT_VALUE_CACHE_NOCACHE ;
          }
 
+         OSS_INLINE BOOLEAN canCache() const
+         {
+            return ( getQuerySize() < OPT_CACHE_OBJECT_MAX_SIZE &&
+                     getOrderBySize() < OPT_CACHE_OBJECT_MAX_SIZE &&
+                     getHintSize() < OPT_CACHE_OBJECT_MAX_SIZE &&
+                     ( getQuerySize() +
+                       getOrderBySize() +
+                       getHintSize() ) < OPT_CACHE_PLAN_MAX_SIZE ) ;
+         }
+
       protected :
 
          void _generateKeyCodeInternal () ;

@@ -2104,7 +2104,7 @@ namespace engine
             if ( !_isMainCL )
             {
                rc = rtnQuery( options, _pEDUCB, _pDmsCB, _pRtnCB, contextID,
-                              &pContext, TRUE, FALSE ) ;
+                              &pContext, TRUE, NULL ) ;
             }
             else
             {

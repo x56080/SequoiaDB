@@ -261,11 +261,10 @@ namespace engine
          virtual void evaluate () = 0 ;
 
          INT32 toBSON ( BSONObjBuilder & builder,
-                        BOOLEAN needExpand,
-                        BOOLEAN needFlatten,
-                        UINT16 mask ) const ;
+                        const rtnExplainOptions &expOptions ) const ;
 
-         INT32 fromBSON ( const BSONObj & object, UINT16 mask ) ;
+         INT32 fromBSON ( const BSONObj & object,
+                          const rtnExplainOptions &expOptions ) ;
 
          OSS_INLINE virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const
          {
@@ -289,17 +288,17 @@ namespace engine
          }
 
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const = 0 ;
+                                      const rtnExplainOptions &expOptions ) const = 0 ;
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) = 0 ;
 
          virtual INT32 _toBSONEstimate ( BSONObjBuilder &builder,
-                                         UINT16 mask ) const ;
+                                         const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _toBSONEstimateImpl ( BSONObjBuilder & builder ) const ;
 
          virtual INT32 _fromBSONEstimate ( const BSONObj & object,
-                                           UINT16 mask ) ;
+                                           const rtnExplainOptions &expOptions ) ;
 
          virtual INT32 _fromBSONEstimateImpl ( const BSONObj & object ) ;
 
@@ -322,17 +321,16 @@ namespace engine
          virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          virtual INT32 _toBSONChildNodes ( BSONObjBuilder & builder,
-                                           BOOLEAN needExpand,
-                                           UINT16 mask ) const ;
+                                           BOOLEAN needPlanPath ) const ;
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needExpand,
-                                                          UINT16 mask ) const
+                                                          BOOLEAN needPlanPath ) const
          {
             return SDB_OK ;
          }
 
-         virtual INT32 _toBSONReturnOptions ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONReturnOptions ( BSONObjBuilder & builder,
+                                              const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _fromBSONReturnOptions ( const BSONObj & object ) ;
 
@@ -720,7 +718,7 @@ namespace engine
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const ;
+                                      const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
@@ -872,7 +870,7 @@ namespace engine
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const ;
+                                      const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
@@ -1021,7 +1019,7 @@ namespace engine
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const ;
+                                      const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
@@ -1030,8 +1028,7 @@ namespace engine
          virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                               BOOLEAN needExpand,
-                                               UINT16 mask ) const ;
+                                               const rtnExplainOptions &expOptions ) const ;
 
          INT32 _toBSONInputSizeEval ( BSONObjBuilder & builder,
                                       UINT64 records,
@@ -1093,7 +1090,7 @@ namespace engine
                                  const ossTickDelta & waitTime,
                                  BOOLEAN needParse,
                                  BOOLEAN needChildExplain,
-                                 UINT16 mask ) ;
+                                 const rtnExplainOptions &expOptions ) ;
 
       public :
          virtual void evaluate () ;
@@ -1118,15 +1115,15 @@ namespace engine
          virtual const CHAR * _getChildNumName () const = 0 ;
 
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-                                      UINT16 mask ) const ;
+                                      const rtnExplainOptions &expOptions ) const ;
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
          virtual INT32 _toBSONChildList ( BSONObjBuilder & builder,
-                                          UINT16 mask ) const ;
+                                          const rtnExplainOptions &expOptions ) const ;
 
          INT32 _toBSONMergeChildNodes ( BSONArrayBuilder & builder,
-                                        BOOLEAN needExpand,
+                                        BOOLEAN needPlanPath,
                                         BOOLEAN needNodeInfo ) const ;
 
       protected :
@@ -1193,10 +1190,9 @@ namespace engine
          }
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needExpand,
-                                                          UINT16 mask ) const
+                                                          BOOLEAN needPlanPath ) const
          {
-            return _toBSONMergeChildNodes( builder, needExpand, FALSE ) ;
+            return _toBSONMergeChildNodes( builder, needPlanPath, FALSE ) ;
          }
    } ;
 
@@ -1251,10 +1247,9 @@ namespace engine
          virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          OSS_INLINE virtual INT32 _toBSONChildNodesImpl ( BSONArrayBuilder & builder,
-                                                          BOOLEAN needExpand,
-                                                          UINT16 mask ) const
+                                                          BOOLEAN needPlanPath ) const
          {
-            return _toBSONMergeChildNodes( builder, needExpand, TRUE ) ;
+            return _toBSONMergeChildNodes( builder, needPlanPath, TRUE ) ;
          }
    } ;
 
