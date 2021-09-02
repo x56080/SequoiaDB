@@ -451,6 +451,13 @@ namespace vessel
          SDB_ASSERT(FALSE, "TODO");/// rollback record
          goto error;
       }
+
+      res.incInsertedNum();
+      if (res.isEnableReturnIDInfo())
+      {
+         res.setInsertLoc(context->getLastDmlRid().getPageID(),
+                          context->getLastDmlRid().getSlotID());
+      }
    done:
       context->unlockRidsAndUniqueKeys();
       return rc;
@@ -1972,7 +1979,9 @@ namespace vessel
       indexConsole console;
 
       BOOLEAN rollbackLog = FALSE;
+      BOOLEAN rollbackDefPage = FALSE;
       indexObject indexObj;
+      PAGE_ID lpid = INVALID_PAGE_ID;
 
       ossScopedRWLock guard(&_dmlLatch, EXCLUSIVE);
 
@@ -2032,25 +2041,15 @@ namespace vessel
       }
       nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
 
-      rc = _indexes.allocateIndexIdAndSlot(indexId, indexSlot);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failedto allocate index id or slot%d", rc);
-         goto error;
-      }
+      indexSlot = _indexes.findFreeIndexSlot();
+      indexId = _indexes.getNextIndexId();
+      SDB_ASSERT(isValidIndexSlot(indexSlot) && (INVALID_LOGICAL_INDEX_ID != indexId),
+                 "impossible");
 
       rc = indexObj.shallowInit(indexId, indexName, pattern, params);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index obj:%d", rc);
-         goto error;
-      }
-
-      rc = _indexes.insert(indexSlot, indexObj, INDEX_STATUS_BUILDING);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
-                indexName.str(), rc);
          goto error;
       }
 
@@ -2063,10 +2062,19 @@ namespace vessel
       }
       rollbackLog = TRUE;
 
-      rc = console.createIndex(context, indexSlot, indexId, objSlice);
+      rc = console.createIndex(context, indexSlot, indexId, objSlice, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create index on index space:%d", rc);
+         goto error;
+      }
+      rollbackDefPage = TRUE;
+
+      rc = _indexes.insert(indexSlot, lpid, indexObj, INDEX_STATUS_BUILDING);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to register unstable index[%s], rc:%d",
+                indexName.str(), rc);
          goto error;
       }
       
@@ -2077,11 +2085,6 @@ namespace vessel
       }
       return rc;
    error:
-      if (isValidIndexSlot(indexSlot))
-      {
-         _indexes.erase(indexSlot);
-      }
-
       /// rollback log first, we need a new lsn.
       if (rollbackLog)
       {
@@ -2091,6 +2094,17 @@ namespace vessel
          if (SDB_OK != tmpRc)
          {
             PD_LOG(PDSEVERE, "failed to commit creating end log, rc:%d", tmpRc);
+            ossPanic();
+         }
+      }
+      if (rollbackDefPage)
+      {
+         INT32 tmpRc = console.releaseIndexDefPage(context, indexSlot);
+         if (SDB_OK != tmpRc)
+         {
+            PD_LOG(PDSEVERE, "failed to rollback index[%d] def page:%d",
+                  indexSlot, tmpRc);
+            ossPanic();
          }
       }
       
@@ -2813,8 +2827,6 @@ namespace vessel
 
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      UINT32 indexId = ic->getIndexID();
-      INT32 indexSlot = ic->getIndexSlot();
       CHAR *fullNameBuffer = NULL;
       UINT32 fullNameBufferSize = 0;
       strSlice nameSlice;
@@ -2846,23 +2858,25 @@ namespace vessel
 
       console.init(_record.mbID, &is);
 
-      rc = console.updateIndexStatus(context, indexSlot,
-                                     INDEX_STATUS_NORMAL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update index[%d] status to normal:%d",
-                indexSlot, rc);
-         goto error;
-      }
-
       rc = commitCreateIndexEndLog(context, nameSlice,
                                    ic->getObj().getIndexName(),
-                                   indexId,
-                                   indexSlot,
+                                   ic->getIndexID(),
+                                   ic->getIndexSlot(),
                                    SDB_OK);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit index creating end log:%d", rc);
+         PD_LOG(PDSEVERE, "failed to commit index creating end log:%d", rc);
+         ossPanic();
+         goto error;
+      }
+
+      rc = console.updateIndexStatus(context, ic->getIndexID(),
+                                     ic->getEntryLpid(),
+                                     INDEX_STATUS_NORMAL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to update index[%s] status to normal:%d",
+                ic->getObj().getIndexName().str(), rc);
          ossPanic();
          goto error;
       }
@@ -3111,6 +3125,14 @@ namespace vessel
                       req->getContext()->getObj().getIndexName().str(),
                       rid.getPageID(), rid.getSlotID());
                rc = SDB_IXM_DUP_KEY;
+               res.incDuplicatedNum();
+               if (res.isEnaleIndexErrInfo())
+               {
+                  const indexObject &indexObj = req->getContext()->getObj();
+                  res.setIndexErrInfo(indexObj.getIndexName().str(),
+                                      indexObj.getPattern().getPattern(),
+                                      *itr);
+               }
                goto error;
             }
          }
@@ -3298,7 +3320,9 @@ namespace vessel
          goto error;
       }
 
-      rc = console.updateIndexStatus(context, indexSlot, INDEX_STATUS_REMOVING);
+      rc = console.updateIndexStatus(context, ic->getIndexID(),
+                                     ic->getEntryLpid(),
+                                     INDEX_STATUS_REMOVING);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update index status:%d", rc);
@@ -3336,10 +3360,11 @@ namespace vessel
          goto error;
       }
 
-      rc = console.truncateIndex(context, indexSlot, ic->getObj());
+      rc = console.truncateIndex(context, ic);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to truncate index[%d], rc:%d", indexSlot, rc);
+         PD_LOG(PDERROR, "failed to truncate index[%s], rc:%d",
+                ic->getObj().getIndexName().str(), rc);
          goto error;
       }
    done:
@@ -3362,6 +3387,8 @@ namespace vessel
       SDB_ASSERT(0 < o.stepLength, "can not be zero");
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
+      bson::BSONObjBuilder keyObjBuilder;
+
       rc = scanner.open(context, ic->getObj());
       if (SDB_OK != rc)
       {
@@ -3397,10 +3424,26 @@ namespace vessel
             goto error;
          }
 
-         if (o.indexCover)
+         if (o.indexCoverd)
          {
+            transID = scanner.getTransID();
+            ixmKey key;
+            scanner.getKey(key);
+            bson::BSONObj keyObj;
+
+            keyObjBuilder.reset();
+            rc = key.toRecord(ic->getObj().getPattern().getPattern(), keyObjBuilder);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to build key obj:%d", rc);
+               goto error;
+            }
+
+            keyObj = keyObjBuilder.done();
+
             rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
-                                            slice(sizeof(DPS_TRANS_ID), &transID)});
+                                            slice(sizeof(DPS_TRANS_ID), &transID),
+                                            slice(keyObj.objsize(), keyObj.objdata())});
             if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
             {
                rc = SDB_OK;
@@ -3450,6 +3493,7 @@ namespace vessel
       return rc;
    error:
       rr.fini();
+      context->unlockAllRids();
       goto done;
    }
 }//namespace vessel

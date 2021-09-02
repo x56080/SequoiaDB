@@ -121,15 +121,15 @@ namespace vessel
          INT32 openScanCursor(ISession *session,
                               IQueryFilter *filter,
                               const collectionScanOptions &scanOptions,
-                              const cursorOptions &cursorOptions,
-                              cursorHandler &cursor);
+                              cursorHandler &cursor,
+                              const cursorOptions *co=NULL);
 
          INT32 openIndexScanCursor(ISession *session,
                                    const strSlice &indexName,
                                    const rtnPredicateList &predicate,
                                    const indexScanOptions &scanOptions,
-                                   const cursorOptions &co,
-                                   cursorHandler &cursor);
+                                   cursorHandler &cursor,
+                                   const cursorOptions *co=NULL);
           
       private:
          collectionHandle _handle;

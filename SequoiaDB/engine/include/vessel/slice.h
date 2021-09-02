@@ -49,13 +49,20 @@ namespace vessel
    class slice : public SDBObject
    {
       public:
-         OSS_INLINE slice():_len(0), _data(NULL){}
+         OSS_INLINE slice():_len(0), _data(NULL)
+         {
+            unvalidIfNecessary();
+         }
          OSS_INLINE slice(UINT32 len, const CHAR *data):
                     _len(len), _data(data)
-                    {}
+         {
+            unvalidIfNecessary();
+         }
          OSS_INLINE slice(UINT32 len, const void *data):
                     _len(len), _data((const CHAR *)data)
-                    {}
+         {
+            unvalidIfNecessary();
+         }
          OSS_INLINE slice(const slice &r):
                     _len(r._len), _data(r._data){}
 
@@ -90,6 +97,7 @@ namespace vessel
          {
             _len = len;
             _data = data;
+            unvalidIfNecessary();
             return;
          }
 
@@ -97,10 +105,27 @@ namespace vessel
          {
             return 0 < _len && NULL != _data;
          }
+      
+      private:
+         OSS_INLINE void unvalidIfNecessary()
+         {
+            if (!isValid())
+            {
+               if (0 != _len)
+               {
+                  _len = 0;
+               }
+               if (NULL != _data)
+               {
+                  _data = NULL;
+               }
+               return;
+            }
+         }
          
       private:
-         UINT32 _len;
-         const CHAR *_data;
+         UINT32 _len = 0;
+         const CHAR *_data = NULL;
    };
 
 } // namespace vessel

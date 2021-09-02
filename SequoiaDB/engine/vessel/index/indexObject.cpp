@@ -91,7 +91,7 @@ namespace vessel
       fini();
       if (o.isValid())
       {
-         shallowInit(o._indexId, o._nameSlice, o._pattern, o._params);
+         shallowInit(o._indexId, _nameSlice, o._pattern, o._params);
       }
    }
 

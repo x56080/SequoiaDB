@@ -34,7 +34,7 @@
 ******************************************************************************/
 
 #include "vessel/scanCLCursor.h"
-#include "vessel/recordCursorRow.h"
+#include "vessel/dataScanRow.h"
 
 namespace engine
 {
@@ -48,7 +48,7 @@ namespace vessel
       const recordID *rid = NULL;
       const DPS_TRANS_ID *transID = NULL;
       slice record;
-      recordCursorRow *recordRow = NULL;
+      dataScanRow *recordRow = NULL;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -56,13 +56,13 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == row ||
-                             CURSOR_ROW_TYPE_RECORD != row->getType()))
+                             CURSOR_ROW_TYPE_SCAN != row->getType()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      recordRow = static_cast<recordCursorRow *>(row);
+      recordRow = static_cast<dataScanRow *>(row);
       if (OSS_UNLIKELY(NULL == recordRow))
       {
          PD_LOG(PDERROR, "failed to cast row ptr to record cursor row");
@@ -76,7 +76,7 @@ namespace vessel
          goto error;
       }
 
-      if (content.len() < recordCursorRow::MIN_CONTENT_SIZE)
+      if (content.len() < dataScanRow::MIN_CONTENT_SIZE)
       {
          PD_LOG(PDERROR, "invalid content len:%d", content.len());
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -85,8 +85,8 @@ namespace vessel
 
       rid = (const recordID *)(content.data());
       transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
-      record.reset(content.len() - recordCursorRow::MIN_CONTENT_SIZE,
-                   (const CHAR *)((ossValuePtr)(content.data()) + recordCursorRow::MIN_CONTENT_SIZE));
+      record.reset(content.len() - dataScanRow::MIN_CONTENT_SIZE,
+                   (const CHAR *)((ossValuePtr)(content.data()) + dataScanRow::MIN_CONTENT_SIZE));
 
       recordRow->shallowCopy(*rid, *transID, record);
 

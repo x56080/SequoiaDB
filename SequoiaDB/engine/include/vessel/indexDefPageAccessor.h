@@ -55,19 +55,14 @@ namespace vessel
          ~indexDefPageAccessor(){}
 
       public:
-         INT32 testIndexDef(requestContext *context,
-                            const strSlice &indexName,
-                            const indexKeyPattern &pattern,
-                            const logicalPageBuffer *lpb,
-                            BOOLEAN &duplicated)const;
-
          INT32 createIndex(requestContext *context,
                            UINT32 indexId,
                            const slice &defObj,
                            logicalPageBuffer *lpb)const;
 
          INT32 updateIndexStatus(requestContext *context,
-                                 INDEX_STATUS newStatus,
+                                 UINT32 indexId,
+                                 INDEX_STATUS status,
                                  logicalPageBuffer *lpb)const;
 
          /// WARNING: Do not accesses obj any more after fini lpb if

@@ -60,13 +60,16 @@ namespace vessel
       return;
    }
 
-   INT32 indexContextMap::insertWhenStartup(INT32 indexSlot,
-                                            const indexObject &obj,
-                                            INDEX_STATUS status)
+   INT32 indexContextMap::insert(INT32 indexSlot,
+                                 PAGE_ID lpid,
+                                 const indexObject &obj,
+                                 INDEX_STATUS status)
    {
       INT32 rc = SDB_OK;
       indexContext *ic = NULL;
+
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
+                        INVALID_PAGE_ID == lpid ||
                         !obj.isValid() ||
                         INDEX_STATUS_INVALID == status))
       {
@@ -89,7 +92,7 @@ namespace vessel
          goto error;
       }
 
-      rc = ic->init(indexSlot, obj, status);
+      rc = ic->init(indexSlot, lpid, obj, status);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index context:%d", rc);
@@ -106,83 +109,6 @@ namespace vessel
       if (_nextIndexId <= obj.getIndexID())
       {
          _nextIndexId = obj.getIndexID() + 1;
-      }
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(ic);
-      goto done;
-   }
-
-   INT32 indexContextMap::allocateIndexIdAndSlot(UINT32 &indexId,
-                                                 INT32 &indexSlot)
-   {
-      INT32 rc = SDB_OK;
-      if (INVALID_LOGICAL_INDEX_ID == _nextIndexId)
-      {
-         rc = SDB_DMS_MAX_INDEX;
-         goto error;
-      }
-
-      indexSlot = findFreeIndexSlot();
-      if (!isValidIndexSlot(indexSlot))
-      {
-         rc = SDB_DMS_MAX_INDEX;
-         goto error;
-      }
-
-      indexId = _nextIndexId++;
-   done:
-      return rc;
-   error:
-      indexId = INVALID_LOGICAL_INDEX_ID;
-      indexSlot = -1;
-      goto done;
-   }
-
-   INT32 indexContextMap::insert(INT32 indexSlot,
-                                 const indexObject &obj,
-                                 INDEX_STATUS status)
-   {
-      INT32 rc = SDB_OK;
-      indexContext *ic = NULL;
-
-      if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
-                        !obj.isValid() ||
-                        INDEX_STATUS_INVALID == status ||
-                        _nextIndexId <= obj.getIndexID()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!isIndexSlotFree(indexSlot))
-      {
-         PD_LOG(PDERROR, "index slot[%d] not free", indexSlot);
-         rc = SDB_VESSEL_DUPLICATED_KEY;
-         goto error;
-      }
-
-      ic = SDB_OSS_NEW indexContext();
-      if (OSS_UNLIKELY(NULL == ic))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = ic->init(indexSlot, obj, status);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index context:%d", rc);
-         goto error;
-      }
-
-      rc = insert(ic);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to insert context to map:%d", rc);
-         goto error;
       }
    done:
       return rc;

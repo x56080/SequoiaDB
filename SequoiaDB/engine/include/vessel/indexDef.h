@@ -69,6 +69,7 @@ namespace vessel
       INDEX_STATUS_NORMAL = 2,
       INDEX_STATUS_TRUNCATING = 3,
       INDEX_STATUS_REMOVING = 4,
+      INDEX_STATUS_ABNORMAL = 5,
    };// enum INDEX_STATUS
 
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_TYPE = "type";

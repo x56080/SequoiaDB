@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = recordCursorRow.h
+   Source File Name = dataScanRow.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_RECORD_CURSOR_ROW_H_
-#define VESSEL_RECORD_CURSOR_ROW_H_
+#ifndef VESSEL_DATA_SCAN_ROW_H_
+#define VESSEL_DATA_SCAN_ROW_H_
 
 #include "vessel/cursorRow.h"
 #include "vessel/recordID.h"
@@ -45,17 +45,17 @@ namespace engine
 {
 namespace vessel
 {
-   class recordCursorRow : public cursorRow
+   class dataScanRow : public cursorRow
    {
       public:
-         recordCursorRow(){}
-         virtual ~recordCursorRow(){}
-         recordCursorRow(const recordCursorRow &o):
+         dataScanRow(){}
+         virtual ~dataScanRow(){}
+         dataScanRow(const dataScanRow &o):
          _rid(o._rid),
          _transID(o._transID),
          _record(o._record){}
 
-         recordCursorRow &operator=(const recordCursorRow &o)
+         dataScanRow &operator=(const dataScanRow &o)
          {
             _rid = o._rid;
             _transID = o._transID;
@@ -66,7 +66,7 @@ namespace vessel
       public:
          virtual CURSOR_ROW_TYPE getType()const
          {
-            return CURSOR_ROW_TYPE_RECORD;
+            return CURSOR_ROW_TYPE_SCAN;
          }
 
          static const UINT32 MIN_CONTENT_SIZE = sizeof(recordID) + sizeof(DPS_TRANS_ID);
@@ -107,9 +107,9 @@ namespace vessel
          recordID _rid;
          DPS_TRANS_ID _transID;
          slice _record;
-   };//class recordCursorRow
+   };//class dataScanRow
 }//namespace vessel
 }//namespace engine
 
 
-#endif//VESSEL_RECORD_CURSOR_ROW_H_
+#endif//VESSEL_DATA_SCAN_ROW_H_

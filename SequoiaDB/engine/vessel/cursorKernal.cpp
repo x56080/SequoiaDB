@@ -59,7 +59,7 @@ namespace vessel
 
    INT32 cursorKernal::open(vesselImpl *db,
                             IQueryFilter *filter,
-                            const cursorOptions &options)
+                            const cursorOptions *o)
    {
       INT32 rc = SDB_OK;
 
@@ -76,7 +76,10 @@ namespace vessel
       }
 
       OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
-      _options = options;
+      if (NULL != o)
+      {
+         _options = *o;
+      }
       _db = db;
       _filter = filter;
 

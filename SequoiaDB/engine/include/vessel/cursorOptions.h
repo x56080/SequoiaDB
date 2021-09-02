@@ -60,7 +60,7 @@ namespace vessel
          ///cursor will try to extend buf only when the buf can not hold at
          /// least one slice.
          UINT32 maxBufSize = 16777216; /// 16MB
-         UINT32 initBufSize = 65536;   /// 64KB
+         UINT32 initBufSize = 32768;   /// 32KB
    };
 }//namespace vessel
 }//namespace engine

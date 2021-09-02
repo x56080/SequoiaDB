@@ -52,11 +52,13 @@ namespace vessel
    }
 
    INT32 indexContext::init(INT32 indexSlot,
+                            PAGE_ID lpid,
                             const indexObject &obj,
                             INDEX_STATUS status)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isValidIndexSlot(indexSlot) ||
+                       INVALID_PAGE_ID == lpid ||
                        !obj.isValid() ||
                        INDEX_STATUS_INVALID == status))
       {
@@ -65,6 +67,7 @@ namespace vessel
       }
 
       _indexSlot = indexSlot;
+      _lpid = lpid;
       rc = _obj.init(obj.getIndexID(),
                      obj.getIndexName(),
                      obj.getPattern(),

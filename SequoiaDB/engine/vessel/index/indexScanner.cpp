@@ -431,5 +431,30 @@ namespace vessel
       close();
       goto done;
    }
+
+   recordID indexScanner::getRid()const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!isPaused(), "can not be paused");
+      SDB_ASSERT(_iterator->isReadyToRead(), "must be ready");
+      return _iterator->getRid();
+   }
+
+   DPS_TRANS_ID indexScanner::getTransID()const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!isPaused(), "can not be paused");
+      SDB_ASSERT(_iterator->isReadyToRead(), "must be ready");
+      return _iterator->getTransID();
+   }
+
+   void indexScanner::getKey(ixmKey &key)const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!isPaused(), "can not be paused");
+      SDB_ASSERT(_iterator->isReadyToRead(), "must be ready");
+      _iterator->getKey(key);
+      return;
+   }
 } // namespace vessel   
 } // namespace vessel

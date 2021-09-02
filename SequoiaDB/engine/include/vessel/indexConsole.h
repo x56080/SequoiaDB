@@ -75,30 +75,21 @@ namespace vessel
          void fini();
 
       public:
-         INT32 testIfDuplicated(requestContext *context,
-                                INT32 indexSlot,
-                                const strSlice &indexName,
-                                const indexKeyPattern &pattern,
-                                BOOLEAN &duplicated)const;
-
          INT32 createIndex(requestContext *context,
                            INT32 indexSlot,
                            UINT32 indexId,
-                           const slice &defObj)const;
+                           const slice &defObj,
+                           PAGE_ID &lpid)const;
 
          INT32 releaseIndexDefPage(requestContext *context,
                                    INT32 indexSlot);
 
          INT32 truncateIndex(requestContext *context,
-                             INT32 indexSlot,
-                             const indexObject &obj);
-
-         INT32 dumpIndex(requestContext *context,
-                         INT32 indexSlot,
-                         bson::BSONObj &obj)const;
+                             indexContext *ic);
 
          INT32 updateIndexStatus(requestContext *context,
-                                 INT32 indexSlot,
+                                 UINT32 indexId,
+                                 PAGE_ID lpid,
                                  INDEX_STATUS status);
 
          INT32 getOwnedIndexObj(requestContext *context,
@@ -146,12 +137,14 @@ namespace vessel
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,
                                        UINT32 indexId,
-                                       const slice &defObj)const;
+                                       const slice &defObj,
+                                       PAGE_ID &out)const;
 
          INT32 createDoubleMappedIndex(requestContext *context,
                                        INT32 indexSlot,
                                        UINT32 indexId,
-                                       const slice &defObj)const;
+                                       const slice &defObj,
+                                       PAGE_ID &out)const;
 
       private:
          CL_MB_ID _mbID = INVALID_CL_MB_ID;

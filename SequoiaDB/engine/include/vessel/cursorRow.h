@@ -44,7 +44,7 @@ namespace vessel
 {
    enum CURSOR_ROW_TYPE
    {
-      CURSOR_ROW_TYPE_RECORD = 0,
+      CURSOR_ROW_TYPE_SCAN = 0,
    };//enum CURSOR_ROW_TYPE
 
    class cursorRow : public SDBObject

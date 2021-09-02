@@ -38,6 +38,7 @@
 
 #include "vessel/indexObject.h"
 #include "vessel/unstableIndexContext.h"
+#include "vessel/vesselIdDef.h"
 
 namespace engine
 {
@@ -93,8 +94,13 @@ namespace vessel
             return _unstatbleContext;
          }
 
+         OSS_INLINE PAGE_ID getEntryLpid()const
+         {
+            return _lpid;
+         }
       public:
          INT32 init(INT32 indexSlot,
+                    PAGE_ID lpid,
                     const indexObject &obj,
                     INDEX_STATUS status);
 
@@ -108,6 +114,7 @@ namespace vessel
 
       private:
          INT32 _indexSlot = -1;
+         PAGE_ID _lpid = INVALID_PAGE_ID;
          indexObject _obj;
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
          unstableIndexContext *_unstatbleContext = NULL;

@@ -125,8 +125,8 @@ namespace vessel
    INT32 collectionHandler::openScanCursor(ISession *session,
                                            IQueryFilter *filter,
                                            const collectionScanOptions &scanOptions,
-                                           const cursorOptions &cursorOptions,
-                                           cursorHandler &cursor)
+                                           cursorHandler &cursor,
+                                           const cursorOptions *co)
    {
       INT32 rc = SDB_OK;
       scanCLCursor *kernal = NULL;
@@ -150,7 +150,7 @@ namespace vessel
          goto error;
       }
 
-      rc = kernal->open(_db, filter, cursorOptions);
+      rc = kernal->open(_db, filter, co);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open cursor:%d", rc);
@@ -198,8 +198,8 @@ namespace vessel
                                                 const strSlice &indexName,
                                                 const rtnPredicateList &predicate,
                                                 const indexScanOptions &scanOptions,
-                                                const cursorOptions &co,
-                                                cursorHandler &cursor)
+                                                cursorHandler &cursor,
+                                                const cursorOptions *co)
    {
       INT32 rc = SDB_OK;
       indexScanCursor *kernal = NULL;

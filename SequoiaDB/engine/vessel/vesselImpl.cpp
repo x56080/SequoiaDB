@@ -208,7 +208,7 @@ namespace vessel
          goto error;
       }
 
-      rc = listCursor->open(this, filter, cursorOptions());
+      rc = listCursor->open(this, filter);
       if (SDB_OK != rc)
       {
          goto error;
@@ -381,7 +381,7 @@ namespace vessel
          goto error;
       }
 
-      rc = listCursor->open(this, filter, cursorOptions());
+      rc = listCursor->open(this, filter);
       if (SDB_OK != rc)
       {
          goto error;

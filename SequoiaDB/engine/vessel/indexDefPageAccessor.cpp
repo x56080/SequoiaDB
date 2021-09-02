@@ -42,84 +42,6 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexDefPageAccessor::testIndexDef(requestContext *context,
-                                            const strSlice &indexName,
-                                            const indexKeyPattern &pattern,
-                                            const logicalPageBuffer *lpb,
-                                            BOOLEAN &duplicated)const
-   {
-      INT32 rc = SDB_OK;
-      const runtimePageBuffer *rpb = NULL;
-      const indexDefHead *head = NULL;
-      ossValuePtr ptr = 0;
-      indexKeyPattern indexPattern;
-      strSlice nameSlice;
-      bson::BSONObj defObj;
-
-      if (OSS_UNLIKELY(NULL == context ||
-                       indexName.empty() ||
-                       NULL == lpb || !lpb->isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      duplicated = FALSE;
-      rpb = &(lpb->getRuntimeBuffer());
-
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
-         goto error;
-      }
-
-      head = rpb->getReadablePtrOfBody<indexDefHead>(0);
-      if (NULL == head)
-      {
-         PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);
-         goto error;
-      }
-
-      if (!head->isValid())
-      {
-         PD_LOG(PDERROR, "index def page head is not valid");
-         rc = SDB_IXM_NOTEXIST;
-         goto error;
-      }
-
-      if (context->getLogicalCLID() != head->clLogicalID)
-      {
-         PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
-                context->getLogicalCLID(), head->clLogicalID);
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      rc = rpb->getReadablePtrOfBodyWithRc(INDEX_DEF_HEAD_SIZE, head->defObjSize, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get obj ptr:%d", rc);
-         goto error;
-      }
-
-      defObj = bson::BSONObj((const CHAR *)ptr);
-      rc = indexUtils::parseIndexDefObj(defObj, &nameSlice, &indexPattern, NULL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to parse index def obj:%d", rc);
-         goto error;
-      }
-
-      duplicated = (indexName == nameSlice) ||
-                    pattern.isCoveredBy(indexPattern);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 indexDefPageAccessor::createIndex(requestContext *context,
                                            UINT32 indexId,
                                            const slice &defObj,
@@ -259,16 +181,19 @@ namespace vessel
    }
 
    INT32 indexDefPageAccessor::updateIndexStatus(requestContext *context,
-                                                 INDEX_STATUS newStatus,
+                                                 UINT32 indexId,
+                                                 INDEX_STATUS status,
                                                  logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
       const indexDefHead *readableHead = NULL;
       indexDefHead *head = NULL;
 
-      if (NULL == context ||
-          NULL == lpb ||
-          !lpb->isValid())
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_LOGICAL_INDEX_ID == indexId ||
+                       INDEX_STATUS_INVALID == status ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -303,6 +228,13 @@ namespace vessel
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
+      else if (indexId != readableHead->indexLogicalID)
+      {
+         PD_LOG(PDERROR, "index logical id [%d] does match the one[%d] in head",
+                indexId, readableHead->indexLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
 
       rc = lpb->prepareToWrite(context);
       if (SDB_OK != rc)
@@ -320,7 +252,7 @@ namespace vessel
          goto error;
       }
 
-      head->status = newStatus;
+      head->status = status;
       head->alteredTime = ossGetCurrentMilliseconds();
       lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
    done:

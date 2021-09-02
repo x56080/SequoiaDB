@@ -75,7 +75,7 @@ namespace vessel
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,
                     IQueryFilter *filter, 
-                    const cursorOptions &options);
+                    const cursorOptions *o=NULL);
          void close();
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);

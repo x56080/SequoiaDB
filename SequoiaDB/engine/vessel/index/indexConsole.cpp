@@ -80,9 +80,11 @@ namespace vessel
    INT32 indexConsole::createIndex(requestContext *context,
                                    INT32 indexSlot,
                                    UINT32 indexId,
-                                   const slice &defObj)const
+                                   const slice &defObj,
+                                   PAGE_ID &lpid)const
    {
       INT32 rc = SDB_OK;
+
       if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -99,7 +101,7 @@ namespace vessel
 
       if (indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL)
       {
-         rc = createDirectMappedIndex(context, indexSlot, indexId, defObj);
+         rc = createDirectMappedIndex(context, indexSlot, indexId, defObj, lpid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create direct mapped index:%d", rc);
@@ -108,7 +110,7 @@ namespace vessel
       }
       else
       {
-         rc = createDoubleMappedIndex(context, indexSlot, indexId, defObj);
+         rc = createDoubleMappedIndex(context, indexSlot, indexId, defObj, lpid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create double mapped index:%d", rc);
@@ -116,59 +118,6 @@ namespace vessel
          }
       }
    done:
-      return rc;
-   error:
-      goto done;
-   }
-
-
-   INT32 indexConsole::dumpIndex(requestContext *context,
-                                 INT32 indexSlot,
-                                 bson::BSONObj &obj)const
-   {
-      INT32 rc = SDB_OK;
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
-      bson::BSONObjBuilder builder;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-
-      if (!isInitialized())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context || !isValidIndexSlot(indexSlot))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lpid of index[%d], rc:%d", indexSlot, rc);
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      builder.append(VESSEL_INDEX_FIELD_NAME_INDEX_SLOT, indexSlot);
-      rc = accessor.dump(context, &lpb, builder);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to dump index info:%d", rc);
-         goto error;
-      }
-
-      obj = builder.obj();
-   done:
-      lpb.fini();
       return rc;
    error:
       goto done;
@@ -182,11 +131,11 @@ namespace vessel
    }
 
    INT32 indexConsole::updateIndexStatus(requestContext *context,
-                                         INT32 indexSlot,
+                                         UINT32 indexId,
+                                         PAGE_ID lpid,
                                          INDEX_STATUS status)
    {
       INT32 rc = SDB_OK;
-      PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
       indexDefPageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
@@ -197,17 +146,11 @@ namespace vessel
          goto error;
       }
       else if (NULL == context ||
-               !isValidIndexSlot(indexSlot) ||
+               INVALID_LOGICAL_INDEX_ID == indexId ||
+               INVALID_PAGE_ID == lpid ||
                INDEX_STATUS_INVALID == status)
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get lpid of index def page:%d", rc);
          goto error;
       }
 
@@ -218,7 +161,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.updateIndexStatus(context, status, &lpb);
+      rc = accessor.updateIndexStatus(context, indexId, status, &lpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update index status:%d", rc);
@@ -365,7 +308,8 @@ namespace vessel
    INT32 indexConsole::createDoubleMappedIndex(requestContext *context,
                                                 INT32 indexSlot,
                                                 UINT32 indexId,
-                                                const slice &defObj)const
+                                                const slice &defObj,
+                                                PAGE_ID &out)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -450,6 +394,8 @@ namespace vessel
          PD_LOG(PDERROR, "faield to add new index mapping:%d", rc);
          goto error;
       }
+
+      out = lpid;
       
    done:
       lh.unlock();
@@ -463,13 +409,15 @@ namespace vessel
       {
          _is->releasePages(context, 1, &lpid);
       }
+      out = INVALID_PAGE_ID;
       goto done;
    }
 
    INT32 indexConsole::createDirectMappedIndex(requestContext *context,
                                                INT32 indexSlot,
                                                UINT32 indexId,
-                                               const slice &defObj)const
+                                               const slice &defObj,
+                                               PAGE_ID &out)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -521,70 +469,18 @@ namespace vessel
          PD_LOG(PDERROR, "failed to save index info when creating:%d", rc);
          goto error;
       }
+
+      out = lpid;
    done:
       lpb.fini();
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 indexConsole::testIfDuplicated(requestContext *context,
-                                        INT32 indexSlot,
-                                        const strSlice &indexName,
-                                        const indexKeyPattern &pattern,
-                                        BOOLEAN &duplicated)const
-   {
-      INT32 rc = SDB_OK;
-    
-      PAGE_ID lpid = INVALID_PAGE_ID;
-      logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            !isValidIndexSlot(indexSlot) ||
-                            indexName.empty() ||
-                            !pattern.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _is->getIndexDefPage(context, _mbID, indexSlot, lpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get index def page of slot[%d]:%d", indexSlot, rc);
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = accessor.testIndexDef(context, indexName, pattern, &lpb, duplicated);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to test if duplicated:%d", rc);
-         goto error;
-      }
-   done:
-      lpb.fini();
-      return rc;
-   error:
+      out = INVALID_PAGE_ID;
       goto done;
    }
 
    INT32 indexConsole::truncateIndex(requestContext *context,
-                                     INT32 indexSlot,
-                                     const indexObject &obj)
+                                     indexContext *ic)
    {
       INT32 rc = SDB_OK;
 
@@ -594,16 +490,16 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            !isValidIndexSlot(indexSlot) ||
-                            !obj.isValid()))
+                            NULL == ic ||
+                            !ic->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == obj.getIndexType())
+      if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
       {
-         rc = lsmTruncate(context, obj);
+         rc = lsmTruncate(context, ic->getObj());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to truncate lsm index:%d", rc);
@@ -713,7 +609,7 @@ namespace vessel
             goto error;
          }
 
-         rc = indexes->insertWhenStartup(i, indexObj, (INDEX_STATUS)(head.status));
+         rc = indexes->insert(i, lpid, indexObj, (INDEX_STATUS)(head.status));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);
@@ -777,7 +673,7 @@ namespace vessel
             goto error;
          }
 
-         rc = indexes->insertWhenStartup(i, indexObj, (INDEX_STATUS)(head.status));
+         rc = indexes->insert(i, lpid, indexObj, (INDEX_STATUS)(head.status));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert index[%d] into context map:%d", i, rc);

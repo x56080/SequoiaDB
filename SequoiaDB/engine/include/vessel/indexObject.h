@@ -60,9 +60,9 @@ namespace vessel
                     const indexParameters &params);
 
          INT32 shallowInit(UINT32 indexId,
-                            const strSlice &indexName,
-                            const indexKeyPattern &pattern,
-                            const indexParameters &params);
+                           const strSlice &indexName,
+                           const indexKeyPattern &pattern,
+                           const indexParameters &params);
 
          void shallowCopy(const indexObject &o);
 
@@ -96,7 +96,6 @@ namespace vessel
          {
             return _params.type;
          }
-
 
       private:
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;

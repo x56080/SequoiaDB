@@ -79,6 +79,12 @@ namespace vessel
          {
             return _paused;
          }
+
+      public:
+         recordID getRid()const;
+         DPS_TRANS_ID getTransID()const;
+         void getKey(ixmKey &key)const;
+
       private:
          INT32 prepareToScan(rtnPredicateListIterator *predicate);
          INT32 prepareToScan(const slice &entry);

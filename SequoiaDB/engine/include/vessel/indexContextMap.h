@@ -69,14 +69,10 @@ namespace vessel
       public:
          void fini();
 
-         INT32 insertWhenStartup(INT32 indexSlot,
-                                 const indexObject &obj,
-                                 INDEX_STATUS status);
-
-         INT32 allocateIndexIdAndSlot(UINT32 &indexId,
-                                      INT32 &indexSlot);
+         INT32 findFreeIndexSlot()const;         
 
          INT32 insert(INT32 indexSlot,
+                      PAGE_ID lpid,
                       const indexObject &obj,
                       INDEX_STATUS status);
 
@@ -91,7 +87,6 @@ namespace vessel
          BOOLEAN isIndexSlotFree(INT32 indexSlot);
          void unfreeIndexSlot(INT32 indexSlot);
          void freeIndexSlot(INT32 indexSlot);
-         INT32 findFreeIndexSlot()const;
 
          INT32 insert(indexContext *ic);
          

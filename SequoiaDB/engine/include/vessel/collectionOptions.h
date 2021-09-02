@@ -79,19 +79,32 @@ namespace vessel
          baseScanOptions(){}
          ~baseScanOptions(){}
          baseScanOptions(const baseScanOptions &o):
-         scanForShare(o.scanForShare),
-         scanForUpdate(o.scanForUpdate)
+         _sf(o._sf)
          {}
          baseScanOptions &operator=(const baseScanOptions &o)
          {
-            scanForShare = o.scanForShare;
-            scanForUpdate = o.scanForUpdate;
+            _sf = o._sf;
             return *this;
          }
 
+      private:
+         enum _SCAN_FOR
+         {
+            _SCAN_FOR_NONE = 0,
+            _SCAN_FOR_SHARE = 1,
+            _SCAN_FOR_UPDATE = 2,
+         };//enum _SCAN_FOR
+
       public:
-         BOOLEAN scanForShare = FALSE;
-         BOOLEAN scanForUpdate = FALSE;
+         OSS_INLINE void setScanForShare() {_sf = _SCAN_FOR_SHARE;}
+         OSS_INLINE void setScanForUpdate() {_sf = _SCAN_FOR_UPDATE;}
+         OSS_INLINE void setScanForNone() {_sf = _SCAN_FOR_NONE;}
+         OSS_INLINE BOOLEAN isScanForNone()const {return _SCAN_FOR_NONE == _sf;}
+         OSS_INLINE BOOLEAN isScanForUpdate()const {return _SCAN_FOR_UPDATE == _sf;}
+         OSS_INLINE BOOLEAN isScanForShare()const {return _SCAN_FOR_SHARE == _sf;}
+
+      public:
+         _SCAN_FOR _sf = _SCAN_FOR_NONE;
    };//class baseScanOptions
 
    class collectionScanOptions : public SDBObject
@@ -122,14 +135,14 @@ namespace vessel
          indexScanOptions(const indexScanOptions &o):
          base(o.base),
          stepLength(o.stepLength),
-         indexCover(o.indexCover),
+         indexCoverd(o.indexCoverd),
          forward(o.forward)
          {}
          indexScanOptions &operator=(const indexScanOptions &o)
          {
             base = o.base;
             stepLength = o.stepLength;
-            indexCover = o.indexCover;
+            indexCoverd = o.indexCoverd;
             forward = o.forward;
             return *this;
          }
@@ -137,7 +150,7 @@ namespace vessel
       public:
          baseScanOptions base;
          UINT32 stepLength = 1;
-         BOOLEAN indexCover = FALSE;
+         BOOLEAN indexCoverd = FALSE;
          BOOLEAN forward = TRUE;
    };//class indexScanOptions
 }//namespace vessel
