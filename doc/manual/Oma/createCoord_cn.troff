@@ -5,52 +5,46 @@
 .hy
 .SH 名称
 .PP
-createCoord \- 在目标集群控制器（sdbcm）所在的机器中创建一个 coord 节点。
+createCoord \- 创建临时协调节点
 .SH 语法
 .PP
-\f[B]oma.createCoord(<svcname>,<dbpath>,[config])\f[]
+\f[B]oma.createCoord(<svcname>, <dbpath>, [config])\f[]
 .SH 类别
 .PP
 Oma
 .SH 描述
 .PP
-在目标集群控制器（sdbcm）所在的机器中创建一个 coord
-节点。一般情况，通过该接口创建的 coord 节点只出于临时使用的目的。
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-oma 对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
-.IP \[bu] 2
-通过该接口创建的 coord 节点并不会注册到 catalog 中，即该 coord
-节点不能被集群管理。若希望 coord
-节点能够被集群管理，需要使用createNode()接口来创建 coord 节点。
+该函数用于在资源管理节点（sdbcm）所在的机器中创建一个临时协调节点，供初始创建
+SequoiaDB
+集群时使用。通过该函数创建的协调节点不会注册到编目节点中，即该节点不能被集群管理；如果希望协调节点能够被集群管理，可参考
+createNode()。
 .SH 参数
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]必填\f[] )
+svcname ( \f[I]string/number，必填\f[] )
 .RS 2
 .PP
-节点端口号。
+节点端口号
 .RE
 .IP \[bu] 2
-\f[C]dbpath\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
+dbpath ( \f[I]string，必填\f[] )
 .RS 2
 .PP
-节点数据目录。
+节点的数据存储目录
 .RE
 .IP \[bu] 2
-\f[C]config\f[] ( \f[I]Object\f[]， \f[I]选填\f[] )
+config ( \f[I]object，选填\f[] )
 .RS 2
 .PP
-节点配置信息，如配置日志大小，是否打开事务等，具体可参考数据库配置。
+节点配置信息，如配置日志大小、是否打开事务等，具体可参考数据库配置
 .RE
 .SH 返回值
 .PP
-成功：无。
+函数执行成功时，无返回值。
 .PP
-失败：抛出异常。
+函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
-\f[C]createCoord()\f[]函数常见异常如下：
+\f[C]createCoord()\f[] 函数常见异常如下：
 .PP
 .TS
 tab(@);
@@ -62,9 +56,9 @@ T}@T{
 T}@T{
 错误类型
 T}@T{
-描述
+可能发生的原因
 T}@T{
-解决方法
+解决办法
 T}
 _
 T{
@@ -74,7 +68,7 @@ T}@T{
 T}@T{
 SDB_PERM
 T}@T{
-权限错误。
+权限错误
 T}@T{
 检查节点路径是
 T}
@@ -90,7 +84,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-限是否正确。
+限是否正确
 T}
 T{
 2
@@ -99,39 +93,37 @@ T}@T{
 T}@T{
 SDB_NETWORK
 T}@T{
-网络错误。
+网络错误
 T}@T{
-1.
-检查 sdbcm 状态
+检查网络情况或
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-是否正常，如果
+sdbcm 状态是否正
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-状态异常，可以
+常，如果状态异
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-尝试重启。2.
-检
+常，可以尝试重
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-查网络情况。
+启
 T}
 T{
 3
@@ -140,7 +132,7 @@ T}@T{
 T}@T{
 SDBCM_NODE_EXISTED
 T}@T{
-节点已存在。
+节点已存在
 T}@T{
 检查节点是否存
 T}
@@ -149,7 +141,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-在。
+在
 T}
 T{
 4
@@ -158,7 +150,7 @@ T}@T{
 T}@T{
 SDB_CM_CONFIG_CONFLICTS
 T}@T{
-节点配置冲突。
+节点配置冲突
 T}@T{
 检查端口号及数
 T}
@@ -174,24 +166,22 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-被使用。
+被使用
 T}
 .TE
 .PP
-当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。
-.PP
-可以参考常见错误处理指南了解更多内容。
+当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
+获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-v2.0及以上版本。
+v2.0 及以上版本
 .SH 示例
 .PP
-在本地创建一个端口号为11810的 coord 节点，将该节点关联到指定的 catalog 节点。
+连接本地集群管理服务进程 sdbcm，创建一个端口号为 18800 的临时 coord 节点
 .IP
 .nf
 \f[C]
 >\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.createCoord(\ 11810,\ "/opt/sequoiadb/database/coord/11810",\ {\ catalogaddr:\ "ubuntu1:11823,\ ubuntu2:11823"\ }\ )
+>\ oma.createCoord(18800,\ "/opt/sequoiadb/database/coord/18800")
 \f[]
 .fi

@@ -1,11 +1,10 @@
-
 ##NAME##
 
-createCoord - Create a coord node in target host of sdbcm.
+createCoord - create a temporary coordination node
 
 ##SYNOPSIS##
 
-**oma.createCoord(\<svcname\>,\<dbpath\>,[config])**
+**oma.createCoord(\<svcname\>, \<dbpath\>, [config])**
 
 ##CATEGORY##
 
@@ -13,57 +12,60 @@ Oma
 
 ##DESCRIPTION##
 
-Create a coord node in target host of sdbcm, in general, the coord node is only used temporarily.
+This function is used to create a temporary coordination node in the machine where the resource management node (sdbcm) is located, for the initial creation of the SequoiaDB cluster. The coordination node created by this function will not be registered in the catalog node, that is the node cannot be managed by the cluster. If users want the coordination node to be managed by the cluster, refer to [createNode()][createNode].
 
-**Note:**
+##PARAMETERS##
 
-* Coord Nodes created through this interface cannot be managed by the cluster, and coord nodes that can be managed by the cluster can be created through the createNode() interface.
+- svcname ( *string/number, required* )
 
-##DESCRIPTION##
+	Node port number
 
-* `svcname` ( *Int | String*， *Required* )
+- dbpath ( *string, required* )
 
-	The port of the node.
+	Node's data storage directory
 
-* `dbpath` ( *String*， *Required* )
+- config ( *object, optional* )
 
-	The node data directory.
-
-* `config` ( *Object*， *Optional* )
-
-	Node configuration information.
+	Node configuration information, such as configuration log size, whether to open transactions and so on. For more details can refer to [database configuration][configuration].
 
 ##RETURN VALUE##
 
-On success, no return value.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-the exceptions of `createCoord()` are as below:
+The common exceptions of `createCoord()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ------ | --- | ------------ | ----------- |
-| -3 | SDB_PERM | Permission error. | Check if the node path is correct and the path permissions are correct. |
-| -15 | SDB_NETWORK | Network error. | 1.Check if the sdbcm status is normal, if the status is abnormal, you can try restart.  2.Check network conditions. |
-| -145 | SDBCM_NODE_EXISTED | Node already exist. | Check if the node already exists. |
-| -157 | SDB_CM_CONFIG_CONFLICTS | Node configuration conflict. | Check if the port and data directory are used. |
+| -3     | SDB_PERM | Permission error| Check whether the node path is correct and whether the path permissions are correct |
+| -15    | SDB_NETWORK | Network Error| Check whether the network status or sdbcm status is normal, if the status is abnormal, users can try to restart|
+| -145   | SDBCM_NODE_EXISTED | Node already exists| Check whether the node exists |
+| -157   | SDB_CM_CONFIG_CONFLICTS | Node configuration conflict | Check whether the port number and data directory have been used |
 
-When error happen, use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)
-to get the error message or use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)
-to get the error code. See [troubleshooting](manual/FAQ/faq_sdb.md) for
-more details.
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-##HISTORY##
+##VERSION##
 
-since v2.0
+v2.0 and above
 
 ##EXAMPLES##
 
-1. Create a coord node with port number 11810 and associate the node with the specified catalog node.
+Connect to the local cluster management service process sdbcm and create a temporary coordination node with port number 18800.
 
-	```lang-javascript
-	> var oma = new Oma( "localhost", 11790 )
-	> oma.createCoord( 11810, "/opt/sequoiadb/database/coord/11810", { catalogaddr: "ubuntu1:11823, ubuntu2:11823" } )
-	```
+```lang-javascript
+> var oma = new Oma( "localhost", 11790 )
+> oma.createCoord(18800, "/opt/sequoiadb/database/coord/18800")
+```
+
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
+[createNode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/createNode.md
+    
