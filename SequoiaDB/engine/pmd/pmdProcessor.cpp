@@ -1183,6 +1183,12 @@ namespace engine
 
       if ( eduCB()->isTransaction() )
       {
+         PD_LOG_MSG_CHECK( SDB_OK == eduCB()->getTransRC(),
+                           eduCB()->getTransRC(), error, PDERROR,
+                           "Transaction(%s) must rollback due to error(%d)",
+                           dpsTransIDToString( eduCB()->getTransID() ).c_str(),
+                           eduCB()->getTransRC() ) ;
+
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                              "TransactionID: 0x%016x(%llu)",
@@ -1190,9 +1196,15 @@ namespace engine
                              eduCB()->getTransID() ) ;
 
          rc = rtnTransCommit( eduCB(), dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction, rc: %d",
+                      rc ) ;
       }
 
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _pmdDataProcessor::_onTransRollbackMsg ( SDB_DPSCB *dpsCB )

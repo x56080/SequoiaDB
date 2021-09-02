@@ -1558,6 +1558,8 @@ namespace engine
 
       _userData = 0 ;
       _pCtrl    = NULL ;
+
+      _hasImmediateRespEvents = FALSE ;
    }
 
    _pmdRemoteSessionSite::~_pmdRemoteSessionSite()
@@ -1740,6 +1742,8 @@ namespace engine
                                                 (CHAR*)pMsg,
                                                 (UINT64)handle ) ) ;
             }
+
+            _hasImmediateRespEvents = TRUE ;
          }
       }
 
@@ -2046,6 +2050,59 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   class _pmdImmediateRespEventFilter : public _pmdEDUCB::_pmdEventFilter
+   {
+   public:
+      _pmdImmediateRespEventFilter() {}
+      virtual ~_pmdImmediateRespEventFilter() {}
+
+      virtual BOOLEAN filterEvent( pmdEDUEvent &data )
+      {
+         // filter disconnect message which required immediate response to
+         // interrupt running transaction
+         return ( PMD_EDU_EVENT_MSG == data._eventType ) &&
+                ( MSG_BS_DISCONNECT == ((MsgHeader *)(data._Data))->opCode ) ;
+      }
+   } ;
+   typedef class _pmdImmediateRespEventFilter pmdImmediateRespEventFilter ;
+
+   INT32 _pmdRemoteSessionSite::checkImmediateRespEvents(
+                                             IRemoteSessionHandler *pHandle )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _hasImmediateRespEvents )
+      {
+         // reset first
+         _hasImmediateRespEvents = FALSE ;
+
+         pmdImmediateRespEventFilter filter ;
+         pmdEDUEventQueue eventQueue ;
+
+         // try get events which requires immediate response
+         if ( _pEDUCB->waitEvent( filter, eventQueue, 0 ) )
+         {
+            PD_LOG( PDEVENT, "Got %u immediate response events",
+                    eventQueue.size() ) ;
+
+            pmdEDUEvent data ;
+            while ( eventQueue.try_pop( data ) )
+            {
+               // process events
+               // NOTE: will release event inside processEvent()
+               pmdSubSession *pSubSession = NULL ;
+               MAP_SUB_SESSION emptyMap ;
+               processEvent( data,
+                             emptyMap,
+                             &pSubSession,
+                             pHandle ) ;
+            }
+         }
+      }
+
+      return rc ;
    }
 
    pmdRemoteSession* _pmdRemoteSessionSite::addSession( INT64 timeout,

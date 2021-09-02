@@ -323,8 +323,38 @@ namespace engine
          return waitMsg ;
       }
 
-      BOOLEAN waitEvent( pmdEDUEventTypes type, pmdEDUEvent &data,
-                         INT64 millsec, BOOLEAN resetStat = FALSE )
+      // event filter
+      class _pmdEventFilter
+      {
+      public:
+         _pmdEventFilter() {}
+         virtual ~_pmdEventFilter() {}
+         virtual BOOLEAN filterEvent( pmdEDUEvent &event ) = 0 ;
+      } ;
+      typedef class _pmdEventFilter pmdEventFilter ;
+
+      // event type filter
+      class _pmdEventTypeFilter : public _pmdEventFilter
+      {
+      public:
+         _pmdEventTypeFilter( pmdEDUEventTypes type ) : _type( type ) {}
+         virtual ~_pmdEventTypeFilter() {}
+
+         virtual BOOLEAN filterEvent( pmdEDUEvent &event )
+         {
+            return event._eventType == _type ;
+         }
+
+      protected:
+         pmdEDUEventTypes _type ;
+      } ;
+      typedef class _pmdEventTypeFilter pmdEventTypeFilter ;
+
+      // wait event and get back first matched event
+      BOOLEAN waitEvent( pmdEventFilter &filter,
+                         pmdEDUEvent &data,
+                         INT64 millsec,
+                         BOOLEAN resetStat = FALSE )
       {
          BOOLEAN ret = FALSE ;
          INT64 waitTime = 0 ;
@@ -347,7 +377,7 @@ namespace engine
                }
                continue ;
             }
-            if ( type != data._eventType )
+            if ( !filter.filterEvent( data ) )
             {
                tmpQue.push( data ) ;
                --_processEventCount ;
@@ -364,6 +394,62 @@ namespace engine
             _queue.push( tmpData ) ;
          }
          return ret ;
+      }
+
+      // wait event and get back matched events
+      BOOLEAN waitEvent( _pmdEventFilter &filter,
+                         pmdEDUEventQueue &dataQueue,
+                         INT64 millsec,
+                         BOOLEAN resetStat = FALSE )
+      {
+         BOOLEAN ret = FALSE ;
+         INT64 waitTime = 0 ;
+         pmdEDUEventQueue tmpQue ;
+
+         if ( millsec < 0 )
+         {
+            millsec = 0x7FFFFFFF ;
+         }
+
+         while ( !isInterrupted() )
+         {
+            pmdEDUEvent data ;
+            waitTime = millsec < OSS_ONE_SEC ? millsec : OSS_ONE_SEC ;
+            if ( !waitEvent( data, waitTime, resetStat ) )
+            {
+               millsec -= waitTime ;
+               if ( millsec <= 0 )
+               {
+                  break ;
+               }
+               continue ;
+            }
+            if ( filter.filterEvent( data ) )
+            {
+               dataQueue.push( data ) ;
+               ret = TRUE ;
+            }
+            else
+            {
+               tmpQue.push( data ) ;
+               --_processEventCount ;
+            }
+         }
+
+         pmdEDUEvent tmpData ;
+         while ( !tmpQue.empty() )
+         {
+            tmpQue.try_pop( tmpData ) ;
+            _queue.push( tmpData ) ;
+         }
+         return ret ;
+      }
+
+      BOOLEAN waitEvent( pmdEDUEventTypes type, pmdEDUEvent &data,
+                         INT64 millsec, BOOLEAN resetStat = FALSE )
+      {
+         pmdEventTypeFilter filter( type ) ;
+         return waitEvent( filter, data, millsec, resetStat ) ;
       }
 
       void contextCopy( SET_CONTEXT &contextList ) ;
