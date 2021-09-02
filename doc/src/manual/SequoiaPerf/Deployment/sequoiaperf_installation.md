@@ -2,7 +2,7 @@
 
 ##下载安装包##
 
-用户可前往 SequoiaDB 巨杉数据库官网下载中心下载对应版本安装包。
+当前版本暂不提供 SequoiaPerf 的下载途径，如果需要下载安装包可联系 [SequoiaDB 技术支持][support]。
 
 ##安装##
 
@@ -147,7 +147,6 @@
    安装程序已经完成安装 SequoiaPerf Server 于你的电脑中.
    ```
 
-
-
 [^_^]:
     本文使用的所有引用及链接
+[support]:manual/SequoiaDB_Intro/Readme.md#技术支持
