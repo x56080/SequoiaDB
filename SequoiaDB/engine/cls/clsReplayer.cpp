@@ -815,7 +815,7 @@ namespace engine
       if ( transID.isValid() &&
            transCB->isRollback( transID ) )
       {
-         eduCB->startTransRollback() ;
+         eduCB->startTransRollback( TRUE ) ;
          startedRollback = TRUE ;
       }
 

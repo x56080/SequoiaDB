@@ -442,9 +442,21 @@ namespace engine
       BOOLEAN  isGlobTrans() const ;
       // get global transaction time error
       UINT32   getTransTimeError() const ;
-      void     startTransRollback() { _isDoTransRollback = TRUE ; }
-      void     stopTransRollback() { _isDoTransRollback = FALSE ; }
+
+      void     startTransRollback( BOOLEAN takeOver = FALSE )
+      {
+         _isDoTransRollback = TRUE ;
+         _isTakeOverTransRB = takeOver ;
+      }
+
+      void     stopTransRollback()
+      {
+         _isDoTransRollback = FALSE ;
+         _isTakeOverTransRB = FALSE ;
+      }
+
       BOOLEAN  isInTransRollback() const { return _isDoTransRollback ; }
+      BOOLEAN  isTakeOverTransRB() const { return _isTakeOverTransRB ; }
       void     setTransRC( INT32 rc ) { _transRC = rc ; }
       INT32    getTransRC() const { return _transRC ; }
       void     setTransStatus( INT32 status ) { _transStatus = status ; }
@@ -634,6 +646,8 @@ namespace engine
 
       // indicate transaction is rolling back
       BOOLEAN                 _isDoTransRollback ;
+      // indicate if transaction rollback is taken over
+      BOOLEAN                 _isTakeOverTransRB ;
 
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;

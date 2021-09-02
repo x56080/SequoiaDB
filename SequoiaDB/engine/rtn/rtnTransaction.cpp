@@ -739,7 +739,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 rtnTransRollbackAll( _pmdEDUCB * cb )
+   INT32 rtnTransRollbackAll( _pmdEDUCB * cb,
+                              UINT64 doRollbackID )
    {
       INT32 rc = SDB_OK;
       dpsTransCB *pTransCB = sdbGetTransCB() ;
@@ -754,10 +755,11 @@ namespace engine
       _dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN ) ;
 
       pTransCB->cloneTransMap( tmpTransMap ) ;
-      cb->startTransRollback() ;
+      cb->startTransRollback( TRUE ) ;
 
-      PD_LOG ( PDEVENT, "Begin to rollback all unfinished transactions[%d]...",
-               tmpTransMap.size() ) ;
+      PD_LOG ( PDEVENT, "Begin to rollback all unfinished transactions "
+               "[num of trans: %d, rollback ID: %u]...",
+               tmpTransMap.size(), doRollbackID ) ;
 
       while ( tmpTransMap.size() != 0 )
       {
@@ -920,18 +922,15 @@ namespace engine
       } /// while ( tmpTransMap.size() != 0 )
 
    done:
-      // clear transaction metablock statistics
-      sdbGetDMSCB()->fixTransMBStats() ;
-
       // clear all lsn mapping
       cb->getTransExecutor()->clearRecordMap() ;
       pTransCB->transLockReleaseAll( cb ) ;
-      pTransCB->stopRollbackTask() ;
+      pTransCB->stopRollbackTask( doRollbackID ) ;
 
       cb->stopTransRollback() ;
 
       PD_LOG ( PDEVENT, "Rollback all unfinished transactions finished with "
-               "rc[%d]", rc ) ;
+               "rc[%d], rollback ID [%u]", rc, doRollbackID ) ;
       return rc ;
    error:
       pTransCB->incErrCount() ;

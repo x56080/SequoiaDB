@@ -4953,21 +4953,36 @@ namespace engine
       // update meta-block statistics
       ++ ( mbStat->_totalRecords ) ;
 
-      // update meta-block statistics for transaction
-      if ( cb->isInTransRollback() )
+      // update meta-block statistics for transaction RC counter
+      if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
       {
-         // do nothing
+         // two special cases need update RC counter with record counter
+         // - replay thread in secondary node
+         // - primary switch is running
+         // in these cases, no transactions can query the collection, so it
+         // is safe to update the RC counter
+         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+      }
+      else if ( cb->isInTransRollback() )
+      {
+         // in transaction rollback, do nothing
       }
       else if ( cb->isTransaction() )
       {
+         // in transaction, update the RC counter in transaction executor
+         // first
          if ( !cb->getTransExecutor()->incMBTotalRecords(
                            clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
          {
+            // failed to update the RC counter in transaction executor, which
+            // means the collection unique ID may be invalid, update the
+            // RC counter directly
             mbStat->_rcTotalRecords.inc() ;
          }
       }
       else
       {
+         // not a transaction, update the RC counter
          mbStat->_rcTotalRecords.inc() ;
       }
 
@@ -4987,21 +5002,36 @@ namespace engine
       // update meta-block statistics
       -- ( mbStat->_totalRecords ) ;
 
-      // update meta-block statistics for transaction
-      if ( cb->isInTransRollback() )
+      // update meta-block statistics for transaction RC counter
+      if ( cb->isDoReplay() || sdbGetTransCB()->isDoRollback() )
       {
-         // do nothing
+         // two special cases need update RC counter with record counter
+         // - replay thread in secondary node
+         // - primary switch is running
+         // in these cases, no transactions can query the collection, so it
+         // is safe to update the RC counter
+         mbStat->_rcTotalRecords.poke( mbStat->_totalRecords ) ;
+      }
+      else if ( cb->isInTransRollback() )
+      {
+         // in transaction rollback, do nothing
       }
       else if ( cb->isTransaction() )
       {
+         // in transaction, update the RC counter in transaction executor
+         // first
          if ( !cb->getTransExecutor()->decMBTotalRecords(
                         clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
          {
+            // failed to update the RC counter in transaction executor, which
+            // means the collection unique ID may be invalid, update the
+            // RC counter directly
             mbStat->_rcTotalRecords.dec() ;
          }
       }
       else
       {
+         // not a transaction, update the RC counter
          mbStat->_rcTotalRecords.dec() ;
       }
 

@@ -568,7 +568,8 @@ namespace engine
                          SDB_DPSCB *dpsCB,
                          const stpLogicalTimeUS &specCommitTime = stpLogicalTimeUS() );
    INT32 rtnTransRollback( _pmdEDUCB * cb, SDB_DPSCB *dpsCB );
-   INT32 rtnTransRollbackAll( _pmdEDUCB * cb );
+   INT32 rtnTransRollbackAll( _pmdEDUCB * cb,
+                              UINT64 doRollbackID );
    INT32 rtnTransSaveWaitCommit ( _pmdEDUCB * cb, SDB_DPSCB * dpsCB,
                                   BOOLEAN & savedAsWaitCommit ) ;
 
