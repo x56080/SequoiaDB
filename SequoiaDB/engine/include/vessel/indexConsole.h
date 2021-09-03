@@ -133,6 +133,14 @@ namespace vessel
          INT32 createLsmBatch(dmlContext *context,
                               const dmlIndexRequestArray &ra,
                               lsmInsertBatch &lsmBatch);
+
+      private:
+         INT32 btreeInsert(requestContext *context,
+                           indexContext *ic,
+                           const ixmKey &key,
+                           const recordID &rid,
+                           const DPS_TRANS_ID &transID,
+                           DPS_LSN_OFFSET lsn);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,

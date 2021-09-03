@@ -311,10 +311,9 @@ namespace vessel
                }
                else
                {
-                  UINT32 millis = 60000; /// 1 mins
                   BOOLEAN timeout = FALSE;
                   _iterator->pause();
-                  rc = waitCurrentRid(millis, timeout);
+                  rc = waitCurrentRid(timeout);
                   if (SDB_OK != rc)
                   {
                      PD_LOG(PDERROR, "failed to wait latch obj:%d", rc);
@@ -369,7 +368,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexScanner::waitCurrentRid(UINT32 millis, BOOLEAN &timeout)
+   INT32 indexScanner::waitCurrentRid(BOOLEAN &timeout)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
@@ -380,16 +379,38 @@ namespace vessel
       mode.setShared();
       recordID rid = _iterator->getRid();
       SDB_ASSERT(rid.valid(), "can not be invalid");
+      UINT32 millis = 1000;
+      UINT32 totalMillis = 30000;
       recordIdLatchKey key(_context->getSpaceID(),
                            _context->getMBID(),
                            rid);
+      timeout = FALSE;
 
-      rc = lh.waitFor(lm, key, mode, millis, timeout);
-      if (SDB_OK != rc)
+      for (UINT32 i = 0; i < totalMillis; i += millis)
       {
-         PD_LOG(PDERROR, "failed to wait rid latch:%d", rc);
-         goto error;
+         BOOLEAN timeoutThisLoop = FALSE;
+         rc = lh.waitFor(lm, key, mode, millis, timeoutThisLoop);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to wait rid latch:%d", rc);
+            goto error;
+         }
+         else if (timeoutThisLoop)
+         {
+            if (_context->getSession()->quit())
+            {
+               PD_LOG(PDERROR, "session[%lld] quit", _context->getSession()->getSessionID());
+               rc = SDB_APP_INTERRUPT;
+               goto error;
+            }
+         }
+         else
+         {
+            goto done;
+         }
       }
+
+      timeout = TRUE;
    done:
       return rc;
    error:

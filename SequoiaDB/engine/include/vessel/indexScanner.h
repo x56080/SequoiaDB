@@ -90,7 +90,7 @@ namespace vessel
          INT32 prepareToScan(const slice &entry);
          INT32 matchCurrentOrSeekNext(recordID &rid);
          INT32 tryLockCurrentRid(BOOLEAN &locked);
-         INT32 waitCurrentRid(UINT32 millis, BOOLEAN &timeout);
+         INT32 waitCurrentRid(BOOLEAN &timeout);
          
          
       private:

@@ -219,6 +219,10 @@ namespace vessel
       {
          *lps = &(su->getMainDataSpace());
       }
+      else if (SPACE_TYPE_IDX == type)
+      {
+         *lps = &(su->getIndexSpace());
+      }
       else
       {
          SDB_ASSERT(FALSE, "todo");

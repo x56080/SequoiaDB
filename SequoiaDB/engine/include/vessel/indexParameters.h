@@ -57,6 +57,7 @@ namespace vessel
             notNull = o.notNull;
             notArray = o.notArray;
             prefixCompressionColumns = o.prefixCompressionColumns;
+            columnFamily = o.columnFamily;
             return *this;
          }
 

@@ -867,5 +867,24 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 indexConsole::btreeInsert(requestContext *context,
+                                   indexContext *ic,
+                                   const ixmKey &key,
+                                   const recordID &rid,
+                                   const DPS_TRANS_ID &transID,
+                                   DPS_LSN_OFFSET lsn)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine
