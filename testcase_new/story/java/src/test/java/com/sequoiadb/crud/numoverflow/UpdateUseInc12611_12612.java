@@ -15,12 +15,12 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: UpdateUseInc12611_12612.java test content:Numeric value overflow
- * for single character using $inc operation, and the $inc is used as a update.
- * testlink case:seqDB-12611
- * 
+ * @Description seqDB-12611:使用$inc更新不同类型数值运算溢出 ；seqDB-12612:使用$inc更新不同类型数值运算 *
  * @author luweikang
  * @Date 2017.9.15
+ * @updateUser wuyan
+ * @updateDate 2021.9.3
+ * @updateRemark 新增int32类型数值运算不溢出情况下保持原类型测试单
  * @version 1.00
  */
 
@@ -41,10 +41,12 @@ public class UpdateUseInc12611_12612 extends SdbTestBase {
                 "{'no':{'$numberLong':'-1073746824'},'long':{'$decimal':'-9223372037928522632'},'test':1}" };
         String[] expRecords4 = {
                 "{'no':{a:{b:2147493647}},'string':'123','test':2}" };
-        String[] expRecords5 = {
-                "{'no':[-2147483648,[3221225471],{'$numberLong':'9223372036854775807'}],test:3}" };
-        String[] expRecords6 = {
-                "{'no':[-2147483648,[3221225471],{'$decimal':'9223372036854775808'}],test:3}" };
+        // String[] expRecords5 = {
+        // "{'no':[-2147483648,[3221225471],{'$numberLong':'9223372036854775807'}],test:3}"
+        // };
+        // String[] expRecords6 = {
+        // "{'no':[-2147483648,[3221225471],{'$decimal':'9223372036854775808'}],test:3}"
+        // };
         String[] expRecords7 = {
                 "{'no':2147483646.5,'long':9223372036854775807,'test':4}" };
         String[] expRecords8 = {
@@ -53,14 +55,19 @@ public class UpdateUseInc12611_12612 extends SdbTestBase {
                 "{'no':-2147483649,'long':-9223372036854775808,'test':5}" };
         String[] expRecords10 = {
                 "{'no':-2147483649,'long':{$decimal:'-9223372036854775809'},'test':5}" };
+        String[] expRecords11 = {
+                "{'no':-2147483647,'long':{'$numberLong':'-333333333808'},'test':6}" };
+        String[] expRecords12 = {
+                "{'no':{a:{b:2147483646}},'long':{'$numberLong':'-8'},'test':7}" };
 
         String expJavaLong = "class java.lang.Long";
         String expJavaDouble = "class java.lang.Double";
         String expJavaDecimal = "class org.bson.types.BSONDecimal";
+        String expJavaInt = "class java.lang.Integer";
         String expLongType = "int64";
         String expDoubleType = "double";
         String expDecimalType = "decimal";
-
+        String expIntType = "int32";
         return new Object[][] {
                 // the parameters: int matcherValue,String updateName, String
                 // updateValue, String []expRecords,String expTypeToSdb,Boolean
@@ -87,8 +94,12 @@ public class UpdateUseInc12611_12612 extends SdbTestBase {
                         expLongType, true, expJavaLong },
                 new Object[] { 5, "long", new Integer( -1 ), expRecords10,
                         expDecimalType, true, expJavaDecimal },
-                //
-        };
+                // int(-2147483648) + long(1)= int(-2147483647)
+                new Object[] { 6, "no", new Long( 1 ), expRecords11, expIntType,
+                        true, expJavaInt },
+                // int(2147483647) + long(-1)= int(2147483646)
+                new Object[] { 7, "no.a.b", new Long( -1 ), expRecords12,
+                        expIntType, false, null } };
     }
 
     @BeforeClass
@@ -107,7 +118,9 @@ public class UpdateUseInc12611_12612 extends SdbTestBase {
                 "{'no':{a:{b:1073741823}},'string':'123','test':2}",
                 "{'no':[-2147483648,[2147483647],{'$numberLong':'9223372036854775807'}],test:3}",
                 "{'no':2147483647,'long':{'$numberLong':'9223372036854775807'},'test':4}",
-                "{'no':-2147483648,'long':{'$numberLong':'-9223372036854775808'},'test':5}" };
+                "{'no':-2147483648,'long':{'$numberLong':'-9223372036854775808'},'test':5}",
+                "{'no':-2147483648,'long':{'$numberLong':'-333333333808'},'test':6}",
+                "{'no':{a:{b:2147483647}},'long':{'$numberLong':'-8'},'test':7}", };
 
         NumOverflowUtils.insert( cl, records );
     }
@@ -115,36 +128,25 @@ public class UpdateUseInc12611_12612 extends SdbTestBase {
     @Test(dataProvider = "operData")
     public void testInc( int matcherValue, String updateName,
             Object updateValue, String[] expRecords, String expTypeToSdb,
-            Boolean isVerifyTypeToJava, String expTypeToJava ) {
-        try {
-            BSONObject uValue = new BasicBSONObject();
-            uValue.put( updateName, updateValue );
-            NumOverflowUtils.updateOper( cl, matcherValue, uValue, "update" );
-            NumOverflowUtils.checkUpdateResult( cl, matcherValue, expRecords );
-            try {
-                NumOverflowUtils.checkUpdateDataType( cl, matcherValue,
-                        updateName, expTypeToSdb, isVerifyTypeToJava,
-                        expTypeToJava );
-            } catch ( Exception e ) {
-                e.printStackTrace();
-            }
+            Boolean isVerifyTypeToJava, String expTypeToJava )
+                    throws Exception {
 
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "upsert numeric value overflowoper failed,"
-                            + e.getMessage() );
-        }
+        BSONObject uValue = new BasicBSONObject();
+        uValue.put( updateName, updateValue );
+        NumOverflowUtils.updateOper( cl, matcherValue, uValue, "update" );
+        NumOverflowUtils.checkUpdateResult( cl, matcherValue, expRecords );
+
+        NumOverflowUtils.checkUpdateDataType( cl, matcherValue, updateName,
+                expTypeToSdb, isVerifyTypeToJava, expTypeToJava );
+
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            CollectionSpace cs = sdb.getCollectionSpace( SdbTestBase.csName );
             if ( cs.isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();
