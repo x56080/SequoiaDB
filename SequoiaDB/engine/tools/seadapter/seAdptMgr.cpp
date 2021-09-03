@@ -536,7 +536,7 @@ namespace seadapter
       {
          if ( type == itr->type )
          {
-            _vecInnerSessionParam.erase( itr ) ;
+            _vecInnerSessionParam.erase( itr++ ) ;
          }
          else
          {

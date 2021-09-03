@@ -1025,7 +1025,7 @@ static int setDisplayAttribute( bool enhancedDisplay,
     }
     if ( pAttrs && pAttrs != &attr )
     {
-      delete pAttrs ;
+      delete [] pAttrs ;
     }
 done:
     PD_TRACE_EXIT ( SDB_SETDISPLAYATTR );
