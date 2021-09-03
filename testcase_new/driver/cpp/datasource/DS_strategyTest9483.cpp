@@ -35,7 +35,7 @@ class strategyTest9483 : public testBase
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    string url ;
    string url1 ;
    string url2 ;

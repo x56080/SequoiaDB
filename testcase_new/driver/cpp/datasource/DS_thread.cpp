@@ -6,6 +6,8 @@
 #include "DS_common.hpp"
 #include <ctime>
 
+
+
 using namespace std ;
 
 INT32 getRand()
@@ -23,7 +25,7 @@ void init( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
@@ -33,7 +35,7 @@ void init_enable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
@@ -45,7 +47,7 @@ void init_disable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
@@ -57,7 +59,7 @@ void init_close( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
@@ -68,7 +70,7 @@ void init_conn( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
@@ -84,7 +86,7 @@ void init_coord( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
-	sdbDataSourceConf conf ;
+	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;

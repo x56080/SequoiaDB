@@ -22,7 +22,7 @@ using namespace sdbclient ;
 class coordTest9571 : public testBase
 {
 protected:
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    sdbConnectionPool ds ;
 
    void SetUp()

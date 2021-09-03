@@ -33,7 +33,7 @@ using namespace sdbclient ;
 class connTest9505 : public testBase
 {
 protected:
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    sdbConnectionPool ds ;
    string url ;
 

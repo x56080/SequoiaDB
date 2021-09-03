@@ -57,7 +57,7 @@ class threadTest9535 : public testBase
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    Worker* workers[ ThreadNum ] ;
    string url ;
 
