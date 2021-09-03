@@ -4,95 +4,116 @@
 .hy
 .SH NAME
 .PP
-createProcedure \- Create a stored procedure in current database.
+createProcedure \- create a stored procedure
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.createProcedure(<code>)\f[]\f[]
+\f[B]db.createProcedure(<code>)\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-Create a stored procedure in the database instance.
-.sp 2
-\fBcode (Custom Functions)\fR
-.br
-       Standard function definition, not a string type,
-       iquotation marks cannot be used when inputting parameters.
-.sp 2
-       \fBFormat\fR
-.br
-              createProcedure() has a parameter "code" which is a
-              standard function definition.
-.br
-              createProcedure(<code>)
-.sp 2
-
-.sp 2
-   *  Recommended direct use stored procedures have been
-   initialized global db, and the global db using authentication
-   information currently executing the stored procedure session.
-   such as: \fBdb.createProcedure( function getAll(){return
-   db.foo.bar.find();} )\fR.
-.sp 2
-   *  Db initialization own form of \fBvar db=new Sdb()\fR. DB
-   the authentication information for the current session to
-   execute the stored procedure. If you need to add other user
-   name and password, as \fBvar db=new
-   Sdb('usrname','passwd')\fR. It should be noted that when the
-   stored procedure can only be run on a connected db, db does
-   not provide remote connection to other methods. Without the
-   need for authentication, even if \fBvar db = new
-   Sdb('hostname', 'servicename')\fR statement is executed
-   normally. Db still get local db.
-.sp 2
-   *  Database's role must be a coord node. Standalone mode
-   cannot support procedure function.
-.SH "Function definition"
-
-.sp 2
-*  
-   Function definition
-.sp 2
-   1. Function must contain the function name. It cannot be
-   usedin the following form \fBfunction(x,y){return x+y;}\fR
-.sp 2
-   2. Other functions or even inexistent functions can be called
-   in the function definition. But it should be ensured that all
-   the functions are existent during runtime.
-.sp 2
-   3. The function name should be globally unique and overload is
-   not supported.
-.sp 2
-   4. Each fuction is available in the whole system. Delete a
-   procedure without proper check may lead to run time exceptions
-   of other people.
-.sp 2
-   *  Function's parameters
-.sp 2
-   native type of JS
-.sp 2
-   *  Function's outputs
-.sp 2
-   Functions for all standard output, standard error will be
-   masked. And the uses of output commands are not recommended in
-   the function definitions. Too much output may lead to a
-   failure during the running of stored procedure.
-.sp 2
-   *  Function's returned values
-.sp 2
-   Function's returned values can be any data type except for a
-   database. For example: \fBfunction getCL(){return
-   db.foo.bar;}\fR
-.SH "Examples"
-
-.sp 2
-
-.sp 2
-Create a sum function:
-.sp 2
-db.createProcedure(function sum(x,y){return x+y;})
-.sp 2
-Once the function is created, db.listProcedures() can be used to
-check the information of the functions.
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to create a stored procedure in a database object.
+.SH PARAMETERS
+.PP
+code ( \f[I]function, required\f[] )
+.PP
+Specify a custom function that conforms to JavaScript syntax.
+The format is as follows:
+.IP
+.nf
+\f[C]
+function\ functionName(parameters)\ {
+\ \ function\ body
+}
+\f[]
+.fi
+.IP \[bu] 2
+Other functions can be called in the function body.
+If users call a function that does not exist, users need to ensure that the
+relevant function already exists when the stored procedure is running.
+.IP \[bu] 2
+The function name is globally unique and does not support overloading.
+.IP \[bu] 2
+Each function is available globally, and random deletion of a function may cause
+the associated stored procedure to fail.
+.IP \[bu] 2
+The stored procedure will shield all standard output and standard error.
+At the same time, it is not recommended to add output statements during function
+definition or execution.
+A large amount of output may cause the stored procedure to fail.
+.IP \[bu] 2
+The return value of a function can be any data type except Sdb.
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+The cluster deployed in standalone mode does not support the creation of stored
+procedures.
+.RE
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+The following records exist in the collection sample.employee:
+.IP
+.nf
+\f[C]
+{id:\ 1,\ Name:\ "Jack",\ age:\ 25}
+\f[]
+.fi
+.IP "1." 3
+Connect the coordination node.
+.nf
+\f[C]
+>\ var\ coord\ =\ new\ Sdb("sdbserver",\ 11810)
+\f[]
+.fi
+.RE
+.IP "2." 3
+Create a stored procedure.
+.nf
+\f[C]
+>\ coord.createProcedure(function\ getAll()\ {\ return\ db.sample.employee.find();\ })
+\f[]
+.fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+db has been initialized in the stored procedure.
+Users can use the global db to refer to the authentication information
+corresponding to the session in which the stored procedure is executed.
+.RE
+.RE
+.IP "3." 3
+Execute the stored procedure through eval().
+.nf
+\f[C]
+>\ coord.eval("getAll()")
+{
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "60cd4c2e1a52b21546a15826"
+\ \ },
+\ \ "id":\ 1,
+\ \ "Name":\ "Jack",
+\ \ "age":\ 25
+}
+\f[]
+.fi
+.RE
+.PP
+Users can view the created stored procedure information through
+listProcedures().
