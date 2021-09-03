@@ -111,7 +111,7 @@ TEST_F( closeAllCursorsTest14183, datasourceConn )
    INT32 rc = SDB_OK ;
 
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
 
    conf.setUserInfo( user, passwd ) ;
    rc = ds.init( url, conf ) ;

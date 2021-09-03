@@ -17,7 +17,7 @@ class invalidUsrTest9522 : public testBase
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    string url ;
 
    void SetUp()

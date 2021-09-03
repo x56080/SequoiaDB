@@ -246,7 +246,7 @@ namespace sequoiafs
                   sdbCollection *sysDirMetaCL,
                   CHAR *name, INT64 pid, BOOLEAN *is_dir);
    private:
-      sdbDataSourceConf conf;
+      sdbConnectionPoolConf conf;
       sdbConnectionPool ds ;
       string _csName;
       string _clName;

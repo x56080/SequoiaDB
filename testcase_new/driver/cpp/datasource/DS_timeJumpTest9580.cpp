@@ -16,7 +16,7 @@ using namespace sdbclient ;
 class timeJumpTest9580 : public testing::Test
 {
 protected:
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    sdbConnectionPool ds ;
    string url ;
 

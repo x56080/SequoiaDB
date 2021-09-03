@@ -16,7 +16,7 @@ class invalidArgTest9528 : public testing::Test
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
 
    void SetUp()
    {

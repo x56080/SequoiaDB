@@ -23,7 +23,7 @@ class invalidArgTest9524 : public testBase
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    string url ;
 
    void SetUp()

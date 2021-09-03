@@ -18,7 +18,7 @@ class memTest9578 : public testBase
 {
 protected:
    sdbConnectionPool ds ;
-   sdbDataSourceConf conf ;
+   sdbConnectionPoolConf conf ;
    string url ;
 
    void SetUp()
