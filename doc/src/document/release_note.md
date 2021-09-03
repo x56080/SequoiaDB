@@ -86,7 +86,6 @@ NA
   - 新增配置项 *servicemask*
   - Java/Python/PHP/C# 驱动增加快照类型：SDB_SNAP_QUERIES、SDB_SNAP_LATCHWAITS、SDB_SNAP_LOCKWAITS
   - REST 中 insert 接口支持 flag 参数
-  - SequoiaFS 增加区域的创建、查询、删除等接口
 
 **主要特性：**
 
@@ -140,7 +139,6 @@ NA
 - 提供分区组容错熔断机制，通过配置开启错误和风险智能检测，并提供“熔断”、“半容错”和“全容错”三种容错级别，实现高可用
 - 支持在更新操作符中，使用一个字段的值去更新其它字段
 - 新增交互式和加密文件两种密码输入方式
-- 提供 SequoiaFS 的启动、停止及查询脚本
 - 全文检索适配 ElasticSearch 6.8.5 版本
 
 **性能优化：**
@@ -159,7 +157,6 @@ NA
 **解决重要Bug：**
 
 - 修改升级时 DataCommitLSN 在某些场景下为 -1 的问题
-- 修改 SequoiaFS 挂载目录的权限设置问题
 
 ##SequoiaDB version 3.2.4 版本说明##
 

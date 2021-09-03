@@ -2,11 +2,11 @@ SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，主要�
 
 用户可以在 SequoiaDB 巨杉数据库中创建多种类型的数据库实例，以满足上层不同应用程序各自的需求。
 
-SequoiaDB 巨杉数据库支持 MySQL、PostgreSQL 与 SparkSQL 三种关系型数据库实例、类 MongoDB 的 JSON 文档类数据库实例、以及 S3 对象存储与 Posix 文件系统的非结构化数据实例。
+SequoiaDB 巨杉数据库支持 MySQL、PostgreSQL 与 SparkSQL 三种关系型数据库实例、JSON 文档类数据库实例、以及 S3 对象存储的非结构化数据实例。
 
-关键特性
-----
-SequoiaDB巨杉数据库可以为用户带来如下价值：
+##关键特性##
+
+SequoiaDB 巨杉数据库可以为用户带来如下价值：
 
 *   完全兼容传统关系型数据，数据分片对应用程序完全透明
 *   高性能与无限水平弹性扩展能力
@@ -20,8 +20,8 @@ SequoiaDB巨杉数据库可以为用户带来如下价值：
 ----
 当前已经有超过 [50 家银行机构与上百家企业级用户][userlist]在生产环境大规模使用 SequoiaDB 巨杉数据库取代传统数据库。
 
-使用场景
-----
+##使用场景##
+
 SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场景][usecase]页面获得更多信息。
 
 *   [联机交易][onlinetransaction]
@@ -29,6 +29,9 @@ SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场
 *   [内容管理][contentmanagement]
 
 
+
+[^_^]:
+     本文使用的所有引用及链接
 [userlist]:http://solution.sequoiadb.com/cn/#customer
 [usecase]:http://solution.sequoiadb.com/cn/
 [onlinetransaction]:http://solution.sequoiadb.com/cn/oltp
