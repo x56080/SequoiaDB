@@ -104,9 +104,13 @@ namespace engine
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 
-      virtual INT32 _onInsertFail( dmsMBContext *context, BOOLEAN hasInsert,
-                                   dmsRecordID rid, SDB_DPSCB *dpscb,
-                                   ossValuePtr dataPtr, _pmdEDUCB *cb ) ;
+      virtual INT32 _onInsertFail( dmsMBContext *context,
+                                   BOOLEAN hasInsert,
+                                   dmsRecordID rid,
+                                   SDB_DPSCB *dpscb,
+                                   ossValuePtr dataPtr,
+                                   _pmdEDUCB *cb,
+                                   const dmsTransRecordInfo *pInfo ) ;
 
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,

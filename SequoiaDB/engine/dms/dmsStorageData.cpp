@@ -1016,8 +1016,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ONINSERTFAIL, "_dmsStorageData::_onInsertFail" )
    INT32 _dmsStorageData::_onInsertFail( dmsMBContext *context,
                                          BOOLEAN hasInsert,
-                                         dmsRecordID rid, SDB_DPSCB *dpscb,
-                                         ossValuePtr dataPtr, _pmdEDUCB *cb )
+                                         dmsRecordID rid,
+                                         SDB_DPSCB *dpscb,
+                                         ossValuePtr dataPtr,
+                                         _pmdEDUCB *cb,
+                                         const dmsTransRecordInfo *pInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ONINSERTFAIL ) ;
@@ -1026,7 +1029,7 @@ namespace engine
       {
          // we won't touch old verion if it's insert failure. 
          // No callback needed
-         rc = deleteRecord( context, rid, dataPtr, cb, dpscb, NULL ) ;
+         rc = deleteRecord( context, rid, dataPtr, cb, dpscb, NULL, pInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to rollback, rc: %d", rc ) ;
       }
       else if ( rid.isValid() )

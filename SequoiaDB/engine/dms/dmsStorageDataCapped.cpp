@@ -1275,7 +1275,8 @@ namespace engine
                                                dmsRecordID rid,
                                                SDB_DPSCB *dpscb,
                                                ossValuePtr dataPtr,
-                                               pmdEDUCB *cb )
+                                               pmdEDUCB *cb,
+                                               const dmsTransRecordInfo *pInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__ONINSERTFAIL ) ;

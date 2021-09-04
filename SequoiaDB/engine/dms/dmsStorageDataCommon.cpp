@@ -3362,7 +3362,10 @@ namespace engine
             }
             recordRW = record2RW( foundRID, context->mbID() ) ;
 
-            if ( dpscb && isTransSupport() && !cb->isInTransRollback() )
+            // NOTE: we still need transaction locks during rollback
+            // the insert record to rollback delete operation may insert
+            // to a new place
+            if ( dpscb && isTransSupport() )
             {
                dpsTransRetInfo lockConflict ;
                callback.setIDInfo( CSID(), context->mbID(), _logicalCSID,
@@ -3509,7 +3512,8 @@ namespace engine
       ( void )_onInsertFail( context, ( markInsert ? TRUE : hasInsert),
                              foundRID, dropDps,
                              (ossValuePtr)insertObj.objdata(),
-                             cb ) ;
+                             cb,
+                             callback.getTransRecordInfo() ) ;
       if ( handler )
       {
          handler->abortOperation( DMS_EXTOPR_TYPE_INSERT, cb ) ;
@@ -3634,14 +3638,11 @@ namespace engine
          }
          else if ( inTrans )
          {
-            // although this record was inserted by this transaction(itself),
-            // we shall not remove it directly from disk; othsewise, in case
-            // of rollback, when insertRecord() it doesn't guarantee the same
-            // RID can be used/allocated if space allocation is needed.
-            // As a result, under condition isolation RC and transwaitlock =
-            // TRUE, table scan may wait on that record, index scan will
-            // not wait on that record lock.
             markDeleting = TRUE ;
+            if ( pInfo && pInfo->_transInsert )
+            {
+               markDeleting = FALSE ;
+            }
          }
 
          if ( pRecord->isDeleting() )

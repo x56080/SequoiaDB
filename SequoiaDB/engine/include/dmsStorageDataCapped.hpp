@@ -288,7 +288,8 @@ namespace engine
                                    dmsRecordID rid,
                                    SDB_DPSCB *dpscb,
                                    ossValuePtr dataPtr,
-                                   _pmdEDUCB *cb ) ;
+                                   _pmdEDUCB *cb,
+                                   const dmsTransRecordInfo *pInfo ) ;
 
       virtual INT32 extractData( const dmsMBContext *mbContext,
                                  const dmsRecordRW &recordRW,

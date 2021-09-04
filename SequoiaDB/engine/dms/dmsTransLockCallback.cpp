@@ -951,6 +951,8 @@ namespace engine
       {
          _oldVer->setRecordNew( cb->getTID() ) ;
       }
+      // mark insert by self
+      _recordInfo._transInsert = TRUE ;
       return SDB_OK ;
    }
 
