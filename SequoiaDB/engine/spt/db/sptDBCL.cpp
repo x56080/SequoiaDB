@@ -1594,7 +1594,7 @@ namespace engine
       rc = arg.getString( 0, oidStr ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Oid must be cofig" ) ;
+         detail = BSON( SPT_ERR << "Oid must be config" ) ;
          goto error ;
       }
       else if( SDB_OK != rc )
@@ -1612,7 +1612,7 @@ namespace engine
       rc = arg.getString( 1, filePath ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "FilePath must be cofig" ) ;
+         detail = BSON( SPT_ERR << "FilePath must be config" ) ;
          goto error ;
       }
       else if( SDB_OK != rc )
