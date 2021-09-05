@@ -590,7 +590,12 @@ SdbCollection.prototype.findOne = function( query, select ) {
 
 SdbCollection.prototype.getIndex = function( name ) {
    if ( ! name )
-      throw "SdbCollection.getIndex(): 1st parameter should be valid string" ;
+   {
+      setLastErrMsg( "SdbCollection.getIndex(): the 1st param should be "
+                     + "valid string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+      
    var obj = this._getIndexes(name).next();
    if (undefined == obj)
    {
@@ -614,8 +619,9 @@ SdbCollection.prototype.insert = function ( data , arg )
 {
    if ( (typeof data) != "object" )
    {
-      throw ( "SdbCollection.insert(): the 1st param should be "
-              + "obj or array of objs" ) ;
+      setLastErrMsg( "SdbCollection.insert(): the 1st param should be "
+                     + "obj or array of objs" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var flag = 0 ;
@@ -630,8 +636,9 @@ SdbCollection.prototype.insert = function ( data , arg )
    }
    else
    {
-      throw ( "SdbCollection.insert(): the 2nd param if existed should be "
-              + "a insert flag or insert options" ) ;
+      setLastErrMsg( "SdbCollection.insert(): the 2nd param if existed "
+                     + "should be a insert flag or insert options" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    if ( data instanceof Array )
@@ -728,13 +735,17 @@ SdbQuery.prototype.close = function() {
 
 SdbQuery.prototype.update = function( rule, returnNew, options ) {
    if ((typeof rule) != "object" || isEmptyObject(rule)) {
-      throw "SdbQuery.update(): the 1st param should be non-empty object";
+      setLastErrMsg( "SdbQuery.update(): the 1st param should be "
+                     + "non-empty object" ) ;
+      throw SDB_INVALIDARG ;
    }
    if (undefined != returnNew && (typeof returnNew) != "boolean") {
-      throw "SdbQuery.update(): the 2nd param should be boolean";
+      setLastErrMsg( "SdbQuery.update(): the 2nd param should be boolean" ) ;
+      throw SDB_INVALIDARG ;
    }
    if (undefined != options && (typeof options) != "object") {
-      throw "SdbQuery.update(): the 3rd param should be object";
+      setLastErrMsg( "SdbQuery.update(): the 3rd param should be object" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    this._checkExecuted();
@@ -742,7 +753,8 @@ SdbQuery.prototype.update = function( rule, returnNew, options ) {
    if (undefined == this._hint) {
       this._hint = {};
    } else if (undefined != this._hint.$Modify) {
-      throw "SdbQuery.update(): duplicate modification";
+      setLastErrMsg( "SdbQuery.update(): duplicate modification" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var modify = {};
@@ -763,7 +775,8 @@ SdbQuery.prototype.remove = function() {
    if (undefined == this._hint) {
       this._hint = {};
    } else if (undefined != this._hint.$Modify) {
-      throw "SdbQuery.remove(): duplicate modification";
+      setLastErrMsg( "SdbQuery.remove(): duplicate modification" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var modify = {};
@@ -796,7 +809,8 @@ SdbQuery.prototype.arrayAccess = function( idx ) {
 
 SdbQuery.prototype.count = function() {
    if (undefined != this._hint && undefined != this._hint.$Modify) {
-      throw "count() cannot be executed with update() or remove()";
+      setLastErrMsg( "count() cannot be executed with update() or remove()" ) ;
+      throw SDB_INVALIDARG ;
    }
    var countObj = this._collection.count( this._query ) ;
    if ( undefined != this._hint ) {
@@ -1371,7 +1385,8 @@ SdbOptionBase.prototype.skip = function(skip) {
    if ( typeof( skip ) == "number" ) {
       this._skip = skip ;
    } else {
-      throw "SdbOptionBase.skip() param must be Number" ;
+      setLastErrMsg( "SdbOptionBase.skip() param must be Number" ) ;
+      throw SDB_INVALIDARG ;
    }
    return this ;
 }
@@ -1380,7 +1395,8 @@ SdbOptionBase.prototype.limit = function(limit) {
    if ( typeof( limit ) == "number" ) {
       this._limit = limit ;
    } else {
-      throw "SdbOptionBase.limit() param must be Number" ;
+      setLastErrMsg( "SdbOptionBase.limit() param must be Number" ) ;
+      throw SDB_INVALIDARG ;
    }
    return this ;
 }
@@ -1389,7 +1405,8 @@ SdbOptionBase.prototype.flags = function(flags) {
    if ( typeof ( flags ) == "number" ) {
       this._flags = flags ;
    } else {
-      throw "SdbOptionBase.flags() param must be Number" ;
+      setLastErrMsg( "SdbOptionBase.flags() param must be Number" ) ;
+      throw SDB_INVALIDARG ;
    }
    return this ;
 }
@@ -1410,7 +1427,8 @@ SdbOptionBase.prototype.toString = function() {
 
 SdbSnapshotOption.prototype.options = function(options) {
    if (undefined != options && (typeof options) != "object") {
-      throw "SdbSnapshotOption.options(): param should be object";
+      setLastErrMsg( "SdbSnapshotOption.options(): param should be object" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    this._hint = BSONObj({$Options:BSONObj(options)}) ;
@@ -1423,13 +1441,19 @@ SdbSnapshotOption.prototype.options = function(options) {
 
 SdbQueryOption.prototype.update = function( rule, returnNew, options ) {
    if ((typeof rule) != "object" || isEmptyObject(rule)) {
-      throw "SdbQueryOption.update(): the 1st param should be non-empty object";
+      setLastErrMsg( "SdbQueryOption.update(): the 1st param should be "
+                     + "non-empty object" ) ;
+      throw SDB_INVALIDARG ;
    }
    if (undefined != returnNew && (typeof returnNew) != "boolean") {
-      throw "SdbQueryOption.update(): the 2nd param should be boolean";
+      setLastErrMsg( "SdbQueryOption.update(): the 2nd param "
+                     + "should be boolean" ) ;
+      throw SDB_INVALIDARG;
    }
    if (undefined != options && (typeof options) != "object") {
-      throw "SdbQueryOption.update(): the 3rd param should be object";
+      setLastErrMsg( "SdbQueryOption.update(): the 3rd param "
+                     + "should be object" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var hintObj = eval('(' + this._hint.toString() + ')');
@@ -1437,7 +1461,8 @@ SdbQueryOption.prototype.update = function( rule, returnNew, options ) {
    if (undefined == this._hint) {
       this._hint = {};
    } else if ( undefined != hintObj.$Modify ) {
-      throw "SdbQueryOption.update(): duplicate modification";
+      setLastErrMsg( "SdbQueryOption.update(): duplicate modification" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var modify = {};
@@ -1461,7 +1486,8 @@ SdbQueryOption.prototype.remove = function() {
    if (undefined == this._hint) {
       this._hint = {};
    } else if ( undefined != hintObj.$Modify ) {
-      throw "SdbQueryOption.remove(): duplicate modification";
+      setLastErrMsg( "SdbQueryOption.remove(): duplicate modification" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    var modify = {};
@@ -1490,14 +1516,16 @@ SdbTraceOption.prototype.components = function()
          // the method only needs one parameter
          if( argumentsSize > 1 )
          {
-            throw "Invalid components' parameters" ;
+            setLastErrMsg( "Invalid components' parameters" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          // the format that user specifies component parameter is like
          // .components( [] )
          if ( 0 == arguments[0].length )
          {
-            throw "Components can't be empty" ;
+            setLastErrMsg( "Components can't be empty" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          for ( var i = 0; i < arguments[0].length; i++ )
@@ -1506,14 +1534,16 @@ SdbTraceOption.prototype.components = function()
             // .components( [ "", "" ] )
             if ( "" == arguments[0][i] )
             {
-               throw "Component can't be empty" ;
+               setLastErrMsg( "Component can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             // the format that user specifies component parameter is like
             // .components( [ 123, 456 ] )
             if ( typeof( arguments[0][i] ) != "string" )
             {
-               throw "Component must be string or string array" ;
+               setLastErrMsg( "Component must be string or string array" ) ;
+               throw SDB_INVALIDARG ;
             }
          }
 
@@ -1549,14 +1579,16 @@ SdbTraceOption.prototype.components = function()
             // .components( "", "" )
             if ( "" == arguments[i] )
             {
-               throw "Component can't be empty" ;
+               setLastErrMsg( "Component can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             // the format that user specifies component parameter is like
             // .components( 123, 456 )
             if ( typeof( arguments[i] ) != "string" )
             {
-               throw "Component must be string or string array" ;
+               setLastErrMsg( "Component must be string or string array" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             this._components.push( arguments[i] );
@@ -1576,24 +1608,28 @@ SdbTraceOption.prototype.breakPoints = function( breakPoints )
       {
          if( argumentsSize > 1 )
          {
-            throw "Invalid breakPoints' parameters" ;
+            setLastErrMsg( "Invalid breakPoints' parameters" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          if ( 0 == arguments[0].length )
          {
-            throw "Breakpoints can't be empty" ;
+            setLastErrMsg( "Breakpoints can't be empty" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          for ( var i = 0; i < arguments[0].length; i++ )
          {
             if ( "" == arguments[0][i] )
             {
-               throw "Breakpoint can't be empty" ;
+               setLastErrMsg( "Breakpoint can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             if ( typeof( arguments[0][i] ) != "string" )
             {
-               throw "Breakpoint must be string or string array" ;
+               setLastErrMsg( "Breakpoint must be string or string array" ) ;
+               throw SDB_INVALIDARG ;
             }
          }
 
@@ -1617,12 +1653,14 @@ SdbTraceOption.prototype.breakPoints = function( breakPoints )
          {
             if ( "" == arguments[i] )
             {
-               throw "Breakpoint can't be empty" ;
+               setLastErrMsg( "Breakpoint can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             if ( typeof( arguments[i] ) != "string" )
             {
-               throw "Breakpoint must be string or string array" ;
+               setLastErrMsg( "Breakpoint must be string or string array" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             this._breakPoints.push( arguments[i] );
@@ -1642,19 +1680,22 @@ SdbTraceOption.prototype.tids = function()
       {
          if( argumentsSize > 1 )
          {
-            throw "Invalid tids' parameters" ;
+            setLastErrMsg( "Invalid tids' parameters" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          if ( 0 == arguments[0].length )
          {
-            throw "Tids can't be empty" ;
+            setLastErrMsg( "Tids can't be empty" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          for ( var i = 0; i < arguments[0].length; i++ )
          {
             if ( typeof( arguments[0][i] ) != "number" )
             {
-               throw "Tid must be int or int array" ;
+               setLastErrMsg( "Tid must be int or int array" ) ;
+               throw SDB_INVALIDARG ;
             }
          }
 
@@ -1678,7 +1719,8 @@ SdbTraceOption.prototype.tids = function()
          {
             if ( typeof( arguments[i] ) != "number" )
             {
-               throw "Tid must be int or int array" ;
+               setLastErrMsg( "Tid must be int or int array" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             this._tids.push( arguments[i] );
@@ -1698,24 +1740,28 @@ SdbTraceOption.prototype.functionNames = function()
       {
          if( argumentsSize > 1 )
          {
-            throw "Invalid functionNames' parameters" ;
+            setLastErrMsg( "Invalid functionNames' parameters" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          if ( 0 == arguments[0].length )
          {
-            throw "FunctionNames can't be empty" ;
+            setLastErrMsg( "FunctionNames can't be empty" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          for ( var i = 0; i < arguments[0].length; i++ )
          {
             if ( "" == arguments[0][i] )
             {
-               throw "FunctionName can't be empty" ;
+               setLastErrMsg( "FunctionName can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             if ( typeof( arguments[0][i] ) != "string" )
             {
-               throw "FunctionName must be string or string array" ;
+               setLastErrMsg( "FunctionName must be string or string array" ) ;
+               throw SDB_INVALIDARG ;
             }
          }
 
@@ -1739,18 +1785,21 @@ SdbTraceOption.prototype.functionNames = function()
          {
             if( arguments[i] instanceof Array )
             {
-               throw "Invalid functionNames' parameters" ;
+               setLastErrMsg( "Invalid functionNames' parameters" ) ;
+               throw SDB_INVALIDARG ;
             }
             else
             {
                if ( "" == arguments[i] )
                {
-                  throw "FunctionName can't be empty" ;
+                  setLastErrMsg( "FunctionName can't be empty" ) ;
+                  throw SDB_INVALIDARG ;
                }
 
                if ( typeof( arguments[i] ) != "string" )
                {
-                  throw "FunctionName must be string or string array" ;
+                  setLastErrMsg( "FunctionName must be string or string array" ) ;
+                  throw SDB_INVALIDARG ;
                }
 
                this._functionNames.push( arguments[i] );
@@ -1771,24 +1820,28 @@ SdbTraceOption.prototype.threadTypes = function()
       {
          if( argumentsSize > 1 )
          {
-            throw "Invalid threadTypes' parameters" ;
+            setLastErrMsg( "Invalid threadTypes' parameters" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          if ( 0 == arguments[0].length )
          {
-            throw "ThreadTypes can't be empty" ;
+            setLastErrMsg( "ThreadTypes can't be empty" ) ;
+            throw SDB_INVALIDARG ;
          }
 
          for ( var i = 0; i < arguments[0].length; i++ )
          {
             if ( "" == arguments[0][i] )
             {
-               throw "ThreadType can't be empty" ;
+               setLastErrMsg( "ThreadType can't be empty" ) ;
+               throw SDB_INVALIDARG ;
             }
 
             if ( typeof( arguments[0][i] ) != "string" )
             {
-               throw "ThreadType must be string or string array" ;
+               setLastErrMsg( "ThreadType must be string or string array" ) ;
+               throw SDB_INVALIDARG
             }
          }
 
@@ -1812,18 +1865,21 @@ SdbTraceOption.prototype.threadTypes = function()
          {
             if( arguments[i] instanceof Array )
             {
-               throw "Invalid threadTypes' parameters" ;
+               setLastErrMsg( "Invalid threadTypes' parameters" ) ;
+               throw SDB_INVALIDARG ;
             }
             else
             {
                if ( "" == arguments[i] )
                {
-                  throw "ThreadType can't be empty" ;
+                  setLastErrMsg( "ThreadType can't be empty" ) ;
+                  throw SDB_INVALIDARG ;
                }
 
                if ( typeof( arguments[i] ) != "string" )
                {
-                  throw "ThreadType must be string or string array" ;
+                  setLastErrMsg( "ThreadType must be string or string array" ) ;
+                  throw SDB_INVALIDARG ;
                }
 
                this._threadTypes.push( arguments[i] );
@@ -1975,12 +2031,14 @@ CipherUser.prototype.token = function()
       }
       else
       {
-         throw "Token must be string" ;
+         setLastErrMsg( "Token must be string" ) ;
+         throw SDB_INVALIDARG ;
       }
    }
    else
    {
-      throw "You must input token" ;
+      setLastErrMsg( "You must input token" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    return this ;
@@ -1997,12 +2055,14 @@ CipherUser.prototype.clusterName = function()
       }
       else
       {
-         throw "Cluster name must be string" ;
+         setLastErrMsg( "Cluster name must be string" ) ;
+         throw SDB_INVALIDARG ;
       }
    }
    else
    {
-      throw "You must input cluster name" ;
+      setLastErrMsg( "You must input cluster name" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    return this ;
@@ -2019,12 +2079,14 @@ CipherUser.prototype.cipherFile = function()
       }
       else
       {
-         throw "Cipher file must be string" ;
+         setLastErrMsg( "Cipher file must be string" ) ;
+         throw SDB_INVALIDARG ;
       }
    }
    else
    {
-      throw "You must input cipher file" ;
+      setLastErrMsg( "You must input cipher file" ) ;
+      throw SDB_INVALIDARG ;
    }
 
    return this ;
