@@ -114,8 +114,7 @@ namespace vessel
 
          /// Must hold unique key latch first.
          static INT32 checkUniqueConstraint(requestContext *context,
-                                            INT32 indexSlot,
-                                            const indexObject &indexObj,
+                                            indexContext *ic,
                                             const bson::BSONObj &key,
                                             recordID &rid);
          

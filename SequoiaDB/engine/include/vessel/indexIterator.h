@@ -42,12 +42,11 @@
 #include "ixmKey.hpp"
 #include "dms.hpp"
 #include "vessel/requestContext.h"
-#include "vessel/orderingWrapper.h"
 #include "inclusiveVec.h"
-#include "vessel/indexHandle.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
 #include "vessel/indexEntryBuffer.h"
+#include "vessel/indexContext.h"
 
 namespace engine
 {
@@ -62,17 +61,9 @@ namespace vessel
          indexIterator &operator=(const indexIterator &) = delete;
 
       public:
-         OSS_INLINE const indexHandle &getHandle()const
-         {
-            return _handle;
-         }
          OSS_INLINE BOOLEAN isForward()const
          {
             return _forward;
-         }
-         OSS_INLINE const orderingWrapper &getOrdering()const
-         {
-            return _ordering;
          }
 
       public:
@@ -80,8 +71,7 @@ namespace vessel
 
       public:
          virtual INT32 open(requestContext *context,
-                            const indexHandle &handle,
-                            const orderingWrapper &ordering,
+                            const indexContext *ic,
                             BOOLEAN forward) = 0;
 
          virtual void close() = 0;
@@ -147,8 +137,7 @@ namespace vessel
          }
 
          void _open(requestContext *context,
-                    const indexHandle &handle,
-                    const orderingWrapper &ordering,
+                    const indexContext *ic,
                     BOOLEAN forward);
          void _close();
 
@@ -156,10 +145,14 @@ namespace vessel
          {
             return _context;
          }
+
+         const indexContext *getIndexContext()
+         {
+            return _ic;
+         }
       private:
          requestContext *_context = NULL;
-         indexHandle _handle;
-         orderingWrapper _ordering;
+         const indexContext *_ic = NULL;
          BOOLEAN _forward = TRUE;
    };//class indexIterator
 

@@ -47,6 +47,7 @@ namespace vessel
 {
    class requestContext;
    class indexScanContext;
+   class indexContext;
 
    class indexScanner : public SDBObject
    {
@@ -62,7 +63,7 @@ namespace vessel
 
       public:
          INT32 open(indexScanContext *context,
-                    const indexObject &indexObj);
+                    const indexContext *ic);
 
          void close();
 

@@ -39,6 +39,7 @@
 #include "vessel/indexObject.h"
 #include "vessel/unstableIndexContext.h"
 #include "vessel/vesselIdDef.h"
+#include "vessel/indexHandle.h"
 
 namespace engine
 {
@@ -97,6 +98,11 @@ namespace vessel
          OSS_INLINE PAGE_ID getEntryLpid()const
          {
             return _lpid;
+         }
+
+         OSS_INLINE indexHandle getHandle()const
+         {
+            return indexHandle(_indexSlot, _obj.getIndexID());
          }
       public:
          INT32 init(INT32 indexSlot,

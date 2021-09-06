@@ -39,6 +39,7 @@
 #include "vessel/lpidLockHelper.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/copyOnWriteTrigger.h"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -46,7 +47,7 @@ namespace vessel
 {
    class logicalPageSpace;
 
-   class logicalPageBuffer : public SDBObject
+   class logicalPageBuffer : public _utilPooledObject
    {
       friend class logicalPageSpace;
       public:
@@ -77,6 +78,10 @@ namespace vessel
          OSS_INLINE const copyOnWriteTrigger &getCowTrigger()const
          {
             return _cowTrigger;
+         }
+         OSS_INLINE const ossSharedLatchMode &getLockingMode()const
+         {
+            return _lh.getLockMode();
          }
 
       public:

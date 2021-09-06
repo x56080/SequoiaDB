@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lpidLockHelper.h
+   Source File Name = btreeIndexAccessor.h
 
    Descriptive Name =
 
@@ -33,62 +33,63 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LPID_LOCK_HELPER_H_
-#define VESSEL_LPID_LOCK_HELPER_H_
+#ifndef VESSEL_BTREE_INDEX_ACCESSOR_H_
+#define VESSEL_BTREE_INDEX_ACCESSOR_H_
 
-#include "ossLatch.hpp"
-#include "vessel/vesselFileDef.h"
-#include "vessel/pageIdentifier.h"
+#include "vessel/btreeNodePath.h"
+#include "ossMemPool.hpp"
+#include "vessel/logicalPageBuffer.h"
+#include "vessel/btreeNode.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class indexContext;
    class requestContext;
-   class lpidLockHelper : public SDBObject
+   class indexSpace;
+
+   class btreeIndexAccessor : public SDBObject
    {
       public:
-         OSS_INLINE lpidLockHelper()
-         {}
-
-         OSS_INLINE ~lpidLockHelper()
-         {
-            unlock();
-         }
+         btreeIndexAccessor();
+         virtual ~btreeIndexAccessor();
+         btreeIndexAccessor(const btreeIndexAccessor &) = delete;
+         btreeIndexAccessor &operator=(const btreeIndexAccessor &) = delete;
 
       public:
-         OSS_INLINE PAGE_ID getLpid()const
+
+      protected:
+         INT32 _init(requestContext *context,
+                     indexContext *ic);
+
+         void _fini();
+
+         OSS_INLINE BOOLEAN _isInitialized()const
          {
-            return _lpid;
+            return NULL != _context;
          }
 
-         INT32 lock(requestContext *context,
-                  SPACE_TYPE type,
-                  PAGE_ID lpid,
-                  const ossSharedLatchMode &mode); 
-
-         void unlock();
-
-         /// lock upgrade first
-         INT32 lockLpidFromUpgrade();
-
-         OSS_INLINE BOOLEAN isLocked()const
+         requestContext *getContext()
          {
-            return !_mode.isNone();
+            return _context;
          }
-
-         OSS_INLINE const ossSharedLatchMode &getLockMode()const
+         indexContext *getIndexContext()
          {
-            return _mode;
+            return _ic;
          }
-
+      
       private:
          requestContext *_context = NULL;
-         SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         PAGE_ID _lpid = INVALID_PAGE_ID;
-         ossSharedLatchMode _mode;
-   };//class lpidLockHelper
-}//namespace vessel
-}//namespace engine
+         indexContext *_ic = NULL;
+         indexSpace *_is = NULL;
+         btreeNodePath _path;  
+         
+         BOOLEAN _checkpointBlocked = FALSE;
+   };//class btreeIndexAccessor
+} // namespace vessel
 
-#endif//VESSEL_LPID_LOCK_HELPER_H_
+} // namespace engine
+
+
+#endif//VESSEL_BTREE_INDEX_ACCESSOR_H_

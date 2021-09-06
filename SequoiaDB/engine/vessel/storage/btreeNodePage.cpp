@@ -55,7 +55,6 @@ namespace vessel
                              UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
-                             BOOLEAN isRoot,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
@@ -86,10 +85,6 @@ namespace vessel
       if (isLeaf)
       {
          OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_LEAF);
-      }
-      if (isRoot)
-      {
-         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_ROOT);
       }
       r = TRUE;
 

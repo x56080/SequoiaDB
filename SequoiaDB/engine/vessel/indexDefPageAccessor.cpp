@@ -265,6 +265,90 @@ namespace vessel
       goto done;
    }
 
+   INT32 indexDefPageAccessor::updateBtreeRoot(requestContext *context,
+                                               UINT32 indexId,
+                                               PAGE_ID root,
+                                               logicalPageBuffer *lpb)const
+   {
+      INT32 rc = SDB_OK;
+      const indexDefHead *readableHead = NULL;
+      indexDefHead *head = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_LOGICAL_INDEX_ID == indexId ||
+                       INVALID_PAGE_ID == root ||
+                       NULL == lpb ||
+                       !lpb->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      if (NULL == readableHead)
+      {
+         PD_LOG(PDERROR, "failed to get readable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!readableHead->isValid())
+      {
+         PD_LOG(PDERROR, "index def page head is not valid");
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+      else if (context->getLogicalCLID() != readableHead->clLogicalID)
+      {
+         PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
+                context->getLogicalCLID(), readableHead->clLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+      else if (indexId != readableHead->indexLogicalID)
+      {
+         PD_LOG(PDERROR, "index logical id [%d] does match the one[%d] in head",
+                indexId, readableHead->indexLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      rc = lpb->prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+      readableHead = NULL;
+
+      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexDefHead>(0);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable ptr of head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      head->btreeRoot = root;
+      lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
+   done:
+      return rc;
+   error:
+      if (NULL != lpb && lpb->getRuntimeBuffer().isWritingPrepared())
+      {
+         lpb->getRuntimeBuffer().abort();
+      }
+      goto done;
+   }
+
    INT32 indexDefPageAccessor::getIndexObject(requestContext *context,
                                               const logicalPageBuffer *lpb,
                                               indexObject &obj,
@@ -360,5 +444,68 @@ namespace vessel
       obj.fini();
       goto done;
    }      
+
+   INT32 indexDefPageAccessor::getIndexDefPageHead(requestContext *context,
+                                                   UINT32 indexId,
+                                                   const logicalPageBuffer *lpb,
+                                                   const indexDefHead **out)const
+   {
+      INT32 rc = SDB_OK;
+      const indexDefHead *head = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_LOGICAL_INDEX_ID == indexId ||
+                       NULL == lpb ||
+                       !lpb->isValid() ||
+                       NULL == out))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
+                lpb->getRuntimeBuffer().getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      head = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      if (NULL == head)
+      {
+         PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);
+         goto error;
+      }
+
+      if (!head->isValid())
+      {
+         PD_LOG(PDERROR, "index def page head is not valid");
+         rc = SDB_IXM_NOTEXIST;
+         goto error;
+      }
+
+      if (context->getLogicalCLID() != head->clLogicalID)
+      {
+         PD_LOG(PDERROR, "collection logical id in context[%d] does match the one[%d] in head",
+                context->getLogicalCLID(), head->clLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      if (indexId != head->indexLogicalID)
+      {
+         PD_LOG(PDERROR, "index logical id[%d] does match the one[%d] in head",
+                indexId, head->indexLogicalID);
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      *out = head;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

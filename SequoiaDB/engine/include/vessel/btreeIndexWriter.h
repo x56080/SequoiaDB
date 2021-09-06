@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodePageIniter.h
+   Source File Name = btreeIndexWriter.h
 
    Descriptive Name =
 
@@ -33,40 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_NODE_PAGE_INITER_H_
-#define VESSEL_BTREE_NODE_PAGE_INITER_H_
+#ifndef VESSEL_BTREE_INDEX_WRITER_H_
+#define VESSEL_BTREE_INDEX_WRITER_H_
 
-#include "vessel/pageInitializer.h"
-#include "dms.hpp"
-#include "vessel/indexDef.h"
+#include "vessel/btreeIndexAccessor.h"
+#include "../bson/bson.hpp"
+#include "vessel/recordID.h"
+#include "dpsTransID.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeNodePageIniter : public pageInitializer
+   class btreeIndexWriter : public btreeIndexAccessor
    {
       public:
-         btreeNodePageIniter(){}
-         virtual ~btreeNodePageIniter(){}
+         btreeIndexWriter();
+         virtual ~btreeIndexWriter();
 
       public:
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
+         INT32 init(requestContext *context,
+                    indexContext *ic);
 
-         void set(UINT32 clid, UINT32 indexId,
-                  BOOLEAN isLeaf);
+         void fini();
 
-      private:
-         UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
-         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-         BOOLEAN _isLeaf = FALSE;
-   };//class btreeNodePageIniter
+         INT32 insert(const bson::BSONObj &key,
+                      const recordID &rid,
+                      DPS_LSN_OFFSET lsn,
+                      const DPS_TRANS_ID &transID);
+
+   };//class btreeIndexWriter
 } // namespace vessel
-
 
 } // namespace engine
 
-#endif//VESSEL_BTREE_NODE_PAGE_INITER_H_
+#endif//VESSEL_BTREE_INDEX_WRITER_H_

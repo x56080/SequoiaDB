@@ -68,28 +68,23 @@ namespace vessel
    }
 
    void indexIterator::_open(requestContext *context,
-                           const indexHandle &handle,
-                           const orderingWrapper &ordering,
-                           BOOLEAN forward)
+                             const indexContext *ic,
+                             BOOLEAN forward)
    {
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(handle.isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != ic, "can not be null");
+      SDB_ASSERT(ic->isValid(), "can not be invalid");
       _context = context; 
-      _handle = handle;
-      _ordering = ordering;
+      _ic = ic;
       _forward = forward;
       return;
    }
 
    void indexIterator::_close()
    {
-      if (NULL != _context)
-      {
-         _context = NULL;
-         _handle = indexHandle();
-         _ordering = orderingWrapper();
-         _forward = TRUE;
-      }
+      _context = NULL;
+      _ic = NULL;
+      _forward = TRUE;
       return;
    }
 

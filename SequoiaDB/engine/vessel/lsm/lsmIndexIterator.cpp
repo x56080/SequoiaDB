@@ -89,19 +89,14 @@ namespace vessel
    }
 
    INT32 lsmIndexIterator::open(requestContext *context,
-                                const indexHandle &handle,
-                                const orderingWrapper &ordering,
+                                const indexContext *ic,
                                 INT32 direction)
    {
       INT32 rc = SDB_OK;
       CHAR minKey = 1;
       rocksdb::ReadOptions o;
-      globalIndexID indexId(context->getLogicalCSID(),
-                            context->getLogicalCLID(),
-                            handle.getIndexId());
-      globalIndexID upperIndexId(context->getLogicalCSID(),
-                                 context->getLogicalCLID(),
-                                 handle.getIndexId() + 1);
+      globalIndexID indexId;
+      globalIndexID upperIndexId;
       recordID minRid(0, 0);
                         
       close();
@@ -109,18 +104,26 @@ namespace vessel
       if (OSS_UNLIKELY(NULL == context ||
                        DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
                        DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
-                       !handle.isValid()))
+                       NULL == ic ||
+                       !ic->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      indexIterator::_open(context, handle, ordering, direction);
+      indexIterator::_open(context, ic, direction);
+
+      indexId = globalIndexID(context->getLogicalCSID(),
+                              context->getLogicalCLID(),
+                              ic->getIndexID());
+      upperIndexId = globalIndexID(context->getLogicalCSID(),
+                                   context->getLogicalCLID(),
+                                   ic->getIndexID() + 1);
 
       rc = lsmPackIndexFullKey(_lowBoundKey,
                                LSM_MIN_FULL_KEY_SIZE,
                                indexId,
-                               ordering,
+                               ic->getObj().getPattern().getOrdering(),
                                ixmKey(&minKey),
                                minRid,
                                DPS_INVALID_LSN_OFFSET,
@@ -134,7 +137,7 @@ namespace vessel
       rc = lsmPackIndexFullKey(_upperBoundKey,
                                LSM_MIN_FULL_KEY_SIZE,
                                upperIndexId,
-                               ordering,
+                               ic->getObj().getPattern().getOrdering(),
                                ixmKey(&minKey),
                                minRid,
                                DPS_INVALID_LSN_OFFSET,
@@ -147,7 +150,7 @@ namespace vessel
 
       _globalId.reset(context->getLogicalCSID(),
                       context->getLogicalCLID(),
-                      handle.getIndexId());
+                      ic->getIndexID());
       _lsmDB = &context->getEnv()->lsm;
       _lowKey = rocksdb::Slice(_lowBoundKey, LSM_MIN_FULL_KEY_SIZE);
       _upKey = rocksdb::Slice(_upperBoundKey, LSM_MIN_FULL_KEY_SIZE);
@@ -337,6 +340,7 @@ namespace vessel
       static const UINT32 _NEXT_COUNT = 8;
       bson::BSONObj keyObj;
       memoryBlock mb;
+      const bson::Ordering *ordering = NULL;
 
       if (!isReadyToRead())
       {
@@ -350,6 +354,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to backup current entry:%d", rc);
          goto error;
       }
+
+      ordering = getIndexContext()->getObj().getPattern().getOrdering().toBsonOrdering();
 
       for (UINT32 i = 0; i < _NEXT_COUNT; ++i)
       {
@@ -373,7 +379,7 @@ namespace vessel
          }
          
          cmp = _currentEntry.getKey().woCompare(entry.getKey(),
-                                                *(getOrdering().toBsonOrdering()));
+                                                *ordering);
          if (0 != cmp)
          {
             goto done;
@@ -630,6 +636,7 @@ namespace vessel
       ixmKeyOwned ownedKey(key);
       UINT32 keySize = ownedKey.dataSize();
       UINT32 bufSize = lsmCalFullDataKeyLen(keySize);
+
       rc = mb.reserve(bufSize);
       if (SDB_OK != rc)
       {
@@ -640,7 +647,7 @@ namespace vessel
       rc = lsmPackIndexFullKey(mb.getBuffer(),
                                bufSize,
                                _globalId,
-                               indexIterator::getOrdering(),
+                               getIndexContext()->getObj().getPattern().getOrdering(),
                                ownedKey, rid, lsn, transID);
       if (SDB_OK != rc)
       {

@@ -48,9 +48,8 @@ namespace vessel
    static const UINT32 BTREE_NODE_PAGE_HEAD_VERSION = 1;
 
    static const UINT32 BTREE_NODE_FLAG_LEAF = 0x01;
-   static const UINT32 BTREE_NODE_FLAG_ROOT = 0x02;
-   static const UINT32 BTREE_NODE_FLAG_COMPRESSION_BANNED = 0x04;
-   static const UINT32 BTREE_NODE_FLAG_PREFIX_CREATED = 0x08;
+   static const UINT32 BTREE_NODE_FLAG_COMPRESSION_BANNED = 0x02;
+   static const UINT32 BTREE_NODE_FLAG_PREFIX_CREATED = 0x04;
 #pragma pack(4)
    struct btreeNodePageHead
    {
@@ -155,7 +154,6 @@ namespace vessel
                              UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
-                             BOOLEAN isRoot,
                              CHAR *buf);
 
 #pragma pack()

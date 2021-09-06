@@ -65,6 +65,11 @@ namespace vessel
                                  INDEX_STATUS status,
                                  logicalPageBuffer *lpb)const;
 
+         INT32 updateBtreeRoot(requestContext *context,
+                               UINT32 indexId,
+                               PAGE_ID root,
+                               logicalPageBuffer *lpb)const;
+
          /// WARNING: Do not accesses obj any more after fini lpb if
          /// not owned.
          INT32 getIndexObject(requestContext *context,
@@ -76,6 +81,12 @@ namespace vessel
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,
                     bson::BSONObjBuilder &builder)const;
+
+         /// do not release buffer when accessing head.
+         INT32 getIndexDefPageHead(requestContext *context,
+                                   UINT32 indexId,
+                                   const logicalPageBuffer *lpb,
+                                   const indexDefHead **out)const;
 
    };//class indexDefPageAccessor 
 }//namespace vessel

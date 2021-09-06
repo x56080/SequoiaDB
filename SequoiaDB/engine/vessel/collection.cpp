@@ -3110,8 +3110,7 @@ namespace vessel
          ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
          for (; itr != req->getKeys().end(); ++itr)
          {
-            rc = indexConsole::checkUniqueConstraint(context, req->getContext()->getIndexSlot(),
-                                                     req->getContext()->getObj(), *itr, rid);
+            rc = indexConsole::checkUniqueConstraint(context, req->getContext(), *itr, rid);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to find key in index:%d", rc);
@@ -3389,7 +3388,7 @@ namespace vessel
       indexScanner scanner;
       bson::BSONObjBuilder keyObjBuilder;
 
-      rc = scanner.open(context, ic->getObj());
+      rc = scanner.open(context, ic);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index scanner:%d", rc);

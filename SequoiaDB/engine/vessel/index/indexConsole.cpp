@@ -788,29 +788,26 @@ namespace vessel
    }
 
    INT32 indexConsole::checkUniqueConstraint(requestContext *context,
-                                             INT32 indexSlot,
-                                             const indexObject &indexObj,
+                                             indexContext *ic,
                                              const bson::BSONObj &key,
                                              recordID &rid)
    {
       INT32 rc = SDB_OK;
-      indexHandle handle;
       indexIterator *iterator = NULL;
       rid = recordID();
 
       if (OSS_UNLIKELY(NULL == context ||
                        DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
                        DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
-                       !isValidIndexSlot(indexSlot) ||
-                       !indexObj.isValid() ||
-                       !indexObj.getParams().isUnique))
+                       NULL == ic ||
+                       !ic->isValid() ||
+                       !ic->getObj().getParams().isUnique))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      handle = indexHandle(indexSlot, indexObj.getIndexID());
-      iterator = createIndexIterator(indexObj.getIndexType());
+      iterator = createIndexIterator(ic->getObj().getIndexType());
       if (NULL == iterator)
       {
          PD_LOG(PDERROR, "failed to allocate itr obj");
@@ -818,8 +815,7 @@ namespace vessel
          goto error;
       }
 
-      rc = iterator->open(context, handle,
-                          indexObj.getPattern().getOrdering(), 1);
+      rc = iterator->open(context, ic, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open iterator:%d", rc);

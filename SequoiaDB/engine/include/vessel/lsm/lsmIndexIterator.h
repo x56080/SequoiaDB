@@ -59,8 +59,7 @@ namespace vessel
          
       public:
          virtual INT32 open(requestContext *context,
-                            const indexHandle &handle,
-                            const orderingWrapper &ordering,
+                            const indexContext *ic,
                             BOOLEAN forward);
 
          virtual void close();

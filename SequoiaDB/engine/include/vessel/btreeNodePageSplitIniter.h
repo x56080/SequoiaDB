@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodePageIniter.h
+   Source File Name = btreeNodePageSplitIniter.h
 
    Descriptive Name =
 
@@ -33,22 +33,20 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_NODE_PAGE_INITER_H_
-#define VESSEL_BTREE_NODE_PAGE_INITER_H_
+#ifndef VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_
+#define VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_
 
 #include "vessel/pageInitializer.h"
-#include "dms.hpp"
-#include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeNodePageIniter : public pageInitializer
+   class btreeNodePageSplitIniter : public pageInitializer
    {
       public:
-         btreeNodePageIniter(){}
-         virtual ~btreeNodePageIniter(){}
+         btreeNodePageSplitIniter();
+         virtual ~btreeNodePageSplitIniter();
 
       public:
          virtual INT32 initPage(requestContext *context,
@@ -56,17 +54,12 @@ namespace vessel
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
 
-         void set(UINT32 clid, UINT32 indexId,
-                  BOOLEAN isLeaf);
-
       private:
-         UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
-         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-         BOOLEAN _isLeaf = FALSE;
-   };//class btreeNodePageIniter
+         
+   };//class btreeNodePageSplitIniter
 } // namespace vessel
-
 
 } // namespace engine
 
-#endif//VESSEL_BTREE_NODE_PAGE_INITER_H_
+
+#endif//VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_

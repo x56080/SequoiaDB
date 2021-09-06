@@ -62,6 +62,8 @@ namespace vessel
 
    static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 4;
 
+   static const UINT32 MAX_IXM_KEY_SIZE = 4096;
+
    enum INDEX_STATUS
    {
       INDEX_STATUS_INVALID = 0,
