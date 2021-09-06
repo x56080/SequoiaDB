@@ -588,6 +588,7 @@
 #define FIELD_NAME_AUDIT_MASK                "AuditMask"
 #define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
 #define FIELD_NAME_ROLLBACK                  "Rollback"
+#define FIELD_NAME_TRANS_RC                  "TransRC"
 #define FIELD_NAME_TRANSISOLATION            "TransIsolation"
 #define FIELD_NAME_TRANS_TIMEOUT             "TransTimeout"
 #define FIELD_NAME_TRANS_WAITLOCK            "TransLockWait"

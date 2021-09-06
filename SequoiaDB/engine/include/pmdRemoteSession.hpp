@@ -563,7 +563,12 @@ namespace engine
       } ;
 
       private:
-         void setEduCB( _pmdEDUCB *cb ) { _pEDUCB = cb ; }
+         void setEduCB( _pmdEDUCB *cb )
+         {
+            _pEDUCB = cb ;
+            _hasImmediateRespEvents = FALSE ;
+         }
+
          void setRouteAgent( netRouteAgent *pAgent ) { _pAgent = pAgent ; }
          void setMgrCtrl( IRemoteMgrControl *pCtrl ) { _pCtrl = pCtrl ; }
 
@@ -609,6 +614,8 @@ namespace engine
          void              removeSession( UINT64 sessionID ) ;
          void              removeSession( pmdRemoteSession *pSession ) ;
          UINT32            sessionCount() ;
+
+         INT32    checkImmediateRespEvents( IRemoteSessionHandler *pHandle ) ;
 
       protected:
          INT32    processEvent( pmdEDUEvent &event,
@@ -658,6 +665,8 @@ namespace engine
          MAP_NODE_2_VERSION   _mapNode2Ver ;
          IRemoteMgrControl    *_pCtrl ;
 
+         // tell EDUCB to process events which requires immediately response
+         volatile BOOLEAN     _hasImmediateRespEvents ;
    } ;
    typedef _pmdRemoteSessionSite pmdRemoteSessionSite ;
 

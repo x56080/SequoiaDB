@@ -306,7 +306,28 @@ namespace engine
             try
             {
                BSONObj errObj( ( const CHAR* )pReply + sizeof( MsgOpReply )  ) ;
-               BSONElement e = errObj.getField( FIELD_NAME_ROLLBACK ) ;
+               BSONElement e ;
+
+               // check transaction error
+               e = errObj.getField( FIELD_NAME_TRANS_RC ) ;
+               if ( NumberInt == e.type() )
+               {
+                  INT32 tempRC = e.numberInt() ;
+                  if ( SDB_OK != tempRC )
+                  {
+                     PD_LOG( PDWARNING, "Remote node[%s] got transaction "
+                             "error [%d] in session[%s]",
+                             routeID2String( routeID ).c_str(), tempRC,
+                             cb->toString().c_str() ) ;
+                     if ( SDB_OK == cb->getTransRC() )
+                     {
+                        cb->setTransRC( tempRC ) ;
+                     }
+                  }
+               }
+
+               // check transaction rollback
+               e = errObj.getField( FIELD_NAME_ROLLBACK ) ;
                if ( e.isBoolean() && e.boolean() )
                {
                   PD_LOG( PDWARNING, "Remote node[%s] has rollbacked "

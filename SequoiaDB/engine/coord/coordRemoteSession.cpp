@@ -2210,6 +2210,9 @@ namespace engine
 
       _pSession->setUserData( (UINT64)this ) ;
 
+      // check if has events which requires immediate response in the session
+      _pSite->checkImmediateRespEvents( pHandle ) ;
+
    done:
       return rc ;
    error:

@@ -486,6 +486,12 @@ namespace engine
          goto done ;
       }
 
+      PD_LOG_MSG_CHECK( SDB_OK == cb->getTransRC(),
+                        cb->getTransRC(), error, PDERROR,
+                        "Transaction(%s) must rollback due to error(%d)",
+                        dpsTransIDToString( cb->getTransID() ).c_str(),
+                        cb->getTransRC() ) ;
+
       needCancel = TRUE ;
 
       if ( canCompactCommit() )

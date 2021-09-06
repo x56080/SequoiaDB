@@ -1189,8 +1189,10 @@ namespace engine
 
          virtual INT32 _onInsertFail( dmsMBContext *context,
                                       BOOLEAN hasInsert,
-                                      dmsRecordID rid, SDB_DPSCB *dpscb,
-                                      ossValuePtr dataPtr, _pmdEDUCB *cb ) = 0 ;
+                                      dmsRecordID rid,
+                                      SDB_DPSCB *dpscb,
+                                      ossValuePtr dataPtr,
+                                      _pmdEDUCB *cb ) = 0 ;
 
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;

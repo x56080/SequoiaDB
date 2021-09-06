@@ -104,11 +104,13 @@ namespace engine
       util get error bson
    */
    BSONObj        utilGetErrorBson( INT32 flags, const CHAR *detail,
-                                    BOOLEAN *pRollback = NULL ) ;
+                                    BOOLEAN *pRollback = NULL,
+                                    INT32 transRC = SDB_OK ) ;
 
    void           utilBuildErrorBson( BSONObjBuilder &builder,
                                       INT32 flags, const CHAR *detail,
-                                      BOOLEAN *pRollback = NULL ) ;
+                                      BOOLEAN *pRollback = NULL,
+                                      INT32 transRC = SDB_OK ) ;
 
    /*
       util rc to shell return code

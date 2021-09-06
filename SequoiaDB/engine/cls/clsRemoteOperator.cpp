@@ -40,6 +40,7 @@
 #include "clsBase.hpp"
 #include "pmdProcessor.hpp"
 #include "ossUtil.hpp"
+#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "pmdDummySession.hpp"
 
@@ -52,7 +53,8 @@ namespace engine
      _session( NULL ),
      _cb( NULL ),
      _sucCount( 0 ),
-     _failureCount( 0 )
+     _failureCount( 0 ),
+     _ctrl( NULL )
    {
    }
 
@@ -282,10 +284,6 @@ namespace engine
          goto done ;
       }
 
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
-
       rc = msgBuildInsertMsg( &msg, &bufferSize, clName, 0, 0, &insertor,
                               _cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build message, rc: %d", rc ) ;
@@ -315,10 +313,6 @@ namespace engine
       {
          goto done ;
       }
-
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
 
       rc = msgBuildDeleteMsg( &msg, &bufferSize, clName, flags, 0, &matcher,
                               &hint, _cb ) ;
@@ -351,10 +345,6 @@ namespace engine
       {
          goto done ;
       }
-
-      PD_CHECK( SDB_OK == _cb->getTransRC(), _cb->getTransRC(), error,
-                PDERROR, "Transaction is already failed, rc: %d",
-                _cb->getTransRC() ) ;
 
       rc = msgBuildUpdateMsg( &msg, &bufferSize, clName, flags, 0, &matcher,
                               &updator, &hint, _cb ) ;

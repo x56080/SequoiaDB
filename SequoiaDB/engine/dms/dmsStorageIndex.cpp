@@ -2131,6 +2131,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 indexID = 0 ;
+      // number of processed global index
+      UINT8 procIdxNum = 0 ;
       _dmsRecordContainer container ;
 
       if ( !_needProcessGlobalIndex( context, cb ) )
@@ -2139,7 +2141,10 @@ namespace engine
       }
 
       // loops through all potential indexes for the record
-      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      for ( indexID = 0 ;
+            ( indexID < DMS_COLLECTION_MAX_INDEX ) &&
+            ( procIdxNum < context->mbStat()->_globIdxNum ) ;
+            ++ indexID )
       {
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
          {
@@ -2155,6 +2160,8 @@ namespace engine
             // only insert global index.
             continue ;
          }
+
+         ++ procIdxNum ;
 
          if ( !_needProcessIndex( indexCB, extLID ) )
          {
@@ -2612,6 +2619,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 indexID = 0 ;
+      // number of processed global index
+      UINT8 procIdxNum = 0 ;
       _dmsRecordContainer container ;
 
       if ( !_needProcessGlobalIndex( context, cb ) )
@@ -2619,7 +2628,10 @@ namespace engine
          goto done ;
       }
 
-      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      for ( indexID = 0 ;
+            ( indexID < DMS_COLLECTION_MAX_INDEX ) &&
+            ( procIdxNum < context->mbStat()->_globIdxNum ) ;
+            ++ indexID )
       {
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
          {
@@ -2635,6 +2647,8 @@ namespace engine
             // only update global index.
             continue ;
          }
+
+         ++ procIdxNum ;
 
          if ( !_needProcessIndex( indexCB, extLID ) ||
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
@@ -2927,6 +2941,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 indexID = 0 ;
+      // number of processed global index
+      UINT8 procIdxNum = 0 ;
       _dmsRecordContainer container ;
 
       if ( !_needProcessGlobalIndex( context, cb ) )
@@ -2934,7 +2950,10 @@ namespace engine
          goto done ;
       }
 
-      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      for ( indexID = 0 ;
+            ( indexID < DMS_COLLECTION_MAX_INDEX ) &&
+            ( procIdxNum < context->mbStat()->_globIdxNum ) ;
+            ++ indexID )
       {
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
          {
@@ -2950,6 +2969,8 @@ namespace engine
             // only delete global index.
             continue ;
          }
+
+         ++ procIdxNum ;
 
          if ( !_needProcessIndex( indexCB, extLID ) )
          {
