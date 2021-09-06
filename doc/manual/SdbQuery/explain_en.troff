@@ -1846,7 +1846,7 @@ time( unit: s )
 T}
 .TE
 .PP
-Access plan information for the primary table in the vertical partition:
+Access plan information for the primary table in the table partition:
 .PP
 .TS
 tab(@);
@@ -1952,23 +1952,17 @@ T{
 T}@T{
 T}@T{
 T}@T{
-subtable in the
+subtable in the table
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-vertical partition
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-table
+partition
 T}
 .TE
 .PP
-Access plan information for subtables in a vertical partition:
+Access plan information for subtables in a table partition:
 .PP
 .TS
 tab(@);
@@ -2376,7 +2370,7 @@ plan is returned as a set of records.
 .RE
 .RS
 .IP "2." 3
-If the match of the query cannot hit any of the partitions of the vertical
+If the match of the query cannot hit any of the partitions of the table
 partiton, the query will not be sebt to the data node for execution, and access
 plan at this time will return a virtual access plan with the coordination node.
 .RE
@@ -2445,7 +2439,7 @@ Normal access plan.
 \f[]
 .fi
 .IP \[bu] 2
-Vertical partition access plan.
+Table partition access plan.
 .IP
 .nf
 \f[C]
@@ -3263,8 +3257,8 @@ Location option to view the query\[aq]s access plan on group1.
 \f[]
 .fi
 .IP \[bu] 2
-Use the Detail option to view the detailed access plan for vertical partitions
-and use Expand option to expand all detailed information.
+Use the Detail option to view the detailed access plan for table partitions and
+use Expand option to expand all detailed information.
 .IP
 .nf
 \f[C]

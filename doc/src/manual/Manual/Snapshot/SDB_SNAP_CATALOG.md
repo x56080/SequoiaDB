@@ -1,13 +1,6 @@
 [^_^]: 
 
     编目信息快照
-    作者：何嘉文
-    时间：20190307
-    评审意见
-    
-    王涛：
-    许建辉：
-    市场部：20190425
 
 
 编目信息快照可以列出所有集合的编目信息。
@@ -16,11 +9,11 @@
 >
 > 该快照只能在协调节点执行。
 
-## 标识
+##标识##
 
 SDB_SNAP_CATALOG
 
-## 字段信息
+##字段信息##
 
 | 字段名              | 类型   | 描述                         |
 | ------------------- | ------ | ---------------------------- |
@@ -34,13 +27,13 @@ SDB_SNAP_CATALOG
 | AttributeDesc       | string | 集合的属性描述，取值可参考 [SYSCOLLECTION 集合][syscollection]                 |
 | CompressionType     | int32  | 压缩算法类型掩码，取值可参考 [SYSCOLLECTION 集合][syscollection]                 |
 | CompressionTypeDesc | string | 压缩算法类型描述，取值可参考 [SYSCOLLECTION 集合][syscollection]            |
-| Partition           | int32  | hash 分区的个数 ( 仅水平分区集合显示 )|
-| InternalV           | int32  | hash 算法版本号 ( 仅水平分区集合显示，内部使用 )      |
-| AutoSplit           | boolean | 集合是否开启自动切分功能 ( 仅水平分区集合显示 )      |
-| IsMainCL            | boolean | 集合是否为垂直分区中的主表 ( 仅垂直分区集合显示 )    |
-| MainCLName          | string | 集合在垂直分区中所关联的主表名 ( 仅垂直分区集合显示 )|
+| Partition           | int32  | hash 分区的个数 ( 仅数据库分区集合显示 )|
+| InternalV           | int32  | hash 算法版本号 ( 仅数据库分区集合显示，内部使用 )      |
+| AutoSplit           | boolean | 集合是否开启自动切分功能 ( 仅数据库分区集合显示 )      |
+| IsMainCL            | boolean | 集合是否为表分区中的主表 ( 仅表分区集合显示 )    |
+| MainCLName          | string | 集合在表分区中所关联的主表名 ( 仅表分区集合显示 )|
 | CataInfo.ID         | int32  | 子表挂载的顺序 ID ( 内部使用 ) |
-| CataInfo.SubCLName  | string | 子表名 ( 仅垂直分区集合显示 )  |
+| CataInfo.SubCLName  | string | 子表名 ( 仅表分区集合显示 )  |
 | CataInfo.GroupID    | int32  | 复制组 ID                    |
 | CataInfo.GroupName  | string | 复制组名                     |
 | CataInfo.LowBound   | object | 数据分区区间的上限           |
@@ -52,7 +45,7 @@ SDB_SNAP_CATALOG
 | DataSourceID      | int32  | 数据源 ID                      |
 | Mapping           | string | 在[数据源][datasource]中所映射的集合名称    |
 
-## 示例
+##示例##
 
 - 查看普通集合的编目信息快照
 
@@ -83,7 +76,7 @@ SDB_SNAP_CATALOG
     }
     ```
 
-- 查看水平分区集合的编目信息快照
+- 查看数据库分区集合的编目信息快照
 
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CATALOG)
@@ -140,7 +133,7 @@ SDB_SNAP_CATALOG
     }
     ```
 
-- 查看垂直分区集合的编目信息快照
+- 查看表分区集合的编目信息快照
 
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CATALOG)

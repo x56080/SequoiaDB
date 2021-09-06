@@ -61,7 +61,7 @@ When the Detail option is false, a normal access plan will be displayed. Access 
 | UserCPU     | double | user mode CPU usage time( unit: s ) |
 | SysCPU      | bouble | kernel state CPU usage time( unit: s ) |
 
-Access plan information for the primary table in the vertical partition:
+Access plan information for the primary table in the table partition:
 
 | FieldName      | Type   | Description |
 | -------------- | ------ | ----------- |
@@ -69,9 +69,9 @@ Access plan information for the primary table in the vertical partition:
 | GroupName      | string | the replication group name of the node where access plan is located |
 | Role           | string | the node's role where access plan is located |
 | Name           | string | the collection name where access plan is located |
-| SubCollections | array  | access plan for each subtable in the vertical partition table |
+| SubCollections | array  | access plan for each subtable in the table partition   |
 
-Access plan information for subtables in a vertical partition:
+Access plan information for subtables in a table partition:
 
 | FieldName      | Type   | Description |
 | -------------- | ------ | ----------- |
@@ -94,7 +94,7 @@ Access plan information for subtables in a vertical partition:
 
 >1. If the collection is distributed across multiple replication groups, the access plan is returned as a set of records. 
 
->2. If the match of the query cannot hit any of the partitions of the vertical partiton, the query will not be sebt to the data node for execution, and access plan at this time will return a  virtual access plan with the coordination node.
+>2. If the match of the query cannot hit any of the partitions of the table partiton, the query will not be sebt to the data node for execution, and access plan at this time will return a  virtual access plan with the coordination node.
 
 ##Detailed access plan##
 
@@ -155,7 +155,7 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
 }
 ```
 
-* Vertical partition access plan.
+* Table partition access plan.
 
 ```lang-json
 {
@@ -954,7 +954,7 @@ When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Glo
 }
 ```
 
-* Use the Detail option to view the detailed access plan for vertical partitions and use Expand option to expand all detailed information.
+* Use the Detail option to view the detailed access plan for table partitions and use Expand option to expand all detailed information.
 
 ```lang-javascript
 > db.maincs.maincl.find( { a : { $gt : 100 } } ).explain( { Detail : true, Expand : true } )
