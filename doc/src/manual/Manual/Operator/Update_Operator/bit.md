@@ -15,9 +15,7 @@ options 选项：
 | xor  | 与指定的值进行逻辑异或运算 | db.sample.employee.update({$bit:{a:{xor:5}}}) |
 | or   | 与指定的值进行逻辑或运算 | db.sample.employee.update({$bit:{a:{or:5}}})  |
 | and  | 与指定的值进行逻辑与运算 | db.sample.employee.update({$bit:{a:{and:5}}})        |
-| not  | 与指定的值进行逻辑非运算 | db.sample.employee.update({$bit:{a:{not:5}}})        |
-
-
+| not  | 将指定字段的值进行逻辑非运算，not 的取值不能为空，但仅作为占位符使用，无意义  | db.sample.employee.update({$bit:{a:{not:0}}})        |
 
 ## 示例
 
