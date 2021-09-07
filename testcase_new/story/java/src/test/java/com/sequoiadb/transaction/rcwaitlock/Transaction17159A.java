@@ -20,7 +20,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
 import com.sequoiadb.transaction.TransUtils;
 
 @Test(groups = "rcwaitlock")
@@ -33,7 +32,7 @@ public class Transaction17159A extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private DBCursor cursor = null;
-    private List< BSONObject > expList = new ArrayList< BSONObject >();
+    private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
@@ -48,7 +47,7 @@ public class Transaction17159A extends SdbTestBase {
     }
 
     @Test
-    public void test() throws InterruptedException {
+    public void test() {
         TransUtils.beginTransaction( db1 );
         TransUtils.beginTransaction( db2 );
 
@@ -61,10 +60,8 @@ public class Transaction17159A extends SdbTestBase {
         }
 
         // 事务2表扫描记录
-        Read read = new Read();
-        read.start();
-        Assert.assertTrue(
-                TransUtils.isTransWaitLock( sdb, read.getTransactionID() ) );
+        cursor = cl2.query( null, null, "{a:1}", "{'':null}" );
+        Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
 
         // 事务2索引扫描记录
         cursor = cl2.query( null, null, "{a:1}", "{'':'a'}" );
@@ -79,10 +76,6 @@ public class Transaction17159A extends SdbTestBase {
         Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
 
         db1.rollback();
-
-        // 校验阻塞线程返回的记录
-        Assert.assertTrue( read.isSuccess() );
-        Assert.assertEquals( read.getExecResult(), expList );
 
         // 事务2表扫描记录
         cursor = cl2.query( null, null, "{a:1}", "{'':null}" );
@@ -101,35 +94,6 @@ public class Transaction17159A extends SdbTestBase {
         Assert.assertEquals( TransUtils.getReadActList( cursor ), expList );
 
         db2.commit();
-    }
-
-    private class Read extends SdbThreadBase {
-        private Sequoiadb db = null;
-        private DBCollection cl = null;
-        private DBCursor cursor = null;
-
-        @Override
-        public void exec() throws Exception {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            cl = db.getCollectionSpace( csName ).getCollection( clName );
-
-            // 开启并发事务2
-            TransUtils.beginTransaction( db );
-
-            // 判断事务阻塞需先获取事务id
-            setTransactionID( db );
-
-            try {
-                cursor = cl.query( null, null, "{a:1}", "{'':null}" );
-                List< BSONObject > records = TransUtils
-                        .getReadActList( cursor );
-                setExecResult( records );
-            } finally {
-                db.commit();
-                cursor.close();
-                db.close();
-            }
-        }
     }
 
     @AfterClass
