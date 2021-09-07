@@ -25,13 +25,12 @@ function test( testPara )
    
       try
       {
-         
          db.transCommit();
          throw new Error( "commit should be failed!");
       }
       catch( e )
       {
-         if( e.message != SDB_NET_INVALID_HANDLE )
+         if( e.message != SDB_COORD_REMOTE_DISC )
          {
             throw e;
          }
