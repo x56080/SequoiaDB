@@ -26,45 +26,30 @@ function test ()
 /*******************************************************************************
 *@Description：测试op为update时, 更新规则字段为空
 *@Input：find( {a:1} ).update( {} )
-*@Expectation：预期抛出如下异常:
+*@Expectation：预期抛出如下异常:-6 SDB_INVALIDARG
 SdbQuery.update(): the 1st param should be non-empty object
 ********************************************************************************/
 function testRuleEmpty ( cl )
 {
-   try
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
-      cl.find( { a: 1 } ).update( {} );
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( errMsg.FISRTPARAM != e.message )
-      {
-         throw e;
-      }
-   }
+      cl.find( { a: 1 } ).update( {} ); 
+   } );
 }
 
 /*******************************************************************************
 *@Description：测试op为update时, returnnew为非boolean值
 *@Input：find( {a:1} ).update( {$inc:{a:1}}, 1 )
-*@Expectation：预期抛出如下异常:
+*@Expectation：预期抛出如下异常:-6 SDB_INVALIDARG
 SdbQuery.update(): the 2nd param should be boolean
 ********************************************************************************/
 function testReturnNewNonBoolean ( cl )
 {
-   try
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { a: 1 } ).update( { $inc: { a: 1 } }, 1 ).toArray();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( errMsg.SECONDPARAM != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
+   
 }
 
 /*******************************************************************************
@@ -188,24 +173,16 @@ function testSortNotExistIndex ( cl )
 /*******************************************************************************
 *@Description：测试op为update时, 给合count
 *@Input：find( {a:1} ).update( {$inc:{a:1}} ).count()
-*@Expectation：throw如下异常:
+*@Expectation：throw如下异常:-6 SDB_INVALIDARG
 count() cannot be executed with update() or remove()
 ********************************************************************************/
 function testWithCount ( cl )
 {
-   try
+   cl.insert( { a: 1 } );   
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
-      cl.insert( { a: 1 } );
       cl.find( { a: 1 } ).update( { $inc: { a: 1 } } ).count();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( errMsg.WITHCOUNT != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
