@@ -80,6 +80,8 @@ namespace SequoiaDB
         public const string LATCHWAITS = "latchwaits";
         public const string LOCKWAITS = "lockwaits";
         public const string INDEXSTATS = "index statistics";
+        public const string TRANSWAITS = "waiting transactions";
+        public const string TRANSDEADLOCK = "transaction deadlocks";
         public const string USERS = "users";
         public const string BACKUPS = "backups";
         public const string CS_IN_DOMAIN = "collectionspaces in domain";
