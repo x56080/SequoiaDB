@@ -700,6 +700,7 @@ namespace engine
       INT64 numToReturn = -1 ;
       _rtnCommand *pCommand = NULL ;
       monClassQuery *monQuery = NULL ;
+      rtnContextBase *pContext = NULL ;
 
       rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
@@ -711,8 +712,6 @@ namespace engine
 
       if ( !rtnIsCommand ( pCollectionName ) )
       {
-         rtnContextBase *pContext = NULL ;
-
          /// check auto-commit
          rc = _checkTransAutoCommit( msg, ( flags & FLG_QUERY_MODIFY ) ?
                                           TRUE : FALSE ) ;
@@ -793,27 +792,6 @@ namespace engine
                                          getPlanRuntime()->
                                          getAccessPlanID() ;
             }
-
-            if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) && NULL != pContext )
-            {
-               rc = pContext->getMore( -1, buffObj, eduCB() ) ;
-               if ( rc || pContext->eof() )
-               {
-                  _pRTNCB->contextDelete( contextID, eduCB() ) ;
-                  contextID = -1 ;
-               }
-
-               if ( SDB_DMS_EOC == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               else if ( rc )
-               {
-                  PD_LOG( PDERROR, "Session[%s] failed to query with return "
-                          "data, rc: %d", getSession()->sessionName(), rc ) ;
-                  goto error ;
-               }
-            }
          }
          catch ( std::exception &e )
          {
@@ -876,6 +854,30 @@ namespace engine
          }
          if ( rc )
          {
+            goto error ;
+         }
+      }
+
+      if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+           ( ( NULL != pContext ) ||
+             ( -1 != contextID &&
+               NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) ) ) )
+      {
+         rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+         if ( rc || pContext->eof() )
+         {
+            _pRTNCB->contextDelete( contextID, eduCB() ) ;
+            contextID = -1 ;
+         }
+
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s] failed to query with return "
+                    "data, rc: %d", getSession()->sessionName(), rc ) ;
             goto error ;
          }
       }
