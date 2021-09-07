@@ -827,6 +827,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_QUERIES
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -865,6 +867,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_QUERIES
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -906,6 +910,8 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_QUERIES
          *      SDBConst.SDB_SNAP_LATCHWAITS
          *      SDBConst.SDB_SNAP_LOCKWAITS
+         *      SDBConst.SDB_SNAP_TRANSWAITS
+         *      SDBConst.SDB_SNAP_TRANSDEADLOCK
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -1004,6 +1010,14 @@ namespace SequoiaDB
                 case SDBConst.SDB_SNAP_LOCKWAITS:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
                            SequoiadbConstants.LOCKWAITS;
+                    break;
+                case SDBConst.SDB_SNAP_TRANSWAITS:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.TRANSWAITS;
+                    break;
+                case SDBConst.SDB_SNAP_TRANSDEADLOCK:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.TRANSDEADLOCK;
                     break;
                 default:
                     throw new BaseException("SDB_INVALIDARG");
