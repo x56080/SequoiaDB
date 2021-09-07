@@ -1192,7 +1192,8 @@ namespace engine
                                       dmsRecordID rid,
                                       SDB_DPSCB *dpscb,
                                       ossValuePtr dataPtr,
-                                      _pmdEDUCB *cb ) = 0 ;
+                                      _pmdEDUCB *cb,
+                                      const dmsTransRecordInfo *pInfo ) = 0 ;
 
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
