@@ -8893,10 +8893,21 @@ do                                                            \
       }
 
       rc = _runCommand( p, &condition, &selector, &orderBy, &hint,
-                        0, 0, numToSkip, numToReturn, result ) ;
+                        FLG_QUERY_WITH_RETURNDATA, 0, numToSkip, numToReturn,
+                        result ) ;
       if ( rc )
       {
          goto error ;
+      }
+
+      // check return cursor
+      if ( NULL == *result )
+      {
+         rc = _buildEmptyCursor( result ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done :
@@ -8999,11 +9010,21 @@ do                                                            \
       }
 
       rc = _runCommand( p, &condition, &selector, &orderBy, &hint,
-                        0, 0, numToSkip, numToReturn,
+                        FLG_QUERY_WITH_RETURNDATA, 0, numToSkip, numToReturn,
                         result ) ;
       if ( rc )
       {
          goto error ;
+      }
+
+      // check return cursor
+      if ( NULL == *result )
+      {
+         rc = _buildEmptyCursor( result ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done :
