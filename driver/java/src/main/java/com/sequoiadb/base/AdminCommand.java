@@ -106,6 +106,8 @@ final class AdminCommand {
     final static String SNAP_INDEXSTATS = PREFIX + "snapshot index statistics";
     final static String SNAP_TASKS = PREFIX + "snapshot tasks";
     final static String SNAP_INDEXES = PREFIX + "snapshot indexes";
+    final static String SNAP_TRANSWAITS = PREFIX + "snapshot waiting transactions";
+    final static String SNAP_TRANSDEADLOCK = PREFIX + "snapshot transaction deadlocks";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
 
