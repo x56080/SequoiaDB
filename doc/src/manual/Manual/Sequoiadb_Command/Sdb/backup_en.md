@@ -126,7 +126,7 @@ Perform a full backup of the replication group "group1".
 
 [^_^]:
     links
-[path]:manual/Manual/Database_Configuration/configuration_parameters.md
+[path]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

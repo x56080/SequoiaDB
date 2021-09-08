@@ -189,6 +189,6 @@ Option: { "Name": "sample.employee" }
 [createUsr]:manual/Manual/Sequoiadb_Command/Sdb/createUsr.md
 [SDB_LIST_USERS]:manual/Manual/List/SDB_LIST_USERS.md
 [dropUsr]:manual/Manual/Sequoiadb_Command/Sdb/dropUsr.md
-[configuration_parameters]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [auditlog]:manual/Distributed_Engine/Maintainance/DiagLog/auditlog.md#审计操作类型

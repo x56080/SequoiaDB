@@ -62,4 +62,4 @@ v3.2 及以上版本
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [reloadConf]:manual/Manual/Sequoiadb_Command/Sdb/reloadConf.md
-[config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md

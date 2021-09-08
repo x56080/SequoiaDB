@@ -61,4 +61,4 @@ Update the configuration item parameter "diaglevel" of node 11810 to 3.
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [reloadConf]:manual/Manual/Sequoiadb_Command/Sdb/reloadConf.md
-[config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md

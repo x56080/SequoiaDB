@@ -2,5 +2,5 @@
 
 [^_^]:
      本文使用的所有引用及链接
-[configuration_parameters]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 

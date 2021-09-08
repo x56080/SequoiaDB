@@ -66,6 +66,6 @@ Connect to the local cluster management service process sdbcm and create a tempo
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [createNode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/createNode.md
     

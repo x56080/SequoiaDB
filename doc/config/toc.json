@@ -1308,6 +1308,58 @@
                      ]
                   },
                   {
+                    "id": 1577931587,
+                    "dir": "Database_Configuration",
+                    "cn": "数据库配置",
+                    "en": "Database Configuration",
+                    "contents": [
+                      {
+                        "id": 1432190643,
+                        "file": "configuration_parameters",
+                        "cn": "配置项参数",
+                        "en": "Configuration Parameters"
+                      },
+                      {
+                        "id": 1432191411,
+                        "dir": "Special_Configuration_Modify",
+                        "cn": "特殊配置项修改",
+                        "en": "Special Configuration Modify",
+                        "contents": [
+                            {
+                              "id": 1432191413,
+                              "file": "dbpath_modify",
+                              "cn": "数据文件",
+                              "en": "dbpath_modify"
+                            },
+                            {
+                              "id": 1432191414,
+                              "file": "indexpath_modify",
+                              "cn": "索引文件",
+                              "en": "indexpath_modify"
+                            },
+                            {
+                              "id": 1432191415,
+                              "file": "lobpath_modify",
+                              "cn": "lobpath",
+                              "en": "lobpath_modify"
+                            },
+                            {
+                              "id": 1432191416,
+                              "file": "lobmetapath_modify",
+                              "cn": "lobmetapath",
+                              "en": "lobmetapath_modify"
+                            },
+                            {
+                              "id": 1432190652,
+                              "file": "log_synchronization",
+                              "cn": "同步日志",
+                              "en": "Log Synchronization"
+                            }
+                          ]
+                       }
+                     ]
+                  },
+                  {
                      "id": 1599717423,
                      "dir": "HA_DR",
                      "cn": "高可用与容灾",
@@ -2220,69 +2272,11 @@
          "en": "Manual",
          "contents": [
             {
-              "id": 1577931587,
-              "dir": "Database_Configuration",
-              "cn": "数据库配置",
-              "en": "Database Configuration",
-              "contents": [
-                {
-                  "id": 1432190643,
-                  "file": "configuration_parameters",
-                  "cn": "配置项参数",
-                  "en": "Configuration Parameters"
-                },
-                {
-                  "id": 1432191411,
-                  "dir": "Special_Configuration_Modify",
-                  "cn": "特殊配置项修改",
-                  "en": "Special Configuration Modify",
-                  "contents": [
-                      {
-                        "id": 1432191413,
-                        "file": "dbpath_modify",
-                        "cn": "数据文件",
-                        "en": "dbpath_modify"
-                      },
-                      {
-                        "id": 1432191414,
-                        "file": "indexpath_modify",
-                        "cn": "索引文件",
-                        "en": "indexpath_modify"
-                      },
-                      {
-                        "id": 1432191415,
-                        "file": "lobpath_modify",
-                        "cn": "lobpath",
-                        "en": "lobpath_modify"
-                      },
-                      {
-                        "id": 1432191416,
-                        "file": "lobmetapath_modify",
-                        "cn": "lobmetapath",
-                        "en": "lobmetapath_modify"
-                      },
-                      {
-                        "id": 1432190652,
-                        "file": "log_synchronization",
-                        "cn": "同步日志",
-                        "en": "Log Synchronization"
-                      }
-                    ]
-                 }
-               ]
-            },
-            {
                "id": 1432190764,
                "dir": "Sequoiadb_Command",
                "cn": "SequoiaDB Shell方法",
                "en": "SequoiaDB Shell Method List",
                "contents": [
-                  {
-                     "id": 1482314609,
-                     "file": "location",
-                     "cn": "命令位置参数",
-                     "en": "location"
-                  },
                   {
                      "id": 1432190765,
                      "dir": "Global",
@@ -4624,6 +4618,12 @@
                            "en": "type"
                         }
                      ]
+                  },
+                  {
+                     "id": 1482314609,
+                     "file": "location",
+                     "cn": "命令位置参数",
+                     "en": "location"
                   },
                   {
                      "id": 1552489109,

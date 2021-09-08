@@ -77,7 +77,7 @@ v2.0 及以上版本
 [^_^]:
     本文使用的所有引用和链接
 [istReplicaGroups]:manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md
-[cluster_config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[cluster_config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [Replication]:manual/Distributed_Engine/Architecture/Replication/election.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

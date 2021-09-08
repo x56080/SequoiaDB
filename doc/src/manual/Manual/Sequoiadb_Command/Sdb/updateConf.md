@@ -23,7 +23,7 @@ Sdb
 
 > **Note:**
 >
-> * 参照[数据库配置](manual/Manual/Database_Configuration/configuration_parameters.md)页面获取配置的动态生效、重启生效和禁止修改信息。
+> * 参照[数据库配置](manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md)页面获取配置的动态生效、重启生效和禁止修改信息。
 > * 动态生效和重启生效的配置都会写入配置文件中，成为固定的配置。
 > * 重启生效和禁止修改配置的详细信息会通过错误信息返回值通知。
 > * 若配置的值和数据库当前值相同，则重启生效和禁止修改配置不会报错。

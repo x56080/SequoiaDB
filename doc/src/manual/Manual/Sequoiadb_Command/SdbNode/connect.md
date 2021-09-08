@@ -64,7 +64,7 @@ localhost:11820
 
 [^_^]:
      本文使用的所有引用及链接
-[CONF_PARAMETERS]:manual/Manual/Database_Configuration/configuration_parameters.md
+[CONF_PARAMETERS]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [Sdb]:manual/Manual/Sequoiadb_Command/Sdb/Sdb.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

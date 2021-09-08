@@ -206,8 +206,8 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 [full_sync]:images/Distributed_Engine/Architecture/Replication/full_sync.png
 [create_cl]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [session_attr]: manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
-[logfilesz]: manual/Manual/Database_Configuration/configuration_parameters.md
-[logfilenum]: manual/Manual/Database_Configuration/configuration_parameters.md
+[logfilesz]: manualDistributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
+[logfilenum]: manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 
 
 

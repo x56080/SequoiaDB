@@ -70,6 +70,6 @@
 
 [^_^]:
     本文使用到的所有链接及引用。
-[node_conf]:manual/Manual/Database_Configuration/configuration_parameters.md
+[node_conf]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [repli_tool]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/log_replay.md
 [sdb_diaglog]:manual/Distributed_Engine/Maintainance/DiagLog/diaglog.md

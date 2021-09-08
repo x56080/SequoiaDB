@@ -76,7 +76,7 @@ v2.0 及以上版本
 
 [^_^]:
     本文使用的所有引用及链接
-[cluster_config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[cluster_config]:manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md

@@ -29,7 +29,7 @@ Oma
 
 * `config` ( *Object*， *必填* )
 
-	节点配置信息，如配置日志大小，是否打开事务等，具体可参考[数据库配置](manual/Manual/Database_Configuration/configuration_parameters.md)。
+	节点配置信息，如配置日志大小，是否打开事务等，具体可参考[数据库配置](manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md)。
 
 ##返回值##
 
