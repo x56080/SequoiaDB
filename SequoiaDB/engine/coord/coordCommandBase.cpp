@@ -1028,6 +1028,16 @@ namespace engine
             rtnQueryOptions defaultOptions ;
             rc = pTmpContext->open( defaultOptions ) ;
          }
+         else if ( pCtrl && pCtrl->pushdownCommandName() &&
+                   ( '\0' != *( pCtrl->pushdownCommandName() ) ) &&
+                   ( 0 != ossStrcmp( queryOption.getCLFullName(),
+                                     pCtrl->pushdownCommandName() ) ) )
+         {
+            // if has pushdownCommand and it is different than original one,
+            // i.e., the _fullName, coord context shall be opened with
+            // origin query options
+            rc = pTmpContext->open( queryOption ) ;
+         }
          else
          {
             rtnQueryOptions contextOptions ;
@@ -1071,6 +1081,12 @@ namespace engine
       if ( pCtrl && pCtrl->pushdownCommandName() &&
            '\0' != *( pCtrl->pushdownCommandName() ) )
       {
+         if ( 0 != ossStrcmp( queryOption.getCLFullName(),
+                              pCtrl->pushdownCommandName() ) )
+         {
+            queryOption.reset() ;
+         }
+
          queryOption.setCLFullName( pCtrl->pushdownCommandName() ) ;
          needReset = TRUE ;
       }

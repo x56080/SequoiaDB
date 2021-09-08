@@ -70,10 +70,12 @@
 /** reserved */
 #define SDB_SNAP_RESERVED3        21
 #define SDB_SNAP_RESERVED4        22
+
+
 /** snapshot of transaction waits */
-#define SDB_SNAP_TRANSWAITS       23
+#define SDB_SNAP_TRANSWAITS       25
 /** snapshot of transaction deadlock */
-#define SDB_SNAP_TRANSDEADLOCK    24
+#define SDB_SNAP_TRANSDEADLOCK    26
 
 
 /** list of all the contexts of all the sessions */
@@ -117,9 +119,10 @@
 #define SDB_LIST_RESERVED4        21
 /** list data source */
 #define SDB_LIST_DATASOURCES      22
+
 /** reserved */
-#define SDB_LIST_RESERVED5        23
-#define SDB_LIST_RESERVED6        24
+#define SDB_LIST_RESERVED5        25
+#define SDB_LIST_RESERVED6        26
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129
