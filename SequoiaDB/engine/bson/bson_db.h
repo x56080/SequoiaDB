@@ -137,11 +137,18 @@ namespace bson {
                unsigned repeatLen = remainPtr - repeatPtr ;
                if ( repeatLen > BSON_ABBREV_REPEAT_SIZE )
                {
-                  char tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = { 0 } ;
+                  char tempBuffer[ BSON_ABBREV_BUFFER_SIZE + 1 ] = { 0 } ;
                   unsigned tempLen = 0 ;
+#if defined (_WIN32) || defined (_WIN64)
+                  _snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
+                             "...<%c repeat %u times>...", *repeatPtr,
+                             repeatLen ) ;
+                  tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = '\0' ;
+#else
                   snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
                             "...<%c repeat %u times>...", *repeatPtr,
                             repeatLen ) ;
+#endif
                   tempLen = strlen( tempBuffer ) ;
                   if ( tempLen + printedLen < BSON_ABBREV_MAX_SIZE )
                   {
@@ -176,9 +183,15 @@ namespace bson {
          // if the remain size is still too long, print in abbreviation mode
          if ( remainLen > BSON_ABBREV_REMAIN_SIZE )
          {
-            char tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = { 0 } ;
+            char tempBuffer[ BSON_ABBREV_BUFFER_SIZE + 1 ] = { 0 } ;
+#if defined (_WIN32) || defined (_WIN64)
+            _snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
+                       " ...<%u characters more>...", remainLen ) ;
+            tempBuffer[ BSON_ABBREV_BUFFER_SIZE ] = '\0' ;
+#else
             snprintf( tempBuffer, BSON_ABBREV_STRING_SIZE,
                       " ...<%u characters more>...", remainLen ) ;
+#endif
             builder.appendStr( tempBuffer, true ) ;
          }
          else
