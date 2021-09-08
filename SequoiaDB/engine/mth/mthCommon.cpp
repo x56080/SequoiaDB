@@ -97,6 +97,12 @@ namespace engine
                                  BSONObjBuilder &outBuilder ) ;
    static INT32 _mthStrLenBasic( const CHAR *name, const BSONElement &in,
                                  BSONObjBuilder &outBuilder ) ;
+
+   static BOOLEAN _mthIsUTF8StartByte( CHAR charByte ) ;
+   static INT32   _mthLengthInUTF8CodePoints( const CHAR* str ) ;
+   static INT32   _mthStrlenCP( const CHAR *name, const BSONElement &in,
+                                BSONObjBuilder &outBuilder ) ;
+
    static INT32 _mthLowerBasic( const CHAR *name, const BSONElement &in,
                                 BSONObjBuilder &outBuilder ) ;
    static INT32 _mthUpperBasic( const CHAR *name, const BSONElement &in,
@@ -1850,8 +1856,63 @@ namespace engine
       return rc ;
    }
 
-   INT32 mthStrLen( const CHAR *name, const BSONElement &in,
-                    BSONObjBuilder &outBuilder )
+   // UTF-8 encoding rules:
+   // single byte: the highest bit is 0
+   // multibyte: start from the highest bit, N consecutive bits are all 1. The
+   // rest of the bytes all start with 10. N represents the number of encoded
+   // bytes
+   BOOLEAN _mthIsUTF8StartByte( CHAR charByte )
+   {
+      return ( charByte & 0xc0 ) != 0x80 ? TRUE : FALSE ;
+   }
+
+   INT32 _mthLengthInUTF8CodePoints( const CHAR* str )
+   {
+      UINT32 i = 0 ;
+      INT32 length = 0 ;
+
+      if ( NULL == str )
+      {
+         goto done ;
+      }
+
+      while ( str[i] != '\0' )
+      {
+         if ( _mthIsUTF8StartByte( str[i] ) )
+         {
+            length++ ;
+         }
+         ++i ;
+      }
+
+   done:
+      return length ;
+   }
+
+   INT32 _mthStrlenCP( const CHAR *name, const BSONElement &in,
+                       BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      if ( in.eoo() )
+      {
+         goto done ;
+      }
+      else if ( String != in.type() )
+      {
+         outBuilder.appendNull( name ) ;
+      }
+      else
+      {
+         outBuilder.append( name,
+                            _mthLengthInUTF8CodePoints ( in.valuestrsafe() ) ) ;
+      }
+
+   done:
+      return rc ;
+   }
+
+   INT32 mthStrLenBytes( const CHAR *name, const BSONElement &in,
+                         BSONObjBuilder &outBuilder )
    {
       INT32 rc = SDB_OK ;
       if ( Array == in.type() )
@@ -1874,6 +1935,53 @@ namespace engine
       {
          rc = _mthStrLenBasic( name, in, outBuilder ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to StrLen:rc=%d", rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthStrLen( const CHAR *name, const BSONElement &in,
+                    BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = mthStrLenBytes( name, in, outBuilder ) ;
+      PD_RC_CHECK( rc, PDERROR, "failed to strlen:rc=%d", rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 mthStrLenCP( const CHAR *name, const BSONElement &in,
+                      BSONObjBuilder &outBuilder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( Array == in.type() )
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObjIterator iter( in.embeddedObject() ) ;
+         while ( iter.more() )
+         {
+            BSONObjBuilder tmpBuilder ;
+            BSONElement ele = iter.next() ;
+            rc = _mthStrlenCP( ele.fieldName(), ele, tmpBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to strlenCP:rc=%d", rc ) ;
+
+            arrayBuilder.append( tmpBuilder.obj().firstElement() ) ;
+         }
+
+         outBuilder.append( name, arrayBuilder.arr() ) ;
+      }
+      else
+      {
+         rc = _mthStrlenCP( name, in, outBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "failed to strlenCP:rc=%d", rc ) ;
       }
 
    done:

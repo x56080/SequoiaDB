@@ -96,6 +96,8 @@ namespace engine
       { MTH_FUNCTION_STR_DIVIDE,      EN_MATCH_FUNC_DIVIDE },
       { MTH_FUNCTION_STR_SUBSTR,      EN_MATCH_FUNC_SUBSTR },
       { MTH_FUNCTION_STR_STRLEN,      EN_MATCH_FUNC_STRLEN },
+      { MTH_FUNCTION_STR_STRLENBYTES, EN_MATCH_FUNC_STRLENBYTES },
+      { MTH_FUNCTION_STR_STRLENCP,    EN_MATCH_FUNC_STRLENCP },
       { MTH_FUNCTION_STR_LOWER,       EN_MATCH_FUNC_LOWER },
       { MTH_FUNCTION_STR_UPPER,       EN_MATCH_FUNC_UPPER },
       { MTH_FUNCTION_STR_LTRIM,       EN_MATCH_FUNC_LTRIM },
@@ -291,6 +293,12 @@ namespace engine
          break ;
       case EN_MATCH_FUNC_STRLEN:
          func = new ( allocator ) _mthMatchFuncSTRLEN( allocator ) ;
+         break ;
+      case EN_MATCH_FUNC_STRLENBYTES:
+         func = new ( allocator ) _mthMatchFuncSTRLENBYTES( allocator ) ;
+         break ;
+      case EN_MATCH_FUNC_STRLENCP:
+         func = new ( allocator ) _mthMatchFuncSTRLENCP( allocator ) ;
          break ;
       case EN_MATCH_FUNC_LOWER:
          func = new ( allocator ) _mthMatchFuncLOWER( allocator ) ;

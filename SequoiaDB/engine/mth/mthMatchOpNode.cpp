@@ -178,9 +178,38 @@ namespace engine
       return in.copyTo( out ) ;
    }
 
+   //*********************_mthMatchUnaryFunc***********************
+   _mthMatchUnaryFunc::_mthMatchUnaryFunc( _mthNodeAllocator *allocator )
+                       :_mthMatchFunc( allocator )
+   {
+   }
+
+   _mthMatchUnaryFunc::~_mthMatchUnaryFunc()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchUnaryFunc::_init( const CHAR *fieldName,
+                                    const BSONElement &ele )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !ele.isNumber() || ele.numberInt() != 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "The value of %s must be 1", ele.fieldName() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //************************_mthMatchFuncABS********************************
    _mthMatchFuncABS::_mthMatchFuncABS( _mthNodeAllocator *allocator )
-                    :_mthMatchFunc( allocator )
+                    :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -206,11 +235,6 @@ namespace engine
       return rc ;
    }
 
-   void _mthMatchFuncABS::clear()
-   {
-      _mthMatchFunc::clear() ;
-   }
-
    INT32 _mthMatchFuncABS::getType()
    {
       return EN_MATCH_FUNC_ABS ;
@@ -221,20 +245,9 @@ namespace engine
       return MTH_FUNCTION_STR_ABS ;
    }
 
-   INT32 _mthMatchFuncABS::_init( const CHAR *fieldName,
-                                  const BSONElement &ele )
-   {
-      if ( !ele.isNumber() || ele.numberInt() != 1 )
-      {
-         return SDB_INVALIDARG ;
-      }
-
-      return SDB_OK ;
-   }
-
    //************************_mthMatchFuncCEILING********************************
    _mthMatchFuncCEILING::_mthMatchFuncCEILING( _mthNodeAllocator *allocator )
-                        :_mthMatchFuncABS( allocator )
+                        :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -271,7 +284,7 @@ namespace engine
 
    //************************_mthMatchFuncFLOOR********************************
    _mthMatchFuncFLOOR::_mthMatchFuncFLOOR( _mthNodeAllocator *allocator )
-                      :_mthMatchFuncABS( allocator )
+                      :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -308,7 +321,7 @@ namespace engine
 
    //************************_mthMatchFuncLOWER********************************
    _mthMatchFuncLOWER::_mthMatchFuncLOWER( _mthNodeAllocator *allocator )
-                      :_mthMatchFuncABS( allocator )
+                      :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -345,7 +358,7 @@ namespace engine
 
    //************************_mthMatchFuncUPPER********************************
    _mthMatchFuncUPPER::_mthMatchFuncUPPER( _mthNodeAllocator *allocator )
-                      :_mthMatchFuncABS( allocator )
+                      :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -382,7 +395,7 @@ namespace engine
 
    //************************_mthMatchFuncLTRIM********************************
    _mthMatchFuncLTRIM::_mthMatchFuncLTRIM( _mthNodeAllocator *allocator )
-                      :_mthMatchFuncABS( allocator )
+                      :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -419,7 +432,7 @@ namespace engine
 
    //************************_mthMatchFuncRTRIM********************************
    _mthMatchFuncRTRIM::_mthMatchFuncRTRIM( _mthNodeAllocator *allocator )
-                      :_mthMatchFuncABS( allocator )
+                      :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -456,7 +469,7 @@ namespace engine
 
    //************************_mthMatchFuncTRIM********************************
    _mthMatchFuncTRIM::_mthMatchFuncTRIM( _mthNodeAllocator *allocator )
-                     :_mthMatchFuncABS( allocator )
+                     :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -493,7 +506,7 @@ namespace engine
 
    //************************_mthMatchFuncSTRLEN********************************
    _mthMatchFuncSTRLEN::_mthMatchFuncSTRLEN( _mthNodeAllocator *allocator )
-                       :_mthMatchFuncABS( allocator )
+                       :_mthMatchUnaryFunc( allocator )
    {
    }
 
@@ -528,7 +541,81 @@ namespace engine
       return MTH_FUNCTION_STR_STRLEN ;
    }
 
-   //************************_mthMatchFuncSUBSTR********************************
+   //************************_mthMatchFuncSTRLENBYTES***************************
+   _mthMatchFuncSTRLENBYTES::_mthMatchFuncSTRLENBYTES( _mthNodeAllocator *allocator )
+                            :_mthMatchUnaryFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncSTRLENBYTES::~_mthMatchFuncSTRLENBYTES()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncSTRLENBYTES::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthStrLenBytes( _fieldName.getFieldName(), in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenBytes failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncSTRLENBYTES::getType()
+   {
+      return EN_MATCH_FUNC_STRLENBYTES ;
+   }
+
+   const CHAR* _mthMatchFuncSTRLENBYTES::getName()
+   {
+      return MTH_FUNCTION_STR_STRLENBYTES ;
+   }
+
+   //************************_mthMatchFuncSTRLENCP******************************
+   _mthMatchFuncSTRLENCP::_mthMatchFuncSTRLENCP( _mthNodeAllocator *allocator )
+                         :_mthMatchUnaryFunc( allocator )
+   {
+   }
+
+   _mthMatchFuncSTRLENCP::~_mthMatchFuncSTRLENCP()
+   {
+      clear() ;
+   }
+
+   INT32 _mthMatchFuncSTRLENCP::call( const BSONElement &in, BSONObj &out )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+
+      rc = mthStrLenCP( _fieldName.getFieldName(), in, builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "mthStrLenCP failed:rc=%d", rc ) ;
+      }
+
+      out = builder.obj() ;
+
+      return rc ;
+   }
+
+   INT32 _mthMatchFuncSTRLENCP::getType()
+   {
+      return EN_MATCH_FUNC_STRLENCP ;
+   }
+
+   const CHAR* _mthMatchFuncSTRLENCP::getName()
+   {
+      return MTH_FUNCTION_STR_STRLENCP ;
+   }
+
+   //************************_mthMatchFuncSUBSTR*****************************
    _mthMatchFuncSUBSTR::_mthMatchFuncSUBSTR( _mthNodeAllocator *allocator )
                        :_mthMatchFunc( allocator )
    {

@@ -221,6 +221,12 @@ namespace engine
       /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 
+      /// $strlenBytes
+      MTH_ADD_PARSER( _mthStrLenBytesParser ) ;
+
+      /// $strlenCP
+      MTH_ADD_PARSER( _mthStrLenCPParser ) ;
+
       /// $lower
       MTH_ADD_PARSER( _mthLowerParser ) ;
 
