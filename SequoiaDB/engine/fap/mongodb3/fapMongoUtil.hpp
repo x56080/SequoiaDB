@@ -43,8 +43,6 @@
 #include "ossMem.hpp"
 #include "../../bson/bson.hpp"
 #include "utilCommon.hpp"
-#include "fapMongoTrace.hpp"
-#include "pdTrace.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 

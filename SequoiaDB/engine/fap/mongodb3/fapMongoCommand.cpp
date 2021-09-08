@@ -42,6 +42,8 @@
 #include "pd.hpp"
 #include "../bson/lib/md5.hpp"
 #include "fapMongoDecimal.hpp"
+#include "fapMongoTrace.hpp"
+#include "pdTrace.hpp"
 
 using namespace bson ;
 
@@ -58,7 +60,7 @@ static INT32 appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
    BSONObj empty ;
    BSONObj org( bodyBuf.data() ) ;
    msgBuf.zero() ;
-   
+
    rc = msgBuf.write( org.objdata(), org.objsize() ) ;
    if ( rc )
    {
@@ -121,9 +123,8 @@ error:
    goto done ;
 }
 
-static INT32 unescapeDot( string& collectionName )
+static void unescapeDot( string& collectionName )
 {
-   INT32 rc = SDB_OK ;
    string::size_type pos = 0 ;
 
    while( TRUE )
@@ -135,25 +136,10 @@ static INT32 unescapeDot( string& collectionName )
       }
       else
       {
-         try
-         {
-            collectionName.replace( pos, 3, "." ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "An exception occurred when replacing string: "
-                    "%s, rc: %d", e.what(), rc ) ;
-            goto error ;
-         }
+         collectionName.replace( pos, 3, "." ) ;
          pos++ ;
       }
    }
-
-done:
-   return rc ;
-error:
-   goto done ;   
 }
 
 static INT32 convertProjection( BSONObj &proj )
@@ -190,7 +176,7 @@ static INT32 convertProjection( BSONObj &proj )
          {
             // { b: 1 } => { b: { $include: 1 } }
             newBuilder.append( e.fieldName(),
-                               BSON( "$include" << 
+                               BSON( "$include" <<
                                      ( e.trueValue() ? 1 : 0 ) ) ) ;
             if ( e.trueValue() )
             {
@@ -226,7 +212,7 @@ static INT32 convertProjection( BSONObj &proj )
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    return rc ;
 error:
@@ -247,11 +233,7 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
       clFullName.erase( pos, sizeof( "$cmd.listIndexes" ) ) ;
    }
 
-   rc = unescapeDot( clFullName ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
+   unescapeDot( clFullName ) ;
 
    try
    {
@@ -271,7 +253,7 @@ static INT32 convertIndexObj( BSONObj& indexObj, string clFullName )
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when building bson : %s, rc: %d", 
+      PD_LOG( PDERROR, "An exception occurred when building bson : %s, rc: %d",
               e.what(), rc ) ;
       goto error ;
    }
@@ -286,19 +268,15 @@ static INT32 convertCollectionObj( BSONObj& collectionObj )
 {
    INT32 rc = SDB_OK ;
    // { Name: "foo.bar" } => { name: "bar" }
-   const CHAR* _pClFullName = NULL ;
+   const CHAR* pClFullName = NULL ;
    string clShortName ;
 
    try
    {
-      _pClFullName = collectionObj.getStringField( "Name" ) ;
-      clShortName = ossStrstr( _pClFullName, "." ) + 1 ;
-      
-      rc = unescapeDot( clShortName ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      pClFullName = collectionObj.getStringField( "Name" ) ;
+      clShortName = ossStrstr( pClFullName, "." ) + 1 ;
+
+      unescapeDot( clShortName ) ;
 
       collectionObj = BSON( "name" << clShortName.c_str() ) ;
    }
@@ -317,11 +295,9 @@ error:
 }
 
 template< typename T >
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_CONVERTMONGOOP2SDB, "convertMongoOperator2Sdb" )
 static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
                                        T &matchConditonBob )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_CONVERTMONGOOP2SDB ) ;
    INT32  rc = SDB_OK ;
 
    try
@@ -385,7 +361,6 @@ static INT32 convertMongoOperator2Sdb( const BSONObj &matchConditonObj,
    }
 
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_CONVERTMONGOOP2SDB, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -668,7 +643,7 @@ static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
    if ( NULL == *ppCommand )
    {
       CHAR err[ 64 ] = { 0 } ;
-      
+
       rc = SDB_OPTION_NOT_SUPPORT ;
       PD_LOG( PDERROR,
               "Unknown command name for mongo request: %s",
@@ -682,7 +657,7 @@ static INT32 _mongoGetAndInitCommand( const CHAR *pCommandName,
    rc = (*ppCommand)->init( pMsg, sessCtx ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to init command[%s], rc: %d",
-                (*ppCommand)->name(), rc ) ;      
+                (*ppCommand)->name(), rc ) ;
 
 done:
    return rc ;
@@ -784,7 +759,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
    else
    {
       rc = SDB_INVALIDARG ;
-      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d", 
+      PD_LOG( PDERROR, "Unknown message type: %d, rc: %d",
               mongoMsg.opCode(), rc ) ;
       goto error ;
    }
@@ -924,10 +899,10 @@ INT32 _mongoDatabaseCommand::_queryMsgInit( const _mongoMessage *pMsg )
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d", 
+      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d",
               e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
    _initMsgType = MONGO_QUERY_MSG ;
 
@@ -952,10 +927,10 @@ INT32 _mongoDatabaseCommand::_commandMsgInit( const _mongoMessage *pMsg )
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d", 
+      PD_LOG( PDERROR, "An exception occurred when getting csName: %s, rc: %d",
               e.what(), rc ) ;
       goto error ;
-   } 
+   }
 
    _initMsgType = MONGO_COMMAND_MSG ;
 
@@ -989,7 +964,7 @@ INT32 _mongoDatabaseCommand::init( const _mongoMessage *pMsg,
       {
          PD_LOG( PDERROR, "Failed to init command msg, rc: %d", rc ) ;
          goto error ;
-      }      
+      }
    }
    else
    {
@@ -1080,7 +1055,7 @@ INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
                rc = convertCollectionObj( obj ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
                           rc ) ;
                   goto error ;
                }
@@ -1113,7 +1088,7 @@ INT32 _mongoDatabaseCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DBBUILDFIRBATCH, rc ) ;
    return rc ;
@@ -1147,7 +1122,7 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
       {
          PD_LOG( PDERROR, "Failed to init command msg, rc: %d", rc ) ;
          goto error ;
-      }      
+      }
    }
    else
    {
@@ -1214,7 +1189,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
              name(), pNameInReq ) ;\
-             
+
    try
    {
       _csName.assign( pNameInReq, ptr - pNameInReq ) ;
@@ -1229,7 +1204,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoQueryRequest *pReq )
       PD_LOG( PDERROR, "An exception occurred when getting csName and clName:"
               " %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
    rc = escapeDot( _clFullName ) ;
    if ( rc )
@@ -1269,7 +1244,7 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
    try
    {
       _csName = pReq->databaseName() ;
-      
+
       _clFullName = _csName ;
       _clFullName += "." ;
       _clFullName += pClShortName ;
@@ -1280,14 +1255,14 @@ INT32 _mongoCollectionCommand::_init( const _mongoCommandRequest *pReq )
       PD_LOG( PDERROR, "An exception occurred when getting csName and clName:"
               " %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }  
+   }
 
    rc = escapeDot( _clFullName ) ;
    if ( rc )
    {
       goto error ;
    }
-   
+
 done:
    if ( SDB_OK == rc )
    {
@@ -1433,7 +1408,7 @@ INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
       PD_LOG( PDERROR, "An exception occurred when building first batch: %s, "
               "rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_CLBUILDFIRBATCH, rc ) ;
@@ -1475,7 +1450,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pInsert->padding = 0 ;
    pInsert->flags = FLG_INSERT_RETURNNUM ;
    pInsert->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pInsert->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -1512,7 +1487,7 @@ INT32 _mongoInsertCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb insert request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_INSERTBUILDSDBREQ, rc ) ;
@@ -1598,7 +1573,7 @@ INT32 _mongoDeleteCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pDel->padding = 0 ;
    pDel->flags = FLG_DELETE_RETURNNUM ;
    pDel->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pDel->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -1711,7 +1686,7 @@ INT32 _mongoDeleteCommand::parseSdbReply( const MsgOpReply &sdbReply,
    {
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "An exception occurred when parsing sdb delete reply "
-              "msg: %s, rc: %d", e.what(), rc ) ;      
+              "msg: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -1809,7 +1784,7 @@ INT32 _mongoUpdateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pUpdate->padding = 0 ;
    pUpdate->flags = FLG_UPDATE_RETURNNUM ;
    pUpdate->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pUpdate->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -2022,7 +1997,7 @@ INT32 _mongoUpdateCommand::parseSdbReply( const MsgOpReply &sdbReply,
    {
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "An exception occurred when parsing sdb update reply "
-              "msg: %s, rc: %d", e.what(), rc ) ;  
+              "msg: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -2114,13 +2089,11 @@ error:
    goto done ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEGETID, "_mongoUpdateCommand::_getId" )
 INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
                                    const BSONObj &updatorObj,
                                    mongoSessionCtx &ctx,
                                    BSONObj &idObj )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEGETID ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -2194,18 +2167,15 @@ INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
    }
 
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEGETID, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_UPDATEGETIDFROMQUERY, "_mongoUpdateCommand::_getIdFromQuery" )
 INT32 _mongoUpdateCommand::_getIdFromQuery( const BSONObj &queryObj,
                                             mongoSessionCtx &ctx,
                                             BSONObj &idObj )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_UPDATEGETIDFROMQUERY ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -2273,7 +2243,6 @@ INT32 _mongoUpdateCommand::_getIdFromQuery( const BSONObj &queryObj,
    }
 
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_UPDATEGETIDFROMQUERY, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -2304,7 +2273,7 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
              SDB_INVALIDARG, error, PDERROR,
              "Unknown message type: %d",
              pMsg->type() ) ;
-   
+
    pReq = (_mongoQueryRequest*)pMsg ;
 
    pNameInReq = pReq->fullCollectionName() ;
@@ -2330,7 +2299,7 @@ INT32 _mongoQueryCommand::init( const _mongoMessage *pMsg,
       PD_LOG( PDERROR, "An exception occurred when getting csName and clName: "
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
    rc = escapeDot( _clFullName ) ;
    if ( rc )
@@ -2394,7 +2363,7 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->padding = 0 ;
    pQuery->flags = FLG_QUERY_WITH_RETURNDATA ;
    pQuery->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -2436,18 +2405,18 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    {
       goto error ;
    }
-   
+
    rc = _getSortObj( _query, orderby ) ;
    if ( rc )
    {
       goto error ;
    }
-   
+
    rc = _getHintObj( _query, hint ) ;
    if ( rc )
    {
       goto error ;
-   }   
+   }
 
    rc = convertMongoOperator2Sdb( cond, operatorBob ) ;
    PD_RC_CHECK( rc, PDERROR,
@@ -2469,7 +2438,7 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = sdbMsg.write( _selector, TRUE ) ;
    if ( rc )
    {
@@ -2489,7 +2458,7 @@ INT32 _mongoQueryCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    }
 
    sdbMsg.doneLen() ;
-   
+
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_QUERYBUILDREQ, rc ) ;
    return rc ;
@@ -2540,7 +2509,7 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          // reply: { $err: "xxx", code: 1234 }
          BSONObj resObj( bodyBuf.data() ) ;
-         BSONObj newObj ; 
+         BSONObj newObj ;
 
          try
          {
@@ -2554,10 +2523,10 @@ INT32 _mongoQueryCommand::buildMongoReply( const MsgOpReply &sdbReply,
          {
             rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "An exception occurred when building query mongo"
-                    " reply msg: %s, rc: %d", e.what(), rc ) ;      
+                    " reply msg: %s, rc: %d", e.what(), rc ) ;
             goto error ;
-         }         
-         
+         }
+
          bodyBuf = engine::rtnContextBuf( newObj ) ;
       }
    }
@@ -2608,7 +2577,7 @@ INT32 _mongoQueryCommand::_getQueryObj( const BSONObj &obj, BSONObj &query )
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    return rc ;
 error:
@@ -2637,7 +2606,7 @@ INT32 _mongoQueryCommand::_getSortObj( const BSONObj &obj, BSONObj &sort )
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    return rc ;
 error:
@@ -2679,7 +2648,7 @@ INT32 _mongoQueryCommand::_getHintObj( const BSONObj &obj, BSONObj &hint )
       PD_LOG( PDERROR, "An exception occurred when getting hint obj: "
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    return rc ;
@@ -2723,7 +2692,7 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -2740,7 +2709,7 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       if ( rc )
       {
          goto error ;
-      }   
+      }
 
       if ( _obj.hasField( "hint" ) )
       {
@@ -2784,7 +2753,7 @@ INT32 _mongoFindCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          goto error ;
       }
 
-      sdbMsg.doneLen() ;      
+      sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
    {
@@ -2873,7 +2842,7 @@ INT32 _mongoGetmoreCommand::init( const _mongoMessage *pMsg,
       if ( rc )
       {
          goto error ;
-      }      
+      }
    }
    else if ( MONGO_COMMAND_MSG == pMsg->type() )
    {
@@ -2882,7 +2851,7 @@ INT32 _mongoGetmoreCommand::init( const _mongoMessage *pMsg,
       if ( rc )
       {
          goto error ;
-      }      
+      }
    }
    else
    {
@@ -2939,7 +2908,7 @@ INT32 _mongoGetmoreCommand::_init( const _mongoGetmoreRequest *pReq )
       PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
                 "Invalid collectionFullName for mongo %s request: %s",
                 name(), pNameInReq ) ;
-      
+
       _csName.assign( pNameInReq, ptr - pNameInReq ) ;
    }
    catch ( std::exception &e )
@@ -2949,7 +2918,7 @@ INT32 _mongoGetmoreCommand::_init( const _mongoGetmoreRequest *pReq )
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    _cursorID = pReq->cursorID() ;
    _nToReturn = pReq->nToReturn() ;
 
@@ -2994,7 +2963,7 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
    PD_CHECK( ptr, SDB_INVALIDARG, error, PDERROR,
              "Invalid collectionFullName for mongo %s request: %s",
              name(), pNameInReq ) ;
-   
+
    try
    {
       _csName.assign( pNameInReq, ptr - pNameInReq ) ;
@@ -3009,7 +2978,7 @@ INT32 _mongoGetmoreCommand::_init( const _mongoQueryRequest *pReq )
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = mongoGetNumberLongElement( obj, pCommandName, _cursorID ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
@@ -3162,10 +3131,10 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
             rc = convertCollectionObj( obj ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+               PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
                        rc ) ;
                goto error ;
-            }            
+            }
          }
 
          rc = _msgBuf.write( obj.objdata(), obj.objsize() ) ;
@@ -3251,7 +3220,7 @@ INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build next batch, rc: %d", rc ) ;
    }
-   
+
    rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
    if ( rc )
    {
@@ -3295,7 +3264,7 @@ INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          PD_LOG( PDERROR, "Failed to build query reply, rc: %d", rc ) ;
          goto error ;
-      }      
+      }
    }
    else if( MONGO_COMMAND_MSG == _initMsgType )
    {
@@ -3304,7 +3273,7 @@ INT32 _mongoGetmoreCommand::buildMongoReply( const MsgOpReply &sdbReply,
       {
          PD_LOG( PDERROR, "Failed to build command reply, rc: %d", rc ) ;
          goto error ;
-      }      
+      }
    }
 
 done:
@@ -3351,7 +3320,7 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
                {
                   PD_LOG( PDERROR, "Failed to convert index obj, rc: %d", rc ) ;
                   goto error ;
-               }            
+               }
                arr.append( obj ) ;
             }
             else if ( GETMORE_LISTCOLLECTION == _type )
@@ -3359,15 +3328,15 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
                rc = convertCollectionObj( obj ) ;
                if ( rc )
                {
-                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d", 
+                  PD_LOG( PDERROR, "Failed to convert collection obj, rc: %d",
                           rc ) ;
                   goto error ;
-               }            
+               }
                arr.append( obj ) ;
             }
             else
             {
-               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, 
+               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob,
                                              hasDecimal ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to convert sdb record to mongo record, "
@@ -3410,7 +3379,7 @@ INT32 _mongoGetmoreCommand::_buildNextBatch( const MsgOpReply &sdbReply,
       PD_LOG( PDERROR, "An exception occurred when building next batch"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_GETMOREBUILDNEXTBATCH, rc ) ;
@@ -3450,7 +3419,7 @@ INT32 _mongoKillCursorCommand::init( const _mongoMessage *pMsg,
       if ( rc )
       {
          goto error ;
-      }      
+      }
    }
    else
    {
@@ -3497,10 +3466,10 @@ INT32 _mongoKillCursorCommand::_killCursorMsgInit( const _mongoMessage *pMsg )
 done:
    return rc ;
 error:
-   goto done ;   
+   goto done ;
 }
 
-INT32 _mongoKillCursorCommand::_queryMsgInit( const _mongoMessage *pMsg ) 
+INT32 _mongoKillCursorCommand::_queryMsgInit( const _mongoMessage *pMsg )
 {
    INT32 rc = SDB_OK ;
 
@@ -3543,10 +3512,10 @@ INT32 _mongoKillCursorCommand::_queryMsgInit( const _mongoMessage *pMsg )
 done:
    return rc ;
 error:
-   goto done ;  
+   goto done ;
 }
 
-INT32 _mongoKillCursorCommand::_commandMsgInit( const _mongoMessage *pMsg ) 
+INT32 _mongoKillCursorCommand::_commandMsgInit( const _mongoMessage *pMsg )
 {
    INT32 rc = SDB_OK ;
 
@@ -3590,7 +3559,7 @@ INT32 _mongoKillCursorCommand::_commandMsgInit( const _mongoMessage *pMsg )
 done:
    return rc ;
 error:
-   goto done ;  
+   goto done ;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_KILLCURSORBUILDREQ, "_mongoKillCursorCommand::buildSdbRequest" )
@@ -3687,14 +3656,14 @@ INT32 _mongoKillCursorCommand::buildMongoReply( const MsgOpReply &sdbReply,
             bodyBuf = engine::rtnContextBuf(
                       BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
          }
-         
+
          rc = appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to append empty obj to buf, rc: %d", rc ) ;
             goto error ;
          }
-         
+
          mongoCommandResponse res ;
          res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
          res.header.responseTo = _requestID ;
@@ -3754,7 +3723,7 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -3826,7 +3795,7 @@ INT32 _mongoCountCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb count request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_COUNTBUILDSDBREQ, rc ) ;
@@ -3867,10 +3836,10 @@ INT32 _mongoCountCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "An exception occurred when building mongo count reply"
-              ": %s, rc: %d", e.what(), rc ) ;    
+              ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -3886,11 +3855,9 @@ error:
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoAggregateCommand)
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTSUM, "_mongoAggregateCommand::_convertAggrSumIfExist" )
 INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
                                                       BSONObjBuilder& builder )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTSUM ) ;
    INT32 rc = SDB_OK ;
 
    try
@@ -3913,15 +3880,13 @@ INT32 _mongoAggregateCommand::_convertAggrSumIfExist( const BSONElement& ele,
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTSUM, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTGROUP, "_mongoAggregateCommand::_convertAggrGroup" )
 INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
                                                  vector<BSONObj>& newStageList )
 {
@@ -3932,7 +3897,6 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
     * { $group: { _id: "$a", total: { $sum: "$b" }, tmp_id_field: "$a" } },
     * { $project: { _id: "$tmp_id_field", total: 1 } }
     */
-   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTGROUP ) ;
    INT32 rc = SDB_OK ;
 
    if ( 0 != ossStrcmp( groupObj.firstElementFieldName(), "$group" ) )
@@ -3957,7 +3921,7 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
             {
                goto error ;
             }
-            
+
             if ( 0 == ossStrcmp( e.fieldName(), "_id" ) )
             {
                bobProj.append( "_id", "$tmp_id_field" ) ;
@@ -4010,19 +3974,16 @@ INT32 _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
               "sdb: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTGROUP, rc ) ;
    return rc ;
 error:
    goto done ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_AGGRCONVERTPROJECT, "_mongoAggregateCommand::_convertAggrProject" )
 INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
                                                    BSONObj& errorObj )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_AGGRCONVERTPROJECT ) ;
    INT32 rc = SDB_OK ;
 
    if ( 0 != ossStrcmp( projectObj.firstElementFieldName(), "$project" ) )
@@ -4090,9 +4051,8 @@ INT32 _mongoAggregateCommand::_convertAggrProject( BSONObj& projectObj,
               "sdb: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_AGGRCONVERTPROJECT, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -4130,7 +4090,7 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->padding = 0 ;
    pAggre->flags = 0 ;
    pAggre->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4164,7 +4124,7 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             {
                goto error ;
             }
-            
+
             rc = sdbMsg.write( oneStage, TRUE ) ;
             if ( rc )
             {
@@ -4174,13 +4134,13 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
          else if ( 0 == ossStrcmp( oneStage.firstElementFieldName(), "$group" ) )
          {
             std::vector<BSONObj> newStageList ;
-            
+
             rc = _convertAggrGroup( oneStage, newStageList ) ;
             if ( rc )
             {
                goto error ;
             }
-            
+
             for( std::vector<BSONObj>::iterator it = newStageList.begin() ;
                  it != newStageList.end() ; it++ )
             {
@@ -4215,7 +4175,7 @@ INT32 _mongoAggregateCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             }
          }
       }
-      
+
       sdbMsg.doneLen() ;
    }
    catch ( std::exception &e )
@@ -4357,7 +4317,7 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pAggre->padding = 0 ;
    pAggre->flags = 0 ;
    pAggre->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pAggre->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4417,7 +4377,7 @@ INT32 _mongoDistinctCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb distinct request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
+   }
 
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_DISTINCTBUILDREQ, rc ) ;
@@ -4459,7 +4419,7 @@ INT32 _mongoDistinctCommand::buildMongoReply( const MsgOpReply &sdbReply,
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -4509,7 +4469,7 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4526,8 +4486,8 @@ INT32 _mongoCreateCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb createCL request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }   
-   
+   }
+
    rc = sdbMsg.write( cond, TRUE ) ;
    if ( rc )
    {
@@ -4573,7 +4533,7 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -4584,7 +4544,7 @@ INT32 _mongoCreateCLCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -4634,7 +4594,7 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4651,8 +4611,8 @@ INT32 _mongoDropCLCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb dropCL request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   }  
-   
+   }
+
    rc = sdbMsg.write( cond, TRUE ) ;
    if ( rc )
    {
@@ -4768,7 +4728,7 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4785,8 +4745,8 @@ INT32 _mongoListIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
       PD_LOG( PDERROR, "An exception occurred when building sdb listIdx request"
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
-   } 
-   
+   }
+
    rc = sdbMsg.write( empty, TRUE ) ;
    if ( rc )
    {
@@ -4888,7 +4848,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -4972,7 +4932,7 @@ INT32 _mongoCreateIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
               "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_CTRIDXBUILDREQ, rc ) ;
    return rc ;
@@ -4992,7 +4952,7 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -5003,7 +4963,7 @@ INT32 _mongoCreateIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -5056,7 +5016,7 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -5080,7 +5040,7 @@ INT32 _mongoDropIdxCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = sdbMsg.write( cond, TRUE ) ;
    if ( rc )
    {
@@ -5126,7 +5086,7 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -5137,7 +5097,7 @@ INT32 _mongoDropIdxCommand::buildMongoReply( const MsgOpReply &sdbReply,
               ": %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -5256,7 +5216,7 @@ INT32 _mongoDropDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
       }
       else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -5435,7 +5395,7 @@ INT32 _mongoCreateUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    {
       rc = ossException2RC( &e ) ;
       PD_LOG( PDERROR, "An exception occurred when building sdb createUser "
-              "request: %s, rc: %d", e.what(), rc ) ;      
+              "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
 
@@ -5466,7 +5426,7 @@ INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -5477,7 +5437,7 @@ INT32 _mongoCreateUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -5650,7 +5610,7 @@ INT32 _mongoDropUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
               "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = sdbMsg.write( obj, TRUE ) ;
    if ( rc )
    {
@@ -5678,7 +5638,7 @@ INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
    {
       if ( SDB_OK == sdbReply.flags )
       {
-         bodyBuf = engine::rtnContextBuf( 
+         bodyBuf = engine::rtnContextBuf(
             BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
    }
@@ -5689,7 +5649,7 @@ INT32 _mongoDropUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -5741,7 +5701,7 @@ INT32 _mongoListUserCommand::init( const _mongoMessage *pMsg,
                    "Unknown message type: %d",
                    pMsg->type() ) ;
    }
-   
+
    _isInitialized = TRUE ;
    _requestID = pMsg->requestID() ;
 
@@ -5848,7 +5808,7 @@ INT32 _mongoListUserCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -5901,7 +5861,7 @@ INT32 _mongoListUserCommand::buildMongoReply( const MsgOpReply &sdbReply,
       if ( SDB_OK == sdbReply.flags )
       {
          BSONObjBuilder bob ;
-         BSONArrayBuilder arr( 
+         BSONArrayBuilder arr(
             bob.subarrayStart( FAP_MONGO_FIELD_NAME_USERS ) ) ;
          INT32   offset = 0 ;
          BOOLEAN returnAllUsers = FALSE ;
@@ -6354,7 +6314,7 @@ INT32 _mongoSaslContinueCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
                   SDB_AUTH_IDENTIFY << pChannel <<
                   SDB_AUTH_PROOF << pClientProof <<
                   SDB_AUTH_TYPE << SDB_AUTH_TYPE_EXTEND_PWD ) ;
-      
+
       rc = sdbMsg.write( obj, TRUE ) ;
       if ( rc )
       {
@@ -6475,7 +6435,7 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    BSONObj empty ;
    BSONObjBuilder builder ;
    string lowBound ;
-   string upBound ;   
+   string upBound ;
 
    rc = sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
@@ -6501,7 +6461,7 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->nameLength = ossStrlen( pCmdName ) ;
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -6552,7 +6512,7 @@ INT32 _mongoListCollectionCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
               "listCollections request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_LISTCLBUILDSDBREQ, rc ) ;
    return rc ;
@@ -6630,7 +6590,7 @@ INT32 _mongoListDatabaseCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    pQuery->numToSkip = 0 ;
    pQuery->numToReturn = -1 ;
    pQuery->nameLength = ossStrlen( pCmdName ) ;
-   
+
    rc = sdbMsg.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -6710,7 +6670,7 @@ INT32 _mongoListDatabaseCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "listDatabase reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -6804,7 +6764,7 @@ INT32 _mongoIsMasterCommand::init( const _mongoMessage *pMsg,
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done:
    return rc ;
 error:
@@ -6922,7 +6882,7 @@ INT32 _mongoBuildInfoCommand::buildMongoReply( const MsgOpReply &sdbReply,
                                                _mongoResponseBuffer &headerBuf )
 {
    INT32 rc = SDB_OK ;
-   
+
    try
    {
       BSONObjBuilder bob ;
@@ -7020,7 +6980,7 @@ INT32 _mongoGetLastErrorCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -7075,7 +7035,7 @@ INT32 _mongoLogoutCommand::buildMongoReply( const MsgOpReply &sdbReply,
               "reply: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
    if ( rc )
    {
@@ -7170,7 +7130,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
    // will only modify and return a single document
    pFindAndModify->numToReturn = 1 ;
    pFindAndModify->nameLength = _clFullName.length() ;
-   
+
    rc = sdbMsg.write( _clFullName.c_str(), pFindAndModify->nameLength + 1,
                       TRUE ) ;
    if ( rc )
@@ -7321,7 +7281,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbRequest( mongoMsgBuffer &sdbMsg,
             if ( rc )
             {
                goto error ;
-            }            
+            }
          }
          else if ( 0 == ossStrcmp( ele.fieldName(),
                                    FAP_MONGO_FIELD_NAME_UPSERT  ) )

@@ -45,6 +45,8 @@
 #include "rtn.hpp"
 #include "pmd.hpp"
 #include "sdbInterface.hpp"
+#include "fapMongoTrace.hpp"
+#include "pdTrace.hpp"
 
 using namespace engine ;
 
@@ -61,11 +63,9 @@ namespace fap
 
 #define FAP_MONGO_ERROR_RESPONSE_MAX_LEN 128
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_BUILDGETMORESDBMSG, "buildGetMoreSdbMsg" )
 static INT32 buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
                                  mongoMsgBuffer &out )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
    INT32 rc = SDB_OK ;
    MsgOpGetMore *pGetmore = NULL ;
 
@@ -96,7 +96,6 @@ static INT32 buildGetMoreSdbMsg( UINT64 requestID, INT64 contextID,
    pGetmore->numToReturn = -1 ;
 
 done:
-   PD_TRACE_EXIT( SDB_FAPMONGO_BUILDGETMORESDBMSG ) ;
    return rc ;
 error:
    goto done ;
@@ -120,10 +119,8 @@ _mongoSession::~_mongoSession()
    _resetBuffers() ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_RESETBUFFERS, "_mongoSession::_resetBuffers" )
 void _mongoSession::_resetBuffers()
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_RESETBUFFERS ) ;
    if ( 0 != _contextBuff.size() )
    {
       _contextBuff.release() ;
@@ -133,16 +130,12 @@ void _mongoSession::_resetBuffers()
    {
       _inBuffer.zero() ;
    }
-   PD_TRACE_EXIT( SDB_FAPMONGO_RESETBUFFERS ) ;
 }
 
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_EDUEVENTRELEASE, "_mongoSession::_eduEventRelease" )
 void _mongoSession::_eduEventRelease( pmdEDUEvent &event )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_EDUEVENTRELEASE ) ;
    pmdEduEventRelease( event, NULL ) ;
    event.reset() ;
-   PD_TRACE_EXIT( SDB_FAPMONGO_EDUEVENTRELEASE ) ;
 }
 
 INT32 _mongoSession::getServiceType() const
@@ -980,7 +973,7 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
    BSONObj obj, empty ;
 
    _tmpBuffer.zero() ;
-   
+
    rc = _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
    if ( rc )
    {
@@ -1017,7 +1010,7 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *pCsName, BSONObj &errorObj )
               "request: %s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
    rc = _tmpBuffer.write( pCmdName, pQuery->nameLength + 1, TRUE ) ;
    if ( rc )
    {
@@ -1094,7 +1087,7 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    }
 
    _tmpBuffer.zero() ;
-   
+
    rc = _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
    if ( rc )
    {
@@ -1118,19 +1111,19 @@ INT32 _mongoSession::_autoInsert( const CHAR *pClFullName,
    pInsert->flags = FLG_INSERT_RETURNNUM ;
 
    pInsert->nameLength = ossStrlen( pClFullName ) ;
-   
+
    rc = _tmpBuffer.write( pClFullName, pInsert->nameLength + 1, TRUE ) ;
    if ( rc )
    {
       goto error ;
    }
-   
+
    rc = _tmpBuffer.write( target, TRUE ) ;
    if ( rc )
    {
       goto error ;
    }
-   
+
    _tmpBuffer.doneLen() ;
 
    rc = _processMsg( (CHAR*)pInsert, errorObj ) ;
@@ -1166,7 +1159,7 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *pCSName,
    while( TRUE )
    {
       _tmpBuffer.zero() ;
-      
+
       rc = _tmpBuffer.reserve( sizeof( MsgOpQuery ) ) ;
       if ( rc )
       {
@@ -1294,7 +1287,7 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    }
 
    _tmpBuffer.zero() ;
-   
+
    rc = _tmpBuffer.reserve( sizeof( MsgOpKillContexts ) ) ;
    if ( rc )
    {
@@ -1306,7 +1299,7 @@ INT32 _mongoSession::_autoKillCursor( UINT64 requestID, INT64 contextID )
    {
       goto error ;
    }
-   
+
    pKill = ( MsgOpKillContexts * )_tmpBuffer.data() ;
    pKill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
    pKill->header.TID = 0 ;
@@ -1466,7 +1459,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       {
          if ( _shouldAutoCrtCL( pCommand ) )
          {
-            rc = _autoCreateCL( pCommand->csName(), pCommand->clFullName(), 
+            rc = _autoCreateCL( pCommand->csName(), pCommand->clFullName(),
                                 errorObj ) ;
             if ( rc )
             {
@@ -1520,7 +1513,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
             PD_LOG ( PDERROR, "Failed to build sdb getMore msg, rc: %d", rc ) ;
             goto error;
          }
-         
+
          hasBuildGetMore = TRUE ;
          // In SequoiaDB, count command is executed in three steps:
          // first: count, and return a cursor
@@ -1712,22 +1705,22 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       {
          BSONObj empty ;
          BSONObj org( _contextBuff.data() ) ;
-         
+
          _tmpBuffer.zero() ;
-         
+
          rc = _tmpBuffer.write( org.objdata(), org.objsize() ) ;
          if ( rc )
          {
             goto error ;
          }
 
-         
+
          rc = _tmpBuffer.write( empty.objdata(), empty.objsize() ) ;
          if ( rc )
          {
             goto error ;
          }
-         
+
          _contextBuff = rtnContextBuf( _tmpBuffer.data(), _tmpBuffer.size(), 2 ) ;
 
          mongoCommandResponse res ;

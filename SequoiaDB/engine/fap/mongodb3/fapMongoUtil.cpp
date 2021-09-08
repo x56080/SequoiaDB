@@ -265,12 +265,10 @@ _mongoErrorObjAssit::_mongoErrorObjAssit()
 }
 
 // generate a new record based on matcher condition and update condition
-//PD_TRACE_DECLARE_FUNCTION ( SDB_FAPMONGO_GENERATENEWRECORD, "mongoGenerateNewRecord" )
 INT32 mongoGenerateNewRecord( const BSONObj &matcher,
                               const BSONObj &updatorObj,
                               BSONObj &target )
 {
-   PD_TRACE_ENTRY( SDB_FAPMONGO_GENERATENEWRECORD ) ;
    INT32 rc = SDB_OK ;
    engine::mthMatchTree matcherTree ;
    engine::mthModifier modifier ;
@@ -312,7 +310,6 @@ INT32 mongoGenerateNewRecord( const BSONObj &matcher,
    }
 
 done:
-   PD_TRACE_EXITRC( SDB_FAPMONGO_GENERATENEWRECORD, rc ) ;
    return rc ;
 error:
    goto done ;
@@ -368,11 +365,11 @@ INT32 mongoGetIntElement( const BSONObj &obj, const CHAR *pFieldName,
    catch ( std::exception &e )
    {
       rc = ossException2RC( &e ) ;
-      PD_LOG( PDERROR, "An exception occurred when getting int ele: %s, rc: %d", 
+      PD_LOG( PDERROR, "An exception occurred when getting int ele: %s, rc: %d",
               e.what(), rc ) ;
       goto error ;
    }
-   
+
 done :
    return rc ;
 error :
@@ -436,7 +433,7 @@ INT32 mongoGetArrayElement ( const BSONObj &obj, const CHAR *pFieldName,
               "%s, rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done :
    return rc ;
 error :
@@ -468,7 +465,7 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj, const CHAR *pFieldName,
               "rc: %d", e.what(), rc ) ;
       goto error ;
    }
-   
+
 done :
    return rc ;
 error :
