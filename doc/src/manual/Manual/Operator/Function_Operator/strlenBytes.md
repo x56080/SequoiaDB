@@ -1,14 +1,13 @@
+
 ##语法##
 
 ```lang-json
-{<字段名>: {$strlen: 1}}
+{<字段名>: {$strlenBytes: 1}}
 ```
 
 ##说明##
 
-v3.4.4 及以上版本中，$strlen 已更名为 [$strlenBytes][strlenBytes]。
-
-$strlen 用于获取指定字段的字节数。当字段类型为字符串时，将按 UTF-8 编码规则返回对应字节数；当字段类型为非字符串时，将返回 null。
+$strlenBytes 用于获取指定字段的字节数。当字段类型为字符串时，将按 UTF-8 编码规则返回对应字节数；当字段类型为非字符串时，将返回 null。
 
 ##示例##
 
@@ -24,7 +23,7 @@ $strlen 用于获取指定字段的字节数。当字段类型为字符串时，
 * 作为选择符使用，返回字段 a 的字节数
 
     ```lang-javascript
-    > db.sample.employee.find({}, {"a": {"$strlen": 1}})
+    > db.sample.employee.find({}, {"a": {"$strlenBytes": 1}})
     {
         "_id": 1,
         "a": 5
@@ -51,7 +50,7 @@ $strlen 用于获取指定字段的字节数。当字段类型为字符串时，
 * 配合匹配符使用，返回集合中字段 a 的字节数为 15 的记录
   
     ```lang-javascript
-    > db.sample.employee.find({"a": {"$strlen": 1, "$et": 15}})
+    > db.sample.employee.find({"a": {"$strlenBytes": 1, "$et": 15}})
     {
         "_id": 2,
         "a": "一二三四五"
@@ -69,8 +68,5 @@ $strlen 用于获取指定字段的字节数。当字段类型为字符串时，
 
     > **Note:**  
     >
-    > {$strlen: 1} 中 1 没有特殊含义，仅作为占位符出现。
+    > {$strlenBytes: 1} 中 1 没有特殊含义，仅作为占位符出现。
 
-[^_^]:
-    本文使用的所有引用及链接
-[strlenBytes]:manual/Manual/Operator/Function_Operator/strlenBytes.md

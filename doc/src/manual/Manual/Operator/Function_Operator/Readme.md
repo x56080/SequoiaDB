@@ -34,7 +34,9 @@
 | [$multiply][multiply]  | 乘法运算         | db.sample.employee.find({}, {a:{$multiply:10}}) |
 | [$divide][divide]      | 除法运算         | db.sample.employee.find({}, {a:{$divide:10}}) |
 | [$substr][substr]      | 截取子串         | db.sample.employee.find({}, {a:{$substr:[0,4]}}) |
-| [$strlen][strlen]      | 获取字符串长度   | db.sample.employee.find({}, {a:{$strlen:10}}) |
+| [$strlen][strlen]      | 获取指定字段的字节数 | db.sample.employee.find({}, {a:{$strlen:10}}) |
+| [$strlenBytes][strlenBytes] | 获取指定字段的字节数 | db.sample.employee.find({}, {a:{$strlenBytes:10}}) |
+| [$strlenCP][strlenCP]       | 获取指定字段的[代码点][codePoint]数量 | db.sample.employee.find({}, {a:{$strlenCP:10}}) |
 | [$lower][lower]        | 字符串转为小写   | db.sample.employee.find({}, {a:{$lower:1}}) |
 | [$upper][upper]        | 字符串转为大写   | db.sample.employee.find({}, {a:{$upper:1}}) |
 | [$ltrim][ltrim]        | 去除左侧空格     | db.sample.employee.find({}, {a:{$ltrim:1}}) |
@@ -102,3 +104,6 @@
 [size]:manual/Manual/Operator/Function_Operator/size.md
 [type]:manual/Manual/Operator/Function_Operator/type.md
 [slice]:manual/Manual/Operator/Function_Operator/slice.md
+[strlenBytes]:manual/Manual/Operator/Function_Operator/strlenBytes.md
+[strlenCP]:manual/Manual/Operator/Function_Operator/strlenCP.md
+[codePoint]:http://www.unicode.org/glossary/#code_point
