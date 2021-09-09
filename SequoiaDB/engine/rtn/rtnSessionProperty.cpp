@@ -885,15 +885,13 @@ namespace engine
 
       if ( gotInstance )
       {
-         if ( !instanceOption.hasCommonInstance() )
+         if ( !instanceOption.hasCommonInstance() &&
+              instanceOption.isPreferredStrict() )
          {
-            instanceOption.setPreferredStrict( FALSE ) ;
-         }
-         if ( !instanceOption.isValidated() )
-         {
-            // if no preferred instance is given, no need to check
-            // timeout period
-            _instanceOption.setPreferedPeriod( -1 ) ;
+            PD_LOG_MSG( PDERROR,
+                        "PreferedInstance must be number ID in strict mode" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
          setInstanceOption( instanceOption ) ;
          _onSetInstance() ;
