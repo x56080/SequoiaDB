@@ -45,7 +45,6 @@ namespace engine
 namespace vessel
 {
    class indexContext;
-   class indexSpace;
 
    class btreeNodePath : public SDBObject
    {
@@ -77,6 +76,10 @@ namespace vessel
 
             public:
                void fini();
+               OSS_INLINE BOOLEAN isAccessing()const
+               {
+                  return NULL != _lpb;
+               }
 
             public:
                PAGE_ID _lpid = INVALID_PAGE_ID;
@@ -86,18 +89,6 @@ namespace vessel
          };// class _pathNode
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return NULL != _ic && NULL != _is;
-         }
-         OSS_INLINE indexContext *getIndexContext()
-         {
-            return _ic;
-         }
-         OSS_INLINE indexSpace *getIndexSpace()
-         {
-            return _is;
-         }
          OSS_INLINE UINT32 getSize()const
          {
             return _size;
@@ -106,52 +97,46 @@ namespace vessel
          {
             return 0 == _size;
          }
+         OSS_INLINE indexContext *getIndexContext()
+         {
+            return _ic;
+         }
 
-         void init(indexContext *ic,
-                   indexSpace *is);
+      public:
+         void init(indexContext *ic);
+
          void fini();
 
-         INT32 ensureRootToWrite(requestContext *context,
-                                 btreeNode &rootNode);
+         void clearPath();
 
-         void clearWholePath();
+         INT32 push(requestContext *context,
+                    logicalPageBuffer *buffer,
+                    btreeNode &out);
 
-         INT32 pushNode(requestContext *context,
-                        PAGE_ID lpid,
-                        const ossSharedLatchMode &mode,
-                        btreeNode &out);
+         INT32 getAccessingNode(UINT32 depth, btreeNode &node)const;
 
-         BOOLEAN isRoot(const btreeNode &bn)const;
+         INT32 getPageBuffer(UINT32 depth, logicalPageBuffer *&buffer)const;
 
-      private:
+      public:
          logicalPageBuffer *allocateBuffer();
          void releaseBuffer(logicalPageBuffer *buffer);
+
+      private:
          INT32 validateBtreePage(requestContext *context,
                                  logicalPageBuffer *buffer,
                                  const btreeNodePageHead **out=NULL)const;
-
-      private:
-         typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFER_LIST;
-         static const UINT32 _DEFAULT_CAPACITY = 4;
-
       private:
          _pathNode &getPathNode(UINT32 i);
-
-         INT32 createRoot(requestContext *context,
-                          PAGE_ID &out);
-
-         INT32 splitRootAndCreateNewOne(requestContext *context,
-                                        btreeNode &root,
-                                        btreeNode *newRoot=NULL);
+         const _pathNode &getPathNode(UINT32 i)const;
 
       private:
+         typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
+         static const UINT32 _DEFAULT_CAPACITY = 4;
          indexContext *_ic = NULL;
-         indexSpace *_is = NULL;
-         logicalPageBuffer _entryPage;
-         _FREE_BUFFER_LIST _free;
          UINT32 _size = 0;
          _pathNode _staticNodes[_DEFAULT_CAPACITY];
          ossPoolVector<_pathNode> _dynamicNodes;
+         _FREE_BUFFERS _free;
    };//class btreeNodePath
 } // namespace vessel
 

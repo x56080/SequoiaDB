@@ -68,7 +68,8 @@ namespace vessel
          INT32 updateBtreeRoot(requestContext *context,
                                UINT32 indexId,
                                PAGE_ID root,
-                               logicalPageBuffer *lpb)const;
+                               logicalPageBuffer *lpb,
+                               UINT32 *updatedTimes=NULL)const;
 
          /// WARNING: Do not accesses obj any more after fini lpb if
          /// not owned.

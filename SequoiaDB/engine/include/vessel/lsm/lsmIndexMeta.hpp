@@ -71,7 +71,7 @@ public:
   }
 
   OSS_INLINE const globalIndexID &getIdxId() const { return _idxId; }
-  OSS_INLINE const bson::Ordering *getBsonOrdering() const
+  OSS_INLINE const bson::Ordering &getBsonOrdering() const
   { return _ordering.toBsonOrdering(); }
 
   OSS_INLINE const orderingWrapper &getOrdering()const

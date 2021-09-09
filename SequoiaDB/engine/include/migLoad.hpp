@@ -44,7 +44,7 @@
 #include "../util/fromjson.hpp"
 #include "../util/csv2rawbson.hpp"
 #include "dmsStorageLoadExtent.hpp"
-#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/mutex.hpp>
 
 using namespace bson ;
 

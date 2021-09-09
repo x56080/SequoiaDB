@@ -761,7 +761,7 @@ namespace vessel
 
       if (lpb._lh.getLockMode().isUpgrade())
       {
-         lpb._lh.lockLpidFromUpgrade();
+         lpb._lh.lockFromUpgrade();
       }
 
       rc = context->getEnv()->dms.isSnapshotEffective(getSpaceID(),

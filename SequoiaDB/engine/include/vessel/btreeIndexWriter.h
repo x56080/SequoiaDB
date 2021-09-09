@@ -37,9 +37,6 @@
 #define VESSEL_BTREE_INDEX_WRITER_H_
 
 #include "vessel/btreeIndexAccessor.h"
-#include "../bson/bson.hpp"
-#include "vessel/recordID.h"
-#include "dpsTransID.hpp"
 
 namespace engine
 {
@@ -52,17 +49,26 @@ namespace vessel
          virtual ~btreeIndexWriter();
 
       public:
-         INT32 init(requestContext *context,
-                    indexContext *ic);
-
-         void fini();
-
          INT32 insert(const bson::BSONObj &key,
                       const recordID &rid,
                       DPS_LSN_OFFSET lsn,
                       const DPS_TRANS_ID &transID);
 
-   };//class btreeIndexWriter
+      private:
+         INT32 initPathRoot(btreeNode &root,
+                            const ossSharedLatchMode *m=NULL);
+         ossSharedLatchMode estimateRootLockingMode(UINT32 updatedTimes)const;
+         ossSharedLatchMode estimateChildLockingMode(UINT32 depth,
+                                                     const ossSharedLatchMode &fatherMode)const;
+
+      private:
+
+         INT32 createRootIfNotExists(PAGE_ID &root);
+         INT32 ensureRoot();
+
+      private:
+
+   };//class btreeIndexWriter 
 } // namespace vessel
 
 } // namespace engine

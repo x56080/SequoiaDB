@@ -158,5 +158,9 @@
    #include <sys/types.h>
 #endif
 
+#if defined (SDB_ENGINE)
+#define BOOST_THREAD_VERSION 3
+#endif//SDB_ENGINE
+
 #endif /* OSSFEAT_H_ */
 

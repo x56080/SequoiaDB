@@ -340,7 +340,6 @@ namespace vessel
       static const UINT32 _NEXT_COUNT = 8;
       bson::BSONObj keyObj;
       memoryBlock mb;
-      const bson::Ordering *ordering = NULL;
 
       if (!isReadyToRead())
       {
@@ -355,10 +354,10 @@ namespace vessel
          goto error;
       }
 
-      ordering = getIndexContext()->getObj().getPattern().getOrdering().toBsonOrdering();
-
       for (UINT32 i = 0; i < _NEXT_COUNT; ++i)
       {
+         const bson::Ordering &ordering = 
+                              getIndexContext()->getObj().getPattern().getOrdering().toBsonOrdering();
          INT32 cmp = 0;
          /// current entry will may be updated fro here.
          rc = moveIterator();
@@ -379,7 +378,7 @@ namespace vessel
          }
          
          cmp = _currentEntry.getKey().woCompare(entry.getKey(),
-                                                *ordering);
+                                                ordering);
          if (0 != cmp)
          {
             goto done;

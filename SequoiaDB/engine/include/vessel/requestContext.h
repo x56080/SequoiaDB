@@ -295,13 +295,17 @@ namespace vessel
                         const ossSharedLatchMode &mode);
 
          void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
+
+         /// test locking in current context
          BOOLEAN testLpidLocked(SPACE_TYPE type,
                                 PAGE_ID lpid,
                                 ossSharedLatchMode *mode);
 
-         /// must lock upgrade first
-         INT32 lockLpidFromUpgrade(SPACE_TYPE type,
-                                   PAGE_ID lpid);
+         objectSharedLatchContext<logicalIdLatchKey> &
+         getLpidLatchContext()
+         {
+            return _lpidLatchContext;
+         }
 
       public:
          INT32 blockCheckpoint(SPACE_TYPE type,

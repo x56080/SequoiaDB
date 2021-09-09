@@ -43,57 +43,36 @@ namespace engine
 {
 namespace vessel
 {
-   btreeIndexTuple::btreeIndexTuple(const btreeNodeSlot *slot,
-                                    const CHAR *data,
-                                    BOOLEAN isLeaf)
-   {
-      init(slot, data, isLeaf);
-   }
-
    void btreeIndexTuple::fini()
    {
+      _slotNo = INVALID_RECORD_SLOT_ID;
       _slot = NULL;
-      _data = NULL;
-      _keyDataSize = 0;
-      _isLeaf = FALSE;
+      _keyData = NULL;
       return;
    }
 
-   BOOLEAN btreeIndexTuple::init(const btreeNodeSlot *slot,
-                                 const CHAR *data,
-                                 BOOLEAN isLeaf)
+   BOOLEAN btreeIndexTuple::init(RECORD_SLOT_ID slotNo,
+                                 const btreeNodeSlot *slot,
+                                 const CHAR *keyData)
    {
       BOOLEAN r = FALSE;
       fini();
 
-      if (OSS_UNLIKELY(NULL == slot ||
-                       !slot->isValid() ||
-                       NULL == data))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == slotNo ||
+                       NULL == slot ||
+                       !slot->isValid()))
       {
          goto done;
       }
+      else if (!slot->isKeySavedInSlot() && NULL == keyData)
+      {
+         PD_LOG(PDERROR, "key data is null");
+         goto done;
+      }
 
+      _slotNo = slotNo;
       _slot = slot;
-      _data = data;
-      _isLeaf = isLeaf;
-
-      if (slot->isCompletelyCompressed())
-      {
-         _keyDataSize = 0;
-      }
-      else if (slot->isCompressed())
-      {
-         _keyDataSize = indexCompressedKey(data).getKeyDataSize();
-         if (0 == _keyDataSize)
-         {
-            PD_LOG(PDERROR, "failed to get key data size");
-            goto done;  
-         }
-      }
-      else
-      {
-         _keyDataSize = ixmKey(data).dataSize();
-      }
+      _keyData = keyData;
 
       r = TRUE;
 
@@ -105,12 +84,20 @@ namespace vessel
       return r;
    }
 
-   PAGE_ID btreeIndexTuple::getLeftNode()const
+   void btreeIndexTuple::getKeyWhenNotCompressed(ixmKey &key)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!isLeaf(), "can not be leaf");
-      const PAGE_ID *left = (const UINT32 *)(_data + _keyDataSize);
-      return *left;
+      SDB_ASSERT(!_slot->isKeyCompressed(), "can not be compressed");
+      if (_slot->isKeySavedInSlot())
+      {
+         key.assign(_slot->data.keyData);
+      }
+      else
+      {
+         SDB_ASSERT(NULL != _keyData, "impossible");
+         key.assign(_keyData);
+      }
+      return;
    }
 } // namespace vessel
 

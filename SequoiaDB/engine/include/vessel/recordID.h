@@ -83,27 +83,25 @@ namespace vessel
 
          OSS_INLINE BOOLEAN operator<(const recordID &r)const
          {
-            if (_page < r._page)
-            {
-               return TRUE;
-            }
-            else if (_page > r._page)
-            {
-               return FALSE;
-            }
-            else
-            {
-               return _slot < r._slot;
-            }
-
+            return compare(r) < 0;
          }
 
          OSS_INLINE BOOLEAN operator<=(const recordID &r)const
          {
-            return *this < r || *this == r;
+            return compare(r) <= 0;
          }
 
          OSS_INLINE ~recordID(){}
+
+         OSS_INLINE INT32 compare(const recordID &rid)const
+         {
+            INT32 res = (INT32)_page - (INT32)rid._page;
+            if (0 == res)
+            {
+               res = (INT32)_slot - (INT32)rid._slot;
+            }
+            return res;
+         }
 
          OSS_INLINE void setPageID(PAGE_ID id)
          {

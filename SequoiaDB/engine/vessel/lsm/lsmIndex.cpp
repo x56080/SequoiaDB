@@ -626,7 +626,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
       // compare the keyObj extracted from current key entry with
       // the keyObj built for locate operation, if they are same,
       // then move to next key entry when perform advance operation
-      if ( 0 == curKeyBson.woCompare( locateBson, *_idxMeta.getBsonOrdering() ) )
+      if ( 0 == curKeyBson.woCompare( locateBson, _idxMeta.getBsonOrdering() ) )
       {
          if ( ! bNextOnly )
          {
@@ -663,7 +663,7 @@ INT32 lsmIndex::_keySearch( const BOOLEAN            bNextOnly,
                                     prevKeyBson,
                                     keepFieldsNum, skipToNext,
                                     matchElement, matchInclusive,
-                                    *_idxMeta.getBsonOrdering(), direction ) ;
+                                    _idxMeta.getBsonOrdering(), direction ) ;
 
       /*
          _ixmExtent::_keyCmp may 'confuse' keyLocate operation. For example,

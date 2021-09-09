@@ -38,14 +38,16 @@
 
 #include "vessel/btreeNodePage.h"
 #include "ixmKey.hpp"
+#include "vessel/btreeIndexTuple.h"
+#include "vessel/btreeIndexDef.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class logicalPageBuffer;
    class requestContext;
-   class btreeNodePath;
+   class indexContext;
 
    class btreeNode : public SDBObject
    {
@@ -55,46 +57,53 @@ namespace vessel
          ~btreeNode(){}
          btreeNode(const btreeNode &o):
          _buffer(o._buffer),
-         _path(o._path),
          _depth(o._depth)
          {}
          btreeNode &operator=(const btreeNode &o)
          {
             _buffer = o._buffer;
-            _path = o._path;
             _depth = o._depth;
             return *this;
          }
 
+      private:
+         explicit btreeNode(logicalPageBuffer *buffer,
+                            indexContext *ic,
+                            UINT32 depth);
+
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _buffer;
+            return NULL != _buffer && _buffer->isValid();
          }
 
+         OSS_INLINE UINT32 getDepth()const
+         {
+            return _depth;
+         }
       public:
-
-         void fini();
+         void reset();
 
          BOOLEAN isRoot()const;
 
+      public:/// node must be active
          BOOLEAN hasExtNode()const;
 
-         INT32 insert(requestContext *context,
-                      const ixmKey &key,
+         BOOLEAN isLeaf()const;
+
+         INT32 search(const ixmKey &key,
                       const recordID &rid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID);
+                      RECORD_SLOT_ID &slotNo,
+                      BOOLEAN &identical)const;
+
+         INT32 getIndexTuple(RECORD_SLOT_ID slotNo,
+                             btreeIndexTuple &tuple)const;
 
       private:
-         explicit btreeNode(btreeNodePath *path,
-                            logicalPageBuffer *lpb,
-                            UINT32 depth);
-
          const btreeNodePageHead *getReadbleHead()const;
       private:
          logicalPageBuffer *_buffer = NULL;
-         btreeNodePath *_path = NULL;
+         indexContext *_ic = NULL;
          UINT32 _depth = 0;
       
    };//class btreeNode

@@ -128,5 +128,12 @@ namespace vessel
       goto done;
    }
 
+   BOOLEAN logicalPageBuffer::tryLockExclusivelyFromShared()
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(_lh.getLockMode().isShared(), "must be shared");
+      return _lh.tryLockFromShared();
+   }
+
 }//namespace vessel
 }//namespace engine

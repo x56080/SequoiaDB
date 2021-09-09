@@ -47,7 +47,7 @@ namespace vessel
 {
    static const UINT32 BTREE_NODE_PAGE_HEAD_VERSION = 1;
 
-   static const UINT32 BTREE_NODE_FLAG_LEAF = 0x01;
+   //static const UINT32 BTREE_NODE_FLAG_LEAF = 0x01;
    static const UINT32 BTREE_NODE_FLAG_COMPRESSION_BANNED = 0x02;
    static const UINT32 BTREE_NODE_FLAG_PREFIX_CREATED = 0x04;
 #pragma pack(4)
@@ -68,7 +68,7 @@ namespace vessel
       UINT16 freeSapceAfterLastSlot = 0;
       UINT16 totalSlotCount = 0;
       UINT16 markedDeleteSlotCount = 0;
-      UINT32 rightNode = INVALID_PAGE_ID;
+      UINT32 rightChild = INVALID_PAGE_ID;
       UINT32 extNode = INVALID_PAGE_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT32 splitedTimes = 0;
@@ -85,43 +85,61 @@ namespace vessel
       OSS_INLINE ~btreeNodeSlot(){}
       OSS_INLINE btreeNodeSlot(const btreeNodeSlot &o):
                  flags(o.flags),
-                 offset(o.offset),
                  ridSlot(o.ridSlot),
-                 ridPage(o.ridPage){}
+                 ridPage(o.ridPage)
+                 {
+                    data.value = o.data.value;
+                 }
       OSS_INLINE btreeNodeSlot &operator=(const btreeNodeSlot &o)
       {
          flags = o.flags;
-         offset = o.offset;
          ridSlot = o.ridSlot;
          ridPage = o.ridPage;
+         data.value = o.data.value;
          return *this;
       }
 
-      static const UINT32 FLAG_IN_USED = 0x01;
-      static const UINT32 FLAG_MARKED_DELETE = 0x02;
-
-      static const UINT32 FLAG_KEY_COMPLETELY_COMPRESSED = 0x40000000;
-      static const UINT32 FLAG_KEY_COMPRESSED = 0x80000000;
+      static const UINT16 FLAG_IN_USED = 0x01;
+      static const UINT16 FLAG_MARKED_DELETE = 0x02;
+      static const UINT16 FLAG_KEY_IN_SLOT = 0x04;
+      static const UINT16 FLAG_KEY_IN_EXT_PAGE = 0x08;
+      static const UINT16 FLAG_KEY_COMPRESSED = 0x16;
+      static const UINT16 FLAG_MAX = 0x8000;
 
 
       OSS_INLINE BOOLEAN isValid()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_IN_USED);
       }
-
-      OSS_INLINE BOOLEAN isCompletelyCompressed()const
+      OSS_INLINE BOOLEAN isMarkedDelete()const
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_COMPLETELY_COMPRESSED);
+         return 0 != OSS_BIT_TEST(flags, FLAG_MARKED_DELETE);
       }
-      OSS_INLINE BOOLEAN isCompressed()const
+      OSS_INLINE BOOLEAN isKeySavedInSlot()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_SLOT);
+      }
+      OSS_INLINE BOOLEAN isKeyCompressed()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_KEY_COMPRESSED);
       }
 
-      UINT32 flags = 0;
-      UINT16 offset = 0;
+      union slotData
+      {
+         struct
+         {
+            UINT16 offset;
+            UINT16 pad;
+            UINT32 leftChild;
+         } pointer;//struct pointer
+         CHAR keyData[8];
+         UINT64 value = 0;
+      };//slotData
+
+      UINT16 flags = 0;
       UINT16 ridSlot = 0;
       UINT32 ridPage = 0;
+      slotData data;
    };//struct btreeNodeSlot
 
    static const UINT32 BTREE_NODE_SLOT_SIZE = sizeof(btreeNodeSlot);
@@ -153,7 +171,6 @@ namespace vessel
                              PAGE_SNAPSHOT_VERION psv,
                              UINT32 cllid,
                              UINT32 indexId,
-                             BOOLEAN isLeaf,
                              CHAR *buf);
 
 #pragma pack()

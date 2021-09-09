@@ -38,6 +38,7 @@
 #include "vessel/spaceIDLocker.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/atomicOperationList.h"
+#include "vessel/objectLatchHelper.hpp"
 
 namespace engine
 {
@@ -470,8 +471,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalIdLatchKey key;
-      LOGICAL_ID_LATCH_MAP::object obj;
-      ossSharedLatchMode m;
+      objectLatchHelper<logicalIdLatchKey> lh;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -494,40 +494,16 @@ namespace vessel
 
       key = logicalIdLatchKey(_spaceContext.getSpaceID(), type, lpid);
 
-      if (_lpidLatchContext.test(key, &m))
-      {
-         PD_LOG(PDERROR, "[%d,%d,%d] already locked:%d", 
-                key._sid, key._type, key._lpid, m.getModeEnum());
-         SDB_ASSERT(FALSE, "do not relock");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      rc = _env->lpidLatchMap.ensure(key, obj);
+      rc = lh.lock(_env->lpidLatchMap, _lpidLatchContext, key, mode);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to ensure latch obj[%d,%d,%d], rc:%d",
-                key._sid, key._type, key._lpid, rc);
+         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
-
-      rc = _lpidLatchContext.push(obj, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push latch obj[%d,%d,%d], rc:%d",
-                key._sid, key._type, key._lpid, rc);
-         goto error;
-      }
-
-      obj.getValue().lockWith(mode);
       
    done:
       return rc;
    error:
-      if (obj.isValid())
-      {
-         _env->lpidLatchMap.release(obj);
-      }
       goto done;
    }
    
@@ -535,8 +511,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalIdLatchKey key;
-      LOGICAL_ID_LATCH_MAP::object obj;
-      ossSharedLatchMode mode;
+      objectLatchHelper<logicalIdLatchKey> lh;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -556,18 +531,7 @@ namespace vessel
       }
 
       key = logicalIdLatchKey(_spaceContext.getSpaceID(), type, lpid);
-
-      rc = _lpidLatchContext.pop(key, obj, mode);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to pop[%d,%d,%d] in context, rc:%d",
-                key._sid, key._type, key._lpid, rc);
-         goto done;
-      }
-
-      obj.getValue().unlockWith(mode);
-      _env->lpidLatchMap.release(obj);
-
+      lh.autoUnlock(_env->lpidLatchMap, _lpidLatchContext, key);
    done:
       return;
    }
@@ -580,48 +544,6 @@ namespace vessel
       SDB_ASSERT(_spaceContext.isOpen(), "must be open");
       logicalIdLatchKey key(_spaceContext.getSpaceID(), type, lpid);
       return _lpidLatchContext.test(key, mode);
-   }
-
-   INT32 requestContext::lockLpidFromUpgrade(SPACE_TYPE type,
-                                             PAGE_ID lpid)
-   {
-      INT32 rc = SDB_OK;
-      logicalIdLatchKey key;
-      LOGICAL_ID_LATCH_MAP::object obj;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
-                            INVALID_PAGE_ID == lpid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isSpaceIdLocked()))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      key = logicalIdLatchKey(_spaceContext.getSpaceID(), type, lpid);
-
-      rc = _lpidLatchContext.findUpgradeAndSetExclusive(key, obj);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update lock[%d,%d,%d], rc:%d",
-                key._sid, key._type, key._lpid, rc);
-         goto error;
-      }
-
-      obj.getValue().unlockUpgradeAndLock();
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
    BOOLEAN requestContext::isInProcessingOplist()const

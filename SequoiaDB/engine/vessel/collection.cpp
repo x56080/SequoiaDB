@@ -2198,7 +2198,7 @@ namespace vessel
 
       rc = creator.createSorter(sortBuffer.getCapacity(),
                                 sortBuffer.getBuffer(),
-                                dmsIxmKeyComparer(*ow.toBsonOrdering()),
+                                dmsIxmKeyComparer(ow.toBsonOrdering()),
                                 &sorter);
       if (SDB_OK != rc)
       {

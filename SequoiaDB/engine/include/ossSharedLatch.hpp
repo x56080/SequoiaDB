@@ -37,8 +37,6 @@
 #define OSS_SHARED_LATCH_HPP_
 
 #include "ossLatch.hpp"
-#include <boost/thread/shared_mutex.hpp>
-
 
 enum OSS_SHARED_LATCH_MODE_ENUM
 {
@@ -271,6 +269,16 @@ class ossSharedLatch : public SDBObject
       void unlockAndLockShared()
       {
          _mutex.unlock_and_lock_shared();
+      }
+
+      BOOLEAN tryUnlockSharedAndLock()
+      {
+         return _mutex.try_unlock_shared_and_lock();
+      }
+
+      BOOLEAN tryUnlockSharedAndLock(UINT32 millis)
+      {
+         return _mutex.try_unlock_shared_and_lock_for(boost::chrono::milliseconds(millis));
       }
 
    private:

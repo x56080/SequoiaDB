@@ -100,11 +100,20 @@ namespace vessel
          INT32 lock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                     objectSharedLatchContext<KEY> &context,
                     const KEY &k,
-                    ossSharedLatchMode mode)
+                    const ossSharedLatchMode &mode)
          {
             INT32 rc = SDB_OK;
             SDB_ASSERT(!mode.isNone(), "can not be none");
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+
+            if (context.test(k, NULL))
+            {
+               PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
+               SDB_ASSERT(FALSE, "do not relock");
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+
             rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
             {
@@ -130,13 +139,22 @@ namespace vessel
          INT32 tryLock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                        objectSharedLatchContext<KEY> &context,
                        const KEY &k,
-                       ossSharedLatchMode mode,
+                       const ossSharedLatchMode &mode,
                        BOOLEAN &locked)
          {
             INT32 rc = SDB_OK;
             SDB_ASSERT(!mode.isNone(), "can not be none");
             locked = FALSE;
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+
+            if (context.test(k, NULL))
+            {
+               PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
+               SDB_ASSERT(FALSE, "do not relock");
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+
             rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
             {
@@ -169,7 +187,7 @@ namespace vessel
 
          INT32 wait(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                     const KEY &k,
-                    ossSharedLatchMode mode)
+                    const ossSharedLatchMode &mode)
          {
             INT32 rc = SDB_OK;
             SDB_ASSERT(!mode.isNone(), "can not be none");
@@ -195,13 +213,14 @@ namespace vessel
 
          INT32 waitFor(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                        const KEY &k,
-                       ossSharedLatchMode mode,
+                       const ossSharedLatchMode &mode,
                        UINT32 millis,
                        BOOLEAN &timeout)
          {
             INT32 rc = SDB_OK;
             SDB_ASSERT(!mode.isNone(), "can not be none");
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+            
             rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
             {
@@ -231,16 +250,27 @@ namespace vessel
          INT32 tryLockWhenExists(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
                                  objectSharedLatchContext<KEY> &context,
                                  const KEY &k,
-                                 ossSharedLatchMode mode,
+                                 const ossSharedLatchMode &mode,
                                  BOOLEAN &notExists,
                                  BOOLEAN &locked)
          {
             INT32 rc = SDB_OK;
             SDB_ASSERT(!mode.isNone(), "can not be none");
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+
+            if (context.test(k, NULL))
+            {
+               PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
+               SDB_ASSERT(FALSE, "do not relock");
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+
             rc = latchMap.get(k, obj);
             if (SDB_OK != rc)
             {
+               PD_LOG(PDERROR, "failed to get latch obj[%s], rc:%d",
+                      k.toString().c_str(), rc);
                goto error;
             }
             else if (!obj.isValid())

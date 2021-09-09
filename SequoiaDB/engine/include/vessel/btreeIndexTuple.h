@@ -37,6 +37,8 @@
 #define VESSEL_BTREE_INDEX_TUPLE_H_
 
 #include "vessel/btreeNodePage.h"
+#include "pdTrace.hpp"
+#include "ixmKey.hpp"
 
 namespace engine
 {
@@ -46,43 +48,59 @@ namespace vessel
    {
       public:
          btreeIndexTuple(){}
-         btreeIndexTuple(const btreeNodeSlot *slot,
-                         const CHAR *data,
-                         BOOLEAN isLeaf);
          ~btreeIndexTuple(){}
-
-      public:
-         OSS_INLINE BOOLEAN isValid()const
+         btreeIndexTuple(const btreeIndexTuple &o):
+         _slot(o._slot),
+         _keyData(o._keyData)
+         {}
+         btreeIndexTuple &operator=(const btreeIndexTuple &o)
          {
-            return NULL != _slot;
+            _slotNo = o._slotNo;
+            _slot = o._slot;
+            _keyData = o._keyData;
+            return *this;
          }
 
-         void fini();
-
-         BOOLEAN init(const btreeNodeSlot *slot,
-                      const CHAR *data,
-                      BOOLEAN isLeaf);
-
-         PAGE_ID getLeftNode()const;
+      public:
+         OSS_INLINE RECORD_SLOT_ID getSlotNo()const
+         {
+            return _slotNo;
+         }
 
          OSS_INLINE const btreeNodeSlot *getSlot()const
          {
             return _slot;
          }
-         OSS_INLINE UINT32 getKeyDataSize()const
+
+         /// key data may be null
+         OSS_INLINE const CHAR *getKeyData()const
          {
-            return _keyDataSize;
-         }
-         OSS_INLINE BOOLEAN isLeaf()const
-         {
-            return _isLeaf;
+            return _keyData;
          }
 
+         OSS_INLINE recordID getRid()const
+         {
+            return isValid() ? recordID(_slot->ridPage, _slot->ridSlot) : recordID();
+         }
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _slot && _slot->isValid();
+         }
+
+         void fini();
+
+         BOOLEAN init(RECORD_SLOT_ID slotNo,
+                      const btreeNodeSlot *slot,
+                      const CHAR *keyData);
+
+         void getKeyWhenNotCompressed(ixmKey &key)const;
+
       private:
+         RECORD_SLOT_ID _slotNo = INVALID_RECORD_SLOT_ID;
          const btreeNodeSlot *_slot = NULL;
-         const CHAR *_data = NULL;
-         UINT32 _keyDataSize = 0;
-         BOOLEAN _isLeaf = FALSE;
+         const CHAR *_keyData = NULL;
    };//class btreeIndexTuple
 } // namespace vessel
 

@@ -34,73 +34,241 @@
 ******************************************************************************/
 
 #include "vessel/btreeIndexWriter.h"
-#include "vessel/requestContext.h"
+#include "ossLikely.hpp"
+#include "pdTrace.hpp"
+#include "vessel/indexSpace.h"
 #include "vessel/indexContext.h"
-#include "vessel/btreeNode.h"
+#include "vessel/indexDefPageAccessor.h"
+#include "vessel/btreeNodePageIniter.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
 namespace vessel
-{
-   INT32 btreeIndexWriter::init(requestContext *context,
-                                indexContext *ic)
-   {
-      INT32 rc = SDB_OK;
-      fini();
-
-      rc = btreeIndexAccessor::_init(context, ic);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index accessor:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      fini();
-      goto done;
-   }
-
-   void btreeIndexWriter::fini()
-   {
-      btreeIndexAccessor::_fini();
-   }
-
+{  
    INT32 btreeIndexWriter::insert(const bson::BSONObj &key,
                                   const recordID &rid,
                                   DPS_LSN_OFFSET lsn,
                                   const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      btreeNode root;
 
-      if (OSS_UNLIKELY(!btreeIndexAccessor::_isInitialized()))
+      btreeNode root;
+      ixmKeyOwned ownedKey(key);
+
+      if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
       else if (OSS_UNLIKELY(!key.isValid() ||
-                            key.isEmpty() ||
                             !rid.valid() ||
                             DPS_INVALID_LSN_OFFSET == lsn))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-
+      else if ((INT32)MAX_IXM_KEY_SIZE < ownedKey.dataSize())
       {
-         ixmKeyOwned ownedKey(key);
-         if (MAX_IXM_KEY_SIZE < ownedKey.dataSize())
-         {
-            rc = SDB_IXM_KEY_TOO_LARGE;
-            goto error;
-         }
+         rc = SDB_IXM_KEY_TOO_LARGE;
+         goto error;
       }
+
+      rc = initPathRoot(root);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init path root:%d", rc);
+         goto error;
+      }
+
    done:
+      btreeIndexAccessor::clearAccessingPath();
       return rc;
    error:
       goto done;
    }
+
+   INT32 btreeIndexWriter::initPathRoot(btreeNode &root,
+                                        const ossSharedLatchMode *m)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "must be inited");
+      SDB_ASSERT(getNodePath().isEmpty(), "must be empty");
+
+      indexDefPageAccessor accessor;
+      ossSharedLatchMode entryMode;
+      entryMode.setShared();
+      ossSharedLatchMode rootMode;
+      const indexDefHead *head = NULL;
+      logicalPageBuffer entryPage;
+
+      do
+      {
+         rc = getIndexSpace()->getLogicalPageBuffer(getContext(),
+                                                 getIndexContext()->getEntryLpid(),
+                                                 entryMode, entryPage);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get entry page[%d] buffer, rc:%d",
+                  getIndexContext()->getEntryLpid(), rc);
+            goto error;
+         }
+
+         rc = accessor.getIndexDefPageHead(getContext(),
+                                          getIndexContext()->getIndexID(),
+                                          &entryPage, &head);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get index def page head:%d", rc);
+            goto error;
+         }
+
+         if (INVALID_PAGE_ID == head->btreeRoot)
+         {
+            entryPage.fini();
+            PAGE_ID rootLpid = INVALID_PAGE_ID;
+            rc = createRootIfNotExists(rootLpid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure root node:%d", rc);
+               goto error;
+            }
+            continue;
+         }
+
+         break;
+      } while (TRUE);
+      
+      if (NULL != m && !m->isNone())
+      {
+         rootMode = *m;
+      }
+      else
+      {
+         rootMode = estimateRootLockingMode(head->btreeRootUpdatedTimes);
+      }
+
+      rc = getBtreeNodeAndPushIntoPath(head->btreeRoot, rootMode, root);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get btree node[%d], rc:%d", head->btreeRoot, rc);
+         goto error;
+      }
+
+   done:
+      entryPage.fini();
+      return rc;
+   error:
+      root.reset();
+      goto done;
+   }
+
+   ossSharedLatchMode btreeIndexWriter::estimateRootLockingMode(UINT32 updatedTimes)const
+   {
+      static const UINT32 _SMALL_SCALE = 1;
+      ossSharedLatchMode mode;
+      if (updatedTimes <= _SMALL_SCALE)
+      {
+         mode.setUpgrade();
+      }
+      else
+      {
+         mode.setShared();
+      }
+      return mode;
+   }
+
+   ossSharedLatchMode btreeIndexWriter::estimateChildLockingMode(UINT32 depth,
+                                                     const ossSharedLatchMode &fatherMode)const
+   {
+      static const UINT32 _MIN_UPGRADE_DEPTH = 2;
+      SDB_ASSERT(!fatherMode.isNone(), "can not be none");
+      ossSharedLatchMode mode;
+      if (!fatherMode.isShared())
+      {
+         mode.setUpgrade();
+      }
+      else if (_MIN_UPGRADE_DEPTH <= depth)
+      {
+         mode.setUpgrade();
+      }
+      else
+      {
+         mode.setShared();
+      }
+      return mode;
+   }
+
+   INT32 btreeIndexWriter::createRootIfNotExists(PAGE_ID &root)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "must be inited");
+
+      indexDefPageAccessor accessor;
+      btreeNodePageIniter initer;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      ossSharedLatchMode mode;
+      mode.setUpgrade();
+      logicalPageBuffer entryPage;
+      const indexDefHead *head = NULL;
+
+      rc = getIndexSpace()->getLogicalPageBuffer(getContext(),
+                                                 getIndexContext()->getEntryLpid(),
+                                                 mode, entryPage);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get entry page[%d] buffer:%d",
+                getIndexContext()->getEntryLpid(), rc);
+         goto error;
+      }
+
+      rc = accessor.getIndexDefPageHead(getContext(),
+                                        getIndexContext()->getIndexID(),
+                                        &entryPage, &head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get index def page head:%d", rc);
+         goto error;
+      }
+
+      lpid = head->btreeRoot;
+
+      if (INVALID_PAGE_ID == lpid)
+      {
+         UINT32 updatedTimes = 0;
+         initer.set(getContext()->getLogicalCLID(),
+                    getIndexContext()->getIndexID());
+         rc = getIndexSpace()->allocatePages(getContext(), &initer, 1, &lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+            goto error;
+         }
+
+         rc = accessor.updateBtreeRoot(getContext(),
+                                       getIndexContext()->getIndexID(),
+                                       lpid, &entryPage, &updatedTimes);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update root:%d", rc);
+            goto error;
+         }
+         SDB_ASSERT(1 == updatedTimes, "impossible");
+      }
+
+      root = lpid;
+
+   done:
+      entryPage.fini();
+      return rc;
+   error:
+      if (INVALID_PAGE_ID != lpid)
+      {
+         getIndexSpace()->releasePages(getContext(), 1, &lpid);
+      }
+      goto done;
+   }
+
 } // namespace vessel
 
 } // namespace engine

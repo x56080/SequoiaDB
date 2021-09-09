@@ -39,6 +39,7 @@
 #include "ossLatch.hpp"
 #include "vessel/vesselFileDef.h"
 #include "vessel/pageIdentifier.h"
+#include "ossSharedLatch.hpp"
 
 namespace engine
 {
@@ -70,7 +71,11 @@ namespace vessel
          void unlock();
 
          /// lock upgrade first
-         INT32 lockLpidFromUpgrade();
+         void lockFromUpgrade();
+
+         /// lock shared first
+         /// will not release shared lock if return false
+         BOOLEAN tryLockFromShared();
 
          OSS_INLINE BOOLEAN isLocked()const
          {

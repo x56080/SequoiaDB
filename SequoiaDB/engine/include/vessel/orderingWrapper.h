@@ -83,11 +83,11 @@ namespace vessel
          }
 
       public:
-         const bson::Ordering *toBsonOrdering()const
+         const bson::Ordering &toBsonOrdering()const
          {
             SDB_ASSERT(0 < _nkeys, "can not be zero");
             SDB_ASSERT(_nkeys <= 32, "can not be out of bound");
-            return (const bson::Ordering *)this;
+            return *((const bson::Ordering *)this);
          }
 
       private:

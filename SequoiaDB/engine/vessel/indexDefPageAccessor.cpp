@@ -268,7 +268,8 @@ namespace vessel
    INT32 indexDefPageAccessor::updateBtreeRoot(requestContext *context,
                                                UINT32 indexId,
                                                PAGE_ID root,
-                                               logicalPageBuffer *lpb)const
+                                               logicalPageBuffer *lpb,
+                                               UINT32 *updatedTimes)const
    {
       INT32 rc = SDB_OK;
       const indexDefHead *readableHead = NULL;
@@ -338,6 +339,11 @@ namespace vessel
       }
 
       head->btreeRoot = root;
+      ++head->btreeRootUpdatedTimes;
+      if (NULL != updatedTimes)
+      {
+         *updatedTimes = head->btreeRootUpdatedTimes;
+      }
       lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
    done:
       return rc;

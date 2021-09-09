@@ -46,8 +46,6 @@
 #if defined (SDB_ENGINE)
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
-
-#include "ossSharedLatch.hpp"
 #endif //SDB_ENGINE
 
 #if defined (_WINDOWS)

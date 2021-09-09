@@ -58,33 +58,47 @@ namespace vessel
          btreeIndexAccessor &operator=(const btreeIndexAccessor &) = delete;
 
       public:
-
-      protected:
-         INT32 _init(requestContext *context,
-                     indexContext *ic);
-
-         void _fini();
-
-         OSS_INLINE BOOLEAN _isInitialized()const
+         OSS_INLINE BOOLEAN isInitialized()const
          {
             return NULL != _context;
          }
 
-         requestContext *getContext()
+         INT32 init(requestContext *context,
+                     indexContext *ic);
+         void fini();
+      protected:
+         INT32 getBtreeNodeAndPushIntoPath(PAGE_ID lpid,
+                                           const ossSharedLatchMode &mode,
+                                           btreeNode &node);
+
+         void clearAccessingPath();
+               
+      protected:
+         OSS_INLINE requestContext *getContext()
          {
             return _context;
          }
-         indexContext *getIndexContext()
+         OSS_INLINE btreeNodePath &getNodePath()
+         {
+            return _path;
+         }
+         OSS_INLINE indexSpace *getIndexSpace()
+         {
+            return _is;
+         }
+         OSS_INLINE indexContext *getIndexContext()
          {
             return _ic;
          }
-      
+
+      private:
+
+         
       private:
          requestContext *_context = NULL;
-         indexContext *_ic = NULL;
          indexSpace *_is = NULL;
-         btreeNodePath _path;  
-         
+         indexContext *_ic = NULL;
+         btreeNodePath _path;
          BOOLEAN _checkpointBlocked = FALSE;
    };//class btreeIndexAccessor
 } // namespace vessel

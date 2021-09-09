@@ -53,16 +53,17 @@ namespace vessel
 
    btreeIndexAccessor::~btreeIndexAccessor()
    {
-      _fini();
+      fini();
    }
 
-   INT32 btreeIndexAccessor::_init(requestContext *context,
-                                   indexContext *ic)
+   INT32 btreeIndexAccessor::init(requestContext *context,
+                                  indexContext *ic)
    {
       INT32 rc = SDB_OK;
       logicalPageSpace *lps = NULL;
+      indexSpace *is = NULL;
 
-      _fini();
+      fini();
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->getCollectionHandle().isValid() ||
@@ -87,9 +88,9 @@ namespace vessel
       }
 
       _is = static_cast<indexSpace *>(lps);
-      _path.init(_ic, _is);
+      _path.init(ic);
 
-      rc = _is->blockCheckpoint(_context);
+      rc = is->blockCheckpoint(_context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
@@ -100,11 +101,11 @@ namespace vessel
    done:
       return rc;
    error:
-      _fini();
+      fini();
       goto done;
    }
 
-   void btreeIndexAccessor::_fini()
+   void btreeIndexAccessor::fini()
    {
       if (NULL == _context)
       {
@@ -117,12 +118,63 @@ namespace vessel
          _context->unblockCheckpoint();
          _checkpointBlocked = FALSE;
       }
+
       _context = NULL;
-      _ic = NULL;
       _is = NULL;
+      _ic = NULL;
    done:
       return;
    }
+
+   void btreeIndexAccessor::clearAccessingPath()
+   {
+      _path.clearPath();
+      return;
+   }
+
+
+   INT32 btreeIndexAccessor::getBtreeNodeAndPushIntoPath(PAGE_ID lpid,
+                                                         const ossSharedLatchMode &mode,
+                                                         btreeNode &node)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "must be inited");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      SDB_ASSERT(!mode.isNone(), "can not be none");
+      node = btreeNode();
+
+      logicalPageBuffer *buffer = _path.allocateBuffer();
+      if (OSS_UNLIKELY(NULL == buffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(_context, lpid, mode, *buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = _path.push(_context, buffer, node);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push node into path:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (NULL != buffer)
+      {
+         buffer->fini();
+         _path.releaseBuffer(buffer);
+      }
+      goto done;
+   }
+
 } // namespace vessel
 
 } // namespace engine

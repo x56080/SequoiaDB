@@ -45,6 +45,36 @@ namespace vessel
 {
    /// min key size is 1.
    static const UINT32 BTREE_MIN_ENTRY_SIZE = sizeof(recordID) + sizeof(recordID) + 1;
+
+   class insertPosition : public SDBObject
+   {
+      public:
+         OSS_INLINE insertPosition(){}
+         OSS_INLINE ~insertPosition(){}
+         OSS_INLINE insertPosition(const insertPosition &o):
+         child(o.child),
+         slotNo(o.slotNo),
+         identical(o.identical){}
+         OSS_INLINE insertPosition &operator=(const insertPosition &o)
+         {
+            child = o.child;
+            slotNo = o.slotNo;
+            identical = o.identical;
+            return *this;
+         }
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return INVALID_PAGE_ID != child ||
+                   INVALID_RECORD_SLOT_ID != slotNo;
+         }
+
+      public:
+         PAGE_ID child = INVALID_PAGE_ID;
+         RECORD_SLOT_ID slotNo = INVALID_RECORD_SLOT_ID;
+         BOOLEAN identical = FALSE;
+   };//class insertPosition
 } // namespace vessel
 
 } // namespace engine

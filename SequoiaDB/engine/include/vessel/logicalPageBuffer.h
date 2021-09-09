@@ -92,6 +92,9 @@ namespace vessel
 
          INT32 validatePage(PAGE_TYPE type)const;
 
+         /// must hold shared lock first
+         BOOLEAN tryLockExclusivelyFromShared();
+
       private:
          void init(logicalPageSpace *lps,
                    PAGE_SNAPSHOT_VERION psv,

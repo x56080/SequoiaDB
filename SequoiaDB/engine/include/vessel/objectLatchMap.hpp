@@ -43,6 +43,7 @@
 #include "vessel/vesselFileDef.h"
 #include "pdTrace.hpp"
 #include "xxHashInc.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -88,6 +89,25 @@ namespace vessel
             return INVALID_SPACE_ID != _sid &&
                    INVALID_SPACE_TYPE != _type &&
                    INVALID_PAGE_ID != _lpid;
+         }
+
+         ossPoolString toString()const
+         {
+            static const UINT32 _BUF_SIZE = 16;
+            CHAR buf[_BUF_SIZE] = {};
+            ossPoolString str;
+            str.reserve(64);
+            str.append("{sid:");
+            ossItoa(_sid, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", type:");
+            ossItoa(_type, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", lpid:");
+            ossItoa(_lpid, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append("}");
+            return str;
          }
       public:
          SPACE_ID _sid = INVALID_SPACE_ID;
@@ -136,6 +156,28 @@ namespace vessel
             return INVALID_SPACE_ID != _sid &&
                    INVALID_CL_MB_ID != _mbID &&
                    _rid.valid();
+         }
+
+         ossPoolString toString()const
+         {
+            static const UINT32 _BUF_SIZE = 16;
+            CHAR buf[_BUF_SIZE] = {};
+            ossPoolString str;
+            str.reserve(64);
+            str.append("{sid:");
+            ossItoa(_sid, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", mbid:");
+            ossItoa(_mbID, buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", lpid:");
+            ossItoa(_rid.getPageID(), buf, _BUF_SIZE);
+            str.append(buf);
+            str.append(", slot:");
+            ossItoa(_rid.getSlotID(), buf, _BUF_SIZE);
+            str.append(buf);
+            str.append("}");
+            return str;
          }
 
       public:
@@ -336,8 +378,9 @@ namespace vessel
             return r;
          }
 
-         INT32 findUpgradeAndSetExclusive(const KEY &key,
-                                          LATCH_OBJECT &obj)
+         INT32 find(const KEY &key,
+                    LATCH_OBJECT &obj,
+                    ossSharedLatchMode **mode)
          {
             INT32 rc = SDB_OK;
             _latchSlot *slot = NULL;
@@ -354,14 +397,12 @@ namespace vessel
                rc = SDB_VESSEL_KEY_NOT_FOUND;
                goto error;
             }
-            if (!(slot->mode.isUpgrade()))
-            {
-               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-               goto error;
-            }
 
-            slot->mode.setExclusive();
             obj = slot->obj;
+            if (NULL != mode)
+            {
+               *mode = &(slot->mode);
+            }
          done:
             return rc;
          error:
