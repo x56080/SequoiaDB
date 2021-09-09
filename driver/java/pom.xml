@@ -145,6 +145,7 @@
                 </executions>
                 <configuration>
                     <nodeprecated>true</nodeprecated>
+                    <locale>en_US</locale>
                     <excludePackageNames>com.sequoiadb.message:com.sequoiadb.net:org.bson.io:org.bson.util:org.bson.util.annotations</excludePackageNames>
                     <sourceFileExcludes>
                         <exclude></exclude>
