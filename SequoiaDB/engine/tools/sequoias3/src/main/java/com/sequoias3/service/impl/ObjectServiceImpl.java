@@ -1356,10 +1356,10 @@ public class ObjectServiceImpl implements ObjectService {
                         int partNumber = completeList.get(i).getPartNumber();
                         Part part = partArray.get(partNumber - 1);
                         eTag = completeList.get(i).getEtag();
-                        if ((!part.getCsName().equals(destCSName)
+                        if (part.getSize() > 0
+                            && (!part.getCsName().equals(destCSName)
                                 || !part.getClName().equals(destCLName)
-                                || !part.getLobId().equals(destLobId))
-                                && part.getSize() > 0) {
+                                || !part.getLobId().equals(destLobId))) {
                             dataDao.copyObjectData(destCSName, destCLName, destLobId, writeOffset,
                                     part.getCsName(), part.getClName(), part.getLobId(),
                                     part.getSize() * (part.getPartNumber() - 1),
