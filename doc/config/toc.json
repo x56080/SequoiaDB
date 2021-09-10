@@ -1686,6 +1686,12 @@
                      ]
                   },
                   {
+                     "id": 1629289093,
+                     "file": "deadlock_detector",
+                     "cn": "死锁检测",
+                     "en": "Deadlock detection"
+                  },
+                  {
                      "id": 1610960736,
                      "file": "hot_spare",
                      "cn": "热备节点",
@@ -5610,6 +5616,18 @@
                            "en": "$SNAPSHOT_INDEXSTATS"
                         },
                         {
+                           "id": 1631086808,
+                           "file": "SNAPSHOT_TRANSWAITS",
+                           "cn": "$SNAPSHOT_TRANSWAITS",
+                           "en": "$SNAPSHOT_TRANSWAITS"
+                        },
+                        {
+                           "id": 1631086816,
+                           "file": "SNAPSHOT_TRANSDEADLOCK",
+                           "cn": "$SNAPSHOT_TRANSDEADLOCK",
+                           "en": "$SNAPSHOT_TRANSDEADLOCK"
+                        },
+                        {
                            "id": 1559282949,
                            "file": "LIST_CONTEXT",
                            "cn": "$LIST_CONTEXT",
@@ -5908,6 +5926,18 @@
                      "file": "SDB_SNAP_INDEXSTATS",
                      "cn": "索引统计信息快照",
                      "en": "SDB_SNAP_INDEXSTATS"
+                  },
+                  {
+                     "id": 1631066558,
+                     "file": "SDB_SNAP_TRANSWAITS",
+                     "cn": "事务等待快照",
+                     "en": "SDB_SNAP_TRANSWAITS"
+                  },
+                  {
+                     "id": 1631066569,
+                     "file": "SDB_SNAP_TRANSDEADLOCK",
+                     "cn": "事务死锁检测快照",
+                     "en": "SDB_SNAP_TRANSDEADLOCK"
                   }
                ]
             },
