@@ -615,14 +615,14 @@ BOOLEAN deadlockDetector::detectCycle( dpsTDEdge & backEdge )
 
 
 // sum up a given transaction cost( log space consumed ) in DPS_TRANS_WAIT_SET
-UINT32 deadlockDetector::_getTxCost( const DPS_TRANS_ID   transId,
+UINT64 deadlockDetector::_getTxCost( const DPS_TRANS_ID   transId,
                                      DPS_TRANS_WAIT_SET * pInfoSet )
 {
    UINT32 sumCost = 0;
    if ( pInfoSet )
    {
-      ossPoolMap< dpsDBNodeID, UINT32 > costMap ;
-      ossPoolMap< dpsDBNodeID, UINT32 >::iterator costMapItr ;
+      ossPoolMap< dpsDBNodeID, UINT64 > costMap ;
+      ossPoolMap< dpsDBNodeID, UINT64 >::iterator costMapItr ;
 
       DPS_TRANS_WAIT_SET_IT it = pInfoSet->begin() ;
       while ( it != pInfoSet->end() )
@@ -640,7 +640,7 @@ UINT32 deadlockDetector::_getTxCost( const DPS_TRANS_ID   transId,
                      sumCost += waitInfo.waiterCost ;
                      try
                      {
-                        costMap.insert( std::pair< dpsDBNodeID, UINT32 >
+                        costMap.insert( std::pair< dpsDBNodeID, UINT64 >
                            ( waitInfo.nodeId, waitInfo.waiterCost ) );
                      }
                      catch ( std::exception &e )
@@ -665,7 +665,7 @@ UINT32 deadlockDetector::_getTxCost( const DPS_TRANS_ID   transId,
                   sumCost += waitInfo.holderCost ;
                   try
                   {
-                     costMap.insert( std::pair< dpsDBNodeID, UINT32 >
+                     costMap.insert( std::pair< dpsDBNodeID, UINT64 >
                                      ( waitInfo.nodeId, waitInfo.holderCost ) );
                   }
                   catch ( std::exception &e )
