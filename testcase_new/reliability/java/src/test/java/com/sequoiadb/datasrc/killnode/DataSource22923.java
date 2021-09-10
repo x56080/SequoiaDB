@@ -150,7 +150,7 @@ public class DataSource22923 extends SdbTestBase {
                 db.createCollectionSpace( name, csoptions );
                 createSuccessCSNames.add( name );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode()
+                if ( e.getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NET_CANNOT_CONNECT
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK
@@ -189,6 +189,8 @@ public class DataSource22923 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_NETWORK
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode() ) {
                     throw e;
                 }

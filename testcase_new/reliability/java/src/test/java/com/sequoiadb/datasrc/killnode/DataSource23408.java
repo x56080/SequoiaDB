@@ -133,6 +133,10 @@ public class DataSource23408 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }
@@ -162,6 +166,10 @@ public class DataSource23408 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_CLS_NODE_BSFAULT
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_REMOTE_DISC
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK
+                                .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE
                                 .getErrorCode() ) {
                     throw e;
                 }
