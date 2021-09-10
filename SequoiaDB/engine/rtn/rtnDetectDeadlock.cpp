@@ -97,12 +97,12 @@ namespace engine
          else if ( 0 == ossStrcmp( field, FIELD_NAME_WAITER_TRANS_COST ) )
          {
             // waiter cost
-            waiterCost = e.numberInt() ;
+            waiterCost = e.numberLong() ;
          }
          else if ( 0 == ossStrcmp( field, FIELD_NAME_HOLDER_TRANS_COST ) )
          {
             // holde cost
-            holderCost = e.numberInt() ;
+            holderCost = e.numberLong() ;
          }
          else if ( 0 == ossStrcmp( field, FIELD_NAME_WAITER_RELATED_ID ) )
          { 
@@ -285,7 +285,7 @@ namespace engine
                   // degree
                   tx.append( FIELD_NAME_DEGREE, (INT32)node.degree ) ;
                   // cost 
-                  tx.append( FIELD_NAME_COST, (INT32)node.cost ) ;
+                  tx.append( FIELD_NAME_COST, (INT64)node.cost ) ;
                   // RelatedID
                   dpsTransRelatedIDs relatedIDs ;
                   CHAR strRelatedID[ DPS_TRANS_RELATED_ID_STR_LEN + 1 ] = { 0 };
@@ -302,7 +302,7 @@ namespace engine
                              (INT32)relatedIDs.relatedNID.columns.groupID ) ;
                   // Related NodeID
                   tx.append( FIELD_NAME_NODEID, 
-                             (INT16)relatedIDs.relatedNID.columns.nodeID ) ;
+                             (INT32)relatedIDs.relatedNID.columns.nodeID ) ;
 
                   BSONObj obj = tx.obj();
                   deadlockResList.push_back( obj.getOwned() ) ;   

@@ -245,7 +245,7 @@ class dpsDeadlockTx : public utilPooledObject
 public:
    DPS_TRANS_ID txId;       // transId
    UINT32       degree ;    // in_degree + out_degree
-   UINT32       cost ;
+   UINT64       cost ;
    
 public:
    dpsDeadlockTx()
@@ -262,7 +262,7 @@ public:
       cost    = rhs.cost ;
    }
 
-   dpsDeadlockTx ( DPS_TRANS_ID txID, UINT32 txDegree, UINT32 txCost )
+   dpsDeadlockTx ( DPS_TRANS_ID txID, UINT32 txDegree, UINT64 txCost )
    {
       txId   = txID ;
       degree = txDegree ;
@@ -759,7 +759,7 @@ private :
                              DPS_TRANS_WAIT_SET  * pInfoSet ) ;
 
    // sum up a transaction cost( log space consumed ) in DPS_TRANS_WAIT_SET
-   UINT32 _getTxCost( const DPS_TRANS_ID txId, DPS_TRANS_WAIT_SET * pSet );
+   UINT64 _getTxCost( const DPS_TRANS_ID txId, DPS_TRANS_WAIT_SET * pSet );
 
 private :
    DPS_TRANS_WAIT_SET * _pInfoSet ;
