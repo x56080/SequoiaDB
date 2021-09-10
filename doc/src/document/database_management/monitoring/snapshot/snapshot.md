@@ -21,6 +21,8 @@
 | [SDB_SNAP_QUERIES](database_management/monitoring/snapshot/SDB_SNAP_QUERIES.md) | 查询快照 | 查询快照列出当前数据库节点中查询信息 |
 | [SDB_SNAP_LOCKWAITS](database_management/monitoring/snapshot/SDB_SNAP_LOCKWAITS.md) | 锁等待快照 | 锁快照列出当前数据库节点中锁等待信息 |
 | [SDB_SNAP_LATCHWAITS](database_management/monitoring/snapshot/SDB_SNAP_LATCHWAITS.md) | 闩锁等待快照 | 闩锁快照列出当前数据库节点中闩锁等待信息 |
+| [SDB_SNAP_TRANSWAITS](database_management/monitoring/snapshot/SDB_SNAP_TRANSWAITS.md) | 事务等待快照 | 事务等待快照可以列出数据库中因锁等待而产生的事务等待信息|
+| [SDB_SNAP_TRANSDEADLOCK](database_management/monitoring/snapshot/SDB_SNAP_TRANSDEADLOCK.md) | 事务死锁检测快照| 事务死锁检测快照可以列出数据库中处于死锁状态的事务信息 |
 
 
 

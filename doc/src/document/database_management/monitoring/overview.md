@@ -45,6 +45,8 @@
 *   [查询快照](database_management/monitoring/snapshot/SDB_SNAP_QUERIES.md)
 *   [锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LOCKWAITS.md)
 *   [闩锁等待快照](database_management/monitoring/snapshot/SDB_SNAP_LATCHWAITS.md)
+*   [事务等待快照](database_management/monitoring/snapshot/SDB_SNAP_TRANSWAITS.md)
+*   [事务死锁检测快照](database_management/monitoring/snapshot/SDB_SNAP_TRANSDEADLOCK.md)
 
 
 ##列表##
