@@ -1,45 +1,38 @@
  [^_^]:
     JDBC 驱动
-    作者：wuyan
-    时间：20190817
-    评审意见
-    王涛：时间：
-    许建辉：时间：
-    市场部：时间：20191018
 
 本文档将介绍 SparkSQL 通过 JDBC 驱动对接 SequoiaDB 巨杉数据库的示例。
 
-SparkSQL连接SequoiaDB
-----
+##SparkSQL 对接 SequoiaDB##
 
-SparkSQL 可以通过 JDBC 驱动连接 SequoiaDB 进行操作。
+SparkSQL 可以通过 JDBC 驱动对 SequoiaDB 进行操作。
 
-###连接前准备###
+###对接前准备###
 
 1. 下载安装 Spark 和 SequoiaDB 数据库，将 Spark-SequoiaDB 连接组件和 SequoiaDB Java 驱动的 jar 包复制到 Spark 安装路径下的 `jars` 目录下
 
 2. 新建一个 java 项目，并导入 sparkSQL 的 JDBC 驱动程序依赖包，可使用 maven 下载，参考配置如下：
 
-   ```lang-java
-     <dependencies>
-       <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-jdbc</artifactId>
-            <version>$version</version>
-       </dependency>
-       <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>   
-            <version>$version</version>     
+    ```lang-java
+      <dependencies>
+        <dependency>
+             <groupId>org.apache.hive</groupId>
+             <artifactId>hive-jdbc</artifactId>
+             <version>$version</version>
         </dependency>
-      </dependencies>
-   ```
+        <dependency>
+             <groupId>org.apache.hadoop</groupId>
+             <artifactId>hadoop-common</artifactId>   
+             <version>$version</version>     
+         </dependency>
+       </dependencies>
+    ```
 
 ###示例###
 
 假设 SequoiaDB 存在集合 test.test，且保存数据如下：
 
-```lang-bash
+```lang-javascript
 > db.test.test.find()
 {
   "_id": {
@@ -111,12 +104,11 @@ Running:select * from test
 0	mary	15
 ```
 
-SparkSQL对接SequoiaSQL
-----
+##SparkSQL 对接 SequoiaSQL##
 
 SparkSQL 可以通过 DataFrames 使用 JDBC 对 SequoiaSQL-MySQL 或 SequoiaSQL-PGSQL 进行读写操作。
 
-### 对接前准备 ###
+###对接前准备###
 
 1. 下载相应的 JDBC 驱动，将其拷贝到 spark 集群 `SPARK_HOME/jars` 目录下
 
@@ -156,7 +148,7 @@ SparkSQL 可以通过 DataFrames 使用 JDBC 对 SequoiaSQL-MySQL 或 SequoiaSQL
    insert into people values (null, 'Harold', 1, 61, 128);
    ```
 
-### 示例 ###
+###示例###
 
 1. 编写示例代码
 

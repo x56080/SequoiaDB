@@ -195,6 +195,6 @@ SparkSQL 联邦查询具体操作步骤如下：
 [^_^]:
      本文使用的所有引用及连接
 [federal_query]:images/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/federal_query.png
-[spark_install]:manual/Database_Instance/Relational_Instance/SparkSQL_Instance/Operation/setup.md
+[spark_install]:manual/Database_Instance/Relational_Instance/SparkSQL_Instance/setup.md
 [simba_spark_odbc_download]:https://databricks.com/spark/odbc-drivers-download
 [spark_conn]:manual/Database_Instance/Relational_Instance/SparkSQL_Instance/Operation/connection.md#beeline

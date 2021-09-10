@@ -456,22 +456,22 @@
                   {
                      "id": 1432190710,
                      "dir": "SparkSQL_Instance",
-                     "cn": "Spark实例",
+                     "cn": "Spark 实例",
                      "en": "Spark Instance",
                      "top": true,
                      "contents": [
+                        {
+                            "id": 1432190711,
+                            "file": "setup",
+                            "cn": "安装部署",
+                            "en": "Install and Deploy"
+                        },
                         {
                            "id": 1603248417,
                            "dir": "Operation",
                            "cn": "操作",
                            "en": "Operation",
                            "contents": [
-                              {
-                                 "id": 1432190711,
-                                 "file": "setup",
-                                 "cn": "安装部署",
-                                 "en": "Install and Deploy"
-                              },
                               {
                                  "id": 1432190587,
                                  "file": "connection",
@@ -505,6 +505,12 @@
                                  "en": "JDBC Engine"
                               }
                            ]
+                        },
+                        {
+                            "id": 1630996189,
+                            "file": "data_type",
+                            "cn": "数据类型映射表",
+                            "en": "Data Type"
                         }
                      ]
                   }

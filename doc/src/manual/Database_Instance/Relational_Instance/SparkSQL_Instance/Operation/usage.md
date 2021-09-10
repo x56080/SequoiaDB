@@ -1,57 +1,10 @@
 [^_^]:
-    Spark-SequoiaDB 使用
+    SparkSQL 实例-使用
 
 
-本文档将介绍存储类型与 SparkSQL 实例类型映射、SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性及 Spark-SequoiaDB 的使用
+本文档将介绍 Spark-SequoiaDB 的使用。
 
-##存储类型与SparkSQL实例类型映射##
-
-| 存储引擎类型 | SparkSQL 实例类型   | SQL 实例类型  |
-| ------------| ------------------ | ------------ |
-|int32|IntegerType|int|
-|int64|LongType|bigint|
-|double|DoubleType|double|
-|decimal|DecimalType|decimal|
-|string|StringType|string|
-|ObjectId|StringType|string|
-|boolean|BooleanType|boolean|
-|date|DateType|date|
-|timestamp|TimestampType|timestamp|
-|binary|BinaryType|binary|
-|null|NullType|null|
-|BSON(嵌套对象)|StructType|struct\<field:type,…\>|
-|array|ArrayType|array\<type\>|
-
-##SequoiaDB存储引擎向SparkSQL实例类型转换的兼容性##
-
-Y 表示兼容，N 表示不兼容
-
-|ByteType | ShortType | IntegerType | LongType | FloatType | DoubleType | DecimalType | BooleanType|
-| -----| ---- | ----- | ----- | ----- | ----- | ----- | ----- |
-|int32|Y|Y|Y|Y|N|N|Y|N|
-|int64|Y|Y|Y|Y|N|N|Y|N|
-|double|Y|N|N|Y|N|N|Y|N|
-|decimal|Y|Y|Y|Y|N|N|Y|N|
-|string|Y|Y|Y|Y|N|N|Y|N|
-|ObjectId|Y|N|N|Y|N|N|Y|N|
-|boolean|Y|N|N|Y|N|N|Y|N|
-|date|Y|Y|Y|Y|N|N|Y|N|
-|timestamp|Y|Y|Y|Y|N|N|Y|N|
-|binary|Y|N|N|Y|N|N|Y|N|
-|null|Y|Y|Y|Y|Y|Y|Y|Y|
-|BSON|Y|N|N|N|N|Y|Y|Y|
-|array|Y|N|N|N|Y|N|Y|N|
-
->**Note:**
->- 不支持 SparkSQL 的 CalendarIntervalType 类型；
->- null 转换为任意类型仍为 null；
->- 不兼容类型转换时变为目标类型的零值；
->- date 和 timestamp 与数值类型转换时取其毫秒值；
->- string 如果是数值的字符串类型，则可转为对应的数值时，否则转换为 null；
->- boolean 值转为数值类型时，true 为 1，false 为 0；
->- 数值类型之间转换可能会溢出或损失精度。
-
-##Spark-SequoiaDB使用##
+##Spark-SequoiaDB 使用##
 
 下述以通过 SparkSQL 创建 SequoiaDB 表为例，创建语句如下：
 
@@ -59,11 +12,11 @@ Y 表示兼容，N 表示不兼容
 create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequoiadb.spark options (<option>, <option>, ...)
 ```
 
-- temporary 表示为临时表或视图，只在创建表或视图的会话中有效，会话退出后自动删除。
+- temporary：临时表或视图，只在创建表或视图的会话中有效，会话退出后自动删除。
 
-- 表名后紧跟的 schema 可不填，连接器会自动生成。自动生成的 schema 字段顺序与集合中记录的顺序不一致，因此如果对 schema 的字段顺序有要求，应该显式定义 schema 。
+- schema：可不填，连接器会自动生成。自动生成的 schema 字段顺序与集合中记录的顺序不一致，因此如果对 schema 的字段顺序有要求，应该显式定义 schema 。
 
-- option 为参数列表，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
+- option：参数列表，参数是键和值都为字符串类型的键值对，其中值的前后需要有单引号，多个参数之间用逗号分隔。
 
 **option 参数说明**
 
@@ -99,10 +52,10 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 
 ##示例##
 
-1. 假设集合名为 test.data ，协调节点在 serverX 和 serverY 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
+1. 假设集合名为 test.data ，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表来对应 SequoiaDB 的集合
 
    ```lang-sql
-   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'serverX:11810,serverY:11810', collectionspace 'test', collection 'data');
+   spark-sql> create table datatable(c1 string, c2 int, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'data');
    ```
 
 2. 从 SequoiaDB 的表 t1 向表 t2 插入数据
