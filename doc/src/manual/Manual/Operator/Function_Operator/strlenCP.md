@@ -6,7 +6,7 @@
 
 ##说明##
 
-$strlenCP 用于获取指定字段的[代码点][codePoint]数量。当字段类型为字符串时，将按 UTF-8 编码规则返回对应代码点的数量；当字段类型为非字符串时，将返回 null。
+$strlenCP 用于获取指定字段的字符数，即[代码点][codePoint]的数量。当字段类型为字符串时，将按 UTF-8 编码规则返回对应字符数；当字段类型为非字符串时，将返回 null。
 
 ##示例##
 
@@ -19,7 +19,7 @@ $strlenCP 用于获取指定字段的[代码点][codePoint]数量。当字段类
 > db.sample.employee.insert({_id: 4, "a": ["12345", "一二三四五", "一二三45"]})
 ```
 
-* 作为选择符使用，返回字段 a 的代码点数量
+* 作为选择符使用，返回字段 a 的字符数
 
     ```lang-javascript
     > db.sample.employee.find({}, {"a": {"$strlenCP": 1}})
@@ -46,7 +46,7 @@ $strlenCP 用于获取指定字段的[代码点][codePoint]数量。当字段类
     Return 4 row(s).
     ```
 
-* 配合匹配符使用，返回集合中字段 a 的代码点数量为 5 的记录
+* 配合匹配符使用，返回集合中字段 a 的字符数为 5 的记录
   
     ```lang-javascript
     > db.sample.employee.find({"a": {"$strlenCP": 1, "$et": 5}})

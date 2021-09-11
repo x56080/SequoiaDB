@@ -5124,6 +5124,18 @@
                            "en": "$strlen"
                         },
                         {
+                           "id": 1631340394,
+                           "file": "strlenBytes",
+                           "cn": "$strlenBytes",
+                           "en": "$strlenBytes"
+                        },
+                        {
+                           "id": 1631340429,
+                           "file": "strlenCP",
+                           "cn": "$strlenCP",
+                           "en": "$strlenCP"
+                        },
+                        {
                            "id": 1440656865,
                            "file": "lower",
                            "cn": "$lower",
