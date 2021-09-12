@@ -5045,8 +5045,8 @@
                         {
                            "id": 1631086808,
                            "file": "SNAPSHOT_TRANSWAITS",
-                           "cn": "$SNAPSHOT_TRANSWAITS",
-                           "en": "$SNAPSHOT_TRANSWAITS"
+                           "cn": "$SNAPSHOT_TRANSWAIT",
+                           "en": "$SNAPSHOT_TRANSWAIT"
                         },
                         {
                            "id": 1631086816,

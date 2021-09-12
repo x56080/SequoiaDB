@@ -1,6 +1,6 @@
 ##描述##
 
-    事务等待快照 $SNAPSHOT_TRANSWAITS 列出数据库中因锁等待而产生的事务等待信息。如果连接协调节点执行，将返回所有主数据节点的当前事务等待信息；如果连接主数据节点，将返回该节点的当前事务等待信息。
+    事务等待快照 $SNAPSHOT_TRANSWAIT 列出数据库中因锁等待而产生的事务等待信息。如果连接协调节点执行，将返回所有主数据节点的当前事务等待信息；如果连接主数据节点，将返回该节点的当前事务等待信息。
 
 > **Note：**
 >
@@ -8,7 +8,7 @@
 
 ##标识##
 
-$SNAPSHOT_TRANSWAITS
+$SNAPSHOT_TRANSWAIT
 
 ##字段信息##
 
@@ -38,7 +38,7 @@ $SNAPSHOT_TRANSWAITS
 查看事务等待快照
 
 ```lang-javascript
-> db.exec( "select * from $SDB_SNAP_TRANSWAITS" )
+> db.exec( "select * from $SNAPSHOT_TRANSWAIT" )
 ```
 
 输出结果如下：
