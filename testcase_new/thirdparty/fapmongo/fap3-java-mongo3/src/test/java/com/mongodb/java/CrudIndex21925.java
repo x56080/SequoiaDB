@@ -59,19 +59,13 @@ public class CrudIndex21925 extends MongodbTestBase {
         cl.createIndex( Indexes.ascending( "a" ),
                 new IndexOptions().unique( true ).name( indexNames[ 3 ] ) );
 
-        // 重复创建索引
-        try {
-            cl.createIndex( Indexes.ascending( indexNames[ 0 ] ),
-                    new IndexOptions().unique( false )
-                            .name( indexNames[ 0 ] ) );
-            Assert.fail( "exp fail but act success" );
-        } catch ( MongoCommandException e ) {
-            if ( !e.getMessage().contains( "-247" ) ) {
-                throw e;
-            }
-        }
+        // 重复创建索引，不报错
+        cl.createIndex( Indexes.ascending( indexNames[ 0 ] ),
+                new IndexOptions().unique( false ).name( indexNames[ 0 ] ) );
+
         // 增删改查记录
         crud( cl );
+
         // 列取index
         MongoCursor< Document > cursor1 = cl.listIndexes().iterator();
         int i = 0;
