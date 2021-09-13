@@ -120,7 +120,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN isPreferredStrict() const
          {
-            return _strict ? TRUE : FALSE ;
+            return (!_instanceList.empty() && _strict) ? TRUE : FALSE ;
          }
 
          OSS_INLINE void setPreferedPeriod( INT64 period )
