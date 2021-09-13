@@ -24,4 +24,12 @@ function test ( para )
    {
        throw new Error("expect :" + diff + " real :" + (afterCount - prevCount)) ;
    }
+   var prevList = afterCount ;
+   db.list(SDB_SNAP_SESSIONS_CURRENT).next();
+   cursor = db.snapshot(SDB_SNAP_SESSIONS_CURRENT, {}, {ProcessEventCount: ""}) ;
+   var afterList = cursor.next().toObj().ProcessEventCount ;
+   if (afterList - prevList != diff)
+   {
+       throw new Error("expect :" + diff + " real :" + (afterList - prevList)) ;
+   }
 }
