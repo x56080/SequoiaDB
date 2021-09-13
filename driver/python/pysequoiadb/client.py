@@ -100,6 +100,12 @@ SDB_SNAP_SEQUENCES = 15
 SDB_SNAP_QUERIES = 18
 SDB_SNAP_LATCHWAITS = 19
 SDB_SNAP_LOCKWAITS = 20
+#SDB_SNAP_RESERVED3 = 21
+#SDB_SNAP_RESERVED4 = 22
+#SDB_SNAP_RESERVED5 = 23
+#SDB_SNAP_RESERVED6 = 24
+SDB_SNAP_TRANSWAITS = 25
+SDB_SNAP_TRANSDEADLOCK = 26
 
 SDB_SNAP_TYPE = [
     SDB_SNAP_CONTEXTS,
@@ -121,6 +127,8 @@ SDB_SNAP_TYPE = [
     SDB_SNAP_QUERIES,
     SDB_SNAP_LATCHWAITS,
     SDB_SNAP_LOCKWAITS,
+    SDB_SNAP_TRANSWAITS,
+    SDB_SNAP_TRANSDEADLOCK
 ]
 
 class client(object):
@@ -561,7 +569,8 @@ class client(object):
                     SDB_SNAP_QUERIES               : Get the snapshot of queries
                     SDB_SNAP_LATCHWAITS            : Get the snapshot of latch waits
                     SDB_SNAP_LOCKWAITS             : Get the snapshot of lock waits
-
+                    SDB_SNAP_TRANSWAITS            : Get the snapshot of transaction waits
+                    SDB_SNAP_TRANSDEADLOCK         : Get the snapshot of transaction deadlock
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
