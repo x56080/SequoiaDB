@@ -30,7 +30,7 @@ $SNAPSHOT_TRANSDEADLOCK
 检测当前数据库的事务间是否存在死锁
 
 ```lang-javascript
-> db.exec( "select * from $SDB_SNAP_TRANSDEADLOCK" )
+> db.exec( "select * from $SNAPSHOT_TRANSDEADLOCK" )
 ```
 
 输出结果如下：
