@@ -2,7 +2,6 @@ SequoiaDB 巨杉数据库支持连接器、操作符、SQL 语法等操作，用
 
 本章主要内容如下：
 
-- [数据库配置][config]
 - [SequoiaDB Shell 方法][shell]
 - [错误码][errorcode]
 - [连接器][connector]
@@ -19,7 +18,6 @@ SequoiaDB 巨杉数据库支持连接器、操作符、SQL 语法等操作，用
 
 [^_^]:
     本文使用的所有引用及链接
-[config]:manual/Manual/Database_Configuration/Readme.md
 [shell]:manual/Manual/Sequoiadb_Command/Readme.md
 [errorcode]:manual/Manual/sequoiadb_error_code.md
 [connector]:manual/Manual/Connector/Readme.md
