@@ -437,7 +437,7 @@ INT32 hash_table_remove( hashTable *tb, const CHAR *key, BOOLEAN dropCS )
       {
          htbNode *toFree = tb->node[ locate ] ;
          if ( NULL == tb->node[ locate ]->name ||
-              0 == ossStrncmp( toFree->name, key, ossStrlen( key ) ) )
+              0 == ossStrcmp( toFree->name, key ) )
          {
             hash_table_destroy_node( &toFree ) ;
             tb->node[ locate ] = NULL ;
@@ -485,7 +485,7 @@ INT32 hash_table_fetch( hashTable *tb, const CHAR *key, htbNode **node )
 
    if (   NULL != tb->node[ locate ] &&
         ( NULL != tb->node[ locate ]->name &&
-          0 == ossStrncmp( tb->node[ locate ]->name, key, strlen( key ) ) ) )
+          0 == ossStrcmp( tb->node[ locate ]->name, key ) ) )
    {
       *node = tb->node[ locate ] ;
    }
