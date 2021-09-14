@@ -2,33 +2,33 @@
  * @Description   : seqDB-23427:创建数据源，设置ErrorControlLevel权限控制
  * @Author        : Wu Yan
  * @CreateTime    : 2021.01.17
- * @LastEditTime  : 2021.03.17
- * @LastEditors   : Wu Yan
+ * @LastEditTime  : 2021.09.14
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
 
 function test ()
 {
-   var dataSrcName = "datasrc23427b";
-   var csName = "cs_23427b";
-   var srcCSName = "datasrcCS_23427b";
-   var clName = "cl_23427b";
-   var mainCLName = "maincl_23427b";
+   var dataSrcName = "datasrc23427";
+   var csName = "cs_23427";
+   var srcCSName = "datasrcCS_23427";
+   var clName = "cl_23427";
+   var mainCLName = "maincl_23427";
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, clName );
 
-   //设置ErrorControlLevel权限控制为小写high
+   // 设置ErrorControlLevel权限控制为小写high
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { "ErrorControlLevel": "high" } );
 
-   //集合级使用数据源
+   // 集合级使用数据源
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    indexOprAndCheckResult( dbcl );
 
-   //集合空间级使用数据源
+   // 集合空间级使用数据源
    db.dropCS( csName );
    var cs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = db.getCS( csName ).getCL( clName );
@@ -37,15 +37,15 @@ function test ()
    db.dropCS( csName );
    db.dropDataSource( dataSrcName );
 
-   //设置ErrorControlLevel权限控制为包含大写，如High
+   // 设置ErrorControlLevel权限控制为包含大写，如High
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { "ErrorControlLevel": "High" } );
-   //集合级使用数据源
+   // 集合级使用数据源
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    indexOprAndCheckResult( dbcl );
    metaOprAndCheckResult( csName, mainCLName, clName );
 
-   //集合空间级使用数据源
+   // 集合空间级使用数据源
    db.dropCS( csName );
    var cs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = db.getCS( csName ).getCL( clName );
@@ -72,13 +72,6 @@ function indexOprAndCheckResult ( dbcl )
    {
       dbcl.dropIndex( "testa" );
    } );
-
-   /*
-   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
-   {
-      dbcl.getDetail();
-   } );
-   */
 
    var recordNum = 10000;
    var expRecs = insertBulkData( dbcl, recordNum, 0, 40000 );

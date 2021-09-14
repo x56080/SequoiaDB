@@ -1,70 +1,65 @@
 /******************************************************************************
- * @Description   : seqDB-23427:创建数据源，设置权限控制(不设置ErrorControlLevel)
+ * @Description   : seqDB-23428 : 创建数据源，设置ErrorControlLevel忽略错误(不设置ErrorControlLevel)
  * @Author        : Wu Yan
- * @CreateTime    : 2021.01.17
- * @LastEditTime  : 2021.03.17
- * @LastEditors   : Wu Yan
+ * @CreateTime    : 2021.03.09
+ * @LastEditTime  : 2021.09.14
+ * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
 
 function test ()
 {
-   var dataSrcName = "datasrc23427";
-   var csName = "cs_23427";
-   var srcCSName = "datasrcCS_23427";
-   var clName = "cl_23427";
+   var dataSrcName = "datasrc23428a";
+   var csName = "cs_23428a";
+   var srcCSName = "datasrcCS_23428a";
+   var clName = "cl_23428a";
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, clName );
+   var sdbcl = datasrcDB.getCS( srcCSName ).getCL( clName );
+   sdbcl.createIndex( "testsrc", { no: -1 } );
 
-   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { AccessMode: "ALL", ErrorControlLevel: "high" } );
-   //集合级使用数据源
+   // 创建数据源ErrorControlLevel使用默认值，为low
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB" );
+   // 集合级使用数据源
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    indexOprAndCheckResult( dbcl );
 
-   //集合空间级使用数据源
+   // 集合空间级使用数据源 
    db.dropCS( csName );
    var cs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = db.getCS( csName ).getCL( clName );
    indexOprAndCheckResult( dbcl );
 
+   commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
-   datasrcDB.dropCS( srcCSName );
    datasrcDB.close();
 }
 
 function indexOprAndCheckResult ( dbcl )
 {
-   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
+   dbcl.createIndex( "testno", { no: 1 } );
+   var cursor = dbcl.listIndexes();
+   while( cursor.next() )
    {
-      dbcl.createIndex( "testno", { no: 1 } );
-   } );
+      throw new Error( JSON.stringify( "expected list indexes to return 0 row" + cursor.current().toObj() ) );
+   }
+   cursor.close();
 
-   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
+   assert.tryThrow( SDB_IXM_NOTEXIST, function()
    {
-      dbcl.listIndexes().toArray();
+      dbcl.getIndex( "testsrc" );
    } );
-
-   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
-   {
-      dbcl.dropIndex( "testa" );
-   } );
-
-   /*
-   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
-   {
-      dbcl.getDetail();
-   } );
-   */
+   dbcl.dropIndex( "testno" );
+   dbcl.getDetail();
 
    var recordNum = 10000;
    var expRecs = insertBulkData( dbcl, recordNum, 0, 40000 );
    var cursor = dbcl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
    expRecs.sort( sortBy( 'a' ) );
    commCompareResults( cursor, expRecs );
-
-   dbcl.remove();
+   dbcl.truncate();
 }
