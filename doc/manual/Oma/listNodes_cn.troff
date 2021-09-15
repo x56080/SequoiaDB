@@ -96,7 +96,7 @@ expand ( \f[I]boolean\f[] )：是否显示节点的扩展信息，默认值为 f
 filter ( \f[I]object，选填\f[] )
 .RS 2
 .PP
-指定筛选节点信息的条件，支持通过匹配符 \f[I]a\f[]\f[I]n\f[]\f[I]d\f[]、or、$not
+指定筛选节点信息的条件，支持通过匹配符 \f[C]$and、$or、$not\f[]
 或精确匹配检索节点信息
 .RE
 .SH 返回值
