@@ -48,6 +48,7 @@
     <Compile Include="base\DBCursor.cs" />
     <Compile Include="base\DBLob.cs" />
     <Compile Include="base\DBQuery.cs" />
+    <Compile Include="base\DBSequence.cs" />
     <Compile Include="base\Domain.cs" />
     <Compile Include="base\Node.cs" />
     <Compile Include="base\ReplicaGroup.cs" />
