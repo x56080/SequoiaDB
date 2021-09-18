@@ -242,14 +242,14 @@ CSV类型转换
 | ------ | ---- | 
 | Parsed records | 解析成功的记录条数 |
 | Parsed failure | 解析失败的记录条数 |
-| Sharding records | 切分成功的记录条数 |
-| Sharding failure | 切分失败的记录条数 |
+| Sharding records | 根据分区信息打包成功的记录条数 |
+| Sharding failure | 根据分区信息打包失败的记录条数 |
 | Imported records | 导入成功的记录条数 |
 | Imported failure | 导入失败的记录条数 |
 
 > **Note:**
 >
-> Sharding records 和 Sharding failure 仅在指定集合的属性 AutoSplit 为 true 时统计。
+> Sharding records 和 Sharding failure 仅在导入集合为分区集合且参数 --sharding 为 true 时统计。
 
 示例
 ----
