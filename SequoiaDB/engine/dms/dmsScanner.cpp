@@ -76,8 +76,8 @@ namespace engine
    class _dmsIndexRecordRW : public _dmsRecordRW
    {
       public:
-         _dmsIndexRecordRW( const CHAR * ptr )
-         :_dmsRecordRW()
+         _dmsIndexRecordRW( const _dmsRecordRW &recordRW, const CHAR * ptr )
+         :_dmsRecordRW( recordRW )
          {
             if ( ptr )
             {
@@ -2322,7 +2322,7 @@ namespace engine
             pRecord = _buildIndexRecord() ;
             if( NULL != pRecord )
             {
-               _recordRW = dmsIndexRecordRW( pRecord ) ;
+               _recordRW = dmsIndexRecordRW( _recordRW, pRecord ) ;
             }
          }
 

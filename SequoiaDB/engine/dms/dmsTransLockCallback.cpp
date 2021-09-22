@@ -61,8 +61,8 @@ namespace engine
    class _dmsMemRecordRW : public _dmsRecordRW
    {
       public:
-         _dmsMemRecordRW( dpsOldRecordPtr ptr )
-         :_dmsRecordRW()
+         _dmsMemRecordRW( const _dmsRecordRW &recordRW, dpsOldRecordPtr ptr )
+         :_dmsRecordRW( recordRW )
          {
             if ( ptr.get() )
             {
@@ -622,7 +622,8 @@ namespace engine
                     lockId.toString().c_str() ) ;
 #endif
             // setup the buffer pointer in dmsRecordRW
-            *_recordRW = dmsMemRecordRW( _recordPtr ) ;
+            SDB_ASSERT( NULL != _recordRW, "record should be attached" ) ;
+            *_recordRW = dmsMemRecordRW( *_recordRW, _recordPtr ) ;
 
             // set the return info if we successfully used old version
             _useOldVersion = TRUE ;

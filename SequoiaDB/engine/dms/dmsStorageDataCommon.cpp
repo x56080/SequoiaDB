@@ -375,6 +375,16 @@ namespace engine
       _isDirectMem = FALSE ;
    }
 
+   _dmsRecordRW::_dmsRecordRW( const _dmsRecordRW &recordRW )
+   : _isDirectMem( recordRW._isDirectMem ),
+     _ptr( recordRW._ptr ),
+     _rid( recordRW._rid._extent, recordRW._rid._offset ),
+     _rw( recordRW._rw ),
+     _pData( recordRW._pData )
+   {
+   }
+
+
    _dmsRecordRW::~_dmsRecordRW()
    {
    }
