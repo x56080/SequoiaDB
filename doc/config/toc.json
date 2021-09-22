@@ -626,8 +626,8 @@
                         {
                            "id": 1432190730,
                            "dir": "csharp_driver",
-                           "cn": "CSharp 驱动",
-                           "en": "CSharp Driver",
+                           "cn": "C# 驱动",
+                           "en": "C# Driver",
                            "contents": [
                               {
                                  "id": 1432190732,
@@ -658,7 +658,7 @@
                         {
                            "id": 1432190736,
                            "dir": "java_driver",
-                           "cn": "Java 开发驱动",
+                           "cn": "Java 驱动",
                            "en": "Java Driver",
                            "contents": [
                               {
