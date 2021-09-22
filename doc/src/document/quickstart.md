@@ -1,360 +1,87 @@
-本入门教程使用 SequoiaDB 3.2 及 MySQL 实例组件3.2 在 Ubuntu 16.04 上搭建一个基础运行环境，以快速了解 SequoiaDB 及 MySQL 实例组件的基本功能 。
+本入门教程使用 SequoiaDB v3.2 及 MySQL 实例组件 v3.2 在 Ubuntu 16.04 上搭建一个基础运行环境，以快速了解 SequoiaDB 巨杉数据库及 MySQL 实例组件的基本功能。
 
 SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器上。
 
-## 安装 SequoiaDB 及 MySQL 实例组件
+##部署 SequoiaDB 及 MySQL 实例##
 
-### 安装前准备
+用户在部署 SequoiaDB 及 MySQL 实例之前应先完成 [SequoiaDB 安装](installation/deployment/command_installation/installation.md) 和 [MySQL 实例组件安装](sql_engine/sequoiasql_mysql/installation/install_deploy.md)。SequoiaDB 部署方案可以选择在单台机器上进行伪集群部署，或者在多台机器上进行集群部署。
 
-- 下载 [SequoiaDB 最新数据库安装包](https://download.sequoiadb.com/cn/sequoiadb_latest)，并上传到目标主机上
+**部署前准备**
 
-  ```lang-bash
-  $ wget --content-disposition https://download.sequoiadb.com/cn/sequoiadb_latest
-  ```
-- 安装过程需要使用操作系统 root 用户权限
-- 确保系统满足[硬件和软件要求](installation/system/system_requirement.md)
-- 参考[Linux推荐配置](installation/system/linux_suggest_settings.md)章节配置好相关系统参数
-- 请确保所有主机都设置了[主机名](installation/system/system_requirement.md#配置主机名)，并且都设置了[主机名/IP地址映射关系](installation/system/system_requirement.md#配置主机名IP地址映射)
-- 如果要部署 SequoiaDB 到多台机器上，每台机器必须都安装 SequoiaDB
+在进行集群部署之前，需要使用 root 用户或者管理员用户登录主机，在每台主机上执行以下命令查看 11800 端口是否被占用：
 
-### 安装步骤
+```lang-bash
+# netstat -anp | grep 11800
+```
 
-- 以 root 用户登陆目标主机，解压 SequoiaDB 安装包 sequoiadb-3.2-linux_x86_64.tar.gz，并给解压得到的 run 包增加可执行权限
+   > **Note：**
+   >
+   > SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840 及 18800，MySQL 实例默认需要的端口号为 3306，需确保这些端口没有被占用。
 
-  ```lang-bash
-  # tar zxvf sequoiadb-3.2-linux_x86_64.tar.gz 
-  # cd sequoiadb-3.2
-  # chmod u+x sequoiadb-3.2-linux_x86_64-installer.run
-  # chmod u+x sequoiasql-mysql-3.2-linux_x86_64-installer.run
-  # chmod u+x sequoiasql-postgresql-3.2-x86_64-installer.run
-  # chmod u+x setup.sh
-  ```
+**部署工具说明**
 
-- 运行安装脚本
+* 以下介绍的伪集群部署和集群部署均使用快速部署工具进行操作，快速部署工具的使用与配置可参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)。 
 
-  ```lang-bash
-  # ./setup.sh
-  ```
+* 如果用户在执行快速部署的过程中发生异常，则需要解决异常后再次执行 `quickDeploy.sh` 命令。如果依然失败，应在软件包解压路径下执行 `./setup.sh --clean` 命令进行环境清理，然后按照快速入门指南重新操作一次。
 
-- 程序提示选择安装SequoiaDB，默认是安装，输入N不安装
+###伪集群部署###
 
-  ```
-  Install sequoiadb Y/n: 
-  ```
-
-- 程序提示开始安装SequoiaDB，选择向导语言，输入2，选择中文
-
-  ```
-  ----------------------------begin to install sequoiadb----------------------------
-  ./sequoiadb-3.2-linux_x86_64-installer.run --mode text
-  Language Selection
-  
-  Please select the installation language
-  [1] English - English
-  [2] Simplified Chinese - 简体中文
-  Please choose an option [1] : 2
-  ```
-
-- 显示安装协议，直接按回车键忽略阅读并同意协议
-
-  ```
-  ------------------------------------------------------------
-  由 BitRockInstallBuilder 评估本所建立
-  ------------------------------------------------------------
-  
-  欢迎来到 SequoiaDB Server 安装程序
-  
-  重要信息：请仔细阅读
-  
-  下面提供了两个许可协议。
-  
-  1. SequoiaDB 评估程序的最终用户许可协议
-  2. SequoiaDB 最终用户许可协议
-  
-  如果被许可方为了生产性使用目的（而不是为了评估、测试、试用“先试后买”或演示）获得本程序，单击下面的“接受”按钮即表示被许可方接受 SequoiaDB 最终用户许可协议，且不作任何修改。
-  
-  如果被许可方为了评估、测试、试用“先试后买”或演示（统称为“评估”）目的获得本程序：单击下面的“接受”按钮即表示被许可方同时接受（i）SequoiaDB 评估程序的最终用户许可协议（“评估许可”），且不作任何修改；和（ii）SequoiaDB 最终用户程序许可协议（SELA），且不作任何修改。
-  
-  在被许可方的评估期间将适用“评估许可”。
-  
-  如果被许可方通过签署采购协议在评估之后选择保留本程序（或者获得附加的本程序副本供评估之后使用），SequoiaDB 评估程序的最终用户许可协议将自动适用。
-  
-  “评估许可”和 SequoiaDB 最终用户许可协议不能同时有效；两者之间不能互相修改，并且彼此独立。
-  
-  这两个许可协议中每个协议的完整文本如下。
-  
-  评估程序的最终用户许可协议
-  
-  [1] 同意以上协议: 了解更多的协议内容，可以在安装后查看协议文件
-  [2] 查看详细的协议内容
-  请选择选项 [1] :
-  ```
-
-- 输入安装路径后按回车（可直接按回车使用默认路径 /opt/sequoiadb ）
-
-  ```
-  ------------------------------------------------------------
-  请指定 SequoiaDB Server 将会被安装到的目录
-  安装目录 [/opt/sequoiadb]:
-  ```
-
-- 询问是否强制安装，直接按回车键选择否：
-
-  ```
-  ------------------------------------------------------------
-  是否强制安装？强制安装时可能会强杀残留进程
-  是否强制安装 [y/N]:
-  ```
-
-- 提示输入用户名和用户组（默认创建 sdbadmin 用户和 sdbadmin_group 用户组），该用户名用于运行 SequoiaDB 服务，本次均直接按回车使用默认值
-
-  ```
-  ------------------------------------------------------------
-  数据库管理用户配置
-  配置用于启动 SequoiaDB 的用户名、用户组和密码
-  用户名 [sdbadmin]:
-  用户组 [sdbadmin_group]:
-  ```
-
-- 提示输入该用户的密码和确认密码（默认密码为 sdbadmin ），本次均直接按回车使用默认值
-
-  ```
-  密码 [********] :
-  确认密码 [********] :
-  ```
-
-- 输入两次密码后，此时系统提示输入配置服务端口（默认为11790），直接按回车使用默认值
-
-  ```
-  ------------------------------------------------------------
-  集群管理服务端口配置
-  配置SequoiaDB集群管理服务端口，集群管理用于远程启动添加和启停数据库节点
-  端口 [11790]:
-  ```
-
-- 询问是否允许 SequoiaDB 相关进程开机自启动，输入Y，按回车
-
-  ```
-  ------------------------------------------------------------
-  是否允许 SequoiaDB 相关进程开机自启动
-  Sequoiadb相关进程开机自启动 [Y/n]:
-  ```
-
-- 询问是否安装 OM 服务，输入Y表示安装，默认不安装，按回车
-
-  ```
-  ----------------------------------------------------------------------------
-  
-  是否安装OM服务 [y/N]: 
-  ```
-
-- 设置完成，询问是否继续安装，直接按回车选择是
-
-  ```
-  ----------------------------------------------------------------------------
-  设定现在已经准备将 SequoiaDB Server 安装到您的电脑.
-  您确定要继续? [Y/n]:
-  ```
-
-- 安装完成
-
-  ```
-  正在安装 SequoiaDB Server 于您的电脑中，请稍候。
-  安装中
-  0% ______________ 50% ______________ 100%
-  #########################################
-  ------------------------------------------------------------
-  安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
-  
-  ----------------------------end install sequoiadb----------------------------
-  ```
-
-- 安装 SequoiaSQL，询问安装 sequoiasql-mysql or [sequoiasql-postgresql](sql_engine/sequoiasql_pg/install/install_deploy.md)，分别用 1 和 2 表示，默认是 1，回车安装 sequoiasql-mysql
-
-  ```
-  Install 1:sequoiasql-mysql or 2:sequoiasql-postgresql, [1]: 
-  ```
-
-- 程序提示选择向导语言，输入2，选择中文
-
-  ```
-  --------------------------begin to install sequoiasql-mysql-------------------------
-  ./sequoiasql-mysql-3.2-linux_x86_64-installer.run --mode text
-  Language Selection
-  
-  Please select the installation language
-  [1] English - English
-  [2] Simplified Chinese - 简体中文
-  Please choose an option [1] : 2
-  ```
-
-- 显示安装协议，直接按回车键忽略阅读并同意协议
-
-  ```
-  ----------------------------------------------------------------------------
-  由BitRock InstallBuilder评估本所建立
-  
-  欢迎来到 MySQL 实例安装程序
-  
-  ----------------------------------------------------------------------------
-  GNU 通用公共授权
-  第二版, 1991年6月
-  著作权所有 (C) 1989，1991 Free Software Foundation, Inc. 59 Temple Place, Suite 330, Boston, MA   02111-1307 USA.
-  允许每个人复制和发布本授权文件的完整副本，但不允许对它进行任何修改。
-  
-  [1] 同意以上协议: 了解更多的协议内容，可以在安装后查看协议文件
-  [2] 查看详细的协议内容
-  请选择一个选项 [1] : 
-  ```
-
-- 输入安装路径后按回车（可直接按回车使用默认路径 /opt/sequoiasql/mysql ）
-
-  ```
-  ----------------------------------------------------------------------------
-  请指定 MySQL 实例将会被安装到的目录
-  
-  安装目录 [/opt/sequoiasql/mysql]: 
-  ```
-
-- 提示输入用户名和用户组（默认创建 sdbadmin 用户和 sdbadmin_group 用户组），该用户名用于运行 SequoiaSQL 服务，本次均直接按回车使用默认值
-
-  ```
-  ----------------------------------------------------------------------------
-  数据库管理用户配置
-  
-  配置用于启 MySQL 实例组件的用户名、用户组和密码
-  
-  用户名 [sdbadmin]: 
-  
-  用户组 [sdbadmin_group]: 
-  ```
-
-- 提示输入该用户的密码和确认密码（默认密码为 sdbadmin ），本次均直接按回车使用默认值
-
-  ```
-  密码 [********]:
-  确认密码 [********]:
-  ```
-
-- 设置完成，询问是否继续安装，直接按回车选择是
-
-  ```
-  ----------------------------------------------------------------------------
-  设定现在已经准备将 MySQL 实例安装到您的电脑.
-  
-  您确定要继续? [Y/n]: 
-  ```
-
-- 安装完成
-
-  ```
-  ----------------------------------------------------------------------------
-  正在安装 MySQL 实例于您的电脑中，请稍候.
-  
-   安装中
-   0% ______________ 50% ______________ 100%
-   #########################################
-  
-  ----------------------------------------------------------------------------
-  安装程序已经完成安装 MySQL 实例于你的电脑中.
-  
-  ----------------------------end install sequoiasql-mysql----------------------------
-  ```
-
-- 安装检查
-
-  切换到 sdbadmin 用户，使用如下命令如能正常查到 SequoiaDB 的版本信息，说明安装成功。
-
-  ```lang-bash
-  $ sequoiadb  --version
-  SequoiaDB shell version: 3.2
-  Release: 40381
-  2019-04-13-08.37.10
-  ```
-
-  
-
-  切换到 root 用户，使用如下命令如能正常查到 sequoiasql-mysql 服务的状态，说明安装成功。
-
-  ```lang-bash
-  # service sequoiasql-mysql status
-  Status of service sequoiasql-mysql: 
-  running. (PID: 1493)
-  ```
-
-
-
-## 部署 SequoiaDB 及 MySQL 实例
-
-SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多台机器上。下面介绍的伪集群部署和集群部署， **只需要二者选一种执行**。
-
-### 伪集群部署
-
-部署 SequoiaDB 到本机上，创建 3 个数据组，每个数据组单副本。在本机上创建一个MySQL实例。
+部署 SequoiaDB 到本机上，创建三个数据组，每个数据组单副本，并创建一个 MySQL 实例。
 
 ![伪集群部署](quickstart_1.png)
 
-- 使用 root 用户或者管理员用户登录主机
+1. 切换到 sdbadmin 用户
 
-- 查看端口是否被占用
+   ```lang-bash
+   # su - sdbadmin
+   ``` 
 
-  执行以下命令查看 11800 端口是否被占用：
+2. 切换到 SequoiaDB 安装目录下
 
-  ```lang-bash
-  # netstat -anp | grep 11800
-  ```
+   ```lang-bash
+   $ cd /opt/sequoiadb 
+   ```
 
-- SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840、18800，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
+3. 执行快速部署工具
 
-- 使用 sdbadmin 用户登录主机
-
-- 快速部署
-
-  ```lang-bash
-  $ # 切换到 SequoiaDB 安装目录下
-  $ cd /opt/sequoiadb 
-  $ ./tools/deploy/quickDeploy.sh
+   ```lang-bash
+   $ ./tools/deploy/quickDeploy.sh
+   ```
   
-  ************ Deploy SequoiaDB ************************
-  Create catalog: sdbserver1:11800
-  Create coord:   sdbserver1:11810
-  Create data:    sdbserver1:11820
-  Create data:    sdbserver1:11830
-  Create data:    sdbserver1:11840
+   输出以下信息则表示部署成功：
+
+   ```lang-text
+   ************ Deploy SequoiaDB ************************
+   Create catalog: sdbserver1:11800
+   Create coord:   sdbserver1:11810
+   Create data:    sdbserver1:11820
+   Create data:    sdbserver1:11830
+   Create data:    sdbserver1:11840
   
-  ************ Deploy SequoiaSQL-MySQL *****************
-  Create instance: [name: myinst, port: 3306]
-  ```
+   ************ Deploy SequoiaSQL-MySQL *****************
+   Create instance: [name: myinst, port: 3306]
+   ```
 
-  > **Note:**  
-  >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
-  >
-  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+###集群部署###
 
-### 集群部署
-
-部署 SequoiaDB 到 3 台机器上，主机名分别为 sdbserver1 / sdbserver2 / sdbserver3，创建 3 个数据组，每个数据组 3 副本。在 sdbserver1 上创建一个MySQL实例。
+部署 SequoiaDB 到三台机器上，主机名分别为 sdbserver1/sdbserver2/sdbserver3，创建三个数据组，每个数据组三副本，并在 sdbserver1 上创建一个 MySQL 实例。
 
 ![集群部署](quickstart_2.png)
 
-- 使用 root 用户或者管理员用户登录主机
+1. 切换到 sdbadmin 用户
 
-- 查看端口是否被占用
+   ```lang-bash
+   # su - sdbadmin
+   ```
 
-  在每台主机上执行以下命令查看 11800 端口是否被占用：
+2. 切换到 SequoiaDB 安装目录下
 
-  ```lang-bash
-  # netstat -anp | grep 11800
-  ```
+   ```lang-bash
+   $ cd /opt/sequoiadb
+   ```
 
-  SequoiaDB 需要的端口号为 11800、11810、11820、11830、11840、18800，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
-
-- 使用 sdbadmin 用户登录主机
-
-- 修改配置
-
-  修改第一台主机 sdbserver1 上的 配置文件 tools/deploy/sequoiadb.conf，如下 :
+3. 修改第一台主机 sdbserver1 上的配置文件 `tools/deploy/sequoiadb.conf`（
+  主机名 sdbserver1/sdbserver2/sdbserver3 可根据实际需要修改），修改内容如下：
 
   ```lang-ini
   role,groupName,hostName,serviceName,dbPath
@@ -380,17 +107,14 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   data,group3,sdbserver3,11840,[installPath]/database/data/11840
   ```
 
-  用户机器的主机名不是 sdbserver1 / sdbserver2 / sdbserver3 的，只需要替换上面的 sdbserver1 / sdbserver2 / sdbserver3 即可。
+4. 在主机 sdbserver1 上执行快速部署工具
 
-- 快速部署
+   ```lang-bash
+   $ ./tools/deploy/quickDeploy.sh
+   ```
+   输出以下信息则表示部署成功：
 
-  在主机 sdbserver1 上执行快速部署工具
-
-  ```lang-bash
-  $ # 切换到 SequoiaDB 安装目录下
-  $ cd /opt/sequoiadb
-  $ ./tools/deploy/quickDeploy.sh
-  
+   ```lang-text
   ************ Deploy SequoiaDB ************************
   Create catalog: sdbserver1:11800
   Create catalog: sdbserver2:11800
@@ -412,18 +136,11 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   Create instance: [name: myinst, port: 3306]
   ```
 
-  > **Note:**  
-  >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
-  >
-  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+##基本操作##
 
+**MySQL Shell**
 
-## 使用 MySQL shell 进行操作
-
-- 使用 sdbadmin 用户登录主机
-
-- 登录 MySQL shell
+- 登录 MySQL Shell
 
   ```lang-bash
   $ /opt/sequoiasql/mysql/bin/mysql -h 127.0.0.1 -P 3306 -u root
@@ -480,54 +197,74 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   1 row in set (0.00 sec)
   ```
 
+**SDB Shell**
 
-##清除 SequoiaDB 及 MySQL 实例组件
+* 登录 SDB Shell
 
-+ 指定 --sdb 只清除 SequoiaDB 的安装和数据
-+ 指定 --mysql 只清除 MySQL 实例组件的安装和数据
-+ 指定 --pg 只清除 PostgreSQL 实例组件的的安装和数据
+   ```lang-bash
+   $ sdb
+   ```
+
+* 使用 JavaScript 连接协调节点
+
+   ```lang-json
+   > var db = new Sdb("localhost", 11810)
+   ```
+
+* 创建集合空间
+
+   ```lang-json
+   db.createCS("sample")
+   ```
+
+* 创建集合
+
+   ```lang-json
+   db.sample.createCL("employee")
+   ```
+
+* 向集合 sample.employee 中插入两条数据
+
+   ```lang-json
+   > db.sample.employee.insert({"id":1,"name":"xiaoli","phone":5553})
+   > db.sample.employee.insert({"id":2,"name":"xiaozhang","phone":1371})
+   ```
+
+* 修改字段"phone"为 5553 的记录，将"name"的值修改为"xiaolili"
+
+   ```lang-json
+   > db.sample.employee.update({$set:{"name":"xiaolili"}},{"phone":5553})
+   ```
+
+* 查询集合 sample.employee 中的记录
+
+   ```lang-json
+   > db.sample.employee.find()
+   ```
+
+   输出结果如下：
    
-###清理前准备###
+   ```lang-json
+   {
+     "_id": {
+       "$oid": "5c98d499ee15aef104e88722"
+     },
+     "id": 1,
+     "name": "xiaolili",
+     "phone": 5553
+   }
+   {
+     "_id": {
+       "$oid": "5c98d499ee15aef104e88723"
+     },
+     "id": 2,
+     "name": "xiaozhang",
+     "phone": 1371
+   Return 2 row(s).
+   ```
 
-+ 清理过程需要使用操作系统 root 用户权限
-
-+ 请确保清理脚本setup.sh具有可执行权限
-
-###清理步骤###
-
-- 运行清理脚本，通过交互式的方式清除当前主机上 setup.sh 安装的所有 SequoiaDB、MySQL 实例组件以及 PostgreSQL 实例组件和数据
-
-  ```lang-bash
-  # ./setup.sh --clean
-  ```
-
-- 程序提示是否清除安装路径下的 SequoiaDB，默认是清理，输入n不清理
-
-  ```
-   clean /opt/sequoiadb sequoiadb Y/n: 
-   begin to uninstall sequoiadb
-   /opt/sequoiadb/uninstall --mode unattended
-   ok
-   rm -rf /opt/sequoiadb/database/catalog/11800/
-   rm -rf /opt/sequoiadb/database/coord/11810/
-   rm -rf /opt/sequoiadb/database/data/11820/
-   rm -rf /opt/sequoiadb/database/data/11830/
-   rm -rf /opt/sequoiadb/database/data/11840/
-   begin to clean install dir
-   rm -rf /opt/sequoiadb
-   ok
-  ```
-
-- 程序提示是否清除安装路径下的 MySQL 实例组件，默认是清理，输入n不清理
-
-  ```
-   clean /opt/sequoiasql/mysql sequoiasql-mysql Y/n: 
-   begin to uninstall sequoiasql-mysql
-   /opt/sequoiasql/mysql/uninstall --mode unattended
-   ok
-   rm -rf /opt/sequoiasql/mysql/database/3306
-   rm -rf /opt/sequoiasql/mysql/myinst.log
-   begin to clean install dir
-   rm -rf /opt/sequoiasql/mysql
-   ok
-  ```
+* 删除字段"phone"为 5553 的记录
+   
+   ```lang-json
+   > db.sample.employee.remove({"phone":5553})
+   ```
