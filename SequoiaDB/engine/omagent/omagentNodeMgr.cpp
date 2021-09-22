@@ -1269,11 +1269,11 @@ namespace engine
 
       const CHAR *configPath = sdbGetOMAgentOptions()->getCfgPath() ;
       CHAR stpPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      string serviceName ;
       BOOLEAN hasLock = FALSE ;
 
-      // init STP node
-      rc = omGetStpFromConfig( configPath, serviceName ) ;
+      stpOptions option ;
+
+      rc = option.initFromRootPath( configPath ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDBCM_NODE_NOTEXISTED ;
@@ -1284,16 +1284,23 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get STP config file from path %s, "
                    "rc: %d", configPath, rc ) ;
 
-      lockBucket( serviceName ) ;
+      // could not remove STP server
+      PD_LOG_MSG_CHECK( ( STP_ROLE_SERVER != option.getRole() ||
+                          option.isTestMode() ),
+                        SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                        "Could not remove STP server, need manually remove "
+                        "from server list and set role to client" ) ;
+
+      lockBucket( option.getServiceName() ) ;
       hasLock = TRUE ;
 
-      rc = _getCfgPath( serviceName.c_str(), SDB_TYPE_STP, stpPath,
+      rc = _getCfgPath( option.getServiceName(), SDB_TYPE_STP, stpPath,
                         OSS_MAX_PATHSIZE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get STP path for "
-                   "STP node [%s], rc: %d", serviceName.c_str(), rc ) ;
+                   "STP node [%s], rc: %d", option.getServiceName(), rc ) ;
 
       // first to stop the node
-      rc = stopStpNode( serviceName.c_str(), NODE_START_CLIENT, FALSE, TRUE ) ;
+      rc = stopStpNode( option.getServiceName(), NODE_START_CLIENT, FALSE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to stop STP node [%s] before remove, "
                    "rc: %d", rc ) ;
 
@@ -1303,15 +1310,16 @@ namespace engine
                    "rc: %d", stpPath, rc ) ;
 
       // remove from process info
-      delNodeProcessInfo( serviceName ) ;
-      delNodeGuard( serviceName ) ;
+      delNodeProcessInfo( option.getServiceName() ) ;
+      delNodeGuard( option.getServiceName() ) ;
 
-      PD_LOG( PDEVENT, "Remove STP node [%s] succeed", serviceName.c_str() ) ;
+      PD_LOG( PDEVENT, "Remove STP node [%s] succeed",
+              option.getServiceName() ) ;
 
    done:
       if ( hasLock )
       {
-         releaseBucket( serviceName ) ;
+         releaseBucket( option.getServiceName() ) ;
       }
       return rc ;
 
