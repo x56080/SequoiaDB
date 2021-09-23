@@ -242,6 +242,15 @@ namespace engine
       _ptr   = ( ossValuePtr ) 0 ;
    }
 
+   _dmsExtRW::_dmsExtRW( const _dmsExtRW &extRW )
+   : _extentID( extRW._extentID ),
+     _collectionID( extRW._collectionID ),
+     _attr( extRW._attr ),
+     _ptr( extRW._ptr ),
+     _pBase( extRW._pBase )
+   {
+   }
+
    _dmsExtRW::~_dmsExtRW()
    {
       if ( _pBase && isDirty() )

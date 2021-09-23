@@ -283,6 +283,7 @@ namespace engine
 
       public:
          _dmsExtRW() ;
+         _dmsExtRW( const _dmsExtRW &extRW ) ;
          ~_dmsExtRW() ;
 
          BOOLEAN        isEmpty() const ;
