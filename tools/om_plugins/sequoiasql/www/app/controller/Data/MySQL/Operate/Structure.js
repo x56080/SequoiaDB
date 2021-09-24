@@ -1,4 +1,4 @@
-﻿//@ sourceURL=Structure.js
+//@ sourceURL=Structure.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -422,7 +422,10 @@
                            "webName": $scope.pAutoLanguage( '长度' ),
                            "placeholder": $scope.pAutoLanguage( "长度" ),
                            "type": "int",
-                           "value": ''
+                           "value": '',
+                           "valid": {
+                             'empty': true
+                           }
                         }
                      ]
                   ]
@@ -443,43 +446,47 @@
          $scope.CreateIndexWindow['callback']['SetTitle']( $scope.pAutoLanguage( '创建索引' ) ) ;
          $scope.CreateIndexWindow['callback']['SetIcon']( 'fa-edit' ) ;
          $scope.CreateIndexWindow['callback']['SetOkButton']( $scope.pAutoLanguage( '确定' ), function(){
-            var sql = '' ;
-            var formValue = $scope.CreateIndexWindow['config'].getValue() ;
-            if( formValue['type'] == 'normal' )
+            var isClear = $scope.CreateIndexWindow['config'].check() ;
+            if( isClear )
             {
-               sql = sprintf( 'alter table `?` add index ', SdbSwap.tbName ) ; 
-            }
-            else
-            {
-               sql = sprintf( 'alter table `?` add unique ', SdbSwap.tbName ) ; 
-            }
-            var isFrist = true ;
-            var existList = {} ;
-            $.each( formValue['fields'], function( index, field ){
-               if( isUndefined( existList[field['field']] ) )
+               var sql = '' ;
+               var formValue = $scope.CreateIndexWindow['config'].getValue() ;
+               if( formValue['type'] == 'normal' )
                {
-                  existList[field['field']] = true ;
-                  if( isFrist )
-                  {
-                     sql += '(' ;
-                     isFrist = false ;
-                  }
-                  else
-                  {
-                     if( existList[field['field']] )
-                     sql += ',' ;
-                  }
-                  sql += '`' + field['field'] + '`' ;
-                  if( field['length'] > 0 )
-                  {
-                     sql += '(' + field['length'] + ')' ;
-                  }
+                  sql = sprintf( 'alter table `?` add index ', SdbSwap.tbName ) ; 
                }
-            } ) ;
-            sql += ')' ;
+               else
+               {
+                  sql = sprintf( 'alter table `?` add unique ', SdbSwap.tbName ) ; 
+               }
+               var isFrist = true ;
+               var existList = {} ;
+               $.each( formValue['fields'], function( index, field ){
+                  if( isUndefined( existList[field['field']] ) )
+                  {
+                     existList[field['field']] = true ;
+                     if( isFrist )
+                     {
+                        sql += '(' ;
+                        isFrist = false ;
+                     }
+                     else
+                     {
+                        if( existList[field['field']] )
+                        sql += ',' ;
+                     }
+                     sql += '`' + field['field'] + '`' ;
+                     if( field['length'] > 0 )
+                     {
+                        sql += '(' + field['length'] + ')' ;
+                     }
+                  }
+               } ) ;
+               sql += ')' ;
 
-            execSql( sql ) ;
-            $scope.CreateIndexWindow['callback']['Close']() ;
+               execSql( sql ) ;
+               $scope.CreateIndexWindow['callback']['Close']() ;
+            }
          } ) ;
          $scope.CreateIndexWindow['callback']['Open']() ;
       }
