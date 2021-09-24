@@ -73,6 +73,7 @@
    "是否确定删除该记录？": "Are you sure you want to delete the record?",
    "如果该表没有主键或唯一索引，该操作可能造成删除多条相同记录。": "If the table does not have a primary key or a unique index, this action may result in the deletion of multiple identical records.",
    "如字段类型是set或enum时，请在“长度/值”的输入框填写枚举的值，用半角逗号(,)隔开。": "If the field type is 'set' or 'enum', please fill in the enumerated values in the 'Length/Value' input box, separated by a half-corner comma (,).",
+   "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。": "If the condition  is 'BETWEEN' or 'NOT BETWEEN', please fill in the values in the 'Value' input box, separated by a half-corner comma (,).",
    "执行当前的操作会删除所有记录！要继续吗？": "The current operation will delete all records! Continue anyway?",
    "继续": "Yes",
    "取消": "Close",

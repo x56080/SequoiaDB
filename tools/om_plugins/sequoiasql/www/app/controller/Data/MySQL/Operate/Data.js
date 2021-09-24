@@ -299,6 +299,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -341,8 +342,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "", 
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
@@ -415,7 +417,7 @@
             } ;
          
             $scope.QueryWindow['callback']['SetOkButton']( $scope.pAutoLanguage( '确定' ), function(){
-               var isClear = $scope.QueryWindow['config'].check() ;
+               var isClear = $scope.QueryWindow['config'].check();
                if( isClear )
                {
                   var formValue = $scope.QueryWindow['config'].getValue() ;
@@ -570,6 +572,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -612,8 +615,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "",
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
@@ -943,6 +947,7 @@
                         },
                         {
                            "name": "condition",
+                           "desc": $scope.pAutoLanguage( "如匹配条件是BETWEEN或NOT BETWEEN时，请在“值”的输入框填写值，用半角逗号(,)隔开。" ),
                            "webName": $scope.pAutoLanguage( "匹配条件" ),
                            "type": "list",
                            "valid": {
@@ -985,8 +990,9 @@
                                     "placeholder": $scope.pAutoLanguage( "值" ),
                                     "type": "string",
                                     "value": "",
+                                    "default": "",
                                     "valid": {
-                                       "min": 1
+                                       "empty": true
                                     }
                                  }
                               ]
