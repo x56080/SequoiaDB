@@ -406,6 +406,7 @@
    "节点的": "node ",
    "节点端口号": "Service Name",
    "节点分布率": "Node Distribution Rate",
+   "节点健康检测快照": "Node Health",
    "节点快照": "Node Snapshot",
    "节点列表": "Node List",
    "节点路径": "Node path",
