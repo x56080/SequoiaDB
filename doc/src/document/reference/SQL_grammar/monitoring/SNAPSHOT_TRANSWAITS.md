@@ -1,6 +1,6 @@
 ##描述##
 
-    事务等待快照 $SNAPSHOT_TRANSWAIT 列出数据库中因锁等待而产生的事务等待信息。如果连接协调节点执行，将返回所有主数据节点的当前事务等待信息；如果连接主数据节点，将返回该节点的当前事务等待信息。
+事务等待快照 $SNAPSHOT_TRANSWAIT 列出数据库中因锁等待而产生的事务等待信息。如果连接协调节点执行，将返回所有主数据节点的当前事务等待信息；如果连接主数据节点，将返回该节点的当前事务等待信息。
 
 > **Note：**
 >
@@ -45,7 +45,7 @@ $SNAPSHOT_TRANSWAIT
 
 ```lang-json
 {
-  "NodeName": "Block:20000",
+  "NodeName": "hostname1:20000",
   "GroupID": 1000,
   "NodeID": 1000,
   "WaitTime": 8500,
@@ -65,7 +65,7 @@ $SNAPSHOT_TRANSWAIT
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:20000",
+  "NodeName": "hostname1:20000",
   "GroupID": 1000,
   "NodeID": 1000,
   "WaitTime": 6057,
@@ -85,7 +85,7 @@ $SNAPSHOT_TRANSWAIT
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 10501,
@@ -105,7 +105,7 @@ $SNAPSHOT_TRANSWAIT
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 7212,
@@ -125,7 +125,7 @@ $SNAPSHOT_TRANSWAIT
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 6057,
