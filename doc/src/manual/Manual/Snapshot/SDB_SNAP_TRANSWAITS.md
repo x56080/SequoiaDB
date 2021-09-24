@@ -1,5 +1,7 @@
 [^_^]:
+
     事务等待快照
+
 
 事务等待快照可以列出数据库中，因锁等待而产生的事务等待信息。如果连接协调节点执行，将返回所有主数据节点的当前事务等待信息；如果连接主数据节点，将返回该节点的当前事务等待信息。
 
@@ -46,7 +48,7 @@ SDB_SNAP_TRANSWAITS
 
 ```lang-json
 {
-  "NodeName": "Block:20000",
+  "NodeName": "hostname1:20000",
   "GroupID": 1000,
   "NodeID": 1000,
   "WaitTime": 8500,
@@ -66,7 +68,7 @@ SDB_SNAP_TRANSWAITS
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:20000",
+  "NodeName": "hostname1:20000",
   "GroupID": 1000,
   "NodeID": 1000,
   "WaitTime": 6057,
@@ -86,7 +88,7 @@ SDB_SNAP_TRANSWAITS
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 10501,
@@ -106,7 +108,7 @@ SDB_SNAP_TRANSWAITS
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 7212,
@@ -126,7 +128,7 @@ SDB_SNAP_TRANSWAITS
   "HolderRelatedNodeID": 4
 }
 {
-  "NodeName": "Block:42000",
+  "NodeName": "hostname1:42000",
   "GroupID": 1001,
   "NodeID": 1003,
   "WaitTime": 6057,
