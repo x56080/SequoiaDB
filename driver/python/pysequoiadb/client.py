@@ -858,20 +858,30 @@ class client(object):
 
         return cs
 
-    def drop_collection_space(self, cs_name):
+    def drop_collection_space(self, cs_name, options=None):
         """Remove the specified collection space.
 
         Parameters:
-           Name         Type     Info:
-           cs_name      str      The name of collection space to be dropped
+           Name             Type     Info:
+           cs_name          str      The name of collection space to be dropped
+           options          dict     The options for dropping collection, default to be None
+            - EnsureEmpty   bool     Ensure the collection space is empty or not, default to be false.
+                                      * True : Delete fails when the collection space is not empty
+                                      * False: Directly delete the collection space
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
+        ops = {}
         if not isinstance(cs_name, str_type):
             raise SDBTypeError("name of collection space must be\
                          an instance of str_type")
+        bson_options = None
+        if options is not None:
+            if not isinstance(options, dict):
+                raise SDBTypeError("options must be an instance of dict")
+            bson_options = bson.BSON.encode(options)
 
-        rc = sdb.sdb_drop_collection_space(self._client, cs_name)
+        rc = sdb.sdb_drop_collection_space(self._client, cs_name, bson_options)
         raise_if_error(rc, "Failed to drop collection space: %s" % cs_name)
 
     def rename_collection_space(self, old_name, new_name, options=None):

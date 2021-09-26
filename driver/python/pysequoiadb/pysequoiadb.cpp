@@ -406,20 +406,23 @@ done:
 
 __METHOD_IMP(sdb_drop_collection_space)
 {
-   INT32 rc            = 0 ;
-   PYOBJECT *obj       = NULL ;
-   const CHAR *cs_name = NULL ;
-   sdb *client         = NULL ;
+   INT32 rc                    = 0 ;
+   PYOBJECT *obj               = NULL ;
+   PYOBJECT *bson_option       = NULL ;
+   const CHAR *cs_name         = NULL ;
+   sdb *client                 = NULL ;
+   const bson::BSONObj *option = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &cs_name ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OsO", &obj, &cs_name, &bson_option ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
    }
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+   CAST_PYBSON_TO_CPPBSON( bson_option, option ) ;
 
-   rc = client->dropCollectionSpace( cs_name ) ;
+   rc = client->dropCollectionSpace( cs_name, *option ) ;
    if ( rc )
    {
       goto done ;
