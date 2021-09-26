@@ -142,14 +142,20 @@ T}@T{
 T}@T{
 或者组内最后
 T}@T{
-除，可以加入 {
+除空的主节点，
 T}
 T{
 T}@T{
 T}@T{
 一个节点
 T}@T{
-Enforced: true } 选项
+可以加入 { Enforced
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+: true } 选项
 T}
 T{
 2

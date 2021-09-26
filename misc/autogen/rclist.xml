@@ -1645,8 +1645,8 @@
       <code>
          <name>SDB_CATA_RM_NODE_FORBIDDEN</name>
          <description>
-            <en>Unable to remove the last node or primary in a group</en>
-            <cn>不能删除组内唯一的节点或者主节点</cn>
+            <en>Unable to remove the last node or primary with data in a group</en>
+            <cn>不能删除组内唯一的非空节点或者主节点</cn>
          </description>
       </code>
 
