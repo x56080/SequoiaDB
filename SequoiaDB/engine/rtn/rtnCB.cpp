@@ -324,6 +324,11 @@ namespace engine
          monQuery->anchorToContext = TRUE ;
       }
 
+      if ( pEDUCB->getMonConfigCB()->timestampON )
+      {
+         (*context)->getMonCB()->recordStartTimestamp() ;
+      }
+
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s])",
                contextID, type, getContextTypeDesp(type) ) ;
 

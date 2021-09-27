@@ -3097,20 +3097,20 @@ namespace engine
             ossTimestamp startTime( ctx._monContext.getStartTimestamp() ) ;
             BSONObjBuilder sub( ba.subobjStart() ) ;
 
-            sub.append( FIELD_NAME_CONTEXTID, ctx._contextID );
+            sub.append( FIELD_NAME_CONTEXTID, ctx._contextID ) ;
             sub.append( FIELD_NAME_TYPE, ctx._typeDesp ) ;
             sub.append( FIELD_NAME_DESP, ctx._info ) ;
             sub.append( FIELD_NAME_DATAREAD,
-                        (INT64)ctx._monContext.getDataRead() );
+                        (INT64)ctx._monContext.getDataRead() ) ;
             sub.append( FIELD_NAME_INDEXREAD,
                         (INT64)ctx._monContext.getIndexRead() ) ;
             ctx._monContext.getQueryTime().convertToTime ( factor,
                                                            seconds,
                                                            microseconds ) ;
             sub.append( FIELD_NAME_QUERYTIMESPENT,
-                        (SINT64)(seconds * 1000 + microseconds / 1000 ) ) ;
+                        (SINT64)( seconds * 1000 + microseconds / 1000 ) ) ;
             ossTimestampToString( startTime, timestampStr ) ;
-            sub.append(FIELD_NAME_STARTTIMESTAMP, timestampStr ) ;
+            sub.append( FIELD_NAME_STARTTIMESTAMP, timestampStr ) ;
             sub.done() ;
          }
          ba.done() ;
