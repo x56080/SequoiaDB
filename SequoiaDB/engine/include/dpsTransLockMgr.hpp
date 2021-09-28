@@ -114,7 +114,8 @@ namespace engine
          _dpsTransExecutor      * dpsTxExectr,
          const dpsTransLockId   & lockId,
          const BOOLEAN            bForceRelease = FALSE,
-         _dpsITransLockCallback * callback = NULL
+         _dpsITransLockCallback * callback = NULL,
+         BOOLEAN                  releaseUpperLock = TRUE
       ) ;
 
       // release all locks an executor ( EDU ) holding. The executor ( EDU )

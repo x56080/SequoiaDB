@@ -60,6 +60,7 @@ namespace engine
    {
       UINT32         _refCount ;
       BOOLEAN        _transInsert ;
+      BOOLEAN        _transInsertDeleted ;
 
       _dmsTransRecordInfo()
       {
@@ -69,6 +70,7 @@ namespace engine
       {
          _refCount = 0 ;
          _transInsert = FALSE ;
+         _transInsertDeleted = FALSE ;
       }
    } ;
    typedef _dmsTransRecordInfo dmsTransRecordInfo ;

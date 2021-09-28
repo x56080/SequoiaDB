@@ -242,14 +242,30 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record lock held
-      // from last round of scan
-      else if ( _needUnLock && _hasLockedRecord &&
-                DMS_INVALID_OFFSET != _curRID._offset )
+      else if ( DMS_INVALID_OFFSET != _curRID._offset )
       {
-         _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
-                                      &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
+         if ( _hasLockedRecord && _needUnLock )
+         {
+            // last run have record lock held, but not trans, need to release
+            // record lock
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback ) ;
+            _hasLockedRecord = FALSE ;
+         }
+         else if ( _callback.getTransRecordInfo()->_transInsertDeleted )
+         {
+            SDB_ASSERT( !cb->isInTransRollback(), "should not be deleted by "
+                        "table scan during trans rollback" ) ;
+            // if the record is deleted in the same transaction, we can
+            // release the lock
+            // NOTE: we need to keep the IX locks on CS and CL
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback, TRUE, FALSE ) ;
+
+            _hasLockedRecord = FALSE ;
+         }
       }
 
       rc = _fetchNext( recordID, generator, cb, mthContext ) ;
@@ -2197,14 +2213,28 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // last run have record lock held, but not trans, need to release
-      // record lock
-      else if ( _needUnLock && _hasLockedRecord &&
-                DMS_INVALID_OFFSET != _curRID._offset )
+      else if ( DMS_INVALID_OFFSET != _curRID._offset )
       {
-         _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
-                                      &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
+         if ( _hasLockedRecord && _needUnLock )
+         {
+            // last run have record lock held, but not trans, need to release
+            // record lock
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback ) ;
+            _hasLockedRecord = FALSE ;
+         }
+         else if ( _callback.getTransRecordInfo()->_transInsertDeleted )
+         {
+            // if the record is deleted in the same transaction, we can
+            // release the lock
+            // NOTE: we need to keep the IX locks on CS and CL
+            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                         _context->mbID(), &_curRID,
+                                         &_callback, TRUE, FALSE ) ;
+
+            _hasLockedRecord = FALSE ;
+         }
       }
 
       _hasLockedRecord = FALSE ;

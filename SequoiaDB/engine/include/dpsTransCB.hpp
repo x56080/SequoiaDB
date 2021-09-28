@@ -395,7 +395,9 @@ namespace engine
       void transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                              UINT16 collectionID = DMS_INVALID_MBID,
                              const dmsRecordID *recordID = NULL,
-                             _dpsITransLockCallback *callback = NULL ) ;
+                             _dpsITransLockCallback *callback = NULL,
+                             BOOLEAN forceRelease = FALSE,
+                             BOOLEAN releaseUpperLock = TRUE ) ;
 
       void transLockReleaseAll( _pmdEDUCB *eduCB,
                                 _dpsITransLockCallback * callback = NULL ) ;

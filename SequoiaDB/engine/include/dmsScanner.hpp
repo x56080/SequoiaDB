@@ -491,7 +491,6 @@ namespace engine
       private:
          dmsIXSecScanner            _secScanner ;
          _rtnIXScanner              *_scanner ;
-         BOOLEAN                    _firstRun ;
          BOOLEAN                    _eof ;
          BOOLEAN                    _ownedScanner ;
          _dmsIXScannerContext       _ixScannerContext ;

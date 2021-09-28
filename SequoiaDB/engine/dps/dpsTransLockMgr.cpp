@@ -2732,6 +2732,8 @@ namespace engine
    //    dpsTxExectr     -- pointer to dpsTransExecutor
    //    lockId          -- lock id
    //    bForceRelease   -- requested lock mode
+   //    callback        -- transaction lock callback
+   //    releaseUpperLock -- whether to release upper locks
    // Output:
    //    none
    // Dependency:  the lock manager must be initialized
@@ -2743,7 +2745,8 @@ namespace engine
       _dpsTransExecutor      * dpsTxExectr,
       const dpsTransLockId   & lockId,
       const BOOLEAN            bForceRelease,
-      _dpsITransLockCallback * callback
+      _dpsITransLockCallback * callback,
+      BOOLEAN                  releaseUpperLock
    )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_RELEASE ) ;
@@ -2778,7 +2781,7 @@ namespace engine
                       NULL, bForceRelease, refCountToBeDecreased,
                       callback ) ;
 
-            if ( _autoUpperLockOp )
+            if ( _autoUpperLockOp && releaseUpperLock )
             {
                // release the intent lock
                if ( ! myLockId.isRootLevel() )

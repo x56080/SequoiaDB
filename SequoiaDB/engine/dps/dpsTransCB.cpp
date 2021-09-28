@@ -1253,7 +1253,9 @@ namespace engine
    void dpsTransCB::transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
                                       const dmsRecordID *recordID,
-                                      _dpsITransLockCallback * callback )
+                                      _dpsITransLockCallback * callback,
+                                      BOOLEAN forceRelease,
+                                      BOOLEAN releaseUpperLock )
    {
       if ( 0 == eduCB->getTransExecutor()->getLockCount( LOCKMGR_TRANS_LOCK ) )
       {
@@ -1262,7 +1264,8 @@ namespace engine
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
 
       return _transLockMgr->release( eduCB->getTransExecutor(),
-                                     lockId, FALSE, callback );
+                                     lockId, forceRelease, callback,
+                                     releaseUpperLock ) ;
    }
 
    void dpsTransCB::transLockReleaseAll( _pmdEDUCB *eduCB,
