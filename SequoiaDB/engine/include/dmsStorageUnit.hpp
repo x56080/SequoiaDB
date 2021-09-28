@@ -345,6 +345,7 @@ namespace engine
                                     UINT32 syncRecordNum,
                                     UINT32 syncDirtyRatio ) ;
          void        setSyncDeep( BOOLEAN syncDeep ) ;
+         void        setMVCCSupport( BOOLEAN mvccSupport ) ;
 
          UINT64      getCurrentDataLSN() const ;
          UINT64      getCurrentIdxLSN() const ;

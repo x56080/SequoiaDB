@@ -1164,11 +1164,15 @@ namespace engine
       pRecord = recordRW.writePtr<dmsCappedRecord>( recordSize ) ;
       // Set the record information. Logical id will be added in setData.
       pRecord->setNormal() ;
-      pRecord->resetAttr() ;
+      pRecord->resetAttr( _mvccSupport ) ;
       pRecord->setSize( recordSize ) ;
       pRecord->setRecordNo( workExtInfo->currentRecNo() + 1 ) ;
-      // setup global transaction id
-      pRecord->setGlobTransID( transID ) ;
+
+      if ( _mvccSupport )
+      {
+         // setup global transaction id
+         pRecord->setGlobTransID( transID ) ;
+      }
 
       {
          // Force set the logical id in the record. Logical id is always at the

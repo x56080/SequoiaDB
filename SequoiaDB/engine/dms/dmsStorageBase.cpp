@@ -377,6 +377,8 @@ namespace engine
       _isTempSU           = FALSE ;
       _isSysSU            = FALSE ;
       _transSupport       = TRUE ;
+      _mvccSupport        = FALSE ;
+      _mvccUpgraded       = FALSE ;
       _blockScanSupport   = TRUE ;
       _pageSize           = 0 ;
       _lobPageSize        = 0 ;
@@ -391,6 +393,15 @@ namespace engine
          _isTempSU = TRUE ;
          _isSysSU = TRUE ;
          _blockScanSupport = FALSE ;
+      }
+      else if ( 0 == ossStrncmp( pInfo->_suName,
+                                 SDB_DMSRBS_NAME,
+                                 SDB_DMSRBS_NAME_SIZE ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+         // SYSRBS supports MVCC always
+         _mvccSupport = TRUE ;
       }
       else if ( 0 == ossStrncmp( pInfo->_suName, "SYS", 3 ) )
       {
@@ -433,6 +444,16 @@ namespace engine
    void _dmsStorageBase::setTransSupport( BOOLEAN supported )
    {
       _transSupport = supported ;
+   }
+
+   void _dmsStorageBase::setMVCCSupport( BOOLEAN supported )
+   {
+      // only set for user storage
+      // NOTE: MVCC for SYSRBS is always enabled
+      if ( !_isSysSU && !_isTempSU )
+      {
+         _mvccSupport = supported ;
+      }
    }
 
    void _dmsStorageBase::setSyncConfig( UINT32 syncInterval,

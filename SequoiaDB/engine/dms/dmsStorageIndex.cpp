@@ -69,6 +69,8 @@ namespace engine
 
       _pDataSu->_attach( this ) ;
       _idxKeySizeMax = 0 ;
+
+      _mvccSupport = FALSE ;
    }
 
    _dmsStorageIndex::~_dmsStorageIndex()

@@ -459,6 +459,13 @@ namespace engine
 
          void                  setTransSupport( BOOLEAN supported ) ;
 
+         void                  setMVCCSupport( BOOLEAN supported ) ;
+
+         OSS_INLINE BOOLEAN isMVCCSupport() const
+         {
+            return _mvccSupport ;
+         }
+
       private:
          /*
             Make these function internal
@@ -589,6 +596,10 @@ namespace engine
          UINT32                        _segmentSize ; // cache, not use header
 
          BOOLEAN                       _transSupport ;
+         // support MVCC feature
+         BOOLEAN                       _mvccSupport ;
+         // Storage Unit Header upgraded to MVCC version
+         BOOLEAN                       _mvccUpgraded ;
 
       /// for persistence
       private:

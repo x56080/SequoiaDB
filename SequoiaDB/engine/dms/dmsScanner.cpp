@@ -2209,7 +2209,9 @@ namespace engine
       rc = index.getExtraSize( extraSize ) ;
       PD_RC_CHECK( rc, PDWARNING, "Get index value extra size faield, rc: %d", rc ) ;
 
-      evalBufSize = DMS_RECORD_METADATA_SZ + extraSize + keyValue->objsize() ;
+      evalBufSize = DMS_RECORD_NOMVCC_METADATA_SZ +
+                    extraSize +
+                    keyValue->objsize() ;
 
       rc = index.ensureBuff( evalBufSize, recordPtr ) ;
       PD_RC_CHECK( rc, PDWARNING, "Get index buffer failed, rc: %d", evalBufSize, rc ) ;
@@ -2227,9 +2229,9 @@ namespace engine
          }
 
          //3. reset header
-         ossMemset( recordPtr, 0, DMS_RECORD_METADATA_SZ ) ;
+         ossMemset( recordPtr, 0, DMS_RECORD_NOMVCC_METADATA_SZ ) ;
          //4. build body(BSONObj)
-         SimpleBSONBuilder builder( recordPtr + DMS_RECORD_METADATA_SZ ) ;
+         SimpleBSONBuilder builder( recordPtr + DMS_RECORD_NOMVCC_METADATA_SZ ) ;
          ixmIndexNode *pTree =  NULL ;
          rc = index.getTree( pTree ) ;
          PD_RC_CHECK( rc, PDWARNING, "Get index tree failed, rc: %d", rc ) ;
@@ -2241,8 +2243,8 @@ namespace engine
 
          pNewRecord = ( dmsRecord* )recordPtr ;
          pNewRecord->setNormal() ;
-         pNewRecord->resetAttr() ;
-         pNewRecord->setSize( DMS_RECORD_METADATA_SZ + builder.len() ) ;
+         pNewRecord->resetAttr( FALSE ) ;
+         pNewRecord->setSize( DMS_RECORD_NOMVCC_METADATA_SZ + builder.len() ) ;
       }
       catch( std::exception &e )
       {

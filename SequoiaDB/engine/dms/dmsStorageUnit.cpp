@@ -3530,6 +3530,14 @@ namespace engine
       }
    }
 
+   void _dmsStorageUnit::setMVCCSupport( BOOLEAN mvccSupport )
+   {
+      if ( NULL != _pDataSu )
+      {
+         _pDataSu->setMVCCSupport( mvccSupport ) ;
+      }
+   }
+
    void _dmsStorageUnit::enableSync( BOOLEAN enable )
    {
       if ( _pLobSu )
@@ -3689,7 +3697,7 @@ namespace engine
       if ( NULL == _pDataSu )
       {
          PD_LOG( PDINFO, "storage data unit for [%s] is empty", CSName() ) ;
-         return ;
+         goto done ;
       }
 
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
@@ -3700,6 +3708,7 @@ namespace engine
          }
       }
 
+   done:
       PD_TRACE_EXIT( SDB__DMSSU_CLEARMBCRUDCB ) ;
    }
 

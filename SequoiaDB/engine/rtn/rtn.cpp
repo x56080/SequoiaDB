@@ -926,6 +926,8 @@ namespace engine
                                                     optCB->getSyncRecordNum(),
                                                     optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+                        // set MVCC support
+                        storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                         /// add collectionspace
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                          storageUnit, NULL,
@@ -1144,6 +1146,8 @@ namespace engine
                                            optCB->getSyncRecordNum(),
                                            optCB->getSyncDirtyRatio() ) ;
                storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+               // set MVCC support
+               storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                /// add collectionspace
                rc = dmsCB->addCollectionSpace ( csName, sequence, storageUnit,
                                                 NULL, NULL, FALSE ) ;

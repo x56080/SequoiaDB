@@ -90,6 +90,8 @@ namespace engine
 
       _dmsData->_attachLob( this ) ;
       _isRename = FALSE ;
+
+      _mvccSupport = FALSE ;
    }
 
    _dmsStorageLob::~_dmsStorageLob()

@@ -1398,6 +1398,8 @@ namespace engine
                          optCB->getSyncRecordNum(),
                          optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
+      // set MVCC support
+      su->setMVCCSupport( optCB->mvccOn() ) ;
 
       /// add collctionspace
       rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;

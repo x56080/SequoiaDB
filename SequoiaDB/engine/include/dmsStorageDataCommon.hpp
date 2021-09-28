@@ -874,9 +874,16 @@ namespace engine
    //    3             2.9                Support for capped collection. A new
    //                                     page for extend option is used, id
    //                                     stored in MB.
-   #define DMS_DATASU_CUR_VERSION         3
+   //   16             5.0.2              Support for MVCC
    #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
    #define DMS_COMPRESSION_ENABLE_VER     2
+   #define DMS_CAPPED_ENABLE_VER          3
+   #define DMS_NONMVCC_MAX_VER            ( DMS_CAPPED_ENABLE_VER )
+   // enabled from 5.0.2
+   // NOTE: 3.x can have their versions, so reserved a range
+   //       before MVCC version
+   #define DMS_MVCC_ENABLE_VER            16
+   #define DMS_DATASU_CUR_VERSION         ( DMS_MVCC_ENABLE_VER )
    #define DMS_CONTEXT_MAX_SIZE           (2000)
    #define DMS_RECORDS_PER_EXTENT_SQUARE  4     // value is 2^4=16
    #define DMS_RECORD_OVERFLOW_RATIO      1.2f

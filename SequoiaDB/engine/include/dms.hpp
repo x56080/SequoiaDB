@@ -143,7 +143,7 @@ namespace engine
 #define DMS_TEMP_NAME_PATTERN       "%s%04d"
 
 #define SDB_DMSRBS_NAME            "SYSRBS"
-#define SDB_DMSRBS_FULLNAME        "SYSRBS.SYSRBS"
+#define SDB_DMSRBS_NAME_SIZE       ( sizeof( SDB_DMSRBS_NAME ) - 1 )
 #define DMS_RBS_NAME_PATTERN       "%s%04d"
 // Range of RBS CL is 0000-4095, with 0000 for meta
 #define DMS_MAX_RBS_CL             DMS_MME_SLOTS 

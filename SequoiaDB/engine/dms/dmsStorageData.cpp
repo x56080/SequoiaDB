@@ -386,7 +386,7 @@ namespace engine
 
          // call migrateFromV0 to handle in-flight migration if needed
          // we don't have versioning. instead, we check for attribute
-         if ( !(pRecord->hasGlobTransID()) )
+         if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
          {
             PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
                      recordRW.toString().c_str() ) ;
@@ -403,7 +403,7 @@ namespace engine
 
             // call migrateFromV0 to handle in-flight migration if needed
             // we don't have versioning. instead, we check for attribute
-            if ( !(pOvfRecord->hasGlobTransID()) )
+            if ( _mvccSupport && !(pOvfRecord->hasGlobTransID()) )
             {
                PD_LOG ( PDDEBUG, 
                         "In-flight migration of OVF record during update "
@@ -412,7 +412,7 @@ namespace engine
                pOvfRecord->migrateFromV0() ;
             }
 
-            if ( !(pRecord->hasGlobTransID()) )
+            if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
             {
                // We should not be here as we currently don't release the
                // original space when a record becomes OV. 
@@ -534,7 +534,7 @@ namespace engine
             }
 
             // if original record was not migrated, do the migration now
-            if ( !(pRecord->hasGlobTransID()) )
+            if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
             {
                PD_LOG ( PDDEBUG,
                         "In-flight migration of record during update object(%s) ",
@@ -543,20 +543,23 @@ namespace engine
                pRecord->migrateFromV0( FALSE ) ;
             }
 
-            SDB_ASSERT( pRecord->hasGlobTransID(),
+            SDB_ASSERT( !_mvccSupport || pRecord->hasGlobTransID(),
                         "Original record was not migrated properly!") ;
 
             pRecord->setOvf() ;
             pRecord->setOvfRID( foundDeletedID ) ;
 
-            // set or restore transID in record header
-            // NOTE: if in transaction rollback, the overflow-to record is
-            //       inserted back without setting transaction ID since
-            //       the RID of overflow-to record is not in old versions
-            //       only after we set link with overflow-from, we could
-            //       find the actual RID back from overflow-from record
-            _setRecordGlobTransID( context, recordRW, cb,
-                                   cb->isInTransRollback() ) ;
+            if ( _mvccSupport )
+            {
+               // set or restore transID in record header
+               // NOTE: if in transaction rollback, the overflow-to record is
+               //       inserted back without setting transaction ID since
+               //       the RID of overflow-to record is not in old versions
+               //       only after we set link with overflow-from, we could
+               //       find the actual RID back from overflow-from record
+               _setRecordGlobTransID( context, recordRW, cb,
+                                      cb->isInTransRollback() ) ;
+            }
 
             /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
@@ -989,10 +992,13 @@ namespace engine
 
       // set to normal status
       pRecord->setNormal() ;
-      pRecord->resetAttr() ;
+      pRecord->resetAttr( _mvccSupport ) ;
 
-      // set or restore transID in record header
-      _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+      if ( _mvccSupport )
+      {
+         // set or restore transID in record header
+         _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
+      }
 
       // and then need to check if we need to split deleted record
       if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )

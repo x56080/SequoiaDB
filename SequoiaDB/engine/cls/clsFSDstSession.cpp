@@ -2598,7 +2598,9 @@ namespace engine
             }
 
             // skip SYSRBS CS during sync because it's local to the node
-            if ( 0 == ossStrcmp( csInfo._name, SDB_DMSRBS_NAME ) )
+            if ( 0 == ossStrncmp( csInfo._name,
+                                  SDB_DMSRBS_NAME,
+                                  SDB_DMSRBS_NAME_SIZE ) )
             {
                csList.erase( it++ ) ;
                ++count ;

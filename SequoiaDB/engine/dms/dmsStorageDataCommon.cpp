@@ -575,7 +575,7 @@ namespace engine
       _mmeSegID         = 0 ;
       _pEventHolder     = pEventHolder ;
       _pExtDataHandler  = NULL ;
-      _isCapped         = FALSE;
+      _isCapped         = FALSE ;
       for ( UINT16 i = 0; i < DMS_MME_SLOTS; ++i )
       {
          _mblock[i] = monSpinSLatch( MON_LATCH_MBLOCK ) ;
@@ -757,6 +757,21 @@ namespace engine
          PD_LOG( PDERROR, "Incompatible version: %u", pHeader->_version ) ;
          rc = SDB_DMS_INCOMPATIBLE_VERSION ;
       }
+      else if ( pHeader->_version < DMS_MVCC_ENABLE_VER &&
+                pHeader->_version > DMS_NONMVCC_MAX_VER )
+      {
+         // to avoid new unknown versions are adding in v3.x
+         PD_LOG( PDERROR, "Incompatible version: %u, "
+                 "unknown version is added, maximum known version: %u",
+                 pHeader->_version, DMS_NONMVCC_MAX_VER ) ;
+         rc = SDB_DMS_INCOMPATIBLE_VERSION ;
+      }
+      else if ( pHeader->_version >= DMS_MVCC_ENABLE_VER )
+      {
+         // check if MVCC version upgraded
+         _mvccUpgraded = TRUE ;
+      }
+
       return rc ;
    }
 
@@ -1048,7 +1063,7 @@ namespace engine
             // collection. It's default value is DMS_INVALID_EXTENT, so need
             // to upgrade the existing collections to this default value for
             // those collections which created on cs before this version.
-            if ( _dmsHeader->_version < 3 &&
+            if ( _dmsHeader->_version < DMS_CAPPED_ENABLE_VER &&
                  DMS_INVALID_EXTENT != _dmsMME->_mbList[i]._mbOptExtentID )
             {
                _dmsMME->_mbList[i]._mbOptExtentID = DMS_INVALID_EXTENT ;
@@ -1184,6 +1199,22 @@ namespace engine
                needSync = TRUE ;
                _dmsMME->_mbList[ i ]._commitFlag = 0 ;
             }
+         }
+      }
+
+      if ( _mvccSupport && !_mvccUpgraded )
+      {
+         if ( NULL != _dmsHeader &&
+              _dmsHeader->_version < DMS_MVCC_ENABLE_VER )
+         {
+            PD_LOG( PDEVENT, "Collection space [%s] upgrade dms file version "
+                    "from [%u] to [%u]", _dmsHeader->_name,
+                    _dmsHeader->_version, DMS_MVCC_ENABLE_VER ) ;
+            // upgrade to MVCC enabled version
+            // WARNING: it is irreversible
+            _dmsHeader->_version = DMS_MVCC_ENABLE_VER ;
+
+            _mvccUpgraded = TRUE ;
          }
       }
 
@@ -3530,7 +3561,7 @@ namespace engine
             // We don't need to handle migration in this code path because
             // markInsert is for rollback purpose. The record version should
             // be up to date or this is a cappedCL record. But let's assert it
-            SDB_ASSERT( pRecord->hasGlobTransID(),
+            SDB_ASSERT( !_mvccSupport || pRecord->hasGlobTransID(),
                         "Record is down level version during rollback" ) ;
 
             // restore record transID when rollback
@@ -3908,7 +3939,7 @@ namespace engine
                   delObject = BSONObj( recordData.data() ) ;
                   // need to create own bson buffer as migration would move
                   // the obj
-                  if ( !pRecord->hasGlobTransID() )
+                  if ( _mvccSupport && !pRecord->hasGlobTransID() )
                   {
                      delObject = delObject.getOwned() ;
                   }
@@ -4090,7 +4121,7 @@ namespace engine
          else
          {
             // delete also need to set the transID
-            if( !pRecord->hasGlobTransID() )
+            if( _mvccSupport && !pRecord->hasGlobTransID() )
             {
                // migrate to V1 record header before we can set transID
                PD_LOG ( PDDEBUG, 
@@ -4104,7 +4135,7 @@ namespace engine
             {
                pRecord->setGlobTransID( transInfo._transID ) ;
             }
-            else
+            else if ( _mvccSupport )
             {
                // The migration could fail due to the size, since we
                // only mark deleting here, other query might need to use the
