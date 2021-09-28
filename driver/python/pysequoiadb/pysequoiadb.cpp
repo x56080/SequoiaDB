@@ -2836,6 +2836,34 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
+__METHOD_IMP(cl_get_index_stat)
+{
+   INT32 rc               = 0 ;
+   PYOBJECT *obj          = NULL ;
+   sdbCollection *cl      = NULL ;
+   const CHAR *index_name = NULL ;
+   bson::BSONObj retObj ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &index_name ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto done ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
+
+   rc = cl->getIndexStat( index_name, retObj ) ;
+   if ( SDB_OK != rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT_PYBYTES_SIZE( rc,
+                                        retObj.objdata(),
+                                        retObj.objsize() ) ;
+}
+
 __METHOD_IMP(cl_get_collection_name)
 {
    INT32 rc            = 0 ;
@@ -5598,6 +5626,7 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cl_set_attributes",               cl_set_attributes,               METH_VARARGS},
    {"cl_create_autoincrement",         cl_create_autoincrement,         METH_VARARGS},
    {"cl_drop_autoincrement",           cl_drop_autoincrement,           METH_VARARGS},
+   {"cl_get_index_stat",               cl_get_index_stat,               METH_VARARGS},
 
    /** cr */
    {"create_cursor",                   create_cursor,                   METH_VARARGS},

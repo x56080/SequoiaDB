@@ -118,6 +118,7 @@ __METHOD_DECLARE(cl_create_id_index) ;
 __METHOD_DECLARE(cl_drop_id_index) ;
 __METHOD_DECLARE(cl_create_autoincrement) ;
 __METHOD_DECLARE(cl_drop_autoincrement) ;
+__METHOD_DECLARE(cl_get_index_stat) ;
 
 ///< domain
 __METHOD_DECLARE(create_domain) ;

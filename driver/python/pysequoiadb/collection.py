@@ -1033,6 +1033,26 @@ class collection(object):
         rc = sdb.cl_drop_index(self._cl, idx_name)
         raise_if_error(rc, "Failed to drop index")
 
+    def get_index_stat(self, idx_name):
+        """Get the statistics of the index.
+
+        Parameters:
+           Name         Type  Info:
+           idx_name     str   The index name.
+        Return values:
+           a dict object of result
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(idx_name, str_type):
+            raise SDBTypeError("index name must be an instance of str_type")
+
+        rc, result = sdb.cl_get_index_stat(self._cl, idx_name)
+        raise_if_error(rc, "Failed to get index statistics")
+        record, size = bson._bson_to_dict(result, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return record
+
     def get_collection_name(self):
         """Get the name of current collection.
 
