@@ -3393,16 +3393,18 @@ namespace engine
    void dpsTransCB::transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
                                       const dmsRecordID *recordID,
-                                      _dpsITransLockCallback * callback )
+                                      _dpsITransLockCallback * callback,
+                                      BOOLEAN forceRelease,
+                                      BOOLEAN releaseUpperLock )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_TRANSLOCKRELEASE ) ;
 
-      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+      PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE,
                  PD_PACK_INT(logicCSID),
                  PD_PACK_INT(collectionID) ) ;
       if ( recordID )
       {
-         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE, 
+         PD_TRACE2( SDB_DPSTRANSCB_TRANSLOCKRELEASE,
                     PD_PACK_INT(recordID->_extent),
                     PD_PACK_INT(recordID->_offset) ) ;
       }
@@ -3412,7 +3414,8 @@ namespace engine
          dpsTransLockId lockId( logicCSID, collectionID, recordID );
 
          _transLockMgr->release( eduCB->getTransExecutor(),
-                                     lockId, FALSE, callback );
+                                 lockId, forceRelease, callback,
+                                 releaseUpperLock ) ;
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TRANSLOCKRELEASE );

@@ -1706,6 +1706,20 @@ namespace engine
       {
          _oldVer->setDiskDeleting() ;
       }
+      if ( !markDeleting &&
+           ( _recordInfo._transInsert ||
+             ( cb->isInTransRollback() &&
+               !cb->isTakeOverTransRB() ) ) )
+      {
+         // if the record is deleted from disk during transaction,
+         // mark it in record info, so the scanner can release
+         // transaction lock for this record later
+         _recordInfo._transInsertDeleted = TRUE ;
+      }
+      else
+      {
+         _recordInfo._transInsertDeleted = FALSE ;
+      }
       return rc ;
    }
 
