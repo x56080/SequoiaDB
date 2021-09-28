@@ -1,10 +1,10 @@
 package com.sequoiadb.metaopr.killnode;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import com.sequoiadb.metaopr.Utils;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -27,9 +27,7 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
 import com.sequoiadb.metaopr.commons.MyUtil;
-import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
-import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
 import com.sequoiadb.datasync.CreateCLTask;
 
@@ -85,9 +83,9 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     priNode.hostName(), priNode.svcName(), 5 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask(preCLName, CL_NUM, csName);
+            CreateCLTask cTask = new CreateCLTask( preCLName, CL_NUM, csName );
             cTask.setOption( ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096}" ) );
+                    "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096}" ) );
             mgr.addTask( cTask );
             mgr.execute();
 
@@ -98,13 +96,13 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
                     "check LSN consistency fail" );
 
             // check result
-            count = cTask.getCreateNum() ;
+            count = cTask.getCreateNum();
             checkCreateCLResult();
             Utils.checkConsistency( groupMgr );
 
             // Normal operating environment
             clearFlag = true;
-        } catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException | InterruptedException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         }
