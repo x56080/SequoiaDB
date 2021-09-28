@@ -327,6 +327,26 @@ public class TestIndex {
         }
     }
 
+    @Test
+    public void testGetIndexStat(){
+        String indexName = "testGetIndexStat";
+        String errorIndex = "testGetIndexStatError";
+
+        // case 1, index exist
+        cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
+        sdb.analyze();
+        BSONObject obj = cl.getIndexStat(indexName);
+        Assert.assertEquals(indexName, obj.get("Index"));
+        Assert.assertEquals(cl.getFullName(), obj.get("Collection"));
+
+        // case 2, index no exist
+        try {
+            cl.getIndexStat(errorIndex);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_STAT_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+    }
+
     private void checkTask(long taskId, String fieldName, String expectedValue){
         DBCursor cursor = sdb.listTasks(new BasicBSONObject("TaskID", taskId), null, null, null);
         if (!cursor.hasNext()){

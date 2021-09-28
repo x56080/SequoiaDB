@@ -1384,6 +1384,39 @@ public class DBCollection {
     }
 
     /**
+     * Get the statistics of the index.
+     *
+     * @param name The index name.
+     * @return The statistics of the specified index.
+     * @throws BaseException If error happens.
+     */
+    public BSONObject getIndexStat(String name) throws BaseException {
+        if (name == null || name.isEmpty()) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "index name can not be null or empty");
+        }
+        BSONObject hint = new BasicBSONObject();
+        hint.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        hint.put(SdbConstants.FIELD_INDEX, name);
+
+        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEX_STAT, null, hint);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        if (response.getFlag() != 0) {
+            sequoiadb.throwIfError(response);
+        }
+        sequoiadb.upsertCache(collectionFullName);
+        DBCursor cursor = new DBCursor(response, sequoiadb);
+        try {
+            if (cursor.hasNext()) {
+                return cursor.getNext();
+            } else {
+                throw new BaseException(SDBError.SDB_IXM_STAT_NOTEXIST);
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
+    /**
      * Test the specified index exist or not.
      *
      * @param name The index name.

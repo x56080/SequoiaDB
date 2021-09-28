@@ -62,6 +62,7 @@ final class AdminCommand {
     final static String UPDATE_CONFIG = PREFIX + "update config";
     final static String DELETE_CONFIG = PREFIX + "delete config";
     final static String ANALYZE = PREFIX + "analyze";
+    final static String GET_INDEX_STAT = PREFIX + "get index statistic";
 
     final static String LIST_CONTEXTS = PREFIX + "list contexts";
     final static String LIST_CONTEXTS_CURRENT = PREFIX + "list contexts current";
