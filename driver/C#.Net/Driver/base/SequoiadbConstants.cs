@@ -92,6 +92,7 @@ namespace SequoiaDB
         public const string CREATE_INX = "create index";
         public const string DROP_INX = "drop index";
         public const string GET_INXES = "get indexes";
+        public const string GET_INDEX_STAT = "get index statistic";
         public const string GET_COUNT = "get count";
         public const string DATABASE = "database";
         public const string SYSTEM = "system";
