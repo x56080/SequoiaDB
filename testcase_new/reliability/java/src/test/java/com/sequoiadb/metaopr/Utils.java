@@ -1,4 +1,13 @@
-package com.sequoiadb.metaopr.noderestart;
+package com.sequoiadb.metaopr;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+import org.bson.BSONObject;
+import org.bson.util.JSON;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -6,18 +15,14 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.exception.ReliabilityException;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.testng.Assert;
 
 public class Utils {
     public static void checkConsistency( GroupMgr groupMgr )
             throws ReliabilityException, InterruptedException {
         groupMgr.refresh();
 
-        GroupWrapper cataGroup = groupMgr.getGroupById( 1 );
+        GroupWrapper cataGroup = groupMgr.getGroupByName( "SYSCatalogGroup" );
         List< String > urls = cataGroup.getAllUrls();
 
         int retryTimes = 0;
@@ -73,7 +78,6 @@ public class Utils {
                 }
             }
         }
-
     }
 
     public static String getKeyStack( Exception e, Object classObj ) {
@@ -91,6 +95,44 @@ public class Utils {
             return str.substring( 0, str.length() - 2 );
         } else {
             return str;
+        }
+    }
+
+    public static void dropCollectionSpace( String csName ) {
+        int timeout = 600;
+        int doTimes = 0;
+        // 删除集合空间，如果报错-147则重试 10min
+        try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
+            while ( doTimes < timeout ) {
+                try {
+                    db.dropCollectionSpace( csName );
+                    // 删除cs成功，则退出
+                    break;
+                } catch ( BaseException e ) {
+                    // 错误码为-147则进行重试
+                    if ( e.getErrorCode() == SDBError.SDB_LOCK_FAILED
+                            .getErrorCode() ) {
+                        try {
+                            Thread.sleep( 1000 );
+                        } catch ( InterruptedException e2 ) {
+                            e2.printStackTrace();
+                        }
+                        doTimes++;
+                        continue;
+                        // 错误码为-34则跳出循环
+                    } else if ( e.getErrorCode() == SDBError.SDB_DMS_CS_NOTEXIST
+                            .getErrorCode() ) {
+                        break;
+                    } else {
+                        throw e;
+                    }
+
+                }
+            }
+
+            if ( doTimes >= timeout ) {
+                Assert.fail("drop collection space time out");
+            }
         }
     }
 }
