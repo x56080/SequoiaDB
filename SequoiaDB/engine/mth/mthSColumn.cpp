@@ -175,7 +175,8 @@ namespace engine
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN__BUILD, "_mthSColumn::_build" )
    INT32 _mthSColumn::_build( const bson::BSONElement &e,
-                              bson::BSONObjBuilder &builder )
+                              bson::BSONObjBuilder &builder,
+                              UINT32 actionIndex )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILD ) ;
@@ -183,7 +184,7 @@ namespace engine
       bson::BSONElement output ;
       UINT32 size = _actions.size() ;
 
-      for ( UINT32 i = 0; i < size ; ++i )
+      for ( UINT32 i = actionIndex ; i < size ; ++i )
       {
          if ( MTH_S_IS_LAST_ACTION( i ) )
          {
@@ -194,22 +195,32 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDERROR, "failed to build column:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to build column:%d", rc ) ;
                goto error ;
             }
-
          }
          else
          {
             rc = _actions[i]->get( _name, input, output ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get column:%d", rc ) ;
                goto error ;
             }
             input = output ;
-         }
 
+            // eg: { a.$[0].d: { $selOperator: xxx } }
+            if ( _needBuildSubArray( _actions[i]->getName(), input ) )
+            {
+               rc = _buildSubArray( input, i, builder ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build sub array, rc: %d", rc ) ;
+                  goto error ;
+               }
+               goto done ;
+            }
+         }
       }
 
       if ( !_subColumns.empty() )
@@ -217,13 +228,82 @@ namespace engine
          rc = _buildFromChildren( input, builder ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to build columns from children:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build columns from children:%d", rc ) ;
             goto error ;
          }
       }
 
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _mthSColumn::_needBuildSubArray( const CHAR* actionName,
+                                            const bson::BSONElement &e )
+   {
+      BOOLEAN need = FALSE ;
+
+      if ( 0 == ossStrcmp( actionName, MTH_FUNCTION_STR_SLICE ) )
+      {
+         if ( Object == e.type() || Array == e.type() )
+         {
+            BSONObj obj = e.embeddedObject() ;
+            if ( !obj.isEmpty() )
+            {
+               need = TRUE ;
+            }
+         }
+      }
+
+      return need ;
+   }
+
+   //PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMN__BUILDSUBARRAY, "_mthSColumn::_buildSubArray" )
+   INT32 _mthSColumn::_buildSubArray( const bson::BSONElement &e,
+                                      UINT32 actionIndex,
+                                      bson::BSONObjBuilder &builder )
+   {
+      PD_TRACE_ENTRY( SDB__MTHSCOLUMN__BUILDSUBARRAY ) ;
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder subBob ;
+      BSONElement input ;
+      BSONObj subObj ;
+
+      try
+      {
+         BSONArrayBuilder subArray( builder.subarrayStart(
+                                    e.fieldName() ) ) ;
+
+         input = e.embeddedObject().firstElement() ;
+
+         rc = _build( input, subBob, ++actionIndex ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to build column:%d", rc ) ;
+            goto error ;
+         }
+
+         subObj = subBob.obj() ;
+
+         if ( !subObj.isEmpty() )
+         {
+            subArray.append( subObj.firstElement() ) ;
+         }
+
+         subArray.done() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when building sub array: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDSUBARRAY, rc ) ;
       return rc ;
    error:
       goto done ;
