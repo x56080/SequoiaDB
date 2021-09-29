@@ -93,13 +93,11 @@ int optGenForDoc::outputFile( int id, fileOutStream &fout, string &outputPath )
    int k  = 0 ;
    int listSize = (int)_optionList.size() ;
    const OPTION_OTHER_INFO_ELE &otherInfo = _optionOtherList[0] ;
-   string srcPath = utilGetRealPath2( OPT_SUPPLEMENT_FILE_PATH ) ;
    string srcContent ;
 
    outputPath = OPT_RUNTIME_CONFIG_PATH ;
 
-   fout << "##" << otherInfo.subTitle << "##" << endl << endl
-        << "|" << otherInfo.name
+   fout	<< "|" << otherInfo.name
         << "|" << otherInfo.acronym
         << "|" << otherInfo.type
         << "|" << otherInfo.reloadable
@@ -173,16 +171,6 @@ int optGenForDoc::outputFile( int id, fileOutStream &fout, string &outputPath )
    }
 
    fout << "\n" ;
-
-   rc = utilGetFileContent( srcPath.c_str(), srcContent ) ;
-   if ( rc )
-   {
-      printLog( PD_ERROR ) << "Failed to get source file: path = "
-                           << srcPath << endl ;
-      goto error ;
-   }
-
-   fout << srcContent << endl ;
 
 done:
    _isFinish = true ;

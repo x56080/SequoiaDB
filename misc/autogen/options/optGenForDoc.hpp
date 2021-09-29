@@ -5,9 +5,7 @@
 
 #define OPT_OTHER_DOC_FILENAME      "optOtherInfoForWeb.xml"
 #define OPT_OTHER_DOC_FILE_PATH     "./"OPT_OTHER_DOC_FILENAME
-
-#define OPT_SUPPLEMENT_FILE_PATH    DOCUMENT_PATH"Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters_supplement.md"
-#define OPT_RUNTIME_CONFIG_PATH     DOCUMENT_PATH"Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md"
+#define OPT_RUNTIME_CONFIG_PATH     DOCUMENT_PATH"Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md"
 
 #define OPT_FILTER_FOR_DOC_LIST \
 "help",\

@@ -1301,8 +1301,14 @@
                     "contents": [
                       {
                         "id": 1432190643,
+                        "file": "parameter_instructions",
+                        "cn": "参数说明",
+                        "en": "Parameter Instructions"
+                      },
+                      {
+                        "id": 1632902617,
                         "file": "configuration_parameters",
-                        "cn": "配置项参数",
+                        "cn": "参数配置",
                         "en": "Configuration Parameters"
                       },
                       {
