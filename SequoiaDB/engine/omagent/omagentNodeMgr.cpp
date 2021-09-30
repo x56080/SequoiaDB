@@ -1286,7 +1286,7 @@ namespace engine
             nodeOptions.initFromFile( cfgFile ) ;
             *omsvc = nodeOptions.getOMService() ;
          }
-
+         
          PD_LOG ( PDERROR, "service[%s] node existed", pSvcName ) ;
          rc = SDBCM_NODE_EXISTED ;
          goto error ;

@@ -1173,8 +1173,8 @@
      <code>
        <name>SDBCM_NODE_EXISTED</name>
        <description>
-         <en>Node already exists</en>
-         <cn>节点已存在</cn>
+         <en>Node or its configuration file exists</en>
+         <cn>节点或其配置文件已存在</cn>
        </description>
      </code>
 
