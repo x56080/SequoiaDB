@@ -129,6 +129,7 @@ testFiles = [
    # [ "./cache/renameCsClWithCache14694.cpp" ],
    # [ "./cache/getCountWithCache14695.cpp" ], # no need
    # [ "./cache/listLobPiecesWithCache14696.cpp" ], # no need
+   # [ "./cache/getVersionWithCache24412.cpp" ],
    [ "./lob/lobOpr12516.cpp" ],
    [ "./lob/lobSeek12663.cpp" ],
    [ "./lob/lobClose12554_12665.cpp" ],
