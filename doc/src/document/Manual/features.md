@@ -1,11 +1,11 @@
 SequoiaDB 巨杉数据库作为一款分布式关系型数据库，支持如下特性：
 
-*   [弹性水平扩展][scaleout]  
-*   [高可用与容灾][hadr]
-*   [分布式事务][dist_tran]
-*   [多模式接口][multi_model]
-*   [HTAP混合负载][htap]
-*   [多租户隔离][mlti_tenancy]
+*   [弹性水平扩展](Manual/features.md#弹性水平扩展) 
+*   [高可用与容灾](Manual/features.md#高可用与容灾)
+*   [分布式事务](Manual/features.md#分布式事务)
+*   [多模式接口](Manual/features.md#多模式接口)
+*   [HTAP混合负载](Manual/features.md#HTAP混合负载)
+*   [多租户隔离](Manual/features.md#多租户隔离)
 
 ##弹性水平扩展##
 
@@ -13,7 +13,7 @@ SequoiaDB 巨杉数据库作为一款分布式关系型数据库，支持如下�
 
 SequoiaDB 巨杉数据库的数据库实例均无状态并使用 TCP/IP 协议对外提供服务。为了提升整体处理能力，用户可以通过增加服务器数量或创建额外的数据库实例实现对应用的水平弹性扩张。
 
-分布式存储引擎内部包含三种类型的节点：[协调节点][coord_node]、[编目节点][catalog_node]与[数据节点][data_node]。
+分布式存储引擎内部包含三种类型的节点：[协调节点](infrastructure/coord_node.md)、[编目节点](infrastructure/catalog_node/catalog_node.md)与[数据节点](infrastructure/data_node.md)。
 
 其中协调节点主要作为数据请求的路由进程，对来自上层数据库实例的请求进行分发，并对数据节点返回的结果进行汇总。因此，每个协调节点均无状态，可以通过增加协调节点的数量提升数据路由层的处理能力。
 
@@ -57,7 +57,7 @@ SequoiaDB 巨杉数据库通过数据库实例的形式提供多种关系型以�
 
 使用多模式接口机制，用户可以使用 SequoiaDB 巨杉数据库服务于任何类型的应用程序，真正做到分布式数据库的平台化服务。
 
-##HTAP 混合负载##
+##HTAP混合负载##
 
 一般来说，HTAP（Hybrid Transactional and Analytical Processing） 混合负载意味着数据库既可以运行 OLTP (Online Transactional Processing) 联机交易，也可以同时运行 OLAP (Online Analytical Processing) 统计分析业务。但是，用户想要在同一个数据库中针对同样的数据在同一时刻运行两种不同类型的业务，往往数据库服务器中的 CPU、内存、I/O 和网络等硬件资源会形成较多的资源争用，导致对外的联机交易服务性能与稳定性受到影响。
 
@@ -74,16 +74,3 @@ SequoiaDB 巨杉数据库通过数据库实例的形式提供多种关系型以�
 ##小结##
 
 总体来看，作为一款新一代金融级分布式关系型数据库，SequoiaDB 巨杉数据库除了高度兼容包括 MySQL 与 PostgreSQL 在内的多种传统数据库外，还在水平扩展、数据安全、分布式事务、多模式接口、混合负载以及多租户隔离等领域有着独特的优势。
-
-
-[^_^]:
-    本文使用的所有引用及链接
-[coord_node]:infrastructure/coord_node.md
-[catalog_node]:infrastructure/catalog_node/catalog_node.md
-[data_node]:infrastructure/data_node.md
-[scaleout]:Manual/features.md#弹性水平扩展
-[hadr]:Manual/features.md#高可用与容灾
-[dist_tran]:Manual/features.md#分布式事务
-[multi_model]:Manual/features.md#多模式接口
-[htap]:Manual/features.md#HTAP混合负载
-[mlti_tenancy]:Manual/features.md#多租户隔离

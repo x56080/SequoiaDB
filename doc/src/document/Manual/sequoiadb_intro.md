@@ -18,23 +18,12 @@ SequoiaDB 巨杉数据库可以为用户带来如下价值：
 
 用户案例
 ----
-当前已经有超过 [50 家银行机构与上百家企业级用户][userlist]在生产环境大规模使用 SequoiaDB 巨杉数据库取代传统数据库。
+当前已经有超过 [50 家银行机构与上百家企业级用户](http://solution.sequoiadb.com/cn/#customer)在生产环境大规模使用 SequoiaDB 巨杉数据库取代传统数据库。
 
 ##使用场景##
 
-SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场景][usecase]页面获得更多信息。
+SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场景](http://solution.sequoiadb.com/cn/)页面获得更多信息。
 
-*   [联机交易][onlinetransaction]
-*   [数据中台][mid-end]
-*   [内容管理][contentmanagement]
-
-
-
-[^_^]:
-     本文使用的所有引用及链接
-[userlist]:http://solution.sequoiadb.com/cn/#customer
-[usecase]:http://solution.sequoiadb.com/cn/
-[onlinetransaction]:http://solution.sequoiadb.com/cn/oltp
-[mid-end]:http://solution.sequoiadb.com/cn/datamidend
-[contentmanagement]:http://solution.sequoiadb.com/cn/ecm
-
+*   [联机交易](http://solution.sequoiadb.com/cn/oltp)
+*   [数据中台](http://solution.sequoiadb.com/cn/datamidend)
+*   [内容管理](http://solution.sequoiadb.com/cn/ecm)

@@ -25,7 +25,7 @@ SDB_SNAP_COLLECTIONS
 | Details.Sequence                | int32         | 序列号                                                  |
 | Details.Indexes                 | int32         | 该集合所包含的索引数量                                  |
 | Details.Status                  | string        | 集合当前状态，取值如下：<br>"Free"：空闲<br>"Normal"：正常<br>"Dropped"：被删除<br>"Offline Reorg Shadow Copy Phase"：离线重组复制阶段<br>"Offline Reorg Truncate Phase"：离线重组清除阶段<br>"Offline Reorg Copy Back Phase"：离线重组重入阶段<br>"Offline Reorg Rebuild Phase"：离线重组重建索引阶段 |
-| Details.Attribute               | string        | 集合的属性，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSDATASOURCES.md)的字段 AttributeDesc    |
+| Details.Attribute               | string        | 集合的属性，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSCOLLECTIONS.md)的字段 AttributeDesc    |
 | Details.CompressionType         | string        | 压缩类型，如："snappy"、"lzw"                           |
 | Details.DictionaryCreated       | boolean       | 是否创建压缩字典                                        |
 | Details.DictionaryVersion       | int32         | 压缩字典版本                                            |
@@ -208,8 +208,3 @@ SDB_SNAP_COLLECTIONS
    }
    ...
    ```
-
-
-[^_^]:
-    本文使用的所有引用及链接
-[syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md

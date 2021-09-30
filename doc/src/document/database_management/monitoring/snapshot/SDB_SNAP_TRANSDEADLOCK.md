@@ -96,8 +96,3 @@ SDB_SNAP_TRANSDEADLOCK
 }
 Return 6 row(s).
 ```
-
-[^_^]:
-    本文使用的所有引用及链接
-[deadlock_detector]:database_management/deadlock_detector.md
-[forceSession]:reference/Sequoiadb_command/Sdb/forceSession.md

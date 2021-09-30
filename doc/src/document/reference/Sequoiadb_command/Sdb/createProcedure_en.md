@@ -48,7 +48,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md). For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
 
 ##VERSION##
 
@@ -78,7 +78,7 @@ The following records exist in the collection sample.employee:
     >
     > db has been initialized in the stored procedure. Users can use the global db to refer to the authentication information corresponding to the session  in which the stored procedure is executed.
 
-3. Execute the stored procedure through [eval()][eval].
+3. Execute the stored procedure through [eval()](reference/Sequoiadb_command/Sdb/eval.md).
 
     ```lang-javascript
     > coord.eval("getAll()")
@@ -92,14 +92,4 @@ The following records exist in the collection sample.employee:
     }
     ```
 
-Users can view the created stored procedure information through [listProcedures()][listProcedures].
-
-
-[^_^]:
-   links
-[listProcedures]:manual/Manual/Sequoiadb_Command/Sdb/listProcedures.md
-[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/FAQ/faq_sdb.md
-[eval]:manual/Manual/Sequoiadb_Command/Sdb/eval.md
-[error_code]:manual/Manual/Sequoiadb_error_code.md
+Users can view the created stored procedure information through [listProcedures()](reference/Sequoiadb_command/Sdb/listProcedures.md).

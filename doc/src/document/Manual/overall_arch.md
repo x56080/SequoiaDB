@@ -6,7 +6,7 @@ SequoiaDB 巨杉数据库作为分布式数据库，由数据库存储引擎与�
 
 通过使用 SequoiaDB 巨杉数据库，用户可以通过创建不同类型的数据库实例，使应用程序从传统数据库进行无缝迁移，大幅度降低应用程序开发者的学习成本。
 
-![逻辑架构][logical_arch]
+![逻辑架构](Manual/overall_arch_logical.png)
 
 ##数据库实例##
 
@@ -26,7 +26,7 @@ SequoiaDB 巨杉数据库存储引擎采用分布式架构。集群中的每个�
 
 同一个操作系统可以部署多个节点，节点之间采用不同的端口进行区分。
 
-![数据库存储引擎逻辑架构][engine_arch]
+![数据库存储引擎逻辑架构](Manual/overall_arch_engine.png)
 
 SequoiaDB 巨杉数据库的节点分为三种不同的角色：协调节点、编目节点与数据节点。
 
@@ -68,11 +68,4 @@ SequoiaDB 巨杉数据库的数据库存储引擎则包括协调节点、编目�
 
 数据库存储引擎与数据库实例均支持水平弹性扩展，任何角色的节点均提供高可用冗余机制，不存在单点故障的可能。
 
-![SequoiaDB巨杉数据库整体架构][all_arch]
-
-
-[^_^]:
-    本文使用的所有引用及链接
-[logical_arch]:Manual/overall_arch_logical.png
-[engine_arch]:Manual/overall_arch_engine.png
-[all_arch]:Manual/overall_arch_all.png
+![SequoiaDB巨杉数据库整体架构](Manual/overall_arch_all.png)

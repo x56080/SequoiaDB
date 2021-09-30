@@ -60,7 +60,7 @@ be printed.
 .SH ERRORS
 .PP
 When the exception happens, use getLastErrMsg() to get the error message or use
-getLastError to get the error code.
+getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP

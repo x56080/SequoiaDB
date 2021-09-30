@@ -13,10 +13,10 @@ $LIST_CL
 | Name   | string | 集合完整名 |
 | UniqueID | int64 | 集合的 UniqueID，在集群上全局唯一 |
 | Version | int32 | 集合的版本号，由 1 起始，每次对该集合的元数据变更会造成版本号 +1|
-| Attribute | int32 | 集合的属性掩码，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSDATASOURCES.md) |
-| AttributeDesc | string | 集合的属性描述，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSDATASOURCES.md) |
-| CompressionType | int32 | 压缩算法类型掩码，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSDATASOURCES.md) |
-| CompressionTypeDesc | string | 压缩算法类型描述，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSDATASOURCES.md) |
+| Attribute | int32 | 集合的属性掩码，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSCOLLECTIONS.md) |
+| AttributeDesc | string | 集合的属性描述，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSCOLLECTIONS.md) |
+| CompressionType | int32 | 压缩算法类型掩码，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSCOLLECTIONS.md) |
+| CompressionTypeDesc | string | 压缩算法类型描述，取值可参考 [SYSCOLLECTION 集合](infrastructure/catalog_node/SYSCOLLECTIONS.md) |
 | CataInfo | array | 集合所在的逻辑节点信息 |
 
 ## 示例
@@ -50,8 +50,3 @@ $LIST_CL
 }
 ...
 ```
-
-[^_^]:
-    本文使用的所有引用及链接
-[syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md
-
