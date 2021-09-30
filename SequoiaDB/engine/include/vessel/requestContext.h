@@ -294,6 +294,11 @@ namespace vessel
                         PAGE_ID lpid,
                         const ossSharedLatchMode &mode);
 
+         INT32 tryLockLpid(SPACE_TYPE type,
+                           PAGE_ID lpid,
+                           const ossSharedLatchMode &mode,
+                           BOOLEAN &locked);
+
          void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
 
          /// test locking in current context

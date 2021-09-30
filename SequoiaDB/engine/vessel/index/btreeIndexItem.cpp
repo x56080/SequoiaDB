@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexTuple.cpp
+   Source File Name = btreeIndexItem.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeIndexTuple.h"
+#include "vessel/btreeIndexItem.h"
 #include "ixmKey.hpp"
 #include "vessel/indexCompressedKey.h"
 #include "pdTrace.hpp"
@@ -43,58 +43,83 @@ namespace engine
 {
 namespace vessel
 {
-   void btreeIndexTuple::fini()
+   void btreeIndexItem::fini()
    {
       _slotNo = INVALID_RECORD_SLOT_ID;
       _slot = NULL;
       _keyData = NULL;
+      _prefix = NULL;
       return;
    }
 
-   BOOLEAN btreeIndexTuple::init(RECORD_SLOT_ID slotNo,
-                                 const btreeNodeSlot *slot,
-                                 const CHAR *keyData)
+   INT32 btreeIndexItem::init(RECORD_SLOT_ID slotNo,
+                              const btreeNodeSlot *slot,
+                              const CHAR *keyData,
+                              const btreeNodePrefixSlot *prefix)
    {
-      BOOLEAN r = FALSE;
+      INT32 rc = SDB_OK;
       fini();
 
       if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == slotNo ||
                        NULL == slot ||
                        !slot->isValid()))
       {
-         goto done;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
-      else if (!slot->isKeySavedInSlot() && NULL == keyData)
+      else if (OSS_UNLIKELY(!slot->isKeyInSlot() && NULL == keyData))
       {
-         PD_LOG(PDERROR, "key data is null");
-         goto done;
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(slot->isKeyCompressed() && (NULL == prefix || !prefix->isValid())))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
       _slotNo = slotNo;
       _slot = slot;
       _keyData = keyData;
-
-      r = TRUE;
+      _prefix = prefix;
 
    done:
-      if (!r)
-      {
-         fini();
-      }
-      return r;
+      return rc;
+   error:
+      goto done;
    }
 
-   void btreeIndexTuple::getKeyWhenNotCompressed(ixmKey &key)const
+   UINT32 btreeIndexItem::getSavingSize()const
+   {
+      UINT32 size = 0;
+      if (isValid())
+      {
+         size = BTREE_NODE_SLOT_SIZE;
+         if (!_slot->isKeyInSlot())
+         {
+            size += ixmKey(_keyData).dataSize();
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "can not be invalid");
+      }
+
+      return size;
+   }
+
+   void btreeIndexItem::getKeyWhenNotCompressed(ixmKey &key)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(!_slot->isKeyCompressed(), "can not be compressed");
-      if (_slot->isKeySavedInSlot())
+      SDB_ASSERT(!_slot->hasNoSuffix(), "impossible");
+
+      if (_slot->isKeyInSlot())
       {
          key.assign(_slot->data.keyData);
       }
       else
       {
-         SDB_ASSERT(NULL != _keyData, "impossible");
          key.assign(_keyData);
       }
       return;

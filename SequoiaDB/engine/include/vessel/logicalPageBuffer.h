@@ -83,17 +83,28 @@ namespace vessel
          {
             return _lh.getLockMode();
          }
+         OSS_INLINE logicalPageSpace *getLogicalPageSpace()
+         {
+            return _lps;
+         }
+         OSS_INLINE requestContext* getContext()
+         {
+            return _lh.getContext();
+         }
 
       public:
          void fini();
-         INT32 prepareToWrite(requestContext *context);
+         INT32 prepareToWrite();
          void commit(DPS_LSN_OFFSET lsn);
          void abort();
 
          INT32 validatePage(PAGE_TYPE type)const;
 
          /// must hold shared lock first
-         BOOLEAN tryLockExclusivelyFromShared();
+         BOOLEAN tryLockExclusiveFromShared();
+
+         /// must hold upgrade lock first
+         BOOLEAN tryLockExclusiveFromUpgrade();
 
       private:
          void init(logicalPageSpace *lps,

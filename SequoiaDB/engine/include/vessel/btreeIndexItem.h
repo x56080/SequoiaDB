@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexTuple.h
+   Source File Name = btreeIndexItem.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_INDEX_TUPLE_H_
-#define VESSEL_BTREE_INDEX_TUPLE_H_
+#ifndef VESSEL_BTREE_INDEX_ITEM_H_
+#define VESSEL_BTREE_INDEX_ITEM_H_
 
 #include "vessel/btreeNodePage.h"
 #include "pdTrace.hpp"
@@ -44,20 +44,21 @@ namespace engine
 {
 namespace vessel
 {
-   class btreeIndexTuple : public SDBObject
+   class btreeIndexItem : public SDBObject
    {
       public:
-         btreeIndexTuple(){}
-         ~btreeIndexTuple(){}
-         btreeIndexTuple(const btreeIndexTuple &o):
+         btreeIndexItem(){}
+         ~btreeIndexItem(){}
+         btreeIndexItem(const btreeIndexItem &o):
          _slot(o._slot),
          _keyData(o._keyData)
          {}
-         btreeIndexTuple &operator=(const btreeIndexTuple &o)
+         btreeIndexItem &operator=(const btreeIndexItem &o)
          {
             _slotNo = o._slotNo;
             _slot = o._slot;
             _keyData = o._keyData;
+            _prefix = o._prefix;
             return *this;
          }
 
@@ -86,14 +87,17 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _slot && _slot->isValid();
+            return NULL != _slot;
          }
 
          void fini();
 
-         BOOLEAN init(RECORD_SLOT_ID slotNo,
-                      const btreeNodeSlot *slot,
-                      const CHAR *keyData);
+         INT32 init(RECORD_SLOT_ID slotNo,
+                    const btreeNodeSlot *slot,
+                    const CHAR *keyData,
+                    const btreeNodePrefixSlot *prefix=NULL);
+
+         UINT32 getSavingSize()const;
 
          void getKeyWhenNotCompressed(ixmKey &key)const;
 
@@ -101,9 +105,10 @@ namespace vessel
          RECORD_SLOT_ID _slotNo = INVALID_RECORD_SLOT_ID;
          const btreeNodeSlot *_slot = NULL;
          const CHAR *_keyData = NULL;
-   };//class btreeIndexTuple
+         const btreeNodePrefixSlot *_prefix = NULL;
+   };//class btreeIndexItem
 } // namespace vessel
 
 } // namespace engine
 
-#endif//VESSEL_BTREE_INDEX_TUPLE_H_
+#endif//VESSEL_BTREE_INDEX_ITEM_H_

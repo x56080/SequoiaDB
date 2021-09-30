@@ -66,7 +66,7 @@ namespace vessel
       return;
    }
 
-   INT32 logicalPageBuffer::prepareToWrite(requestContext *context)
+   INT32 logicalPageBuffer::prepareToWrite()
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isValid()))
@@ -74,13 +74,8 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      rc = _lps->makeBufferWritable(context, *this);
+      rc = _lps->makeBufferWritable(*this);
       if (SDB_OK != rc)
       {
          goto error;
@@ -128,11 +123,18 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN logicalPageBuffer::tryLockExclusivelyFromShared()
+   BOOLEAN logicalPageBuffer::tryLockExclusiveFromShared()
    {
       SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(_lh.getLockMode().isShared(), "must be shared");
-      return _lh.tryLockFromShared();
+      return _lh.tryLockExclusiveFromShared();
+   }
+
+   BOOLEAN logicalPageBuffer::tryLockExclusiveFromUpgrade()
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(_lh.getLockMode().isUpgrade(), "must be upgrade");
+      return _lh.tryLockExclusiveFromUpgrade();
    }
 
 }//namespace vessel

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPageAccessor.cpp
+   Source File Name = indexEntryPageAccessor.cpp
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPageAccessor.h"
-#include "vessel/indexDefPage.h"
+#include "vessel/indexEntryPageAccessor.h"
+#include "vessel/indexEntryPage.h"
 #include "vessel/requestContext.h"
 #include "vessel/indexUtils.h"
 
@@ -42,7 +42,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 indexDefPageAccessor::createIndex(requestContext *context,
+   INT32 indexEntryPageAccessor::createIndex(requestContext *context,
                                            UINT32 indexId,
                                            const slice &defObj,
                                            logicalPageBuffer *lpb)const
@@ -113,7 +113,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexDefPageAccessor::dump(requestContext *context,
+   INT32 indexEntryPageAccessor::dump(requestContext *context,
                                     const logicalPageBuffer *lpb,
                                     bson::BSONObjBuilder &builder)const
    {
@@ -180,7 +180,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexDefPageAccessor::updateIndexStatus(requestContext *context,
+   INT32 indexEntryPageAccessor::updateIndexStatus(requestContext *context,
                                                  UINT32 indexId,
                                                  INDEX_STATUS status,
                                                  logicalPageBuffer *lpb)const
@@ -265,7 +265,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexDefPageAccessor::updateBtreeRoot(requestContext *context,
+   INT32 indexEntryPageAccessor::updateBtreeRoot(requestContext *context,
                                                UINT32 indexId,
                                                PAGE_ID root,
                                                logicalPageBuffer *lpb,
@@ -355,7 +355,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexDefPageAccessor::getIndexObject(requestContext *context,
+   INT32 indexEntryPageAccessor::getIndexObject(requestContext *context,
                                               const logicalPageBuffer *lpb,
                                               indexObject &obj,
                                               BOOLEAN getOwned,
@@ -451,7 +451,7 @@ namespace vessel
       goto done;
    }      
 
-   INT32 indexDefPageAccessor::getIndexDefPageHead(requestContext *context,
+   INT32 indexEntryPageAccessor::getIndexDefPageHead(requestContext *context,
                                                    UINT32 indexId,
                                                    const logicalPageBuffer *lpb,
                                                    const indexDefHead **out)const

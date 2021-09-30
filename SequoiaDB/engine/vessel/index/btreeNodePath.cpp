@@ -39,8 +39,6 @@
 #include "ossLikely.hpp"
 #include "pdTrace.hpp"
 #include "vessel/requestContext.h"
-#include "vessel/indexDefPageAccessor.h"
-#include "vessel/btreeNodePageIniter.h"
 
 namespace engine
 {
@@ -68,26 +66,26 @@ namespace vessel
    }
 ////////////////btreeNodePath::_pathNode end
 
+   btreeNodePath::btreeNodePath(const indexContext *ic):
+   _ic(ic),
+   _size(0)
+   {
+      SDB_ASSERT(NULL != _ic && _ic->isValid(), "can not be invalid");
+   }
+
    btreeNodePath::~btreeNodePath()
    {
       fini();
-   }
-
-   void btreeNodePath::init(indexContext *ic)
-   {
-      fini();
-      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invali");
-      _ic = ic;
-      return;
    }
 
    void btreeNodePath::fini()
    {
       clearPath();
       _ic = NULL;
-      for (UINT32 i = 0; i < _free.size(); ++i)
+      for (_FREE_BUFFERS::const_iterator itr = _free.begin();
+           itr != _free.end(); ++itr)
       {
-         SDB_OSS_DEL _free[i];
+         SDB_OSS_DEL (*itr);
       }
       _free.clear();
       return;
@@ -101,148 +99,62 @@ namespace vessel
          if (NULL != pn._lpb)
          {
             pn._lpb->fini();
-            releaseBuffer(pn._lpb);
+            _free.push_back(pn._lpb);
          }
          pn.fini();
       }
       _dynamicNodes.clear();
       _size = 0;
+      
       return;
    }
 
-   INT32 btreeNodePath::push(requestContext *context,
-                             logicalPageBuffer *buffer,
-                             btreeNode &out)
+   INT32 btreeNodePath::push(logicalPageBuffer *buffer,
+                             btreeNode *out)
    {
       INT32 rc = SDB_OK;
-      logicalPageBuffer *lpb = NULL;
       const btreeNodePageHead *head = NULL;
 
-      out.reset();
-
-      if (OSS_UNLIKELY(NULL == _ic))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      } 
-      else if (OSS_UNLIKELY(NULL == context ||
-                            NULL == buffer ||
-                            !buffer->isValid()))
+      if (OSS_UNLIKELY(NULL == head ||
+                       !head->isValid() ||
+                       NULL == buffer ||
+                       !buffer->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = validateBtreePage(context, lpb, &head);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate btree page:%d", rc);
-         goto error;
-      }
+      head = buffer->getRuntimeBuffer().getReadablePtrOfBody<btreeNodePageHead>(0);
+      SDB_ASSERT(NULL != head && head->isValid(), "can not be invalid");
 
       if (_size < _DEFAULT_CAPACITY)
       {
-         _staticNodes[_size] = _pathNode(lpb, head->splitedTimes);
+         _staticNodes[_size] = _pathNode(buffer, head->splitedTimes);
       }
       else
       {
-         _dynamicNodes.push_back(_pathNode(lpb, head->splitedTimes));
+         _dynamicNodes.push_back(_pathNode(buffer, head->splitedTimes));
       }
 
-      out = btreeNode(lpb, _ic, _size++);
-   done:
-      return rc;
-   error:
-      out.reset();
-      goto done;
-   }
-
-   INT32 btreeNodePath::getAccessingNode(UINT32 depth, btreeNode &node)const
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == _ic))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (depth < _size)
-      {
-         const _pathNode &pn = getPathNode(depth);
-         if (!pn.isAccessing())
-         {
-            PD_LOG(PDERROR, "node is not accessing with depth[%d]", depth);
-            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-            goto error;
-         }
-         
-         node = btreeNode(pn._lpb, _ic, depth);
-      }
-      else
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-      
-   done:
-      return rc;
-   error:
-      node.reset();
-      goto done;
-   }
-
-   INT32 btreeNodePath::validateBtreePage(requestContext *context,
-                                          logicalPageBuffer *buffer,
-                                          const btreeNodePageHead **out)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _ic, "can not be invalid");
-      SDB_ASSERT(NULL != buffer, "can not be null");
-      SDB_ASSERT(buffer->isValid(), "can not be invalid");
-      const runtimePageBuffer &rpb = buffer->getRuntimeBuffer();
-      const globalPageID &gpid = buffer->getRuntimeBuffer().getGlobalPid();
-      const btreeNodePageHead *head = NULL;
-
-      rc = buffer->validatePage(PAGE_TYPE_BTREE_NODE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate btree page:[%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      head = rpb.getReadablePtrOfBody<btreeNodePageHead>(0);
-      if (NULL == head)
-      {
-         PD_LOG(PDERROR, "failed to get btree page head");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (context->getLogicalCLID() != head->clLogicalID)
-      {
-         PD_LOG(PDERROR, "different logical clids found[%d,%d] on page[%s]",
-                context->getLogicalCLID(), head->clLogicalID,
-                gpid.toString().c_str());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      if (_ic->getIndexID() != head->indexId)
-      {
-         PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
-                _ic->getIndexID(), head->indexId, gpid.toString().c_str());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
+      ++_size;
 
       if (NULL != out)
       {
-         *out = head;
+         *out = btreeNode(buffer, _ic, _size);
       }
+
    done:
       return rc;
    error:
       goto done;
+   }
+
+   btreeNode btreeNodePath::getCurrentEndNodeInPath()const
+   {
+      SDB_ASSERT(!isEmpty(), "can not be empty");
+      const _pathNode &pn = getPathNode(_size - 1);
+      SDB_ASSERT(pn.isAccessing(), "must be accessing");
+      return btreeNode(pn._lpb, _ic, _size - 1);
    }
 
    btreeNodePath::_pathNode &btreeNodePath::getPathNode(UINT32 i)
@@ -271,26 +183,6 @@ namespace vessel
       }
    }
 
-   INT32 btreeNodePath::getPageBuffer(UINT32 depth, logicalPageBuffer *&buffer)const
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(_size <= depth))
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-
-      {
-         const _pathNode &pn = getPathNode(depth);
-         buffer = pn._lpb;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    logicalPageBuffer *btreeNodePath::allocateBuffer()
    {
       logicalPageBuffer *lpb = NULL;
@@ -308,7 +200,7 @@ namespace vessel
    
    void btreeNodePath::releaseBuffer(logicalPageBuffer *buffer)
    {
-      if (OSS_LIKELY(NULL != buffer))
+      if (NULL != buffer)
       {
          buffer->fini();
          _free.push_back(buffer);

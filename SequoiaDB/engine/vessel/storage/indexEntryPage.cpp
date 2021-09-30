@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexWriter.h
+   Source File Name = indexEntryPage.cpp
 
    Descriptive Name =
 
@@ -33,44 +33,33 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_INDEX_WRITER_H_
-#define VESSEL_BTREE_INDEX_WRITER_H_
-
-#include "vessel/btreeIndexAccessor.h"
+#include "vessel/indexEntryPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeIndexWriter : public btreeIndexAccessor
+   BOOLEAN initIndexEntryPage(UINT32 pageSize,
+                              PAGE_ID pid,
+                              PAGE_ID lpid,
+                              PAGE_SNAPSHOT_VERION psv,
+                              CHAR *buf)
    {
-      public:
-         btreeIndexWriter();
-         virtual ~btreeIndexWriter();
+      BOOLEAN r = FALSE;
+      indexEntryPageHead *headPtr = NULL;
+      indexEntryPageHead head;
 
-      public:
-         INT32 insert(const bson::BSONObj &key,
-                      const recordID &rid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID);
+      r = initCommonPage(PAGE_TYPE_INDEX_ENTRY, pageSize,
+                         pid, lpid, psv, buf);
+      if (!r)
+      {
+         goto done;
+      }
 
-      private:
-         INT32 initPathRoot(btreeNode &root,
-                            const ossSharedLatchMode *m=NULL);
-         ossSharedLatchMode estimateRootLockingMode(UINT32 updatedTimes)const;
-         ossSharedLatchMode estimateChildLockingMode(UINT32 depth,
-                                                     const ossSharedLatchMode &fatherMode)const;
-
-      private:
-
-         INT32 createRootIfNotExists(PAGE_ID &root);
-         INT32 ensureRoot();
-
-      private:
-
-   };//class btreeIndexWriter 
-} // namespace vessel
-
-} // namespace engine
-
-#endif//VESSEL_BTREE_INDEX_WRITER_H_
+      headPtr = (indexEntryPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
+      ossMemcpy(headPtr, &head, INDEX_ENTRY_PAGE_HEAD_SIZE);
+   done:
+      return r;
+   }
+}//namespace vessel
+}//namespace engine

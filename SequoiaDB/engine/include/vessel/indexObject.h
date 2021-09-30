@@ -40,6 +40,7 @@
 #include "vessel/indexDef.h"
 #include "vessel/indexParameters.h"
 #include "ossMemPool.hpp"
+#include "vessel/indexEntryPage.h"
 
 namespace engine
 {
@@ -54,15 +55,12 @@ namespace vessel
          indexObject &operator=(const indexObject &) = delete;
 
       public:
-         INT32 init(UINT32 indexId,
-                    const strSlice &indexName,
-                    const indexKeyPattern &pattern,
-                    const indexParameters &params);
-
          INT32 shallowInit(UINT32 indexId,
                            const strSlice &indexName,
                            const indexKeyPattern &pattern,
-                           const indexParameters &params);
+                           const indexParameters &params,
+                           PAGE_ID btreeRoot=INVALID_PAGE_ID,
+                           UINT32 btreeRootUpdatedTimes=0);
 
          void shallowCopy(const indexObject &o);
 
@@ -96,6 +94,17 @@ namespace vessel
          {
             return _params.type;
          }
+         OSS_INLINE UINT32 getBtreeRootUpdatedTimes()const
+         {
+            return _btreeRootUpdatedTimes;
+         }
+         OSS_INLINE PAGE_ID getBtreeRoot()const
+         {
+            return _btreeRoot;
+         }
+         void updateBtreeRoot(PAGE_ID root);
+
+         BOOLEAN hasBtreeRoot()const;
 
       private:
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
@@ -103,6 +112,8 @@ namespace vessel
          ossPoolString _indexName;
          indexKeyPattern _pattern;
          indexParameters _params;
+         UINT32 _btreeRootUpdatedTimes = 0;
+         PAGE_ID _btreeRoot = INVALID_PAGE_ID;
    };//class indexObject
 }//namespace vessel
 }//namesapce engine

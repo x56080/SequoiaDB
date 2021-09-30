@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPage.h
+   Source File Name = indexEntryPage.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_DEF_PAGE_H_
-#define VESSEL_INDEX_DEF_PAGE_H_
+#ifndef VESSEL_INDEX_ENTRY_PAGE_H_
+#define VESSEL_INDEX_ENTRY_PAGE_H_
 
 #include "vessel/indexDef.h"
 #include "vessel/pageDef.h"
@@ -50,19 +50,19 @@ namespace vessel
 
 
 #pragma pack(4)
-   struct indexDefHead
+   struct indexEntryPageHead
    {
-      indexDefHead()
+      indexEntryPageHead()
       {
       }
 
-      ~indexDefHead(){}
+      ~indexEntryPageHead(){}
 
-      indexDefHead(const indexDefHead &) = delete;
+      indexEntryPageHead(const indexEntryPageHead &) = delete;
 
-      indexDefHead &operator=(const indexDefHead &o)
+      indexEntryPageHead &operator=(const indexEntryPageHead &o)
       {
-         ossMemcpy(this, &o, sizeof(indexDefHead));
+         ossMemcpy(this, &o, sizeof(indexEntryPageHead));
          return *this;
       }
 
@@ -86,20 +86,20 @@ namespace vessel
       UINT32 btreeRootUpdatedTimes = 0;
       UINT32 defObjSize = 0;
       CHAR pad[32] = {};
-   };//struct indexDefHead
+   };//struct indexEntryPageHead
 
-   static const UINT32 INDEX_DEF_HEAD_SIZE = sizeof(indexDefHead);
+   static const UINT32 INDEX_ENTRY_PAGE_HEAD_SIZE = sizeof(indexEntryPageHead);
 
 #pragma pack()
 
-   static const UINT32 MAX_INDEX_DEF_OBJ_SIZE = 4096 - PAGE_HEAD_SIZE - INDEX_DEF_HEAD_SIZE;
+   static const UINT32 MAX_INDEX_DEF_OBJ_SIZE = 4096 - PAGE_HEAD_SIZE - INDEX_ENTRY_PAGE_HEAD_SIZE;
 
-   BOOLEAN initIndexDefPage(UINT32 pageSize,
-                            PAGE_ID pid,
-                            PAGE_ID lpid,
-                            PAGE_SNAPSHOT_VERION psv,
-                            CHAR *buf);
+   BOOLEAN initIndexEntryPage(UINT32 pageSize,
+                              PAGE_ID pid,
+                              PAGE_ID lpid,
+                              PAGE_SNAPSHOT_VERION psv,
+                              CHAR *buf);
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_DEF_PAGE_H_
+#endif//VESSEL_INDEX_ENTRY_PAGE_H_

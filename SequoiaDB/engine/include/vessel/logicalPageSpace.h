@@ -102,14 +102,18 @@ namespace vessel
                                     const ossSharedLatchMode &mode,
                                     logicalPageBuffer &lpb);
 
+         INT32 tryToGetLogicalPageBuffer(requestContext *context,
+                                         PAGE_ID lpid,
+                                         const ossSharedLatchMode &mode,
+                                         logicalPageBuffer &lpb);
+
          INT32 isLogicalPageMapped(requestContext *context,
                                    PAGE_ID lpid,
                                    BOOLEAN &mapped);
 
          /// Make buffer from "getLogicalPageBuffer" writable.
          /// Buffer with shared locking can not be writable.
-         INT32 makeBufferWritable(requestContext *context,
-                                  logicalPageBuffer &lpb);
+         INT32 makeBufferWritable(logicalPageBuffer &lpb);
 
          /// lpid must be in reserved imp.
          /// Page will be created if lpid unmapped.

@@ -37,9 +37,9 @@
 #define VESSEL_BTREE_INDEX_ACCESSOR_H_
 
 #include "vessel/btreeNodePath.h"
-#include "ossMemPool.hpp"
-#include "vessel/logicalPageBuffer.h"
 #include "vessel/btreeNode.h"
+#include "vessel/logicalPageBuffer.h"
+#include "vessel/btreeAccessContext.h"
 
 namespace engine
 {
@@ -66,21 +66,15 @@ namespace vessel
          INT32 init(requestContext *context,
                      indexContext *ic);
          void fini();
-      protected:
-         INT32 getBtreeNodeAndPushIntoPath(PAGE_ID lpid,
-                                           const ossSharedLatchMode &mode,
-                                           btreeNode &node);
 
-         void clearAccessingPath();
-               
+         INT32 insert(const bson::BSONObj &key,
+                      const recordID &rid,
+                      const DPS_TRANS_ID &transID);
+
       protected:
          OSS_INLINE requestContext *getContext()
          {
             return _context;
-         }
-         OSS_INLINE btreeNodePath &getNodePath()
-         {
-            return _path;
          }
          OSS_INLINE indexSpace *getIndexSpace()
          {
@@ -92,14 +86,32 @@ namespace vessel
          }
 
       private:
+         INT32 pushNodeIntoPath(PAGE_ID lpid,
+                                const ossSharedLatchMode &mode,
+                                btreeNodePath &path,
+                                btreeNode *out = NULL);
 
-         
+         INT32 traverseDownToInsert(btreeInsertContext &bic);
+
+      private:
+         INT32 pushRootIntoPath(ossSharedLatchMode mode, btreeNodePath &path);
+
+         INT32 createRootIfNotExists();
+
+      private:
+         INT32 tryToSplitNode(btreeNodePath &path, btreeNode &node, BOOLEAN &obstructed);
+         INT32 tryToSplitRootNode(btreeNode &root, BOOLEAN &obstructed);
+          
+
+      private:
+         INT32 validateBtreePage(const logicalPageBuffer &buffer)const;
+         ossSharedLatchMode estimateRootModeWhenWriting(UINT32 updatedTimes)const;
+         ossSharedLatchMode estimateChildModeWhenInserting(const btreeNodePath &path)const;
+
       private:
          requestContext *_context = NULL;
          indexSpace *_is = NULL;
          indexContext *_ic = NULL;
-         btreeNodePath _path;
-         BOOLEAN _checkpointBlocked = FALSE;
    };//class btreeIndexAccessor
 } // namespace vessel
 

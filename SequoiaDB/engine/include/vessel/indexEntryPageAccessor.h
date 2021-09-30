@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPageAccessor.h
+   Source File Name = indexEntryPageAccessor.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_DEF_PAGE_ACCESSOR_H_
-#define VESSEL_INDEX_DEF_PAGE_ACCESSOR_H_
+#ifndef VESSEL_INDEX_ENTRY_PAGE_ACCESSOR_H_
+#define VESSEL_INDEX_ENTRY_PAGE_ACCESSOR_H_
 
 #include "vessel/pageAccessor.h"
 #include "vessel/indexKeyPattern.h"
@@ -42,17 +42,17 @@
 #include "vessel/slice.h"
 #include "vessel/indexDef.h"
 #include "vessel/indexObject.h"
-#include "vessel/indexDefPage.h"
+#include "vessel/indexEntryPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexDefPageAccessor : public pageAccessor
+   class indexEntryPageAccessor : public pageAccessor
    {
       public:
-         indexDefPageAccessor(){}
-         ~indexDefPageAccessor(){}
+         indexEntryPageAccessor(){}
+         ~indexEntryPageAccessor(){}
 
       public:
          INT32 createIndex(requestContext *context,
@@ -89,8 +89,8 @@ namespace vessel
                                    const logicalPageBuffer *lpb,
                                    const indexDefHead **out)const;
 
-   };//class indexDefPageAccessor 
+   };//class indexEntryPageAccessor 
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_DEF_PAGE_ACCESSOR_H_
+#endif//VESSEL_INDEX_ENTRY_PAGE_ACCESSOR_H_

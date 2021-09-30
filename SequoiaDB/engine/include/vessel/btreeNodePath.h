@@ -49,7 +49,8 @@ namespace vessel
    class btreeNodePath : public SDBObject
    {
       public:
-         btreeNodePath(){}
+         btreeNodePath() = delete;
+         btreeNodePath(const indexContext *ic);
          ~btreeNodePath();
          btreeNodePath(const btreeNodePath &) = delete;
          btreeNodePath &operator=(const btreeNodePath &) = delete;
@@ -97,46 +98,36 @@ namespace vessel
          {
             return 0 == _size;
          }
-         OSS_INLINE indexContext *getIndexContext()
-         {
-            return _ic;
-         }
 
       public:
-         void init(indexContext *ic);
+         static const UINT32 ROOT_DEPTH = 0;
 
+      public:
          void fini();
 
-         void clearPath();
-
-         INT32 push(requestContext *context,
-                    logicalPageBuffer *buffer,
-                    btreeNode &out);
-
-         INT32 getAccessingNode(UINT32 depth, btreeNode &node)const;
-
-         INT32 getPageBuffer(UINT32 depth, logicalPageBuffer *&buffer)const;
-
-      public:
          logicalPageBuffer *allocateBuffer();
          void releaseBuffer(logicalPageBuffer *buffer);
 
-      private:
-         INT32 validateBtreePage(requestContext *context,
-                                 logicalPageBuffer *buffer,
-                                 const btreeNodePageHead **out=NULL)const;
+         void clearPath();
+
+         INT32 push(logicalPageBuffer *buffer,
+                    btreeNode *out=NULL);
+
+         btreeNode getCurrentEndNodeInPath()const;
+
       private:
          _pathNode &getPathNode(UINT32 i);
          const _pathNode &getPathNode(UINT32 i)const;
 
       private:
+         const indexContext *_ic = NULL;
          typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
+         _FREE_BUFFERS _free;
+
          static const UINT32 _DEFAULT_CAPACITY = 4;
-         indexContext *_ic = NULL;
          UINT32 _size = 0;
          _pathNode _staticNodes[_DEFAULT_CAPACITY];
          ossPoolVector<_pathNode> _dynamicNodes;
-         _FREE_BUFFERS _free;
    };//class btreeNodePath
 } // namespace vessel
 

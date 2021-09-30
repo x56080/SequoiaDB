@@ -506,10 +506,54 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 requestContext::tryLockLpid(SPACE_TYPE type,
+                                     PAGE_ID lpid,
+                                     const ossSharedLatchMode &mode,
+                                     BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      logicalIdLatchKey key;
+      objectLatchHelper<logicalIdLatchKey> lh;
+      locked = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                            INVALID_PAGE_ID == lpid ||
+                            mode.isNone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isSpaceIdLocked()))
+      {
+         SDB_ASSERT(_spaceContext.isOpen(), "lock space first");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      key = logicalIdLatchKey(_spaceContext.getSpaceID(), type, lpid);
+
+      rc = lh.tryLock(_env->lpidLatchMap, _lpidLatchContext,
+                      key, mode, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
    
    void requestContext::unlockLpid(SPACE_TYPE type, PAGE_ID lpid)
    {
-      INT32 rc = SDB_OK;
       logicalIdLatchKey key;
       objectLatchHelper<logicalIdLatchKey> lh;
 

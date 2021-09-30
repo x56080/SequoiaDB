@@ -38,9 +38,9 @@
 
 #include "vessel/btreeNodePage.h"
 #include "ixmKey.hpp"
-#include "vessel/btreeIndexTuple.h"
 #include "vessel/btreeIndexDef.h"
 #include "vessel/logicalPageBuffer.h"
+#include "vessel/btreeIndexItem.h"
 
 namespace engine
 {
@@ -48,6 +48,7 @@ namespace vessel
 {
    class requestContext;
    class indexContext;
+   class indexSpace;
 
    class btreeNode : public SDBObject
    {
@@ -57,18 +58,20 @@ namespace vessel
          ~btreeNode(){}
          btreeNode(const btreeNode &o):
          _buffer(o._buffer),
+         _ic(o._ic),
          _depth(o._depth)
          {}
          btreeNode &operator=(const btreeNode &o)
          {
             _buffer = o._buffer;
+            _ic = o._ic;
             _depth = o._depth;
             return *this;
          }
 
       private:
          explicit btreeNode(logicalPageBuffer *buffer,
-                            indexContext *ic,
+                            const indexContext *ic,
                             UINT32 depth);
 
       public:
@@ -86,24 +89,82 @@ namespace vessel
 
          BOOLEAN isRoot()const;
 
-      public:/// node must be active
+      public:
          BOOLEAN hasExtNode()const;
 
          BOOLEAN isLeaf()const;
 
-         INT32 search(const ixmKey &key,
-                      const recordID &rid,
-                      RECORD_SLOT_ID &slotNo,
-                      BOOLEAN &identical)const;
+         UINT32 getTotalSlotCount()const;
 
-         INT32 getIndexTuple(RECORD_SLOT_ID slotNo,
-                             btreeIndexTuple &tuple)const;
+         ossSharedLatchMode getMode()const;
+
+         BOOLEAN isPrefixEnabled()const;
+
+      public:
+         class locateResult : public SDBObject
+         {
+            public:
+               OSS_INLINE locateResult(){}
+               OSS_INLINE locateResult(BOOLEAN k, BOOLEAN i,
+                                       BOOLEAN u, RECORD_SLOT_ID s):
+                           keyMatched(k),
+                           identical(i),
+                           upperBound(u),
+                           slotNo(s){}
+               OSS_INLINE ~locateResult(){}
+               locateResult(const locateResult &) = delete;
+               OSS_INLINE locateResult &operator=(const locateResult &o)
+               {
+                  keyMatched = o.keyMatched;
+                  identical = o.identical;
+                  upperBound = o.upperBound;
+                  slotNo = o.slotNo;
+                  return *this;
+               }
+
+            public:
+               BOOLEAN keyMatched = FALSE;
+               BOOLEAN identical = FALSE;
+               BOOLEAN upperBound = FALSE;
+               RECORD_SLOT_ID slotNo = INVALID_RECORD_SLOT_ID;
+         };//class locateResult
+
+         INT32 locateKeyAndRid(const ixmKey &key,
+                               const recordID &rid,
+                               locateResult &result)const;
+
+         INT32 getIndexItem(RECORD_SLOT_ID slotNo,
+                            btreeIndexItem &item)const;
+
+         BOOLEAN hasSpaceToInsert(const ixmKey &key)const;
+
+         BOOLEAN tryToEnsureLockExlusive();
+
+         INT32 presplit(PAGE_ID &newPage,
+                        btreeIndexItem &pivot);
 
       private:
-         const btreeNodePageHead *getReadbleHead()const;
+         INT32 findSplitPivot(btreeIndexItem &pivot)const;
+
+         INT32 _splitTo(RECORD_SLOT_ID begin,
+                        btreeNode &node);
+
+         INT32 pushBackWhenSplit(const btreeIndexItem &item);
+
+      private:
+         const btreeNodePageHead *getReadableHead()const;
+         btreeNodePageHead *getWritableHead();
+         UINT32 getTotalKeyAndSlotSize()const;
+         UINT32 getTotalPrefixSize(const btreeNodePageHead *head)const;
+         const btreeNodeSlot *getReadableSlot(RECORD_SLOT_ID slotNo)const;
+         const btreeNodePrefixSlot *getPrefixReferencedBySlot(RECORD_SLOT_ID slotNo,
+                                                              INT32 *which=NULL)const;
+         ixmKey getKeyPrefix(INT32 which)const;
+
+         UINT32 getKeyDataOffsetToWrite(UINT32 keyDataSize)const;
       private:
          logicalPageBuffer *_buffer = NULL;
-         indexContext *_ic = NULL;
+         const indexContext *_ic = NULL;
          UINT32 _depth = 0;
       
    };//class btreeNode

@@ -43,7 +43,9 @@ namespace vessel
    INT32 indexObject::shallowInit(UINT32 indexId,
                                   const strSlice &indexName,
                                   const indexKeyPattern &pattern,
-                                  const indexParameters &params)
+                                  const indexParameters &params,
+                                  PAGE_ID btreeRoot,
+                                  UINT32 btreeRootUpdatedTimes)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -61,25 +63,8 @@ namespace vessel
       _nameSlice = indexName;
       _pattern = pattern;
       _params = params;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 indexObject::init(UINT32 indexId,
-                           const strSlice &indexName,
-                           const indexKeyPattern &pattern,
-                           const indexParameters &params)
-   {
-      INT32 rc = SDB_OK;
-      rc = shallowInit(indexId, indexName, pattern, params);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      getOwned();
+      _btreeRootUpdatedTimes = btreeRootUpdatedTimes;
+      _btreeRoot = btreeRoot;
    done:
       return rc;
    error:
@@ -91,8 +76,14 @@ namespace vessel
       fini();
       if (o.isValid())
       {
-         shallowInit(o._indexId, _nameSlice, o._pattern, o._params);
+         _indexId = o._indexId;
+         _nameSlice = o._nameSlice;
+         _pattern = o._pattern;
+         _params = o._params;
+         _btreeRootUpdatedTimes = o._btreeRootUpdatedTimes;
+         _btreeRoot = o._btreeRoot;
       }
+      return;
    }
 
    BOOLEAN indexObject::isOwned()const
@@ -119,7 +110,26 @@ namespace vessel
       _indexName.clear();
       _pattern.reset();
       _params = indexParameters();
+      _btreeRootUpdatedTimes = 0;
+      _btreeRoot = INVALID_PAGE_ID;
       return;
+   }
+
+   void indexObject::updateBtreeRoot(PAGE_ID root)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
+      SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
+      _btreeRoot = root;
+      ++_btreeRootUpdatedTimes;
+      return;
+   }
+
+   BOOLEAN indexObject::hasBtreeRoot()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
+      return INVALID_PAGE_ID != _btreeRoot;
    }
 }//namespace vessel
 }//namespace engine

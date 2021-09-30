@@ -68,14 +68,21 @@ namespace vessel
                   PAGE_ID lpid,
                   const ossSharedLatchMode &mode); 
 
+         INT32 tryLock(requestContext *context,
+                       SPACE_TYPE type,
+                       PAGE_ID lpid,
+                       const ossSharedLatchMode &mode); 
+
          void unlock();
 
          /// lock upgrade first
-         void lockFromUpgrade();
+         void lockExclusiveFromUpgrade();
+
+         BOOLEAN tryLockExclusiveFromUpgrade();
 
          /// lock shared first
          /// will not release shared lock if return false
-         BOOLEAN tryLockFromShared();
+         BOOLEAN tryLockExclusiveFromShared();
 
          OSS_INLINE BOOLEAN isLocked()const
          {
@@ -85,6 +92,11 @@ namespace vessel
          OSS_INLINE const ossSharedLatchMode &getLockMode()const
          {
             return _mode;
+         }
+
+         OSS_INLINE requestContext *getContext()
+         {
+            return _context;
          }
 
       private:

@@ -35,7 +35,7 @@
 
 #include "vessel/lsm/lsmOwnedRecord.h"
 #include "pdTrace.hpp"
-#include "vessel/indexDefPage.h"
+#include "vessel/indexEntryPage.h"
 
 namespace engine
 {

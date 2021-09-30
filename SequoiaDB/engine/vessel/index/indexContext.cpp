@@ -68,15 +68,8 @@ namespace vessel
 
       _indexSlot = indexSlot;
       _lpid = lpid;
-      rc = _obj.init(obj.getIndexID(),
-                     obj.getIndexName(),
-                     obj.getPattern(),
-                     obj.getParams());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index obj:%d", rc);
-         goto error;
-      }
+      _obj.shallowCopy(obj);
+      _obj.getOwned();
 
       if (INDEX_STATUS_BUILDING == status)
       {

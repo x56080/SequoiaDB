@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPageIniter.h
+   Source File Name = indexEntryPageIniter.h
 
    Descriptive Name =
 
@@ -33,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_DEF_PAGE_INITER_H_
-#define VESSEL_INDEX_DEF_PAGE_INITER_H_
+#ifndef VESSEL_INDEX_ENTRY_PAGE_INITER_H_
+#define VESSEL_INDEX_ENTRY_PAGE_INITER_H_
 
 #include "vessel/pageInitializer.h"
 
@@ -42,19 +42,19 @@ namespace engine
 {
 namespace vessel
 {
-   class indexDefPageIniter : public pageInitializer
+   class indexEntryPageIniter : public pageInitializer
    {
       public:
-         indexDefPageIniter(){}
-         virtual ~indexDefPageIniter(){}
+         indexEntryPageIniter(){}
+         virtual ~indexEntryPageIniter(){}
 
       public:
          virtual INT32 initPage(requestContext *context,
                                 PAGE_ID lpid,
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
-   };//class indexDefPageIniter
+   };//class indexEntryPageIniter
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INDEX_DEF_PAGE_INITER_H_
+#endif//VESSEL_INDEX_ENTRY_PAGE_INITER_H_

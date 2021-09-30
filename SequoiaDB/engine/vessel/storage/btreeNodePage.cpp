@@ -41,11 +41,9 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN btreeNodePageHead::isValid()const
+   BOOLEAN isKeyCanBeSavedInSlot(UINT32 keySize)
    {
-      return BTREE_NODE_PAGE_HEAD_VERSION == version &&
-             DMS_INVALID_LOGICCLID != clLogicalID &&
-             INVALID_LOGICAL_INDEX_ID != indexId;
+      return keySize <= sizeof(btreeNodeSlot::slotData::value);
    }
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,
@@ -59,7 +57,7 @@ namespace vessel
       BOOLEAN r = FALSE;
       btreeNodePageHead *headPtr = NULL;
       btreeNodePageHead head;
-
+   
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
       if (OSS_UNLIKELY(DMS_INVALID_LOGICCLID == cllid ||

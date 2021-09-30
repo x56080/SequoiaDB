@@ -655,6 +655,74 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageSpace::tryToGetLogicalPageBuffer(requestContext *context,
+                                                     PAGE_ID lpid,
+                                                     const ossSharedLatchMode &mode,
+                                                     logicalPageBuffer &lpb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!lpb.isValid(), "impossible");
+      BOOLEAN isMutablePage = FALSE;
+      idMapSlot slot;
+      runtimePageBuffer::options o;
+
+      lpb.fini();
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            INVALID_PAGE_ID == lpid ||
+                            mode.isNone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validateLpidBeforeGet(lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "can not get lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = lpb._lh.tryLock(context, getSpaceType(),
+                           lpid, mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      if (!lpb._lh.isLocked())
+      {
+         goto done;
+      }
+
+      rc = getPageFromCache(lpid, slot, isMutablePage);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = getRuntimePageBuffer(context, slot.pid,
+                                mode, o, lpb._rpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", slot.pid, rc);
+         goto error;
+      }
+
+      lpb.init(this, slot.psv, isMutablePage);
+   done:
+      return rc;
+   error:
+      lpb.fini();
+      goto done;
+   }
+
    INT32 logicalPageSpace::isLogicalPageMapped(requestContext *context,
                                                 PAGE_ID lpid,
                                                 BOOLEAN &mapped)
@@ -723,21 +791,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::makeBufferWritable(requestContext *context,
-                                              logicalPageBuffer &lpb)
+   INT32 logicalPageSpace::makeBufferWritable(logicalPageBuffer &lpb)
    {
       INT32 rc = SDB_OK;
       BOOLEAN snapshotEffective = FALSE;
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
+      requestContext *context = lpb._lh.getContext();
 
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            !lpb.isValid()))
+      else if (OSS_UNLIKELY(!lpb.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -761,7 +828,7 @@ namespace vessel
 
       if (lpb._lh.getLockMode().isUpgrade())
       {
-         lpb._lh.lockFromUpgrade();
+         lpb._lh.lockExclusiveFromUpgrade();
       }
 
       rc = context->getEnv()->dms.isSnapshotEffective(getSpaceID(),

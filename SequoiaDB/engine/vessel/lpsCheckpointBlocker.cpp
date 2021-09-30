@@ -43,7 +43,7 @@ namespace vessel
 {
    lpsCheckpointBlocker::~lpsCheckpointBlocker()
    {
-      fini();
+      SDB_ASSERT(0 == _count, "unblocking missed");
    }
 
    void lpsCheckpointBlocker::fini()
@@ -144,9 +144,9 @@ namespace vessel
    {
       if (isBlocking())
       {
-         _mutex->release_r();
          if (0 == --_count)
          {
+            _mutex->release_r();
             fini();
          }
       }

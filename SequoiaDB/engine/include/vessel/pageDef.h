@@ -59,7 +59,7 @@ namespace vessel
    const static PAGE_TYPE PAGE_TYPE_CL_META = 1;
    const static PAGE_TYPE PAGE_TYPE_ROUTE = 2;
    const static PAGE_TYPE PAGE_TYPE_RECORD = 3;
-   const static PAGE_TYPE PAGE_TYPE_INDEX_DEF = 1000;
+   const static PAGE_TYPE PAGE_TYPE_INDEX_ENTRY = 1000;
    const static PAGE_TYPE PAGE_TYPE_INDEX_MAPPING = 1001;
    const static PAGE_TYPE PAGE_TYPE_BTREE_NODE = 1002;
 

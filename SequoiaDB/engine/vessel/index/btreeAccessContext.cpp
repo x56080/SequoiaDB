@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexDefPageIniter.cpp
+   Source File Name = btreeAccessContext.cpp
 
    Descriptive Name =
 
@@ -33,52 +33,78 @@
 
 ******************************************************************************/
 
-#include "vessel/indexDefPageIniter.h"
-#include "vessel/runtimePageBuffer.h"
-#include "vessel/indexDefPage.h"
+#include "vessel/btreeAccessContext.h"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 indexDefPageIniter::initPage(requestContext *context,
-                                       PAGE_ID lpid,
-                                       PAGE_SNAPSHOT_VERION psv,
-                                       runtimePageBuffer *rpb)
+////////////btreeAccessContext
+   btreeAccessContext::btreeAccessContext(const indexContext *ic):
+   _path(ic)
+   {
+
+   }
+////////////btreeAccessContext end
+
+////////////btreeInsertContext
+   btreeInsertContext::btreeInsertContext(const indexContext *ic):
+   btreeAccessContext::btreeAccessContext(ic)
+   {
+
+   }
+
+   btreeInsertContext::~btreeInsertContext()
+   {}
+
+   INT32 btreeInsertContext::init(const ixmKey &key,
+                                  const recordID &rid,
+                                  const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
+      fini();
 
-      if (NULL == context ||
-          INVALID_PAGE_ID == lpid ||
-          INVALID_PAGE_SNAPSHOT_VERSION == psv ||
-          NULL == rpb ||
-          !rpb->isWritingPrepared())
+      if (OSS_UNLIKELY(!key.isValid() ||
+                       !rid.valid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
-
-      if (!initIndexDefPage(rpb->getPageSize(),
-                           rpb->getGlobalPid().page(),
-                           lpid, psv, (CHAR*)(rpb->getBuffer())))
+      else if ((INT32)MAX_IXM_KEY_SIZE < key.dataSize())
       {
-         PD_LOG(PDERROR, "failed to init index def page[%s]",
-                rpb->getGlobalPid().toString().c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = SDB_IXM_KEY_TOO_LARGE;
          goto error;
       }
 
-      rpb->commit(DPS_INVALID_LSN_OFFSET);
+      _key.assign(key);
+      _rid = rid;
+      if (transID.isValid())
+      {
+         _transID = transID;
+      }
    done:
       return rc;
    error:
-      if (NULL != rpb)
-      {
-         rpb->abort();
-      }
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+
+   void btreeInsertContext::fini()
+   {
+      if (_key.isValid())
+      {
+         _key.assign(NULL);
+         _rid = recordID();
+         _transID = DPS_TRANS_ID();
+         _pessimistically = FALSE;
+
+         _obstructed = FALSE;
+         _path.fini();
+         _pos = INVALID_RECORD_SLOT_ID;
+      }
+      return;
+   }
+////////////btreeInsertContext end
+} // namespace vessel
+
+} // namespace engine

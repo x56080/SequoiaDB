@@ -86,6 +86,10 @@ namespace vessel
          {
             return _obj;
          }
+         OSS_INLINE indexObject &getObj()
+         {
+            return _obj;
+         }
          OSS_INLINE UINT32 getIndexID()const
          {
             return _obj.getIndexID();
