@@ -835,11 +835,10 @@ namespace engine
          rc = cataInfo->getSubCLNameByRecord( insertObj, subCLName ) ;
          if ( rc )
          {
-            PD_LOG( PDWARNING, "Couldn't find the match[%s] sub-collection "
-                    "in cl's(%s) catalog info[%s], rc: %d",
-                    insertObj.toString().c_str(), cataInfo->getName(),
-                    cataInfo->toBSON().toString().c_str(),
-                    rc ) ;
+            PD_LOG_MSG( PDERROR, "Couldn't find matching sub-collection "
+                        "in main collection %s, rc: %d",
+                        cataInfo->getName(),
+                        rc ) ;
             goto error ;
          }
 
