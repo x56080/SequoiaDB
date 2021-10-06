@@ -1171,6 +1171,30 @@ class SequoiaCL
    public function getIndexInfo( string $name ){}
 
    /**
+    * Get the statistics of the specified index in current collection.
+    *
+    * @param $name the string argument. The index name.
+    *
+    * @return Returns the statistics of index, default return array.
+    *
+    * @retval array   record
+    * @retval string  record
+    *
+    * Example:
+    * @code
+    * $indexStat = $cl -> getIndexStat( 'myIndex' ) ;
+    * if ( empty( $indexStat ) )
+    * {
+    *    $err = $db -> getLastErrorMsg() ;
+    *    echo "Failed to get index statistics, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * var_dump( $indexStat ) ;
+    * @endcode
+   */
+   public function getIndexStat( string $name ){}
+
+   /**
     * Create $id index in collection.
     *
     * @param $args an array or the string argument. The arguments of creating id index. set it as null if no args. e.g. array( 'SortBufferSize' => 64 )

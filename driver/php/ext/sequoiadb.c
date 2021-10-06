@@ -241,6 +241,7 @@ const zend_function_entry clFun[] = {
    PHP_ME( SequoiaCL, getIndex,              NULL, ZEND_ACC_PUBLIC )//deprecated
    PHP_ME( SequoiaCL, getIndexes,            NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, getIndexInfo,          NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaCL, getIndexStat,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, createIdIndex,         NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, dropIdIndex,           NULL, ZEND_ACC_PUBLIC )
    //lob
