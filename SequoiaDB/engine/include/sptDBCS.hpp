@@ -66,11 +66,19 @@ namespace engine
                       _sptReturnVal &rval,
                       bson::BSONObj &detail ) ;
 
+      INT32 listCL( const _sptArguments &arg,
+                    _sptReturnVal &rval, 
+                    bson::BSONObj &detail ) ;
+
       INT32 alter( const _sptArguments &arg,
                    _sptReturnVal &rval,
                    bson::BSONObj &detail ) ;
 
       INT32 setDomain( const _sptArguments &arg,
+                       _sptReturnVal &rval,
+                       bson::BSONObj &detail ) ;
+
+      INT32 getDomain( const _sptArguments &arg,
                        _sptReturnVal &rval,
                        bson::BSONObj &detail ) ;
 

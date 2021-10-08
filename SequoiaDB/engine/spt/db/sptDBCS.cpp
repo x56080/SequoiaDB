@@ -31,9 +31,13 @@
 *******************************************************************************/
 #include "sptDBCS.hpp"
 #include "sptDBCL.hpp"
+#include "sptDBCursor.hpp"
+
 using sdbclient::_sdbCollectionSpace ;
 using sdbclient::sdbCollectionSpace ;
 using sdbclient::_sdbCollection ;
+using sdbclient::_sdbCursor ;
+
 namespace engine
 {
    #define SPT_CS_NAME  "SdbCS"
@@ -43,8 +47,10 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, dropCL )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, getCL )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, renameCL )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCS, listCL )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, alter )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, setDomain )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCS, getDomain )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, removeDomain )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, enableCapped )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, disableCapped )
@@ -58,8 +64,10 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "dropCL", dropCL )
       JS_ADD_MEMBER_FUNC( "getCL", getCL )
       JS_ADD_MEMBER_FUNC( "renameCL", renameCL )
+      JS_ADD_MEMBER_FUNC( "listCollections", listCL )
       JS_ADD_MEMBER_FUNC( "alter", alter )
       JS_ADD_MEMBER_FUNC( "setDomain", setDomain )
+      JS_ADD_MEMBER_FUNC( "getDomain", getDomain )
       JS_ADD_MEMBER_FUNC( "removeDomain", removeDomain )
       JS_ADD_MEMBER_FUNC( "enableCapped", enableCapped )
       JS_ADD_MEMBER_FUNC( "disableCapped", disableCapped )
@@ -269,6 +277,29 @@ namespace engine
       goto done ;
    }
 
+   INT32 _sptDBCS::listCL( const _sptArguments &arg, 
+                           _sptReturnVal &rval, 
+                           bson::BSONObj &detail )
+   {
+      INT32 rc            = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+
+      rc = _cs.listCollections( &pCursor ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to list collections" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+   
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
+      goto done ;
+
+   }
+
    INT32 _sptDBCS::resolve( const _sptArguments &arg,
                             UINT32 opcode,
                             BOOLEAN &processed,
@@ -388,6 +419,29 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _sptDBCS::getDomain( const _sptArguments &arg, 
+                              _sptReturnVal &rval, 
+                              bson::BSONObj &detail )
+   {
+      INT32 rc            = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+
+      rc = _cs.getDomain( &pCursor ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get domain" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+   
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pCursor ) ;
+      goto done ;
+
    }
 
    INT32 _sptDBCS::removeDomain( const _sptArguments &arg,

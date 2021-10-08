@@ -3050,6 +3050,10 @@ namespace sdbclient
       // drop an existing collection
       virtual INT32 dropCollection ( const CHAR *pCollection ) = 0 ;
 
+      virtual INT32 listCollections ( _sdbCursor **cursor ) = 0 ;
+
+      virtual INT32 listCollections ( sdbCursor &cursor ) = 0 ;
+
       // create a collection space with current collection space name
       virtual INT32 create () = 0 ;
       // drop a collection space with current collection space name
@@ -3065,6 +3069,10 @@ namespace sdbclient
       virtual INT32 alterCollectionSpace ( const bson::BSONObj & options ) = 0 ;
 
       virtual INT32 setDomain ( const bson::BSONObj & options ) = 0 ;
+
+      virtual INT32 getDomain ( _sdbCursor **cursor ) = 0 ;
+
+      virtual INT32 getDomain ( sdbCursor &cursor ) = 0 ;
 
       virtual INT32 removeDomain () = 0 ;
 
@@ -3242,6 +3250,37 @@ namespace sdbclient
          return pCollectionSpace->dropCollection ( pCollection ) ;
       }
 
+      /** \fn INT32 listCollections (  _sdbCursor **cursor )
+          \brief list all collections in current collection space.
+          \param [out] cursor  The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 listCollections ( _sdbCursor **cursor )
+      {
+         if ( !pCollectionSpace )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return  pCollectionSpace->listCollections( cursor ) ;
+      }
+
+      /** \fn INT32 listCollections ( sdbCursor &cursor )
+          \brief list all collections in current collection space.
+          \param [out] cursor  The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 listCollections ( sdbCursor &cursor )
+      {
+         if ( !pCollectionSpace )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return pCollectionSpace->listCollections( cursor ) ;
+      }
+
       /** \fn INT32 create ()
           \brief Create a new collection space.
           \deprecated This function will be deprecated in SequoiaDB2.x, use sdb::createCollectionSpace instead of it.
@@ -3341,6 +3380,37 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pCollectionSpace->setDomain( options ) ;
+      }
+
+      /** \fn INT32 getDomain ( _sdbCursor **cursor )
+          \brief get the Domain name in current collection space.
+          \param [out] cursor  The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getDomain ( _sdbCursor **cursor )
+      {
+         if ( !pCollectionSpace )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return  pCollectionSpace->getDomain( cursor ) ;
+      }
+
+      /** \fn INT32 getDomain ( sdbCursor &cursor )
+          \brief get the Domain name in current collection space.
+          \param [out] cursor  The sdbCursor object of result
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getDomain ( sdbCursor &cursor )
+      {
+         if ( !pCollectionSpace )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return pCollectionSpace->getDomain( cursor ) ;
       }
 
       /** \fn INT32 removeDomain ()
