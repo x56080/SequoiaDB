@@ -1,9 +1,10 @@
 /******************************************************************************
  * @Description   : seqDB-21881:内置SQL语句查询$SNAPSHOT_CONTEXT
- *                  seqDB-21882:内置SQL语句查询$SNAPSHOT_CONTEXT_CUR
+ *                : seqDB-21882:内置SQL语句查询$SNAPSHOT_CONTEXT_CUR
+ *                : seqDB-24415:获取上下文快照，检查StartTimestamp字段
  * @Author        : liyuanyue
  * @CreateTime    : 2020.03.20
- * @LastEditTime  : 2021.09.08
+ * @LastEditTime  : 2021.10.08
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -51,6 +52,14 @@ function test ()
                Description: snapshotTmpObj["Contexts"][j]["Description"], DataRead: snapshotTmpObj["Contexts"][j]["DataRead"],
                IndexRead: snapshotTmpObj["Contexts"][j]["IndexRead"], QueryTimeSpent: snapshotTmpObj["Contexts"][j]["QueryTimeSpent"]
             } );
+
+            // seqDB-24415:获取上下文快照，检查StartTimestamp字段
+            var startTimeSnap = snapshotTmpObj["Contexts"][j]["StartTimestamp"];
+            var startTimeSql = tmpObj["Contexts"][j]["StartTimestamp"];
+            assert.notEqual( startTimeSnap, 0 );
+            assert.notEqual( startTimeSnap, "1970-01-01-08.00.00.000000" );
+            assert.notEqual( startTimeSql, 0 );
+            assert.notEqual( startTimeSql, "1970-01-01-08.00.00.000000" );
          }
          if( !( commCompareObject( expObj, actObj ) ) )
          {
