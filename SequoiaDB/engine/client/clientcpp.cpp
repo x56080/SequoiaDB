@@ -5429,6 +5429,53 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbCollectionSpaceImpl::listCollections ( _sdbCursor **cursor )
+   {
+      INT32   rc = SDB_OK ;
+      BSONObj condition ;
+      CHAR    lowBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
+      CHAR    upBound[ CLIENT_CS_NAMESZ + 1 + 1 ] = { 0 } ;
+
+      if ( !_connection || '\0' == _collectionSpaceName[0] || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossStrncpy( lowBound, _collectionSpaceName, CLIENT_CS_NAMESZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, _collectionSpaceName, CLIENT_CS_NAMESZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      // build condition bson
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+         condition = builder.obj() ;
+      }
+      catch( const std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+
+      rc = _connection->getList( cursor, SDB_LIST_COLLECTIONS, condition ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _sdbCollectionSpaceImpl::create ()
    {
       INT32 rc            = SDB_OK ;
@@ -5610,6 +5657,34 @@ do                                                            \
    INT32 _sdbCollectionSpaceImpl::setDomain ( const BSONObj & options )
    {
       return _alterInternal( SDB_ALTER_CS_SET_DOMAIN, &options, FALSE ) ;
+   }
+
+   INT32 _sdbCollectionSpaceImpl::getDomain ( _sdbCursor **cursor )
+   {
+      INT32 rc                          = SDB_OK ;
+      CHAR sql[ CLIENT_CS_NAMESZ + 50 ] = { 0 } ;
+
+      if ( !_connection || '\0' == _collectionSpaceName[0] || !cursor )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // build sql
+      ossSnprintf( sql, CLIENT_CS_NAMESZ + 50, 
+                   "select Domain from $LIST_CS where Name = '%s'", 
+                   _collectionSpaceName ) ;
+
+      rc = _connection->exec( sql, cursor ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
    }
 
    INT32 _sdbCollectionSpaceImpl::removeDomain ()

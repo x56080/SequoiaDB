@@ -907,6 +907,13 @@ namespace sdbclient
       // drop an existing collection
       INT32 dropCollection ( const CHAR *pCollection ) ;
 
+      INT32 listCollections ( _sdbCursor **cursor ) ;
+
+      INT32 listCollections ( sdbCursor &cursor )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return listCollections ( &cursor.pCursor ) ;
+      }
       // create a collection space with current collection space name
       INT32 create () ;
       // drop a collection space with current collection space name
@@ -923,6 +930,14 @@ namespace sdbclient
       INT32 alterCollectionSpace ( const BSONObj & options ) ;
 
       INT32 setDomain ( const BSONObj & options ) ;
+
+      INT32 getDomain ( _sdbCursor **cursor ) ;
+
+      INT32 getDomain ( sdbCursor &cursor )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return getDomain ( &cursor.pCursor ) ;
+      }
 
       INT32 removeDomain () ;
 
