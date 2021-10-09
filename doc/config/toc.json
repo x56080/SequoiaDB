@@ -1888,6 +1888,12 @@
                            "file": "deployment_postgresql",
                            "cn": "部署PostgreSQL实例",
                            "en": "Deployment PostgreSQL"
+                        },
+                        {
+                           "id": 1632992351,
+                           "file": "deployment_mariadb",
+                           "cn": "部署MariaDB实例",
+                           "en": "Deployment MariaDB"
                         }
                      ]
                   }
@@ -2066,6 +2072,50 @@
                         {
                            "id": 1562586901,
                            "file": "remove_pg_storage",
+                           "cn": "移除实例存储",
+                           "en": "Remove instance storage"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1632992352,
+                     "dir": "Mariadb",
+                     "cn": "MariaDB实例操作",
+                     "en": "MariaDB Instance",
+                     "contents": [
+                        {
+                           "id": 1632992353,
+                           "file": "basic_operation",
+                           "cn": "基础操作",
+                           "en": "Basic Operation"
+                        },
+                        {
+                           "id": 1632992354,
+                           "file": "database",
+                           "cn": "数据库",
+                           "en": "Database"
+                        },
+                        {
+                           "id": 1632992355,
+                           "file": "record",
+                           "cn": "数据操作",
+                           "en": "Record"
+                        },
+                        {
+                           "id": 1632992356,
+                           "file": "field",
+                           "cn": "字段结构",
+                           "en": "Field"
+                        },
+                        {
+                           "id": 1632992357,
+                           "file": "uninstall_mariadb",
+                           "cn": "删除实例",
+                           "en": "Uninstall instance"
+                        },
+                        {
+                           "id": 1632992358,
+                           "file": "remove_mariadb_storage",
                            "cn": "移除实例存储",
                            "en": "Remove instance storage"
                         }
