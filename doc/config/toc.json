@@ -389,10 +389,16 @@
                   {
                      "id": 1519627277,
                      "dir": "PostgreSQL_Instance",
-                     "cn": "PostgreSQL实例",
+                     "cn": "PostgreSQL 实例",
                      "en": "PostgreSQL Instance",
                      "top": true,
                      "contents": [
+                        {
+                           "id": 1519628019,
+                           "file": "install_deploy",
+                           "cn": "安装部署",
+                           "en": "Install and Deploy"
+                        },
                         {
                            "id": 1519627742,
                            "dir": "Operation",
@@ -400,22 +406,42 @@
                            "en": "Operation",
                            "contents": [
                               {
-                                 "id": 1519628019,
-                                 "file": "install_deploy",
-                                 "cn": "安装部署",
-                                 "en": "Install and Deploy"
-                              },
-                              {
                                  "id": 1519628020,
                                  "file": "connection",
                                  "cn": "连接",
                                  "en": "Connection"
                               },
                               {
-                                 "id": 1519627744,
-                                 "file": "SQL_to_Sequoiadb_mapping",
-                                 "cn": "SQL实例与JSON对象映射表",
-                                 "en": "Mapping Table from SQL to JSON"
+                                 "id": 1630572010,
+                                 "file": "database_and_table_operation",
+                                 "cn": "库与表操作",
+                                 "en": "Database and Table Operation"
+                              },
+                              {
+                                 "id": 1630572018,
+                                 "file": "CRUD_operation",
+                                 "cn": "CRUD 操作",
+                                 "en": "CRUD Operation"
+                              }
+                           ]
+                        },
+                        {
+                           "id": 1630572038,
+                           "dir": "Maintainance",
+                           "cn": "运维",
+                           "en": "Maintainance",
+                           "contents": [
+                              {
+                                 "id": 1630572045,
+                                 "file": "config",
+                                 "cn": "配置",
+                                 "en": "Config"
+                              },
+                              {
+                                 "id": 1630572050,
+                                 "file": "upgrade",
+                                 "cn": "升级",
+                                 "en": "Upgrade"
                               },
                               {
                                  "id": 1557737448,
@@ -428,28 +454,34 @@
                         {
                            "id": 1519628021,
                            "dir": "Development",
-                           "cn": "开发",
+                           "cn": "驱动",
                            "en": "Development",
                            "contents": [
                               {
                                  "id": 1603248529,
                                  "file": "engine_download",
-                                 "cn": "PostgreSQL驱动下载",
+                                 "cn": "PostgreSQL 驱动下载",
                                  "en": "Engine Download"
                               },
                               {
                                  "id": 1603248544,
                                  "file": "JDBC",
-                                 "cn": "JDBC驱动",
+                                 "cn": "JDBC 驱动",
                                  "en": "JDBC Engine"
                               },
                               {
                                  "id": 1603248551,
                                  "file": "ODBC",
-                                 "cn": "ODBC驱动",
+                                 "cn": "ODBC 驱动",
                                  "en": "ODBC Engine"
                               }
                            ]
+                        },
+                        {
+                           "id": 1630572070,
+                           "file": "data_type",
+                           "cn": "数据类型映射表",
+                           "en": "Data Type"
                         }
                      ]
                   },
