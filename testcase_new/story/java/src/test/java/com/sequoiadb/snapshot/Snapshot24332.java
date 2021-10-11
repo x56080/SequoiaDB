@@ -65,7 +65,7 @@ public class Snapshot24332 extends SdbTestBase {
         db.close();
     }
 
-    @Test
+    //@Test
     public void test(){
         UpdateTrans t1 = new UpdateTrans( "t1", clName1, clName2, 10 );
         UpdateTrans t2 = new UpdateTrans( "t2", clName2, clName3, 5 );
