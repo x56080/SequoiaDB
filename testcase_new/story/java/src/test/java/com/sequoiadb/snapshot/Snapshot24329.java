@@ -72,7 +72,7 @@ public class Snapshot24329 extends SdbTestBase {
         }
     }
 
-    @Test
+    //@Test
     public void test(){
         UpdateTrans t1 = new UpdateTrans( clName1, clName2 );
         UpdateTrans t2 = new UpdateTrans( clName2, clName3 );

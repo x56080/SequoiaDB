@@ -74,7 +74,7 @@ public class Snapshot24334 extends SdbTestBase {
         dataNode3.close();
     }
 
-    @Test
+    //@Test
     public void test(){
         // prepare data
         for ( int i = 1; i < 7; i++ ){

@@ -50,7 +50,7 @@ public class Snapshot24328 extends SdbTestBase {
         }
     }
 
-    @Test
+    //@Test
     public void test(){
         // coord
         checkResult( db );

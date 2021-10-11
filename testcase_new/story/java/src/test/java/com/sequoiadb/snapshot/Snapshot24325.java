@@ -56,7 +56,7 @@ public class Snapshot24325 extends SdbTestBase {
         }
     }
 
-    @Test
+    //@Test
     public void test(){
         QueryTrans t1 = new QueryTrans();
         QueryTrans t2 = new QueryTrans();
