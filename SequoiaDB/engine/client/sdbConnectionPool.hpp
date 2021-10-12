@@ -260,6 +260,9 @@ namespace sdbclient
       //destroy connections function
       void _destroyConn() ;
 
+      // connect to db
+      INT32 _connect( sdb *conn, const std::string &address ) ;
+
       // background task function
       void _bgTask() ;
 

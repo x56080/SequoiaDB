@@ -63,7 +63,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	ds.close() ;
 	
    // test get connection with illegal username
-	conf.setUserInfo( "lxw", "sequoiadb" ) ;
+	conf.setAuthInfo( "lxw", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
    rc = ds.enable() ;
@@ -73,7 +73,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	ds.close() ;
 	
    // test get connection with no passwd
-	conf.setUserInfo( "root", "" ) ;
+	conf.setAuthInfo( "root", "" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to test init datasource" ;
    rc = ds.enable() ;
@@ -83,7 +83,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	ds.close() ;
 		
    // test get connection with illegal passwd
-	conf.setUserInfo( "root", "seq" ) ;
+	conf.setAuthInfo( "root", "seq" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
    rc = ds.enable() ;
@@ -93,7 +93,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	ds.close() ;
 
    // test get connection with legal user and remove user
-	conf.setUserInfo( "root", "sequoiadb" ) ;
+	conf.setAuthInfo( "root", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
    rc = ds.enable() ;

@@ -744,7 +744,6 @@ namespace sdbclient
 
       while( crtNum < num )
       {
-         INT32 pos = 0 ;
          string coord ;
 
          // if no coord can be used
@@ -775,13 +774,7 @@ namespace sdbclient
             break ;
          }
          // when we get a coord address, let's build the connection
-         pos = coord.find_first_of( ":" ) ;
-         rc = conn->connect(
-            coord.substr(0, pos).c_str(),
-            coord.substr(pos+1, coord.length()).c_str(),
-            _conf.getUserName().c_str(),
-            _conf.getPasswd().c_str() ) ;
-
+         rc = _connect( conn, coord ) ;
          if ( SDB_OK == rc )
          {
             if ( _addNewConnSafely(conn, coord) )
@@ -809,11 +802,7 @@ namespace sdbclient
             BOOLEAN toBreak = FALSE ;
             while ( retryTime < SDB_DS_CREATECONN_RETRYTIME )
             {
-               rc = conn->connect(
-                  coord.substr( 0, pos ).c_str(),
-                  coord.substr( pos+1, coord.length() ).c_str(),
-                  _conf.getUserName().c_str(),
-                  _conf.getPasswd().c_str() ) ;
+               rc = _connect( conn, coord ) ;
                if ( SDB_OK != rc )
                {
                   ++retryTime ;
@@ -918,6 +907,31 @@ namespace sdbclient
       }
    }
 
+   INT32 sdbConnectionPool::_connect( sdb *conn, const string &address )
+   {
+      INT32 rc = SDB_OK ;
+      if ( "" == _conf.getPasswd() && "" != _conf.getCipherFile() )
+      {
+         const INT32 size = 1;
+         const CHAR *pConnAddrs[size] ;
+         pConnAddrs[0] = address.c_str() ;
+         rc = conn->connect( pConnAddrs,
+                             size,
+                             _conf.getUserName().c_str(),
+                             _conf.getToken().c_str(),
+                             _conf.getCipherFile().c_str() ) ;
+      }
+      else
+      {
+         INT32 pos = address.find_first_of( ":" ) ;
+         rc = conn->connect( address.substr( 0, pos ).c_str(),
+                             address.substr( pos + 1, address.length() ).c_str(),
+                             _conf.getUserName().c_str(),
+                             _conf.getPasswd().c_str() ) ;
+      }
+      return rc ;
+   }
+
    // background task function
    void sdbConnectionPool::_bgTask()
    {
@@ -972,12 +986,8 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
       rc = _strategy->getNextCoord( tmp ) ;
       if (SDB_OK != rc)
          return ;
-      INT32 pos = tmp.find_first_of( ":" ) ;
-      rc = conn.connect(
-         tmp.substr(0, pos).c_str(),
-         tmp.substr(pos+1, tmp.length()).c_str(),
-         _conf.getUserName().c_str(),
-         _conf.getPasswd().c_str() ) ;
+
+      rc = _connect( &conn, tmp ) ;
       if ( SDB_OK != rc )
       {
          conn.disconnect() ;
@@ -1034,7 +1044,6 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
       INT32 rc          = SDB_OK ;
       INT32 j           = 0 ;
       INT32 count       = 0 ;
-      INT32 pos         = 0 ;
       INT32 abnormalNum = 0 ;
       string tmp ;
       sdb conn ;
@@ -1048,12 +1057,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
             // let's stop
             break ;
          }
-         pos = tmp.find_first_of( ":" ) ;
-         rc = conn.connect(
-            tmp.substr(0, pos).c_str(),
-            tmp.substr(pos+1, tmp.length()).c_str(),
-            _conf.getUserName().c_str(),
-            _conf.getPasswd().c_str() ) ;
+         rc = _connect( &conn, tmp ) ;
          if ( SDB_OK == rc )
          {
             ++count ;

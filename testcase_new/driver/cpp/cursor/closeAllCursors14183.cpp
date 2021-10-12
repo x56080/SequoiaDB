@@ -113,7 +113,7 @@ TEST_F( closeAllCursorsTest14183, datasourceConn )
    sdbConnectionPool ds ;
    sdbConnectionPoolConf conf ;
 
-   conf.setUserInfo( user, passwd ) ;
+   conf.setAuthInfo( user, passwd ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to init data source" ;
    rc = ds.enable() ;

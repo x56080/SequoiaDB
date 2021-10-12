@@ -93,6 +93,8 @@ namespace sdbclient
       // user info
       string               _userName ;
       string               _passwd ;
+      string               _cipherFile ;
+      string               _token ;
       // connection number info
       INT32                _initConnCount ;
       INT32                _deltaIncCount ;
@@ -112,25 +114,51 @@ namespace sdbclient
       BOOLEAN              _useSSL ;
 
    public:
-      /** \fn void setUserInfo(const string& username,
+      /** \fn void setAuthInfo( const string& username,
            const string& passwd)
-         \brief Set user name and password
+         \brief Set authentication information
          \param [in] username The user name
          \param [in] passwd The password
       */
-      void setUserInfo(
+      void setAuthInfo(
          const string &username,
          const string &passwd ) ;
+
+      /** \fn void setAuthInfo( const string& username,
+                                const string& cipherFile,
+                                const string& token )
+         \brief Set authentication information
+         \param [in] username The user name
+         \param [in] cipherFile The cipherfile location
+         \param [in] token The password encryption token
+      */
+      void setAuthInfo( const string &username,
+                        const string &cipherFile,
+                        const string &token ) ;
+
       /** \fn string getUserName()
          \brief Get user name
          \retval string user name
       */
       string getUserName() const { return _userName ; }
+
       /** \fn string getPasswd()
          \brief Get password
          \retval string password
       */
       string getPasswd() const { return _passwd ; }
+
+      /** \fn string getCipherFile()
+         \brief Get the cipherfile location
+         \retval string cipherFile
+      */
+      string getCipherFile() const { return _cipherFile ; }
+
+      /** \fn string getToken()
+         \brief Get the password encryption token
+         \retval string encryption token
+      */
+      string getToken() const { return _token ; }
 
       /** \fn void setConnCntInfo(INT32 initCnt,
                                   INT32 deltaIncCnt,
@@ -142,6 +170,7 @@ namespace sdbclient
          \param [in] maxIdleCnt The max idle connection number
          \param [in] maxCnt The max connection number
       */
+
       void setConnCntInfo(
          INT32 initCnt,
          INT32 deltaIncCnt,
