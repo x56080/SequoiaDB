@@ -74,7 +74,7 @@ INT32 main( INT32 argc, CHAR **argv )
    sdbDataSource        ds ;
 
    // 设置连接池配置，userName="",passwd=""
-   conf.setUserInfo( "", "" ) ;  
+   conf.setAuthInfo( "", "" ) ;
    // 初始化时预生成 10 个连接，连接池中空闲连接不够用时每次生成 10 个连接
    // 最大空闲连接数为 20，连接池最多维护 500 个连接
    conf.setConnCntInfo( 10, 10, 20, 500 ) ;        

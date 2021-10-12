@@ -96,7 +96,7 @@ INT32 main( INT32 argc, CHAR **argv )
 
    // set configure of sdbDataSource
    // userName="",passwd=""
-   conf.setUserInfo( "", "" ) ;  
+   conf.setAuthInfo( "", "" ) ;
    // 10 connection is created on initialized, to create 10 connection when 
    // connection number is not enough, max idle connection number is 20, 
    // sdbDataSource provide 500 connection at most

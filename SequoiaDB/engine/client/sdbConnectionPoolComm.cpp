@@ -40,12 +40,22 @@
 namespace sdbclient
 {
    //set user info
-   void sdbConnectionPoolConf::setUserInfo(
+   void sdbConnectionPoolConf::setAuthInfo(
       const std::string &username,
       const std::string &passwd )
    {
       _userName = username ;
       _passwd = passwd ;
+   }
+
+   void sdbConnectionPoolConf::setAuthInfo(
+      const string &username,
+      const string &cipherFile,
+      const string &token )
+   {
+      _userName = username ;
+      _cipherFile = cipherFile ;
+      _token = token ;
    }
 
    // set connection number info
