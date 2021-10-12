@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -55,6 +57,10 @@ public class CRUD1540 extends SdbTestBase {
     @BeforeClass
     public void setup() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        // 跳过 standAlone
+        if ( CommLib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
+        }
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = cs.createCollection( clName );
 
