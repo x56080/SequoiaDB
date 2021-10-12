@@ -102,6 +102,27 @@ error:
     goto done;
 }
 
+static int _replace ( struct buf* src, const char* repchar)
+{
+    int rc = 0;
+    const char* p = NULL;
+
+retry:
+    p = NULL;
+    p = (const char*)strstr((const char*)(src->data),repchar);
+    if (NULL == p)
+    {
+        goto done;
+    }
+    {
+        memmove((void *)p, p+1, strlen(p)-1);
+        src->size--;
+        goto retry ;
+    }
+done:
+    return rc;
+}
+
 /* main - main function, interfacing STDIO with the parser */
 int main(int argc, char **argv)
 {
@@ -174,6 +195,8 @@ int main(int argc, char **argv)
         /* filter content */
         _filterContents(ib, TROFF_INDENT_BEGEIN_W, TROFF_INDENT_END_W);
         _filterContents(ib, TROFF_INDENT_BEGEIN_L, TROFF_INDENT_END_L);
+        //replace the abnormal blank spcaces
+        _replace(ib, "\\ ") ;
         _writeFile(ib, out_file);
         goto done;
     }

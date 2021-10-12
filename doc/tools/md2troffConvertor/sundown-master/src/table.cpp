@@ -3,6 +3,7 @@
 #endif
 #include "table.hpp"
 #include "string.h"
+#include <stdint.h>
 
 #define PERIOD_CH          "\u3002"
 #define COMMA_CH           "\uFF0C"
