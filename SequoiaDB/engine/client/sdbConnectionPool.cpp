@@ -498,14 +498,6 @@ namespace sdbclient
                }
                else
                {
-                  // reset session attributions
-                  bson::BSONObj obj ;
-                  obj = BSON( "PreferedInstance" << "A" ) ;
-                  rc = tmp->setSessionAttr( obj ) ;
-                  if ( SDB_OK != rc )
-                  {
-                     goto error ;
-                  }
                   // close all cursors
                   rc = tmp->closeAllCursors() ;
                   if ( SDB_OK != rc )
