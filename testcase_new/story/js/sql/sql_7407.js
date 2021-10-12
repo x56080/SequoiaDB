@@ -108,7 +108,7 @@ function test ()
          actRecs.compIndexName = compIndexName;
       }
    }
-   commCompareObject( expRecs, actRecs );
+   assert.equal( expRecs, actRecs );
 
    // drop index 单字段索引、唯一索引、组合索引
    db.execUpdate( "drop index " + compIndexName + " on " + csName + "." + tmpclName );
