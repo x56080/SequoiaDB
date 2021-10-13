@@ -19,7 +19,7 @@
 
    Descriptive Name = SDB Connection Pool Source File
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -35,9 +35,9 @@
 *******************************************************************************/
 
 #include "sdbConnectionPool.hpp"
-#include "sdbDataSourceStrategy.hpp"
+#include "sdbConnectionPoolStrategy.hpp"
 #include "client.hpp"
-#include "sdbDataSourceWorker.hpp"
+#include "sdbConnectionPoolWorker.hpp"
 #include <algorithm>
 #include "ossMem.hpp"
 #include <iostream>
@@ -52,9 +52,9 @@ using std::list;
 namespace sdbclient
 {
    // sleep time:0.1s
-   #define SDB_DS_SLEEP_TIME        100
-   #define SDB_DS_TRYGETCONN_TIME   3
-   #define SDB_DS_MULTIPLE          1.2
+   #define SDB_CONNPOOL_SLEEP_TIME        100
+   #define SDB_CONNPOOL_TRYGETCONN_TIME   3
+   #define SDB_CONNPOOL_MULTIPLE          1.2
 
    void createConnFunc( void *args )
    {
@@ -78,7 +78,7 @@ namespace sdbclient
       SAFE_OSS_DELETE(_strategy) ;
    }
 
-   // init data source with url(hostname:port) and conf
+   // init connection pool with url(hostname:port) and conf
    INT32 sdbConnectionPool::init(
       const string &url,
       const sdbConnectionPoolConf &conf )
@@ -89,7 +89,7 @@ namespace sdbclient
       return init( vUrl, conf ) ;
    }
 
-   // init data source with url vector and conf
+   // init connection pool with url vector and conf
    INT32 sdbConnectionPool::init(
       const std::vector<string> &vUrls,
       const sdbConnectionPoolConf &conf )
@@ -114,7 +114,7 @@ namespace sdbclient
       rc = _buildStrategy();
       if ( SDB_OK != rc )
       {
-         SAFE_OSS_DELETE(_strategy) ;
+         SAFE_OSS_DELETE( _strategy ) ;
          goto error ;
       }
 
@@ -217,7 +217,7 @@ namespace sdbclient
       }
    }
 
-   // enable data source, start background task
+   // enable connection pool, start background task
    INT32 sdbConnectionPool::enable()
    {
       INT32 rc = SDB_OK ;
@@ -244,7 +244,7 @@ namespace sdbclient
                // prepare some connections
                _createConnByNum( _conf.getInitConnCount() ) ;
                // start create connection thread
-               _createConnWorker = SDB_OSS_NEW sdbDSWorker(
+               _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
                   createConnFunc, this ) ;
                if ( NULL == _createConnWorker )
                {
@@ -252,7 +252,7 @@ namespace sdbclient
                   goto error ;
                }
                // start destroy connection thread
-               _destroyConnWorker = SDB_OSS_NEW sdbDSWorker( destroyConnFunc,
+               _destroyConnWorker = SDB_OSS_NEW sdbConnPoolWorker( destroyConnFunc,
                                                              this ) ;
                if ( NULL == _destroyConnWorker )
                {
@@ -260,7 +260,7 @@ namespace sdbclient
                   goto error ;
                }
                // start background task thread
-               _bgTaskWorker= SDB_OSS_NEW sdbDSWorker( bgTaskFunc, this ) ;
+               _bgTaskWorker= SDB_OSS_NEW sdbConnPoolWorker( bgTaskFunc, this ) ;
                if ( NULL == _bgTaskWorker )
                {
                   rc = SDB_OOM ;
@@ -302,7 +302,7 @@ namespace sdbclient
       goto done  ;
    }
 
-   // disable data source, stop background task
+   // disable connection pool, stop background task
    INT32 sdbConnectionPool::disable()
    {
       INT32 ret = SDB_OK ;
@@ -342,8 +342,8 @@ namespace sdbclient
                goto error ;
             }
 
-            // clear data source
-            _clearDataSource() ;
+            // clear connection pool
+            _clearConnPool() ;
 
             _toCreateConn = FALSE ;
             _toDestroyConn = FALSE ;
@@ -400,8 +400,8 @@ namespace sdbclient
                }
                while ( !isGet && 0 <= timeCnt && timeCnt < timeoutms )
                {
-                  ossSleep( SDB_DS_SLEEP_TIME ) ;
-                  timeCnt += SDB_DS_SLEEP_TIME ;
+                  ossSleep( SDB_CONNPOOL_SLEEP_TIME ) ;
+                  timeCnt += SDB_CONNPOOL_SLEEP_TIME ;
                   if ( _idleSize.peek() > 0 )
                   {
                      isGet = _tryGetConn( conn ) ;
@@ -451,7 +451,7 @@ namespace sdbclient
          } // _idleSize <= 0
 
          // if need pre create some connection
-         if ( _idleSize.peek() <= SDB_DS_TOPRECREATE_THRESHOLD )
+         if ( _idleSize.peek() <= SDB_CONNPOOL_TOPRECREATE_THRESHOLD )
          {
             _toCreateConn = TRUE ;
          }
@@ -623,17 +623,17 @@ namespace sdbclient
          SAFE_OSS_DELETE( _strategy ) ;
       switch( _conf.getConnectStrategy() )
       {
-      case DS_STY_SERIAL:
-         _strategy = SDB_OSS_NEW sdbDSSerialStrategy() ;
+      case CONNPOOL_STY_SERIAL:
+         _strategy = SDB_OSS_NEW sdbConnPoolSerialStrategy() ;
          break ;
-      case DS_STY_RANDOM:
-         _strategy = SDB_OSS_NEW sdbDSRandomStrategy() ;
+      case CONNPOOL_STY_RANDOM:
+         _strategy = SDB_OSS_NEW sdbConnPoolRandomStrategy() ;
          break ;
-      case DS_STY_LOCAL:
-         _strategy = SDB_OSS_NEW sdbDSLocalStrategy() ;
+      case CONNPOOL_STY_LOCAL:
+         _strategy = SDB_OSS_NEW sdbConnPoolLocalStrategy() ;
          break ;
-      case DS_STY_BALANCE:
-         _strategy = SDB_OSS_NEW sdbDSBalanceStrategy() ;
+      case CONNPOOL_STY_BALANCE:
+         _strategy = SDB_OSS_NEW sdbConnPoolBalanceStrategy() ;
          break ;
       }
       if (NULL == _strategy)
@@ -644,8 +644,8 @@ namespace sdbclient
    }
 
 
-   // clear data source
-   void sdbConnectionPool::_clearDataSource()
+   // clear connection pool
+   void sdbConnectionPool::_clearConnPool()
    {
       // clear connection list
       list<sdbclient::sdb*>::const_iterator iter ;
@@ -712,7 +712,7 @@ namespace sdbclient
          {
             if ( _toStopWorkers )
                return ;
-            ossSleep( SDB_DS_SLEEP_TIME ) ;
+            ossSleep( SDB_CONNPOOL_SLEEP_TIME ) ;
          }
          _connMutex.get() ;
          INT32 idleNum = _idleSize.peek() ;
@@ -744,10 +744,10 @@ namespace sdbclient
 
       while( crtNum < num )
       {
-         string coord ;
+         string coordAddr ;
 
          // if no coord can be used
-         rc = _strategy->getNextCoord(coord) ;
+         rc = _strategy->getNextCoord(coordAddr) ;
          if ( SDB_OK != rc )
          {
             INT32 cnt = _retrieveAddrFromAbnormalList() ;
@@ -774,10 +774,10 @@ namespace sdbclient
             break ;
          }
          // when we get a coord address, let's build the connection
-         rc = _connect( conn, coord ) ;
+         rc = _connect( conn, coordAddr ) ;
          if ( SDB_OK == rc )
          {
-            if ( _addNewConnSafely(conn, coord) )
+            if ( _addNewConnSafely(conn, coordAddr) )
             {
                ++crtNum ;
                //#if defined (_DEBUG)
@@ -800,20 +800,20 @@ namespace sdbclient
             // that coord address temporarily
             INT32 retryTime = 0 ;
             BOOLEAN toBreak = FALSE ;
-            while ( retryTime < SDB_DS_CREATECONN_RETRYTIME )
+            while ( retryTime < SDB_CONNPOOL_CREATECONN_RETRYTIME )
             {
-               rc = _connect( conn, coord ) ;
+               rc = _connect( conn, coordAddr ) ;
                if ( SDB_OK != rc )
                {
                   ++retryTime ;
-                  ossSleep( SDB_DS_SLEEP_TIME ) ; // TODO: (new) why we need to
+                  ossSleep( SDB_CONNPOOL_SLEEP_TIME ) ; // TODO: (new) why we need to
                                                   // sleep?
                   continue ;
                } // retry failed
                else
                {
                   // add success
-                  if ( _addNewConnSafely(conn, coord) )
+                  if ( _addNewConnSafely(conn, coordAddr) )
                   {
                      ++crtNum ;
                      //#if defined (_DEBUG)
@@ -832,10 +832,10 @@ namespace sdbclient
                } // retry success
             } // while for retry
             // after retry time, still failed
-            if ( retryTime == SDB_DS_CREATECONN_RETRYTIME )
+            if ( retryTime == SDB_CONNPOOL_CREATECONN_RETRYTIME )
             {
                SAFE_OSS_DELETE( conn ) ;
-               _strategy->mvCoordToAbnormal( coord ) ;
+               _strategy->mvCoordToAbnormal( coordAddr ) ;
             }
             if ( toBreak )
             {
@@ -887,7 +887,7 @@ namespace sdbclient
          {
             if ( _toStopWorkers )
                return ;
-            ossSleep( SDB_DS_SLEEP_TIME ) ;
+            ossSleep( SDB_CONNPOOL_SLEEP_TIME ) ;
          }
          sdb* conn ;
          _connMutex.get() ;
@@ -936,20 +936,20 @@ namespace sdbclient
    void sdbConnectionPool::_bgTask()
    {
       INT64 syncCoordInterval = _conf.getSyncCoordInterval() ;
-      INT64 ckAbnormalInterval = SDB_DS_CHECKUNNORMALCOORD_INTERVAL ;
+      INT64 ckAbnormalInterval = SDB_CONNPOOL_CHECKUNNORMALCOORD_INTERVAL ;
       INT64 ckConnInterval = _conf.getCheckInterval() ;
       INT64 syncCoordTimeCnt = 0 ;
       INT64 ckAbnormalTimeCnt = 0 ;
       INT64 ckConnTimeCnt = 0 ;
       while ( !_toStopWorkers )
       {
-         ossSleep( SDB_DS_SLEEP_TIME ) ;
+         ossSleep( SDB_CONNPOOL_SLEEP_TIME ) ;
          if ( syncCoordInterval > 0 )
          {
-            syncCoordTimeCnt += SDB_DS_SLEEP_TIME ;
+            syncCoordTimeCnt += SDB_CONNPOOL_SLEEP_TIME ;
          }
-         ckAbnormalTimeCnt += SDB_DS_SLEEP_TIME ;
-         ckConnTimeCnt += SDB_DS_SLEEP_TIME ;
+         ckAbnormalTimeCnt += SDB_CONNPOOL_SLEEP_TIME ;
+         ckConnTimeCnt += SDB_CONNPOOL_SLEEP_TIME ;
          // try to sync coord address
          if ( syncCoordInterval > 0 && syncCoordTimeCnt >= syncCoordInterval )
          {
@@ -1080,7 +1080,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
       time( &nowTime ) ;
       INT32 diffTime = difftime( nowTime, conn->getLastAliveTime() ) * 1000 ;
       if ( 0 > diffTime ||
-           diffTime + SDB_DS_MULTIPLE * checkInterval > keepAlive )
+           diffTime + SDB_CONNPOOL_MULTIPLE * checkInterval > keepAlive )
       {
          return TRUE ;
       }
@@ -1111,11 +1111,11 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
 /*
 #if defined (_DEBUG)
 cout << "aliveTime is: " << aliveTime << ", diffTime is: " << diffTime ;
-cout << ", diffTime + checkInterval * SDB_DS_MULTIPLE is:" << diffTime + checkInterval * SDB_DS_MULTIPLE << endl ;
+cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE << endl ;
 #endif
 */
             if ( 0 > diffTime ||
-               diffTime + checkInterval * SDB_DS_MULTIPLE >= aliveTime )
+               diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE >= aliveTime )
             {
                conn = *iter ;
                _idleList.erase( iter++ ) ;
@@ -1152,7 +1152,7 @@ cout << ", diffTime + checkInterval * SDB_DS_MULTIPLE is:" << diffTime + checkIn
       _connMutex.release() ;
    }
 
-   // close data source
+   // close connection pool
    void sdbConnectionPool::close()
    {
       disable() ;

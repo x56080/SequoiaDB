@@ -19,7 +19,7 @@
 
    Descriptive Name = SDB Connection Pool Include Header
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -35,7 +35,7 @@
 *******************************************************************************/
 
 /** \file sdbConnectionPool.hpp
-    \brief C++ sdb data source
+    \brief C++ sdb connection pool
 */
 
 
@@ -60,10 +60,10 @@
 
 namespace sdbclient
 {
-   class sdbDataSourceStrategy ;
-   class sdbDSWorker ;
+   class sdbConnPoolStrategy ;
+   class sdbConnPoolWorker ;
    /** \class sdbConnectionPool
-       \brief The sdb data source
+       \brief The sdb connection pool
    */
    class DLLEXPORT sdbConnectionPool : public SDBObject
    {
@@ -100,13 +100,13 @@ namespace sdbclient
       ~sdbConnectionPool() ;
 
    private:
-      sdbConnectionPool( const sdbConnectionPool &datasource ) ;
-      sdbConnectionPool& operator=( const sdbConnectionPool &datasource ) ;
+      sdbConnectionPool( const sdbConnectionPool &connPool ) ;
+      sdbConnectionPool& operator=( const sdbConnectionPool &connPool ) ;
 
    public:
       /** \fn INT32 init(const std::string &url,
          const sdbConnectionPoolConf &conf)
-         \brief Initialize sdbConnectionPool
+         \brief Initialize connection pool
          \param [in] url A coord node("ubuntu-xxx:11810")
          \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
@@ -116,7 +116,7 @@ namespace sdbclient
 
       /** \fn INT32 init(const std::vector<std::string> &vUrls,
          const sdbConnectionPoolConf &conf)
-         \brief Initialize sdbConnectionPool
+         \brief Initialize connection pool
          \param [in] vUrls A list of coord node("ubuntu-xxx:11810")
          \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
@@ -127,35 +127,35 @@ namespace sdbclient
          const sdbConnectionPoolConf &conf ) ;
 
       /** \fn INT32 getIdleConnNum()const
-         \brief Get idle connection number or -1 for DataSource
+         \brief Get idle connection number or -1 for connection pool
                 has not been initialized yet.
          \retval The number of idle connection
       */
       INT32 getIdleConnNum()const  ;
 
       /** \fn INT32 getUsedConnNum()const
-         \brief Get used connection number or -1 for DataSource
+         \brief Get used connection number or -1 for connection pool
                 has not been initialized yet.
          \retval The number of used connection
       */
       INT32 getUsedConnNum()const  ;
 
       /** \fn INT32 getNormalCoordNum()const
-         \brief Get the number of reachable coord nodes or -1 for DataSource
+         \brief Get the number of reachable coord nodes or -1 for connection pool
                 has not been initialized yet.
          \retval The number of reachable coord nodes
       */
       INT32 getNormalCoordNum()const  ;
 
       /** \fn INT32 getAbnormalCoordNum()const
-         \brief Get the number of unreachable coord nodes or -1 for DataSource
+         \brief Get the number of unreachable coord nodes or -1 for connection pool
                 has not been initialized yet.
          \retval The number of unreachable coord nodes
       */
       INT32 getAbnormalCoordNum() const  ;
 
       /** \fn INT32 getLocalCoordNum()const
-         \brief Get the number of local coord nodes or -1 for DataSource
+         \brief Get the number of local coord nodes or -1 for connection pool
                 has not been initialized yet.
          \retval The number of local coord nodes
       */
@@ -174,24 +174,24 @@ namespace sdbclient
       void removeCoord( const string &url ) ;
 
       /** \fn INT32 enable()
-         \brief Enable sdbConnectionPool
+         \brief Enable connection pool
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
       INT32 enable() ;
 
       /** \fn INT32 disable()
-         \brief Disable sdbConnectionPool. After disable, the DataSource will
+         \brief Disable connection pool. After disable, the connection pool will
                 disconnect all the connections and release the handle of
                 the connections. So stop using the connection handle which has
-                not been released to the DataSource.
+                not been released to the connection pool.
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
       INT32 disable() ;
 
       /** \fn INT32 getConnection(sdb*& conn, INT64 timeoutsec = 5000)
-         \brief Get a connection form sdbConnectionPool
+         \brief Get a connection form connection pool
          \param [out] conn A connection
          \param [in] timeoutms The time to wait when connection number reach to
          max connection number,default:5000ms. when timeoutms is set to 0,
@@ -203,7 +203,7 @@ namespace sdbclient
       INT32 getConnection( sdb*& conn, INT64 timeoutms = 5000 ) ;
 
       /** \fn INT32 releaseConnection(sdb *conn)
-         \brief Give back a connection to sdbConnectionPool
+         \brief Give back a connection to connection pool
          \param [in] conn A connection
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
@@ -211,7 +211,7 @@ namespace sdbclient
       void releaseConnection(sdb *conn) ;
 
       /** \fn void close()
-         \brief Close sdbConnectionPool
+         \brief Close connection pool
       */
       void close() ;
 
@@ -229,8 +229,8 @@ namespace sdbclient
       // new a strategy with config
       INT32 _buildStrategy() ;
 
-      // clear data source
-      void _clearDataSource() ;
+      // clear connection pool
+      void _clearConnPool() ;
 
       // try to get a connection
       BOOLEAN _tryGetConn( sdb*& conn ) ;
@@ -275,10 +275,10 @@ namespace sdbclient
       ossAtomic32             _busySize ;
       // to be destroyed connection list
       std::list<sdb*>         _destroyList ;
-      // data source confiture
-      sdbConnectionPoolConf       _conf ;
-      // data source strategy
-      sdbDataSourceStrategy*  _strategy ;
+      // connection pool confiture
+      sdbConnectionPoolConf   _conf ;
+      // connection pool strategy
+      sdbConnPoolStrategy*    _strategy ;
       // lock for connection lists
       ossSpinXLatch           _connMutex ;
       // lock for global commuincate
@@ -292,9 +292,9 @@ namespace sdbclient
       BOOLEAN                 _toCreateConn ;
       BOOLEAN                 _toDestroyConn ;
       BOOLEAN                 _toStopWorkers ;
-      sdbDSWorker*            _createConnWorker ;
-      sdbDSWorker*            _destroyConnWorker ;
-      sdbDSWorker*            _bgTaskWorker ;
+      sdbConnPoolWorker*      _createConnWorker ;
+      sdbConnPoolWorker*      _destroyConnWorker ;
+      sdbConnPoolWorker*      _bgTaskWorker ;
    } ;
 }
 

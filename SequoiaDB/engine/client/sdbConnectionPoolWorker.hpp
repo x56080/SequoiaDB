@@ -14,7 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceWorker.hpp
+   Source File Name = sdbConnectionPoolWorker.hpp
 
    Dependencies: N/A
 
@@ -28,8 +28,8 @@
    Last Changed =
 
 *******************************************************************************/
-#ifndef SDBDATASOURCE_WORKER_HPP_
-#define SDBDATASOURCE_WORKER_HPP_
+#ifndef SDB_CONNECTIONPOOL_WORKER_HPP_
+#define SDB_CONNECTIONPOOL_WORKER_HPP_
 
 #include "core.hpp"
 #include "oss.hpp"
@@ -46,7 +46,7 @@ namespace sdbclient
 {
    typedef void (*workerFunc)( void* ) ;
 
-   struct sdbDSWorkThread
+   struct sdbConnPoolWorkThread
    {
       #ifdef _WINDOWS
       HANDLE         thread ;
@@ -57,7 +57,7 @@ namespace sdbclient
       workerFunc     func ;
       void*          args ;
 
-      sdbDSWorkThread( workerFunc func, void* args )
+      sdbConnPoolWorkThread( workerFunc func, void* args )
       {
          ossMemset( &thread, 0, sizeof(thread) ) ;
          this->func = func ;
@@ -66,16 +66,16 @@ namespace sdbclient
 
    } ;
 
-   class sdbDSWorker : public SDBObject
+   class sdbConnPoolWorker : public SDBObject
    {
    public:
-      sdbDSWorker( workerFunc func, void* args ) ;
-      ~sdbDSWorker() ;
+      sdbConnPoolWorker( workerFunc func, void* args ) ;
+      ~sdbConnPoolWorker() ;
       INT32 start() ;
       INT32 waitStop() ;
 
    private:
-      sdbDSWorkThread         _thread ;
+      sdbConnPoolWorkThread   _thread ;
       BOOLEAN                 _started ;
    } ;
 }
