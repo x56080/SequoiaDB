@@ -40,7 +40,7 @@
 #include "mthSAttribute.hpp"
 #include "utilPooledObject.hpp"
 
-#define MTH_SCOLUMN_STATIC_NAME_BUF_LEN 32 
+#define MTH_SCOLUMN_STATIC_NAME_BUF_LEN 32
 
 namespace engine
 {
@@ -97,7 +97,8 @@ namespace engine
                            UINT32 *number = NULL ) ;
 
       INT32 _build( const bson::BSONElement &e,
-                    bson::BSONObjBuilder &builder ) ;
+                    bson::BSONObjBuilder &builder,
+                    UINT32 actionIndex = 0 ) ;
 
       INT32 _buildFromChildren( const bson::BSONElement &e,
                                 bson::BSONObjBuilder &builder ) ;
@@ -110,6 +111,13 @@ namespace engine
 
       INT32 _buildLastChildren( MTH_S_COLUMNS &array,
                                 bson::BSONObjBuilder &builder ) ;
+
+      INT32 _buildSubArray( const bson::BSONElement &e,
+                            UINT32 actionIndex,
+                            bson::BSONObjBuilder &builder ) ;
+
+      BOOLEAN _needBuildSubArray( const CHAR* actionName,
+                                  const bson::BSONElement &e ) ;
 
    private:
       MTH_S_COLUMNS _subColumns ;
