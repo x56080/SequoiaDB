@@ -15,11 +15,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceStrategy.cpp
+   Source File Name = sdbConnectionPoolStrategy.cpp
 
-   Descriptive Name = SDB Data Source Strategy Source File
+   Descriptive Name = SDB connection pool Strategy Source File
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -34,7 +34,7 @@
 
 *******************************************************************************/
 
-#include "sdbDataSourceStrategy.hpp"
+#include "sdbConnectionPoolStrategy.hpp"
 #include <algorithm>
 #include "ossUtil.h"
 #include <stdio.h>
@@ -61,10 +61,10 @@ using std::map;
 
 namespace sdbclient
 {
-   #define SDB_DS_LOCAL_IP       ("127.0.0.1")
-   #define SDB_DS_LOCAL_IP1      ("127.0.1.1")
+   #define SDB_CONNPOOL_LOCAL_IP       ("127.0.0.1")
+   #define SDB_CONNPOOL_LOCAL_IP1      ("127.0.1.1")
    
-   void sdbDataSourceStrategy::addCoord( const string &coord )
+   void sdbConnPoolStrategy::addCoord( const string &coord )
    {
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -82,7 +82,7 @@ namespace sdbclient
       }
    }
 
-   void sdbDataSourceStrategy::removeCoord( const string &coord )
+   void sdbConnPoolStrategy::removeCoord( const string &coord )
    {
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -111,7 +111,7 @@ namespace sdbclient
       }
    }
 
-   INT32 sdbDataSourceStrategy::getNormalCoordNum()
+   INT32 sdbConnPoolStrategy::getNormalCoordNum()
    {
       INT32 retNum = 0 ;
       _coordMutex.get() ;
@@ -121,7 +121,7 @@ namespace sdbclient
       return retNum ;
    }
 
-   INT32 sdbDataSourceStrategy::getAbnormalCoordNum()
+   INT32 sdbConnPoolStrategy::getAbnormalCoordNum()
    {
       INT32 retNum = 0 ;
       _coordMutex.get() ;
@@ -131,12 +131,12 @@ namespace sdbclient
       return retNum ;
    }
 
-   INT32 sdbDataSourceStrategy::getLocalCoordNum()
+   INT32 sdbConnPoolStrategy::getLocalCoordNum()
    {
       return 0 ;
    }
 
-   INT32 sdbDataSourceStrategy::getNextAbnormalCoord( string& nCoord )
+   INT32 sdbConnPoolStrategy::getNextAbnormalCoord( string& nCoord )
    {
       INT32 rc = SDB_OK ;
 
@@ -159,7 +159,7 @@ namespace sdbclient
    }
 
    // move coord from abnormal list to normal list
-   void sdbDataSourceStrategy::mvCoordToNormal( const string &coord )
+   void sdbConnPoolStrategy::mvCoordToNormal( const string &coord )
    {
       vector<string>::iterator iter ;
       _coordMutex.get() ;
@@ -174,7 +174,7 @@ namespace sdbclient
    }
 
    // convert hostname to ip
-   BOOLEAN sdbDataSourceStrategy::_converToIP( 
+   BOOLEAN sdbConnPoolStrategy::_converToIP(
       const string &oldcoord, string& newcoord )
    {
       #if defined (_WINDOWS)
@@ -213,12 +213,12 @@ namespace sdbclient
          CHAR portname[HOSTNAMELEN] = {0} ;
          sprintf( portname, "%d", ntohs( sin_p->sin_port ) ) ;
          newcoord.append( portname ) ;
-         if ( ( 0 != ossStrcmp( SDB_DS_LOCAL_IP, addr_in_p ) ) )
+         if ( ( 0 != ossStrcmp( SDB_CONNPOOL_LOCAL_IP, addr_in_p ) ) )
          {
             if ( _isLocalIP( newcoord ) )
             {
                pos = newcoord.find_first_of( ":" ) ;
-               newcoord.replace( 0, pos, SDB_DS_LOCAL_IP ) ;
+               newcoord.replace( 0, pos, SDB_CONNPOOL_LOCAL_IP ) ;
             }
          }
       }
@@ -230,7 +230,7 @@ namespace sdbclient
    }
       
    // move coord from normal list to abnormal list
-   void sdbDataSourceStrategy::mvCoordToAbnormal( const string &coord )
+   void sdbConnPoolStrategy::mvCoordToAbnormal( const string &coord )
    {
       vector<string>::iterator iter ;
       _coordMutex.get() ;
@@ -244,13 +244,13 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   BOOLEAN sdbDataSourceStrategy::_isLocalIP( const string &ipstr )
+   BOOLEAN sdbConnPoolStrategy::_isLocalIP( const string &ipstr )
    {
       CHAR hostname[HOSTNAMELEN] = {0} ;
 
       INT32 pos = ipstr.find_first_of( ":" ) ;
       ossStrcpy( hostname, ipstr.substr(0, pos).c_str() ) ;
-      if ( 0 == ossStrcmp( SDB_DS_LOCAL_IP1, hostname ) )
+      if ( 0 == ossStrcmp( SDB_CONNPOOL_LOCAL_IP1, hostname ) )
          return TRUE ;
 
 #if defined (_LINUX) || defined (_AIX)
@@ -304,7 +304,7 @@ namespace sdbclient
 
 
    /*****************************************************************************/
-   INT32 sdbDSSerialStrategy::getNextCoord( string& nCoord )
+   INT32 sdbConnPoolSerialStrategy::getNextCoord( string& nCoord )
    {
       INT32 ret = SDB_OK ;
       INT32 coordsSize = 0 ;
@@ -328,7 +328,7 @@ namespace sdbclient
 
 
    /*****************************************************************************/
-   INT32 sdbDSRandomStrategy::getNextCoord( string& nCoord )
+   INT32 sdbConnPoolRandomStrategy::getNextCoord( string& nCoord )
    {
       INT32 ret = SDB_OK ;
       INT32 coordsSize = 0 ;
@@ -351,7 +351,7 @@ namespace sdbclient
    }
 
    /*****************************************************************************/
-   INT32 sdbDSLocalStrategy::getLocalCoordNum()
+   INT32 sdbConnPoolLocalStrategy::getLocalCoordNum()
    {
       _coordMutex.get() ;
       INT32 ret = _localCoordList.size() ;
@@ -360,7 +360,7 @@ namespace sdbclient
       return ret ;
    }
 
-   void sdbDSLocalStrategy::addCoord( const string &coord )
+   void sdbConnPoolLocalStrategy::addCoord( const string &coord )
    {
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -382,7 +382,7 @@ namespace sdbclient
       }
    }
 
-   void sdbDSLocalStrategy::removeCoord( const string &coord )
+   void sdbConnPoolLocalStrategy::removeCoord( const string &coord )
    {
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -422,7 +422,7 @@ namespace sdbclient
 
    // move coord from normal list to abnormal list, if local list exist,
    // delete it from local list
-   void sdbDSLocalStrategy::mvCoordToAbnormal( const string &coord )
+   void sdbConnPoolLocalStrategy::mvCoordToAbnormal( const string &coord )
    {
       vector<string>::iterator iter ;
       _coordMutex.get() ;
@@ -442,7 +442,7 @@ namespace sdbclient
 
    // move coord from abnormal list to normal list, if coord is local coord,
    // add it to local list
-   void sdbDSLocalStrategy::mvCoordToNormal( const string &coord )
+   void sdbConnPoolLocalStrategy::mvCoordToNormal( const string &coord )
    {
       vector<string>::iterator iter ;
       _coordMutex.get() ;
@@ -460,7 +460,7 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   INT32 sdbDSLocalStrategy::getNextCoord( string& nCoord )
+   INT32 sdbConnPoolLocalStrategy::getNextCoord( string& nCoord )
    {
       INT32 rc        = SDB_OK ;
       BOOLEAN hasLock = FALSE ;
@@ -507,19 +507,19 @@ namespace sdbclient
    }
 
    // check coord is local coord or not
-   BOOLEAN sdbDSLocalStrategy::_isLocalCoord( const string &coord )
+   BOOLEAN sdbConnPoolLocalStrategy::_isLocalCoord( const string &coord )
    {
       // TODO: (new) local ips do not only mean "127.0.0.1",
       // we should scan all the netcards to get the local ips.
       CHAR hostname[HOSTNAMELEN] ;
       INT32 pos = coord.find_first_of( ":" ) ;
       ossStrcpy( hostname, coord.substr(0, pos).c_str() ) ;
-      return ( 0 == ossStrcmp( SDB_DS_LOCAL_IP, hostname ) ) ? TRUE : FALSE ;
+      return ( 0 == ossStrcmp( SDB_CONNPOOL_LOCAL_IP, hostname ) ) ? TRUE : FALSE ;
    }
 
    /*****************************************************************************/
 
-   sdbDSBalanceStrategy::~sdbDSBalanceStrategy()
+   sdbConnPoolBalanceStrategy::~sdbConnPoolBalanceStrategy()
    {
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       coordInfo* coord ;
@@ -532,7 +532,7 @@ namespace sdbclient
    }
 
    set<coordInfo*, coordInfoCmp>::const_iterator 
-      sdbDSBalanceStrategy::_findCoord( const string &coord ) const
+      sdbConnPoolBalanceStrategy::_findCoord( const string &coord ) const
    {
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       for ( iter = _coordInfoSet.begin() ; iter != _coordInfoSet.end() ; ++iter )
@@ -543,7 +543,7 @@ namespace sdbclient
       return iter ;
    }
 
-   void sdbDSBalanceStrategy::addCoord( const string &coord )
+   void sdbConnPoolBalanceStrategy::addCoord( const string &coord )
    {  
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -563,7 +563,7 @@ namespace sdbclient
       }
    }
 
-   void sdbDSBalanceStrategy::removeCoord( const string &coord )
+   void sdbConnPoolBalanceStrategy::removeCoord( const string &coord )
    {
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
@@ -582,7 +582,7 @@ namespace sdbclient
 
    // isNormal: TRUE get normal coord number
    // FALSE get abnormal coord number
-   INT32 sdbDSBalanceStrategy::_getCoordNum( BOOLEAN isNormal )
+   INT32 sdbConnPoolBalanceStrategy::_getCoordNum( BOOLEAN isNormal )
    {
       INT32 availableNum = 0 ;
       INT32 retNum = 0 ;
@@ -603,7 +603,7 @@ namespace sdbclient
       return retNum ;
    }
 
-   INT32 sdbDSBalanceStrategy::getNormalCoordNum()
+   INT32 sdbConnPoolBalanceStrategy::getNormalCoordNum()
    {
       INT32 retNum ;
 
@@ -614,7 +614,7 @@ namespace sdbclient
       return retNum ;
    }
 
-   INT32 sdbDSBalanceStrategy::getAbnormalCoordNum()
+   INT32 sdbConnPoolBalanceStrategy::getAbnormalCoordNum()
    {
       INT32 retNum ;
       
@@ -625,7 +625,7 @@ namespace sdbclient
       return retNum ;
    }
 
-   INT32 sdbDSBalanceStrategy::getNextCoord( string& nCoord )
+   INT32 sdbConnPoolBalanceStrategy::getNextCoord( string& nCoord )
    {
       INT32 rc = SDB_OK ;
       
@@ -652,7 +652,7 @@ namespace sdbclient
       return rc ;
    }
 
-   INT32 sdbDSBalanceStrategy::getNextAbnormalCoord( string& nCoord )
+   INT32 sdbConnPoolBalanceStrategy::getNextAbnormalCoord( string& nCoord )
    {
       INT32 rc   = SDB_OK ;
       INT32 size = 0 ;
@@ -686,7 +686,7 @@ namespace sdbclient
    }
 
    // move coord from normal list to abnormal list
-   void sdbDSBalanceStrategy::mvCoordToAbnormal( const string &coord )
+   void sdbConnPoolBalanceStrategy::mvCoordToAbnormal( const string &coord )
    {
       _coordMutex.get() ;
       set<coordInfo*, coordInfoCmp>::const_iterator iter = _findCoord( coord ) ;
@@ -702,7 +702,7 @@ namespace sdbclient
    }
 
    // move coord from abnormal list to normal list
-   void sdbDSBalanceStrategy::mvCoordToNormal( const string &coord )
+   void sdbConnPoolBalanceStrategy::mvCoordToNormal( const string &coord )
    {
       _coordMutex.get() ;
       set<coordInfo*, coordInfoCmp>::const_iterator iter = _findCoord( coord ) ;
@@ -717,7 +717,7 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   void sdbDSBalanceStrategy::syncAddNewConn( sdb *conn, const string &coord )
+   void sdbConnPoolBalanceStrategy::syncAddNewConn( sdb *conn, const string &coord )
    {
       // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
@@ -740,7 +740,7 @@ namespace sdbclient
    }
 
    // sync strategy
-   void sdbDSBalanceStrategy::sync( sdb *conn, SYNC_CHOICE choice )
+   void sdbConnPoolBalanceStrategy::sync( sdb *conn, SYNC_CHOICE choice )
    {
       switch(choice)
       {
@@ -759,7 +759,7 @@ namespace sdbclient
       }
    }
 
-   void sdbDSBalanceStrategy::_syncDelIdleConn( sdb *conn )
+   void sdbConnPoolBalanceStrategy::_syncDelIdleConn( sdb *conn )
    {
       // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
@@ -777,7 +777,7 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   void sdbDSBalanceStrategy::_syncDelBusyConn( sdb *conn )
+   void sdbConnPoolBalanceStrategy::_syncDelBusyConn( sdb *conn )
    {
       // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
@@ -796,7 +796,7 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   void sdbDSBalanceStrategy::_syncAddBusyConn( sdb *conn )
+   void sdbConnPoolBalanceStrategy::_syncAddBusyConn( sdb *conn )
    {
       // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
@@ -812,7 +812,7 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   void sdbDSBalanceStrategy::_syncAddIdleConn( sdb *conn )
+   void sdbConnPoolBalanceStrategy::_syncAddIdleConn( sdb *conn )
    {
       // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;

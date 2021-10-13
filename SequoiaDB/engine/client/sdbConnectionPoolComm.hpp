@@ -19,7 +19,7 @@
 
    Descriptive Name = SDB Connection Pool Common Include Header
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -35,7 +35,7 @@
 *******************************************************************************/
 
 /** \file sdbConnectionPoolComm.hpp
-    \brief C++ sdb data source configure
+    \brief C++ sdb connection pool configure
 */
 
 #ifndef SDB_CONNECTIONPOOL_COMM_HPP_
@@ -52,22 +52,22 @@ using std::string;
 namespace sdbclient
 {
    /** to previous create threshold*/
-   #define SDB_DS_TOPRECREATE_THRESHOLD                2
+   #define SDB_CONNPOOL_TOPRECREATE_THRESHOLD                2
    /** check unnormal coord interval, default:60 * 1000ms*/
-   #define SDB_DS_CHECKUNNORMALCOORD_INTERVAL          (60 * 1000)
+   #define SDB_CONNPOOL_CHECKUNNORMALCOORD_INTERVAL          (60 * 1000)
    /** create connection retry time at a coord, default:3*/
-   #define SDB_DS_CREATECONN_RETRYTIME                 3
+   #define SDB_CONNPOOL_CREATECONN_RETRYTIME                 3
 
-   enum DATASOURCE_STRATEGY
+   enum CONNPOOL_STRATEGY
    {
-      DS_STY_SERIAL,             /**< serial strategy */
-      DS_STY_RANDOM,             /**< random strategy */
-      DS_STY_LOCAL,              /**< local strategy */
-      DS_STY_BALANCE             /**< balance strategy */
+      CONNPOOL_STY_SERIAL,             /**< serial strategy */
+      CONNPOOL_STY_RANDOM,             /**< random strategy */
+      CONNPOOL_STY_LOCAL,              /**< local strategy */
+      CONNPOOL_STY_BALANCE             /**< balance strategy */
    } ;
 
    /** \class sdbConnectionPoolConf
-       \brief The configure of sdb data source
+       \brief The configure of sdb connection pool
    */
    class DLLEXPORT sdbConnectionPoolConf
    {
@@ -86,7 +86,7 @@ namespace sdbclient
          _keepAliveTimeout(0 * 1000),
          _syncCoordInterval(0 * 1000),
          _validateConnection(FALSE),
-         _connectStrategy(DS_STY_BALANCE),
+         _connectStrategy(CONNPOOL_STY_BALANCE),
          _useSSL(FALSE) {}
 
    private:
@@ -108,7 +108,7 @@ namespace sdbclient
       // whether check validation when a connection out
       BOOLEAN              _validateConnection ;
       // strategy to create connections
-      DATASOURCE_STRATEGY  _connectStrategy ;
+      CONNPOOL_STRATEGY  _connectStrategy ;
 
       // if configure is valid
       BOOLEAN              _useSSL ;
@@ -265,20 +265,20 @@ namespace sdbclient
       */
       BOOLEAN getValidateConnection() const { return _validateConnection ; }
 
-      /** \fn void setConnectStrategy(DATASOURCE_STRATEGY strategy)
+      /** \fn void setConnectStrategy(CONNPOOL_STRATEGY strategy)
          \brief Set the strategy of sdbConnectionPool
          \param [in] strategy The enum of strategy:
          DS_STY_SERIAL, DS_STY_RANDOM, DS_STY_LOCAL, DS_STY_BALANCE
       */
-      void setConnectStrategy( DATASOURCE_STRATEGY strategy )
+      void setConnectStrategy( CONNPOOL_STRATEGY strategy )
       {
          _connectStrategy = strategy ;
       }
-      /** \fn DATASOURCE_STRATEGY getConnectStrategy()
+      /** \fn CONNPOOL_STRATEGY getConnectStrategy()
          \brief Get the strategy of sdbConnectionPool
-         \retval DATASOURCE_STRATEGY The strategy of sdbConnectionPool
+         \retval CONNPOOL_STRATEGY The strategy of sdbConnectionPool
       */
-      DATASOURCE_STRATEGY getConnectStrategy() const
+      CONNPOOL_STRATEGY getConnectStrategy() const
       {
          return _connectStrategy ;
       }

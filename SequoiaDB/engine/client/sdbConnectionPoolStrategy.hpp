@@ -15,11 +15,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceStrategy.hpp
+   Source File Name = sdbConnectionPoolStrategy.hpp
 
-   Descriptive Name = SDB Data Source Strategy Include Header
+   Descriptive Name = SDB connection pool Strategy Include Header
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -34,8 +34,8 @@
 
 *******************************************************************************/
 
-#ifndef SDB_DATA_SOURCE_STRATEGY_HPP_
-#define SDB_DATA_SOURCE_STRATEGY_HPP_
+#ifndef SDB_CONNECTIONPOOL_STRATEGY_HPP_
+#define SDB_CONNECTIONPOOL_STRATEGY_HPP_
 
 #include "ossTypes.h"
 #include <vector>
@@ -60,11 +60,11 @@ namespace sdbclient
       ADDIDLECONN
    } ;
 
-   class sdbDataSourceStrategy  : public SDBObject
+   class sdbConnPoolStrategy  : public SDBObject
    {
    private:
-      sdbDataSourceStrategy( const sdbDataSourceStrategy &strategy ) ;
-      sdbDataSourceStrategy& operator=( const sdbDataSourceStrategy &strategy ) ;
+      sdbConnPoolStrategy( const sdbConnPoolStrategy &strategy ) ;
+      sdbConnPoolStrategy& operator=( const sdbConnPoolStrategy &strategy ) ;
       
    protected:
       // abnormal address list
@@ -77,9 +77,9 @@ namespace sdbclient
       INT32 _abPos ;
 
    public:
-      sdbDataSourceStrategy()
+      sdbConnPoolStrategy()
          :_abPos(0) {}
-      virtual ~sdbDataSourceStrategy() {}
+      virtual ~sdbConnPoolStrategy() {}
 
    public:
       
@@ -116,16 +116,16 @@ namespace sdbclient
    } ;
 
 
-   class sdbDSSerialStrategy : public sdbDataSourceStrategy
+   class sdbConnPoolSerialStrategy : public sdbConnPoolStrategy
    {
    private:
-      sdbDSSerialStrategy( const sdbDSSerialStrategy &strategy ) ;
-      sdbDSSerialStrategy& operator=( const sdbDSSerialStrategy &strategy ) ;
+      sdbConnPoolSerialStrategy( const sdbConnPoolSerialStrategy &strategy ) ;
+      sdbConnPoolSerialStrategy& operator=( const sdbConnPoolSerialStrategy &strategy ) ;
 
    public:
-      sdbDSSerialStrategy()
+      sdbConnPoolSerialStrategy()
          : _curPos(0) {}
-      virtual ~sdbDSSerialStrategy(){}
+      virtual ~sdbConnPoolSerialStrategy(){}
 
    public:
       virtual INT32 getNextCoord( string& nCoord ) ;
@@ -135,34 +135,34 @@ namespace sdbclient
    } ;
 
 
-   class sdbDSRandomStrategy : public sdbDataSourceStrategy
+   class sdbConnPoolRandomStrategy : public sdbConnPoolStrategy
    {
    private:
-      sdbDSRandomStrategy( const sdbDSRandomStrategy &strategy ) ;
-      sdbDSRandomStrategy& operator=( const sdbDSRandomStrategy &strategy ) ;
+      sdbConnPoolRandomStrategy( const sdbConnPoolRandomStrategy &strategy ) ;
+      sdbConnPoolRandomStrategy& operator=( const sdbConnPoolRandomStrategy &strategy ) ;
 
    public:
-      sdbDSRandomStrategy() 
+      sdbConnPoolRandomStrategy() 
       {
          srand((unsigned)time( NULL )) ;
       }
-      virtual ~sdbDSRandomStrategy(){}
+      virtual ~sdbConnPoolRandomStrategy(){}
 
    public:
       virtual INT32 getNextCoord( string& nCoord ) ;
    } ;
 
-   class sdbDSLocalStrategy : public sdbDataSourceStrategy
+   class sdbConnPoolLocalStrategy : public sdbConnPoolStrategy
    {
    private:
-      sdbDSLocalStrategy( const sdbDSLocalStrategy &strategy ) ;
-      sdbDSLocalStrategy& operator=( const sdbDSLocalStrategy &strategy ) ;
+      sdbConnPoolLocalStrategy( const sdbConnPoolLocalStrategy &strategy ) ;
+      sdbConnPoolLocalStrategy& operator=( const sdbConnPoolLocalStrategy &strategy ) ;
 
    public:
-      sdbDSLocalStrategy()
+      sdbConnPoolLocalStrategy()
          : _localPos(0),
          _normalPos(0) {}
-      virtual ~sdbDSLocalStrategy(){}
+      virtual ~sdbConnPoolLocalStrategy(){}
 
    public:
 
@@ -231,15 +231,15 @@ namespace sdbclient
       }
    } ;
 
-   class sdbDSBalanceStrategy : public sdbDataSourceStrategy
+   class sdbConnPoolBalanceStrategy : public sdbConnPoolStrategy
    {
    private:
-      sdbDSBalanceStrategy( const sdbDSBalanceStrategy &strategy ) ;
-      sdbDSBalanceStrategy& operator=( const sdbDSBalanceStrategy &strategy ) ;
+      sdbConnPoolBalanceStrategy( const sdbConnPoolBalanceStrategy &strategy ) ;
+      sdbConnPoolBalanceStrategy& operator=( const sdbConnPoolBalanceStrategy &strategy ) ;
 
    public:
-      sdbDSBalanceStrategy() {}
-      virtual ~sdbDSBalanceStrategy() ;
+      sdbConnPoolBalanceStrategy() {}
+      virtual ~sdbConnPoolBalanceStrategy() ;
 
    public:
       virtual void addCoord( const string &coord ) ;

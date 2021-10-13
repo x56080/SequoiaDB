@@ -15,11 +15,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceWorker.cpp
+   Source File Name = sdbConnectionPoolWorker.cpp
 
-   Descriptive Name = SDB Data Source Worker Source File
+   Descriptive Name = SDB connection pool Worker Source File
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -34,7 +34,7 @@
 
 *******************************************************************************/
 
-#include "sdbDataSourceWorker.hpp"
+#include "sdbConnectionPoolWorker.hpp"
 #include "pd.hpp"
 
 namespace sdbclient
@@ -44,13 +44,13 @@ namespace sdbclient
    {
       SDB_ASSERT( NULL != arg, "arg can't be NULL" ) ;
 
-      sdbDSWorkThread* self ;
-      self = (sdbDSWorkThread*)arg ;
+      sdbConnPoolWorkThread* self ;
+      self = (sdbConnPoolWorkThread*)arg ;
       self->func( self->args ) ;
       return SDB_OK ;
    }
 
-   static INT32 _threadCreate( sdbDSWorkThread* thread )
+   static INT32 _threadCreate( sdbConnPoolWorkThread* thread )
    {
       SDB_ASSERT( NULL != thread, "thread can't be NULL" ) ;
       SDB_ASSERT( NULL != thread->func, "routine can't be NULL" ) ;
@@ -62,7 +62,7 @@ namespace sdbclient
       return SDB_OK ;
    }
 
-   static INT32 _threadJoin( sdbDSWorkThread* thread )
+   static INT32 _threadJoin( sdbConnPoolWorkThread* thread )
    {
       DWORD rc ;
       BOOL brc ;
@@ -82,13 +82,13 @@ namespace sdbclient
 #include <signal.h>
    static void* _threadMain( void* arg )
    {
-      sdbDSWorkThread* self ;
+      sdbConnPoolWorkThread* self ;
       sigset_t sigset ;
       INT32 ret ;
 
       SDB_ASSERT( NULL != arg, "arg can't be NULL" ) ;
 
-      self = (sdbDSWorkThread*)arg ;
+      self = (sdbConnPoolWorkThread*)arg ;
       ret = sigfillset( &sigset ) ;
       SDB_ASSERT( ret == 0, "" ) ;
       
@@ -99,7 +99,7 @@ namespace sdbclient
       return NULL ;
    }
 
-   static INT32 _threadCreate( sdbDSWorkThread* thread )
+   static INT32 _threadCreate( sdbConnPoolWorkThread* thread )
    {
       INT32 ret ;
 
@@ -113,7 +113,7 @@ namespace sdbclient
       return SDB_OK ;
    }
 
-   static INT32 _threadJoin( sdbDSWorkThread* thread )
+   static INT32 _threadJoin( sdbConnPoolWorkThread* thread )
    {
       INT32 ret ;
 
@@ -127,17 +127,17 @@ namespace sdbclient
 
 #endif
 
-   sdbDSWorker::sdbDSWorker( workerFunc func, void* args )
+   sdbConnPoolWorker::sdbConnPoolWorker( workerFunc func, void* args )
       : _thread( func, args )
    {
       _started = FALSE ;
    }
 
-   sdbDSWorker::~sdbDSWorker()
+   sdbConnPoolWorker::~sdbConnPoolWorker()
    {
    }
 
-   INT32 sdbDSWorker::start()
+   INT32 sdbConnPoolWorker::start()
    {
       INT32 rc = SDB_OK ;
 
@@ -152,7 +152,7 @@ namespace sdbclient
       return rc ;
    }
 
-   INT32 sdbDSWorker::waitStop()
+   INT32 sdbConnPoolWorker::waitStop()
    {
       INT32 rc = SDB_OK ;
 

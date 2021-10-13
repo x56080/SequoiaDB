@@ -387,7 +387,7 @@ void sequoiaFS::setDataSourceConf(const CHAR * userName,
    conf.setConnCntInfo(50, 10, 20, connNum);
    conf.setCheckIntervalInfo( 60*1000, 0 );
    conf.setSyncCoordInterval( 60*1000 );
-   conf.setConnectStrategy( DS_STY_BALANCE );
+   conf.setConnectStrategy( CONNPOOL_STY_BALANCE );
    conf.setValidateConnection( TRUE );
    conf.setUseSSL( FALSE );
 }

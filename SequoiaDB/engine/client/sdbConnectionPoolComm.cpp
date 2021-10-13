@@ -19,7 +19,7 @@
 
    Descriptive Name = SDB Connection Pool Common Source File
 
-   When/how to use: this program may be used on sequoiadb data source function.
+   When/how to use: this program may be used on sequoiadb connection pool function.
 
    Dependencies: N/A
 
@@ -111,8 +111,8 @@ namespace sdbclient
       if ( (0 != _keepAliveTimeout) && (_keepAliveTimeout < _checkInterval) )
          goto error ;
       // check connection strategy
-      if ( (_connectStrategy < DS_STY_SERIAL) ||
-         (_connectStrategy > DS_STY_BALANCE) )
+      if ( (_connectStrategy < CONNPOOL_STY_SERIAL) ||
+         (_connectStrategy > CONNPOOL_STY_BALANCE) )
       {
          goto error ;
       }

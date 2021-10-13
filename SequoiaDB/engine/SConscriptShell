@@ -178,8 +178,8 @@ clientcppFiles = [
       "client/clientcpp.cpp",
       "client/sdbConnectionPool.cpp",
       "client/sdbConnectionPoolComm.cpp",
-      "client/sdbDataSourceStrategy.cpp",
-      "client/sdbDataSourceWorker.cpp"
+      "client/sdbConnectionPoolStrategy.cpp",
+      "client/sdbConnectionPoolWorker.cpp"
       ]
 
 ssh2Files = [

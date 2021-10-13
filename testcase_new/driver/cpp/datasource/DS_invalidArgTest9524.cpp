@@ -81,7 +81,7 @@ TEST_F( invalidArgTest9524, connCntInfo9524 )
    rc = ds.enable() ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
 	vector<sdb*> vec ;
-	while( ds.getIdleConnNum() > SDB_DS_TOPRECREATE_THRESHOLD )
+	while( ds.getIdleConnNum() > SDB_CONNPOOL_TOPRECREATE_THRESHOLD )
 	{
 		sdb* conn = NULL ;
       rc = ds.getConnection( conn ) ;
@@ -91,7 +91,7 @@ TEST_F( invalidArgTest9524, connCntInfo9524 )
 	}
 	ossSleep( 2000 ) ;
 	// cout << ds.getIdleConnNum() << endl ;
-	ASSERT_EQ( ds.getIdleConnNum()-SDB_DS_TOPRECREATE_THRESHOLD, conf.getMaxIdleCount() )
+	ASSERT_EQ( ds.getIdleConnNum()-SDB_CONNPOOL_TOPRECREATE_THRESHOLD, conf.getMaxIdleCount() )
               <<  "fail to check deltaIncCount" ;
    for( int i = 0;i < vec.size();i++ )
    {
@@ -179,7 +179,7 @@ TEST_F( invalidArgTest9524, connectStrategy9526 )
    INT32 rc = SDB_OK ;   
 
    // _connectStrategy²»Îª0-3
-	conf.setConnectStrategy( DATASOURCE_STRATEGY( 5 ) ) ;
+	conf.setConnectStrategy( CONNPOOL_STRATEGY( 5 ) ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with connectStrategy 5" ;
 }

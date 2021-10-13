@@ -37,8 +37,8 @@ clientCPPFiles = [
       "client/clientcpp.cpp",
       "client/sdbConnectionPool.cpp",
       "client/sdbConnectionPoolComm.cpp",
-      "client/sdbDataSourceStrategy.cpp",
-      "client/sdbDataSourceWorker.cpp"
+      "client/sdbConnectionPoolStrategy.cpp",
+      "client/sdbConnectionPoolWorker.cpp"
       ]
 #for threadsafe build, we should add this into clientLibFiles
 clientCPPThreadSafe = [
@@ -131,7 +131,7 @@ elif windows:
 
 #Header files
 clientCppEnv.Install( '#/client/include/', "client/client.hpp" )
-# sdbDataSource files
+# connection pool files
 clientCppEnv.Install( '#/client/include/', "client/sdbConnectionPool.hpp")
 clientCppEnv.Install( '#/client/include/', "client/sdbConnectionPoolComm.hpp")
 clientCppEnv.Install( '#/client/include/', "include/ossLatch.hpp")
