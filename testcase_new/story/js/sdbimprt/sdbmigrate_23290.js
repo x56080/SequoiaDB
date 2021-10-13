@@ -2,8 +2,8 @@
  * @Description   : seqDB-23290 :: 多表并发导出后导入，cl为主子表 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.14
- * @LastEditTime  : 2021.01.19
- * @LastEditors   : Yu Fan
+ * @LastEditTime  : 2021.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 var maincsName = "maincs23290";
 var mainclName = "maincl23290";
@@ -41,8 +41,8 @@ function test ( testPara )
    cmd.run( command );
 
    // 检查结果
-   var cursor = maincl.find();
-   commCompareObject( cursor.toArray(), docs );
+   var cursor = maincl.find().sort( { a: 1 } );
+   commCompareResults( cursor, docs );
 
    // 清理环境
    commDropCS( db, maincsName, true );
@@ -55,11 +55,11 @@ function prepareCSCL ()
    commDropCS( db, maincsName, true );
    commDropCS( db, subcsName, true );
    var maincs = db.createCS( maincsName );
-   var maincl = maincs.createCL( mainclName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
+   var maincl = maincs.createCL( mainclName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 } );
    var subcs = db.createCS( subcsName );
    for( var i = 0; i < subclNames.length; i++ )
    {
-      subcs.createCL( subclNames[i], { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
+      subcs.createCL( subclNames[i], { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0 } );
    }
    maincl.attachCL( subcsName + "." + subclNames[0], { LowBound: { a: 0 }, UpBound: { a: 100 } } );
    maincl.attachCL( subcsName + "." + subclNames[1], { LowBound: { a: 100 }, UpBound: { a: 200 } } );

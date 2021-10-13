@@ -2,8 +2,8 @@
  * @Description   : seqDB-23291 :: 多库多表并发导出后导入，数据文件包含json和csv 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.14
- * @LastEditTime  : 2021.01.19
- * @LastEditors   : Yu Fan
+ * @LastEditTime  : 2021.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 var domainName = "domain23291";
 var csName1 = "cs23291A";
@@ -61,13 +61,13 @@ function test ( testPara )
    // 检查结果
    for( var i = 0; i < clNames1.length; i++ )
    {
-      var cursor = db.getCS( csName1 ).getCL( clNames1[i] ).find();
-      commCompareObject( cursor.toArray(), docs );
+      var cursor = db.getCS( csName1 ).getCL( clNames1[i] ).find().sort( { a: 1 } );
+      commCompareResults( cursor, docs );
    }
    for( var i = 0; i < clNames2.length; i++ )
    {
-      var cursor = db.getCS( csName2 ).getCL( clNames2[i] ).find();
-      commCompareObject( cursor.toArray(), docs );
+      var cursor = db.getCS( csName2 ).getCL( clNames2[i] ).find().sort( { a: 1 } );
+      commCompareResults( cursor, docs );
    }
    // 清理环境
    commDropCS( db, csName1, true );
@@ -91,13 +91,13 @@ function prepareCSCL ()
 
    for( var i = 0; i < clNames1.length; i++ )
    {
-      var cl = cs1.createCL( clNames1[i], { ShardingKey: { a: 1 }, ShardingType: "hash" } );
+      var cl = cs1.createCL( clNames1[i], { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 } );
       cl.insert( docs );
    }
 
    for( var i = 0; i < clNames2.length; i++ )
    {
-      var cl = cs2.createCL( clNames2[i], { ShardingKey: { a: 1 }, ShardingType: "hash" } );
+      var cl = cs2.createCL( clNames2[i], { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 } );
       cl.insert( docs );
    }
 }

@@ -2,8 +2,8 @@
  * @Description   : seqDB-23289 :: 多库多表并发导出后导入，cl为分区表，数据文件为csv 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.18
- * @LastEditTime  : 2021.02.03
- * @LastEditors   : Yu Fan
+ * @LastEditTime  : 2021.10.12
+ * @LastEditors   : liuli
  ******************************************************************************/
 var domainName = "domain23289";
 var csNames = ["cs223289A", "cs23289B", "cs23289C"];
@@ -63,8 +63,8 @@ function test ( testPara )
       for( var j = 0; j < clNames.length; j++ )
       {
          var cl = cs.getCL( clNames[j] );
-         var cursor = cl.find();
-         commCompareObject( cursor.toArray(), docs );
+         var cursor = cl.find().sort( { a: 1 } );
+         commCompareResults( cursor, docs );
       }
    }
 
@@ -94,7 +94,7 @@ function prepareCSCL ()
       var cs = db.createCS( csNames[i], { Domain: domainName } );
       for( var j = 0; j < clNames.length; j++ )
       {
-         var cl = cs.createCL( clNames[j], { ShardingKey: { a: 1 }, ShardingType: "hash" } );
+         var cl = cs.createCL( clNames[j], { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 } );
          cl.insert( docs );
       }
    }
