@@ -2,7 +2,7 @@
  * @Description   : seqDB-23246 :: 索引不支持数组，查询不满足覆盖索引必要条件 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
+ * @LastEditTime  : 2021.10.14
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = COMMCLNAME + "_23246";
@@ -27,7 +27,7 @@ function test ( testPara )
    // 查询数据
    // 索引扫描
    var cursor = cl.find().hint( { "": indexName } );
-   commCompareObject( cursor.toArray(), records );
+   commCompareResults( cursor, records );
    var explainInfo = cl.find().hint( { "": indexName } ).explain().toArray();
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
 
@@ -57,7 +57,7 @@ function test ( testPara )
 
    // find条件为空（如：cl.find()）;
    cursor = cl.find().hint( { "": indexName } );
-   commCompareObject( cursor.toArray(), records );
+   commCompareResults( cursor, records );
    explainInfo = cl.find().hint( { "": indexName } ).explain().toArray();
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
 

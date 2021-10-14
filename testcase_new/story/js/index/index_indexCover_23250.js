@@ -2,7 +2,7 @@
  * @Description   : seqDB-23250:索引不支持数组，非嵌套对象+复合索引，选择条件索引字段不包含排序索引字段
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
+ * @LastEditTime  : 2021.10.14
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
@@ -41,12 +41,10 @@ function test ( testPara )
       assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
-      var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
+      var cursor1 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
       db.updateConf( { "indexcoveron": false } );
-      var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
-      commCompareObject( obj1, obj2 );
+      var cursor2 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
+      commCompareResults( cursor2, throughCursor( cursor1 ) );
    }
    finally
    {
@@ -70,15 +68,24 @@ function test ( testPara )
       assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
-      var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
+      var cursor1 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
       db.updateConf( { "indexcoveron": false } );
-      var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
-      commCompareObject( obj1, obj2 );
+      var cursor2 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
+      commCompareResults( cursor2, throughCursor( cursor1 ) );
    }
    finally
    {
       db.updateConf( { "indexcoveron": true } );
    }
+}
+
+function throughCursor ( cursor )
+{
+   var records = new Array();
+   while( cursor.next() )
+   {
+      var obj = cursor.current();
+      records.push( cursor.current().toObj() );
+   }
+   return records;
 }
