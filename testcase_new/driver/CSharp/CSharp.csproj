@@ -53,6 +53,7 @@
     </CodeAnalysisDependentAssemblyPaths>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AutoIncrement\Sequence24419.cs" />
     <Compile Include="Cluster\TestSession23531.cs" />
     <Compile Include="Crud\Analyze\AnalyzeAll14256.cs" />
     <Compile Include="Crud\Analyze\AnalyzeCommon.cs" />
