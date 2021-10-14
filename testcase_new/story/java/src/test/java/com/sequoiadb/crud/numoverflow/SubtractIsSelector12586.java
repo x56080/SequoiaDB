@@ -15,12 +15,12 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: SubtractIsSelector12586.java test content:Numeric value overflow
- * for many character of different dataType using $subtract operation, and the
- * $subtract is used as a selector. testlink case:seqDB-12586
- * 
+ * @description seqDB-12586:多个字段使用$subtract操作不同类型运算溢出
  * @author wuyan
- * @Date 2017.9.13
+ * @date 2017/9/13
+ * @updateUser wuyan
+ * @updateDate 2021/10/14
+ * @updateRemark SEQUOIADBMAINSTREAM-6546修改数组类型$[i]取值方式，更新用例中取值结果
  * @version 1.00
  */
 
@@ -33,13 +33,7 @@ public class SubtractIsSelector12586 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "connect %s failed," + coordUrl + e.getMessage() );
-        }
-
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         cl = NumOverflowUtils.createCL( cs, clName );
 
@@ -53,31 +47,25 @@ public class SubtractIsSelector12586 extends SdbTestBase {
 
     @Test
     public void testSubtract() {
-        try {
-            String selector = "{no:{$subtract:{'$numberLong':'9223372034707292161'}},"
-                    + "tlong:{$subtract:-1},'arr.$[0]':{$subtract:{'$numberLong':'-9223372036854775807'}},"
-                    + "'arr1.$[1].$[1]':{$subtract:-8},'obj.a.b.$[1]':{$subtract:1},"
-                    + "'obj1.a.b':{$subtract:{'$numberLong':'9223372036854775807'}},_id:{$include:0}}";
-            // TODO:SEQUOIADBMAINSTREAM-2764,the arr1.$[1].$[1] oper result is
-            // error
-            /*
-             * String []expRecords =
-             * {"{'no':{'$decimal':'-9223372036854775809'}," +
-             * "'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}]"
-             * + "''arr1':[1,[1,{'$deciaml':'9223372036854775808'}],2]," +
-             * "obj:{a:{b:[{'$decimal':'-9223372036854775809'}]}}," +
-             * "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}"};
-             */
-            String[] expRecords = { "{'no':{'$decimal':'-9223372036854775809'},"
-                    + "'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
-                    + "'arr1':[],obj:{a:{b:[{'$decimal':'-9223372036854775809'}]}},"
-                    + "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}" };
-            NumOverflowUtils.multipleFieldOper( cl, selector, expRecords );
-        } catch ( BaseException e ) {
-            Assert.assertTrue( false,
-                    "subtract is used as selector oper failed," + e.getMessage()
-                            + e.getErrorCode() );
-        }
+        String selector = "{no:{$subtract:{'$numberLong':'9223372034707292161'}},"
+                + "tlong:{$subtract:-1},'arr.$[0]':{$subtract:{'$numberLong':'-9223372036854775807'}},"
+                + "'arr1.$[1].$[1]':{$subtract:-8},'obj.a.b.$[1]':{$subtract:1},"
+                + "'obj1.a.b':{$subtract:{'$numberLong':'9223372036854775807'}},_id:{$include:0}}";
+        // TODO:SEQUOIADBMAINSTREAM-2764,the arr1.$[1].$[1] oper result is
+        // error
+        /*
+         * String []expRecords = {"{'no':{'$decimal':'-9223372036854775809'}," +
+         * "'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}]"
+         * + "''arr1':[1,[1,{'$deciaml':'9223372036854775808'}],2]," +
+         * "obj:{a:{b:[{'$decimal':'-9223372036854775809'}]}}," +
+         * "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}"};
+         */
+        String[] expRecords = { "{'no':{'$decimal':'-9223372036854775809'},"
+                + "'tlong':{'$decimal':'9223372036854775808'},arr:[{'$decimal':'9223372036854775808'}],"
+                + "'arr1':[[ { \"$decimal\" : \"9223372036854775808\" } ]],obj:{a:{b:[{'$decimal':'-9223372036854775809'}]}},"
+                + "obj1:{a:{b:{'$decimal':'-9223372036854775809'}}}}" };
+        NumOverflowUtils.multipleFieldOper( cl, selector, expRecords );
+
     }
 
     @AfterClass
@@ -87,8 +75,6 @@ public class SubtractIsSelector12586 extends SdbTestBase {
                     .isCollectionExist( clName ) ) {
                 cs.dropCollection( clName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( "clear env failed, errMsg:" + e.getMessage() );
         } finally {
             if ( sdb != null ) {
                 sdb.close();
