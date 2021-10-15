@@ -282,7 +282,7 @@ struct fuse_operations sfsFuseOper=
    sfsFtruncate,//Ftruncate  -->not finish
    sfsFgetattr,//Fgetattr  --only called after create, in some cases, if not implemented,
                // call getattr after create will not get the lob, so called this instead
-   sfsLock,//Lock  -->not finish
+   0,//Lock  -->not finish
    sfsUtimens,//Utimens  -->not finish
    sfsBmap,//Bmap  -->not finish
    0,//flag_nullpath_ok:1

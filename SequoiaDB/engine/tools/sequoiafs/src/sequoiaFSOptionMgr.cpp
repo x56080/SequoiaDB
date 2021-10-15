@@ -379,7 +379,7 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    //--connectionnum
    rdxInt(pEX, SDB_SEQUOIAFS_CONNECTION_NUM, _connectionNum, FALSE,
           PMD_CFG_CHANGE_FORBIDDEN, SDB_SEQUOIAFS_CONNECTION_DEFAULT_MAX_NUM);
-   rdvMinMax(pEX, _connectionNum, 50, 1000, TRUE);
+   rdvMinMax(pEX, _connectionNum, 50, 10000, TRUE);
 
    //--cachesize
    rdxInt(pEX, SDB_SEQUOIAFS_CACHE_SIZE, _cacheSize, FALSE,

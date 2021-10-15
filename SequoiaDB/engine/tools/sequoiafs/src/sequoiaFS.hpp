@@ -69,6 +69,12 @@
 #include<netdb.h>
 #include<ifaddrs.h>
 #include<net/if.h>
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
+//#include "ossPriorityQueue.hpp"
+#include "ossQueue.hpp"
+
+
 
 using std::string;
 using namespace sdbclient;
@@ -76,6 +82,10 @@ using namespace bson;
 
 #define MAX_NODE_NAME_LEN 20
 #define NUM_OF_NODE_NAME {sizeof(lobLbfsNodeName)/sizeof(lobLbfsNodeName[0])}
+#define FS_CLOSE_THREAD_NUMBER 10
+#define FS_CLOSE_QUEUE_SIZE 100
+
+
 
 namespace sequoiafs
 {
@@ -111,10 +121,17 @@ namespace sequoiafs
       string symLink;
    };
 
+   struct lobClosehl
+   {
+      sdb *db;
+      sdbLob *lob;   
+   };
+
    class sequoiaFS: public SDBObject
    {
    public:
       INT32 init(INT32 argc, CHAR **argv, vector<string> *options4fuse);
+      INT32 initCloseLobQueue();
       void destroy(void *userdata);
       INT32 getattr(const CHAR *path, struct stat *statbuf);
       INT32 readlink(const CHAR *path, CHAR * link, size_t size);
@@ -185,9 +202,13 @@ namespace sequoiafs
         _sysDirMetaCLFullName = "";
         _mountpoint = "";
         _replsize = SDB_SEQUOIAFS_REPLSIZE_DEFAULT_VALUE;
+        for(INT32 i = 0; i < FS_CLOSE_THREAD_NUMBER; i++)  
+        {
+           _thcloseLob[i] = NULL;
+        }
       }
 
-      ~sequoiaFS(){}
+      ~sequoiaFS();
 
       const CHAR *getHosts()const{return _optionMgr.getHosts();}
       INT32 getRecordField(BSONObj &record, CHAR *fieldName,
@@ -233,6 +254,17 @@ namespace sequoiafs
       {
         return _replsize;
       }
+
+      INT32 delayCreate(const CHAR *path,
+                             const CHAR *buf,
+                             size_t size,
+                             off_t offset,
+                             struct fuse_file_info *fi);
+
+      BOOLEAN addCloseTask(sdb *db, sdbLob *lob);
+      void closeLob();
+      
+      
    private:
       INT32 doSetDirNodeAttr(sdbCollection &cl,
                              struct dirMetaNode &dirNode);
@@ -245,6 +277,9 @@ namespace sequoiafs
       INT32 isDir(sdbCollection *sysFileMetaCL,
                   sdbCollection *sysDirMetaCL,
                   CHAR *name, INT64 pid, BOOLEAN *is_dir);
+      INT32 getMeta(sdbCollection *sysFileMetaCL,
+                  sdbCollection *sysDirMetaCL,
+                  CHAR *name, INT64 pid, BOOLEAN *is_dir, BSONObj &record);
    private:
       sdbConnectionPoolConf conf;
       sdbConnectionPool ds ;
@@ -260,6 +295,10 @@ namespace sequoiafs
       sequoiafsOptionMgr _optionMgr;
       std::map<UINT64, INT8> _mapOpMode;
       INT32 _replsize;
+
+      ossQueue<lobClosehl> _recycleQueue;
+      boost::thread*       _thcloseLob[FS_CLOSE_THREAD_NUMBER];
+      BOOLEAN _running;
 
    public:
       string _collection;
