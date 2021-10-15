@@ -2,7 +2,7 @@
  * @Description   : seqDB-23251:索引不支持数组，嵌套对象+嵌套索引（如{“a.b”:1}），测试覆盖索引
  * @Author        : Xiaoni Huang
  * @CreateTime    : 2021.01.09
- * @LastEditTime  : 2021.05.11
+ * @LastEditTime  : 2021.10.15
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
@@ -74,12 +74,10 @@ function testIndexCover ( cl, clName, idxName )
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, true, "explainInfo = " + explainInfo );
 
    // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
-   var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
+   var cursor1 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
    db.updateConf( { "indexcoveron": false } );
-   var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
-   commCompareObject( obj1, obj2 );
+   var cursor2 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
+   commCompareResults( cursor2, throughCursor( cursor1 ) );
 
 
    // 2.a）使用嵌套索引字段查询，不满足覆盖索引条件(嵌套子字段未覆盖索引)
@@ -96,12 +94,10 @@ function testIndexCover ( cl, clName, idxName )
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
 
    // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
-   var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
+   var cursor1 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
    db.updateConf( { "indexcoveron": false } );
-   var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
-   commCompareObject( obj1, obj2 );
+   var cursor2 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
+   commCompareResults( cursor2, throughCursor( cursor1 ) );
 
 
    // 2.b）使用嵌套索引字段查询，不满足覆盖索引条件(嵌套子字段未覆盖索引)
@@ -118,10 +114,19 @@ function testIndexCover ( cl, clName, idxName )
    assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
 
    // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
-   var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
-
+   var cursor1 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
    db.updateConf( { "indexcoveron": false } );
-   var obj2 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
+   var cursor2 = cl.find( cond, sel ).sort( sortCond ).hint( hint );
+   commCompareResults( cursor2, throughCursor( cursor1 ) );
+}
 
-   commCompareObject( obj1, obj2 );
+function throughCursor ( cursor )
+{
+   var records = new Array();
+   while( cursor.next() )
+   {
+      var obj = cursor.current();
+      records.push( cursor.current().toObj() );
+   }
+   return records;
 }
