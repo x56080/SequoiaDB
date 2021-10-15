@@ -137,5 +137,24 @@ namespace vessel
       return _lh.tryLockExclusiveFromUpgrade();
    }
 
+   runtimePageBuffer &logicalPageBuffer::getWritableBuffer()
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(_rpb.isWritingPrepared(), "must be prepared");
+      return _rpb;
+   }
+
+   strictPointer logicalPageBuffer::getReadableBodyPtr()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return _rpb.getReadableBodyPtr();
+   }
+
+   strictPointer logicalPageBuffer::getWritableBodyPtr()
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(_rpb.isWritingPrepared(), "must be prepared");
+      return _rpb.getWritableBodyPtr();
+   }
 }//namespace vessel
 }//namespace engine

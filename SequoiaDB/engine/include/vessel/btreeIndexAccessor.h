@@ -86,15 +86,16 @@ namespace vessel
          }
 
       private:
-         INT32 pushNodeIntoPath(PAGE_ID lpid,
-                                const ossSharedLatchMode &mode,
-                                btreeNodePath &path,
-                                btreeNode *out = NULL);
+         INT32 pushNoneRootNodeIntoPath(PAGE_ID lpid,
+                                        const ossSharedLatchMode &mode,
+                                        btreeAccessContext &bac);
+         INT32 pushRootIntoPath(ossSharedLatchMode mode, btreeAccessContext &bac);
 
-         INT32 traverseDownToInsert(btreeInsertContext &bic);
+         INT32 traverseDownToInsert(btreeAccessContext &bac,
+                                    BOOLEAN &obstructed);
 
       private:
-         INT32 pushRootIntoPath(ossSharedLatchMode mode, btreeNodePath &path);
+         
 
          INT32 createRootIfNotExists();
 

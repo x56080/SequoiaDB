@@ -36,55 +36,36 @@
 #ifndef VESSEL_BTREE_ACCESS_CONTEXT_H_
 #define VESSEL_BTREE_ACCESS_CONTEXT_H_
 
-#include "vessel/btreeNodePath.h"
 #include "vessel/recordID.h"
 #include "ixmKey.hpp"
+#include "utilArray.hpp"
+#include "vessel/btreeAccessPathNode.h"
+#include "vessel/btreeNode.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class logicalPageBuffer;
+   class indexContext;
+
    class btreeAccessContext : public SDBObject
    {
       public:
-         btreeAccessContext() = delete;
-         btreeAccessContext(const indexContext *ic);
-         virtual ~btreeAccessContext(){}
+         btreeAccessContext(){}
+         ~btreeAccessContext();
          btreeAccessContext(const btreeAccessContext &) = delete;
          btreeAccessContext &operator=(const btreeAccessContext &) = delete;
 
-
       public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return NULL != _ic;
+         }
          OSS_INLINE const ixmKey &getKey()const
          {
             return _key;
          }
-         OSS_INLINE BOOLEAN isObstructed()const
-         {
-            return _obstructed;
-         }
-         OSS_INLINE void setObstructed()
-         {
-            _obstructed = TRUE;
-         }
-         OSS_INLINE btreeNodePath &getPath()
-         {
-            return _path;
-         }
-
-      protected:
-         ixmKey _key;
-         btreeNodePath _path;
-         BOOLEAN _obstructed = FALSE;
-   };//class btreeAccessContext
-
-   class btreeInsertContext : public btreeAccessContext
-   {
-      public:
-         btreeInsertContext(const indexContext *ic);
-         virtual ~btreeInsertContext();
-
-      public:
          OSS_INLINE const recordID &getRid()const
          {
             return _rid;
@@ -93,28 +74,40 @@ namespace vessel
          {
             return _transID;
          }
-         OSS_INLINE BOOLEAN isPessimistically()const
-         {
-            return _pessimistically;
-         }
-         OSS_INLINE void setPessimistically()
-         {
-            _pessimistically = TRUE;
-         }
-      
-      public:
-         INT32 init(const ixmKey &key,
-                    const recordID &rid,
-                    const DPS_TRANS_ID &transID);
 
+         OSS_INLINE BOOLEAN isPathEmpty()const
+         {
+            return _path.empty();
+         }
+         
+
+      public:
+         void init(const indexContext *ic,
+                   const ixmKey &key,
+                   const recordID *rid=NULL,
+                   const DPS_TRANS_ID *transID=NULL);
          void fini();
+         logicalPageBuffer *allocateBuffer();
+         void releaseBuffer(logicalPageBuffer *buffer);
+
+         INT32 pushIntoPath(logicalPageBuffer *buffer);
+
+         void clearAccessPath();
+
+         btreeNode getEndNodeInPath();
 
       private:
+         typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
+
+      private:
+         const indexContext *_ic = NULL;
+         ixmKey _key;
          recordID _rid;
          DPS_TRANS_ID _transID;
-         BOOLEAN _pessimistically = FALSE;
-         RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
-   };//class btreeInsertContext
+
+         _utilArray<btreeAccessPathNode, 4> _path;
+         _FREE_BUFFERS _free;
+   };//class btreeAccessContext
 } // namespace vessel
 
 } // namespace engine

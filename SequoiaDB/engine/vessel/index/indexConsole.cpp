@@ -38,8 +38,8 @@
 #include "ossLikely.hpp"
 #include "vessel/indexSpace.h"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/indexDefPageAccessor.h"
-#include "vessel/indexDefPageIniter.h"
+#include "vessel/indexEntryPageAccessor.h"
+#include "vessel/indexEntryPageIniter.h"
 #include "vessel/indexMappingPageIniter.h"
 #include "vessel/indexMappingPageAccessor.h"
 #include "vessel/requestContext.h"
@@ -137,7 +137,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
+      indexEntryPageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (!isInitialized())
@@ -177,12 +177,12 @@ namespace vessel
    INT32 indexConsole::getOwnedIndexObj(requestContext *context,
                                         INT32 indexSlot,
                                         indexObject &obj,
-                                        indexDefHead *head)
+                                        indexEntryPageHead *head)
    {
       INT32 rc = SDB_OK;
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
+      indexEntryPageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (!isInitialized())
@@ -318,10 +318,10 @@ namespace vessel
 
       BOOLEAN checkpointBlocked = FALSE;
       indexMappingPageIniter mappingIniter;
-      indexDefPageIniter defIniter;
+      indexEntryPageIniter defIniter;
       PAGE_ID lpid = INVALID_PAGE_ID;
       logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
+      indexEntryPageAccessor accessor;
       indexMappingPageAccessor mappingAccessor;
       lpidLockHelper lh;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
@@ -424,9 +424,9 @@ namespace vessel
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       SDB_ASSERT(indexSlot < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL, "impossible");
       
-      indexDefPageIniter initer;
+      indexEntryPageIniter initer;
       logicalPageBuffer lpb;
-      indexDefPageAccessor accessor;
+      indexEntryPageAccessor accessor;
       PAGE_ID lpid = INVALID_PAGE_ID;
       lpidLockHelper lh;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
@@ -551,7 +551,7 @@ namespace vessel
                                               indexContextMap *indexes)
    {
       INT32 rc = SDB_OK;
-      indexDefPageAccessor accessor;
+      indexEntryPageAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
       if (OSS_UNLIKELY(!isInitialized()))
@@ -571,7 +571,7 @@ namespace vessel
       for (INT32 i = 0; i < (INT32)DIRECT_MAPPING_INDEX_COUNT_PER_CL; ++i)
       {
          indexObject indexObj;
-         indexDefHead head;
+         indexEntryPageHead head;
          logicalPageBuffer lpb;
          PAGE_ID lpid = _is->getDirectMappedIndexLpid(_mbID, i);
          SDB_ASSERT(INVALID_PAGE_ID != lpid, "impossible");
@@ -621,7 +621,7 @@ namespace vessel
            i < (INT32)MAX_INDEX_COUNT_PER_CL; ++i)
       {
          indexObject indexObj;
-         indexDefHead head;
+         indexEntryPageHead head;
          logicalPageBuffer lpb;
          UINT32 pos = 0;
          PAGE_ID lpid = INVALID_PAGE_ID;

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexCompressedKey.h
+   Source File Name = btreeAccessPathNode.cpp
 
    Descriptive Name =
 
@@ -33,47 +33,24 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_COMPRESSED_KEY_H_
-#define VESSEL_INDEX_COMPRESSED_KEY_H_
-
-#include "ixmKey.hpp"
+#include "vessel/btreeAccessPathNode.h"
+#include "vessel/logicalPageBuffer.h"
+#include "pdTrace.hpp"
+#include "vessel/btreeNodePage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexCompressedKey : public SDBObject
+   btreeAccessPathNode::btreeAccessPathNode(logicalPageBuffer *lpb)
    {
-      public:
-         indexCompressedKey(){}
-         explicit indexCompressedKey(const CHAR *data):
-         _data(data){}
-         ~indexCompressedKey(){}
-         indexCompressedKey(const indexCompressedKey &o):
-         _data(o._data){}
-         indexCompressedKey &operator=(const indexCompressedKey &o)
-         {
-            _data = o._data;
-            return *this;
-         }
-
-      public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return NULL != _data;
-         }
-         UINT32 getKeyDataSize()const;
-      private:
-         /// flag size (1 byte) included
-         /// res < 0 when failed to parse.
-         INT32 getThisKeySize(const CHAR *flags)const;
-
-      private:
-         const CHAR *_data = NULL;
-   };//class indexCompressedKey
+      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
+      _lpid = lpb->getLogicalPid();
+      _lpb = lpb;
+      const btreeNodePageHead *head = lpb->getRuntimeBuffer().getReadablePtrOfBody<btreeNodePageHead>(0);
+      SDB_ASSERT(NULL != head, "can not be null");
+      _splitedTimes = head->splitedTimes;
+   }
 } // namespace vessel
-
+  
 } // namespace engine
-
-
-#endif//VESSEL_INDEX_COMPRESSED_KEY_H_

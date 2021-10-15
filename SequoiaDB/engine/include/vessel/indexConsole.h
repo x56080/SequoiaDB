@@ -55,7 +55,7 @@ namespace vessel
    class requestContext;
    class indexContextMap;
    class dmlContext;
-   class indexDefHead;
+   struct indexEntryPageHead;
 
    class indexConsole : public SDBObject
    {
@@ -95,7 +95,7 @@ namespace vessel
          INT32 getOwnedIndexObj(requestContext *context,
                                 INT32 indexSlot,
                                 indexObject &obj,
-                                indexDefHead *head=NULL);
+                                indexEntryPageHead *head=NULL);
 
          INT32 loadIndexesWhenStartup(requestContext *context,
                                       indexContextMap *indexes);

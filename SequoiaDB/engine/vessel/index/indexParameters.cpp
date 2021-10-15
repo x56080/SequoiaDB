@@ -50,15 +50,6 @@ namespace vessel
          goto done;
       }
 
-      if (INDEX_TYPE_BTREE == type)
-      {
-         if (MAX_INDEX_BTREE_PREFIX_COMPRESSION_COLUMNS <
-             prefixCompressionColumns)
-         {
-            goto done;
-         }
-      }
-
       if (INDEX_TYPE_LSM == type)
       {
          if (0 != columnFamily)
@@ -83,7 +74,7 @@ namespace vessel
       if (INDEX_TYPE_BTREE == type)
       {
          builder.append(VESSEL_INDEX_FIELD_NAME_PREFIX_COMPRESSION,
-                        prefixCompressionColumns);
+                        btreeMaxPrefixComluns);
       }
       if (INDEX_TYPE_LSM == type)
       {
@@ -135,7 +126,7 @@ namespace vessel
          {
             goto done;
          }
-         prefixCompressionColumns = ele.Int();
+         btreeMaxPrefixComluns = ele.Int();
       }
 
       r = isValid();
@@ -145,6 +136,12 @@ namespace vessel
          *this = indexParameters();
       }
       return r;
+   }
+
+   BOOLEAN indexParameters::isPrefixCompressionEnabled()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return 0 < btreeMaxPrefixComluns;
    }
 }//namespace vessel
 }//namespace engine

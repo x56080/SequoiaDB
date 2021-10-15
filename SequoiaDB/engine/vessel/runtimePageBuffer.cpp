@@ -174,6 +174,30 @@ namespace vessel
       return;
    }
 
+   strictPointer runtimePageBuffer::getReadableBodyPtr()const
+   {
+      strictPointer ptr;
+      if (isValid())
+      {
+         UINT32 bodySize = getPageBodySize(_pageSize);
+         const CHAR *body = (const CHAR *)getReadOnlyBuffer() + PAGE_HEAD_SIZE;
+         ptr.setReadable(bodySize, body);
+      }
+      return ptr;
+   }
+
+   strictPointer runtimePageBuffer::getWritableBodyPtr()
+   {
+      strictPointer ptr;
+      if (isValid() && isWritingPrepared())
+      {
+         UINT32 bodySize = getPageBodySize(_pageSize);
+         CHAR *body = (CHAR *)getBuffer() + PAGE_HEAD_SIZE;
+         ptr.setWritable(bodySize, body);
+      }
+      return ptr;
+   }
+
    INT32 runtimePageBuffer::getReadablePtrOfBodyWithRc(UINT32 offset,
                                                        UINT32 size,
                                                        ossValuePtr &ptr)const

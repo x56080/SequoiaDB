@@ -43,6 +43,7 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
+#include "utilStr.hpp"
 
 using namespace bson ;
 
@@ -805,6 +806,65 @@ namespace engine
       0
    };
 
+
+   static UINT8 _COMPRESSION_TABLE[] =
+   {
+      0 , // invalid
+      1 , //cminkey=1,
+      1 , //cnull=2,
+      1 , //cundefined=3,
+      1 , //cdouble=4,
+      0 ,
+      1 , //cstring=6,
+      0, /// bin data=7
+      0 , //coid=8,
+      0 ,
+      1 , //cfalse=10,
+      1 , //ctrue=11,
+      1 , //cdate=12,
+      0 ,
+      1 , //cmaxkey=14,
+      0
+   };//UINT8 _COMPRESSION_TABLE[]
+
+   static BOOLEAN isCompressableType(UINT32 type)
+   {
+      SDB_ASSERT(0 < type && type < 0xF, "invalid type");
+      return 0 != _COMPRESSION_TABLE[type];
+   }
+
+   /// all fields must be compressable when nfields is zero
+   static BOOLEAN isValidPrefix(const ixmKey &key, UINT32 nfields=0)
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      const UINT8 *p = NULL;
+      BOOLEAN hasMore = FALSE;
+      UINT32 parsed = 0;
+
+      if (!key.isValid() || !key.isCompactFormat())
+      {
+         goto done;
+      }
+      
+      p = (const UINT8 *)key.data();
+      do
+      {
+         hasMore = (0 != ( *p & cHASMORE ));
+         UINT32 type = (*p & cCANONTYPEMASK);
+         if (!isCompressableType(type))
+         {
+            goto done;
+         }
+         ++parsed;
+         p += sizeOfElement(p);
+      } while (hasMore && (0 == nfields || parsed < nfields));
+   
+      r = TRUE;
+   done:
+      return r;
+   }
+
    OSS_INLINE static UINT32 sizeOfElement(const UINT8 *p)
    {
       UINT32 type = *p & cCANONTYPEMASK;
@@ -842,4 +902,318 @@ namespace engine
       } while ( more ) ;
       return p - _keyData ;
    }
+
+   UINT32 _ixmKey::getFieldCount()const
+   {
+      if (!isValid())
+      {
+         return 0;
+      }
+      else if(!isCompactFormat())
+      {
+         // bson length + 1 byte type
+         return _bson().nFields();
+      }
+      else
+      {
+         UINT32 cnt = 0;
+         BOOLEAN more = FALSE;
+         const UINT8 *p = _keyData;
+         do
+         {
+            more = ( *p & cHASMORE )!=0 ;
+            p += sizeOfElement(p) ;
+            ++cnt;
+         } while ( more );
+
+         return cnt;
+      }
+   }
+   
+////////////////ixmKeyCompressor begin
+
+   INT32 ixmKeyCompressor::initPrefix(UINT32 nfields, const CHAR *prefix)
+   {
+      INT32 rc = SDB_OK;
+      reset();
+
+      if (0 == nfields || NULL == prefix)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isValidPrefix(ixmKey(prefix), nfields))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _prefix = prefix;
+      _nfields = nfields;
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 ixmKeyCompressor::compress(const ixmKey &key, result &r)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _prefix, "can not be null");
+      UINT32 prefixOffset = 0;
+      UINT32 keyOffset = 0;
+      BOOLEAN keyHasMore = TRUE;
+      r.reset();
+
+      if (!key.isValid() ||
+          NULL == _prefix)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!key.isCompactFormat())
+      {
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < _nfields && keyHasMore; ++i)
+      {
+         const CHAR *prefixColumn = _prefix + prefixOffset;
+         const CHAR *keyColumn = key.data() + keyOffset;
+         
+         if (!compressColumn(prefixColumn, keyColumn,
+                             ((i + 1) < _nfields), r._suffixBuilder))
+         {
+            break;
+         }
+         else
+         {
+            ++r._fieldsCompressed;
+            keyHasMore = (0 != (*keyColumn & cHASMORE));
+            prefixOffset += sizeOfElement((const UINT8 *)prefixColumn);
+            keyOffset += sizeOfElement((const UINT8 *)keyColumn);
+
+            if (0 < r._suffixBuilder.len())
+            {
+               /// stop to compress other columns if current column is not
+               /// perfectly comprssed.
+               break;
+            }
+         }
+      }
+
+      if (keyHasMore && 0 < r._fieldsCompressed)
+      {
+         const CHAR *keyColumn = key.data() + keyOffset;
+         saveColumnsAsSuffix(keyColumn, r._suffixBuilder);
+      }
+   done:
+      return rc;
+   error:
+      r.reset();
+      goto done;
+   }
+
+   BOOLEAN ixmKeyCompressor::compressColumn(const CHAR *prefix,
+                                            const CHAR *key,
+                                            BOOLEAN hasMore,
+                                            StackBufBuilder &builder)const
+   {
+      BOOLEAN res = FALSE;
+      SDB_ASSERT(NULL != prefix && NULL != key, "can not be null");
+
+      UINT32 pt = (*prefix & cCANONTYPEMASK);
+      UINT32 kt = (*key & cCANONTYPEMASK);
+
+      if (pt != kt)
+      {
+         goto done;
+      }
+
+      SDB_ASSERT(isCompressableType(pt), "impossible");
+
+      switch (pt)
+      {
+      case cstring:
+      {
+         /// WARNING: when keySize/prefixSize is zero, keyData/prefixData is wild ptr.
+         UINT32 prefixSize = *(prefix + 1);
+         const CHAR *prefixData = prefix + 2;
+         UINT32 keySize = *(key + 1);
+         const CHAR *keyData = key + 2;
+         UINT32 sameSize = 0;
+
+         if (0 == prefixSize && 0 != keySize)
+         {
+            goto done;
+         }
+         
+         sameSize = ossMemcmp(prefixData, keyData, OSS_MIN(prefixSize, keySize));
+         if (sameSize != prefixSize)
+         {
+            /// can not be compressed by prefix
+            goto done;
+         }
+         else if (sameSize < keySize)
+         {
+            builder.appendUChar(cstring|(hasMore ? cHASMORE : 0));
+            builder.appendUChar(keySize - sameSize);
+            builder.appendBuf(keyData + prefixSize, keySize - prefixSize);
+         }
+         else
+         {
+            SDB_ASSERT(sameSize == keySize, "impossible");
+            /// no suffix
+         }
+
+         res = TRUE;
+         break;
+      }
+      default:
+      {
+         const UINT8 *l = (const UINT8 *)prefix;
+         const UINT8 *r = (const UINT8 *)key;
+         if (0 == compare(l, r))
+         {
+            res = TRUE;
+         }
+         break;
+      }  
+      }
+
+   done:
+      return res;
+   }
+
+   void ixmKeyCompressor::saveColumnsAsSuffix(const ixmKey &key,
+                                              StackBufBuilder &builder)const
+   {
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      const UINT8 *p = (const UINT8 *)key.data();
+      UINT32 size = sizeOfElement(p);
+      if (0 < size)
+      {
+         builder.appendBuf(p, size);
+      }
+      return;
+   }
+
+////////////////ixmKeyCompressor end
+
+////////////////ixmKeyPrefixGenerator begin
+   BOOLEAN ixmKeyPrefixGenerator::generate(UINT32 prefixFieldNum,
+                                           const ixmKey &l,
+                                           const ixmKey &r,
+                                           result &res)const
+   {
+      BOOLEAN ok = FALSE;
+      SDB_ASSERT(0 < prefixFieldNum, "can not be zero");
+      SDB_ASSERT(l.isValid() && r.isValid(), "can not be invalid");
+      UINT32 loffset = 0;
+      UINT32 roffset = 0;
+      res.reset();
+
+      if (!isValidPrefix(l, prefixFieldNum) ||
+          !isValidPrefix(r, prefixFieldNum))
+      {
+         goto done;
+      }
+
+      for (UINT32 i = 0; i < prefixFieldNum; ++i)
+      {
+         const UINT8 *lp = (const UINT8 *)(l.data() + loffset);
+         const UINT8 *rp = (const UINT8 *)(r.data() + roffset);
+
+         if (!extractCommonPrefix(lp, rp, ((i + 1) == prefixFieldNum), res._prefixBuilder))
+         {
+            goto done;
+         }
+
+         loffset += sizeOfElement(lp);
+         roffset += sizeOfElement(rp);
+      }
+
+      ok = TRUE;
+   done:
+      if (!ok)
+      {
+         res._prefixBuilder.reset();
+      }
+      return ok;
+   }
+
+   BOOLEAN ixmKeyPrefixGenerator::extractCommonPrefix(const UINT8 *l,
+                                                      const UINT8 *r,
+                                                      BOOLEAN lastColumn,
+                                                      StackBufBuilder &builder)const
+   {
+      BOOLEAN extracted = FALSE;
+      SDB_ASSERT(NULL != l && NULL != r, "can not be null");
+      UINT32 lt = (*l & cCANONTYPEMASK);
+      UINT32 rt = (*r & cCANONTYPEMASK);
+
+      if (lt != rt)
+      {
+         goto done;
+      }
+      SDB_ASSERT(isCompressableType(lt), "msut be compressable");
+
+      switch (lt)
+      {
+      case cstring:
+      {
+         INT32 lsize = *(l + 1);
+         INT32 rsize = *(r + 1);
+         /// WARNING: when lsize/rsize is zero, lstr/rstr is wild ptr.
+         const CHAR *lstr = (const CHAR *)(l + 2);
+         const CHAR *rstr = (const CHAR *)(r + 2);
+         UINT32 prefixn = getCommonPrefix(lstr, rstr, OSS_MIN(lsize, rsize));
+
+         builder.appendUChar(cstring | (lastColumn ? 0 : cHASMORE));
+         builder.appendUChar(prefixn);
+         if (0 < prefixn)
+         {
+            builder.appendBuf(lstr, prefixn);
+         }
+
+         break;
+      }
+      default:/// can not be variable length type
+      {
+         UINT8 head = 0;
+         const UINT8 *min = NULL;
+         INT32 lsize = sizeOfElement(l);
+         INT32 rsize = sizeOfElement(r);
+         SDB_ASSERT(lsize == rsize, "must be same");
+         INT32 res = compare(l, r);
+
+         min = (res <= 0) ? l : r;
+         head = *min;
+         if (lastColumn)
+         {
+            OSS_BIT_CLEAR(head, cHASMORE);
+         }
+         else
+         {
+            OSS_BIT_SET(head, cHASMORE);
+         }
+
+         builder.appendUChar(head);
+         if (1 < lsize)
+         {
+            builder.appendBuf(min + 1, lsize - 1);
+         }
+         break;
+      }
+      }
+
+      extracted = TRUE;
+   done:
+      return extracted;
+   }
+
+
+////////////////ixmKeyPrefixGenerator end
 }
+

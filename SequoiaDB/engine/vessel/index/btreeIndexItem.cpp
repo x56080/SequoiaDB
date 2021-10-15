@@ -48,14 +48,14 @@ namespace vessel
       _slotNo = INVALID_RECORD_SLOT_ID;
       _slot = NULL;
       _keyData = NULL;
-      _prefix = NULL;
+      _prefixData = NULL;
       return;
    }
 
    INT32 btreeIndexItem::init(RECORD_SLOT_ID slotNo,
                               const btreeNodeSlot *slot,
                               const CHAR *keyData,
-                              const btreeNodePrefixSlot *prefix)
+                              const CHAR *prefix)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -72,7 +72,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(slot->isKeyCompressed() && (NULL == prefix || !prefix->isValid())))
+      else if (OSS_UNLIKELY(slot->isKeyCompressed() &&
+                            NULL == prefix))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -81,7 +82,7 @@ namespace vessel
       _slotNo = slotNo;
       _slot = slot;
       _keyData = keyData;
-      _prefix = prefix;
+      _prefixData = prefix;
 
    done:
       return rc;
@@ -92,37 +93,59 @@ namespace vessel
    UINT32 btreeIndexItem::getSavingSize()const
    {
       UINT32 size = 0;
+      
       if (isValid())
       {
          size = BTREE_NODE_SLOT_SIZE;
-         if (!_slot->isKeyInSlot())
+         if (_slot->isDataPointerMode())
          {
-            size += ixmKey(_keyData).dataSize();
+            size += _slot->data.pointer.size;
          }
       }
-      else
-      {
-         SDB_ASSERT(FALSE, "can not be invalid");
-      }
-
+      
       return size;
    }
 
    void btreeIndexItem::getKeyWhenNotCompressed(ixmKey &key)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!_slot->isKeyCompressed(), "can not be compressed");
-      SDB_ASSERT(!_slot->hasNoSuffix(), "impossible");
+      SDB_ASSERT(!_slot->isCompressed(), "can not be compressed");
 
-      if (_slot->isKeyInSlot())
-      {
-         key.assign(_slot->data.keyData);
-      }
-      else
+      if (_slot->isDataPointerMode())
       {
          key.assign(_keyData);
       }
+      else
+      {
+         key.assign(_slot->data.getKeyDataInSlot());
+      }
       return;
+   }
+
+   INT32 btreeIndexItem::woCompare(const ixmKey &key,
+                                   const bson::Ordering &ordering)const
+   {
+      INT32 r = 0;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      ixmKey localKey;
+
+      if (!_slot->isCompressed())
+      {
+         getKeyWhenNotCompressed(localKey);
+         r = localKey.woCompare(key, ordering);
+      }
+      else if (!_slot->hasKeySuffix())
+      {
+         localKey.assign(_prefixData);
+         r = localKey.woCompare(key, ordering);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+      return r;
    }
 } // namespace vessel
 

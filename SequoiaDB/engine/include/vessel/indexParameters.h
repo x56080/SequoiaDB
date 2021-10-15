@@ -56,7 +56,7 @@ namespace vessel
             enforeced = o.enforeced;
             notNull = o.notNull;
             notArray = o.notArray;
-            prefixCompressionColumns = o.prefixCompressionColumns;
+            btreeMaxPrefixComluns = o.btreeMaxPrefixComluns;
             columnFamily = o.columnFamily;
             return *this;
          }
@@ -66,6 +66,8 @@ namespace vessel
 
          void exportToBson(bson::BSONObjBuilder &builder)const;
          BOOLEAN extractFromBson(const bson::BSONObj &obj);
+
+         BOOLEAN isPrefixCompressionEnabled()const;
       public:
          INDEX_TYPE type = INVALID_INDEX_TYPE;
          BOOLEAN isUnique = FALSE;
@@ -75,11 +77,10 @@ namespace vessel
 
          /******* btree only bein   *******/
 
-         /// valid range[0, 2]
-         /// 0: no compression
-         /// 1 or 2: the count of columns to be compressed. (2 is not recommended)
-         /// others value: invalid
-         UINT32 prefixCompressionColumns = 0;
+         /// Max column count of prefix in btree prefix compression.
+         /// It should be one unless there are a lot of duplicate index keys.
+         UINT32 btreeMaxPrefixComluns = 0;
+         
          /******* btree only end   *******/
 
 

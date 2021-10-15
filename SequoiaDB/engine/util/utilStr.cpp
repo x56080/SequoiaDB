@@ -845,5 +845,28 @@ namespace engine
    done:
       return r ;
    }
+
+   UINT32 getCommonPrefix(const CHAR *l,
+                          const CHAR *r,
+                          INT32 n)
+   {
+      UINT32 prefixSize = 0;
+      SDB_ASSERT(NULL != l && NULL != r, "can not be null");
+
+      for (UINT32 i = 0; i < (UINT32)n; ++i)
+      {
+         if (l[i] == r[i] &&
+             l[i] != '\0')
+         {
+            ++prefixSize;
+         }
+         else
+         {
+            break;
+         }
+      }
+
+      return prefixSize;
+   }
 }
 

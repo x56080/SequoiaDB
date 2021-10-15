@@ -48,8 +48,8 @@ namespace vessel
                                            logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
-      indexDefHead head;
-      indexDefHead *headPtr = NULL;
+      indexEntryPageHead head;
+      indexEntryPageHead *headPtr = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
@@ -61,13 +61,13 @@ namespace vessel
          goto error;
       }
       else if (getPageBodySize(lpb->getRuntimeBuffer().getPageSize()) < 
-              (INDEX_DEF_HEAD_SIZE + defObj.len()))
+              (INDEX_ENTRY_PAGE_HEAD_SIZE + defObj.len()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -90,7 +90,7 @@ namespace vessel
          goto error;
       }
 
-      headPtr = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexDefHead>(0);
+      headPtr = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == headPtr)
       {
          PD_LOG(PDERROR, "failed to get writable head ptr");
@@ -99,7 +99,7 @@ namespace vessel
       }
 
       *headPtr = head;
-      ossMemcpy((void *)((CHAR *)headPtr + INDEX_DEF_HEAD_SIZE),
+      ossMemcpy((void *)((CHAR *)headPtr + INDEX_ENTRY_PAGE_HEAD_SIZE),
                  defObj.data(), defObj.len());
       lpb->getRuntimeBuffer().commit(context->getSession()->getLastLSN());
 
@@ -118,7 +118,7 @@ namespace vessel
                                     bson::BSONObjBuilder &builder)const
    {
       INT32 rc = SDB_OK;
-      const indexDefHead *head = NULL;
+      const indexEntryPageHead *head = NULL;
       bson::BSONObj defObj;
       ossValuePtr ptr = 0;
 
@@ -130,7 +130,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -138,7 +138,7 @@ namespace vessel
          goto error;
       }
 
-      head = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      head = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);
@@ -160,7 +160,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->getRuntimeBuffer().getReadablePtrOfBodyWithRc(INDEX_DEF_HEAD_SIZE,
+      rc = lpb->getRuntimeBuffer().getReadablePtrOfBodyWithRc(INDEX_ENTRY_PAGE_HEAD_SIZE,
                                                               head->defObjSize, ptr);
       if (SDB_OK != rc)
       {
@@ -186,8 +186,8 @@ namespace vessel
                                                  logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
-      const indexDefHead *readableHead = NULL;
-      indexDefHead *head = NULL;
+      const indexEntryPageHead *readableHead = NULL;
+      indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
@@ -199,7 +199,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -207,7 +207,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -236,7 +236,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->prepareToWrite(context);
+      rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
@@ -244,7 +244,7 @@ namespace vessel
       }
       readableHead = NULL;
 
-      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexDefHead>(0);
+      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexEntryPageHead>(0);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of head");
@@ -272,8 +272,8 @@ namespace vessel
                                                UINT32 *updatedTimes)const
    {
       INT32 rc = SDB_OK;
-      const indexDefHead *readableHead = NULL;
-      indexDefHead *head = NULL;
+      const indexEntryPageHead *readableHead = NULL;
+      indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
@@ -285,7 +285,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -293,7 +293,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -322,7 +322,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->prepareToWrite(context);
+      rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
@@ -330,7 +330,7 @@ namespace vessel
       }
       readableHead = NULL;
 
-      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexDefHead>(0);
+      head = lpb->getRuntimeBuffer().getWritablePtrOfBody<indexEntryPageHead>(0);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of head");
@@ -359,10 +359,10 @@ namespace vessel
                                               const logicalPageBuffer *lpb,
                                               indexObject &obj,
                                               BOOLEAN getOwned,
-                                              indexDefHead *out)const
+                                              indexEntryPageHead *out)const
    {
       INT32 rc = SDB_OK;
-      const indexDefHead *readableHead = NULL;
+      const indexEntryPageHead *readableHead = NULL;
       ossValuePtr ptr = 0;
       bson::BSONObj defObj;
       indexKeyPattern pattern;
@@ -378,7 +378,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -386,7 +386,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      readableHead = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -408,7 +408,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->getRuntimeBuffer().getReadablePtrOfBodyWithRc(INDEX_DEF_HEAD_SIZE,
+      rc = lpb->getRuntimeBuffer().getReadablePtrOfBodyWithRc(INDEX_ENTRY_PAGE_HEAD_SIZE,
                                                               readableHead->defObjSize,
                                                               ptr);
       if (SDB_OK != rc)
@@ -454,10 +454,10 @@ namespace vessel
    INT32 indexEntryPageAccessor::getIndexDefPageHead(requestContext *context,
                                                    UINT32 indexId,
                                                    const logicalPageBuffer *lpb,
-                                                   const indexDefHead **out)const
+                                                   const indexEntryPageHead **out)const
    {
       INT32 rc = SDB_OK;
-      const indexDefHead *head = NULL;
+      const indexEntryPageHead *head = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_LOGICAL_INDEX_ID == indexId ||
@@ -469,7 +469,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->validatePage(PAGE_TYPE_INDEX_DEF);
+      rc = lpb->validatePage(PAGE_TYPE_INDEX_ENTRY);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
@@ -477,7 +477,7 @@ namespace vessel
          goto error;
       }
 
-      head = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexDefHead>(0);
+      head = lpb->getRuntimeBuffer().getReadablePtrOfBody<indexEntryPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);

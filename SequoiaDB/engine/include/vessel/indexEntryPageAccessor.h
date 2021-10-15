@@ -77,7 +77,7 @@ namespace vessel
                               const logicalPageBuffer *lpb,
                               indexObject &obj,
                               BOOLEAN getOwned = TRUE,
-                              indexDefHead *out = NULL)const;
+                              indexEntryPageHead *out = NULL)const;
 
          INT32 dump(requestContext *context,
                     const logicalPageBuffer *lpb,
@@ -87,7 +87,7 @@ namespace vessel
          INT32 getIndexDefPageHead(requestContext *context,
                                    UINT32 indexId,
                                    const logicalPageBuffer *lpb,
-                                   const indexDefHead **out)const;
+                                   const indexEntryPageHead **out)const;
 
    };//class indexEntryPageAccessor 
 }//namespace vessel

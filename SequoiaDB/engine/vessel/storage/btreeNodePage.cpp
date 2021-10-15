@@ -41,10 +41,57 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN isKeyCanBeSavedInSlot(UINT32 keySize)
+////////btreeItemSlot
+   void btreeItemSlot::initWhenDataInPage(const recordID &rid,
+                                          UINT16 offset,
+                                          UINT16 size,
+                                          PAGE_ID leftChild)
    {
-      return keySize <= sizeof(btreeNodeSlot::slotData::value);
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      reset();
+      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_DATA_IN_PAGE_BODY));
+      ridSlot = rid.getSlotID();
+      ridPage = rid.getPageID();
+      data.pointer.size = size;
+      data.pointer.offset = offset;
+      data.pointer.leftChild = leftChild;
+      return;
    }
+
+   void btreeItemSlot::initWhenDataInSlot(const recordID &rid,
+                                          const CHAR *keyData,
+                                          UINT32 keySize)
+   {
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(NULL != keyData, "can not be null");
+      SDB_ASSERT(keySize <= sizeof(btreeItemSlot::slotData), "out of size");
+      reset();
+      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_DATA_IN_SLOT));
+      ridSlot = rid.getSlotID();
+      ridPage = rid.getPageID();
+      ossMemcpy(data.keyData, keyData, keySize);
+      return;
+   }
+
+   void btreeItemSlot::initWhenPerfectlyCompressed(const recordID &rid,
+                                                   UINT32 prefixPos)
+   {
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      reset();
+      OSS_BIT_SET(flags, FLAG_IN_USED);
+      ridSlot = rid.getSlotID();
+      ridPage = rid.getPageID();
+      setKeyCompressed(prefixPos);
+      return;
+   }
+
+   BOOLEAN btreeItemSlot::hasNoSuffix()const
+   {
+      SDB_ASSERT(isValid(), "must be invalid");
+      SDB_ASSERT(isKeyCompressed(), "must be compressed");
+      return !isDataInPageBody() && !isDataInSlot();
+   }
+////////btreeItemSlot end
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,
                              PAGE_ID pid,
@@ -57,6 +104,7 @@ namespace vessel
       BOOLEAN r = FALSE;
       btreeNodePageHead *headPtr = NULL;
       btreeNodePageHead head;
+      UINT32 bodySize = 0;
    
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 

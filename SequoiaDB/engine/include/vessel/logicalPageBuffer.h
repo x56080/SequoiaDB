@@ -65,10 +65,6 @@ namespace vessel
          {
             return _rpb;
          }
-         OSS_INLINE runtimePageBuffer &getRuntimeBuffer()
-         {
-            return _rpb;
-         }
          OSS_INLINE BOOLEAN isValid()const
          {
             return NULL != _lps &&
@@ -105,6 +101,11 @@ namespace vessel
 
          /// must hold upgrade lock first
          BOOLEAN tryLockExclusiveFromUpgrade();
+
+         runtimePageBuffer &getWritableBuffer();
+
+         strictPointer getReadableBodyPtr()const;
+         strictPointer getWritableBodyPtr();
 
       private:
          void init(logicalPageSpace *lps,

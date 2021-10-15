@@ -43,6 +43,7 @@
 #include "vessel/btreeNodePage.h"
 #include "vessel/indexEntryPageAccessor.h"
 #include "vessel/btreeNodePageIniter.h"
+#include "vessel/btreeAccessPathNode.h"
 
 namespace engine
 {
@@ -108,16 +109,23 @@ namespace vessel
                                     const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      btreeInsertContext bic(_ic);
+      btreeAccessContext bac;
       BOOLEAN checkpointBlocked = FALSE;
       ossSharedLatchMode mode;
 
-      rc = bic.init(ixmKeyOwned(key), rid, transID);
-      if (SDB_OK != rc)
+      if (OSS_UNLIKELY(isInitialized()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else if (OSS_UNLIKELY(!key.isValid() ||
+                            !rid.valid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      bac.init(_ic, ixmKeyOwned(key), &rid, &transID);
 
       rc = _is->blockCheckpoint(_context);
       if (SDB_OK != rc)
@@ -135,7 +143,7 @@ namespace vessel
       }
 
       mode = estimateRootModeWhenWriting(_ic->getObj().getBtreeRootUpdatedTimes());
-      rc = pushRootIntoPath(mode, bic.getPath());
+      rc = pushRootIntoPath(mode, bac);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push root node into path:%d", rc);
@@ -151,12 +159,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::traverseDownToInsert(btreeInsertContext &bic)
+   INT32 btreeIndexAccessor::traverseDownToInsert(btreeAccessContext &bac,
+                                                  BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(bic.getPath().isEmpty(), "must be empty");
-      SDB_ASSERT(!bic.isObstructed(), "can not be obstructed");
+      SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
 
       btreeNode node = bic.getPath().getCurrentEndNodeInPath();
       btreeNode::locateResult lr;
@@ -243,17 +251,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::pushNodeIntoPath(PAGE_ID lpid,
-                                              const ossSharedLatchMode &mode,
-                                              btreeNodePath &path,
-                                              btreeNode *out)
+   INT32 btreeIndexAccessor::pushNoneRootNodeIntoPath(PAGE_ID lpid,
+                                                      const ossSharedLatchMode &mode,
+                                                      btreeAccessContext &bac)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(!mode.isNone(), "can not be none");
 
-      logicalPageBuffer *buffer = path.allocateBuffer();
+      logicalPageBuffer *buffer = bac.allocateBuffer();
       if (OSS_UNLIKELY(NULL == buffer))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -275,7 +282,7 @@ namespace vessel
          goto error;
       }
 
-      rc = path.push(buffer, out);
+      rc = bac.pushIntoPath(buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push node into path:%d", rc);
@@ -286,22 +293,22 @@ namespace vessel
    error:
       if (NULL != buffer)
       {
-         path.releaseBuffer(buffer);
+         bac.releaseBuffer(buffer);
       }
       goto done;
    }
 
    INT32 btreeIndexAccessor::pushRootIntoPath(ossSharedLatchMode mode,
-                                              btreeNodePath &path)
+                                              btreeAccessContext &bac)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(!mode.isNone(), "can not be none");
-      SDB_ASSERT(path.isEmpty(), "must be empty");
+      SDB_ASSERT(bac.isPathEmpty(), "must be empty");
 
       PAGE_ID rootLpid = _ic->getObj().getBtreeRoot();
       SDB_ASSERT(INVALID_PAGE_ID != rootLpid, "can not be invalid");
-      logicalPageBuffer *buffer = path.allocateBuffer();
+      logicalPageBuffer *buffer = bac.allocateBuffer();
       if (OSS_UNLIKELY(NULL == buffer))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -322,6 +329,13 @@ namespace vessel
          /// root must be checked again under locking.
          if (_ic->getObj().getBtreeRoot() == rootLpid)
          {
+            rc = validateBtreePage(*buffer);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to validate root buffer:%d", rc);
+               goto error;
+            }
+
             break;
          }
 
@@ -329,14 +343,19 @@ namespace vessel
          continue;
       } while (TRUE);
       
-      
+      rc = bac.pushIntoPath(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push root buffer into path:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
       if (NULL != buffer)
       {
          buffer->fini();
-         path.releaseBuffer(buffer);
+         bac.releaseBuffer(buffer);
       }
       goto done;
    }

@@ -44,11 +44,11 @@ namespace engine
 {
 namespace vessel
 {
-   class btreeNodePageIniter : public pageInitializer
+   class btreeRootPageIniter : public pageInitializer
    {
       public:
-         btreeNodePageIniter(){}
-         virtual ~btreeNodePageIniter(){}
+         btreeRootPageIniter(){}
+         virtual ~btreeRootPageIniter(){}
 
       public:
          virtual INT32 initPage(requestContext *context,
@@ -61,7 +61,29 @@ namespace vessel
       private:
          UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-   };//class btreeNodePageIniter
+   };//class btreeRootPageIniter
+
+
+   class btreeNode;
+
+   class btreeSplitPageIniter : public pageInitializer
+   {
+      public:
+         btreeSplitPageIniter(){}
+         virtual ~btreeSplitPageIniter(){}
+
+      public:
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
+
+         void set(const btreeNode *srcNode,
+                  RECORD_SLOT_ID begin);
+      private:
+         const btreeNode *_srcNode = NULL;
+         RECORD_SLOT_ID _begin = INVALID_RECORD_SLOT_ID;
+   };//class btreeSplitPageIniter
 } // namespace vessel
 
 

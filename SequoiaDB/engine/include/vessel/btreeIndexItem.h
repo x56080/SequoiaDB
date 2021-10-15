@@ -37,8 +37,8 @@
 #define VESSEL_BTREE_INDEX_ITEM_H_
 
 #include "vessel/btreeNodePage.h"
-#include "pdTrace.hpp"
 #include "ixmKey.hpp"
+#include "../bson/ordering.h"
 
 namespace engine
 {
@@ -50,15 +50,17 @@ namespace vessel
          btreeIndexItem(){}
          ~btreeIndexItem(){}
          btreeIndexItem(const btreeIndexItem &o):
+         _slotNo(o._slotNo),
          _slot(o._slot),
-         _keyData(o._keyData)
+         _keyData(o._keyData),
+         _prefixData(o._prefixData)
          {}
          btreeIndexItem &operator=(const btreeIndexItem &o)
          {
             _slotNo = o._slotNo;
             _slot = o._slot;
             _keyData = o._keyData;
-            _prefix = o._prefix;
+            _prefixData = o._prefixData;
             return *this;
          }
 
@@ -68,7 +70,7 @@ namespace vessel
             return _slotNo;
          }
 
-         OSS_INLINE const btreeNodeSlot *getSlot()const
+         OSS_INLINE const btreeItemSlot *getSlot()const
          {
             return _slot;
          }
@@ -79,15 +81,21 @@ namespace vessel
             return _keyData;
          }
 
+         OSS_INLINE const CHAR *getPrefixData()const
+         {
+            return _prefixData;
+         }
+
          OSS_INLINE recordID getRid()const
          {
-            return isValid() ? recordID(_slot->ridPage, _slot->ridSlot) : recordID();
+            return isValid() ?
+                   recordID(_slot->ridPage, _slot->ridSlot) : recordID();
          }
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _slot;
+            return INVALID_RECORD_SLOT_ID != _slotNo;
          }
 
          void fini();
@@ -95,17 +103,20 @@ namespace vessel
          INT32 init(RECORD_SLOT_ID slotNo,
                     const btreeNodeSlot *slot,
                     const CHAR *keyData,
-                    const btreeNodePrefixSlot *prefix=NULL);
+                    const CHAR *prefix=NULL);
 
          UINT32 getSavingSize()const;
 
          void getKeyWhenNotCompressed(ixmKey &key)const;
 
+         INT32 woCompare(const ixmKey &key,
+                         const bson::Ordering &ordering)const;
+
       private:
          RECORD_SLOT_ID _slotNo = INVALID_RECORD_SLOT_ID;
          const btreeNodeSlot *_slot = NULL;
          const CHAR *_keyData = NULL;
-         const btreeNodePrefixSlot *_prefix = NULL;
+         const CHAR *_prefixData = NULL;
    };//class btreeIndexItem
 } // namespace vessel
 

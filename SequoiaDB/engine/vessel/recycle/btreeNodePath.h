@@ -113,7 +113,7 @@ namespace vessel
          INT32 push(logicalPageBuffer *buffer,
                     btreeNode *out=NULL);
 
-         btreeNode getCurrentEndNodeInPath()const;
+         btreeNode getCurrentEndNode()const;
 
       private:
          _pathNode &getPathNode(UINT32 i);

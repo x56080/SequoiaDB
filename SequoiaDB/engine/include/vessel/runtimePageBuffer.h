@@ -39,6 +39,7 @@
 #include "vessel/liteCacheTuple.h"
 #include "vessel/mmapPagePointer.h"
 #include "vessel/globalPageID.h"
+#include "vessel/strictPointer.h"
 
 namespace engine
 {
@@ -117,7 +118,7 @@ namespace vessel
          {
             return (const void *)_buffer;
          }
-         void *getBuffer()const
+         void *getBuffer()
          {
             return isWritingPrepared() ? (void *)_buffer : NULL;
          }
@@ -126,6 +127,10 @@ namespace vessel
             return (const pageHead *)_buffer;
          }
    
+         /// common page head and tail not included
+         strictPointer getReadableBodyPtr()const;
+         strictPointer getWritableBodyPtr();
+
          INT32 getReadablePtrOfBodyWithRc(UINT32 offset, UINT32 size, ossValuePtr &ptr)const;
          const void *getReadablePtrOfBody(UINT32 offset, UINT32 size)const;
 

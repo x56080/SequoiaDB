@@ -149,7 +149,7 @@ namespace vessel
       goto done;
    }
 
-   btreeNode btreeNodePath::getCurrentEndNodeInPath()const
+   btreeNode btreeNodePath::getCurrentEndNode()const
    {
       SDB_ASSERT(!isEmpty(), "can not be empty");
       const _pathNode &pn = getPathNode(_size - 1);

@@ -34,54 +34,104 @@
 ******************************************************************************/
 
 #include "vessel/btreeAccessContext.h"
-#include "vessel/indexDef.h"
+#include "vessel/logicalPageBuffer.h"
+#include "pdTrace.hpp"
+#include "vessel/indexContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-////////////btreeAccessContext
-   btreeAccessContext::btreeAccessContext(const indexContext *ic):
-   _path(ic)
+   void btreeAccessContext::init(const indexContext *ic,
+                                 const ixmKey &key,
+                                 const recordID *rid,
+                                 const DPS_TRANS_ID *transID)
    {
-
+      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      fini();
+      _ic = ic;
+      _key.assign(key.data());
+      if (NULL != rid && rid->valid())
+      {
+         _rid = *rid;
+      }
+      if (NULL != transID && transID->isValid())
+      {
+         _transID = *transID;
+      }
+      return;
    }
-////////////btreeAccessContext end
 
-////////////btreeInsertContext
-   btreeInsertContext::btreeInsertContext(const indexContext *ic):
-   btreeAccessContext::btreeAccessContext(ic)
+   void btreeAccessContext::fini()
    {
+      _ic = NULL;
+      _key.assign(NULL);
+      _rid = recordID();
+      _transID = DPS_TRANS_ID();
+      for (UINT32 i = 0; i < _path.size(); ++i)
+      {
+         btreeAccessPathNode &pn = _path[i];
+         if (pn.isAccessing())
+         {
+            pn.getPageBuffer()->fini();
+         }
+      }
+      _path.clear();
 
+      for (_FREE_BUFFERS::const_iterator itr = _free.begin();
+           itr != _free.end(); ++itr)
+      {
+         SDB_OSS_DEL (*itr);
+      }
+      _free.clear();
    }
 
-   btreeInsertContext::~btreeInsertContext()
-   {}
+   logicalPageBuffer *btreeAccessContext::allocateBuffer()
+   {
+      logicalPageBuffer *buffer = NULL;
 
-   INT32 btreeInsertContext::init(const ixmKey &key,
-                                  const recordID &rid,
-                                  const DPS_TRANS_ID &transID)
+      if (!_free.empty())
+      {
+         buffer = _free.back();
+         _free.pop_back();
+      }
+      else
+      {
+         buffer = SDB_OSS_NEW logicalPageBuffer();
+      }
+
+      return buffer;
+   }
+
+   void btreeAccessContext::releaseBuffer(logicalPageBuffer *buffer)
+   {
+      SDB_ASSERT(NULL != buffer, "can not be null");
+      buffer->fini();
+      _free.push_back(buffer);
+      return;
+   }
+
+   INT32 btreeAccessContext::pushIntoPath(logicalPageBuffer *buffer)
    {
       INT32 rc = SDB_OK;
-      fini();
-
-      if (OSS_UNLIKELY(!key.isValid() ||
-                       !rid.valid()))
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == buffer ||
+                            !buffer->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if ((INT32)MAX_IXM_KEY_SIZE < key.dataSize())
-      {
-         rc = SDB_IXM_KEY_TOO_LARGE;
-         goto error;
-      }
 
-      _key.assign(key);
-      _rid = rid;
-      if (transID.isValid())
+      rc = _path.append(btreeAccessPathNode(buffer));
+      if (SDB_OK != rc)
       {
-         _transID = transID;
+         PD_LOG(PDERROR, "failed tp append buffer to path:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -89,22 +139,30 @@ namespace vessel
       goto done;
    }
 
-   void btreeInsertContext::fini()
+   void btreeAccessContext::clearAccessPath()
    {
-      if (_key.isValid())
+      SDB_ASSERT(isValid(), "can not be invalid");
+      for (UINT32 i = 0; i < _path.size(); ++i)
       {
-         _key.assign(NULL);
-         _rid = recordID();
-         _transID = DPS_TRANS_ID();
-         _pessimistically = FALSE;
-
-         _obstructed = FALSE;
-         _path.fini();
-         _pos = INVALID_RECORD_SLOT_ID;
+         btreeAccessPathNode &pn = _path[i];
+         if (pn.isAccessing())
+         {
+            pn.getPageBuffer()->fini();
+            _free.push_back(pn.getPageBuffer());
+         }
       }
-      return;
+      _path.clear();
    }
-////////////btreeInsertContext end
+
+   btreeNode btreeAccessContext::getEndNodeInPath()
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_path.empty(), "can not be empty");
+      UINT32 depth = _path.size() - 1;
+      btreeAccessPathNode &pn = _path[depth];
+      SDB_ASSERT(pn.isAccessing(), "end node should always be accessing");
+      return btreeNode(pn.getPageBuffer(), _ic, depth);
+   }
 } // namespace vessel
 
 } // namespace engine

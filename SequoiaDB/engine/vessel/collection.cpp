@@ -238,6 +238,13 @@ namespace vessel
          goto error;
       }
 
+      if (INDEX_TYPE_BTREE == params.type &&
+          keyPattern.getKeyCount() < params.btreeMaxPrefixComluns)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       rc = _createIndex(context, indexName, keyPattern, params, indexSlot);
       if (SDB_OK != rc)
       {

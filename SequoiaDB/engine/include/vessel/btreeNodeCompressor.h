@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexDef.h
+   Source File Name = btreeNodeCompressor.h
 
    Descriptive Name =
 
@@ -33,51 +33,37 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_INDEX_DEF_H_
-#define VESSEL_BTREE_INDEX_DEF_H_
+#ifndef VESSEL_BTREE_NODE_COMPRESSOR_H_
+#define VESSEL_BTREE_NODE_COMPRESSOR_H_
 
-#include "vessel/indexDef.h"
-#include "vessel/recordID.h"
+#include "ixmKey.hpp"
+#include "vessel/btreeNodeCompressedKey.h"
 
 namespace engine
 {
 namespace vessel
 {
-   /// min key size is 1.
-   static const UINT32 BTREE_MIN_ENTRY_SIZE = sizeof(recordID) + sizeof(recordID) + 1;
-
-   class insertPosition : public SDBObject
+   class btreeNodeCompressor : public SDBObject
    {
       public:
-         OSS_INLINE insertPosition(){}
-         OSS_INLINE ~insertPosition(){}
-         OSS_INLINE insertPosition(const insertPosition &o):
-         child(o.child),
-         slotNo(o.slotNo),
-         identical(o.identical){}
-         OSS_INLINE insertPosition &operator=(const insertPosition &o)
-         {
-            child = o.child;
-            slotNo = o.slotNo;
-            identical = o.identical;
-            return *this;
-         }
+         btreeNodeCompressor(){}
+         ~btreeNodeCompressor(){}
+         btreeNodeCompressor(const btreeNodeCompressor &) = delete;
+         btreeNodeCompressor &operator=(const btreeNodeCompressor &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return INVALID_PAGE_ID != child ||
-                   INVALID_RECORD_SLOT_ID != slotNo;
-         }
+         ///WARNING: do not release compressor before get compressedKey suffix owned.
+         BOOLEAN compress(UINT32 prefixPos,
+                          const ixmKey &prefix,
+                          const ixmKey &key,
+                          btreeNodeCompressedKey &compressedKey);
 
-      public:
-         PAGE_ID child = INVALID_PAGE_ID;
-         RECORD_SLOT_ID slotNo = INVALID_RECORD_SLOT_ID;
-         BOOLEAN identical = FALSE;
-   };//class insertPosition
+      private:
+         ixmKeyCompressor _ikc;
+   };//class btreePrefixCompression
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_INDEX_DEF_H_
+#endif//VESSEL_BTREE_NODE_COMPRESSOR_H_

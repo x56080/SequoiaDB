@@ -36,12 +36,13 @@
 #include "vessel/btreeNodePageIniter.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/btreeNodePage.h"
+#include "vessel/btreeNode.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void btreeNodePageIniter::set(UINT32 clid, UINT32 indexId)
+   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
@@ -50,7 +51,7 @@ namespace vessel
       return;
    }
 
-   INT32 btreeNodePageIniter::initPage(requestContext *context,
+   INT32 btreeRootPageIniter::initPage(requestContext *context,
                                        PAGE_ID lpid,
                                        PAGE_SNAPSHOT_VERION psv,
                                        runtimePageBuffer *rpb)
@@ -94,6 +95,43 @@ namespace vessel
          rpb->abort();
       }
       goto done;
+   }
+
+///////////////////////btreeRootPageIniter end
+
+   INT32 btreeSplitPageIniter::initPage(requestContext *context,
+                                        PAGE_ID lpid,
+                                        PAGE_SNAPSHOT_VERION psv,
+                                        runtimePageBuffer *rpb)
+   {
+      INT32 rc = SDB_OK;
+      if (NULL == context ||
+          INVALID_PAGE_ID == lpid ||
+          INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+          NULL == rpb ||
+          !rpb->isWritingPrepared())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == _srcNode ||
+                            !_srcNode->isValid() ||
+                            INVALID_RECORD_SLOT_ID == _begin))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void btreeSplitPageIniter::set(const btreeNode *srcNode,
+                                  RECORD_SLOT_ID begin)
+   {
+      _srcNode = srcNode;
+      _begin = begin;
    }
 } // namespace vessel
 

@@ -178,6 +178,10 @@ namespace engine
       CHAR _ch ;
       CHAR *_last ;
    } ;
+
+   UINT32 getCommonPrefix(const CHAR *l,
+                          const CHAR *r,
+                          INT32 n=-1);
 }
 
 #endif // UTILSTR_HPP_

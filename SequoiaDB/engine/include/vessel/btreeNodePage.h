@@ -40,6 +40,7 @@
 #include "vessel/indexDef.h"
 #include "dms.hpp"
 #include "vessel/recordID.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
@@ -56,24 +57,51 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         return 0 < prefixSize && 0 != prefixOffset;
+         return 0 < prefixOffset && 0 < prefixSize;
+      }
+      OSS_INLINE BOOLEAN isReferenced()const
+      {
+         return 0 < referencedCnt;
+      }
+      OSS_INLINE void incOptimizedSize(UINT32 size)
+      {
+         optimizedSize +=size;
+      }
+      OSS_INLINE void decOptimizedSize(UINT32 size)
+      {
+         if (size <= optimizedSize)
+         {
+            optimizedSize -= size;
+         }
+         else
+         {
+            optimizedSize = 0;
+         }
+      }
+      void reset()
+      {
+         prefixOffset = 0;
+         prefixSize = 0;
+         referencedCnt = 0;
+         optimizedSize = 0;
+         return;
       }
 
-      UINT16 prefixSize = 0;
       UINT16 prefixOffset = 0;
-      UINT16 referencedLow = 0;
-      UINT16 referencedHigh = 0;
+      UINT16 prefixSize = 0;
+      UINT16 referencedCnt = 0;
+
+      /// if suffix can be saved in slot, the real size optimized is
+      /// (prefix size + suffix size)
+      UINT16 optimizedSize = 0;
 
    };//struct btreeNodePrefixSlot
    static const UINT32 BTREE_NODE_PREFIX_SLOT_SIZE = sizeof(btreeNodePrefixSlot);
-   static const UINT32 MAX_BTREE_NODE_PREFIX_SLOT_COUNT = 4;
+   static const UINT32 BTREE_NODE_MAX_PREFIX_COUNT = 4;
 
-   /// btreeNode flags
-   static const UINT32 BTREE_NODE_FLAG_PFRFIX_CREATED = 0x01;
-
-   /// tried to create prefix but failed.
-   /// reset until next split.
-   static const UINT32 BTREE_NODE_FLAG_VAIN_COMPRESSION = 0x02;
+   /// tried to generate(or regenerate) prefixes but failed.
+   /// reset until next 50-50 split.
+   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x01;
    /// btreeNode flags end
 
    struct btreeNodePageHead
@@ -85,9 +113,9 @@ namespace vessel
 
       OSS_INLINE BOOLEAN isValid()const
       {
-         BTREE_NODE_PAGE_HEAD_VERSION == version &&
-         DMS_INVALID_LOGICCLID != clLogicalID &&
-         INVALID_LOGICAL_INDEX_ID != indexId;
+         return BTREE_NODE_PAGE_HEAD_VERSION == version &&
+                DMS_INVALID_LOGICCLID != clLogicalID &&
+                INVALID_LOGICAL_INDEX_ID != indexId;
       }
 
       UINT32 version = 0;
@@ -97,92 +125,143 @@ namespace vessel
       UINT16 totalFreeSpace = 0;
       UINT16 freeSapceAfterLastSlot = 0;
       UINT16 totalSlotCount = 0;
-      UINT16 orderedInsert = 0;
+      UINT16 keyInSlotCount = 0;
       UINT32 rightChild = INVALID_PAGE_ID;
       UINT32 extNode = INVALID_PAGE_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT32 splitedTimes = 0;
-      btreeNodePrefixSlot prefixes[MAX_BTREE_NODE_PREFIX_SLOT_COUNT];
-      CHAR pad[16] = {};
+      btreeNodePrefixSlot prefixes[BTREE_NODE_MAX_PREFIX_COUNT];
+      CHAR pad1[16] = {};
    };//struct btreeNodeHead
    static const UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
    
+#pragma pack()
 
-   struct btreeNodeSlot
+
+#pragma pack(4)
+   struct btreeItemSlot
    {  
-      OSS_INLINE btreeNodeSlot(){}
-      OSS_INLINE ~btreeNodeSlot(){}
-      OSS_INLINE btreeNodeSlot(const btreeNodeSlot &o):
+      OSS_INLINE btreeItemSlot(){}
+      OSS_INLINE ~btreeItemSlot(){}
+      OSS_INLINE btreeItemSlot(const btreeItemSlot &o):
                  flags(o.flags),
                  ridSlot(o.ridSlot),
                  ridPage(o.ridPage)
                  {
-                    data.value = o.data.value;
+                    ossMemcpy(data.keyData, o.data.keyData, sizeof(data.keyData));
                  }
-      OSS_INLINE btreeNodeSlot &operator=(const btreeNodeSlot &o)
+      OSS_INLINE btreeItemSlot &operator=(const btreeItemSlot &o)
       {
          flags = o.flags;
          ridSlot = o.ridSlot;
          ridPage = o.ridPage;
-         data.value = o.data.value;
+         ossMemcpy(data.keyData, o.data.keyData, sizeof(data.keyData));
          return *this;
       }
 
       static const UINT16 FLAG_IN_USED = 0x01;
       static const UINT16 FLAG_MARKED_DELETE = 0x02;
-      static const UINT16 FLAG_KEY_IN_SLOT = 0x04;
-      static const UINT16 FLAG_KEY_IN_EXTERNAL_PAGE = 0x08;
-      static const UINT16 FLAG_KEY_PREFIX_COMPRESSED = 0x10;
-      static const UINT16 FLAG_KEY_HAS_NO_SUFFIX = 0x20;
-      static const UINT16 FLAG_MAX = 0x8000;
+      static const UINT16 FLAG_DATA_IN_PAGE_BODY = 0x04;
+      static const UINT16 FLAG_DATA_IN_SLOT = 0x08;
+      static const UINT16 FLAG_DATA_IN_EXTERNAL_PAGE = 0x10;
+      static const UINT16 FLAG_KEY_COMPRESSESD = 0x20;
+      static const UINT16 FLAG_MAX = 0x2000;
 
+      /// 0x4000, 0x8000 for prefix slot pos.
 
+      OSS_INLINE void reset()
+      {
+         flags = 0;
+         ridSlot = 0;
+         ridPage = 0;
+         ossMemset(data.keyData, 0, sizeof(data.keyData));
+      }
       OSS_INLINE BOOLEAN isValid()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_IN_USED);
       }
+
+      void initWhenDataInPage(const recordID &rid,
+                              UINT16 offset,
+                              UINT16 size,
+                              PAGE_ID leftChild=INVALID_PAGE_ID);
+
+      void initWhenDataInSlot(const recordID &rid,
+                              const CHAR *keyData,
+                              UINT32 keySize);
+
+      void initWhenPerfectlyCompressed(const recordID &rid,
+                                       UINT32 prefixPos);
+
       OSS_INLINE BOOLEAN isMarkedDelete()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_MARKED_DELETE);
       }
-      OSS_INLINE BOOLEAN isKeyInSlot()const
+      OSS_INLINE BOOLEAN isDataInPageBody()const
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_SLOT);
+         return 0 != OSS_BIT_TEST(flags, FLAG_DATA_IN_PAGE_BODY);
+      }
+      OSS_INLINE BOOLEAN isDataInSlot()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_DATA_IN_SLOT);
+      }
+      OSS_INLINE BOOLEAN isDataInExtPage()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_DATA_IN_EXTERNAL_PAGE);
       }
       OSS_INLINE BOOLEAN isKeyCompressed()const
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_PREFIX_COMPRESSED);
+         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_COMPRESSESD);
       }
-      OSS_INLINE BOOLEAN hasNoSuffix()const
+      OSS_INLINE UINT32 getPrefixSlotPos()const
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_HAS_NO_SUFFIX);
+         return flags >> 14;
       }
-      OSS_INLINE BOOLEAN isExternalKey()const
+
+      OSS_INLINE void setKeyCompressed(UINT32 preifxPos)
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
+         SDB_ASSERT(preifxPos < 4, "out of bound");
+         OSS_BIT_CLEAR(flags, 0xc00);
+         OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
+         UINT16 v = preifxPos;
+         v <<= 14;
+         flags |= v;
+         return;
+      }
+
+      /// must be compressed first
+      BOOLEAN hasNoSuffix()const;
+      
+      OSS_INLINE static BOOLEAN isEnoughToSave(UINT32 keySize)
+      {
+         return keySize <= sizeof(slotData::keyData);
       }
 
       union slotData
       {
          struct
          {
-            UINT16 offset;
-            UINT16 pad;
             UINT32 leftChild;
+            UINT16 offset;
+            UINT16 size;
          } pointer;//struct pointer
-         CHAR keyData[8];
-         UINT64 value = 0;
+
+         CHAR keyData[12]={};
+
+         OSS_INLINE const CHAR *getKeyDataInSlot()const
+         {
+            return keyData;
+         }
       };//slotData
 
       UINT16 flags = 0;
       UINT16 ridSlot = 0;
       UINT32 ridPage = 0;
       slotData data;
-   };//struct btreeNodeSlot
+   };//struct btreeItemSlot
+#pragma pack()
 
-   static const UINT32 BTREE_NODE_SLOT_SIZE = sizeof(btreeNodeSlot);
-
-   BOOLEAN isKeyCanBeSavedInSlot(UINT32 keySize);
+   static const UINT32 BTREE_NODE_SLOT_SIZE = sizeof(btreeItemSlot);
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,
                              PAGE_ID pid,
@@ -192,7 +271,7 @@ namespace vessel
                              UINT32 indexId,
                              CHAR *buf);
 
-#pragma pack()
+
 } // namespace vessel
 
 } // namespace engine

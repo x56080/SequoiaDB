@@ -57,12 +57,18 @@ namespace vessel
       return 0 <= slot && slot < (INT32)MAX_INDEX_COUNT_PER_CL;
    }
 
-   static const UINT32 MAX_INDEX_BTREE_PREFIX_COMPRESSION_COLUMNS = 2;
    static const UINT32 MAX_INDEX_KEY_COLUMNS = 32;
 
    static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 4;
 
    static const UINT32 MAX_IXM_KEY_SIZE = 4096;
+
+   /// btree only
+   static const UINT32 BTREE_COMPRESSION_MIN_DEPTH = 2;
+   static const FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
+   static const FLOAT32 BTREE_NODE_EFFECTIVE_COMPRESSION_THRESHOLD = 0.25;
+
+   /// btree only end
 
    enum INDEX_STATUS
    {
