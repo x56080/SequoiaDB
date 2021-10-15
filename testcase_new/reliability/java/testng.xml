@@ -46,6 +46,7 @@
             class-name="com.sequoiadb.commlib.TimePrinterListener" />
     </listeners>
 
+    <!-- 磁盘满的用例请放到testng_release.xml中 -->
     <test name="reliability_normal" preserve-order="true">
         <packages>
             <package name="com.sequoiadb.datasrc.brokennetwork" />
@@ -75,7 +76,6 @@
             <!-- <package name="com.sequoiadb.fulltext.killnode" /> <package 
                 name="com.sequoiadb.fulltext.restartnode" /> -->
             <package name="com.sequoiadb.compress" />
-            <package name="com.sequoiadb.faulttolerance.diskfull" />
             <package name="com.sequoiadb.faulttolerance.restartnode" />
             <package name="com.sequoiadb.faulttolerance.slownode" />
         </packages>

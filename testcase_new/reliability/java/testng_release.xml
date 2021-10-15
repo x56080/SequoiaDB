@@ -47,6 +47,7 @@
             <package name="com.sequoiadb.datasync.diskfull" />
             <package name="com.sequoiadb.cappedCL.diskfull" />
             <package name="com.sequoiadb.transaction.diskfull" />
+            <package name="com.sequoiadb.faulttolerance.diskfull" />
         </packages>
     </test>
 
