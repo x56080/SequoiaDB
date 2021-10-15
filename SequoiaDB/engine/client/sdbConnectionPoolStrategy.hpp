@@ -52,14 +52,6 @@ using std::set;
 
 namespace sdbclient
 {
-   enum SYNC_CHOICE
-   {
-      DELIDLECONN,
-      DELBUSYCONN,
-      ADDBUSYCONN,
-      ADDIDLECONN
-   } ;
-
    class sdbConnPoolStrategy  : public SDBObject
    {
    private:
@@ -102,11 +94,6 @@ namespace sdbclient
 
       // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
-
-      // sync strategy
-      virtual void sync( sdb *conn, SYNC_CHOICE choice ) {}
-
-      virtual void syncAddNewConn( sdb *conn, const string &coord ) {}
 
    protected:
       // convert hostname to ip
@@ -190,100 +177,6 @@ namespace sdbclient
    private:
       INT32 _localPos ;
       INT32 _normalPos ;
-   } ;
-
-   struct coordInfo : public SDBObject
-   {
-      INT32 usedNum ;
-      INT32 totalNum ;
-      BOOLEAN bAvailable ;
-      string coord ;
-      coordInfo( const string &c )
-         :usedNum(0),
-         totalNum(0),
-         bAvailable(TRUE),
-         coord(c) {}
-   } ;
-
-   typedef struct coordInfo coordInfo ;
-
-   struct coordInfoCmp
-   {
-      bool operator()( const coordInfo *left, const coordInfo *right )
-      {
-         // normal before, abnormal after,
-         // light load before, weight load after
-         if ( left->bAvailable != right->bAvailable )
-            return left->bAvailable > right->bAvailable ;
-         if ( left->totalNum != right->totalNum )
-            return left->totalNum < right->totalNum ;
-         if ( left->usedNum != right->usedNum )
-            return left->usedNum < right->usedNum ;
-         INT32 res = ( left->coord ).compare( right->coord ) ;
-         if ( 0 != res )
-         {
-            if ( res < 0 )
-               return true ;
-            else
-               return false ;
-         }
-         return false ;
-      }
-   } ;
-
-   class sdbConnPoolBalanceStrategy : public sdbConnPoolStrategy
-   {
-   private:
-      sdbConnPoolBalanceStrategy( const sdbConnPoolBalanceStrategy &strategy ) ;
-      sdbConnPoolBalanceStrategy& operator=( const sdbConnPoolBalanceStrategy &strategy ) ;
-
-   public:
-      sdbConnPoolBalanceStrategy() {}
-      virtual ~sdbConnPoolBalanceStrategy() ;
-
-   public:
-      virtual void addCoord( const string &coord ) ;
-
-      virtual void removeCoord( const string &coord ) ;
-      
-      virtual INT32 getNormalCoordNum() ;
-
-      virtual INT32 getAbnormalCoordNum() ;
-
-      virtual INT32 getNextCoord( string& nCoord ) ;
-
-      virtual INT32 getNextAbnormalCoord( string& nCoord ) ;
-
-      // move coord from normal list to abnormal list
-      virtual void mvCoordToAbnormal( const string &coord ) ;
-
-      // move coord from abnormal list to normal list
-      virtual void mvCoordToNormal( const string &coord ) ;
-
-      // sync strategy
-      virtual void sync( sdb *conn, SYNC_CHOICE choice ) ;
-
-      virtual void syncAddNewConn( sdb *conn, const string &coord ) ;
-
-   private:
-      set<coordInfo*, coordInfoCmp>::const_iterator 
-         _findCoord( const string &coord ) const  ;
-
-      // flag: TRUE get normal coord number
-      // FALSE get abnormal coord number
-      INT32 _getCoordNum( BOOLEAN flag ) ;
-
-      void _syncDelIdleConn( sdb *conn ) ;
-
-      void _syncDelBusyConn( sdb *conn ) ;
-
-      void _syncAddBusyConn( sdb *conn ) ;
-
-      void _syncAddIdleConn( sdb *conn ) ;
-
-   private:
-      set< coordInfo*, coordInfoCmp > _coordInfoSet ;
-      map< sdb*, coordInfo* > _connToCoord ;
    } ;
 }
 
