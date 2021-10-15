@@ -56,7 +56,7 @@ protected:
    }
 } ;
 
-INT32 checkStartegy( sdbDataSource& ds )
+INT32 checkStartegy( sdbConnectionPool& ds )
 {
    INT32 rc = SDB_OK ;
    sdb* conn = NULL ;
@@ -83,7 +83,7 @@ error:
 TEST_F( strategyTest9483, syncSerial9483 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_SERIAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_SERIAL ) ;
 	conf.setSyncCoordInterval( 1 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -100,7 +100,7 @@ TEST_F( strategyTest9483, syncSerial9483 )
 TEST_F( strategyTest9483, syncRandom9484 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_RANDOM ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_RANDOM ) ;
 	conf.setSyncCoordInterval( 1 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -117,7 +117,7 @@ TEST_F( strategyTest9483, syncRandom9484 )
 TEST_F( strategyTest9483, syncLocal9485 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_LOCAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_LOCAL ) ;
 	conf.setSyncCoordInterval( 1 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -134,7 +134,7 @@ TEST_F( strategyTest9483, syncLocal9485 )
 TEST_F( strategyTest9483, syncBalance9486 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_BALANCE ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_BALANCE ) ;
 	conf.setSyncCoordInterval( 1 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -151,7 +151,7 @@ TEST_F( strategyTest9483, syncBalance9486 )
 TEST_F( strategyTest9483, multiCoordSerial9487 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_SERIAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_SERIAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -171,7 +171,7 @@ TEST_F( strategyTest9483, multiCoordSerial9487 )
 TEST_F( strategyTest9483, multiCoordRandom9488 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_RANDOM ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_RANDOM ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -191,7 +191,7 @@ TEST_F( strategyTest9483, multiCoordRandom9488 )
 TEST_F( strategyTest9483, multiCoordLocal9489 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_LOCAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_LOCAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -211,7 +211,7 @@ TEST_F( strategyTest9483, multiCoordLocal9489 )
 TEST_F( strategyTest9483, multiCoordBalance9490 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_BALANCE ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_BALANCE ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -230,7 +230,7 @@ TEST_F( strategyTest9483, multiCoordBalance9490 )
 TEST_F( strategyTest9483, addCoordSerial9491 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_SERIAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_SERIAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -248,7 +248,7 @@ TEST_F( strategyTest9483, addCoordSerial9491 )
 TEST_F( strategyTest9483, addCoordRandom9492 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_RANDOM ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_RANDOM ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -266,7 +266,7 @@ TEST_F( strategyTest9483, addCoordRandom9492 )
 TEST_F( strategyTest9483, addCoordLocal9493 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_LOCAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_LOCAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -284,7 +284,7 @@ TEST_F( strategyTest9483, addCoordLocal9493 )
 TEST_F( strategyTest9483, addCoordBalance9494 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_BALANCE ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_BALANCE ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 
    rc = ds.init( url, conf ) ;
@@ -302,7 +302,7 @@ TEST_F( strategyTest9483, addCoordBalance9494 )
 TEST_F( strategyTest9483, removeCoordSerial9495 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_SERIAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_SERIAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -323,7 +323,7 @@ TEST_F( strategyTest9483, removeCoordSerial9495 )
 TEST_F( strategyTest9483, removeCoordRandom9496 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_RANDOM ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_RANDOM ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -344,7 +344,7 @@ TEST_F( strategyTest9483, removeCoordRandom9496 )
 TEST_F( strategyTest9483, removeCoordLocal9497 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_LOCAL ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_LOCAL ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
@@ -365,7 +365,7 @@ TEST_F( strategyTest9483, removeCoordLocal9497 )
 TEST_F( strategyTest9483, removeCoordBalance9498 )
 {
    INT32 rc = SDB_OK ;
-	conf.setConnectStrategy( DS_STY_BALANCE ) ;
+	conf.setConnectStrategy( CONNPOOL_STY_BALANCE ) ;
 	conf.setSyncCoordInterval( 0 ) ;
 	vector<string> urlList ;
 	urlList.push_back( url ) ;
