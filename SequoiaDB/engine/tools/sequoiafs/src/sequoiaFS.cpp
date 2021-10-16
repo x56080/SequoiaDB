@@ -1797,8 +1797,7 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
                  pid, &is_dir, record);
       if(SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Fail to  getMeta, cl=%s, error=%d",
-                _sysFileMetaCLFullName.c_str(), rc);
+         //PD_LOG(PDDEBUG, "Fail to getMeta, path=%s, error=%d", path, rc);
          goto error;
       }
 
