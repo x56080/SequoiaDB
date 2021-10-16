@@ -1,4 +1,4 @@
-﻿{
+{
    "解绑失败，该主机还有 ? 实例在运行，请删除实例后再解绑主机。": "Failed to unbind. The host has an instance(?). Please delete the instance before unbind the host.",
    "解绑失败，该主机还有 ? 的节点在运行，请同步 ? 配置或删除 ?，再解绑主机。": "Failed to unbind. The host has ?'s node. Please sync ?'s config or delete ? before unbind the host.",
    "卸载失败，该主机还有 ? 实例在运行，请删除实例后再卸载主机。": "Failed to uninstall. The host has an instance(?). Please delete the instance before uninstall the host.",
@@ -406,7 +406,7 @@
    "节点列表": "Node List",
    "节点路径": "Node path",
    "节点名": "Node Name",
-   "节点健康监测快照": "Node Health Snapshot",
+   "节点健康检测快照": "Node Health Snapshot",
    "节点配置": "Node Configuration",
    "节点数": "Nodes",
    "节点数据同步": "Data Sync",

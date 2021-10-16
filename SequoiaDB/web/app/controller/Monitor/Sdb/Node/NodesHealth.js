@@ -1,4 +1,4 @@
-﻿//@ sourceURL=NodesHealth.js
+//@ sourceURL=NodesHealth.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -115,7 +115,7 @@
                ],
                'Role': [
                   { 'key': $scope.autoLanguage( '全部' ), 'value': '' },
-                  { 'key': 'coord', 'value': 'coord' },
+                  { 'key': 'Coord', 'value': 'coord' },
                   { 'key': 'Catalog', 'value': 'catalog' },
                   { 'key': 'Data',    'value': 'data' }
                ],
