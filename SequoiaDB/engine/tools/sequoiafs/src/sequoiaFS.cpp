@@ -4275,6 +4275,7 @@ INT32 sequoiaFS::create(const CHAR *path,
    lobHandle *lh = NULL;
    sdbCollection *sysFileMetaCL = NULL;
    sdbCollection sysDirMetaCL;
+   sdbCollection cl;
    UINT64 mtime = 0;   
    struct fileMetaNode fileNode; 
    CHAR *pathStr = NULL;
@@ -4353,7 +4354,24 @@ INT32 sequoiaFS::create(const CHAR *path,
       fileName = (CHAR *)basePath.c_str();
       PD_LOG(PDDEBUG, "Name:%s, Pid:%d", basePath.c_str(), pid);
 
-      oid = OID::gen();
+      rc = db->getCollection(_collection.c_str(), cl);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+                _collection.c_str(), rc);
+         rc = -EIO;
+         goto error;
+      }
+
+      //oid = OID::gen();
+      rc = cl.createLobID(oid);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to createLobID, error=%d", rc);
+         rc = -EIO;
+         goto error;
+      }
+      
       fmode = S_IFREG | mode;
       mtime = ossGetCurrentMilliseconds();
       fileNode.name= fileName;
