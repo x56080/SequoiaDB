@@ -85,7 +85,7 @@ namespace sdbclient
       BOOLEAN ret = TRUE ;
 
       // check count info
-      if ( (0 >= _maxCount) || (0 >= _maxIdleCount) ||
+      if ( (0 >= _maxCount) || (0 > _maxIdleCount) ||
          (0 >= _deltaIncCount) || (0 > _initConnCount) )
       {
          goto error ;

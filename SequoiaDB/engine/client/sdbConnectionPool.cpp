@@ -451,7 +451,8 @@ namespace sdbclient
          } // _idleSize <= 0
 
          // if need pre create some connection
-         if ( _idleSize.peek() <= SDB_CONNPOOL_TOPRECREATE_THRESHOLD )
+         if ( _idleSize.peek() <= SDB_CONNPOOL_TOPRECREATE_THRESHOLD &&
+              _conf.getMaxIdleCount() > 0 )
          {
             _toCreateConn = TRUE ;
          }
@@ -490,7 +491,11 @@ namespace sdbclient
                if ( _conf.getKeepAliveTimeout() > 0 &&
                   _keepAliveTimeOut( tmp ) )
                {
-                  goto error ;
+                  goto release ;
+               }
+               else if ( 0 == _conf.getMaxIdleCount() )
+               {
+                  goto release ;
                }
                else
                {
@@ -522,7 +527,7 @@ namespace sdbclient
          _connMutex.release() ;
       }
       return ;
-   error :
+   release :
       _strategy->sync( tmp, DELBUSYCONN ) ;
       if ( tmp )
       {
@@ -530,6 +535,8 @@ namespace sdbclient
       }
       SAFE_OSS_DELETE( tmp ) ;
       goto done ;
+   error :
+      goto release ;
    }
 
    // try to get a connection

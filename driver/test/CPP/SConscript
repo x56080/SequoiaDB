@@ -67,6 +67,10 @@ testFiles15 = [
          "indexCover.cpp"
 ]
 
+testFiles16 = [
+         "connectionPool.cpp"
+]
+
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
 gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
@@ -87,6 +91,8 @@ procedure = dllBuildEnv.Program("procedure", [testFiles12, gtestMainObj, testCom
 rg = dllBuildEnv.Program("rg", [testFiles13, gtestMainObj, testCommonFiles])
 datasource = dllBuildEnv.Program("datasource", [testFiles14, gtestMainObj, testCommonFiles])
 indexCover = dllBuildEnv.Program("indexCover", [testFiles15, gtestMainObj, testCommonFiles])
+connectionPool = dllBuildEnv.Program("connectionPool", [testFiles16, gtestMainObj, testCommonFiles])
+
 # static compile
 # dll compile
 collection.static = staticBuildEnv.Program("collection.static", [testFiles1, gtestMainObj, testCommonFiles])
@@ -104,6 +110,7 @@ procedure.static = staticBuildEnv.Program("procedure.static", [testFiles12, gtes
 rg.static = staticBuildEnv.Program("rg.static", [testFiles13, gtestMainObj, testCommonFiles])
 datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gtestMainObj, testCommonFiles])
 indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles15, gtestMainObj, testCommonFiles])
+connectionPool.static = staticBuildEnv.Program("connectionPool.static", [testFiles16, gtestMainObj, testCommonFiles])
 
 #env.Install( '#/build_test',[collection,collectionspace,cursor,query,
 #                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, rg, dc ] )
@@ -115,10 +122,11 @@ indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles15, gt
 # dll compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection,collectionspace,cursor,query,
                              sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource,
-                             indexCover ] )
+                             indexCover, connectionPool ] )
 
 # static compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection.static, collectionspace.static, cursor.static, query.static,
                              sdb.static, cppbson.static, debug.static, domain.static, lob.static,
-                             selectQuery.static, procedure.static, datasource.static, indexCover] )
+                             selectQuery.static, procedure.static, datasource.static, indexCover.static,
+                             connectionPool.static ] )
 
