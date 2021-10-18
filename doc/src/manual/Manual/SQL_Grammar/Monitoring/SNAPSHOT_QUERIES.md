@@ -12,11 +12,10 @@ $SNAPSHOT_QUERIES
 
 ##协调节点字段信息##
 
-
-
 | 字段名                 | 类型     | 描述                                            |
-| ---------------------- | -------- | ------------------------------------------------|
-| NodeID                 | bson array | 节点的 ID，格式为[ <分区组 ID>, <节点 ID> ]       |
+| ---------------------- | -------- | ----------------------------------------------- |
+| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>      |
+| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]      |
 | StartTimestamp         | string   | 查询开始时间                                    |
 | EndTimestamp           | string   | 查询结束时间                                    |
 | TID                    | int32    | 内部线程 ID                                     |
@@ -35,7 +34,8 @@ $SNAPSHOT_QUERIES
 
 | 字段名                 | 类型     | 描述                                                                                     |
 | ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| NodeID                 | bson array | 节点的 ID，格式为[ <分区组 ID>, <节点 ID> ]                                                |
+| NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>                                               |
+| NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]                                               |
 | StartTimestamp         | string   | 查询开始时间                                                                             |
 | EndTimestamp           | string   | 查询结束时间                                                                             |
 | TID                    | int32    | 内部线程 ID                                                                              |
@@ -57,7 +57,7 @@ $SNAPSHOT_QUERIES
 | LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
 
 
-###ClientInfo字段信息###
+**ClientInfo 字段信息**
 
 | 字段名                 | 类型     | 描述                                     |
 | ---------------------- | -------- | ---------------------------------------- |
@@ -70,71 +70,76 @@ $SNAPSHOT_QUERIES
 
 - 通过协调节点获取查询快照
 
-   ```lang-javascript
-   > db.exec("select * from $SNAPSHOT_QUERIES")
-   ```
+    ```lang-javascript
+    > db.exec("select * from $SNAPSHOT_QUERIES")
+    ```
 
-   输出结果如下：
+    输出结果如下：
 
-   ```lang-json
-   {
-     "NodeID": [
-       2,
-       4
-     ],
-     "StartTimestamp": "2020-06-12-11.33.14.019931",
-     "EndTimestamp": "1970-01-01-08.00.00.000000",
-     "TID": 10832,
-     "OpType": "QUERY",
-     "Name": "sbtest1.sbtest2",
-     "QueryTimeSpent": 0,
-     "ReturnNum": 0,
-     "TotalMsgSent": 1,
-     "LastOpInfo": "Collection:sbtest1.sbtest2, Matcher:{ \"id\": { \"$et\": 5015 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
-     "MsgSentTime": 0.034,
-     "RemoteNodeWaitTime": 0,
-     "ClientInfo": {
-       "ClientTID": 24343,
-       "ClientHost": "192.168.56.101"
-     },
-     "RelatedNode": [
-       1002
-     ]
-   }
-   ```
+    ```lang-json
+    {
+      "NodeName": "sdbserver:50000",
+      "NodeID": [
+        2,
+        4
+      ],
+      "StartTimestamp": "2020-06-12-11.33.14.019931",
+      "EndTimestamp": "1970-01-01-08.00.00.000000",
+      "TID": 10832,
+      "OpType": "QUERY",
+      "Name": "sbtest1.sbtest2",
+      "QueryTimeSpent": 0,
+      "ReturnNum": 0,
+      "TotalMsgSent": 1,
+      "LastOpInfo": "Collection:sbtest1.sbtest2, Matcher:{ \"id\": { \"$et\": 5015 } }, Selector:{}, OrderBy:{ \"id\": 1 }, Hint:{ \"\": \"PRIMARY\" }, Skip:0, Limit:-1, Flag:0x00000200(512)",
+      "MsgSentTime": 0.034,
+      "RemoteNodeWaitTime": 0,
+      "ClientInfo": {
+        "ClientTID": 24343,
+        "ClientHost": "192.168.56.101"
+      },
+      "RelatedNode": [
+        1002
+      ]
+    }
+    ```
+
 
 - 通过数据节点获取查询快照
 
-   ```lang-javascript
-   > db.exec("select * from $SNAPSHOT_QUERIES")
-   ```
+    ```lang-javascript
+    > db.exec("select * from $SNAPSHOT_QUERIES")
+    ```
 
-   输出结果如下：
+    输出结果如下：
 
-   ```lang-json
-   {
-     "NodeID": [
-       1000,
-       1002
-     ],
-     "StartTimestamp": "2020-06-12-11.29.44.906939",
-     "EndTimestamp": "1970-01-01-08.00.00.000000",
-     "TID": 10850,
-     "OpType": "QUERY",
-     "Name": "$snapshot queries",
-     "QueryTimeSpent": 0.118,
-     "ReturnNum": 0,
-     "RelatedNID": 0,
-     "RelatedTID": 0,
-     "SessionID": 47,
-     "AccessPlanID": -1,
-     "DataRead": 0,
-     "DataWrite": 0,
-     "IndexRead": 0,
-     "IndexWrite": 0,
-     "LobRead": 0,
-     "LobWrite": 0,
-     "TransLockWaitTime": 0,
-     "LatchWaitTime": 0
-   }
-   ```
+    ```lang-json
+    {
+      "NodeName": "sdbserver:42000",
+      "NodeID": [
+        1000,
+        1002
+      ],
+      "StartTimestamp": "2020-06-12-11.29.44.906939",
+      "EndTimestamp": "1970-01-01-08.00.00.000000",
+      "TID": 10850,
+      "OpType": "QUERY",
+      "Name": "$snapshot queries",
+      "QueryTimeSpent": 0.118,
+      "ReturnNum": 0,
+      "RelatedNID": 0,
+      "RelatedTID": 0,
+      "SessionID": 47,
+      "AccessPlanID": -1,
+      "DataRead": 0,
+      "DataWrite": 0,
+      "IndexRead": 0,
+      "IndexWrite": 0,
+      "LobRead": 0,
+      "LobWrite": 0,
+      "TransLockWaitTime": 0,
+      "LatchWaitTime": 0
+    }
+    ```
+
+
