@@ -1,72 +1,65 @@
 [^_^]:
     复制组原理
-    作者：余婷
-    时间：20190314
-    评审意见
-    王涛：时间：
-    许建辉：时间：
-    市场部：时间：20190814
 
-复制组副本间通过拷贝和重放事务日志来实现数据同步。
+复制组副本间通过拷贝和重放[同步日志][synclog]实现数据同步。
 
-复制组成员
-----
+##复制组成员##
 
 一个复制组由一个或者多个节点组成。复制组内有两种不同的角色：主节点和备节点。正常情况下，一个复制组内有且只有一个主节点，其余为备节点。
 
-### 主节点 ###
+###主节点###
 
-主节点是复制组内唯一接收写操作的成员。当发生写操作时，主节点写入数据，并记录事务日志 replicalog。备节点从主节点异步复制 replicalog，并通过重放 replicalog 来复制数据。  
+主节点是复制组内唯一接收写操作的成员。当发生写操作时，主节点写入数据，并记录同步日志。
 
 ![主节点][primary]
 
-### 备节点 ###
+###备节点###
 
 - 备节点持有主节点数据的副本，一个复制组可以有多个备节点。
 
-- 备节点从主节点异步复制 replicalog，并重放 replicalog 来复制数据。复制数据的过程需要一定的时间，有可能经过一段时间才能从备节点上访问到更新后的数据，SequoiaDB 的复制组默认是保证最终一致性。
+- 备节点从主节点异步复制同步日志文件，并通过重放同步日志实现数据复制。SequoiaDB 默认采用“最终一致性”策略，在复制过程中，从备节点上访问的数据可能不是最新的，但副本间的数据最终保持一致。
 
 ![复制组示意图][replication]
 
-事务日志replicalog
-----
+##同步日志##
 
-节点之间，通过事务日志进行副本间的数据同步，事务日志文件存在于节点数据目录下的 `replicalog` 目录。以 11830 节点的数据目录为例 ，当节点首次启动时，节点进程会生成以上的 replicalog 文件：
+SequoiaDB 采用同步日志方式进行副本间的数据同步。同步日志文件存放于节点数据目录下的 `replicalog` 目录中，默认总大小为 64*20MB。同步日志文件的大小和个数可以通过参数 [logfilesz][logfilesz] 和 [logfilenum][logfilenum] 进行设置。
+
+以节点 11830 的数据目录为例，当节点首次启动时，节点进程会生成以下同步日志文件：
 
 ```lang-text
 $ ls -l /opt/sequoiadb/database/data/11830/replicalog
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:50 sequoiadbLog.0
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.1
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.2
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.3
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.4
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.5
--rwx------ 1 sdbadmin sdbadmin_group 67174400 3月 11 12:49 sequoiadbLog.6
--rwx------ 1 sdbadmin sdbadmin_group    69632 3月 11 12:49 sequoiadbLog.meta
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 12 14:10 sequoiadbLog.0
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.1
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.10
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.11
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.12
+...
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.6
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.7
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.8
+-rw-r----- 1 sdbadmin sdbadmin_group 67174400 10月 11 17:34 sequoiadbLog.9
+-rw-r----- 1 sdbadmin sdbadmin_group    69632 10月 11 17:34 sequoiadbLog.meta
 ```
 
-> **Note:**
->
-> 文件的大小和个数可以通过 [logfilesz][logfilesz] 和 [logfilenum][logfilenum] 参数分别进行设置。默认日志文件大小为 64MB（不包括头大小），日志个数是 20 个。
-
-用户可以通过 [sdbdpsdump][dpsdump] 工具查看写入的事务日志。
+用户可通过 [sdbdpsdump][dpsdump] 工具查看写入的同步日志，示例如下：
 
 1. 插入一条记录
 
-   ```lang-bash
-   > db.sample.employee.insert( { a: 1 } ) 
-   ```
+    ```lang-bash
+    > db.sample.employee.insert({a: 1}) 
+    ```
 
-2. 用工具查看事务日志
+2. 查看同步日志
 
-   ```lang-bash
-   $ ./bin/sdbdpsdump -s ./database/data/11830/replicalog
-   ```
+    ```lang-bash
+    $ ./bin/sdbdpsdump -s ./database/data/11830/replicalog
+    ```
 
-   输出结果如下：
+    输出结果如下：
 
-   ```lang-text
-   ...
+    ```lang-text
+    ...
     Version: 0x00000001(1)
     LSN    : 0x00000000000000ec(236)
     PreLSN : 0x000000000000009c(156)
@@ -74,54 +67,56 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
     Type   : INSERT(1)
     FullName : sample.employee
     Insert : { "_id": { "$oid": "5c88afe31a3f5822754040d0" } , "a": 1 }
-   ```
+    ```
 
-   > **Note:**
-   > 
-   > - LSN 是指该条日志在日志文件中的偏移，每条事务日志都对应唯一的 LSN 号。
-   > - 日志是循环写入文件的。当最后一个日志文件写满时，下一条事务日志会从第一个日志文件开始写，第一个文件之前的日志会被覆盖掉。
+    > **Note:**
+    > 
+    > - LSN 是指同步日志在同步日志文件中的偏移，每条同步日志都对应唯一的 LSN 号。
+    > - 同步日志是循环写入文件的，当所有文件被写满时，同步日志将从第一个文件开始覆盖写入，又称为同步日志翻转。
 
-数据复制
-----
+##数据同步##
 
-数据复制为复制组中节点之间的同步机制。
-
-### 增量同步 ###
-
-在数据节点和编目节点中，任何增删改操作均会写入日志。节点会将日志写入日志缓冲区，然后再异步写入本地磁盘。
-
-数据复制在两个节点间进行：
-
-- 源节点：含有新数据的节点
-- 目标节点：请求进行数据复制的节点
-
-目标节点会选择一个与其数据最接近的节点，然后向它发送一个复制请求。源节点收到复制请求后，会打包目标节点请求的同步点之后的日志，并发送给目标节点。目标节点接收到同步数据包后，会重放事务日志中的操作。
-
-节点之前的复制有两种状态：
-
-- 对等状态（Peer）：目标节点请求的日志，存在于源节点的日志缓冲区
-- 远程追赶状态（Remote Catchup）：目标节点请求的日志，不存在于源节点的日志缓冲区中，但存在于源节点的日志文件中
-
-如果目标节点请求的日志，已经不存在于源节点的日志文件中，则目标节点进入全量同步状态。
-
-当两节点处于对等状态时，源节点上可以直接从内存中获取日志。因此目标节点选择源节点时，总会尝试选择距离自己当前日志点最近的节点，使请求的日志尽量落在内存中。所以源节点不一定总是主节点。
-
-### 全量同步 ###
-
-在复制组内，有些情况下需要进行数据全量同步，才能保障节点之间数据的一致性。以下情况需要进行全量同步：
-
-- 一个新的节点加入复制组
-- 节点故障导致数据损坏
-- 节点日志远远落后于其他节点，即当前节点的日志已经不存在于其他节点的日志文件中
-
-全量同步在两个节点间进行：
-
-- 源节点：指含有有效数据的节点，全量同步的源节点必定是主节点
-- 目标节点：指请求进行全量同步的节点，全量同步时，该节点下原有的数据会被废弃
+复制组中节点之间的同步机制包括增量同步和全量同步。
 
 ![全量同步示意图][full_sync]
 
-全量同步发生时，目标节点会定期向源节点请求数据，源节点将数据打包后作为大数据块发送给目标节点。当目标节点重做该数据块内所有数据后，向源节点请求新的数据块。
+数据同步在以下两种节点间进行：
+
+- 源节点：增量同步时，源节点为含有新数据的节点；全量同步时，源节点为主节点。
+- 目标节点：请求同步数据的备节点。
+
+###增量同步###
+
+在数据节点和编目节点中，任何增删改操作均会写入同步日志。节点会先将同步日志写入缓冲区，再异步写入同步日志文件中。
+
+增量同步前节点间存在两种状态：
+
+- 对等状态（Peer）：备节点请求的同步日志存在于源节点的同步日志缓冲区。当处于对等状态时，源节点可以直接从内存中获取同步日志。
+- 远程追赶状态（Remote Catchup）：备节点请求的同步日志存在于源节点的同步日志文件中。
+
+增量同步时，备节点会选择源节点发送复制请求。源节点收到复制请求后，会打包备节点请求的同步点之后的同步日志，并发送给备节点。备节点接收到同步数据包后，通过重放同步日志实现数据同步。
+
+当所有节点的数据版本差距在一个很小的窗口，源节点为主节点；当备节点的数据版本与主节点相差过大时，源节点为其他数据版本相近的备节点；当节点间发生版本冲突时，以当前主节点的数据版本为准，如果冲突不能解决时，目标备节点进入全量同步；当备节点请求的同步日志既不存在于源节点的同步日志缓存区，也不存在于同步日志文件中时，目标备节点进入全量同步；当复制组内不存在主节点时，任何同步操作均无法进行。
+
+###全量同步###
+
+在复制组内，特定情况需要进行全量同步才能保障节点之间数据的一致性，具体情况下：
+
+- 宕机重启
+- 一个新的节点加入复制组
+- 节点故障导致数据损坏
+- 节点同步日志远远落后于其他节点，即当前节点的同步日志已经不存在于其他节点的同步日志文件中
+
+> **Note:**
+>
+> 正常重启后，如果数据版本仍在可同步范围内则不会触发全量同步。
+
+全量同步时，备节点会尝试从本地进行全量或阶段性的数据及同步日志恢复。当本地数据不完整时，备节点会向源节点请求数据，源节点将数据打包后作为大数据块发送给备节点。同步期间，备节点对外不提供服务，同时源节点发生的数据改变会被复制到本地；同步完成后，备节点的原有数据会被废弃。
+
+全量同步会极大地影响整个组的性能，甚至导致其他备节点同步性能降低。建议通过如下方式避免全量同步：
+
+- 增加分区，使数据更离散，减少每个复制组的数据量，缩短同步操作的耗时，同时更好地保证数据完整性。
+- 增加同步日志容量，防止同步日志翻转。
 
 读写分离
 ----
@@ -188,7 +183,7 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 
 写请求处理成功后，后续读到的数据一定是当前组内最新的，但是这样会降低复制组的写入性能。
 
-用户可以通过 [cs.createCL()][create_cl] 在创建集合时指定 ReplSize 属性，来提高数据的一致性和可靠性。
+用户可以通过 [createCL()][create_cl] 在创建集合时指定 ReplSize 属性，来提高数据的一致性和可靠性。
 
 ```lang-javascript
 > var db = new Sdb ( 'sdbserver1', 11810 )
@@ -206,8 +201,9 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 [full_sync]:images/Distributed_Engine/Architecture/Replication/full_sync.png
 [create_cl]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [session_attr]: manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
-[logfilesz]: manualDistributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
-[logfilenum]: manual/Distributed_Engine/Maintainance/Database_Configuration/configuration_parameters.md
+[logfilesz]: manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md
+[logfilenum]: manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md
+[synclog]:manual/Distributed_Engine/Architecture/Replication/architecture.md#同步日志
 
 
 
