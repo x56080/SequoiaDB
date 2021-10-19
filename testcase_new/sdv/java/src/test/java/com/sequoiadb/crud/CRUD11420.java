@@ -45,7 +45,7 @@ public class CRUD11420 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor();
+        ThreadExecutor es = new ThreadExecutor(180*1000);
         int beginSetNo = 0;
         int endSetNo = 500;
         threadSet updateSet = new threadSet(beginSetNo, endSetNo);
