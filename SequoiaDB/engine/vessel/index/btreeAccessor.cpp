@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexAccessor.cpp
+   Source File Name = btreeAccessor.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeIndexAccessor.h"
+#include "vessel/btreeAccessor.h"
 #include "vessel/requestContext.h"
 #include "vessel/indexContext.h"
 #include "ossLikely.hpp"
@@ -49,15 +49,15 @@ namespace engine
 {
 namespace vessel
 {
-   btreeIndexAccessor::btreeIndexAccessor()
+   btreeAccessor::btreeAccessor()
    {}
 
-   btreeIndexAccessor::~btreeIndexAccessor()
+   btreeAccessor::~btreeAccessor()
    {
       fini();
    }
 
-   INT32 btreeIndexAccessor::init(requestContext *context,
+   INT32 btreeAccessor::init(requestContext *context,
                                   indexContext *ic)
    {
       INT32 rc = SDB_OK;
@@ -95,7 +95,7 @@ namespace vessel
       goto done;
    }
 
-   void btreeIndexAccessor::fini()
+   void btreeAccessor::fini()
    {
       _context = NULL;
       _is = NULL;
@@ -104,9 +104,9 @@ namespace vessel
       return;
    }
 
-   INT32 btreeIndexAccessor::insert(const bson::BSONObj &key,
-                                    const recordID &rid,
-                                    const DPS_TRANS_ID &transID)
+   INT32 btreeAccessor::insert(const bson::BSONObj &key,
+                               const recordID &rid,
+                               const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       btreeAccessContext bac;
@@ -159,49 +159,125 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::traverseDownToInsert(btreeAccessContext &bac,
-                                                  BOOLEAN &obstructed)
+   INT32 btreeAccessor::traverseDownToInsert(btreeAccessContext &bac,
+                                             BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
 
-      btreeNode node = bic.getPath().getCurrentEndNodeInPath();
-      btreeNode::locateResult lr;
-      BOOLEAN obstructed = FALSE;
+      btreeNode node = bac.getEndNodeInPath();
+      obstructed = FALSE;
+      btreeItemLocation location;
 
-      if (node.hasExtNode())
-      {
-         rc = tryToSplitNode(bic.getPath(), node, obstructed);
-         if (SDB_OK != rc)
+      if (node.isLeaf())
+      {  
+         if (node.hasFreeSpaceToInsert(bac.getKey().dataSize()))
          {
-            PD_LOG(PDERROR, "failed to split node with ext node:%d", rc);
-            goto error;
+            bac.endToAccessPathNodes(1);
+            rc = insertIntoLeafNode(node, 
+                                    bac.getKey(),
+                                    bac.getRid(),
+                                    bac.getTransID(),
+                                    obstructed);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert into leaf:%d", rc);
+               goto error;
+            }
          }
+         else
+         {
+            rc = splitLeafNodeAndInsert(bac, obstructed);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to split and insert:%d", rc);
+               goto error;
+            }
+         }
+
+         goto done;
       }
 
-      rc = node.locateKeyAndRid(bic.getKey(), bic.getRid(), lr);
+      rc = node.locateKeyAndRid(bac.getKey(), bac.getRid(), location);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to locate in node:%d", rc);
+         PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
          goto error;
       }
 
-      
+      if (location.identical)
+      {
+         SDB_ASSERT(!node.isLeaf(), "impossible");
+         bac.endToAccessPathNodes(1);
+         if (!node.ensureExclusiveLocking())
+         {
+            obstructed = TRUE;
+            goto done;
+         }
+
+         rc = node.reactiveRemovedKey(location, bac.getTransID());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reactive identical key:%d", rc);
+            goto error;
+         }
+
+         goto done;
+      }
+
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 btreeIndexAccessor::tryToSplitNode(btreeNodePath &path,
-                                            btreeNode &node,
-                                            BOOLEAN &obstructed)
+   INT32 btreeAccessor::insertIntoLeafNode(btreeNode &node,
+                                           const ixmKey &key,
+                                           const recordID &rid,
+                                           const DPS_TRANS_ID &transID,
+                                           BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(node.isValid() && node.isLeaf(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      obstructed = node.ensureExclusiveLocking();
+      if (!obstructed)
+      {
+         goto done;
+      }
+
+      rc = node.insert(key, rid, transID);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into node:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::splitLeafNodeAndInsert(btreeAccessContext &bac,
+                                               BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::tryToSplitEndNode(btreeAccessContext &bac,
+                                          BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(path.isEmpty(), "must be empty");
-      SDB_ASSERT(node.isValid(), "can not be invalid");
+      SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
+      btreeNode node = bac.getEndNodeInPath();
 
       if (node.isRoot())
       {
@@ -218,40 +294,21 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::tryToSplitRootNode(btreeNode &root,
-                                                BOOLEAN &obstructed)
+   INT32 btreeAccessor::tryToSplitRootNode(btreeNode &root,
+                                           BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(root.isRoot(), "must be root");
 
-      PAGE_ID brotherLpid = INVALID_PAGE_ID;
-      btreeNodePageIniter initer;
-
-      if (!root.tryToEnsureLockExlusive())
-      {
-         obstructed = TRUE;
-         goto done;
-      }
-
-      initer.set(_context->getLogicalCLID(), _ic->getIndexID());
-      rc = _is->allocatePages(_context, &initer, 1, &brotherLpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate new brother page:%d", rc);
-         goto error;
-      }
+      
    done:
-      if (INVALID_PAGE_ID != brotherLpid)
-      {
-         _is->releasePages(_context, 1, &brotherLpid);
-      }
       return rc;
    error:
       goto done;
    }
 
-   INT32 btreeIndexAccessor::pushNoneRootNodeIntoPath(PAGE_ID lpid,
+   INT32 btreeAccessor::pushNoneRootNodeIntoPath(PAGE_ID lpid,
                                                       const ossSharedLatchMode &mode,
                                                       btreeAccessContext &bac)
    {
@@ -298,7 +355,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::pushRootIntoPath(ossSharedLatchMode mode,
+   INT32 btreeAccessor::pushRootIntoPath(ossSharedLatchMode mode,
                                               btreeAccessContext &bac)
    {
       INT32 rc = SDB_OK;
@@ -360,14 +417,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeIndexAccessor::createRootIfNotExists()
+   INT32 btreeAccessor::createRootIfNotExists()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
 
       logicalPageBuffer entryBuffer;
       indexEntryPageAccessor accessor;
-      btreeNodePageIniter initer;
+      btreeRootPageIniter initer;
       PAGE_ID lpid = INVALID_PAGE_ID;
       ossSharedLatchMode mode;
       mode.setExclusive();
@@ -394,7 +451,8 @@ namespace vessel
       }
 
       initer.set(getContext()->getLogicalCLID(),
-                 getIndexContext()->getIndexID());
+                 getIndexContext()->getIndexID(),
+                 INVALID_PAGE_ID);
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
       if (SDB_OK != rc)
       {
@@ -424,13 +482,13 @@ namespace vessel
       goto done;
    }
 
-   ossSharedLatchMode btreeIndexAccessor::estimateRootModeWhenWriting(UINT32 updatedTimes)const
+   ossSharedLatchMode btreeAccessor::estimateRootModeWhenWriting(UINT32 updatedTimes)const
    {
       static const UINT32 _SMALL_SCALE = 2;
       ossSharedLatchMode mode;
       if (updatedTimes <= _SMALL_SCALE)
       {
-         mode.setUpgrade();
+         mode.setExclusive();
       }
       else
       {
@@ -439,12 +497,12 @@ namespace vessel
       return mode;
    }
 
-   ossSharedLatchMode btreeIndexAccessor::estimateChildModeWhenInserting(const btreeNodePath &path)const
+   ossSharedLatchMode btreeAccessor::estimateChildModeWhenInserting(btreeAccessContext &bac)const
    {
       ossSharedLatchMode mode;
-      SDB_ASSERT(!path.isEmpty(), "can not be empty");
-      btreeNode father = path.getCurrentEndNodeInPath();
-      ossSharedLatchMode fatherMode = father.getMode();
+      SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
+      btreeNode father = bac.getEndNodeInPath();
+      ossSharedLatchMode fatherMode = father.getLockingMode();
       if (!fatherMode.isShared())
       {
          mode = fatherMode;
@@ -455,13 +513,13 @@ namespace vessel
       }
       else
       {
-         /// which means will get unshared latch from the third level of tree.
-         mode.setUpgrade();
+         /// which means will get unshared latch from the depth 2.
+         mode.setExclusive();
       }
       return mode;
    }
 
-   INT32 btreeIndexAccessor::validateBtreePage(const logicalPageBuffer &buffer)const
+   INT32 btreeAccessor::validateBtreePage(const logicalPageBuffer &buffer)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -469,6 +527,7 @@ namespace vessel
 
       const runtimePageBuffer &rpb = buffer.getRuntimeBuffer();
       const btreeNodePageHead *head = NULL;
+      slice s;
 
       rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
       if (SDB_OK != rc)
@@ -478,7 +537,9 @@ namespace vessel
          goto error;
       }
 
-      head = rpb.getReadablePtrOfBody<btreeNodePageHead>(0);
+      s = buffer.getReadableBodySlice();
+
+      head = s.getReadableObjPtr<btreeNodePageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get btree page head");

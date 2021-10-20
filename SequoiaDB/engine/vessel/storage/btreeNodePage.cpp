@@ -36,6 +36,7 @@
 #include "vessel/btreeNodePage.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
+#include "ixmKey.hpp"
 
 namespace engine
 {
@@ -85,11 +86,46 @@ namespace vessel
       return;
    }
 
+   void btreeItemSlot::initWhenDataInExtPage(const recordID &rid,
+                                             UINT16 size,
+                                             PAGE_ID leftChild,
+                                             PAGE_ID extPage)
+   {
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != leftChild, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != extPage, "can not be invalid");
+      reset();
+      OSS_BIT_SET(flags, FLAG_IN_USED);
+      ridSlot = rid.getSlotID();
+      ridPage = rid.getPageID();
+      data.pointer.leftChild = leftChild;
+      data.pointer.size = size;
+      data.pointer.pad = extPage;
+      return;
+   }
+
    BOOLEAN btreeItemSlot::hasNoSuffix()const
    {
       SDB_ASSERT(isValid(), "must be invalid");
       SDB_ASSERT(isKeyCompressed(), "must be compressed");
       return !isDataInPageBody() && !isDataInSlot();
+   }
+
+   UINT32 btreeItemSlot::getSuffixSize()const
+   {
+      SDB_ASSERT(isValid(), "must be invalid");
+      SDB_ASSERT(isKeyCompressed(), "must be compressed");
+
+      if (isDataInSlot())
+      {
+         return ixmKey(data.getKeyData()).dataSize();
+      }
+      else if (isDataInPageBody())
+      {
+         return data.pointer.size;
+      }
+      
+      return 0;
    }
 ////////btreeItemSlot end
 
@@ -99,12 +135,12 @@ namespace vessel
                              PAGE_SNAPSHOT_VERION psv,
                              UINT32 cllid,
                              UINT32 indexId,
+                             PAGE_ID rightChild,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
       btreeNodePageHead *headPtr = NULL;
       btreeNodePageHead head;
-      UINT32 bodySize = 0;
    
       SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
@@ -125,6 +161,7 @@ namespace vessel
       ossMemcpy(headPtr, &head, BTREE_NODE_PAGE_HEAD_SIZE);
       headPtr->clLogicalID = cllid;
       headPtr->indexId = indexId;
+      headPtr->rightChild = rightChild;
       headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
       headPtr->freeSapceAfterLastSlot = headPtr->totalFreeSpace;
       r = TRUE;

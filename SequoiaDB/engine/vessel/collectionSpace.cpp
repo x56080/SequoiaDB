@@ -670,7 +670,7 @@ namespace vessel
                break;
             }
 
-            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getReadOnlyBuffer(),
+            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getReadbleSlice().getRPtr(),
                                             j, record))
             {
                continue;

@@ -62,7 +62,7 @@ namespace vessel
 
       if (!initIndexEntryPage(rpb->getPageSize(),
                            rpb->getGlobalPid().page(),
-                           lpid, psv, (CHAR*)(rpb->getBuffer())))
+                           lpid, psv, rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init index def page[%s]",
                 rpb->getGlobalPid().toString().c_str());
@@ -74,10 +74,6 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != rpb)
-      {
-         rpb->abort();
-      }
       goto done;
    }
 }//namespace vessel

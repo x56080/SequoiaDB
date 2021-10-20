@@ -49,7 +49,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       _ixmIndexKeyGen keygen(pattern);
       keygen.setNotArray(notArray);
-      bson::BSONObj obj(record.data());
+      bson::BSONObj obj(record.getRPtr());
 
       rc = keygen.getKeys(obj, keys);
       if (SDB_OK != rc)

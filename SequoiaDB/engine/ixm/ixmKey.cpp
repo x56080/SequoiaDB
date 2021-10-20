@@ -833,6 +833,26 @@ namespace engine
       return 0 != _COMPRESSION_TABLE[type];
    }
 
+   OSS_INLINE static UINT32 sizeOfElement(const UINT8 *p)
+   {
+      UINT32 type = *p & cCANONTYPEMASK;
+      UINT32 sz = sizes[type];
+      if( sz == 0 )
+      {
+         // string is variable length
+         // 1 byte type + 1 byte length + data
+         if( cstring == type )
+         {
+            sz = ((UINT32) p[1]) + 2 ;
+         }
+         else if ( cbindata == type )
+         {
+            sz = binDataCodeToLength(p[1]) + 2 ;
+         }
+      }
+      return sz;
+   }
+
    /// all fields must be compressable when nfields is zero
    static BOOLEAN isValidPrefix(const ixmKey &key, UINT32 nfields=0)
    {
@@ -863,26 +883,6 @@ namespace engine
       r = TRUE;
    done:
       return r;
-   }
-
-   OSS_INLINE static UINT32 sizeOfElement(const UINT8 *p)
-   {
-      UINT32 type = *p & cCANONTYPEMASK;
-      UINT32 sz = sizes[type];
-      if( sz == 0 )
-      {
-         // string is variable length
-         // 1 byte type + 1 byte length + data
-         if( cstring == type )
-         {
-            sz = ((UINT32) p[1]) + 2 ;
-         }
-         else if ( cbindata == type )
-         {
-            sz = binDataCodeToLength(p[1]) + 2 ;
-         }
-      }
-      return sz;
    }
 
    // get the size of key
@@ -976,8 +976,13 @@ namespace engine
       {
          goto done;
       }
+      else if (key.getFieldCount() < _nfields)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
-      for (UINT32 i = 0; i < _nfields && keyHasMore; ++i)
+      for (UINT32 i = 0; i < _nfields; ++i)
       {
          const CHAR *prefixColumn = _prefix + prefixOffset;
          const CHAR *keyColumn = key.data() + keyOffset;
@@ -997,7 +1002,7 @@ namespace engine
             if (0 < r._suffixBuilder.len())
             {
                /// stop to compress other columns if current column is not
-               /// perfectly comprssed.
+               /// perfectly compressed.
                break;
             }
          }
@@ -1097,6 +1102,29 @@ namespace engine
          builder.appendBuf(p, size);
       }
       return;
+   }
+
+   BOOLEAN ixmKeyCompressor::buildUncompressedKey(const ixmKey &prefix,
+                                                  const ixmKey &suffix,
+                                                  StackBufBuilder &builder)
+   {
+      BOOLEAN r = FALSE;
+      SDB_ASSERT(prefix.isValid() && suffix.isValid(), "can not be invalid");
+      UINT32 prefixFields = 0;
+      UINT32 suffixFields = 0;
+      builder.reset();
+
+      if (!isValidPrefix(prefix))
+      {
+         goto done;
+      }
+      
+   done:
+      if (!r)
+      {
+         builder.reset();
+      }
+      return r;
    }
 
 ////////////////ixmKeyCompressor end

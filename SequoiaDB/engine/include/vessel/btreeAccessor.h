@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeIndexAccessor.h
+   Source File Name = btreeAccessor.h
 
    Descriptive Name =
 
@@ -33,10 +33,9 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_INDEX_ACCESSOR_H_
-#define VESSEL_BTREE_INDEX_ACCESSOR_H_
+#ifndef VESSEL_BTREE_ACCESSOR_H_
+#define VESSEL_BTREE_ACCESSOR_H_
 
-#include "vessel/btreeNodePath.h"
 #include "vessel/btreeNode.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/btreeAccessContext.h"
@@ -49,13 +48,13 @@ namespace vessel
    class requestContext;
    class indexSpace;
 
-   class btreeIndexAccessor : public SDBObject
+   class btreeAccessor : public SDBObject
    {
       public:
-         btreeIndexAccessor();
-         virtual ~btreeIndexAccessor();
-         btreeIndexAccessor(const btreeIndexAccessor &) = delete;
-         btreeIndexAccessor &operator=(const btreeIndexAccessor &) = delete;
+         btreeAccessor();
+         virtual ~btreeAccessor();
+         btreeAccessor(const btreeAccessor &) = delete;
+         btreeAccessor &operator=(const btreeAccessor &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isInitialized()const
@@ -95,28 +94,34 @@ namespace vessel
                                     BOOLEAN &obstructed);
 
       private:
-         
-
          INT32 createRootIfNotExists();
 
+         INT32 insertIntoLeafNode(btreeNode &node,
+                                  const ixmKey &key,
+                                  const recordID &rid,
+                                  const DPS_TRANS_ID &transID,
+                                  BOOLEAN &obstructed);
+
+         INT32 splitLeafNodeAndInsert(btreeAccessContext &bac,
+                                      BOOLEAN &obstructed);
       private:
-         INT32 tryToSplitNode(btreeNodePath &path, btreeNode &node, BOOLEAN &obstructed);
+         INT32 tryToSplitEndNode(btreeAccessContext &bac, BOOLEAN &obstructed);
          INT32 tryToSplitRootNode(btreeNode &root, BOOLEAN &obstructed);
           
 
       private:
          INT32 validateBtreePage(const logicalPageBuffer &buffer)const;
          ossSharedLatchMode estimateRootModeWhenWriting(UINT32 updatedTimes)const;
-         ossSharedLatchMode estimateChildModeWhenInserting(const btreeNodePath &path)const;
+         ossSharedLatchMode estimateChildModeWhenInserting(btreeAccessContext &bac)const;
 
       private:
          requestContext *_context = NULL;
          indexSpace *_is = NULL;
          indexContext *_ic = NULL;
-   };//class btreeIndexAccessor
+   };//class btreeAccessor
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_INDEX_ACCESSOR_H_
+#endif//VESSEL_BTREE_ACCESSOR_H_

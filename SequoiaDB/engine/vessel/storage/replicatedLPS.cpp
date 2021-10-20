@@ -511,7 +511,6 @@ namespace vessel
    INT32 replicatedLPS::getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,
                                              const ossSharedLatchMode &mode,
-                                             const runtimePageBuffer::options &o,
                                              runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
@@ -545,8 +544,7 @@ namespace vessel
       }
 
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
-      rc = initer.initWithCache(gpid, pageSize, o,
-                                tuple, rpb);
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
@@ -567,7 +565,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       logicalPageSpace::_runtimePageBufferIniter initer;
       liteCacheTuple tuple;
-      runtimePageBuffer::options o;
       GLOBAL_PAGE_ID gpid(logicalPageSpace::getSpaceID(),
                           getSpaceType(),
                           getStorageFileType(),
@@ -590,8 +587,7 @@ namespace vessel
       }
 
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
-      rc = initer.initWithCache(gpid, pageSize, o,
-                                tuple, rpb);
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init rpb[%s] with cache tuple:%d",
@@ -620,12 +616,12 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalPageSpace::_runtimePageBufferIniter initer;
-      runtimePageBuffer::options o;
       liteCacheTuple tuple;
       GLOBAL_PAGE_ID gpid;
       UINT32 pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
       CHAR *buffer = NULL;
       logRecordContext lrc;
+      slice rs;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_SNAPSHOT_VERSION == psv ||
@@ -636,8 +632,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (isPageCrashed((ossValuePtr)(rpb.getReadOnlyBuffer()),
-                              pageSize))
+
+      rs = rpb.getReadbleSlice();
+      if (isPageCrashed((ossValuePtr)rs.getRPtr(), pageSize))
       {
          PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_CRASHED;
@@ -645,7 +642,7 @@ namespace vessel
       }
 
       buffer = context->allocateBuffer(pageSize);
-      ossMemcpy(buffer, rpb.getReadOnlyBuffer(), pageSize);
+      ossMemcpy(buffer, rs.getRPtr(), pageSize);
       rpb.fini();
 
       gpid.reset(logicalPageSpace::getSpaceID(),
@@ -668,7 +665,7 @@ namespace vessel
       }
 
       ossMemcpy((void *)(tuple.getWritableBuffer()),
-                 rpb.getReadOnlyBuffer(),
+                 rs.getRPtr(),
                  pageSize);
       ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
       ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;
@@ -689,7 +686,7 @@ namespace vessel
       tuple.commit(lrc.getLsn());
       rpb.fini();
 
-      rc = initer.initWithCache(gpid, pageSize, o, tuple, rpb);
+      rc = initer.initWithCache(gpid, pageSize, tuple, rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reinit rpb:%d", rc);

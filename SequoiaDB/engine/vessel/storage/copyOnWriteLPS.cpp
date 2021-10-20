@@ -81,7 +81,6 @@ namespace vessel
    INT32 copyOnWriteLPS::getRuntimePageBuffer(requestContext *context,
                                               PAGE_ID pid,
                                               const ossSharedLatchMode &mode,
-                                              const runtimePageBuffer::options &o,
                                               runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
@@ -116,7 +115,7 @@ namespace vessel
                  pid);
       pageSize = logicalPageSpace::getStorageCoreArgs().pageSize;
 
-      rc = initer.initWithMmap(gpid, pageSize, o, ptr, rpb);
+      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init rpb:%d", rc);
@@ -133,12 +132,11 @@ namespace vessel
                                                      runtimePageBuffer &rpb)
    {
       INT32 rc = SDB_OK;
-      runtimePageBuffer::options o;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       rc = this->getRuntimePageBuffer(context, pid,
                                       mode, /// usless actually
-                                      o, rpb);
+                                      rpb);
       if (SDB_OK != rc)
       {
          goto error;
@@ -167,7 +165,7 @@ namespace vessel
       mmapPagePointer ptr;
       GLOBAL_PAGE_ID gpid;
       logicalPageSpace::_runtimePageBufferIniter initer;
-      runtimePageBuffer::options o;
+      slice rs;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_SNAPSHOT_VERSION == psv ||
@@ -178,8 +176,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (isPageCrashed((ossValuePtr)(rpb.getReadOnlyBuffer()),
-                              pageSize))
+      
+      rs = rpb.getReadbleSlice();
+      if (isPageCrashed((ossValuePtr)(rs.getRPtr()), pageSize))
       {
          PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_CRASHED;
@@ -193,7 +192,7 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy((void *)(ptr.get()), rpb.getReadOnlyBuffer(), pageSize);
+      ossMemcpy((void *)(ptr.get()), rs.getRPtr(), pageSize);
       ((pageHead *)(ptr.get()))->pid = newPid;
       ((pageHead *)(ptr.get()))->psv = psv;
 
@@ -204,7 +203,7 @@ namespace vessel
                  getStorageFileType(),
                  newPid);
 
-      rc = initer.initWithMmap(gpid, pageSize, o, ptr, rpb);
+      rc = initer.initWithMmap(gpid, pageSize, ptr, rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init rpb:%d", rc);

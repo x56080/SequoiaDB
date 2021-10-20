@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = scanCLCursor.cpp
+   Source File Name = slice.cpp
 
    Descriptive Name =
 
@@ -33,67 +33,85 @@
 
 ******************************************************************************/
 
-#include "vessel/scanCLCursor.h"
-#include "vessel/dataScanRow.h"
+#include "vessel/slice.h"
+#include "ossLikely.hpp"
+#include "ossUtil.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 scanCLCursor::getNextRow(ISession *session,
-                                  cursorRow *row)
+   INT32 slice::write(UINT32 offset, UINT32 size, const void *data)
    {
       INT32 rc = SDB_OK;
-      slice content;
-      const recordID *rid = NULL;
-      const DPS_TRANS_ID *transID = NULL;
-      slice record;
-      dataScanRow *recordRow = NULL;
-
-      if (OSS_UNLIKELY(!isOpen()))
+      if (OSS_UNLIKELY(!isWritale()))
       {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == row ||
-                             CURSOR_ROW_TYPE_SCAN != row->getType()))
+      else if (OSS_UNLIKELY(0 == size || NULL == data))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      recordRow = static_cast<dataScanRow *>(row);
-      if (OSS_UNLIKELY(NULL == recordRow))
+      else if (!isValidAccessing(offset, size))
       {
-         PD_LOG(PDERROR, "failed to cast row ptr to record cursor row");
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = SDB_VESSEL_INVALID_PTR_OFFSET;
          goto error;
       }
 
-      rc = cursorKernal::getNext(session, content);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (content.getSize() < dataScanRow::MIN_CONTENT_SIZE)
-      {
-         PD_LOG(PDERROR, "invalid content len:%d", content.getSize());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rid = (const recordID *)(content.getRPtr());
-      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.getRPtr()) + sizeof(recordID));
-      record.reset(content.getSize() - dataScanRow::MIN_CONTENT_SIZE,
-                   (const CHAR *)((ossValuePtr)(content.getRPtr()) + dataScanRow::MIN_CONTENT_SIZE));
-
-      recordRow->shallowCopy(*rid, *transID, record);
-
+      ossMemcpy(_wptr + offset, data, size);
    done:
       return rc;
    error:
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+   
+   INT32 slice::read(UINT32 offset, UINT32 size, void *data)const
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == size || NULL == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isValidAccessing(offset, size))
+      {
+         rc = SDB_VESSEL_INVALID_PTR_OFFSET;
+         goto error;
+      }
+
+      ossMemcpy(data, _rptr + offset, size);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   slice slice::getReadableSlice(UINT32 offset, UINT32 size)const
+   {
+      slice s;
+      if (isValidAccessing(offset, offset))
+      {
+         s.reset(size, _rptr + offset);
+      }
+      return s;
+   }
+   
+   slice slice::getWritableSlice(UINT32 offset, UINT32 size)
+   {
+      slice s;
+      if (isWritale() && isValidAccessing(offset, size))
+      {
+         s.makeWritable(size, _wptr + offset);
+      }
+      return s;
+   }
+} // namespace vessel
+
+} // namespace engine

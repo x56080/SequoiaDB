@@ -61,10 +61,6 @@ namespace vessel
          {
             return _lh.getLpid();
          }
-         OSS_INLINE const runtimePageBuffer &getRuntimeBuffer()const
-         {
-            return _rpb;
-         }
          OSS_INLINE BOOLEAN isValid()const
          {
             return NULL != _lps &&
@@ -88,11 +84,28 @@ namespace vessel
             return _lh.getContext();
          }
 
+         OSS_INLINE UINT32 getPageSize()const
+         {
+            return _rpb.getPageSize();
+         }
+         OSS_INLINE const GLOBAL_PAGE_ID &getGlobalPid()const
+         {
+            return _rpb.getGlobalPid();
+         }
+
+         OSS_INLINE const runtimePageBuffer &getRuntimeBuffer()const
+         {
+            return _rpb;
+         }
+
       public:
          void fini();
          INT32 prepareToWrite();
          void commit(DPS_LSN_OFFSET lsn);
-         void abort();
+         
+         INT32 autoGetWritableBodySlice(slice &s);
+
+         BOOLEAN isWritable()const;
 
          INT32 validatePage(PAGE_TYPE type)const;
 
@@ -102,10 +115,8 @@ namespace vessel
          /// must hold upgrade lock first
          BOOLEAN tryLockExclusiveFromUpgrade();
 
-         runtimePageBuffer &getWritableBuffer();
-
-         strictPointer getReadableBodyPtr()const;
-         strictPointer getWritableBodyPtr();
+         slice getReadableBodySlice()const;
+         slice getWritableBodySlice();
 
       private:
          void init(logicalPageSpace *lps,

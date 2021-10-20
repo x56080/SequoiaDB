@@ -143,7 +143,7 @@ namespace vessel
       lrc.setResetPage();
       lrc.prepush(sizeof(SPACE_ID));
       lrc.prepush(CS_META_RECORD_LEN);
-      lrc.prepush(options.len());
+      lrc.prepush(options.getSize());
       lrc.prepushDone();
       rc = logger->prepare(session, &lrc);
       if (SDB_OK != rc)
@@ -189,7 +189,7 @@ namespace vessel
       }
 
       rc = logger->pushLogRecordElement(session, &lrc, DPS_LOG_CSCRT_VESSEL_OPTIONS,
-                                        options.len(), options.data());
+                                        options.getSize(), options.getRPtr());
       if (SDB_OK != rc)
       {
          logger->abort(session, &lrc);

@@ -93,14 +93,6 @@ namespace vessel
          _rpb.commit(lsn);
       }
    }
-   
-   void logicalPageBuffer::abort()
-   {
-      if (OSS_UNLIKELY(isValid()))
-      {
-         _rpb.abort();
-      }
-   }
 
    INT32 logicalPageBuffer::validatePage(PAGE_TYPE type)const
    {
@@ -108,7 +100,8 @@ namespace vessel
       SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
 
-      rc = ::engine::vessel::validatePage((ossValuePtr)(_rpb.getReadOnlyBuffer()),
+      slice s = _rpb.getReadbleSlice();
+      rc = ::engine::vessel::validatePage((ossValuePtr)s.getRPtr(),
                                           type, _rpb.getPageSize(),
                                           _rpb.getGlobalPid().page(),
                                           getLogicalPid(),
@@ -137,24 +130,47 @@ namespace vessel
       return _lh.tryLockExclusiveFromUpgrade();
    }
 
-   runtimePageBuffer &logicalPageBuffer::getWritableBuffer()
-   {
-      SDB_ASSERT(isValid(), "must be valid");
-      SDB_ASSERT(_rpb.isWritingPrepared(), "must be prepared");
-      return _rpb;
-   }
-
-   strictPointer logicalPageBuffer::getReadableBodyPtr()const
+   slice logicalPageBuffer::getReadableBodySlice()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return _rpb.getReadableBodyPtr();
+      return _rpb.getReadbleBodySlice();
    }
 
-   strictPointer logicalPageBuffer::getWritableBodyPtr()
+   slice logicalPageBuffer::getWritableBodySlice()
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(_rpb.isWritingPrepared(), "must be prepared");
-      return _rpb.getWritableBodyPtr();
+      SDB_ASSERT(isWritable(), "can not be invalid");
+      return _rpb.getWritableBodySlice();
+   }
+
+   BOOLEAN logicalPageBuffer::isWritable()const
+   {
+      return isValid() && _rpb.isWritingPrepared();
+   }
+
+   INT32 logicalPageBuffer::autoGetWritableBodySlice(slice &s)
+   {
+      INT32 rc = SDB_OK;
+      s.reset();
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isWritable())
+      {
+         rc = prepareToWrite();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to auto prepare to write:%d", rc);
+            goto error;
+         }
+      }
+
+      s = getWritableBodySlice();
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

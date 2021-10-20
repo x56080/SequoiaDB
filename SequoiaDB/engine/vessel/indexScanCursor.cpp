@@ -70,17 +70,17 @@ namespace vessel
          goto error;
       }
 
-      if (content.len() < dataScanRow::MIN_CONTENT_SIZE)
+      if (content.getSize() < dataScanRow::MIN_CONTENT_SIZE)
       {
-         PD_LOG(PDERROR, "invalid content len:%d", content.len());
+         PD_LOG(PDERROR, "invalid content len:%d", content.getSize());
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      rid = (const recordID *)(content.data());
-      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
-      record.reset(content.len() - dataScanRow::MIN_CONTENT_SIZE,
-                      (const CHAR *)((ossValuePtr)(content.data()) +
+      rid = (const recordID *)(content.getRPtr());
+      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.getRPtr()) + sizeof(recordID));
+      record.reset(content.getSize() - dataScanRow::MIN_CONTENT_SIZE,
+                      (const CHAR *)((ossValuePtr)(content.getRPtr()) +
                        dataScanRow::MIN_CONTENT_SIZE));
       dsr->shallowCopy(*rid, *transID, record);
 

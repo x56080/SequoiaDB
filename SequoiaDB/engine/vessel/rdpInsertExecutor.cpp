@@ -50,7 +50,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       slice record;
-      const runtimePageBuffer *rpb = NULL;
       const recordDataPageHead *head = NULL;
 
       RECORD_SLOT_ID slotId = INVALID_RECORD_SLOT_ID;
@@ -61,6 +60,7 @@ namespace vessel
       recordHead rh;
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
+      slice bufferSlice;
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -82,23 +82,23 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (isBigRecord(lpb->getRuntimeBuffer().getPageSize(),
-                           record.len()))
+      else if (isBigRecord(lpb->getPageSize(),
+                           record.getSize()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rpb = &(lpb->getRuntimeBuffer());
       rc = lpb->validatePage(PAGE_TYPE_RECORD);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
+                lpb->getGlobalPid().toString().c_str(), rc);
          goto error;
       }
 
-      head = rpb->getReadablePtrOfBody<recordDataPageHead>(0);
+      bufferSlice = lpb->getReadableBodySlice();
+      head = bufferSlice.getReadableObjPtr<recordDataPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
@@ -130,7 +130,7 @@ namespace vessel
          }
       }
 
-      alignedSize = getAlignedSizeOfNormalRecordAndHead(record.len());
+      alignedSize = getAlignedSizeOfNormalRecordAndHead(record.getSize());
 
       rc = getPosToInsert(head, alignedSize, slotId, offset, totalSize);
       if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
@@ -153,7 +153,7 @@ namespace vessel
       rs.setType(RDP_SLOT_TYPE_NORMAL);
       rs.setOffset(offset);
 
-      rh.setSize(RDP_RECORD_HEAD_LEN + record.len());
+      rh.setSize(RDP_RECORD_HEAD_LEN + record.getSize());
       rh.setCompressionType(context->getCompressionType());
       rh.setTransInfo(context->getTransID().getNodeID(),
                       context->getTransID().getSN());
@@ -225,33 +225,33 @@ namespace vessel
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotId, "can not be invalid");
       SDB_ASSERT(slot.isValid(), "must be valid");
       SDB_ASSERT(0 != rh.getSize(), "can not be zero");
-      runtimePageBuffer *rpb = NULL;
       recordDataPageHead oldHead;
       recordDataPageHead *head = NULL;
       recordSlot *slotPtr = NULL;
-      ossValuePtr recordPtr = 0;
       slice record = context->getOriginalRecord();
-      SDB_ASSERT(0 < record.len(), "can not be empty");
+      SDB_ASSERT(0 < record.getSize(), "can not be empty");
       logRecordContext lrc;
       recordID rid;
+      slice bufferSlice;
+      CHAR *recordPtr = NULL;
 
-      rc = lpb->prepareToWrite(context);
+      rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
          goto error;
       }
 
-      rpb = &(lpb->getRuntimeBuffer());
+      bufferSlice = lpb->getWritableBodySlice();
 
-      rc = prepareInsertLog(context, rh.getSize(), rpb, &lrc);
+      rc = prepareInsertLog(context, rh.getSize(), &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
          goto error;
       }
 
-      head = rpb->getWritablePtrOfBody<recordDataPageHead>(0);
+      head = bufferSlice.getWritableObjPtr<recordDataPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -259,8 +259,8 @@ namespace vessel
          goto error;
       }
 
-      slotPtr = rpb->getWritablePtrOfBody<recordSlot>(RECORD_PAGE_HEAD_LEN +
-                                                      (slotId * RDP_RSLOT_SIZE));
+      slotPtr = bufferSlice.getWritableObjPtr<recordSlot>(RECORD_PAGE_HEAD_LEN +
+                                                          (slotId * RDP_RSLOT_SIZE));
       if (NULL == slotPtr)
       {
          PD_LOG(PDERROR, "failed to get writable slot ptr");
@@ -268,22 +268,24 @@ namespace vessel
          goto error;
       }
 
-      rc = rpb->getWritablePtrOfBodyWithRc(slot.getOffset(), rh.getSize(), recordPtr);
-      if (SDB_OK != rc)
+      recordPtr = bufferSlice.getWritablePtr(slot.getOffset(), rh.getSize());
+      if (NULL == recordPtr)
       {
-         PD_LOG(PDERROR, "failed to get writable record ptr:%d", rc);
+         PD_LOG(PDERROR, "failed to get writable record ptr[%d,%d]",
+                slot.getOffset(), rh.getSize());
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
       oldHead = *head;
       *slotPtr = slot;
-      ossMemcpy((void *)recordPtr, &rh, RDP_RECORD_HEAD_LEN);
-      ossMemcpy((void *)(recordPtr + RDP_RECORD_HEAD_LEN),
-                record.data(), record.len());
-      if ((RDP_RECORD_HEAD_LEN + record.len()) < rh.getSize())
+      ossMemcpy(recordPtr, &rh, RDP_RECORD_HEAD_LEN);
+      ossMemcpy(recordPtr + RDP_RECORD_HEAD_LEN,
+                record.getRPtr(), record.getSize());
+      if ((RDP_RECORD_HEAD_LEN + record.getSize()) < rh.getSize())
       {
-         ossMemset((void *)(recordPtr + RDP_RECORD_HEAD_LEN + record.len()),
-                   0, (rh.getSize() - RDP_RECORD_HEAD_LEN - record.len()));
+         ossMemset((void *)(recordPtr + RDP_RECORD_HEAD_LEN + record.getSize()),
+                   0, (rh.getSize() - RDP_RECORD_HEAD_LEN - record.getSize()));
       }
       updatePageHead(head, slotId, slot, rh, context->getStriping());
 
@@ -291,21 +293,20 @@ namespace vessel
       rid.setSlotID(slotId);
       rc = commitInsertLog(context, rid, slot,
                            (const recordHead *)recordPtr,
-                           &oldHead, head, rpb, &lrc);
+                           &oldHead, head, &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log:%d", rc);
          *head = oldHead;
          *slotPtr = recordSlot();
          ossMemset((void *)recordPtr, 0, rh.getSize());
-         rpb->abort();
          goto error;
       }
 
       context->setLastDmlLSN(lrc.getLsn());
       context->setLastDmlRid(rid);
       context->setLastDmlPageSeq(head->pageSeq);
-      rpb->commit(lrc.getLsn());
+      lpb->commit(lrc.getLsn());
 
    done:
       return rc;

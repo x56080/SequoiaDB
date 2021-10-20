@@ -61,12 +61,12 @@ namespace vessel
 
    static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 4;
 
-   static const UINT32 MAX_IXM_KEY_SIZE = 4096;
+   static const UINT32 MAX_INDEX_KEY_SIZE = 1024;
 
    /// btree only
-   static const UINT32 BTREE_COMPRESSION_MIN_DEPTH = 2;
+   //static const UINT32 BTREE_COMPRESSION_MIN_DEPTH = 2;
    static const FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
-   static const FLOAT32 BTREE_NODE_EFFECTIVE_COMPRESSION_THRESHOLD = 0.25;
+   static const FLOAT32 BTREE_NODE_EFFECTIVE_COMPRESSION_RATIO = 0.40;
 
    /// btree only end
 
@@ -83,7 +83,8 @@ namespace vessel
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_TYPE = "type";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_OPTIONS = "btree";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_LSM_OPTIONS = "lsm";
-   static const CHAR * const VESSEL_INDEX_FIELD_NAME_PREFIX_COMPRESSION = "PrefixCompression";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS = "BtreeMaxPrefixFields";
+   static const CHAR * const VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH = "BtreeMinCompressionDepth";
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY = "ColumnFamily";
 
    static const CHAR * const VESSEL_INDEX_FIELD_NAME_INDEX_ID = "LogicalIndexId";

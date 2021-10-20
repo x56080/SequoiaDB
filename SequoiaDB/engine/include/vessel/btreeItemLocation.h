@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodeCompressor.h
+   Source File Name = btreeItemLocation.h
 
    Descriptive Name =
 
@@ -33,37 +33,43 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_NODE_COMPRESSOR_H_
-#define VESSEL_BTREE_NODE_COMPRESSOR_H_
+#ifndef VESSEL_BTREE_ITEM_LOCATION_H_
+#define VESSEL_BTREE_ITEM_LOCATION_H_
 
-#include "ixmKey.hpp"
-#include "vessel/btreeNodeCompressedKey.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeNodeCompressor : public SDBObject
+   class btreeItemLocation : public SDBObject
    {
       public:
-         btreeNodeCompressor(){}
-         ~btreeNodeCompressor(){}
-         btreeNodeCompressor(const btreeNodeCompressor &) = delete;
-         btreeNodeCompressor &operator=(const btreeNodeCompressor &) = delete;
+         btreeItemLocation(){}
+         ~btreeItemLocation(){}
+         btreeItemLocation(const btreeItemLocation &o):
+         keyMatched(o.keyMatched),
+         identical(o.identical),
+         child(o.child),
+         slotPos(o.slotPos){}
+         btreeItemLocation &operator=(const btreeItemLocation &o)
+         {
+            keyMatched = o.keyMatched;
+            identical = o.identical;
+            child = o.child;
+            slotPos = o.slotPos;
+            return *this;
+         }
 
       public:
-         ///WARNING: do not release compressor before get compressedKey suffix owned.
-         BOOLEAN compress(UINT32 prefixPos,
-                          const ixmKey &prefix,
-                          const ixmKey &key,
-                          btreeNodeCompressedKey &compressedKey);
-
-      private:
-         ixmKeyCompressor _ikc;
-   };//class btreePrefixCompression
+         BOOLEAN keyMatched = FALSE;
+         BOOLEAN identical = FALSE;
+         PAGE_ID child = INVALID_PAGE_ID;
+         RECORD_SLOT_ID slotPos = INVALID_RECORD_SLOT_ID;
+   };//class btreeItemLocation
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_NODE_COMPRESSOR_H_
+#endif//VESSEL_BTREE_ITEM_LOCATION_H_

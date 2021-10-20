@@ -48,7 +48,7 @@ namespace vessel
    {
       public:
          btreeAccessPathNode(){}
-         ~btreeAccessPathNode();
+         ~btreeAccessPathNode(){}
          explicit btreeAccessPathNode(logicalPageBuffer *lpb);
          btreeAccessPathNode(const btreeAccessPathNode &o):
          _lpid(o._lpid),

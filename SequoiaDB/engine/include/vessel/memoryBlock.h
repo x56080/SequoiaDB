@@ -86,7 +86,7 @@ namespace vessel
 
          void swap(memoryBlock &mb);
 
-         slice getSlice()const
+         slice getReadableSlice()const
          {
             return slice(_size, _buffer);
          }

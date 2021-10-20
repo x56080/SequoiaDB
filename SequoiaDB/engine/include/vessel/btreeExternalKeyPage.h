@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodePageSplitIniter.h
+   Source File Name = btreeExternalKeyPage.h
 
    Descriptive Name =
 
@@ -33,33 +33,40 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_
-#define VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_
+#ifndef VESSEL_BTREE_EXTERNAL_KEY_PAGE_H_
+#define VESSEL_BTREE_EXTERNAL_KEY_PAGE_H_
 
-#include "vessel/pageInitializer.h"
+#include "vessel/pageDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeNodePageSplitIniter : public pageInitializer
+   static const UINT32 BTREE_EXT_KEY_PAGE_HEAD_VERSION = 1;
+#pragma pack(4)
+   struct btreeExternalKeyPageHead
    {
-      public:
-         btreeNodePageSplitIniter();
-         virtual ~btreeNodePageSplitIniter();
+      UINT32 version = 0;
+      UINT32 flags = 0;
+      UINT32 indexId = 0;
+      UINT32 size = 0;
 
-      public:
-         virtual INT32 initPage(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_SNAPSHOT_VERION psv,
-                                runtimePageBuffer *rpb);
+   };//struct btreeExternalKeyPageHead
+#pragma pack()
 
-      private:
-         
-   };//class btreeNodePageSplitIniter
+   static const UINT32 BTREE_EXT_KEY_PAGE_HEAD_SIZE = sizeof(btreeExternalKeyPageHead);
+
+   BOOLEAN initBtreeExtKeyPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               UINT32 indexId,
+                               UINT32 keySize,
+                               const CHAR *keyData,
+                               CHAR *buf);
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_NODE_PAGE_SPLIT_INITER_H_
+#endif//VESSEL_BTREE_EXTERNAL_KEY_PAGE_H_

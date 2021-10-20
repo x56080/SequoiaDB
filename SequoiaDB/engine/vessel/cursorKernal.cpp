@@ -255,7 +255,7 @@ namespace vessel
             rc = SDB_INVALIDARG;
             goto error;
          }
-         len += i->len();
+         len += i->getSize();
       }
 
       rc = allocateSpaceForPushing(len);
@@ -275,7 +275,7 @@ namespace vessel
 
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         rc = _mb.append(i->len(), i->data());
+         rc = _mb.append(i->getSize(), i->getRPtr());
          if (SDB_OK != rc)
          {
             _mb.resize(oldSize);

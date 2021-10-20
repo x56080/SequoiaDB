@@ -101,7 +101,7 @@ namespace vessel
       lrc.prepush(fullName.strLen() + 1);
       lrc.prepush(sizeof(INT32));
       lrc.prepush(sizeof(UINT32));
-      lrc.prepush(indexDef.len());
+      lrc.prepush(indexDef.getSize());
       lrc.prepushDone();
 
       rc = logger->prepare(session, &lrc);
@@ -143,8 +143,8 @@ namespace vessel
 
       rc = logger->pushLogRecordElement(session, &lrc,
                                         DPS_LOG_IXCRT_IX_DEF_OBJ,
-                                        indexDef.len(),
-                                        indexDef.data());
+                                        indexDef.getSize(),
+                                        indexDef.getRPtr());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push element index def:%d", rc);

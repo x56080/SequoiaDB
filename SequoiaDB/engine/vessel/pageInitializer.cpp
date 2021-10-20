@@ -116,10 +116,10 @@ namespace vessel
          goto error;
       }
 
-      if (0 < adjunct.len())
+      if (0 < adjunct.getSize())
       {
          rc = pageAccessor::pushElement(context, DPS_LOG_VESSEL_PAGE_INIT_ADJUNCT,
-                                        adjunct.len(), adjunct.data(), lrc);
+                                        adjunct.getSize(), adjunct.getRPtr(), lrc);
          if (SDB_OK != rc)
          {
             goto error;

@@ -53,7 +53,7 @@
 #include "vessel/rdpIniter.h"
 #include "vessel/rdpInsertExecutor.h"
 #include "vessel/indexUtils.h"
-#include "vessel/indexDefPage.h"
+#include "vessel/indexEntryPage.h"
 #include "vessel/indexConsole.h"
 #include "vessel/redoLogUtil.h"
 #include "rtnIxmKeySorter.hpp"
@@ -61,7 +61,6 @@
 #include "vessel/outerResource.h"
 #include "vessel/recordReader.h"
 #include "ixmIndexKey.hpp"
-#include "vessel/indexDefPageAccessor.h"
 #include "vessel/indexScanner.h"
 #include "vessel/buildingIndexContext.h"
 #include "vessel/indexScanContext.h"
@@ -239,7 +238,7 @@ namespace vessel
       }
 
       if (INDEX_TYPE_BTREE == params.type &&
-          keyPattern.getKeyCount() < params.btreeMaxPrefixComluns)
+          keyPattern.getKeyCount() < params.btreeMaxPrefixFields)
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -426,7 +425,7 @@ namespace vessel
          context->setLockRid(TRUE);
       }
 
-      if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().len()))
+      if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().getSize()))
       {
          rc = insertNonBigRecord(context);
          if (SDB_OK != rc)
@@ -862,7 +861,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 size = getMaxSizeOfRecordInRdp(context->getOriginalRecord().len());
+      UINT32 size = getMaxSizeOfRecordInRdp(context->getOriginalRecord().getSize());
       INT32 targetLvl = getFsmSpaceLvl(getDataPageSize(), size);
       PAGE_ID lpid = INVALID_PAGE_ID;
 
@@ -3001,8 +3000,6 @@ namespace vessel
    INT32 collection::initIndexesWhenOpen(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      indexDefPageAccessor accessor;
-
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
 

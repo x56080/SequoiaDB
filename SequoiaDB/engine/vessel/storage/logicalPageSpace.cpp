@@ -67,22 +67,20 @@ namespace vessel
          _runtimePageBufferIniter::
          initWithCache(const GLOBAL_PAGE_ID &gpid,
                        UINT32 pageSize,
-                       const runtimePageBuffer::options &o,
                        liteCacheTuple &tuple,
                        runtimePageBuffer &rpb)
    {
-      return rpb.init(gpid, pageSize, tuple, o);
+      return rpb.init(gpid, pageSize, tuple);
    }
 
    INT32 logicalPageSpace::
          _runtimePageBufferIniter::
          initWithMmap(const GLOBAL_PAGE_ID &gpid,
                       UINT32 pageSize,
-                      const runtimePageBuffer::options &o,
                       const mmapPagePointer &ptr,
                       runtimePageBuffer &rpb)
    {
-      return rpb.init(gpid, pageSize, ptr, o);
+      return rpb.init(gpid, pageSize, ptr);
    }
 
 
@@ -601,7 +599,6 @@ namespace vessel
       SDB_ASSERT(!lpb.isValid(), "impossible");
       BOOLEAN isMutablePage = FALSE;
       idMapSlot slot;
-      runtimePageBuffer::options o;
 
       lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
@@ -640,7 +637,7 @@ namespace vessel
       }
 
       rc = getRuntimePageBuffer(context, slot.pid,
-                                mode, o, lpb._rpb);
+                                mode, lpb._rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", slot.pid, rc);
@@ -664,7 +661,6 @@ namespace vessel
       SDB_ASSERT(!lpb.isValid(), "impossible");
       BOOLEAN isMutablePage = FALSE;
       idMapSlot slot;
-      runtimePageBuffer::options o;
 
       lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
@@ -708,7 +704,7 @@ namespace vessel
       }
 
       rc = getRuntimePageBuffer(context, slot.pid,
-                                mode, o, lpb._rpb);
+                                mode, lpb._rpb);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get runtime buffer of pid[%d], rc:%d", slot.pid, rc);

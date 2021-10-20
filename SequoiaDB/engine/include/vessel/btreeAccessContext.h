@@ -94,6 +94,8 @@ namespace vessel
 
          void clearAccessPath();
 
+         void endToAccessPathNodes(UINT32 minActiveCount);
+
          btreeNode getEndNodeInPath();
 
       private:

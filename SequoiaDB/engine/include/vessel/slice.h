@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -49,84 +46,151 @@ namespace vessel
    class slice : public SDBObject
    {
       public:
-         OSS_INLINE slice():_len(0), _data(NULL)
+         OSS_INLINE slice(){}
+         OSS_INLINE explicit slice(UINT32 size, const void *data):
+                             _size(size),
+                             _rptr((const CHAR *)data),
+                             _wptr(NULL)
          {
-            unvalidIfNecessary();
-         }
-         OSS_INLINE slice(UINT32 len, const CHAR *data):
-                    _len(len), _data(data)
-         {
-            unvalidIfNecessary();
-         }
-         OSS_INLINE slice(UINT32 len, const void *data):
-                    _len(len), _data((const CHAR *)data)
-         {
-            unvalidIfNecessary();
+            if (NULL == _rptr)
+            {
+               _size = 0;
+               _rptr = NULL;
+            }
          }
          OSS_INLINE slice(const slice &r):
-                    _len(r._len), _data(r._data){}
+                    _size(r._size),
+                    _rptr(r._rptr),
+                    _wptr(r._wptr){}
 
-         OSS_INLINE ~slice(){ _len = 0; _data = NULL;}
+         OSS_INLINE ~slice(){}
 
-      public:
          OSS_INLINE slice &operator=(const slice &r)
          {
-            _len = r._len;
-            _data = r._data;
+            _size = r._size;
+            _rptr = r._rptr;
+            _wptr = r._wptr;
             return *this;
          }
 
-         OSS_INLINE UINT32 len()const
+      public:
+         OSS_INLINE BOOLEAN isValid()const
          {
-            return _len;
+            return NULL != _rptr;
          }
-
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return 0 == _size;
+         }
+         OSS_INLINE BOOLEAN isWritale()const
+         {
+            return NULL != _wptr;
+         }
+         OSS_INLINE UINT32 getSize()const
+         {
+            return _size;
+         }
          OSS_INLINE const CHAR *data()const
          {
-            return _data;
+            return _rptr;
+         }
+         OSS_INLINE const CHAR *getRPtr()const
+         {
+            return _rptr;
+         }
+         OSS_INLINE CHAR *getWPtr()
+         {
+            return _wptr;
          }
 
          OSS_INLINE void reset()
          {
-            _len = 0;
-            _data = NULL;
+            _size = 0;
+            _rptr = NULL;
+            _wptr = NULL;
             return;
          }
 
-         OSS_INLINE void reset(UINT32 len, const CHAR *data)
+         OSS_INLINE void reset(UINT32 size, const void *data)
          {
-            _len = len;
-            _data = data;
-            unvalidIfNecessary();
-            return;
-         }
-
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return 0 < _len && NULL != _data;
-         }
-      
-      private:
-         OSS_INLINE void unvalidIfNecessary()
-         {
-            if (!isValid())
+            reset();
+            if (NULL != data)
             {
-               if (0 != _len)
-               {
-                  _len = 0;
-               }
-               if (NULL != _data)
-               {
-                  _data = NULL;
-               }
-               return;
+               _size = size;
+               _rptr = (const CHAR *)data;
             }
+            return;
          }
-         
+
+         OSS_INLINE void makeWritable(UINT32 size,
+                                      void *data)
+         {
+            if (NULL != data)
+            {
+               _size = size;
+               _wptr = (CHAR *)data;
+               _rptr = _wptr;
+            }
+            else
+            {
+               reset();
+            }
+            return;
+         }
+
+      public:
+         OSS_INLINE const CHAR *getReadablePtr(UINT32 offset, UINT32 size)const
+         {
+            return isValidAccessing(offset, size) ?
+                   (_rptr + offset) : NULL;
+         }
+         OSS_INLINE const CHAR *getReadablePtrWithoutSize(UINT32 offset)const
+         {
+            return isValidAccessing(offset, 1) ?
+                   (_rptr + offset) : NULL;
+         }
+
+         OSS_INLINE CHAR *getWritablePtr(UINT32 offset, UINT32 size)
+         {
+            return (isWritale() && isValidAccessing(offset, size)) ?
+                   (_wptr + offset) : NULL;
+         }
+         OSS_INLINE CHAR *getWritablePtrWithoutSize(UINT32 offset)
+         {
+            return (isWritale() && isValidAccessing(offset, 1)) ?
+                   (_wptr + offset) : NULL;
+         }
+
+      public:
+         template<class T>
+         const T *getReadableObjPtr(UINT32 offset)const
+         {
+            return (const T *)getReadablePtr(offset, sizeof(T));
+         }
+
+         template<class T>
+         T *getWritableObjPtr(UINT32 offset)
+         {
+            return (T *)getWritablePtr(offset, sizeof(T));
+         }
+
+      public:
+         INT32 write(UINT32 offset, UINT32 size, const void *data);
+         INT32 read(UINT32 offset, UINT32 size, void *data)const;
+         slice getReadableSlice(UINT32 offset, UINT32 size)const;
+         slice getWritableSlice(UINT32 offset, UINT32 size);
+
       private:
-         UINT32 _len = 0;
-         const CHAR *_data = NULL;
-   };
+         OSS_INLINE BOOLEAN isValidAccessing(UINT32 offset, UINT32 size)const
+         {
+            return (offset + size) <= _size;
+         }
+
+      private:
+         UINT32 _size = 0;
+         const CHAR *_rptr = NULL;
+         CHAR *_wptr = NULL;
+   };//class slice
 
 } // namespace vessel
 } // namespace engine

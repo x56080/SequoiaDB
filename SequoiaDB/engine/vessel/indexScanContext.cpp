@@ -60,12 +60,6 @@ namespace vessel
       SDB_ASSERT(isCursorAttached(), "must be attached");
       return _cursor->getIndexHandle();
    }
-
-   indexEntryBuffer *indexScanContext::getEntryBuffer()const
-   {
-      SDB_ASSERT(isCursorAttached(), "must be attached");
-      return _cursor->getEntryBuffer();
-   }
    
    rtnPredicateListIterator *indexScanContext::getPredicate()const
    {
@@ -83,6 +77,38 @@ namespace vessel
    {
       SDB_ASSERT(isCursorAttached(), "must be attached");
       return _cursor->getOptions();
+   }
+
+   slice indexScanContext::getEntry()const
+   {
+      return isCursorAttached() ? _cursor->getEntry() : slice();
+   }
+
+   INT32 indexScanContext::saveScanEntry(const slice &entry)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!entry.isValid() ||
+                        entry.isEmpty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isCursorAttached()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _cursor->getEntryBlock().copy(entry.getSize(), entry.getRPtr());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy entry:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 } // namespace vessel

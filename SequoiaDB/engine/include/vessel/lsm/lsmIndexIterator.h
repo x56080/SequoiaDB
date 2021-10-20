@@ -103,10 +103,7 @@ namespace vessel
          virtual recordID getRid()const;
          virtual slice getValue()const;
          virtual UINT32 getEntrySize()const;
-         virtual INT32 copyKeyEntry(UINT32 bufferSize,
-                                    CHAR *buffer)const;
-         virtual INT32 copyKeyEntryToBuffer(indexEntryBuffer &buffer) const;
-
+         virtual slice getEntry()const;
       private:
          INT32 upperBoundKey(const bson::BSONObj &key);
 

@@ -916,6 +916,7 @@ vesselFiles = [
       "vessel/storage/indexMappingPage.cpp",
       "vessel/storage/indexEntryPage.cpp",
       "vessel/storage/btreeNodePage.cpp",
+      "vessel/storage/btreeExternalKeyPage.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
       "vessel/handlers/requestHandler.cpp",
@@ -939,14 +940,13 @@ vesselFiles = [
       "vessel/index/dmlIndexRequest.cpp",
       "vessel/index/indexIterator.cpp",
       "vessel/index/indexScanner.cpp",
-      "vessel/index/indexEntryBuffer.cpp",
       "vessel/index/buildingIndexContext.cpp",
-      "vessel/index/btreeNodePath.cpp",
-      "vessel/index/btreeIndexTuple.cpp",
-      "vessel/index/indexCompressedKey.cpp",
+      "vessel/index/btreeIndexItem.cpp",
       "vessel/index/btreeNode.cpp",
-      "vessel/index/btreeIndexAccessor.cpp",
+      "vessel/index/btreeAccessor.cpp",
       "vessel/index/btreeAccessContext.cpp",
+      "vessel/index/btreeNodeCompressedKey.cpp",
+      "vessel/index/btreeAccessPathNode.cpp",
       "vessel/inMemBitmap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",
@@ -996,6 +996,7 @@ vesselFiles = [
       "vessel/rdpIniter.cpp",
       "vessel/crpIniter.cpp",
       "vessel/routePageIniter.cpp",
+      "vessel/btreeExtKeyPageIniter.cpp",
       "vessel/pageInitializer.cpp",
       "vessel/keepHistoryPointerArray.cpp",
       "vessel/indexEntryPageAccessor.cpp",
@@ -1008,7 +1009,8 @@ vesselFiles = [
       "vessel/recordReader.cpp",
       "vessel/scanCLCursor.cpp",
       "vessel/indexScanCursor.cpp",
-      "vessel/btreeNodePageIniter.cpp"
+      "vessel/btreeNodePageIniter.cpp",
+      "vessel/slice.cpp"
 ]
 
 lsmFiles = [

@@ -289,7 +289,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(STORAGE_FILE_USER_DEFINED_HEAD_SIZE < userDefinedHead.len()))
+      else if (OSS_UNLIKELY(STORAGE_FILE_USER_DEFINED_HEAD_SIZE < userDefinedHead.getSize()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -393,7 +393,7 @@ namespace vessel
       if (userDefinedHead.isValid())
       {
          ossMemcpy((void *)(headPtr + STORAGE_FILE_COMMON_HEAD_SIZE),
-                   userDefinedHead.data(), userDefinedHead.len());
+                   userDefinedHead.getRPtr(), userDefinedHead.getSize());
       }
 
       /// create checksum

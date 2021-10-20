@@ -41,6 +41,7 @@
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/collectionOptions.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -57,7 +58,6 @@ namespace vessel
 
       public:
          const indexHandle &getHandle()const;
-         indexEntryBuffer *getEntryBuffer()const;
          rtnPredicateListIterator *getPredicate()const;
          UNORDERED_RID_SET *getRidSet()const;
          const indexScanOptions &getOptions()const;
@@ -71,6 +71,8 @@ namespace vessel
          }
       public:
          void attachIndexScanCursor(indexScanCursor *cursor);
+         INT32 saveScanEntry(const slice &entry);
+         slice getEntry()const;
 
          virtual void close();
 

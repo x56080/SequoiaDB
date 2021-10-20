@@ -214,13 +214,11 @@ namespace vessel
                ///WARNING: tuple will be invalid after init.
                INT32 initWithCache(const GLOBAL_PAGE_ID &gpid,
                                    UINT32 pageSize,
-                                   const runtimePageBuffer::options &o,
                                    liteCacheTuple &tuple,
                                    runtimePageBuffer &rpb);
 
                INT32 initWithMmap(const GLOBAL_PAGE_ID &gpid,
                                   UINT32 pageSize,
-                                  const runtimePageBuffer::options &o,
                                   const mmapPagePointer &ptr,
                                   runtimePageBuffer &rpb);
          };//class _runtimePageBufferIniter
@@ -263,7 +261,6 @@ namespace vessel
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
                                             const ossSharedLatchMode &mode,
-                                            const runtimePageBuffer::options &o,
                                             runtimePageBuffer &rpb) = 0;
 
          /// rpb must be writable at last

@@ -47,7 +47,7 @@ namespace vessel
       SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
       _lpid = lpb->getLogicalPid();
       _lpb = lpb;
-      const btreeNodePageHead *head = lpb->getRuntimeBuffer().getReadablePtrOfBody<btreeNodePageHead>(0);
+      const btreeNodePageHead *head = lpb->getReadableBodySlice().getReadableObjPtr<btreeNodePageHead>(0);
       SDB_ASSERT(NULL != head, "can not be null");
       _splitedTimes = head->splitedTimes;
    }

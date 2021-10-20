@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryBuffer.h
+   Source File Name = btreeExtKeyPageIniter.h
 
    Descriptive Name =
 
@@ -33,37 +33,36 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INDEX_ENTRY_BUFFER_H_
-#define VESSEL_INDEX_ENTRY_BUFFER_H_
+#ifndef VESSEL_BTREE_EXT_KEY_PAGE_INITER_H_
+#define VESSEL_BTREE_EXT_KEY_PAGE_INITER_H_
 
-#include "vessel/memoryBlock.h"
+#include "vessel/pageInitializer.h"
 #include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class indexEntryBuffer : public SDBObject
+   class btreeExtKeyPageIniter : public pageInitializer
    {
       public:
-         indexEntryBuffer(){}
-         ~indexEntryBuffer();
-         indexEntryBuffer(const indexEntryBuffer &) = delete;
-         indexEntryBuffer &operator=(const indexEntryBuffer &) = delete;
+         btreeExtKeyPageIniter(){}
+         virtual ~btreeExtKeyPageIniter(){}
 
       public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return 0 < _mb.getSize();
-         }
-         slice getEntry()const;
-         INT32 save(INDEX_TYPE type, const slice &entry);
-         void reset();
+         virtual INT32 initPage(requestContext *context,
+                                PAGE_ID lpid,
+                                PAGE_SNAPSHOT_VERION psv,
+                                runtimePageBuffer *rpb);
 
       public:
-         memoryBlock _mb;
-   };//class indexEntryBuffer
-}//namespace vessel
-}//namespace engine
+         UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+         UINT32 _keySize = 0;
+         const CHAR *_keyData = NULL;
+   };//class btreeExtKeyPageIniter
+} // namespace vessel
 
-#endif//VESSEL_INDEX_ENTRY_BUFFER_H_
+} // namespace engine
+
+
+#endif//VESSEL_BTREE_EXT_KEY_PAGE_INITER_H_

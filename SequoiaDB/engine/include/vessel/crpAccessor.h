@@ -73,10 +73,8 @@ namespace vessel
                                */
 
       private:
-         collectionRecordOnDisk *getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                          UINT32 i);
          const collectionRecordOnDisk *getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                          UINT32 i);
+                                                                 UINT32 i);
 
       private:
          INT32 prepareCreateCLLog(requestContext *context,

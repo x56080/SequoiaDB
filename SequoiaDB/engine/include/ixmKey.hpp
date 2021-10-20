@@ -184,6 +184,10 @@ namespace engine
                {
                   return 0 < _fieldsCompressed;
                }
+               OSS_INLINE UINT32 getFieldsCompressed()const
+               {
+                  return _fieldsCompressed;
+               }
                OSS_INLINE BOOLEAN isPerfectlyCompressed()const
                {
                   return ok() && 0 == _suffixBuilder.len();
@@ -214,6 +218,10 @@ namespace engine
          }
          INT32 initPrefix(UINT32 nfields, const CHAR *prefix);
          INT32 compress(const ixmKey &key, result &r)const;
+
+         static BOOLEAN buildUncompressedKey(const ixmKey &prefix,
+                                             const ixmKey &suffix,
+                                             StackBufBuilder &builder);
 
       private:
          BOOLEAN compressColumn(const CHAR *prefix,

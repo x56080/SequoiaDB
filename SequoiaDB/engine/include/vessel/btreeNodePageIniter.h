@@ -39,6 +39,7 @@
 #include "vessel/pageInitializer.h"
 #include "dms.hpp"
 #include "vessel/indexDef.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -56,21 +57,19 @@ namespace vessel
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
 
-         void set(UINT32 clid, UINT32 indexId);
+         void set(UINT32 clid, UINT32 indexId, PAGE_ID rightChild);
 
       private:
          UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+         PAGE_ID _rightChild = INVALID_PAGE_ID;
    };//class btreeRootPageIniter
 
-
-   class btreeNode;
-
-   class btreeSplitPageIniter : public pageInitializer
+   class btreeNodePageSplitIniter : public pageInitializer
    {
       public:
-         btreeSplitPageIniter(){}
-         virtual ~btreeSplitPageIniter(){}
+         btreeNodePageSplitIniter(){}
+         virtual ~btreeNodePageSplitIniter(){}
 
       public:
          virtual INT32 initPage(requestContext *context,
@@ -78,12 +77,14 @@ namespace vessel
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
 
-         void set(const btreeNode *srcNode,
-                  RECORD_SLOT_ID begin);
+         void set(const slice &s)
+         {
+            _data = s;
+         }
+
       private:
-         const btreeNode *_srcNode = NULL;
-         RECORD_SLOT_ID _begin = INVALID_RECORD_SLOT_ID;
-   };//class btreeSplitPageIniter
+         slice _data;
+   };//class btreeNodePageSplitIniter
 } // namespace vessel
 
 

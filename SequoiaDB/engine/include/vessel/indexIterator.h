@@ -45,7 +45,6 @@
 #include "inclusiveVec.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexEntryBuffer.h"
 #include "vessel/indexContext.h"
 
 namespace engine
@@ -125,9 +124,7 @@ namespace vessel
          virtual recordID getRid()const = 0;
          virtual slice getValue()const = 0;
          virtual UINT32 getEntrySize()const = 0;
-         virtual INT32 copyKeyEntry(UINT32 bufferSize,
-                                    CHAR *buffer)const = 0;
-         virtual INT32 copyKeyEntryToBuffer(indexEntryBuffer &buffer) const = 0;
+         virtual slice getEntry()const = 0;
 
       protected:
 

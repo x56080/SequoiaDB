@@ -79,15 +79,14 @@ namespace vessel
       }
 
       if (!initRoutePage(rpb->getPageSize(), rpb->getGlobalPid().page(),
-                         lpid, psv, _logicalId, _lvl, rpb->getBuffer()))
+                         lpid, psv, _logicalId, _lvl, rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init route page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      head = (const routePageHead *)
-             ((ossValuePtr)(rpb->getBuffer()) + PAGE_HEAD_SIZE);
+      head = rpb->getReadbleBodySlice().getReadableObjPtr<routePageHead>(0);
 
       rc = commitInitLog(context, rpb->getGlobalPid(), lpid,
                          psv, PAGE_TYPE_ROUTE,

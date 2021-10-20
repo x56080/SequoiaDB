@@ -56,7 +56,7 @@ namespace vessel
             enforeced = o.enforeced;
             notNull = o.notNull;
             notArray = o.notArray;
-            btreeMaxPrefixComluns = o.btreeMaxPrefixComluns;
+            btreeMaxPrefixFields = o.btreeMaxPrefixFields;
             columnFamily = o.columnFamily;
             return *this;
          }
@@ -75,11 +75,14 @@ namespace vessel
          BOOLEAN notNull = FALSE;
          BOOLEAN notArray = FALSE;
 
-         /******* btree only bein   *******/
+         /******* btree only begin   *******/
 
          /// Max column count of prefix in btree prefix compression.
          /// It should be one unless there are a lot of duplicate index keys.
-         UINT32 btreeMaxPrefixComluns = 0;
+         UINT32 btreeMaxPrefixFields = 0;
+
+         /// Min depth of btree to enable prefix compression.
+         UINT32 btreeMinCompressionDepth = 2;
          
          /******* btree only end   *******/
 

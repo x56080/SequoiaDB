@@ -50,7 +50,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 capacity = 0;
       const PAGE_ID *page = NULL;
-      runtimePageBuffer *rpb = NULL;
       lpid = INVALID_PAGE_ID;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -60,13 +59,11 @@ namespace vessel
          goto error;
       }
 
-      rpb = &(lpb.getRuntimeBuffer());
-
       rc = lpb.validatePage(PAGE_TYPE_INDEX_MAPPING);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
+                lpb.getGlobalPid().toString().c_str(), rc);
          goto error;
       }
 
@@ -84,7 +81,7 @@ namespace vessel
          goto error;
       }
 
-      page = lpb.getRuntimeBuffer().getReadablePtrOfBody<PAGE_ID>(sizeof(PAGE_ID) * pos);
+      page = lpb.getReadableBodySlice().getReadableObjPtr<PAGE_ID>(sizeof(PAGE_ID) * pos);
       if (NULL == page)
       {
          PD_LOG(PDERROR, "failed to get page ptr of pos[%d]", pos);
@@ -116,7 +113,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 capacity = 0;
       PAGE_ID *slot = NULL;
-      runtimePageBuffer *rpb = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == lpid ||
@@ -126,17 +122,15 @@ namespace vessel
          goto error;
       }
 
-      rpb = &(lpb.getRuntimeBuffer());
-
       rc = lpb.validatePage(PAGE_TYPE_INDEX_MAPPING);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
+                lpb.getGlobalPid().toString().c_str(), rc);
          goto error;
       }
 
-      capacity = getIndexMappingPageCapacity(lpb.getRuntimeBuffer().getPageSize());
+      capacity = getIndexMappingPageCapacity(lpb.getPageSize());
       if (0 == capacity)
       {
          PD_LOG(PDERROR, "failed to get index mapping page capacity");
@@ -150,14 +144,14 @@ namespace vessel
          goto error;
       }
 
-      rc = rpb->prepareToWrite(context);
+      rc = lpb.prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
          goto error;
       }
 
-      slot = rpb->getWritablePtrOfBody<PAGE_ID>(pos << 2);
+      slot = lpb.getWritableBodySlice().getWritableObjPtr<PAGE_ID>(pos * sizeof(PAGE_ID));
       if (NULL == slot)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of slot");
@@ -167,15 +161,11 @@ namespace vessel
 
       *slot = lpid;
       
-      rpb->commit(context->getSession()->getLastLSN());
+      lpb.commit(context->getSession()->getLastLSN());
 
    done:
       return rc;
    error:
-      if (NULL != rpb && rpb->isWritingPrepared())
-      {
-         rpb->abort();
-      }
       goto done;
    }
 }//namespace vessel

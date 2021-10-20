@@ -42,6 +42,14 @@ namespace engine
 {
 namespace vessel
 {
+   btreeAccessContext::~btreeAccessContext()
+   {
+      if (isValid())
+      {
+         fini();
+      }
+   }
+
    void btreeAccessContext::init(const indexContext *ic,
                                  const ixmKey &key,
                                  const recordID *rid,
@@ -152,6 +160,36 @@ namespace vessel
          }
       }
       _path.clear();
+   }
+
+   void btreeAccessContext::endToAccessPathNodes(UINT32 minActiveCount)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      UINT32 scanned = 0;
+      if (0 < _path.size())
+      {
+         for (INT32 i = (INT32)(_path.size() - 1); 0 <= i; ++i)
+         {
+            btreeAccessPathNode &pn = _path[i];
+            if (scanned++ < minActiveCount)
+            {
+               continue;
+            }
+
+            if (pn.isAccessing())
+            {
+               pn.getPageBuffer()->fini();
+               _free.push_back(pn.getPageBuffer());
+               pn.endToAccess();
+            }
+            else
+            {
+               break;
+            }
+         }
+      }
+   
+      return; 
    }
 
    btreeNode btreeAccessContext::getEndNodeInPath()

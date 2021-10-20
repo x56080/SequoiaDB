@@ -73,8 +73,10 @@ namespace vessel
       builder.appendBool(IXM_NOTARRAY_FIELD, notArray);
       if (INDEX_TYPE_BTREE == type)
       {
-         builder.append(VESSEL_INDEX_FIELD_NAME_PREFIX_COMPRESSION,
-                        btreeMaxPrefixComluns);
+         builder.append(VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS,
+                        btreeMaxPrefixFields);
+         builder.append(VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH,
+                        btreeMinCompressionDepth);
       }
       if (INDEX_TYPE_LSM == type)
       {
@@ -112,21 +114,28 @@ namespace vessel
       if (INDEX_TYPE_LSM == type)
       {
          ele = obj.getField(VESSEL_INDEX_FIELD_NAME_COLUMN_FAMILY);
-         if (bson::NumberInt != ele.type())
+         if (!ele.isNumber())
          {
             goto done;
          }
-         columnFamily = ele.Int();
+         columnFamily = ele.Number();
       }
 
       if (INDEX_TYPE_BTREE == type)
       {
-         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_PREFIX_COMPRESSION);
-         if (bson::NumberInt != ele.type())
+         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_BTREE_MAX_PREFIX_FIELDS);
+         if (!ele.isNumber())
          {
             goto done;
          }
-         btreeMaxPrefixComluns = ele.Int();
+         btreeMaxPrefixFields = ele.Number();
+
+         ele = obj.getField(VESSEL_INDEX_FIELD_NAME_BTREE_MIN_COMPRESSION_DEPTH);
+         if (!ele.isNumber())
+         {
+            goto done;
+         }
+         btreeMinCompressionDepth = ele.Number();
       }
 
       r = isValid();
@@ -141,7 +150,7 @@ namespace vessel
    BOOLEAN indexParameters::isPrefixCompressionEnabled()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return 0 < btreeMaxPrefixComluns;
+      return 0 < btreeMaxPrefixFields;
    }
 }//namespace vessel
 }//namespace engine

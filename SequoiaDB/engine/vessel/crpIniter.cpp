@@ -81,9 +81,8 @@ namespace vessel
 
       if (!initCollectionRecordPage(rpb->getPageSize(),
                                     rpb->getGlobalPid().page(),
-                                    lpid, psv, rpb->getBuffer()))
+                                    lpid, psv, rpb->getWritableSlice().getWPtr()))
       {
-         rpb->abort();
          PD_LOG(PDERROR, "failed to init crp");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;

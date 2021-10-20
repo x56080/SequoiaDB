@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexEntryBuffer.cpp
+   Source File Name = btreeExternalKeyPage.cpp
 
    Descriptive Name =
 
@@ -33,67 +33,50 @@
 
 ******************************************************************************/
 
-#include "vessel/indexEntryBuffer.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
-#include "ossLikely.hpp"
-#include "pdTrace.hpp"
-#include "vessel/btreeIndexDef.h"
+#include "vessel/btreeExternalKeyPage.h"
+#include "vessel/indexDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   indexEntryBuffer::~indexEntryBuffer()
+   BOOLEAN initBtreeExtKeyPage(UINT32 pageSize,
+                               PAGE_ID pid,
+                               PAGE_ID lpid,
+                               PAGE_SNAPSHOT_VERION psv,
+                               UINT32 indexId,
+                               UINT32 keySize,
+                               const CHAR *keyData,
+                               CHAR *buf)
    {
-      _mb.release();
-   }
+      BOOLEAN r = FALSE;
+      btreeExternalKeyPageHead *head = NULL;
 
-   slice indexEntryBuffer::getEntry()const
-   {
-      return slice(_mb.getSize(), _mb.getBuffer());
-   }
+      SDB_ASSERT(pageSize <= 65536, "can not be over 64k");
 
-   INT32 indexEntryBuffer::save(INDEX_TYPE type,
-                                const slice &entry)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 minEntrySize = 0;
-
-      if (INDEX_TYPE_LSM == type)
+      if (INVALID_LOGICAL_INDEX_ID == indexId ||
+          0 == keySize ||
+          NULL == keyData)
       {
-         minEntrySize = LSM_MIN_FULL_KEY_SIZE;
-      }
-      else if (INDEX_TYPE_BTREE == type)
-      {
-         minEntrySize = BTREE_MIN_ENTRY_SIZE;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
 
-      if (entry.len() < minEntrySize)
+      if (!initCommonPage(PAGE_TYPE_BTREE_EXTERNAL_KEY,
+                          pageSize, pid, lpid,
+                          psv, buf))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
 
-      rc = _mb.copy(entry.len(), entry.data());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to save index entry:%d", rc);
-         goto error;
-      }
+      head = (btreeExternalKeyPageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
+      head->version = BTREE_EXT_KEY_PAGE_HEAD_VERSION;
+      head->flags = 0;
+      head->indexId = indexId;
+      head->size = keySize;
+      ossMemcpy((CHAR *)((ossValuePtr)buf + PAGE_HEAD_SIZE + BTREE_EXT_KEY_PAGE_HEAD_SIZE),
+                keyData, keySize);
    done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void indexEntryBuffer::reset()
-   {
-      _mb.resize(0);
+      return r;
    }
 } // namespace vessel
 

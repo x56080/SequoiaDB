@@ -68,7 +68,6 @@ namespace vessel
          virtual INT32 getRuntimePageBuffer(requestContext *context,
                                             PAGE_ID pid,
                                             const ossSharedLatchMode &mode,
-                                            const runtimePageBuffer::options &o,
                                             runtimePageBuffer &rpb);
 
          virtual INT32 getRuntimePageBufferToReset(requestContext *context,

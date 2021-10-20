@@ -43,7 +43,8 @@
 #include "vessel/indexHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/unorderedRidSet.h"
-#include "vessel/indexEntryBuffer.h"
+#include "vessel/memoryBlock.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -103,9 +104,14 @@ namespace vessel
             return _clHandle;
          }
 
-         OSS_INLINE indexEntryBuffer *getEntryBuffer()
+         OSS_INLINE slice getEntry()
          {
-            return &_entryBuffer;
+            return _entry.getReadableSlice();
+         }
+
+         OSS_INLINE memoryBlock &getEntryBlock()
+         {
+            return _entry;
          }
 
          OSS_INLINE UNORDERED_RID_SET *getScannedSet()
@@ -129,7 +135,7 @@ namespace vessel
          strSlice _indexName;
          indexHandle _handle;
          UNORDERED_RID_SET _scanned;
-         indexEntryBuffer _entryBuffer;
+         memoryBlock _entry;
 
    };//class indexScanCursor
 } // namespace vessel

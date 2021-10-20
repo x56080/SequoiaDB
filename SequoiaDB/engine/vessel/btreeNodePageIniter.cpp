@@ -42,12 +42,13 @@ namespace engine
 {
 namespace vessel
 {
-   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId)
+   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId, PAGE_ID rightChild)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
       _logicalCLID = clid;
       _indexId = indexId;
+      _rightChild = rightChild;
       return;
    }
 
@@ -77,8 +78,8 @@ namespace vessel
       if (!initBtreeNodePage(rpb->getPageSize(),
                              rpb->getGlobalPid().page(),
                              lpid, psv,
-                             _logicalCLID, _indexId,
-                             (CHAR *)(rpb->getBuffer())))
+                             _logicalCLID, _indexId, _rightChild,
+                             rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",
                 rpb->getGlobalPid().toString().c_str());
@@ -90,19 +91,15 @@ namespace vessel
    done:
       return rc;
    error:
-      if (NULL != rpb)
-      {
-         rpb->abort();
-      }
       goto done;
    }
 
 ///////////////////////btreeRootPageIniter end
 
-   INT32 btreeSplitPageIniter::initPage(requestContext *context,
-                                        PAGE_ID lpid,
-                                        PAGE_SNAPSHOT_VERION psv,
-                                        runtimePageBuffer *rpb)
+   INT32 btreeNodePageSplitIniter::initPage(requestContext *context,
+                                            PAGE_ID lpid,
+                                            PAGE_SNAPSHOT_VERION psv,
+                                            runtimePageBuffer *rpb)
    {
       INT32 rc = SDB_OK;
       if (NULL == context ||
@@ -114,24 +111,38 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == _srcNode ||
-                            !_srcNode->isValid() ||
-                            INVALID_RECORD_SLOT_ID == _begin))
+      else if (OSS_UNLIKELY(!_data.isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+
+      if (!initCommonPage(PAGE_TYPE_BTREE_NODE,
+                          rpb->getPageSize(),
+                          rpb->getGlobalPid().page(),
+                          lpid,
+                          psv,
+                          rpb->getWritableSlice().getWPtr()))
+      {
+         PD_LOG(PDERROR, "failed to init btree node page page[%s]",
+                rpb->getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = rpb->getWritableBodySlice().write(0, _data.getSize(), _data.getRPtr());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy page data");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rpb->commit(DPS_INVALID_LSN_OFFSET);
    done:
       return rc;
    error:
       goto done;
-   }
-
-   void btreeSplitPageIniter::set(const btreeNode *srcNode,
-                                  RECORD_SLOT_ID begin)
-   {
-      _srcNode = srcNode;
-      _begin = begin;
    }
 } // namespace vessel
 

@@ -69,6 +69,7 @@ namespace vessel
       UINT32 bufferSize = 0;
       strSlice clNameSlice;
       bson::BSONObj obj;
+      slice bufferSlice;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
@@ -117,13 +118,14 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb->prepareToWrite(context);
+      rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
          goto error;
       }
 
+      bufferSlice = lpb->getWritableBodySlice();
       obj = options.toBson();
 
       rc = prepareCreateCLLog(context, bufferSize, obj.objsize(),
@@ -134,7 +136,8 @@ namespace vessel
       }
       lsn = lrc.getLsn();
 
-      recordPtr = getWritableDiskRecordPtr(&(lpb->getRuntimeBuffer()), slot);
+      recordPtr = bufferSlice.getWritableObjPtr<collectionRecordOnDisk>
+                  (COLLECTION_DISK_RECORD_LEN * slot);
       if (NULL == recordPtr)
       {
          PD_LOG(PDERROR, "failed to get writable disk ptr");
@@ -156,7 +159,7 @@ namespace vessel
          goto error;
       }
 
-      lpb->getRuntimeBuffer().commit(lsn);
+      lpb->commit(lsn);
 
    done:
       if (NULL != fullNameBuffer)
@@ -168,10 +171,6 @@ namespace vessel
       if (lrc.prepared())
       {
          pageAccessor::abortLog(context, &lrc);
-      }
-      if (lpb->getRuntimeBuffer().isWritingPrepared())
-      {
-         lpb->getRuntimeBuffer().abort();
       }
       goto done;
    }
@@ -186,7 +185,7 @@ namespace vessel
       collectionRecordOnDisk *wptr = NULL;
       collectionRecord oldRecord;
       UINT32 capacity = 0;
-      const runtimePageBuffer *rpb = NULL;
+      slice bufferSlice;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
@@ -197,8 +196,6 @@ namespace vessel
          goto error;
       }
 
-      rpb = &(lpb->getRuntimeBuffer());
-
       rc = lpb->validatePage(PAGE_TYPE_CL_META);
       if (SDB_OK != rc)
       {
@@ -207,7 +204,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getCapacityOfCLRecordPage(rpb->getPageSize(), capacity);
+      rc = getCapacityOfCLRecordPage(lpb->getPageSize(), capacity);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get capacity of cl record page:%d", rc);
@@ -216,14 +213,18 @@ namespace vessel
 
       slot = record.mbID % capacity;
 
-      rc = lpb->prepareToWrite(context);
+      rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
          goto error;
       }
 
-      wptr = getWritableDiskRecordPtr(rpb, slot);
+      bufferSlice = lpb->getWritableBodySlice();
+      SDB_ASSERT(bufferSlice.isWritale(), "must be writable");
+
+      wptr = bufferSlice.getWritableObjPtr<collectionRecordOnDisk>
+             (COLLECTION_DISK_RECORD_LEN * slot);
       if (NULL == wptr)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of slot[%d]", slot);
@@ -239,7 +240,7 @@ namespace vessel
       }
 
       oldRecord = wptr->record;
-      rc = prepareUpdateLog(context, rpb, &lrc);
+      rc = prepareUpdateLog(context, &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
@@ -251,7 +252,7 @@ namespace vessel
          wptr->record.routePages[i] = record.routePages[i];
       }
 
-      rc = commitUpdateLog(context, &lrc, rpb->getGlobalPid(),
+      rc = commitUpdateLog(context, &lrc, lpb->getRuntimeBuffer().getGlobalPid(),
                            lpb->getLogicalPid(),
                            COLLECTION_UPDATE_MASK_ROUTE_PAGES,
                            oldRecord, wptr->record);
@@ -267,17 +268,13 @@ namespace vessel
          goto error;
       }
 
-      lpb->getRuntimeBuffer().commit(lrc.getLsn());
+      lpb->commit(lrc.getLsn());
    done:
       return rc;
    error:
       if (lrc.prepared())
       {
          pageAccessor::abortLog(context, &lrc);
-      }
-      if (lpb->getRuntimeBuffer().isWritingPrepared())
-      {
-         lpb->getRuntimeBuffer().abort();
       }
       goto done;
    }
@@ -401,23 +398,12 @@ namespace vessel
    }
    */
 
-   collectionRecordOnDisk *crpAccessor::getWritableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                                 UINT32 i)
-   {
-      SDB_ASSERT(NULL != rpb, "can not be null");
-      UINT32 offset = COLLECTION_DISK_RECORD_LEN * i;
-      collectionRecordOnDisk *ptr = rpb->getWritablePtrOfBody<collectionRecordOnDisk>(offset);
-      return ptr;
-   }
-
    const collectionRecordOnDisk *crpAccessor::getReadableDiskRecordPtr(const runtimePageBuffer *rpb,
-                                                                 UINT32 i)
+                                                                       UINT32 i)
    {
-      SDB_ASSERT(NULL != rpb, "can not be null");
+      SDB_ASSERT(NULL != rpb && rpb->isValid(), "can not be null");
       UINT32 offset = COLLECTION_DISK_RECORD_LEN * i;
-      const collectionRecordOnDisk *ptr =
-               rpb->getReadablePtrOfBody<collectionRecordOnDisk>(offset);
-      return ptr;
+      return rpb->getReadbleBodySlice().getReadableObjPtr<collectionRecordOnDisk>(offset);
    }
 
    INT32 crpAccessor::prepareCreateCLLog(requestContext *context,
@@ -504,7 +490,7 @@ namespace vessel
          goto error;
       }
       rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_ADJUNCT,
-                                     adjunct.len(), adjunct.data(), lrc);
+                                     adjunct.getSize(), adjunct.getRPtr(), lrc);
       if (SDB_OK != rc)
       {
          goto error;

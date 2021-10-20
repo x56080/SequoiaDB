@@ -41,18 +41,7 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_WRITING_PREPARED = 0x01;
-   static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED = 0x02;
-   static const UINT32 RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED = 0x04;
-
-   //////////////runtimePageBuffer::options
-   UINT32 runtimePageBuffer::options::toFlags()const
-   {
-      return 0;
-   }
-
-   //////////////runtimePageBuffer::options end
-
+   static const UINT32 RUNTMIE_PAGE_BUFFER_FLAG_WRITING_PREPARED = 0x01;
    runtimePageBuffer::runtimePageBuffer()
    {}
 
@@ -63,11 +52,6 @@ namespace vessel
 
    void runtimePageBuffer::fini()
    {
-      if (isWritingPrepared())
-      {
-         SDB_ASSERT(isCommitted() || isAborted(), "commit/abort missed");
-      }
-
       if (_tuple.isValid())
       {
          _tuple.release();
@@ -75,15 +59,13 @@ namespace vessel
       _gpid.reset();
       _pageSize = 0;
       _flags = 0;
-      _runtimeFlags = 0;
       _buffer = 0;
       return;
    }
 
    INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
                                  UINT32 pageSize,
-                                 const mmapPagePointer &ptr,
-                                 const options &o)
+                                 const mmapPagePointer &ptr)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -97,19 +79,16 @@ namespace vessel
    
       _gpid = gpid;
       _pageSize = pageSize;
-      _flags = o.toFlags();
       _buffer = ptr.get();
    done:
       return rc;
    error:
-      fini();
       goto done;
    }
 
    INT32 runtimePageBuffer::init(const GLOBAL_PAGE_ID &gpid,
                                  UINT32 pageSize,
-                                 liteCacheTuple &tuple,
-                                 const options &o)
+                                 liteCacheTuple &tuple)
    {
       INT32 rc = SDB_OK;
 
@@ -124,13 +103,11 @@ namespace vessel
    
       _gpid = gpid;
       _pageSize = pageSize;
-      _flags = o.toFlags();
       _tuple = std::move(tuple);
       _buffer = _tuple.getReadableBuffer();
    done:
       return rc;
    error:
-      fini();
       goto done;
    }
 
@@ -148,188 +125,44 @@ namespace vessel
          SDB_ASSERT(FALSE, "can not commit invalid lsn to cache");
          goto done;
       }
-
-      if (!updatePageLsn(_buffer, lsn))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         goto done;
-      }
       
-      if (_tuple.isValid())
+      if (DPS_INVALID_LSN_OFFSET == _commitedLsn ||
+          _commitedLsn < lsn)
       {
-         _tuple.commit(lsn);
-      }
+         if (!updatePageLsn(_buffer, lsn))
+         {
+            SDB_ASSERT(FALSE, "impossible");
+            goto done;
+         }
 
-      setCommitted();
+         if (_tuple.isValid())
+         {
+            _tuple.commit(lsn);
+         }
+
+         _commitedLsn = lsn;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "do not commit less lsn");
+      }
    done:
       return;
-   }
-
-   void runtimePageBuffer::abort()
-   {
-      if (isValid() && isWritingPrepared())
-      {
-         setAborted();
-      }
-      return;
-   }
-
-   strictPointer runtimePageBuffer::getReadableBodyPtr()const
-   {
-      strictPointer ptr;
-      if (isValid())
-      {
-         UINT32 bodySize = getPageBodySize(_pageSize);
-         const CHAR *body = (const CHAR *)getReadOnlyBuffer() + PAGE_HEAD_SIZE;
-         ptr.setReadable(bodySize, body);
-      }
-      return ptr;
-   }
-
-   strictPointer runtimePageBuffer::getWritableBodyPtr()
-   {
-      strictPointer ptr;
-      if (isValid() && isWritingPrepared())
-      {
-         UINT32 bodySize = getPageBodySize(_pageSize);
-         CHAR *body = (CHAR *)getBuffer() + PAGE_HEAD_SIZE;
-         ptr.setWritable(bodySize, body);
-      }
-      return ptr;
-   }
-
-   INT32 runtimePageBuffer::getReadablePtrOfBodyWithRc(UINT32 offset,
-                                                       UINT32 size,
-                                                       ossValuePtr &ptr)const
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isValidPtrOfPageBody(offset, size)))
-      {
-         rc = SDB_VESSEL_INVALID_PTR_OFFSET;
-         goto error;
-      }
-
-      ptr = _buffer + PAGE_HEAD_SIZE + offset;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   const void *runtimePageBuffer::getReadablePtrOfBody(UINT32 offset, UINT32 size)const
-   {
-      INT32 rc = SDB_OK;
-      ossValuePtr ptr = 0;
-      rc = getReadablePtrOfBodyWithRc(offset, size, ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return (const void *)ptr;
-   error:
-      ptr = 0;
-      goto done;
-   }
-
-   INT32 runtimePageBuffer::getWritablePtrOfBodyWithRc(UINT32 offset,
-                                                       UINT32 size,
-                                                       ossValuePtr &ptr)const
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (!isWritingPrepared())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      else if (isWritingFinished())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isValidPtrOfPageBody(offset, size)))
-      {
-         rc = SDB_VESSEL_INVALID_PTR_OFFSET;
-         goto error;
-      }
-
-      ptr = _buffer + PAGE_HEAD_SIZE + offset;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void *runtimePageBuffer::getWritablePtrOfBody(UINT32 offset, UINT32 size)const
-   {
-      ossValuePtr ptr = 0;
-      INT32 rc = getWritablePtrOfBodyWithRc(offset, size, ptr);
-      if (SDB_OK != rc)
-      {
-         ptr = 0;
-      }
-   done:
-      return (void *)ptr;
-   }
-
-   BOOLEAN runtimePageBuffer::isValidPtrOfPageBody(UINT32 offset, UINT32 size)const
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      UINT32 pageBodySize = getPageBodySize(_pageSize);
-      SDB_ASSERT(0 < pageBodySize, "can not be invalid");
-      return (offset + size) <= pageBodySize;
-   }
-
-   void runtimePageBuffer::setCommitted()
-   {
-      OSS_BIT_CLEAR(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED);
-      OSS_BIT_SET(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED);
    }
 
    BOOLEAN runtimePageBuffer::isCommitted()const
    {
-      return 0 != OSS_BIT_TEST(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED);
+      return DPS_INVALID_LSN_OFFSET != _commitedLsn;
    }
 
    BOOLEAN runtimePageBuffer::isWritingPrepared()const
    {
-      return 0 != OSS_BIT_TEST(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_WRITING_PREPARED);
+      return 0 != OSS_BIT_TEST(_flags, RUNTMIE_PAGE_BUFFER_FLAG_WRITING_PREPARED);
    }
 
    void runtimePageBuffer::setWritingPrepared()
    {
-      OSS_BIT_SET(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_WRITING_PREPARED);
-   }
-
-   BOOLEAN runtimePageBuffer::isAborted()const
-   {
-      return 0 != OSS_BIT_TEST(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED);
-   }
-
-   void runtimePageBuffer::setAborted()
-   {
-      OSS_BIT_CLEAR(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED);
-      OSS_BIT_SET(_runtimeFlags, RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED);
-   }
-
-   BOOLEAN runtimePageBuffer::isWritingFinished()const
-   {
-      return isCommitted() || isAborted();
-   }
-
-   BOOLEAN runtimePageBuffer::hasRuntimeFlags()const
-   {
-      return 0 != _runtimeFlags;
+      OSS_BIT_SET(_flags, RUNTMIE_PAGE_BUFFER_FLAG_WRITING_PREPARED);
    }
 
    INT32 runtimePageBuffer::prepareToWrite(requestContext *context)
@@ -348,8 +181,6 @@ namespace vessel
       }
       else if (isWritingPrepared())
       {
-         OSS_BIT_CLEAR(_runtimeFlags, (RUNTIME_PAGE_BUFFER_RT_FLAG_COMMITTED|
-                                       RUNTIME_PAGE_BUFFER_RT_FLAG_ABORTED));
          goto done;
       }
       else if (isCacheBuffer())
@@ -368,6 +199,68 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   const pageHead *runtimePageBuffer::getPageHead()const
+   {
+      return isValid() ? (const pageHead *)_buffer : NULL;
+   }
+
+   slice runtimePageBuffer::getReadbleSlice()const
+   {
+      if (isValid())
+      {
+         return slice(_pageSize, (const void *)_buffer);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "can not be invalid");
+         return slice();
+      }
+   }
+   
+   slice runtimePageBuffer::getWritableSlice()
+   {
+      slice s;
+      if (isWritingPrepared())
+      {
+         s.makeWritable(_pageSize, (void *)_buffer);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "must be prepared");
+      }
+      return s;
+   }
+
+   slice runtimePageBuffer::getReadbleBodySlice()const
+   {
+      if (isValid())
+      {
+         UINT32 pageBodySize = getPageBodySize(_pageSize);
+         return slice(_pageSize, (const void *)_buffer).
+                getReadableSlice(PAGE_HEAD_SIZE, pageBodySize);
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "can not be invalid");
+         return slice();
+      }
+   }
+   
+   slice runtimePageBuffer::getWritableBodySlice()
+   {
+      slice s;
+      if (isWritingPrepared())
+      {
+         UINT32 pageBodySize = getPageBodySize(_pageSize);
+         s.makeWritable(pageBodySize, (CHAR *)(_buffer + PAGE_HEAD_SIZE));
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "must be prepared");
+      }
+      return s;
    }
 }//namespace vessel
 }//namespace engine

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeNodeCompressor.cpp
+   Source File Name = btreeExtKeyPageIniter.cpp
 
    Descriptive Name =
 
@@ -33,39 +33,48 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeNodeCompressor.h"
-#include "vessel/btreeNodePage.h"
+#include "vessel/btreeExtKeyPageIniter.h"
+#include "vessel/runtimePageBuffer.h"
+#include "vessel/btreeExternalKeyPage.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN btreeNodeCompressor::compress(UINT32 prefixPos,
-                                         const ixmKey &prefix,
-                                         const ixmKey &key,
-                                         btreeNodeCompressedKey &compressedKey)
+   INT32 btreeExtKeyPageIniter::initPage(requestContext *context,
+                                         PAGE_ID lpid,
+                                         PAGE_SNAPSHOT_VERION psv,
+                                         runtimePageBuffer *rpb)
    {
-      SDB_ASSERT(prefix.isValid(), "can not be invalid");
-      SDB_ASSERT(key.isValid(), "can not be invalid");
-
-      BOOLEAN r = FALSE;
-      compressedKey.reset();
-
-      _ikc.reset(prefix.data());
-      if (_ikc.compress(key))
+      INT32 rc = SDB_OK;
+      if (NULL == context ||
+          INVALID_PAGE_ID == lpid ||
+          INVALID_PAGE_SNAPSHOT_VERSION == psv ||
+          NULL == rpb ||
+          !rpb->isWritingPrepared())
       {
-         SDB_ASSERT(_ikc.isDone(), "impossible");
-         ixmKey suffix;
-         if (!_ikc.isPerfectlyCompressed())
-         {
-            _ikc.getSuffix(suffix);
-         }
-
-         compressedKey.shallowInit(prefixPos, prefix, suffix);
-         r = TRUE;
+         rc = SDB_INVALIDARG;
+         goto error;
       }
+
+      SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
+
+      if (!initBtreeExtKeyPage(rpb->getPageSize(),
+                               rpb->getGlobalPid().page(),
+                               lpid, psv, _indexId,
+                               _keySize, _keyData,
+                               rpb->getWritableSlice().getWPtr()))
+      {
+         PD_LOG(PDERROR, "failed to init page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rpb->commit(DPS_INVALID_LSN_OFFSET);
    done:
-      return r;
+      return rc;
+   error:
+      goto done;  
    }
 } // namespace vessel
 

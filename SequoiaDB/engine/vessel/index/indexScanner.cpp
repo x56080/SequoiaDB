@@ -42,7 +42,6 @@
 #include "vessel/indexScanContext.h"
 #include "vessel/objectLatchHelper.hpp"
 #include "vessel/instanceEnv.h"
-#include "vessel/indexEntryBuffer.h"
 #include "rtnPredicate.hpp"
 #include "vessel/indexContext.h"
 
@@ -129,9 +128,9 @@ namespace vessel
 
       if (!_seeked)
       {
-         if (_context->getEntryBuffer()->isValid())
+         if (!_context->getEntry().isEmpty())
          {
-            rc = prepareToScan(_context->getEntryBuffer()->getEntry());
+            rc = prepareToScan(_context->getEntry());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to prepare scan by entry:%d", rc);
@@ -299,7 +298,7 @@ namespace vessel
 
                if (locked)
                {
-                  rc = _iterator->copyKeyEntryToBuffer(*(_context->getEntryBuffer()));
+                  rc = _context->saveScanEntry(_iterator->getEntry());
                   if (SDB_OK != rc)
                   {
                      PD_LOG(PDERROR, "failed to copy key entry:%d", rc);

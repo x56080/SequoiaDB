@@ -62,6 +62,7 @@ namespace vessel
    const static PAGE_TYPE PAGE_TYPE_INDEX_ENTRY = 1000;
    const static PAGE_TYPE PAGE_TYPE_INDEX_MAPPING = 1001;
    const static PAGE_TYPE PAGE_TYPE_BTREE_NODE = 1002;
+   const static PAGE_TYPE PAGE_TYPE_BTREE_EXTERNAL_KEY = 1003;
 
    OSS_INLINE void getPageEyeCatcher(CHAR &e0, CHAR &e1)
    {

@@ -794,39 +794,11 @@ namespace vessel
       return _itr->key().size();
    }
 
-   INT32 lsmIndexIterator::copyKeyEntry(UINT32 bufferSize,
-                                        CHAR *buffer)const
+   slice lsmIndexIterator::getEntry() const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-
-      if (NULL == buffer || bufferSize < _itr->key().size())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      ossMemcpy(buffer, _itr->key().data(), _itr->key().size());
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lsmIndexIterator::copyKeyEntryToBuffer(indexEntryBuffer &buffer) const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_isReadyToRead(), "must be valid");
-      rc = buffer.save(INDEX_TYPE_LSM, slice(_itr->key().size(), _itr->key().data()));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to save entry to buffer:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      return slice(_itr->key().size(), _itr->key().data());
    }
 
    void lsmIndexIterator::pause()
@@ -857,14 +829,14 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(entry.len() < LSM_MIN_FULL_KEY_SIZE))
+      else if (OSS_UNLIKELY(entry.getSize() < LSM_MIN_FULL_KEY_SIZE))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = lsmUnpackIndexFullKey(entry.data(),
-                                 entry.len(),
+      rc = lsmUnpackIndexFullKey(entry.getRPtr(),
+                                 entry.getSize(),
                                  indexId,
                                  ordering,
                                  key,

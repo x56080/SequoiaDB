@@ -119,14 +119,14 @@ TEST_F(cl_ddl_test, test1)
    rc = cursor.getNext(&session, slice);
    ASSERT_EQ(SDB_OK, rc);
 
-   record = bson::BSONObj(slice.data());
+   record = bson::BSONObj(slice.getRPtr());
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar1", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
    rc = cursor.getNext(&session, slice);
-   record = bson::BSONObj(slice.data());
+   record = bson::BSONObj(slice.getRPtr());
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(2, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));

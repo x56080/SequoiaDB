@@ -46,7 +46,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       const recordDataPageHead *head = NULL;
-      const runtimePageBuffer *rpb = NULL;
 
       close();
       if (OSS_UNLIKELY(NULL == context ||
@@ -57,16 +56,15 @@ namespace vessel
          goto error;
       }
 
-      rpb = &(lpb->getRuntimeBuffer());
       rc = lpb->validatePage(PAGE_TYPE_RECORD);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to validate page[%s], rc:%d",
-                rpb->getGlobalPid().toString().c_str(), rc);
+                lpb->getGlobalPid().toString().c_str(), rc);
          goto error;
       }
 
-      head = rpb->getReadablePtrOfBody<recordDataPageHead>(0);
+      head = lpb->getReadableBodySlice().getReadableObjPtr<recordDataPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "faile to get readable head ptr");
@@ -121,7 +119,7 @@ namespace vessel
       }
 
       offset = RECORD_PAGE_HEAD_LEN + pos * RDP_RSLOT_SIZE;
-      slot = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordSlot>(offset);
+      slot = _lpb->getReadableBodySlice().getReadableObjPtr<recordSlot>(offset);
       if (NULL == slot)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of slot[%d]", pos);
@@ -143,7 +141,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       const recordSlot *slot = NULL;
       const recordHead *head = NULL;
-      ossValuePtr recordBody = 0;
       UINT32 offset = 0;
       bodySlice.reset();
 
@@ -159,7 +156,7 @@ namespace vessel
       }
 
       offset = RECORD_PAGE_HEAD_LEN + pos * RDP_RSLOT_SIZE;
-      slot = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordSlot>(offset);
+      slot = _lpb->getReadableBodySlice().getReadableObjPtr<recordSlot>(offset);
       if (NULL == slot)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of slot[%d]", pos);
@@ -179,7 +176,7 @@ namespace vessel
          goto error;
       }
 
-      head = _lpb->getRuntimeBuffer().getReadablePtrOfBody<recordHead>(slot->getOffset());
+      head = _lpb->getReadableBodySlice().getReadableObjPtr<recordHead>(slot->getOffset());
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get record head");
@@ -191,18 +188,18 @@ namespace vessel
 
       if (RDP_RECORD_HEAD_LEN < head->getSize())
       {
-         rc = _lpb->getRuntimeBuffer().
-               getReadablePtrOfBodyWithRc(slot->getOffset() + RDP_RECORD_HEAD_LEN,
-                                          head->getSize() - RDP_RECORD_HEAD_LEN,
-                                          recordBody);
-         if (SDB_OK != rc)
+         slice tmp = _lpb->getReadableBodySlice().
+                     getReadableSlice(slot->getOffset() + RDP_RECORD_HEAD_LEN,
+                                      head->getSize() - RDP_RECORD_HEAD_LEN);
+         if (!tmp.isValid())
          {
-            PD_LOG(PDERROR, "failed to get readble record body ptr:%d", rc);
+            PD_LOG(PDERROR, "failed to get readble record body ptr[%d,%d]",
+                   slot->getOffset() + RDP_RECORD_HEAD_LEN,
+                   head->getSize() - RDP_RECORD_HEAD_LEN);
             goto error;
          }
 
-         bodySlice.reset(head->getSize() - RDP_RECORD_HEAD_LEN,
-                           (const CHAR *)recordBody);
+         bodySlice = tmp;
       }
 
       rh = *head;

@@ -63,23 +63,19 @@ namespace vessel
                           rpb->getPageSize(),
                           rpb->getGlobalPid().page(),
                           lpid, psv,
-                          rpb->getBuffer()))
+                          rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      buffer = (CHAR *)((ossValuePtr)(rpb->getBuffer()) + PAGE_HEAD_SIZE);
+      buffer = rpb->getWritableBodySlice().getWPtr();
       ossMemset(buffer, 0xFF, getPageBodySize(rpb->getPageSize()));
       rpb->commit(DPS_INVALID_LSN_OFFSET);
    done:
       return rc;
    error:
-      if (NULL != rpb)
-      {
-         rpb->abort();
-      }
       goto done;
    }
 }//namespace vessel

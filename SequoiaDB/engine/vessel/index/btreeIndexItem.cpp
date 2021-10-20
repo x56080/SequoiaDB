@@ -35,7 +35,6 @@
 
 #include "vessel/btreeIndexItem.h"
 #include "ixmKey.hpp"
-#include "vessel/indexCompressedKey.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 
@@ -45,29 +44,31 @@ namespace vessel
 {
    void btreeIndexItem::fini()
    {
-      _slotNo = INVALID_RECORD_SLOT_ID;
+      _slotPos = INVALID_RECORD_SLOT_ID;
       _slot = NULL;
       _keyData = NULL;
       _prefixData = NULL;
       return;
    }
 
-   INT32 btreeIndexItem::init(RECORD_SLOT_ID slotNo,
-                              const btreeNodeSlot *slot,
+   INT32 btreeIndexItem::init(RECORD_SLOT_ID slotPos,
+                              const btreeItemSlot *slot,
                               const CHAR *keyData,
                               const CHAR *prefix)
    {
       INT32 rc = SDB_OK;
       fini();
 
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == slotNo ||
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == slotPos ||
                        NULL == slot ||
                        !slot->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!slot->isKeyInSlot() && NULL == keyData))
+      else if (OSS_UNLIKELY(NULL == keyData &&
+                            (slot->isDataInExtPage() ||
+                             slot->isDataInPageBody())))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -79,7 +80,7 @@ namespace vessel
          goto error;
       }
 
-      _slotNo = slotNo;
+      _slotPos = slotPos;
       _slot = slot;
       _keyData = keyData;
       _prefixData = prefix;
@@ -97,7 +98,8 @@ namespace vessel
       if (isValid())
       {
          size = BTREE_NODE_SLOT_SIZE;
-         if (_slot->isDataPointerMode())
+         if (_slot->isDataInPageBody() ||
+             _slot->isDataInExtPage())
          {
             size += _slot->data.pointer.size;
          }
@@ -109,17 +111,24 @@ namespace vessel
    void btreeIndexItem::getKeyWhenNotCompressed(ixmKey &key)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!_slot->isCompressed(), "can not be compressed");
+      SDB_ASSERT(!_slot->isKeyCompressed(), "can not be compressed");
 
-      if (_slot->isDataPointerMode())
+      if (_slot->isDataInPageBody())
       {
          key.assign(_keyData);
       }
       else
       {
-         key.assign(_slot->data.getKeyDataInSlot());
+         key.assign(_slot->data.getKeyData());
       }
       return;
+   }
+
+   void btreeIndexItem::buildKeyWhenCompressed(StackBufBuilder &builder)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(_slot->isKeyCompressed(), "must be compressed");
+      
    }
 
    INT32 btreeIndexItem::woCompare(const ixmKey &key,
@@ -130,19 +139,14 @@ namespace vessel
       SDB_ASSERT(key.isValid(), "can not be invalid");
       ixmKey localKey;
 
-      if (!_slot->isCompressed())
+      if (_slot->isKeyCompressed())
       {
-         getKeyWhenNotCompressed(localKey);
-         r = localKey.woCompare(key, ordering);
-      }
-      else if (!_slot->hasKeySuffix())
-      {
-         localKey.assign(_prefixData);
-         r = localKey.woCompare(key, ordering);
+         SDB_ASSERT(FALSE, "TODO");
       }
       else
       {
-         SDB_ASSERT(FALSE, "TODO");
+         getKeyWhenNotCompressed(localKey);
+         r = localKey.woCompare(key, ordering);
       }
 
       return r;
