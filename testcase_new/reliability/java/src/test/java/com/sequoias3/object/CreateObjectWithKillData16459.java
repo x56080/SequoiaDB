@@ -35,7 +35,7 @@ import com.sequoias3.commlibs3.s3utils.UserUtils;
  * @author wangkexin
  * @Date 2019.01.09
  * @updateAuthor wuyan
- * @updateDate 2021.8.24
+ * @updateDate 2021/8/24
  * @version 1.00
  */
 public class CreateObjectWithKillData16459 extends S3TestBase {
@@ -43,7 +43,7 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
     private String bucketName = "bucket16459";
     private String keyName = "key16459";
     private String roleName = "normal";
-    private List< String > keyNames = new ArrayList< >();
+    private List< String > keyNames = new ArrayList<>();
     private Random random = new Random();
     private List< String > putObjectList = new CopyOnWriteArrayList< String >();
     private int objectNum = 100;
@@ -150,7 +150,7 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
 
         for ( String keyName : remainObjects ) {
             // 如果对象实际上传成功未返回，则该对象不再重复上传
-            if ( !s3Client.doesObjectExist( currContent, keyName ) ) {
+            if ( !s3Client.doesObjectExist( bucketName, keyName ) ) {
                 s3Client.putObject( bucketName, keyName, currContent );
             }
         }
