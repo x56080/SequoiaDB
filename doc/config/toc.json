@@ -827,7 +827,7 @@
                       {
                         "id": 1432190652,
                         "file": "log_synchronization",
-                        "cn": "同步日志",
+                        "cn": "logfilesz/logfilenum",
                         "en": "Log Synchronization"
                       }
                     ]
