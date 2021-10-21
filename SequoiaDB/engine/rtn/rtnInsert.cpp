@@ -298,7 +298,8 @@ namespace engine
    INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w,
-                          utilInsertResult *pResult )
+                          utilInsertResult *pResult,
+                          INT64 position )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREPLAYINERT ) ;
@@ -309,8 +310,6 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *clShortName = NULL ;
       BOOLEAN writable = FALSE ;
-      BSONElement positionEle ;
-      INT64 position = -1 ;
 
       utilInsertResult inTmpResult ;
 
@@ -341,9 +340,9 @@ namespace engine
          // Insertion replaying on capped collection should be done by position,
          // as the record positions on primary and slavery nodes should be
          // exactly the same.
-         if ( DMS_STORAGE_CAPPED == su->type() )
+         if ( -1 == position && DMS_STORAGE_CAPPED == su->type() )
          {
-            positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
+            BSONElement positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
             if ( NumberLong != positionEle.type() )
             {
                PD_LOG( PDERROR, "Field _id type[ %d ] is not as expected"
@@ -364,7 +363,7 @@ namespace engine
             {
                PD_LOG( PDERROR, "Failed to insert record into collection [%s] "
                        "by position[%lld], rc: %d", pCollectionName,
-                       positionEle.numberLong(), rc ) ;
+                       position, rc ) ;
             }
             else
             {

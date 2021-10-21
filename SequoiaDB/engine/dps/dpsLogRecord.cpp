@@ -625,7 +625,7 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "DELETE", LOG_TYPE_DATA_DELETE ) ;
-            dpsLogRecord::iterator itrFullName, itrM ;
+            dpsLogRecord::iterator itrFullName, itrM, itrRID ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -665,6 +665,23 @@ namespace engine
                len += ossSnprintf( outBuf + len, outSize - len,
                                    " OldUnqIdxHash : %s"OSS_NEWLINE,
                                    unqIdxHashArray.toString().c_str() ) ;
+            }
+
+            itrRID = this->find( DPS_LOG_DELETE_POSITION ) ;
+            if ( itrRID.valid() )
+            {
+               const INT64 *position = (const INT64 *)( itrRID.value() ) ;
+
+               dmsExtentID extentID = DMS_INVALID_EXTENT ;
+               dmsOffset offset = DMS_INVALID_OFFSET ;
+               ossUnpack32From64( (UINT64)( *position ),
+                                  (UINT32 &)( extentID ),
+                                  (UINT32 &)( offset ) ) ;
+
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " Record ID : "
+                                   "(extent: %d; offset: %d)"OSS_NEWLINE,
+                                   extentID, offset ) ;
             }
 
             break ;

@@ -515,8 +515,6 @@ namespace engine
 
       // reset transaction LSN
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
-      // clear all lsn mapping
-      transExecutor->clearRecordMap() ;
       // release all transactions lock
       transCB->transLockReleaseAll( cb ) ;
 
@@ -695,8 +693,6 @@ namespace engine
       // reset transaction LSN
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
-      // clear all lsn mapping
-      transExecutor->clearRecordMap() ;
       transCB->transLockReleaseAll( cb ) ;
 
       // reduce the reservedLogSpace from dps for the transaction
@@ -922,8 +918,6 @@ namespace engine
       } /// while ( tmpTransMap.size() != 0 )
 
    done:
-      // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
       pTransCB->transLockReleaseAll( cb ) ;
       pTransCB->stopRollbackTask( doRollbackID ) ;
 
@@ -999,8 +993,6 @@ namespace engine
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
 
-      // clear all lsn mapping
-      transExecutor->clearRecordMap() ;
       transCB->transLockReleaseAll( cb ) ;
 
       // reduce the reservedLogSpace from dps for the transaction

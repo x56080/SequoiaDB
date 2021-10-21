@@ -3326,48 +3326,12 @@ namespace engine
 
       try
       {
-         dpsTransExecutor *pTransExe = cb->getTransExecutor() ;
-         /// when is rollback, and the rid is found
-         if ( transInfo._transID.isValid() &&
-              cb->isInTransRollback() &&
-              pTransExe->getRecord( transInfo._relatedLSN, foundRID, TRUE ) )
-         {
-            markInsert = TRUE ;
-            const dmsRecord *pcRecord = NULL ;
-
-            rc = context->mbLock( EXCLUSIVE ) ;
-            PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
-                         rc ) ;
-
-            recordRW = record2RW( foundRID, context->mbID() ) ;
-
-            /// 1. check status
-            pcRecord = recordRW.readPtr<dmsRecord>() ;
-            if ( !pcRecord->isDeleting() )
-            {
-               SDB_ASSERT( FALSE, "Record is not deleting" ) ;
-               markInsert = FALSE ;
-            }
-            /// 2. check the value is the same
-            else
-            {
-               rc = extractData( context, recordRW, cb, recordData ) ;
-               if ( rc )
-               {
-                  SDB_ASSERT( FALSE, "Extrace data failed" ) ;
-                  markInsert = FALSE ;
-               }
-               else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
-               {
-                  SDB_ASSERT( FALSE, "Data is not the same" ) ;
-                  markInsert = FALSE ;
-               }
-            }
-
-            context->mbUnlock() ;
-            recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
+         rc = _checkMarkInsert( context, transInfo._transID, position,
+                                insertObj, cb, markInsert, foundRID,
+                                recordData, recordRW ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
+                      "[position %lld, obj %s], rc: %d",
+                      position, insertObj.toPoolString().c_str(), rc ) ;
 
          if ( !markInsert )
          {
@@ -3458,15 +3422,24 @@ namespace engine
             _clFullName( context->mb()->_collectionName, fullName,
                          sizeof(fullName) ) ;
 
-            if ( ( !OSS_BIT_TEST( context->mb()->_attributes,
+            if ( ( !cb->isInTransRollback() ) &&
+                 ( !OSS_BIT_TEST( context->mb()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX ) ) &&
                  ( context->mbStat()->_uniqueIdxNum > 1 ) )
             {
                // need save 1 value for each unique index ( except for $id
                // index )
-               // NOTE: for insert, it can without $id index, if it doesn't
-               //       have $id index, the secondary nodes will not replay
-               //       in parallel, so it can without hash array
+               // NOTE:
+               // - for insert, it can without $id index, if it doesn't
+               //   have $id index, the secondary nodes will not replay
+               //   in parallel, so it can without hash array
+               // - two reasons we don't append index hash for
+               //   transaction rollback
+               //   + index hash will enlarge the size of DPS record
+               //     against the origin transaction DPS record.
+               //   + In secondary nodes, it will allow duplicated keys
+               //     during transaction rollback, so the index hash is
+               //     useless
                rc = unqIdxHashArray.prepare(
                                  context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
@@ -3575,6 +3548,15 @@ namespace engine
             ++( pWRExtent->_recCount ) ;
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+
+#if defined (_DEBUG)
+            PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
+                    "in collection [%s.%s] to rollback transaction [%s]",
+                    foundRID._extent, foundRID._offset,
+                    getSuName(), context->mb()->_collectionName,
+                    dpsTransIDToString(
+                                cb->getTransID().getOrigTransID() ).c_str() ) ;
+#endif
          }
          else
          {
@@ -3818,6 +3800,7 @@ namespace engine
 
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+      INT64 delPosition = -1 ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -3931,6 +3914,11 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Extract data failed, rc: %d", rc ) ;
             }
 
+            // get record position
+            rc = _getRecordPosition( recordID, recordData, delPosition ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get record position, "
+                         "rc: %d", rc ) ;
+
             if ( !retry )
             {
                // delete index keys
@@ -3980,7 +3968,8 @@ namespace engine
                      _clFullName( context->mb()->_collectionName, fullName,
                                   sizeof(fullName) ) ;
 
-                     if ( context->mbStat()->_uniqueIdxNum > 1 )
+                     if ( ( !cb->isInTransRollback() ) &&
+                          ( context->mbStat()->_uniqueIdxNum > 1 ) )
                      {
                         // need save 1 value for each unique index ( except
                         // for $id index )
@@ -3991,14 +3980,18 @@ namespace engine
                         PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash "
                                      "list for unique index [%u], rc: %d",
                                      context->mbStat()->_uniqueIdxNum, rc ) ;
-   
+
                         pUnqIdxHashArray = &unqIdxHashArray ;
                      }
-   
+
                      // reserved log-size
+                     // NOTE: only append position if mark deleting during
+                     //       transaction ( not including rollback phase )
                      rc = dpsDelete2Record( fullName, delObject,
-                                            pUnqIdxHashArray, transInfo,
-                                            record ) ;
+                                            pUnqIdxHashArray,
+                                            ( markDeleting && inTrans ) ?
+                                                        ( &delPosition ) : NULL,
+                                            transInfo, record ) ;
 
                      if ( SDB_OK != rc )
                      {
@@ -4216,13 +4209,6 @@ namespace engine
                        DMS_FILE_DATA ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d",
                       rc ) ;
-
-         if ( markDeleting && inTrans )
-         {
-            /// put pair(lsn,record info), when rollback, can insert the record
-            /// to the same rid
-            cb->getTransExecutor()->putRecord( cb->getEndLsn(), recordID ) ;
-         }
       }
       else if ( !isDeleting && cb->getLsnCount() > 0 )
       {
@@ -4453,12 +4439,21 @@ namespace engine
                _clFullName( context->mb()->_collectionName, fullName,
                             sizeof(fullName) ) ;
 
-               if ( context->mbStat()->_uniqueIdxNum > 1 )
+               if ( ( !cb->isInTransRollback() ) &&
+                    ( context->mbStat()->_uniqueIdxNum > 1 ) )
                {
                   // may save 2 keys for update, both new and old keys for
                   // each unique index ( except for $id index )
-                  // NOTE: for update, it can not without $id index, so we can
-                  //       exclude one $id unique index
+                  // NOTE:
+                  // - for update, it can not without $id index, so we can
+                  //   exclude one $id unique index
+                  // - two reasons we don't append index hash for
+                  //   transaction rollback
+                  //   + index hash will enlarge the size of DPS record
+                  //     against the origin transaction DPS record.
+                  //   + In secondary nodes, it will allow duplicated keys
+                  //     during transaction rollback, so the index hash is
+                  //     useless
                   rc = newUnqIdxHashArray.prepare(
                         context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "

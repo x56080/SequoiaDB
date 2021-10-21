@@ -702,6 +702,7 @@ namespace engine
    INT32 dpsDelete2Record( const CHAR *fullName,
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           const INT64 *position,
                            const dpsRecordTransInfo &transInfo,
                            dpsLogRecord &record )
    {
@@ -746,6 +747,15 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
+      if ( NULL != position && -1 != *position )
+      {
+         rc = record.push( DPS_LOG_DELETE_POSITION,
+                           sizeof( INT64 ),
+                           (CHAR *)( position ) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add position for mark delete"
+                      "record, rc: %d", rc ) ;
+      }
+
       header._length = record.alignedLen() ;
    done:
       PD_TRACE_EXITRC( SDB__DPS_DELETE2RECORD, rc ) ;
@@ -759,7 +769,8 @@ namespace engine
                            const CHAR **fullName,
                            BSONObj &oldObj,
                            UINT64 *microSeconds,
-                           dpsUnqIdxHashArray *pUnqIdxHashArray )
+                           dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           INT64 *position )
    {
       PD_TRACE_ENTRY( SDB__DPS_RECORD2DELETE ) ;
       INT32 rc = SDB_OK ;
@@ -806,6 +817,22 @@ namespace engine
          rc = pUnqIdxHashArray->parseFromRecord( record, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse unique index hash values, "
                       "rc: %d", rc ) ;
+      }
+
+      // parse position if needed
+      if ( NULL != position )
+      {
+         _dpsLogRecord::iterator iterPos =
+                                    record.find( DPS_LOG_DELETE_POSITION ) ;
+         if ( iterPos.valid() )
+         {
+            *position = *( (const INT64 *)( iterPos.value() ) ) ;
+         }
+         else
+         {
+            // not found, set to default
+            *position = -1 ;
+         }
       }
 
       *fullName = itrFullName.value() ;

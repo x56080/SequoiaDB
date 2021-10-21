@@ -138,7 +138,8 @@ namespace engine
    INT32 rtnReplayInsert( const CHAR *pCollectionName, const BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w = 1,
-                          utilInsertResult *pResult = NULL ) ;
+                          utilInsertResult *pResult = NULL,
+                          INT64 position = -1 ) ;
 
    INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
