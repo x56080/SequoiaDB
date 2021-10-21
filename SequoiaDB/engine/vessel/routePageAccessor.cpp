@@ -301,7 +301,7 @@ namespace vessel
       }
 
       rs = lpb->getReadableBodySlice();
-      readableHead = rs.getWritableObjPtr<routePageHead>(0);
+      readableHead = rs.getReadableObjPtr<routePageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable head");
@@ -325,7 +325,7 @@ namespace vessel
       }
       
       offset = ROUTE_PAGE_HEAD_SIZE + (pos << 2);
-      ptr = rs.getWritableObjPtr<PAGE_ID>(offset);
+      ptr = rs.getReadableObjPtr<PAGE_ID>(offset);
       if (NULL == ptr)
       {
          PD_LOG(PDERROR, "failed to get lpid ptr");

@@ -96,7 +96,8 @@ namespace vessel
    slice slice::getReadableSlice(UINT32 offset, UINT32 size)const
    {
       slice s;
-      if (isValidAccessing(offset, offset))
+      SDB_ASSERT(isValid(), "can not be invalid");
+      if (isValid() && isValidAccessing(offset, size))
       {
          s.reset(size, _rptr + offset);
       }
@@ -106,6 +107,7 @@ namespace vessel
    slice slice::getWritableSlice(UINT32 offset, UINT32 size)
    {
       slice s;
+      SDB_ASSERT(isWritale(), "can not be invalid");
       if (isWritale() && isValidAccessing(offset, size))
       {
          s.makeWritable(size, _wptr + offset);

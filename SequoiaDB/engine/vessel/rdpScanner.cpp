@@ -142,7 +142,10 @@ namespace vessel
       const recordSlot *slot = NULL;
       const recordHead *head = NULL;
       UINT32 offset = 0;
+      slice rs;
+
       bodySlice.reset();
+      rh = recordHead();
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -155,8 +158,9 @@ namespace vessel
          goto error;
       }
 
+      rs = _lpb->getReadableBodySlice();
       offset = RECORD_PAGE_HEAD_LEN + pos * RDP_RSLOT_SIZE;
-      slot = _lpb->getReadableBodySlice().getReadableObjPtr<recordSlot>(offset);
+      slot = rs.getReadableObjPtr<recordSlot>(offset);
       if (NULL == slot)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of slot[%d]", pos);
@@ -176,7 +180,7 @@ namespace vessel
          goto error;
       }
 
-      head = _lpb->getReadableBodySlice().getReadableObjPtr<recordHead>(slot->getOffset());
+      head = rs.getReadableObjPtr<recordHead>(slot->getOffset());
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get record head");
@@ -188,18 +192,26 @@ namespace vessel
 
       if (RDP_RECORD_HEAD_LEN < head->getSize())
       {
-         slice tmp = _lpb->getReadableBodySlice().
-                     getReadableSlice(slot->getOffset() + RDP_RECORD_HEAD_LEN,
-                                      head->getSize() - RDP_RECORD_HEAD_LEN);
+         slice tmp = rs.getReadableSlice(slot->getOffset() + RDP_RECORD_HEAD_LEN,
+                                         head->getSize() - RDP_RECORD_HEAD_LEN);
          if (!tmp.isValid())
          {
             PD_LOG(PDERROR, "failed to get readble record body ptr[%d,%d]",
                    slot->getOffset() + RDP_RECORD_HEAD_LEN,
                    head->getSize() - RDP_RECORD_HEAD_LEN);
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
 
          bodySlice = tmp;
+      }
+      else
+      {
+         PD_LOG(PDERROR, "invalid record size[%d] found in offset[%d] of page[%s]",
+                head->getSize(), slot->getOffset(),
+                _lpb->getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
       }
 
       rh = *head;

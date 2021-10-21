@@ -38,6 +38,7 @@
 
 #include "oss.hpp"
 #include "ossTypes.hpp"
+#include "pd.hpp"
 
 namespace engine
 {
@@ -52,11 +53,7 @@ namespace vessel
                              _rptr((const CHAR *)data),
                              _wptr(NULL)
          {
-            if (NULL == _rptr)
-            {
-               _size = 0;
-               _rptr = NULL;
-            }
+            SDB_ASSERT(NULL != _rptr, "can not be null");
          }
          OSS_INLINE slice(const slice &r):
                     _size(r._size),
@@ -113,50 +110,46 @@ namespace vessel
 
          OSS_INLINE void reset(UINT32 size, const void *data)
          {
-            reset();
-            if (NULL != data)
-            {
-               _size = size;
-               _rptr = (const CHAR *)data;
-            }
+            SDB_ASSERT(NULL != data, "can not be null");
+            _size = size;
+            _rptr = (const CHAR *)data;
+            _wptr = NULL;
             return;
          }
 
          OSS_INLINE void makeWritable(UINT32 size,
                                       void *data)
          {
-            if (NULL != data)
-            {
-               _size = size;
-               _wptr = (CHAR *)data;
-               _rptr = _wptr;
-            }
-            else
-            {
-               reset();
-            }
+            SDB_ASSERT(NULL != data, "can not be null");
+            _size = size;
+            _wptr = (CHAR *)data;
+            _rptr = _wptr;
             return;
          }
 
       public:
          OSS_INLINE const CHAR *getReadablePtr(UINT32 offset, UINT32 size)const
          {
+            SDB_ASSERT(isValid(), "can not be invalid");
             return isValidAccessing(offset, size) ?
                    (_rptr + offset) : NULL;
          }
          OSS_INLINE const CHAR *getReadablePtrWithoutSize(UINT32 offset)const
          {
+            SDB_ASSERT(isValid(), "can not be invalid");
             return isValidAccessing(offset, 1) ?
                    (_rptr + offset) : NULL;
          }
 
          OSS_INLINE CHAR *getWritablePtr(UINT32 offset, UINT32 size)
          {
+            SDB_ASSERT(isWritale(), "can not be invalid");
             return (isWritale() && isValidAccessing(offset, size)) ?
                    (_wptr + offset) : NULL;
          }
          OSS_INLINE CHAR *getWritablePtrWithoutSize(UINT32 offset)
          {
+            SDB_ASSERT(isWritale(), "can not be invalid");
             return (isWritale() && isValidAccessing(offset, 1)) ?
                    (_wptr + offset) : NULL;
          }
