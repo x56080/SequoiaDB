@@ -130,15 +130,11 @@ namespace vessel
             INT32 getItem(RECORD_SLOT_ID pos,
                           btreeIndexItem &item)const;
 
-            /// leaf: do 50-50 split when insert not ordered
-            ///       else do 90-10 split
-            /// non-leaf: always do 50-50 split
-            INT32 presplit(btreeIndexItem &pivot,
-                           PAGE_ID &rightNode,
-                           BOOLEAN orderedInsert=FALSE)const;
-
          private:
-            UINT32 getSizeToSaveInNode(UINT32 keySize)const;
+            OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const
+            {
+               return BTREE_NODE_SLOT_SIZE + keySize;
+            }
             BOOLEAN isCompressionDisabled()const;
             UINT32 getKeyDataOffsetToWrite(const btreeNodePageHead *head,
                                            UINT32 keyDataSize)const;
@@ -146,13 +142,14 @@ namespace vessel
             btreeItemSlot *getWritableSlot(RECORD_SLOT_ID pos);
             const btreeItemSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
 
+            const btreeNodePrefixSlot *getReadablePrefixSlot(UINT16 pos)const;
+            btreeNodePrefixSlot *getWritablePrefixSlot(UINT16 pos);
+
             BOOLEAN hitHighWaterMark()const;
             BOOLEAN isBetterToBeRecompressed() const;
-            UINT32 getOptimizedSizeByCompression()const;
-            UINT32 getTotalKeyDataAndSlotSize()const;
-            UINT32 getTotalKeyPrefixSize()const;
 
             BOOLEAN isVainPrefixRegen()const;
+            BOOLEAN hasCompressedKeys()const;
             BOOLEAN hasPrefix()const;
 
             OSS_INLINE const btreeNodePageHead *getReadableHead()const
@@ -183,10 +180,18 @@ namespace vessel
                                     const ixmKey &key,
                                     PAGE_ID leftChild);
 
-            INT32 findSplitPivot(UINT32 factor,
-                                 btreeIndexItem &pivot)const;
+            INT32 getExternalKey(PAGE_ID extp, slice &key)const;
+
+           
 
             INT32 buildSplitNode(RECORD_SLOT_ID begin, slice &s)const;
+
+            INT32 presplit(BOOLEAN idleRight,
+                           RECORD_SLOT_ID &pivot,
+                           slice &node)const;
+
+             INT32 findSplitPivot(UINT32 factor,
+                                  RECORD_SLOT_ID &pivot)const;
 
          private:/// leaf node only
             INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,
@@ -202,10 +207,6 @@ namespace vessel
                                       const recordID &rid);
 
             INT32 recompress(BOOLEAN &recompressed);
-
-            static void referenceToPrefix(btreeNodePrefixSlot &ps,
-                                          UINT32 suffixSize);
-
       protected:
          logicalPageBuffer *_buffer = NULL;
          const indexContext *_ic = NULL;

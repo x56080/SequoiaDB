@@ -60,6 +60,7 @@ namespace vessel
       _pageSize = 0;
       _flags = 0;
       _buffer = 0;
+      _commitedLsn = DPS_INVALID_LSN_OFFSET;
       return;
    }
 
@@ -119,10 +120,10 @@ namespace vessel
          SDB_ASSERT(FALSE, "impossible");
          goto done;
       }
-      else if (OSS_UNLIKELY(isCacheBuffer() &&
-                            DPS_INVALID_LSN_OFFSET == lsn))
+
+      if (DPS_INVALID_LSN_OFFSET == lsn)
       {
-         SDB_ASSERT(FALSE, "can not commit invalid lsn to cache");
+         SDB_ASSERT(!isCacheBuffer(), "can not commit invalid lsn to cache");
          goto done;
       }
       
@@ -144,7 +145,7 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(FALSE, "do not commit less lsn");
+         SDB_ASSERT(FALSE, "lsn to commit must be greater");
       }
    done:
       return;

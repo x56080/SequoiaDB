@@ -43,90 +43,60 @@ namespace engine
 namespace vessel
 {
 ////////btreeItemSlot
-   void btreeItemSlot::initWhenDataInPage(const recordID &rid,
+   void btreeItemSlot::initAsNonLeaFormat(const recordID &rid,
                                           UINT16 offset,
                                           UINT16 size,
                                           PAGE_ID leftChild)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
+      SDB_ASSERT(0 != offset && 0 != size, "can not be invalid");
       reset();
-      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_DATA_IN_PAGE_BODY));
+      OSS_BIT_SET(flags, (FLAG_IN_USED));
       ridSlot = rid.getSlotID();
       ridPage = rid.getPageID();
-      data.pointer.size = size;
-      data.pointer.offset = offset;
-      data.pointer.leftChild = leftChild;
+      data.nlf.leftChild = leftChild;
+      data.nlf.size = size;
+      data.nlf.offset = offset;
       return;
    }
 
-   void btreeItemSlot::initWhenDataInSlot(const recordID &rid,
-                                          const CHAR *keyData,
-                                          UINT32 keySize)
-   {
-      SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(NULL != keyData, "can not be null");
-      SDB_ASSERT(keySize <= sizeof(btreeItemSlot::slotData), "out of size");
-      reset();
-      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_DATA_IN_SLOT));
-      ridSlot = rid.getSlotID();
-      ridPage = rid.getPageID();
-      ossMemcpy(data.keyData, keyData, keySize);
-      return;
-   }
-
-   void btreeItemSlot::initWhenPerfectlyCompressed(const recordID &rid,
-                                                   UINT32 prefixPos)
+   void btreeItemSlot::initAsLeafFormat(const recordID &rid,
+                                        RECORD_SLOT_ID prefixPos,
+                                        UINT16 offset,
+                                        UINT16 size)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, FLAG_IN_USED);
       ridSlot = rid.getSlotID();
       ridPage = rid.getPageID();
-      setKeyCompressed(prefixPos);
+      /// only leaf node can be inited with compressed key
+      data.lf.offset = offset;
+      data.lf.size = size;
+      data.lf.prefixSlot = prefixPos;
+      if (INVALID_RECORD_SLOT_ID != prefixPos)
+      {
+         OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
+      }
       return;
    }
 
-   void btreeItemSlot::initWhenDataInExtPage(const recordID &rid,
-                                             UINT16 size,
-                                             PAGE_ID leftChild,
-                                             PAGE_ID extPage)
+   void btreeItemSlot::initWhenKeyInExtPage(const recordID &rid,
+                                            PAGE_ID leftChild,
+                                            PAGE_ID extp)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != leftChild, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != extPage, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != extp, "can not be invalid");
       reset();
-      OSS_BIT_SET(flags, FLAG_IN_USED);
+      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_KEY_IN_EXTERNAL_PAGE));
       ridSlot = rid.getSlotID();
       ridPage = rid.getPageID();
-      data.pointer.leftChild = leftChild;
-      data.pointer.size = size;
-      data.pointer.pad = extPage;
+      data.ekf.leftChild = leftChild;
+      data.ekf.extp = extp;
       return;
    }
 
-   BOOLEAN btreeItemSlot::hasNoSuffix()const
-   {
-      SDB_ASSERT(isValid(), "must be invalid");
-      SDB_ASSERT(isKeyCompressed(), "must be compressed");
-      return !isDataInPageBody() && !isDataInSlot();
-   }
-
-   UINT32 btreeItemSlot::getSuffixSize()const
-   {
-      SDB_ASSERT(isValid(), "must be invalid");
-      SDB_ASSERT(isKeyCompressed(), "must be compressed");
-
-      if (isDataInSlot())
-      {
-         return ixmKey(data.getKeyData()).dataSize();
-      }
-      else if (isDataInPageBody())
-      {
-         return data.pointer.size;
-      }
-      
-      return 0;
-   }
 ////////btreeItemSlot end
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,

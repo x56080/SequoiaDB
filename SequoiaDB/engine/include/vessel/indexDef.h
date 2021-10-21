@@ -66,7 +66,6 @@ namespace vessel
    /// btree only
    //static const UINT32 BTREE_COMPRESSION_MIN_DEPTH = 2;
    static const FLOAT32 BTREE_NODE_HIGH_WATER_MARK = 0.8;
-   static const FLOAT32 BTREE_NODE_EFFECTIVE_COMPRESSION_RATIO = 0.40;
 
    /// btree only end
 

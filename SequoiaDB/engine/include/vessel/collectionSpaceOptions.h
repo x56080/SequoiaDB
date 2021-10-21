@@ -59,7 +59,7 @@ namespace vessel
       public:
          UINT32 dataPageSize = DMS_PAGE_SIZE32K;
          UINT32 dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
-         UINT32 idxPageSize = DMS_PAGE_SIZE16K;
+         UINT32 idxPageSize = DMS_PAGE_SIZE32K;
          UINT32 idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
          UINT32 lobPageSize = DMS_PAGE_SIZE256K;
          UINT32 lobSegSize = STORAGE_FILE_SEGMENT_SIZE_128MB;

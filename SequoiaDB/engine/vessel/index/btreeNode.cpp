@@ -45,6 +45,7 @@
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/btreeNodePageIniter.h"
 #include "vessel/memoryBlock.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -69,7 +70,7 @@ namespace vessel
 
    BOOLEAN btreeNode::hasExternalKey()const
    {
-      return 0 != OSS_BIT_TEST(getReadableHead()->flags, BTREE_NODE_FLAG_HAS_EXTERNAL_KEY);
+      return 0 < getReadableHead()->externalKeySize;
    }
 
    BOOLEAN btreeNode::isLeaf()const
@@ -102,35 +103,21 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN btreeNode::hasPrefix()const
+   BOOLEAN btreeNode::hasCompressedKeys()const
    {
-      const btreeNodePageHead *head = getReadableHead();
-      SDB_ASSERT(isLeaf(), "must be leaf");
-      for (UINT32 i = 0; i < BTREE_NODE_MAX_PREFIX_COUNT; ++i)
-      {
-         if (!head->prefixes[i].isFree())
-         {
-            return TRUE;
-         }
-      }
-      return FALSE;
+      return isLeaf() && 0 < getReadableHead()->compressedItemCount;
    }
 
-   UINT32 btreeNode::getSizeToSaveInNode(UINT32 keySize)const
+   BOOLEAN btreeNode::hasPrefix()const
    {
-      UINT32 size = BTREE_NODE_SLOT_SIZE;
-      if (!isLeaf() || !btreeItemSlot::isEnoughToSave(keySize))
-      {
-         size += keySize;
-      }
-      return size;
+      return isLeaf() && 0 < getReadableHead()->prefixCount;
    }
 
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
       return !_ic->getObj().getParams().isPrefixCompressionEnabled() ||
-             _depth < _ic->getObj().getParams().btreeMinCompressionDepth ||
-             !isLeaf();
+             !isLeaf() ||
+             _depth < _ic->getObj().getParams().btreeMinCompressionDepth;
    }
 
    UINT32 btreeNode::getKeyDataOffsetToWrite(const btreeNodePageHead *head,
@@ -151,19 +138,40 @@ namespace vessel
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(_buffer->isWritable(), "must be prepared");
+      UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
+                      (BTREE_NODE_PREFIX_SLOT_SIZE * getReadableHead()->prefixCount) +
+                      (BTREE_NODE_SLOT_SIZE * pos);
       return _buffer->getWritableBodySlice().
-             getWritableObjPtr<btreeItemSlot>(BTREE_NODE_PAGE_HEAD_SIZE +
-                                              BTREE_NODE_SLOT_SIZE * pos);
+             getWritableObjPtr<btreeItemSlot>(offset);
    }
 
    const btreeItemSlot *btreeNode::getReadableSlot(RECORD_SLOT_ID pos)const
    {
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
-      
+      UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
+                      (BTREE_NODE_PREFIX_SLOT_SIZE * getReadableHead()->prefixCount) +
+                      (BTREE_NODE_SLOT_SIZE * pos);
       return _buffer->getReadableBodySlice().
-             getReadableObjPtr<btreeItemSlot>(BTREE_NODE_PAGE_HEAD_SIZE +
-                                              BTREE_NODE_SLOT_SIZE * pos);
+             getReadableObjPtr<btreeItemSlot>(offset);
+   }
+
+   const btreeNodePrefixSlot *btreeNode::getReadablePrefixSlot(UINT16 pos)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      const btreeNodePageHead *head = getReadableHead();
+      SDB_ASSERT(pos < head->prefixCount, "out of bound");
+      UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE + (pos * BTREE_NODE_PREFIX_SLOT_SIZE);
+      return getReadableSlice().getReadableObjPtr<btreeNodePrefixSlot>(offset);
+   }
+
+   btreeNodePrefixSlot *btreeNode::getWritablePrefixSlot(UINT16 pos)
+   {
+      SDB_ASSERT(isValid() && _buffer->isWritable(), "can not be invalid");
+      const btreeNodePageHead *head = getReadableHead();
+      SDB_ASSERT(pos < head->prefixCount, "out of bound");
+      UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE + (pos * BTREE_NODE_PREFIX_SLOT_SIZE);
+      return _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePrefixSlot>(offset);
    }
 
    UINT32 btreeNode::getNodeSize()const
@@ -182,50 +190,10 @@ namespace vessel
    BOOLEAN btreeNode::isBetterToBeRecompressed()const
    {
       SDB_ASSERT(!isCompressionDisabled(), "can not be disabled");
-      const btreeNodePageHead *head = getReadableHead();
-      static const FLOAT32 _RATIO = 0.6;
 
-      return hitHighWaterMark() &&
-             !isVainPrefixRegen() &&
-             (head->keyInSlotCount < (head->totalSlotCount * _RATIO)) &&
-             (((FLOAT32)getOptimizedSizeByCompression() / getNodeSize()) <
-             BTREE_NODE_EFFECTIVE_COMPRESSION_RATIO);
-   }
-
-   UINT32 btreeNode::getOptimizedSizeByCompression()const
-   {
-      SDB_ASSERT(isLeaf(), "must be leaf");
-      UINT32 size = 0;
-      const btreeNodePageHead *head = getReadableHead();
-      for (UINT32 i = 0; i < BTREE_NODE_MAX_PREFIX_COUNT; ++i)
-      {
-         if (!head->prefixes[i].isFree())
-         {
-            size += head->prefixes[i].optimizedSize;
-         }
-      }
-      return size;
-   }
-
-   UINT32 btreeNode::getTotalKeyDataAndSlotSize()const
-   {
-      const btreeNodePageHead *head = getReadableHead();
-      return getNodeSize() - BTREE_NODE_PAGE_HEAD_SIZE -
-             head->totalFreeSpace - getTotalKeyPrefixSize();
-   }
-
-   UINT32 btreeNode::getTotalKeyPrefixSize()const
-   {
-      UINT32 size = 0;
-      const btreeNodePageHead *head = getReadableHead();
-      for (UINT32 i = 0; i < BTREE_NODE_MAX_PREFIX_COUNT; ++i)
-      {
-         if (!head->prefixes[i].isFree())
-         {
-            size += head->prefixes[i].prefixSize;
-         }
-      }
-      return size;
+      return !isCompressionDisabled() &&
+             hitHighWaterMark() &&
+             !isVainPrefixRegen();
    }
 
    ossSharedLatchMode btreeNode::getLockingMode()const
@@ -322,8 +290,7 @@ namespace vessel
       }
 
       /// do not comrpess key if it can be saved in slot.
-      if (!hasPrefix() ||
-          btreeItemSlot::isEnoughToSave(keySize))
+      if (!hasPrefix())
       {
          rc = _insert(pos, key, rid);
          if (SDB_OK != rc)
@@ -407,7 +374,7 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (OSS_UNLIKELY(!hasExternalKey()))
+      else if (OSS_UNLIKELY(hasExternalKey()))
       {
          /// should always split node with ext key when traverse down
          SDB_ASSERT(FALSE, "has external key");
@@ -480,7 +447,7 @@ namespace vessel
       }
       else
       {
-         getWritableSlot(pos + 1)->data.pointer.leftChild = rightChild;
+         getWritableSlot(pos + 1)->data.nlf.leftChild = rightChild;
       }
 
       updateTransSN(transID);
@@ -606,7 +573,7 @@ namespace vessel
             res.identical = TRUE;
             if (!isLeaf())
             {
-               res.child = item.getSlot()->data.pointer.leftChild;
+               res.child = item.getSlot()->data.nlf.leftChild;
             }
             goto done;
          }
@@ -623,7 +590,7 @@ namespace vessel
          }
          else
          {
-            res.child = getReadableSlot(low)->data.pointer.leftChild;
+            res.child = getReadableSlot(low)->data.nlf.leftChild;
          }
       }
    done:
@@ -638,8 +605,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       const btreeNodePageHead *head = NULL;
       const btreeItemSlot *slot = NULL;
-      const CHAR *keyData = NULL;
-      const CHAR *prefixData = NULL;
+      slice rs;
 
       item.fini();
 
@@ -653,6 +619,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      rs = _buffer->getReadableBodySlice();
 
       head = getReadableHead();
       if (head->totalSlotCount <= pos)
@@ -669,42 +637,36 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(!slot->isDataInExtPage(), "TODO");
-
-      if (slot->isDataInPageBody())
+      if (slot->isKeyCompressed())
       {
-         keyData = getReadableSlice().getReadablePtr(slot->data.pointer.offset,
-                                                     slot->data.pointer.size);
-         if (NULL == keyData)
+         SDB_ASSERT(FALSE, "TODO");
+      }
+      else if (!slot->isKeyInExtPage())
+      {
+         const CHAR *keyData = rs.getReadablePtr(slot->data.key.offset,
+                                                 slot->data.key.size);
+         if (OSS_UNLIKELY(NULL == keyData))
          {
             PD_LOG(PDERROR, "failed to get key data[%d,%d]",
-                   slot->data.pointer.offset,
-                   slot->data.pointer.size);
+                   slot->data.key.offset,
+                   slot->data.key.size);
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-      }
 
-      if (slot->isKeyCompressed())
+         item.initWhenNormal(pos, slot, keyData);
+      }
+      else /// external key
       {
-         const btreeNodePrefixSlot &ps = head->prefixes[slot->getPrefixSlotPos()];
-         prefixData = getReadableSlice().getReadablePtr(ps.prefixOffset,
-                                                        ps.prefixSize);
-         if (NULL == prefixData)
+         slice externalKey;
+         rc = getExternalKey(slot->data.ekf.extp, externalKey);
+         if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get prefix key data[%d,%d]",
-                   ps.prefixOffset,
-                   ps.prefixSize);
-            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "failed to get external key:%d", rc);
             goto error;
-         } 
-      }
+         }
 
-      rc = item.init(pos, slot, keyData, prefixData);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init index item:%d", rc);
-         goto error;
+         item.initWhenExtKey(pos, slot, externalKey.getSize(), externalKey.data());
       }
    done:
       return rc;
@@ -728,7 +690,6 @@ namespace vessel
       UINT32 keySize = key.dataSize();
       UINT32 keyOffset = 0;
       UINT32 size = getSizeToSaveInNode(keySize);
-      BOOLEAN saveKeyInPage = BTREE_NODE_SLOT_SIZE < size;
       btreeNodePageHead *head = NULL;
       slice writableSlice;
 
@@ -744,16 +705,13 @@ namespace vessel
       SDB_ASSERT(size <= head->freeSapceAfterLastSlot, "impossible");
       SDB_ASSERT(pos <= head->totalSlotCount, "impossible");
 
-      if (saveKeyInPage)
+      keyOffset = getKeyDataOffsetToWrite(head, keySize);
+      rc = writableSlice.write(keyOffset, keySize, key.data());
+      if (SDB_OK != rc)
       {
-         keyOffset = getKeyDataOffsetToWrite(head, keySize);
-         rc = writableSlice.write(keyOffset, keySize, key.data());
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            PD_LOG(PDERROR, "failed to write key data[%d,%d], rc:%d",
-                   keyOffset, keySize, rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to write key data to[%d,%d], rc:%d",
+                keyOffset, keySize, rc);
+         goto error;
       }
 
       slot = getWritableSlot(pos);
@@ -771,18 +729,14 @@ namespace vessel
       }
 
       /// do not goto error from here
-      slot->reset();
-      if (saveKeyInPage)
+      if (isLeaf())
       {
-         slot->initWhenDataInPage(rid, keyOffset, keySize,
-                                  isLeaf() ? INVALID_PAGE_ID : leftChild);
+         slot->initAsLeafFormat(rid, INVALID_RECORD_SLOT_ID, keyOffset, keySize);
       }
       else
       {
-         SDB_ASSERT(isLeaf(), "must be leaf");
-         slot->initWhenDataInSlot(rid, key.data(), keySize);
+         slot->initAsNonLeaFormat(rid, keyOffset, keySize, leftChild);
       }
-
       ++head->totalSlotCount;
       head->totalFreeSpace -= size;
       head->freeSapceAfterLastSlot -= size;
@@ -804,11 +758,21 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeNode::getExternalKey(PAGE_ID extp, slice &key)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(FALSE, "TODO");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 btreeNode::tryToCompressKeyInserting(RECORD_SLOT_ID pos,
                                               const ixmKey &key,
                                               btreeNodeCompressedKey &ck)const
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK;/*
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(isLeaf(), "must be leaf");
@@ -865,7 +829,7 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to compress key:%d", rc);
          goto error;
-      }
+      }*/
    done:
       return rc;
    error:
@@ -931,7 +895,7 @@ namespace vessel
                                         const btreeNodeCompressedKey &ck,
                                         const recordID &rid)
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK;/*
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(ck.isValid(), "can not be invalid");
@@ -943,7 +907,6 @@ namespace vessel
       UINT32 suffixSize = ck.getSuffixSize();
       UINT32 suffixOffset = 0;
       UINT32 size = getSizeToSaveInNode(suffixSize);
-      BOOLEAN saveInPage = BTREE_NODE_SLOT_SIZE < size;
       btreeNodePrefixSlot *ps = NULL;
       slice nodeSlice;
 
@@ -976,7 +939,7 @@ namespace vessel
          goto error;
       }
 
-      if (saveInPage)
+      if (ck.hasSuffix())
       {
          suffixOffset = getKeyDataOffsetToWrite(head, suffixSize);
          rc = nodeSlice.write(suffixOffset, suffixSize, ck.getSuffix().data());
@@ -995,28 +958,11 @@ namespace vessel
       }
 
       /// do not goto error from here
-
-      slot->reset();
-      if (!ck.hasSuffix())
-      {
-         slot->initWhenPerfectlyCompressed(rid, ck.getPrefixSlotPos());
-      }
-      else if (saveInPage)
-      {
-         slot->initWhenDataInPage(rid, suffixOffset, suffixSize);
-         slot->setKeyCompressed(ck.getPrefixSlotPos());
-      }
-      else
-      {
-         slot->initWhenDataInSlot(rid, ck.getSuffix().data(), suffixSize);
-         slot->setKeyCompressed(ck.getPrefixSlotPos());
-      }
-
+      slot->initWhenCompressed(rid, ck.getPrefixSlotPos(), suffixOffset, suffixSize);
       ++head->totalSlotCount;
       head->totalFreeSpace -= size;
       head->freeSapceAfterLastSlot -= size;
-
-      referenceToPrefix(*ps, ck.getSuffixSize());
+      ++ps->referencedCnt;*/
    done:
       return rc;
    error:
@@ -1034,7 +980,7 @@ namespace vessel
    }
 
    INT32 btreeNode::findSplitPivot(UINT32 factor,
-                                   btreeIndexItem &pivot)const
+                                   RECORD_SLOT_ID &pivot)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(2 == factor || 10 == factor, "can not be others");
@@ -1043,7 +989,7 @@ namespace vessel
       UINT32 scanned = 0;
       const btreeNodePageHead *head = NULL;
 
-      pivot.fini();
+      pivot = INVALID_RECORD_SLOT_ID;
 
       if (OSS_UNLIKELY(!isValid()))
       {
@@ -1059,36 +1005,45 @@ namespace vessel
          goto error;
       }
 
-      splitSize = getTotalKeyDataAndSlotSize() / factor;
+      splitSize = getNodeSize() / factor;
 
       for (INT32 i = (INT32)(head->totalSlotCount - 1); 0 <= i; --i)
       {
          UINT32 savingSize = 0;
-         btreeIndexItem item;
-         rc = getItem(i, item);
-         if (SDB_OK != rc)
+         const btreeItemSlot *slot = getReadableSlot(i);
+         if (OSS_UNLIKELY(NULL == slot || !slot->isValid()))
          {
-            PD_LOG(PDERROR, "failed to get index item[%d], rc:%d", i, rc);
+            PD_LOG(PDERROR, "invalid slot [%d] found", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
 
-         savingSize = item.getSavingSize();
-         if (splitSize < (scanned + savingSize))
+         SDB_ASSERT(!slot->isKeyCompressed(), "TODO");
+         if (slot->isKeyInExtPage())
          {
-            if (!pivot.isValid())
-            {
-               pivot = item;
-            }
-            break;
+            savingSize = head->externalKeySize;
          }
          else
          {
-            pivot = item;
-            scanned += savingSize;
+            savingSize = slot->data.key.size;
          }
+
+         scanned += savingSize;
+         if (splitSize < scanned)
+         {
+            break;
+         }
+
+         pivot = i;
+      }
+
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pivot ||
+                       (head->totalSlotCount - 1) == pivot))
+      {
+         pivot = head->totalSlotCount - 2;
       }
       
-      if (OSS_UNLIKELY(0 == pivot.getSlotPos()))
+      if (OSS_UNLIKELY(0 == pivot))
       {
          PD_LOG(PDERROR, "pivot slot number can not be zero");
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -1097,89 +1052,28 @@ namespace vessel
    done:
       return rc;
    error:
-      pivot.fini();
+      pivot = INVALID_RECORD_SLOT_ID;
       goto done;
    }
 
-   INT32 btreeNode::presplit(btreeIndexItem &pivot,
-                             PAGE_ID &rightNode,
-                             BOOLEAN orderedInsert)const
+   INT32 btreeNode::presplit(BOOLEAN idleRight,
+                             RECORD_SLOT_ID &pivot,
+                             slice &node)const
    {
       INT32 rc = SDB_OK;
-      UINT32 factor = 2;
-      memoryBlock mb;
-      btreeNodePageSplitIniter initer;
-      PAGE_ID rightLpid = INVALID_PAGE_ID;
-      slice newPageSlice;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(getNodeSize() == node.getSize(), "must be same");
 
-      pivot.fini();
-      rightNode = INVALID_PAGE_ID;
+      btreeNodePageHead *newHead = node.getWritableObjPtr<btreeNodePageHead>(0);
+      const btreeNodePageHead *head = getReadableHead();
+      UINT32 frontOffset = BTREE_NODE_PAGE_HEAD_SIZE;
 
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      if (orderedInsert && isLeaf())
-      {
-         factor = 10;
-      }
-
-      rc = findSplitPivot(factor, pivot);
+      rc = findSplitPivot(idleRight ? 10 : 2, pivot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find split pivot:%d", rc);
          goto error;
       }
-
-      rc = mb.reserve(getNodeSize());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to reserve mb space:%d", rc);
-         goto error;
-      }
-
-      newPageSlice.makeWritable(mb.getCapacity(), mb.getBuffer());
-
-      rc = buildSplitNode(pivot.getSlotPos() + 1, newPageSlice);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build new page:%d", rc);
-         goto error;
-      }
-
-      initer.set(newPageSlice);
-      rc = _buffer->getLogicalPageSpace()->allocatePages(_buffer->getContext(),
-                                                         &initer,
-                                                         1, &rightLpid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate new node page:%d", rc);
-         goto error;
-      }
-
-      rightNode = rightLpid;
-   done:
-      return rc;
-   error:
-      pivot.fini();
-      rightNode = INVALID_PAGE_ID;
-      goto done;
-   }
-
-   INT32 btreeNode::buildSplitNode(RECORD_SLOT_ID begin, slice &s)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(INVALID_RECORD_SLOT_ID != begin, "can not be invalid");
-      SDB_ASSERT(s.isWritale(), "must be writable");
-      SDB_ASSERT(getNodeSize() <= s.getSize(), "must be enough");
-      UINT32 backOffset = getNodeSize();
-      UINT32 frontOffset = BTREE_NODE_PAGE_HEAD_SIZE;
-      const btreeNodePageHead *head = getReadableHead();
-      SDB_ASSERT(begin < head->totalSlotCount, "out of bound");
-      btreeNodePageHead *newHead = s.getWritableObjPtr<btreeNodePageHead>(0);
 
       ossMemset(newHead, 0, BTREE_NODE_PAGE_HEAD_SIZE);
       newHead->version = head->version;
@@ -1190,107 +1084,68 @@ namespace vessel
       newHead->rightChild = head->rightChild;
       newHead->transSN = head->transSN;
 
-      for (RECORD_SLOT_ID i = begin; i < head->totalSlotCount; ++i)
+      for (RECORD_SLOT_ID i = pivot + 1; i < head->totalSlotCount; ++i)
       {
-         UINT32 savingSize = 0;
          btreeItemSlot *slot = NULL;
+         UINT32 keyOffset = 0;
          btreeIndexItem item;
          rc = getItem(i, item);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get index item[%d], rc:%d", i, rc);
+            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", i, rc);
             goto error;
          }
 
-         savingSize = item.getSavingSize();
+         SDB_ASSERT(!item.getSlot()->isKeyCompressed(), "TODO");
 
-         if (item.getSlot()->isKeyCompressed() &&
-             newHead->prefixes[item.getSlot()->getPrefixSlotPos()].isFree())
+         if (newHead->freeSapceAfterLastSlot <= item.getSavingSize())
          {
-            SDB_ASSERT(isLeaf(), "must be leaf");
-            btreeNodePrefixSlot &ps = newHead->prefixes[slot->getPrefixSlotPos()];
-            UINT32 prefixSize = ixmKey(item.getPrefixData()).dataSize();
-            UINT32 prefixOffset = backOffset - prefixSize;
-            SDB_ASSERT(frontOffset < prefixOffset, "impossible");
-            rc = s.write(prefixOffset, prefixSize, item.getPrefixData());
-            if (OSS_UNLIKELY(SDB_OK != rc))
-            {
-               PD_LOG(PDERROR, "failed to write prefix data[%d,%d], rc:%d",
-                      prefixOffset, prefixSize, rc);
-               goto error;
-            }
-            ps.prefixOffset = prefixOffset;
-            ps.prefixSize = prefixSize;
-            backOffset -= prefixSize;
-         }
-
-         if (backOffset < (frontOffset + savingSize))
-         {
-            PD_LOG(PDERROR, "not enough free space to push item[%d]", i);
+            PD_LOG(PDERROR, "not enough free space to save item");
             rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
             goto error;
          }
 
-         slot = s.getWritableObjPtr<btreeItemSlot>(frontOffset);
-         slot->reset();
-         *slot = *(item.getSlot());
-
-         /// auto remove external key
-         if (item.getSlot()->isDataInPageBody() ||
-             item.getSlot()->isDataInExtPage())
+         keyOffset = getKeyDataOffsetToWrite(newHead, item.getKeyDataSize());
+         rc = node.write(keyOffset, item.getKeyDataSize(), item.getKeyData());
+         if (OSS_UNLIKELY(SDB_OK != rc))
          {
-            UINT32 keyDataSize = ixmKey(item.getKeyData()).dataSize();
-            UINT32 keyDataOffset = backOffset - keyDataSize;
-            rc = s.write(keyDataOffset, keyDataSize, item.getKeyData());
-            if (OSS_UNLIKELY(SDB_OK != rc))
-            {
-               PD_LOG(PDERROR, "failed to write prefix data[%d,%d], rc:%d",
-                      keyDataOffset, keyDataSize, rc);
-               goto error;
-            }
-
-            slot->data.pointer.offset = keyDataOffset;
-            slot->data.pointer.size = keyDataSize;
-            OSS_BIT_CLEAR(slot->flags, btreeItemSlot::FLAG_DATA_IN_EXTERNAL_PAGE);
-            OSS_BIT_SET(slot->flags, btreeItemSlot::FLAG_DATA_IN_PAGE_BODY);
-            backOffset -= keyDataSize;
+            PD_LOG(PDERROR, "failed to write slice[%d,%d], rc:%d",
+                   keyOffset, item.getKeyDataSize(), rc);
+            goto error;
          }
 
-         frontOffset += BTREE_NODE_SLOT_SIZE;
+         newHead->totalFreeSpace -= item.getKeyDataSize();
+         newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
 
-         if (slot->isKeyCompressed())
+         if (newHead->freeSapceAfterLastSlot < BTREE_NODE_SLOT_SIZE)
          {
-            referenceToPrefix(newHead->prefixes[slot->getPrefixSlotPos()],
-                              slot->getSuffixSize());
+            PD_LOG(PDERROR, "not enough free space to save slot");
+            rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
+            goto error;
          }
 
+         slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
+         if (isLeaf())
+         {
+            slot->initAsLeafFormat(item.getRid(), INVALID_RECORD_SLOT_ID,
+                                   keyOffset, item.getKeyDataSize());
+         }
+         else
+         {
+            slot->initAsNonLeaFormat(item.getRid(), keyOffset,
+                                     item.getKeyDataSize(),
+                                     item.getSlot()->data.nlf.leftChild);
+         }
+         newHead->totalFreeSpace -= BTREE_NODE_SLOT_SIZE;
+         newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
          ++newHead->totalSlotCount;
+         frontOffset += BTREE_NODE_SLOT_SIZE;
       }
-
-      newHead->totalFreeSpace = (backOffset - frontOffset);
-      newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
    done:
       return rc;
    error:
       goto done;
    }
-
-   void btreeNode::referenceToPrefix(btreeNodePrefixSlot &ps,
-                                     UINT32 suffixSize)
-   {
-      SDB_ASSERT(!ps.isFree(), "can not be invalid");
-
-      ++ps.referencedCnt;
-      if (btreeItemSlot::isEnoughToSave(suffixSize))
-      {
-         ps.optimizedSize += (ps.prefixSize + suffixSize);
-      }
-      else
-      {
-         ps.optimizedSize += ps.prefixSize;
-      }
-      return;
-   }  
 
    void btreeNode::commit()
    {

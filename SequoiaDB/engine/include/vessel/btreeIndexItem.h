@@ -100,16 +100,26 @@ namespace vessel
 
          void fini();
 
-         INT32 init(RECORD_SLOT_ID slotPos,
-                    const btreeItemSlot *slot,
-                    const CHAR *keyData,
-                    const CHAR *prefix=NULL);
+         /// not compressed and not ext key
+         void initWhenNormal(RECORD_SLOT_ID slotPos,
+                             const btreeItemSlot *slot,
+                             const CHAR *keyData);
+
+         void initWhenCompressed(RECORD_SLOT_ID slotPos,
+                                 const btreeItemSlot *slot,
+                                 const CHAR *suffixData,
+                                 const CHAR *prefix);
+
+         void initWhenExtKey(RECORD_SLOT_ID slotPos,
+                             const btreeItemSlot *slot,
+                             UINT32 keySize,
+                             const CHAR *keyData);
 
          UINT32 getSavingSize()const;
 
-         void getKeyWhenNotCompressed(ixmKey &key)const;
-
-         void buildKeyWhenCompressed(StackBufBuilder &builder)const;
+         /// WARNING: when key is compressed, key size is suffix size actually;
+         ///          when key is external, key size is size of external key;
+         UINT32 getKeyDataSize()const;
 
          INT32 woCompare(const ixmKey &key,
                          const bson::Ordering &ordering)const;
@@ -118,6 +128,7 @@ namespace vessel
          RECORD_SLOT_ID _slotPos = INVALID_RECORD_SLOT_ID;
          const btreeItemSlot *_slot = NULL;
          const CHAR *_keyData = NULL;
+         UINT32 _externalKeySize = 0;
          const CHAR *_prefixData = NULL;
    };//class btreeIndexItem
 } // namespace vessel

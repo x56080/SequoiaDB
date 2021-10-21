@@ -88,7 +88,7 @@ namespace vessel
 
          slice getReadableSlice()const
          {
-            return slice(_size, _buffer);
+            return isEmpty() ? slice() : slice(_size, _buffer);
          }
 
          CHAR *getBuffer()
