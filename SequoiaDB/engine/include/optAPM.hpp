@@ -82,6 +82,9 @@ namespace engine
 
          void removeCachedPlan ( optAccessPlan *pPlan, INT32 lockType = -1 ) ;
 
+         void resetCachedPlanActivity( optAccessPlan *pPlan,
+                                       INT32 lockType = -1 ) ;
+
          void invalidateSUPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
                                   UINT32 suLID ) ;
 
@@ -185,6 +188,26 @@ namespace engine
                                  const rtnParamList &parameters ) ;
 
          void toBSON ( BSONObjBuilder &builder ) ;
+
+      protected:
+         void _clearPlan()
+         {
+            if ( NULL != _pPlan )
+            {
+               _pPlan->release() ;
+               _pPlan = NULL ;
+            }
+         }
+
+         void _setPlan( optAccessPlan *pPlan )
+         {
+            _clearPlan() ;
+            if ( NULL != pPlan )
+            {
+               pPlan->incRefCount() ;
+               _pPlan = pPlan ;
+            }
+         }
 
       protected :
          optAccessPlan *   _pPlan ;
