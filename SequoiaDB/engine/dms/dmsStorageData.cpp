@@ -163,6 +163,100 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__GETRECPOS, "_dmsStorageData::_getRecordPosition" )
+   INT32 _dmsStorageData::_getRecordPosition( const dmsRecordID &rid,
+                                              const dmsRecordData &recordData,
+                                              INT64 &position )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__GETRECPOS ) ;
+
+      if ( rid.isValid() )
+      {
+         position = (INT64)( ossPack32To64( (UINT32)( rid._extent ),
+                                            (UINT32)( rid._offset ) ) ) ;
+      }
+      else
+      {
+         position = -1 ;
+      }
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__GETRECPOS, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKMARKINST, "_dmsStorageData::_checkMarkInsert" )
+   INT32 _dmsStorageData::_checkMarkInsert( dmsMBContext *context,
+                                            const DPS_TRANS_ID &transID,
+                                            INT64 position,
+                                            const BSONObj &insertObj,
+                                            pmdEDUCB *cb,
+                                            BOOLEAN &markInsert,
+                                            dmsRecordID &foundRID,
+                                            dmsRecordData &recordData,
+                                            dmsRecordRW &recordRW )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKMARKINST ) ;
+
+      /// when is rollback, and the rid is found
+      if ( -1 != position &&
+           DPS_INVALID_TRANS_ID != transID &&
+           cb->isInTransRollback() &&
+           !cb->isTakeOverTransRB() )
+      {
+         // use the given position instead
+         ossUnpack32From64( (UINT64)position,
+                            (UINT32 &)( foundRID._extent ),
+                            (UINT32 &)( foundRID._offset ) ) ;
+
+         markInsert = TRUE ;
+         const dmsRecord *pRecord = NULL ;
+
+         rc = context->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
+                      rc ) ;
+
+         recordRW = record2RW( foundRID, context->mbID() ) ;
+
+         /// 1. check status
+         pRecord = recordRW.readPtr<dmsRecord>() ;
+         if ( !pRecord->isDeleting() )
+         {
+            SDB_ASSERT( FALSE, "Record is not deleting" ) ;
+            markInsert = FALSE ;
+         }
+         /// 2. check the value is the same
+         else
+         {
+            if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
+            {
+               SDB_ASSERT( FALSE, "Extract data failed" ) ;
+               markInsert = FALSE ;
+            }
+            else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
+            {
+               SDB_ASSERT( FALSE, "Data is not the same" ) ;
+               markInsert = FALSE ;
+            }
+         }
+
+         context->mbUnlock() ;
+         recordData.setData( insertObj.objdata(), insertObj.objsize(),
+                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKMARKINST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ALLOCRECORDSPACE, "_dmsStorageData::_allocRecordSpace" )
    INT32 _dmsStorageData::_allocRecordSpace( dmsMBContext *context,
                                              UINT32 size,

@@ -243,6 +243,20 @@ namespace engine
                                         BOOLEAN &memReallocate,
                                         INT64 position ) ;
 
+      virtual INT32 _getRecordPosition( const dmsRecordID &rid,
+                                        const dmsRecordData &recordData,
+                                        INT64 &position ) ;
+
+      virtual INT32 _checkMarkInsert( dmsMBContext *context,
+                                      const DPS_TRANS_ID &transID,
+                                      INT64 position,
+                                      const BSONObj &insertObj,
+                                      pmdEDUCB *cb,
+                                      BOOLEAN &markInsert,
+                                      dmsRecordID &foundRID,
+                                      dmsRecordData &recordData,
+                                      dmsRecordRW &recordRW ) ;
+
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 

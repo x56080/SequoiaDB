@@ -451,8 +451,6 @@ namespace engine
 
       cb->setTransID( DPS_INVALID_TRANS_ID ) ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
-      // clear all lsn mapping
-      cb->getTransExecutor()->clearRecordMap() ;
       // release all transactions lock
       pTransCB->transLockReleaseAll( cb ) ;
       // reduce the reservedLogSpace from dps for the transaction

@@ -81,7 +81,9 @@ namespace engine
 
    enum DPS_LOG_DELETE
    {
-      DPS_LOG_DELETE_OLDOBJ = 1
+      DPS_LOG_DELETE_OLDOBJ = 1,
+      // only used for mark deleting
+      DPS_LOG_DELETE_POSITION = 2
    } ;
 
    enum DPS_LOG_POP

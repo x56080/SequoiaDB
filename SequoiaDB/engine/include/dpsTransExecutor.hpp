@@ -356,20 +356,6 @@ namespace engine
                                          lockMgrType = LOCKMGR_TRANS_LOCK ) ;
          DPS_TRANS_ID getNormalizedTransID() ;
 
-         /*
-            LSN to record map functions
-         */
-         const MAP_LSN_2_RECORD*    getRecordMap() const ;
-         void                       putRecord( DPS_LSN_OFFSET lsnOffset,
-                                               const dmsRecordID &item ) ;
-         void                       delRecord( DPS_LSN_OFFSET lsnOffset ) ;
-         BOOLEAN                    getRecord( DPS_LSN_OFFSET lsnOffset,
-                                               dmsRecordID &item,
-                                               BOOLEAN withDel = FALSE ) ;
-         void                       clearRecordMap() ;
-         BOOLEAN                    isRecordMapEmpty() const ;
-         UINT32                     getRecordMapSize() const ;
-
          // for transaction meta-block statistics
          void commitMBStats () ;
          void rollbackMBStats () ;

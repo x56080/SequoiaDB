@@ -1761,7 +1761,7 @@ namespace engine
                goto error ;
             }
 
-            rc = rtnInsert( fullname, obj, 1, 0, eduCB, _dmsCB, _dpsCB, 1 ) ;
+            rc = rtnReplayInsert( fullname, obj, 0, eduCB, _dmsCB, _dpsCB ) ;
             if ( SDB_IXM_DUP_KEY == rc )
             {
                PD_LOG( PDINFO, "Record[%s] exist when rollback delete",
@@ -2437,8 +2437,8 @@ namespace engine
          // if pending key exists but pending value is empty
          // ( created by DELETE ), means the object does not exists in DMS,
          // so we need to insert the expected rollback object back
-         rc = rtnInsert( clFullName, rollbackObject, 1, 0, eduCB,
-                         _dmsCB, _dpsCB, 1 ) ;
+         rc = rtnReplayInsert( clFullName, rollbackObject, 0, eduCB, _dmsCB,
+                               _dpsCB ) ;
       }
       else
       {
@@ -2540,14 +2540,15 @@ namespace engine
 
       BSONObj deleteObject ;
       const CHAR *clFullName = NULL ;
+      INT64 position = -1 ;
 
       rc = dpsRecord2Delete( (const CHAR *)recordHeader, &clFullName,
-                             deleteObject ) ;
+                             deleteObject, NULL, NULL, &position ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get delete record of LSN [%llu], "
                    "rc: %d", recordHeader->_lsn, rc ) ;
 
-      rc = rtnInsert( clFullName, deleteObject, 1, 0, eduCB, _dmsCB, _dpsCB,
-                      1 ) ;
+      rc = rtnReplayInsert( clFullName, deleteObject, 0, eduCB, _dmsCB, _dpsCB,
+                            1, NULL, position ) ;
       if ( SDB_IXM_DUP_KEY == rc )
       {
          // A duplicated key issue happened, means the key had been recreated

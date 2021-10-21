@@ -424,6 +424,45 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, "_dmsStorageDataCapped::_getRecordPosition" )
+   INT32 _dmsStorageDataCapped::_getRecordPosition( const dmsRecordID &rid,
+                                                    const dmsRecordData &recordData,
+                                                    INT64 &position )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__GETRECPOS ) ;
+
+      _extLidAndOffset2RecLid( rid._extent, rid._offset, position ) ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__GETRECPOS, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, "_dmsStorageDataCapped::_checkMarkInsert" )
+   INT32 _dmsStorageDataCapped::_checkMarkInsert( dmsMBContext *context,
+                                                  const DPS_TRANS_ID &transID,
+                                                  INT64 position,
+                                                  const BSONObj &insertObj,
+                                                  pmdEDUCB *cb,
+                                                  BOOLEAN &markInsert,
+                                                  dmsRecordID &foundRID,
+                                                  dmsRecordData &recordData,
+                                                  dmsRecordRW &recordRW )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST ) ;
+
+      // don't support mark insert
+      markInsert = FALSE ;
+
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, rc ) ;
+
+      return rc ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__FINALRECORDSIZE, "_dmsStorageDataCapped::_finalRecordSize" )
    void _dmsStorageDataCapped::_finalRecordSize( UINT32 &size,
                                                  const dmsRecordData &recordData )

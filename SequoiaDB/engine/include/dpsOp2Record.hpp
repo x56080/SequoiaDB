@@ -162,6 +162,7 @@ namespace engine
    INT32 dpsDelete2Record( const CHAR *fullName,
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
+                           const INT64 *position,
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
@@ -171,7 +172,8 @@ namespace engine
                            const CHAR **fullName,
                            BSONObj &oldObj,
                            UINT64 *microSeconds = NULL,
-                           dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
+                           dpsUnqIdxHashArray *pUnqIdxHashArray = NULL,
+                           INT64 *position = NULL ) ;
 
    INT32 dpsPop2Record( const CHAR *fullName,
                         const dmsRecordID &firstRID,
