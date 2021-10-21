@@ -783,9 +783,15 @@
               "en": "Database Configuration",
               "contents": [
                 {
+                  "id": 1634818713,
+                  "file": "parameters_instructions",
+                  "cn": "参数说明",
+                  "en": "Parameters Instructions"
+                },
+                {
                   "id": 1432190643,
                   "file": "configuration_parameters",
-                  "cn": "配置项参数",
+                  "cn": "参数配置",
                   "en": "Configuration Parameters"
                 },
                 {
