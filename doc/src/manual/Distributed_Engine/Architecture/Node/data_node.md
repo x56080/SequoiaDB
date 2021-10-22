@@ -121,4 +121,4 @@
 [cluster_deployment]:manual/Deployment/cluster_deployment.md
 [regular_bar]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md#全量同步
 [architecture]:manual/Distributed_Engine/Architecture/Replication/architecture.md
-[cluster_config]:manual/Manual/Database_Configuration/configuration_parameters.md
+[cluster_config]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md

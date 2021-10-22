@@ -94,6 +94,6 @@ Return 4 row(s).
 [SDB_SNAP_TRANSDEADLOCK]:manual/Manual/Snapshot/SDB_SNAP_TRANSDEADLOCK.md
 [SDB_SNAP_TRANSWAITS]:manual/Manual/Snapshot/SDB_SNAP_TRANSWAITS.md
 [forceSession]:manual/Manual/Sequoiadb_Command/Sdb/forceSession.md
-[sscDeadlock0]:images/Distributed_Engine/Maintainance/DeadlockDetector/sscDeadlock0.png
-[sscDeadlock1]:images/Distributed_Engine/Maintainance/DeadlockDetector/sscDeadlock1.png
-[sscDeadlock2]:images/Distributed_Engine/Maintainance/DeadlockDetector/sscDeadlock2.png
+[sscDeadlock0]:images/Distributed_Engine/Maintainance/sscDeadlock0.png
+[sscDeadlock1]:images/Distributed_Engine/Maintainance/sscDeadlock1.png
+[sscDeadlock2]:images/Distributed_Engine/Maintainance/sscDeadlock2.png

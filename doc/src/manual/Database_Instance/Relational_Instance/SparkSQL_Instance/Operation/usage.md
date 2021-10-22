@@ -68,4 +68,4 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 
 [^_^]:
      本文使用的所有引用和链接
-[parameter]:manual/Manual/Database_Configuration/configuration_parameters.md
+[parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md

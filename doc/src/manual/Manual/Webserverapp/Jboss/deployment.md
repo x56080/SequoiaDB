@@ -137,4 +137,4 @@
 [jdbc]:https://jdbc.postgresql.org/
 [jboss]:http://jbossas.jboss.org/downloads/
 [jdk]:https://www.oracle.com/index.html/
-[install_deploy]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/install_deploy.md
+[install_deploy]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/install_deploy.md

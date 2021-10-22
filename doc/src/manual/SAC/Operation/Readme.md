@@ -80,7 +80,7 @@
 [lob]:manual/SAC/Operation/Sequoiadb_Data/lob.md
 [sequoiadb_configs]:manual/SAC/Operation/Sequoiadb_Data/sequoiadb_configs.md
 
-[uninstall_mariadb]:manual/SAC/Operation/Mariadb/uninstall_postgresql.md
+[uninstall_mariadb]:manual/SAC/Operation/Mariadb/uninstall_mariadb.md
 [remove_mariadb_storage]:manual/SAC/Operation/Mariadb/remove_mariadb_storage.md
 [basic_operation_mariadb]:manual/SAC/Operation/Mariadb/basic_operation.md
 [database_mariadb]:manual/SAC/Operation/Mariadb/database.md
