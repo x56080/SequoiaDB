@@ -115,6 +115,8 @@ namespace replay
 
    #define RPL_DEFAULT_INTERVAL_NUM (1000)
 
+   vector<string> passwdVec ;
+
    Options::Options()
    {
       _pathType = SDB_OSS_UNK;
@@ -149,7 +151,7 @@ namespace replay
          (RPL_OPTION_HOST,          _TYPE(string),    RPL_EXPLAIN_HOST)
          (RPL_OPTION_SVC,           _TYPE(string),    RPL_EXPLAIN_SVC)
          (RPL_OPTION_USER,          _TYPE(string),    RPL_EXPLAIN_USER)
-         (RPL_OPTION_PASSWD, _IMPLICIT_TYPE(string, ""),  RPL_EXPLAIN_PASSWD)
+         (RPL_OPTION_PASSWD,        po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(),  RPL_EXPLAIN_PASSWD)
          (RPL_OPTION_CIPHERFILE,    _TYPE(string),    RPL_EXPLAIN_CIPHERFILE)
          (RPL_OPTION_CIPHER ,       _TYPE(bool),      RPL_EXPLAIN_CIPHER)
          (RPL_OPTION_TOKEN,         _TYPE(string),    RPL_EXPLAIN_TOKEN)
@@ -187,7 +189,7 @@ namespace replay
          goto done;
       }
 
-      rc = setOptions() ;
+      rc = setOptions( argc ) ;
       if (SDB_OK != rc)
       {
          goto error;
@@ -274,7 +276,7 @@ namespace replay
       return ss.str();
    }
 
-   INT32 Options::setOptions()
+   INT32 Options::setOptions( INT32 argc )
    {
       INT32 rc = SDB_OK;
 
@@ -366,16 +368,31 @@ namespace replay
 
          if ( has(RPL_OPTION_PASSWD) )
          {
-            string passwd = get<string>(RPL_OPTION_PASSWD) ;
-            if ( "" == passwd )
+            string  passwd ;
+            BOOLEAN isNormalInput = FALSE ;
+
+            if ( 0 == passwdVec.size() )
             {
-               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
+               isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
             }
+            else
+            {
+               isNormalInput = TRUE ;
+               passwd = passwdVec[0] ;
+            }
+
+            if ( !isNormalInput )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+               goto error ;
+            }
+
             _password = passwd ;
          }
          else
          {
-            passwd::utilPasswordTool passwdTool ;
+            utilPasswordTool passwdTool ;
 
             if ( has(RPL_OPTION_CIPHER) && get<bool>(RPL_OPTION_CIPHER) )
             {
@@ -393,7 +410,7 @@ namespace replay
                           _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
+               _user = utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {

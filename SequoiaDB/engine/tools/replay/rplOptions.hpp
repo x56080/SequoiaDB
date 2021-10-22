@@ -83,7 +83,7 @@ namespace replay
       OSS_INLINE BOOLEAN isKeepShardingKey() const { return _isKeeyShardingKey; }
 
    private:
-      INT32 setOptions();
+      INT32 setOptions( INT32 argc );
 
    private:
       string            _hostName;

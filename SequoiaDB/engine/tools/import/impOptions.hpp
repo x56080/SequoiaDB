@@ -141,7 +141,7 @@ namespace import
       inline BOOLEAN ignoreNull() const { return _ignoreNull; }
 
    private:
-      INT32 setOptions();
+      INT32   setOptions( INT32 argc );
       BOOLEAN _checkDelimeters(string &stringDelimiter, string &fieldDelimiter,
                                string &recordDelimiter);
 

@@ -3702,7 +3702,7 @@ namespace engine
       string userFullName ;
       string cipherFile ;
       stringstream ss ;
-      passwd::utilPasswordTool passwdTool ;
+      utilPasswordTool passwdTool ;
 
       BSONObjIterator itr( cipherUserObj ) ;
       while ( itr.more() )
