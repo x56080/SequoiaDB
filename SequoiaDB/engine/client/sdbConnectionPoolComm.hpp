@@ -127,7 +127,8 @@ namespace sdbclient
       /** \fn void setAuthInfo( const string& username,
                                 const string& cipherFile,
                                 const string& token )
-         \brief Set authentication information
+         \brief Set authentication information, if a password has been set,
+         the password is preferred over the cipherfile
          \param [in] username The user name
          \param [in] cipherFile The cipherfile location
          \param [in] token The password encryption token
