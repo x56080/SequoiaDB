@@ -1,5 +1,5 @@
-#ifndef DS_COMMON_HPP
-#define DS_COMMON_HPP
+#ifndef CONNPOOL_COMMON_HPP
+#define CONNPOOL_COMMON_HPP
 
 #if defined (_WINDOWS)
 #include <windows.h>

@@ -1,5 +1,5 @@
 /********************************************************************
- * @Description: testcase for datasource
+ * @Description: testcase for connectionpool
  *               seqDB-9530:addCoord增加的url不符合格式要求
  *               seqDB-9531:addCoord增加的url已经存在
  *               seqDB-9532:removeCoord的url不符合格式要求
@@ -26,7 +26,7 @@
  ********************************************************************/
 #include <gtest/gtest.h>
 #include <sdbConnectionPool.hpp>
-#include "DS_common.hpp"
+#include "connpool_common.hpp"
 
 using namespace sdbclient ;
 
@@ -44,7 +44,7 @@ protected:
    void TearDown()
    {
       INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -56,13 +56,13 @@ TEST_F( connTest9505, enableConn9530 )
 	conf.setSyncCoordInterval( 0 ) ;
 	sdb* conn = NULL ;
 
-   // init enable datasource and get connection
+   // init enable connectionpool and get connection
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection before enable" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection after enable" ;
 	ds.releaseConnection( conn ) ;
@@ -100,11 +100,11 @@ TEST_F( connTest9505, enableConn9530 )
 TEST_F( connTest9505, fullConn9505 )
 {
    INT32 rc = SDB_OK ;
-   // init and enable datasource
+   // init and enable connectionpool
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection until max count
 	sdb* conn = NULL ;
@@ -130,33 +130,33 @@ TEST_F( connTest9505, fullConn9505 )
 TEST_F( connTest9505, disableConn9515 )
 {
    INT32 rc = SDB_OK ;
-   // init and disable datasource
+   // init and disable connectionpool
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 
    // get connection
 	sdb* conn = NULL ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection when datasource disabled" ;
+	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection when connectionpool disabled" ;
 
    // add/remove coord
 	ds.addCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to test add coord after disable datasource" ;			
+   ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to test add coord after disable connectionpool" ;			
 	ds.removeCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 1, ds.getNormalCoordNum() ) << "fail to test remove coord after disable datasource" ;
+   ASSERT_EQ( 1, ds.getNormalCoordNum() ) << "fail to test remove coord after disable connectionpool" ;
 }
 
 // 禁用连接池后资源回收情况,禁用连接池后,连接队列被清空( 9506-9507 )
 TEST_F( connTest9505, disableResource9506 )
 {
    INT32 rc = SDB_OK ;
-   // init enable datasource
+   // init enable connectionpool
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection and check idle/used conn num
 	sdb* conn ;
@@ -168,20 +168,20 @@ TEST_F( connTest9505, disableResource9506 )
    
    // disable and check idle/used conn num
    rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
-   ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after disable datasource" ;
-	ASSERT_EQ( 0, ds.getUsedConnNum() ) << "fail to check used conn num after disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
+   ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after disable connectionpool" ;
+	ASSERT_EQ( 0, ds.getUsedConnNum() ) << "fail to check used conn num after disable connectionpool" ;
 }
 
 // 重复禁用连接池后资源回收情况,禁用连接池后,连接队列被清空
 TEST_F( connTest9505, disableResourceAgain9509 )
 {
    INT32 rc = SDB_OK ;
-   // init enable datasource
+   // init enable connectionpool
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // getConnection
 	sdb* conn ;
@@ -191,15 +191,15 @@ TEST_F( connTest9505, disableResourceAgain9509 )
 	ASSERT_EQ( 1, ds.getUsedConnNum() ) << "fail to check used conn num" ;
    ds.releaseConnection( conn ) ;
 
-   // disable datasource
+   // disable connectionpool
    rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
-	ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after disable datasource" ;
-	ASSERT_EQ( 0, ds.getUsedConnNum() ) << "fail to check used conn num after disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
+	ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after disable connectionpool" ;
+	ASSERT_EQ( 0, ds.getUsedConnNum() ) << "fail to check used conn num after disable connectionpool" ;
 
-   // disable datasource again
+   // disable connectionpool again
    rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource again" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool again" ;
    ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num again" ;
 	ASSERT_EQ( 0, ds.getUsedConnNum() ) << "fail to check used conn num again" ;
 }
@@ -208,13 +208,13 @@ TEST_F( connTest9505, disableResourceAgain9509 )
 TEST_F( connTest9505, close9517 )
 {
    INT32 rc = SDB_OK ;
-   // init enable datasource   
+   // init enable connectionpool   
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
-   // close datasource
+   // close connectionpool
 	ds.close() ;
 	
    // operation after close
@@ -253,20 +253,20 @@ TEST_F( connTest9505, withoutInit9510 )
 TEST_F( connTest9505, disableWithoutRelease9521 )
 {
    INT32 rc = SDB_OK ;
-   // init enable datasource
+   // init enable connectionpool
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection
 	sdb* conn = NULL ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
 
-   // disable datasource
+   // disable connectionpool
    rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 
    // 此处不应该如此使用，请参考SEQUOIADBMAINSTREAM-2854以了解更多信息。
    // ASSERT_EQ( 1, conn->isValid() ) << "fail to check connection valid" ;  connection invalid
@@ -277,11 +277,11 @@ TEST_F( connTest9505, disableWithoutRelease9521 )
 TEST_F( connTest9505, releaseNormalConnection9534 )
 {
    INT32 rc = SDB_OK ;
-   // init enable datasource
+   // init enable connectionpool
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get a normal connection
    sdb tmp ;

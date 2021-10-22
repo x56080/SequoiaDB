@@ -105,8 +105,8 @@ TEST_F( closeAllCursorsTest14183, normalConn )
    db.disconnect() ;
 }
 
-// test close all cursors with datasource connection
-TEST_F( closeAllCursorsTest14183, datasourceConn )
+// test close all cursors with connectionpool connection
+TEST_F( closeAllCursorsTest14183, connectionPoolConn )
 {
    INT32 rc = SDB_OK ;
 
@@ -115,9 +115,9 @@ TEST_F( closeAllCursorsTest14183, datasourceConn )
 
    conf.setAuthInfo( user, passwd ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init data source" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable data source" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    sdb* conn = &db ;
    rc = ds.getConnection( conn ) ;
@@ -141,6 +141,6 @@ TEST_F( closeAllCursorsTest14183, datasourceConn )
    ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs" ;
 
    rc = ds.disable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to disable data source" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
    ds.close() ;
 }

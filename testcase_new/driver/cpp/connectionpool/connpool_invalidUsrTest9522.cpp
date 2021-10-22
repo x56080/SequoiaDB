@@ -1,14 +1,14 @@
 /*************************************************************
- * @Description: testcase for datasource
- *               seqDB-9522:提供不合法的_userName
- *               seqDB-9523:提供不合法的_passwd
+ * @Description: testcase for connectionpool
+ *               seqDB-9522:鎻愪緵涓嶅悎娉曠殑_userName
+ *               seqDB-9523:鎻愪緵涓嶅悎娉曠殑_passwd
  * @Modify:      Liangxw
  *               2019-09-05
  *************************************************************/
 #include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
-#include "DS_common.hpp"
+#include "connpool_common.hpp"
 
 using namespace std ;
 using namespace sdbclient ;
@@ -27,12 +27,12 @@ protected:
    void TearDown()
    {
       INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
 
-// 用户信息非法时，init/enable正常返回, getConnection报错( 9522-9523 )
+// 鐢ㄦ埛淇℃伅闈炴硶鏃讹紝init/enable姝ｅ父杩斿洖, getConnection鎶ラ敊( 9522-9523 )
 TEST_F( invalidUsrTest9522, userInfo9522 )
 {
    INT32 rc = SDB_OK ;
@@ -40,9 +40,9 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // init enable and get connection
 	sdb* conn = NULL ;
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
 
@@ -65,9 +65,9 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // test get connection with illegal username
 	conf.setAuthInfo( "lxw", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with invalid user" ;
 	ds.close() ;
@@ -75,9 +75,9 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // test get connection with no passwd
 	conf.setAuthInfo( "root", "" ) ;
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to test init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to test init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with no passwd" ;
 	ds.close() ;
@@ -85,9 +85,9 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // test get connection with illegal passwd
 	conf.setAuthInfo( "root", "seq" ) ;
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with illegal passwd" ;
 	ds.close() ;
@@ -95,9 +95,9 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    // test get connection with legal user and remove user
 	conf.setAuthInfo( "root", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
    rc = conn->removeUsr( "root", "sequoiadb" ) ;
