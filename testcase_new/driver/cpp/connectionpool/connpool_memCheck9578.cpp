@@ -1,5 +1,5 @@
 /*************************************************************
- * @Desciption: testcase for datasource
+ * @Desciption: testcase for connectionpool
  *              seqDB-9578:valgrind校验是否有内存泄露
  *              手工测试用例，不加入scons脚本
  * @Modify:     Liangxw
@@ -9,7 +9,7 @@
 #include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
-#include "DS_common.hpp"
+#include "connpool_common.hpp"
 
 using namespace sdbclient ;
 using namespace std ;
@@ -28,7 +28,7 @@ protected:
    void TearDown()
    {
       INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }   
 } ;
@@ -39,9 +39,9 @@ TEST_F( memTest9578, memCheck9578 )
    INT32 rc = SDB_OK ;
 
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	sdb* conn ;
 	CHAR ch ;

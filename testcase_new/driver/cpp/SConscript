@@ -24,12 +24,12 @@ testFiles = [
    [ "./lob/lob23377.cpp" ],
    [ "./lob/lob23411.cpp" ],
    [ "./checkClientCataVersion/checkClientCataVersion22815.cpp" ],
-   [ "./datasource/DS_connTest9505.cpp" ],
-   [ "./datasource/DS_invalidArgTest9524.cpp" ],
-   [ "./datasource/DS_invalidConnTest9528.cpp" ],
-   [ "./datasource/DS_invalidUsrTest9522.cpp" ],  # sync
-   [ "./datasource/DS_threadTest9535.cpp", "./datasource/DS_thread.cpp" ],
-   [ "./datasource/DS_timeTest9499.cpp" ],  # sync
+   [ "./connectionpool/connpool_connTest9505.cpp" ],
+   [ "./connectionpool/connpool_invalidArgTest9524.cpp" ],
+   [ "./connectionpool/connpool_invalidConnTest9528.cpp" ],
+   [ "./connectionpool/connpool_invalidUsrTest9522.cpp" ],  # sync
+   [ "./connectionpool/connpool_threadTest9535.cpp", "./connectionpool/connpool_thread.cpp" ],
+   [ "./connectionpool/connpool_timeTest9499.cpp" ],  # sync
    [ "./meta/domain12510_12658.cpp" ], # sync
    [ "./meta/domain12657.cpp" ], # sync
    [ "./meta/cs12511_12659.cpp" ],

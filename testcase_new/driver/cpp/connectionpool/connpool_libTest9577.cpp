@@ -1,5 +1,5 @@
 /*****************************************************************
- * @Description: testcase for datasource
+ * @Description: testcase for connectionpool
  *               seqDB-9577:用新版本的驱动替换旧版本驱动的动态库
  *               手工验证，不加入scons编译脚本    
  * @Modify:      Liangxw
@@ -8,7 +8,7 @@
 #include <client.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
-#include "DS_common.hpp"
+#include "connpool_common.hpp"
 
 using namespace sdbclient ;
 using namespace std ;

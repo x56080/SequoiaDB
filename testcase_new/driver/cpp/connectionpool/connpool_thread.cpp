@@ -2,8 +2,8 @@
  * c++驱动连接池并发测试的线程函数
  *
  *****************************************************/
-#include "DS_thread.hpp"
-#include "DS_common.hpp"
+#include "connpool_thread.hpp"
+#include "connpool_common.hpp"
 #include <ctime>
 
 
@@ -28,7 +28,7 @@ void init( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 }
 
 void init_enable( DsArgs* arg )
@@ -38,9 +38,9 @@ void init_enable( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 }
 
 void init_disable( DsArgs* arg )
@@ -50,9 +50,9 @@ void init_disable( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 }
 
 void init_close( DsArgs* arg )
@@ -62,7 +62,7 @@ void init_close( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 	arg->getDs().close() ;
 }
 
@@ -73,9 +73,9 @@ void init_conn( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
@@ -89,7 +89,7 @@ void init_coord( DsArgs* arg )
 	sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 	string url1 = "localhost:11910" ;
 	arg->getDs().addCoord( url1 ) ;
 	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
@@ -102,7 +102,7 @@ void enable( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 }
 
 void enable_disable( DsArgs* arg )
@@ -110,9 +110,9 @@ void enable_disable( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 }
 
 void enable_close( DsArgs* arg )
@@ -120,7 +120,7 @@ void enable_close( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	arg->getDs().close() ;
 }
 
@@ -129,7 +129,7 @@ void enable_conn( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
@@ -141,7 +141,7 @@ void enable_coord( DsArgs* arg )
    INT32 rc = SDB_OK ;
    ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	string url1 = "localhost:11910" ;
 	arg->getDs().addCoord( url1 ) ;
 	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
@@ -154,7 +154,7 @@ void disable( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 }
 
 void disable_close( DsArgs* arg )
@@ -162,7 +162,7 @@ void disable_close( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 	arg->getDs().close() ;
 }
 
@@ -171,7 +171,7 @@ void disable_conn( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 	sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
 	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection" ;
@@ -183,7 +183,7 @@ void disable_coord( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
    rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
 	string url1 = "localhost:11910" ;
 	arg->getDs().addCoord( url1 ) ;
 	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;

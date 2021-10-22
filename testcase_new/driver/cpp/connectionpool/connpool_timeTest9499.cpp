@@ -1,5 +1,5 @@
 /*********************************************************************************
- * @Description: test case for datasource
+ * @Description: test case for connectionpool
  *               seqDB-9499:申请连接超过最大闲置连接数后,一段时间内持续归还连接,
  *                          等待空闲时长大于checkInterval 
  *               seqDB-9500:申请连接超过最大闲置连接数后,一段时间内持续归还连接,
@@ -15,7 +15,7 @@
 #include <sdbConnectionPool.hpp>
 #include <iostream>
 #include <vector>
-#include "DS_common.hpp"
+#include "connpool_common.hpp"
 
 using namespace std ;
 using namespace sdbclient ;
@@ -34,7 +34,7 @@ protected:
    void TearDown()
    {
       INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -48,14 +48,14 @@ TEST_F( timeTest9499, checkIntervalLong9499 )
 
    conf.setCheckIntervalInfo( 3000, 0 ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    while( vec.size() <= conf.getMaxIdleCount() )
    {
       rc = ds.getConnection( conn ) ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from connectionpool" ;
       vec.push_back( conn ) ;
    }
 
@@ -80,15 +80,15 @@ TEST_F( timeTest9499, checkIntervalShort9500 )
 
    conf.setCheckIntervalInfo( 3000, 0 ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection more than max idle connection num 20
    while( vec.size() <= conf.getMaxIdleCount()+10 )
    {
       rc = ds.getConnection( conn ) ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from datasource" ;
+      ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from connectionpool" ;
       vec.push_back( conn ) ;
    }
    cout << "vector of connection size is " << vec.size() << endl ;
@@ -111,12 +111,12 @@ TEST_F( timeTest9499, keepAliveTimoutZero9503 )
 
    conf.setCheckIntervalInfo( 3000, 0 ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from connectionpool" ;
    ASSERT_EQ( 9, ds.getIdleConnNum() ) << "fail to check idle conn num" ;
 
    // release connection
@@ -136,12 +136,12 @@ TEST_F( timeTest9499, keepAliveTimoutNotZero9504 )
    // set checkInterval 3000ms keepAliveTimeout 6000ms
    conf.setCheckIntervalInfo( 3000, 6000 ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection from connectionpool" ;
    ASSERT_EQ( 9, ds.getIdleConnNum() ) << "fail to check idle conn num" ;
 
    // 获取连接后休眠时间>keepAliveTimeout,连接超时,此时连接池里的连接也都超时了。
@@ -163,9 +163,9 @@ TEST_F( timeTest9499, keepAliveTimoutNotZeroAgain9504 )
    // set checkInterval 3000ms keepAliveTimeout 9000ms
    conf.setCheckIntervalInfo( 3000, 9000 ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection and check idle conn num
    rc = ds.getConnection( conn ) ;
@@ -181,7 +181,7 @@ TEST_F( timeTest9499, keepAliveTimoutNotZeroAgain9504 )
    ASSERT_EQ( 0, ds.getIdleConnNum() ) ;
 
    // craete/drop cs to check connection valid
-   const CHAR* csName = "datasourceTestCs_9504" ;      
+   const CHAR* csName = "connectionpoolTestCs_9504" ;      
    rc = conn->createCollectionSpace( csName, SDB_PAGESIZE_4K, cs ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;   
    rc = conn->dropCollectionSpace( csName ) ;
@@ -211,9 +211,9 @@ TEST_F( timeTest9499, trueTest9501 )
    conf.setValidateConnection( true ) ;
    conf.setSyncCoordInterval( false ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    
    // get connection
    rc = ds.getConnection( conn ) ;
@@ -304,9 +304,9 @@ TEST_F( timeTest9499, falseTest9502 )
    conf.setValidateConnection( false ) ;
    conf.setSyncCoordInterval( false ) ;
    rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable datasource" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    // get connection
    rc = ds.getConnection( conn ) ;
