@@ -3867,7 +3867,7 @@ INT32 _sdbCi::splitAuth()
    // assume the user has only specified 'user' as in the case of cipherfile
    if ( NULL == pch )
    {
-      passwd::utilPasswordTool passwdTool ;
+      utilPasswordTool passwdTool ;
       std::string user = _auth ;
       std::string connectionUserName ;
       std::string passwd ;
@@ -3896,19 +3896,30 @@ INT32 _sdbCi::splitAuth()
             goto error ;
          }
          ossStrncpy ( _cipherfile, filePath.c_str(), filePath.length() ) ;
-         connectionUserName = passwd::utilGetUserShortNameFromUserFullName(
-                              user ) ;
+         connectionUserName = utilGetUserShortNameFromUserFullName( user ) ;
       }
       else
       {
+         BOOLEAN isNormalInput = FALSE ;
+
          connectionUserName = _auth ;
          if ( 0 != ossStrlen( _token ) || 0 != ossStrlen( _cipherfile ) )
          {
             passwd = "" ;
+            isNormalInput = TRUE ;
          }
          else
          {
-            passwd = passwdTool.interactivePasswdInput() ;
+            // if we execute Ctrl + c while entering the password,
+            // interactivePasswdInput function will return false.
+            isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
+         }
+
+         if ( !isNormalInput )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+            goto error ;
          }
       }
       ossStrcpy( g_username, connectionUserName.c_str() ) ;

@@ -45,13 +45,15 @@ using namespace std ;
 
 #define LOG_FILE "sdblobtool.log"
 
+vector<string> passwdVec ;
+
 #define COMMANDS_OPTIONS \
         ( PMD_COMMANDS_STRING("help", ",h"), "Help" )\
         ( PMD_COMMANDS_STRING("version", ",v"), "Version" )\
         ( MIG_HOSTNAME, boost::program_options::value<string>(), "The host name of coord. Default value is localhost." )\
         ( MIG_SERVICE, boost::program_options::value<string>(), "The service name of coord. Default value is \"11810\"." )\
         ( MIG_USRNAME, boost::program_options::value<string>(), "Username" )\
-        ( MIG_PASSWD, implicit_value<string>(""), "Password" )\
+        ( MIG_PASSWD, boost::program_options::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), "Password" )\
         ( MIG_CIPHERFILE, boost::program_options::value<string>(), "cipher file location, default ~/sequoiadb/passwd" )\
         ( MIG_CIPHER, boost::program_options::value<bool>(), "input password using a cipher file" )\
         ( MIG_TOKEN, boost::program_options::value<string>(), "password encryption token" )\
@@ -79,7 +81,8 @@ static void initDesc( po::options_description &desc )
 static INT32 parseCmdLine( const po::options_description &desc,
                            const po::variables_map &vm,
                            bson::BSONObj &obj,
-                           BOOLEAN &doNothing )
+                           BOOLEAN &doNothing,
+                           INT32 argc )
 {
    INT32 rc = SDB_OK ;
    bson::BSONObjBuilder builder ;
@@ -137,17 +140,32 @@ static INT32 parseCmdLine( const po::options_description &desc,
 
       if ( vm.count( MIG_PASSWD ) )
       {
-         string passwd = vm[MIG_PASSWD].as<string>() ;
-         if ( "" == passwd )
+         string  passwd ;
+         BOOLEAN isNormalInput = FALSE ;
+
+         if ( 0 == passwdVec.size() )
          {
-            passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
+            isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
          }
+         else
+         {
+            isNormalInput = TRUE ;
+            passwd = passwdVec[0] ;
+         }
+
+         if ( !isNormalInput )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+            goto error ;
+         }
+
          builder.append( MIG_USRNAME, user ) ;
          builder.append( MIG_PASSWD, passwd ) ;
       }
       else
       {
-         passwd::utilPasswordTool passwdTool ;
+         utilPasswordTool passwdTool ;
          string passwd ;
 
          if ( vm.count(MIG_CIPHER) && vm[MIG_CIPHER].as<bool>() )
@@ -168,8 +186,7 @@ static INT32 parseCmdLine( const po::options_description &desc,
                        cipherfile.c_str(), rc ) ;
                goto error ;
             }
-            connectionUserName = passwd::utilGetUserShortNameFromUserFullName(
-                                 user ) ;
+            connectionUserName = utilGetUserShortNameFromUserFullName( user ) ;
             builder.append( MIG_USRNAME, connectionUserName ) ;
             builder.append( MIG_PASSWD, passwd ) ;
          }
@@ -339,7 +356,7 @@ INT32 main( INT32 argc, CHAR *argv[] )
       goto error ;
    }
 
-   rc = parseCmdLine( desc, vm, options, doNothing ) ;
+   rc = parseCmdLine( desc, vm, options, doNothing, argc ) ;
    if ( SDB_OK != rc )
    {
       PD_LOG( PDERROR, "invalid arguments" ) ;

@@ -164,6 +164,8 @@ namespace import
    #define IMP_STR_TRIM_TYPE_EQ(str, type) \
       ((sizeof(type) - 1) == str.length() && ossStrncasecmp(str.c_str(), type, str.length()) == 0)
 
+   vector<string> passwdVec ;
+
    #define IMP_GENERAL_OPTIONS \
       (IMP_OPTION_HELP",h",             /* no arg */     IMP_EXPLAIN_HELP) \
       (IMP_OPTION_VERSION",V",          /* no arg */     IMP_EXPLAIN_VERSION) \
@@ -171,7 +173,7 @@ namespace import
       (IMP_OPTION_SVCNAME",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
       (IMP_OPTION_HOSTS,               _TYPE(string),    IMP_EXPLAIN_HOSTS) \
       (IMP_OPTION_USER",u",            _TYPE(string),    IMP_EXPLAIN_USER) \
-      (IMP_OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), IMP_EXPLAIN_PASSWORD) \
+      (IMP_OPTION_PASSWORD",w", po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), IMP_EXPLAIN_PASSWORD) \
       (IMP_OPTION_CIPHERFILE,          _TYPE(string),    IMP_EXPLAIN_CIPHERFILE) \
       (IMP_OPTION_CIPHER,              _TYPE(bool),      IMP_EXPLAIN_CIPHER) \
       (IMP_OPTION_TOKEN,               _TYPE(string),    IMP_EXPLAIN_TOKEN) \
@@ -405,7 +407,7 @@ namespace import
          goto done;
       }
 
-      rc = setOptions();
+      rc = setOptions( argc );
       if (SDB_OK != rc)
       {
          goto error;
@@ -494,7 +496,7 @@ namespace import
       return TRUE;
    }
 
-   INT32 Options::setOptions()
+   INT32 Options::setOptions( INT32 argc )
    {
       INT32 rc = SDB_OK;
 
@@ -553,16 +555,31 @@ namespace import
 
          if ( has(IMP_OPTION_PASSWORD) )
          {
-            string passwd = get<string>(IMP_OPTION_PASSWORD) ;
-            if ( "" == passwd )
+            string  passwd ;
+            BOOLEAN isNormalInput = FALSE ;
+
+            if ( 0 == passwdVec.size() )
             {
-               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
+               isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
             }
+            else
+            {
+               isNormalInput = TRUE ;
+               passwd = passwdVec[0] ;
+            }
+
+            if ( !isNormalInput )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+               goto error ;
+            }
+
             _password = passwd ;
          }
          else
          {
-            passwd::utilPasswordTool passwdTool ;
+            utilPasswordTool passwdTool ;
 
             if ( has(IMP_OPTION_CIPHER) && get<bool>(IMP_OPTION_CIPHER) )
             {
@@ -601,7 +618,7 @@ namespace import
                           _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
+               _user = utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {

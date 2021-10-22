@@ -124,7 +124,7 @@ namespace exprt
       BOOLEAN  _cmdHas( const CHAR *option ) const ;
       BOOLEAN  _confHas( const CHAR *option ) const ;
       BOOLEAN  _has( const CHAR *option ) const ;
-      INT32    _setOptions() ;
+      INT32    _setOptions( INT32 argc ) ;
       BOOLEAN  _checkDelimeters( string &stringDelimiter,
                                  string &fieldDelimiter,
                                  string &recordDelimiter ) ;

@@ -41,219 +41,248 @@
 
 #define UTIL_CLEARTEXT_MAX_LENGTH   1024
 
-namespace passwd
+INT32 _utilCipherMgr::_parseLine( const string &line,
+                                  string &userFullName,
+                                  string &cipherText )
 {
-   INT32 _utilCipherMgr::_parseLine( const string &line,
-                                     string &userFullName,
-                                     string &cipherText )
+   INT32 rc = SDB_OK ;
+
+   string::size_type offset = line.find( ":" ) ;
+   if ( string::npos == offset || 0 == offset )
    {
-      INT32 rc = SDB_OK ;
-
-      string::size_type offset = line.find( ":" ) ;
-      if ( string::npos == offset || 0 == offset )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "line [%s] is in wrong foramt. ", line.c_str() ) ;
-         goto error ;
-      }
-
-      userFullName = line.substr( 0, offset ) ;
-      cipherText = line.substr( offset + 1, line.length() - offset - 1 ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "line [%s] is in wrong foramt. ", line.c_str() ) ;
+      goto error ;
    }
 
-   INT32 _utilCipherMgr::_findCipherText( const string &userFullName,
-                                          string &cipherText )
+   userFullName = line.substr( 0, offset ) ;
+   cipherText = line.substr( offset + 1, line.length() - offset - 1 ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _utilCipherMgr::_findCipherText( const string &userFullName,
+                                       string &cipherText )
+{
+   INT32                           rc = SDB_OK ;
+   map<string, string>::iterator   itor ;
+   map<string, string>::iterator   found ;
+   string                          userShortName ;
+   string                          clusterName ;
+   BOOLEAN                         fullMatched  = FALSE ;
+   UINT32                          partMatchNum = 0 ;
+
+   userShortName = utilGetUserShortNameFromUserFullName( userFullName,
+                                                         &clusterName ) ;
+
+   for ( itor = _usersCipher.begin(); itor != _usersCipher.end(); itor++ )
    {
-      INT32                           rc = SDB_OK ;
-      map<string, string>::iterator   itor ;
-      map<string, string>::iterator   found ;
-      string                          userShortName ;
-      string                          clusterName ;
-      BOOLEAN                         fullMatched  = FALSE ;
-      UINT32                          partMatchNum = 0 ;
+      string tmpUser ;
+      string tmpCluster ;
 
-      userShortName = utilGetUserShortNameFromUserFullName( userFullName,
-                                                            &clusterName ) ;
+      tmpUser = utilGetUserShortNameFromUserFullName( itor->first,
+                                                      &tmpCluster ) ;
 
-      for ( itor = _usersCipher.begin(); itor != _usersCipher.end(); itor++ )
+      if ( userShortName == tmpUser && clusterName == tmpCluster )
       {
-         string tmpUser ;
-         string tmpCluster ;
-
-         tmpUser = utilGetUserShortNameFromUserFullName( itor->first,
-                                                         &tmpCluster ) ;
-
-         if ( userShortName == tmpUser && clusterName == tmpCluster )
+         fullMatched  = TRUE ;
+         partMatchNum = 0 ;
+         cipherText = itor->second ;
+         break ;
+      }
+      else if ( clusterName.empty() )
+      {
+         if ( userShortName == tmpUser )
          {
-            fullMatched  = TRUE ;
-            partMatchNum = 0 ;
             cipherText = itor->second ;
-            break ;
-         }
-         else if ( clusterName.empty() )
-         {
-            if ( userShortName == tmpUser )
-            {
-               cipherText = itor->second ;
-               ++partMatchNum ;
-            }
+            ++partMatchNum ;
          }
       }
-
-      if ( partMatchNum > 1 )
-      {
-         PD_LOG ( PDERROR, "Ambiguous user name, try providing cluster name." ) ;
-         std::cerr << "Ambiguous user name, try providing cluster name."
-                   << std::endl ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( !fullMatched && 0 == partMatchNum )
-      {
-         PD_LOG ( PDWARNING, "No corresponding user information." ) ;
-         std::cerr << "No corresponding user information." << std::endl ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
-   BOOLEAN _utilCipherMgr::_isValidHex( const CHAR* hexString )
+   if ( partMatchNum > 1 )
    {
-      UINT32 len = ossStrlen( hexString ) ;
-
-      for( UINT32 i = 0; i < len; ++i )
-      {
-         CHAR tmp = hexString[i] ;
-         if ( ( tmp < '0' && tmp > '9' ) && ( tmp < 'a' && tmp > 'f' ) &&
-              ( tmp < 'A' && tmp > 'F' ) )
-         {
-            return FALSE ;
-         }
-      }
-      return TRUE ;
+      PD_LOG ( PDERROR, "Ambiguous user name, try providing cluster name." ) ;
+      std::cerr << "Ambiguous user name, try providing cluster name."
+                << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   else if ( !fullMatched && 0 == partMatchNum )
+   {
+      PD_LOG ( PDWARNING, "No corresponding user information." ) ;
+      std::cerr << "No corresponding user information." << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
    }
 
-   INT32 _utilCipherMgr::init( utilCipherFile *file )
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+BOOLEAN _utilCipherMgr::_isValidHex( const CHAR* hexString )
+{
+   UINT32 len = ossStrlen( hexString ) ;
+
+   for( UINT32 i = 0; i < len; ++i )
    {
-      INT32  rc          = SDB_OK ;
-      INT64  begin       = 0 ;
-      INT64  lineLen     = 0 ;
-      INT64  contentLen  = 0 ;
-      CHAR*  fileContent = NULL ;
-      string userFullName ;
-      string cipherText ;
-
-      _cipherfile = file ;
-      rc = _cipherfile->read( &fileContent, contentLen ) ;
-      if ( SDB_OK != rc )
+      CHAR tmp = hexString[i] ;
+      if ( ( tmp < '0' && tmp > '9' ) && ( tmp < 'a' && tmp > 'f' ) &&
+           ( tmp < 'A' && tmp > 'F' ) )
       {
-         PD_LOG ( PDERROR, "Failed to read cipher file[%s], rc: %d",
-                  _cipherfile->getFilePath(), rc ) ;
-         goto error ;
+         return FALSE ;
       }
+   }
+   return TRUE ;
+}
 
-      while( begin < contentLen )
-      {
-         const CHAR* find = ossStrstr( fileContent + begin, OSS_NEWLINE ) ;
-         if ( NULL != find )
-         {
-            lineLen = find - ( fileContent + begin ) ;
-            string line( fileContent + begin, lineLen ) ;
-            begin += lineLen + ossStrlen( OSS_NEWLINE ) ;
+INT32 _utilCipherMgr::init( utilCipherFile *file )
+{
+   INT32  rc          = SDB_OK ;
+   INT64  begin       = 0 ;
+   INT64  lineLen     = 0 ;
+   INT64  contentLen  = 0 ;
+   CHAR*  fileContent = NULL ;
+   string userFullName ;
+   string cipherText ;
 
-            if ( SDB_OK == _parseLine( line, userFullName, cipherText ) )
-            {
-               _usersCipher[userFullName] = cipherText ;
-            }
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG ( PDERROR, "Invalid cipher file[%s]",
-                     _cipherfile->getFilePath() ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      if( fileContent )
-      {
-         SDB_OSS_FREE( fileContent ) ;
-         fileContent = NULL ;
-      }
-      return rc ;
-   error:
-      goto done ;
+   _cipherfile = file ;
+   rc = _cipherfile->read( &fileContent, contentLen ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDERROR, "Failed to read cipher file[%s], rc: %d",
+               _cipherfile->getFilePath(), rc ) ;
+      goto error ;
    }
 
-   INT32 _utilCipherMgr::addUser( const string &userFullName,
-                                  const string &token,
-                                  const string &passwd )
+   while( begin < contentLen )
    {
-      INT32  rc = SDB_OK ;
-      string fileContent ;
-      map<string,string>::iterator it ;
-      CHAR cipherText[ UTIL_CLEARTEXT_MAX_LENGTH + 1 ] = { '\0' } ;
-
-      if ( userFullName.empty() )
+      const CHAR* find = ossStrstr( fileContent + begin, OSS_NEWLINE ) ;
+      if ( NULL != find )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "The username can't be empty, rc: %d", rc ) ;
-         goto error ;
-      }
+         lineLen = find - ( fileContent + begin ) ;
+         string line( fileContent + begin, lineLen ) ;
+         begin += lineLen + ossStrlen( OSS_NEWLINE ) ;
 
-      if ( SDB_MAX_USERNAME_LENGTH < userFullName.size() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "The username is too long. Its maximum "
-                  "length is %d, rc: %d", SDB_MAX_USERNAME_LENGTH, rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_MAX_PASSWORD_LENGTH < passwd.size() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "The password is too long. Its maximum "
-                  "length is %d, rc: %d", SDB_MAX_PASSWORD_LENGTH, rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_MAX_TOKEN_LENGTH < token.size() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "The token is too long. Its maximum "
-                  "length is %d, rc: %d", SDB_MAX_TOKEN_LENGTH, rc ) ;
-         goto error ;
-      }
-
-      if ( !passwd.empty() )
-      {
-         rc = utilCipherEncrypt( passwd.c_str(), token.c_str(),
-                                 cipherText, UTIL_CLEARTEXT_MAX_LENGTH + 1 ) ;
-         if ( SDB_OK != rc )
+         if ( SDB_OK == _parseLine( line, userFullName, cipherText ) )
          {
-            PD_LOG ( PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
-            goto error ;
+            _usersCipher[userFullName] = cipherText ;
          }
-         _usersCipher[userFullName] = cipherText ;
       }
       else
       {
-         _usersCipher[userFullName] = "\0" ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Invalid cipher file[%s]",
+                  _cipherfile->getFilePath() ) ;
+         goto error ;
       }
+   }
 
-      it = _usersCipher.begin() ;
-      for ( ; it != _usersCipher.end(); it++ )
+done:
+   if( fileContent )
+   {
+      SDB_OSS_FREE( fileContent ) ;
+      fileContent = NULL ;
+   }
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _utilCipherMgr::addUser( const string &userFullName,
+                               const string &token,
+                               const string &passwd )
+{
+   INT32  rc = SDB_OK ;
+   string fileContent ;
+   map<string,string>::iterator it ;
+   CHAR cipherText[ UTIL_CLEARTEXT_MAX_LENGTH + 1 ] = { '\0' } ;
+
+   if ( userFullName.empty() )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "The username can't be empty, rc: %d", rc ) ;
+      goto error ;
+   }
+
+   if ( SDB_MAX_USERNAME_LENGTH < userFullName.size() )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "The username is too long. Its maximum "
+               "length is %d, rc: %d", SDB_MAX_USERNAME_LENGTH, rc ) ;
+      goto error ;
+   }
+
+   if ( SDB_MAX_PASSWORD_LENGTH < passwd.size() )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "The password is too long. Its maximum "
+               "length is %d, rc: %d", SDB_MAX_PASSWORD_LENGTH, rc ) ;
+      goto error ;
+   }
+
+   if ( SDB_MAX_TOKEN_LENGTH < token.size() )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "The token is too long. Its maximum "
+               "length is %d, rc: %d", SDB_MAX_TOKEN_LENGTH, rc ) ;
+      goto error ;
+   }
+
+   if ( !passwd.empty() )
+   {
+      rc = utilCipherEncrypt( passwd.c_str(), token.c_str(),
+                              cipherText, UTIL_CLEARTEXT_MAX_LENGTH + 1 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
+         goto error ;
+      }
+      _usersCipher[userFullName] = cipherText ;
+   }
+   else
+   {
+      _usersCipher[userFullName] = "\0" ;
+   }
+
+   it = _usersCipher.begin() ;
+   for ( ; it != _usersCipher.end(); it++ )
+   {
+      fileContent += ( it->first + ":" + it->second + OSS_NEWLINE ) ;
+   }
+
+   rc = _cipherfile->write( fileContent ) ;
+   if( SDB_OK != rc )
+   {
+      PD_LOG ( PDERROR, "Failed to write cipher text to the cipher file,"
+               " rc: ", rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _utilCipherMgr::removeUser( const string &userFullName,
+                                  INT32 &retCode )
+{
+   INT32 rc = SDB_OK ;
+
+   map<string, string>::iterator it = _usersCipher.find( userFullName ) ;
+   if ( it != _usersCipher.end() )
+   {
+      string fileContent ;
+
+      _usersCipher.erase( it ) ;
+
+      for( it = _usersCipher.begin(); it != _usersCipher.end(); it++ )
       {
          fileContent += ( it->first + ":" + it->second + OSS_NEWLINE ) ;
       }
@@ -261,94 +290,62 @@ namespace passwd
       rc = _cipherfile->write( fileContent ) ;
       if( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Failed to write cipher text to the cipher file,"
-                  " rc: ", rc ) ;
          goto error ;
       }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
-
-   INT32 _utilCipherMgr::removeUser( const string &userFullName,
-                                     INT32 &retCode )
+   else
    {
-      INT32 rc = SDB_OK ;
-
-      map<string, string>::iterator it = _usersCipher.find( userFullName ) ;
-      if ( it != _usersCipher.end() )
-      {
-         string fileContent ;
-
-         _usersCipher.erase( it ) ;
-
-         for( it = _usersCipher.begin(); it != _usersCipher.end(); it++ )
-         {
-            fileContent += ( it->first + ":" + it->second + OSS_NEWLINE ) ;
-         }
-
-         rc = _cipherfile->write( fileContent ) ;
-         if( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         PD_LOG ( PDWARNING, "No user[%s] password in file[%s]",
-                  userFullName.c_str(), _cipherfile->getFilePath() ) ;
-         std::cout << "No user[" << userFullName.c_str()
-                   << "] password in file["
-                   << _cipherfile->getFilePath() << "]"
-                   << std::endl ;
-         retCode = SDB_INVALIDARG ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      PD_LOG ( PDWARNING, "No user[%s] password in file[%s]",
+               userFullName.c_str(), _cipherfile->getFilePath() ) ;
+      std::cout << "No user[" << userFullName.c_str()
+                << "] password in file["
+                << _cipherfile->getFilePath() << "]"
+                << std::endl ;
+      retCode = SDB_INVALIDARG ;
    }
 
-   INT32 _utilCipherMgr::getPasswd( const string &filePath,
-                                    const string &userFullName,
-                                    const string &token,
-                                    string &passwd )
-   {
-      INT32  rc = SDB_OK ;
-      string cipherText ;
-      CHAR   clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
-
-      rc = _findCipherText( userFullName, cipherText ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      if ( !_isValidHex( cipherText.c_str() ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Invalid cipher file[%s]. The cipher text in the "
-                  "file must be a hexadecimal character, rc: %d",
-                  filePath.c_str(), rc ) ;
-         goto error ;
-      }
-
-      rc = utilCipherDecrypt( cipherText.c_str(), token.c_str(), clearText ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to decrypt user[%s]'s password",
-                  userFullName.c_str() ) ;
-         goto error ;
-      }
-      passwd = clearText ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
+done:
+   return rc ;
+error:
+   goto done ;
 }
+
+INT32 _utilCipherMgr::getPasswd( const string &filePath,
+                                 const string &userFullName,
+                                 const string &token,
+                                 string &passwd )
+{
+   INT32  rc = SDB_OK ;
+   string cipherText ;
+   CHAR   clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
+
+   rc = _findCipherText( userFullName, cipherText ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   if ( !_isValidHex( cipherText.c_str() ) )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "Invalid cipher file[%s]. The cipher text in the "
+               "file must be a hexadecimal character, rc: %d",
+               filePath.c_str(), rc ) ;
+      goto error ;
+   }
+
+   rc = utilCipherDecrypt( cipherText.c_str(), token.c_str(), clearText ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDERROR, "Failed to decrypt user[%s]'s password",
+               userFullName.c_str() ) ;
+      goto error ;
+   }
+   passwd = clearText ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+

@@ -35,51 +35,50 @@
 #include <iostream>
 #include <sstream>
 
-namespace passwd
+BOOLEAN _utilPasswordTool::interactivePasswdInput( string &passwd )
 {
-   string _utilPasswordTool::interactivePasswdInput()
+   CHAR*   line = NULL ;
+   BOOLEAN isNormalInput = FALSE ;
+   setEchoOff() ;
+   if ( ( line = linenoise( "password: " ) ) != NULL )
    {
-      CHAR* line = NULL ;
-      string passwd ;
-      setEchoOff() ;
-      if ( ( line = linenoise( "password: " ) ) != NULL )
-      {
-         passwd = line ;
-         SDB_OSS_ORIGINAL_FREE( line ) ;
-      }
-      setEchoOn() ;
-      return passwd ;
+      // If we enter Ctrl + c, we will not enter this branch.
+      passwd = line ;
+      SDB_OSS_ORIGINAL_FREE( line ) ;
+      isNormalInput = TRUE ;
    }
-
-   INT32 _utilPasswordTool::getPasswdByCipherFile( const string &userFullName,
-                                                   const string &token,
-                                                   string &filePath,
-                                                   string &password )
-   {
-      INT32  rc = SDB_OK ;
-
-      rc = _cipherfile.init( filePath, R_ROLE ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      rc = _cipherMgr.init( &_cipherfile ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      rc = _cipherMgr.getPasswd( filePath, userFullName, token, password ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
+   setEchoOn() ;
+   return isNormalInput ;
 }
+
+INT32 _utilPasswordTool::getPasswdByCipherFile( const string &userFullName,
+                                                const string &token,
+                                                string &filePath,
+                                                string &password )
+{
+   INT32  rc = SDB_OK ;
+
+   rc = _cipherfile.init( filePath, R_ROLE ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _cipherMgr.init( &_cipherfile ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _cipherMgr.getPasswd( filePath, userFullName, token, password ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+

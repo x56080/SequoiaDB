@@ -34,35 +34,32 @@
 
 #include "ossFile.hpp"
 
-namespace passwd
+enum CIPHER_FILE_ROLE
 {
-   enum CIPHER_FILE_ROLE
-   {
-      R_ROLE = 0,
-      W_ROLE
-   } ;
+   R_ROLE = 0,
+   W_ROLE
+} ;
 
-   class _utilCipherFile
-   {
-   public:
-      _utilCipherFile() : _isOpen( FALSE ) {}
-      ~_utilCipherFile() ;
+class _utilCipherFile
+{
+public:
+   _utilCipherFile() : _isOpen( FALSE ) {}
+   ~_utilCipherFile() ;
 
-      INT32       init( string &filePath, UINT32 role ) ;
-      INT32       read( CHAR **fileContent, INT64 &contentLen ) ;
-      INT32       write( const string &fileContent ) ;
-      const CHAR* getFilePath(){ return _filePath.c_str() ; }
+   INT32       init( string &filePath, UINT32 role ) ;
+   INT32       read( CHAR **fileContent, INT64 &contentLen ) ;
+   INT32       write( const string &fileContent ) ;
+   const CHAR* getFilePath(){ return _filePath.c_str() ; }
 
-   private:
-      BOOLEAN _isOpen ;
-      string  _filePath ;
-      engine::ossFile _file ;
-   } ;
-   typedef _utilCipherFile utilCipherFile ;
+private:
+   BOOLEAN _isOpen ;
+   string  _filePath ;
+   engine::ossFile _file ;
+} ;
+typedef _utilCipherFile utilCipherFile ;
 
-   INT32  utilBuildDefaultCipherFilePath( string &cipherFilePath ) ;
-   string utilGetUserShortNameFromUserFullName( const string &userFullName,
-                                                string *clusterName = NULL ) ;
-}
+INT32  utilBuildDefaultCipherFilePath( string &cipherFilePath ) ;
+string utilGetUserShortNameFromUserFullName( const string &userFullName,
+                                             string *clusterName = NULL ) ;
 
 #endif

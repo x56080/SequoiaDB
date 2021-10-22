@@ -38,8 +38,7 @@
 #include <iostream>
 #include "msgDef.h"
 #include "ossVer.h"
-
-using namespace passwd ;
+#include "utilCommon.hpp"
 
 #define PASSWD_OPTIONS_HELP         ( "help" )
 #define PASSWD_OPTIONS_ADDUSER      ( "adduser" )
@@ -54,6 +53,8 @@ using namespace passwd ;
 #define COMMANDS_ADD_PARAM_OPTIONS_END ;
 #define COMMANDS_STRING(a, b) (string(a) + string(b)).c_str()
 
+vector<string> passwdVec ;
+
 #define PASSWD_GENERAL_OPTIONS \
    (COMMANDS_STRING(PASSWD_OPTIONS_HELP, ",h"), "help") \
    (COMMANDS_STRING(PASSWD_OPTIONS_VERSION, ",v"), "version") \
@@ -61,7 +62,7 @@ using namespace passwd ;
    (COMMANDS_STRING(PASSWD_OPTIONS_RMUSER,",r"), po::value<string>(), "remove a user")\
    (COMMANDS_STRING(PASSWD_OPTIONS_TOKEN,",t"), po::value<string>(), "password encryption token")\
    (COMMANDS_STRING(PASSWD_OPTIONS_FILE,",f"), po::value<string>(), "cipher file location, default ~/sequoiadb/passwd")\
-   (COMMANDS_STRING(PASSWD_OPTIONS_PASSWD,",p"), implicit_value<string>(""), "password")
+   (COMMANDS_STRING(PASSWD_OPTIONS_PASSWD,",p"), po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), "password")
 
 enum OP_MODE
 {
@@ -169,13 +170,33 @@ INT32 resolveArgument( INT32 argc, CHAR* argv[],
    if ( OP_ADD_USER == mode )
    {
       string tmpPasswd ;
+
       if ( vm.count( PASSWD_OPTIONS_PASSWD ) )
       {
-         tmpPasswd = vm[PASSWD_OPTIONS_PASSWD].as<string>() ;
-         if ( tmpPasswd.empty() )
+         BOOLEAN isNormalInput = FALSE ;
+
+         if ( 0 == passwdVec.size() )
          {
-            tmpPasswd = passwd::utilPasswordTool::interactivePasswdInput() ;
+            isNormalInput = utilPasswordTool::interactivePasswdInput( tmpPasswd ) ;
          }
+         else
+         {
+            isNormalInput = TRUE ;
+            tmpPasswd = passwdVec[0] ;
+         }
+
+         if ( !isNormalInput )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         std::cerr << "You must input password, rc: " << rc << std::endl ;
+         goto error ;
       }
       passwd = tmpPasswd ;
 
@@ -234,11 +255,7 @@ INT32 mainEntry( INT32 argc, CHAR **argv )
                          mode, filePath ) ;
    if ( rc )
    {
-      if ( SDB_PMD_HELP_ONLY == rc || SDB_SDB_VERSION_ONLY == rc )
-      {
-         rc = SDB_OK;
-      }
-      else
+      if ( SDB_PMD_HELP_ONLY != rc && SDB_SDB_VERSION_ONLY != rc )
       {
          displayArg( desc ) ;
       }
@@ -293,17 +310,41 @@ done:
    {
       if ( OP_ADD_USER == mode )
       {
-         PD_LOG ( PDDEBUG, "Add user[%s] to file[%s] successfuly",
+         std::cout << "Add user[" << userFullName.c_str() << "] to file["
+                   << filePath.c_str() << "] successfully" << std::endl ;
+         PD_LOG ( PDEVENT, "Add user[%s] to file[%s] successfuly",
                   userFullName.c_str(), filePath.c_str() ) ;
       }
       else if ( OP_REMOVE_USER == mode && SDB_OK == retCode )
       {
-         PD_LOG ( PDDEBUG, "Remove user[%s] from file[%s] "
+         std::cout << "Remove user[" << userFullName.c_str() << "] from file["
+                   << filePath.c_str() << "] successfully" << std::endl ;
+         PD_LOG ( PDEVENT, "Remove user[%s] from file[%s] "
                   "successfuly", userFullName.c_str(), filePath.c_str() ) ;
       }
    }
+   if ( SDB_PMD_HELP_ONLY == rc || SDB_SDB_VERSION_ONLY == rc )
+   {
+      rc = SDB_OK ;
+   }
    return rc ;
 error:
+   if ( OP_ADD_USER == mode )
+   {
+      std::cerr << "Add user[" << userFullName.c_str() << "] to file["
+                << filePath.c_str() << "] failed, rc: " << rc
+                << ". See detail in " << SDBPASSWD_LOG << std::endl ;
+      PD_LOG ( PDERROR, "Add user[%s] to file[%s] failed, rc: %d",
+               userFullName.c_str(), filePath.c_str(), rc ) ;
+   }
+   else if ( OP_REMOVE_USER == mode && SDB_OK == retCode )
+   {
+      std::cerr << "Remove user[" << userFullName.c_str() << "] from file["
+                << filePath.c_str() << "] failed, rc: " << rc
+                << ". See detail in " << SDBPASSWD_LOG << std::endl ;
+      PD_LOG ( PDERROR, "Remove user[%s] from file[%s] failed, rc: %d",
+               userFullName.c_str(), filePath.c_str(), rc ) ;
+   }
    goto done ;
 }
 

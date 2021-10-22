@@ -172,6 +172,8 @@ namespace exprt
    #define _TYPE(T) po::value< T >()
    #define _IMPLICIT_TYPE(T,V) implicit_value<T>(V)
 
+   vector<string> passwdVec ;
+
    #define EXP_GENERAL_OPTIONS \
       ( OPTION_HELP",h",               /* no arg */      EXPLAIN_HELP ) \
       ( OPTION_VERSION,                /* no arg */      EXPLAIN_VERSION ) \
@@ -179,7 +181,7 @@ namespace exprt
       ( OPTION_SVCNAME",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
       ( OPTION_HOSTS,                  _TYPE(string),    EXPLAIN_HOSTS ) \
       ( OPTION_USER",u",               _TYPE(string),    EXPLAIN_USER ) \
-      ( OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), EXPLAIN_PASSWORD ) \
+      ( OPTION_PASSWORD",w",           po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), EXPLAIN_PASSWORD ) \
       ( OPTION_CIPHER,                 _TYPE(bool),      EXPLAIN_CIPHER ) \
       ( OPTION_TOKEN,                  _TYPE(string),    EXPLAIN_TOKEN ) \
       ( OPTION_CIPHERFILE,             _TYPE(string),    EXPLAIN_CIPHERFILE ) \
@@ -541,7 +543,7 @@ namespace exprt
          }
       }
 
-      rc = _setOptions() ;
+      rc = _setOptions( argc ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Invalid options , rc = %d", rc ) ;
@@ -1195,7 +1197,7 @@ namespace exprt
       goto done ;
    }
 
-   INT32 expOptions::_setOptions()
+   INT32 expOptions::_setOptions( INT32 argc )
    {
       INT32 rc = SDB_OK ;
 
@@ -1254,16 +1256,31 @@ namespace exprt
 
          if ( _has(OPTION_PASSWORD) )
          {
-            string passwd = _get<string>(OPTION_PASSWORD) ;
-            if ( "" == passwd )
+            string  passwd ;
+            BOOLEAN isNormalInput = FALSE ;
+
+            if ( 0 == passwdVec.size() )
             {
-               passwd = passwd::utilPasswordTool::interactivePasswdInput() ;
+               isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
             }
+            else
+            {
+               isNormalInput = TRUE ;
+               passwd = passwdVec[0] ;
+            }
+
+            if ( !isNormalInput )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
+               goto error ;
+            }
+
             _password = passwd ;
          }
          else
          {
-            passwd::utilPasswordTool passwdTool ;
+            utilPasswordTool passwdTool ;
 
             if ( _has(OPTION_CIPHER) && _get<bool>(OPTION_CIPHER) )
             {
@@ -1281,7 +1298,7 @@ namespace exprt
                           _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
-               _user = passwd::utilGetUserShortNameFromUserFullName( _user ) ;
+               _user = utilGetUserShortNameFromUserFullName( _user ) ;
             }
             else
             {
