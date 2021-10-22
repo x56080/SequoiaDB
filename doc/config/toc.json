@@ -809,7 +809,7 @@
                       {
                         "id": 1432191413,
                         "file": "dbpath_modify",
-                        "cn": "数据文件",
+                        "cn": "dbpath",
                         "en": "dbpath_modify"
                       },
                       {
