@@ -1,4 +1,4 @@
-数据文件存储在 dbpath 指定的路径下。如果需要修改 dbpath，则要将数据文件存储原路径下的文件转移至目标路径。下面以节点"sdbserver1:11820"、原路径 `/opt/sequoiadb/database/data/11820` 为例，介绍修改 dbpath 的详细步骤：
+数据文件存储在 dbpath 指定的路径下。如果需要修改 dbpath，则要将数据文件存储原路径下的文件转移至目标路径。下面以节点"sdbserver1:11820"（其数据文件存储原路径为 `/opt/sequoiadb/database/data/11820`）为例，介绍修改 dbpath 的详细步骤：
 
 1. 停止节点 11820
 
