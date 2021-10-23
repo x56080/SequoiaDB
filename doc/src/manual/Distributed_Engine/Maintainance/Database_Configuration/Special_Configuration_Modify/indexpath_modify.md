@@ -1,54 +1,53 @@
-##indexpath修改##
+索引文件存储在 indexpath 指定的路径下。indexpath 的值默认与 dbpath 相同。如果需要修改 indexpath 的值，建议修改为 ssd 盘下的目录路径。下面以节点"sdbserver1:11820"（其索引文件存储原路径为 `/opt/sequoiadb/database/data/11820`）为例，介绍修改 indexpath 的详细步骤：
 
-indexpath 默认与 dbpath 相同。以下将 indexpath 由：/opt/sequoiadb/database/data/11820，修改为：/opt/sequoiadb/database/data/11820/indexpath。
+1. 停止节点 11820
 
-1. 关闭要修改配置的节点11820。
+    ```lang-bash
+    $ sdbstop -p 11820
+    ```
 
-  ```lang-javascript
-  $ sdbstop -p 11820
-  ```
+2. 创建新的索引文件存储目录，并修改目录权限为数据库管理用户（安装 SequoiaDB 时指定，默认为 sdbadmin）
 
-2. 进入该节点索引文件所在位置，创建新的索引文件存储目录 indexptah。将原有的索引文件 *.idx转移到新的目录。
+    ```lang-bash
+    $ mkdir /data/ssd1/sequoiadb/index/11820
+    $ chown -R sdbadmin:sdbadmin_group /data/ssd1/sequoiadb/index/11820
+    $ chmod 755 /data/ssd1/sequoiadb/index/11820
+    ```
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/database/data/11820
-  $ mkdir indexpath
-  $ chown -R sdbadmin:sdbadmin_group indexpath/
-  $ chmod 755 indexpath/
-  $ mv *.idx indexpath/
-  ```
+3. 切换至原路径
 
- >   **Note:**
- >
- >   注意新创建目录的权限问题。其中 sdbadmin:sdbadmin_group 为 sequoiadb 安装的用户名和用户组。
+    ```lang-bash
+    $ cd /opt/sequoiadb/database/data/11820
+    ```
 
-3. 进入该节点的配置文件所在位置，重新配置参数。将 indexpath 修改为 /opt/sequoiadb/database/data/11820/indexpath。
+4. 将索引文件转移至目标路径
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/conf/local/11820
-  $ vim sdb.conf
-  ```
+    ```lang-bash
+    $ mv *.idx /data/ssd1/sequoiadb/index/11820
+    ```
 
-  修改配置文件如下：
+5. 修改节点 11820 的配置文件
 
-  ```lang-ini
-  ...
-  indexpath=/opt/sequoiadb/database/data/11820/indexpath
-  ...
-  ```
+    ```lang-bash
+    vim /opt/sequoiadb/conf/local/11820/sdb.conf
+    ```
 
-4. 重新启动节点。
+    将参数 indexpath 修改为 `/data/ssd1/sequoiadb/index/11820`
 
-  ```lang-javascript
-  $ sdbstart -p 11820
-  ```
+    ```lang-ini
+    ...
+    indexpath=/data/ssd1/sequoiadb/index/11820
+    ...
+    ```
 
-5. 连接协调节点11810，使用快照查看节点11820的配置参数。
+6. 重启节点 11820
 
-  ```lang-javascript
-  > var db=new Sdb("localhost",11810)
-  > db.snapshot(SDB_SNAP_CONFIGS,{"svcname":"11820"},{"indexpath":""})
-  {
-  "indexpath": "/opt/sequoiadb/database/data/11820/indexpath/"
-  }
-  ```
+    ```lang-bash
+    $ sdbstart -p 11820
+    ```
+
+7. 通过快照查看节点 11820 的配置信息
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_CONFIGS, {"svcname": "11820"}, {"indexpath": ""})
+    ```

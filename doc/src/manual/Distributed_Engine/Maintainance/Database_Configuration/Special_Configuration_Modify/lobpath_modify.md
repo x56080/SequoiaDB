@@ -1,4 +1,4 @@
-lobpath 用于修改大对象数据文件的存储路径，默认为 dbpath 指定的路径。修改前需要将原路径下的大对象数据文件和大对象元数据文件转移至目标路径，以节点 11820 为例，具体操作如下：
+大对象数据文件存储在 lobpath 指定的路径下。lobpath 的值默认与 dbpath 相同。下面以节点"sdbserver1:11820"（其大对象数据文件存储原路径为 `/opt/sequoiadb/database/data/11820`）为例，介绍修改 lobpath 的详细步骤：
 
 1. 停止节点 11820
 
@@ -9,12 +9,12 @@ lobpath 用于修改大对象数据文件的存储路径，默认为 dbpath 指�
 2. 创建新的大对象数据文件存储目录，并修改目录权限为数据库管理用户（安装 SequoiaDB 时指定，默认为 sdbadmin）
 
     ```lang-bash
-    $ mkdir /opt/sequoiadb/lobpath_11820
-    $ chown -R sdbadmin:sdbadmin_group /opt/sequoiadb/lobpath_11820
-    $ chmod 755 /opt/sequoiadb/lobpath_11820
+    $ mkdir /data/disk1/sequoiadb/lob/11820
+    $ chown -R sdbadmin:sdbadmin_group /data/disk1/sequoiadb/lob/11820
+    $ chmod 755 /data/disk1/sequoiadb/lob/11820
     ```
 
-3. 切换至原路径（默认为 `/opt/sequoiadb/database/data/11820`）
+3. 切换至原路径
 
     ```lang-bash
     $ cd /opt/sequoiadb/database/data/11820
@@ -23,7 +23,7 @@ lobpath 用于修改大对象数据文件的存储路径，默认为 dbpath 指�
 4. 将大对象数据文件和大对象元数据文件转移至目标路径
 
     ```lang-bash
-    $ mv *.lobd *.lobm /opt/sequoiadb/lobpath_11820
+    $ mv *.lobd *.lobm /data/disk1/sequoiadb/lob/11820
     ```
 
     >**Note:**
@@ -36,11 +36,11 @@ lobpath 用于修改大对象数据文件的存储路径，默认为 dbpath 指�
     $ vim /opt/sequoiadb/conf/local/11820/sdb.conf
     ```
 
-    将参数 lobpath 修改为 `/opt/sequoiadb/lobpath_11820`
+    将参数 lobpath 修改为 `/data/disk1/sequoiadb/lob/11820`
 
     ```lang-ini
     ...
-    lobpath=/opt/sequoiadb/lobpath_11820
+    lobpath=/data/disk1/sequoiadb/lob/11820
     ...
     ```
 
