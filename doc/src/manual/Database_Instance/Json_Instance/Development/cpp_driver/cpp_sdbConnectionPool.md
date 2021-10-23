@@ -3,25 +3,25 @@ C++ 驱动的连接池为用户提供一个快速获取连接实例的途径。
 
 ##连接池用法##
 
-使用类 sdbDatasource 的 getConnection 方法从连接池中获取一个连接，使用 releaseConnection 方法把取出的连接放回连接池。当连接池使用的连接数到达连接上限时，下一个请求连接的操作将会等待一段时间，若在规定的时间内无空闲的连接可用，请求将失败。
+使用类 sdbConnectionPool 的 getConnection 方法从连接池中获取一个连接，使用 releaseConnection 方法把取出的连接放回连接池。当连接池使用的连接数到达连接上限时，下一个请求连接的操作将会等待一段时间，若在规定的时间内无空闲的连接可用，请求将失败。
 
 > **Note:**
 >
-> 类 sdbDataSourceConf 可以设置连接池的各种参数，详情可参考 [C++ API](api/cpp/html/index.html) 介绍。
+> 类 sdbConnectionPoolConf 可以设置连接池的各种参数，详情可参考 [C++ API](api/cpp/html/index.html) 介绍。
 
 ##示例##
 
 ```lang-cpp
 #include "common.hpp"    // by default, this file is in /opt/sequoiadb/samples/CPP
-#include "sdbDataSourceComm.hpp"
-#include "sdbDataSource.hpp"
+#include "sdbConnectionPoolComm.hpp"
+#include "sdbConnectionPool.hpp"
 #include <vector>
 
 using namespace std ;
 using namespace sdbclient ;
 using namespace bson ;
 
-void queryTask( sdbDataSource &ds )
+void queryTask( sdbConnectionPool &connPool )
 {
    INT32                rc = SDB_OK ;
    // 定义 sdb 对象用来连接数据库
@@ -33,10 +33,10 @@ void queryTask( sdbDataSource &ds )
    BSONObj              obj ;
 
    // 向连接池添加一个协调节点
-   ds.addCoord( "192.168.20.53:50000" ) ;
+   connPool.addCoord( "localhost:50000" ) ;
    
    // 从连接池获取一个连接
-   rc = ds.getConnection( connection ) ;
+   rc = connPool.getConnection( connection ) ;
    if ( SDB_OK != rc )
    {
       cout << "Fail to get a connection, rc = " << rc << endl ;
@@ -59,7 +59,7 @@ void queryTask( sdbDataSource &ds )
    // 输出信息
    cout << obj.toString() << endl ;
    // 归还连接到连接池
-   ds.releaseConnection( connection ) ;
+   connPool.releaseConnection( connection ) ;
 done:  
    return ;
 error:  
@@ -70,8 +70,8 @@ error:
 INT32 main( INT32 argc, CHAR **argv )
 {
    INT32                rc = SDB_OK ;
-   sdbDataSourceConf    conf ;
-   sdbDataSource        ds ;
+   sdbConnectionPoolConf    conf ;
+   sdbConnectionPool        connPool ;
 
    // 设置连接池配置，userName="",passwd=""
    conf.setAuthInfo( "", "" ) ;
@@ -91,37 +91,37 @@ INT32 main( INT32 argc, CHAR **argv )
    conf.setUseSSL( FALSE ) ;
    // 提供协调节点信息
    vector<string>        v ;
-   v.push_back( "192.168.20.53:11810" );
-   v.push_back( "192.168.20.53:11910" ) ;
+   v.push_back( "localhost:11810" );
+   v.push_back( "localhost:11910" ) ;
    // 初始化连接池对象
-   rc = ds.init( v, conf ) ;
+   rc = connPool.init( v, conf ) ;
    if ( SDB_OK != rc )
    {
-      cout << "Fail to init sdbDataSouce, rc = " << rc << endl ;
+      cout << "Fail to init sdbConnectionPool, rc = " << rc << endl ;
       goto error ;
    }
 
    // 启动连接池
-   rc = ds.enable() ;
+   rc = connPool.enable() ;
    if ( SDB_OK != rc )
    {
-      cout << "Fail to enable sdbDataSource, rc = " << rc << endl ;
+      cout << "Fail to enable sdbConnectionPool, rc = " << rc << endl ;
       goto error ;
    }
 
    // 在单线程中或多线程中使用连接池对象
-   queryTask( ds ) ;
+   queryTask( connPool ) ;
 
    // 停止连接池
-   rc = ds.disable() ;
+   rc = connPool.disable() ;
    if ( SDB_OK != rc )
    {
-      cout << "Fail to disable sdbDataSource, rc = " << rc << endl ;
+      cout << "Fail to disable sdbConnectionPool, rc = " << rc << endl ;
       goto error ;
    }
 
    // 关闭连接池
-   ds.close() ;
+   connPool.close() ;
 done:  
    return 0 ;
 error:  
