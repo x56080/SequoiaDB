@@ -3201,9 +3201,7 @@ namespace sdbclient
 
       virtual INT32 setDomain ( const bson::BSONObj & options ) = 0 ;
 
-      virtual INT32 getDomain ( _sdbCursor **cursor ) = 0 ;
-
-      virtual INT32 getDomain ( sdbCursor &cursor ) = 0 ;
+      virtual INT32 getDomainName ( CHAR *result, INT32 resultLen ) = 0 ;
 
       virtual INT32 removeDomain () = 0 ;
 
@@ -3513,35 +3511,20 @@ namespace sdbclient
          return pCollectionSpace->setDomain( options ) ;
       }
 
-      /** \fn INT32 getDomain ( _sdbCursor **cursor )
+      /** \fn INT32 getDomainName ( CHAR *result, INT32 resultLen)
           \brief get the Domain name in current collection space.
-          \param [out] cursor  The sdbCursor object of result
+          \param [out] result  Returned domain name in the collection space
+          \param [in] resultLen The length of the result to get the domain name
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 getDomain ( _sdbCursor **cursor )
+      INT32 getDomainName ( CHAR *result, INT32 resultLen )
       {
          if ( !pCollectionSpace )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return  pCollectionSpace->getDomain( cursor ) ;
-      }
-
-      /** \fn INT32 getDomain ( sdbCursor &cursor )
-          \brief get the Domain name in current collection space.
-          \param [out] cursor  The sdbCursor object of result
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
-      INT32 getDomain ( sdbCursor &cursor )
-      {
-         if ( !pCollectionSpace )
-         {
-            return SDB_NOT_CONNECTED ;
-         }
-         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return pCollectionSpace->getDomain( cursor ) ;
+         return pCollectionSpace->getDomainName( result, resultLen ) ;
       }
 
       /** \fn INT32 removeDomain ()

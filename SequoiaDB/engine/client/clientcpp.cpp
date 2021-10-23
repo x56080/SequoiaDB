@@ -5659,12 +5659,15 @@ do                                                            \
       return _alterInternal( SDB_ALTER_CS_SET_DOMAIN, &options, FALSE ) ;
    }
 
-   INT32 _sdbCollectionSpaceImpl::getDomain ( _sdbCursor **cursor )
+   INT32 _sdbCollectionSpaceImpl::getDomainName ( CHAR *result, 
+                                                  INT32 resultLen )
    {
-      INT32 rc                          = SDB_OK ;
-      CHAR sql[ CLIENT_CS_NAMESZ + 50 ] = { 0 } ;
+      INT32 rc = SDB_OK ;
+      CHAR sql[ CLIENT_CS_NAMESZ + 50 ] = { '\0' } ;
+      sdbCursor cursor ;
+      BSONObj   tempObj ;
 
-      if ( !_connection || '\0' == _collectionSpaceName[0] || !cursor )
+      if ( !_connection || '\0' == _collectionSpaceName[0] || resultLen <= 0 )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -5679,6 +5682,30 @@ do                                                            \
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      rc = cursor.next( tempObj ) ;
+      if ( SDB_OK != rc )
+      {
+         // SDB_DMS_EOC will return because the collectionspace was deleted
+         // and this error code doesn't need to be exposed.
+         // SDB_DMS_CS_NOTEXIST is better.
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_DMS_CS_NOTEXIST ;
+         }
+         goto error ;
+      }
+
+      if ( jstNULL != tempObj.firstElement().type() )
+      {
+         ossStrncpy( result, 
+                     tempObj.getStringField( "Domain" ),
+                     resultLen ) ;
+      }
+      else
+      {
+         result[0] = '\0' ;
       }
 
    done :

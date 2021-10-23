@@ -32,6 +32,7 @@
 #include "sptDBCS.hpp"
 #include "sptDBCL.hpp"
 #include "sptDBCursor.hpp"
+#include "clientImpl.hpp"
 
 using sdbclient::_sdbCollectionSpace ;
 using sdbclient::sdbCollectionSpace ;
@@ -50,7 +51,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, listCL )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, alter )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, setDomain )
-   JS_MEMBER_FUNC_DEFINE( _sptDBCS, getDomain )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCS, getDomainName )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, removeDomain )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, enableCapped )
    JS_MEMBER_FUNC_DEFINE( _sptDBCS, disableCapped )
@@ -67,7 +68,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "listCollections", listCL )
       JS_ADD_MEMBER_FUNC( "alter", alter )
       JS_ADD_MEMBER_FUNC( "setDomain", setDomain )
-      JS_ADD_MEMBER_FUNC( "getDomain", getDomain )
+      JS_ADD_MEMBER_FUNC( "getDomainName", getDomainName )
       JS_ADD_MEMBER_FUNC( "removeDomain", removeDomain )
       JS_ADD_MEMBER_FUNC( "enableCapped", enableCapped )
       JS_ADD_MEMBER_FUNC( "disableCapped", disableCapped )
@@ -421,25 +422,24 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptDBCS::getDomain( const _sptArguments &arg, 
-                              _sptReturnVal &rval, 
-                              bson::BSONObj &detail )
+   INT32 _sptDBCS::getDomainName( const _sptArguments &arg, 
+                                  _sptReturnVal &rval, 
+                                  bson::BSONObj &detail )
    {
-      INT32 rc            = SDB_OK ;
-      _sdbCursor *pCursor = NULL ;
+      INT32 rc = SDB_OK ;
+      CHAR result[ CLIENT_DOMAIN_NAMESZ + 1 ] = { '\0' } ;
 
-      rc = _cs.getDomain( &pCursor ) ;
+      rc = _cs.getDomainName( result, CLIENT_DOMAIN_NAMESZ ) ;
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to get domain" ) ;
          goto error ;
       }
-      SPT_SET_CURSOR_TO_RETURNVAL( pCursor ) ;
+      rval.getReturnVal().setValue( result ) ;
    
    done:
       return rc ;
    error:
-      SAFE_OSS_DELETE( pCursor ) ;
       goto done ;
 
    }

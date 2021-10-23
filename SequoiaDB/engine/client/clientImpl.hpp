@@ -931,13 +931,7 @@ namespace sdbclient
 
       INT32 setDomain ( const BSONObj & options ) ;
 
-      INT32 getDomain ( _sdbCursor **cursor ) ;
-
-      INT32 getDomain ( sdbCursor &cursor )
-      {
-         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return getDomain ( &cursor.pCursor ) ;
-      }
+      INT32 getDomainName ( CHAR *result, INT32 resultLen ) ;
 
       INT32 removeDomain () ;
 
