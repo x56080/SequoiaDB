@@ -78,9 +78,9 @@ namespace engine
                        _sptReturnVal &rval,
                        bson::BSONObj &detail ) ;
 
-      INT32 getDomain( const _sptArguments &arg,
-                       _sptReturnVal &rval,
-                       bson::BSONObj &detail ) ;
+      INT32 getDomainName( const _sptArguments &arg,
+                           _sptReturnVal &rval,
+                           bson::BSONObj &detail ) ;
 
       INT32 removeDomain( const _sptArguments &arg,
                           _sptReturnVal &rval,
