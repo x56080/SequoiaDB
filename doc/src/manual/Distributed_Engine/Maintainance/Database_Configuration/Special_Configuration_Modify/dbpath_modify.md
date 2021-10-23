@@ -1,62 +1,63 @@
-##dbpath修改##
+数据文件存储在 dbpath 指定的路径下。如果需要修改 dbpath，则要将数据文件存储原路径下的文件转移至目标路径。下面以节点"sdbserver1:11820"（其数据文件存储原路径为 `/opt/sequoiadb/database/data/11820`）为例，介绍修改 dbpath 的详细步骤：
 
-indexpath、lobpath、lobmetapath 默认与 dbpath 路径相同。在没有指定它们路径的情况下改变 dbpath，不仅要将数据文件进行转移，还要将索引文件、大对象数据文件、大对象元数据文件一并转移。如果指定了它们的路径，则不需要转移。<br>以下均为默认存储路径，将 dbpath 由：/opt/sequoiadb/database/data/11820，修改为：/opt/sequoiadb/database/data/11820/dbpath。
+1. 停止节点 11820
 
-1. 关闭要修改配置的节点11820。
+    ```lang-bash
+    $ sdbstop -p 11820
+    ```
 
-  ```lang-javascript
-  $ sdbstop -p 11820
-  ```
+2. 创建新的数据文件存储目录，并修改目录权限为数据库管理用户（安装 SequoiaDB 时指定，默认为 sdbadmin）
 
-2. 进入该节点数据文件所在位置，创建新的数据文件存储目录 dbpath。设置目录权限，将原有的数据文件 *.data、索引文件 *.idx、大对象数据文件 *.lobd、大对象元数据文件 *.lobm转移到新的目录。
+    ```lang-bash
+    $ mkdir /data/disk1/sequoiadb/data/11820
+    $ chown -R sdbadmin:sdbadmin_group /data/disk1/sequoiadb/data/11820
+    $ chmod 755 /data/disk1/sequoiadb/data/11820
+    ```
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/database/data/11820
-  $ mkdir dbpath
-  $ chown -R sdbadmin:sdbadmin_group dbpath/
-  $ chmod 755 dbpath/
-  $ mv *.data *.idx *.lobd *.lobm dbpath/
-  ```
+3. 切换至原路径
 
- >   **Note:**
- >
- >   系统默认情况下没有大对象文件。<br>
- >   注意新创建目录的权限问题。其中 sdbadmin:sdbadmin_group 为 sequoiadb 安装的用户名和用户组。
+    ```lang-bash
+    $ cd /opt/sequoiadb/database/data/11820
+    ```
 
-3. 进入该节点的配置文件所在位置，重新配置参数。将 dbpath 修改为 /opt/sequoiadb/database/data/11820/dbpath。
+4. 将文件转移至目标路径
 
-  ```lang-bash
-  $ cd /opt/sequoiadb/conf/local/11820
-  $ vim sdb.conf
-  ```
+    ```lang-bash
+    $ mv * /data/disk1/sequoiadb/data/11820
+    ```
 
-  修改配置文件如下：
+    >**Note:**
+    >
+    > 索引文件（.idx）、大对象数据文件（.lobd）和大对象元数据文件（.lobm）默认存储在参数 dbpath 指定的路径，如果配置了 [indexpath][indexpath]、[lobpath][lobpath] 和 [lobmetapath][lobmetapath] 等参数，则需要将上述文件转移至对应目录。 
 
-  ```lang-ini
-  ...
-  dbpath=/opt/sequoiadb/database/data/11820/dbpath
-  ...
-  ```
+5. 修改节点 11820 的配置文件
 
-4. 重新启动节点。
+    ```lang-bash
+    $ vim /opt/sequoiadb/conf/local/11820/sdb.conf
+    ```
 
-  ```lang-javascript
-  $ sdbstart -p 11820
-  ```
+    将参数 dbpath 配置为 `/data/disk1/sequoiadb/data/11820`
 
-5. 新创建的 dbpath 目录下会自动同步生成备份文件 bakfile/*、同步日志文件 replicalog/*、归档日志文件 archivelog/*。原来对应的文件和目录可以删除。
-  
-  ```lang-bash
-  $ cd /opt/sequoiadb/database/data/11820
-  $ rm -rf replicalog/ bakfile/ archivelog/
-  ```
-  
-6. 连接协调节点11810，使用快照查看节点11820的配置参数。
+    ```lang-ini
+    ...
+    dbpath=/data/disk1/sequoiadb/data/11820
+    ...
+    ```
 
-  ```lang-javascript
-  > var db=new Sdb("localhost",11810)
-  > db.snapshot(SDB_SNAP_CONFIGS,{"svcname":"11820"},{"dbpath":""})
-  {
-  "dbpath": "/opt/sequoiadb/database/data/11820/dbpath/"
-  }
-  ```
+6. 重启节点 11820
+
+    ```lang-bash
+    $ sdbstart -p 11820
+    ```
+
+7. 通过快照查看节点 11820 的配置信息
+
+    ```lang-javascript
+    > db.snapshot(SDB_SNAP_CONFIGS, {"svcname": "11820"}, {"dbpath": ""})
+    ```
+
+[^_^]:
+    本文使用的所有引用及连接
+[indexpath]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/indexpath_modify.md
+[lobpath]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/lobpath_modify.md
+[lobmetapath]:manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/lobmetapath_modify.md
