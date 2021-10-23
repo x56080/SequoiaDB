@@ -1,4 +1,4 @@
-lobmetapath 用于修改大对象元数据文件的存储路径，默认为 lobpath 指定的路径。修改前需要将原路径下的大对象元数据文件转移至目标路径，以节点 11820 为例，具体操作如下：
+大对象元数据文件存储在 lobmetapath 指定的路径下。lobmetapath 的值默认与 lobpath 相同。下面以节点"sdbserver1:11820"（其大对象元数据文件存储原路径为 `/opt/sequoiadb/database/data/11820`）为例，介绍修改 lobmetapath 的详细步骤：
 
 1. 停止节点 11820
 
@@ -9,12 +9,12 @@ lobmetapath 用于修改大对象元数据文件的存储路径，默认为 lobp
 2. 创建新的大对象元数据文件存储目录，并修改目录权限为数据库管理用户（安装 SequoiaDB 时指定，默认为 sdbadmin）
 
     ```lang-bash
-    $ mkdir /opt/sequoiadb/lobmetapath_11820
-    $ chown -R sdbadmin:sdbadmin_group /opt/sequoiadb/lobmetapath_11820
-    $ chmod 755 /opt/sequoiadb/lobmetapath_11820
+    $ mkdir /data/disk1/sequoiadb/lobmet/11820
+    $ chown -R sdbadmin:sdbadmin_group /data/disk1/sequoiadb/lobmet/11820
+    $ chmod 755 /data/disk1/sequoiadb/lobmet/11820
     ```
 
-3. 切换至原路径（默认为 `/opt/sequoiadb/database/data/11820`）
+3. 切换至原路径
 
     ```lang-bash
     $ cd /opt/sequoiadb/database/data/11820
@@ -23,7 +23,7 @@ lobmetapath 用于修改大对象元数据文件的存储路径，默认为 lobp
 4. 将大对象元数据文件转移至目标路径
 
     ```lang-bash
-    $ mv *.lobm /opt/sequoiadb/lobmetapath_11820
+    $ mv *.lobm /data/disk1/sequoiadb/lobmet/11820
     ```
 
 5. 修改节点 11820 的配置文件
@@ -32,11 +32,11 @@ lobmetapath 用于修改大对象元数据文件的存储路径，默认为 lobp
     $ vim /opt/sequoiadb/conf/local/11820/sdb.conf
     ```
 
-    将参数 lobmetapath 修改为 `/opt/sequoiadb/lobmetapath_11820`
+    将参数 lobmetapath 修改为 `/data/disk1/sequoiadb/lobmet/11820`
 
     ```lang-ini
     ...
-    lobmetapath=/opt/sequoiadb/lobmetapath_11820
+    lobmetapath=/data/disk1/sequoiadb/lobmet/11820
     ...
     ```
 
