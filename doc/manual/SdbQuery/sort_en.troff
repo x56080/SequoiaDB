@@ -86,9 +86,11 @@ T}@T{
 descending order
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 When find() uses the sel, if the option does not cantain the sort field
 specified by sort(), the sort set by sort() is meaningless and is automatically
@@ -112,18 +114,18 @@ by ascending order of age field values.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ age:\ 1\ }\ )
+> db.foo.bar.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
 {
-\ \ "name":\ "Jack",
-\ \ "age":\ 22
+  "name": "Jack",
+  "age": 22
 }
 {
-\ \ "name":\ "Tom",
-\ \ "age":\ 23
+  "name": "Tom",
+  "age": 23
 }
 {
-\ \ "name":\ "John",
-\ \ "age":\ 25
+  "name": "John",
+  "age": 25
 }
 \f[]
 .fi
@@ -132,18 +134,18 @@ Specifiy an invalid field.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ "sex":\ 1\ }\ )
+> db.foo.bar.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
 {
-\ \ "name":\ "Jack",
-\ \ "age":\ 22
+  "name": "Jack",
+  "age": 22
 }
 {
-\ \ "name":\ "Tom",
-\ \ "age":\ 23
+  "name": "Tom",
+  "age": 23
 }
 {
-\ \ "name":\ "John",
-\ \ "age":\ 25
+  "name": "John",
+  "age": 25
 }
 \f[]
 .fi

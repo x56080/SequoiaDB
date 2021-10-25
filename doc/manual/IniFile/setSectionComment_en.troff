@@ -77,10 +77,10 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
 Set a comment to the specified section.
 .PP
-\f[C]lang\-javascript\ \ \ >\ ini.setSectionComment(\ "info",\ "personal\ information"\ )\f[]
+\f[C]lang\-javascript   > ini.setSectionComment( "info", "personal information" )\f[]

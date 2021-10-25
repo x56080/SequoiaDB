@@ -173,8 +173,8 @@ the temporary sdbcm service alive time is 5 minutes(300 seconds).
 .IP
 .nf
 \f[C]
->\ Oma.start({\ port:11780,standalone:true\ })
-Success:\ sdbcm(11780)\ is\ successfully\ start\ (28741)
+> Oma.start({ port:11780,standalone:true })
+Success: sdbcm(11780) is successfully start (28741)
 \f[]
 .fi
 .RE

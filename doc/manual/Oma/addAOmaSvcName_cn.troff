@@ -97,11 +97,11 @@ v2.0及以上版本。
 的配置文件中。
 .RS 4
 .PP
-\f[C]lang\-javascript\ >\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )\ >\ oma.addAOmaSvcName(\ "sdbserver1",\ 11780,\ false)\f[]
+\f[C]lang\-javascript > var oma = new Oma( "sdbserver1", 11790 ) > oma.addAOmaSvcName( "sdbserver1", 11780, false)\f[]
 .RE
 .IP "2." 3
 查看目标机器上 sdbcm 的配置文件 sdbcm.conf ，会发现多出如下一行：
 .RS 4
 .PP
-\f[C]lang\-javascript\ sdbserver1_Port=11780\f[]
+\f[C]lang\-javascript sdbserver1_Port=11780\f[]
 .RE

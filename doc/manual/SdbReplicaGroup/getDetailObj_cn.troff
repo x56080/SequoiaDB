@@ -37,8 +37,8 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getDetailObj()
+> var rg = db.getRG("group1")
+> rg.getDetailObj()
 \f[]
 .fi
 .PP
@@ -47,37 +47,37 @@ v3.4.2 及以上版本
 .nf
 \f[C]
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "localhost",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11830"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11831"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11832"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1002
-\ \ \ \ }
-\ \ ],
-\ \ "GroupID":\ 1001,
-\ \ "GroupName":\ "group1",
-\ \ "PrimaryNode":\ 1004,
-\ \ "Role":\ 0,
-\ \ "Status":\ 1,
-\ \ "Version":\ 7,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "580043577e70618777a2cf39"
-\ \ }
+  "Group": [
+    {
+      "HostName": "localhost",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11830/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11830"
+        },
+        {
+          "Type": 1,
+          "Name": "11831"
+        },
+        {
+          "Type": 2,
+          "Name": "11832"
+        }
+      ],
+      "NodeID": 1002
+    }
+  ],
+  "GroupID": 1001,
+  "GroupName": "group1",
+  "PrimaryNode": 1004,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580043577e70618777a2cf39"
+  }
 }
 \f[]
 .fi

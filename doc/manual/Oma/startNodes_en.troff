@@ -115,8 +115,8 @@ Since v3.0.2.
 Start a node with the service name 11810.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ 11810\ )
+> var oma = new Oma()
+> oma.startNodes( 11810 )
 \f[]
 .fi
 .RE
@@ -124,8 +124,8 @@ Start a node with the service name 11810.
 Start a node with the service name 11820.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ "11820"\ )
+> var oma = new Oma()
+> oma.startNodes( "11820" )
 \f[]
 .fi
 .RE
@@ -134,8 +134,8 @@ The nodes with the service names 11810, 11820, and 11830 are concurrently
 started.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.startNodes(\ [\ 11810,\ 11820,\ 11830\ ]\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.startNodes( [ 11810, 11820, 11830 ] )
 \f[]
 .fi
 .RE

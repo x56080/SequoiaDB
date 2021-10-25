@@ -621,32 +621,32 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ Sdbtool.listNodes(\ {\ type:\ "all",\ mode:\ "local",\ role:\ "data",\ svcname:\ "20000,\ 40000"\ }\ )
+> Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" } )
 {
-\ \ \ \ "svcname":\ "20000",
-\ \ \ \ "type":\ "sequoiadb",
-\ \ \ \ "role":\ "data",
-\ \ \ \ "pid":\ 17390,
-\ \ \ \ "groupid":\ 1000,
-\ \ \ \ "nodeid":\ 1000,
-\ \ \ \ "primary":\ 1,
-\ \ \ \ "isalone":\ 0,
-\ \ \ \ "groupname":\ "db1",
-\ \ \ \ "starttime":\ "2019\-05\-31\-17.14.14",
-\ \ \ \ "dbpath":\ "/opt/trunk/database/20000/"
+    "svcname": "20000",
+    "type": "sequoiadb",
+    "role": "data",
+    "pid": 17390,
+    "groupid": 1000,
+    "nodeid": 1000,
+    "primary": 1,
+    "isalone": 0,
+    "groupname": "db1",
+    "starttime": "2019\-05\-31\-17.14.14",
+    "dbpath": "/opt/trunk/database/20000/"
 }
 {
-\ \ \ \ "svcname":\ "40000",
-\ \ \ \ "type":\ "sequoiadb",
-\ \ \ \ "role":\ "data",
-\ \ \ \ "pid":\ 17399,
-\ \ \ \ "groupid":\ 1001,
-\ \ \ \ "nodeid":\ 1001,
-\ \ \ \ "primary":\ 0,
-\ \ \ \ "isalone":\ 0,
-\ \ \ \ "groupname":\ "db2",
-\ \ \ \ "starttime":\ "2019\-05\-31\-17.14.14",
-\ \ \ \ "dbpath":\ "/opt/trunk/database/40000/"
+    "svcname": "40000",
+    "type": "sequoiadb",
+    "role": "data",
+    "pid": 17399,
+    "groupid": 1001,
+    "nodeid": 1001,
+    "primary": 0,
+    "isalone": 0,
+    "groupname": "db2",
+    "starttime": "2019\-05\-31\-17.14.14",
+    "dbpath": "/opt/trunk/database/40000/"
 }
 \f[]
 .fi
@@ -657,19 +657,19 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ Sdbtool.listNodes(\ {\ type:\ "all",\ mode:\ "local",\ role:\ "data",\ svcname:\ "20000,\ 40000"\ },\ {\ groupname:\ "db2"\ }\ )
+> Sdbtool.listNodes( { type: "all", mode: "local", role: "data", svcname: "20000, 40000" }, { groupname: "db2" } )
 {
-\ \ \ \ "svcname":\ "40000",
-\ \ \ \ "type":\ "sequoiadb",
-\ \ \ \ "role":\ "data",
-\ \ \ \ "pid":\ 17399,
-\ \ \ \ "groupid":\ 1001,
-\ \ \ \ "nodeid":\ 1001,
-\ \ \ \ "primary":\ 0,
-\ \ \ \ "isalone":\ 0,
-\ \ \ \ "groupname":\ "db2",
-\ \ \ \ "starttime":\ "2019\-05\-31\-17.14.14",
-\ \ \ \ "dbpath":\ "/opt/trunk/database/40000/"
+    "svcname": "40000",
+    "type": "sequoiadb",
+    "role": "data",
+    "pid": 17399,
+    "groupid": 1001,
+    "nodeid": 1001,
+    "primary": 0,
+    "isalone": 0,
+    "groupname": "db2",
+    "starttime": "2019\-05\-31\-17.14.14",
+    "dbpath": "/opt/trunk/database/40000/"
 }
 \f[]
 .fi
@@ -680,19 +680,19 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ Sdbtool.listNodes(\ {\ mode:\ "local",\ svcname:\ "40000"\ },\ {\ groupname:\ "db2"\ },\ "/opt/sequoiadb/conf"\ )
+> Sdbtool.listNodes( { mode: "local", svcname: "40000" }, { groupname: "db2" }, "/opt/sequoiadb/conf" )
 {
-\ \ \ \ "svcname":\ "40000",
-\ \ \ \ "type":\ "sequoiadb",
-\ \ \ \ "role":\ "data",
-\ \ \ \ "pid":\ 17399,
-\ \ \ \ "groupid":\ 1001,
-\ \ \ \ "nodeid":\ 1001,
-\ \ \ \ "primary":\ 0,
-\ \ \ \ "isalone":\ 0,
-\ \ \ \ "groupname":\ "db2",
-\ \ \ \ "starttime":\ "2019\-05\-31\-17.14.14",
-\ \ \ \ "dbpath":\ "/opt/trunk/database/40000/"
+    "svcname": "40000",
+    "type": "sequoiadb",
+    "role": "data",
+    "pid": 17399,
+    "groupid": 1001,
+    "nodeid": 1001,
+    "primary": 0,
+    "isalone": 0,
+    "groupname": "db2",
+    "starttime": "2019\-05\-31\-17.14.14",
+    "dbpath": "/opt/trunk/database/40000/"
 }
 \f[]
 .fi

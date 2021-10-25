@@ -35,6 +35,6 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createSpareRG()
+> db.createSpareRG()
 \f[]
 .fi

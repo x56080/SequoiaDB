@@ -23,7 +23,7 @@ users（ \f[I]object，必填\f[] ）
 name（ \f[I]string\f[] ）：用户名，该参数必填
 .RS 2
 .PP
-格式：\f[C]name:\ "username"\f[]
+格式：\f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
@@ -32,7 +32,7 @@ gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
 该参数可以是用户组的组名或组
 ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
 .PP
-格式：\f[C]gid:\ "groupName"\f[] 或 \f[C]gid:\ "2003"\f[]
+格式：\f[C]gid: "groupName"\f[] 或 \f[C]gid: "2003"\f[]
 .RE
 .IP \[bu] 2
 groups（ \f[I]string\f[] ）：指定附加组
@@ -41,14 +41,14 @@ groups（ \f[I]string\f[] ）：指定附加组
 该参数可以是用户组的组名或组
 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
 .PP
-格式：\f[C]groups:\ "groupName1,groupName2,groupName3"\f[] 或
-\f[C]groups:\ "2004,2005,2006"\f[]
+格式：\f[C]groups: "groupName1,groupName2,groupName3"\f[] 或
+\f[C]groups: "2004,2005,2006"\f[]
 .RE
 .IP \[bu] 2
 createDir（ \f[I]boolean\f[] ）：是否创建用户目录，默认为 false
 .RS 2
 .PP
-格式：\f[C]createDir:\ true\f[]
+格式：\f[C]createDir: true\f[]
 .RE
 .IP \[bu] 2
 dir（ \f[I]string\f[] ）：指定用户目录，仅参数 createDir 为 true 时生效
@@ -57,7 +57,7 @@ dir（ \f[I]string\f[] ）：指定用户目录，仅参数 createDir 为 true �
 该参数不能指定已存在的目录。如果不指定，将会在 \f[C]/home\f[] 目录下创建与参数
 name 同名的目录作为用户目录。
 .PP
-格式：\f[C]dir:\ "userHomeDir"\f[]
+格式：\f[C]dir: "userHomeDir"\f[]
 .RE
 .SH 返回值
 .PP
@@ -77,6 +77,6 @@ name 同名的目录作为用户目录。
 .IP
 .nf
 \f[C]
->\ System.addUser({name:\ "newUser",\ gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+> System.addUser({name: "newUser", gid: "root", createDir: true, dir: "/home/newUser"})
 \f[]
 .fi

@@ -33,6 +33,6 @@ Acquire firewall information
 .IP
 .nf
 \f[C]
->\ System.getIpTablesInfo()
+> System.getIpTablesInfo()
 \f[]
 .fi

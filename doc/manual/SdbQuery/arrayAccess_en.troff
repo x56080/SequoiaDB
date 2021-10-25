@@ -65,13 +65,13 @@ Return the record with array subscript 0.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find().arrayAccess(0)
+> db.foo.bar.find().arrayAccess(0)
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 20
+  "_id": {
+    "$oid": "5cf8aef75e72aea111e82b38"
+  },
+  "name": "tom",
+  "age": 20
 }
 \f[]
 .fi

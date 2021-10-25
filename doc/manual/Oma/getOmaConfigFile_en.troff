@@ -34,7 +34,7 @@ Since v1.0.
 Get the configuration file of sdbcm.
 .nf
 \f[C]
->\ Oma.getOmaConfigFile()
+> Oma.getOmaConfigFile()
 /opt/sequoiadb/bin/../conf/sdbcm.conf
 \f[]
 .fi

@@ -34,13 +34,13 @@ under the collection, bar, and get the record pointed to by the current cursor.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ }\ ).current()
+> db.foo.bar.find( { age: { $gt: 20 } } ).current()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 20
+  "_id": {
+    "$oid": "5cf8aef75e72aea111e82b38"
+  },
+  "name": "tom",
+  "age": 20
 }
 \f[]
 .fi

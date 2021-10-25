@@ -33,7 +33,7 @@ Turn on the database engine program tracking.
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 100,\ new\ SdbTraceOption().components(\ "dms"\ ).functionNames(\ "_dmsStorageUnit::insertRecord"\ ).threadTypes(\ "RestListener"\ )\ )
+> db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,24 +41,24 @@ View the tracking status of the current program.
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 {
-\ \ "TraceStarted":\ true,
-\ \ "Wrapped":\ false,
-\ \ "Size":\ 104857600,
-\ \ "FreeSize":\ 104857600,
-\ \ "PadSize":\ 0,
-\ \ "Mask":\ [
-\ \ \ \ "dms"
-\ \ ],
-\ \ "BreakPoint":\ [],
-\ \ "Threads":\ [],
-\ \ "ThreadTypes":\ [
-\ \ \ \ "RestListener"
-\ \ ],
-\ \ "FunctionNames":\ [
-\ \ \ \ "_dmsStorageUnit::insertRecord"
-\ \ ]
+  "TraceStarted": true,
+  "Wrapped": false,
+  "Size": 104857600,
+  "FreeSize": 104857600,
+  "PadSize": 0,
+  "Mask": [
+    "dms"
+  ],
+  "BreakPoint": [],
+  "Threads": [],
+  "ThreadTypes": [
+    "RestListener"
+  ],
+  "FunctionNames": [
+    "_dmsStorageUnit::insertRecord"
+  ]
 }
 \f[]
 .fi

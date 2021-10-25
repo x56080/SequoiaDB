@@ -67,6 +67,6 @@ Modify the maximum memory size of the process
 .IP
 .nf
 \f[C]
->\ System.setProcUlimitConfigs(\ {\ "max_memory_size":\ \-1\ }\ )
+> System.setProcUlimitConfigs( { "max_memory_size": \-1 } )
 \f[]
 .fi

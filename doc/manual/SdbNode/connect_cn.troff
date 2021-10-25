@@ -83,7 +83,7 @@ v1.10及以上版本
 .IP
 .nf
 \f[C]
->\ node.connect()
+> node.connect()
 localhost:11820
 \f[]
 .fi
@@ -92,7 +92,7 @@ localhost:11820
 .IP
 .nf
 \f[C]
->\ node.connect(true)
+> node.connect(true)
 localhost:11820
 \f[]
 .fi

@@ -119,6 +119,6 @@ Copy file.
 .IP
 .nf
 \f[C]
->\ File.copy(\ "/opt/sequoiadb/srcFile.txt",\ "/opt/sequoiadb/desFile.txt",\ true,\ 0664\ )
+> File.copy( "/opt/sequoiadb/srcFile.txt", "/opt/sequoiadb/desFile.txt", true, 0664 )
 \f[]
 .fi

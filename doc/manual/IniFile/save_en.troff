@@ -33,7 +33,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,7 +41,7 @@ Set value for the specified item.
 .IP
 .nf
 \f[C]
->\ ini.setValue(\ "info",\ "name",\ "sequoiadb"\ )
+> ini.setValue( "info", "name", "sequoiadb" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -49,6 +49,6 @@ Save the configuration to INI file.
 .IP
 .nf
 \f[C]
->\ ini.save()
+> ini.save()
 \f[]
 .fi

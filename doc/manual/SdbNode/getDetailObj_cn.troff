@@ -35,28 +35,28 @@ v3.2.8及以上版本、v3.4.2及以上版本、v5.0.2及以上版本
 .IP
 .nf
 \f[C]
->\ node.getDetailObj()
+> node.getDetailObj()
 {
-\ \ "HostName":\ "localhost",
-\ \ "Status":\ 1,
-\ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/",
-\ \ "Service":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ "Name":\ "11830"
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ "Name":\ "11831"
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ "Name":\ "11832"
-\ \ \ \ }
-\ \ ],
-\ \ \ \ "NodeID":\ 1002,
-\ \ \ \ "GroupID":\ 1001,
-\ \ \ \ "GroupName":\ "group1"
+  "HostName": "localhost",
+  "Status": 1,
+  "dbpath": "/opt/sequoiadb/database/data/11830/",
+  "Service": [
+    {
+      "Type": 0,
+      "Name": "11830"
+    },
+    {
+      "Type": 1,
+      "Name": "11831"
+    },
+    {
+      "Type": 2,
+      "Name": "11832"
+    }
+  ],
+    "NodeID": 1002,
+    "GroupID": 1001,
+    "GroupName": "group1"
 }
 \f[]
 .fi

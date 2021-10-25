@@ -33,8 +33,8 @@ v2.6及以上版本。
 回收对象资源。
 .nf
 \f[C]
->\ for\ (var\ i\ =\ 0;\ i\ <\ 10000;\ i++)\ {\ var\ obj\ =\ new\ Object();\ }
->\ forceGC()
+> for (var i = 0; i < 10000; i++) { var obj = new Object(); }
+> forceGC()
 \f[]
 .fi
 .RE

@@ -89,14 +89,14 @@ v2.0及以上版本。
 将 sdbcm 的日志级别由ERROR级别(3)改为DEBUG级别(5)，并使该改动动态生效。
 .nf
 \f[C]
->\ var\ ret\ =\ Oma.getOmaConfigs()
->\ var\ obj\ =\ ret.toObj()
->\ println(obj["DiagLevel"])
+> var ret = Oma.getOmaConfigs()
+> var obj = ret.toObj()
+> println(obj["DiagLevel"])
 3
->\ obj["DiagLevel"]\ =\ 5
->\ Oma.setOmaConfigs(obj)
->\ var\ oma\ =\ new\ Oma()
->\ oma.reloadConfigs()
+> obj["DiagLevel"] = 5
+> Oma.setOmaConfigs(obj)
+> var oma = new Oma()
+> oma.reloadConfigs()
 \f[]
 .fi
 .RE

@@ -106,7 +106,7 @@ For more detial, please reference to Troubleshooting.
 Delete a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq].
 .nf
 \f[C]
->\ db.dropUsr(\ "sdbadmin",\ "sdbadmin"\ )
+> db.dropUsr( "sdbadmin", "sdbadmin" )
 \f[]
 .fi
 .RE
@@ -115,8 +115,8 @@ Delete a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
 using User object.
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )
->\ db.dropUsr(\ a\ )
+> var a = User( "sdbadmin", "sdbadmin" )
+> db.dropUsr( a )
 \f[]
 .fi
 .RE
@@ -128,8 +128,8 @@ For details on how to add and delete cipher test information in cipher test
 file, please see sdbpasswd for details ).
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ db.dropUsr(\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> db.dropUsr( a )
 \f[]
 .fi
 .RE

@@ -98,7 +98,7 @@ Suppose the local host is "192.168.20.71".
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.72",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.72", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -106,6 +106,6 @@ Copy file from the local host to the remote host.
 .IP
 .nf
 \f[C]
->\ ssh.push(\ "/opt/sequoiadb/local_file",\ "/opt/sequoiadb/dst_file"\ )
+> ssh.push( "/opt/sequoiadb/local_file", "/opt/sequoiadb/dst_file" )
 \f[]
 .fi

@@ -32,6 +32,7 @@ result can be iterated in the client.
 Selecting condtion.
 If it is null, it will find all the records.
 If it is not null, it will find records that matches the condition.
+Both match operators and full text query conditions can be used.
 .RE
 .IP \[bu] 2
 \f[C]sel\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
@@ -245,7 +246,7 @@ Since v1.0.
 query all the records without specified condition and selector.
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.foo.bar.find()
 \f[]
 .fi
 .RE
@@ -254,7 +255,7 @@ query records with the specified condition.
 Return the records which name is "Tom" and "age" is greater then 25.
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 25\ },\ name:\ "Tom"\ }\ )
+> db.foo.bar.find( { age: { $gt: 25 }, name: "Tom" } )
 \f[]
 .fi
 .RE
@@ -265,14 +266,14 @@ type: "normal" }, the follow operation return the contents of field "age" and
 field "name".
 .nf
 \f[C]
->\ db.foo.bar.find(\ null,\ {\ age:\ "",\ name:\ ""\ }\ )
+> db.foo.bar.find( null, { age: "", name: "" } )
 {
-\ \ \ \ "age":\ 25,
-\ \ \ \ "name":\ ""
+    "age": 25,
+    "name": ""
 }
 {
-\ \ \ \ "age":\ 20,
-\ \ \ \ "name":\ "Tom"
+    "age": 20,
+    "name": "Tom"
 }
 \f[]
 .fi
@@ -281,18 +282,18 @@ field "name".
 specifed which index to be use to query.
 .nf
 \f[C]
-\ \ \ >\ db.foo.test.find(\ {age:\ {$exists:1}\ }\ ).hint(\ {\ "":\ "ageIndex"\ }\ )
+   > db.foo.test.find( {age: {$exists:1} } ).hint( { "": "ageIndex" } )
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "5812feb6c842af52b6000007"
-\ \ \ \ },
-\ \ \ \ "age":\ 10
+    "_id": {
+        "$oid": "5812feb6c842af52b6000007"
+    },
+    "age": 10
 }
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "5812feb6c842af52b6000008"
-\ \ \ \ },
-\ \ \ \ "age":\ 20
+    "_id": {
+        "$oid": "5812feb6c842af52b6000008"
+    },
+    "age": 20
 }
 \f[]
 .fi
@@ -303,7 +304,7 @@ select records from collection \[aq]foo.bar\[aq] and return records which field
 when get the result set, we skip the first 3 records and return 5 records.
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).skip(3).limit(5)
+> db.foo.bar.find( { age: { $gt: 10 } } ).skip(3).limit(5)
 \f[]
 .fi
 .PP
@@ -320,7 +321,7 @@ we only want filed \[aq]age\[aq] and field \[aq]name\[aq] to be return.
 The returned records are sort by field \[aq]age\[aq] in ascending order.
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ age:\ 1\ }\ )
+> db.foo.bar.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
 \f[]
 .fi
 .PP
@@ -330,10 +331,19 @@ The returned records are sort by field \[aq]age\[aq] in ascending order.
 specified a useless field name to sort.
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ "sex":\ 1\ }\ )
+> db.foo.bar.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
 \f[]
 .fi
 .PP
 for the return records do not contain field "sex", so the sort request does not
 work.
+.RE
+.IP "8." 3
+Find records which contain "rock climbing" in collection "bar" by using full
+text search.
+.nf
+\f[C]
+> db.foo.bar.find({"":{"$Text":{"query":{"match":{"about" : "rock climbing"}}}}})
+\f[]
+.fi
 .RE

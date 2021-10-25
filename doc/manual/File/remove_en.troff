@@ -65,6 +65,6 @@ directory;
 .IP
 .nf
 \f[C]
->\ File.remove(\ "/opt/sequoiadb/file.txt"\ )
+> File.remove( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi

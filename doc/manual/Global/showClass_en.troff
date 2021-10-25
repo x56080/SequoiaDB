@@ -34,21 +34,21 @@ Since v2.8
 List all the built\-in custom Classes supported by Sdb Shell.
 .nf
 \f[C]
->\ showClass()
-All\ classes:
-\ \ \ BSONArray
-\ \ \ BSONObj
-\ \ \ BinData
-\ \ \ CLCount
-\ \ \ Cmd
-\ \ \ ...
-Global\ functions:
-\ \ \ catPath()
-\ \ \ forceGC()
-\ \ \ getExePath()
-\ \ \ getLastErrMsg()
-\ \ \ ...
-Takes\ 0.000518s.
+> showClass()
+All classes:
+   BSONArray
+   BSONObj
+   BinData
+   CLCount
+   Cmd
+   ...
+Global functions:
+   catPath()
+   forceGC()
+   getExePath()
+   getLastErrMsg()
+   ...
+Takes 0.000518s.
 \f[]
 .fi
 .RE
@@ -56,13 +56,13 @@ Takes\ 0.000518s.
 List all methods contained in Class SdbDate.
 .nf
 \f[C]
->\ showClass("SdbDate")
-SdbDate\[aq]s\ static\ functions:
-\ \ \ help()
-SdbDate\[aq]s\ member\ functions:
-\ \ \ help()
-\ \ \ toString()
-Takes\ 0.000218s.
+> showClass("SdbDate")
+SdbDate\[aq]s static functions:
+   help()
+SdbDate\[aq]s member functions:
+   help()
+   toString()
+Takes 0.000218s.
 \f[]
 .fi
 .RE

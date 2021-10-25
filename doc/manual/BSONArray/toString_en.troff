@@ -33,8 +33,8 @@ Get a BSONArray.( For more detail about oma, please reference to Oma )
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ var\ bsonArray\ =\ oma.listNodes()
+> var oma = new Oma( "localhost", 11790 )
+> var bsonArray = oma.listNodes()
 \f[]
 .fi
 .IP \[bu] 2
@@ -42,8 +42,8 @@ Convert BSONArray to string format.
 .IP
 .nf
 \f[C]
->\ var\ str\ =\ bsonArray.toString()
->\ typeof(str)
+> var str = bsonArray.toString()
+> typeof(str)
 string
 \f[]
 .fi

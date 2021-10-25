@@ -81,8 +81,8 @@ v2.0及以上版本。
 在本地停止一个端口号为11830的节点。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.stopNode(\ 11830\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.stopNode( 11830 )
 \f[]
 .fi
 .RE

@@ -33,7 +33,7 @@ Acquire the process id of sdb shell
 .IP
 .nf
 \f[C]
->\ System.getPID()
+> System.getPID()
 16909
 \f[]
 .fi

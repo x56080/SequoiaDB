@@ -180,7 +180,7 @@ Create the $id index with default parameters.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createIdIndex()
+> db.foo.bar.createIdIndex()
 \f[]
 .fi
 .IP \[bu] 2
@@ -188,6 +188,6 @@ Specify sort cache size when creating the $id index.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.createIdIndex(\ {\ SortBufferSize:\ 128\ }\ )
+> db.foo.bar.createIdIndex( { SortBufferSize: 128 } )
 \f[]
 .fi

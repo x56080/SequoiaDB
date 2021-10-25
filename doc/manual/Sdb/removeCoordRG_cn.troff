@@ -37,6 +37,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.removeCoordRG()
+> db.removeCoordRG()
 \f[]
 .fi

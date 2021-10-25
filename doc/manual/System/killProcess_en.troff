@@ -98,6 +98,6 @@ kill the process
 .IP
 .nf
 \f[C]
->\ System.killProcess(\ {\ pid:\ 31831\ }\ )
+> System.killProcess( { pid: 31831 } )
 \f[]
 .fi

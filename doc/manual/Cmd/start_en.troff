@@ -128,7 +128,7 @@ Create a Command object.
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ new\ Cmd()
+> var cmd = new Cmd()
 \f[]
 .fi
 .IP \[bu] 2
@@ -136,7 +136,7 @@ Execute the command.
 .IP
 .nf
 \f[C]
->\ cmd.start(\ "ls",\ "/opt/trunk/test"\ )
+> cmd.start( "ls", "/opt/trunk/test" )
 28340
 \f[]
 .fi
@@ -145,9 +145,9 @@ Get the result of the command execution.
 .IP
 .nf
 \f[C]
->\ cmd.getLastOut()
+> cmd.getLastOut()
 test1
 test2
-test3\ 
+test3 
 \f[]
 .fi

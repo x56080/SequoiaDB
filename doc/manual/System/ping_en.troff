@@ -65,10 +65,10 @@ Determine whether the host is reachable
 .IP
 .nf
 \f[C]
->\ System.ping(\ "hostname"\ )
+> System.ping( "hostname" )
 {
-\ \ "Target":\ "hostname",
-\ \ "Reachable":\ true
+  "Target": "hostname",
+  "Reachable": true
 }
 \f[]
 .fi

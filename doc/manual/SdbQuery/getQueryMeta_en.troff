@@ -33,18 +33,18 @@ Get query metadata information.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find().getQueryMeta()
+> db.foo.bar.find().getQueryMeta()
 {
-\ \ "HostName":\ "ubuntu",
-\ \ "ServiceName":\ "42000",
-\ \ "NodeID":\ [
-\ \ \ \ 1001,
-\ \ \ \ 1003
-\ \ ],
-\ \ "ScanType":\ "tbscan",
-\ \ "Datablocks":\ [
-\ \ \ \ 9
-\ \ ]
-}\ 
+  "HostName": "ubuntu",
+  "ServiceName": "42000",
+  "NodeID": [
+    1001,
+    1003
+  ],
+  "ScanType": "tbscan",
+  "Datablocks": [
+    9
+  ]
+} 
 \f[]
 .fi

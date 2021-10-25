@@ -69,9 +69,11 @@ parameter
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 Only when connecting to the coordination node, the options parameter will take
 effect.
@@ -94,13 +96,13 @@ sequoiadb is started in standalone mode )
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.foo.bar.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi
@@ -109,7 +111,7 @@ Unload the collection space named foo from memory.
 .IP
 .nf
 \f[C]
->\ db.unloadCS(\ "foo"\ )
+> db.unloadCS( "foo" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -117,9 +119,9 @@ Query data.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
-uncaught\ exception:\ \-34
-Collection\ space\ does\ not\ exist
+> db.foo.bar.find()
+uncaught exception: \-34
+Collection space does not exist
 \f[]
 .fi
 .IP \[bu] 2
@@ -127,7 +129,7 @@ Load the collection space named into memory.
 .IP
 .nf
 \f[C]
->\ db.loadCS(\ "foo"\ )
+> db.loadCS( "foo" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -135,13 +137,13 @@ Query data again.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.foo.bar.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi

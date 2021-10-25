@@ -35,7 +35,7 @@ Since v1.0.
 Sleep 1 second.
 .nf
 \f[C]
->\ sleep(1000)
+> sleep(1000)
 \f[]
 .fi
 .RE

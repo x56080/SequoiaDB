@@ -193,8 +193,8 @@ since v3.0.1
 Rename cl foo.bar to foo.bar_new.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ db.foo.renameCL(\ "bar",\ "bar_new"\ )
+> db = new Sdb( "localhost", 11810 )
+> db.foo.renameCL( "bar", "bar_new" )
 \f[]
 .fi
 .RE

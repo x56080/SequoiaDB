@@ -14,14 +14,13 @@ removeData \- 在目标集群控制器（sdbcm）所在的机器中删除指定�
 Oma
 .SH 描述
 .PP
-在目标集群控制器（sdbcm）所在的机器中删除指定的 standalone 节点。
+在目标集群控制器（sdbcm）所在的机器中删除指定的 standalone
+节点。删除集群节点，请参考 rg.removeNode()。
 .PP
-\f[B]Note:\f[]
-.IP \[bu] 2
 oma对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
 .SH 参数
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]Int | String\f[]， \f[I]必填\f[] )
+\f[C]svcname\f[] ( \f[I]Int32 | String\f[]， \f[I]必填\f[] )
 .RS 2
 .PP
 节点端口号。
@@ -106,15 +105,14 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-尝试重启。2.
-检
+尝试重启。 2.
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-查网络情况。
+检查网络情况。
 T}
 T{
 3
@@ -146,8 +144,8 @@ v2.0及以上版本。
 在本地删除一个端口号为11820的 standalone 节点
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.removeData(\ 11820\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.removeData( 11820 )
 \f[]
 .fi
 .RE

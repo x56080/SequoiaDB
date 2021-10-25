@@ -109,6 +109,6 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropDataSource("datasource")
+> db.dropDataSource("datasource")
 \f[]
 .fi

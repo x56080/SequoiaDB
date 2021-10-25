@@ -122,8 +122,8 @@ v3.0.2及以上版本。
 启动一个端口号为11810的节点。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ 11810\ )
+> var oma = new Oma()
+> oma.startNodes( 11810 )
 \f[]
 .fi
 .RE
@@ -131,8 +131,8 @@ v3.0.2及以上版本。
 启动一个端口号为11820的节点。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ "11820"\ )
+> var oma = new Oma()
+> oma.startNodes( "11820" )
 \f[]
 .fi
 .RE
@@ -140,8 +140,8 @@ v3.0.2及以上版本。
 同时启动端口号为11810、11820、11830的节点。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ [\ 11810,\ 11820,\ 11830\ ]\ )
+> var oma = new Oma()
+> oma.startNodes( [ 11810, 11820, 11830 ] )
 \f[]
 .fi
 .RE

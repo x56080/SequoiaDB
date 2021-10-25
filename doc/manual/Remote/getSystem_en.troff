@@ -37,7 +37,7 @@ Create a remote object.
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -45,6 +45,6 @@ Create a remote System object.
 .IP
 .nf
 \f[C]
->\ var\ system\ =\ remoteObj.getSystem()
+> var system = remoteObj.getSystem()
 \f[]
 .fi

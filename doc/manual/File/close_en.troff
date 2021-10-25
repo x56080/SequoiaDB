@@ -33,7 +33,7 @@ Open a file and get a file descriptor;
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
+> var file = new File( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,6 +41,6 @@ Close the opened file.
 .IP
 .nf
 \f[C]
->\ file.close()
+> file.close()
 \f[]
 .fi

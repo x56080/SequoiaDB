@@ -72,6 +72,6 @@ Set file mode creation mask.
 .IP
 .nf
 \f[C]
->\ File.setUmask(\ 0664\ )
+> File.setUmask( 0664 )
 \f[]
 .fi

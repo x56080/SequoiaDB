@@ -72,7 +72,7 @@ Open a file and get a file descriptor;
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
+> var file = new File( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -80,6 +80,6 @@ Write file;
 .IP
 .nf
 \f[C]
->\ file.write(\ "sequoiaDB"\ )
+> file.write( "sequoiaDB" )
 \f[]
 .fi

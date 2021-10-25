@@ -77,6 +77,6 @@ Move a file.
 .IP
 .nf
 \f[C]
->\ File.move(\ "/opt/sequoiadb/srcFile.txt",\ "/opt/sequoiadb/desFile.txt"\ )
+> File.move( "/opt/sequoiadb/srcFile.txt", "/opt/sequoiadb/desFile.txt" )
 \f[]
 .fi

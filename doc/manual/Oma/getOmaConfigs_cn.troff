@@ -83,17 +83,17 @@ v1.0及以上版本。
 打印 sdbcm 配置文件。
 .nf
 \f[C]
->\ Oma.getOmaConfigs()
+> Oma.getOmaConfigs()
 {
-\ \ \ \ "AutoStart":\ true,
-\ \ \ \ "DiagLevel":\ 3,
-\ \ \ \ "EnableWatch":\ "TRUE",
-\ \ \ \ "IsGeneral":\ "TRUE",
-\ \ \ \ "OMAddress":\ "rhel64\-test8:11785",
-\ \ \ \ "RestartCount":\ 5,
-\ \ \ \ "RestartInterval":\ 0,
-\ \ \ \ "defaultPort":\ "11790",
-\ \ \ \ "rhel64\-test8_Port":\ "11790"
+    "AutoStart": true,
+    "DiagLevel": 3,
+    "EnableWatch": "TRUE",
+    "IsGeneral": "TRUE",
+    "OMAddress": "rhel64\-test8:11785",
+    "RestartCount": 5,
+    "RestartInterval": 0,
+    "defaultPort": "11790",
+    "rhel64\-test8_Port": "11790"
 }
 \f[]
 .fi
@@ -102,9 +102,9 @@ v1.0及以上版本。
 获取 sdbcm 配置文件。
 .nf
 \f[C]
->\ var\ ret\ =\ Oma.getOmaConfigs()
->\ var\ obj\ =\ ret.toObj()
->\ println(obj["DiagLevel"])
+> var ret = Oma.getOmaConfigs()
+> var obj = ret.toObj()
+> println(obj["DiagLevel"])
 3
 \f[]
 .fi

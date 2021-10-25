@@ -33,7 +33,7 @@ Connect to the host using ssh.
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.71",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,7 +41,7 @@ Executed command.
 .IP
 .nf
 \f[C]
->\ ssh.exec(\ "ls\ /opt/sequoiadb/file"\ )
+> ssh.exec( "ls /opt/sequoiadb/file" )
 file1
 file2
 file3
@@ -52,7 +52,7 @@ Get the error code returned by the last command execution.
 .IP
 .nf
 \f[C]
->\ ssh.getLastRet()
+> ssh.getLastRet()
 0
 \f[]
 .fi

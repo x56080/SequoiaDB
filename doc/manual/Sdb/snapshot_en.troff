@@ -233,48 +233,48 @@ Specify the value of snapType as SDB_LIST_CONTEXTS.
 .IP
 .nf
 \f[C]
->\ db.snapshot(\ SDB_SNAP_CONTEXTS\ )
+> db.snapshot( SDB_SNAP_CONTEXTS )
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11820:22",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 8,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.07.59.146399"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11820:22",
+  "Contexts": [
+    {
+      "ContextID": 8,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.07.59.146399"
+    }
+  ]
 }
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11830:22",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 6,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.07.59.147576"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11830:22",
+  "Contexts": [
+    {
+      "ContextID": 6,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.07.59.147576"
+    }
+  ]
 }
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11840:23",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 7,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.07.59.148603"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11840:23",
+  "Contexts": [
+    {
+      "ContextID": 7,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.07.59.148603"
+    }
+  ]
 }
 \f[]
 .fi
@@ -285,35 +285,35 @@ Query the snapshot information of a replication group by group name or group ID.
 .IP
 .nf
 \f[C]
->\ db.snapshot(\ SDB_SNAP_CONTEXTS,\ {\ GroupName:\[aq]data1\[aq]\ }\ )
->\ db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000})
+> db.snapshot( SDB_SNAP_CONTEXTS, { GroupName:\[aq]data1\[aq] } )
+> db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000})
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11820:22",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 11,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.13.57.864245"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11820:22",
+  "Contexts": [
+    {
+      "ContextID": 11,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.13.57.864245"
+    }
+  ]
 }
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11840:23",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 10,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.13.57.865103"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11840:23",
+  "Contexts": [
+    {
+      "ContextID": 10,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.13.57.865103"
+    }
+  ]
 }
 \f[]
 .fi
@@ -325,21 +325,21 @@ and service name, or specifying the group ID and node ID.
 .IP
 .nf
 \f[C]
->\ db.snapshot(\ SDB_SNAP_CONTEXTS,\ {\ GroupName:\ \[aq]data1\[aq],\ HostName:\ "vmsvr1\-cent\-x64\-1",\ svcname:\ "11820"\ }\ )
->\ db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000,NodeID:1001})
+> db.snapshot( SDB_SNAP_CONTEXTS, { GroupName: \[aq]data1\[aq], HostName: "vmsvr1\-cent\-x64\-1", svcname: "11820" } )
+> db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000,NodeID:1001})
 {
-\ \ "SessionID":\ "vmsvr1\-cent\-x64\-1:11820:22",
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 11,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2013\-12\-28\-16.13.57.864245"
-\ \ \ \ }
-\ \ ]
+  "SessionID": "vmsvr1\-cent\-x64\-1:11820:22",
+  "Contexts": [
+    {
+      "ContextID": 11,
+      "Type": "DUMP",
+      "Description": "BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2013\-12\-28\-16.13.57.864245"
+    }
+  ]
 }
 \f[]
 .fi
@@ -351,21 +351,21 @@ name.
 .IP
 .nf
 \f[C]
->\ db.snapshot(\ SDB_SNAP_CONTEXTS,\ {\ HostName:\ "ubuntu\-200\-043",\ svcname:\ "11820"\ }\ )
+> db.snapshot( SDB_SNAP_CONTEXTS, { HostName: "ubuntu\-200\-043", svcname: "11820" } )
 {
-\ \ "NodeName":\ "ubuntu\-200\-043:11820",
-\ \ "SessionID":\ 18,
-\ \ "Contexts":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "ContextID":\ 31,
-\ \ \ \ \ \ "Type":\ "DUMP",
-\ \ \ \ \ \ "Description":\ "IsOpened:1,HitEnd:0,BufferSize:0",
-\ \ \ \ \ \ "DataRead":\ 0,
-\ \ \ \ \ \ "IndexRead":\ 0,
-\ \ \ \ \ \ "QueryTimeSpent":\ 0,
-\ \ \ \ \ \ "StartTimestamp":\ "2016\-10\-27\-17.53.45.042061"
-\ \ \ \ }
-\ \ ]
+  "NodeName": "ubuntu\-200\-043:11820",
+  "SessionID": 18,
+  "Contexts": [
+    {
+      "ContextID": 31,
+      "Type": "DUMP",
+      "Description": "IsOpened:1,HitEnd:0,BufferSize:0",
+      "DataRead": 0,
+      "IndexRead": 0,
+      "QueryTimeSpent": 0,
+      "StartTimestamp": "2016\-10\-27\-17.53.45.042061"
+    }
+  ]
 }
 \f[]
 .fi
@@ -376,23 +376,23 @@ Return the original data before coord aggregation.
 .IP
 .nf
 \f[C]
->\ db.snapshot(\ SDB_SNAP_DATABASE,\ {\ RawData:\ true\ }\ ,{\ NodeName:\ null,\ GroupName:\ null,\ TotalDataRead:\ null\ }\ )
+> db.snapshot( SDB_SNAP_DATABASE, { RawData: true } ,{ NodeName: null, GroupName: null, TotalDataRead: null } )
 {
-\ \ "NodeName":\ "ubuntu1604\-yt:30000",
-\ \ "GroupName":\ "SYSCatalogGroup",
-\ \ "TotalDataRead":\ 276511
+  "NodeName": "ubuntu1604\-yt:30000",
+  "GroupName": "SYSCatalogGroup",
+  "TotalDataRead": 276511
 }
 {
-\ \ "NodeName":\ "ubuntu1604\-yt:20000",
-\ \ "GroupName":\ "db1",
-\ \ "TotalDataRead":\ 16542209
+  "NodeName": "ubuntu1604\-yt:20000",
+  "GroupName": "db1",
+  "TotalDataRead": 16542209
 }
 {
-\ \ "NodeName":\ "ubuntu1604\-yt:40000",
-\ \ "GroupName":\ "db2",
-\ \ "TotalDataRead":\ 959
+  "NodeName": "ubuntu1604\-yt:40000",
+  "GroupName": "db2",
+  "TotalDataRead": 959
 }
-Return\ 3\ row(s).
+Return 3 row(s).
 \f[]
 .fi
 .RE

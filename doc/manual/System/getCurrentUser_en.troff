@@ -33,11 +33,11 @@ Acquire current user information
 .IP
 .nf
 \f[C]
->\ System.getCurrentUser()
+> System.getCurrentUser()
 {
-\ \ \ \ "user":\ "root",
-\ \ \ \ "gid":\ "0",
-\ \ \ \ "dir":\ "/root"
+    "user": "root",
+    "gid": "0",
+    "dir": "/root"
 }
 \f[]
 .fi

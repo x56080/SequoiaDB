@@ -58,9 +58,11 @@ file
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 Note：
 .RE
+.RS
 .PP
 Parameter dumpFile can be filled in as an empty string.
 It means to turn off the database engine program tracking and but not to export
@@ -86,7 +88,7 @@ binary files, /opt/sequoiadb/trace.dump.
 .IP
 .nf
 \f[C]
->\ db.traceOff("/opt/sequoiadb/trace.dump")
+> db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
 .IP \[bu] 2
@@ -94,6 +96,6 @@ Using traceFmt() to analysis the binary file.
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace_output"\ )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
 \f[]
 .fi

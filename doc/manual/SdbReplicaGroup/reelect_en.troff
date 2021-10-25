@@ -162,8 +162,8 @@ See troubleshooting for more detail.
 Conduct the reelection in 60s with the group of \[aq]datagroup1\[aq]
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("datagroup1")\ 
->\ rg.reelect({Seconds:60})
+> var rg = db.getRG("datagroup1") 
+> rg.reelect({Seconds:60})
 \f[]
 .fi
 .RE

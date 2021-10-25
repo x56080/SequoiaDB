@@ -168,7 +168,7 @@ Format trace input to output.
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace_output"\ )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -176,6 +176,6 @@ Using traceStatus() to view the tracking status of the current program.
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 \f[]
 .fi

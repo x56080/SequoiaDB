@@ -173,8 +173,8 @@ v2.0及以上版本。
 存活时间为 5分钟（300秒）。
 .nf
 \f[C]
->\ Oma.start({\ port:11780,standalone:true\ })
-Success:\ sdbcm(11780)\ is\ successfully\ start\ (28741)
+> Oma.start({ port:11780,standalone:true })
+Success: sdbcm(11780) is successfully start (28741)
 \f[]
 .fi
 .RE

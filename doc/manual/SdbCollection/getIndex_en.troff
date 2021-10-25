@@ -83,4 +83,4 @@ v1.10 and above
 .IP \[bu] 2
 Get the index named ageIndex from the sample.employee collection.
 .PP
-\f[C]>\ db.sample.employee.getIndex(\ "ageIndex"\ )\f[]
+\f[C]> db.sample.employee.getIndex( "ageIndex" )\f[]

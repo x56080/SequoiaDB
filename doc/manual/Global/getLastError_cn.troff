@@ -28,9 +28,9 @@ v1.0及以上版本。
 获取前一次操作返回的错误码。
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastError()
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastError()
 \-15
 \f[]
 .fi

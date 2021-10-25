@@ -211,7 +211,7 @@ temporary coordination node with port number 18800.
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.createCoord(18800,\ "/opt/sequoiadb/database/coord/18800")
+> var oma = new Oma( "localhost", 11790 )
+> oma.createCoord(18800, "/opt/sequoiadb/database/coord/18800")
 \f[]
 .fi

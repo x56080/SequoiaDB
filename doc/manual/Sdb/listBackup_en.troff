@@ -404,7 +404,7 @@ T}
 T{
 T}@T{
 T}@T{
-in the parameter / \f[C]||\ |||Path\f[]catalog ";Default
+in the parameter / \f[C]|| |||Path\f[]catalog ";Default
 T}@T{
 T}
 T{
@@ -474,21 +474,21 @@ configuration parameter
 .IP
 .nf
 \f[C]
->\ db.listBackup()
+> db.listBackup()
 {
-\ \ "Version":\ 2,
-\ \ "Name":\ "test",
-\ \ "ID":\ 0,
-\ \ "NodeName":\ "vmsvr2\-suse\-x64\-1:20000",
-\ \ "GroupName":\ "db1",
-\ \ "EnsureInc":\ false,
-\ \ "BeginLSNOffset":\ 195652020,
-\ \ "EndLSNOffset":\ 195652068,
-\ \ "TransLSNOffset":\ \-1,
-\ \ "StartTime":\ "2017\-06\-20\-13:02:22",
-\ \ "LastLSN":\ 195652020,
-\ \ "LastLSNCode":\ 1845751176,
-\ \ "HasError":\ false
+  "Version": 2,
+  "Name": "test",
+  "ID": 0,
+  "NodeName": "vmsvr2\-suse\-x64\-1:20000",
+  "GroupName": "db1",
+  "EnsureInc": false,
+  "BeginLSNOffset": 195652020,
+  "EndLSNOffset": 195652068,
+  "TransLSNOffset": \-1,
+  "StartTime": "2017\-06\-20\-13:02:22",
+  "LastLSN": 195652020,
+  "LastLSNCode": 1845751176,
+  "HasError": false
 }
 \f[]
 .fi
@@ -501,8 +501,8 @@ Backup data nodes to other paths
 .nf
 \f[C]
 ```lang\-javascript
->\ var\ datadb\ =\ new\ Sdb(\ "localhost",\ 20000\ )
->\ datadb.backup(\ {\ Path:\ "/tmp/sequoiadb_backup/20000"\ }\ )
+> var datadb = new Sdb( "localhost", 20000 )
+> datadb.backup( { Path: "/tmp/sequoiadb_backup/20000" } )
 ```
 \f[]
 .fi
@@ -513,22 +513,22 @@ listBackup,otherwise the backup information cannot be found in the default path.
 .nf
 \f[C]
 ```lang\-javascript
->\ var\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ 
->\ db.listBackup(\ {\ Path:\ "/tmp/sequoiadb_backup/20000"\ }\ )
+> var db = new Sdb( "localhost", 11810 ) 
+> db.listBackup( { Path: "/tmp/sequoiadb_backup/20000" } )
 {
-\ \ "Version":\ 2,
-\ \ "Name":\ "2017\-10\-26\-10:14:11",
-\ \ "ID":\ 0,
-\ \ "NodeName":\ "ubuntu\-test\-03:20000",
-\ \ "GroupName":\ "db1",
-\ \ "EnsureInc":\ false,
-\ \ "BeginLSNOffset":\ \-1,
-\ \ "EndLSNOffset":\ 375546828,
-\ \ "TransLSNOffset":\ \-1,
-\ \ "StartTime":\ "2017\-10\-26\-10:14:11",
-\ \ "LastLSN":\ \-1,
-\ \ "LastLSNCode":\ 0,
-\ \ "HasError":\ false
+  "Version": 2,
+  "Name": "2017\-10\-26\-10:14:11",
+  "ID": 0,
+  "NodeName": "ubuntu\-test\-03:20000",
+  "GroupName": "db1",
+  "EnsureInc": false,
+  "BeginLSNOffset": \-1,
+  "EndLSNOffset": 375546828,
+  "TransLSNOffset": \-1,
+  "StartTime": "2017\-10\-26\-10:14:11",
+  "LastLSN": \-1,
+  "LastLSNCode": 0,
+  "HasError": false
 }
 \f[]
 .fi

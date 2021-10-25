@@ -51,10 +51,10 @@ AccessMode（ \f[I]string\f[]
 .IP
 .nf
 \f[C]
-\-\ "READ"：允许进行只读操作
-\-\ "WRITE"：允许进行写操作
-\-\ "ALL"或"READ|WRITE"：允许进行所有操作
-\-\ "NONE"：不允许进行任何操作
+\- "READ"：允许进行只读操作
+\- "WRITE"：允许进行写操作
+\- "ALL"或"READ|WRITE"：允许进行所有操作
+\- "NONE"：不允许进行任何操作
 \f[]
 .fi
 .PP
@@ -69,10 +69,10 @@ ErrorFilterMask（ \f[I]string\f[]
 .IP
 .nf
 \f[C]
-\-\ "READ"：过滤数据读错误
-\-\ "WRITE"：过滤数据写错误
-\-\ "ALL"或"READ|WRITE"：过滤所有数据读写错误
-\-\ "NONE"：不对任何错误进行过滤
+\- "READ"：过滤数据读错误
+\- "WRITE"：过滤数据写错误
+\- "ALL"或"READ|WRITE"：过滤所有数据读写错误
+\- "NONE"：不对任何错误进行过滤
 \f[]
 .fi
 .PP
@@ -88,8 +88,8 @@ DDL）时的报错级别，默认值为"low"
 .IP
 .nf
 \f[C]
-\-\ "high"：报错并输出错误信息
-\-\ "low"：忽略不支持的数据操作且不执行
+\- "high"：报错并输出错误信息
+\- "low"：忽略不支持的数据操作且不执行
 \f[]
 .fi
 .PP
@@ -104,8 +104,8 @@ TransPropagateMode（ \f[I]string\f[]
 .IP
 .nf
 \f[C]
-\-\ "never":\ 不允许在数据源上进行事务操作，对操作直接报错
-\-\ "notsupport":\ 事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
+\- "never": 不允许在数据源上进行事务操作，对操作直接报错
+\- "notsupport": 事务操作在数据源上不受支持，如果在事务中操作数据源，对应的操作会降级为非事务操作后发送到数据源处理，在数据源上执行的操作不受事务保护
 \f[]
 .fi
 .PP
@@ -117,7 +117,7 @@ InheritSessionAttr（ \f[I]boolean\f[]
 true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
 .RS 4
 .PP
-格式：\f[C]InheritSessionAttr:\ true\f[]
+格式：\f[C]InheritSessionAttr: true\f[]
 .RE
 .SH 返回值
 .PP
@@ -176,6 +176,6 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createDataSource("datasource",\ "192.168.20.66:50000",\ "",\ "",\ "SequoiaDB",\ {AccessMode:\ "READ"})
+> db.createDataSource("datasource", "192.168.20.66:50000", "", "", "SequoiaDB", {AccessMode: "READ"})
 \f[]
 .fi

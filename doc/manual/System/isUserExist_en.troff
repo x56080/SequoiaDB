@@ -64,7 +64,7 @@ Determine if a user exists
 .IP
 .nf
 \f[C]
->\ System.isUserExist(\ "root"\ )
+> System.isUserExist( "root" )
 true
 \f[]
 .fi

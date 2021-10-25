@@ -44,6 +44,6 @@ Delete the coordination replication group.
 .IP
 .nf
 \f[C]
->\ db.removeCoordRG()
+> db.removeCoordRG()
 \f[]
 .fi

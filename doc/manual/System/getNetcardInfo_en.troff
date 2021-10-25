@@ -33,18 +33,18 @@ Acquire network card information
 .IP
 .nf
 \f[C]
->\ System.getNetcardInfo()
+> System.getNetcardInfo()
 {
-\ \ "Netcards":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "Name":\ "lo",
-\ \ \ \ \ \ "Ip":\ "127.0.0.1"
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "Name":\ "ens160",
-\ \ \ \ \ \ "Ip":\ "192.168.20.62"
-\ \ \ \ }
-\ \ ]
+  "Netcards": [
+    {
+      "Name": "lo",
+      "Ip": "127.0.0.1"
+    },
+    {
+      "Name": "ens160",
+      "Ip": "192.168.20.62"
+    }
+  ]
 }
 \f[]
 .fi

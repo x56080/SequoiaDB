@@ -64,14 +64,14 @@ Return the record with the subscript 0.
 .IP
 .nf
 \f[C]
->\ var\ query\ =\ db.foo.bar.find()
->\ println(\ query[0]\ )
+> var query = db.foo.bar.find()
+> println( query[0] )
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ },
-\ \ "name":\ "tom",
-\ \ "age":\ 20
+  "_id": {
+    "$oid": "5cf8aef75e72aea111e82b38"
+  },
+  "name": "tom",
+  "age": 20
 }
 \f[]
 .fi

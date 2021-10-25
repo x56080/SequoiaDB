@@ -41,7 +41,7 @@ Suppose the local host is "192.168.20.71".
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.72",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.72", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -49,7 +49,7 @@ Get local IP adress.
 .IP
 .nf
 \f[C]
->\ ssh.getLocalIP()
+> ssh.getLocalIP()
 192.168.20.71
 \f[]
 .fi

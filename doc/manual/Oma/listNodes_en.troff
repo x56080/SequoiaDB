@@ -39,7 +39,7 @@ The values are as follows:
 .IP \[bu] 2
 "cm": sdbcm node
 .PP
-Format: \f[C]type:\ "all"\f[]
+Format: \f[C]type: "all"\f[]
 .RE
 .IP \[bu] 2
 mode ( \f[I]string\f[] ): Node mode, and the default is "run"
@@ -51,7 +51,7 @@ The values are as follows:
 .IP \[bu] 2
 "local": Local node, whether it is running or not
 .PP
-Format: \f[C]mode:\ "local"\f[]
+Format: \f[C]mode: "local"\f[]
 .RE
 .IP \[bu] 2
 role ( \f[I]string\f[] ): Node role
@@ -71,7 +71,7 @@ The values are as follows:
 .IP \[bu] 2
 "cm": sdbcm node
 .PP
-Format: \f[C]role:\ "data"\f[]
+Format: \f[C]role: "data"\f[]
 .RE
 .IP \[bu] 2
 svcname ( \f[I]string\f[] ): Node port number
@@ -79,21 +79,21 @@ svcname ( \f[I]string\f[] ): Node port number
 .PP
 When specifying multiple svcnames, separate them with a comma (,).
 .PP
-Format: \f[C]svcname:\ "11820,\ 11830"\f[]
+Format: \f[C]svcname: "11820, 11830"\f[]
 .RE
 .IP \[bu] 2
 showalone ( \f[I]boolean\f[] )：Whether to display the sdbcm node information
 started in standalone mode, and the default is false.
 .RS 2
 .PP
-Format: \f[C]standalone:\ true\f[]
+Format: \f[C]standalone: true\f[]
 .RE
 .IP \[bu] 2
 expand ( \f[I]boolean\f[] ): Whether to display the extended information of the
 node, and the default is false.
 .RS 2
 .PP
-Format: \f[C]expand:\ true\f[]
+Format: \f[C]expand: true\f[]
 .RE
 .RE
 .IP \[bu] 2
@@ -309,20 +309,20 @@ information of the node 11830.
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",\ 11790)
->\ oma.listNodes({svcname:\ "11830"})
+> var oma = new Oma("localhost", 11790)
+> oma.listNodes({svcname: "11830"})
 {
-\ \ "svcname":\ "11830",
-\ \ "type":\ "sequoiadb",
-\ \ "role":\ "data",
-\ \ "pid":\ 17984,
-\ \ "groupid":\ 1001,
-\ \ "nodeid":\ 1001,
-\ \ "primary":\ 1,
-\ \ "isalone":\ 0,
-\ \ "groupname":\ "group2",
-\ \ "starttime":\ "2021\-07\-15\-16.27.47",
-\ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/"
+  "svcname": "11830",
+  "type": "sequoiadb",
+  "role": "data",
+  "pid": 17984,
+  "groupid": 1001,
+  "nodeid": 1001,
+  "primary": 1,
+  "isalone": 0,
+  "groupname": "group2",
+  "starttime": "2021\-07\-15\-16.27.47",
+  "dbpath": "/opt/sequoiadb/database/data/11830/"
 }
 \f[]
 .fi

@@ -145,8 +145,7 @@ T}
 .RE
 .RS
 .IP "1." 3
-返回超时错误代表在规定时间内重选没有完成。如果返回成功，需等待若干秒，
-待编目信息异步更新完成后，再通过db.listReplicaGroups()观察最终结果。
+返回超时错误代表在规定时间内重选没有完成。如果返回成功，需等待若干秒，待编目信息异步更新完成后，再通过db.listReplicaGroups()观察最终结果。
 .RE
 .RS
 .IP "2." 3
@@ -253,7 +252,7 @@ T}
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.reelect({Seconds:60})
+> var rg = db.getRG("group1")
+> rg.reelect({Seconds:60})
 \f[]
 .fi

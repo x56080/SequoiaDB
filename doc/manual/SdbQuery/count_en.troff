@@ -14,10 +14,11 @@ SdbQuery
 .SH DESCRIPTION
 .PP
 Get the number of record matching the criteria.
-.RE
+.RS
 .PP
 \f[B]Note\f[]:
 .RE
+.RS
 .PP
 The result of count() ignores the effects of skip() and limit().
 .RE
@@ -41,7 +42,7 @@ collection bar and return the number of records.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).count()
+> db.foo.bar.find( { age: { $gt: 10 } } ).count()
 3
 \f[]
 .fi

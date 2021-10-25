@@ -88,14 +88,14 @@ Since v2.0.
 Reset the dialog level from "ERROR" to "DEBUG", and then make it works.
 .nf
 \f[C]
->\ var\ ret\ =\ Oma.getOmaConfigs()
->\ var\ obj\ =\ ret.toObj()
->\ println(obj["DiagLevel"])
+> var ret = Oma.getOmaConfigs()
+> var obj = ret.toObj()
+> println(obj["DiagLevel"])
 3
->\ obj["DiagLevel"]\ =\ 5
->\ Oma.setOmaConfigs(obj)
->\ var\ oma\ =\ new\ Oma()
->\ oma.reloadConfigs()
+> obj["DiagLevel"] = 5
+> Oma.setOmaConfigs(obj)
+> var oma = new Oma()
+> oma.reloadConfigs()
 \f[]
 .fi
 .RE

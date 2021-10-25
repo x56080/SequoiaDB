@@ -33,11 +33,11 @@ Return the first record of the array.
 .IP
 .nf
 \f[C]
->\ var\ arr\ =\ db.foo.bar.find().toArray()
->\ arr[0]
+> var arr = db.foo.bar.find().toArray()
+> arr[0]
 {
-\ \ "name":\ "Alice",
-\ \ "age":\ 19
+  "name": "Alice",
+  "age": 19
 }
 \f[]
 .fi

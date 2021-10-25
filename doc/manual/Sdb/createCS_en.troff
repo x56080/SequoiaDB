@@ -36,7 +36,7 @@ The default value is 65536 and the unit is byte.
 The value of this parameter can only be 0, 4096, 8192, 16384, 32768 or 65536,
 and a value of 0 indicates the default value is selected.
 .PP
-Format: \f[C]PageSize:\ 4096\f[]
+Format: \f[C]PageSize: 4096\f[]
 .RE
 .IP \[bu] 2
 Domain ( \f[I]string\f[] ): Specify the domain.
@@ -47,7 +47,7 @@ replication groups.
 The domain specified by this parameter must already exist and cannot be
 specified as a system domain.
 .PP
-Format: \f[C]Domain:\ "mydomain"\f[]
+Format: \f[C]Domain: "mydomain"\f[]
 .RE
 .IP \[bu] 2
 LobPageSize ( \f[I]number\f[] ): Specify the size of the Lob data page.
@@ -58,19 +58,19 @@ The value of this parameter can only be 0, 4096, 8192, 16384, 32768, 65536,
 131072, 262144 or 524288, and a value of 0 indicates the default value is
 selected.
 .PP
-Format: \f[C]LobPageSize:\ 65536\f[]
+Format: \f[C]LobPageSize: 65536\f[]
 .RE
 .IP \[bu] 2
 DataSource ( \f[I]string\f[] ): Specify the name of the data source to be used.
 .RS 2
 .PP
-Format: \f[C]DataSource:\ "datasource"\f[]
+Format: \f[C]DataSource: "datasource"\f[]
 .RE
 .IP \[bu] 2
 Mapping ( \f[I]string\f[] ): Specify the name of the mapped collection space.
 .RS 2
 .PP
-Format: \f[C]Mapping:\ "sample"\f[]
+Format: \f[C]Mapping: "sample"\f[]
 .RE
 .RS
 .PP
@@ -84,7 +84,7 @@ For specific usage scenarios of parameters DataSource and Mapping, refer to the
 data source.
 .IP \[bu] 2
 In order to be compatible with earlier versions of the interface,
-\f[C]db.createCS(<name>,\ [PageSize])\f[] is still available.
+\f[C]db.createCS(<name>, [PageSize])\f[] is still available.
 .RE
 .RE
 .SH RETURN VALUE
@@ -108,7 +108,7 @@ Create a collection space named "sample".
 .IP
 .nf
 \f[C]
->\ db.createCS("sample")
+> db.createCS("sample")
 \f[]
 .fi
 .RE
@@ -119,7 +119,7 @@ Specify the size of the data page as 4096B and the domain as "mydomain".
 .IP
 .nf
 \f[C]
->\ db.createCS("sample",\ {PageSize:\ 4096,\ Domain:\ "mydomain"})
+> db.createCS("sample", {PageSize: 4096, Domain: "mydomain"})
 \f[]
 .fi
 .RE

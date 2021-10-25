@@ -102,8 +102,8 @@ since v2.0
 Specify the service name 11780 of sdbcm in target host sdbserver1.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.addAOmaSvcName(\ "sdbserver1",\ 11780,\ false)
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.addAOmaSvcName( "sdbserver1", 11780, false)
 \f[]
 .fi
 .RE

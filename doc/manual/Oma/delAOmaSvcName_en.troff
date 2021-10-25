@@ -91,8 +91,8 @@ since v2.0
 Delete the service name of sdbcm from its configuration file in sdbserver1 host.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.delAOmaSvcName(\ "sdbserver1")
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.delAOmaSvcName( "sdbserver1")
 \f[]
 .fi
 .RE

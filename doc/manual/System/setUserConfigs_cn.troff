@@ -23,7 +23,7 @@ options（ \f[I]object，必填\f[] ）
 name（ \f[I]string\f[] ）：指定需要修改的用户，该参数必填
 .RS 2
 .PP
-格式：\f[C]name:\ "username"\f[]
+格式：\f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
@@ -32,7 +32,7 @@ gid（ \f[I]string\f[] ）：指定用户的初始组(主组)
 该参数可以是用户组的组名或组
 ID，且指定的用户组必须已存在。如果不指定，则默认创建与参数 name 同名的用户组。
 .PP
-格式：\f[C]gid:\ "groupName"\f[] 或 \f[C]gid:\ "2003"\f[]
+格式：\f[C]gid: "groupName"\f[] 或 \f[C]gid: "2003"\f[]
 .RE
 .IP \[bu] 2
 groups（ \f[I]string\f[] ）：指定附加组
@@ -41,8 +41,8 @@ groups（ \f[I]string\f[] ）：指定附加组
 该参数可以是用户组的组名或组
 ID，且指定的用户组必须已存在。所指定的多个用户组以逗号分隔。
 .PP
-格式：\f[C]groups:\ "groupName1,groupName2,groupName3"\f[] 或
-\f[C]groups:\ "2004,2005,2006"\f[]
+格式：\f[C]groups: "groupName1,groupName2,groupName3"\f[] 或
+\f[C]groups: "2004,2005,2006"\f[]
 .RE
 .IP \[bu] 2
 isAppend（ \f[I]boolean\f[] ）：指定是否追加附加组，默认为 false
@@ -52,7 +52,7 @@ isAppend（ \f[I]boolean\f[] ）：指定是否追加附加组，默认为 false
 true，将会追加该用户的附加组；当指定了 groups 且设置 isAppend 为
 false，将会替换原有的附加组。
 .PP
-格式：\f[C]isAppend:\ true\f[]
+格式：\f[C]isAppend: true\f[]
 .RE
 .IP \[bu] 2
 isMove（ \f[I]boolean\f[] ）：指定是否移动到新指定的目录，默认为 false
@@ -60,7 +60,7 @@ isMove（ \f[I]boolean\f[] ）：指定是否移动到新指定的目录，默�
 .PP
 该参数为 ture 时必须指定参数 dir 的值。
 .PP
-格式：\f[C]isMove:\ true\f[]
+格式：\f[C]isMove: true\f[]
 .RE
 .IP \[bu] 2
 dir（ \f[I]string\f[] ）：指定新的用户目录，仅参数 isMove 为 true 时生效
@@ -68,7 +68,7 @@ dir（ \f[I]string\f[] ）：指定新的用户目录，仅参数 isMove 为 tru
 .PP
 该参数不能指定已存在的目录。指定的新目录将保留原用户目录的数据，而原用户目录将会被移除。
 .PP
-格式：\f[C]dir:\ "userHomeDir"\f[]
+格式：\f[C]dir: "userHomeDir"\f[]
 .RE
 .SH 返回值
 .PP
@@ -87,6 +87,6 @@ dir（ \f[I]string\f[] ）：指定新的用户目录，仅参数 isMove 为 tru
 .IP
 .nf
 \f[C]
->\ System.setUserConfigs({name:\ "newUser",\ gid:\ "groupName",\ dir:\ "/home/userName",\ isMove:\ true})
+> System.setUserConfigs({name: "newUser", gid: "groupName", dir: "/home/userName", isMove: true})
 \f[]
 .fi

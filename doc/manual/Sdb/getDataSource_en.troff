@@ -80,7 +80,7 @@ Get a reference of data source
 .IP
 .nf
 \f[C]
->\ var\ ds\ =\ db.getDataSource("datasource")
+> var ds = db.getDataSource("datasource")
 \f[]
 .fi
 .PP
@@ -88,6 +88,6 @@ Modify the data source access as "WRITE"
 .IP
 .nf
 \f[C]
->\ ds.alter({AccessMode:"WRITE"})
+> ds.alter({AccessMode:"WRITE"})
 \f[]
 .fi

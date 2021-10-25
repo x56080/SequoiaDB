@@ -46,7 +46,7 @@ Since v3.0.2.
 set the configuration information of INI file.
 .nf
 \f[C]
->\ Oma.setIniConfigs(\ {\ "a":\ 1,\ "b":\ true,\ "c":\ "hello"},\ "/opt/config.ini"\ )
+> Oma.setIniConfigs( { "a": 1, "b": true, "c": "hello"}, "/opt/config.ini" )
 \f[]
 .fi
 .RE
@@ -54,7 +54,7 @@ set the configuration information of INI file.
 set the configuration information of INI file and enable type.
 .nf
 \f[C]
->\ Oma.setIniConfigs(\ {\ "a":\ 1,\ "b":\ true,\ "c":\ "hello"},\ "/opt/config.ini",\ {\ EnableType:\ true\ }\ )
+> Oma.setIniConfigs( { "a": 1, "b": true, "c": "hello"}, "/opt/config.ini", { EnableType: true } )
 \f[]
 .fi
 .RE

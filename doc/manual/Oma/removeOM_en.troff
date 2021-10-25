@@ -77,8 +77,8 @@ since v2.0
 Delete the sdbcm service process installed locally.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.removeOM(\ 11780\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.removeOM( 11780 )
 \f[]
 .fi
 .RE

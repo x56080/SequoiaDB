@@ -31,8 +31,8 @@ Since v2.6.
 Recycle object resources.
 .nf
 \f[C]
->\ for\ (var\ i\ =\ 0;\ i\ <\ 10000;\ i++)\ {\ var\ obj\ =\ new\ Object();\ }
->\ forceGC()
+> for (var i = 0; i < 10000; i++) { var obj = new Object(); }
+> forceGC()
 \f[]
 .fi
 .RE

@@ -37,8 +37,8 @@ v1.0及以上版本。
 格式化输出文件。
 .nf
 \f[C]
->\ println("hello\ world")
-hello\ world
+> println("hello world")
+hello world
 \f[]
 .fi
 .RE

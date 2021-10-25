@@ -14,10 +14,11 @@ SdbQuery
 .SH DESCRIPTION
 .PP
 Get the number of records from the current cursor to the final cursor.
-.TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 The result that size() return is influenced by skip() and limit().
 .RE
@@ -42,7 +43,7 @@ to the final cursor.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ age:\ {\ $gt:\ 20\ }\ }\ ).size()
+> db.foo.bar.find( { age: { $gt: 20 } } ).size()
 1
 \f[]
 .fi

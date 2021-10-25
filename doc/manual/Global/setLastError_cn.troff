@@ -16,7 +16,7 @@ Global
 设置前一次操作返回的错误码。
 .SH 参数
 .IP \[bu] 2
-\f[C]error\ code\f[] ( \f[I]Int32\f[]， \f[I]必填\f[] )
+\f[C]error code\f[] ( \f[I]Int32\f[]， \f[I]必填\f[] )
 .RS 2
 .PP
 错误码。
@@ -32,14 +32,14 @@ v2.6及以上版本。
 设置前一次操作返回的错误码。
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastError()
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastError()
 \-15
->\ getLastError()
+> getLastError()
 \-15
->\ setLastError(0)
->\ getLastError()
+> setLastError(0)
+> getLastError()
 0
 \f[]
 .fi

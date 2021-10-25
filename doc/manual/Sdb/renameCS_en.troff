@@ -193,8 +193,8 @@ since v3.0.1
 Rename cs foo to foo_new.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ db.renameCS(\ "foo",\ "foo_new"\ )
+> db = new Sdb( "localhost", 11810 )
+> db.renameCS( "foo", "foo_new" )
 \f[]
 .fi
 .RE

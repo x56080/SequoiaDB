@@ -48,12 +48,12 @@ SequoiaDB安装用户信息为：sdbadmin:sdbadmin_group。
 .IP
 .nf
 \f[C]
-sdbadmin\@ubuntu\-dev1:~$\ pwd
+sdbadmin\@ubuntu\-dev1:~$ pwd
 /home/users/sdbadmin
-sdbadmin\@ubuntu\-dev1:~$\ cat\ /opt/sequoiadb/bin/test/a.js
-println(\ \[aq]exePath:\ \[aq]\ +\ getExePath()\ )\ ;
-println(\ \[aq]rootPath:\[aq]\ +\ getRootPath()\ )\ ;
-println(\ \[aq]selfPath:\[aq]\ +\ getSelfPath()\ )\ ;
+sdbadmin\@ubuntu\-dev1:~$ cat /opt/sequoiadb/bin/test/a.js
+println( \[aq]exePath: \[aq] + getExePath() ) ;
+println( \[aq]rootPath:\[aq] + getRootPath() ) ;
+println( \[aq]selfPath:\[aq] + getSelfPath() ) ;
 \f[]
 .fi
 .PP
@@ -61,9 +61,9 @@ println(\ \[aq]selfPath:\[aq]\ +\ getSelfPath()\ )\ ;
 .IP
 .nf
 \f[C]
-sdbadmin\@ubuntu\-dev1:~$\ /opt/sequoiadb/bin/sdb
-Welcome\ to\ SequoiaDB\ shell!
-help()\ for\ help,\ Ctrl+c\ or\ quit\ to\ exit
+sdbadmin\@ubuntu\-dev1:~$ /opt/sequoiadb/bin/sdb
+Welcome to SequoiaDB shell!
+help() for help, Ctrl+c or quit to exit
 >
 \f[]
 .fi
@@ -71,9 +71,9 @@ help()\ for\ help,\ Ctrl+c\ or\ quit\ to\ exit
 getRootPath()示例。返回当前运行js脚本的程序（即 sdb shell）的工作目录：
 .nf
 \f[C]
->\ getRootPath()
+> getRootPath()
 /home/users/sdbadmin
-Takes\ 0.000122s.
+Takes 0.000122s.
 >
 \f[]
 .fi
@@ -82,9 +82,9 @@ Takes\ 0.000122s.
 getExePath()示例。返回当前运行js脚本的程序（即 sdb shell）的位置目录：
 .nf
 \f[C]
->\ getExePath()
+> getExePath()
 /opt/sequoiadb/bin
-Takes\ 0.000122s.
+Takes 0.000122s.
 >
 \f[]
 .fi
@@ -93,9 +93,9 @@ Takes\ 0.000122s.
 getSelfPath()示例。返回当前运行的js脚本的位置目录：
 .nf
 \f[C]
->\ getSelfPath()
+> getSelfPath()
 /home/users/sdbadmin
-Takes\ 0.000297s.
+Takes 0.000297s.
 >
 \f[]
 .fi
@@ -104,11 +104,11 @@ Takes\ 0.000297s.
 在import文件中，获取路径信息。需特别注意getSelfPath()的返回值。
 .nf
 \f[C]
->\ import(\ \[aq]/opt/sequoiadb/bin/test/a.js\[aq])
-exePath:\ /opt/sequoiadb/bin
+> import( \[aq]/opt/sequoiadb/bin/test/a.js\[aq])
+exePath: /opt/sequoiadb/bin
 rootPath:/home/users/sdbadmin
 selfPath:/opt/sequoiadb/bin/test
-Takes\ 0.000401s.
+Takes 0.000401s.
 \f[]
 .fi
 .RE

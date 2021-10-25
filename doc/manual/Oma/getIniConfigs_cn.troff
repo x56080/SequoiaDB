@@ -83,14 +83,14 @@ v3.0.2及以上版本。
 打印 INI 配置文件。
 .nf
 \f[C]
->\ Oma.getIniConfigs(\ "/opt/config.ini"\ )
+> Oma.getIniConfigs( "/opt/config.ini" )
 {
-\ \ \ \ "datestyle":\ "iso,\ ymd",
-\ \ \ \ "listen_addresses":\ "*",
-\ \ \ \ "log_timezone":\ "PRC",
-\ \ \ \ "port":\ "1234",
-\ \ \ \ "shared_buffers":\ "128MB",
-\ \ \ \ "timezone":\ "PRC"
+    "datestyle": "iso, ymd",
+    "listen_addresses": "*",
+    "log_timezone": "PRC",
+    "port": "1234",
+    "shared_buffers": "128MB",
+    "timezone": "PRC"
 }
 \f[]
 .fi
@@ -99,14 +99,14 @@ v3.0.2及以上版本。
 打印 INI 配置文件，并且开启数据类型。
 .nf
 \f[C]
->\ Oma.getIniConfigs(\ "/opt/config.ini",\ {\ "EnableType":\ true\ }\ )
+> Oma.getIniConfigs( "/opt/config.ini", { "EnableType": true } )
 {
-\ \ \ \ "datestyle":\ "iso,\ ymd",
-\ \ \ \ "listen_addresses":\ "*",
-\ \ \ \ "log_timezone":\ "PRC",
-\ \ \ \ "port":\ 1234,
-\ \ \ \ "shared_buffers":\ "128MB",
-\ \ \ \ "timezone":\ "PRC"
+    "datestyle": "iso, ymd",
+    "listen_addresses": "*",
+    "log_timezone": "PRC",
+    "port": 1234,
+    "shared_buffers": "128MB",
+    "timezone": "PRC"
 }
 \f[]
 .fi

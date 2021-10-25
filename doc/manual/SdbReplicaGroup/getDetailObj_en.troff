@@ -40,8 +40,8 @@ v3.4.2 and above
 Get detailed information of the replica group named group1.
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")\ 
->\ rg.getDetailObj()
+> var rg = db.getRG("group1") 
+> rg.getDetailObj()
 \f[]
 .fi
 .RE

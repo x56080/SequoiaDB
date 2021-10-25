@@ -74,7 +74,7 @@ Truncates the file.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
->\ file.truncate()
+> var file = new File( "/opt/sequoiadb/file.txt" )
+> file.truncate()
 \f[]
 .fi

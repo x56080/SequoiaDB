@@ -146,8 +146,8 @@ v2.0及以上版本。
 在集群的 sdbserver1 机器上删除一个端口号为 11810 的 coord 节点
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.removeCoord(\ 11810\ )
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.removeCoord( 11810 )
 \f[]
 .fi
 .RE
