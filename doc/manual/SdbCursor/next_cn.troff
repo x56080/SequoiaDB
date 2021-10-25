@@ -73,18 +73,18 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find({age:\ {$gt:\ 8}})
->\ var\ obj\ =\ cur.next();
->\ if\ (obj\ ==\ null)\ {
-\ \ \ \ \ \ println\ ("No\ record!");
-\ \ }\ else\ {
-\ \ \ \ \ \ \ \ println\ ("Record\ is:"\ +\ obj);
-\ \ \ \ }
-\ \ Record\ is:{
-\ \ \ \ "_id":{
-\ \ \ \ \ \ "$oid":\ "60470a4db354306ff89cd355"
-\ \ \ \ },
-\ \ "a":\ 9
-\ \ }
+> var cur = db.sample.employee.find({age: {$gt: 8}})
+> var obj = cur.next();
+> if (obj == null) {
+      println ("No record!");
+  } else {
+        println ("Record is:" + obj);
+    }
+  Record is:{
+    "_id":{
+      "$oid": "60470a4db354306ff89cd355"
+    },
+  "a": 9
+  }
 \f[]
 .fi

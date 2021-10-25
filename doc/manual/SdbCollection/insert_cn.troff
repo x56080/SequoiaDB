@@ -274,7 +274,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-的内容（仅开启 \f[C]|\ ||||flag\f[] 参数的SDB_
+的内容（仅开启 \f[C]| ||||flag\f[] 参数的SDB_
 T}
 T{
 T}@T{
@@ -415,7 +415,7 @@ v1.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.insert(\ {\ name:\ "Tom",\ age:\ 20\ }\ )
+> db.sample.employee.insert( { name: "Tom", age: 20 } )
 \f[]
 .fi
 .RE
@@ -425,7 +425,7 @@ v1.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.insert(\ {_id:\ 10,\ age:\ 20\ }\ )
+> db.sample.employee.insert( {_id: 10, age: 20 } )
 \f[]
 .fi
 .RE
@@ -435,7 +435,7 @@ v1.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.insert(\ [\ {\ _id:\ 20,\ name:\ "Mike",\ age:\ 15\ },\ {\ name:\ "John",\ age:\ 25,\ phone:\ 123\ }\ ]\ )
+> db.sample.employee.insert( [ { _id: 20, name: "Mike", age: 15 }, { name: "John", age: 25, phone: 123 } ] )
 \f[]
 .fi
 .RE
@@ -446,15 +446,15 @@ v1.0 及以上版本。
 .nf
 \f[C]
 
->\ db.sample.employee.insert(\ [\ {\ _id:\ 1,\ a:\ 1\ },\ {\ _id:\ 1,\ b:2\ },\ {\ _id:\ 3,\ c:\ 3\ }\ ],\ \ SDB_INSERT_CONTONDUP\ )
->\ db.sample.employee.find()
+> db.sample.employee.insert( [ { _id: 1, a: 1 }, { _id: 1, b:2 }, { _id: 3, c: 3 } ],  SDB_INSERT_CONTONDUP )
+> db.sample.employee.find()
 {
-\ \ "_id":\ 1,
-\ \ "a":\ 1,
+  "_id": 1,
+  "a": 1,
 }
 {
-\ \ "_id":\ 3,
-\ \ "c":\ 3
+  "_id": 3,
+  "c": 3
 }
 \f[]
 .fi
@@ -465,34 +465,34 @@ v1.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.insert({a:1},\ {ReturnOID:true})
+> db.sample.employee.insert({a:1}, {ReturnOID:true})
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "5becec3d6404b9295a63caca"
-\ \ \ \ }
-\ \ \ \ "InsertedNum":\ 1,
-\ \ \ \ "DuplicatedNum":\ 0
+    "_id": {
+        "$oid": "5becec3d6404b9295a63caca"
+    }
+    "InsertedNum": 1,
+    "DuplicatedNum": 0
 }
 >
->\ db.sample.employee.insert([{a:1},\ {b:1}],\ {ReturnOID:true})
+> db.sample.employee.insert([{a:1}, {b:1}], {ReturnOID:true})
 {
-\ \ \ \ "_id":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ \ \ "$oid":\ "5bececdf6404b9295a63cacb"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ \ \ "$oid":\ "5bececdf6404b9295a63cacc"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ ]
-\ \ \ \ "InsertedNum":\ 2,
-\ \ \ \ "DuplicatedNum":\ 0
+    "_id": [
+        {
+            "$oid": "5bececdf6404b9295a63cacb"
+        },
+        {
+            "$oid": "5bececdf6404b9295a63cacc"
+        }
+    ]
+    "InsertedNum": 2,
+    "DuplicatedNum": 0
 }
->\ db.sample.employee.createAutoIncrement({\ Field:\ "ID"\ })
->\ db.sample.employee.insert({\ a:\ 1\ })
+> db.sample.employee.createAutoIncrement({ Field: "ID" })
+> db.sample.employee.insert({ a: 1 })
 {
-\ \ \ \ "InsertedNum":\ 1,
-\ \ \ \ "DuplicatedNum":\ 0,
-\ \ \ \ "LastGenerateID":\ 1
+    "InsertedNum": 1,
+    "DuplicatedNum": 0,
+    "LastGenerateID": 1
 }
 \f[]
 .fi

@@ -122,6 +122,6 @@ Remove the stored procedure named "sum".
 .IP
 .nf
 \f[C]
->\ db.removeProcedure("sum")
+> db.removeProcedure("sum")
 \f[]
 .fi

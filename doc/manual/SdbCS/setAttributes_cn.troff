@@ -30,7 +30,7 @@ PageSize 为 0 时，即默认值 65536
 .IP \[bu] 2
 修改时不能有数据
 .PP
-格式：\f[C]PageSize:\ <number>\f[]
+格式：\f[C]PageSize: <number>\f[]
 .RE
 .IP \[bu] 2
 LobPageSize ( \f[I]number\f[] )：LOB 数据页大小，单位为字节
@@ -43,7 +43,7 @@ LobPageSize 为 0 时，即默认值 262144
 .IP \[bu] 2
 修改时不能有 LOB 数据
 .PP
-格式：\f[C]LobPageSize:\ <number>\f[]
+格式：\f[C]LobPageSize: <number>\f[]
 .RE
 .IP \[bu] 2
 Domain ( \f[I]string\f[] )：所属域
@@ -51,7 +51,7 @@ Domain ( \f[I]string\f[] )：所属域
 .PP
 集合空间的数据必须分布在新指定域的组上
 .PP
-格式：\f[C]Domain:\ <domain>\f[]
+格式：\f[C]Domain: <domain>\f[]
 .RE
 .SH 返回值
 .PP
@@ -109,8 +109,8 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
-\ >\ db.createCS(\[aq]sample\[aq],\ {PageSize:\ 4096})
-\ >\ db.sample.setAttributes({PageSize:\ 8192})
+ > db.createCS(\[aq]sample\[aq], {PageSize: 4096})
+ > db.sample.setAttributes({PageSize: 8192})
 \f[]
 .fi
 .RE
@@ -120,8 +120,8 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq])
->\ db.sample.setAttributes({Domain:\ \[aq]domain\[aq]})
+> db.createCS(\[aq]sample\[aq])
+> db.sample.setAttributes({Domain: \[aq]domain\[aq]})
 \f[]
 .fi
 .RE

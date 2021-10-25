@@ -34,7 +34,7 @@ Open a banary file and get a file descriptor.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ refer to File::readContent ).
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent(\ 10\ )
+> var content = file.readContent( 10 )
 \f[]
 .fi
 .RE
@@ -55,7 +55,7 @@ Convert the binary stream in the fileContent to base64 encoded.
 .IP
 .nf
 \f[C]
->\ var\ base64String\ =\ content.toBase64Code()
+> var base64String = content.toBase64Code()
 \f[]
 .fi
 .RE
@@ -66,8 +66,8 @@ the string.
 .IP
 .nf
 \f[C]
->\ var\ base64StringFile\ =\ new\ File(\ "/opt/sequoiadb/file.dump.base64"\ )\ 
->\ base64StringFile.write(\ base64String\ )
+> var base64StringFile = new File( "/opt/sequoiadb/file.dump.base64" ) 
+> base64StringFile.write( base64String )
 \f[]
 .fi
 .RE
@@ -77,8 +77,8 @@ Read the contents of the file.
 .IP
 .nf
 \f[C]
->\ base64StringFile.seek(0)
->\ base64StringFile.read()
+> base64StringFile.seek(0)
+> base64StringFile.read()
 BQAGAAgA8////w==
 \f[]
 .fi

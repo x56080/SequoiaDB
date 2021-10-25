@@ -41,16 +41,16 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.stopAllNodes(\ "yyy"\ )
-Stop\ sequoiadb(30000):\ Success
-Stop\ sequoiadb(30010):\ Success
-Stop\ sequoiadb(30020):\ Success
-Stop\ sequoiadb(20000):\ Success
-Stop\ sequoiadb(40000):\ Success
-Stop\ sequoiadb(41000):\ Success
-Stop\ sequoiadb(42000):\ Success
-Stop\ sequoiadb(50000):\ Success
-Total:\ 8;\ Success:\ 8;\ Failed:\ 0
+> var oma = new Oma( "localhost", 11790 )
+> oma.stopAllNodes( "yyy" )
+Stop sequoiadb(30000): Success
+Stop sequoiadb(30010): Success
+Stop sequoiadb(30020): Success
+Stop sequoiadb(20000): Success
+Stop sequoiadb(40000): Success
+Stop sequoiadb(41000): Success
+Stop sequoiadb(42000): Success
+Stop sequoiadb(50000): Success
+Total: 8; Success: 8; Failed: 0
 \f[]
 .fi

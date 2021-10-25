@@ -35,12 +35,12 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.snapshotMemInfo()
+> System.snapshotMemInfo()
 {
-\ \ \ \ "Size":\ 5967,
-\ \ \ \ "Used":\ 2919,
-\ \ \ \ "Free":\ 384,
-\ \ \ \ "Unit":\ "M"
+    "Size": 5967,
+    "Used": 2919,
+    "Free": 384,
+    "Unit": "M"
 }
 \f[]
 .fi

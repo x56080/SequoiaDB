@@ -101,6 +101,6 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.renameSequence("IDSequence",\ "ID_SEQ")
+> db.renameSequence("IDSequence", "ID_SEQ")
 \f[]
 .fi

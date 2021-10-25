@@ -52,13 +52,13 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).remove()
+> db.sample.employee.find( { age: { $gt: 10 } } ).remove()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d2c4455f6d7aeedc15ddf87"
-\ \ \ },
-\ \ \ "name":\ "tom",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d2c4455f6d7aeedc15ddf87"
+   },
+   "name": "tom",
+   "age": 18
 }
 \f[]
 .fi

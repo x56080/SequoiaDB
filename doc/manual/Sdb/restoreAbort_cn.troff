@@ -36,6 +36,6 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreAbort()
+> db.restoreAbort()
 \f[]
 .fi

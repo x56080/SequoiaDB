@@ -77,14 +77,14 @@ v2.0及以上版本。
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.getNodeConfigs(\ 11820\ )
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.getNodeConfigs( 11820 )
 {
-"catalogaddr":\ "sdbserver1:11803",
-"dbpath":\ "/opt/sequoiadb/database/data/11820/",
-"diaglevel":\ "5",
-"role":\ "data",
-"svcname":\ "11820"
+"catalogaddr": "sdbserver1:11803",
+"dbpath": "/opt/sequoiadb/database/data/11820/",
+"diaglevel": "5",
+"role": "data",
+"svcname": "11820"
 }
 \f[]
 .fi

@@ -39,7 +39,7 @@ Get the server name of the node "node".
 .IP
 .nf
 \f[C]
->\ node.getServiceName()
+> node.getServiceName()
 11800
 \f[]
 .fi

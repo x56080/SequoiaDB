@@ -257,8 +257,8 @@ the log file size as 64MB.
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.createNode("hostname1",\ 11830,\ "/opt/sequoiadb/database/data/11830",\ {logfilesz:\ 64})
+> var rg = db.getRG("group1")
+> rg.createNode("hostname1", 11830, "/opt/sequoiadb/database/data/11830", {logfilesz: 64})
 \f[]
 .fi
 .RS

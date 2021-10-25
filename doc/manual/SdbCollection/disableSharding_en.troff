@@ -114,7 +114,7 @@ collection.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq],\ {ShardingKey:\ {a:\ 1},\ ShardingType:\ \[aq]hash\[aq]})
->\ db.sample.employee.disableSharding()
+> db.sample.createCL(\[aq]employee\[aq], {ShardingKey: {a: 1}, ShardingType: \[aq]hash\[aq]})
+> db.sample.employee.disableSharding()
 \f[]
 .fi

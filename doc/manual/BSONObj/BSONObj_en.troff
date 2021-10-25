@@ -64,10 +64,10 @@ Create a new BSONObj object.
 .IP
 .nf
 \f[C]
->\ var\ bsonObj\ =\ BSONObj(\ {\ name:\ "fang"\ }\ )
->\ bsonObj
+> var bsonObj = BSONObj( { name: "fang" } )
+> bsonObj
 {
-\ \ "name":\ "fang"
+  "name": "fang"
 }
 \f[]
 .fi

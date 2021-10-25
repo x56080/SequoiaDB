@@ -103,7 +103,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",\ 11790)
->\ oma.updateNodeConfigs(11810,\ {diaglevel:\ 3})
+> var oma = new Oma("localhost", 11790)
+> oma.updateNodeConfigs(11810, {diaglevel: 3})
 \f[]
 .fi

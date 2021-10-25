@@ -29,7 +29,7 @@ CompressionType ( \f[I]string\f[] )：集合的压缩算法类型，默认为 lz
 .IP \[bu] 2
 "snappy"：使用 snappy 算法压缩
 .PP
-格式：\f[C]CompressionType:\ "lzw"\ |\ "snappy"\f[]
+格式：\f[C]CompressionType: "lzw" | "snappy"\f[]
 .RE
 .SH 返回值
 .PP
@@ -100,7 +100,7 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableCompression({CompressionType:\ \[aq]snappy\[aq]})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableCompression({CompressionType: \[aq]snappy\[aq]})
 \f[]
 .fi

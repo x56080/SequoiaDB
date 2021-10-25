@@ -166,7 +166,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIdIndex()
+> db.sample.employee.createIdIndex()
 \f[]
 .fi
 .RE
@@ -176,7 +176,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIdIndex(\ {\ SortBufferSize:\ 128\ }\ )
+> db.sample.employee.createIdIndex( { SortBufferSize: 128 } )
 \f[]
 .fi
 .RE

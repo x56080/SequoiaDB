@@ -40,6 +40,6 @@ Execute transaction rollback command.
 .IP
 .nf
 \f[C]
->\ db.transRollback()
+> db.transRollback()
 \f[]
 .fi

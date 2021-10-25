@@ -41,5 +41,5 @@ Since v2.6.
 Set the error object of last operation.
 .RS 4
 .PP
-\f[C]lang\-javascript\ >\ db\ =\ new\ Sdb()\ (nofile):0\ uncaught\ exception:\ \-15\ >\ var\ err\ =\ getLastErrObj()\ >\ var\ obj\ =\ err.toObj()\ >\ println(\ obj.toString()\ )\ {\ \ \ \ \ "errno":\ \-15,\ \ \ \ \ "description":\ "Network\ error",\ \ \ \ \ "detail":\ ""\ }\ >\ obj["detail"]\ =\ Date()\ +\ ":\ "\ +\ obj["description"]\ >\ setLastErrObj(obj)\f[]
+\f[C]lang\-javascript > db = new Sdb() (nofile):0 uncaught exception: \-15 > var err = getLastErrObj() > var obj = err.toObj() > println( obj.toString() ) {     "errno": \-15,     "description": "Network error",     "detail": "" } > obj["detail"] = Date() + ": " + obj["description"] > setLastErrObj(obj)\f[]
 .RE

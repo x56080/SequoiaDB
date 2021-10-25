@@ -106,6 +106,6 @@ Add a hostname to ip address mapping to the host file
 .IP
 .nf
 \f[C]
->\ System.addAHostMap(\ "hostname",\ "1.1.1.1"\ )
+> System.addAHostMap( "hostname", "1.1.1.1" )
 \f[]
 .fi

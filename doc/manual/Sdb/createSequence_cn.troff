@@ -31,18 +31,18 @@ options（ \f[I]object\f[]， \f[I]选填\f[] ）
 StartValue（ \f[I]number\f[] ）：序列的起始值，正序时，默认值为
 1；逆序时，默认值为 \-1
 .PP
-格式：\f[C]StartValue\ :\ <num>\f[]
+格式：\f[C]StartValue : <num>\f[]
 .IP "2." 3
 MinValue（ \f[I]number\f[] ）：序列的最小值，正序时，默认值为
 1；逆序时，默认值为 \-2^63
 .PP
-格式：\f[C]MinValue\ :\ <num>\f[]
+格式：\f[C]MinValue : <num>\f[]
 .IP "3." 3
 MaxValue（ \f[I]number\f[] ）：序列的最大值，正序时，默认值为 2^63
 \-1；逆序时，默认值为 \-1
 .RS 4
 .PP
-格式：\f[C]MaxValue\ :\ <num>\f[]
+格式：\f[C]MaxValue : <num>\f[]
 .RE
 .IP "4." 3
 Increment（ \f[I]number\f[]
@@ -50,28 +50,28 @@ Increment（ \f[I]number\f[]
 0，默认值为 1
 .RS 4
 .PP
-格式：\f[C]Increment\ :\ <num>\f[]
+格式：\f[C]Increment : <num>\f[]
 .RE
 .IP "5." 3
 CacheSize（ \f[I]number\f[] ）：编目节点每次缓存的序列值的数量，取值须大于
 0，默认值为 1000
 .RS 4
 .PP
-格式：\f[C]CacheSize\ :\ <num>\f[]
+格式：\f[C]CacheSize : <num>\f[]
 .RE
 .IP "6." 3
 AcquireSize（ \f[I]number\f[] ）：协调节点每次获取的序列值的数量，取值须大于
 0，且小于等于 CacheSize，默认值为 1000
 .RS 4
 .PP
-格式：\f[C]AcquireSize\ :\ <num>\f[]
+格式：\f[C]AcquireSize : <num>\f[]
 .RE
 .IP "7." 3
 Cycled（ \f[I]boolean\f[] ）：序列值达到最大值或最小值时是否允许循环，默认值为
 false
 .RS 4
 .PP
-格式：\f[C]Cycled\ :\ true\ |\ false\f[]
+格式：\f[C]Cycled : true | false\f[]
 .RE
 .RE
 .SH 返回值
@@ -129,6 +129,6 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence(\ "IDSequence",\ {\ Cycled:\ true\ }\ )
+> var sequence = db.createSequence( "IDSequence", { Cycled: true } )
 \f[]
 .fi

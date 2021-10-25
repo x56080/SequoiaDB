@@ -80,7 +80,7 @@ value.
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.getSequence("IDSequence")
->\ sequence.getNextValue()
+> var sequence = db.getSequence("IDSequence")
+> sequence.getNextValue()
 \f[]
 .fi

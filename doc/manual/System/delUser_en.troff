@@ -24,14 +24,14 @@ name ( \f[I]string\f[] ): User name.
 This parameter is required.
 .RS 2
 .PP
-Format: \f[C]name:\ "username"\f[]
+Format: \f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 isRemoveDir ( \f[I]boolean\f[] ): Whether to remove the user directory, the
 defual is false.
 .RS 2
 .PP
-Format: \f[C]isRemoveDir:\ true\f[]
+Format: \f[C]isRemoveDir: true\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -53,6 +53,6 @@ Delete the specified system user.
 .IP
 .nf
 \f[C]
->\ System.delUser({name:\ "newUser"})
+> System.delUser({name: "newUser"})
 \f[]
 .fi

@@ -208,8 +208,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG(\ "group1"\ )
->\ rg.removeNode(\ "vmsvr2\-suse\-x64",\ 11800\ )
+> var rg = db.getRG( "group1" )
+> rg.removeNode( "vmsvr2\-suse\-x64", 11800 )
 \f[]
 .fi
 .PP
@@ -217,7 +217,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.removeNode(\ "vmsvr2\-suse\-x64",\ 11800,\ {\ Enforced:\ true\ }\ )
+> var rg = db.getRG("group1")
+> rg.removeNode( "vmsvr2\-suse\-x64", 11800, { Enforced: true } )
 \f[]
 .fi

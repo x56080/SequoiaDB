@@ -31,10 +31,10 @@ Sdb
 v2.0 及以上版本
 .SH 示例
 .PP
-事务提交命令
+执行事务提交命令
 .IP
 .nf
 \f[C]
->\ db.transCommit()
+> db.transCommit()
 \f[]
 .fi

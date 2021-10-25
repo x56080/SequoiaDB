@@ -37,7 +37,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.transBegin()
+> db.transBegin()
 \f[]
 .fi
 .RE
@@ -47,7 +47,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ cl.insert({date:\ 99,\ id:\ 8,\ a:\ 0})
+> cl.insert({date: 99, id: 8, a: 0})
 \f[]
 .fi
 .RE
@@ -57,8 +57,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.transRollback()
->\ cl.count()
+> db.transRollback()
+> cl.count()
 \f[]
 .fi
 .RE
@@ -68,7 +68,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.transBegin()
+> db.transBegin()
 \f[]
 .fi
 .RE
@@ -78,7 +78,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ cl.insert({date:\ 99,\ id:\ 8,\ a:\ 0})
+> cl.insert({date: 99, id: 8, a: 0})
 \f[]
 .fi
 .RE
@@ -88,8 +88,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.transCommit()
->\ cl.count()
+> db.transCommit()
+> cl.count()
 1
 \f[]
 .fi

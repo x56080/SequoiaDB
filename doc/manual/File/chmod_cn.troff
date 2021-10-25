@@ -92,6 +92,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.chmod(\ "/opt/sequoiadb/file.txt",\ 0777,\ false\ )
+> File.chmod( "/opt/sequoiadb/file.txt", 0777, false )
 \f[]
 .fi

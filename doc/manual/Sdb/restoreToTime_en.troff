@@ -32,9 +32,9 @@ When the value of this parameter is 0, it will be restored to the latest
 consistent point in time; when the value is a string, the value filled in should
 conform to the ISO 8601 format.
 .PP
-Format: \f[C]Time:\ 0\f[] or \f[C]Time:\ 1609430400\f[] or
-\f[C]Time:\ "2021\-01\-01T00:00:00+08:00"\f[] or
-\f[C]Time:\ Timestamp("2021\-01\-01T00:00:00+08:00")\f[]
+Format: \f[C]Time: 0\f[] or \f[C]Time: 1609430400\f[] or
+\f[C]Time: "2021\-01\-01T00:00:00+08:00"\f[] or
+\f[C]Time: Timestamp("2021\-01\-01T00:00:00+08:00")\f[]
 .RE
 .RS
 .PP
@@ -47,7 +47,7 @@ Get the current time in ISO 8601 time.
 .IP
 .nf
 \f[C]
-$\ date\ \-Iseconds\ 
+$ date \-Iseconds 
 2021\-01\-01T00:00:00+08:00
 \f[]
 .fi
@@ -58,7 +58,7 @@ Format date to ISO 8601 format.
 .IP
 .nf
 \f[C]
-$\ date\ \-Iseconds\ \-\-date=\[aq]2021/01/01\ 15:11:09\[aq]
+$ date \-Iseconds \-\-date=\[aq]2021/01/01 15:11:09\[aq]
 2021\-01\-01T15:11:09+08:00
 \f[]
 .fi
@@ -69,7 +69,7 @@ Get the current timestamp.
 .IP
 .nf
 \f[C]
-$\ date\ +%s
+$ date +%s
 1609430400
 \f[]
 .fi
@@ -169,7 +169,7 @@ Restore to the latest consistency point.
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ 0})
+> db.restoreToTime({Time: 0})
 \f[]
 .fi
 .RE
@@ -179,7 +179,7 @@ Restore using epoch seconds.
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ 1577836800})
+> db.restoreToTime({Time: 1577836800})
 \f[]
 .fi
 .RE
@@ -189,7 +189,7 @@ Restore using ISO 8601 string.
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ "2020\-01\-01T00:00:00+00:00"})
+> db.restoreToTime({Time: "2020\-01\-01T00:00:00+00:00"})
 \f[]
 .fi
 .RE
@@ -199,7 +199,7 @@ Restoring using Timestamp.
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ Timestamp("2020\-01\-01T00:00:00+00:00")})
+> db.restoreToTime({Time: Timestamp("2020\-01\-01T00:00:00+00:00")})
 \f[]
 .fi
 .RE

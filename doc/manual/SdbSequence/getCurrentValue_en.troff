@@ -85,10 +85,10 @@ Get the current value of a new sequence, and failed.
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence("IDSequence")
->\ sequence.getCurrentValue()
-(shell):1\ uncaught\ exception:\ \-362
-Sequence\ has\ never\ been\ used
+> var sequence = db.createSequence("IDSequence")
+> sequence.getCurrentValue()
+(shell):1 uncaught exception: \-362
+Sequence has never been used
 \f[]
 .fi
 .RE
@@ -98,9 +98,9 @@ Get it again after using the sequence, and succeed.
 .IP
 .nf
 \f[C]
->\ sequence.getNextValue()
+> sequence.getNextValue()
 1
->\ sequence.getCurrentValue()
+> sequence.getCurrentValue()
 1
 \f[]
 .fi

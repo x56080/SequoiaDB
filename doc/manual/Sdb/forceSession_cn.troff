@@ -143,10 +143,10 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
-//\ 终止指定会话
->\ db.forceSession(30)
+// 连接节点
+> db = new Sdb("localhost", 11810)
+// 终止指定会话
+> db.forceSession(30)
 \f[]
 .fi
 .RE
@@ -156,10 +156,10 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
-//\ 终止指定会话\ 
->\ db.forceSession(30,\ {NodeID:\ 1000})
+// 连接节点
+> db = new Sdb("localhost", 11810)
+// 终止指定会话 
+> db.forceSession(30, {NodeID: 1000})
 \f[]
 .fi
 .RE

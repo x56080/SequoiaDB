@@ -37,7 +37,7 @@ Close the database connection.
 .IP
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.close()
+> var db = new Sdb("localhost", 11810)
+> db.close()
 \f[]
 .fi

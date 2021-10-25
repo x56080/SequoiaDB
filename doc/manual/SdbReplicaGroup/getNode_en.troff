@@ -128,8 +128,8 @@ Specify the host name and server name to get the specified node.
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getNode("hostname1",\ "11830")
+> var rg = db.getRG("group1")
+> rg.getNode("hostname1", "11830")
 hostname1:11830
 \f[]
 .fi

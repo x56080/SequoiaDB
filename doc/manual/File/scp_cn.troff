@@ -131,7 +131,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.scp(\ "/opt/sequoiadb/srcFile.txt",\ "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt"\ )
-Success\ to\ copy\ file\ from\ /opt/sequoiadb/srcFile.txt\ to\ 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
+> File.scp( "/opt/sequoiadb/srcFile.txt", "192.168.20.71:11790\@/opt/sequoiadb/desFile.txt" )
+Success to copy file from /opt/sequoiadb/srcFile.txt to 192.168.20.71:11790\@/opt/sequoiadb/desFile.txt
 \f[]
 .fi

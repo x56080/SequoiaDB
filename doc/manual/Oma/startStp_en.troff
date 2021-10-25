@@ -60,7 +60,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-STP \f[C]<INSTALL_DIR>/conf/stp/stp.conf\f[] if the
+STP \f[C]<INSTALL_DIR>/conf| |||||/stp/stp.conf\f[] if the
 T}
 T{
 T}@T{
@@ -83,8 +83,8 @@ Create and start a STP process.
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",11790)
->\ oma.createStp()
->\ oma.startStp()
+> var oma = new Oma("localhost",11790)
+> oma.createStp()
+> oma.startStp()
 \f[]
 .fi

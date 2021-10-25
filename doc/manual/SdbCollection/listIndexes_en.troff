@@ -368,25 +368,25 @@ Return all index information under the collection "sample.employee".
 .IP
 .nf
 \f[C]
->\ db.sample.employee.listIndexes()
+> db.sample.employee.listIndexes()
 {
-\ \ "IndexDef":\ {
-\ \ \ \ "name":\ "$id",
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ "$oid":\ "5e9e91bccf4f1e7370e4074d"
-\ \ \ \ },
-\ \ \ \ "key":\ {
-\ \ \ \ \ \ "_id":\ 1
-\ \ \ \ },
-\ \ \ \ "v":\ 0,
-\ \ \ \ "unique":\ true,
-\ \ \ \ "dropDups":\ false,
-\ \ \ \ "enforced":\ true,
-\ \ \ \ "NotNull":\ false，
-\ \ \ \ "NotArray":\ false
-\ \ },
-\ \ "IndexFlag":\ "Normal",
-\ \ "Type":\ "Positive"
+  "IndexDef": {
+    "name": "$id",
+    "_id": {
+      "$oid": "5e9e91bccf4f1e7370e4074d"
+    },
+    "key": {
+      "_id": 1
+    },
+    "v": 0,
+    "unique": true,
+    "dropDups": false,
+    "enforced": true,
+    "NotNull": false，
+    "NotArray": false
+  },
+  "IndexFlag": "Normal",
+  "Type": "Positive"
 }
 \f[]
 .fi

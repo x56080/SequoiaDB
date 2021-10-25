@@ -33,7 +33,7 @@ parameter:
 Groups ( \f[I]string/array\f[] ): New replication group
 .RS 2
 .PP
-Format: \f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+Format: \f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -101,7 +101,7 @@ split.
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .IP \[bu] 2
@@ -110,7 +110,7 @@ Add the replication group "group3" in the domain.
 .IP
 .nf
 \f[C]
->\ domain.addGroups({Groups:\ [\[aq]group3\[aq]]})
+> domain.addGroups({Groups: [\[aq]group3\[aq]]})
 \f[]
 .fi
 .RE
@@ -120,7 +120,7 @@ Add the replication groups "group4" and "group5" in the domain.
 .IP
 .nf
 \f[C]
->\ domain.addGroups({Groups:\ [\[aq]group4\[aq],\ \[aq]group5\[aq]]})
+> domain.addGroups({Groups: [\[aq]group4\[aq], \[aq]group5\[aq]]})
 \f[]
 .fi
 .RE

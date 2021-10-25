@@ -36,6 +36,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.exec("select\ *\ from\ sample.employee\ where\ age\ =\ 20")
+> db.exec("select * from sample.employee where age = 20")
 \f[]
 .fi

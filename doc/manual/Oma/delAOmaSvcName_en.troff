@@ -9,7 +9,7 @@ delAOmaSvcName \- Delete the service name of sdbcm from its configuration file
 in target host.
 .SH SYNOPSIS
 .PP
-\f[B]oma.delAOmaSvcName(hostname,[confFile])\f[]
+\f[B]Oma.delAOmaSvcName(hostname,[confFile])\f[]
 .SH CATEGORY
 .PP
 Oma
@@ -80,9 +80,9 @@ or not.
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v2.0
@@ -91,8 +91,8 @@ since v2.0
 Delete the service name of sdbcm from its configuration file in sdbserver1 host.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.delAOmaSvcName(\ "sdbserver1")
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.delAOmaSvcName( "sdbserver1")
 \f[]
 .fi
 .RE

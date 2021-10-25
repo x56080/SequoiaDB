@@ -35,11 +35,11 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getCurrentUser()
+> System.getCurrentUser()
 {
-\ \ \ \ "user":\ "root",
-\ \ \ \ "gid":\ "0",
-\ \ \ \ "dir":\ "/root"
+    "user": "root",
+    "gid": "0",
+    "dir": "/root"
 }
 \f[]
 .fi

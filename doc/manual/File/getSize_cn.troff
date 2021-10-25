@@ -74,7 +74,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.getSize(\ "/opt/sequoiadb/file.txt"\ )
+> File.getSize( "/opt/sequoiadb/file.txt" )
 13558
 \f[]
 .fi

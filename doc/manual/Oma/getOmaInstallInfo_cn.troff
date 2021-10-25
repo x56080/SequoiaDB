@@ -33,15 +33,14 @@ v2.0及以上版本。
 获取本机的 SequoiaDB 的安装信息。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.getOmaInstallInfo()
+> var oma = new Oma( "localhost", 11790 )
+> oma.getOmaInstallInfo()
 {
-"NAME":\ "sdbcm",
-"SDBADMIN_USER":\ "sdbadmin",
-"INSTALL_DIR":\ "/opt/sequoiadb",
-"MD5":\ "0702f9916d37af0ae5917c0c34edbca3"
+"NAME": "sdbcm",
+"SDBADMIN_USER": "sdbadmin",
+"INSTALL_DIR": "/opt/sequoiadb",
+"MD5": "0702f9916d37af0ae5917c0c34edbca3"
 }
-Takes\ 0.000532s.
 \f[]
 .fi
 .RE

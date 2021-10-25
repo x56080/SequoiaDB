@@ -91,7 +91,7 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.getIndexStat(\ "ageIndex"\ )
+> db.sample.employee.getIndexStat( "ageIndex" )
 \f[]
 .fi
 .PP
@@ -100,28 +100,28 @@ v3.4.2 及以上版本
 .nf
 \f[C]
 {
-\ \ "Collection":\ "sample.employee",
-\ \ "Index":\ "ageIndex",
-\ \ "Unique":\ false,
-\ \ "KeyPattern":\ {
-\ \ \ \ "age":\ 1
-\ \ },
-\ \ "TotalIndexLevels":\ 1,
-\ \ "TotalIndexPages":\ 2,
-\ \ "DistinctValNum":\ [
-\ \ \ \ 74
-\ \ ],
-\ \ "MinValue":\ {
-\ \ \ \ "age":\ 18
-\ \ },
-\ \ "MaxValue":\ {
-\ \ \ \ "age":\ 54
-\ \ },
-\ \ "NullFrac":\ 0,
-\ \ "UndefFrac":\ 0,
-\ \ "SampleRecords":\ 400,
-\ \ "TotalRecords":\ 518,
-\ \ "StatTimestamp":\ "2020\-07\-24\-16.15.08.347000"
+  "Collection": "sample.employee",
+  "Index": "ageIndex",
+  "Unique": false,
+  "KeyPattern": {
+    "age": 1
+  },
+  "TotalIndexLevels": 1,
+  "TotalIndexPages": 2,
+  "DistinctValNum": [
+    74
+  ],
+  "MinValue": {
+    "age": 18
+  },
+  "MaxValue": {
+    "age": 54
+  },
+  "NullFrac": 0,
+  "UndefFrac": 0,
+  "SampleRecords": 400,
+  "TotalRecords": 518,
+  "StatTimestamp": "2020\-07\-24\-16.15.08.347000"
 }
 \f[]
 .fi

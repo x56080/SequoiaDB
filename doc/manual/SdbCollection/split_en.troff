@@ -201,7 +201,7 @@ Hash partition range split.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.split("group1",\ "group2",\ {Partition:\ 10},\ {Partition:\ 20})
+> db.sample.employee.split("group1", "group2", {Partition: 10}, {Partition: 20})
 \f[]
 .fi
 .RE
@@ -211,7 +211,7 @@ Range partition range split.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.split("group1",\ "group2",\ {a:\ 10},\ {a:\ 10000})
+> db.sample.employee.split("group1", "group2", {a: 10}, {a: 10000})
 \f[]
 .fi
 .RE
@@ -221,7 +221,7 @@ Percentage split.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.split("group1",\ "group2",\ 50)\ 
+> db.sample.employee.split("group1", "group2", 50) 
 \f[]
 .fi
 .RE

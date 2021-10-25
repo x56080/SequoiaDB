@@ -175,7 +175,7 @@ Create a domain containing two replication groups.
 .IP
 .nf
 \f[C]
->\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]])
+> db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]])
 \f[]
 .fi
 .RE
@@ -185,7 +185,7 @@ Create a domain containing two replication groups, and specify automatic split.
 .IP
 .nf
 \f[C]
->\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .RE

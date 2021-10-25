@@ -188,7 +188,7 @@ Hash 分区范围切分
 .IP
 .nf
 \f[C]
->\ db.sample.employee.splitAsync("group1",\ "group2",\ {Partition:\ 10},\ {Partition:\ 20})
+> db.sample.employee.splitAsync("group1", "group2", {Partition: 10}, {Partition: 20})
 3
 \f[]
 .fi
@@ -199,7 +199,7 @@ Range 分区范围切分
 .IP
 .nf
 \f[C]
->\ db.sample.employee.splitAsync("group1",\ "group2",\ {a:\ 10},\ {a:\ 10000})
+> db.sample.employee.splitAsync("group1", "group2", {a: 10}, {a: 10000})
 2
 \f[]
 .fi
@@ -210,7 +210,7 @@ Range 分区范围切分
 .IP
 .nf
 \f[C]
->\ db.sample.employee.splitAsync("group1",\ "group2",\ 50)\ 
+> db.sample.employee.splitAsync("group1", "group2", 50) 
 5
 \f[]
 .fi

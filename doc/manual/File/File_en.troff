@@ -202,11 +202,13 @@ T}@T{
 write mode
 T}
 .TE
-
+.RS
+.PP
 Note：
 .RE
+.RS
 .PP
-These flags can be combined with bitwise 'or' operator( | ).
+These flags can be combined with bitwise \[aq]or\[aq] operator( | ).
 .RE
 .SH RETURN VALUE
 .PP
@@ -225,6 +227,6 @@ Create a new file and open it in read\-write mode.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt",\ 0664,\ SDB_FILE_READWRITE\ |\ SDB_FILE_CREATE\ )
+> var file = new File( "/opt/sequoiadb/file.txt", 0664, SDB_FILE_READWRITE | SDB_FILE_CREATE )
 \f[]
 .fi

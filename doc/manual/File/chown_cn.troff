@@ -149,6 +149,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.chown(\ "/opt/sequoiadb/file.txt",\ {\ "username":\ "sequoiadb",\ "groupname":\ "SequoiadDB"\ },\ false\ )
+> File.chown( "/opt/sequoiadb/file.txt", { "username": "sequoiadb", "groupname": "SequoiadDB" }, false )
 \f[]
 .fi

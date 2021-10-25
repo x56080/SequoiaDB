@@ -33,7 +33,7 @@ Create a Remote object.
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,6 +41,6 @@ Close remote connection.
 .IP
 .nf
 \f[C]
->\ remoteObj.close()
+> remoteObj.close()
 \f[]
 .fi

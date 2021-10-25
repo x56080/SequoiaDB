@@ -35,6 +35,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getIpTablesInfo()
+> System.getIpTablesInfo()
 \f[]
 .fi

@@ -29,7 +29,7 @@ ShardingKey ( \f[I]object，必填\f[] )：分区键，取值为 1 或
 .IP \[bu] 2
 集合只能存在于一个数据组中，或者集合为没有挂载子表的主表。
 .PP
-格式：\f[C]ShardingKey:\ {<字段1>:\ <1|\-1>,\ [<字段2>:\ <1|\-1>,\ ...]}\f[]
+格式：\f[C]ShardingKey: {<字段1>: <1|\-1>, [<字段2>: <1|\-1>, ...]}\f[]
 .RE
 .IP \[bu] 2
 ShardingType ( \f[I]string\f[] )：分区方式，默认为 hash 分区。其可选取值如下：
@@ -41,7 +41,7 @@ ShardingType ( \f[I]string\f[] )：分区方式，默认为 hash 分区。其可
 .PP
 集合只能存在于一个数据组中
 .PP
-格式：\f[C]ShardingType:\ "hash"\ |\ "range"\f[]
+格式：\f[C]ShardingType: "hash" | "range"\f[]
 .RE
 .IP \[bu] 2
 \f[C]Partition\f[] ( \f[I]number\f[] )：分区数，仅当选择 hash 分区时填写，代表
@@ -52,7 +52,7 @@ hash 分区的个数，默认值为 4096
 .IP \[bu] 2
 集合只能存在于一个数据组中。
 .PP
-格式：\f[C]Partition:\ <分区数>\f[]
+格式：\f[C]Partition: <分区数>\f[]
 .RE
 .IP \[bu] 2
 \f[C]AutoSplit\f[] ( \f[I]boolean\f[] )：标识是否开启自动切分功能，默认值为
@@ -68,7 +68,7 @@ false
 .IP \[bu] 2
 AutoSplit 只能作用于 hash 分区键上。
 .PP
-格式：\f[C]AutoSplit:\ true\ |\ false\f[]
+格式：\f[C]AutoSplit: true | false\f[]
 .RE
 .IP \[bu] 2
 \f[C]EnsureShardingIndex\f[] ( \f[I]boolean\f[]
@@ -154,8 +154,8 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableSharding({ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash"})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash"})
 \f[]
 .fi
 .RE
@@ -165,8 +165,8 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableSharding({ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash",\ AutoSplit:\ true})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
 \f[]
 .fi
 .RE

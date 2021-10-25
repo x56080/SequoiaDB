@@ -168,10 +168,10 @@ v2.0 及以上版本。
 在本地中创建并启动一个本地端口号为11780，http端口为8000，web路径为/opt/sequoiadb/web的sdbom进程
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",\ 11790)
->\ oma.createOM(\ "11780",\ "/opt/sequoiadb/database/sms/11780",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\ "httpname":\ 8000,\ "wwwpath":\ "/opt/sequoiadb/web"\ }\ )
->\ oma.startNode(\ 11780\ )
+> var oma = new Oma("localhost", 11790)
+> oma.createOM( "11780", "/opt/sequoiadb/database/sms/11780",
+                         { "httpname": 8000, "wwwpath": "/opt/sequoiadb/web" } )
+> oma.startNode( 11780 )
 \f[]
 .fi
 .RE

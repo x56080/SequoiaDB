@@ -86,6 +86,6 @@ Remove the replication group named "group".
 .IP
 .nf
 \f[C]
->\ db.removeRG("group")
+> db.removeRG("group")
 \f[]
 .fi

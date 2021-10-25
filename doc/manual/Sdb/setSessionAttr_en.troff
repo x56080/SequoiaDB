@@ -35,8 +35,8 @@ as follows:
 .IP \[bu] 2
 1~255: Specify the instance ID by instanceid.
 .PP
-Format: \f[C]PreferedInstance:\ "M"\f[] or
-\f[C]PreferedInstance:\ [\ 1,\ 10\ ]\f[]
+Format: \f[C]PreferedInstance: "M"\f[] or
+\f[C]PreferedInstance: [ 1, 10 ]\f[]
 .RE
 .IP \[bu] 2
 PreferedInstanceMode ( \f[I]string\f[] ): Specify the selection mode of the
@@ -53,7 +53,7 @@ The value of the role in parameter "PreferedInstance" is better than or inferior
 to the value of the instance when selected according to the rules, and has
 nothing to do with the value of parameter "PreferedInstanceMode".
 .PP
-Format: \f[C]PreferedInstaceMode:\ "random"\f[]
+Format: \f[C]PreferedInstaceMode: "random"\f[]
 .RE
 .IP \[bu] 2
 PreferedStrict ( \f[I]boolean\f[] ): Specifies whether the node selection is
@@ -63,14 +63,14 @@ strict mode.
 When specified as strict mode, the node can only be selected from the ID
 specified by parameter "Preferedinstance".
 .PP
-Format: \f[C]PreferedStrict:\ true\f[]
+Format: \f[C]PreferedStrict: true\f[]
 .RE
 .IP \[bu] 2
 PreferedPeriod ( \f[I]number\f[] ): Specify the effective period of the priority
 instance, in seconds.
 .RS 2
 .PP
-Format: \f[C]PreferedPeriod:\ 60\f[]
+Format: \f[C]PreferedPeriod: 60\f[]
 .RE
 .IP \[bu] 2
 Timeout ( \f[I]number\f[] ): Specify the timeout period for the session to
@@ -80,7 +80,7 @@ perform operations, in milliseconds.
 The minimum value of this parameter is 1000 milliseconds, and a value of \-1
 means no timeout detection is performed.
 .PP
-Format: \f[C]Timeout:\ 10000\f[]
+Format: \f[C]Timeout: 10000\f[]
 .RE
 .IP \[bu] 2
 TransIsolation ( \f[I]number\f[] ): Isolation level of session transaction.
@@ -93,49 +93,49 @@ The parameter values are as follows:
 .IP \[bu] 2
 2: RS level.
 .PP
-Format: \f[C]TransIsolation:\ 1\f[]
+Format: \f[C]TransIsolation: 1\f[]
 .RE
 .IP \[bu] 2
 TransTimeout ( \f[I]number\f[] ): Session transaction lock wait timeout time, in
 seconds.
 .RS 2
 .PP
-Format: \f[C]TransTimeout:\ 10\f[]
+Format: \f[C]TransTimeout: 10\f[]
 .RE
 .IP \[bu] 2
 TransLockWait ( \f[I]boolean\f[] ): Whether the session transaction need to wait
 for locks under and the RC isolation level.
 .RS 2
 .PP
-Format: \f[C]TransLockWait:\ true\f[]
+Format: \f[C]TransLockWait: true\f[]
 .RE
 .IP \[bu] 2
 TransUseRBS ( \f[I]boolean\f[] ): Whether the session transcation uses the
 rollback segment.
 .RS 2
 .PP
-Format: \f[C]TransUseRBS:\ true\f[]
+Format: \f[C]TransUseRBS: true\f[]
 .RE
 .IP \[bu] 2
 TransAutoCommit ( \f[I]boolean\f[] ): Whether the session transaction supports
 the automatic transaction commit.
 .RS 2
 .PP
-Format: \f[C]TransAutoCommit:\ true\f[]
+Format: \f[C]TransAutoCommit: true\f[]
 .RE
 .IP \[bu] 2
 TransAutoRollback ( \f[I]boolean\f[] ): Whether the session transaction is
 automatically rolled back when the operation fails.
 .RS 2
 .PP
-Format: \f[C]TransAutoRollback:\ true\f[]
+Format: \f[C]TransAutoRollback: true\f[]
 .RE
 .IP \[bu] 2
 TransRCCount ( \f[I]boolean\f[] ): Whether the session transaction uses read
 committed to process count() queries.
 .RS 2
 .PP
-Format: \f[C]TransRCCount:\ true\f[]
+Format: \f[C]TransRCCount: true\f[]
 .RE
 .RS
 .PP
@@ -185,13 +185,13 @@ For example, there are three nodes [ {NodeID:1001}, {NodeID:1004}, {NodeID:1002}
 If the value of one or more instances and the value of a role are mixed and
 specified, the node that matches the role among a group of nodes matching the
 instance ID is preferentially selected.
-For example, \f[C][\ 1,\ 2,\ "S"\ ]\f[] indicates that the secondary node among
+For example, \f[C][ 1, 2, "S" ]\f[] indicates that the secondary node among
 the nodes with the instance ID of 1 to 2 is preferentially selected.
 .IP "4." 3
 For mixed designation, the role value can be expanded by "\-", such as
 "\-M"，"\-S" etc., which means that if there is no node matching the instance
 ID, the role node is preferentially selected.
-For example, \f[C][\ 1,\ 2,\ "\-S"\ ]\f[] means that the node with the instance
+For example, \f[C][ 1, 2, "\-S" ]\f[] means that the node with the instance
 ID 1 to 2 is preferentially matched.
 If not, select any secondary node first.
 .IP "5." 3
@@ -313,7 +313,7 @@ Set session priority to get data from the "primary" database instance first.
 .IP
 .nf
 \f[C]
->\ db.setSessionAttr({PreferedInstance:\ "M"})
+> db.setSessionAttr({PreferedInstance: "M"})
 \f[]
 .fi
 .RE
@@ -323,7 +323,7 @@ Set the session to read data from the secondary intance 1 and 3 first.
 .IP
 .nf
 \f[C]
->\ db.setSessionAttr({PreferedInstance:\ [\ 1,\ 3,\ "S"\ ]})
+> db.setSessionAttr({PreferedInstance: [ 1, 3, "S" ]})
 \f[]
 .fi
 .RE
@@ -333,7 +333,7 @@ Set the operation timeout for the sessions to 10 seconds.
 .IP
 .nf
 \f[C]
->\ db.setSessionAttr({Timeout:\ 10000})
+> db.setSessionAttr({Timeout: 10000})
 \f[]
 .fi
 .RE

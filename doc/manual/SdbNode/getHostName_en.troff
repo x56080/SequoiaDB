@@ -39,7 +39,7 @@ Get the hostname of the node "node".
 .IP
 .nf
 \f[C]
->\ node.getHostName()
+> node.getHostName()
 vmsvr2\-suse\-x64
 \f[]
 .fi

@@ -123,7 +123,7 @@ db.sample.employee.count()
 .IP
 .nf
 \f[C]
->\ db.sample.employee.count({name:\ "Tom",\ age:\ {$gt:\ 25}})
+> db.sample.employee.count({name: "Tom", age: {$gt: 25}})
 \f[]
 .fi
 .RE
@@ -134,7 +134,7 @@ nameIdx
 .IP
 .nf
 \f[C]
->\ db.sample.employee.count({name:\ "Tom",\ age:\ {$gt:\ 25}}).hint({"":\ "nameIdx"})
+> db.sample.employee.count({name: "Tom", age: {$gt: 25}}).hint({"": "nameIdx"})
 \f[]
 .fi
 .RE

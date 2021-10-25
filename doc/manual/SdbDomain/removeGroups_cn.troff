@@ -29,7 +29,7 @@ options ( \f[I]object，必填\f[] )
 .IP \[bu] 2
 Groups ( \f[I]string/array\f[] )：域将删除的复制组
 .PP
-格式：\f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+格式：\f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -117,7 +117,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq],\ \[aq]group3\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq], \[aq]group3\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .IP \[bu] 2
@@ -126,7 +126,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.removeGroups({Groups:\ [\[aq]group2\[aq]]})
+> domain.removeGroups({Groups: [\[aq]group2\[aq]]})
 \f[]
 .fi
 .RE
@@ -136,7 +136,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.removeGroups({Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]})
+> domain.removeGroups({Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]})
 \f[]
 .fi
 .RE

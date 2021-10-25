@@ -35,7 +35,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getEWD()
+> System.getEWD()
 /opt/sequoiadb/bin
 \f[]
 .fi

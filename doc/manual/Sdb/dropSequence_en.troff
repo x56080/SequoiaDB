@@ -78,6 +78,6 @@ Drop the sequence named \[aq]IDSequence\[aq].
 .IP
 .nf
 \f[C]
->\ db.dropSequence("IDSequence")
+> db.dropSequence("IDSequence")
 \f[]
 .fi

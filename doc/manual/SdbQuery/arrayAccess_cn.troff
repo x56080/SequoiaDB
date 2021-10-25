@@ -74,13 +74,13 @@ v3.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find().arrayAccess(0)
+> db.sample.employee.find().arrayAccess(0)
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ \ \ },
-\ \ \ \ "name":\ "tom",
-\ \ \ \ "age":\ 20
+    "_id": {
+      "$oid": "5cf8aef75e72aea111e82b38"
+    },
+    "name": "tom",
+    "age": 20
 }
 \f[]
 .fi

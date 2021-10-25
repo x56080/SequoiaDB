@@ -7,7 +7,7 @@
 getOmaInstallFile \- Get the installation information file.
 .SH SYNOPSIS
 .PP
-\f[B]Oma.getOmaInstallFile()\f[]
+\f[B]oma.getOmaInstallFile()\f[]
 .SH CATEGORY
 .PP
 Oma
@@ -34,7 +34,7 @@ Since v1.0.
 Get the installation information file name.
 .nf
 \f[C]
->\ Oma.getOmaInstallFile()
+> Oma.getOmaInstallFile()
 /etc/default/sequoiadb
 \f[]
 .fi

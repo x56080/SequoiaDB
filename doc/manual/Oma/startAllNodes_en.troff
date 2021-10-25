@@ -45,16 +45,16 @@ Start all nodes with the business name "yyy".
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",\ 11790)
->\ oma.startAllNodes("yyy")\ \ 
-Start\ sequoiadb(20000):\ Success
-Start\ sequoiadb(40000):\ Success
-Start\ sequoiadb(30020):\ Success
-Start\ sequoiadb(50000):\ Success
-Start\ sequoiadb(30010):\ Success
-Start\ sequoiadb(30000):\ Success
-Start\ sequoiadb(42000):\ Success
-Start\ sequoiadb(41000):\ Success
-Total:\ 8;\ Success:\ 8;\ Failed:\ 0
+> var oma = new Oma("localhost", 11790)
+> oma.startAllNodes("yyy")  
+Start sequoiadb(20000): Success
+Start sequoiadb(40000): Success
+Start sequoiadb(30020): Success
+Start sequoiadb(50000): Success
+Start sequoiadb(30010): Success
+Start sequoiadb(30000): Success
+Start sequoiadb(42000): Success
+Start sequoiadb(41000): Success
+Total: 8; Success: 8; Failed: 0
 \f[]
 .fi

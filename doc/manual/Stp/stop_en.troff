@@ -38,7 +38,7 @@ Stop the local STP service.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp\ 
->\ stp.stop()
+> var stp = new Stp 
+> stp.stop()
 \f[]
 .fi

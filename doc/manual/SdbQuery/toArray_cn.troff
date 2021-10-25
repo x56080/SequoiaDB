@@ -35,11 +35,11 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ var\ arr\ =\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }).toArray()
->\ arr[0]
+> var arr = db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" }).toArray()
+> arr[0]
 {
-\ \ "name":\ "John",
-\ \ "age":\ 25
+  "name": "John",
+  "age": 25
 }
 \f[]
 .fi

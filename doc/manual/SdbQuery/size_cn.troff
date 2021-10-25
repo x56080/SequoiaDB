@@ -44,7 +44,7 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 20\ }\ }\ ).size()
+> db.sample.employee.find( { age: { $gt: 20 } } ).size()
 1
 \f[]
 .fi

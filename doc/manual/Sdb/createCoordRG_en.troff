@@ -37,6 +37,6 @@ Create a coordination replication group.
 .IP
 .nf
 \f[C]
->\ db.createCoordRG()
+> db.createCoordRG()
 \f[]
 .fi

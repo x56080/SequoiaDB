@@ -74,7 +74,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\[aq]mydomain\[aq])
+> db.dropDomain(\[aq]mydomain\[aq])
 \f[]
 .fi
 .RE
@@ -84,10 +84,10 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\[aq]hello\[aq])
-(nofile):0\ uncaught\ exception:\ \-256
->\ getLastErrMsg(\-256)
-Domain\ is\ not\ empty
+> db.dropDomain(\[aq]hello\[aq])
+(nofile):0 uncaught exception: \-256
+> getLastErrMsg(\-256)
+Domain is not empty
 \f[]
 .fi
 .RE

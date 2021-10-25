@@ -33,7 +33,7 @@ Acquire the thread id of sdb shell
 .IP
 .nf
 \f[C]
->\ System.getTID()
+> System.getTID()
 11505
 \f[]
 .fi

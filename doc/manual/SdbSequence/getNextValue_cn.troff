@@ -36,8 +36,8 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence("IDSequence")
->\ sequence.getNextValue()
+> var sequence = db.createSequence("IDSequence")
+> sequence.getNextValue()
 1
 \f[]
 .fi

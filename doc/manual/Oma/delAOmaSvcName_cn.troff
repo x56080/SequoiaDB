@@ -84,7 +84,7 @@ v2.0及以上版本。
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.delAOmaSvcName(\ "sdbserver1")
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.delAOmaSvcName( "sdbserver1")
 \f[]
 .fi

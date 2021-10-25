@@ -65,7 +65,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ Hash.fileMD5(\ "/opt/sequoiadb/file"\ )
+> Hash.fileMD5( "/opt/sequoiadb/file" )
 e2c40f3a729dbe802f2295425d6da21c
 \f[]
 .fi

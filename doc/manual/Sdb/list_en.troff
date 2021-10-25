@@ -179,14 +179,14 @@ Specify the value of listType as SDB_LIST_CONTEXTS.
 .IP
 .nf
 \f[C]
->\ db.list(\ SDB_LIST_CONTEXTS\ )
+> db.list( SDB_LIST_CONTEXTS )
 {
-\ \ "NodeName":\ "ubuntu\-200\-043:11850",
-\ \ "SessionID":\ 29,
-\ \ "TotalCount":\ 1,
-\ \ "Contexts":\ [
-\ \ \ \ 254
-\ \ ]
+  "NodeName": "ubuntu\-200\-043:11850",
+  "SessionID": 29,
+  "TotalCount": 1,
+  "Contexts": [
+    254
+  ]
 }
 \f[]
 .fi
@@ -197,19 +197,19 @@ Specify the value of listType as SDB_LIST_STORAGEUNITS.
 .IP
 .nf
 \f[C]
->\ db.list(\ SDB_LIST_STORAGEUNITS\ )
+> db.list( SDB_LIST_STORAGEUNITS )
 {
-\ \ "NodeName":\ "ubuntu\-200\-043:11830",
-\ \ "Name":\ "sample",
-\ \ "UniqueID":\ 61,
-\ \ "ID":\ 4094,
-\ \ "LogicalID":\ 186,
-\ \ "PageSize":\ 65536,
-\ \ "LobPageSize":\ 262144,
-\ \ "Sequence":\ 1,
-\ \ "NumCollections":\ 1,
-\ \ "CollectionHWM":\ 1,
-\ \ "Size":\ 306315264
+  "NodeName": "ubuntu\-200\-043:11830",
+  "Name": "sample",
+  "UniqueID": 61,
+  "ID": 4094,
+  "LogicalID": 186,
+  "PageSize": 65536,
+  "LobPageSize": 262144,
+  "Sequence": 1,
+  "NumCollections": 1,
+  "CollectionHWM": 1,
+  "Size": 306315264
 }
 \f[]
 .fi
@@ -222,10 +222,10 @@ value of the Name field.
 .IP
 .nf
 \f[C]
->\ db.list(\ SDB_LIST_STORAGEUNITS,\ {\ "LogicalID":\ {\ $gt:\ 1\ }\ },\ {\ Name:\ "",\ ID:\ ""\ },\ {\ Name:\ 1\ }\ )
+> db.list( SDB_LIST_STORAGEUNITS, { "LogicalID": { $gt: 1 } }, { Name: "", ID: "" }, { Name: 1 } )
 {
-\ \ "Name":\ "sample",
-\ \ "ID":\ 4094
+  "Name": "sample",
+  "ID": 4094
 }
 \f[]
 .fi
@@ -237,14 +237,14 @@ group db1.
 .IP
 .nf
 \f[C]
->\ db.list(\ SDB_LIST_CONTEXTS,\ {\ GroupName:\ "db1"\ }\ )
+> db.list( SDB_LIST_CONTEXTS, { GroupName: "db1" } )
 {
-\ \ "NodeName":\ "ubuntu\-200\-043:20000",
-\ \ "SessionID":\ 29,
-\ \ "TotalCount":\ 1,
-\ \ "Contexts":\ [
-\ \ \ \ 254
-\ \ ]
+  "NodeName": "ubuntu\-200\-043:20000",
+  "SessionID": 29,
+  "TotalCount": 1,
+  "Contexts": [
+    254
+  ]
 }
 \f[]
 .fi

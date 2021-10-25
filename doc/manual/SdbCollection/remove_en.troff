@@ -306,7 +306,7 @@ Remove all records in the collection.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.remove()
+> db.sample.employee.remove()
 \f[]
 .fi
 .RE
@@ -319,7 +319,7 @@ field value is greater than or equal to 20 from the traversed records.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.remove({age:\ {$gte:\ 20}},\ {"":\ "myIndex"})
+> db.sample.employee.remove({age: {$gte: 20}}, {"": "myIndex"})
 \f[]
 .fi
 .RE

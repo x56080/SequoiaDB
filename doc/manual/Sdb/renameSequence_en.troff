@@ -104,6 +104,6 @@ Rename the sequence from \[aq]IDSequence\[aq] to \[aq]ID_SEQ\[aq].
 .IP
 .nf
 \f[C]
->\ db.renameSequence("IDSequence",\ "ID_SEQ")
+> db.renameSequence("IDSequence", "ID_SEQ")
 \f[]
 .fi

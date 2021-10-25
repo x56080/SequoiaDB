@@ -35,12 +35,12 @@ Since v2.6.
 Reset the error message of last operation.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ var\ err\ =\ getLastErrMsg()
->\ err\ =\ Date()\ +\ ":\ "\ +\ err
-Wed\ May\ 24\ 2017\ 12:44:44\ GMT+0800\ (CST):\ Network\ error
->\ setLastErrMsg(\ err\ )\ ;
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> var err = getLastErrMsg()
+> err = Date() + ": " + err
+Wed May 24 2017 12:44:44 GMT+0800 (CST): Network error
+> setLastErrMsg( err ) ;
 \f[]
 .fi
 .RE

@@ -68,6 +68,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.getDomain(\[aq]mydomain\[aq])
+> var domain = db.getDomain(\[aq]mydomain\[aq])
 \f[]
 .fi

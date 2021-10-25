@@ -65,7 +65,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ Hash.md5(\ "SequoiaDB"\ )
+> Hash.md5( "SequoiaDB" )
 151a2930a718d32f64141aabda45b3b3
 \f[]
 .fi

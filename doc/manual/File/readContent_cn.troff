@@ -83,7 +83,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .RE
@@ -93,8 +93,8 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent()
->\ content\ instanceof\ FileContent\ \ \ //\ 验证\ content\ 是否为\ FileContent\ 对象
+> var content = file.readContent()
+> content instanceof FileContent   // 验证 content 是否为 FileContent 对象
 true
 \f[]
 .fi

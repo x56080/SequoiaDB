@@ -69,9 +69,9 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接协调节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.reloadConf()
+// 连接协调节点
+> db = new Sdb("localhost", 11810)
+> db.reloadConf()
 \f[]
 .fi
 .RE
@@ -81,9 +81,9 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接协调节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.reloadConf({NodeID:\ 1000})
+// 连接协调节点
+> db = new Sdb("localhost", 11810)
+> db.reloadConf({NodeID: 1000})
 \f[]
 .fi
 .RE

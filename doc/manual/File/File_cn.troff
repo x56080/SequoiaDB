@@ -223,6 +223,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt",\ 0664,\ SDB_FILE_READWRITE\ |\ SDB_FILE_CREATE\ )
+> var file = new File( "/opt/sequoiadb/file.txt", 0664, SDB_FILE_READWRITE | SDB_FILE_CREATE )
 \f[]
 .fi

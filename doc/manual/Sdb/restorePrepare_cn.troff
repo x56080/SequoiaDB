@@ -41,6 +41,6 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restorePrepare()
+> db.restorePrepare()
 \f[]
 .fi

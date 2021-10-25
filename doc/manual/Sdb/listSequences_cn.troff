@@ -36,9 +36,9 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.listSequences()
+> db.listSequences()
 {
-\ \ \ \ "Name":\ "SYS_8589934593_id_SEQ"
+    "Name": "SYS_8589934593_id_SEQ"
 }
 \f[]
 .fi

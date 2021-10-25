@@ -80,6 +80,6 @@ Separate the specified sub\-partition from the main partition collection.
 .IP
 .nf
 \f[C]
->\ db.sample.year.detachCL("sample2.January")
+> db.sample.year.detachCL("sample2.January")
 \f[]
 .fi

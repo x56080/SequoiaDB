@@ -86,7 +86,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createAutoIncrement(\ {\ Field:\ "studentID",\ Generated:\ "always"\ }\ )
+> db.sample.employee.createAutoIncrement( { Field: "studentID", Generated: "always" } )
 \f[]
 .fi
 .RE
@@ -96,7 +96,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createAutoIncrement(\ [\ {\ Field:\ "comID"\ },\ {\ Field:\ "innerID"\ }\ ]\ )
+> db.sample.employee.createAutoIncrement( [ { Field: "comID" }, { Field: "innerID" } ] )
 \f[]
 .fi
 .RE

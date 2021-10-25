@@ -97,8 +97,8 @@ v2.0及以上版本。
 的配置文件中。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "sdbserver1",\ 11790\ )
->\ oma.addAOmaSvcName(\ "sdbserver1",\ 11780,\ false)
+> var oma = new Oma( "sdbserver1", 11790 )
+> oma.addAOmaSvcName( "sdbserver1", 11780, false)
 \f[]
 .fi
 .RE

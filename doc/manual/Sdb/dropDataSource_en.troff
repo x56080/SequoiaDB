@@ -131,6 +131,6 @@ Drop the data source named "datasource"
 .IP
 .nf
 \f[C]
->\ db.dropDataSource("datasource")
+> db.dropDataSource("datasource")
 \f[]
 .fi

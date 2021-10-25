@@ -75,6 +75,6 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.dropCL("employee")
+> db.sample.dropCL("employee")
 \f[]
 .fi

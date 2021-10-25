@@ -293,75 +293,75 @@ attachNode 前的节点信息：
 .IP
 .nf
 \f[C]
->\ db.listReplicaGroups()
+> db.listReplicaGroups()
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "hostname1",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11830"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11831"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11832"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1007
-\ \ \ \ }
-\ \ \ \ ......
-\ \ ],
-\ \ "GroupID":\ 1002,
-\ \ "GroupName":\ "group1",
-\ \ "PrimaryNode":\ 1002,
-\ \ "Role":\ 0,
-\ \ "Status":\ 1,
-\ \ "Version":\ 7,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "580adfd531ae32109e38ca29"
-\ \ }
+  "Group": [
+    {
+      "HostName": "hostname1",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11830/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11830"
+        },
+        {
+          "Type": 1,
+          "Name": "11831"
+        },
+        {
+          "Type": 2,
+          "Name": "11832"
+        }
+      ],
+      "NodeID": 1007
+    }
+    ......
+  ],
+  "GroupID": 1002,
+  "GroupName": "group1",
+  "PrimaryNode": 1002,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580adfd531ae32109e38ca29"
+  }
 }
 \&......
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "hostname2",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11840/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11840"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11841"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11842"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1000
-\ \ \ \ }
-\ \ \ \ ......
-\ \ ],
-\ \ "GroupID":\ 1000,
-\ \ "GroupName":\ "group2",
-\ \ "PrimaryNode":\ 1000,
-\ \ "Role":\ 0,
-\ \ "Status":\ 1,
-\ \ "Version":\ 7,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "580adfd531ae32109e38ca27"
-\ \ }
+  "Group": [
+    {
+      "HostName": "hostname2",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11840/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11840"
+        },
+        {
+          "Type": 1,
+          "Name": "11841"
+        },
+        {
+          "Type": 2,
+          "Name": "11842"
+        }
+      ],
+      "NodeID": 1000
+    }
+    ......
+  ],
+  "GroupID": 1000,
+  "GroupName": "group2",
+  "PrimaryNode": 1000,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580adfd531ae32109e38ca27"
+  }
 }
 \f[]
 .fi
@@ -370,7 +370,7 @@ attachNode 前的节点信息：
 .IP
 .nf
 \f[C]
->\ db.getRG(\[aq]group1\[aq]).detachNode(\[aq]hostname1\[aq],\ \[aq]11830\[aq],\ {\ KeepData:\ true\ }\ )
+> db.getRG(\[aq]group1\[aq]).detachNode(\[aq]hostname1\[aq], \[aq]11830\[aq], { KeepData: true } )
 \f[]
 .fi
 .PP
@@ -379,7 +379,7 @@ attachNode 前的节点信息：
 .IP
 .nf
 \f[C]
->\ db.getRG(\[aq]group2\[aq]).attachNode(\[aq]hostname1\[aq],\ \[aq]11830\[aq],\ {\ KeepData:\ false\ }\ )
+> db.getRG(\[aq]group2\[aq]).attachNode(\[aq]hostname1\[aq], \[aq]11830\[aq], { KeepData: false } )
 \f[]
 .fi
 .PP
@@ -388,92 +388,92 @@ attachNode 前的节点信息：
 .IP
 .nf
 \f[C]
->\ db.listReplicaGroups()
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "hostname3",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11830"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11831"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11832"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1002
-\ \ \ \ }
-\ \ ],
-\ \ "GroupID":\ 1002,
-\ \ "GroupName":\ "group1",
-\ \ "PrimaryNode":\ 1002,
-\ \ "Role":\ 0,
-\ \ "Status":\ 1,
-\ \ "Version":\ 7,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "580adfd531ae32109e38ca29"
-\ \ }
+> db.listReplicaGroups()
+    {
+      "HostName": "hostname3",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11830/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11830"
+        },
+        {
+          "Type": 1,
+          "Name": "11831"
+        },
+        {
+          "Type": 2,
+          "Name": "11832"
+        }
+      ],
+      "NodeID": 1002
+    }
+  ],
+  "GroupID": 1002,
+  "GroupName": "group1",
+  "PrimaryNode": 1002,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580adfd531ae32109e38ca29"
+  }
 }
 \&......
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "hostname1",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11830/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11830"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11831"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11832"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1010
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "HostName":\ "hostname2",
-\ \ \ \ \ \ "Status":\ 1,
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/data/11840/",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11840"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11841"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11842"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1000
-\ \ \ \ },
-\ \ \ \ ......
-\ \ ],
-\ \ "GroupID":\ 1000,
-\ \ "GroupName":\ "group2",
-\ \ "PrimaryNode":\ 1000,
-\ \ "Role":\ 0,
-\ \ "Status":\ 1,
-\ \ "Version":\ 7,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "580adfd531ae32109e38ca27"
-\ \ }
+  "Group": [
+    {
+      "HostName": "hostname1",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11830/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11830"
+        },
+        {
+          "Type": 1,
+          "Name": "11831"
+        },
+        {
+          "Type": 2,
+          "Name": "11832"
+        }
+      ],
+      "NodeID": 1010
+    },
+    {
+      "HostName": "hostname2",
+      "Status": 1,
+      "dbpath": "/opt/sequoiadb/database/data/11840/",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11840"
+        },
+        {
+          "Type": 1,
+          "Name": "11841"
+        },
+        {
+          "Type": 2,
+          "Name": "11842"
+        }
+      ],
+      "NodeID": 1000
+    },
+    ......
+  ],
+  "GroupID": 1000,
+  "GroupName": "group2",
+  "PrimaryNode": 1000,
+  "Role": 0,
+  "Status": 1,
+  "Version": 7,
+  "_id": {
+    "$oid": "580adfd531ae32109e38ca27"
+  }
 }
 \f[]
 .fi

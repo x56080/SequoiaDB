@@ -119,7 +119,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.traceOff("/opt/sequoiadb/trace.dump")
+> db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
 .RE
@@ -129,7 +129,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace_output"\ )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
 \f[]
 .fi
 .RE

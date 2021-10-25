@@ -90,7 +90,7 @@ Connect to the local STP service process object.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
+> var stp = new Stp()
 \f[]
 .fi
 .RE
@@ -100,7 +100,7 @@ STP service process object connected to the specified machine.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp("sdbserver",\ 9622)
+> var stp = new Stp("sdbserver", 9622)
 \f[]
 .fi
 .RE

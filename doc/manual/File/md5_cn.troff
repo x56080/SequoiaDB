@@ -65,7 +65,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.md5(\ "/opt/trunk/test/test_one"\ )
+> File.md5( "/opt/trunk/test/test_one" )
 f8fef4e0f30176c126d85cadca298a7c
 \f[]
 .fi

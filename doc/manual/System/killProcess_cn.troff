@@ -100,6 +100,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.killProcess(\ {\ pid:\ 31831\ }\ )
+> System.killProcess( { pid: 31831 } )
 \f[]
 .fi

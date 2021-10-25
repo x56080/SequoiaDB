@@ -85,20 +85,20 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).limit(\ 2\ )
+> db.sample.employee.find( { age: { $gt: 10 } } ).limit( 2 )
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5813035cc842af52b6000009"
-\ \ },
-\ \ "name":\ "Tom",
-\ \ "age":\ 11
+  "_id": {
+    "$oid": "5813035cc842af52b6000009"
+  },
+  "name": "Tom",
+  "age": 11
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "58130372c842af52b600000a"
-\ \ },
-\ \ "name":\ "Jack",
-\ \ "age":\ 12
+  "_id": {
+    "$oid": "58130372c842af52b600000a"
+  },
+  "name": "Jack",
+  "age": 12
 }
 \f[]
 .fi

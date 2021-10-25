@@ -40,33 +40,33 @@ Get metadata information of STP node.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.getMeta()
+> var stp = new Stp()
+> stp.getMeta()
 {
-\ \ "MetaSHMKey":\ "9622",
-\ \ "MetaData":\ {
-\ \ \ \ "Version":\ 1,
-\ \ \ \ "SyncInterval":\ 60,
-\ \ \ \ "SyncHWTime":\ {
-\ \ \ \ \ \ "Second":\ 23667387,
-\ \ \ \ \ \ "NanoSecond":\ 823851456
-\ \ \ \ },
-\ \ \ \ "BaseHWTime":\ {
-\ \ \ \ \ \ "Second":\ 23664627,
-\ \ \ \ \ \ "NanoSecond":\ 618702083
-\ \ \ \ },
-\ \ \ \ "BaseRealTime":\ {
-\ \ \ \ \ \ "Second":\ 1612364947,
-\ \ \ \ \ \ "NanoSecond":\ 487145000
-\ \ \ \ },
-\ \ \ \ "Offset":\ 0,
-\ \ \ \ "SlewRate":\ 10000,
-\ \ \ \ "TimeError":\ 1000000
-\ \ },
-\ \ "MetaLSN":\ {
-\ \ \ \ "Offset":\ 1612367707692292,
-\ \ \ \ "Version":\ 2
-\ \ }
+  "MetaSHMKey": "9622",
+  "MetaData": {
+    "Version": 1,
+    "SyncInterval": 60,
+    "SyncHWTime": {
+      "Second": 23667387,
+      "NanoSecond": 823851456
+    },
+    "BaseHWTime": {
+      "Second": 23664627,
+      "NanoSecond": 618702083
+    },
+    "BaseRealTime": {
+      "Second": 1612364947,
+      "NanoSecond": 487145000
+    },
+    "Offset": 0,
+    "SlewRate": 10000,
+    "TimeError": 1000000
+  },
+  "MetaLSN": {
+    "Offset": 1612367707692292,
+    "Version": 2
+  }
 }
 \f[]
 .fi

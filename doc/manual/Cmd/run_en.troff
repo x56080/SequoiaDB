@@ -129,7 +129,7 @@ Create a Command object.
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ new\ Cmd()
+> var cmd = new Cmd()
 \f[]
 .fi
 .RE
@@ -139,7 +139,7 @@ Execute the command.
 .IP
 .nf
 \f[C]
->\ cmd.run(\ "ls",\ "/opt/trunk/test"\ )
+> cmd.run( "ls", "/opt/trunk/test" )
 test1
 test2
 test3

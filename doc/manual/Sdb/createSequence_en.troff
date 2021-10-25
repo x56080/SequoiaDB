@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-createSequence \- create a sequence in current database.
+createSequence \- create a sequence in current database
 .SH SYNOPSIS
 .PP
 \f[B]db.createSequence(<name>, [options])\f[]
@@ -47,7 +47,7 @@ MaxValue ( \f[I]number\f[] )
 .RS 4
 .PP
 The maximum value of the sequence.
-The default value is 2^63\-1.
+The default value is 2^63 \-1.
 .RE
 .IP "4." 3
 Increment ( \f[I]number\f[] )
@@ -139,8 +139,8 @@ Create a sequence with options, and operate it.
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence(\ "IDSequence",\ {\ Cycled:\ true\ }\ )
->\ sequence.help()
->\ sequence.getNextValue()
+> var sequence = db.createSequence( "IDSequence", { Cycled: true } )
+> sequence.help()
+> sequence.getNextValue()
 \f[]
 .fi

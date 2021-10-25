@@ -118,7 +118,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.listTasks()
+> db.listTasks()
 \f[]
 .fi
 .RE

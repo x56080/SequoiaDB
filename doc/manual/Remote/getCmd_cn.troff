@@ -35,7 +35,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ remoteObj.getCmd()
+> var cmd = remoteObj.getCmd()
 \f[]
 .fi
 .RE
@@ -55,7 +55,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ cmd.runJS(\ "1+2*3"\ )
+> cmd.runJS( "1+2*3" )
 7
 \f[]
 .fi

@@ -73,7 +73,7 @@ The command to start the replication group is as follow:
 .IP
 .nf
 \f[C]
->\ db.startRG("group1")
->\ db.startRG("group2",\ "group3",\ "group4")
+> db.startRG("group1")
+> db.startRG("group2", "group3", "group4")
 \f[]
 .fi

@@ -168,7 +168,7 @@ v3.0.1 及以上版本
 .IP
 .nf
 \f[C]
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )\ \ \ \ //\ 连接协调节点
->\ db.sample.renameCL(\ "employee",\ "employee_new"\ )
+> db = new Sdb( "localhost", 11810 )    // 连接协调节点
+> db.sample.renameCL( "employee", "employee_new" )
 \f[]
 .fi

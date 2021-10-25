@@ -23,8 +23,8 @@ The format is as follows:
 .IP
 .nf
 \f[C]
-function\ functionName(parameters)\ {
-\ \ function\ body
+function functionName(parameters) {
+  function body
 }
 \f[]
 .fi
@@ -71,14 +71,14 @@ The following records exist in the collection sample.employee:
 .IP
 .nf
 \f[C]
-{id:\ 1,\ Name:\ "Jack",\ age:\ 25}
+{id: 1, Name: "Jack", age: 25}
 \f[]
 .fi
 .IP "1." 3
 Connect the coordination node.
 .nf
 \f[C]
->\ var\ coord\ =\ new\ Sdb("sdbserver",\ 11810)
+> var coord = new Sdb("sdbserver", 11810)
 \f[]
 .fi
 .RE
@@ -86,7 +86,7 @@ Connect the coordination node.
 Create a stored procedure.
 .nf
 \f[C]
->\ coord.createProcedure(function\ getAll()\ {\ return\ db.sample.employee.find();\ })
+> coord.createProcedure(function getAll() { return db.sample.employee.find(); })
 \f[]
 .fi
 .RS
@@ -102,14 +102,14 @@ corresponding to the session in which the stored procedure is executed.
 Execute the stored procedure through eval().
 .nf
 \f[C]
->\ coord.eval("getAll()")
+> coord.eval("getAll()")
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "60cd4c2e1a52b21546a15826"
-\ \ },
-\ \ "id":\ 1,
-\ \ "Name":\ "Jack",
-\ \ "age":\ 25
+  "_id": {
+    "$oid": "60cd4c2e1a52b21546a15826"
+  },
+  "id": 1,
+  "Name": "Jack",
+  "age": 25
 }
 \f[]
 .fi

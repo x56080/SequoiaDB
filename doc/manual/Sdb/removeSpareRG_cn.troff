@@ -35,6 +35,6 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.removeSpareRG()
+> db.removeSpareRG()
 \f[]
 .fi

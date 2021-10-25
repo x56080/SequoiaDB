@@ -95,6 +95,6 @@ the index already exists.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.dropIndex("ageIndex")
+> db.sample.employee.dropIndex("ageIndex")
 \f[]
 .fi

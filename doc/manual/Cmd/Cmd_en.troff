@@ -34,7 +34,7 @@ Create a Command object.
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ new\ Cmd()
+> var cmd = new Cmd()
 \f[]
 .fi
 .RE
@@ -44,8 +44,8 @@ Create a remote Command object.
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
->\ var\ cmd\ =\ remoteObj.getCmd()
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
+> var cmd = remoteObj.getCmd()
 \f[]
 .fi
 .RE

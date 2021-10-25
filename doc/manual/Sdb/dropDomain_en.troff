@@ -78,7 +78,7 @@ Drop an existing domain.
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\[aq]mydomain\[aq])
+> db.dropDomain(\[aq]mydomain\[aq])
 \f[]
 .fi
 .RE
@@ -88,10 +88,10 @@ Drop a domain containing the collection space and return an error:
 .IP
 .nf
 \f[C]
->\ db.dropDomain(\[aq]hello\[aq])
-(nofile):0\ uncaught\ exception:\ \-256
->\ getLastErrMsg(\-256)
-Domain\ is\ not\ empty
+> db.dropDomain(\[aq]hello\[aq])
+(nofile):0 uncaught exception: \-256
+> getLastErrMsg(\-256)
+Domain is not empty
 \f[]
 .fi
 .RE

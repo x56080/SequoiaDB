@@ -110,7 +110,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.getRG("group1")
+> db.getRG("group1")
 \f[]
 .fi
 .RE
@@ -120,7 +120,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.getRG(1000)
+> db.getRG(1000)
 \f[]
 .fi
 .RE

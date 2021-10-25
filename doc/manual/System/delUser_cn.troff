@@ -23,13 +23,13 @@ users（ \f[I]object，必填\f[] ）
 name（ \f[I]string\f[] ）：用户名，该参数必填
 .RS 2
 .PP
-格式：\f[C]name:\ "username"\f[]
+格式：\f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 isRemoveDir（ \f[I]boolean\f[] ）：是否删除用户目录，默认为 false
 .RS 2
 .PP
-格式：\f[C]isRemoveDir:\ true\f[]
+格式：\f[C]isRemoveDir: true\f[]
 .RE
 .SH 返回值
 .PP
@@ -49,6 +49,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.delUser({name:\ "newUser"})
+> System.delUser({name: "newUser"})
 \f[]
 .fi

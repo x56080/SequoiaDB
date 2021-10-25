@@ -69,9 +69,11 @@ parameter
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 Only when connecting to the coordination node, the options parameter will take
 effect.
@@ -83,33 +85,33 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Query data.
-( Suppose the specific collection space named "foo" existes and the current
+( Suppose the specific collection space named "sample" existes and the current
 sequoiadb is started in standalone mode )
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi
 .IP \[bu] 2
-Unload the collection space named foo from memory.
+Unload the collection space named sample from memory.
 .IP
 .nf
 \f[C]
->\ db.unloadCS(\ "foo"\ )
+> db.unloadCS( "sample" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -117,9 +119,9 @@ Query data.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
-uncaught\ exception:\ \-34
-Collection\ space\ does\ not\ exist
+> db.sample.employee.find()
+uncaught exception: \-34
+Collection space does not exist
 \f[]
 .fi
 .IP \[bu] 2
@@ -127,7 +129,7 @@ Load the collection space named into memory.
 .IP
 .nf
 \f[C]
->\ db.loadCS(\ "foo"\ )
+> db.loadCS( "sample" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -135,13 +137,13 @@ Query data again.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi

@@ -68,6 +68,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.setProcUlimitConfigs(\ {\ "max_memory_size":\ \-1\ }\ )
+> System.setProcUlimitConfigs( { "max_memory_size": \-1 } )
 \f[]
 .fi

@@ -45,7 +45,7 @@ Stop replication group "group1".
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.stop()
+> var rg = db.getRG("group1")
+> rg.stop()
 \f[]
 .fi

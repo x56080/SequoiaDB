@@ -357,9 +357,11 @@ T}@T{
 does not work
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 Suppose the user specifies an index that is not in the collection to query data,
 the database will perform a full table query instead of an index query.
@@ -374,41 +376,41 @@ On success, returns the cursor of the query result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Force to use specified hint to query.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find().hint(\ {\ "":\ "ageIndex"\ }\ ).flags(\ SDB_FLG_QUERY_FORCE_HINT\ )
+> db.sample.employee.find().hint( { "": "ageIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41d"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41d"
+   },
+   "name": "fang",
+   "age": 18
 }
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41c"
-\ \ \ },
-\ \ \ "name":\ "alice",
-\ \ \ "age":\ 19
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41c"
+   },
+   "name": "alice",
+   "age": 19
 }
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41b"
-\ \ \ },
-\ \ \ "name":\ "ben",
-\ \ \ "age":\ 21
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41b"
+   },
+   "name": "ben",
+   "age": 21
 }
 
->\ db.foo.bar.find().hint(\ {\ "":\ "notExistIndex"\ }\ ).flags(\ SDB_FLG_QUERY_FORCE_HINT\ )
-uncaught\ exception:\ \-53
-Invalid\ hint
-Takes\ 0.003438s.
+> db.sample.employee.find().hint( { "": "notExistIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
+uncaught exception: \-53
+Invalid hint
+Takes 0.003438s.
 \f[]
 .fi

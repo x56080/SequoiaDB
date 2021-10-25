@@ -78,6 +78,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.mkdir(\ "/opt/sequoiadb/newDir"\ )
+> File.mkdir( "/opt/sequoiadb/newDir" )
 \f[]
 .fi

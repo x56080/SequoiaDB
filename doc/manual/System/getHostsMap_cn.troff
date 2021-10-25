@@ -35,15 +35,15 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getHostsMap()
+> System.getHostsMap()
 {
-\ \ \ \ "Hosts":\ [
-\ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "ip":\ "127.0.0.1",
-\ \ \ \ \ \ \ \ "hostname":\ "localhost"
-\ \ \ \ \ \ },
-\ \ \ \ \ \ ...
-\ \ \ \ ]
-}\ 
+    "Hosts": [
+      {
+        "ip": "127.0.0.1",
+        "hostname": "localhost"
+      },
+      ...
+    ]
+} 
 \f[]
 .fi

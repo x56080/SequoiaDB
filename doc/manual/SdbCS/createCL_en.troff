@@ -36,7 +36,7 @@ options:
 indicating forward or backward sorting.
 .RS 4
 .PP
-Format: \f[C]ShardingKey:{<field1>\ :\ <1|\-1>,[<field1>\ :\ <1|\-1>,\ ...]}\f[]
+Format: \f[C]ShardingKey:{<field1> : <1|\-1>,[<field1> : <1|\-1>, ...]}\f[]
 .RE
 .IP " 2." 4
 \f[C]ShardingType\f[] ( \f[I]String\f[] ): The sharding type of the collection,
@@ -56,7 +56,7 @@ The number of hash slices should be power of 2 and in the range of [2^3，2^20],
 default to be 1024.
 .RS 4
 .PP
-Format: \f[C]Partition:\ <num>\f[]
+Format: \f[C]Partition: <num>\f[]
 .RE
 .IP " 4." 4
 \f[C]ReplSize\f[] ( \f[I]Int32\f[] ): Number of WriteConcern, default to be 1,
@@ -69,7 +69,7 @@ can be one of the follow:
 .IP \[bu] 2
 1 \- 7: WriteConcern = 1\-7.
 .PP
-Format: \f[C]ReplSize:\ <num>\f[]
+Format: \f[C]ReplSize: <num>\f[]
 .RE
 .IP " 5." 4
 \f[C]Compressed\f[] ( \f[I]Bool\f[] ): Compress the collection or not, default
@@ -108,7 +108,7 @@ Format: \f[C]AutoSplit:true|false\f[]
 should be in.
 .RS 4
 .PP
-Format: \f[C]Group:<group\ name>\f[]
+Format: \f[C]Group:<group name>\f[]
 .RE
 .IP "10." 4
 \f[C]AutoIndexId\f[] ( \f[I]Bool\f[] ): Creating unique index by using field
@@ -135,10 +135,10 @@ Format: \f[C]StrictDataMode:true|false\f[]
 \f[C]AutoIncrement\f[] ( \f[I]Object\f[] )：Specify auto increment field
 .RS 4
 .PP
-Format: \f[C]AutoIncrement:{Field:\ <field1>,\ ...}\f[] or
-\f[C]AutoIncrement:[\ {Field:\ <field1>,\ ...},\ {Field:\ <field2>,\ ...},\ ...\ ]\f[]
+Format: \f[C]AutoIncrement:{Field: <field1>, ...}\f[] or
+\f[C]AutoIncrement:[ {Field: <field1>, ...}, {Field: <field2>, ...}, ... ]\f[]
 .PP
-Example: \f[C]AutoIncrement:\ {\ Field:\ "userID",\ Generated:\ "always"\ }\f[]
+Example: \f[C]AutoIncrement: { Field: "userID", Generated: "always" }\f[]
 .IP \[bu] 2
 See AutoIncrement for more detail.
 .RE
@@ -316,9 +316,9 @@ Since v1.0.
 Create collection "bar" in collection space "foo" without sharding key.
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar"\ )
+> db.foo.createCL( "bar" )
 localhost:11810.foo.bar
-Takes\ 0.1250s.
+Takes 0.1250s.
 \f[]
 .fi
 .RE
@@ -331,10 +331,10 @@ a write operation is applied to the collection, it only needs to be written to
 the primary node to be returned.
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar",\ {\ ShardingKey:{\ age:\ 1\ },\ ShardingType:\ "hash",\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Partition:\ 4096,\ ReplSize:\ 1\ }\ )
+> db.foo.createCL( "bar", { ShardingKey:{ age: 1 }, ShardingType: "hash", 
+                            Partition: 4096, ReplSize: 1 } )
 localhost:11810.foo.bar
-Takes\ 0.32450s.
+Takes 0.32450s.
 \f[]
 .fi
 .RE
@@ -343,9 +343,9 @@ Create collection "bar" in collection space "foo" with the StrictDataMode turn
 on.
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar",\ {\ StrictDataMode:\ true\ }\ )
+> db.foo.createCL( "bar", { StrictDataMode: true } )
 localhost:11810.foo.bar
-Takes\ 0.1250s.
+Takes 0.1250s.
 \f[]
 .fi
 .RE
@@ -358,14 +358,14 @@ LobShardingKeyFormat "YYYYMMDD".
 .IP
 .nf
 \f[C]
->\ db.foo.createCL("maincl",\ {\ LobShardingKeyFormat:"YYYYMMDD",\ ShardingKey:{\ date:1\ },\ IsMainCL:true,\ ShardingType:"range"\ }\ )
+> db.foo.createCL("maincl", { LobShardingKeyFormat:"YYYYMMDD", ShardingKey:{ date:1 }, IsMainCL:true, ShardingType:"range" } )
 localhost:11810.foo.maincl
-Takes\ 0.058532s.
->\ db.foo.createCL("subcl")
+Takes 0.058532s.
+> db.foo.createCL("subcl")
 localhost:11810.foo.subcl
-Takes\ 0.294612s.
->\ db.foo.maincl.attachCL(\ "foo.subcl",\ {\ LowBound:\ {\ date:\ "20190701"\ },\ UpBound:\ {\ date:\ "20190801"\ }\ }\ )
-Takes\ 0.008561s.
+Takes 0.294612s.
+> db.foo.maincl.attachCL( "foo.subcl", { LowBound: { date: "20190701" }, UpBound: { date: "20190801" } } )
+Takes 0.008561s.
 \f[]
 .fi
 .IP \[bu] 2
@@ -374,11 +374,11 @@ will be actually stored in foo.subcl
 .IP
 .nf
 \f[C]
->\ Timestamp()
+> Timestamp()
 Timestamp("2019\-07\-23\-18.04.07.539050")
->\ db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
+> db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
 00005d36dbee370002de8080
-Takes\ 0.246062s.
+Takes 0.246062s.
 \f[]
 .fi
 .IP \[bu] 2
@@ -386,12 +386,12 @@ Time can be specified to a particular time.
 .IP
 .nf
 \f[C]
->\ db.foo.maincl.createLobID("2019\-07\-23\-18.04.07.539050")
+> db.foo.maincl.createLobID("2019\-07\-23\-18.04.07.539050")
 00005d36db97360002de8081
-Takes\ 0.108365s.
->\ db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq],\ \[aq]00005d36db97360002de8081\[aq])
+Takes 0.108365s.
+> db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq], \[aq]00005d36db97360002de8081\[aq])
 00005d36db97360002de8081
-Takes\ 0.002216s.
+Takes 0.002216s.
 \f[]
 .fi
 .RE

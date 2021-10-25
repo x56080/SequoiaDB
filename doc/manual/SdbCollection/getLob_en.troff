@@ -124,6 +124,6 @@ Write the LOB with the identifier "5435e7b69487faa663000897" to the local
 .IP
 .nf
 \f[C]
->\ db.sample.employee.getLob(\[aq]5435e7b69487faa663000897\[aq],\ \[aq]/opt/newlob\[aq])
+> db.sample.employee.getLob(\[aq]5435e7b69487faa663000897\[aq], \[aq]/opt/newlob\[aq])
 \f[]
 .fi

@@ -360,31 +360,31 @@ v3.2 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find().hint(\ {\ "":\ "ageIndex"\ }\ ).flags(\ SDB_FLG_QUERY_FORCE_HINT\ )
+> db.sample.employee.find().hint( { "": "ageIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41d"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41d"
+   },
+   "name": "fang",
+   "age": 18
 }
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41c"
-\ \ \ },
-\ \ \ "name":\ "alice",
-\ \ \ "age":\ 19
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41c"
+   },
+   "name": "alice",
+   "age": 19
 }
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d412cfa614afb5557b2b41b"
-\ \ \ },
-\ \ \ "name":\ "ben",
-\ \ \ "age":\ 21
+   "_id": {
+     "$oid": "5d412cfa614afb5557b2b41b"
+   },
+   "name": "ben",
+   "age": 21
 }
 
->\ db.sample.employee.find().hint(\ {\ "":\ "notExistIndex"\ }\ ).flags(\ SDB_FLG_QUERY_FORCE_HINT\ )
-uncaught\ exception:\ \-53
-Invalid\ hint
+> db.sample.employee.find().hint( { "": "notExistIndex" } ).flags( SDB_FLG_QUERY_FORCE_HINT )
+uncaught exception: \-53
+Invalid hint
 \f[]
 .fi

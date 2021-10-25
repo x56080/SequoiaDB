@@ -66,10 +66,10 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.ping(\ "hostname"\ )
+> System.ping( "hostname" )
 {
-\ \ \ \ "Target":\ "hostname",
-\ \ \ \ "Reachable":\ true
+    "Target": "hostname",
+    "Reachable": true
 }
 \f[]
 .fi

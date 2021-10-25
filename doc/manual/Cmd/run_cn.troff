@@ -122,7 +122,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ new\ Cmd()
+> var cmd = new Cmd()
 \f[]
 .fi
 .RE
@@ -132,10 +132,10 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ cmd.run(\ "ls",\ "/opt/trunk/test"\ )
+> cmd.run( "ls", "/opt/trunk/test" )
 test1
 test2
-test3\ \ 
+test3  
 \f[]
 .fi
 .RE

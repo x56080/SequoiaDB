@@ -26,7 +26,7 @@ Domain ( \f[I]string\f[] )：The domain of the CollectionSpace.
 The data of the CollectionSpace must be distributed on the group of the newly
 designated domain.
 .PP
-Format：\f[C]Domain:\ <domain>\f[]
+Format：\f[C]Domain: <domain>\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -48,7 +48,7 @@ Create a CollectionSpace, and then specify a domain for the CollectionSpace.
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq])
->\ db.sample.setDomain({Domain:\ \[aq]domain\[aq]})
+> db.createCS(\[aq]sample\[aq])
+> db.sample.setDomain({Domain: \[aq]domain\[aq]})
 \f[]
 .fi

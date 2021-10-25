@@ -33,7 +33,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,10 +41,10 @@ Convert to object.
 .IP
 .nf
 \f[C]
->\ ini.toObj()
+> ini.toObj()
 {
-\ \ "info.name":\ "Alan",
-\ \ "info.age":\ 23
+  "info.name": "Alan",
+  "info.age": 23
 }
 \f[]
 .fi

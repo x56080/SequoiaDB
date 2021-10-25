@@ -37,6 +37,6 @@ Start the node "node" .
 .IP
 .nf
 \f[C]
->\ node.start()
+> node.start()
 \f[]
 .fi

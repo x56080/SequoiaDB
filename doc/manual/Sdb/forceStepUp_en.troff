@@ -122,7 +122,7 @@ primary node for 300s.
 .IP
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb("hostname1",\ 30000)
->\ db.forceStepUp({Seconds:\ 300})
+> var db = new Sdb("hostname1", 30000)
+> db.forceStepUp({Seconds: 300})
 \f[]
 .fi

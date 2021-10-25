@@ -254,7 +254,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.reelect({Seconds:60})
+> var rg = db.getRG("group1")
+> rg.reelect({Seconds:60})
 \f[]
 .fi

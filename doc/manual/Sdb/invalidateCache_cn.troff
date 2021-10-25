@@ -69,7 +69,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.invalidateCache(\ {\ GroupName:\ \[aq]group1\[aq]\ }\ )
+> db.invalidateCache( { GroupName: \[aq]group1\[aq] } )
 \f[]
 .fi
 .RE
@@ -79,7 +79,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.invalidateCache(\ {\ Global:\ false\ }\ )
+> db.invalidateCache( { Global: false } )
 \f[]
 .fi
 .RE
@@ -89,7 +89,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.invalidateCache(\ {\ GroupName:\ \[aq]SYSCoord\[aq]\ }\ )
+> db.invalidateCache( { GroupName: \[aq]SYSCoord\[aq] } )
 \f[]
 .fi
 .RE

@@ -162,7 +162,7 @@ There is no return value.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-When exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
@@ -173,8 +173,8 @@ the temporary sdbcm service alive time is 5 minutes(300 seconds).
 .IP
 .nf
 \f[C]
->\ Oma.start({\ port:11780,standalone:true\ })
-Success:\ sdbcm(11780)\ is\ successfully\ start\ (28741)
+> Oma.start({ port:11780,standalone:true })
+Success: sdbcm(11780) is successfully start (28741)
 \f[]
 .fi
 .RE

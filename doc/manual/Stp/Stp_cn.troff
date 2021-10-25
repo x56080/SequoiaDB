@@ -87,7 +87,7 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
+> var stp = new Stp()
 \f[]
 .fi
 .RE
@@ -97,7 +97,7 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp("sdbserver",\ 9622)
+> var stp = new Stp("sdbserver", 9622)
 \f[]
 .fi
 .RE

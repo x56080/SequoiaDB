@@ -16,7 +16,7 @@ Global
 Set the error number of last operation.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]error\ code\f[] ( \f[I]Int32\f[]， \f[I]Required\f[] )
+\f[C]error code\f[] ( \f[I]Int32\f[]， \f[I]Required\f[] )
 .RS 2
 .PP
 error code。
@@ -35,14 +35,14 @@ Since v2.6.
 Set the error code of the last opetation.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastError()
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastError()
 \-15
->\ getLastError()
+> getLastError()
 \-15
->\ setLastError(0)
->\ getLastError()
+> setLastError(0)
+> getLastError()
 0
 \f[]
 .fi

@@ -35,6 +35,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.execUpdate("insert\ into\ sample.employee(name,age)\ values(\[aq]zhangshang\[aq],\ 30)")
+> db.execUpdate("insert into sample.employee(name,age) values(\[aq]zhangshang\[aq], 30)")
 \f[]
 .fi

@@ -30,7 +30,7 @@ options ( \f[I]object，必填\f[] )
 Groups ( \f[I]string/array\f[] )：新增的复制组
 .RS 2
 .PP
-格式：\f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+格式：\f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .RE
 .SH 返回值
 .PP
@@ -87,7 +87,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .IP \[bu] 2
@@ -96,7 +96,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.addGroups({Groups:\ [\[aq]group3\[aq]]})
+> domain.addGroups({Groups: [\[aq]group3\[aq]]})
 \f[]
 .fi
 .RE
@@ -106,7 +106,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.addGroups({Groups:\ [\[aq]group4\[aq],\ \[aq]group5\[aq]]})
+> domain.addGroups({Groups: [\[aq]group4\[aq], \[aq]group5\[aq]]})
 \f[]
 .fi
 .RE

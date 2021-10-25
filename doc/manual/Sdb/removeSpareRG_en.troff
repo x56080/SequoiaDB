@@ -37,6 +37,6 @@ Remove the "SYSSpare" group in the database.
 .IP
 .nf
 \f[C]
->\ db.removeSpareRG()
+> db.removeSpareRG()
 \f[]
 .fi

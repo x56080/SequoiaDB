@@ -64,9 +64,9 @@ Determine whether a port is usable
 .IP
 .nf
 \f[C]
->\ System.sniffPort(50000)
+> System.sniffPort(50000)
 {
-\ \ "Usable":\ false
+  "Usable": false
 }
 \f[]
 .fi

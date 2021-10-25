@@ -35,13 +35,13 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getReleaseInfo()
+> System.getReleaseInfo()
 {
-\ \ \ \ "Distributor":\ "Ubuntu",
-\ \ \ \ "Release":\ "16.04",
-\ \ \ \ "Description":\ "Ubuntu\ 16.04.6\ LTS",
-\ \ \ \ "KernelRelease":\ "4.4.0\-116\-generic",
-\ \ \ \ "Bit":\ 64
+    "Distributor": "Ubuntu",
+    "Release": "16.04",
+    "Description": "Ubuntu 16.04.6 LTS",
+    "KernelRelease": "4.4.0\-116\-generic",
+    "Bit": 64
 }
 \f[]
 .fi

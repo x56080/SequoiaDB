@@ -103,6 +103,6 @@ Return the reference of the collection space "sample", assuming that the
 .IP
 .nf
 \f[C]
->\ db.getCS("sample")
+> db.getCS("sample")
 \f[]
 .fi

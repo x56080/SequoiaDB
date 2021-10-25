@@ -33,7 +33,7 @@ Open an INI file.
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .IP \[bu] 2
@@ -41,7 +41,7 @@ Convert to text.
 .IP
 .nf
 \f[C]
->\ ini.toString()
+> ini.toString()
 [info]
 name=Alan
 age=23

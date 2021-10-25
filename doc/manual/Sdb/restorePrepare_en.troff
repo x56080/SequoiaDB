@@ -46,6 +46,6 @@ Enable Restore mode for the cluster.
 .IP
 .nf
 \f[C]
->\ db.restorePrepare()
+> db.restorePrepare()
 \f[]
 .fi

@@ -180,27 +180,27 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).update(\ {\ $inc:\ {\ age:\ 1\ }\ }\ )
+> db.sample.employee.find( { age: { $gt: 10 } } ).update( { $inc: { age: 1 } } )
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ "$oid":\ "5d006c45e846796ae69f85a9"
-\ \ \ \ },
-\ \ \ \ "age":\ 21,
-\ \ \ \ "name":\ "tom"
+    "_id": {
+      "$oid": "5d006c45e846796ae69f85a9"
+    },
+    "age": 21,
+    "name": "tom"
 }
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ "$oid":\ "5d006c45e846796ae69f85aa"
-\ \ \ \ },
-\ \ \ \ "age":\ 22,
-\ \ \ \ "name":\ "ben"
+    "_id": {
+      "$oid": "5d006c45e846796ae69f85aa"
+    },
+    "age": 22,
+    "name": "ben"
 }
 {
-\ \ \ \ "_id":\ {
-\ \ \ \ \ \ "$oid":\ "5d006c45e846796ae69f85ab"
-\ \ \ \ },
-\ \ \ \ "age":\ 23,
-\ \ \ \ "name":\ "alice"
+    "_id": {
+      "$oid": "5d006c45e846796ae69f85ab"
+    },
+    "age": 23,
+    "name": "alice"
 }
 \f[]
 .fi

@@ -138,6 +138,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ securesdb\ =\ new\ SecureSdb(\ "192.168.20.71",\ 11810\ )
+> var securesdb = new SecureSdb( "192.168.20.71", 11810 )
 \f[]
 .fi

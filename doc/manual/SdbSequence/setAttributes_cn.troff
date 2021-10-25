@@ -22,35 +22,35 @@ options（ \f[I]object\f[]， \f[I]必填\f[] ）
 .IP \[bu] 2
 CurrentValue（ \f[I]number\f[] ）：序列当前值
 .PP
-格式：\f[C]CurrentValue\ :\ <num>\f[]
+格式：\f[C]CurrentValue : <num>\f[]
 .IP \[bu] 2
 StartValue（ \f[I]number\f[] ）：序列起始值
 .PP
-格式：\f[C]StartValue\ :\ <num>\f[]
+格式：\f[C]StartValue : <num>\f[]
 .IP \[bu] 2
 MinValue（ \f[I]number\f[] ）：序列最小值
 .PP
-格式：\f[C]MinValue\ :\ <num>\f[]
+格式：\f[C]MinValue : <num>\f[]
 .IP \[bu] 2
 MaxValue（ \f[I]number\f[] ）：序列最大值
 .PP
-格式：\f[C]MaxValue\ :\ <num>\f[]
+格式：\f[C]MaxValue : <num>\f[]
 .IP \[bu] 2
 Increment（ \f[I]number\f[] ）：序列每次增加的间隔
 .PP
-格式：\f[C]Increment\ :\ <num>\f[]
+格式：\f[C]Increment : <num>\f[]
 .IP \[bu] 2
 CacheSize（ \f[I]number\f[] ）：编目节点每次缓存的序列值的数量
 .PP
-格式：\f[C]CacheSize\ :\ <num>\f[]
+格式：\f[C]CacheSize : <num>\f[]
 .IP \[bu] 2
 AcquireSize（ \f[I]number\f[] ）：协调节点每次获取的序列值的数量
 .PP
-格式：\f[C]AcquireSize\ :\ <num>\f[]
+格式：\f[C]AcquireSize : <num>\f[]
 .IP \[bu] 2
 Cycled（ \f[I]boolean\f[] ）：序列值达到最大值或最小值时是否允许循环
 .PP
-格式：\f[C]Cycled\ :\ true\ |\ false\f[]
+格式：\f[C]Cycled : true | false\f[]
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -69,7 +69,7 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence(\ "IDSequence"\ )
->\ sequence.setAttributes(\ {\ CurrentValue:\ 1000\ }\ )
+> var sequence = db.createSequence( "IDSequence" )
+> sequence.setAttributes( { CurrentValue: 1000 } )
 \f[]
 .fi

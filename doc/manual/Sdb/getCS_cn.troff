@@ -91,6 +91,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.getCS("sample")
+> db.getCS("sample")
 \f[]
 .fi

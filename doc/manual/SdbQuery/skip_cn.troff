@@ -83,20 +83,20 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find().skip(1)
+> db.sample.employee.find().skip(1)
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5cf8aefe5e72aea111e82b39"
-\ \ \ },
-\ \ \ "name":\ "ben",
-\ \ \ "age":\ 21
+   "_id": {
+     "$oid": "5cf8aefe5e72aea111e82b39"
+   },
+   "name": "ben",
+   "age": 21
 }
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5cf8af065e72aea111e82b3a"
-\ \ \ },
-\ \ \ "name":\ "alice",
-\ \ \ "age":\ 19
+   "_id": {
+     "$oid": "5cf8af065e72aea111e82b3a"
+   },
+   "name": "alice",
+   "age": 19
 }
 \f[]
 .fi
@@ -107,8 +107,8 @@ v2.0 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find().skip(3)
-Return\ 0\ row(s).
+> db.sample.employee.find().skip(3)
+Return 0 row(s).
 \f[]
 .fi
 .RE

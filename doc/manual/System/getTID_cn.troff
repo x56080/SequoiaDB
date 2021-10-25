@@ -35,7 +35,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.getTID()
+> System.getTID()
 11505
 \f[]
 .fi

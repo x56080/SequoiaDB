@@ -75,6 +75,6 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cl\ =\ db.sample.getCL("employee")
+> var cl = db.sample.getCL("employee")
 \f[]
 .fi

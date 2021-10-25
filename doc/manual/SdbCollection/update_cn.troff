@@ -413,7 +413,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update({$inc:\ {age:\ 1}})
+> db.sample.employee.update({$inc: {age: 1}})
 \f[]
 .fi
 .RE
@@ -426,7 +426,7 @@ age 字段删除
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update({$unset:\ {age:\ ""}},\ {age:\ {$exists:\ 1},\ name:\ {$exists:\ 0}})
+> db.sample.employee.update({$unset: {age: ""}}, {age: {$exists: 1}, name: {$exists: 0}})
 \f[]
 .fi
 .RE
@@ -438,7 +438,7 @@ age 字段删除
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 20}},\ {"":\ "testIndex"})
+> db.sample.employee.update({$inc: {age: 1}}, {age: {$gt: 20}}, {"": "testIndex"})
 \f[]
 .fi
 .RE
@@ -448,15 +448,15 @@ age 字段删除
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
-\ \ },
-\ \ "a":\ 1,
-\ \ "b":\ 1
+  "_id": {
+    "$oid": "5c6f660ce700db6048677154"
+  },
+  "a": 1,
+  "b": 1
 }
-Return\ 1\ row(s).
+Return 1 row(s).
 \f[]
 .fi
 .RE
@@ -467,21 +467,21 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update({$set:\ {a:\ 9,\ b:\ 9}},\ {},\ {},\ {KeepShardingKey:\ false})
+> db.sample.employee.update({$set: {a: 9, b: 9}}, {}, {}, {KeepShardingKey: false})
 {
-\ \ "UpdatedNum":\ 1,
-\ \ "ModifiedNum":\ 0,
-\ \ "InsertedNum":\ 0
+  "UpdatedNum": 1,
+  "ModifiedNum": 0,
+  "InsertedNum": 0
 }
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
-\ \ },
-\ \ "a":\ 1,
-\ \ "b":\ 9
+  "_id": {
+    "$oid": "5c6f660ce700db6048677154"
+  },
+  "a": 1,
+  "b": 9
 }
-Return\ 1\ row(s).
+Return 1 row(s).
 \f[]
 .fi
 .RE
@@ -492,9 +492,9 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.update({$set:\ {a:\ 9}},\ {},\ {},\ {KeepShardingKey:\ true})
-(nofile):0\ uncaught\ exception:\ \-178
-Sharding\ key\ cannot\ be\ updated
+> db.sample.employee.update({$set: {a: 9}}, {}, {}, {KeepShardingKey: true})
+(nofile):0 uncaught exception: \-178
+Sharding key cannot be updated
 \f[]
 .fi
 .RE

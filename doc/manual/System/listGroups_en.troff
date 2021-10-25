@@ -141,15 +141,15 @@ List the information of all user groups
 .IP
 .nf
 \f[C]
->\ System.listGroups()
+> System.listGroups()
 {
-\ \ "name":\ "sequoiadb"
+  "name": "sequoiadb"
 }
 {
-\ \ "name":\ "lpadmin"
+  "name": "lpadmin"
 }
 {
-\ \ "name":\ "sambashare"
+  "name": "sambashare"
 }
 \&...
 \f[]
@@ -161,11 +161,11 @@ Filter the results
 .IP
 .nf
 \f[C]
->\ System.listGroups(\ {\ detail:\ true\ },\ {\ "name":\ "sequoiadb"\ }\ )
+> System.listGroups( { detail: true }, { "name": "sequoiadb" } )
 {
-\ \ "name":\ "sequoiadb",
-\ \ "gid":\ "1000",
-\ \ "members":\ ""
+  "name": "sequoiadb",
+  "gid": "1000",
+  "members": ""
 }
 \f[]
 .fi

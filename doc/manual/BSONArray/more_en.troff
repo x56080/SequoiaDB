@@ -33,8 +33,8 @@ Get a BSONArray.( For more detail about oma, please reference to Oma )
 .IP
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ var\ bsonArray\ =\ oma.listNodes()
+> var oma = new Oma( "localhost", 11790 )
+> var bsonArray = oma.listNodes()
 \f[]
 .fi
 .IP \[bu] 2
@@ -42,7 +42,7 @@ Determine if the next element isn\[aq]t null
 .IP
 .nf
 \f[C]
->\ bsonArray.more()
+> bsonArray.more()
 true
 \f[]
 .fi

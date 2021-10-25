@@ -40,7 +40,7 @@ Start the replication group "group1".
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.start()\ \ \ //Equivalent\ to\ db.startRG("group")
+> var rg = db.getRG("group1")
+> rg.start()   //Equivalent to db.startRG("group")
 \f[]
 .fi

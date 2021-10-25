@@ -35,13 +35,13 @@ v3.2 及以上版本。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 20\ }\ }\ ).current()
+> db.sample.employee.find( { age: { $gt: 20 } } ).current()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5cf8aef75e72aea111e82b38"
-\ \ \ },
-\ \ \ "name":\ "tom",
-\ \ \ "age":\ 20
+   "_id": {
+     "$oid": "5cf8aef75e72aea111e82b38"
+   },
+   "name": "tom",
+   "age": 20
 }
 \f[]
 .fi

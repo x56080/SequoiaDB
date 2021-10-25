@@ -34,7 +34,7 @@ Open a file and get a file descriptor.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ refer to File::readContent ).
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent(\ 10000\ )
+> var content = file.readContent( 10000 )
 \f[]
 .fi
 .RE
@@ -55,7 +55,7 @@ Clear buffer content.
 .IP
 .nf
 \f[C]
->\ content.clear()
+> content.clear()
 \f[]
 .fi
 .RE

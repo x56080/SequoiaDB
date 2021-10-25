@@ -84,7 +84,7 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.dropAutoIncrement(\ "studentID"\ )
+> db.sample.employee.dropAutoIncrement( "studentID" )
 \f[]
 .fi
 .RE
@@ -94,7 +94,7 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.dropAutoIncrement(\ [\ "comID",\ "innerID"\ ]\ )
+> db.sample.employee.dropAutoIncrement( [ "comID", "innerID" ] )
 \f[]
 .fi
 .RE

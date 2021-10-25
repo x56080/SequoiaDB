@@ -32,7 +32,7 @@ The existing "ShardingKey" will be modified to a new "ShardingKey".
 The collection can only exist in one data group, or the collection is the main
 table without mounting sub\-tables.
 .PP
-Format: \f[C]ShardingKey:\ {<field1>:\ <1|\-1>,\ [<field2>:\ <1|\-1>,\ ...]}\f[]
+Format: \f[C]ShardingKey: {<field1>: <1|\-1>, [<field2>: <1|\-1>, ...]}\f[]
 .RE
 .IP \[bu] 2
 ShardingType ( \f[I]string\f[] ): Sharding mode, the default is "hash" sharding.
@@ -45,7 +45,7 @@ The values are as follows:
 .PP
 The collection can only exist in one data group.
 .PP
-Format: \f[C]ShardingType:\ "hash"\ |\ "range"\f[]
+Format: \f[C]ShardingType: "hash" | "range"\f[]
 .RE
 .IP \[bu] 2
 \f[C]Partition\f[] ( \f[I]number\f[] ): It represents the number of hash
@@ -57,7 +57,7 @@ The value must be a power of 2, and the range is [2^3, 2^20].
 .IP \[bu] 2
 The collection can only exist in one data group.
 .PP
-Format: \f[C]Partition:\ <number>\f[]
+Format: \f[C]Partition: <number>\f[]
 .RE
 .IP \[bu] 2
 \f[C]AutoSplit\f[] ( \f[I]boolean\f[] ): Identifies whether the automatic
@@ -77,7 +77,7 @@ User need to explicitly set AutoSplit to true for automatic segmentation.
 .IP \[bu] 2
 "AutoSplit" can only work on "hash" partition keys.
 .PP
-Format: \f[C]AutoSplit:\ true\ |\ false\f[]
+Format: \f[C]AutoSplit: true | false\f[]
 .RE
 .IP \[bu] 2
 \f[C]EnsureShardingIndex\f[] ( \f[I]boolean\f[] )：Identifies whether to create
@@ -189,8 +189,8 @@ collection.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableSharding({ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash"})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash"})
 \f[]
 .fi
 .RE
@@ -201,8 +201,8 @@ and split it automatically.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableSharding({ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash",\ AutoSplit:\ true})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableSharding({ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
 \f[]
 .fi
 .RE

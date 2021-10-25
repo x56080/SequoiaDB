@@ -64,9 +64,11 @@ to return
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 If the number of records in the result set is less than ( num + 1 ), it will
 return null.
@@ -78,29 +80,29 @@ On success, return result set.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Return from the second record.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find().skip(1)
+> db.sample.employee.find().skip(1)
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8aefe5e72aea111e82b39"
-\ \ },
-\ \ "name":\ "ben",
-\ \ "age":\ 21
+  "_id": {
+    "$oid": "5cf8aefe5e72aea111e82b39"
+  },
+  "name": "ben",
+  "age": 21
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5cf8af065e72aea111e82b3a"
-\ \ },
-\ \ "name":\ "alice",
-\ \ "age":\ 19
+  "_id": {
+    "$oid": "5cf8af065e72aea111e82b3a"
+  },
+  "name": "alice",
+  "age": 19
 }
 \f[]
 .fi
@@ -110,7 +112,7 @@ Return from the forth record.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find().skip(3)
-Return\ 0\ row(s).
+> db.sample.employee.find().skip(3)
+Return 0 row(s).
 \f[]
 .fi

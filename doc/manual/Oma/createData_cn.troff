@@ -185,8 +185,8 @@ v2.0 及以上版本。
 在本地创建一个端口号为11820的 standalone 节点，指定日志文件大小为64MB。
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.createData(\ 11820,\ "/opt/sequoiadb/standlone/11820",\ {\ logfilesz:\ 64\ }\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.createData( 11820, "/opt/sequoiadb/standlone/11820", { logfilesz: 64 } )
 \f[]
 .fi
 .RE

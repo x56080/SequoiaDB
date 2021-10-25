@@ -39,17 +39,17 @@ Time（ \f[I]number/string/Timestamp\f[] ）：指定恢复的目标时间点，
 .IP \[bu] 2
 获取符合 ISO 8601 格式的当前时间
 .PP
-\f[C]lang\-bash\ \ \ \ $\ date\ \-Iseconds\ \ \ \ \ 2021\-01\-01T00:00:00+08:00\f[]
+\f[C]lang\-bash    $ date \-Iseconds     2021\-01\-01T00:00:00+08:00\f[]
 .IP \[bu] 2
 将日期格式化为 ISO 8601 格式
 .RE
 .RS
 .PP
-\f[C]lang\-bash\ \ \ \ $\ date\ \-Iseconds\ \-\-date=\[aq]2021/01/01\ 15:11:09\[aq]\ \ \ \ 2021\-01\-01T15:11:09+08:00\f[]
+\f[C]lang\-bash    $ date \-Iseconds \-\-date=\[aq]2021/01/01 15:11:09\[aq]    2021\-01\-01T15:11:09+08:00\f[]
 .IP \[bu] 2
 获取当前的时间戳
 .PP
-\f[C]lang\-bash\ \ \ \ $\ date\ +%s\ \ \ \ 1609430400\f[]
+\f[C]lang\-bash    $ date +%s    1609430400\f[]
 .RE
 .SH 返回值
 .PP
@@ -84,7 +84,7 @@ SDB_RESTORE_NOT_IN_
 T}@T{
 集群未开启恢复
 T}@T{
-执行 \f[C]db.|\ |||PROGRESS|模式|restorePrepare()\f[] 命
+执行 \f[C]db.| |||PROGRESS|模式|restorePrepare()\f[] 命
 T}
 T{
 T}@T{
@@ -148,7 +148,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ 0})
+> db.restoreToTime({Time: 0})
 \f[]
 .fi
 .RE
@@ -158,7 +158,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ 1577836800})
+> db.restoreToTime({Time: 1577836800})
 \f[]
 .fi
 .RE
@@ -168,7 +168,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ "2020\-01\-01T00:00:00+00:00"})
+> db.restoreToTime({Time: "2020\-01\-01T00:00:00+00:00"})
 \f[]
 .fi
 .RE
@@ -178,7 +178,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreToTime({Time:\ Timestamp("2020\-01\-01T00:00:00+00:00")})
+> db.restoreToTime({Time: Timestamp("2020\-01\-01T00:00:00+00:00")})
 \f[]
 .fi
 .RE

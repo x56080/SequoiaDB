@@ -31,10 +31,10 @@ Since v2.6.
 Get the error message of the last operation.
 .nf
 \f[C]
->\ db\ =\ new\ Sdb()
-(nofile):0\ uncaught\ exception:\ \-15
->\ getLastErrMsg()
-Network\ error
+> db = new Sdb()
+(nofile):0 uncaught exception: \-15
+> getLastErrMsg()
+Network error
 \f[]
 .fi
 .RE

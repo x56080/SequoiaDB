@@ -35,10 +35,10 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
->\ file.read()
-0:sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> var file = new File( "/opt/sequoiadb/file.txt" )
+> file.read()
+0:sequoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .RE
@@ -48,11 +48,11 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ file.seek(0)
->\ file.readLine()
-0:sequoiadb\ is\ wonderful.\ 
->\ file.readLine()
-1:wonderful\ sequoiadb.
+> file.seek(0)
+> file.readLine()
+0:sequoiadb is wonderful. 
+> file.readLine()
+1:wonderful sequoiadb.
 \f[]
 .fi
 .RE

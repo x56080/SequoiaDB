@@ -211,7 +211,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 100,\ new\ SdbTraceOption().components(\ "dms"\ ).functionNames(\ "_dmsStorageUnit::insertRecord"\ ).threadTypes(\ "RestListener"\ )\ )
+> db.traceOn( 100, new SdbTraceOption().components( "dms" ).functionNames( "_dmsStorageUnit::insertRecord" ).threadTypes( "RestListener" ) )
 \f[]
 .fi
 .RE
@@ -221,24 +221,24 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 {
-\ \ "TraceStarted":\ true,
-\ \ "Wrapped":\ false,
-\ \ "Size":\ 104857600,
-\ \ "FreeSize":\ 104857600,
-\ \ "PadSize":\ 0,
-\ \ "Mask":\ [
-\ \ \ \ "dms"
-\ \ ],
-\ \ "BreakPoint":\ [],
-\ \ "Threads":\ [],
-\ \ "ThreadTypes":\ [
-\ \ \ \ "RestListener"
-\ \ ],
-\ \ "FunctionNames":\ [
-\ \ \ \ "_dmsStorageUnit::insertRecord"
-\ \ ]
+  "TraceStarted": true,
+  "Wrapped": false,
+  "Size": 104857600,
+  "FreeSize": 104857600,
+  "PadSize": 0,
+  "Mask": [
+    "dms"
+  ],
+  "BreakPoint": [],
+  "Threads": [],
+  "ThreadTypes": [
+    "RestListener"
+  ],
+  "FunctionNames": [
+    "_dmsStorageUnit::insertRecord"
+  ]
 }
 \f[]
 .fi

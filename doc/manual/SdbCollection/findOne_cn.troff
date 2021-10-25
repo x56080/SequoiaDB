@@ -142,7 +142,7 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 \f[]
 .fi
 .RE
@@ -151,7 +151,7 @@ v1.0 及以上版本
 age 字段值大于 25 且 name 字段值为"Tom"的记录
 .RS 2
 .PP
-\f[C]lang\-javascript\ db.sample.employee.find({age:\ {$gt:\ 25},\ name:\ "Tom"})\f[]
+\f[C]lang\-javascript db.sample.employee.find({age: {$gt: 25}, name: "Tom"})\f[]
 .RE
 .IP \[bu] 2
 指定返回的字段名，即设置 sel 参数的内容，如有记录 {age: 25, type: "system"} 和
@@ -160,11 +160,11 @@ age 字段值大于 25 且 name 字段值为"Tom"的记录
 .IP
 .nf
 \f[C]
-db.sample.employee.find(null,\ {age:\ "",\ name:\ ""\ })
-\ \ \ \ {
-\ \ \ \ \ \ \ \ "age":\ 25,
-\ \ \ \ \ \ \ \ "name":\ ""
-\ \ \ \ }
+db.sample.employee.find(null, {age: "", name: "" })
+    {
+        "age": 25,
+        "name": ""
+    }
 \f[]
 .fi
 .RE
@@ -174,12 +174,12 @@ db.sample.employee.find(null,\ {age:\ "",\ name:\ ""\ })
 .IP
 .nf
 \f[C]
->\ db.sample.test.find({age:\ {$exists:\ 1}}).hint({"":\ "ageIndex"})
+> db.sample.test.find({age: {$exists: 1}}).hint({"": "ageIndex"})
 {
-\ \ \ \ \ \ \ \ "_id":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "5812feb6c842af52b6000007"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ "age":\ 10
+        "_id": {
+        "$oid": "5812feb6c842af52b6000007"
+        },
+        "age": 10
 }
 \f[]
 .fi
@@ -191,7 +191,7 @@ db.sample.employee.find(null,\ {age:\ "",\ name:\ ""\ })
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age:\ {$gt:\ 20}},\ {age:\ "",\ name:\ ""}).sort({age:\ 1})
+db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
 \f[]
 .fi
 .PP
@@ -207,7 +207,7 @@ name 字段，此时用 sort() 方法时，只能对记录的 age 或 name
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age:\ {$gt:\ 20}},\ {age:\ "",\ name:\ ""}).sort({"sex":\ 1})
+db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
 \f[]
 .fi
 .PP

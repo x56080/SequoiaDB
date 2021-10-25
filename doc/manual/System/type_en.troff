@@ -33,7 +33,7 @@ Acquire the type of operating system
 .IP
 .nf
 \f[C]
->\ System.type()
+> System.type()
 LINUX
 \f[]
 .fi

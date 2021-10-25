@@ -21,7 +21,7 @@ configs ( \f[I]object, required\f[] )
 .PP
 Configuration parameters that to be modified.
 .PP
-Format: \f[C]{syncinterval:\ 100,\ diaglevel:\ 3}\f[]
+Format: \f[C]{syncinterval: 100, diaglevel: 3}\f[]
 .RS
 .PP
 \f[B]Note:\f[]
@@ -54,7 +54,7 @@ Update the configuration of the STP node.
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.updateConf({diaglevel:\ 5,\ syncinterval:\ 100})
+> var stp = new Stp()
+> stp.updateConf({diaglevel: 5, syncinterval: 100})
 \f[]
 .fi

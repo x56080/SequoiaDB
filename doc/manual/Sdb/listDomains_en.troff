@@ -147,26 +147,26 @@ Enumerate all user\-created domains in the system.
 .IP
 .nf
 \f[C]
->\ db.listDomains()
+> db.listDomains()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5811641e3426f0835eef45bf"
-\ \ },
-\ \ "Name":\ "mydomain",
-\ \ "Groups":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "group1",
-\ \ \ \ \ \ "GroupID":\ 1001
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "group2",
-\ \ \ \ \ \ "GroupID":\ 1002
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "group3",
-\ \ \ \ \ \ "GroupID":\ 1000
-\ \ \ \ }
-\ \ ]
+  "_id": {
+    "$oid": "5811641e3426f0835eef45bf"
+  },
+  "Name": "mydomain",
+  "Groups": [
+    {
+      "GroupName": "group1",
+      "GroupID": 1001
+    },
+    {
+      "GroupName": "group2",
+      "GroupID": 1002
+    },
+    {
+      "GroupName": "group3",
+      "GroupID": 1000
+    }
+  ]
 }
 \f[]
 .fi

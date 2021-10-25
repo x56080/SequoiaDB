@@ -34,11 +34,11 @@ Modify the propertys of the domain through the options parameters:
 Groups ( \f[I]string/array\f[] ): All replication groups contained in the
 domain.
 .PP
-Format: \f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+Format: \f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .IP \[bu] 2
 AutoSplit ( \f[I]boolean\f[] ): Whether the domain is automatically split.
 .PP
-Format: \f[C]AutoSplit:\ true|false\f[]
+Format: \f[C]AutoSplit: true|false\f[]
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -172,7 +172,7 @@ split.
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .RE
@@ -185,7 +185,7 @@ list.
 .IP
 .nf
 \f[C]
->\ domain.setAttributes({Groups:\ [\[aq]group1\[aq],\ \[aq]group3\[aq]]})
+> domain.setAttributes({Groups: [\[aq]group1\[aq], \[aq]group3\[aq]]})
 \f[]
 .fi
 .RE
@@ -196,7 +196,7 @@ contains the table "sample.employee".
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq]])
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq]])
 \f[]
 .fi
 .RE
@@ -208,9 +208,9 @@ Deleting a "group1" with data from the domain will report an error.
 .IP
 .nf
 \f[C]
->\ domain.setAttributes({Groups:\ [\[aq]group2\[aq]]})
-(nofile):0\ uncaught\ exception:\ \-256
-Domain\ has\ been\ used
+> domain.setAttributes({Groups: [\[aq]group2\[aq]]})
+(nofile):0 uncaught exception: \-256
+Domain has been used
 \f[]
 .fi
 .RE

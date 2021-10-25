@@ -25,7 +25,7 @@ name ( \f[I]string\f[] ): Specify the user who needs to be modified.
 This parameter is required.
 .RS 2
 .PP
-Format: \f[C]name:\ "username"\f[]
+Format: \f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 gid ( \f[I]string\f[] ): Specify the name or ID of the user primary group.
@@ -35,7 +35,7 @@ This parameter must be specified as an existing user group.
 If not specified, a user group with the same name as the parameter name will be
 created by default.
 .PP
-Format: \f[C]gid:\ "groupName"\f[] or \f[C]gid:\ "2003"\f[]
+Format: \f[C]gid: "groupName"\f[] or \f[C]gid: "2003"\f[]
 .RE
 .IP \[bu] 2
 groups ( \f[I]string\f[] ): Specify the name or ID list of the user
@@ -45,8 +45,8 @@ supplementary groups.
 This parameter must be specified as an existing user group, each supplementary
 groups is separated by a comma.
 .PP
-Format: \f[C]groups:\ "groupName1,groupName2,groupName3"\f[] or
-\f[C]groups:\ "2004,2005,2006"\f[]
+Format: \f[C]groups: "groupName1,groupName2,groupName3"\f[] or
+\f[C]groups: "2004,2005,2006"\f[]
 .RE
 .IP \[bu] 2
 isAppend ( \f[I]boolean\f[] ): Specify whether to append additional groups, the
@@ -59,7 +59,7 @@ the user will be added.
 When groups is specified and isAppend is set to false, the original group will
 be replaced.
 .PP
-Format: \f[C]isAppend:\ true\f[]
+Format: \f[C]isAppend: true\f[]
 .RE
 .IP \[bu] 2
 isMove ( \f[I]boolean\f[] ): Whether to move the newly specified directory, the
@@ -68,7 +68,7 @@ default is false.
 .PP
 When this parameter is true, the value of parameter dir must be specified.
 .PP
-Format: \f[C]isMove:\ true\f[]
+Format: \f[C]isMove: true\f[]
 .RE
 .IP \[bu] 2
 dir ( \f[I]string\f[] ): Specify a new user directory, which only takes effect
@@ -79,7 +79,7 @@ This parameter cannot specify an existing directory.
 The specified new directory will retain the data of the original user directory,
 and the original user directory will be deleted.
 .PP
-Format: \f[C]dir:\ "userHomeDir"\f[]
+Format: \f[C]dir: "userHomeDir"\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -98,6 +98,6 @@ Modify the home directory of user \f[C]newUser\f[] in the specified user group.
 .IP
 .nf
 \f[C]
->\ System.setUserConfigs({name:\ "newUser",\ gid:\ "groupName",\ dir:\ "/home/userName",\ isMove:\ true})
+> System.setUserConfigs({name: "newUser", gid: "groupName", dir: "/home/userName", isMove: true})
 \f[]
 .fi

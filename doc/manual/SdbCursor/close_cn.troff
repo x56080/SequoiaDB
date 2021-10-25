@@ -34,7 +34,7 @@ v3.0 及以上版本
 插入 10 条记录
 .nf
 \f[C]
->\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {db.sample.employee.insert({a:\ i})}
+> for(i = 0; i < 10; i++) {db.sample.employee.insert({a: i})}
 \f[]
 .fi
 .RE
@@ -42,7 +42,7 @@ v3.0 及以上版本
 查询集合 sample.employee 的所有记录
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find()
+> var cur = db.sample.employee.find()
 \f[]
 .fi
 .RE
@@ -50,12 +50,12 @@ v3.0 及以上版本
 使用游标取出一条记录
 .nf
 \f[C]
->\ cur.next()
+> cur.next()
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "53b3c2d7bb65d2f74c000000"
-\ \ \ \ \ },
-\ \ \ \ \ "a":\ 0
+     "_id": {
+     "$oid": "53b3c2d7bb65d2f74c000000"
+     },
+     "a": 0
 }
 \f[]
 .fi
@@ -64,7 +64,7 @@ v3.0 及以上版本
 关闭游标
 .nf
 \f[C]
->\ cur.close()
+> cur.close()
 \f[]
 .fi
 .RE
@@ -72,7 +72,7 @@ v3.0 及以上版本
 再次获取下一条记录，无结果返回
 .nf
 \f[C]
->\ cur.next()
+> cur.next()
 \f[]
 .fi
 .RE

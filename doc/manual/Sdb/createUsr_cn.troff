@@ -242,7 +242,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createUsr(\ "sdbadmin",\ "sdbadmin",\ {\ AuditMask:\ "DDL|DML|!DQL"\ }\ )
+> db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
 \f[]
 .fi
 .RE
@@ -252,8 +252,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )
->\ db.createUsr(\ a\ )
+> var a = User( "sdbadmin", "sdbadmin" )
+> db.createUsr( a )
 \f[]
 .fi
 .RE
@@ -265,8 +265,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ db.createUsr(\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> db.createUsr( a )
 \f[]
 .fi
 .RE

@@ -114,7 +114,7 @@ the collection.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq],\ {CompressionType:\ \[aq]snappy\[aq]})
->\ db.sample.employee.disableCompression()
+> db.sample.createCL(\[aq]employee\[aq], {CompressionType: \[aq]snappy\[aq]})
+> db.sample.employee.disableCompression()
 \f[]
 .fi

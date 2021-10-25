@@ -149,7 +149,7 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.listDataSources()
+> db.listDataSources()
 \f[]
 .fi
 .PP
@@ -158,22 +158,22 @@ v3.2.8 及以上版本
 .nf
 \f[C]
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5ffc365c72e60c4d9be30c50"
-\ \ },
-\ \ "ID":\ 2,
-\ \ "Name":\ "datasource",
-\ \ "Type":\ "SequoiaDB",
-\ \ "Version":\ 0,
-\ \ "DSVersion":\ "3.4.1",
-\ \ "Address":\ "sdbserver:11810",
-\ \ "User":\ "sdbadmin",
-\ \ "Password":\ "d41d8cd98f00b204e9800998ecf8427e",
-\ \ "ErrorControlLevel":\ "low",
-\ \ "AccessMode":\ 1,
-\ \ "AccessModeDesc":\ "READ",
-\ \ "ErrorFilterMask":\ 0
-\ \ "ErrorFilterMaskDesc":\ "NONE"
+  "_id": {
+    "$oid": "5ffc365c72e60c4d9be30c50"
+  },
+  "ID": 2,
+  "Name": "datasource",
+  "Type": "SequoiaDB",
+  "Version": 0,
+  "DSVersion": "3.4.1",
+  "Address": "sdbserver:11810",
+  "User": "sdbadmin",
+  "Password": "d41d8cd98f00b204e9800998ecf8427e",
+  "ErrorControlLevel": "low",
+  "AccessMode": 1,
+  "AccessModeDesc": "READ",
+  "ErrorFilterMask": 0
+  "ErrorFilterMaskDesc": "NONE"
 }
 \f[]
 .fi

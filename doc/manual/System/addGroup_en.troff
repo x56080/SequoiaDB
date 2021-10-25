@@ -98,6 +98,6 @@ Add a user group
 .IP
 .nf
 \f[C]
->\ System.addGroup(\ {\ "name":\ "newGroup"\ }\ )
+> System.addGroup( { "name": "newGroup" } )
 \f[]
 .fi

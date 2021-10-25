@@ -74,10 +74,10 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence("IDSequence")
->\ sequence.getCurrentValue()
-(shell):1\ uncaught\ exception:\ \-362
-Sequence\ has\ never\ been\ used
+> var sequence = db.createSequence("IDSequence")
+> sequence.getCurrentValue()
+(shell):1 uncaught exception: \-362
+Sequence has never been used
 \f[]
 .fi
 .RE
@@ -87,7 +87,7 @@ Sequence\ has\ never\ been\ used
 .IP
 .nf
 \f[C]
->\ sequence.getCurrentValue()
+> sequence.getCurrentValue()
 1
 \f[]
 .fi

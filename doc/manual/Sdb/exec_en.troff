@@ -39,6 +39,6 @@ Find all the records with age = 20 from the "sample.employee".
 .IP
 .nf
 \f[C]
->\ db.exec("select\ *\ from\ sample.employee\ where\ age\ =\ 20")
+> db.exec("select * from sample.employee where age = 20")
 \f[]
 .fi

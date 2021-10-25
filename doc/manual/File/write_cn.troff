@@ -74,7 +74,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
+> var file = new File( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi
 .RE
@@ -84,7 +84,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ file.write(\ "SequoiaDB"\ )
+> file.write( "SequoiaDB" )
 \f[]
 .fi
 .RE

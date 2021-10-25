@@ -38,8 +38,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ data\ =\ new\ Sdb(\ "localhost",\ 20000\ )
->\ data.traceOn(\ 1000,\ "dms",\ "_dmsStorageUnit::insertRecord"\ )
+> var data = new Sdb( "localhost", 20000 )
+> data.traceOn( 1000, "dms", "_dmsStorageUnit::insertRecord" )
 \f[]
 .fi
 .RE
@@ -50,8 +50,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "localhost",\ 50000\ )
->\ db.sample.employee.insert(\ {\ _id:\ 1,\ name:\ "a"\ }\ )
+> var db = new Sdb( "localhost", 50000 )
+> db.sample.employee.insert( { _id: 1, name: "a" } )
 \f[]
 .fi
 .RE
@@ -61,7 +61,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ data.traceResume()
+> data.traceResume()
 \f[]
 .fi
 .RE
@@ -71,7 +71,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ data.traceStatus()
+> data.traceStatus()
 \f[]
 .fi
 .RE

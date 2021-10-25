@@ -91,7 +91,7 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.reelect({Seconds:\ 60})
+> var stp = new Stp()
+> stp.reelect({Seconds: 60})
 \f[]
 .fi

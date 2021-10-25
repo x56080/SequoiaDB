@@ -64,6 +64,6 @@ Delete a hostname to ip address mapping in the host file
 .IP
 .nf
 \f[C]
->\ System.delAHostMap(\ "hostname"\ )
+> System.delAHostMap( "hostname" )
 \f[]
 .fi

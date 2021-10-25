@@ -259,34 +259,34 @@ T}
 .IP
 .nf
 \f[C]
-\ >\ db.sample.employee.getLobDetail(\[aq]00005deb85c5350004743b09\[aq])
-\ {
-\ \ \ "Oid":\ "00005deb85c5350004743b09",
-\ \ \ "AccessInfo":\ {
-\ \ \ \ \ "RefCount":\ 3,
-\ \ \ \ \ "ReadCount":\ 0,
-\ \ \ \ \ "WriteCount":\ 1,
-\ \ \ \ \ "ShareReadCount":\ 2,
-\ \ \ \ \ "LockSections":\ [
-\ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ "Begin":\ 10,
-\ \ \ \ \ \ \ \ \ "End":\ 30,
-\ \ \ \ \ \ \ \ \ "LockType":\ "X",
-\ \ \ \ \ \ \ \ \ "Contexts":\ [
-\ \ \ \ \ \ \ \ \ \ \ 11
-\ \ \ \ \ \ \ \ \ ]
-\ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ "Begin":\ 30,
-\ \ \ \ \ \ \ \ \ "End":\ 50,
-\ \ \ \ \ \ \ \ \ "LockType":\ "S",
-\ \ \ \ \ \ \ \ \ "Contexts":\ [
-\ \ \ \ \ \ \ \ \ \ \ 12
-\ \ \ \ \ \ \ \ \ ]
-\ \ \ \ \ \ \ }
-\ \ \ \ \ ]
-\ \ \ },
-\ \ \ "ContextID":\ 14
-\ }
+ > db.sample.employee.getLobDetail(\[aq]00005deb85c5350004743b09\[aq])
+ {
+   "Oid": "00005deb85c5350004743b09",
+   "AccessInfo": {
+     "RefCount": 3,
+     "ReadCount": 0,
+     "WriteCount": 1,
+     "ShareReadCount": 2,
+     "LockSections": [
+       {
+         "Begin": 10,
+         "End": 30,
+         "LockType": "X",
+         "Contexts": [
+           11
+         ]
+       },
+       {
+         "Begin": 30,
+         "End": 50,
+         "LockType": "S",
+         "Contexts": [
+           12
+         ]
+       }
+     ]
+   },
+   "ContextID": 14
+ }
 \f[]
 .fi

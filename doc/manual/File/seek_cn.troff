@@ -148,10 +148,10 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
->\ file.read()
-0:sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> var file = new File( "/opt/sequoiadb/file.txt" )
+> file.read()
+0:sequoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .RE
@@ -161,14 +161,14 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ file.seek(2)
->\ file.read()
-sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
->\ file.seek(\ 2,\ "b"\ )
->\ file.read()
-sequoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> file.seek(2)
+> file.read()
+sequoiadb is wonderful.
+1:wonderful sequoiadb.
+> file.seek( 2, "b" )
+> file.read()
+sequoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .RE
@@ -178,11 +178,11 @@ sequoiadb\ is\ wonderful.
 .IP
 .nf
 \f[C]
->\ file.seek(2)
->\ file.seek(\ 2,\ "c"\ )
->\ file.read()
-quoiadb\ is\ wonderful.
-1:wonderful\ sequoiadb.
+> file.seek(2)
+> file.seek( 2, "c" )
+> file.read()
+quoiadb is wonderful.
+1:wonderful sequoiadb.
 \f[]
 .fi
 .RE
@@ -192,9 +192,9 @@ quoiadb\ is\ wonderful.
 .IP
 .nf
 \f[C]
->\ file.seek(0)
->\ file.seek(\ \-5,\ "e"\ )
->\ file.read()
+> file.seek(0)
+> file.seek( \-5, "e" )
+> file.read()
 adb.
 \f[]
 .fi

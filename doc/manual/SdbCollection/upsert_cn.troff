@@ -472,18 +472,18 @@ v2.0 及以上版本
 .nf
 \f[C]
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "516a76a1c9565daf06030000"
-\ \ },
-\ \ "age":\ 10,
-\ \ "name":\ "Tom"
+  "_id": {
+    "$oid": "516a76a1c9565daf06030000"
+  },
+  "age": 10,
+  "name": "Tom"
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
-\ \ },
-\ \ "a":\ 10,
-\ \ "age":\ 21
+  "_id": {
+    "$oid": "516a76a1c9565daf06050000"
+  },
+  "a": 10,
+  "age": 21
 }
 \f[]
 .fi
@@ -497,30 +497,30 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$inc:\ {age:\ 1},\ $set:\ {name:\ "Mike"}})
+> db.sample.employee.upsert({$inc: {age: 1}, $set: {name: "Mike"}})
 {
-\ \ "UpdatedNum":\ 2,
-\ \ "ModifiedNum":\ 2,
-\ \ "InsertedNum":\ 0
+  "UpdatedNum": 2,
+  "ModifiedNum": 2,
+  "InsertedNum": 0
 }
 >
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"
-\ \ \ \ \ },
-\ \ \ \ \ "age":\ 11,
-\ \ \ \ \ "name":\ "Mike"
+     "_id": {
+     "$oid": "516a76a1c9565daf06030000"
+     },
+     "age": 11,
+     "name": "Mike"
 }
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
-\ \ \ \ \ },
-\ \ \ \ \ "a":\ 10,
-\ \ \ \ \ "age":\ 22,
-\ \ \ \ \ "name":"Mike"
+     "_id": {
+     "$oid": "516a76a1c9565daf06050000"
+     },
+     "a": 10,
+     "age": 22,
+     "name":"Mike"
 }
-Return\ 2\ row(s).
+Return 2 row(s).
 \f[]
 .fi
 .RE
@@ -534,36 +534,36 @@ age 字段值为 3
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$inc:\ {age:\ 3}},\ {type:\ {$exists:\ 1}})
+> db.sample.employee.upsert({$inc: {age: 3}}, {type: {$exists: 1}})
 {
-\ \ "UpdatedNum":\ 0,
-\ \ "ModifiedNum":\ 0,
-\ \ "InsertedNum":\ 1
+  "UpdatedNum": 0,
+  "ModifiedNum": 0,
+  "InsertedNum": 1
 }
 >
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06030000"
-\ \ \ \ \ },
-\ \ \ \ \ "age":\ 11,
-\ \ \ \ \ "name":\ "Mike"
+     "_id": {
+     "$oid": "516a76a1c9565daf06030000"
+     },
+     "age": 11,
+     "name": "Mike"
 }
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
-\ \ \ \ \ },
-\ \ \ \ \ "a":\ 10,
-\ \ \ \ \ "age":\ 22,
-\ \ \ \ \ "name":"Mike"
+     "_id": {
+     "$oid": "516a76a1c9565daf06050000"
+     },
+     "a": 10,
+     "age": 22,
+     "name":"Mike"
 }
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516cfc334630a7f338c169b0"
-\ \ \ \ \ },
-\ \ \ \ \ "age":\ 3
+     "_id": {
+     "$oid": "516cfc334630a7f338c169b0"
+     },
+     "age": 3
 }
-Return\ 3\ row(s).
+Return 3 row(s).
 \f[]
 .fi
 .RE
@@ -575,23 +575,23 @@ update 方法，使用索引名为 testIndex 的索引访问集合 sample.employ
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 20}},\ {"":\ "testIndex"})
+> db.sample.employee.upsert({$inc: {age: 1}}, {age: {$gt: 20}}, {"": "testIndex"})
 {
-\ \ "UpdatedNum":\ 1,
-\ \ "ModifiedNum":\ 1,
-\ \ "InsertedNum":\ 0
+  "UpdatedNum": 1,
+  "ModifiedNum": 1,
+  "InsertedNum": 0
 }
 >
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
-\ \ \ \ \ },
-\ \ \ \ \ "a":\ 10,
-\ \ \ \ \ "age":\ 23,
-\ \ \ \ \ "name":"Mike"
+     "_id": {
+     "$oid": "516a76a1c9565daf06050000"
+     },
+     "a": 10,
+     "age": 23,
+     "name":"Mike"
 }
-Return\ 1\ row(s).
+Return 1 row(s).
 \f[]
 .fi
 .RE
@@ -602,22 +602,22 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$inc:\ {age:\ 1}},\ {age:\ {$gt:\ 30}},\ {},\ {"name":\ "Mike"})
+> db.sample.employee.upsert({$inc: {age: 1}}, {age: {$gt: 30}}, {}, {"name": "Mike"})
 {
-\ \ "UpdatedNum":\ 0,
-\ \ "ModifiedNum":\ 0,
-\ \ "InsertedNum":\ 1
+  "UpdatedNum": 0,
+  "ModifiedNum": 0,
+  "InsertedNum": 1
 }
 >
->\ db.sample.employee.find({"age":\ 1,\ "name":\ "Mike"})
+> db.sample.employee.find({"age": 1, "name": "Mike"})
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "516a76a1c9565daf06050000"
-\ \ \ \ \ },
-\ \ \ \ \ "age":1,
-\ \ \ \ \ "name":"Mike"
-}\ 
-Return\ 1\ row(s).
+     "_id": {
+     "$oid": "516a76a1c9565daf06050000"
+     },
+     "age":1,
+     "name":"Mike"
+} 
+Return 1 row(s).
 \f[]
 .fi
 .RE
@@ -627,15 +627,15 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
-\ \ },
-\ \ "a":\ 1,
-\ \ "b":\ 1
+  "_id": {
+    "$oid": "5c6f660ce700db6048677154"
+  },
+  "a": 1,
+  "b": 1
 }
-Return\ 1\ row(s).
+Return 1 row(s).
 \f[]
 .fi
 .PP
@@ -644,22 +644,22 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$set:\ {a:\ 9,\ b:\ 9}},\ {},\ {},\ {},\ {KeepShardingKey:\ false})
+> db.sample.employee.upsert({$set: {a: 9, b: 9}}, {}, {}, {}, {KeepShardingKey: false})
 {
-\ \ "UpdatedNum":\ 1,
-\ \ "ModifiedNum":\ 1,
-\ \ "InsertedNum":\ 0
+  "UpdatedNum": 1,
+  "ModifiedNum": 1,
+  "InsertedNum": 0
 }
 >
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5c6f660ce700db6048677154"
-\ \ },
-\ \ "a":\ 1,
-\ \ "b":\ 9
+  "_id": {
+    "$oid": "5c6f660ce700db6048677154"
+  },
+  "a": 1,
+  "b": 9
 }
-Return\ 1\ row(s).
+Return 1 row(s).
 \f[]
 .fi
 .PP
@@ -668,9 +668,9 @@ Return\ 1\ row(s).
 .IP
 .nf
 \f[C]
->\ db.sample.employee.upsert({$set:\ {a:\ 9}},\ {},\ {},\ {},\ {KeepShardingKey:\ true})
-(nofile):0\ uncaught\ exception:\ \-178
-Sharding\ key\ cannot\ be\ updated
+> db.sample.employee.upsert({$set: {a: 9}}, {}, {}, {}, {KeepShardingKey: true})
+(nofile):0 uncaught exception: \-178
+Sharding key cannot be updated
 \f[]
 .fi
 .RE

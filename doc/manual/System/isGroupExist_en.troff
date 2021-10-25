@@ -64,7 +64,7 @@ Determine if a user group exists
 .IP
 .nf
 \f[C]
->\ System.isGroupExist(\ "root"\ )
+> System.isGroupExist( "root" )
 true
 \f[]
 .fi

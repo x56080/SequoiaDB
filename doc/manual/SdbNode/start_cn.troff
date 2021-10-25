@@ -35,6 +35,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ node.start()
+> node.start()
 \f[]
 .fi

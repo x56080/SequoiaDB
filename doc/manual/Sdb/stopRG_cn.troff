@@ -70,7 +70,7 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.stopRG("group1")
->\ db.stopRG("group2",\ "group3",\ "group4")
+> db.stopRG("group1")
+> db.stopRG("group2", "group3", "group4")
 \f[]
 .fi

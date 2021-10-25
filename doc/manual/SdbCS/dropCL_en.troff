@@ -79,6 +79,6 @@ Delete the collection "employee" under the collection space "sample".
 .IP
 .nf
 \f[C]
->\ db.sample.dropCL("employee")
+> db.sample.dropCL("employee")
 \f[]
 .fi

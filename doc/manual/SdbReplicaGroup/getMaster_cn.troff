@@ -35,20 +35,20 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ var\ node\ =\ rg.getMaster()
->\ println(node)
+> var rg = db.getRG("group1")
+> var node = rg.getMaster()
+> println(node)
 hostname1:11830
->\ println(node.constructor.name)
+> println(node.constructor.name)
 SdbNode
->\ node.help()
+> node.help()
 
-\ \ \ \-\-Instance\ methods\ for\ class\ "SdbNode":
-\ \ \ connect()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Connect\ the\ database\ to\ the\ current\ node.
-\ \ \ getHostName()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Return\ the\ hostname\ of\ a\ node.
-\ \ \ getNodeDetail()\ \ \ \ \ \ \ \ \ \ \ \ \-\ Return\ the\ information\ of\ the\ current\ node.
-\ \ \ getServiceName()\ \ \ \ \ \ \ \ \ \ \ \-\ Return\ the\ server\ name\ of\ a\ node.
-\ \ \ start()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Start\ the\ current\ node.
-\ \ \ stop()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Stop\ the\ current\ node.
+   \-\-Instance methods for class "SdbNode":
+   connect()                  \- Connect the database to the current node.
+   getHostName()              \- Return the hostname of a node.
+   getNodeDetail()            \- Return the information of the current node.
+   getServiceName()           \- Return the server name of a node.
+   start()                    \- Start the current node.
+   stop()                     \- Stop the current node.
 \f[]
 .fi

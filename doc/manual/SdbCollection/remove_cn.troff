@@ -277,7 +277,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.remove()
+> db.sample.employee.remove()
 \f[]
 .fi
 .RE
@@ -289,7 +289,7 @@ age 字段值大于等于 20 的记录
 .IP
 .nf
 \f[C]
->\ db.sample.employee.remove({age:\ {$gte:\ 20}},\ {"":\ "myIndex"})
+> db.sample.employee.remove({age: {$gte: 20}}, {"": "myIndex"})
 \f[]
 .fi
 .RE

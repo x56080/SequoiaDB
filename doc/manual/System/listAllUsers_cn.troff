@@ -147,12 +147,12 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.listAllUsers(\ )
+> System.listAllUsers( )
 {
-\ \ \ \ "user":\ "sequoiadb"
+    "user": "sequoiadb"
 }
 {
-\ \ \ \ "user":\ "sdbadmin"
+    "user": "sdbadmin"
 }
 \&...
 \f[]
@@ -164,11 +164,11 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.listAllUsers(\ {\ detail:\ true\ },\ {\ "user":\ "sequoiadb"\ }\ )
+> System.listAllUsers( { detail: true }, { "user": "sequoiadb" } )
 {
-\ \ \ \ "user":\ "sequoiadb",
-\ \ \ \ "gid":\ "1000",
-\ \ \ \ "dir":\ "/home/sequoiadb"
+    "user": "sequoiadb",
+    "gid": "1000",
+    "dir": "/home/sequoiadb"
 }
 \f[]
 .fi

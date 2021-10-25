@@ -37,7 +37,7 @@ v3.0 and above
 Insert 10 records.
 .nf
 \f[C]
->\ for(i\ =\ 0;\ i\ <\ 10;\ i++)\ {db.sample.employee.insert({a:\ i})}
+> for(i = 0; i < 10; i++) {db.sample.employee.insert({a: i})}
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ Insert 10 records.
 Query all records in the collection "sample.employee".
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find()
+> var cur = db.sample.employee.find()
 \f[]
 .fi
 .RE
@@ -53,12 +53,12 @@ Query all records in the collection "sample.employee".
 Use the cursor to fetch a record.
 .nf
 \f[C]
->\ cur.next()
+> cur.next()
 {
-\ \ \ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "53b3c2d7bb65d2f74c000000"
-\ \ \ \ \ },
-\ \ \ \ \ "a":\ 0
+     "_id": {
+     "$oid": "53b3c2d7bb65d2f74c000000"
+     },
+     "a": 0
 }
 \f[]
 .fi
@@ -67,7 +67,7 @@ Use the cursor to fetch a record.
 Close cursor.
 .nf
 \f[C]
->\ cur.close()
+> cur.close()
 \f[]
 .fi
 .RE
@@ -75,7 +75,7 @@ Close cursor.
 Get the next record again, no result is returned.
 .nf
 \f[C]
->\ cur.next()
+> cur.next()
 \f[]
 .fi
 .RE

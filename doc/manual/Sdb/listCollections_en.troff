@@ -40,9 +40,9 @@ All collection information in the database
 .IP
 .nf
 \f[C]
->\ db.listCollections()
+> db.listCollections()
 {
-\ \ \ \ "Name":\ "sample.employee"
+    "Name": "sample.employee"
 }
 \f[]
 .fi

@@ -34,13 +34,13 @@ Deep（ \f[I]number\f[] ）：是否开启深度刷盘，缺省为 1
 .PP
 Deep 取值兼容 boolean 类型。
 .PP
-格式：\f[C]Deep:\ 1\f[]
+格式：\f[C]Deep: 1\f[]
 .RE
 .IP \[bu] 2
 Block（ \f[I]boolean\f[] ）：持久化期间是否阻塞所有的变更操作，缺省为 false
 .RS 2
 .PP
-格式：\f[C]Block:\ false\f[]
+格式：\f[C]Block: false\f[]
 .RE
 .IP \[bu] 2
 CollectionSpace（ \f[I]string\f[] ）：指定持久化的集合空间名称
@@ -48,13 +48,13 @@ CollectionSpace（ \f[I]string\f[] ）：指定持久化的集合空间名称
 .PP
 如果指定该参数，则只会持久化该集合空间，否则会持久化所有的集合空间和日志文件。
 .PP
-格式：\f[C]CollectionSpace:\ "sample"\f[]
+格式：\f[C]CollectionSpace: "sample"\f[]
 .RE
 .IP \[bu] 2
 Location Elements：命令位置参数项
 .RS 2
 .PP
-格式：\f[C]GroupName:\ "db1"\f[]
+格式：\f[C]GroupName: "db1"\f[]
 .RE
 .SH 返回值
 .PP
@@ -180,7 +180,7 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sync()
+> db.sync()
 \f[]
 .fi
 .RE
@@ -190,7 +190,7 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sync({CollectionSpace:\ "sample"})
+> db.sync({CollectionSpace: "sample"})
 \f[]
 .fi
 .RE
@@ -200,7 +200,7 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sync({GroupName:\ "group1",\ Block:\ true})
+> db.sync({GroupName: "group1", Block: true})
 \f[]
 .fi
 .RE

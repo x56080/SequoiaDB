@@ -100,7 +100,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-如：\f[C]{LowBound:\ {a:\ 0||\ ||||},\ UpBound:\ {a:\ 100}}\f[]
+如：\f[C]{LowBound: {a: 0|| ||||}, UpBound: {a: 100}}\f[]
 T}@T{
 T}
 T{
@@ -259,6 +259,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.attachCL("sample2.January",\ {LowBound:\ {date:\ "20130101"},\ UpBound:\ {date:\ "20130131"}})
+> db.sample.employee.attachCL("sample2.January", {LowBound: {date: "20130101"}, UpBound: {date: "20130131"}})
 \f[]
 .fi

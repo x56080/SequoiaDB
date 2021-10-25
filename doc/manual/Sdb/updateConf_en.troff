@@ -143,9 +143,9 @@ Since v2.9.
 Set configuration \[aq]diaglevel\[aq] on data node 20000.
 .nf
 \f[C]
-//\ connect\ to\ coord
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ db.updateConf(\ {\ diaglevel:3\ },\ {\ GroupName:"db1",\ ServiceName:"20000"\ }\ )
+// connect to coord
+> db = new Sdb( "localhost", 11810 )
+> db.updateConf( { diaglevel:3 }, { GroupName:"db1", ServiceName:"20000" } )
 \f[]
 .fi
 .RE
@@ -154,9 +154,9 @@ Set configuration \[aq]preferedinstance\[aq] and \[aq]diaglevel\[aq] on all
 nodes of group db2.
 .nf
 \f[C]
-//\ connect\ to\ coord
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
->\ db.updateConf(\ {\ preferedinstance:\[aq]A\[aq],\ diaglevel:3\ },\ {\ GroupName:"db2"\ }\ )
+// connect to coord
+> db = new Sdb( "localhost", 11810 )
+> db.updateConf( { preferedinstance:\[aq]A\[aq], diaglevel:3 }, { GroupName:"db2" } )
 \f[]
 .fi
 .RE
@@ -164,33 +164,33 @@ nodes of group db2.
 Get more specific informantion on error.
 .nf
 \f[C]
-//\ connect\ to\ coord
->\ db\ =\ new\ Sdb(\ "localhost",\ 11810\ )
-//\ set\ configurations,\ get\ error\ message.
->\ db.updateConf(\ {\ transactionon:\[aq]true\[aq]\ },\ {\ ServiceName:"20000"\ }\ )
-(nofile):0\ uncaught\ exception:\ \-264
-One\ or\ more\ nodes\ did\ not\ complete\ successfully
-Takes\ 0.009322s.
-//\ get\ detailed\ information\ that\ config\ \[aq]transactionon\[aq]\ requires\ a\ restart.
->\ getLastErrObj()
+// connect to coord
+> db = new Sdb( "localhost", 11810 )
+// set configurations, get error message.
+> db.updateConf( { transactionon:\[aq]true\[aq] }, { ServiceName:"20000" } )
+(nofile):0 uncaught exception: \-264
+One or more nodes did not complete successfully
+Takes 0.009322s.
+// get detailed information that config \[aq]transactionon\[aq] requires a restart.
+> getLastErrObj()
 {
-\ \ \ \ "errno":\ \-264,
-\ \ \ \ "description":\ "One\ or\ more\ nodes\ did\ not\ complete\ successfully",
-\ \ \ \ "detail":\ "",
-\ \ \ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ \ \ "NodeName":\ "ubuntu\-zwb:20000",
-\ \ \ \ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ \ \ \ "Flag":\ \-322,
-\ \ \ \ \ \ \ \ "ErrInfo":\ {
-\ \ \ \ \ \ \ \ "errno":\ \-322,
-\ \ \ \ \ \ \ \ "description":\ "Some\ configuration\ changes\ didn\[aq]t\ take\ effect",
-\ \ \ \ \ \ \ \ "detail":\ "Config\ \[aq]transactionon\[aq]\ require(s)\ restart\ to\ take\ effect."
-\ \ \ \ \ \ \ \ }
-\ \ \ \ }
-\ \ \ \ ]
+    "errno": \-264,
+    "description": "One or more nodes did not complete successfully",
+    "detail": "",
+    "ErrNodes": [
+    {
+        "NodeName": "ubuntu\-zwb:20000",
+        "GroupName": "db1",
+        "Flag": \-322,
+        "ErrInfo": {
+        "errno": \-322,
+        "description": "Some configuration changes didn\[aq]t take effect",
+        "detail": "Config \[aq]transactionon\[aq] require(s) restart to take effect."
+        }
+    }
+    ]
 }
-Takes\ 0.004652s.
+Takes 0.004652s.
 \f[]
 .fi
 .RE

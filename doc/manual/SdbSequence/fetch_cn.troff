@@ -41,12 +41,12 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.createSequence(\ "IDSequence"\ )
->\ sequence.fetch(\ 10\ )
+> var sequence = db.createSequence( "IDSequence" )
+> sequence.fetch( 10 )
 {
-\ \ "NextValue":\ 1,
-\ \ "ReturnNum":\ 10,
-\ \ "Increment":\ 1
+  "NextValue": 1,
+  "ReturnNum": 10,
+  "Increment": 1
 }
 \f[]
 .fi
@@ -55,12 +55,12 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ result\ =\ sequence.fetch(\ 5\ ).toObj()
->\ var\ nextValue\ =\ result.NextValue
->\ for\ (var\ i\ =\ 1;\ i\ <\ result.ReturnNum;\ i++)\ {
-\&...\ println(\ nextValue\ );
-\&...\ nextValue\ +=\ result.Increment;
-\&...\ }
+> var result = sequence.fetch( 5 ).toObj()
+> var nextValue = result.NextValue
+> for (var i = 1; i < result.ReturnNum; i++) {
+\&... println( nextValue );
+\&... nextValue += result.Increment;
+\&... }
 11
 12
 13

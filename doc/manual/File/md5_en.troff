@@ -64,7 +64,7 @@ Get the md5 value of the file.
 .IP
 .nf
 \f[C]
->\ File.md5(\ "/opt/sequoiadb/file.txt"\ )
+> File.md5( "/opt/sequoiadb/file.txt" )
 f8fef4e0f30176c126d85cadca298a7c
 \f[]
 .fi

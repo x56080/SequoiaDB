@@ -51,7 +51,7 @@ Get the current time in ISO 8601 time.
 .IP
 .nf
 \f[C]
-$\ date\ \-Iseconds\ 
+$ date \-Iseconds
 2021\-01\-01T00:00:00+08:00
 \f[]
 .fi
@@ -64,7 +64,7 @@ Format date to ISO 8601 format.
 .nf
 \f[C]
 ```lang\-bash
-$\ date\ \-Iseconds\ \-\-date=\[aq]2021/01/01\ 15:11:09\[aq]
+$ date \-Iseconds \-\-date=\[aq]2021/01/01 15:11:09\[aq]
 2021\-01\-01T15:11:09+08:00
 ```
 \f[]
@@ -75,7 +75,7 @@ Get the current timestamp.
 .IP
 .nf
 \f[C]
-$\ date\ +%s
+$ date +%s
 1609430400
 \f[]
 .fi
@@ -129,154 +129,112 @@ MinRecoverableTime
 T}@T{
 string
 T}@T{
-The start time of the
+The earliest
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-first transaction
+recoverable consistency
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-recorded in the
+point, based on the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-currently used
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-synchronization log.
+available logs.
 T}
 T{
 3
 T}@T{
-MaxTransCommitTime
+MaxRecoverableTime
 T}@T{
 string
 T}@T{
-The last transaction
+If the cluster entered
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-commit time recorded in
+recovery mode by
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-the currently used
+executing sdbrestore,
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-synchronization log.
-T}
-T{
-4
-T}@T{
-LogLimitTime
-T}@T{
-string
-T}@T{
-The time of the last
+this value is the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-log recorded in the
+latest recoverable
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-currently used
+consistency point based
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-synchronization log (
+on the backup; if the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-this field is only
+cluster entered
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-displayed when the
+recovery mode by
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-synchronization log
+executing
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-space is insufficient)
-T}
-T{
-5
-T}@T{
-FailedGroups
-T}@T{
-string
-T}@T{
-The name of the
+restorePrepare(), this
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-replication group that
+value is the time that
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-cannot be restored (
+\f[C]restorePrepare()\f[] was
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-this field is only
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-displayed when the
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-synchronization log
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-space is insufficient)
+executed.
 T}
 .TE
 .PP
@@ -341,7 +299,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-MaxTransCommitTime].
+MaxRecoverableTime].
 T}
 T{
 2
@@ -412,7 +370,7 @@ View the latest recoverable consistency point in time.
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ 0})
+> db.restoreCheck({Time: 0})
 \f[]
 .fi
 .PP
@@ -421,9 +379,9 @@ The output is as follows:
 .nf
 \f[C]
 {
-\ Time:\ "2020\-01\-01T12:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
+ Time: "2020\-01\-01T12:00:00+00:00",
+ MaxRecoverableTime: "2020\-01\-01T12:00:00+00:00",
+ MinRecoverableTime: "2020\-01\-01T00:00:00+00:00",
 }
 \f[]
 .fi
@@ -435,7 +393,7 @@ time.
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2020\-01\-01T03:00:00+00:00"})
+> db.restoreCheck({Time: "2020\-01\-01T03:00:00+00:00"})
 \f[]
 .fi
 .PP
@@ -444,26 +402,56 @@ The output is as follows:
 .nf
 \f[C]
 {
-\ Time:\ "2020\-01\-01T03:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
+ Time: "2020\-01\-01T03:00:00+00:00",
+ MaxRecoverableTime: "2020\-01\-01T12:00:00+00:00",
+ MinRecoverableTime: "2020\-01\-01T00:00:00+00:00",
 }
 \f[]
 .fi
-.PP
+.RE
+.IP \[bu] 2
 If the synchronization log of a replication group in the cluster does not have
 enough space to write, even if the specified point in time is a recoverable
 consistent point in time, no recovery will be performed.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.restoreCheck({Time:"2021\-03\-19\-12.49.40.012277"})
+\f[]
+.fi
+.PP
 The output is as follows:
 .IP
 .nf
 \f[C]
+(shell):1 uncaught exception: \-203
+No writable log space:
+Restore cannot reach 1620338773126102, limited to 1620338780935745
+\f[]
+.fi
+.PP
+Get detailed error information.
+.IP
+.nf
+\f[C]
+> getLastErrObj()
 {
-\ Time:\ "2020\-01\-01T03:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
-\ LogLimitTime:\ "2020\-01\-01T06:00:00+00:00",
-\ FailedGroups:\ ["db2"]
+ "errno": \-203,
+ "description": "No writable log space",
+ "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745",
+ "ErrNodes": [
+   {
+     "NodeName": "sdbserver:20000",
+     "GroupName": "db1",
+     "Flag": \-203,
+     "ErrInfo": {
+       "errno": \-203,
+       "description": "No writable log space",
+       "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745"
+     }
+   }
+ ]
 }
 \f[]
 .fi
@@ -475,7 +463,7 @@ is needed to reach the target time.
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2021\-03\-19\-12.49.40.012277"})
+> db.restoreCheck({Time: "2021\-03\-19\-12.49.40.012277"})
 \f[]
 .fi
 .PP
@@ -483,8 +471,8 @@ The output is as follows:
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-6
-Failed\ restore\ check
+(shell):1 uncaught exception: \-6
+Failed restore check
 \f[]
 .fi
 .PP
@@ -492,19 +480,19 @@ Get detailed error information.
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ "Detail":\ "Some\ nodes\ require\ earlier\ backups\ to\ reach\ the\ target\ time",
-\ "Time":\ "2021\-03\-19\-12.49.40.012277",
-\ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301",
-\ "ErrNodes":\ [
-\ \ \ {
-\ \ \ \ \ "NodeName":\ "sdbserver:20000",
-\ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.49.41.012277",
-\ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301"
-\ \ \ }
-\ ]
+ "Detail": "Some nodes require earlier backups to reach the target time",
+ "Time": "2021\-03\-19\-12.49.40.012277",
+ "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301",
+ "ErrNodes": [
+   {
+     "NodeName": "sdbserver:20000",
+     "GroupName": "db1",
+     "MinRecoverableTime": "2021\-03\-19\-12.49.41.012277",
+     "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301"
+   }
+ ]
 }
 \f[]
 .fi
@@ -516,7 +504,7 @@ needed to reach the target time.
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2021\-03\-19\-12.50.46.630301"})
+> db.restoreCheck({Time: "2021\-03\-19\-12.50.46.630301"})
 \f[]
 .fi
 .PP
@@ -524,8 +512,8 @@ The output is as follows:
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-6
-Failed\ restore\ check
+(shell):1 uncaught exception: \-6
+Failed restore check
 \f[]
 .fi
 .PP
@@ -533,18 +521,18 @@ Get detailed error information.
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ \ "Detail":\ "One\ or\ more\ nodes\ require\ later\ backups\ to\ reach\ the\ target\ time",
-\ \ "Time":\ "2021\-03\-19\-12.50.46.630301",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "NodeName":\ "sdbserver:20000",
-\ \ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.49.41.012277",
-\ \ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301"
-\ \ \ \ }
-\ \ ]
+  "Detail": "One or more nodes require later backups to reach the target time",
+  "Time": "2021\-03\-19\-12.50.46.630301",
+  "ErrNodes": [
+    {
+      "NodeName": "sdbserver:20000",
+      "GroupName": "db1",
+      "MinRecoverableTime": "2021\-03\-19\-12.49.41.012277",
+      "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301"
+    }
+  ]
 }
 \f[]
 .fi
@@ -558,7 +546,7 @@ fail to find a valid time window.
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ 0})
+> db.restoreCheck({Time: 0})
 \f[]
 .fi
 .PP
@@ -566,8 +554,8 @@ The output is as follows:
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-360
-Failed\ restore\ check
+(shell):1 uncaught exception: \-360
+Failed restore check
 \f[]
 .fi
 .PP
@@ -575,19 +563,19 @@ Get detailed error information.
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ \ "Detail":\ "No\ available\ global\ consistency\ point",
-\ \ "Time":\ "1970\-01\-01\-08.00.00.000000",
-\ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.52.01.630926",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "NodeName":\ "sdbserver:20200",
-\ \ \ \ \ \ "GroupName":\ "db3",
-\ \ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.52.01.630927",
-\ \ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.52.01.630926"
-\ \ \ \ }
-\ \ ]
+  "Detail": "No available global consistency point",
+  "Time": "1970\-01\-01\-08.00.00.000000",
+  "MaxRecoverableTime": "2021\-03\-19\-12.52.01.630926",
+  "ErrNodes": [
+    {
+      "NodeName": "sdbserver:20200",
+      "GroupName": "db3",
+      "MinRecoverableTime": "2021\-03\-19\-12.52.01.630927",
+      "MaxRecoverableTime": "2021\-03\-19\-12.52.01.630926"
+    }
+  ]
 }
 \f[]
 .fi

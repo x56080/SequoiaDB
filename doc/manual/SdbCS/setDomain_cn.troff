@@ -25,7 +25,7 @@ Domain ( \f[I]string\f[] )：所属域
 .PP
 集合空间的数据必须分布在新指定域的组上
 .PP
-格式：\f[C]Domain:\ <domain>\f[]
+格式：\f[C]Domain: <domain>\f[]
 .RE
 .SH 返回值
 .PP
@@ -45,7 +45,7 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq])
->\ db.sample.setDomain({Domain:\ \[aq]domain\[aq]})
+> db.createCS(\[aq]sample\[aq])
+> db.sample.setDomain({Domain: \[aq]domain\[aq]})
 \f[]
 .fi

@@ -82,6 +82,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createRG("group1")
+> db.createRG("group1")
 \f[]
 .fi

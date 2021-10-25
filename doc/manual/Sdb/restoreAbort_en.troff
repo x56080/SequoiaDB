@@ -38,6 +38,6 @@ Abort Restore mode for the cluster.
 .IP
 .nf
 \f[C]
->\ db.restoreAbort()
+> db.restoreAbort()
 \f[]
 .fi

@@ -185,7 +185,7 @@ Judging by the specified pid：
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "31831",\ type:\ "pid"\ }\ )
+> System.isProcExist( { value: "31831", type: "pid" } )
 true
 \f[]
 .fi
@@ -196,7 +196,7 @@ Judging by the specified service name：
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "sdbcm(11790)",\ type:\ "name"\ }\ )
+> System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
 true
 \f[]
 .fi

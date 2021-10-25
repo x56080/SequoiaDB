@@ -30,7 +30,7 @@ When "PageSize" is 0, the default value is 65536.
 .IP \[bu] 2
 Data cannot exist when modifying "PageSize".
 .PP
-Format: \f[C]PageSize:\ <number>\f[]
+Format: \f[C]PageSize: <number>\f[]
 .RE
 .IP \[bu] 2
 LobPageSize ( \f[I]number\f[] ): LOB data page size, in bytes.
@@ -43,7 +43,7 @@ When "LobPageSize" is 0, the default value is 262144.
 .IP \[bu] 2
 LOB data cannot exist when modifying "LobPageSize".
 .PP
-Format: \f[C]LobPageSize:\ <number>\f[]
+Format: \f[C]LobPageSize: <number>\f[]
 .RE
 .IP \[bu] 2
 Domain ( \f[I]string\f[] ): The domain of the collection space.
@@ -52,7 +52,7 @@ Domain ( \f[I]string\f[] ): The domain of the collection space.
 The data of the collection space must be distributed on the group of the newly
 designated domain.
 .PP
-Format: \f[C]Domain:\ <domain>\f[]
+Format: \f[C]Domain: <domain>\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -128,8 +128,8 @@ data page size of the collection space to 8192.
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq],\ {PageSize:\ 4096})
->\ db.sample.setAttributes({PageSize:\ 8192})
+> db.createCS(\[aq]sample\[aq], {PageSize: 4096})
+> db.sample.setAttributes({PageSize: 8192})
 \f[]
 .fi
 .RE
@@ -139,8 +139,8 @@ Create a collection space, and then specify a domain for the collection space.
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq])
->\ db.sample.setAttributes({Domain:\ \[aq]domain\[aq]})
+> db.createCS(\[aq]sample\[aq])
+> db.sample.setAttributes({Domain: \[aq]domain\[aq]})
 \f[]
 .fi
 .RE

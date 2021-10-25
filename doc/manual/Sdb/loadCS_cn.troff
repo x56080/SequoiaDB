@@ -90,13 +90,13 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi
@@ -107,7 +107,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.unloadCS(\ "sample"\ )
+> db.unloadCS( "sample" )
 \f[]
 .fi
 .RE
@@ -117,9 +117,9 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
-uncaught\ exception:\ \-34
-Collection\ space\ does\ not\ exist
+> db.sample.employee.find()
+uncaught exception: \-34
+Collection space does not exist
 \f[]
 .fi
 .RE
@@ -129,7 +129,7 @@ Collection\ space\ does\ not\ exist
 .IP
 .nf
 \f[C]
->\ db.loadCS(\ "sample"\ )
+> db.loadCS( "sample" )
 \f[]
 .fi
 .RE
@@ -139,13 +139,13 @@ Collection\ space\ does\ not\ exist
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi

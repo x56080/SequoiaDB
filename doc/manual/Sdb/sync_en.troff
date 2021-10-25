@@ -36,7 +36,7 @@ The values are as follows:
 .PP
 Deep value is compatible with boolean type.
 .PP
-Format: \f[C]Deep:\ 1\f[]
+Format: \f[C]Deep: 1\f[]
 .RE
 .IP \[bu] 2
 Block ( \f[I]boolean\f[] ): Whether to block all change operations during
@@ -44,7 +44,7 @@ persistence.
 The default value is false.
 .RS 2
 .PP
-Format: \f[C]Block:\ false\f[]
+Format: \f[C]Block: false\f[]
 .RE
 .IP \[bu] 2
 CollectionSpace ( \f[I]string\f[] ): Specify the persistent collection space
@@ -54,13 +54,13 @@ name.
 If this parameter is specified, only the collection space will be persisted,
 otherwise all collection spaces and log files will be persisted.
 .PP
-Format: \f[C]CollectionSpace:\ "sample"\f[]
+Format: \f[C]CollectionSpace: "sample"\f[]
 .RE
 .IP \[bu] 2
 Location Elements: Command position parameter item.
 .RS 2
 .PP
-Format: \f[C]GroupName:\ "db1"\f[]
+Format: \f[C]GroupName: "db1"\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -195,7 +195,7 @@ Deeply persist all the collextion space and logs of the whole system.
 .IP
 .nf
 \f[C]
->\ db.sync()
+> db.sync()
 \f[]
 .fi
 .RE
@@ -205,7 +205,7 @@ Deeply persist the specified collection space "sample".
 .IP
 .nf
 \f[C]
->\ db.sync({CollectionSpace:\ "sample"})
+> db.sync({CollectionSpace: "sample"})
 \f[]
 .fi
 .RE
@@ -215,7 +215,7 @@ Perform deep and blocking persistence for the specified data group "group1".
 .IP
 .nf
 \f[C]
->\ db.sync({GroupName:\ "group1",\ Block:\ true})
+> db.sync({GroupName: "group1", Block: true})
 \f[]
 .fi
 .RE

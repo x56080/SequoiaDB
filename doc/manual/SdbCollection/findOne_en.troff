@@ -163,7 +163,7 @@ Query all records without specifying the "cond" and "sel" fields.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 \f[]
 .fi
 .RE
@@ -175,7 +175,7 @@ For example, the following operation returns the records in the collection
 "Tom".
 .RS 2
 .PP
-\f[C]lang\-javascript\ db.sample.employee.find({age:\ {$gt:\ 25},\ name:\ "Tom"})\f[]
+\f[C]lang\-javascript db.sample.employee.find({age: {$gt: 25}, name: "Tom"})\f[]
 .RE
 .IP \[bu] 2
 Specify the returned field name by setting the content of the sel parameter.
@@ -186,11 +186,11 @@ field of the record.
 .IP
 .nf
 \f[C]
-db.sample.employee.find(null,\ {age:\ "",\ name:\ ""\ })
-\ \ \ \ {
-\ \ \ \ \ \ \ \ "age":\ 25,
-\ \ \ \ \ \ \ \ "name":\ ""
-\ \ \ \ }
+db.sample.employee.find(null, {age: "", name: "" })
+    {
+        "age": 25,
+        "name": ""
+    }
 \f[]
 .fi
 .RE
@@ -201,12 +201,12 @@ collection employee, and return the records.
 .IP
 .nf
 \f[C]
->\ db.sample.test.find({age:\ {$exists:\ 1}}).hint({"":\ "ageIndex"})
+> db.sample.test.find({age: {$exists: 1}}).hint({"": "ageIndex"})
 {
-\ \ \ \ \ \ \ \ "_id":\ {
-\ \ \ \ \ \ \ \ "$oid":\ "5812feb6c842af52b6000007"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ "age":\ 10
+        "_id": {
+        "$oid": "5812feb6c842af52b6000007"
+        },
+        "age": 10
 }
 \f[]
 .fi
@@ -220,7 +220,7 @@ order of the "age" field value.
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age:\ {$gt:\ 20}},\ {age:\ "",\ name:\ ""}).sort({age:\ 1})
+db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({age: 1})
 \f[]
 .fi
 .PP
@@ -239,7 +239,7 @@ Specify an invalid sort field.
 .IP
 .nf
 \f[C]
-db.sample.employee.find({age:\ {$gt:\ 20}},\ {age:\ "",\ name:\ ""}).sort({"sex":\ 1})
+db.sample.employee.find({age: {$gt: 20}}, {age: "", name: ""}).sort({"sex": 1})
 \f[]
 .fi
 .PP

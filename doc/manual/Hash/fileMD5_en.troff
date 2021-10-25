@@ -64,7 +64,7 @@ Get the md5 value of the file.
 .IP
 .nf
 \f[C]
->\ Hash.fileMD5(\ "/opt/sequoiadb/file"\ )
+> Hash.fileMD5( "/opt/sequoiadb/file" )
 e2c40f3a729dbe802f2295425d6da21c
 \f[]
 .fi

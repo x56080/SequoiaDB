@@ -82,6 +82,6 @@ Returns the reference of the collection "employee" in the collection space
 .IP
 .nf
 \f[C]
->\ var\ cl\ =\ db.sample.getCL("employee")
+> var cl = db.sample.getCL("employee")
 \f[]
 .fi

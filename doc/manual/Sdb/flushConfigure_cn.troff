@@ -33,13 +33,13 @@ Type（ \f[I]number\f[] ）：配置过滤类型，默认值为 3
 .IP \[bu] 2
 3：屏敝未配置的参数
 .PP
-格式：\f[C]Type:\ 3\f[]
+格式：\f[C]Type: 3\f[]
 .RE
 .IP \[bu] 2
 Location Elements：命令位置参数项
 .RS 2
 .PP
-格式：\f[C]GroupName:\ "db1"\f[]
+格式：\f[C]GroupName: "db1"\f[]
 .RE
 .RS
 .PP
@@ -67,6 +67,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.flushConfigure({Global:\ true})
+> db.flushConfigure({Global: true})
 \f[]
 .fi

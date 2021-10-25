@@ -37,7 +37,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .RE
@@ -47,13 +47,13 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ ini.toString()
-;\ personal\ information
+> ini.toString()
+; personal information
 [info]
-;\ what\[aq]s\ your\ name
+; what\[aq]s your name
 name=Alan
 age=23
-;\ End\ of\ INI\ file
+; End of INI file
 \f[]
 .fi
 .RE

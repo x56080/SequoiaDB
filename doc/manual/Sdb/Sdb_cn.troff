@@ -293,7 +293,7 @@ v1.12及以上版本。
 连接默认主机上的 SequoiaDB，hostname 默认为 "localhost"，svcname 默认为 11810。
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb()
+> var db = new Sdb()
 \f[]
 .fi
 .RE
@@ -301,7 +301,7 @@ v1.12及以上版本。
 连接指定机器上的 SequoiaDB，目标机器 "sdbserver1"。
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810\ )
+> var db = new Sdb( "sdbserver1", 11810 )
 \f[]
 .fi
 .RE
@@ -309,7 +309,7 @@ v1.12及以上版本。
 使用用户名和密码连接指定机器上的 SequoiaDB。
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ "sdbadmin",\ "sdbadmin"\ )
+> var db = new Sdb( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
 \f[]
 .fi
 .RE
@@ -317,10 +317,10 @@ v1.12及以上版本。
 使用 User 对象连接指定机器上的 SequoiaDB。
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin"\ ).promptPassword()
+> var a = User( "sdbadmin" ).promptPassword()
 password:
 sdbadmin
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
+> var db = new Sdb( "sdbserver1", 11810, a )
 \f[]
 .fi
 .RE
@@ -330,8 +330,8 @@ sdbadmin，密码为 sdbadmin
 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见sdbpasswd）。
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> var db = new Sdb( "sdbserver1", 11810, a )
 \f[]
 .fi
 .RE

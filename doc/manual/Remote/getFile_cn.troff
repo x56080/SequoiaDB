@@ -232,7 +232,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .RE
@@ -242,7 +242,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ remoteObj.getFile(\ "/opt/sequoiadb/file",\ 0777,\ SDB_FILE_READWRITE\ |\ SDB_FILE_CREATE\ )
+> var file = remoteObj.getFile( "/opt/sequoiadb/file", 0777, SDB_FILE_READWRITE | SDB_FILE_CREATE )
 \f[]
 .fi
 .RE
@@ -252,7 +252,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ file.read()
+> file.read()
 SquoiaDB
 \f[]
 .fi

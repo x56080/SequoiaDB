@@ -115,6 +115,6 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.truncateLob(\[aq]5435e7b69487faa663000897\[aq],\ 0)
+> db.sample.employee.truncateLob(\[aq]5435e7b69487faa663000897\[aq], 0)
 \f[]
 .fi

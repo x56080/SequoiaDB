@@ -76,7 +76,7 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ ds\ =\ db.getDataSource("datasource")
+> var ds = db.getDataSource("datasource")
 \f[]
 .fi
 .PP
@@ -84,6 +84,6 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ ds.alter({AccessMode:"WRITE"})
+> ds.alter({AccessMode:"WRITE"})
 \f[]
 .fi

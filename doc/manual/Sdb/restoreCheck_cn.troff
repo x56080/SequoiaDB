@@ -28,9 +28,9 @@ Time（ \f[I]number/string/Timestamp\f[] ）：指定需要检查的目标时间
 该参数取值为 0 时，将获取最新的一致性时间点；取值为字符串时，填入值应符合 ISO
 8601 格式。
 .PP
-格式：\f[C]Time:\ 0\f[] 或 \f[C]Time:\ 1609430400\f[] 或
-\f[C]Time:\ "2021\-01\-01T00:00:00+08:00"\f[] 或
-\f[C]Time:\ Timestamp("2021\-01\-01T00:00:00+08:00")\f[]
+格式：\f[C]Time: 0\f[] 或 \f[C]Time: 1609430400\f[] 或
+\f[C]Time: "2021\-01\-01T00:00:00+08:00"\f[] 或
+\f[C]Time: Timestamp("2021\-01\-01T00:00:00+08:00")\f[]
 .RE
 .RS
 .PP
@@ -43,7 +43,7 @@ Time（ \f[I]number/string/Timestamp\f[] ）：指定需要检查的目标时间
 .IP
 .nf
 \f[C]
-$\ date\ \-Iseconds\ 
+$ date \-Iseconds
 2021\-01\-01T00:00:00+08:00
 \f[]
 .fi
@@ -54,7 +54,7 @@ $\ date\ \-Iseconds\
 .IP
 .nf
 \f[C]
-$\ date\ \-Iseconds\ \-\-date=\[aq]2021/01/01\ 15:11:09\[aq]
+$ date \-Iseconds \-\-date=\[aq]2021/01/01 15:11:09\[aq]
 2021\-01\-01T15:11:09+08:00
 \f[]
 .fi
@@ -65,7 +65,7 @@ $\ date\ \-Iseconds\ \-\-date=\[aq]2021/01/01\ 15:11:09\[aq]
 .IP
 .nf
 \f[C]
-$\ date\ +%s
+$ date +%s
 1609430400
 \f[]
 .fi
@@ -117,112 +117,94 @@ T{
 T}@T{
 T}@T{
 T}@T{
-日志中，所记录
+日志中所记录的
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的第一个事务开
+最早可恢复一致
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-始时间
+性时间点
 T}
 T{
 3
 T}@T{
-MaxTransCommitTime
+MaxRecoverableTime
 T}@T{
 string
 T}@T{
-当前使用的同步
+如果集群通过执
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-日志中，所记录
+行 sdbrestore 进入
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的最后一个事务
+恢复模式，该字
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-提交时间
-T}
-T{
-4
-T}@T{
-LogLimitTime
-T}@T{
-string
-T}@T{
-当前使用的同步
+段值为备份中所
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-日志中，所记录
+记录的最新可恢
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的最后一条日志
+复一致性时间点
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-的时间（该字段
+；如果集群通过
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-仅同步日志空间
+执行 restorePrepare()
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-不足时显示）
-T}
-T{
-5
-T}@T{
-FailedGroups
-T}@T{
-string
-T}@T{
-不能执行恢复的
+进入恢复模式，
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-复制组名（该字
+该字段值为执行
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-段仅同步日志空
+restorePrepare() 的时
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-间不足时显示）
+间
 T}
 .TE
 .PP
@@ -278,7 +260,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-MaxTransCommitTime]
+MaxRecoverableTime]
 T}
 T{
 2
@@ -289,7 +271,7 @@ SDB_RESTORE_NOT_IN_
 T}@T{
 集群未开启恢复
 T}@T{
-执行 \f[C]db.|\ |||PROGRESS|模式|restorePrepare()\f[] 命
+执行 \f[C]db.| |||PROGRESS|模式|restorePrepare()\f[] 命
 T}
 T{
 T}@T{
@@ -353,7 +335,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ 0})
+> db.restoreCheck({Time: 0})
 \f[]
 .fi
 .PP
@@ -362,9 +344,9 @@ v5.0.2 及以上版本
 .nf
 \f[C]
 {
-\ Time:\ "2020\-01\-01T12:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
+ Time: "2020\-01\-01T12:00:00+00:00",
+ MaxRecoverableTime: "2020\-01\-01T12:00:00+00:00",
+ MinRecoverableTime: "2020\-01\-01T00:00:00+00:00",
 }
 \f[]
 .fi
@@ -375,7 +357,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2020\-01\-01T03:00:00+00:00"})
+> db.restoreCheck({Time: "2020\-01\-01T03:00:00+00:00"})
 \f[]
 .fi
 .PP
@@ -384,23 +366,54 @@ v5.0.2 及以上版本
 .nf
 \f[C]
 {
-\ Time:\ "2020\-01\-01T03:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
+ Time: "2020\-01\-01T03:00:00+00:00",
+ MaxRecoverableTime: "2020\-01\-01T12:00:00+00:00",
+ MinRecoverableTime: "2020\-01\-01T00:00:00+00:00",
 }
 \f[]
 .fi
-.PP
-如果集群中某一复制组的同步日志没有足够的空间可以写入，即使指定的时间点为可恢复的一致性时间点，也不进行恢复，输出结果如下：
+.RE
+.IP \[bu] 2
+如果集群中某一复制组的同步日志没有足够的空间可以写入，即使指定的时间点为可恢复的一致性时间点，也不进行恢复
+.RS 2
 .IP
 .nf
 \f[C]
+> db.restoreCheck({Time:"2021\-03\-19\-12.49.40.012277"})
+\f[]
+.fi
+.PP
+输出结果如下：
+.IP
+.nf
+\f[C]
+(shell):1 uncaught exception: \-203
+No writable log space:
+Restore cannot reach 1620338773126102, limited to 1620338780935745
+\f[]
+.fi
+.PP
+获取详细误信息
+.IP
+.nf
+\f[C]
+> getLastErrObj()
 {
-\ Time:\ "2020\-01\-01T03:00:00+00:00",
-\ MaxCommitTime:\ "2020\-01\-01T12:00:00+00:00",
-\ MinRecoveryTime:\ "2020\-01\-01T00:00:00+00:00",
-\ LogLimitTime:\ "2020\-01\-01T06:00:00+00:00",
-\ FailedGroups:\ ["db2"]
+ "errno": \-203,
+ "description": "No writable log space",
+ "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745",
+ "ErrNodes": [
+   {
+     "NodeName": "sdbserver:20000",
+     "GroupName": "db1",
+     "Flag": \-203,
+     "ErrInfo": {
+       "errno": \-203,
+       "description": "No writable log space",
+       "detail": "Restore cannot reach 1620338773126102, limited to 1620338780935745"
+     }
+   }
+ ]
 }
 \f[]
 .fi
@@ -411,7 +424,7 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2021\-03\-19\-12.49.40.012277"})
+> db.restoreCheck({Time: "2021\-03\-19\-12.49.40.012277"})
 \f[]
 .fi
 .PP
@@ -419,8 +432,8 @@ v5.0.2 及以上版本
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-6
-Failed\ restore\ check
+(shell):1 uncaught exception: \-6
+Failed restore check
 \f[]
 .fi
 .PP
@@ -428,19 +441,19 @@ Failed\ restore\ check
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ "Detail":\ "Some\ nodes\ require\ earlier\ backups\ to\ reach\ the\ target\ time",
-\ "Time":\ "2021\-03\-19\-12.49.40.012277",
-\ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301",
-\ "ErrNodes":\ [
-\ \ \ {
-\ \ \ \ \ "NodeName":\ "sdbserver:20000",
-\ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.49.41.012277",
-\ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301"
-\ \ \ }
-\ ]
+ "Detail": "Some nodes require earlier backups to reach the target time",
+ "Time": "2021\-03\-19\-12.49.40.012277",
+ "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301",
+ "ErrNodes": [
+   {
+     "NodeName": "sdbserver:20000",
+     "GroupName": "db1",
+     "MinRecoverableTime": "2021\-03\-19\-12.49.41.012277",
+     "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301"
+   }
+ ]
 }
 \f[]
 .fi
@@ -451,7 +464,7 @@ Failed\ restore\ check
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ "2021\-03\-19\-12.50.46.630301"})
+> db.restoreCheck({Time: "2021\-03\-19\-12.50.46.630301"})
 \f[]
 .fi
 .PP
@@ -459,8 +472,8 @@ Failed\ restore\ check
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-6
-Failed\ restore\ check
+(shell):1 uncaught exception: \-6
+Failed restore check
 \f[]
 .fi
 .PP
@@ -468,18 +481,18 @@ Failed\ restore\ check
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ \ "Detail":\ "One\ or\ more\ nodes\ require\ later\ backups\ to\ reach\ the\ target\ time",
-\ \ "Time":\ "2021\-03\-19\-12.50.46.630301",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "NodeName":\ "sdbserver:20000",
-\ \ \ \ \ \ "GroupName":\ "db1",
-\ \ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.49.41.012277",
-\ \ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.49.46.630301"
-\ \ \ \ }
-\ \ ]
+  "Detail": "One or more nodes require later backups to reach the target time",
+  "Time": "2021\-03\-19\-12.50.46.630301",
+  "ErrNodes": [
+    {
+      "NodeName": "sdbserver:20000",
+      "GroupName": "db1",
+      "MinRecoverableTime": "2021\-03\-19\-12.49.41.012277",
+      "MaxRecoverableTime": "2021\-03\-19\-12.49.46.630301"
+    }
+  ]
 }
 \f[]
 .fi
@@ -491,7 +504,7 @@ DDL 操作）时，都有可能造成集群无法找到有效的的时间窗口
 .IP
 .nf
 \f[C]
->\ db.restoreCheck({Time:\ 0})
+> db.restoreCheck({Time: 0})
 \f[]
 .fi
 .PP
@@ -499,8 +512,8 @@ DDL 操作）时，都有可能造成集群无法找到有效的的时间窗口
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-360
-Failed\ restore\ check
+(shell):1 uncaught exception: \-360
+Failed restore check
 \f[]
 .fi
 .PP
@@ -508,19 +521,19 @@ Failed\ restore\ check
 .IP
 .nf
 \f[C]
->\ getLastErrObj()
+> getLastErrObj()
 {
-\ \ "Detail":\ "No\ available\ global\ consistency\ point",
-\ \ "Time":\ "1970\-01\-01\-08.00.00.000000",
-\ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.52.01.630926",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "NodeName":\ "sdbserver:20200",
-\ \ \ \ \ \ "GroupName":\ "db3",
-\ \ \ \ \ \ "MinRecoverableTime":\ "2021\-03\-19\-12.52.01.630927",
-\ \ \ \ \ \ "MaxRecoverableTime":\ "2021\-03\-19\-12.52.01.630926"
-\ \ \ \ }
-\ \ ]
+  "Detail": "No available global consistency point",
+  "Time": "1970\-01\-01\-08.00.00.000000",
+  "MaxRecoverableTime": "2021\-03\-19\-12.52.01.630926",
+  "ErrNodes": [
+    {
+      "NodeName": "sdbserver:20200",
+      "GroupName": "db3",
+      "MinRecoverableTime": "2021\-03\-19\-12.52.01.630927",
+      "MaxRecoverableTime": "2021\-03\-19\-12.52.01.630926"
+    }
+  ]
 }
 \f[]
 .fi

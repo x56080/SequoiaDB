@@ -96,6 +96,6 @@ Create a new replication group named "group1".
 .IP
 .nf
 \f[C]
->\ db.createRG("group1")
+> db.createRG("group1")
 \f[]
 .fi

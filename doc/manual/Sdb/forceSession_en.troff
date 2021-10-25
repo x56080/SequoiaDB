@@ -157,23 +157,23 @@ Terminate the session numbered 30 in the current node.
 .IP
 .nf
 \f[C]
-//\ Connection\ node.
->\ db\ =\ new\ Sdb("localhost",\ 11810)
-//\ Terminate\ the\ specified\ session.
->\ db.forceSession(30)
+// Connection node.
+> db = new Sdb("localhost", 11810)
+// Terminate the specified session.
+> db.forceSession(30)
 \f[]
 .fi
 .RE
 .IP \[bu] 2
-Terminate the session numbered 30 in the node whose NodeID is 1000.
+Terminate the session numbered 30 in the node with NodeID 1000.
 .RS 2
 .IP
 .nf
 \f[C]
-//\ Connection\ node.
->\ db\ =\ new\ Sdb("localhost",\ 11810)
-//\ Terminate\ the\ specified\ session.
->\ db.forceSession(30,\ {NodeID:\ 1000})
+// Connection node.
+> db = new Sdb("localhost", 11810)
+// Terminate the specified session.
+> db.forceSession(30, {NodeID: 1000})
 \f[]
 .fi
 .RE

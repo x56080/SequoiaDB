@@ -141,7 +141,7 @@ Specify the name value and return the reference of the replication group
 .IP
 .nf
 \f[C]
->\ db.getRG("group1")
+> db.getRG("group1")
 \f[]
 .fi
 .RE
@@ -152,7 +152,7 @@ Specify the id value and return the reference of the replication group
 .IP
 .nf
 \f[C]
->\ db.getRG(1000)
+> db.getRG(1000)
 \f[]
 .fi
 .RE

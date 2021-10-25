@@ -37,6 +37,6 @@ Insert a new record into the "sample.employee".
 .IP
 .nf
 \f[C]
->\ db.execUpdate("insert\ into\ sample.employee(name,age)\ values(\[aq]zhangshang\[aq],\ 30)")
+> db.execUpdate("insert into sample.employee(name,age) values(\[aq]zhangshang\[aq], 30)")
 \f[]
 .fi

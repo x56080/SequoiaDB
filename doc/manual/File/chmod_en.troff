@@ -98,6 +98,6 @@ Set file mode bits as 0777.
 .IP
 .nf
 \f[C]
->\ File.chmod(\ "/opt/sequoiadb/file.txt",\ 0777,\ false\ )
+> File.chmod( "/opt/sequoiadb/file.txt", 0777, false )
 \f[]
 .fi

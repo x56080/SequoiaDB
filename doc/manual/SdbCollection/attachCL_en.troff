@@ -122,7 +122,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-\f[C]{LowBound:\ {a:\ 0},\ ||\ ||||UpBound:\ {a:\ 100}}\f[]
+\f[C]{LowBound: {a: 0}, || ||||UpBound: {a: 100}}\f[]
 T}@T{
 T}
 T{
@@ -322,6 +322,6 @@ partition collection.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.attachCL("sample2.January",\ {LowBound:\ {date:\ "20130101"},\ UpBound:\ {date:\ "20130131"}})
+> db.sample.employee.attachCL("sample2.January", {LowBound: {date: "20130101"}, UpBound: {date: "20130131"}})
 \f[]
 .fi

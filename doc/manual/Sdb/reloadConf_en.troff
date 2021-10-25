@@ -81,9 +81,9 @@ Reload the configuration of all nodes.
 .IP
 .nf
 \f[C]
-//\ Connect\ the\ coordination\ node.
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.reloadConf()
+// Connect the coordination node.
+> db = new Sdb("localhost", 11810)
+> db.reloadConf()
 \f[]
 .fi
 .RE
@@ -93,9 +93,9 @@ Reload the configuration of the specified node 1000.
 .IP
 .nf
 \f[C]
-//\ Connect\ the\ coordination\ node.
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.reloadConf({NodeID:\ 1000})
+// Connect the coordination node.
+> db = new Sdb("localhost", 11810)
+> db.reloadConf({NodeID: 1000})
 \f[]
 .fi
 .RE

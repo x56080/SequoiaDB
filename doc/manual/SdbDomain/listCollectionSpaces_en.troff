@@ -41,9 +41,9 @@ Get the collection space information under the specified domain.
 .IP
 .nf
 \f[C]
->\ domain.listCollectionSpaces()
+> domain.listCollectionSpaces()
 {
-\ \ \ \ "Name":\ "sample"\ 
+    "Name": "sample" 
 }
 \f[]
 .fi

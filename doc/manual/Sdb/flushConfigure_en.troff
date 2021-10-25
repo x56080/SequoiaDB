@@ -36,13 +36,13 @@ The values are as follows:
 .IP \[bu] 2
 3：Shield unconfigured parameters.
 .PP
-Format: \f[C]Type:\ 3\f[]
+Format: \f[C]Type: 3\f[]
 .RE
 .IP \[bu] 2
 Location Elements：Command position parameter item.
 .RS 2
 .PP
-Format: \f[C]GroupName:\ "db1"\f[]
+Format: \f[C]GroupName: "db1"\f[]
 .RE
 .RS
 .PP
@@ -73,6 +73,6 @@ Flush the database configuration.
 .IP
 .nf
 \f[C]
->\ db.flushConfigure({Global:\ true})
+> db.flushConfigure({Global: true})
 \f[]
 .fi

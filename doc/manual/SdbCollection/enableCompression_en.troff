@@ -32,7 +32,7 @@ The optional values are as follows:
 .IP \[bu] 2
 "snappy": Using "snappy" algorithm to compress.
 .PP
-Format: \f[C]CompressionType:\ "lzw"\ |\ "snappy"\f[]
+Format: \f[C]CompressionType: "lzw" | "snappy"\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -128,7 +128,7 @@ compression.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.enableCompression({CompressionType:\ \[aq]snappy\[aq]})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.enableCompression({CompressionType: \[aq]snappy\[aq]})
 \f[]
 .fi

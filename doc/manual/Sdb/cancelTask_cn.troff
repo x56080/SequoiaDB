@@ -74,8 +74,8 @@ v1.2及以上版本。
 停止切分任务。
 .nf
 \f[C]
->\ var\ taskid1\ =\ db.sample.employee.splitAsync(\ "group1",\ "group2",\ 50\ );
->\ db.cancelTask(\ taskid1,\ true\ )
+> var taskid1 = db.sample.employee.splitAsync( "group1", "group2", 50 );
+> db.cancelTask( taskid1, true )
 \f[]
 .fi
 .RE

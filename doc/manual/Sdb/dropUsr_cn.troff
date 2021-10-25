@@ -100,7 +100,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropUsr(\ "sdbadmin",\ "sdbadmin"\ )
+> db.dropUsr( "sdbadmin", "sdbadmin" )
 \f[]
 .fi
 .RE
@@ -110,8 +110,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ a\ =\ User(\ "sdbadmin",\ "sdbadmin"\ )
->\ db.dropUsr(\ a\ )
+> var a = User( "sdbadmin", "sdbadmin" )
+> db.dropUsr( a )
 \f[]
 .fi
 .RE
@@ -123,8 +123,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
->\ db.dropUsr(\ a\ )
+> var a = CipherUser( "sdbadmin" )
+> db.dropUsr( a )
 \f[]
 .fi
 .RE

@@ -66,7 +66,7 @@ T}
 .RE
 .SH 返回值
 .IP \[bu] 2
-函数执行成功时，将按照语句返回结果。可以将返回值直接赋值给另一个变量，如：\f[C]var\ a\ =\ db.eval(\ \[aq]db.sample.employee\[aq]\ );\ a.find();\f[]。
+函数执行成功时，将按照语句返回结果。可以将返回值直接赋值给另一个变量，如：\f[C]var a = db.eval( \[aq]db.sample.employee\[aq] ); a.find();\f[]。
 .IP \[bu] 2
 函数执行失败时，将抛异常并输出错误信息。
 .IP \[bu] 2
@@ -74,7 +74,7 @@ T}
 .IP \[bu] 2
 自定义返回值的长度有一定限制，参考 SequoiaDB 插入记录的最大长度。
 .IP \[bu] 2
-支持定义临时函数，如：\f[C]db.eval(\ \[aq]function\ sum(x,y){return\ x+y;}\ sum(1,2)\[aq]\ )\f[]。
+支持定义临时函数，如：\f[C]db.eval( \[aq]function sum(x,y){return x+y;} sum(1,2)\[aq] )\f[]。
 .IP \[bu] 2
 全局 db 使用方式与 createProcedure() 相同。
 .SH 错误
@@ -91,14 +91,14 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-//初始时\ sum()\ 方法不存在，返回异常信息
->\ var\ a\ =\ db.eval(\ \[aq]sum(1,2)\[aq]\ );
-{\ "errmsg":\ "(nofile):1\ ReferenceError:\ getCL\ is\ not\ defined",\ "retCode":\ \-152\ }
-(nofile):0\ uncaught\ exception:\ \-152
-//初始化\ sum()
->\ db.createProcedure(\ function\ sum(x,y){return\ x+y;}\ )
-//调用\ sum()
->\ db.eval(\ \[aq]sum(1,2)\[aq]\ )
+//初始时 sum() 方法不存在，返回异常信息
+> var a = db.eval( \[aq]sum(1,2)\[aq] );
+{ "errmsg": "(nofile):1 ReferenceError: getCL is not defined", "retCode": \-152 }
+(nofile):0 uncaught exception: \-152
+//初始化 sum()
+> db.createProcedure( function sum(x,y){return x+y;} )
+//调用 sum()
+> db.eval( \[aq]sum(1,2)\[aq] )
 3
 \f[]
 .fi
@@ -109,19 +109,19 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ ret\ =\ db.eval(\ "db.sample.employee"\ )
->\ ret.find()
+> var ret = db.eval( "db.sample.employee" )
+> ret.find()
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5248d3867159ae144a000000"
-\ \ },
-\ \ "a":\ 1
+  "_id": {
+    "$oid": "5248d3867159ae144a000000"
+  },
+  "a": 1
 }
 {
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5248d3897159ae144a000001"
-\ \ },
-\ \ "a":\ 2
+  "_id": {
+    "$oid": "5248d3897159ae144a000001"
+  },
+  "a": 2
 }...
 \f[]
 .fi

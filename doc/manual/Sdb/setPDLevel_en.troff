@@ -72,9 +72,9 @@ Set the log level of the current node to DEBUG.
 .IP
 .nf
 \f[C]
-//\ Connection\ node
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(5)
+// Connection node
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(5)
 \f[]
 .fi
 .RE
@@ -84,9 +84,9 @@ Set the log level of node 1000 to INFO.
 .IP
 .nf
 \f[C]
-//\ Connection\ node
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(4,\ {NodeID:\ 1000})
+// Connection node
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(4, {NodeID: 1000})
 \f[]
 .fi
 .RE
@@ -96,9 +96,9 @@ Set the log level of all nodes to EVENT.
 .IP
 .nf
 \f[C]
-//\ Connection\ node
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(3,\ {Global:true})
+// Connection node
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(3, {Global:true})
 \f[]
 .fi
 .RE

@@ -75,6 +75,6 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.dropSequence("IDSequence")
+> db.dropSequence("IDSequence")
 \f[]
 .fi

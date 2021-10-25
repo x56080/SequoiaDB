@@ -68,9 +68,9 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(5)
+// 连接节点
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(5)
 \f[]
 .fi
 .RE
@@ -80,9 +80,9 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(4,\ {NodeID:\ 1000})
+// 连接节点
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(4, {NodeID: 1000})
 \f[]
 .fi
 .RE
@@ -92,9 +92,9 @@ v2.8 及以上版本
 .IP
 .nf
 \f[C]
-//\ 连接节点
->\ db\ =\ new\ Sdb("localhost",\ 11810)
->\ db.setPDLevel(3,\ {Global:true})
+// 连接节点
+> db = new Sdb("localhost", 11810)
+> db.setPDLevel(3, {Global:true})
 \f[]
 .fi
 .RE

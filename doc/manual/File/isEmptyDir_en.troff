@@ -62,7 +62,7 @@ Determine if the directory is empty.
 .IP
 .nf
 \f[C]
->\ File.isEmptyDir(\ "/opt/sequoiadb"\ )
+> File.isEmptyDir( "/opt/sequoiadb" )
 false
 \f[]
 .fi

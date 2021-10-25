@@ -91,9 +91,11 @@ files
 T}@T{
 T}
 .TE
-
+.RS
+.PP
 Note：
 .RE
+.RS
 .PP
 If you want to execute the global method of the remote File class, you can leave
 the parameters blank.
@@ -211,11 +213,13 @@ T}@T{
 write mode
 T}
 .TE
-
+.RS
+.PP
 Note：
 .RE
+.RS
 .PP
-These flags can be combined with bitwise 'or' operator( | ).
+These flags can be combined with bitwise or operator( | ).
 .RE
 .SH RETURN VALUE
 .PP
@@ -234,7 +238,7 @@ Create a remote object.
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
 \f[]
 .fi
 .IP \[bu] 2
@@ -242,7 +246,7 @@ Create a file object remotely.
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ remoteObj.getFile(\ "/opt/sequoiadb/file",\ 0777,\ SDB_FILE_READWRITE\ |\ SDB_FILE_CREATE\ )
+> var file = remoteObj.getFile( "/opt/sequoiadb/file", 0777, SDB_FILE_READWRITE | SDB_FILE_CREATE )
 \f[]
 .fi
 .IP \[bu] 2
@@ -250,7 +254,7 @@ Read the contents of the file.( For more detial, please reference to read ).
 .IP
 .nf
 \f[C]
->\ file.read()
+> file.read()
 SquoiaDB
 \f[]
 .fi

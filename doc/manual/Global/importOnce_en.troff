@@ -90,11 +90,11 @@ The content of helloWorld.js as below:
 .IP
 .nf
 \f[C]
-function\ sayHello()
+function sayHello()
 {
-\ \ \ \ println(\ "hello\ world"\ )\ ;
+    println( "hello world" ) ;
 }
-println(\ "import\ helloWorld.js"\ )\ ;
+println( "import helloWorld.js" ) ;
 \f[]
 .fi
 .IP "2)" 3
@@ -102,14 +102,14 @@ Import and eval helloWorld.js repeatly,only import and eval for the first time.
 .IP
 .nf
 \f[C]
->\ importOnce(\ \[aq]helloWorld.js\[aq]\ )
-import\ helloWorld.js
-Takes\ 0.000849s.
->\ importOnce(\ \[aq]helloWorld.js\[aq]\ )
-Takes\ 0.000354s.
->\ sayHello()
-hello\ world
-Takes\ 0.000436s.
+> importOnce( \[aq]helloWorld.js\[aq] )
+import helloWorld.js
+Takes 0.000849s.
+> importOnce( \[aq]helloWorld.js\[aq] )
+Takes 0.000354s.
+> sayHello()
+hello world
+Takes 0.000436s.
 \f[]
 .fi
 .RE
@@ -124,10 +124,10 @@ The content of funcDef.js as below:
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ "defined\ in\ funcDef.js"\ )\ ;
-}\ \ 
+    println( "defined in funcDef.js" ) ;
+}  
 \f[]
 .fi
 .IP "2)" 3
@@ -135,12 +135,12 @@ The content of test.js as below：
 .IP
 .nf
 \f[C]
-importOnce(\ \[aq]./funcDef.js\[aq]\ )\ ;
-function\ test()
+importOnce( \[aq]./funcDef.js\[aq] ) ;
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ test.js\[aq]\ )\ ;
+    println( \[aq]defined in test.js\[aq] ) ;
 }
-test()\ ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -148,8 +148,8 @@ Use sdb to run test.js
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js\ 
-defined\ in\ funcDef.js
+$ ./sdb \-f test.js 
+defined in funcDef.js
 \f[]
 .fi
 .PP
@@ -167,9 +167,9 @@ Create a file named userDef.js,the content as below：
 .IP
 .nf
 \f[C]
-function\ test()
+function test()
 {
-\ \ \ \ println(\ \[aq]defined\ in\ userDef.js\[aq]\ )\ ;
+    println( \[aq]defined in userDef.js\[aq] ) ;
 }
 \f[]
 .fi
@@ -178,9 +178,9 @@ The content of test.js is changed as below：
 .IP
 .nf
 \f[C]
-importOnce(\ \[aq]./funcDef.js\[aq]\ )\ ;
-importOnce(\ \[aq]./userDef.js\[aq]\ )\ ;
-test()\ ;
+importOnce( \[aq]./funcDef.js\[aq] ) ;
+importOnce( \[aq]./userDef.js\[aq] ) ;
+test() ;
 \f[]
 .fi
 .IP "3)" 3
@@ -188,8 +188,8 @@ Use sdb to run test.js
 .IP
 .nf
 \f[C]
-$\ ./sdb\ \-f\ test.js
-defined\ in\ userDef.js
+$ ./sdb \-f test.js
+defined in userDef.js
 \f[]
 .fi
 .PP

@@ -66,9 +66,9 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.sniffPort(50000)
+> System.sniffPort(50000)
 {
-\ \ \ \ \ \ "Usable":\ false
+      "Usable": false
 }
 \f[]
 .fi

@@ -113,8 +113,8 @@ Create collection space and collection.
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq]\ )
->\ db.sample.createCL(\[aq]employee\[aq])
+> db.createCS(\[aq]sample\[aq] )
+> db.sample.createCL(\[aq]employee\[aq])
 \f[]
 .fi
 .RE
@@ -124,7 +124,7 @@ Upload the LOB file \f[C]mylob.txt\f[].
 .IP
 .nf
 \f[C]
->\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
 0000604f989a390002db009e
 \f[]
 .fi
@@ -135,7 +135,7 @@ Upload the LOB file \f[C]mylob.txt\f[] of the specified "oid".
 .IP
 .nf
 \f[C]
->\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq],\ \[aq]5bf3a024ed9954d596420256\[aq])
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq], \[aq]5bf3a024ed9954d596420256\[aq])
 5bf3a024ed9954d596420256
 \f[]
 .fi

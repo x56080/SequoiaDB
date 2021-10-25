@@ -65,6 +65,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.remove(\ "/opt/sequoiadb/file.txt"\ )
+> File.remove( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi

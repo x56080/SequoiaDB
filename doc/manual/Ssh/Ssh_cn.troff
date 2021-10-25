@@ -105,7 +105,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ ssh\ =\ new\ Ssh(\ "192.168.20.71",\ "sdbadmin",\ "sdbadmin",\ 22\ )
+> var ssh = new Ssh( "192.168.20.71", "sdbadmin", "sdbadmin", 22 )
 \f[]
 .fi
 .RE

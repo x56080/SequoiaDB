@@ -147,18 +147,18 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.listProcess()
+> System.listProcess()
 {
-\ \ \ \ "pid":\ "30571",
-\ \ \ \ "cmd":\ "sequoiadb(50000)\ S"
+    "pid": "30571",
+    "cmd": "sequoiadb(50000) S"
 }
 {
-\ \ \ \ "pid":\ "30834",
-\ \ \ \ "cmd":\ "bin/sdb"
+    "pid": "30834",
+    "cmd": "bin/sdb"
 }
 {
-\ \ \ \ "pid":\ "30876",
-\ \ \ \ "cmd":\ "/usr/sbin/rsyslogd\ \-n"
+    "pid": "30876",
+    "cmd": "/usr/sbin/rsyslogd \-n"
 }
 \&...
 \f[]
@@ -170,18 +170,18 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.listProcess(\ {\ detail:\ true\ },\ {\ "user":\ "sdbadmin"\ }\ )
+> System.listProcess( { detail: true }, { "user": "sdbadmin" } )
 {
-\ \ \ \ "user":\ "sdbadmin",
-\ \ \ \ "pid":\ "20630",
-\ \ \ \ "status":\ "S",
-\ \ \ \ "cmd":\ "sleep\ 1"
+    "user": "sdbadmin",
+    "pid": "20630",
+    "status": "S",
+    "cmd": "sleep 1"
 }
 {
-\ \ \ \ "user":\ "sdbadmin",
-\ \ \ \ "pid":\ "25681",
-\ \ \ \ "status":\ "Sl",
-\ \ \ \ "cmd":\ "sdbom(11780)"
+    "user": "sdbadmin",
+    "pid": "25681",
+    "status": "Sl",
+    "cmd": "sdbom(11780)"
 }
 \f[]
 .fi

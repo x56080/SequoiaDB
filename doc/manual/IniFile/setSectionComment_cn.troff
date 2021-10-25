@@ -81,7 +81,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ ini\ =\ new\ IniFile(\ "/opt/sequoiadb/file.ini",\ SDB_INIFILE_FLAGS_DEFAULT\ )
+> var ini = new IniFile( "/opt/sequoiadb/file.ini", SDB_INIFILE_FLAGS_DEFAULT )
 \f[]
 .fi
 .RE
@@ -91,7 +91,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ ini.setSectionComment(\ "info",\ "personal\ information"\ )
+> ini.setSectionComment( "info", "personal information" )
 \f[]
 .fi
 .RE

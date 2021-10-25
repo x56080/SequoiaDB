@@ -96,8 +96,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq]\ )
->\ db.sample.createCL(\[aq]employee\[aq])
+> db.createCS(\[aq]sample\[aq] )
+> db.sample.createCL(\[aq]employee\[aq])
 \f[]
 .fi
 .RE
@@ -107,7 +107,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq])
 0000604f989a390002db009e
 \f[]
 .fi
@@ -118,7 +118,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq],\ \[aq]5bf3a024ed9954d596420256\[aq])
+> db.sample.employee.putLob(\[aq]/opt/mylob/mylob.txt\[aq], \[aq]5bf3a024ed9954d596420256\[aq])
 5bf3a024ed9954d596420256
 \f[]
 .fi

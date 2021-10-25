@@ -40,20 +40,20 @@ Get the session attributes.
 .IP
 .nf
 \f[C]
->\ db.getSessionAttr()
+> db.getSessionAttr()
 {
-\ \ "PreferedInstance":\ "M",
-\ \ "PreferedInstanceMode":\ "random",
-\ \ "PreferedStrict":\ false,
-\ \ "Timeout":\ \-1,
-\ \ "TransIsolation":\ 0,
-\ \ "TransTimeout":\ 60,
-\ \ "TransUseRBS":\ true,
-\ \ "TransLockWait":\ false,
-\ \ "TransAutoCommit":\ false,
-\ \ "TransAutoRollback":\ true,
-\ \ "TransRCCount":\ true,
-\ \ "Source":\ ""
+  "PreferedInstance": "M",
+  "PreferedInstanceMode": "random",
+  "PreferedStrict": false,
+  "Timeout": \-1,
+  "TransIsolation": 0,
+  "TransTimeout": 60,
+  "TransUseRBS": true,
+  "TransLockWait": false,
+  "TransAutoCommit": false,
+  "TransAutoRollback": true,
+  "TransRCCount": true,
+  "Source": ""
 }
 \f[]
 .fi

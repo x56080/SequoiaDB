@@ -31,11 +31,11 @@ options ( \f[I]object，必填\f[] )
 .IP \[bu] 2
 Groups ( \f[I]string/array\f[] )：域将包含的所有复制组
 .PP
-格式：\f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+格式：\f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .IP \[bu] 2
 AutoSplit ( \f[I]boolean\f[] )：域是否自动切分
 .PP
-格式：\f[C]AutoSplit:\ true|false\f[]
+格式：\f[C]AutoSplit: true|false\f[]
 .SH 返回值
 .PP
 函数执行成功时，无返回值。
@@ -142,7 +142,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .RE
@@ -153,7 +153,7 @@ group3 两个复制组
 .IP
 .nf
 \f[C]
->\ domain.setAttributes({Groups:\ [\[aq]group1\[aq],\ \[aq]group3\[aq]]})
+> domain.setAttributes({Groups: [\[aq]group1\[aq], \[aq]group3\[aq]]})
 \f[]
 .fi
 .RE
@@ -163,7 +163,7 @@ group3 两个复制组
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq]])
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq]])
 \f[]
 .fi
 .RE
@@ -173,9 +173,9 @@ group3 两个复制组
 .IP
 .nf
 \f[C]
->\ domain.setAttributes({Groups:\ [\[aq]group2\[aq]]})
-(nofile):0\ uncaught\ exception:\ \-256
-Domain\ has\ been\ used
+> domain.setAttributes({Groups: [\[aq]group2\[aq]]})
+(nofile):0 uncaught exception: \-256
+Domain has been used
 \f[]
 .fi
 .RE

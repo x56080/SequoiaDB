@@ -33,7 +33,7 @@ Acquire current directory of sdb shell
 .IP
 .nf
 \f[C]
->\ System.getEWD()
+> System.getEWD()
 /opt/sequoiadb/bin
 \f[]
 .fi

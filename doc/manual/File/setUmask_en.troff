@@ -63,7 +63,7 @@ On success, return void.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+when exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
@@ -72,6 +72,6 @@ Set file mode creation mask.
 .IP
 .nf
 \f[C]
->\ File.setUmask(\ 0664\ )
+> File.setUmask( 0664 )
 \f[]
 .fi

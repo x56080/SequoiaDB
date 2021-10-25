@@ -38,7 +38,7 @@ group, and then the database write operation returns the response to the client.
 nodes in the replication group, and then the database write operation returns
 the response to the client.
 .PP
-Format: \f[C]ReplSize:\ <number>\f[]
+Format: \f[C]ReplSize: <number>\f[]
 .RE
 .IP \[bu] 2
 ShardingKey ( \f[I]object\f[] ): Sharding key, the value is 1 or \-1, indicating
@@ -50,7 +50,7 @@ The existing "ShardingKey" will be modified to a new "ShardingKey".
 The collection can only exist in one data group, or the collection is the main
 table without mounting sub\-tables.
 .PP
-Format: \f[C]ShardingKey:\ {<field1>:\ <1|\-1>,\ [<field2>:\ <1|\-1>,\ ...]}\f[]
+Format: \f[C]ShardingKey: {<field1>: <1|\-1>, [<field2>: <1|\-1>, ...]}\f[]
 .RE
 .IP \[bu] 2
 ShardingType ( \f[I]string\f[] ): Partition method, the default value is "hash",
@@ -63,7 +63,7 @@ and the values are as follows:
 .PP
 The collection can only exist in one data group.
 .PP
-Format: \f[C]ShardingType:\ "hash"\ |\ "range"\f[]
+Format: \f[C]ShardingType: "hash" | "range"\f[]
 .RE
 .IP \[bu] 2
 Partition ( \f[I]number\f[] ): Number of partitions.
@@ -73,7 +73,7 @@ It represents the number of hash partitions and is only filled in when selecting
 .PP
 The collection can only exist in one data group.
 .PP
-Format: \f[C]Partition:\ <num>\f[]
+Format: \f[C]Partition: <num>\f[]
 .RE
 .IP \[bu] 2
 AutoSplit ( \f[I]boolean\f[] ): Identify whether the automatic segmentation
@@ -94,7 +94,7 @@ explicitly set AutoSplit to true for automatic segmentation.
 .IP \[bu] 2
 "AutoSplit" can only work on "hash" partition keys.
 .PP
-Format: \f[C]AutoSplit:\ true\ |\ false\f[]
+Format: \f[C]AutoSplit: true | false\f[]
 .RE
 .IP \[bu] 2
 EnsureShardingIndex ( \f[I]boolean\f[] ): Identifies whether to create a
@@ -108,7 +108,7 @@ for data compression.
 If "Compressed" is set to "true" and "CompressionType" is not specified, then
 "CompressionType" is "lzw".
 .PP
-Format: \f[C]Compressed:\ true\ |\ false\f[]
+Format: \f[C]Compressed: true | false\f[]
 .RE
 .IP \[bu] 2
 CompressionType ( \f[I]string\f[] ): The compression algorithm of the
@@ -119,14 +119,14 @@ collection, "snappy" or "lzw".
 .IP \[bu] 2
 "lzw": Using "lzw" algorithm to compress.
 .PP
-Format: \f[C]CompressionType:\ "snappy"\ |\ "lzw"\f[]
+Format: \f[C]CompressionType: "snappy" | "lzw"\f[]
 .RE
 .IP \[bu] 2
 StrictDataMode ( \f[I]boolean\f[] ): Identifies whether the operation of the
 collection enables strict data type mode.
 .RS 2
 .PP
-Format: \f[C]StrictDataMode:\ true\ |\ false\f[]
+Format: \f[C]StrictDataMode: true | false\f[]
 .RE
 .IP \[bu] 2
 AutoIncrement ( \f[I]object\f[] )：Auto\-increment field.
@@ -143,7 +143,7 @@ After modifying the attribute, the field value may not be unique.
 If users need to ensure that the modified value is unique, it is recommended to
 use a unique index.
 .PP
-Format: \f[C]AutoIncrement:\ <option>\f[]
+Format: \f[C]AutoIncrement: <option>\f[]
 .RS
 .PP
 \f[B]Note:\f[]
@@ -253,8 +253,8 @@ collection.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.alter({ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash"})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.alter({ShardingKey: {a: 1}, ShardingType: "hash"})
 \f[]
 .fi
 .RE
@@ -265,8 +265,8 @@ collection, and split it automatically.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.alter({\ ShardingKey:\ {a:\ 1},\ ShardingType:\ "hash",\ AutoSplit:\ true})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.alter({ ShardingKey: {a: 1}, ShardingType: "hash", AutoSplit: true})
 \f[]
 .fi
 .RE
@@ -277,8 +277,8 @@ compression.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq])
->\ db.sample.employee.alter({CompressionType:\ \[aq]snappy\[aq]})
+> db.sample.createCL(\[aq]employee\[aq])
+> db.sample.employee.alter({CompressionType: \[aq]snappy\[aq]})
 \f[]
 .fi
 .RE
@@ -289,8 +289,8 @@ starting value.
 .IP
 .nf
 \f[C]
->\ db.sample.createCL(\[aq]employee\[aq],\ {AutoIncrement:\ {Field:\ "studentID"}})
->\ db.sample.employee.alter({AutoIncrement:\ {Field:\ "studentID",\ StartValue:\ 2017140000}})
+> db.sample.createCL(\[aq]employee\[aq], {AutoIncrement: {Field: "studentID"}})
+> db.sample.employee.alter({AutoIncrement: {Field: "studentID", StartValue: 2017140000}})
 \f[]
 .fi
 .RE

@@ -36,8 +36,8 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ remoteObj\ =\ new\ Remote(\ "192.168.20.71",\ 11790\ )
->\ var\ cmd\ =\ remoteObj.getCmd()
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
+> var cmd = remoteObj.getCmd()
 \f[]
 .fi
 .RE
@@ -47,12 +47,12 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ cmd.getInfo()
+> cmd.getInfo()
 {
-\ \ \ \ "type":\ "Cmd",
-\ \ \ \ "hostname":\ "192.168.20.71",
-\ \ \ \ "svcname":\ "11790",
-\ \ \ \ "isRemote":\ true
+    "type": "Cmd",
+    "hostname": "192.168.20.71",
+    "svcname": "11790",
+    "isRemote": true
 }
 \f[]
 .fi

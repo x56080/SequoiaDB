@@ -36,35 +36,35 @@ v5.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ stp\ =\ new\ Stp()
->\ stp.getSyncHistory()
+> var stp = new Stp()
+> stp.getSyncHistory()
 {
-\ \ "SyncSources":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "Role":\ "server",
-\ \ \ \ \ \ "HostName":\ "server\-1",
-\ \ \ \ \ \ "Service":\ "9622",
-\ \ \ \ \ \ "SyncCount":\ 116,
-\ \ \ \ \ \ "ValidCount":\ 89,
-\ \ \ \ \ \ "MinDelay":\ 250910,
-\ \ \ \ \ \ "MaxDelay":\ 19122284,
-\ \ \ \ \ \ "InitOffset":\ 98988348233399,
-\ \ \ \ \ \ "NegOffset":\ {
-\ \ \ \ \ \ \ \ "Count":\ 46,
-\ \ \ \ \ \ \ \ "Min":\ \-9898,
-\ \ \ \ \ \ \ \ "Max":\ \-5513457
-\ \ \ \ \ \ },
-\ \ \ \ \ \ "PosOffset":\ {
-\ \ \ \ \ \ \ \ "Count":\ 42,
-\ \ \ \ \ \ \ \ "Min":\ 3020,
-\ \ \ \ \ \ \ \ "Max":\ 4935051
-\ \ \ \ \ \ },
-\ \ \ \ \ \ "LastDelay":\ 584499,
-\ \ \ \ \ \ "LastOffset":\ \-20017,
-\ \ \ \ \ \ "LastPassed":\ 110
-\ \ \ \ },
-\ \ \ \ ...
-\ \ ]
+  "SyncSources": [
+    {
+      "Role": "server",
+      "HostName": "server\-1",
+      "Service": "9622",
+      "SyncCount": 116,
+      "ValidCount": 89,
+      "MinDelay": 250910,
+      "MaxDelay": 19122284,
+      "InitOffset": 98988348233399,
+      "NegOffset": {
+        "Count": 46,
+        "Min": \-9898,
+        "Max": \-5513457
+      },
+      "PosOffset": {
+        "Count": 42,
+        "Min": 3020,
+        "Max": 4935051
+      },
+      "LastDelay": 584499,
+      "LastOffset": \-20017,
+      "LastPassed": 110
+    },
+    ...
+  ]
 }
 \f[]
 .fi

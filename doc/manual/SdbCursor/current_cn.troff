@@ -145,16 +145,16 @@ v3.0 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ cur\ =\ db.sample.employee.find({a:\ 1});
->\ var\ obj\ =\ null;
->\ while((obj\ =\ cur.next()\ !=\ null)){
-\ \ \ \ println("Record\ is:"\ +\ cur.current());
+> var cur = db.sample.employee.find({a: 1});
+> var obj = null;
+> while((obj = cur.next() != null)){
+    println("Record is:" + cur.current());
 }
-Record\ is:{
-"_id":\ {
-\ \ \ \ "$oid":\ "60470a4db354306ff89cd355"
+Record is:{
+"_id": {
+    "$oid": "60470a4db354306ff89cd355"
 },
-"a":\ 1
+"a": 1
 }
 \f[]
 .fi

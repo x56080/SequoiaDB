@@ -66,6 +66,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.delAHostMap(\ "hostname"\ )
+> System.delAHostMap( "hostname" )
 \f[]
 .fi

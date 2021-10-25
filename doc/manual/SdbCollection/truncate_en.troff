@@ -51,29 +51,29 @@ the usage of its data pages can be viewed through a snapshot.
 .IP
 .nf
 \f[C]
->\ db.snapshot(SDB_SNAP_COLLECTIONS)
+> db.snapshot(SDB_SNAP_COLLECTIONS)
 {
-\ \ "Name":\ "sample.employee",
-\ \ "Details":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "datagroup",
-\ \ \ \ \ \ "Group":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "ID":\ 0,
-\ \ \ \ \ \ \ \ \ \ "LogicalID":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Sequence":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Indexes":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Status":\ "Normal",
-\ \ \ \ \ \ \ \ \ \ "TotalRecords":\ 10000,
-\ \ \ \ \ \ \ \ \ \ "TotalDataPages":\ 33,
-\ \ \ \ \ \ \ \ \ \ "TotalIndexPages":\ 7,
-\ \ \ \ \ \ \ \ \ \ "TotalLobPages":\ 36,
-\ \ \ \ \ \ \ \ \ \ "TotalDataFreeSpace":\ 41500,
-\ \ \ \ \ \ \ \ \ \ "TotalIndexFreeSpace":\ 103090
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ]
-\ \ \ \ }
-\ \ ]
+  "Name": "sample.employee",
+  "Details": [
+    {
+      "GroupName": "datagroup",
+      "Group": [
+        {
+          "ID": 0,
+          "LogicalID": 0,
+          "Sequence": 1,
+          "Indexes": 1,
+          "Status": "Normal",
+          "TotalRecords": 10000,
+          "TotalDataPages": 33,
+          "TotalIndexPages": 7,
+          "TotalLobPages": 36,
+          "TotalDataFreeSpace": 41500,
+          "TotalIndexFreeSpace": 103090
+        }
+      ]
+    }
+  ]
 }
 \f[]
 .fi
@@ -86,7 +86,7 @@ The truncate operation is executed below.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.truncate()
+> db.sample.employee.truncate()
 \f[]
 .fi
 .RE
@@ -98,29 +98,29 @@ released.
 .IP
 .nf
 \f[C]
->\ db.snapshot(SDB_SNAP_COLLECTIONS)
+> db.snapshot(SDB_SNAP_COLLECTIONS)
 {
-\ \ "Name":\ "sample.employee",
-\ \ "Details":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "GroupName":\ "datagroup",
-\ \ \ \ \ \ "Group":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "ID":\ 0,
-\ \ \ \ \ \ \ \ \ \ "LogicalID":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Sequence":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Indexes":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Status":\ "Normal",
-\ \ \ \ \ \ \ \ \ \ "TotalRecords":\ 0,
-\ \ \ \ \ \ \ \ \ \ "TotalDataPages":\ 0,
-\ \ \ \ \ \ \ \ \ \ "TotalIndexPages":\ 2,
-\ \ \ \ \ \ \ \ \ \ "TotalLobPages":\ 0,
-\ \ \ \ \ \ \ \ \ \ "TotalDataFreeSpace":\ 0,
-\ \ \ \ \ \ \ \ \ \ "TotalIndexFreeSpace":\ 65515
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ]
-\ \ \ \ }
-\ \ ]
+  "Name": "sample.employee",
+  "Details": [
+    {
+      "GroupName": "datagroup",
+      "Group": [
+        {
+          "ID": 0,
+          "LogicalID": 0,
+          "Sequence": 1,
+          "Indexes": 1,
+          "Status": "Normal",
+          "TotalRecords": 0,
+          "TotalDataPages": 0,
+          "TotalIndexPages": 2,
+          "TotalLobPages": 0,
+          "TotalDataFreeSpace": 0,
+          "TotalIndexFreeSpace": 65515
+        }
+      ]
+    }
+  ]
 }
 \f[]
 .fi

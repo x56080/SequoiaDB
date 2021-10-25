@@ -85,6 +85,6 @@ Create a directory.
 .IP
 .nf
 \f[C]
->\ File.mkdir(\ "/opt/sequoiadb/newDir"\ )
+> File.mkdir( "/opt/sequoiadb/newDir" )
 \f[]
 .fi

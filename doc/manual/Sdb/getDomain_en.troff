@@ -71,6 +71,6 @@ Get a previously created domain.
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.getDomain(\[aq]mydomain\[aq])
+> var domain = db.getDomain(\[aq]mydomain\[aq])
 \f[]
 .fi

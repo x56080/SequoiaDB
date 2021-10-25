@@ -35,7 +35,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.dump"\ )
+> var file = new File( "/opt/sequoiadb/file.dump" )
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ content\ =\ file.readContent(\ 10000\ )
+> var content = file.readContent( 10000 )
 \f[]
 .fi
 .RE
@@ -55,7 +55,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ content.clear()
+> content.clear()
 \f[]
 .fi
 .RE

@@ -68,7 +68,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.startRG("group1")
->\ db.startRG("group2",\ "group3",\ "group4")
+> db.startRG("group1")
+> db.startRG("group2", "group3", "group4")
 \f[]
 .fi

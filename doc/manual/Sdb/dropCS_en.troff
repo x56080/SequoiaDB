@@ -131,8 +131,8 @@ Since v1.0.
 Drop an exist collection space named by "foo".
 .nf
 \f[C]
->\ db.dropCS("foo")
-Takes\ 0.003132s.
+> db.dropCS("foo")
+Takes 0.003132s.
 \f[]
 .fi
 .RE

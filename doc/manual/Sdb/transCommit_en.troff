@@ -40,6 +40,6 @@ Execute transaction commit command.
 .IP
 .nf
 \f[C]
->\ db.transCommit()
+> db.transCommit()
 \f[]
 .fi

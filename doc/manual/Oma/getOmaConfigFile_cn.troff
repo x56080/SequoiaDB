@@ -33,7 +33,7 @@ v1.0及以上版本。
 获取 sdbcm 配置文件。
 .nf
 \f[C]
->\ Oma.getOmaConfigFile()
+> Oma.getOmaConfigFile()
 /opt/sequoiadb/bin/../conf/sdbcm.conf
 \f[]
 .fi

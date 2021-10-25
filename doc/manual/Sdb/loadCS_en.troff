@@ -96,13 +96,13 @@ sequoiadb is started in standalone mode )
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi
@@ -111,7 +111,7 @@ Unload the collection space named sample from memory.
 .IP
 .nf
 \f[C]
->\ db.unloadCS(\ "sample"\ )
+> db.unloadCS( "sample" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -119,9 +119,9 @@ Query data.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
-uncaught\ exception:\ \-34
-Collection\ space\ does\ not\ exist
+> db.sample.employee.find()
+uncaught exception: \-34
+Collection space does not exist
 \f[]
 .fi
 .IP \[bu] 2
@@ -129,7 +129,7 @@ Load the collection space named into memory.
 .IP
 .nf
 \f[C]
->\ db.loadCS(\ "sample"\ )
+> db.loadCS( "sample" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -137,13 +137,13 @@ Query data again.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find()
+> db.sample.employee.find()
 {
-\ \ \ "_id":\ {
-\ \ \ \ \ "$oid":\ "5d36c9d5c6b1cee56abefc7e"
-\ \ \ },
-\ \ \ "name":\ "fang",
-\ \ \ "age":\ 18
+   "_id": {
+     "$oid": "5d36c9d5c6b1cee56abefc7e"
+   },
+   "name": "fang",
+   "age": 18
 }
 \f[]
 .fi

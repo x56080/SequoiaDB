@@ -144,7 +144,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]])
+> db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]])
 \f[]
 .fi
 .RE
@@ -154,7 +154,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq]],\ {AutoSplit:\ true})
+> db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .RE

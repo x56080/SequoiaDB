@@ -92,7 +92,7 @@ Clear the cache of the current coord node.
 .IP
 .nf
 \f[C]
->\ db.invalidateCache(\ {\ Global:\ false\ }\ )
+> db.invalidateCache( { Global: false } )
 \f[]
 .fi
 .IP \[bu] 2
@@ -101,6 +101,6 @@ nodes.
 .IP
 .nf
 \f[C]
->\ db.invalidateCache(\ {\ GroupName:\ \[aq]group1\[aq]\ }\ )
+> db.invalidateCache( { GroupName: \[aq]group1\[aq] } )
 \f[]
 .fi

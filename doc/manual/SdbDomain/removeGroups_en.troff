@@ -31,7 +31,7 @@ Modify the property list through the options parameter:
 Groups ( \f[I]string/array\f[] ): The replication group that the domain will
 remove.
 .PP
-Format: \f[C]Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]\f[]
+Format: \f[C]Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]\f[]
 .SH RETURN VALUE
 .PP
 When the function executes successfully, there is no return value.
@@ -137,7 +137,7 @@ Create a domain containing three replication groups and turn on automatic split.
 .IP
 .nf
 \f[C]
->\ var\ domain\ =\ db.createDomain(\[aq]mydomain\[aq],\ [\[aq]group1\[aq],\ \[aq]group2\[aq],\ \[aq]group3\[aq]],\ {AutoSplit:\ true})
+> var domain = db.createDomain(\[aq]mydomain\[aq], [\[aq]group1\[aq], \[aq]group2\[aq], \[aq]group3\[aq]], {AutoSplit: true})
 \f[]
 .fi
 .IP \[bu] 2
@@ -146,7 +146,7 @@ Remove the replication group "group2" from the domain.
 .IP
 .nf
 \f[C]
->\ domain.removeGroups({Groups:\ [\[aq]group2\[aq]]})
+> domain.removeGroups({Groups: [\[aq]group2\[aq]]})
 \f[]
 .fi
 .RE
@@ -156,7 +156,7 @@ Remove the replication group "group1" and "group2" from the domain.
 .IP
 .nf
 \f[C]
->\ domain.removeGroups({Groups:\ [\[aq]group1\[aq],\ \[aq]group2\[aq]]})
+> domain.removeGroups({Groups: [\[aq]group1\[aq], \[aq]group2\[aq]]})
 \f[]
 .fi
 .RE

@@ -82,7 +82,7 @@ Open a file and get a file descriptor
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file.txt"\ )
+> var file = new File( "/opt/sequoiadb/file.txt" )
 \f[]
 .fi
 .IP \[bu] 2
@@ -90,7 +90,7 @@ Read the contents of the file
 .IP
 .nf
 \f[C]
->\ file.read()
+> file.read()
 SquoiaDB
 \f[]
 .fi

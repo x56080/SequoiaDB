@@ -349,7 +349,7 @@ Turn on the trace program of database engine.
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 256\ )
+> db.traceOn( 256 )
 \f[]
 .fi
 .RS
@@ -364,7 +364,7 @@ breakpoints and multiple tids for tracing.
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 256,\ "cls,\ dms,\ mth",\ "_dmsTempSUMgr::init",\ [12712,\ 12713,\ 12714]\ )
+> db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )
 \f[]
 .fi
 .IP \[bu] 2
@@ -372,7 +372,7 @@ Users can also specify monitoring parameters through SdbTraceOption.
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 256,\ new\ SdbTraceOption().components(\ "cls",\ dms",\ "mth"\ ).breakPoints(\ "_dmsTempSUMgr::init"\ ).tids(\ [12712,\ 12713,\ 12714]\ )\ )
+> db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )
 \f[]
 .fi
 .IP \[bu] 2
@@ -380,7 +380,7 @@ Check the trace status of the current program.
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 \f[]
 .fi
 .RS
@@ -395,7 +395,7 @@ the statement of traceResume() to wake up the traced module.
 .IP
 .nf
 \f[C]
->\ db.traceResume()
+> db.traceResume()
 \f[]
 .fi
 .RS
@@ -410,7 +410,7 @@ the binary file \f[C]/opt/sequoiadb/trace.dump\f[].
 .IP
 .nf
 \f[C]
->\ db.traceOff("/opt/sequoiadb/trace.dump")
+> db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
 .RS
@@ -424,7 +424,7 @@ Parse binary files.
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace.flw"\ )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
 \f[]
 .fi
 .RS

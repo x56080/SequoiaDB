@@ -35,7 +35,7 @@ v2.10 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createCS(\[aq]sample\[aq],\ {Domain:\ \[aq]domain\[aq]})
->\ db.sample.removeDomain()
+> db.createCS(\[aq]sample\[aq], {Domain: \[aq]domain\[aq]})
+> db.sample.removeDomain()
 \f[]
 .fi

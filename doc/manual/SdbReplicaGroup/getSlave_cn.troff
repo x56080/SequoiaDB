@@ -154,8 +154,8 @@ v1.0 添加此接口。
 获取 group1 复制组的备节点。
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getSlave()
+> var rg = db.getRG("group1")
+> rg.getSlave()
 hostname1:42000
 \f[]
 .fi
@@ -164,80 +164,80 @@ hostname1:42000
 group1 复制组信息如下：
 .nf
 \f[C]
->\ db.list(SDB_LIST_GROUPS,\ {"GroupName":"group1"})
+> db.list(SDB_LIST_GROUPS, {"GroupName":"group1"})
 {
-\ \ \ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ "HostName":\ "hostname1",
-\ \ \ \ "Status":\ 1,
-\ \ \ \ "dbpath":\ "/sequoiadb/database/40000/",
-\ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ "Name":\ "40000"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ "Name":\ "40001"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ "Name":\ "40002"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ ],
-\ \ \ \ "NodeID":\ 1001
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ "HostName":\ "hostname1",
-\ \ \ \ "Status":\ 1,
-\ \ \ \ "dbpath":\ "/sequoiadb/database/41000/",
-\ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ "Name":\ "41000"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ "Name":\ "41001"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ "Name":\ "41002"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ ],
-\ \ \ \ "NodeID":\ 1002
-\ \ \ \ },
-\ \ \ \ {
-\ \ \ \ "HostName":\ "hostname1",
-\ \ \ \ "Status":\ 1,
-\ \ \ \ "dbpath":\ "/sequoiadb/database/42000/",
-\ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ "Name":\ "42000"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ "Name":\ "42001"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ "Name":\ "42002"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ ],
-\ \ \ \ "NodeID":\ 1003
-\ \ \ \ }
-\ \ \ \ ],
-\ \ \ \ "GroupID":\ 1001,
-\ \ \ \ "GroupName":\ "group1",
-\ \ \ \ "PrimaryNode":\ 1002,
-\ \ \ \ "Role":\ 0,
-\ \ \ \ "SecretID":\ 1425460557,
-\ \ \ \ "Status":\ 1,
-\ \ \ \ "Version":\ 7,
-\ \ \ \ "_id":\ {
-\ \ \ \ "$oid":\ "5a045460c517f3cf06a32976"
-\ \ \ \ }
+    "Group": [
+    {
+    "HostName": "hostname1",
+    "Status": 1,
+    "dbpath": "/sequoiadb/database/40000/",
+    "Service": [
+        {
+        "Type": 0,
+        "Name": "40000"
+        },
+        {
+        "Type": 1,
+        "Name": "40001"
+        },
+        {
+        "Type": 2,
+        "Name": "40002"
+        }
+    ],
+    "NodeID": 1001
+    },
+    {
+    "HostName": "hostname1",
+    "Status": 1,
+    "dbpath": "/sequoiadb/database/41000/",
+    "Service": [
+        {
+        "Type": 0,
+        "Name": "41000"
+        },
+        {
+        "Type": 1,
+        "Name": "41001"
+        },
+        {
+        "Type": 2,
+        "Name": "41002"
+        }
+    ],
+    "NodeID": 1002
+    },
+    {
+    "HostName": "hostname1",
+    "Status": 1,
+    "dbpath": "/sequoiadb/database/42000/",
+    "Service": [
+        {
+        "Type": 0,
+        "Name": "42000"
+        },
+        {
+        "Type": 1,
+        "Name": "42001"
+        },
+        {
+        "Type": 2,
+        "Name": "42002"
+        }
+    ],
+    "NodeID": 1003
+    }
+    ],
+    "GroupID": 1001,
+    "GroupName": "group1",
+    "PrimaryNode": 1002,
+    "Role": 0,
+    "SecretID": 1425460557,
+    "Status": 1,
+    "Version": 7,
+    "_id": {
+    "$oid": "5a045460c517f3cf06a32976"
+    }
 }
 \f[]
 .fi
@@ -262,8 +262,8 @@ hostname1:42000(备节点，节点位置为3)；
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getRG("group1")
->\ rg.getSlave(1,2)
+> var rg = db.getRG("group1")
+> rg.getSlave(1,2)
 hostname1:40000
 \f[]
 .fi

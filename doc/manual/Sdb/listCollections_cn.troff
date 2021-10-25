@@ -36,9 +36,9 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.listCollections()
+> db.listCollections()
 {
-\ \ \ \ "Name":\ "sample.employee"
+    "Name": "sample.employee"
 }
 \f[]
 .fi

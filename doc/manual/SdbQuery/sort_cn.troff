@@ -110,19 +110,19 @@ name 和 age 字段，并按 age 字段值的升序排序。
 .IP
 .nf
 \f[C]
-\ \ >\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ age:\ 1\ }\ )
-\ \ {
-\ \ \ \ "name":\ "Jack",
-\ \ \ \ "age":\ 22
-\ \ }
-\ \ {
-\ \ \ \ "name":\ "Tom",
-\ \ \ \ "age":\ 23
-\ \ }
-\ \ {
-\ \ \ \ "name":\ "John",
-\ \ \ \ "age":\ 25
-\ \ }
+  > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 } )
+  {
+    "name": "Jack",
+    "age": 22
+  }
+  {
+    "name": "Tom",
+    "age": 23
+  }
+  {
+    "name": "John",
+    "age": 25
+  }
 \f[]
 .fi
 .RE
@@ -132,19 +132,19 @@ name 和 age 字段，并按 age 字段值的升序排序。
 .IP
 .nf
 \f[C]
-\ \ >\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 20\ }\ },\ {\ age:\ "",\ name:\ ""\ }\ ).sort(\ {\ "sex":\ 1\ }\ )
-\ \ {
-\ \ \ \ "name":\ "Jack",
-\ \ \ \ "age":\ 22
-\ \ }
-\ \ {
-\ \ \ \ "name":\ "Tom",
-\ \ \ \ "age":\ 23
-\ \ }
-\ \ {
-\ \ \ \ "name":\ "John",
-\ \ \ \ "age":\ 25
-\ \ }
+  > db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
+  {
+    "name": "Jack",
+    "age": 22
+  }
+  {
+    "name": "Tom",
+    "age": 23
+  }
+  {
+    "name": "John",
+    "age": 25
+  }
 \f[]
 .fi
 .RE

@@ -36,8 +36,8 @@ v3.2 及以上版本。
 .IP
 .nf
 \f[C]
->\ var\ query\ =\ db.sample.employee.find()
->\ query.close()
+> var query = db.sample.employee.find()
+> query.close()
 \f[]
 .fi
 .RE
@@ -47,9 +47,9 @@ v3.2 及以上版本。
 .IP
 .nf
 \f[C]
->\ query[0]
-uncaught\ exception:\ \-31
-Failed\ to\ get\ next
+> query[0]
+uncaught exception: \-31
+Failed to get next
 \f[]
 .fi
 .RE

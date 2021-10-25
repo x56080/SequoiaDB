@@ -66,6 +66,6 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.delGroup(\ "groupName"\ )
+> System.delGroup( "groupName" )
 \f[]
 .fi

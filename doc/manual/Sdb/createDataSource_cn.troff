@@ -96,8 +96,8 @@ DDL）时的报错级别，默认值为"low"
 \f[C]
 取值如下：
 
-\-\ "high"：报错并输出错误信息
-\-\ "low"：忽略不支持的数据操作且不执行
+\- "high"：报错并输出错误信息
+\- "low"：忽略不支持的数据操作且不执行
 
 格式：`ErrorControlLevel:"low"`
 \f[]
@@ -122,7 +122,7 @@ InheritSessionAttr（ \f[I]boolean\f[]
 true，支持继承的属性包括：PreferedInstance，PreferedInstanceMode，PreferedStrict，PreferedPeriod，Timeout
 .RS 4
 .PP
-格式：\f[C]InheritSessionAttr:\ true\f[]
+格式：\f[C]InheritSessionAttr: true\f[]
 .RE
 .RE
 .SH 返回值
@@ -182,6 +182,6 @@ v3.2.8 及以上版本
 .IP
 .nf
 \f[C]
->\ db.createDataSource("datasource",\ "192.168.20.66:50000",\ "",\ "",\ "SequoiaDB",\ {AccessMode:\ "READ"})
+> db.createDataSource("datasource", "192.168.20.66:50000", "", "", "SequoiaDB", {AccessMode: "READ"})
 \f[]
 .fi

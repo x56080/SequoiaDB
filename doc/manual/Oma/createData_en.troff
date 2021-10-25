@@ -177,7 +177,7 @@ T}
 .PP
 When error happen, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v2.0
@@ -187,8 +187,8 @@ Create a standalone node with port number 11820 and specify a log file size of
 64 MB.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.createData(\ 11820,\ "/opt/sequoiadb/standlone/11820",\ {\ logfilesz:\ 64\ }\ )
+> var oma = new Oma( "localhost", 11790 )
+> oma.createData( 11820, "/opt/sequoiadb/standlone/11820", { logfilesz: 64 } )
 \f[]
 .fi
 .RE

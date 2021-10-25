@@ -38,6 +38,6 @@ Get a reference of the "SYSSpare" group.
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getSpareRG()
+> var rg = db.getSpareRG()
 \f[]
 .fi

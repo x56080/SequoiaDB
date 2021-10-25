@@ -82,11 +82,11 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ File.getUmask(\ 8\ )\ \ \ \ //\ 八进制
+> File.getUmask( 8 )    // 八进制
 0022
->\ File.getUmask(\ 10\ )\ \ \ //\ 十进制
+> File.getUmask( 10 )   // 十进制
 18
->\ File.getUmask(\ 16\ )\ \ \ //\ 十六进制
+> File.getUmask( 16 )   // 十六进制
 0x12
 \f[]
 .fi

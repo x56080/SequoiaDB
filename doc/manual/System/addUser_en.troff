@@ -24,7 +24,7 @@ name ( \f[I]string\f[] ): User name.
 This parameter is required.
 .RS 2
 .PP
-Format: \f[C]name:\ "username"\f[]
+Format: \f[C]name: "username"\f[]
 .RE
 .IP \[bu] 2
 gid ( \f[I]string\f[] ): Specify the name or ID of the user primary group.
@@ -34,7 +34,7 @@ This parameter must be specified as an existing user group.
 If not specified, a user group with the same name as the parameter name will be
 created by default.
 .PP
-Format: \f[C]gid:\ "groupName"\f[] or \f[C]gid:\ "2003"\f[]
+Format: \f[C]gid: "groupName"\f[] or \f[C]gid: "2003"\f[]
 .RE
 .IP \[bu] 2
 groups ( \f[I]string\f[] ): Specify the name or ID list of the user
@@ -44,15 +44,15 @@ supplementary groups.
 This parameter must be specified as an existing user group, each supplementary
 groups is separated by a comma.
 .PP
-Format: \f[C]groups:\ "groupName1,groupName2,groupName3"\f[] or
-\f[C]groups:\ "2004,2005,2006"\f[]
+Format: \f[C]groups: "groupName1,groupName2,groupName3"\f[] or
+\f[C]groups: "2004,2005,2006"\f[]
 .RE
 .IP \[bu] 2
 createDir ( \f[I]boolean\f[] ): Whether to create a user directory, the default
 is false.
 .RS 2
 .PP
-Format: \f[C]createDir:\ true\f[]
+Format: \f[C]createDir: true\f[]
 .RE
 .IP \[bu] 2
 dir ( \f[I]string\f[] ): Specify the user directory, which takes effect only
@@ -63,7 +63,7 @@ This parameter cannot specify an existing directory.
 If not specified, a directory with the same name as the parameter name will be
 created in the \f[C]/home\f[] directory as the user directory.
 .PP
-Format: \f[C]dir:\ "userHomeDir"\f[]
+Format: \f[C]dir: "userHomeDir"\f[]
 .RE
 .SH RETURN VALUE
 .PP
@@ -87,6 +87,6 @@ Specify the user group as root, and create a user directory
 .IP
 .nf
 \f[C]
->\ System.addUser({name:\ "newUser",\ gid:\ "root",\ createDir:\ true,\ dir:\ "/home/newUser"})
+> System.addUser({name: "newUser", gid: "root", createDir: true, dir: "/home/newUser"})
 \f[]
 .fi

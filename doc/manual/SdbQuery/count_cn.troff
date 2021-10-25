@@ -44,7 +44,7 @@ $gt: 10 } } 的记录条数。
 .IP
 .nf
 \f[C]
->\ db.sample.employee.find(\ {\ age:\ {\ $gt:\ 10\ }\ }\ ).count()
+> db.sample.employee.find( { age: { $gt: 10 } } ).count()
 3
 \f[]
 .fi

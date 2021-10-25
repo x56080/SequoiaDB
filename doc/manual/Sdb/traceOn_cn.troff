@@ -82,9 +82,25 @@ string
 T}@T{
 所有模块
 T}@T{
-指定模块
+指定模块，可选
 T}@T{
 否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+模块请参考
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+component
+T}@T{
 T}
 T{
 3
@@ -313,7 +329,7 @@ v1.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.traceOn(\ 256\ )
+> db.traceOn( 256 )
 \f[]
 .fi
 .RE
@@ -326,18 +342,18 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 .IP \[bu] 2
 开启数据库引擎程序跟踪功能，并指定模块名称、断点和多个 tid 进行跟踪
 .PP
-\f[C]lang\-javascript\ \ \ \ >\ db.traceOn(\ 256,\ "cls,\ dms,\ mth",\ "_dmsTempSUMgr::init",\ [12712,\ 12713,\ 12714]\ )\f[]
+\f[C]lang\-javascript    > db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )\f[]
 .PP
 也可以通过 SdbTraceOption 指定监控参数
 .PP
-\f[C]lang\-javascript\ \ \ \ >\ db.traceOn(\ 256,\ new\ SdbTraceOption().components(\ "cls",\ dms",\ "mth"\ ).breakPoints(\ "_dmsTempSUMgr::init"\ ).tids(\ [12712,\ 12713,\ 12714]\ )\ )\f[]
+\f[C]lang\-javascript    > db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )\f[]
 .IP \[bu] 2
 查看当前程序跟踪的状态
 .RS 2
 .IP
 .nf
 \f[C]
->\ db.traceStatus()
+> db.traceStatus()
 \f[]
 .fi
 .RE
@@ -353,7 +369,7 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 .IP
 .nf
 \f[C]
->\ db.traceResume()
+> db.traceResume()
 \f[]
 .fi
 .RE
@@ -370,7 +386,7 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 .IP
 .nf
 \f[C]
->\ db.traceOff("/opt/sequoiadb/trace.dump")
+> db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
 .RE
@@ -386,7 +402,7 @@ db.traceOn() 只对 db 所连接的节点进行跟踪。
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace.flw"\ )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
 \f[]
 .fi
 .RE

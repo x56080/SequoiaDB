@@ -113,6 +113,6 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.removeProcedure("sum")
+> db.removeProcedure("sum")
 \f[]
 .fi

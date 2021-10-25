@@ -41,9 +41,9 @@ Get the collection under the specified domain.
 .IP
 .nf
 \f[C]
->\ domain.listCollections()
+> domain.listCollections()
 {
-\ \ \ \ "Name":\ "sample.employee"\ 
+    "Name": "sample.employee" 
 }
 \f[]
 .fi

@@ -37,6 +37,6 @@ Stop the node "node" .
 .IP
 .nf
 \f[C]
->\ node.stop()
+> node.stop()
 \f[]
 .fi

@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-SecureSdb \- Create a SecureSdb object.
+SecureSdb \- create a SecureSdb object
 .SH SYNOPSIS
 .PP
 \f[B]\f[I]new SecureSdb( [hostname], [svcname] )\f[]\f[]
@@ -23,20 +23,12 @@ Create a SecureSdb object.
 \f[B]Note:\f[]
 .RE
 .RS
-.IP "1." 3
+.IP \[bu] 2
 SecureSdb is subclass of Sdb and SecureSdb object uses SSL connection.
 .RE
 .RS
-.IP "2." 3
-Need to set the database configuration item before using SecureSdb --usessl=true.
-.RE
-.RS
-.IP "3." 3
+.IP \[bu] 2
 The method and syntax of the SecureSdb object and the Sdb object are the same.
-.RE
-.RS
-.IP "4." 3
-Only the Enterprise version currently supports SSL.
 .RE
 .SH PARAMETERS
 .PP
@@ -77,9 +69,9 @@ svcname
 T}@T{
 int
 T}@T{
-local coord\[aq]s port
+local sdbcm\[aq]s port
 T}@T{
-coord\[aq]s port
+sdbcm\[aq]s port
 T}@T{
 not
 T}
@@ -112,28 +104,36 @@ T}
 .TE
 .SH RETURN VALUE
 .PP
-On success, return a SecureSdb.
+When the function executes successfully, return a SecureSdb.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-When exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, please reference to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP "1." 3
+.IP \[bu] 2
 Create a SecureSdb object.
+.RS 2
+.IP
 .nf
 \f[C]
->\ var\ securesdb\ =\ new\ SecureSdb(\ "192.168.20.71",\ 11810\ )
+> var securesdb = new SecureSdb( "192.168.20.71", 11790 )
 \f[]
 .fi
 .RE
-.IP "2." 3
+.IP \[bu] 2
 Create a SecureSdb object with a username and password.
+.RS 2
+.IP
 .nf
 \f[C]
->\ var\ securesdb\ =\ new\ SecureSdb("192.168.20.71",11810,"sdbadmin","123")
+> var securesdb = new SecureSdb("sdbserver1",11810,"sdbadmin","123")
 \f[]
 .fi
 .RE

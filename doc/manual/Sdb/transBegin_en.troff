@@ -43,7 +43,7 @@ Begin the transaction.
 .IP
 .nf
 \f[C]
->\ db.transBegin()
+> db.transBegin()
 \f[]
 .fi
 .RE
@@ -53,7 +53,7 @@ Insert a record.
 .IP
 .nf
 \f[C]
->\ cl.insert({date:\ 99,\ id:\ 8,\ a:\ 0})
+> cl.insert({date: 99, id: 8, a: 0})
 \f[]
 .fi
 .RE
@@ -64,8 +64,8 @@ no record in the collection.
 .IP
 .nf
 \f[C]
->\ db.transRollback()
->\ cl.count()
+> db.transRollback()
+> cl.count()
 \f[]
 .fi
 .RE
@@ -75,7 +75,7 @@ Begin the transaction.
 .IP
 .nf
 \f[C]
->\ db.transBegin()
+> db.transBegin()
 \f[]
 .fi
 .RE
@@ -85,7 +85,7 @@ Insert a record.
 .IP
 .nf
 \f[C]
->\ cl.insert({date:\ 99,\ id:\ 8,\ a:\ 0})
+> cl.insert({date: 99, id: 8, a: 0})
 \f[]
 .fi
 .RE
@@ -95,8 +95,8 @@ Commit the transaction and the inserted record will be written to the database.
 .IP
 .nf
 \f[C]
->\ db.transCommit()
->\ cl.count()
+> db.transCommit()
+> cl.count()
 1
 \f[]
 .fi

@@ -35,7 +35,7 @@ The port of the node.
 The node data directory.
 .RE
 .IP \[bu] 2
-\f[C]config\f[] ( \f[I]Object\f[]， \f[I]optional\f[] )
+\f[C]config\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
 .RS 2
 .PP
 Node configuration information.
@@ -147,9 +147,9 @@ already exists.
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When error happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
+See troubleshooting for more details.
 .SH HISTORY
 .PP
 since v2.0
@@ -159,10 +159,10 @@ Create and start a sdbcm process with the port 11789, http port 8000, web path
 /opt/sequoiadb/web.
 .nf
 \f[C]
->\ var\ oma\ =\ new\ Oma("localhost",\ 11790)
->\ oma.createOM(\ "11780",\ "/opt/sequoiadb/database/sms/11780",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\ "httpname":\ 8000,\ "wwwpath":\ "/opt/sequoiadb/web"\ }\ )
->\ oma.startNode(\ 11780\ )
+> var oma = new Oma("localhost", 11790)
+> oma.createOM( "11780", "/opt/sequoiadb/database/sms/11780",
+                         { "httpname": 8000, "wwwpath": "/opt/sequoiadb/web" } )
+> oma.startNode( 11780 )
 \f[]
 .fi
 .RE

@@ -35,7 +35,7 @@ On success, return a new object of Collection.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-the exceptions of \f[C]cancelTask\ ()\f[] are as below:
+the exceptions of \f[C]cancelTask ()\f[] are as below:
 .PP
 .TS
 tab(@);
@@ -91,8 +91,8 @@ since v1.2
 Stop split task.
 .nf
 \f[C]
->\ var\ taskid1\ =\ db.foo.bar.splitAsync(\ "group1",\ "group2",\ 50\ );
->\ db.cancelTask(\ taskid1,\ true\ )
+> var taskid1 = db.sample.employee.splitAsync( "group1", "group2", 50 );
+> db.cancelTask( taskid1, true )
 \f[]
 .fi
 .RE

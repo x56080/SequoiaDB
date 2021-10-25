@@ -445,7 +445,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ageIndex",\ {\ age:\ 1\ },\ true\ )
+> db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
 \f[]
 .fi
 .RE
@@ -455,19 +455,19 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ Unique:\ true,\ NotNull:\ true\ }\ )
+> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
 >
->\ //\ b\ 字段为\ null，插入索引时报错
->\ db.sample.employee.insert(\ {\ a:\ 1,\ b:\ null\ }\ )
-sdb.js:625\ uncaught\ exception:\ \-339
-Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
-Takes\ 0.002531s.
->\ 
->\ //\ b\ 字段不存在，插入索引时报错
->\ db.sample.employee.insert(\ {\ a:\ 1\ }\ )
-sdb.js:625\ uncaught\ exception:\ \-339
-Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
-Takes\ 0.002531s.
+> // b 字段为 null，插入索引时报错
+> db.sample.employee.insert( { a: 1, b: null } )
+sdb.js:625 uncaught exception: \-339
+Any field of index key should exist and cannot be null
+Takes 0.002531s.
+> 
+> // b 字段不存在，插入索引时报错
+> db.sample.employee.insert( { a: 1 } )
+sdb.js:625 uncaught exception: \-339
+Any field of index key should exist and cannot be null
+Takes 0.002531s.
 \f[]
 .fi
 .RE
@@ -478,7 +478,7 @@ Takes\ 0.002531s.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "addr_tags",\ {\ address:\ "text",\ tags:\ "text"\ }\ )
+> db.sample.employee.createIndex( "addr_tags", { address: "text", tags: "text" } )
 \f[]
 .fi
 .RE
@@ -488,13 +488,13 @@ Takes\ 0.002531s.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ NotArray:\ true}\ )
+> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
 >
->\ //\ a字段为数组，插入索引时报错
->\ db.sample.employee.insert(\ {\ a:\ [1],b:\ 10\ }\ )
-sdb.js:645\ uncaught\ exception:\ \-364
-Any\ field\ of\ index\ key\ cannot\ be\ array
-Takes\ 0.001760s.
+> // a字段为数组，插入索引时报错
+> db.sample.employee.insert( { a: [1],b: 10 } )
+sdb.js:645 uncaught exception: \-364
+Any field of index key cannot be array
+Takes 0.001760s.
 \f[]
 .fi
 .RE

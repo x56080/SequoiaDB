@@ -37,7 +37,7 @@ Get a reference of catalog replication group.
 .IP
 .nf
 \f[C]
->\ var\ rg\ =\ db.getCataRG()
+> var rg = db.getCataRG()
 \f[]
 .fi
 .PP
@@ -45,44 +45,44 @@ Get the details of the replication group through reference.
 .IP
 .nf
 \f[C]
->\ rg.getDetail()
+> rg.getDetail()
 {
-\ \ "Group":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/catalog/11800",
-\ \ \ \ \ \ "HostName":\ "u1604\-lxy",
-\ \ \ \ \ \ "Service":\ [
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11800"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11801"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11802"
-\ \ \ \ \ \ \ \ },
-\ \ \ \ \ \ \ \ {
-\ \ \ \ \ \ \ \ \ \ "Type":\ 3,
-\ \ \ \ \ \ \ \ \ \ "Name":\ "11803"
-\ \ \ \ \ \ \ \ }
-\ \ \ \ \ \ ],
-\ \ \ \ \ \ "NodeID":\ 1,
-\ \ \ \ \ \ "Status":\ 1
-\ \ \ \ }
-\ \ ],
-\ \ "GroupID":\ 1,
-\ \ "GroupName":\ "SYSCatalogGroup",
-\ \ "PrimaryNode":\ 1,
-\ \ "Role":\ 2,
-\ \ "SecretID":\ 1519705199,
-\ \ "Status":\ 1,
-\ \ "Version":\ 1,
-\ \ "_id":\ {
-\ \ \ \ "$oid":\ "5ff52af05c0657cec2f706d5"
-\ \ }
+  "Group": [
+    {
+      "dbpath": "/opt/sequoiadb/database/catalog/11800",
+      "HostName": "u1604\-lxy",
+      "Service": [
+        {
+          "Type": 0,
+          "Name": "11800"
+        },
+        {
+          "Type": 1,
+          "Name": "11801"
+        },
+        {
+          "Type": 2,
+          "Name": "11802"
+        },
+        {
+          "Type": 3,
+          "Name": "11803"
+        }
+      ],
+      "NodeID": 1,
+      "Status": 1
+    }
+  ],
+  "GroupID": 1,
+  "GroupName": "SYSCatalogGroup",
+  "PrimaryNode": 1,
+  "Role": 2,
+  "SecretID": 1519705199,
+  "Status": 1,
+  "Version": 1,
+  "_id": {
+    "$oid": "5ff52af05c0657cec2f706d5"
+  }
 }
 \f[]
 .fi

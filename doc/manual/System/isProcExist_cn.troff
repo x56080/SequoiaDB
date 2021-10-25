@@ -154,7 +154,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "31831",\ type:\ "pid"\ }\ )
+> System.isProcExist( { value: "31831", type: "pid" } )
 true
 \f[]
 .fi
@@ -165,7 +165,7 @@ true
 .IP
 .nf
 \f[C]
->\ System.isProcExist(\ {\ value:\ "sdbcm(11790)",\ type:\ "name"\ }\ )
+> System.isProcExist( { value: "sdbcm(11790)", type: "name" } )
 true
 \f[]
 .fi

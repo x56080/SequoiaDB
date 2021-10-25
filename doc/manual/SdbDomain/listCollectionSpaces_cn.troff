@@ -36,9 +36,9 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
->\ domain.listCollectionSpaces()
+> domain.listCollectionSpaces()
 {
-\ \ \ \ "Name":\ "sample"\ 
+    "Name": "sample" 
 }
 \f[]
 .fi

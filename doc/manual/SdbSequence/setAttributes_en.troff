@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-setAttributes \- modify the sequence properties.
+setAttributes \- modify the sequence properties
 .SH SYNOPSIS
 .PP
 \f[B]sequence.setAttributes(<options>)\f[]
@@ -83,10 +83,10 @@ For more details, refer to Troubleshooting.
 v3.4.2 and above
 .SH EXAMPLES
 .PP
-Modify the current value of the sequence
+Modify the current value of the sequence.
 .IP
 .nf
 \f[C]
->\ sequence.setAttributes({\ CurrentValue:\ 1000\ })
+> sequence.setAttributes({ CurrentValue: 1000 })
 \f[]
 .fi

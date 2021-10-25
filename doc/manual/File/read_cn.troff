@@ -82,7 +82,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ file\ =\ new\ File(\ "/opt/sequoiadb/file"\ )
+> var file = new File( "/opt/sequoiadb/file" )
 \f[]
 .fi
 .RE
@@ -92,7 +92,7 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ file.read()
+> file.read()
 SquoiaDB
 \f[]
 .fi

@@ -30,22 +30,22 @@ v2.6及以上版本。
 通过jsonFormat()改变BSON打印格式。
 .nf
 \f[C]
->\ db.foo.bar.find()
+> db.sample.employee.find()
 {
-\ \ "_id":\ {
-\ \ "$oid":\ "59fac185e610b8510e000001"
-\ \ },
-\ \ "a":\ 1,
-\ \ "b":\ 2
+  "_id": {
+  "$oid": "59fac185e610b8510e000001"
+  },
+  "a": 1,
+  "b": 2
 }
-Return\ 1\ row(s).
-Takes\ 0.024873s.
->\ jsonFormat(\ false\ )
-Takes\ 0.000225s.
->\ db.foo.bar.find()
-{\ "_id":\ {\ "$oid":\ "59fac185e610b8510e000001"\ },\ "a":\ 1,\ "b":\ 2\ }
-Return\ 1\ row(s).
-Takes\ 0.002948s.
+Return 1 row(s).
+Takes 0.024873s.
+> jsonFormat( false )
+Takes 0.000225s.
+> db.sample.employee.find()
+{ "_id": { "$oid": "59fac185e610b8510e000001" }, "a": 1, "b": 2 }
+Return 1 row(s).
+Takes 0.002948s.
 \f[]
 .fi
 .RE

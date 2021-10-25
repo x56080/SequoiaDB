@@ -34,7 +34,7 @@ Create a Command object.
 .IP
 .nf
 \f[C]
->\ var\ cmd\ =\ new\ Cmd()
+> var cmd = new Cmd()
 \f[]
 .fi
 .RE
@@ -45,7 +45,7 @@ reference to Cmd:run).
 .IP
 .nf
 \f[C]
->\ cmd.run(\ "ls",\ "/opt/trunk/test"\ )
+> cmd.run( "ls", "/opt/trunk/test" )
 test1
 test2
 test3
@@ -58,7 +58,7 @@ Get the error code returned by the last command execution.
 .IP
 .nf
 \f[C]
->\ cmd.getLastRet()
+> cmd.getLastRet()
 0
 \f[]
 .fi

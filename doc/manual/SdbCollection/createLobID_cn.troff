@@ -116,9 +116,9 @@ v3.2 及以上版本
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createLobID()
+> db.sample.employee.createLobID()
 00005d36d096350002de7f3a
-Takes\ 0.329455s.
+Takes 0.329455s.
 \f[]
 .fi
 .RE
@@ -128,9 +128,9 @@ Takes\ 0.329455s.
 .IP
 .nf
 \f[C]
->\ db.sample.employee.createLobID(\ "2015\-06\-05\-16.10.33"\ )
+> db.sample.employee.createLobID( "2015\-06\-05\-16.10.33" )
 00005571c9f93f03e8d8dd57
-Takes\ 0.108214s.
+Takes 0.108214s.
 \f[]
 .fi
 .RE

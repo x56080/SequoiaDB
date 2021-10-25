@@ -101,7 +101,7 @@ Create an unique index named "ageIndex" on the field "age" in collection
 The records are in ascending order on the field "age".
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ageIndex",\ {\ age:\ 1\ },\ true\ )
+> db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
 \f[]
 .fi
 .RE
@@ -110,19 +110,19 @@ Create an unique index in collection "employee", and any field of index should
 exist and cannot be null.
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ Unique:\ true,\ NotNull:\ true\ }\ )
->\ 
->\ //\ "b"\ field\ is\ null.\ Insert\ will\ throw\ error.
->\ db.sample.employee.insert(\ {\ a:\ 1,\ b:\ null\ }\ )
-sdb.js:625\ uncaught\ exception:\ \-339
-Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
-Takes\ 0.002531s.
->\ 
->\ //\ "b"\ field\ does\ not\ exist.\ Insert\ will\ throw\ error.
->\ db.sample.employee.insert(\ {\ a:\ 1\ }\ )
-sdb.js:625\ uncaught\ exception:\ \-339
-Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
-Takes\ 0.002531s
+> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
+> 
+> // "b" field is null. Insert will throw error.
+> db.sample.employee.insert( { a: 1, b: null } )
+sdb.js:625 uncaught exception: \-339
+Any field of index key should exist and cannot be null
+Takes 0.002531s.
+> 
+> // "b" field does not exist. Insert will throw error.
+> db.sample.employee.insert( { a: 1 } )
+sdb.js:625 uncaught exception: \-339
+Any field of index key should exist and cannot be null
+Takes 0.002531s
 \f[]
 .fi
 .RE
@@ -130,20 +130,20 @@ Takes\ 0.002531s
 Create a text index named "addr_tag" on field "address" and "tags" in collection
 "bar", which will be used for full text search.
 .RS 4
-\f[C]lang\-javascript\ \ >\ db.foo.bar.createIndex(\ "addr_tags",\ {\ address:\ "text",\ tags:\ "text"\ }\ )\f[]
+\f[C]lang\-javascript  > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )\f[]
 .RE
 .IP "4." 3
 Create an unique index in collection "employee", and any field of index not
 support array.
 .nf
 \f[C]
->\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ NotArray:\ true}\ )
+> db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
 >
->\ //\ "a"\ field\ is\ array.\ Insert\ will\ throw\ error.
->\ db.sample.employee.insert(\ {\ a:\ [1],b:\ 10\ }\ )
-sdb.js:645\ uncaught\ exception:\ \-364
-Any\ field\ of\ index\ key\ cannot\ be\ array
-Takes\ 0.001760s.
+> // "a" field is array. Insert will throw error.
+> db.sample.employee.insert( { a: [1],b: 10 } )
+sdb.js:645 uncaught exception: \-364
+Any field of index key cannot be array
+Takes 0.001760s.
 \f[]
 .fi
 .RE

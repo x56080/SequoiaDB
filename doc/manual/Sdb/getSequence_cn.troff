@@ -75,7 +75,7 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ var\ sequence\ =\ db.getSequence("IDSequence")
+> var sequence = db.getSequence("IDSequence")
 \f[]
 .fi
 .PP
@@ -83,7 +83,7 @@ v3.4.2 及以上版本
 .IP
 .nf
 \f[C]
->\ sequence.getNextValue()
+> sequence.getNextValue()
 1
 \f[]
 .fi
