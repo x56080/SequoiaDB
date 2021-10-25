@@ -714,8 +714,8 @@
                               {
                                  "id": 1432190584,
                                  "file": "java_datasource_introduction",
-                                 "cn": "Java Datasource 介绍",
-                                 "en": "Java Datasource Introduction"
+                                 "cn": "Java 连接池",
+                                 "en": "Java Connection Pool"
                               },
                               {
                                  "id": 1432190740,
