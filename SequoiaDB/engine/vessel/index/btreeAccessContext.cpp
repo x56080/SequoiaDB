@@ -165,31 +165,35 @@ namespace vessel
    void btreeAccessContext::endToAccessPathNodes(UINT32 minActiveCount)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      UINT32 scanned = 0;
-      if (0 < _path.size())
+      SDB_ASSERT(minActiveCount <= _path.size(), "out of bound");
+      UINT32 max = _path.size() - minActiveCount;
+      for (UINT32 i = 0; i < max; ++i)
       {
-         for (INT32 i = (INT32)(_path.size() - 1); 0 <= i; ++i)
+         btreeAccessPathNode &pn = _path[i];
+         if (pn.isAccessing())
          {
-            btreeAccessPathNode &pn = _path[i];
-            if (scanned++ < minActiveCount)
-            {
-               continue;
-            }
-
-            if (pn.isAccessing())
-            {
-               pn.getPageBuffer()->fini();
-               _free.push_back(pn.getPageBuffer());
-               pn.endToAccess();
-            }
-            else
-            {
-               break;
-            }
+            pn.getPageBuffer()->fini();
+            _free.push_back(pn.getPageBuffer());
+            pn.endToAccess();
          }
       }
    
       return; 
+   }
+
+   void btreeAccessContext::popEnd()
+   {
+      btreeAccessPathNode pn;
+      if (_path.popBack(pn))
+      {
+         SDB_ASSERT(pn.isAccessing(), "impossible");
+         if (pn.isAccessing())
+         {
+            pn.getPageBuffer()->fini();
+            _free.push_back(pn.getPageBuffer());
+         }
+      }
+      return;
    }
 
    btreeNode btreeAccessContext::getEndNodeInPath()
@@ -201,6 +205,27 @@ namespace vessel
       SDB_ASSERT(pn.isAccessing(), "end node should always be accessing");
       return btreeNode(pn.getPageBuffer(), _ic, depth);
    }
+
+   btreeNode btreeAccessContext::getNodeInPath(UINT32 depth)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(depth < _path.size(), "out of bound");
+      btreeNode node;
+      if (depth < _path.size())
+      {
+         btreeAccessPathNode &pn = _path[depth];
+         if (pn.isAccessing())
+         {
+            node = btreeNode(pn.getPageBuffer(), _ic, depth);
+         }
+      }
+      return node;
+   }
+
+    UINT32 btreeAccessContext::getPathDepth()const
+    {
+       return _path.size();
+    }
 } // namespace vessel
 
 } // namespace engine

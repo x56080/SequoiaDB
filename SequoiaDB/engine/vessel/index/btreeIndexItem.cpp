@@ -47,7 +47,7 @@ namespace vessel
       _slotPos = INVALID_RECORD_SLOT_ID;
       _slot = NULL;
       _keyData = NULL;
-      _externalKeySize = 0;
+      _externalKey.release();
       _prefixData = NULL;
       return;
    }
@@ -63,7 +63,7 @@ namespace vessel
       _slotPos = slotPos;
       _slot = slot;
       _keyData = keyData;
-      _externalKeySize = 0;
+      _externalKey.release();
       _prefixData = NULL;
 
       return;
@@ -82,15 +82,15 @@ namespace vessel
       _slotPos = slotPos;
       _slot = slot;
       _keyData = suffixData;
-      _externalKeySize = 0;
+      _externalKey.release();
       _prefixData = prefix;
       return;
    }
 
-   void btreeIndexItem::initWhenExtKey(RECORD_SLOT_ID slotPos,
-                                       const btreeItemSlot *slot,
-                                       UINT32 keySize,
-                                       const CHAR *keyData)
+   INT32 btreeIndexItem::initWhenExtKey(RECORD_SLOT_ID slotPos,
+                                        const btreeItemSlot *slot,
+                                        UINT32 keySize,
+                                        const CHAR *keyData)
    {
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotPos , "can not be invalid");
       SDB_ASSERT(NULL != slot && slot->isValid(), "can not be invalid");
@@ -98,10 +98,20 @@ namespace vessel
       SDB_ASSERT(0 < keySize && NULL != keyData, "can not be invalid");
       _slotPos = slotPos;
       _slot = slot;
-      _keyData = keyData;
-      _externalKeySize = keySize;
+      INT32 rc = _externalKey.copy(keySize, keyData);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to save external key:%d", rc);
+         goto error;
+      }
+      _keyData = _externalKey.getBuffer();
       _prefixData = NULL;
-      return;
+
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
    }
 
    UINT32 btreeIndexItem::getSavingSize()const
@@ -134,13 +144,22 @@ namespace vessel
    {
       if (isValid())
       {
-         return _slot->isKeyInExtPage() ? _externalKeySize : _slot->data.key.size;
+         return _slot->isKeyInExtPage() ?
+                _externalKey.getSize() : _slot->data.key.size;
       }
       else
       {
          SDB_ASSERT(FALSE, "can not be invalid");
          return 0;
       }
+   }
+
+   void btreeIndexItem::exportCompleteKey(StackBufBuilder &builder)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_slot->isKeyCompressed(), "TODO");
+      builder.appendBuf(getKeyData(), getKeyDataSize());
+      return;
    }
 } // namespace vessel
 

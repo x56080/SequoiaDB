@@ -171,6 +171,7 @@ namespace vessel
          INT32 write(UINT32 offset, UINT32 size, const void *data);
          INT32 read(UINT32 offset, UINT32 size, void *data)const;
          slice getReadableSlice(UINT32 offset, UINT32 size)const;
+         slice getReadableSlice()const;
          slice getWritableSlice(UINT32 offset, UINT32 size);
 
       private:

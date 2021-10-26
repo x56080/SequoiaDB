@@ -1170,6 +1170,10 @@ namespace vessel
          releasePreallocated(context, count,
                              (const mappedLogicalPageId *)buffer);
       }
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         lpids[i] = INVALID_PAGE_ID;
+      }
       goto done;
    }
 

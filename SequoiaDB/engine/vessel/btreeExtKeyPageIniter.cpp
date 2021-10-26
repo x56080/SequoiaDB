@@ -56,13 +56,19 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (INVALID_LOGICAL_INDEX_ID == _indexId ||
+               _key.isEmpty())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
       SDB_ASSERT(!rpb->isCacheBuffer(), "impossible");
 
       if (!initBtreeExtKeyPage(rpb->getPageSize(),
                                rpb->getGlobalPid().page(),
                                lpid, psv, _indexId,
-                               _keySize, _keyData,
+                               _key.getSize(), _key.data(),
                                rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init page");

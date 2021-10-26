@@ -42,13 +42,12 @@ namespace engine
 {
 namespace vessel
 {
-   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId, PAGE_ID rightChild)
+   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId)
    {
       SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
       SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
       _logicalCLID = clid;
       _indexId = indexId;
-      _rightChild = rightChild;
       return;
    }
 
@@ -78,7 +77,7 @@ namespace vessel
       if (!initBtreeNodePage(rpb->getPageSize(),
                              rpb->getGlobalPid().page(),
                              lpid, psv,
-                             _logicalCLID, _indexId, _rightChild,
+                             _logicalCLID, _indexId, INVALID_PAGE_ID,
                              rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",

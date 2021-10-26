@@ -54,25 +54,25 @@ namespace vessel
       OSS_BIT_SET(flags, (FLAG_IN_USED));
       ridSlot = rid.getSlotID();
       ridPage = rid.getPageID();
+      data.key.offset = offset;
+      data.key.size = size;
       data.nlf.leftChild = leftChild;
-      data.nlf.size = size;
-      data.nlf.offset = offset;
       return;
    }
 
    void btreeItemSlot::initAsLeafFormat(const recordID &rid,
-                                        RECORD_SLOT_ID prefixPos,
                                         UINT16 offset,
-                                        UINT16 size)
+                                        UINT16 size,
+                                        RECORD_SLOT_ID prefixPos)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, FLAG_IN_USED);
       ridSlot = rid.getSlotID();
       ridPage = rid.getPageID();
+      data.key.offset = offset;
+      data.key.size = size;
       /// only leaf node can be inited with compressed key
-      data.lf.offset = offset;
-      data.lf.size = size;
       data.lf.prefixSlot = prefixPos;
       if (INVALID_RECORD_SLOT_ID != prefixPos)
       {

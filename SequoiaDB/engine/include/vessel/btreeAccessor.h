@@ -66,7 +66,7 @@ namespace vessel
                      indexContext *ic);
          void fini();
 
-         INT32 insert(const bson::BSONObj &key,
+         INT32 insert(const ixmKey &key,
                       const recordID &rid,
                       const DPS_TRANS_ID &transID);
 
@@ -88,31 +88,39 @@ namespace vessel
          INT32 pushNoneRootNodeIntoPath(PAGE_ID lpid,
                                         const ossSharedLatchMode &mode,
                                         btreeAccessContext &bac);
-         INT32 pushRootIntoPath(ossSharedLatchMode mode, btreeAccessContext &bac);
 
-         INT32 traverseDownToInsert(btreeAccessContext &bac,
-                                    BOOLEAN &obstructed);
+         /// auto choose mode and push root into path
+         INT32 pushRootIntoPath(btreeAccessContext &bac,
+                                const ossSharedLatchMode &mode=ossSharedLatchMode());
+
+         INT32 traverseDownAndInsert(btreeAccessContext &bac,
+                                     BOOLEAN &obstructed);
+
+         INT32 traverseUpAndInsert(btreeAccessContext &bac,
+                                   const btreeSplitRaisedKey &raisedKey);
 
       private:
          INT32 createRootIfNotExists();
 
-         INT32 insertIntoLeafNode(btreeNode &node,
-                                  const ixmKey &key,
-                                  const recordID &rid,
-                                  const DPS_TRANS_ID &transID,
-                                  BOOLEAN &obstructed);
+         INT32 insertWhenPathEndIsLeaf(btreeAccessContext &bac,
+                                       BOOLEAN &obstructed);
 
-         INT32 splitLeafNodeAndInsert(btreeAccessContext &bac,
-                                      BOOLEAN &obstructed);
-      private:
-         INT32 tryToSplitEndNode(btreeAccessContext &bac, BOOLEAN &obstructed);
-         INT32 tryToSplitRootNode(btreeNode &root, BOOLEAN &obstructed);
-          
+         INT32 splitAndInsertWhenPathEndIsLeaf(btreeAccessContext &bac,
+                                               BOOLEAN &obstructed);
+
+         /// the key in bac will be inserted only when raised key is invalid
+         INT32 splitAndInsertWhenPathEndIsRoot(btreeAccessContext &bac,
+                                               const btreeSplitRaisedKey *raisedKey,
+                                               BOOLEAN &obstructed);
+
+         INT32 splitNonLeafPathEnd(btreeAccessContext &bac,
+                                   BOOLEAN &obstructed);
 
       private:
          INT32 validateBtreePage(const logicalPageBuffer &buffer)const;
+         ossSharedLatchMode estimateRootMode(const btreeAccessContext &bac)const;
          ossSharedLatchMode estimateRootModeWhenWriting(UINT32 updatedTimes)const;
-         ossSharedLatchMode estimateChildModeWhenInserting(btreeAccessContext &bac)const;
+         ossSharedLatchMode estimateChildModeWhenWriting(btreeAccessContext &bac)const;
 
       private:
          requestContext *_context = NULL;

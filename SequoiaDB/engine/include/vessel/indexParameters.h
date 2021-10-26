@@ -68,6 +68,16 @@ namespace vessel
          BOOLEAN extractFromBson(const bson::BSONObj &obj);
 
          BOOLEAN isPrefixCompressionEnabled()const;
+
+      public:
+         OSS_INLINE BOOLEAN isBtreeIndex()const
+         {
+            return INDEX_TYPE_BTREE == type;
+         }
+         OSS_INLINE BOOLEAN isLsmIndex()const
+         {
+            return INDEX_TYPE_LSM == type;
+         }
       public:
          INDEX_TYPE type = INVALID_INDEX_TYPE;
          BOOLEAN isUnique = FALSE;

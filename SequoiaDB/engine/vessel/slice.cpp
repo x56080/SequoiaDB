@@ -103,6 +103,12 @@ namespace vessel
       }
       return s;
    }
+
+   slice slice::getReadableSlice()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return slice(_size, _rptr);
+   }
    
    slice slice::getWritableSlice(UINT32 offset, UINT32 size)
    {

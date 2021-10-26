@@ -102,12 +102,10 @@ namespace vessel
 
       public:
          INT32 insert(requestContext *context,
-                      INT32 indexSlot,
-                      const indexObject &obj,
+                      indexContext *ic,
                       const ixmKey &key,
-                      const DPS_TRANS_ID &transID,
-                      DPS_LSN_OFFSET lsn,
-                      const recordID &rid);
+                      const recordID &rid,
+                      const DPS_TRANS_ID &transID);
 
          INT32 dmlInsert(dmlContext *context,
                          const dmlIndexRequestArray &ra);
@@ -120,11 +118,10 @@ namespace vessel
          
       private:
          INT32 lsmInsert(requestContext *context,
-                         const indexObject &obj,
+                         indexContext *ic,
                          const ixmKey &key,
-                         const DPS_TRANS_ID &transID,
-                         DPS_LSN_OFFSET lsn,
-                         const recordID &rid);
+                         const recordID &rid,
+                         const DPS_TRANS_ID &transID);
 
          INT32 lsmTruncate(requestContext *context,
                            const indexObject &obj);
@@ -134,12 +131,15 @@ namespace vessel
                               lsmInsertBatch &lsmBatch);
 
       private:
+         
+         INT32 btreeInsert(dmlContext *context,
+                           const dmlIndexRequestArray &ra);
+
          INT32 btreeInsert(requestContext *context,
                            indexContext *ic,
                            const ixmKey &key,
                            const recordID &rid,
-                           const DPS_TRANS_ID &transID,
-                           DPS_LSN_OFFSET lsn);
+                           const DPS_TRANS_ID &transID);
       private:
          INT32 createDirectMappedIndex(requestContext *context,
                                        INT32 indexSlot,

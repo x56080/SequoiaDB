@@ -2343,12 +2343,10 @@ namespace vessel
                  itr != keySet.end(); ++itr)
             {
                rc = console.insert(context,
-                                   ic->getIndexSlot(),
-                                   ic->getObj(),
+                                   ic,
                                    ixmKeyOwned(*itr),
-                                   rr.getCurrentRecordHead().getTransID(),
-                                   context->getSession()->getLastLSN(),
-                                   rr.getCurrentRid());
+                                   rr.getCurrentRid(),
+                                   rr.getCurrentRecordHead().getTransID());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert key into index[%s], rc:%d",
@@ -2798,11 +2796,12 @@ namespace vessel
             goto error;
          }
 
-         rc = console.insert(context, ic->getIndexSlot(),
-                             ic->getObj(),
-                             key, DPS_TRANS_ID(),
-                             context->getSession()->getLastLSN(),
-                             recordID(dmsRid._extent, dmsRid._offset));
+         /// TODO, we should add transid into sorter
+         rc = console.insert(context,
+                             ic,
+                             key,
+                             recordID(dmsRid._extent, dmsRid._offset),
+                             DPS_TRANS_ID());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",

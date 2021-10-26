@@ -39,6 +39,7 @@
 #include "vessel/btreeNodePage.h"
 #include "ixmKey.hpp"
 #include "../bson/ordering.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -110,10 +111,10 @@ namespace vessel
                                  const CHAR *suffixData,
                                  const CHAR *prefix);
 
-         void initWhenExtKey(RECORD_SLOT_ID slotPos,
-                             const btreeItemSlot *slot,
-                             UINT32 keySize,
-                             const CHAR *keyData);
+         INT32 initWhenExtKey(RECORD_SLOT_ID slotPos,
+                              const btreeItemSlot *slot,
+                              UINT32 keySize,
+                              const CHAR *keyData);
 
          UINT32 getSavingSize()const;
 
@@ -124,11 +125,13 @@ namespace vessel
          INT32 woCompare(const ixmKey &key,
                          const bson::Ordering &ordering)const;
 
+         void exportCompleteKey(StackBufBuilder &builder)const;
+
       private:
          RECORD_SLOT_ID _slotPos = INVALID_RECORD_SLOT_ID;
          const btreeItemSlot *_slot = NULL;
          const CHAR *_keyData = NULL;
-         UINT32 _externalKeySize = 0;
+         memoryBlock _externalKey;
          const CHAR *_prefixData = NULL;
    };//class btreeIndexItem
 } // namespace vessel

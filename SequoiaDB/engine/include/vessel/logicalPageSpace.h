@@ -129,9 +129,21 @@ namespace vessel
                              UINT32 count,
                              PAGE_ID *lpids);
 
+         INT32 allocatePage(requestContext *context,
+                            pageInitializer *initer,
+                            PAGE_ID &lpid)
+         {
+            return allocatePages(context, initer, 1, &lpid);
+         }
+
          INT32 releasePages(requestContext *context,
                             UINT32 count,
                             const PAGE_ID *lpids);
+         INT32 releasePage(requestContext *context,
+                           PAGE_ID lpid)
+         {
+            return releasePages(context, 1, &lpid);
+         }
 
       public:
          /// WARNING: Can not guarantee data consistency!

@@ -38,6 +38,7 @@
 
 #include "vessel/pageInitializer.h"
 #include "vessel/indexDef.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
@@ -57,8 +58,7 @@ namespace vessel
 
       public:
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-         UINT32 _keySize = 0;
-         const CHAR *_keyData = NULL;
+         slice _key;
    };//class btreeExtKeyPageIniter
 } // namespace vessel
 

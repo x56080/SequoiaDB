@@ -115,13 +115,21 @@ namespace vessel
       return;
    }
 
-   void indexObject::updateBtreeRoot(PAGE_ID root)
+   void indexObject::updateBtreeRoot(PAGE_ID root,
+                                     const UINT32 *updatedTimes)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
       SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
       _btreeRoot = root;
-      ++_btreeRootUpdatedTimes;
+      if (NULL == updatedTimes)
+      {
+         ++_btreeRootUpdatedTimes;
+      }
+      else
+      {
+         _btreeRootUpdatedTimes = *updatedTimes;
+      }
       return;
    }
 

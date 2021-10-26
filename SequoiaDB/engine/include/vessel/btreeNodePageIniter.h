@@ -57,12 +57,11 @@ namespace vessel
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
 
-         void set(UINT32 clid, UINT32 indexId, PAGE_ID rightChild);
+         void set(UINT32 clid, UINT32 indexId);
 
       private:
          UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
-         PAGE_ID _rightChild = INVALID_PAGE_ID;
    };//class btreeRootPageIniter
 
    class btreeNodePageSplitIniter : public pageInitializer
@@ -79,7 +78,7 @@ namespace vessel
 
          void set(const slice &s)
          {
-            _data = s;
+            _data = s.getReadableSlice();
          }
 
       private:

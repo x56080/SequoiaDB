@@ -174,9 +174,9 @@ namespace vessel
                               PAGE_ID leftChild);
 
       void initAsLeafFormat(const recordID &rid,
-                            RECORD_SLOT_ID prefixPos,
                             UINT16 offset,
-                            UINT16 size);
+                            UINT16 size,
+                            RECORD_SLOT_ID prefixPos = INVALID_RECORD_SLOT_ID);
 
       void initWhenKeyInExtPage(const recordID &rid,
                                 PAGE_ID leftChild,
@@ -196,11 +196,7 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isKeyPerfectlyCompressed()const
       {
-         return isKeyCompressed() && 0 == data.lf.size;
-      }
-      OSS_INLINE UINT32 getPrefixSlotPos()const
-      {
-         return flags >> 14;
+         return isKeyCompressed() && 0 == data.key.size;
       }
       OSS_INLINE PAGE_ID getExternalPage()const
       {
@@ -217,15 +213,13 @@ namespace vessel
 
          struct 
          {
-            UINT16 offset;
-            UINT16 size;
+            UINT32 reserved;
             UINT32 leftChild;
          } nlf; // non-leaf format
 
          struct
          {
-            UINT16 offset;
-            UINT16 size;
+            UINT32 reserved;
             UINT16 prefixSlot;
             UINT16 flags;
          }lf; // leaf format

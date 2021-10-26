@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = index_ddl_test.cpp
+   Source File Name = index_lsm_test.cpp
 
    Descriptive Name =
 
@@ -42,7 +42,7 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-class index_ddl_test : public testing::Test
+class index_lsm_test : public testing::Test
 {
    public:
    static void SetUpTestCase()
@@ -86,7 +86,7 @@ class index_ddl_test : public testing::Test
    }
 };
 
-TEST_F(index_ddl_test, test1)
+TEST_F(index_lsm_test, test1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -186,7 +186,7 @@ TEST_F(index_ddl_test, test1)
    db.close(&session, closeDBOptions());
 }
 
-TEST_F(index_ddl_test, test2)
+TEST_F(index_lsm_test, test2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -297,7 +297,7 @@ TEST_F(index_ddl_test, test2)
 }
 
 /// unique index
-TEST_F(index_ddl_test, test3)
+TEST_F(index_lsm_test, test3)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -397,7 +397,7 @@ void duplicated_insert(vesselImpl *db, test_logger *logger,
 }
 
 /// unique index
-TEST_F(index_ddl_test, test4)
+TEST_F(index_lsm_test, test4)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;

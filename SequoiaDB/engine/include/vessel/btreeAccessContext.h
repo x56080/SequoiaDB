@@ -79,7 +79,23 @@ namespace vessel
          {
             return _path.empty();
          }
-         
+         OSS_INLINE BOOLEAN isPessimistic()const
+         {
+            return _pessimistic;
+         }
+         OSS_INLINE void setPessimistic(BOOLEAN v)
+         {
+            _pessimistic = v;
+         }
+
+         OSS_INLINE BOOLEAN isReadonly()const
+         {
+            return _readonly;
+         }
+         OSS_INLINE void setReadonly(BOOLEAN v)
+         {
+            _readonly = v;
+         }
 
       public:
          void init(const indexContext *ic,
@@ -96,7 +112,11 @@ namespace vessel
 
          void endToAccessPathNodes(UINT32 minActiveCount);
 
+         void popEnd();
+
          btreeNode getEndNodeInPath();
+         btreeNode getNodeInPath(UINT32 depth);
+         UINT32 getPathDepth()const;
 
       private:
          typedef ossPoolVector<logicalPageBuffer *> _FREE_BUFFERS;
@@ -106,6 +126,9 @@ namespace vessel
          ixmKey _key;
          recordID _rid;
          DPS_TRANS_ID _transID;
+
+         BOOLEAN _readonly = FALSE;
+         BOOLEAN _pessimistic = FALSE;
 
          _utilArray<btreeAccessPathNode, 4> _path;
          _FREE_BUFFERS _free;

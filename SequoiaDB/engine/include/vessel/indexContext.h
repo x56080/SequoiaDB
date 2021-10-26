@@ -128,7 +128,6 @@ namespace vessel
          indexObject _obj;
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
          unstableIndexContext *_unstatbleContext = NULL;
-
    };//class indexContext
 } // namespace vessel
 

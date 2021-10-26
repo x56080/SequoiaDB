@@ -56,6 +56,8 @@
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
 
+#include "vessel/btreeAccessor.h"
+
 namespace engine
 {
 namespace vessel
@@ -225,12 +227,10 @@ namespace vessel
    }
 
    INT32 indexConsole::insert(requestContext *context,
-                              INT32 indexSlot,
-                              const indexObject &obj,
+                              indexContext *ic,
                               const ixmKey &key,
-                              const DPS_TRANS_ID &transID,
-                              DPS_LSN_OFFSET lsn,
-                              const recordID &rid)
+                              const recordID &rid,
+                              const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isInitialized()))
@@ -239,19 +239,18 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(NULL == context ||
-                            !isValidIndexSlot(indexSlot) ||
-                            !obj.isValid() ||
+                            NULL == ic ||
+                            !ic->isValid() ||
                             !key.isValid() ||
-                            DPS_INVALID_LSN_OFFSET == lsn ||
                             !rid.valid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (INDEX_TYPE_LSM == obj.getIndexType())
+      if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
       {
-         rc = lsmInsert(context, obj, key, transID, lsn, rid);
+         rc = lsmInsert(context, ic, key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
@@ -260,7 +259,12 @@ namespace vessel
       }
       else
       {
-         SDB_ASSERT(FALSE, "TODO");
+         rc = btreeInsert(context, ic, key, rid, transID);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
+            goto error;
+         }
       }
    done:
       return rc;
@@ -269,18 +273,22 @@ namespace vessel
    }
 
    INT32 indexConsole::lsmInsert(requestContext *context,
-                                 const indexObject &obj,
+                                 indexContext *ic,
                                  const ixmKey &key,
-                                 const DPS_TRANS_ID &transID,
-                                 DPS_LSN_OFFSET lsn,
-                                 const recordID &rid)
+                                 const recordID &rid,
+                                 const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(obj.isValid(), "must be valid");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != ic, "can not be null");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      SDB_ASSERT(rid.valid(), "can not be invalid");
+      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+
       globalIndexID gid(context->getLogicalCSID(),
                         context->getLogicalCLID(),
-                        obj.getIndexID());
-      lsmIndexMeta lsmMeta(gid, obj.getPattern().getOrdering());
+                        ic->getIndexID());
+      lsmIndexMeta lsmMeta(gid, ic->getObj().getPattern().getOrdering());
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
 
@@ -714,7 +722,12 @@ namespace vessel
          goto done;
       }
 
-      /// TODO: insert btree first
+      rc = btreeInsert(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
+         goto error;
+      }
 
       rc = createLsmBatch(context, ra, lsmBatch);
       if (SDB_OK != rc)
@@ -868,18 +881,74 @@ namespace vessel
                                    indexContext *ic,
                                    const ixmKey &key,
                                    const recordID &rid,
-                                   const DPS_TRANS_ID &transID,
-                                   DPS_LSN_OFFSET lsn)
+                                   const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
-      SDB_ASSERT(key.isValid(), "can not be invalid");
-      SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      btreeAccessor accessor;
+      rc = accessor.init(context, ic);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init btree accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.insert(key, rid, transID);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into btree:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 indexConsole::btreeInsert(dmlContext *context,
+                                   const dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(!ra.isEmpty(), "can not be invalid");
+      UINT32 cnt = 0;
+
+      for (UINT32 i = 0; i < ra.getSize(); ++i)
+      {
+         btreeAccessor accessor;
+         const dmlIndexRequest *req = ra.get(i);
+         SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
+         if (!req->getContext()->getObj().getParams().isBtreeIndex() |
+              req->isMerged())
+         {
+            continue;
+         }
+             
+         rc = accessor.init(context, req->getContext());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init btree accessor[%d]:%d",
+                   req->getContext()->getIndexID(), rc);
+            goto error;  
+         }
+
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
+              itr != req->getKeys().end(); ++itr)
+         {
+            rc = accessor.insert(ixmKeyOwned(*itr),
+                                 context->getLastDmlRid(),
+                                 context->getTransID());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert index key:%d", rc);
+               goto error;
+            }
+            ++cnt;
+         }
+      }
+   done:
+      return rc;
+   error:
+      SDB_ASSERT(0 < cnt, "TODO");
       goto done;
    }
 }//namespace vessel
