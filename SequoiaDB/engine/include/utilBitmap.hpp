@@ -82,7 +82,7 @@ namespace engine
          {
          }
 
-         virtual ~_utilBitmapBase ()
+         ~_utilBitmapBase ()
          {
             _size = 0 ;
             _freeSize = 0 ;
@@ -400,12 +400,12 @@ namespace engine
             _allocateBitmap( size ) ;
          }
 
-         virtual ~_utilBitmap ()
+         ~_utilBitmap ()
          {
             _freeBitmap() ;
          }
 
-         virtual void resize ( UINT32 size )
+         void resize ( UINT32 size )
          {
             if ( size != _size )
             {
@@ -463,7 +463,7 @@ namespace engine
             resetBitmap() ;
          }
 
-         virtual ~_utilStackBitmap ()
+         ~_utilStackBitmap ()
          {
             _bitmap = NULL ;
          }
