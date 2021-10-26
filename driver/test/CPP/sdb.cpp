@@ -1215,3 +1215,57 @@ TEST(sdb, getLastErrorObjTest)
 
 }
 
+TEST(sdb, getAddressTest)
+{
+   INT32 rc          = SDB_OK ;
+   string hostName   = HOST ;
+   string port1      = SERVER ;
+   string port2      = SERVER1 ;
+   string port3      = port2 + "111" ;
+   string expAddr1   = hostName + ":" + port1 ;
+   string expAddr2   = hostName + ":" + port2 ;
+   string userName   = "getAddressTestUser" ;
+   string pwd        = "123";
+   string errorPwd   = "111" ;
+   sdb db ;
+   sdb conn ;
+
+   rc = conn.connect( hostName.c_str(), port1.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // 1: before connect
+   string actAddr = db.getAddress() ;
+   ASSERT_EQ( "", actAddr ) ;
+
+   // 2: after connect
+   rc = db.connect( hostName.c_str(), port1.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( expAddr1, db.getAddress() ) ;
+
+   // 3. after disconnect
+   db.disconnect() ;
+   ASSERT_EQ( expAddr1, db.getAddress() ) ;
+
+   // 4: connect again
+   rc = db.connect( hostName.c_str(), port2.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+   db.disconnect() ;
+
+   // 5. password error
+   rc = conn.createUsr( userName.c_str(), pwd.c_str() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = db.connect( hostName.c_str(), port1.c_str(), userName.c_str(), errorPwd.c_str() ) ;
+   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) ;
+   rc = conn.removeUsr( userName.c_str(), pwd.c_str() ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+
+   // 6: connect fails
+   rc = db.connect( hostName.c_str(), port3.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   ASSERT_EQ( expAddr2, db.getAddress() ) ;
+
+   conn.disconnect() ;
+}

@@ -244,6 +244,71 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
+   BOOLEAN sdbConnPoolStrategy::_updateAddress( const vector<string> &addrs, vector<string> &delAddrs )
+   {
+      vector<string> newAddrs ;
+
+      // 1. _converToIP
+      for ( UINT32 i = 0 ; i < addrs.size() ; ++i )
+      {
+         string newAddr ;
+         if ( !_converToIP( addrs[i], newAddr ) )
+         {
+            return FALSE ;
+         }
+         // to repeat
+         if ( newAddrs.end() == std::find( newAddrs.begin(), newAddrs.end(), newAddr ) )
+         {
+            newAddrs.push_back( newAddr ) ;
+         }
+      }
+
+      // 2. get diff
+      for ( UINT32 i = 0 ; i < _normalCoordList.size() ; ++i )
+      {
+         if ( newAddrs.end() == std::find( newAddrs.begin(), newAddrs.end(), _normalCoordList[i] ) )
+         {
+            delAddrs.push_back( _normalCoordList[i] ) ;
+         }
+      }
+      for ( UINT32 i = 0 ; i < _abnormalCoordList.size() ; ++i )
+      {
+         if ( newAddrs.end() == std::find( newAddrs.begin(), newAddrs.end(), _abnormalCoordList[i] ) )
+         {
+            delAddrs.push_back( _abnormalCoordList[i] ) ;
+         }
+      }
+
+      // 3. update
+      newAddrs.swap( _normalCoordList ) ;
+      _abnormalCoordList.clear() ;
+      return TRUE ;
+   }
+
+   BOOLEAN sdbConnPoolStrategy::updateAddress( const vector<string> &addrs, vector<string> &delAddrs )
+   {
+      BOOLEAN ret = FALSE ;
+      _coordMutex.get() ;
+      ret = _updateAddress( addrs, delAddrs ) ;
+      _coordMutex.release() ;
+      return ret ;
+   }
+
+   BOOLEAN sdbConnPoolStrategy::checkAddress( const string &address )
+   {
+      BOOLEAN result = FALSE ;
+      _coordMutex.get() ;
+      if ( ( _normalCoordList.end() != std::find( _normalCoordList.begin(),
+          _normalCoordList.end(), address ) ) ||
+          ( _abnormalCoordList.end() != std::find( _abnormalCoordList.begin(),
+          _abnormalCoordList.end(), address ) ) )
+      {
+         result = TRUE ;
+      }
+      _coordMutex.release() ;
+      return result ;
+   }
+
    BOOLEAN sdbConnPoolStrategy::_isLocalIP( const string &ipstr )
    {
       CHAR hostname[HOSTNAMELEN] = {0} ;
@@ -515,5 +580,28 @@ namespace sdbclient
       INT32 pos = coord.find_first_of( ":" ) ;
       ossStrcpy( hostname, coord.substr(0, pos).c_str() ) ;
       return ( 0 == ossStrcmp( SDB_CONNPOOL_LOCAL_IP, hostname ) ) ? TRUE : FALSE ;
+   }
+
+   BOOLEAN sdbConnPoolLocalStrategy::updateAddress( const vector<string> &addrs,
+                                                    vector<string> &delAddrs )
+   {
+      BOOLEAN ret = FALSE ;
+
+      _coordMutex.get() ;
+      ret = _updateAddress( addrs, delAddrs ) ;
+      if ( ret )
+      {
+         // generate local address list
+         _localCoordList.clear() ;
+         for ( UINT32 i = 0 ; i < _normalCoordList.size() ; ++i )
+         {
+            if ( _isLocalCoord( _normalCoordList[i] ) )
+            {
+               _localCoordList.push_back( _normalCoordList[i] ) ;
+            }
+         }
+      }
+      _coordMutex.release() ;
+      return ret ;
    }
 }

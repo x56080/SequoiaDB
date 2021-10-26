@@ -46,6 +46,10 @@
 // Multiple coord addresses of other clusters, spearated by ','
 #define DATASOURCEURLS        "sdbserver:11910,sdbserver:11920"
 
+// local coord node svcName for connection pool
+#define CONNPOOL_LOCAL_SERVER1   "11810"
+#define CONNPOOL_LOCAL_SERVER2   "50000"
+
 #define BACKUPNAME          "backup_cpp_test"
 #define CHECK_MSG(fmt, args ...) printf("%s[%d]:"fmt,__FILE__,__LINE__,##args) ;
 

@@ -95,9 +95,15 @@ namespace sdbclient
       // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
 
+      virtual BOOLEAN updateAddress( const vector<string> &addrs, vector<string> &delAddrs ) ;
+
+      virtual BOOLEAN checkAddress( const string &address ) ;
+
    protected:
       // convert hostname to ip
       BOOLEAN _converToIP( const string &oldcoord, string& newcoord ) ;
+      BOOLEAN _updateAddress( const vector<string> &addrs, vector<string> &delAddrs ) ;
+
    private:
       BOOLEAN _isLocalIP(const string &ipstr) ;
    } ;
@@ -166,6 +172,8 @@ namespace sdbclient
 
       // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
+
+      virtual BOOLEAN updateAddress( const vector<string> &addrs, vector<string> &delAddrs ) ;
 
    private:
       // check coord is local coord or not

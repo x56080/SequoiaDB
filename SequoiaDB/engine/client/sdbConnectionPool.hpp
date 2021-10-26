@@ -84,6 +84,7 @@ namespace sdbclient
          _conf(),
          _strategy(NULL),
          _connMutex(),
+         _confShare(),
          _globalMutex(),
          _isInited(FALSE),
          _isEnabled(FALSE),
@@ -215,6 +216,31 @@ namespace sdbclient
       */
       void close() ;
 
+      /** \fn void updateAuthInfo( const string &username, const string &passwd )
+         \brief update authentication information
+         \param [in] username The new user name
+         \param [in] passwd The new password
+      */
+      void updateAuthInfo( const string &username, const string &passwd ) ;
+
+      /** \fn void updateAuthInfo( const string &username,
+                                   const string &cipherFile,
+                                   const string &token )
+         \brief update authentication information
+         \param [in] username The new user name
+         \param [in] cipherFile The new cipherfile location
+         \param [in] token The new password encryption token
+      */
+      void updateAuthInfo( const string &username, const string &cipherFile,
+                           const string &token ) ;
+
+      /** \fn INT32 updateAddress( const std::vector<std::string> &addrs )
+         \brief update the addresses of the connection pool
+         \param [in] coordAddrs A list of coord node
+         \retval SDB_OK Operation Success
+         \retval Others Operation Fail
+      */
+      INT32 updateAddress( const std::vector<std::string> &addrs ) ;
 
 //#if defined (_DEBUG)
 //   private:
@@ -236,7 +262,7 @@ namespace sdbclient
       BOOLEAN _tryGetConn( sdb*& conn ) ;
 
       // create connection by a number
-      INT32 _createConnByNum( INT32 num ) ;
+      INT32 _createConnByNum( INT32 num, INT32 &crtNum ) ;
 
       // sync coord node info
       void _syncCoordNodes() ;
@@ -281,6 +307,8 @@ namespace sdbclient
       sdbConnPoolStrategy*    _strategy ;
       // lock for connection lists
       ossSpinXLatch           _connMutex ;
+      // lock for _conf
+      ossSpinSLatch           _confShare ;
       // lock for global commuincate
       ossSpinXLatch           _globalMutex ;
       // if has been inited

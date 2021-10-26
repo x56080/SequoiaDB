@@ -1289,7 +1289,8 @@ namespace sdbclient
 
       ossSocket               *_sock ;
       CHAR                     _hostName [ OSS_MAX_HOSTNAME + 1 ] ;
-      UINT16                   _port ;
+      CHAR                     _serviceName [ OSS_MAX_SERVICENAME + 1 ] ;
+      CHAR                     _address [ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 2 ] ;
       CHAR                    *_pSendBuffer ;
       INT32                    _sendBufferSize ;
       CHAR                    *_pReceiveBuffer ;
@@ -1459,6 +1460,11 @@ namespace sdbclient
       { return NULL != _sock ; }
 
       UINT64 getDbStartTime() { return _dbStartTime ; }
+
+      const CHAR *getAddress()
+      {
+         return _address ;
+      }
 
       void getVersion( UINT8 &version, UINT8 &subVersion, UINT8 &fixVersion )
       {
