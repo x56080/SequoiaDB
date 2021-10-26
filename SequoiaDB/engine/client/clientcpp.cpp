@@ -6969,6 +6969,7 @@ do                                                            \
       _errorBufSize = 0 ;
       _pResultBuf = NULL ;
       _resultBufSize = 0 ;
+      ossMemset ( _address, 0, sizeof(_address) ) ;
 
       initHashTable( &_tb ) ;
       // get current time
@@ -7410,6 +7411,13 @@ do                                                            \
       }
       // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
+
+      ossStrncpy ( _hostName, pHostName, OSS_MAX_HOSTNAME ) ;
+      ossItoa( port, _serviceName, OSS_MAX_SERVICENAME ) ;
+      ossStrcpy ( _address, _hostName ) ;
+      ossStrncat ( _address, NODE_NAME_SERVICE_SEP, 1 ) ;
+      ossStrncat ( _address, _serviceName, OSS_MAX_SERVICENAME ) ;
+
    done :
       if ( locked )
       {

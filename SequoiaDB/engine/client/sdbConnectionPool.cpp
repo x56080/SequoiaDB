@@ -242,7 +242,8 @@ namespace sdbclient
             {
                _toStopWorkers = FALSE ;
                // prepare some connections
-               _createConnByNum( _conf.getInitConnCount() ) ;
+               INT32 retNum = 0 ;
+               _createConnByNum( _conf.getInitConnCount(), retNum ) ;
                // start create connection thread
                _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
                   createConnFunc, this ) ;
@@ -423,7 +424,12 @@ namespace sdbclient
                }
                else
                {
-                  INT32 createNum = _createConnByNum(1);
+                  INT32 createNum = 0 ;
+                  rc = _createConnByNum( 1, createNum );
+                  if ( SDB_OK != rc )
+                  {
+                     goto error ;
+                  }
                   // get lock1
                   _connMutex.get() ;
                   if ( (0 < createNum) && (0 < _idleSize.peek()) )
@@ -493,6 +499,10 @@ namespace sdbclient
                   goto release ;
                }
                else if ( 0 == _conf.getMaxIdleCount() )
+               {
+                  goto release ;
+               }
+               else if ( !_strategy->checkAddress( tmp->getAddress() ) )
                {
                   goto release ;
                }
@@ -722,7 +732,8 @@ namespace sdbclient
             else
                createNum = maxNum - idleNum - busyNum ;
          }
-         _createConnByNum( createNum ) ;
+         INT32 retNum = 0 ;
+         _createConnByNum( createNum, retNum );
          _toCreateConn = FALSE ;
       }
    }
@@ -730,13 +741,13 @@ namespace sdbclient
    // create connection by a number
    // return the amount of connections we had created,
    // it may less than what we expect
-   INT32 sdbConnectionPool::_createConnByNum( INT32 num )
+   INT32 sdbConnectionPool::_createConnByNum( INT32 num,  INT32 &retNum )
    {
       INT32 rc     = SDB_OK ;
-      INT32 crtNum = 0 ;
+      INT32 count  = 0 ;
       sdb* conn    = NULL ;
 
-      while( crtNum < num )
+      while( count < num )
       {
          string coordAddr ;
 
@@ -748,7 +759,8 @@ namespace sdbclient
             if ( 0 == cnt )
             {
                // if have no any normal node, let's stop
-               break ;
+               rc = SDB_DS_NO_REACHABLE_COORD ;
+               goto error ;
             }
             else
             {
@@ -765,7 +777,8 @@ namespace sdbclient
          if ( NULL == conn )
          {
             // OOM, let's stop working
-            break ;
+            rc = SDB_OOM ;
+            goto error ;
          }
          // when we get a coord address, let's build the connection
          rc = _connect( conn, coordAddr ) ;
@@ -773,7 +786,7 @@ namespace sdbclient
          {
             if ( _addNewConnSafely(conn, coordAddr) )
             {
-               ++crtNum ;
+               ++count ;
                //#if defined (_DEBUG)
                //printCreateInfo(coord) ;
                //#endif
@@ -783,10 +796,16 @@ namespace sdbclient
             {
                conn->disconnect();
                SAFE_OSS_DELETE( conn ) ;
-               break ;
+               goto done ;
             }
             continue ;
          } // connect success
+         else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+         {
+            // username or passwd is wrong, let's stop
+            SAFE_OSS_DELETE( conn ) ;
+            goto error ;
+         }
          else
          {
             // if connect failed, we will retry 3 times. on success,
@@ -809,7 +828,7 @@ namespace sdbclient
                   // add success
                   if ( _addNewConnSafely(conn, coordAddr) )
                   {
-                     ++crtNum ;
+                     ++count ;
                      //#if defined (_DEBUG)
                      //printCreateInfo(coord) ;
                      //#endif
@@ -833,13 +852,17 @@ namespace sdbclient
             }
             if ( toBreak )
             {
-               break;
+               goto done ;
             }
          } // connect failed
 
       } // while
 
-      return crtNum ;
+   done:
+      retNum = count ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // add new connection and make sure not reach max connection count
@@ -853,7 +876,7 @@ namespace sdbclient
       _connMutex.get() ;
       INT32 idleNum = _idleSize.peek() ;
       INT32 busyNum = _busySize.peek() ;
-      if ( idleNum + busyNum < maxNum )
+      if ( idleNum + busyNum < maxNum && _strategy->checkAddress( coord ) )
       {
          _idleList.push_back( conn ) ;
          _idleSize.inc() ;
@@ -902,24 +925,35 @@ namespace sdbclient
    INT32 sdbConnectionPool::_connect( sdb *conn, const string &address )
    {
       INT32 rc = SDB_OK ;
-      if ( "" == _conf.getPasswd() && "" != _conf.getCipherFile() )
+      string username ;
+      string pwd ;
+      string token ;
+      string cipherFile ;
+
+      _confShare.get_shared() ;
+      username = _conf.getUserName() ;
+      pwd = _conf.getPasswd() ;
+      token = _conf.getToken() ;
+      cipherFile = _conf.getCipherFile() ;
+      _confShare.release_shared() ;
+
+      if ( "" == pwd && "" != cipherFile )
       {
          const INT32 size = 1;
          const CHAR *pConnAddrs[size] ;
          pConnAddrs[0] = address.c_str() ;
-         rc = conn->connect( pConnAddrs,
-                             size,
-                             _conf.getUserName().c_str(),
-                             _conf.getToken().c_str(),
-                             _conf.getCipherFile().c_str() ) ;
+         rc = conn->connect( pConnAddrs, size,
+                             username.c_str(),
+                             token.c_str(),
+                             cipherFile.c_str() ) ;
       }
       else
       {
          INT32 pos = address.find_first_of( ":" ) ;
          rc = conn->connect( address.substr( 0, pos ).c_str(),
                              address.substr( pos + 1, address.length() ).c_str(),
-                             _conf.getUserName().c_str(),
-                             _conf.getPasswd().c_str() ) ;
+                             username.c_str(),
+                             pwd.c_str() ) ;
       }
       return rc ;
    }
@@ -1154,5 +1188,85 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
          SAFE_OSS_DELETE( _strategy ) ;
       }
       _isInited = FALSE;
+   }
+
+   void sdbConnectionPool::updateAuthInfo( const string &username,
+                                           const string &passwd )
+   {
+      _confShare.get() ;
+      // clear old user, cipherFile, token
+      _conf.setAuthInfo( "", "", "" ) ;
+      _conf.setAuthInfo( username, passwd ) ;
+      _confShare.release() ;
+   }
+
+   void sdbConnectionPool::updateAuthInfo( const string &username,
+                                           const string &cipherFile,
+                                           const string &token )
+   {
+      _confShare.get() ;
+      // clear old user, pwd
+      _conf.setAuthInfo( "", "" ) ;
+      _conf.setAuthInfo( username, cipherFile, token ) ;
+      _confShare.release() ;
+   }
+
+   INT32 sdbConnectionPool::updateAddress( const std::vector<string> &addrs )
+   {
+      INT32 rc            = SDB_OK ;
+      sdb* conn           = NULL ;
+      string address      = "" ;
+      BOOLEAN ret         = TRUE ;
+      std::vector<string> delAddrs ;
+      list<sdb*>::iterator iter ;
+
+      if ( !_isInited )
+      {
+         rc = SDB_DS_NOT_INIT ;
+         goto error ;
+      }
+
+      // 1. check parameter
+      for ( UINT32 i = 0 ; i < addrs.size() ; ++i )
+      {
+         if ( !_checkAddrArg( addrs[i] ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+
+      // 2. update address
+      _connMutex.get() ;
+      ret = _strategy->updateAddress( addrs, delAddrs ) ;
+      if ( !ret )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      // 3. clear conn from idle pool
+      for ( iter = _idleList.begin() ; iter != _idleList.end() ; )
+      {
+         conn = *iter ;
+         address = conn->getAddress() ;
+         if ( delAddrs.end() != std::find( delAddrs.begin(),
+              delAddrs.end(), address ) )
+         {
+            iter = _idleList.erase( iter ) ;
+            _idleSize.dec() ;
+            _destroyList.push_back( conn ) ;
+         }
+         else
+         {
+            ++iter ;
+         }
+      }
+      _connMutex.release() ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }

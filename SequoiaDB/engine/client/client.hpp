@@ -4443,6 +4443,8 @@ namespace sdbclient
 
       virtual UINT64 getDbStartTime() = 0 ;
 
+      virtual const CHAR *getAddress() = 0 ;
+
       virtual void getVersion( UINT8 &version, UINT8 &subVersion,
                                UINT8 &fixVersion ) = 0 ;
 
@@ -4993,6 +4995,20 @@ namespace sdbclient
          }
          return pSDB->getDbStartTime() ;
       }
+
+      /** \fn const CHAR *getAddress ()
+          \brief Get the address information of the current connection.
+          \return The address information.
+      */
+      const CHAR *getAddress ()
+      {
+         if ( !pSDB )
+         {
+            return NULL ;
+         }
+         return pSDB->getAddress () ;
+      }
+
 
       /** \fn void getVersion ( UINT8 &version,
                                 UINT8 &subVersion,

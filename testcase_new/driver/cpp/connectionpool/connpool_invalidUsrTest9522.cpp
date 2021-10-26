@@ -69,7 +69,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    rc = ds.enable() ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with invalid user" ;
+	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with invalid user" ;
 	ds.close() ;
 	
    // test get connection with no passwd
@@ -79,7 +79,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    rc = ds.enable() ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with no passwd" ;
+	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with no passwd" ;
 	ds.close() ;
 		
    // test get connection with illegal passwd
@@ -89,7 +89,7 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
    rc = ds.enable() ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NO_REACHABLE_COORD, rc ) << "fail to test get connection with illegal passwd" ;
+	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with illegal passwd" ;
 	ds.close() ;
 
    // test get connection with legal user and remove user
