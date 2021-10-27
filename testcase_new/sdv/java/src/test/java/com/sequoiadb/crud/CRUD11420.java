@@ -1,6 +1,7 @@
 package com.sequoiadb.crud;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.sequoiadb.base.DBCursor;
 import org.bson.BSONObject;
@@ -32,7 +33,7 @@ public class CRUD11420 extends SdbTestBase {
     private String clName = "crudcl_11420";
     private DBCollection cl = null;
     private ArrayList<BSONObject> insertRecord = new ArrayList<BSONObject>();
-    private int recordNum = 2000;
+    private int recordNum = 4000;
     private int beginNo = 0;
 
     @BeforeClass
@@ -45,24 +46,24 @@ public class CRUD11420 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-        ThreadExecutor es = new ThreadExecutor(180*1000);
+        ThreadExecutor es = new ThreadExecutor(180 * 1000);
         int beginSetNo = 0;
-        int endSetNo = 500;
+        int endSetNo = 1000;
         threadSet updateSet = new threadSet(beginSetNo, endSetNo);
         threadQuerySet querySetData = new threadQuerySet(beginSetNo,
                 endSetNo);
-        int beginSetNo1 = 500;
-        int endSetNo1 = 1000;
+        int beginSetNo1 = 1000;
+        int endSetNo1 = 2000;
         threadSet updateSet1 = new threadSet(beginSetNo1, endSetNo1);
         threadQuerySet querySetData1 = new threadQuerySet(beginSetNo1,
                 endSetNo1);
-        int beginUnsetNo = 1000;
-        int endUnsetNo = 1500;
+        int beginUnsetNo = 2000;
+        int endUnsetNo = 3000;
         threadUnset updateUnset = new threadUnset(beginUnsetNo, endUnsetNo);
         threadQueryUnset queryUnsetData = new threadQueryUnset(beginUnsetNo,
                 endUnsetNo);
-        int beginUnsetNo1 = 1500;
-        int endUnsetNo1 = 2000;
+        int beginUnsetNo1 = 3000;
+        int endUnsetNo1 = 4000;
         threadUnset updateUnset1 = new threadUnset(beginUnsetNo1,
                 endUnsetNo1);
         threadQueryUnset queryUnsetData1 = new threadQueryUnset(beginUnsetNo1,
@@ -114,13 +115,15 @@ public class CRUD11420 extends SdbTestBase {
 
         @ExecuteOrder(step = 1)
         private void set() {
+
             try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "",
                     "");) {
                 CollectionSpace cs1 = db
                         .getCollectionSpace(SdbTestBase.csName);
                 DBCollection cl = cs1.getCollection(clName);
-                for (int i = beginNo; i < endNo; i++) {
-                    String matcher = "{no:" + i + "}";
+                for (int i = beginNo; i < endNo; i += 100) {
+                    String matcher = "{$and:[{no:{$gte:" + i + "}},{no:{$lt:"
+                            + (i + 100) + "}}]}";
                     cl.update(matcher, "{$set:{b:1}}", "", 0);
                 }
                 for (int i = beginNo; i < endNo; i++) {
@@ -153,8 +156,9 @@ public class CRUD11420 extends SdbTestBase {
                 CollectionSpace cs1 = db
                         .getCollectionSpace(SdbTestBase.csName);
                 DBCollection cl = cs1.getCollection(clName);
-                for (int i = beginNo; i < endNo; i++) {
-                    String matcher = "{no:" + i + "}";
+                for (int i = beginNo; i < endNo; i += 100) {
+                    String matcher = "{$and:[{no:{$gte:" + i + "}},{no:{$lt:"
+                            + (i + 100) + "}}]}";
                     cl.update(matcher, "{$unset:{a:1}}", "", 0);
                 }
                 for (int i = beginNo; i < endNo; i++) {
