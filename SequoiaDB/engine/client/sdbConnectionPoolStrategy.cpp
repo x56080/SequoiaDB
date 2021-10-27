@@ -377,7 +377,7 @@ namespace sdbclient
       coordsSize = _normalCoordList.size() ;
       if ( 0 == coordsSize )
       {
-         ret = SDB_DS_NO_REACHABLE_COORD ;
+         ret = SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD ;
       }
       else 
       {
@@ -403,7 +403,7 @@ namespace sdbclient
       coordsSize = _normalCoordList.size() ;
       if ( 0 == coordsSize )
       {
-         ret = SDB_DS_NO_REACHABLE_COORD ;
+         ret = SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD ;
       }
       else 
       {
@@ -538,7 +538,7 @@ namespace sdbclient
          INT32 norSize = _normalCoordList.size() ;
          if ( 0 == norSize )
          {
-            rc = SDB_DS_NO_REACHABLE_COORD ;
+            rc = SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD ;
             goto error ;
          }
          else
