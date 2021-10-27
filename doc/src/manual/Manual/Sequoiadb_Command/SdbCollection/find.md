@@ -1,16 +1,18 @@
 ##名称##
 
-find - 查询记录。
+find - 查询记录
 
 ##语法##
 
-**db.collectionspace.collection.find([cond],[sel])**
+**db.collectionspace.collection.find([cond], [sel])**
 
-**db.collectionspace.collection.find([cond],[sel]).hint([hint])**
+**db.collectionspace.collection.find([cond], [sel]).hint([hint])**
 
-**db.collectionspace.collection.find([cond],[sel]).skip([skipNum]).limit([retNum]).sort([sort])**
+**db.collectionspace.collection.find([cond], [sel]).hint([hint]).flags(\<flags\>)**
 
-**db.collectionspace.collection.find([cond],[sel])[.hint([hint])][.skip([skipNum])][.limit([retNum])][.sort([sort])]**
+**db.collectionspace.collection.find([cond], [sel]).skip([skipNum]).limit([retNum]).sort([sort])**
+
+**db.collectionspace.collection.find([cond], [sel])[.hint([hint])][.skip([skipNum])][.limit([retNum])][.sort([sort])]**
 
 **db.collectionspace.collection.find([SdbQueryOption])**
 
@@ -24,15 +26,15 @@ SdbCollection
 
 ##参数##
 
-* `cond` ( *Object*， *选填* )
+- cond ( *object，选填* )
 
 	记录匹配条件。为空时，查询所有记录；不为空时，查询符合条件记录。如：{"age":{"$gt":30}}。匹配条件可使用[匹配符][overview]或[全文检索语法][text_index]。
 
-* `sel` ( *Object*， *选填* )
+- sel ( *object，选填* )
 
 	查询返回记录的字段名。为空时，返回记录的所有字段；如果指定的字段名记录中不存在，则按用户设定的内容原样返回。如：{"name":"","age":"","addr":""}。
 
-* `hint` ( *Object*， *选填* )
+- hint ( *object，选填* )
 
 	指定查询使用索引的情况。
 	* 不指定 `hint` ：查询是否使用索引及使用哪个索引将由数据库决定；
@@ -42,29 +44,32 @@ SdbCollection
                         表示查询将使用上述三个索引之一进行。
                         具体使用哪一个，由数据库评估决定。
 
-* `skipNum` ( *Int32*， *选填* )
+- flags ( *object，选填* )
+
+    指定标志位遍历结果集，具体用法可参考 [flags()][flags]。
+
+- skipNum ( *number，选填* )
 
 	自定义从结果集哪条记录开始返回。默认值为0，表示从第一条记录开始返回。
 
-* `retNum` ( *Int32*， *选填* )
+- retNum ( *number，选填* )
 
 	自定义返回结果集的记录条数。默认值为-1，表示返回从 `skipNum` 位置开始到结果集结束位置的所有记录。
 
-* `sort` ( *Object*， *选填* )
+- sort ( *object，选填* )
 
 	指定结果集按指定字段名排序的情况。字段名的值为 1 或者 -1，如：{"name":1,"age":-1}。
 	* 不指定 `sort` ：表示不对结果集做排序；
 	* 字段名的值为 1：表示按该字段名升序排序；
 	* 字段名的值为 -1：表示按该字段名降序排序。
 
-* `SdbQueryOption` ( *Object*， *选填* )
+- SdbQueryOption ( *object，选填* )
 
 	使用一个对象来指定记录查询参数。使用方法可参考 [SdbQueryOption][QueryOption]。
 
 > **Note：**
-
+>
 > * `sel` 参数为 Object 类型，其字段内容为空字符串即可，数据库只关心其字段名。
-
 > * `hint` 参数为 Object 类型，其字段名可以为任意不重复的字符串，数据库只关心起字段内容。 
 
 ##返回值##
@@ -75,22 +80,20 @@ SdbCollection
 
 ##错误##
 
-`find()`函数常见异常如下：
+`find()` 函数常见异常如下：
 
-| 错误码 | 错误类型 | 描述 | 解决方法 |
-| ------ | ------ | --- | ------ |
-| -2 | SDB_OOM | 无可用内存。| 检查物理内存及虚拟内存的设置及使用情况。|
-| -6 | SDB_INVALIDARG | 参数错误。 | 查看参数是否填写正确。|
-| -34 | SDB_DMS_CS_NOTEXIST | 集合空间不存在。| 检查集合空间是否存在。|
-| -23 | SDB_DMS_NOTEXIST| 集合不存在。 | 检查集合是否存在。|
+| 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
+| ------ | -------- | -------------- | -------- |
+| -2 | SDB_OOM | 无可用内存| 检查物理内存及虚拟内存的设置及使用情况|
+| -6 | SDB_INVALIDARG | 参数错误 | 查看参数是否填写正确|
+| -34 | SDB_DMS_CS_NOTEXIST | 集合空间不存在| 检查集合空间是否存在|
+| -23 | SDB_DMS_NOTEXIST| 集合不存在 | 检查集合是否存在|
 
-当异常抛出时，可以通过 [getLastError()][getLastError] 获取[错误码][error_code]，
-或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
-可以参考[常见错误处理指南][faq]了解更多内容。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ##版本##
 
-v1.0 及以上版本。
+v1.0 及以上版本
 
 ##示例##
 
@@ -183,3 +186,4 @@ v1.0 及以上版本。
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [gt]:manual/Manual/Operator/Match_Operator/gt.md
+[flags]:manual/Manual/Sequoiadb_Command/SdbQuery/flags.md

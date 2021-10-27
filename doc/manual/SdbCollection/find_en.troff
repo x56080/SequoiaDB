@@ -5,28 +5,32 @@
 .hy
 .SH NAME
 .PP
-find \- Select records from database.
+find \- select records from database
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.find([cond],[sel])\f[]
+\f[B]db.collectionspace.collection.find([cond], [sel])\f[]
 .PP
-\f[B]db.collectionspace.collection.find([cond],[sel]).hint([hint])\f[]
+\f[B]db.collectionspace.collection.find([cond], [sel]).hint([hint])\f[]
 .PP
-\f[B]db.collectionspace.collection.find([cond],[sel]).skip([skipNum]).limit([retNum]).sort([sort])\f[]
+\f[B]db.collectionspace.collection.find([cond],
+[sel]).hint([hint]).flags(<flags>)\f[]
 .PP
-\f[B]db.collectionspace.collection.find([cond],[sel])[.hint([hint])][.skip([skipNum])][.limit([retNum])][.sort([sort])]\f[]
+\f[B]db.collectionspace.collection.find([cond],
+[sel]).skip([skipNum]).limit([retNum]).sort([sort])\f[]
+.PP
+\f[B]db.collectionspace.collection.find([cond],
+[sel])[.hint([hint])][.skip([skipNum])][.limit([retNum])][.sort([sort])]\f[]
+.PP
+\f[B]db.collectionspace.collection.find([SdbQueryOption])\f[]
 .SH CATEGORY
 .PP
 Collection
 .SH DESCRIPTION
 .PP
-Select records from database.
-Return a cursor on the selected records.
-Cursor is a pointer in SequoiaDB, it points to a query result set, the search
-result can be iterated in the client.
+This function is used to query the records that meet the conditions.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]cond\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+cond ( \f[I]object, optional\f[] )
 .RS 2
 .PP
 Selecting condtion.
@@ -34,7 +38,7 @@ If it is null, it will find all the records.
 If it is not null, it will find records that matches the condition.
 .RE
 .IP \[bu] 2
-\f[C]sel\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+sel ( \f[I]object, optional\f[] )
 .RS 2
 .PP
 It chooses fields to be returned.
@@ -44,7 +48,7 @@ If a field doesn\[aq]t exist, it will return the same contents which was input.
 Format: {"filed1":"", "filed2":"", "filed3":""}
 .RE
 .IP \[bu] 2
-\f[C]hint\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+hint ( \f[I]object, optional\f[] )
 .RS 2
 specified the hint for query.
 .IP \[bu] 2
@@ -64,14 +68,21 @@ three indexes described above.
 Which index is used eventually, determined by the database evaluation.
 .RE
 .IP \[bu] 2
-\f[C]skipNum\f[] ( \f[I]Int32\f[]， \f[I]Optional\f[] )
+flags ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+Specify the flag bit to traverse the result set.
+For specific usage user can refer to flags().
+.RE
+.IP \[bu] 2
+skipNum ( \f[I]number, optional\f[] )
 .RS 2
 .PP
 specified where returns from the record of the result set.
 The default value is 0, means returns from the first record of the result set.
 .RE
 .IP \[bu] 2
-\f[C]retNum\f[] ( \f[I]Int32\f[]， \f[I]Optional\f[] )
+retNum ( \f[I]number, optional\f[] )
 .RS 2
 .PP
 specified how many records to be return from the result set.
@@ -79,7 +90,7 @@ The default value is \-1, means returns all the recoreds since the position of
 "skipNum".
 .RE
 .IP \[bu] 2
-\f[C]sort\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+sort ( \f[I]object, optional\f[] )
 .RS 2
 Specifies whether the result set is sorted by the specified field name.
 The value of the field name is 1 or \-1, such as: {"name":1,"age":\-1}.
@@ -92,12 +103,13 @@ when the value of field name is \-1, means sort by field name in decending
 order.
 .RE
 .IP \[bu] 2
-\f[C]SdbQueryOption\f[] ( \f[I]Object\f[]， \f[I]Optional\f[] )
+SdbQueryOption ( \f[I]object, optional\f[] )
 .RS 2
 .PP
 Use an object to specify record query parameters.For more detial, please
 reference to SdbQueryOption.
 .RE
+.RS
 .PP
 \f[B]Note：\f[]
 .IP \[bu] 2
@@ -106,14 +118,17 @@ empty string, database only care about the name of the fields.
 .IP \[bu] 2
 The parameter \[aq]hint\[aq] is an object, the name of it\[aq]s fields can be
 any unique string, database onlu care about the value of the fileds.
+.RE
 .SH RETURN VALUE
 .PP
-On success, find() returns a object of DBCursor for iterating the result.
+When the function executes successfully, it will return an object of type
+SdbQuery.Users can get the result collection of the query.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-the exceptions of \f[C]find()\f[] are as below:
+The common exceptions of \f[C]find()\f[] function are as follows:
 .PP
 .TS
 tab(@);
@@ -121,9 +136,9 @@ l l l l l.
 T{
 0
 T}@T{
-Error code
+Error Code
 T}@T{
-Error type
+Error Type
 T}@T{
 Description
 T}@T{
@@ -137,7 +152,7 @@ T}@T{
 T}@T{
 SDB_OOM
 T}@T{
-Out of Memory.
+No memory available
 T}@T{
 Check the settings and
 T}
@@ -169,23 +184,23 @@ T}@T{
 T}@T{
 SDB_INVALIDARG
 T}@T{
-Invalid Argument.
+Parameter error
 T}@T{
-Check whether the input
+Check whether the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-arguments are valid or
+parameters are filled
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-not.
+in correctly.
 T}
 T{
 3
@@ -202,16 +217,9 @@ T{
 T}@T{
 T}@T{
 T}@T{
-not exist.
+not exist
 T}@T{
-collection space exist
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-or not.
+collection space exists.
 T}
 T{
 4
@@ -222,47 +230,53 @@ SDB_DMS_NOTEXIST
 T}@T{
 Collection does not
 T}@T{
-heck whether the
+Check whether the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-exist.
+exist
 T}@T{
-collection exist or not.
+collection exists.
 T}
 .TE
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+When the exception happens, use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
 .SH HISTORY
 .PP
-Since v1.0.
+v1.0 and above
 .SH EXAMPLES
-.IP "1." 3
+.IP \[bu] 2
 query all the records without specified condition and selector.
+.RS 2
+.IP
 .nf
 \f[C]
 > db.sample.employee.find()
 \f[]
 .fi
 .RE
-.IP "2." 3
+.IP \[bu] 2
 query records with the specified condition.
 Return the records which name is "Tom" and "age" is greater then 25.
+.RS 2
+.IP
 .nf
 \f[C]
 db.sample.employee.find( { age: { $gt: 25 }, name: "Tom" } )
 \f[]
 .fi
 .RE
-.IP "3." 3
+.IP \[bu] 2
 specified the fields to be returned.
 when we have recored { age: 25, type: "system" } and { age: 20, name: "Tom",
 type: "normal" }, the follow operation return the contents of field "age" and
 field "name".
+.RS 2
+.IP
 .nf
 \f[C]
 db.sample.employee.find( null, { age: "", name: "" } )
@@ -277,8 +291,10 @@ db.sample.employee.find( null, { age: "", name: "" } )
 \f[]
 .fi
 .RE
-.IP "4." 3
+.IP \[bu] 2
 specifed which index to be use to query.
+.RS 2
+.IP
 .nf
 \f[C]
    > db.sample.test.find( {age: {$exists:1} } ).hint( { "": "ageIndex" } )
@@ -297,10 +313,12 @@ specifed which index to be use to query.
 \f[]
 .fi
 .RE
-.IP "5." 3
+.IP \[bu] 2
 select records from collection \[aq]sample.employee\[aq] and return records
 which field "age" is greater than 10 by using $gt.
 when get the result set, we skip the first 3 records and return 5 records.
+.RS 2
+.IP
 .nf
 \f[C]
 > db.sample.employee.find( { age: { $gt: 10 } } ).skip(3).limit(5)
@@ -313,11 +331,13 @@ returned.
 when the number of records in the result set is greater that 3, returns up to 5
 records.
 .RE
-.IP "6." 3
+.IP \[bu] 2
 select records from collection \[aq]sample.employee\[aq] and return records
 which filed \[aq]age\[aq] is greater than 20.
 we only want filed \[aq]age\[aq] and field \[aq]name\[aq] to be return.
 The returned records are sort by field \[aq]age\[aq] in ascending order.
+.RS 2
+.IP
 .nf
 \f[C]
 db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { age: 1 }
@@ -326,8 +346,10 @@ db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { a
 .RE
 .PP
 \[aq]sort\[aq] can only apply to the returned fields.
-.IP "7." 3
+.IP \[bu] 2
 specified a useless field name to sort.
+.RS 2
+.IP
 .nf
 \f[C]
 db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "sex": 1 } )
@@ -337,7 +359,7 @@ db.sample.employee.find( { age: { $gt: 20 } }, { age: "", name: "" } ).sort( { "
 .PP
 for the return records do not contain field "sex", so the sort request does not
 work.
-.IP "8." 3
+.IP \[bu] 2
 Find records which contain "rock climbing" in collection "employee" by using
 full text search
 .PP
