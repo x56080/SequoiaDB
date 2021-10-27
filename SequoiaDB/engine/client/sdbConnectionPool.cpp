@@ -208,7 +208,7 @@ namespace sdbclient
 
       if ( !_isInited )
       {
-         rc = SDB_DS_NOT_INIT ;
+         rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
          goto error ;
       }
       else
@@ -360,7 +360,7 @@ namespace sdbclient
          // TODO: (new) before we call "close", "getConnection"
          // can return a connection in java,
          // but here, the behave is different
-         rc = SDB_DS_NOT_ENABLE ;
+         rc = SDB_CLIENT_CONNPOOL_NOT_ENABLE ;
          goto error ;
       }
 
@@ -402,7 +402,7 @@ namespace sdbclient
             {
                if ( 0 == _strategy->getNormalCoordNum() )
                {
-                  rc = SDB_DS_NO_REACHABLE_COORD ;
+                  rc = SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD ;
                   goto error ;
                }
                else
@@ -742,7 +742,7 @@ namespace sdbclient
             if ( 0 == cnt )
             {
                // if have no any normal node, let's stop
-               rc = SDB_DS_NO_REACHABLE_COORD ;
+               rc = SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD ;
                goto error ;
             }
             else
@@ -1215,7 +1215,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
 
       if ( !_isInited )
       {
-         rc = SDB_DS_NOT_INIT ;
+         rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
          goto error ;
       }
 

@@ -2045,7 +2045,7 @@
       <code>
          <name>SDB_DRIVER_DS_RUNOUT</name>
          <description>
-            <en>Data source is running out of connection pool</en>
+            <en>Connection pool has been exhausted</en>
             <cn>客户端连接池已满</cn>
          </description>
       </code>
@@ -2468,16 +2468,16 @@
          </description>
       </code>
       <code>
-         <name>SDB_DS_NOT_ENABLE</name>
+         <name>SDB_CLIENT_CONNPOOL_NOT_ENABLE</name>
          <description>
-            <en>data source is not enabled yet</en>
+            <en>Connection pool is not enabled yet</en>
             <cn>连接池功能未启用</cn>
          </description>
       </code>
       <code>
-         <name>SDB_DS_NO_REACHABLE_COORD</name>
+         <name>SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD</name>
          <description>
-            <en>No reachable coord notes</en>
+            <en>No reachable coord nodes</en>
             <cn>无可用协调节点</cn>
          </description>
       </code>
@@ -2515,9 +2515,9 @@
       </code>
 
       <code>
-        <name>SDB_DS_NOT_INIT</name>
+        <name>SDB_CLIENT_CONNPOOL_NOT_INIT</name>
         <description>
-           <en>Data source has not been initialized</en>
+           <en>Connection pool has not been initialized</en>
            <cn>连接池未初始化</cn>
         </description>
       </code>
