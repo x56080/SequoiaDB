@@ -315,6 +315,25 @@ class SdbConfig(val properties: Map[String, String]) extends Serializable {
 
     val group: String = properties
         .getOrElse(SdbConfig.Group, SdbConfig.DefaultGroup)
+
+    val ensureShardingIndex: Boolean = properties.get(SdbConfig.EnsureShardingIndex)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultEnsureShardingIndex)
+
+    val autoIndexId: Boolean = properties.get(SdbConfig.AutoIndexId)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultAutoIndexId)
+
+    val autoIncrement: String = properties
+        .getOrElse(SdbConfig.AutoIncrement, SdbConfig.DefaultAutoIncrement)
+
+    try {
+        JSON.parse(autoIncrement).asInstanceOf[BSONObject]
+    } catch {
+        case _: Exception => invalidConfigValue(SdbConfig.AutoIncrement, autoIncrement)
+    }
+
+    val strictDataMode: Boolean = properties.get(SdbConfig.StrictDataMode)
+        .map(_.toBoolean).getOrElse(SdbConfig.DefaultStrictDataMode)
+
 }
 
 object SdbConfig {
@@ -358,6 +377,10 @@ object SdbConfig {
     val CompressionType = "compressiontype"
     val AutoSplit = "autosplit"
     val Group = "group"
+    val EnsureShardingIndex = "ensureshardingindex"
+    val AutoIndexId = "autoindexid"
+    val AutoIncrement = "autoincrement"
+    val StrictDataMode = "strictdatamode"
 
     // compatible with old edition option
     val ScanType = "scantype" // auto/ixscan/tbscan
@@ -433,7 +456,11 @@ object SdbConfig {
         ReplicaSize,
         CompressionType,
         AutoSplit,
-        Group)
+        Group,
+        EnsureShardingIndex,
+        AutoIndexId,
+        AutoIncrement,
+        StrictDataMode)
 
     val RequiredProperties = List(
         Host,
@@ -465,9 +492,13 @@ object SdbConfig {
     val DefaultIgnoreNullField = false
     val DefaultUseSelector: String = USE_SELECTOR_ENABLE
     val DefaultSelectorDiff = 2
+
+    // CS options
     val DefaultPageSize: Int = 1024 * 64
     val DefaultLobPageSize: Int = 1024 * 256
     val DefaultDomain = ""
+
+    // CL options
     val DefaultShardingKey = ""
     val DefaultShardingType: String = SHARDING_TYPE_HASH
     val DefaultCLPartition = 1024
@@ -475,6 +506,10 @@ object SdbConfig {
     val DefaultCompressionType: String = COMPRESSION_TYPE_NONE
     val DefaultAutoSplit = false
     val DefaultGroup = ""
+    val DefaultEnsureShardingIndex = true
+    val DefaultAutoIndexId = true
+    val DefaultAutoIncrement = ""
+    val DefaultStrictDataMode = false
 
     def apply(parameters: Map[String, String]): SdbConfig = new SdbConfig(parameters)
 

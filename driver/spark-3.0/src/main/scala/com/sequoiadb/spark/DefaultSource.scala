@@ -19,9 +19,9 @@ package com.sequoiadb.spark
 import com.sequoiadb.base.{DBCollection, Sequoiadb}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
-import org.bson.{BSONObject, BasicBSONObject}
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 import org.bson.util.JSON
+import org.bson.{BSONObject, BasicBSONObject}
 
 import scala.collection.JavaConversions._
 
@@ -69,7 +69,7 @@ class DefaultSource extends DataSourceRegister
         if (isCollectionWritable(config, mode)) {
             // get schema for execution
             val schema = data.schema
-            data.foreachPartition((it: Iterator[Row]) => {
+            data.foreachPartition(it => {
                 // always write through coord node which specified in config
                 new SdbWriter(config).write(it, schema)
             })
@@ -165,6 +165,25 @@ class DefaultSource extends DataSourceRegister
                 if (config.get.group != "") {
                     options.put("Group", config.get.group)
                 }
+
+                if (config.get.ensureShardingIndex != SdbConfig.DefaultEnsureShardingIndex) {
+                    options.put("EnsureShardingIndex", config.get.ensureShardingIndex)
+                }
+
+                if (config.get.autoIndexId != SdbConfig.DefaultAutoIndexId) {
+                    options.put("AutoIndexId", config.get.autoIndexId)
+                }
+                // auto increment key
+                if (config.get.autoIncrement != "") {
+                    val autoIncrement = JSON.parse(config.get.autoIncrement)
+                        .asInstanceOf[BSONObject]
+                    options.put("AutoIncrement", autoIncrement)
+                }
+
+                if (config.get.strictDataMode != SdbConfig.DefaultStrictDataMode) {
+                    options.put("StrictDataMode", config.get.strictDataMode)
+                }
+
                 logInfo(s"Using $options to create collection[$csName.$clName]")
             }
             cs.createCollection(clName, options)
