@@ -50,8 +50,6 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -88,10 +86,8 @@ TEST_F( strategyTest9483, syncSerial9483 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ossSleep( 2*1000 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
    
    checkStartegy( ds ) ;
 }
@@ -105,10 +101,8 @@ TEST_F( strategyTest9483, syncRandom9484 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ossSleep( 2*1000 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
    checkStartegy( ds ) ;
 }
@@ -122,10 +116,8 @@ TEST_F( strategyTest9483, syncLocal9485 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ossSleep( 2*1000 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 
 	checkStartegy( ds ) ;
 }
@@ -139,10 +131,8 @@ TEST_F( strategyTest9483, syncBalance9486 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ossSleep( 2*1000 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
    
 	checkStartegy( ds ) ;
 }
@@ -160,9 +150,7 @@ TEST_F( strategyTest9483, multiCoordSerial9487 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 
 	checkStartegy( ds ) ;
 }
@@ -180,9 +168,7 @@ TEST_F( strategyTest9483, multiCoordRandom9488 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
    checkStartegy( ds ) ;
 }
@@ -200,9 +186,7 @@ TEST_F( strategyTest9483, multiCoordLocal9489 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 
 	checkStartegy( ds ) ;
 }
@@ -219,9 +203,7 @@ TEST_F( strategyTest9483, multiCoordBalance9490 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
    checkStartegy( ds ) ;
 }
@@ -235,11 +217,9 @@ TEST_F( strategyTest9483, addCoordSerial9491 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.addCoord( url1 ) ;
 	ds.addCoord( url2 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 
    checkStartegy( ds ) ;
 }
@@ -253,11 +233,9 @@ TEST_F( strategyTest9483, addCoordRandom9492 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.addCoord( url1 ) ;
 	ds.addCoord( url2 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -271,11 +249,9 @@ TEST_F( strategyTest9483, addCoordLocal9493 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.addCoord( url1 ) ;
 	ds.addCoord( url2 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -289,11 +265,9 @@ TEST_F( strategyTest9483, addCoordBalance9494 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.addCoord( url1 ) ;
 	ds.addCoord( url2 ) ;
-	ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -311,10 +285,8 @@ TEST_F( strategyTest9483, removeCoordSerial9495 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ; 
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.removeCoord( url2 ) ;
-	ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -332,10 +304,8 @@ TEST_F( strategyTest9483, removeCoordRandom9496 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.removeCoord( url2 ) ;
-	ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -353,10 +323,8 @@ TEST_F( strategyTest9483, removeCoordLocal9497 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.removeCoord( url2 ) ;
-	ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -374,10 +342,8 @@ TEST_F( strategyTest9483, removeCoordBalance9498 )
 
    rc = ds.init( urlList, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	ds.removeCoord( url2 ) ;
-	ASSERT_EQ( 2, ds.getNormalCoordNum() ) << "fail to check coord num" ;
+	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }
@@ -392,13 +358,7 @@ TEST_F( strategyTest9483, disThenEnable9508 )
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
    ds.addCoord( url1 ) ;
    ds.addCoord( url2 ) ;
-   ASSERT_EQ( coordNum, ds.getNormalCoordNum() ) << "fail to check coord num" ;
-   rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-   rc = ds.disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
-	rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool again" ;
+   ASSERT_EQ( coordNum, ds.getNormalAddrNum () ) << "fail to check coord num" ;
 	
 	checkStartegy( ds ) ;
 }

@@ -33,8 +33,6 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -59,8 +57,6 @@ TEST_F( invalidArgTest9524, connCntInfo9524 )
    conf.setConnCntInfo( 25, 10, 20, 500 ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to test init with initConnCount>maxIdleCount" ;
-   rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    ASSERT_EQ( conf.getMaxIdleCount(), ds.getIdleConnNum() ) << "fail to check idle conn num" ;
    ds.close() ;
 
@@ -78,8 +74,6 @@ TEST_F( invalidArgTest9524, connCntInfo9524 )
    conf.setConnCntInfo( 10, 25, 20, 500 ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to test init with deltaIncCount>maxIdleCount" ;
-   rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    vector<sdb*> vec ;
    while( ds.getIdleConnNum() > SDB_CONNPOOL_TOPRECREATE_THRESHOLD )
    {
@@ -179,7 +173,7 @@ TEST_F( invalidArgTest9524, connectStrategy9526 )
    INT32 rc = SDB_OK ;   
 
    // _connectStrategy不为0-3
-   conf.setConnectStrategy( CONNPOOL_STRATEGY( 5 ) ) ;
+   conf.setConnectStrategy( SDB_CONN_STRATEGY( 5 ) ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) << "fail to test init with connectStrategy 5" ;
 }

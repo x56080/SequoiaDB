@@ -30,8 +30,6 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -54,8 +52,6 @@ TEST_F( coordTest9571, stop9571 )
    
    rc = ds.init( urllist, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	
 	CHAR flag ;
 	for( INT32 i = 0;;i++ )
