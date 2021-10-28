@@ -52,9 +52,6 @@ void queryTask( sdbConnectionPool &connPool )
    // define local variables
    // initialize them before use
    BSONObj              obj ;
-
-   // add a coord node to sdbConnectionPool
-   connPool.addCoord( "server2:11810" ) ;
    
    // get a connection from sdbConnectionPool
    rc = connPool.getConnection( connection ) ;
@@ -107,8 +104,8 @@ INT32 main( INT32 argc, CHAR **argv )
    conf.setCheckIntervalInfo( 60, 0 ) ;
    // sync coord node information every 30s, 0 means not sync
    conf.setSyncCoordInterval( 30 ) ;
-   // provide connection with balance strategy
-   conf.setConnectStrategy( DS_STY_BALANCE ) ;
+   // provide connection with serial strategy
+   conf.setConnectStrategy( SDB_CONN_STY_SERIAL ) ;
    // whether to check connection's validation when get a connection
    conf.setValidateConnection( TRUE ) ;
    // whether enable SSL
@@ -125,27 +122,16 @@ INT32 main( INT32 argc, CHAR **argv )
       goto error ;
    }
 
-   // enable sdbConnectionPool
-   rc = connPool.enable() ;
-   if ( SDB_OK != rc )
-   {
-      cout << "Fail to enable sdbConnectionPool, rc = " << rc << endl ;
-      goto error ;
-   }
-
    // run task in single or multi thread
    queryTask( connPool ) ;
 
-   // disable sdbConnectionPool
-   rc = connPool.disable() ;
+   // close sdbConnectionPool
+   rc = connPool.close() ;
    if ( SDB_OK != rc )
    {
-      cout << "Fail to disable sdbConnectionPool, rc = " << rc << endl ;
+      cout << "Fail to close sdbConnectionPool, rc = " << rc << endl ;
       goto error ;
    }
-
-   // close sdbConnectionPool
-   connPool.close() ;
 done:  
    return 0 ;
 error:  

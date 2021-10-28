@@ -480,14 +480,6 @@ INT32 main(INT32 argc, CHAR *argv[])
       goto error;
    }
 
-   //close datasource to avoid the bgtask threads being closed by fuse_main,
-   //start when first called getattr,
-   rc = sfs->disableDataSource();
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
    //Alias is unique. Mountpoints can not use the same alias.
    if(ossStrlen((sfs->getOptionMgr())->getAlias()))
    {

@@ -90,8 +90,6 @@ using namespace sequoiafs;
 #define ROOT_ID 1
 const INT32 BUFSIZE=1000;
 
-BOOLEAN enableDataSource = FALSE;
-
 LRUCache *lrucache;
 
 pthread_mutex_t mutex;
@@ -387,7 +385,7 @@ void sequoiaFS::setDataSourceConf(const CHAR * userName,
    conf.setConnCntInfo(50, 10, 20, connNum);
    conf.setCheckIntervalInfo( 60*1000, 0 );
    conf.setSyncCoordInterval( 60*1000 );
-   conf.setConnectStrategy( CONNPOOL_STY_BALANCE );
+   conf.setConnectStrategy( SDB_CONN_STY_BALANCE );
    conf.setValidateConnection( TRUE );
    conf.setUseSSL( FALSE );
 }
@@ -411,39 +409,12 @@ INT32 sequoiaFS::initDataSource(const CHAR * userName,
       goto error;
    }
 
-   // enable sdbDataSource
-   rc = ds.enable();
-   if(SDB_OK != rc)
-   {
-      ossPrintf("Fail to enable sdbDataSource, error=%d"OSS_NEWLINE, rc);
-      goto error;
-   }
-
 done:
    return rc;
 
 error:
    goto done;
 }
-
-INT32 sequoiaFS::disableDataSource()
-{
-   INT32 rc = SDB_OK;
-
-   rc = ds.disable();
-   if(SDB_OK != rc)
-   {
-      ossPrintf("Fail to disable sdbDataSource, error=%d"OSS_NEWLINE, rc);
-      goto error;
-   }
-
-done:
-   return rc;
-error:
-   goto done;
-
-}
-
 
 INT32 sequoiaFS::closeDataSource()
 {
@@ -451,13 +422,11 @@ INT32 sequoiaFS::closeDataSource()
 
    PD_LOG(PDDEBUG, "Called: closeDataSource()");
 
-   // disable sdbDataSource
-   rc = disableDataSource();
+   rc = ds.close();
    if(SDB_OK != rc)
    {
       goto error;
-   } // dose sdbDataSource
-   ds.close();
+   }
 
 done:
    return rc;
@@ -1509,18 +1478,6 @@ INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
 
    PD_LOG(PDDEBUG, "Called: getattr(). Path:%s", path);
    ossMemset(sbuf, 0, sizeof(struct stat));
-
-   if(!enableDataSource)
-   {
-      rc = ds.enable();
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Fail to enable sdbDataSource, error=%d, exit", rc);
-          rc = -EIO;
-          goto error;
-      }
-      enableDataSource = TRUE;
-   }
 
    sbuf->st_uid = uid;
    sbuf->st_gid = gid;

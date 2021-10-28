@@ -31,9 +31,6 @@ void queryTask( sdbConnectionPool &connPool )
 
    // 定义BSONObj对象
    BSONObj              obj ;
-
-   // 向连接池添加一个协调节点
-   connPool.addCoord( "localhost:50000" ) ;
    
    // 从连接池获取一个连接
    rc = connPool.getConnection( connection ) ;
@@ -83,8 +80,8 @@ INT32 main( INT32 argc, CHAR **argv )
    conf.setCheckIntervalInfo( 60, 0 ) ;
    // 每隔 30s 从编目节点同步协调节点信息（若为 0，则表示不同步）
    conf.setSyncCoordInterval( 30 ) ;
-   // 连接池采用负载均衡策略生成连接
-   conf.setConnectStrategy( DS_STY_BALANCE ) ;
+   // 连接池采用顺序均衡策略生成连接
+   conf.setConnectStrategy( SDB_CONN_STY_SERIAL ) ;
    // 当获取一个连接时，是否检查连接的有效性
    conf.setValidateConnection( TRUE ) ;
    // 是否启用 SSL
@@ -101,27 +98,16 @@ INT32 main( INT32 argc, CHAR **argv )
       goto error ;
    }
 
-   // 启动连接池
-   rc = connPool.enable() ;
-   if ( SDB_OK != rc )
-   {
-      cout << "Fail to enable sdbConnectionPool, rc = " << rc << endl ;
-      goto error ;
-   }
-
    // 在单线程中或多线程中使用连接池对象
    queryTask( connPool ) ;
 
-   // 停止连接池
-   rc = connPool.disable() ;
+   // 关闭连接池
+   rc = connPool.close() ;
    if ( SDB_OK != rc )
    {
-      cout << "Fail to disable sdbConnectionPool, rc = " << rc << endl ;
+      cout << "Fail to close sdbConnectionPool, rc = " << rc << endl ;
       goto error ;
    }
-
-   // 关闭连接池
-   connPool.close() ;
 done:  
    return 0 ;
 error:  

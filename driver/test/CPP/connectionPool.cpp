@@ -35,8 +35,7 @@ TEST( connectionPool, _maxIdleCountTest )
 
    rc = connPool.init( address, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = connPool.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+
    // check idle conn num after enable
    ASSERT_EQ( maxIdleCount, connPool.getIdleConnNum() ) ;
 
@@ -52,8 +51,8 @@ TEST( connectionPool, _maxIdleCountTest )
    // check idle conn num after release conn
    ASSERT_EQ( maxIdleCount, connPool.getIdleConnNum() ) ;
 
-   connPool.disable() ;
-   connPool.close() ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 }
 
 TEST( connectionPool, updateAuthInfoTest )
@@ -92,8 +91,6 @@ TEST( connectionPool, updateAuthInfoTest )
    // 3. create conn pool
    rc = connPool.init( address, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = connPool.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
 
    // 4. drop user
    rc = db.removeUsr( userName1.c_str(), pwd.c_str() ) ;
@@ -123,8 +120,8 @@ TEST( connectionPool, updateAuthInfoTest )
    connPool.releaseConnection( conn3 ) ;
 
    // 9. close conn pool
-   connPool.disable() ;
-   connPool.close() ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
    db.disconnect() ;
 }
 
@@ -143,8 +140,6 @@ TEST( connectionPool, updateAddrParamTest )
    addrList.push_back( invalidAddr ) ;
    rc = connPool.init( address, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = connPool.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
 
    // case 1: parameter checking
    rc = connPool.updateAddress( addrList ) ;
@@ -156,11 +151,11 @@ TEST( connectionPool, updateAddrParamTest )
    addrList.push_back( address ) ;
 
    rc = connPool.updateAddress( addrList ) ;
-   count = connPool.getNormalCoordNum() ;
+   count = connPool.getNormalAddrNum() ;
    ASSERT_EQ( 1, count ) ;
 
-   connPool.disable() ;
-   connPool.close() ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 }
 
 TEST( connectionPool, updateAddrTest )
@@ -188,15 +183,13 @@ TEST( connectionPool, updateAddrTest )
    // 1. create conn pool
    addrList.push_back( address1 ) ;
    addrList.push_back( invalidAddr ) ;
-   conf.setConnectStrategy( CONNPOOL_STY_LOCAL ) ;
+   conf.setConnectStrategy( SDB_CONN_STY_LOCAL ) ;
    conf.setConnCntInfo( 4, 4, 4, 10 ) ;
    conf.setSyncCoordInterval( 0 ) ;
 
    rc = connPool.init( addrList, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = connPool.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   ASSERT_EQ( 1, connPool.getAbnormalCoordNum() ) ;
+   ASSERT_EQ( 1, connPool.getAbnormalAddrNum() ) ;
    rc = connPool.getConnection( conn1 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( expAddr1, conn1->getAddress() ) ;
@@ -207,9 +200,9 @@ TEST( connectionPool, updateAddrTest )
    ASSERT_EQ( SDB_OK, rc ) ;
 
    // 3. check addr list
-   ASSERT_EQ( 0, connPool.getAbnormalCoordNum() ) ;
-   ASSERT_EQ( 1, connPool.getLocalCoordNum() ) ;
-   ASSERT_EQ( 1, connPool.getNormalCoordNum() ) ;
+   ASSERT_EQ( 0, connPool.getAbnormalAddrNum() ) ;
+   ASSERT_EQ( 1, connPool.getLocalAddrNum() ) ;
+   ASSERT_EQ( 1, connPool.getNormalAddrNum() ) ;
 
    // 4. check idle pool
    rc = connPool.getConnection( conn2 ) ;
@@ -247,6 +240,6 @@ TEST( connectionPool, updateAddrTest )
    connPool.releaseConnection( conn4 ) ;
    connPool.releaseConnection( conn5 ) ;
    connPool.releaseConnection( conn6 ) ;
-   connPool.disable() ;
-   connPool.close() ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 }
