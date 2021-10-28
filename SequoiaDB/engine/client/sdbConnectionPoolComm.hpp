@@ -58,12 +58,12 @@ namespace sdbclient
    /** create connection retry time at a coord, default:3*/
    #define SDB_CONNPOOL_CREATECONN_RETRYTIME                 3
 
-   enum CONNPOOL_STRATEGY
+   enum SDB_CONN_STRATEGY
    {
-      CONNPOOL_STY_SERIAL,             /**< serial strategy */
-      CONNPOOL_STY_RANDOM,             /**< random strategy */
-      CONNPOOL_STY_LOCAL,              /**< local strategy */
-      CONNPOOL_STY_BALANCE             /**< balance strategy */
+      SDB_CONN_STY_SERIAL,             /**< serial strategy */
+      SDB_CONN_STY_RANDOM,             /**< random strategy */
+      SDB_CONN_STY_LOCAL,              /**< local strategy */
+      SDB_CONN_STY_BALANCE             /**< balance strategy */
    } ;
 
    /** \class sdbConnectionPoolConf
@@ -86,7 +86,7 @@ namespace sdbclient
          _keepAliveTimeout(0 * 1000),
          _syncCoordInterval(0 * 1000),
          _validateConnection(FALSE),
-         _connectStrategy(CONNPOOL_STY_BALANCE),
+         _connectStrategy(SDB_CONN_STY_SERIAL),
          _useSSL(FALSE) {}
 
    private:
@@ -108,7 +108,7 @@ namespace sdbclient
       // whether check validation when a connection out
       BOOLEAN              _validateConnection ;
       // strategy to create connections
-      CONNPOOL_STRATEGY  _connectStrategy ;
+      SDB_CONN_STRATEGY    _connectStrategy ;
 
       // if configure is valid
       BOOLEAN              _useSSL ;
@@ -266,20 +266,20 @@ namespace sdbclient
       */
       BOOLEAN getValidateConnection() const { return _validateConnection ; }
 
-      /** \fn void setConnectStrategy(CONNPOOL_STRATEGY strategy)
+      /** \fn void setConnectStrategy(SDB_CONN_STRATEGY strategy)
          \brief Set the strategy of sdbConnectionPool
          \param [in] strategy The enum of strategy:
-         DS_STY_SERIAL, DS_STY_RANDOM, DS_STY_LOCAL, DS_STY_BALANCE
+         SDB_CONN_STY_SERIAL, SDB_CONN_STY_RANDOM, SDB_CONN_STY_LOCAL, SDB_CONN_STY_BALANCE
       */
-      void setConnectStrategy( CONNPOOL_STRATEGY strategy )
+      void setConnectStrategy( SDB_CONN_STRATEGY strategy )
       {
          _connectStrategy = strategy ;
       }
-      /** \fn CONNPOOL_STRATEGY getConnectStrategy()
+      /** \fn SDB_CONN_STRATEGY getConnectStrategy()
          \brief Get the strategy of sdbConnectionPool
-         \retval CONNPOOL_STRATEGY The strategy of sdbConnectionPool
+         \retval SDB_CONN_STRATEGY The strategy of sdbConnectionPool
       */
-      CONNPOOL_STRATEGY getConnectStrategy() const
+      SDB_CONN_STRATEGY getConnectStrategy() const
       {
          return _connectStrategy ;
       }

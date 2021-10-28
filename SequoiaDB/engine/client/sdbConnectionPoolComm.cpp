@@ -111,8 +111,8 @@ namespace sdbclient
       if ( (0 != _keepAliveTimeout) && (_keepAliveTimeout < _checkInterval) )
          goto error ;
       // check connection strategy
-      if ( (_connectStrategy < CONNPOOL_STY_SERIAL) ||
-         (_connectStrategy > CONNPOOL_STY_BALANCE) )
+      if ( (_connectStrategy < SDB_CONN_STY_SERIAL) ||
+         (_connectStrategy > SDB_CONN_STY_BALANCE) )
       {
          goto error ;
       }

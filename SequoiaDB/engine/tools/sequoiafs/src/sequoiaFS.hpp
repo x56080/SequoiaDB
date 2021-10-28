@@ -204,7 +204,6 @@ namespace sequoiafs
       int initDataSource(const CHAR * userName,
                          const CHAR *passwd,
                          const INT32 connNum);
-      INT32 disableDataSource();
       INT32 closeDataSource();
       INT32 getConnection(sdb **connection);
       void releaseConnection(sdb *connection)

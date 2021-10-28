@@ -73,29 +73,29 @@ namespace sdbclient
 
    sdbConnectionPool::~sdbConnectionPool()
    {
-      disable() ;
+      _disable() ;
       // clear strategy
       SAFE_OSS_DELETE(_strategy) ;
    }
 
-   // init connection pool with url(hostname:port) and conf
+   // init connection pool with address(hostname:port) and conf
    INT32 sdbConnectionPool::init(
-      const string &url,
+      const string &address,
       const sdbConnectionPoolConf &conf )
    {
-      std::vector<string> vUrl ;
-      vUrl.push_back( url ) ;
+      std::vector<string> addrs ;
+      addrs.push_back( address ) ;
 
-      return init( vUrl, conf ) ;
+      return init( addrs, conf ) ;
    }
 
-   // init connection pool with url vector and conf
+   // init connection pool with address vector and conf
    INT32 sdbConnectionPool::init(
-      const std::vector<string> &vUrls,
+      const std::vector<string> &addrs,
       const sdbConnectionPoolConf &conf )
    {
       INT32 rc = SDB_OK ;
-      int validUrlCnt = 0 ;
+      int validAddrCnt = 0 ;
 
       if ( TRUE == _isInited )
       {
@@ -119,22 +119,27 @@ namespace sdbclient
       }
 
       // check address vector
-      for ( UINT32 i = 0 ; i < vUrls.size() ; ++i )
+      for ( UINT32 i = 0 ; i < addrs.size() ; ++i )
       {
-         if ( _checkAddrArg( vUrls[i] ) )
+         if ( _checkAddrArg( addrs[i] ) )
          {
-            _strategy->addCoord( vUrls[i] ) ;
-            validUrlCnt++ ;
+            _strategy->addCoord( addrs[i] ) ;
+            validAddrCnt++ ;
          }
       }
       //if no address is valid, return SDB_INVALIDARG
-      if ( 0 == validUrlCnt )
+      if ( 0 == validAddrCnt )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       _isInited = TRUE ;
+      rc = _enable() ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
    done :
       return rc  ;
    error :
@@ -154,7 +159,7 @@ namespace sdbclient
    }
 
    // get the number of normal coord node
-   INT32 sdbConnectionPool::getNormalCoordNum() const
+   INT32 sdbConnectionPool::getNormalAddrNum() const
    {
       if ( _isInited )
       {
@@ -168,7 +173,7 @@ namespace sdbclient
    }
 
    // get the number of abnormal coord node
-   INT32 sdbConnectionPool::getAbnormalCoordNum() const
+   INT32 sdbConnectionPool::getAbnormalAddrNum() const
    {
       if ( _isInited )
       {
@@ -182,7 +187,7 @@ namespace sdbclient
    }
 
    // get the number of local coord node
-   INT32 sdbConnectionPool::getLocalCoordNum() const
+   INT32 sdbConnectionPool::getLocalAddrNum() const
    {
       if ( _isInited )
       {
@@ -195,30 +200,8 @@ namespace sdbclient
       }
    }
 
-   // add a coord node
-   void sdbConnectionPool::addCoord( const string &url )
-   {
-      // check address argument
-      if ( _isInited && _checkAddrArg(url) )
-      {
-         SDB_ASSERT( _strategy, "_strategy is null" ) ;
-         _strategy->addCoord( url ) ;
-      }
-   }
-
-   // remove a coord node
-   void sdbConnectionPool::removeCoord( const string &url )
-   {
-      // check address argument
-      if ( _isInited && _checkAddrArg(url) )
-      {
-         SDB_ASSERT( _strategy, "_strategy is null" ) ;
-         _strategy->removeCoord( url ) ;
-      }
-   }
-
    // enable connection pool, start background task
-   INT32 sdbConnectionPool::enable()
+   INT32 sdbConnectionPool::_enable()
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isLocked = FALSE ;
@@ -304,7 +287,7 @@ namespace sdbclient
    }
 
    // disable connection pool, stop background task
-   INT32 sdbConnectionPool::disable()
+   INT32 sdbConnectionPool::_disable()
    {
       INT32 ret = SDB_OK ;
       BOOLEAN isLocked = FALSE ;
@@ -602,12 +585,12 @@ namespace sdbclient
    }
 
    // check address arguments, if valid, add it
-   BOOLEAN sdbConnectionPool::_checkAddrArg( const string &url )
+   BOOLEAN sdbConnectionPool::_checkAddrArg( const string &address )
    {
       BOOLEAN rc = TRUE ;
 
-      size_t pos = url.find_first_of( ":" ) ;
-      size_t pos1 = url.find_last_of( ":" ) ;
+      size_t pos = address.find_first_of( ":" ) ;
+      size_t pos1 = address.find_last_of( ":" ) ;
       if ( string::npos == pos )
          rc = FALSE ;
       else if ( pos != pos1 )
@@ -625,16 +608,16 @@ namespace sdbclient
          SAFE_OSS_DELETE( _strategy ) ;
       switch( _conf.getConnectStrategy() )
       {
-      case CONNPOOL_STY_SERIAL:
+      case SDB_CONN_STY_SERIAL:
          _strategy = SDB_OSS_NEW sdbConnPoolSerialStrategy() ;
          break ;
-      case CONNPOOL_STY_RANDOM:
+      case SDB_CONN_STY_RANDOM:
          _strategy = SDB_OSS_NEW sdbConnPoolRandomStrategy() ;
          break ;
-      case CONNPOOL_STY_LOCAL:
+      case SDB_CONN_STY_LOCAL:
          _strategy = SDB_OSS_NEW sdbConnPoolLocalStrategy() ;
          break ;
-      case CONNPOOL_STY_BALANCE:
+      case SDB_CONN_STY_BALANCE:
          // balance strategy has been deprecated
          _strategy = SDB_OSS_NEW sdbConnPoolSerialStrategy() ;
          break ;
@@ -1055,7 +1038,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
                bson::BSONElement portEle = itrPort.next() ;
                portItem = portEle.embeddedObject() ;
                newcoord.append(portItem.getField( "Name" ).valuestr()) ;
-               addCoord(newcoord) ;
+               _strategy->addCoord( newcoord ) ;
             }
          }
       }
@@ -1179,15 +1162,25 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
    }
 
    // close connection pool
-   void sdbConnectionPool::close()
+   INT32 sdbConnectionPool::close()
    {
-      disable() ;
+      INT32 rc = SDB_OK ;
+
+      rc = _disable() ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
       // clear strategy
       if ( _strategy )
       {
          SAFE_OSS_DELETE( _strategy ) ;
       }
       _isInited = FALSE;
+   done :
+      return rc  ;
+   error :
+      goto done  ;
    }
 
    void sdbConnectionPool::updateAuthInfo( const string &username,

@@ -105,26 +105,26 @@ namespace sdbclient
       sdbConnectionPool& operator=( const sdbConnectionPool &connPool ) ;
 
    public:
-      /** \fn INT32 init(const std::string &url,
+      /** \fn INT32 init(const std::string &address,
          const sdbConnectionPoolConf &conf)
          \brief Initialize connection pool
-         \param [in] url A coord node("ubuntu-xxx:11810")
+         \param [in] address A coord node("ubuntu-xxx:11810")
          \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
-      INT32 init( const std::string &url, const sdbConnectionPoolConf &conf ) ;
+      INT32 init( const std::string &address, const sdbConnectionPoolConf &conf ) ;
 
-      /** \fn INT32 init(const std::vector<std::string> &vUrls,
+      /** \fn INT32 init(const std::vector<std::string> &addrs,
          const sdbConnectionPoolConf &conf)
          \brief Initialize connection pool
-         \param [in] vUrls A list of coord node("ubuntu-xxx:11810")
+         \param [in] addrs A list of coord node("ubuntu-xxx:11810")
          \param [in] conf The sdbConnectionPoolConf
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
       INT32 init(
-         const std::vector<std::string> &vUrls,
+         const std::vector<std::string> &addrs,
          const sdbConnectionPoolConf &conf ) ;
 
       /** \fn INT32 getIdleConnNum()const
@@ -141,55 +141,26 @@ namespace sdbclient
       */
       INT32 getUsedConnNum()const  ;
 
-      /** \fn INT32 getNormalCoordNum()const
-         \brief Get the number of reachable coord nodes or -1 for connection pool
+      /** \fn INT32 getNormalAddrNum()const
+         \brief Get the number of reachable address or -1 for connection pool
                 has not been initialized yet.
          \retval The number of reachable coord nodes
       */
-      INT32 getNormalCoordNum()const  ;
+      INT32 getNormalAddrNum()const  ;
 
-      /** \fn INT32 getAbnormalCoordNum()const
-         \brief Get the number of unreachable coord nodes or -1 for connection pool
+      /** \fn INT32 getAbnormalAddrNum()const
+         \brief Get the number of unreachable address or -1 for connection pool
                 has not been initialized yet.
          \retval The number of unreachable coord nodes
       */
-      INT32 getAbnormalCoordNum() const  ;
+      INT32 getAbnormalAddrNum() const  ;
 
-      /** \fn INT32 getLocalCoordNum()const
-         \brief Get the number of local coord nodes or -1 for connection pool
+      /** \fn INT32 getLocalAddrNum()const
+         \brief Get the number of local address or -1 for connection pool
                 has not been initialized yet.
          \retval The number of local coord nodes
       */
-      INT32 getLocalCoordNum()const  ;
-
-      /** \fn INT32 addCoord(const string &url)
-         \brief Add a coord node
-         \param [in] url A coord node("ubuntu-xxx:11810")
-      */
-      void addCoord( const string &url ) ;
-
-      /** \fn INT32 removeCoord(const string &url)
-         \brief Remove a coord node
-         \param [in] url A coord node("ubuntu-xxx:11810")
-      */
-      void removeCoord( const string &url ) ;
-
-      /** \fn INT32 enable()
-         \brief Enable connection pool
-         \retval SDB_OK Operation Success
-         \retval Others Operation Fail
-      */
-      INT32 enable() ;
-
-      /** \fn INT32 disable()
-         \brief Disable connection pool. After disable, the connection pool will
-                disconnect all the connections and release the handle of
-                the connections. So stop using the connection handle which has
-                not been released to the connection pool.
-         \retval SDB_OK Operation Success
-         \retval Others Operation Fail
-      */
-      INT32 disable() ;
+      INT32 getLocalAddrNum()const  ;
 
       /** \fn INT32 getConnection(sdb*& conn, INT64 timeoutsec = 5000)
          \brief Get a connection form connection pool
@@ -213,8 +184,10 @@ namespace sdbclient
 
       /** \fn void close()
          \brief Close connection pool
+         \retval SDB_OK Operation Success
+         \retval Others Operation Fail
       */
-      void close() ;
+      INT32 close() ;
 
       /** \fn void updateAuthInfo( const string &username, const string &passwd )
          \brief update authentication information
@@ -250,10 +223,16 @@ namespace sdbclient
 
    private:
       // check address arguments, if valid, add it
-      BOOLEAN _checkAddrArg( const string &url ) ;
+      BOOLEAN _checkAddrArg( const string &address ) ;
 
       // new a strategy with config
       INT32 _buildStrategy() ;
+
+      // enable connection pool
+      INT32 _enable() ;
+
+      // disable connection pool
+      INT32 _disable() ;
 
       // clear connection pool
       void _clearConnPool() ;
