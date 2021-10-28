@@ -116,8 +116,6 @@ TEST_F( closeAllCursorsTest14183, connectionPoolConn )
    conf.setAuthInfo( user, passwd ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
    sdb* conn = &db ;
    rc = ds.getConnection( conn ) ;
@@ -140,7 +138,5 @@ TEST_F( closeAllCursorsTest14183, connectionPoolConn )
    rc = (*conn).dropCollectionSpace( csname ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs" ;
 
-   rc = ds.disable() ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
    ds.close() ;
 }

@@ -26,23 +26,19 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
 
-// 用户信息非法时，init/enable正常返回, getConnection报错( 9522-9523 )
+// 用户信息非法时，init正常返回, getConnection报错( 9522-9523 )
 TEST_F( invalidUsrTest9522, userInfo9522 )
 {
    INT32 rc = SDB_OK ;
    
-   // init enable and get connection
+   // init and get connection
 	sdb* conn = NULL ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
 
@@ -66,8 +62,6 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	conf.setAuthInfo( "lxw", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with invalid user" ;
 	ds.close() ;
@@ -76,8 +70,6 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	conf.setAuthInfo( "root", "" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to test init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with no passwd" ;
 	ds.close() ;
@@ -86,8 +78,6 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	conf.setAuthInfo( "root", "seq" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to test get connection with illegal passwd" ;
 	ds.close() ;
@@ -96,8 +86,6 @@ TEST_F( invalidUsrTest9522, userInfo9522 )
 	conf.setAuthInfo( "root", "sequoiadb" ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
    rc = ds.getConnection( conn ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
    rc = conn->removeUsr( "root", "sequoiadb" ) ;

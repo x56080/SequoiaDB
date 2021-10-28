@@ -27,9 +27,6 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
-      ds.close() ;
    }   
 } ;
 
@@ -40,8 +37,6 @@ TEST_F( memTest9578, memCheck9578 )
 
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	sdb* conn ;
 	CHAR ch ;

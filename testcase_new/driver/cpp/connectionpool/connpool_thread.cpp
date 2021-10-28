@@ -12,183 +12,144 @@ using namespace std ;
 
 INT32 getRand()
 {
-	static BOOLEAN inited = TRUE ;
-	if( inited )
-	{
-		srand( time( NULL ) ) ;
-		inited = FALSE ;
-	}
-	return rand()%10 ;
+   static BOOLEAN inited = TRUE ;
+   if( inited )
+   {
+      srand( time( NULL ) ) ;
+      inited = FALSE ;
+   }
+   return rand()%10 ;
 }
 
 void init( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 }
 
 void init_enable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 }
 
 void init_disable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 }
 
 void init_close( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-	arg->getDs().close() ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   arg->getDs().close() ;
 }
 
 void init_conn( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	sdb* conn = NULL ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-	arg->getDs().releaseConnection( conn ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
+   arg->getDs().releaseConnection( conn ) ;
 }
 
 void init_coord( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-	sdbConnectionPoolConf conf ;
+   ossSleep( getRand() * 100 ) ;
+   sdbConnectionPoolConf conf ;
    string url = ARGS->coordUrl() ;
    rc = arg->getDs().init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   string url1 = "localhost:11910" ;
 }
 
 void enable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
+   ossSleep( getRand() * 100 ) ;
 }
 
 void enable_disable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-   rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
+   ossSleep( getRand() * 100 ) ;
 }
 
 void enable_close( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	arg->getDs().close() ;
+   ossSleep( getRand() * 100 ) ;
+   arg->getDs().close() ;
 }
 
 void enable_conn( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	sdb* conn = NULL ;
+   ossSleep( getRand() * 100 ) ;
+   sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-	arg->getDs().releaseConnection( conn ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
+   arg->getDs().releaseConnection( conn ) ;
 }
 
 void enable_coord( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
    ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
-	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
+   string url1 = "localhost:11910" ;
 }
 
 void disable( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
+   ossSleep( getRand() * 100 ) ;
 }
 
 void disable_close( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
-	arg->getDs().close() ;
+   ossSleep( getRand() * 100 ) ;
+   arg->getDs().close() ;
 }
 
 void disable_conn( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
-	sdb* conn = NULL ;
+   ossSleep( getRand() * 100 ) ;
+   sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection" ;
-	arg->getDs().releaseConnection( conn ) ;
+   arg->getDs().releaseConnection( conn ) ;
 }
 
 void disable_coord( DsArgs* arg )
 {
    INT32 rc = SDB_OK ;
-	ossSleep( getRand() * 100 ) ;
-   rc = arg->getDs().disable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
-	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
+   ossSleep( getRand() * 100 ) ;
+   string url1 = "localhost:11910" ;
 }
 
 void dsclose( DsArgs* arg )
@@ -213,10 +174,6 @@ void dsclose_coord( DsArgs* arg )
    INT32 rc = SDB_OK ;
 	ossSleep( getRand() * 100 ) ;
 	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
 	arg->getDs().close() ;
 }
 
@@ -239,10 +196,6 @@ void connection_coord( DsArgs* arg )
 	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
 	arg->getDs().releaseConnection( conn ) ;
 	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
 }
 
 void releaseConn( DsArgs* arg )
@@ -264,33 +217,21 @@ void releaseConn_coord( DsArgs* arg )
 		arg->getDs().releaseConnection( vec[i] ) ;
    }
 	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
 }
 
 void addCoord( DsArgs* arg )
 {
 	ossSleep( getRand() * 100 ) ;
 	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_EQ( 2, arg->getDs().getNormalCoordNum() ) ;
 }
 
 void addCoord_remove( DsArgs* arg )
 {
 	string url1 = "localhost:11910" ;
-	arg->getDs().addCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
-	arg->getDs().removeCoord( url1 ) ;
-	ASSERT_GE( 2, arg->getDs().getNormalCoordNum() ) ;
 }
 
 void removeCoord( DsArgs* arg )
 {
 	ossSleep( getRand() * 100 ) ;
 	string url = ARGS->coordUrl() ;
-	arg->getDs().removeCoord( url ) ;
-	ASSERT_EQ( 0, arg->getDs().getNormalCoordNum() ) ;
 }

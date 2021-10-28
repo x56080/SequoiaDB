@@ -67,8 +67,6 @@ protected:
    }
    void TearDown()
    {
-      INT32 rc = ds.disable() ;
-      ASSERT_EQ( SDB_OK, rc ) << "fail to disable connectionpool" ;
       ds.close() ;
    }
 } ;
@@ -184,7 +182,7 @@ TEST_F( threadTest9535, initCoord9541 )
    }
 }
 */
-
+#if 0
 // enable与enable之间并发，正常获取释放连接
 TEST_F( threadTest9535, enableEnable9543 )
 {
@@ -229,7 +227,7 @@ TEST_F( threadTest9535, enableDisable9544 )
 
 	sdb *conn = NULL ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection" ;
+	ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_ENABLE, rc ) << "fail to test get connection" ;
 }
 
 /* 问题单1945,enable与close并发,core
@@ -253,7 +251,7 @@ TEST_F( threadTest9535, enableClose9545 )
 
 	sdb *conn = NULL ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_DS_NOT_ENABLE, rc ) << "fail to test get connection" ;
+	ASSERT_EQ( SDB_CONNPOOL_NOT_ENABLE, rc ) << "fail to test get connection" ;
 }
 */
 
@@ -336,15 +334,13 @@ TEST_F( threadTest9535, disableClose9551 )
    }
 }
 */
-
+#endif
 // disable与getConnection/releaseConnection之间并发，disable后获取连接出错( 9552 9553 )
 TEST_F( threadTest9535, disableConn9552 )
 {
    INT32 rc = SDB_OK ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
 	{
@@ -446,8 +442,6 @@ TEST_F( threadTest9535, getConnConn9561 )
    INT32 rc = SDB_OK ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
 	{
@@ -468,8 +462,6 @@ TEST_F( threadTest9535, getConnCoord9563 )
 	conf.setSyncCoordInterval( 0 ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
 	{
@@ -489,8 +481,6 @@ TEST_F( threadTest9535, releaseConnConn9565 )
    INT32 rc = SDB_OK ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	vector<sdb*> vec ;
 	INT32 cnt = 0 ;
@@ -523,8 +513,6 @@ TEST_F( threadTest9535, releaseConnCoord9566 )
 	conf.setSyncCoordInterval( 0 ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	vector<sdb*> vec ;
 	INT32 cnt = 0 ;
@@ -557,8 +545,6 @@ TEST_F( threadTest9535, addCoordAddCoord9568 )
 	conf.setSyncCoordInterval( 0 ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
@@ -580,8 +566,6 @@ TEST_F( threadTest9535, addCoordRemoveCoord9569 )
 	conf.setSyncCoordInterval( 0 ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
@@ -603,12 +587,8 @@ TEST_F( threadTest9535, removeCoordRemoveCoord9570 )
 	conf.setSyncCoordInterval( 0 ) ;
    rc = ds.init( url, conf ) ;
 	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   rc = ds.enable() ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to enable connectionpool" ;
 
 	string url1 = url ;
-	ds.addCoord( url1 ) ;
-	ASSERT_EQ( 1, ds.getNormalCoordNum() ) ;
 
 	DsArgs args( ds ) ;
 	for( INT32 i = 0;i < ThreadNum;++i )
