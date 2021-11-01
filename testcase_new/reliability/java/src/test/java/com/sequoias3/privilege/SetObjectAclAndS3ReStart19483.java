@@ -29,9 +29,12 @@ import com.sequoias3.commlibs3.s3utils.S3NodeRestart;
 import com.sequoias3.commlibs3.s3utils.bean.S3NodeWrapper;
 
 /**
- * @Description seqDB-19483 :配置对象acl过程中s3节点异常
+ * @description seqDB-19483 :配置对象acl过程中s3节点异常
  * @author wangkexin
- * @Date 2019.09.26
+ * @date 2019.09.26
+ * @updateUser wuyan
+ * @updateDate 2021.11.1
+ * @updateRemark 减少操作对象数据量，在满足测试场景基础上减少大数据量同步等待时间
  * @version 1.00
  */
 public class SetObjectAclAndS3ReStart19483 extends S3TestBase {
@@ -39,13 +42,12 @@ public class SetObjectAclAndS3ReStart19483 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private String bucketName = "bucket19483";
     private String keyName_base = "key19483";
-    private int keyNum = 100;
-    private int fileSize = 200 * 1024;
+    private int keyNum = 50;
+    private int fileSize = 100 * 1024;
     private String filePath = null;
     private File localPath = null;
     private File file = null;
-    private List< String > setObjectAclSucceedList = new
-            CopyOnWriteArrayList< String >();
+    private List< String > setObjectAclSucceedList = new CopyOnWriteArrayList< String >();
     private List< String > keyNameList = new ArrayList<>();
 
     @BeforeClass

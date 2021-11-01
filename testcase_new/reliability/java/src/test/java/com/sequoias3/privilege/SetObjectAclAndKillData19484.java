@@ -31,9 +31,12 @@ import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.PrivilegeUtils;
 
 /**
- * @Description seqDB-19484 :更新对象acl过程中db端节点异常
+ * @description seqDB-19484 :更新对象acl过程中db端节点异常
  * @author wangkexin
- * @Date 2019.09.26
+ * @date 2019.09.26
+ * @updateUser wuyan
+ * @updateDate 2021.11.1
+ * @updateRemark 减少操作对象数据量，在满足测试场景基础上减少大数据量同步等待时间
  * @version 1.00
  */
 public class SetObjectAclAndKillData19484 extends S3TestBase {
@@ -41,8 +44,8 @@ public class SetObjectAclAndKillData19484 extends S3TestBase {
     private AmazonS3 s3Client = null;
     private String bucketName = "bucket19484";
     private String keyName_base = "key19484";
-    private int keyNum = 100;
-    private int fileSize = 200 * 1024;
+    private int keyNum = 50;
+    private int fileSize = 100 * 1024;
     private String filePath = null;
     private File localPath = null;
     private File file = null;
