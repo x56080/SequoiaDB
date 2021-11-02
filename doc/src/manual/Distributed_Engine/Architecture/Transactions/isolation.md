@@ -106,4 +106,4 @@ SequoiaDB 的 RR 级别是通过多版本并发控制（MVCC，Multi-Version Con
 
 [configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
 [overview]:manual/Distributed_Engine/Architecture/Stp/Readme.md
-[configuration_parameters]:manual/Manual/Database_Configuration/configuration_parameters.md
+[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
