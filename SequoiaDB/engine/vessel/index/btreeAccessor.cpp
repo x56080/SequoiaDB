@@ -58,7 +58,7 @@ namespace vessel
    }
 
    INT32 btreeAccessor::init(requestContext *context,
-                                  indexContext *ic)
+                             indexContext *ic)
    {
       INT32 rc = SDB_OK;
       logicalPageSpace *lps = NULL;
@@ -88,6 +88,8 @@ namespace vessel
       }
 
       _is = static_cast<indexSpace *>(lps);
+      _bac.init(_ic, _context, _is);
+      
    done:
       return rc;
    error:
@@ -100,7 +102,7 @@ namespace vessel
       _context = NULL;
       _is = NULL;
       _ic = NULL;
-      
+      _bac.fini();
       return;
    }
 
@@ -109,12 +111,10 @@ namespace vessel
                                const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      btreeAccessContext bac;
       BOOLEAN checkpointBlocked = FALSE;
-      ossSharedLatchMode mode;
       BOOLEAN obstructed = FALSE;
 
-      if (OSS_UNLIKELY(isInitialized()))
+      if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -125,8 +125,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      bac.init(_ic, key, &rid, &transID);
 
       rc = _is->blockCheckpoint(_context);
       if (SDB_OK != rc)
@@ -143,7 +141,9 @@ namespace vessel
          goto error;
       }
 
-      rc = traverseDownAndInsert(bac, obstructed);
+      _bac.clearAccessPath();
+      _bac.setReadonly(FALSE);
+      rc = traverseDownAndInsert(key, rid, transID, obstructed);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
@@ -152,9 +152,12 @@ namespace vessel
 
       if (obstructed)
       {
-         bac.setPessimistic(TRUE);
+         _bac.clearAccessPath();
+         _bac.setReadonly(FALSE);
+         _bac.setPessimistic(TRUE);
+         
          obstructed = FALSE;
-         rc = traverseDownAndInsert(bac, obstructed);
+         rc = traverseDownAndInsert(key, rid, transID, obstructed);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
@@ -169,7 +172,12 @@ namespace vessel
          }
       }
    done:
-      bac.fini();
+      if (_bac.isValid())
+      {
+         _bac.clearAccessPath();
+         _bac.setReadonly(FALSE);
+         _bac.setPessimistic(FALSE);
+      }
       if (checkpointBlocked)
       {
          _context->unblockCheckpoint();
@@ -179,34 +187,40 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::traverseDownAndInsert(btreeAccessContext &bac,
+   INT32 btreeAccessor::traverseDownAndInsert(const ixmKey &key,
+                                              const recordID &rid,
+                                              const DPS_TRANS_ID &transID,
                                               BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
+      SDB_ASSERT(isValid(), "must be inited");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
 
-      btreeNode node;
       obstructed = FALSE;
 
-      if (bac.isPathEmpty())
+      btreeNode node;
+
+      if (_bac.isPathEmpty())
       {
-         rc = pushRootIntoPath(bac);
+         rc = _bac.pushRootIntoPath(&node);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to push root node into path:%d", rc);
             goto error;
          }
       }
-
-      node = bac.getEndNodeInPath();
+      else
+      {
+         node = _bac.getEndNodeInPath();
+      }
 
       if (node.isLeaf())
       {  
-         if (node.hasFreeSpaceToInsert(bac.getKey().dataSize()))
+         if (node.hasFreeSpaceToInsert(key.dataSize()))
          {
-            bac.endToAccessPathNodes(1);
-            rc = insertWhenPathEndIsLeaf(bac, obstructed);
+            _bac.endToAccessNonPathEndNodes();
+            rc = insertWhenPathEndIsLeaf(key, rid, transID, obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
@@ -216,20 +230,18 @@ namespace vessel
          }
          else
          {
-            rc = splitAndInsertWhenPathEndIsLeaf(bac, obstructed);
+            rc = splitAndInsertWhenPathEndIsLeaf(key, rid, transID, obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to split and insert:%d", rc);
                goto error;
             }
          }
-
-         bac.clearAccessPath();
       }
       else
       {
          btreeItemLocation location;
-         rc = node.locateKeyAndRid(bac.getKey(), bac.getRid(), location);
+         rc = node.locateKeyAndRid(key, rid, location);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
@@ -238,25 +250,23 @@ namespace vessel
 
          if (location.identical)
          {
-            bac.endToAccessPathNodes(1);
+            _bac.endToAccessNonPathEndNodes();
             if (!node.ensureExclusiveLocking())
             {
                obstructed = TRUE;
                goto done;
             }
 
-            rc = node.reactiveRemovedKey(location, bac.getTransID());
+            rc = node.reactiveRemovedKey(location, transID);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
                goto error;
             }
-
-            bac.clearAccessPath();
          }
          else if (node.hasExternalKey())
          {
-            rc = splitNonLeafPathEnd(bac, obstructed);
+            rc = splitNonLeafPathEnd(obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to split node with ext key:%d", rc);
@@ -265,12 +275,11 @@ namespace vessel
 
             if (obstructed)
             {
-               bac.clearAccessPath();
                goto done;
             }
 
             /// restart inserting from the last node which received raised key.
-            rc = traverseDownAndInsert(bac, obstructed);
+            rc = traverseDownAndInsert(key, rid, transID, obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to traverse down and insert after split:%d", rc);
@@ -281,21 +290,19 @@ namespace vessel
          {
             /// node's free space is enough to save raised key with any size,
             /// end to access ancestors.
-            if (node.isSpaceSpare())
+            if (node.hasFreeSpaceToInsertRaisedKey(MAX_INDEX_KEY_SIZE))
             {
-               bac.endToAccessPathNodes(1);
+               _bac.endToAccessNonPathEndNodes();
             }
 
-            rc = pushNoneRootNodeIntoPath(location.child,
-                                          estimateChildModeWhenWriting(bac),
-                                          bac);
+            rc = _bac.pushChildNodeIntoPath(location.child);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
                goto error;
             }
 
-            rc = traverseDownAndInsert(bac, obstructed);
+            rc = traverseDownAndInsert(key, rid, transID, obstructed);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to traverse down and insert after split:%d", rc);
@@ -310,24 +317,38 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::splitNonLeafPathEnd(btreeAccessContext &bac,
-                                            BOOLEAN &obstructed)
+   INT32 btreeAccessor::splitNonLeafPathEnd(BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be invalid");
-      SDB_ASSERT(bac.isValid() && 1 < bac.getPathDepth(), "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
 
       btreeSplitRaisedKey raisedKey;
-      btreeNode node = bac.getEndNodeInPath();
+      btreeNode father;
+      btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+      SDB_ASSERT(!node.isRoot(), "can not be root");
       obstructed = FALSE;
 
-      btreeNode father = bac.getNodeInPath(node.getDepth() - 1);
-      if (!node.ensureExclusiveLocking() ||
-          !father.ensureExclusiveLocking())
+      if (!node.ensureExclusiveLocking())
       {
          obstructed = TRUE;
          goto done;
+      }
+
+      father = _bac.getNodeInPath(node.getDepth() - 1);
+      if (!father.ensureExclusiveLocking())
+      {
+         obstructed = TRUE;
+         goto done;
+      }
+
+      rc = father.prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
+         goto error;
       }
 
       rc = node.split(raisedKey);
@@ -338,8 +359,10 @@ namespace vessel
          goto error;
       }
 
-      bac.popEnd();
-      rc = traverseUpAndInsert(bac, raisedKey);
+      SDB_ASSERT(!node.hasExternalKey(), "impossible");
+
+      _bac.popEnd();
+      rc = insertRaisedKeyRecursively(raisedKey, node.getTransID());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert raised key into ancestors:%d", rc);
@@ -351,22 +374,27 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::insertWhenPathEndIsLeaf(btreeAccessContext &bac,
+   INT32 btreeAccessor::insertWhenPathEndIsLeaf(const ixmKey &key,
+                                                const recordID &rid,
+                                                const DPS_TRANS_ID &transID,
                                                 BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be invalid");
-      SDB_ASSERT(bac.isValid() && !bac.isPathEmpty(), "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
 
-      btreeNode node = bac.getEndNodeInPath();
+      btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(node.isLeaf(), "must be leaf node");
-      obstructed = node.ensureExclusiveLocking();
-      if (!obstructed)
+
+      obstructed = FALSE;
+      if (!node.ensureExclusiveLocking())
       {
+         obstructed = TRUE;
          goto done;
       }
 
-      rc = node.leafInsert(bac.getKey(), bac.getRid(), bac.getTransID());
+      rc = node.leafInsert(key, rid, transID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert into leaf node:%d", rc);
@@ -379,18 +407,28 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::splitAndInsertWhenPathEndIsLeaf(btreeAccessContext &bac,
+   INT32 btreeAccessor::splitAndInsertWhenPathEndIsLeaf(const ixmKey &key,
+                                                        const recordID &rid,
+                                                        const DPS_TRANS_ID &transID,
                                                         BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be invalid");
-      SDB_ASSERT(bac.isValid() && !bac.isPathEmpty(), "can not be invalid");
-      btreeNode node = bac.getEndNodeInPath();
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be invalid");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
+      btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(node.isLeaf(), "must be leaf");
+
+      obstructed = FALSE;
+      if (!node.ensureExclusiveLocking())
+      {
+         obstructed = TRUE;
+         goto done;
+      }
 
       if (node.isRoot())
       {
-         rc = splitAndInsertWhenPathEndIsRoot(bac, NULL, obstructed);
+         rc = splitAndInsertWhenPathEndIsRoot(key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split root and insert:%d", rc);
@@ -400,7 +438,7 @@ namespace vessel
       else
       {
          btreeSplitRaisedKey raisedKey;
-         btreeNode father = bac.getNodeInPath(node.getDepth() - 1);
+         btreeNode father = _bac.getNodeInPath(node.getDepth() - 1);
          SDB_ASSERT(father.isValid(), "must be valid");
          if (!father.ensureExclusiveLocking())
          {
@@ -408,8 +446,14 @@ namespace vessel
             goto done;
          }
 
-         rc = node.splitLeafAndInsert(bac.getKey(), bac.getRid(),
-                                      bac.getTransID(), raisedKey);
+         rc = father.prepareToWrite();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
+            goto error;
+         }
+
+         rc = node.splitLeafAndInsert(key, rid, transID, raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split leaf node [%d] and insert:%d",
@@ -417,8 +461,8 @@ namespace vessel
             goto error;
          }
 
-         bac.popEnd();
-         rc = traverseUpAndInsert(bac, raisedKey);
+         _bac.popEnd();
+         rc = insertRaisedKeyRecursively(raisedKey, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to traverse up and insert raised key:%d", rc);
@@ -431,37 +475,32 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::splitAndInsertWhenPathEndIsRoot(btreeAccessContext &bac,
-                                                        const btreeSplitRaisedKey *raisedKey,
-                                                        BOOLEAN &obstructed)
+   INT32 btreeAccessor::splitAndInsertWhenPathEndIsRoot(const ixmKey &key,
+                                                        const recordID &rid,
+                                                        const DPS_TRANS_ID &transID,
+                                                        const btreeSplitRaisedKey *raisedKey)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be invalid");
-      SDB_ASSERT(bac.isValid() && 1 == bac.getPathDepth(), "can not be invalid");
-      btreeNode node = bac.getEndNodeInPath();
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(((key.isValid() && rid.isValid()) ||
+                   (NULL != raisedKey && raisedKey->isValid())), "can not be invalid");
+      SDB_ASSERT(1 == _bac.getPathSize() && !_bac.isReadonly(), "can not be invalid");
+
+      btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(node.isRoot(), "must be root");
-      SDB_ASSERT(!(node.isLeaf() && NULL != raisedKey), "impossible");
+      SDB_ASSERT(node.getLockingMode().isExclusive(), "must be exclusive");
+      SDB_ASSERT(!(node.isLeaf() && NULL != raisedKey),
+                 "can not insert raised key into leaf");
+
       btreeRootPageIniter initer;
       PAGE_ID newRoot = INVALID_PAGE_ID;
       logicalPageBuffer newRootBuffer;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       btreeSplitRaisedKey newRaisedKey;
-      logicalPageBuffer entryBuffer;
-      indexEntryPageAccessor accessor;
-      UINT32 rootUpdatedTimes = 0;
-
-      if (!node.ensureExclusiveLocking())
-      {
-         obstructed = TRUE;
-         goto done;
-      }
-
-      rc = _is->getLogicalPageBuffer(_context, _ic->getEntryLpid(), mode, entryBuffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get entry page buffer:%d", rc);
-         goto error;
-      }
+      btreeNode newRootNode;
+      //logicalPageBuffer entryBuffer;
+      //indexEntryPageAccessor accessor;
+      //UINT32 rootUpdatedTimes = 0;
 
       SDB_ASSERT(_ic->getObj().getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
@@ -481,54 +520,76 @@ namespace vessel
          goto error;
       }
 
+/*
+      rc = _is->getLogicalPageBuffer(_context, _ic->getEntryLpid(), mode, entryBuffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get entry page buffer:%d", rc);
+         goto error;
+      }
+
       rc = entryBuffer.prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get entry page ready to write:%d", rc);
          goto error;
       }
+      */
 
       if (NULL == raisedKey)
       {
-         rc = node.splitNonLeafAndInsert(*raisedKey, bac.getTransID(), newRaisedKey);
+         rc = node.splitLeafAndInsert(key, rid, transID, newRaisedKey);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to split root and insert raised key:%d", rc);
+            PD_LOG(PDERROR, "failed to split leaf and insert:%d", rc);
             goto error;
          }
       }
       else
       {
-         rc = node.splitLeafAndInsert(bac.getKey(), bac.getRid(),
-                                    bac.getTransID(), newRaisedKey);
+         rc = node.splitNonLeafAndInsert(*raisedKey, transID, newRaisedKey);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to split and insert key into root:%d", rc);
+            PD_LOG(PDERROR, "failed to split non leaf root and insert:%d", rc);
             goto error;
          }
       }
 
-      rc = btreeNode(&newRootBuffer, _ic, 0).insertRaisedKey(newRaisedKey, bac.getTransID());
+      newRootNode = btreeNode(&newRootBuffer, 0, _ic);
+      rc = newRootNode.insertRaisedKey(newRaisedKey, transID);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert raised key into new root:%d", rc);
+         PD_LOG(PDSEVERE, "failed to insert raised key into new root:%d", rc);
+         ossPanic();
          goto error;
       }
 
+/*
       rc = accessor.updateBtreeRoot(_context, _ic->getIndexID(),
-                                    newRoot, &newRootBuffer,
+                                    newRoot, &entryBuffer,
                                     &rootUpdatedTimes);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update btree root in entry page:%d", rc);
          goto error;
       }
+*/
+   
+      rc = node.exchangeWithNewRoot(newRootNode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDSEVERE, "failed to exchange old/new root:%d", rc);
+         ossPanic();
+         goto error;
+      }
 
-      _ic->getObj().updateBtreeRoot(newRoot, &rootUpdatedTimes);
+      _ic->getObj().updateBtreeRoot(node.getBuffer()->getLogicalPid(),
+                                    node.getSplitedTimes());
+
       /// clear accessing path cause we updated root node.
-      bac.clearAccessPath();
+      _bac.clearAccessPath();
    done:
-      entryBuffer.fini();
+      //entryBuffer.fini();
       newRootBuffer.fini();
       return rc;
    error:
@@ -540,128 +601,16 @@ namespace vessel
    }
 
 
-   INT32 btreeAccessor::pushNoneRootNodeIntoPath(PAGE_ID lpid,
-                                                 const ossSharedLatchMode &mode,
-                                                 btreeAccessContext &bac)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(!mode.isNone(), "can not be none");
-
-      logicalPageBuffer *buffer = bac.allocateBuffer();
-      if (OSS_UNLIKELY(NULL == buffer))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = _is->getLogicalPageBuffer(_context, lpid, mode, *buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] buffer:%d", lpid, rc);
-         goto error;
-      }
-
-      rc = validateBtreePage(*buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate btree node page:%d", rc);
-         goto error;
-      }
-
-      rc = bac.pushIntoPath(buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push node into path:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (NULL != buffer)
-      {
-         bac.releaseBuffer(buffer);
-      }
-      goto done;
-   }
-
-   INT32 btreeAccessor::pushRootIntoPath(btreeAccessContext &bac,
-                                         const ossSharedLatchMode &mode)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(bac.isValid(), "can not be invalid");
-      SDB_ASSERT(bac.isPathEmpty(), "must be empty");
-
-      ossSharedLatchMode rootMode = mode.isNone() ?
-                                    estimateRootMode(bac) : mode;
-      PAGE_ID rootLpid = _ic->getObj().getBtreeRoot();
-      SDB_ASSERT(INVALID_PAGE_ID != rootLpid, "can not be invalid");
-      logicalPageBuffer *buffer = bac.allocateBuffer();
-      if (OSS_UNLIKELY(NULL == buffer))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      do
-      {
-         rc = _is->getLogicalPageBuffer(_context, rootLpid, mode, *buffer);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page buffer of page[%d], rc:%d",
-                  rootLpid, rc);
-            goto error;
-         }
-
-         /// root must be checked again under locking.
-         if (_ic->getObj().getBtreeRoot() == rootLpid)
-         {
-            rc = validateBtreePage(*buffer);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to validate root buffer:%d", rc);
-               goto error;
-            }
-
-            break;
-         }
-
-         buffer->fini();
-         continue;
-      } while (TRUE);
-      
-      rc = bac.pushIntoPath(buffer);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to push root buffer into path:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      if (NULL != buffer)
-      {
-         buffer->fini();
-         bac.releaseBuffer(buffer);
-      }
-      goto done;
-   }
-
    INT32 btreeAccessor::createRootIfNotExists()
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
+      SDB_ASSERT(isValid(), "must be inited");
 
       logicalPageBuffer entryBuffer;
       indexEntryPageAccessor accessor;
       btreeRootPageIniter initer;
       PAGE_ID lpid = INVALID_PAGE_ID;
-      ossSharedLatchMode mode;
-      mode.setExclusive();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (_ic->getObj().hasBtreeRoot())
       {
@@ -684,8 +633,8 @@ namespace vessel
          goto done;
       }
 
-      initer.set(getContext()->getLogicalCLID(),
-                 getIndexContext()->getIndexID());
+      initer.set(_context->getLogicalCLID(),
+                 _ic->getIndexID());
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
       if (SDB_OK != rc)
       {
@@ -702,7 +651,7 @@ namespace vessel
          goto error;
       }
 
-      _ic->getObj().updateBtreeRoot(lpid);
+      _ic->getObj().updateBtreeRoot(lpid, 0);
 
    done:
       entryBuffer.fini();
@@ -710,141 +659,32 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != lpid)
       {
-         _is->releasePages(getContext(), 1, &lpid);
+         _is->releasePage(_context, lpid);
       }
       goto done;
    }
 
-   ossSharedLatchMode btreeAccessor::estimateRootMode(const btreeAccessContext &bac)const
-   {
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(bac.isValid(), "can not be invalid");
-      SDB_ASSERT(bac.isPathEmpty(), "must be empty");
-
-      ossSharedLatchMode mode;
-      if (bac.isReadonly())
-      {
-         mode.setShared();
-      }
-      else if (bac.isPessimistic())
-      {
-         mode.setExclusive();
-      }
-      else
-      {
-         mode = estimateRootModeWhenWriting(_ic->getObj().getBtreeRootUpdatedTimes());
-      }
-
-      return mode;
-   }
-
-   ossSharedLatchMode btreeAccessor::estimateRootModeWhenWriting(UINT32 updatedTimes)const
-   {
-      static const UINT32 _SMALL_SCALE = 2;
-      ossSharedLatchMode mode;
-      if (updatedTimes <= _SMALL_SCALE)
-      {
-         mode.setExclusive();
-      }
-      else
-      {
-         mode.setShared();
-      }
-      return mode;
-   }
-
-   ossSharedLatchMode btreeAccessor::estimateChildModeWhenWriting(btreeAccessContext &bac)const
-   {
-      static const UINT32 _MAX_SHARED_DEPTH = 1;
-      ossSharedLatchMode mode;
-      SDB_ASSERT(!bac.isPathEmpty(), "can not be empty");
-      btreeNode father = bac.getEndNodeInPath();
-      ossSharedLatchMode fatherMode = father.getLockingMode();
-      if (!fatherMode.isShared())
-      {
-         mode = fatherMode;
-      }
-      else if (father.getDepth() < _MAX_SHARED_DEPTH)
-      {
-         mode.setShared();
-      }
-      else
-      {
-         /// which means will get exclusive latch from the depth 2.
-         mode.setExclusive();
-      }
-      return mode;
-   }
-
-   INT32 btreeAccessor::validateBtreePage(const logicalPageBuffer &buffer)const
+   INT32 btreeAccessor::insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey,
+                                                   const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(buffer.isValid(), "can not be invalid");
-
-      const runtimePageBuffer &rpb = buffer.getRuntimeBuffer();
-      const btreeNodePageHead *head = NULL;
-      slice s;
-
-      rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to validate btree page:[%s], rc:%d",
-                rpb.getGlobalPid().toString().c_str(), rc);
-         goto error;
-      }
-
-      s = buffer.getReadableBodySlice();
-
-      head = s.getReadableObjPtr<btreeNodePageHead>(0);
-      if (NULL == head)
-      {
-         PD_LOG(PDERROR, "failed to get btree page head");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (_context->getLogicalCLID() != head->clLogicalID)
-      {
-         PD_LOG(PDERROR, "different logical clids found[%d,%d] on page[%s]",
-                _context->getLogicalCLID(), head->clLogicalID,
-                rpb.getGlobalPid().toString().c_str());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-
-      if (_ic->getIndexID() != head->indexId)
-      {
-         PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
-                _ic->getIndexID(), head->indexId, rpb.getGlobalPid().toString().c_str());
-         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 btreeAccessor::traverseUpAndInsert(btreeAccessContext &bac,
-                                            const btreeSplitRaisedKey &raisedKey)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be invalid");
-      SDB_ASSERT(bac.isValid(), "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be invalid");
       SDB_ASSERT(raisedKey.isValid(), "can not be invalid");
-      btreeNode node = bac.getEndNodeInPath();
+
+      btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(node.getLockingMode().isExclusive(),
                  "must hold exlusive latch first");
+      SDB_ASSERT(node.getBuffer()->isWritable(), "must be writable");
       SDB_ASSERT(!node.hasExternalKey(), "must split node first");
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
-      SDB_ASSERT(node.hasFreeSpaceToInsert(0),
+      SDB_ASSERT(node.hasFreeSpaceToInsertRaisedKey(0),
                  "one slot should always be reserved");
-      BOOLEAN obstructed = FALSE;
       
-      if (node.hasFreeSpaceToInsert(raisedKey.getKeySize() + BTREE_NODE_SLOT_SIZE))
+      /// one slot always be reserved
+      if (node.hasFreeSpaceToInsertRaisedKey(raisedKey.getKeySize()))
       {
-         rc = node.insertRaisedKey(raisedKey, bac.getTransID());
+         rc = node.insertRaisedKey(raisedKey, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
@@ -853,56 +693,55 @@ namespace vessel
       }
       else if (node.isRoot())
       {
-         rc = splitAndInsertWhenPathEndIsRoot(bac, &raisedKey, obstructed);
+         rc = splitAndInsertWhenPathEndIsRoot(ixmKey(), recordID(),
+                                              transID, &raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split root and insert raised key:%d", rc);
             goto error;
          }
-         else if (obstructed)
-         {
-            PD_LOG(PDERROR, "get unexpected obstructing when split root");
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
       }
       else
       {
-         btreeNode father = bac.getNodeInPath(node.getDepth() - 1);
-         if (!father.isValid())
+         if (_bac.isStillAccessing(node.getDepth() - 1))
          {
-            PD_LOG(PDERROR, "failed to get father node of depth[%d]",
-                   node.getDepth());
-            rc = SDB_VESSEL_INTERNAL_ERR;
+            btreeNode father = _bac.getNodeInPath(node.getDepth() - 1);
+            if (father.ensureExclusiveLocking())
+            {
+               btreeSplitRaisedKey newRaisedKey;
+
+               rc = father.prepareToWrite();
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
+                  goto error;
+               }
+
+               rc = node.splitNonLeafAndInsert(raisedKey, transID, newRaisedKey);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
+                  goto error;
+               }
+
+               _bac.popEnd();
+               rc = insertRaisedKeyRecursively(newRaisedKey, transID);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
+                  goto error;
+               }
+
+               goto done;
+            }
+         }
+
+         /// will create external key page
+         rc = node.insertRaisedKey(raisedKey, transID);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
             goto error;
-         }
-
-         if (!father.ensureExclusiveLocking())
-         {
-            rc = node.insertRaisedKey(raisedKey, bac.getTransID());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
-               goto error;
-            }
-         }
-         else
-         {
-            btreeSplitRaisedKey newRaisedKey;
-            rc = node.splitNonLeafAndInsert(raisedKey, bac.getTransID(), newRaisedKey);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to split node and insert raised key:%d", rc);
-               goto error;
-            }
-
-            bac.popEnd();
-            rc = traverseUpAndInsert(bac, newRaisedKey);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to traverse up to insert raised key:%d", rc);
-               goto error;
-            }
          }
       }
    done:

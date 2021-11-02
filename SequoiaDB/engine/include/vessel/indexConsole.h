@@ -46,6 +46,8 @@
 #include "vessel/indexSpace.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/lsm/lsmInsertBatch.h"
+#include "vessel/btreeIndexIterator.h"
+#include "vessel/lsm/lsmIndexIterator.h"
 
 namespace engine
 {
@@ -111,12 +113,18 @@ namespace vessel
                          const dmlIndexRequestArray &ra);
 
          /// Must hold unique key latch first.
-         static INT32 checkUniqueConstraint(requestContext *context,
-                                            indexContext *ic,
-                                            const bson::BSONObj &key,
-                                            recordID &rid);
+         INT32 checkUniqueConstraint(requestContext *context,
+                                     indexContext *ic,
+                                     const bson::BSONObj &key,
+                                     recordID &rid);
          
       private:
+         INT32 checkUniqueConstraintByIterator(requestContext *context,
+                                               indexContext *ic,
+                                               indexIterator *iterator,
+                                               const bson::BSONObj &key,
+                                               recordID &rid)const;
+
          INT32 lsmInsert(requestContext *context,
                          indexContext *ic,
                          const ixmKey &key,

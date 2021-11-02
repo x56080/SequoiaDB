@@ -37,13 +37,13 @@
 #define VESSEL_BTREE_ACCESS_PATH_NODE_H_
 
 #include "vessel/pageIdentifier.h"
+#include "ossSharedLatch.hpp"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class logicalPageBuffer;
-
    class btreeAccessPathNode : public SDBObject
    {
       public:
@@ -87,12 +87,19 @@ namespace vessel
          {
             _lpb = NULL;
          }
+         
+      public:
+         ossSharedLatchMode getNodeMode()const
+         {
+            SDB_ASSERT(isAccessing(), "must be accessing");
+            return _lpb->getLockingMode();
+         }
 
       public:
          PAGE_ID _lpid = INVALID_PAGE_ID;
          UINT32 _splitedTimes = 0;
          logicalPageBuffer *_lpb = NULL;
-   };//
+   };//btreeAccessPathNode
 } // namespace vessel
 
 } // namespace engine

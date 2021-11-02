@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeItemLocation.h
+   Source File Name = indexScanEntryBatch.h
 
    Descriptive Name =
 
@@ -33,49 +33,55 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BTREE_ITEM_LOCATION_H_
-#define VESSEL_BTREE_ITEM_LOCATION_H_
+#ifndef VESSEL_INDEX_SCAN_ENTRY_BATCH_H_
+#define VESSEL_INDEX_SCAN_ENTRY_BATCH_H_
 
-#include "vessel/recordID.h"
+#include "vessel/indexScanEntry.h"
+#include "../bson/util/builder.h"
+#include "utilArray.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class btreeItemLocation : public SDBObject
+   class indexScanEntryBatch : public SDBObject
    {
       public:
-         btreeItemLocation(){}
-         ~btreeItemLocation(){}
-         btreeItemLocation(const btreeItemLocation &o):
-         keyMatched(o.keyMatched),
-         identical(o.identical),
-         child(o.child),
-         slotPos(o.slotPos){}
-         btreeItemLocation &operator=(const btreeItemLocation &o)
-         {
-            keyMatched = o.keyMatched;
-            identical = o.identical;
-            child = o.child;
-            slotPos = o.slotPos;
-            return *this;
-         }
-
+         indexScanEntryBatch(){}
+         ~indexScanEntryBatch(){}
+         indexScanEntryBatch(const indexScanEntryBatch &) = delete;
+         indexScanEntryBatch &operator=(const indexScanEntryBatch &) = delete;
       public:
-         OSS_INLINE BOOLEAN isValid()const
+         OSS_INLINE UINT32 getEntryCount()const
          {
-            return INVALID_RECORD_SLOT_ID != slotPos;
+            return _entries.size();
          }
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return _entries.empty();
+         }
+         void reset();
 
-      public:
-         BOOLEAN keyMatched = FALSE;
-         BOOLEAN identical = FALSE;
-         PAGE_ID child = INVALID_PAGE_ID;
-         RECORD_SLOT_ID slotPos = INVALID_RECORD_SLOT_ID;
-   };//class btreeItemLocation
+         INT32 addFragmentsOfOneEntry(std::initializer_list<slice> il);
+
+         INT32 addEntry(const slice &entry);
+
+         slice operator[](UINT32 pos)const;
+
+         slice getLastEntry()const;
+
+      private:
+         typedef UINT32 _ENTRY_OFFSET;
+         typedef UINT32 _ENTRY_SIZE;
+         typedef std::pair<_ENTRY_OFFSET, _ENTRY_SIZE> _ENTRY_INFO;
+
+      private:
+         _utilArray<_ENTRY_INFO, 8> _entries;
+         bson::StackBufBuilder _buffer;
+   };//class indexScanEntryBatch
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_BTREE_ITEM_LOCATION_H_
+#endif//VESSEL_INDEX_SCAN_ENTRY_BATCH_H_

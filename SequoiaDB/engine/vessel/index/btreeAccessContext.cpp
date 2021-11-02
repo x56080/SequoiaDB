@@ -34,9 +34,11 @@
 ******************************************************************************/
 
 #include "vessel/btreeAccessContext.h"
-#include "vessel/logicalPageBuffer.h"
 #include "pdTrace.hpp"
 #include "vessel/indexContext.h"
+#include "vessel/logicalPageBuffer.h"
+#include "vessel/indexSpace.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -50,39 +52,34 @@ namespace vessel
       }
    }
 
-   void btreeAccessContext::init(const indexContext *ic,
-                                 const ixmKey &key,
-                                 const recordID *rid,
-                                 const DPS_TRANS_ID *transID)
+   void btreeAccessContext::init(indexContext *ic,
+                                 requestContext *context,
+                                 indexSpace *is)
    {
       SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
-      SDB_ASSERT(key.isValid(), "can not be invalid");
+      SDB_ASSERT(ic->getIndexType() == INDEX_TYPE_BTREE, "msut be btree");
+      SDB_ASSERT(NULL != context && context->getCollectionHandle().isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != is && is->isOpen(), "can not be invalid");
+
       fini();
       _ic = ic;
-      _key.assign(key.data());
-      if (NULL != rid && rid->valid())
-      {
-         _rid = *rid;
-      }
-      if (NULL != transID && transID->isValid())
-      {
-         _transID = *transID;
-      }
+      _context = context;
+      _is = is;
       return;
    }
 
    void btreeAccessContext::fini()
    {
       _ic = NULL;
-      _key.assign(NULL);
-      _rid = recordID();
-      _transID = DPS_TRANS_ID();
+      _context = NULL;
+      _is = NULL;
       for (UINT32 i = 0; i < _path.size(); ++i)
       {
          btreeAccessPathNode &pn = _path[i];
          if (pn.isAccessing())
          {
             pn.getPageBuffer()->fini();
+            SDB_OSS_DEL pn.getPageBuffer();
          }
       }
       _path.clear();
@@ -93,6 +90,9 @@ namespace vessel
          SDB_OSS_DEL (*itr);
       }
       _free.clear();
+      _readonly = TRUE;
+      _pessimistic = FALSE;
+      return;
    }
 
    logicalPageBuffer *btreeAccessContext::allocateBuffer()
@@ -118,6 +118,161 @@ namespace vessel
       buffer->fini();
       _free.push_back(buffer);
       return;
+   }
+
+   INT32 btreeAccessContext::pushRootIntoPath(btreeNode *node)
+   {
+      INT32 rc = SDB_OK;
+      ossSharedLatchMode mode;
+      logicalPageBuffer *buffer = NULL;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_path.empty())
+      {
+         PD_LOG(PDERROR, "can not push root into non-empty path");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      mode = estimateRootMode();
+      buffer = allocateBuffer();
+      if (OSS_UNLIKELY(NULL == buffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate page buffer");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      do
+      {
+         PAGE_ID rootLpid = _ic->getObj().getBtreeRoot();
+         if (INVALID_PAGE_ID == rootLpid)
+         {
+            PD_LOG(PDERROR, "no root node exists");
+            rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+            goto error;
+         }
+
+         rc = _is->getLogicalPageBuffer(_context, rootLpid, mode, *buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page buffer of page[%d], rc:%d",
+                  rootLpid, rc);
+            goto error;
+         }
+
+         if (_ic->getObj().getBtreeRoot() != rootLpid)
+         {
+            buffer->fini();
+            continue;
+         }
+
+         rc = validateBtreePage(*buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to validate root page:%d", rc);
+            goto error;
+         }
+
+         break;
+      } while (TRUE);
+
+      rc = pushIntoPath(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push node buffer into path:%d", rc);
+         goto error;
+      }
+
+      if (NULL != node)
+      {
+         *node = getEndNodeInPath();
+      }
+      
+   done:
+      return rc;
+   error:
+      if (NULL != buffer)
+      {
+         buffer->fini();
+         releaseBuffer(buffer);
+      }
+      goto done;
+   }
+
+   INT32 btreeAccessContext::pushChildNodeIntoPath(PAGE_ID lpid,
+                                                   btreeNode *node)
+   {
+      INT32 rc = SDB_OK;
+      ossSharedLatchMode mode;
+      logicalPageBuffer *buffer = NULL;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_path.empty())
+      {
+         PD_LOG(PDERROR, "can not push child node into path with out root");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      buffer = allocateBuffer();
+      if (OSS_UNLIKELY(NULL == buffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate node buffer");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      mode = estimateChildMode();
+
+      rc = _is->getLogicalPageBuffer(_context, lpid, mode, *buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page buffer of page[%d], rc:%d",
+                lpid, rc);
+         goto error;
+      }
+
+      rc = validateBtreePage(*buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate node page:%d", rc);
+         goto error;
+      }
+
+      rc = pushIntoPath(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push node into path:%d", rc);
+         goto error;
+      }
+
+      if (NULL != node)
+      {
+         *node = getEndNodeInPath();
+      }
+   done:
+      return rc;
+   error:
+      if (NULL != buffer)
+      {
+         buffer->fini();
+         releaseBuffer(buffer);
+      }
+      goto done;
    }
 
    INT32 btreeAccessContext::pushIntoPath(logicalPageBuffer *buffer)
@@ -162,12 +317,12 @@ namespace vessel
       _path.clear();
    }
 
-   void btreeAccessContext::endToAccessPathNodes(UINT32 minActiveCount)
+   void btreeAccessContext::endToAccessNonPathEndNodes()
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(minActiveCount <= _path.size(), "out of bound");
-      UINT32 max = _path.size() - minActiveCount;
-      for (UINT32 i = 0; i < max; ++i)
+      
+      INT32 max = (INT32)_path.size() - 1;
+      for (INT32 i = 0; i < max; ++i)
       {
          btreeAccessPathNode &pn = _path[i];
          if (pn.isAccessing())
@@ -195,7 +350,7 @@ namespace vessel
       }
       return;
    }
-
+   
    btreeNode btreeAccessContext::getEndNodeInPath()
    {
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -203,29 +358,140 @@ namespace vessel
       UINT32 depth = _path.size() - 1;
       btreeAccessPathNode &pn = _path[depth];
       SDB_ASSERT(pn.isAccessing(), "end node should always be accessing");
-      return btreeNode(pn.getPageBuffer(), _ic, depth);
+      return btreeNode(pn.getPageBuffer(), depth, _ic);
    }
 
    btreeNode btreeAccessContext::getNodeInPath(UINT32 depth)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(depth < _path.size(), "out of bound");
+      
       btreeNode node;
       if (depth < _path.size())
       {
          btreeAccessPathNode &pn = _path[depth];
          if (pn.isAccessing())
          {
-            node = btreeNode(pn.getPageBuffer(), _ic, depth);
+            node = btreeNode(pn.getPageBuffer(), depth, _ic);
          }
       }
       return node;
    }
 
-    UINT32 btreeAccessContext::getPathDepth()const
-    {
-       return _path.size();
-    }
+   UINT32 btreeAccessContext::getPathSize()const
+   {
+      return _path.size();
+   }
+
+   BOOLEAN btreeAccessContext::isStillAccessing(UINT32 depth)const
+   {
+      SDB_ASSERT(depth < _path.size(), "out of bound");
+      return _path[depth].isAccessing();
+   }
+
+   ossSharedLatchMode btreeAccessContext::estimateRootMode()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      static const UINT32 _SMALL_SCALE = 2;
+      ossSharedLatchMode mode;
+      if (isReadonly())
+      {
+         mode.setShared();
+      }
+      else if (isPessimistic())
+      {
+         mode.setExclusive();
+      }
+      else if (_ic->getObj().getBtreeRootUpdatedTimes() <= _SMALL_SCALE)
+      {
+         mode.setExclusive();
+      }
+      else
+      {
+         mode.setShared();
+      }
+      return mode;
+   }
+
+   ossSharedLatchMode btreeAccessContext::estimateChildMode()const
+   {
+      SDB_ASSERT(!isPathEmpty(), "can not be empty");
+      static const UINT32 _MAX_SHARED_SCALE = 2;
+      ossSharedLatchMode mode;
+
+      if (isReadonly())
+      {
+         mode.setShared();
+      }
+      else
+      {
+         const btreeAccessPathNode &pn = _path[_path.size() - 1];
+         SDB_ASSERT(pn.isAccessing(), "must be accessing");
+         ossSharedLatchMode fatherMode = pn.getNodeMode();
+         if (!fatherMode.isShared())
+         {
+            mode = pn.getNodeMode();
+         }
+         else if (_path.size() < _MAX_SHARED_SCALE)
+         {
+            mode.setShared();
+         }
+         else
+         {
+            mode.setExclusive();
+         }
+      }
+      return mode;
+   }
+
+   INT32 btreeAccessContext::validateBtreePage(const logicalPageBuffer &buffer)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(buffer.isValid(), "can not be invalid");
+
+      const runtimePageBuffer &rpb = buffer.getRuntimeBuffer();
+      slice s;
+      const btreeNodePageHead *head = NULL;
+
+      rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate btree page:[%s], rc:%d",
+                rpb.getGlobalPid().toString().c_str(), rc);
+         goto error;
+      }
+
+      s = buffer.getReadableBodySlice();
+      head = s.getReadableObjPtr<btreeNodePageHead>(0);
+      if (NULL == head)
+      {
+         PD_LOG(PDERROR, "failed to get btree page head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (_context->getLogicalCLID() != head->clLogicalID)
+      {
+         PD_LOG(PDERROR, "different logical clids found[%d,%d] on page[%s]",
+                _context->getLogicalCLID(), head->clLogicalID,
+                rpb.getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+
+      if (_ic->getIndexID() != head->indexId)
+      {
+         PD_LOG(PDERROR, "different logical index ids found[%d,%d] on page[%s]",
+                _ic->getIndexID(), head->indexId, rpb.getGlobalPid().toString().c_str());
+         rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 
 } // namespace engine

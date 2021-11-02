@@ -36,12 +36,14 @@
 #ifndef VESSEL_INDEX_SCAN_CONTEXT_H_
 #define VESSEL_INDEX_SCAN_CONTEXT_H_
 
-#include "vessel/dataScanContext.h"
+#include "vessel/requestContext.h"
 #include "vessel/indexHandle.h"
 #include "rtnPredicate.hpp"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/slice.h"
+#include "vessel/indexScanEntryBatch.h"
+#include "vessel/indexContext.h"
 
 namespace engine
 {
@@ -50,7 +52,7 @@ namespace vessel
    class indexEntryBuffer;
    class indexScanCursor;
 
-   class indexScanContext : public dataScanContext
+   class indexScanContext : public requestContext
    {
       public:
          indexScanContext(){}
@@ -61,6 +63,10 @@ namespace vessel
          rtnPredicateListIterator *getPredicate()const;
          UNORDERED_RID_SET *getRidSet()const;
          const indexScanOptions &getOptions()const;
+         const indexScanCursor *getCursor()const
+         {
+            return _cursor;
+         }
          indexScanCursor *getCursor()
          {
             return _cursor;
@@ -71,13 +77,20 @@ namespace vessel
          }
       public:
          void attachIndexScanCursor(indexScanCursor *cursor);
-         INT32 saveScanEntry(const slice &entry);
-         slice getEntry()const;
-
          virtual void close();
+         void clearBatchAndRidLatch();
 
+         OSS_INLINE indexScanEntryBatch &getBatch()
+         {
+            return _batch;
+         }
+         OSS_INLINE const indexScanEntryBatch &getBatch()const
+         {
+            return _batch;
+         }
       private:
          indexScanCursor *_cursor = NULL;
+         indexScanEntryBatch _batch;
    };//class indexScanContext
 } // namespace vessel
 

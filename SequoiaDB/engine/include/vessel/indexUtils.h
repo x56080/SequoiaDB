@@ -71,7 +71,7 @@ namespace vessel
          static bson::BSONObj buildKeyToSeek(const bson::BSONObj &key,
                                              INT32 keyFieldsToCmp,
                                              const VEC_ELE_CMP & matchEle,
-                                             bson::BufBuilder *outerBuilder);
+                                             bson::BufBuilder *outerBuilder=NULL);
    };//class indexUtils
 
    

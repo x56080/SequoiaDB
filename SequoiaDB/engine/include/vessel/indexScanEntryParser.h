@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = indexIterator.cpp
+   Source File Name = indexScanEntryParser.h
 
    Descriptive Name =
 
@@ -33,34 +33,35 @@
 
 ******************************************************************************/
 
-#include "vessel/indexIterator.h"
-#include "vessel/indexUtils.h"
-#include "vessel/instanceEnv.h"
-#include "ossLikely.hpp"
-#include "pdTrace.hpp"
-#include "vessel/lsm/lsmIndexIterator.h"
-#include "vessel/btreeIndexIterator.h"
+#ifndef VESSEL_INDEX_SCAN_ENTRY_PARSER_H_
+#define VESSEL_INDEX_SCAN_ENTRY_PARSER_H_
+
+#include "vessel/indexDef.h"
+#include "vessel/slice.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   indexIterator *createIndexIterator(INDEX_TYPE type)
+   class indexScanEntryParser : public SDBObject
    {
-      if (INDEX_TYPE_LSM == type)
-      {
-         return SDB_OSS_NEW lsmIndexIterator();
-      }
-      else if (INDEX_TYPE_BTREE)
-      {
-         return SDB_OSS_NEW btreeIndexIterator();
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "invalid type");
-         return NULL;
-      }
-   }
+      public:
+         indexScanEntryParser(){}
+         virtual ~indexScanEntryParser(){}
 
-}//namespace vessel
-}//namespace engine
+      public:
+         virtual void reset() = 0;
+         virtual INT32 parse(const slice &entryData) = 0;
+         virtual INDEX_TYPE getType()const = 0;
+         virtual recordID getRid()const = 0;
+         virtual DPS_TRANS_ID getTransID()const = 0;
+         virtual slice getKeySlice()const = 0;
+
+   };//class indexScanEntryParser
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_INDEX_SCAN_ENTRY_PARSER_H_

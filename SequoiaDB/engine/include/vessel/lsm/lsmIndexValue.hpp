@@ -72,7 +72,7 @@ namespace vessel
                     LSM_ENTRY_FLAG_DELETED == _flags) &&
                     0 == _pad; 
          }
-         OSS_INLINE BOOLEAN isDelete()const
+         OSS_INLINE BOOLEAN isDeleted()const
          {
             SDB_ASSERT(isValid(), "must be valid");
             return 0 != OSS_BIT_TEST(_flags, LSM_ENTRY_FLAG_DELETED);

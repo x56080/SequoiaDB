@@ -43,7 +43,7 @@ namespace engine
 namespace vessel
 {
 ////////btreeItemSlot
-   void btreeItemSlot::initAsNonLeaFormat(const recordID &rid,
+   void btreeItemSlot::initAsNonLeafFormat(const recordID &rid,
                                           UINT16 offset,
                                           UINT16 size,
                                           PAGE_ID leftChild)
@@ -129,6 +129,7 @@ namespace vessel
 
       headPtr = (btreeNodePageHead *)((ossValuePtr)buf + PAGE_HEAD_SIZE);
       ossMemcpy(headPtr, &head, BTREE_NODE_PAGE_HEAD_SIZE);
+      headPtr->version = BTREE_NODE_PAGE_HEAD_VERSION;
       headPtr->clLogicalID = cllid;
       headPtr->indexId = indexId;
       headPtr->rightChild = rightChild;

@@ -52,12 +52,12 @@ namespace vessel
    {
       public:
          btreeAccessor();
-         virtual ~btreeAccessor();
+         ~btreeAccessor();
          btreeAccessor(const btreeAccessor &) = delete;
          btreeAccessor &operator=(const btreeAccessor &) = delete;
 
       public:
-         OSS_INLINE BOOLEAN isInitialized()const
+         OSS_INLINE BOOLEAN isValid()const
          {
             return NULL != _context;
          }
@@ -70,62 +70,41 @@ namespace vessel
                       const recordID &rid,
                       const DPS_TRANS_ID &transID);
 
-      protected:
-         OSS_INLINE requestContext *getContext()
-         {
-            return _context;
-         }
-         OSS_INLINE indexSpace *getIndexSpace()
-         {
-            return _is;
-         }
-         OSS_INLINE indexContext *getIndexContext()
-         {
-            return _ic;
-         }
+      private:/// writing
 
-      private:
-         INT32 pushNoneRootNodeIntoPath(PAGE_ID lpid,
-                                        const ossSharedLatchMode &mode,
-                                        btreeAccessContext &bac);
-
-         /// auto choose mode and push root into path
-         INT32 pushRootIntoPath(btreeAccessContext &bac,
-                                const ossSharedLatchMode &mode=ossSharedLatchMode());
-
-         INT32 traverseDownAndInsert(btreeAccessContext &bac,
+         INT32 traverseDownAndInsert(const ixmKey &key,
+                                     const recordID &rid,
+                                     const DPS_TRANS_ID &transID,
                                      BOOLEAN &obstructed);
 
-         INT32 traverseUpAndInsert(btreeAccessContext &bac,
-                                   const btreeSplitRaisedKey &raisedKey);
-
-      private:
+         INT32 insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey,
+                                          const DPS_TRANS_ID &transID);
          INT32 createRootIfNotExists();
 
-         INT32 insertWhenPathEndIsLeaf(btreeAccessContext &bac,
+         INT32 insertWhenPathEndIsLeaf(const ixmKey &key,
+                                       const recordID &rid,
+                                       const DPS_TRANS_ID &transID,
                                        BOOLEAN &obstructed);
 
-         INT32 splitAndInsertWhenPathEndIsLeaf(btreeAccessContext &bac,
+         INT32 splitAndInsertWhenPathEndIsLeaf(const ixmKey &key,
+                                               const recordID &rid,
+                                               const DPS_TRANS_ID &transID,
                                                BOOLEAN &obstructed);
 
-         /// the key in bac will be inserted only when raised key is invalid
-         INT32 splitAndInsertWhenPathEndIsRoot(btreeAccessContext &bac,
-                                               const btreeSplitRaisedKey *raisedKey,
-                                               BOOLEAN &obstructed);
+         /// insert key and rid when raised key is null
+         INT32 splitAndInsertWhenPathEndIsRoot(const ixmKey &key,
+                                               const recordID &rid,
+                                               const DPS_TRANS_ID &transID,
+                                               const btreeSplitRaisedKey *raisedKey=NULL);
 
-         INT32 splitNonLeafPathEnd(btreeAccessContext &bac,
-                                   BOOLEAN &obstructed);
-
-      private:
-         INT32 validateBtreePage(const logicalPageBuffer &buffer)const;
-         ossSharedLatchMode estimateRootMode(const btreeAccessContext &bac)const;
-         ossSharedLatchMode estimateRootModeWhenWriting(UINT32 updatedTimes)const;
-         ossSharedLatchMode estimateChildModeWhenWriting(btreeAccessContext &bac)const;
+         /// also can not be root
+         INT32 splitNonLeafPathEnd(BOOLEAN &obstructed);
 
       private:
          requestContext *_context = NULL;
          indexSpace *_is = NULL;
          indexContext *_ic = NULL;
+         btreeAccessContext _bac;
    };//class btreeAccessor
 } // namespace vessel
 

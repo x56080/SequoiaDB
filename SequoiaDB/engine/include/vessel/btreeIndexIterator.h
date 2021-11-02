@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lsmIndexIterator.h
+   Source File Name = btreeIndexIterator.h
 
    Descriptive Name =
 
@@ -33,41 +33,36 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LSM_INDEX_ITERATOR_H_
-#define VESSEL_LSM_INDEX_ITERATOR_H_
+#ifndef VESSEL_BTREE_INDEX_ITERATOR_H_
+#define VESSEL_BTREE_INDEX_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
-#include "rocksdb/iterator.h"
-#include "vessel/lsm/lsmIdxKey.hpp"
-#include "vessel/globalIndexID.h"
-#include "vessel/memoryBlock.h"
+#include "vessel/btreeAccessor.h"
 #include "../bson/util/builder.h"
-#include "vessel/indexContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class LSMDB;
-
-   class lsmIndexIterator : public indexIterator
+   class btreeIndexIterator : public indexIterator
    {
       public:
-         lsmIndexIterator(){}
-         virtual ~lsmIndexIterator();
+         btreeIndexIterator();
+         virtual ~btreeIndexIterator();
 
       public:
-         virtual INDEX_TYPE getIndexType()const {return INDEX_TYPE_LSM;}
-         
+         virtual INDEX_TYPE getIndexType()const {return INDEX_TYPE_BTREE;}
+
       public:
+         virtual BOOLEAN isOpen()const
+         {
+            return _accessor.isValid();
+         }
+
          virtual INT32 open(requestContext *context,
                             indexContext *ic);
 
-         virtual BOOLEAN isOpen()const;
-
          virtual void close();
-
-         virtual BOOLEAN isReadyToRead()const;
 
          virtual INT32 seek(const bson::BSONObj &prevKey,
                             INT32 fieldCountToCmpInPrev,
@@ -75,11 +70,15 @@ namespace vessel
                             const inclusiveVec &matchInclusive,
                             const options &o);
 
+         virtual INT32 seekEntry(const slice &entry,
+                                 const options &o);
+
          virtual INT32 seekKey(const ixmKey &key,
                                const options &o);
 
-         virtual INT32 seekEntry(const slice &entry,
-                                 const options &o);
+         virtual INT32 next();
+
+         virtual INT32 prev();
 
          virtual INT32 advanceTo(const bson::BSONObj &prevKey,
                                  INT32 fieldCountToCmpInPrev,
@@ -87,57 +86,31 @@ namespace vessel
                                  const inclusiveVec &matchInclusive,
                                  const options &o);
 
-         virtual INT32 next();
-
-         virtual INT32 prev();
+         virtual BOOLEAN isReadyToRead()const;
 
          virtual void pause();
       public:
-         virtual DPS_LSN_OFFSET getLSN()const;
+         virtual UINT64 getLSN()const;
          virtual slice getKey()const;
          virtual DPS_TRANS_ID getTransID()const;
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
-         virtual indexScanEntry getCurrentEntry()const;
          virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const;
+         virtual indexScanEntry getCurrentEntry()const;
       private:
-         INT32 seekFullKey(const rocksdb::Slice &fullKey, BOOLEAN forPrev);
-
-         INT32 moveIterator(BOOLEAN forward);
-
-         INT32 moveIfEntryRemoved(BOOLEAN forward);
-
-         INT32 moveToNextDiffKeyOrRid(BOOLEAN forward);
+         void resetToSeek();
+         INT32 cacheSeekResult(const btreeItemLocation &location);
 
       private:
-         rocksdb::Slice packFullKey(const ixmKey &key,
-                                    const recordID &rid,
-                                    DPS_LSN_OFFSET lsn,
-                                    const DPS_TRANS_ID &transID,
-                                    bson::StackBufBuilder &builder);
-
-         INT32 cacheCurrentEntry();
-
-         void _close();
-
-         BOOLEAN _isReadyToRead()const;
-
-         BOOLEAN _isMarkedRemoved()const;
-
-      private:
-         requestContext *_context = NULL;
-         indexContext *_ic = NULL;
-         globalIndexID _globalId;
-         LSMDB *_lsmDB = NULL;
-         rocksdb::Iterator *_itr = NULL;
-         CHAR _lowBoundKey[LSM_MIN_FULL_KEY_SIZE+31] = {};
-         CHAR _upperBoundKey[LSM_MIN_FULL_KEY_SIZE] = {};
-         rocksdb::Slice _lowKey;
-         rocksdb::Slice _upKey;
-         lsmKeyEntry _currentEntry;
+         btreeAccessor _accessor;
          bson::BufBuilder _builder;
-   };//class lsmIndexIterator
-}//namespace vessel
-}//namespace engine
+         btreeAccessContext _bac;
+         btreeNode _node;
+         btreeIndexItem _item;
+   };//class btreeIndexIterator
+} // namespace vessel
 
-#endif//VESSEL_LSM_INDEX_ITERATOR_H_
+} // namespace engine
+
+
+#endif//VESSEL_BTREE_INDEX_ITERATOR_H_

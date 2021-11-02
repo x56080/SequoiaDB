@@ -48,20 +48,23 @@
 #include "ossMemPool.hpp"
 #include "vessel/btreeExtKeyPageIniter.h"
 #include "vessel/btreeExternalKeyPage.h"
+#include "vessel/btreeAccessContext.h"
+#include "vessel/indexEntryPageAccessor.h"
 
 namespace engine
 {
 namespace vessel
 {
    btreeNode::btreeNode(logicalPageBuffer *buffer,
-                        const indexContext *ic,
-                        UINT32 depth):
+                        UINT32 depth,
+                        const indexContext *ic):
    _buffer(buffer),
-   _ic(ic),
-   _depth(depth)
+   _depth(depth),
+   _ic(ic)
    {
       SDB_ASSERT(NULL != _buffer && _buffer->isValid(), "can not be invalid");
       SDB_ASSERT(NULL != _ic && _ic->isValid(), "can not be invalid");
+      SDB_ASSERT(_ic->getIndexType() == INDEX_TYPE_BTREE, "must be btree");
    }
 
    BOOLEAN btreeNode::isRoot()const
@@ -73,14 +76,6 @@ namespace vessel
    BOOLEAN btreeNode::hasExternalKey()const
    {
       return 0 < getReadableHead()->externalKeySize;
-   }
-
-   BOOLEAN btreeNode::isNewRoot()const
-   {
-      const btreeNodePageHead *head = getReadableHead();
-      return isRoot() &&
-             (head->freeSapceAfterLastSlot == head->totalFreeSpace) &&
-             ((getNodeSize() - BTREE_NODE_PAGE_HEAD_SIZE) == head->totalFreeSpace);
    }
 
    BOOLEAN btreeNode::isLeaf()const
@@ -112,6 +107,12 @@ namespace vessel
       return r;
    }
 
+   BOOLEAN btreeNode::hasFreeSpaceToInsertRaisedKey(UINT32 keySize,
+                                                    BOOLEAN *needCompact)const
+   {
+      return hasFreeSpaceToInsert(keySize + BTREE_NODE_SLOT_SIZE, needCompact);
+   }
+
    BOOLEAN btreeNode::hasCompressedKeys()const
    {
       return isLeaf() && 0 < getReadableHead()->compressedItemCount;
@@ -122,10 +123,33 @@ namespace vessel
       return isLeaf() && 0 < getReadableHead()->prefixCount;
    }
 
+   const btreeNodePageHead *btreeNode::getReadableHead()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return _buffer->getReadableBodySlice().getReadableObjPtr<btreeNodePageHead>(0);
+   }
+
+   slice btreeNode::getReadableSlice()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return _buffer->getReadableBodySlice();
+   }
+
+   DPS_TRANS_ID btreeNode::getTransID()const
+   {
+      const btreeNodePageHead *head = getReadableHead();
+      return DPS_TRANS_ID(head->transSN, head->transNode);
+   }
+
+   UINT32 btreeNode::getSplitedTimes()const
+   {
+      return getReadableHead()->splitedTimes;
+   }
+
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
-      return !_ic->getObj().getParams().isPrefixCompressionEnabled() ||
-             !isLeaf() ||
+      return !isLeaf() ||
+             !_ic->getObj().getParams().isPrefixCompressionEnabled() ||
              _depth < _ic->getObj().getParams().btreeMinCompressionDepth;
    }
 
@@ -230,9 +254,29 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN btreeNode::isSpaceSpare()const
+   BOOLEAN btreeNode::isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const
    {
-      return getSizeToSaveInNode(MAX_INDEX_KEY_SIZE) <= getReadableHead()->totalFreeSpace;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+      SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
+      return getReadableSlot(pos)->isMarkedDeleted();
+   }
+
+   PAGE_ID btreeNode::getRightChild()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+      return getReadableHead()->rightChild;
+   }
+
+   PAGE_ID btreeNode::getLeftChild(RECORD_SLOT_ID pos)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+      SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
+      return getReadableSlot(pos)->data.nlf.leftChild;
    }
 
    INT32 btreeNode::leafInsert(const ixmKey &key,
@@ -240,6 +284,24 @@ namespace vessel
                                const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
+
+      if (OSS_UNLIKELY(!key.isValid() ||
+                       !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_buffer->getLockingMode().isExclusive())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
       rc = _leafInsert(key, rid);
       if (SDB_OK != rc)
       {
@@ -260,41 +322,23 @@ namespace vessel
                                 RECORD_SLOT_ID pos)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
+      SDB_ASSERT(_buffer->getLockingMode().isExclusive(), "must be exclusive");
+      SDB_ASSERT(isLeaf(), "must be leaf");
+
       BOOLEAN needCompact = FALSE;
-      UINT32 keySize = 0;
+      UINT32 keySize = key.dataSize();;
       btreeItemLocation location;
       RECORD_SLOT_ID toInsert = INVALID_RECORD_SLOT_ID;
 
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!key.isValid() ||
-                            !rid.valid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (getLockingMode().isExclusive())
-      {
-         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
-         goto error;
-      }
-      else if (!isLeaf())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-
-      keySize = key.dataSize();
       if (!hasFreeSpaceToInsert(keySize, &needCompact))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
          goto error;
       }
 
-      if (INVALID_RECORD_SLOT_ID == pos)
+      if (INVALID_RECORD_SLOT_ID != pos)
       {
          if (getReadableHead()->totalSlotCount < pos)
          {
@@ -314,6 +358,16 @@ namespace vessel
             goto error;
          }
          toInsert = location.slotPos;
+      }
+
+      if (needCompact)
+      {
+         rc = _compact();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to compact btree node:%d", rc);
+            goto error;
+         }
       }
 
       if (!hasPrefix())
@@ -412,7 +466,7 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if (!getReadableSlot(location.slotPos)->isMarkedDelete())
+      else if (!getReadableSlot(location.slotPos)->isMarkedDeleted())
       {
          PD_LOG(PDERROR, "item[%d] is not marked as removed", location.slotPos);
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -427,7 +481,7 @@ namespace vessel
       }
 
       slot = getWritableSlot(location.slotPos);
-      OSS_BIT_CLEAR(slot->flags, btreeItemSlot::FLAG_MARKED_DELETE);
+      OSS_BIT_CLEAR(slot->flags, btreeItemSlot::FLAG_MARKED_DELETED);
 
       updateTransSN(transID);
       commit();
@@ -606,8 +660,6 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(key.isValid() && rid.valid(), "can not be invalid");
-      SDB_ASSERT(!(!isLeaf() && INVALID_PAGE_ID == leftChild),
-                 "left child can not be invalid");
 
       btreeItemSlot *slot = NULL;
       UINT32 keySize = key.dataSize();
@@ -654,13 +706,13 @@ namespace vessel
       }
 
       /// do not goto error from here
-      if (isLeaf())
+      if (INVALID_PAGE_ID == leftChild)
       {
-         slot->initAsLeafFormat(rid, INVALID_RECORD_SLOT_ID, keyOffset, keySize);
+         slot->initAsLeafFormat(rid, keyOffset, keySize);
       }
       else
       {
-         slot->initAsNonLeaFormat(rid, keyOffset, keySize, leftChild);
+         slot->initAsNonLeafFormat(rid, keyOffset, keySize, leftChild);
       }
 
       updateAppendingFactor(head, appendonly);
@@ -693,7 +745,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isNewRoot() || isLeaf()))
+      else if (OSS_UNLIKELY(isLeaf() && !isRoot()))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -710,18 +762,17 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-
-      keySize = ixmKey(raisedKey.getKeyData()).dataSize();
-      savingSize = getSizeToSaveInNode(keySize);
-      head = getReadableHead();
-
-      if (head->totalFreeSpace < BTREE_NODE_SLOT_SIZE)
+      else if (!hasFreeSpaceToInsertRaisedKey(0))
       {
          PD_LOG(PDERROR, "not enough free space to save one slot");
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
          goto error;
       }
-      
+
+      keySize = ixmKey(raisedKey.getKeyData()).dataSize();
+      savingSize = getSizeToSaveInNode(keySize);
+      head = getReadableHead();
+
       if (INVALID_RECORD_SLOT_ID != pos)
       {
          if (head->totalSlotCount < pos)
@@ -747,7 +798,7 @@ namespace vessel
       appendOnly = (insertPos == head->totalSlotCount);
 
       /// one slot will be reserved at any time.
-      if (head->totalFreeSpace < (savingSize + BTREE_NODE_SLOT_SIZE))
+      if (!hasFreeSpaceToInsertRaisedKey(savingSize))
       {
          if (head->freeSapceAfterLastSlot < BTREE_NODE_SLOT_SIZE)
          {
@@ -759,7 +810,7 @@ namespace vessel
             }
          }
 
-         rc = insertExternalKey(pos, ixmKey(raisedKey.getKeyData()),
+         rc = insertExternalKey(insertPos, ixmKey(raisedKey.getKeyData()),
                                 raisedKey.rid, raisedKey.leftChild);
          if (SDB_OK != rc)
          {
@@ -779,7 +830,7 @@ namespace vessel
             }
          }
 
-         rc = _insert(pos, ixmKey(raisedKey.getKeyData()),
+         rc = _insert(insertPos, ixmKey(raisedKey.getKeyData()),
                       raisedKey.rid, raisedKey.leftChild);
          if (SDB_OK != rc)
          {
@@ -796,7 +847,7 @@ namespace vessel
       }
       else
       {
-         getWritableSlot(pos + 1)->data.nlf.leftChild = raisedKey.rightChild;
+         getWritableSlot(insertPos + 1)->data.nlf.leftChild = raisedKey.rightChild;
       }
    done:
       return rc;
@@ -1195,11 +1246,11 @@ namespace vessel
          SDB_ASSERT(!slot->isKeyCompressed(), "TODO");
          if (slot->isKeyInExtPage())
          {
-            savingSize = head->externalKeySize;
+            savingSize = head->externalKeySize + BTREE_NODE_SLOT_SIZE;
          }
          else
          {
-            savingSize = slot->data.key.size;
+            savingSize = slot->data.key.size + BTREE_NODE_SLOT_SIZE;
          }
 
          scanned += savingSize;
@@ -1236,12 +1287,14 @@ namespace vessel
                                        btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
+
       btreeItemLocation location;
       RECORD_SLOT_ID pivot = INVALID_RECORD_SLOT_ID;
       BOOLEAN idleRight = FALSE;
       btreeIndexItem item;
       PAGE_ID rightNode = INVALID_PAGE_ID;
-
       raisedKey.reset();
 
       if (OSS_UNLIKELY(!isValid()))
@@ -1255,7 +1308,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (getLockingMode().isExclusive())
+      else if (!getLockingMode().isExclusive())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -1311,6 +1364,14 @@ namespace vessel
 
       if (location.slotPos <= pivot)
       {
+         rc = _compact();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDSEVERE, "failed to compact btree node:%d", rc);
+            ossPanic();
+            goto error;
+         }
+         
          rc = _leafInsert(key, rid, location.slotPos);
          if (SDB_OK != rc)
          {
@@ -1328,17 +1389,18 @@ namespace vessel
          btreeNode node = getRightNodeWhenSplit(rightNode, buffer);
          if (!node.isValid())
          {
+            buffer.fini();
             PD_LOG(PDSEVERE, "failed to get right node");
             ossPanic();
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         rc = node._leafInsert(key, rid, location.slotPos);
+         rc = node._leafInsert(key, rid, location.slotPos - pivot - 1);
          if (SDB_OK != rc)
          {
+            buffer.fini();
             PD_LOG(PDSEVERE, "failed to insert key into right node[%d,%d]:%d",
                    _ic->getIndexID(), rightNode, rc);
-            buffer.fini();
             ossPanic();
             goto error;
          }
@@ -1457,15 +1519,17 @@ namespace vessel
       const btreeNodePageHead *head = getReadableHead();
       SDB_ASSERT(0 < pivot && ((pivot + 1) < head->totalSlotCount), "invalid pivot");
       UINT32 frontOffset = BTREE_NODE_PAGE_HEAD_SIZE;
+      btreeNodePageHead tmp;
+      ossMemcpy(newHead, &tmp, BTREE_NODE_PAGE_HEAD_SIZE);
 
-      ossMemset(newHead, 0, BTREE_NODE_PAGE_HEAD_SIZE);
       newHead->version = head->version;
       newHead->clLogicalID = head->clLogicalID;
       newHead->indexId = head->indexId;
       newHead->totalFreeSpace = getNodeSize() - BTREE_NODE_PAGE_HEAD_SIZE;
-      newHead->freeSapceAfterLastSlot = head->totalFreeSpace;
+      newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
       newHead->rightChild = head->rightChild;
       newHead->transSN = head->transSN;
+      newHead->transNode = head->transNode;
 
       for (RECORD_SLOT_ID i = pivot + 1; i < head->totalSlotCount; ++i)
       {
@@ -1510,14 +1574,13 @@ namespace vessel
          slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
          if (isLeaf())
          {
-            slot->initAsLeafFormat(item.getRid(), INVALID_RECORD_SLOT_ID,
-                                   keyOffset, item.getKeyDataSize());
+            slot->initAsLeafFormat(item.getRid(), keyOffset, item.getKeyDataSize());
          }
          else
          {
-            slot->initAsNonLeaFormat(item.getRid(), keyOffset,
-                                     item.getKeyDataSize(),
-                                     item.getSlot()->data.nlf.leftChild);
+            slot->initAsNonLeafFormat(item.getRid(), keyOffset,
+                                      item.getKeyDataSize(),
+                                      item.getSlot()->data.nlf.leftChild);
          }
          newHead->totalFreeSpace -= BTREE_NODE_SLOT_SIZE;
          newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
@@ -1551,6 +1614,7 @@ namespace vessel
              head->transSN < transID.getSN())
          {
             head->transSN = transID.getSN();
+            head->transNode = transID.getNodeID();
          }
       }
    }
@@ -1790,7 +1854,7 @@ namespace vessel
          goto error;
       }
 
-      node = btreeNode(&buffer, _ic, _depth);
+      node = btreeNode(&buffer, _depth, _ic);
 
    done:
       return node;
@@ -1958,7 +2022,7 @@ namespace vessel
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         rc = node._insertRaisedKey(raisedKeyFromChild, location.slotPos);
+         rc = node._insertRaisedKey(raisedKeyFromChild, location.slotPos - pivot - 1);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert raised key into right node[%d,%d]:%d",
@@ -1976,6 +2040,86 @@ namespace vessel
    error:
       raisedKey.reset();
       goto done;
+   }
+
+   INT32 btreeNode::prepareToWrite()
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_buffer->getLockingMode().isExclusive())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rc = _buffer->prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeNode::exchangeWithNewRoot(btreeNode &newRoot)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 splitedTimes = 0;
+      memoryBlock mb;
+      UINT32 nodeSize = 0;
+
+      if (OSS_UNLIKELY(!isValid() || !newRoot.isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isRoot() || !newRoot.isRoot())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (!_buffer->isWritable() || !newRoot._buffer->isWritable())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      SDB_ASSERT(1 == newRoot.getItemCount(), "must be one");
+      SDB_ASSERT(_buffer->getLogicalPid() == newRoot.getReadableSlot(0)->data.nlf.leftChild,
+                 "must be same");
+      SDB_ASSERT(getReadableHead()->clLogicalID == newRoot.getReadableHead()->clLogicalID,
+                  "must be same");
+      SDB_ASSERT(getReadableHead()->indexId == newRoot.getReadableHead()->indexId,
+                 "must be same");
+      splitedTimes = getReadableHead()->splitedTimes;
+      SDB_ASSERT(0 < splitedTimes, "can not be zero");
+      
+      nodeSize = getNodeSize();
+      rc = mb.reserve(nodeSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
+         goto error;
+      }
+
+      ossMemcpy(mb.getBuffer(), newRoot._buffer->getReadableBodySlice().data(), nodeSize);
+      ossMemcpy(newRoot._buffer->getWritableBodySlice().getWPtr(),
+                _buffer->getReadableBodySlice().data(), nodeSize);
+      ossMemcpy(_buffer->getWritableBodySlice().getWPtr(),
+                mb.getBuffer(), nodeSize);
+      _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0)->splitedTimes = splitedTimes;
+      getWritableSlot(0)->data.nlf.leftChild = newRoot._buffer->getLogicalPid();
+   done:
+      return rc;
+   error:
+      goto error;
    }
 } // namespace vessel
 

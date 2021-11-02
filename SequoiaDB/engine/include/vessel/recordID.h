@@ -50,11 +50,8 @@ namespace vessel
    class recordID
    {
       public:
-         OSS_INLINE recordID()
-         :_page(INVALID_PAGE_ID),
-          _slot(INVALID_RECORD_SLOT_ID)
-          {}
-
+         OSS_INLINE recordID(){}
+         OSS_INLINE ~recordID(){}
          OSS_INLINE explicit recordID(PAGE_ID pid, RECORD_SLOT_ID slotID)
          :_page(pid), _slot(slotID){}
 
@@ -91,16 +88,28 @@ namespace vessel
             return compare(r) <= 0;
          }
 
-         OSS_INLINE ~recordID(){}
-
          OSS_INLINE INT32 compare(const recordID &rid)const
          {
-            INT32 res = (INT32)_page - (INT32)rid._page;
-            if (0 == res)
+            if ((UINT32)_page < (UINT32)rid._page)
             {
-               res = (INT32)_slot - (INT32)rid._slot;
+               return -1;     
             }
-            return res;
+            else if((UINT32)_page > (UINT32)rid._page)
+            {
+               return 1;
+            }
+            else if ((UINT16)_slot < (UINT16)rid._slot)
+            {
+               return -1;
+            }
+            else if ((UINT16)_slot > (UINT16)rid._slot)
+            {
+               return 1;
+            }
+            else
+            {
+               return 0;
+            }
          }
 
          OSS_INLINE void setPageID(PAGE_ID id)
@@ -123,6 +132,12 @@ namespace vessel
             return _slot;
          }
 
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return INVALID_RECORD_SLOT_ID != _slot &&
+                   INVALID_PAGE_ID != _page &&
+                   0 != _page;
+         }
          OSS_INLINE BOOLEAN valid()const
          {
             return INVALID_RECORD_SLOT_ID != _slot &&
@@ -161,9 +176,18 @@ namespace vessel
             return XXH3_64bits(&v, sizeof(v));
          }
 
+         static recordID createMinRid()
+         {
+            return recordID(0, 0);
+         }
+         static recordID createMaxRid()
+         {
+            return recordID((UINT32)-1, (UINT16)-1);
+         }
+
       private:
-         PAGE_ID _page;
-         RECORD_SLOT_ID _slot;
+         PAGE_ID _page = INVALID_PAGE_ID;
+         RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
    }; /// end of class recordID
 #pragma pack()
 }//namespace vessel

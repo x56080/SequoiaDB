@@ -40,6 +40,11 @@ namespace engine
 {
 namespace vessel
 {
+   indexScanCursor::~indexScanCursor()
+   {
+      
+   }
+
    INT32 indexScanCursor::getNextRow(ISession *session,
                                      cursorRow *row)
    {
@@ -84,6 +89,27 @@ namespace vessel
                        dataScanRow::MIN_CONTENT_SIZE));
       dsr->shallowCopy(*rid, *transID, record);
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexScanCursor::saveEntry(const slice &entryData)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(entryData.isEmpty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _entryData.copy(entryData.getSize(), entryData.data());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy entry data:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:

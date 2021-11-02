@@ -3087,6 +3087,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       recordID rid;
+      indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
+      indexConsole console;
 
       if (ra.withoutConstraint())
       {
@@ -3099,6 +3101,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
          goto error;
       }
+
+      console.init(_record.mbID, &is);
 
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
@@ -3113,7 +3117,7 @@ namespace vessel
          ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
          for (; itr != req->getKeys().end(); ++itr)
          {
-            rc = indexConsole::checkUniqueConstraint(context, req->getContext(), *itr, rid);
+            rc = console.checkUniqueConstraint(context, req->getContext(), *itr, rid);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to find key in index:%d", rc);
@@ -3381,58 +3385,64 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->isCursorAttached(), "can not be invalid");
       SDB_ASSERT(NULL != ic && ic->isNormal(), "must be normal");
+      SDB_ASSERT(context->getBatch().isEmpty(), "must be empty");
+      SDB_ASSERT(context->getRidLatchContext().isEmpty(), "must be empty");
 
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       memoryBlock mb;
       recordReader rr;
       const indexScanOptions &o = context->getOptions();
-      SDB_ASSERT(0 < o.stepLength, "can not be zero");
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
       bson::BSONObjBuilder keyObjBuilder;
+      UINT32 pushed = 0;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = scanner.open(context, ic);
+      rc = scanner.open(context, ic, context->getCursor()->getOptions(), mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open index scanner:%d", rc);
          goto error;
       }
 
-      do
+      rc = scanner.batchNext(context);
+      if (SDB_IXM_EOC == rc)
+      {
+         rc = SDB_OK;
+         cursor->pushEnd();
+         goto done;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get next rid from scanner:%d", rc);
+         goto error;
+      }
+
+      scanner.close();
+
+      SDB_ASSERT(!context->getBatch().isEmpty(), "impossible");
+      for (UINT32 i = 0; i < context->getBatch().getEntryCount(); ++i)
       {
          recordID rid;
          DPS_TRANS_ID transID;
-
-         if (scanner.isPaused())
+         slice recordBody;
+         const indexScanEntryBatch &batch = context->getBatch();
+         slice entryData = batch[i];
+         indexScanEntry entry;
+         rc = entry.init(ic->getObj().getParams().type, entryData);
+         if (SDB_OK != rc)
          {
-            rc = scanner.resume();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to resume scanner:%d", rc);
-               goto error;
-            }
-         }
-
-         rc = scanner.next(rid);
-         if (SDB_IXM_EOC == rc)
-         {
-            rc = SDB_OK;
-            cursor->pushEnd();
-            goto done;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get next rid from scanner:%d", rc);
+            PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
             goto error;
          }
 
+         rid = entry.getRid();
+
          if (o.indexCoverd)
          {
-            transID = scanner.getTransID();
-            ixmKey key;
-            scanner.getKey(key);
-            bson::BSONObj keyObj;
-
+            transID = entry.getTransID();
+            bson::BSONObj recordObj;
+            ixmKey key(entry.getKeySlice().data());
             keyObjBuilder.reset();
             rc = key.toRecord(ic->getObj().getPattern().getPattern(), keyObjBuilder);
             if (SDB_OK != rc)
@@ -3441,61 +3451,62 @@ namespace vessel
                goto error;
             }
 
-            keyObj = keyObjBuilder.done();
-
-            rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
-                                            slice(sizeof(DPS_TRANS_ID), &transID),
-                                            slice(keyObj.objsize(), keyObj.objdata())});
-            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-            {
-               rc = SDB_OK;
-               goto done;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push data into cursor:%d", rc);
-               goto error;
-            }
+            recordObj = keyObjBuilder.done();
+            recordBody = slice(recordObj.objsize(), recordObj.objdata());
          }
          else
          {
-            scanner.pause();
-            
             rc = rr.read(context, rid, &mds, &mb);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to read record[%d,%d], rc:%d",
-                      rid.getPageID(), rid.getSlotID(), rc);
+                     rid.getPageID(), rid.getSlotID(), rc);
                goto error;
             }
 
             transID = rr.getCurrentRecordHead().getTransID();
-            rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
-                                            slice(sizeof(DPS_TRANS_ID), &transID),
-                                            rr.getCurrentRecordBody()});
-            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-            {
-               rc = SDB_OK;
-               goto done;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
-               goto error;
-            }
-
-            rr.fini();
+            recordBody = rr.getCurrentRecordBody();
          }
 
+         rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
+                                          slice(sizeof(DPS_TRANS_ID), &transID),
+                                          recordBody});
+         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+         {
+            rc = SDB_OK;
+            break;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to push data fragments into cursor:%d", rc);
+            goto error;
+         }
+
+         rr.fini();
+
+         ++pushed;
          context->unlockRid(rid);
-      } while (cursor->isWaitingMorePushing());
-      
+      }
+
+      if (OSS_UNLIKELY(0 == pushed))
+      {
+         PD_LOG(PDERROR, "nothing pushed into cursor");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = context->getCursor()->saveEntry(context->getBatch()[pushed - 1]);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to save last entry to cursor:%d", rc);
+         goto error;
+      }
    done:
       scanner.close();
+      context->clearBatchAndRidLatch();
       return rc;
    error:
       rr.fini();
-      context->unlockAllRids();
       goto done;
    }
 }//namespace vessel

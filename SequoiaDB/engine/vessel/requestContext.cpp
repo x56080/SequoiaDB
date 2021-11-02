@@ -276,17 +276,15 @@ namespace vessel
       SDB_ASSERT(0 == _bufAllocated, "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
+      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
-      ossSharedLatchMode mode;
-      LOGICAL_ID_LATCH_MAP::object lpidLatchObj;
+
+      objectLatchHelper<recordIdLatchKey>().releaseAll(_env->ridLatchMap, _ridLatchContext);
+      _ridLatchContext.fini();
 
       _clContext.close();
 
-      while (_lpidLatchContext.pop(lpidLatchObj, mode))
-      {
-         lpidLatchObj.getValue().unlockWith(mode);
-         _env->lpidLatchMap.release(lpidLatchObj);
-      }
+      objectLatchHelper<logicalIdLatchKey>().releaseAll(_env->lpidLatchMap, _lpidLatchContext);
       _lpidLatchContext.fini();
 
       _blocker.fini();
@@ -652,6 +650,106 @@ namespace vessel
    {
       _blocker.unblock();
    }
+
+   INT32 requestContext::lockRid(const recordID &rid,
+                                 const ossSharedLatchMode &mode)
+   {
+      INT32 rc = SDB_OK;
+      recordIdLatchKey key;
+      objectLatchHelper<recordIdLatchKey> lh;
+
+      if (OSS_UNLIKELY(!rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isSpaceIdLocked() ||
+               !isMbLocked())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      key = recordIdLatchKey(getLogicalCSID(),
+                             getLogicalCLID(),
+                             rid);
+      rc = lh.lock(_env->ridLatchMap, _ridLatchContext, key, mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid[%s], rc:%d", key.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 requestContext::tryLockRid(const recordID &rid,
+                                    const ossSharedLatchMode &mode,
+                                    BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      recordIdLatchKey key;
+      objectLatchHelper<recordIdLatchKey> lh;
+      locked = FALSE;
+
+      if (OSS_UNLIKELY(!rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!isSpaceIdLocked() ||
+               !isMbLocked())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      key = recordIdLatchKey(getLogicalCSID(),
+                             getLogicalCLID(),
+                             rid);
+      rc = lh.tryLock(_env->ridLatchMap, _ridLatchContext,
+                      key, mode, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to try lock rid[%s], rc:%d", key.toString().c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
    
+   void requestContext::unlockRid(const recordID &rid)
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      objectLatchHelper<recordIdLatchKey> lh;
+      recordIdLatchKey key(getLogicalCSID(),
+                           getLogicalCLID(),
+                           rid);
+      lh.autoUnlock(_env->ridLatchMap, _ridLatchContext, key);
+   }
+
+   void requestContext::unlockRids()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
+      objectLatchHelper<recordIdLatchKey> lh;
+      lh.releaseAll(_env->ridLatchMap, _ridLatchContext);
+   }
 }//namespace vessel
 }//namespace engine

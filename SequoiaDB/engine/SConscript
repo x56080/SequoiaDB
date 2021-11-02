@@ -947,6 +947,10 @@ vesselFiles = [
       "vessel/index/btreeAccessContext.cpp",
       "vessel/index/btreeNodeCompressedKey.cpp",
       "vessel/index/btreeAccessPathNode.cpp",
+      "vessel/index/btreeIndexIterator.cpp",
+      "vessel/index/indexScanEntryBatch.cpp",
+      "vessel/index/btreeScanEntryParser.cpp",
+      "vessel/index/indexScanEntry.cpp",
       "vessel/inMemBitmap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",
@@ -956,7 +960,6 @@ vesselFiles = [
       "vessel/csgpAccessor.cpp",
       "vessel/requestContext.cpp",
       "vessel/insertContext.cpp",
-      "vessel/dataScanContext.cpp",
       "vessel/indexScanContext.cpp",
       "vessel/dmlContext.cpp",
       "vessel/collection.cpp",
@@ -1019,7 +1022,8 @@ lsmFiles = [
       "vessel/lsm/lsmIndex.cpp",
       "vessel/lsm/lsmOwnedRecord.cpp",
       "vessel/lsm/lsmInsertBatch.cpp",
-      "vessel/lsm/lsmIndexIterator.cpp"
+      "vessel/lsm/lsmIndexIterator.cpp",
+      "vessel/lsm/lsmScanEntryParser.cpp"
 ]
 
 #vessel unit test

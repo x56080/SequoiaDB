@@ -43,7 +43,6 @@
 #include "vessel/indexHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/unorderedRidSet.h"
-#include "vessel/memoryBlock.h"
 #include "vessel/slice.h"
 
 namespace engine
@@ -64,7 +63,7 @@ namespace vessel
          _indexName(indexName)
          {}
 
-         virtual ~indexScanCursor(){}
+         virtual ~indexScanCursor();
 
       public:
          virtual CURSOR_TYPE getType()const
@@ -103,17 +102,6 @@ namespace vessel
          {
             return _clHandle;
          }
-
-         OSS_INLINE slice getEntry()
-         {
-            return _entry.getReadableSlice();
-         }
-
-         OSS_INLINE memoryBlock &getEntryBlock()
-         {
-            return _entry;
-         }
-
          OSS_INLINE UNORDERED_RID_SET *getScannedSet()
          {
             return &_scanned;
@@ -123,9 +111,23 @@ namespace vessel
          {
             return &_predicate;
          }
+         OSS_INLINE const rtnPredicateListIterator *getPredicate()const
+         {
+            return &_predicate;
+         }
          OSS_INLINE const indexScanOptions &getOptions()const
          {
             return _o;
+         }
+
+         INT32 saveEntry(const slice &entryData);
+         OSS_INLINE BOOLEAN hasEntry()const
+         {
+            return 0 < _entryData.getSize();
+         }
+         OSS_INLINE slice getEntryData()const
+         {
+            return _entryData.getReadableSlice();
          }
 
       private:
@@ -135,8 +137,7 @@ namespace vessel
          strSlice _indexName;
          indexHandle _handle;
          UNORDERED_RID_SET _scanned;
-         memoryBlock _entry;
-
+         memoryBlock _entryData;
    };//class indexScanCursor
 } // namespace vessel
 

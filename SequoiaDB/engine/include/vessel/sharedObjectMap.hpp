@@ -246,41 +246,26 @@ namespace vessel
          }
 
          /// User should always validate o outside.
-         INT32 get(const KEY &k, object &o)
+         object get(const KEY &k)
          {
-            INT32 rc = SDB_OK;
-            SDB_ASSERT(k.isValid() && !o.isValid(), "impossible");
-            UINT32 hash = 0;
-            _bucket *bucket = NULL;
-            ossSpinXLatch *latch = NULL;
-            _item *itemFound = NULL;
+            SDB_ASSERT(isOpen(), "can not be invalid");
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            object o;
             UINT32 bucketNo = 0;
-            o._i = NULL;
+            UINT32 hash = k.hash();
+            _bucket *bucket = getBucket(hash, bucketNo);
+            ossSpinXLatch *latch = getBucketLatch(bucketNo);
 
-            if (OSS_UNLIKELY(!isOpen()))
-            {
-               rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-               goto error;
-            }
+            ossXLatchGuard guard(latch);
 
-            hash = k.hash();
-            bucket = getBucket(hash, bucketNo);
-            latch = getBucketLatch(bucketNo);
-            latch->get();
-            itemFound = find(bucket, k);
+            _item *itemFound = find(bucket, k);
             if (NULL != itemFound)
             {
                ++(itemFound->_shared);
                o._i = itemFound;
             }   
-         done:
-            if (NULL != latch)
-            {
-               latch->release();
-            }
-            return rc;
-         error:
-            goto done;
+         
+            return o;
          }
             
          void release(object &o)

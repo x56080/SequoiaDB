@@ -806,7 +806,6 @@ namespace vessel
                                              recordID &rid)
    {
       INT32 rc = SDB_OK;
-      indexIterator *iterator = NULL;
       rid = recordID();
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -820,58 +819,68 @@ namespace vessel
          goto error;
       }
 
-      iterator = createIndexIterator(ic->getObj().getIndexType());
-      if (NULL == iterator)
+      if (INDEX_TYPE_LSM == ic->getIndexType())
       {
-         PD_LOG(PDERROR, "failed to allocate itr obj");
-         rc = SDB_OOM;
-         goto error;
+         lsmIndexIterator lsmItr;
+         
+         rc = checkUniqueConstraintByIterator(context, ic, &lsmItr, key, rid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to check unique constraint by lsm iterator:%d", rc);
+            goto error;
+         }
+      }
+      else if (INDEX_TYPE_BTREE == ic->getIndexType())
+      {
+         btreeIndexIterator btreeItr;
+         rc = checkUniqueConstraintByIterator(context, ic, &btreeItr, key, rid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to check unique constraint by btree iterator:%d", rc);
+            goto error;
+         }
       }
 
-      rc = iterator->open(context, ic, TRUE);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 indexConsole::checkUniqueConstraintByIterator(requestContext *context,
+                                                       indexContext *ic,
+                                                       indexIterator *iterator,
+                                                       const bson::BSONObj &key,
+                                                       recordID &rid)const
+   {
+      INT32 rc = SDB_OK;
+
+      ixmKeyOwned ownedKey(key);
+      indexIterator::options o(TRUE, TRUE);
+      rid = recordID();
+
+      rc = iterator->open(context, ic);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open iterator:%d", rc);
+         PD_LOG(PDERROR, "failed to open index iterator:%d", rc);
          goto error;
       }
-      
-      rc = iterator->seek(key, FALSE);
+         
+      rc = iterator->seekKey(ownedKey, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek key:%d", rc);
          goto error;
       }
 
-      while (iterator->isReadyToRead())
+      if (iterator->isReadyToRead() &&
+          iterator->equalToCurrentKey(ownedKey))
       {
-         if (iterator->isMarkedRemoved())
-         {
-            rc = iterator->nextDiffKeyOrRid();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get next tuple:%d", rc);
-               goto error;
-            }
-         }
-         else
-         {
-            ixmKey ik;
-            iterator->getKey(ik);
-            _ixmKeyOwned ownedKey(key);
-            if (ik.woEqual(ownedKey))
-            {
-               rid = iterator->getRid();
-               SDB_ASSERT(rid.valid(), "impossible");
-            }
-            break;
-         }
+         rid = iterator->getRid();
       }
    done:
-      if (NULL != iterator)
-      {
-         iterator->close();
-         SDB_OSS_DEL iterator;
-      }
+      iterator->close();
       return rc;
    error:
       goto done;

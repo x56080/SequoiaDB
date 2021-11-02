@@ -116,20 +116,14 @@ namespace vessel
    }
 
    void indexObject::updateBtreeRoot(PAGE_ID root,
-                                     const UINT32 *updatedTimes)
+                                     UINT32 updatedTimes)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
       SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
       _btreeRoot = root;
-      if (NULL == updatedTimes)
-      {
-         ++_btreeRootUpdatedTimes;
-      }
-      else
-      {
-         _btreeRootUpdatedTimes = *updatedTimes;
-      }
+      _btreeRootUpdatedTimes = updatedTimes;
+      
       return;
    }
 

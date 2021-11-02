@@ -149,7 +149,7 @@ namespace vessel
 
       public:
          baseScanOptions base;
-         UINT32 stepLength = 1;
+         UINT32 stepLength = 10;
          BOOLEAN indexCoverd = FALSE;
          BOOLEAN forward = TRUE;
    };//class indexScanOptions

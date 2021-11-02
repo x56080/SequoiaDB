@@ -45,7 +45,8 @@
 #include "inclusiveVec.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexContext.h"
+#include "vessel/indexScanEntryBatch.h"
+#include "vessel/indexScanContext.h"
 
 namespace engine
 {
@@ -55,102 +56,95 @@ namespace vessel
    {
       public:
          indexIterator(){}
-         virtual ~indexIterator();
+         virtual ~indexIterator(){}
          indexIterator(const indexIterator &) = delete;
          indexIterator &operator=(const indexIterator &) = delete;
-
-      public:
-         OSS_INLINE BOOLEAN isForward()const
-         {
-            return _forward;
-         }
 
       public:
          virtual INDEX_TYPE getIndexType()const = 0;
 
       public:
+         class options : public SDBObject
+         {
+            public:
+               options(){}
+               explicit options(BOOLEAN inclusive, BOOLEAN forward):
+                        _inclusive(inclusive),
+                        _forward(forward){}
+               ~options(){}
+               options(const options &b):
+               _inclusive(b._inclusive),
+               _forward(b._forward){}
+               options &operator=(const options &b)
+               {
+                  _inclusive = b._inclusive;
+                  _forward = b._forward;
+                  return *this;
+               }
+            
+            public:
+               OSS_INLINE BOOLEAN isInclusive()const
+               {
+                  return _inclusive;
+               }
+               OSS_INLINE BOOLEAN isForward()const
+               {
+                  return _forward;
+               }
+               OSS_INLINE void setInclusive(BOOLEAN inclusive)
+               {
+                  _inclusive = inclusive;
+               }
+
+            private:
+               BOOLEAN _inclusive = TRUE;
+               BOOLEAN _forward = TRUE;
+         };//class options
+
+      public:
          virtual INT32 open(requestContext *context,
-                            const indexContext *ic,
-                            BOOLEAN forward) = 0;
+                            indexContext *ic) = 0;
+
+         virtual BOOLEAN isOpen()const = 0;
 
          virtual void close() = 0;
 
-         virtual void pause() = 0;
-
-         /// lower bound of last key entry.
-         virtual INT32 resume() = 0;
-
          virtual INT32 seek(const bson::BSONObj &prevKey,
                             INT32 fieldCountToCmpInPrev,
-                            BOOLEAN upperBound,
                             const VEC_ELE_CMP &matchEles,
-                            const inclusiveVec &matchInclusive) = 0;
+                            const inclusiveVec &matchInclusive,
+                            const options &o) = 0;
 
-         virtual INT32 seek(const bson::BSONObj &key,
-                            BOOLEAN upperBound) = 0;
+         virtual INT32 seekEntry(const slice &entry,
+                                 const options &o) = 0;
 
-         virtual INT32 seek(const bson::BSONObj &key,
-                            const recordID &rid,
-                            BOOLEAN upperBound) = 0;
+         virtual INT32 seekKey(const ixmKey &key,
+                               const options &o) = 0;
 
-         virtual INT32 seek(const slice &entry,
-                            BOOLEAN upperBound) = 0;
-         
-         /// move to next position from current
-         /// until hit the different key or rid.
-         virtual INT32 nextDiffKeyOrRid() = 0;
-
-         /// move to next position from current
-         /// until hit the matched entry.
-         virtual INT32 nextTo(const bson::BSONObj &prevKey,
-                              INT32 fieldCountToCmpInPrev,
-                              BOOLEAN upperBound,
-                              const VEC_ELE_CMP &matchEles,
-                              const inclusiveVec &matchInclusive) = 0;
-
-         /// move to next postion from current.
          virtual INT32 next() = 0;
 
+         virtual INT32 prev() = 0;
+
+         virtual INT32 advanceTo(const bson::BSONObj &prevKey,
+                                 INT32 fieldCountToCmpInPrev,
+                                 const VEC_ELE_CMP &matchEles,
+                                 const inclusiveVec &matchInclusive,
+                                 const options &o) = 0;
+
          virtual BOOLEAN isReadyToRead()const = 0;
+
+         virtual void pause() = 0;
 
       public:
          /// The functions to access current tuple saved in iterator.
          /// User should always call 'isReadyToRead' first.
-
-         virtual BOOLEAN isMarkedRemoved()const = 0;
-         virtual UINT64 getLSN()const = 0;
-         virtual void getKey(ixmKey &key)const = 0;
+         virtual DPS_LSN_OFFSET getLSN()const = 0;
+         virtual slice getKey()const = 0;
          virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
-         virtual slice getValue()const = 0;
-         virtual UINT32 getEntrySize()const = 0;
-         virtual slice getEntry()const = 0;
-
-      protected:
-
-         OSS_INLINE BOOLEAN _isOpen()const
-         {
-            return NULL != _context;
-         }
-
-         void _open(requestContext *context,
-                    const indexContext *ic,
-                    BOOLEAN forward);
-         void _close();
-
-         requestContext *getContext()const
-         {
-            return _context;
-         }
-
-         const indexContext *getIndexContext()
-         {
-            return _ic;
-         }
-      private:
-         requestContext *_context = NULL;
-         const indexContext *_ic = NULL;
-         BOOLEAN _forward = TRUE;
+         virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const = 0;
+         virtual indexScanEntry getCurrentEntry()const = 0;
+         virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const = 0;
    };//class indexIterator
 
    extern indexIterator *createIndexIterator(INDEX_TYPE type);

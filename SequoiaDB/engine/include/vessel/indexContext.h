@@ -108,6 +108,11 @@ namespace vessel
          {
             return indexHandle(_indexSlot, _obj.getIndexID());
          }
+
+         OSS_INLINE INDEX_TYPE getIndexType()const
+         {
+            return _obj.getParams().type;
+         }
       public:
          INT32 init(INT32 indexSlot,
                     PAGE_ID lpid,

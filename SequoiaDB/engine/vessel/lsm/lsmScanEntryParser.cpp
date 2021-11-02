@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dataScanContext.h
+   Source File Name = lsmScanEntryParser.cpp
 
    Descriptive Name =
 
@@ -33,42 +33,30 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_DATA_SCAN_CONTEXT_H_
-#define VESSEL_DATA_SCAN_CONTEXT_H_
-
-#include "vessel/requestContext.h"
-#include "vessel/objectLatchMap.hpp"
+#include "vessel/lsm/lsmScanEntryParser.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class dataScanContext : public requestContext
+   INT32 lsmScanEntryParser::parse(const slice &entryData)
    {
-      public:
-         dataScanContext();
-         virtual ~dataScanContext();
+      INT32 rc = SDB_OK;
+      rocksdb::Slice s(entryData.data(), entryData.getSize());
+      rc = _lsmEntry.shallowCopy(s);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to parse full entry data:%d", rc);
+         goto error;
+      }
 
-      public:
-         virtual void close();
-
-         INT32 lockRid(ossSharedLatchMode mode,
-                       const recordID &rid);
-
-         INT32 tryLockRid(ossSharedLatchMode mode,
-                          const recordID &rid,
-                          BOOLEAN &locked);
-
-         void unlockRid(const recordID &rid);
-
-         void unlockAllRids();
-
-      private:
-         RID_LATCH_CONTEXT _rlc;
-   };//class dataScanContext
+      _fullEntry = entryData.getReadableSlice(0, entryData.getSize());
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
 } // namespace vessel
 
 } // namespace engine
-
-
-#endif//VESSEL_DATA_SCAN_CONTEXT_H_

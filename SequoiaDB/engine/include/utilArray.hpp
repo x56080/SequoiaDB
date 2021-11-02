@@ -156,7 +156,7 @@ namespace engine
       {
          if (!empty())
          {
-            t = _dynamicBuf[_eleSize--];
+            t = _dynamicBuf[--_eleSize];
             return TRUE;
          }
          return FALSE;

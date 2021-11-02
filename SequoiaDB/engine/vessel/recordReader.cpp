@@ -174,17 +174,11 @@ namespace vessel
 
          if (needLockRid)
          {
-            RECORD_ID_LATCH_MAP::object latchObj;
             recordIdLatchKey latchKey(_context->getSpaceID(),
                                       _context->getMBID(),
                                       recordID(_lpid, _nextSlot));
-            rc = latchMap->get(latchKey, latchObj);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get latch obj:%d", rc);
-               goto error;
-            }
 
+            RECORD_ID_LATCH_MAP::object latchObj = latchMap->get(latchKey);
             /// If latch obj not found, we do not need to 
             /// get rid latch.
             if (latchObj.isValid())

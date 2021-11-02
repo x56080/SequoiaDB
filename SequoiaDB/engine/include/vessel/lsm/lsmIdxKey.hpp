@@ -270,6 +270,8 @@ const UINT32 LSM_MIN_FULL_KEY_SIZE = lsmEntryTypeSz + lsmIdxIDSz +
                                      lsmOrdSz + lsmMinIxmKeySz +
                                      lsmRidSz + lsmLsnSz + lsmTxIDSz;
 
+
+
 // Return SDB LSM key comparator
 extern const rocksdb::Comparator* lsmKeyComparator();
 

@@ -102,7 +102,7 @@ namespace vessel
          {
             return _btreeRoot;
          }
-         void updateBtreeRoot(PAGE_ID root, const UINT32 *updatedTimes=NULL);
+         void updateBtreeRoot(PAGE_ID root, UINT32 updatedTimes);
 
          BOOLEAN hasBtreeRoot()const;
 

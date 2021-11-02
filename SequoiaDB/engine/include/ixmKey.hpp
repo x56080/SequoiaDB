@@ -149,6 +149,7 @@ namespace engine
       _ixmKeyOwned ( const _ixmKey &r ) ;
       // make empty key
       _ixmKeyOwned () {_keyData = NULL; }
+
    private:
       StackBufBuilder _b ;
       // create standard BSON object as key
@@ -285,6 +286,14 @@ namespace engine
                                      StackBufBuilder &builder)const;
       
    };//class ixmKeyPrefixGenerator
+
+   class ixmKeyUtils : public SDBObject
+   {
+      public:
+         static void buildMinKey(UINT32 nfields,
+                                 const bson::Ordering &ordering,
+                                 StackBufBuilder &builder);
+   };//class ixmKeyUtils
 }
 
 #endif

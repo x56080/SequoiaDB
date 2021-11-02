@@ -115,12 +115,13 @@ namespace vessel
       UINT16 totalSlotCount = 0;
       UINT16 externalKeySize = 0;
       UINT32 rightChild = INVALID_PAGE_ID;
-      UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT32 splitedTimes = 0;
+      UINT64 transSN = DPS_INVALID_TRANSID_SN;
+      UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
       UINT16 prefixCount = 0;
       UINT16 compressedItemCount = 0;
       UINT16 appendingFactor = 0;
-      CHAR pad1[22] = {};
+      CHAR pad[24] = {};
    };//struct btreeNodeHead
    static const UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
    
@@ -149,7 +150,7 @@ namespace vessel
       }
 
       static const UINT16 FLAG_IN_USED = 0x01;
-      static const UINT16 FLAG_MARKED_DELETE = 0x02;
+      static const UINT16 FLAG_MARKED_DELETED = 0x02;
       static const UINT16 FLAG_KEY_IN_EXTERNAL_PAGE = 0x04;
       static const UINT16 FLAG_KEY_COMPRESSESD = 0x08;
       static const UINT16 FLAG_MAX = 0x2000;
@@ -168,10 +169,10 @@ namespace vessel
          return 0 != OSS_BIT_TEST(flags, FLAG_IN_USED);
       }
 
-      void initAsNonLeaFormat(const recordID &rid,
-                              UINT16 offset,
-                              UINT16 size,
-                              PAGE_ID leftChild);
+      void initAsNonLeafFormat(const recordID &rid,
+                               UINT16 offset,
+                               UINT16 size,
+                               PAGE_ID leftChild);
 
       void initAsLeafFormat(const recordID &rid,
                             UINT16 offset,
@@ -182,9 +183,9 @@ namespace vessel
                                 PAGE_ID leftChild,
                                 PAGE_ID extp);
 
-      OSS_INLINE BOOLEAN isMarkedDelete()const
+      OSS_INLINE BOOLEAN isMarkedDeleted()const
       {
-         return 0 != OSS_BIT_TEST(flags, FLAG_MARKED_DELETE);
+         return 0 != OSS_BIT_TEST(flags, FLAG_MARKED_DELETED);
       }
       OSS_INLINE BOOLEAN isKeyInExtPage()const
       {

@@ -313,6 +313,20 @@ namespace vessel
          }
 
       public:
+         RID_LATCH_CONTEXT &getRidLatchContext()
+         {
+            return _ridLatchContext;
+         }
+
+         INT32 lockRid(const recordID &rid,
+                       const ossSharedLatchMode &mode);
+         INT32 tryLockRid(const recordID &rid,
+                          const ossSharedLatchMode &mode,
+                          BOOLEAN &locked);
+         void unlockRid(const recordID &rid);
+         void unlockRids();
+
+      public:
          INT32 blockCheckpoint(SPACE_TYPE type,
                                ossRWMutex *mutex);
 
@@ -353,7 +367,8 @@ namespace vessel
 
          collectionSpaceContext _spaceContext;
          collectionContext _clContext;
-         objectSharedLatchContext<logicalIdLatchKey> _lpidLatchContext;
+         LPID_LATCH_CONTEXT _lpidLatchContext;
+         RID_LATCH_CONTEXT _ridLatchContext;
          lpsCheckpointBlocker _blocker;
 
          UINT32 _bufAllocated = 0;

@@ -42,204 +42,208 @@
 #include "vessel/btreeNodeCompressedKey.h"
 #include "vessel/btreeItemLocation.h"
 #include "ossSharedLatch.hpp"
-#include "vessel/logicalPageBuffer.h"
 #include "vessel/btreeSplitRaisedKey.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class logicalPageBuffer;
    class indexContext;
 
    class btreeNode : public SDBObject
    {
       public:
          btreeNode(){}
+
          explicit btreeNode(logicalPageBuffer *buffer,
-                            const indexContext *ic,
-                            UINT32 depth);
+                            UINT32 depth,
+                            const indexContext *ic);
+
          ~btreeNode(){}
          btreeNode(const btreeNode &o):
          _buffer(o._buffer),
-         _ic(o._ic),
-         _depth(o._depth)
+         _depth(o._depth),
+         _ic(o._ic)
          {}
          btreeNode &operator=(const btreeNode &o)
          {
             _buffer = o._buffer;
-            _ic = o._ic;
             _depth = o._depth;
+            _ic = o._ic;
             return *this;
          }
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _buffer && _buffer->isValid();
+            return NULL != _buffer;
          }
 
          OSS_INLINE void reset()
          {
+            _depth = 0;
             _buffer = NULL;
             _ic = NULL;
-            _depth = 0;
             return;
          }
 
-         public:
-            BOOLEAN isRoot()const;
-            BOOLEAN hasExternalKey()const;
-            BOOLEAN isLeaf()const;
-            BOOLEAN isNewRoot()const;
-            
-            UINT32 getItemCount()const;
-            UINT32 getNodeSize()const;
-            ossSharedLatchMode getLockingMode()const;
-            BOOLEAN isSpaceSpare()const;
-            BOOLEAN ensureExclusiveLocking();
-            const logicalPageBuffer *getBuffer()const
-            {
-               return _buffer;
-            }
-            UINT32 getDepth()const
-            {
-               return _depth;
-            }
-         public:
-            BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
-                                         BOOLEAN *needCompact=NULL)const;
+      public:
+         BOOLEAN isRoot()const;
+         BOOLEAN hasExternalKey()const;
+         BOOLEAN isLeaf()const;
+         
+         UINT32 getItemCount()const;
+         UINT32 getNodeSize()const;
+         ossSharedLatchMode getLockingMode()const;
+         BOOLEAN ensureExclusiveLocking();
+         BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const;
+         PAGE_ID getRightChild()const;
+         PAGE_ID getLeftChild(RECORD_SLOT_ID pos)const;
+         DPS_TRANS_ID getTransID()const;
+         UINT32 getSplitedTimes()const;
+         const logicalPageBuffer *getBuffer()const
+         {
+            return _buffer;
+         }
+         UINT32 getDepth()const
+         {
+            return _depth;
+         }
 
-            /// leaf node only
-            INT32 leafInsert(const ixmKey &key,
-                             const recordID &rid,
-                             const DPS_TRANS_ID &transID);
+      public:
 
-            /// leaf node only
-            INT32 splitLeafAndInsert(const ixmKey &key,
-                                     const recordID &rid,
-                                     const DPS_TRANS_ID &transID,
-                                     btreeSplitRaisedKey &raisedKey);
+         BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
+                                       BOOLEAN *needCompact=NULL)const;
+         BOOLEAN hasFreeSpaceToInsertRaisedKey(UINT32 keySize,
+                                               BOOLEAN *needCompact=NULL)const;
+         /// leaf node only
+         INT32 leafInsert(const ixmKey &key,
+                           const recordID &rid,
+                           const DPS_TRANS_ID &transID);
 
-            /// non-leaf node or new root only
-            INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                  const DPS_TRANS_ID &transID);
-
-            INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
-                                        const DPS_TRANS_ID &transID,
-                                        btreeSplitRaisedKey &raisedKey);
-
-            INT32 split(btreeSplitRaisedKey &raisedKey);
-
-            /// non-leaf node only
-            INT32 reactiveRemovedKey(const btreeItemLocation &location,
-                                     const DPS_TRANS_ID &transID);
-
-            
-         public:
-            INT32 locateKeyAndRid(const ixmKey &key,
+         /// leaf node only
+         INT32 splitLeafAndInsert(const ixmKey &key,
                                   const recordID &rid,
-                                  btreeItemLocation &res)const;
+                                  const DPS_TRANS_ID &transID,
+                                  btreeSplitRaisedKey &raisedKey);
 
-            INT32 getItem(RECORD_SLOT_ID pos,
-                          btreeIndexItem &item)const;
+         /// non-leaf node or new root only
+         INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
+                                 const DPS_TRANS_ID &transID);
 
-         private:
-            OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const
-            {
-               return BTREE_NODE_SLOT_SIZE + keySize;
-            }
-            BOOLEAN isCompressionDisabled()const;
-            UINT32 getKeyDataOffsetToWrite(const btreeNodePageHead *head,
-                                           UINT32 keyDataSize)const;
+         INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
+                                       const DPS_TRANS_ID &transID,
+                                       btreeSplitRaisedKey &raisedKey);
 
-            btreeItemSlot *getWritableSlot(RECORD_SLOT_ID pos);
-            const btreeItemSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
+         INT32 split(btreeSplitRaisedKey &raisedKey);
 
-            const btreeNodePrefixSlot *getReadablePrefixSlot(UINT16 pos)const;
-            btreeNodePrefixSlot *getWritablePrefixSlot(UINT16 pos);
+         /// non-leaf node only
+         INT32 reactiveRemovedKey(const btreeItemLocation &location,
+                                    const DPS_TRANS_ID &transID);
 
-            BOOLEAN hitHighWaterMark()const;
-            BOOLEAN isBetterToBeRecompressed() const;
+         INT32 exchangeWithNewRoot(btreeNode &newRoot);
 
-            BOOLEAN isVainPrefixRegen()const;
-            BOOLEAN hasCompressedKeys()const;
-            BOOLEAN hasPrefix()const;
+         INT32 prepareToWrite();
 
-            OSS_INLINE const btreeNodePageHead *getReadableHead()const
-            {
-               SDB_ASSERT(isValid(), "can not be invalid");
-               return _buffer->getReadableBodySlice().getReadableObjPtr<btreeNodePageHead>(0);
-            }
+         
+      public:
+         INT32 locateKeyAndRid(const ixmKey &key,
+                                 const recordID &rid,
+                                 btreeItemLocation &res)const;
 
-            OSS_INLINE slice getReadableSlice()const
-            {
-               SDB_ASSERT(isValid(), "can not be invalid");
-               return _buffer->getReadableBodySlice();
-            }
+         INT32 getItem(RECORD_SLOT_ID pos,
+                        btreeIndexItem &item)const;
 
-            BOOLEAN isRecentWriteOrdered()const;
+      private:
+         OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const
+         {
+            return BTREE_NODE_SLOT_SIZE + keySize;
+         }
+         BOOLEAN isCompressionDisabled()const;
+         UINT32 getKeyDataOffsetToWrite(const btreeNodePageHead *head,
+                                          UINT32 keyDataSize)const;
 
-         private:
-            void commit();
-            void updateTransSN(const DPS_TRANS_ID &transID);
+         btreeItemSlot *getWritableSlot(RECORD_SLOT_ID pos);
+         const btreeItemSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
 
-            INT32 _compact(BOOLEAN tryToRestoreExternalKey=TRUE);
+         const btreeNodePrefixSlot *getReadablePrefixSlot(UINT16 pos)const;
+         btreeNodePrefixSlot *getWritablePrefixSlot(UINT16 pos);
 
-            INT32 _leafInsert(const ixmKey &key,
-                              const recordID &rid,
-                              RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+         BOOLEAN hitHighWaterMark()const;
+         BOOLEAN isBetterToBeRecompressed() const;
 
-            INT32 _insert(RECORD_SLOT_ID pos,
-                          const ixmKey &key,
-                          const recordID &rid,
-                          PAGE_ID leftChild=INVALID_PAGE_ID);
+         BOOLEAN isVainPrefixRegen()const;
+         BOOLEAN hasCompressedKeys()const;
+         BOOLEAN hasPrefix()const;
 
-            INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                   RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+         const btreeNodePageHead *getReadableHead()const;
+
+         slice getReadableSlice()const;
+
+         BOOLEAN isRecentWriteOrdered()const;
+
+      private:
+         void commit();
+         void updateTransSN(const DPS_TRANS_ID &transID);
+
+         INT32 _compact(BOOLEAN tryToRestoreExternalKey=TRUE);
+
+         INT32 _leafInsert(const ixmKey &key,
+                           const recordID &rid,
+                           RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
+
+         INT32 _insert(RECORD_SLOT_ID pos,
+                        const ixmKey &key,
+                        const recordID &rid,
+                        PAGE_ID leftChild=INVALID_PAGE_ID);
+
+         INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
+                                 RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
 
 
-            INT32 _split(RECORD_SLOT_ID pivot,
-                         PAGE_ID &rightNode);
+         INT32 _split(RECORD_SLOT_ID pivot,
+                        PAGE_ID &rightNode);
 
-            INT32 insertExternalKey(RECORD_SLOT_ID pos,
-                                    const ixmKey &key,
-                                    const recordID &rid,
-                                    PAGE_ID leftChild);
+         INT32 insertExternalKey(RECORD_SLOT_ID pos,
+                                 const ixmKey &key,
+                                 const recordID &rid,
+                                 PAGE_ID leftChild);
 
-            INT32 getItemWithExtKey(RECORD_SLOT_ID pos,
-                                    btreeIndexItem &item)const;
+         INT32 getItemWithExtKey(RECORD_SLOT_ID pos,
+                                 btreeIndexItem &item)const;
 
-            INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID pivot,
-                                          slice &node)const;
+         INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID pivot,
+                                       slice &node)const;
 
-            INT32 findSplitPivot(BOOLEAN idleRight,
-                                 RECORD_SLOT_ID &pivot)const;
+         INT32 findSplitPivot(BOOLEAN idleRight,
+                              RECORD_SLOT_ID &pivot)const;
 
-            INT32 truncate(RECORD_SLOT_ID max);
+         INT32 truncate(RECORD_SLOT_ID max);
 
-            void updateAppendingFactor(btreeNodePageHead *head,
-                                       BOOLEAN isAppending);
+         void updateAppendingFactor(btreeNodePageHead *head,
+                                    BOOLEAN isAppending);
 
-            btreeNode getRightNodeWhenSplit(PAGE_ID right, logicalPageBuffer &buffer);
+         btreeNode getRightNodeWhenSplit(PAGE_ID right, logicalPageBuffer &buffer);
 
-         private:/// leaf node only
-            INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,
-                                            const ixmKey &key,
-                                            btreeNodeCompressedKey &ck)const;
-            INT32 tryToCompressKey(const ixmKey &key,
-                                   UINT32 prefixPos,
-                                   const ixmKey &prefix,
-                                   btreeNodeCompressedKey &ck)const;
+      private:/// leaf node only
+         INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,
+                                          const ixmKey &key,
+                                          btreeNodeCompressedKey &ck)const;
+         INT32 tryToCompressKey(const ixmKey &key,
+                                 UINT32 prefixPos,
+                                 const ixmKey &prefix,
+                                 btreeNodeCompressedKey &ck)const;
 
-            INT32 insertCompressedKey(RECORD_SLOT_ID pos,
-                                      const btreeNodeCompressedKey &ck,
-                                      const recordID &rid);
+         INT32 insertCompressedKey(RECORD_SLOT_ID pos,
+                                    const btreeNodeCompressedKey &ck,
+                                    const recordID &rid);
 
-            INT32 recompress(BOOLEAN &recompressed);
-      protected:
+         INT32 recompress(BOOLEAN &recompressed);
+      private:
          logicalPageBuffer *_buffer = NULL;
-         const indexContext *_ic = NULL;
          UINT32 _depth = 0;
+         const indexContext *_ic = NULL;
    };//class btreeNode
 } // namespace vessel
 

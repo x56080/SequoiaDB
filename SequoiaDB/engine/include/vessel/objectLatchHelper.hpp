@@ -185,30 +185,38 @@ namespace vessel
             goto done;
          }
 
-         INT32 wait(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                    const KEY &k,
-                    const ossSharedLatchMode &mode)
+         /// return false when timeout
+         BOOLEAN testNotExistsOrWait(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
+                                     const KEY &k,
+                                     const ossSharedLatchMode &mode,
+                                     INT32 millis=-1)
          {
-            INT32 rc = SDB_OK;
+            BOOLEAN r = FALSE;
+            SDB_ASSERT(k.isValid(), "can not be invalid");
             SDB_ASSERT(!mode.isNone(), "can not be none");
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-            rc = latchMap.ensure(k, obj);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
-               goto error;
-            }
+            typename sharedObjectMap<KEY, ossSharedLatch>::object obj = latchMap.get(k);
 
-            obj.getValue().lockWith(mode);
-            obj.getValue().unlockWith(mode);
-         done:
             if (obj.isValid())
             {
+               if (millis < 0)
+               {
+                  obj.getValue().lockWith(mode);
+                  obj.getValue().unlockWith(mode);
+                  r = TRUE;
+               }
+               else
+               {
+                  r = obj.getValue().tryLockWith(mode, millis);
+                  if (r)
+                  {
+                     obj.getValue().unlockWith(mode);
+                  }
+               }
+
                latchMap.release(obj);
             }
-            return rc;
-         error:
-            goto done;
+
+            return r;
          }
 
          INT32 waitFor(sharedObjectMap<KEY, ossSharedLatch> &latchMap,

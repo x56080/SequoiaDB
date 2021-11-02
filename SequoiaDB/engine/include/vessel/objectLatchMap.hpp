@@ -122,40 +122,40 @@ namespace vessel
       public:
          recordIdLatchKey(){}
          ~recordIdLatchKey(){}
-         explicit recordIdLatchKey(SPACE_ID sid,
-                                   CL_MB_ID mbID,
+         explicit recordIdLatchKey(UINT32 lcs,
+                                   UINT32 lcl,
                                    const recordID &rid):
-                  _sid(sid), _mbID(mbID), _rid(rid){}
+                  _lcs(lcs), _lcl(lcl), _rid(rid){}
 
          recordIdLatchKey(const recordIdLatchKey &o):
-         _sid(o._sid),
-         _mbID(o._mbID),
+         _lcs(o._lcs),
+         _lcl(o._lcl),
          _rid(o._rid){}
 
          recordIdLatchKey &operator=(const recordIdLatchKey &o)
          {
-            _sid = o._sid;
-            _mbID = o._mbID;
+            _lcs = o._lcs;
+            _lcl = o._lcl;
             _rid = o._rid;
             return *this;
          }
          OSS_INLINE BOOLEAN operator==(const recordIdLatchKey &o)const
          {
-            return _sid == o._sid &&
-                   _mbID == o._mbID &&
+            return _lcs == o._lcs &&
+                   _lcl == o._lcl &&
                    _rid == o._rid;
          }
          OSS_INLINE UINT32 hash()const
          {
             //return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
-            return _sid + _mbID + _rid.hash();
+            return _lcs + _lcl + _rid.hash();
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return INVALID_SPACE_ID != _sid &&
-                   INVALID_CL_MB_ID != _mbID &&
-                   _rid.valid();
+            return DMS_INVALID_LOGICCSID != _lcs &&
+                   DMS_INVALID_LOGICCLID != _lcl &&
+                   _rid.isValid();
          }
 
          ossPoolString toString()const
@@ -164,11 +164,11 @@ namespace vessel
             CHAR buf[_BUF_SIZE] = {};
             ossPoolString str;
             str.reserve(64);
-            str.append("{sid:");
-            ossItoa(_sid, buf, _BUF_SIZE);
+            str.append("{lcs:");
+            ossItoa(_lcs, buf, _BUF_SIZE);
             str.append(buf);
-            str.append(", mbid:");
-            ossItoa(_mbID, buf, _BUF_SIZE);
+            str.append(", lcl:");
+            ossItoa(_lcl, buf, _BUF_SIZE);
             str.append(buf);
             str.append(", lpid:");
             ossItoa(_rid.getPageID(), buf, _BUF_SIZE);
@@ -181,8 +181,8 @@ namespace vessel
          }
 
       public:
-         SPACE_ID _sid = INVALID_SPACE_ID;
-         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         UINT32 _lcs = DMS_INVALID_LOGICCSID;
+         UINT32 _lcl = DMS_INVALID_LOGICCLID;
          recordID _rid;
    };//class recordIdLatchKey
 
@@ -252,7 +252,7 @@ namespace vessel
    ///WARNING: UNIQUE_INDEX_LATCH_MAP's object is x latch, do not use objectSharedLatchContext.
    typedef class sharedObjectMap<uniqueIndexLatchKey, ossSpinXLatch> UNIQUE_INDEX_LATCH_MAP;
 
-   template <typename KEY>
+   template <typename KEY, UINT32 DEFAULT_CAPACITY=4>
    class objectSharedLatchContext : public SDBObject
    {
       public:
@@ -501,7 +501,6 @@ namespace vessel
          }
 
       private:
-         static constexpr UINT32 DEFAULT_CAPACITY = 2;
          UINT32 _capacity = DEFAULT_CAPACITY;
          UINT32 _size = 0;
          _latchSlot _staticBuf[DEFAULT_CAPACITY];

@@ -40,6 +40,8 @@
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
+#include "vessel/indexScanEntryBatch.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
@@ -54,52 +56,45 @@ namespace vessel
       public:
          indexScanner(){}
          ~indexScanner();
+         indexScanner(const indexScanner &) = delete;
+         indexScanner &operator=(const indexScanner &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _context;
+            return NULL != _iterator;
          }
-
       public:
-         INT32 open(indexScanContext *context,
-                    const indexContext *ic);
+         INT32 open(requestContext *context,
+                    indexContext *ic,
+                    const indexScanOptions &o,
+                    const ossSharedLatchMode &mode);
 
          void close();
 
          /// return SDB_IXM_EOC when hit the end.
-         /// scanner will be closed after returning any error.
-         INT32 next(recordID &rid);
-
-         /// pause will not release rid lock which holding.
-         void pause();
-
-         INT32 resume();
-
-         OSS_INLINE BOOLEAN isPaused()const
-         {
-            return _paused;
-         }
-
-      public:
-         recordID getRid()const;
-         DPS_TRANS_ID getTransID()const;
-         void getKey(ixmKey &key)const;
+         /// always clear batch outside first
+         INT32 batchNext(indexScanContext *context);
 
       private:
-         INT32 prepareToScan(rtnPredicateListIterator *predicate);
-         INT32 prepareToScan(const slice &entry);
-         INT32 matchCurrentOrSeekNext(recordID &rid);
-         INT32 tryLockCurrentRid(BOOLEAN &locked);
-         INT32 waitCurrentRid(BOOLEAN &timeout);
-         
-         
+         INT32 fillBatch(indexScanContext *context);
+
+         INT32 pauseAndRescan(indexScanContext *context);
+
+         INT32 waitRid(indexScanContext *context,
+                       const recordID &rid,
+                       const ossSharedLatchMode &mode,
+                       BOOLEAN &timeout)const;
+
       private:
-         indexScanContext *_context = NULL;
+         INT32 beginToScan(indexScanContext *context);
+         INT32 moveIterator();
+      private:
          indexIterator *_iterator = NULL;
-         BOOLEAN _seeked = FALSE;
-         BOOLEAN _paused = FALSE;
-         bson::BufBuilder _builder;
+         const indexContext *_ic = NULL;
+         BOOLEAN _forward = TRUE;
+         ossSharedLatchMode _mode;
+         bson::BufBuilder _keyBuilder;
    };//class indexScanner
 
 } // namespace vessel
