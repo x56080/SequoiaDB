@@ -31,6 +31,8 @@
 
 - MariaDB 实例不支持指定虚拟列为分区键。
 
+- MariaDB 实例仅支持 utf8mb4_bin 和 utf8_bin 校对集。
+
 - MariaDB 实例支持自增字段，MariaDB 表自增字段对应 SequoiaDB 的集合[自增字段][sequence]，只保证趋势递增，不保证连续递增，使用时需注意以下事项:
 
     * auto_increment_offset：该配置项主要解决多活主网下自增字段冲突问题，而 SequoiaDB 作为分布式数据库，自身能保证自增字段全局递增而不冲突，故该配置项不生效。
