@@ -191,7 +191,7 @@ namespace engine
                 "Failed to get command name" ) ;
 
       // get command
-      rc = stpGetCommand( commandName, &command ) ;
+      rc = stpGetCommand( _stpCB, commandName, &command ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get command [%s], rc: %d",
                    commandName, rc ) ;
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,

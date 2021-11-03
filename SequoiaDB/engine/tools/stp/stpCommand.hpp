@@ -52,13 +52,13 @@ namespace engine
    // declare of new function
    #define DECLARE_STP_CMD_AUTO_REGISTER()                     \
       public:                                                  \
-         static stpCommand *newThis() ;                        \
+         static stpCommand *newThis( STPCB *stpCB ) ;          \
 
    // implement of new function
    #define IMPLEMENT_STP_CMD_AUTO_REGISTER( theClass )         \
-      stpCommand *theClass::newThis ()                         \
+      stpCommand *theClass::newThis ( STPCB *stpCB )           \
       {                                                        \
-         return SDB_OSS_NEW theClass( stpGetSTPCB() ) ;        \
+         return SDB_OSS_NEW theClass( stpCB ) ;                \
       }                                                        \
       stpCommandAssit theClass##Assit( theClass::newThis ) ;   \
 
@@ -118,7 +118,7 @@ namespace engine
    typedef class _stpCommand stpCommand ;
 
    // function type for new command
-   typedef stpCommand *(* STP_CMD_NEW_FUNC)() ;
+   typedef stpCommand *(* STP_CMD_NEW_FUNC)( STPCB *stpCB ) ;
 
    /*
       _stpCommandAssit define
@@ -149,7 +149,7 @@ namespace engine
 
    public:
       // create command by name
-      stpCommand *createCommand( const CHAR *name ) ;
+      stpCommand *createCommand( STPCB *stpCB, const CHAR *name ) ;
       // release command
       void releaseCommand( stpCommand *command ) ;
 
@@ -185,7 +185,7 @@ namespace engine
    // get default command builder
    stpCommandBuilder *stpGetCommandBuilder() ;
    // get command by name
-   INT32 stpGetCommand( const CHAR *name, stpCommand **command ) ;
+   INT32 stpGetCommand( STPCB *stpCB, const CHAR *name, stpCommand **command ) ;
    // initialize command with given option
    INT32 stpInitCommand( stpCommand *command, const CHAR *option ) ;
    // run command and output result in BSON format

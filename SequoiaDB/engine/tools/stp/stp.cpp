@@ -91,8 +91,9 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       pmdKRCB *krcb = pmdGetKRCB() ;
-      STPCB *stpCB = stpGetSTPCB() ;
-      stpOptions *options = stpCB->getOptions() ;
+
+      STPCB stpCB ;
+      stpOptions *options = stpCB.getOptions() ;
 
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR confPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
@@ -202,7 +203,7 @@ namespace engine
 #endif // _LINUX
 
       // register agent cb
-      PMD_REGISTER_CB( stpCB ) ;
+      PMD_REGISTER_CB( ( &stpCB ) ) ;
 
       // system init
       rc = _pmdSystemInit( confPath ) ;
@@ -228,7 +229,7 @@ namespace engine
       {
          ossSleepsecs ( 1 ) ;
          krcb->onTimer( OSS_ONE_SEC ) ;
-         stpCB->onTimer( STP_INVALID_TIMERID, OSS_ONE_SEC ) ;
+         stpCB.onTimer( STP_INVALID_TIMERID, OSS_ONE_SEC ) ;
       }
 
       rc = krcb->getShutdownCode() ;

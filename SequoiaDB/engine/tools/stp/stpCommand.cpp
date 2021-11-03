@@ -78,7 +78,7 @@ namespace engine
    {
       if ( NULL != func )
       {
-         stpCommand *command = (*func)() ;
+         stpCommand *command = (*func)( NULL ) ;
          if ( NULL != command )
          {
             const CHAR *name = command->getName() ;
@@ -103,14 +103,15 @@ namespace engine
    {
    }
 
-   stpCommand *_stpCommandBuilder::createCommand( const CHAR *name )
+   stpCommand *_stpCommandBuilder::createCommand( STPCB *stpCB,
+                                                  const CHAR *name )
    {
       // find command by name
       STP_CMD_NEW_FUNC func = _findCommand( name ) ;
       if ( NULL != func )
       {
          // call new function to create command
-         return (*func)() ;
+         return (*func)( stpCB ) ;
       }
       return NULL ;
    }
@@ -153,7 +154,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETCOMMAND, "stpGetCommand" )
-   INT32 stpGetCommand( const CHAR *name, stpCommand **command )
+   INT32 stpGetCommand( STPCB *stpCB, const CHAR *name, stpCommand **command )
    {
       INT32 rc = SDB_OK ;
 
@@ -169,7 +170,7 @@ namespace engine
                 "name is invalid" ) ;
 
       // create command
-      tmpCommand = stpGetCommandBuilder()->createCommand( name + 1 ) ;
+      tmpCommand = stpGetCommandBuilder()->createCommand( stpCB, name + 1 ) ;
       PD_CHECK( NULL != tmpCommand, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get command with name [%s]", name ) ;
 

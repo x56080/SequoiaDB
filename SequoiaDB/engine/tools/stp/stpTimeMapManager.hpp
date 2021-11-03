@@ -46,6 +46,8 @@
 #include "ossRWMutex.hpp"
 #include "utilSQLiteDB.hpp"
 #include "stpLogicalTime.hpp"
+#include "stpOptions.hpp"
+#include "stpMetaData.hpp"
 
 namespace engine
 {
@@ -206,7 +208,7 @@ namespace engine
 
    public:
       // initialize
-      virtual INT32 initialize() = 0 ;
+      virtual INT32 initialize( const stpOptions *options ) = 0 ;
       // finalize
       virtual INT32 finalize() = 0 ;
 
@@ -300,7 +302,7 @@ namespace engine
       virtual ~_stpTimeMapMemStore() ;
 
       // initialize
-      virtual INT32 initialize() ;
+      virtual INT32 initialize( const stpOptions *options ) ;
       // finalize
       virtual INT32 finalize() ;
 
@@ -429,7 +431,7 @@ namespace engine
       virtual ~_stpTimeMapDBStore() ;
 
       // initialize
-      virtual INT32 initialize() ;
+      virtual INT32 initialize( const stpOptions *options ) ;
       // finalize
       virtual INT32 finalize() ;
 
@@ -586,7 +588,7 @@ namespace engine
 
    public:
       // initialize
-      INT32 initialize( INT32 maxTimeMapSize ) ;
+      INT32 initialize( const stpOptions *options ) ;
       // finalize
       INT32 finalize() ;
 
@@ -601,7 +603,7 @@ namespace engine
       //   keep the same mapping result in one STP cluster
       // - currently, only save in memory, we need to save in a database file
       //   in the future
-      INT32 saveTimeMapping() ;
+      INT32 saveTimeMapping( stpMetaData *metaData ) ;
       // convert logical time to real time
       INT32 convLTimeToRTime( const stpHPTime &logicalTime,
                               stpHPTime &realTime ) ;

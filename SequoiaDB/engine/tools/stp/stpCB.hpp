@@ -60,6 +60,42 @@ namespace engine
 {
 
    /*
+      _stpConfigHandle define
+    */
+   class _stpConfigHandle : public _IConfigHandle
+   {
+   public:
+      _stpConfigHandle( IControlBlock *cb )
+      : _cb( cb )
+      {
+      }
+
+      virtual ~_stpConfigHandle()
+      {
+      }
+
+      virtual void onConfigChange( UINT32 changeID )
+      {
+         _cb->onConfigChange() ;
+      }
+
+      virtual void onConfigSave()
+      {
+         _cb->onConfigSave() ;
+      }
+
+      virtual INT32 onConfigInit()
+      {
+         return SDB_OK ;
+      }
+
+   protected:
+      IControlBlock * _cb ;
+   } ;
+
+   typedef class _stpConfigHandle stpConfigHandle ;
+
+   /*
       _stpCB define
     */
    // _stpCB is control block of STP
@@ -241,6 +277,8 @@ namespace engine
    protected:
       // options from config file
       stpOptions           _options ;
+      // config handler
+      stpConfigHandle      _configHandler ;
       // net manager
       stpNetManager        _netManager ;
       // pipe manager ( owned by STP )
@@ -270,38 +308,6 @@ namespace engine
 
       UINT64               _checkTimeout ;
    } ;
-
-   // get STP control block
-   STPCB *stpGetSTPCB() ;
-
-   /*
-      _stpConfigHandle define
-    */
-   class _stpConfigHandle : public _IConfigHandle
-   {
-   public:
-      _stpConfigHandle() {}
-      virtual ~_stpConfigHandle() {}
-
-      virtual void onConfigChange( UINT32 changeID )
-      {
-         stpGetSTPCB()->onConfigChange() ;
-      }
-
-      virtual void onConfigSave()
-      {
-         stpGetSTPCB()->onConfigSave() ;
-      }
-
-      virtual INT32 onConfigInit()
-      {
-         return SDB_OK ;
-      }
-   } ;
-   typedef class _stpConfigHandle stpConfigHandle ;
-
-   // get STP config handle
-   stpConfigHandle *stpGetConfigHandle() ;
 
 }
 

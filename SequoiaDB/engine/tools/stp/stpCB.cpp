@@ -57,6 +57,7 @@ namespace engine
     */
    _stpCB::_stpCB()
    : _options(),
+     _configHandler( this ),
      _netManager( &_netMsgHandler ),
      _pipeManager(),
      _netMsgHandler( this ),
@@ -87,7 +88,7 @@ namespace engine
       _checkTimeExInfo() ;
 
       // set config handler ( handles config change )
-      _options.setConfigHandler( stpGetConfigHandle() ) ;
+      _options.setConfigHandler( &_configHandler ) ;
 
       // initialize net agent
       rc = _initNetAgent() ;
@@ -619,18 +620,6 @@ namespace engine
 
    error:
       goto done ;
-   }
-
-   STPCB *stpGetSTPCB()
-   {
-      static STPCB s_stpCB ;
-      return &s_stpCB ;
-   }
-
-   stpConfigHandle *stpGetConfigHandle()
-   {
-      static stpConfigHandle s_configHandle ;
-      return &s_configHandle ;
    }
 
 }

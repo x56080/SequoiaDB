@@ -420,7 +420,7 @@ namespace engine
          }
          else if ( STP_SYNC_INTERVALCHECK == _status )
          {
-            _metaManager->getTimeMapManager()->saveTimeMapping() ;
+            _metaManager->getTimeMapManager()->saveTimeMapping( getMetaData() ) ;
          }
       }
       else

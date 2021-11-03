@@ -127,7 +127,7 @@ namespace engine
          {
             // the time manager need save time mapping, which means it is
             // failed to save by last time, so we need to retry here
-            _timeMapMgr.saveTimeMapping() ;
+            _timeMapMgr.saveTimeMapping( getMetaData() ) ;
          }
       }
 
@@ -277,7 +277,7 @@ namespace engine
       setMetaData( metaData ) ;
 
       // initialize time mapping manager
-      rc = _timeMapMgr.initialize( _options->getMaxTimeMapSize() ) ;
+      rc = _timeMapMgr.initialize( _options ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize time mapping "
                    "manager, rc: %d", rc ) ;
 
@@ -321,7 +321,7 @@ namespace engine
       if ( _stpCB->isPrimary() )
       {
          getMetaData()->updateSyncTime() ;
-         _timeMapMgr.saveTimeMapping() ;
+         _timeMapMgr.saveTimeMapping( getMetaData() ) ;
       }
 
       PD_TRACE_EXITRC( SDB__STPMETAMGR__POSTACTIVATE, rc ) ;
@@ -381,7 +381,7 @@ namespace engine
          }
 
          // save time mapping
-         _timeMapMgr.saveTimeMapping() ;
+         _timeMapMgr.saveTimeMapping( getMetaData() ) ;
       }
 
       // otherwise the node is becoming secondary, do nothing
@@ -784,7 +784,7 @@ namespace engine
 
       // save time mapping, ignore errors, since we already set need save
       // flag to true, the next timeout event will retry the saving
-      _timeMapMgr.saveTimeMapping() ;
+      _timeMapMgr.saveTimeMapping( getMetaData() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPMETAMGR_UPDATEMETALSN, rc ) ;

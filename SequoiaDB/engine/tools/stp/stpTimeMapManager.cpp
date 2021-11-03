@@ -141,7 +141,7 @@ namespace engine
    {
    }
 
-   INT32 _stpTimeMapMemStore::initialize()
+   INT32 _stpTimeMapMemStore::initialize( const stpOptions *options )
    {
       return SDB_OK ;
    }
@@ -412,12 +412,12 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPTIMEMAPMEMSTORE_CLEARALLREC, "_stpTimeMapMemStore::clearAllRecords" )
    void _stpTimeMapMemStore::clearAllRecords()
    {
-      PD_TRACE_ENTRY( SDB__STPTIMEMAPMEMSTORE__CLEARALLREC ) ;
+      PD_TRACE_ENTRY( SDB__STPTIMEMAPMEMSTORE_CLEARALLREC ) ;
 
       _logicalTimeMap.clear() ;
       _realTimeMap.clear() ;
 
-      PD_TRACE_EXIT( SDB__STPTIMEMAPMEMSTORE__CLEARALLREC ) ;
+      PD_TRACE_EXIT( SDB__STPTIMEMAPMEMSTORE_CLEARALLREC ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPTIMEMAPMEMSTORE__GETRECFROMMAP, "_stpTimeMapMemStore::_getRecordFromMap" )
@@ -657,13 +657,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPTIMEMAPDBSTORE_INITIALIZE, "_stpTimeMapDBStore::initialize" )
-   INT32 _stpTimeMapDBStore::initialize()
+   INT32 _stpTimeMapDBStore::initialize( const stpOptions *options )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPTIMEMAPDBSTORE_INITIALIZE ) ;
 
-      const CHAR *configPath = stpGetSTPCB()->getOptions()->getStpPath() ;
+      SDB_ASSERT( NULL != options, "options should be valid" ) ;
+
+      const CHAR *configPath = options->getStpPath() ;
       CHAR databasePath[ OSS_MAX_PATHSIZE + 1 ] = { '\0' } ;
 
       // check config path
@@ -690,7 +692,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare statements, rc: %d", rc ) ;
 
       // initialize cache
-      rc = _cache.initialize() ;
+      rc = _cache.initialize( options ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize cache, rc: %d", rc ) ;
 
    done:
@@ -1745,11 +1747,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPTIMEMAPMGR_INITIALIZE, "_stpTimeMapManager::initialize" )
-   INT32 _stpTimeMapManager::initialize( INT32 maxTimeMapSize )
+   INT32 _stpTimeMapManager::initialize( const stpOptions *options )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPTIMEMAPMGR_INITIALIZE ) ;
+
+      SDB_ASSERT( NULL != options, "options should be valid" ) ;
 
       ossScopedRWLock lock( &_storeLock, EXCLUSIVE ) ;
 
@@ -1759,12 +1763,12 @@ namespace engine
                 "Failed to allocate time map store" ) ;
 
       // initialize store
-      rc = _store->initialize() ;
+      rc = _store->initialize( options ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize time map store, rc: %d",
                    rc ) ;
 
       // set maximum size of time map
-      setMaxTimeMapSize( maxTimeMapSize, TRUE ) ;
+      setMaxTimeMapSize( options->getMaxTimeMapSize(), TRUE ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPTIMEMAPMGR_INITIALIZE, rc ) ;
@@ -1798,17 +1802,17 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPTIMEMAPMGR_SAVETIMEMAPPING, "_stpTimeMapManager::saveTimeMapping" )
-   INT32 _stpTimeMapManager::saveTimeMapping()
+   INT32 _stpTimeMapManager::saveTimeMapping( stpMetaData *metaData )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPTIMEMAPMGR_SAVETIMEMAPPING ) ;
 
+      SDB_ASSERT( NULL != metaData, "meta data should be valid" ) ;
+
       ossScopedRWLock lock( &_storeLock, EXCLUSIVE ) ;
 
       SDB_ASSERT( NULL != _store, "time map store is invalid" ) ;
-
-      STPCB *stpCB = stpGetSTPCB() ;
 
       stpHPTime realTime ;
       stpLogicalTimeNS logicalTime ;
@@ -1820,7 +1824,7 @@ namespace engine
       }
 
       // get logical time
-      rc = stpCB->getMetaData()->getLogicalTimeNS( logicalTime ) ;
+      rc = metaData->getLogicalTimeNS( logicalTime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
       // get real time
