@@ -4,7 +4,7 @@ listDomains - Enumerate domains
 
 ##SYNOPSIS##
 
-**db.listDomain( [cond], [sel], [sort] )**
+**db.listDomains( [cond], [sel], [sort] )**
 
 ##CATEGORY##
 

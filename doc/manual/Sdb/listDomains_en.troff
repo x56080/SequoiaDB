@@ -8,7 +8,7 @@
 listDomains \- Enumerate domains
 .SH SYNOPSIS
 .PP
-\f[B]db.listDomain( [cond], [sel], [sort] )\f[]
+\f[B]db.listDomains( [cond], [sel], [sort] )\f[]
 .SH CATEGORY
 .PP
 Sdb

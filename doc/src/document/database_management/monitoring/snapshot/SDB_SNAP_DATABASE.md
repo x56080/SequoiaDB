@@ -39,7 +39,7 @@ SDB_SNAP_DATABASE
 | Version.Release       | 整型   | 数据库内部版本号                                                                |
 | Version.GitVersion    | 字符串 | 数据库发行版本号                                                                |
 | Version.Build         | 字符串 | 数据库编译时间                                                                  |
-| Editon                | 字符串 | “Enterprise”表示企业版（社区版中无该字段）                                |
+| Edition               | 字符串 | “Enterprise”表示企业版（社区版中无该字段）                                |
 | CurrentActiveSessions | 整型   | 当前活动会话                                                                |
 | CurrentIdleSessions   | 整型   | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配               |
 | CurrentSystemSessions | 整型   | 当前系统会话，为当前活动用户 EDU 数量 |
