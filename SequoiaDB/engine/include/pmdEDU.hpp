@@ -280,8 +280,6 @@ namespace engine
          }
       }
 
-      UINT64   getTransWritingID() const { return _transWritingID ; }
-
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec,
                           BOOLEAN resetStat = FALSE )
       {
@@ -649,7 +647,6 @@ namespace engine
 
       DPS_TRANS_ID            _curTransID ;
       DPS_LSN_OFFSET          _curTransLSN ;
-      UINT64                  _transWritingID ;
 
       sdbLockItem             _lockInfo[ SDB_LOCK_MAX ] ;
 

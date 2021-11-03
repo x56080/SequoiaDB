@@ -45,6 +45,7 @@
 #include "sdbInterface.hpp"
 #include "clsDCMgr.hpp"
 #include "monDMS.hpp"
+#include "dpsUtil.hpp"
 #include "ossMemPool.hpp"
 
 using namespace bson ;
@@ -108,11 +109,86 @@ namespace engine
    typedef _clsCSEventItem clsCSEventItem ;
 
    /*
+      _clsFreezingItem define
+    */
+   class _clsFreezingItem : public utilPooledObject
+   {
+   public:
+      _clsFreezingItem()
+      : _blockID( 0 )
+      {
+      }
+
+      _clsFreezingItem( UINT64 blockID )
+      : _blockID( blockID )
+      {
+      }
+
+      _clsFreezingItem( const _clsFreezingItem &item )
+      : _blockID( item._blockID ),
+        _whiteList( item._whiteList )
+      {
+      }
+
+      ~_clsFreezingItem()
+      {
+      }
+
+      OSS_INLINE UINT64 getBlockID() const
+      {
+         return _blockID ;
+      }
+
+      OSS_INLINE const DPS_TRANS_ID_SET &getWhiteList() const
+      {
+         return _whiteList ;
+      }
+
+      // WARNING: may throw exception
+      // NOTE: used as element in set
+      OSS_INLINE void updateWhiteList( const DPS_TRANS_ID_SET &whiteList ) const
+      {
+         // union
+         _whiteList.insert( whiteList.begin(), whiteList.end() ) ;
+      }
+
+      OSS_INLINE BOOLEAN isInWhiteList( const DPS_TRANS_ID &transID ) const
+      {
+         return _whiteList.end() != _whiteList.find( transID ) ? TRUE : FALSE ;
+      }
+
+      _clsFreezingItem &operator =( const _clsFreezingItem &item )
+      {
+         _blockID = item._blockID ;
+         _whiteList = item._whiteList ;
+         return (*this) ;
+      }
+
+      bool operator ==( const _clsFreezingItem &item ) const
+      {
+         return _blockID == item._blockID ;
+      }
+
+      bool operator <( const _clsFreezingItem &item ) const
+      {
+         return _blockID < item._blockID ;
+      }
+
+   protected:
+      // blocking ID
+      UINT64            _blockID ;
+      // white list for locked transactions
+      mutable DPS_TRANS_ID_SET _whiteList ;
+   } ;
+
+   typedef class _clsFreezingItem clsFreezingItem ;
+
+   /*
       _clsFreezingWindow define
    */
    class _clsFreezingWindow : public SDBObject
    {
-      typedef ossPoolSet< UINT64 >                 OP_SET ;
+      typedef ossPoolSet< clsFreezingItem >        OP_SET ;
       typedef ossPoolMap< ossPoolString, OP_SET >  MAP_WINDOW ;
 
       typedef struct _csKeyName
@@ -168,12 +244,20 @@ namespace engine
          ~_clsFreezingWindow() ;
 
          INT32 registerCL ( const CHAR *pName, UINT64 &opID ) ;
+         INT32 updateCLWhiteList( const CHAR *pName,
+                                  UINT64 opID,
+                                  const DPS_TRANS_ID_SET &whiteList ) ;
          void  unregisterCL ( const CHAR *pName, UINT64 opID ) ;
 
          INT32 registerCS ( const CHAR *pName, UINT64 &opID ) ;
+         INT32 updateCSWhiteList( const CHAR *pName,
+                                  UINT64 opID,
+                                  const DPS_TRANS_ID_SET &whiteList ) ;
          void  unregisterCS ( const CHAR *pName, UINT64 opID ) ;
 
          INT32 registerWhole( UINT64 &opID ) ;
+         INT32 updateWholeWhiteList( UINT64 opID,
+                                     const DPS_TRANS_ID_SET &whiteList ) ;
          void  unregisterWhole( UINT64 opID ) ;
 
          void  unregisterAll() ;
@@ -184,7 +268,6 @@ namespace engine
 
          BOOLEAN needBlockOpr( const ossPoolString &name,
                                UINT64 testOpID,
-                               UINT64 testTransOpID,
                                _pmdEDUCB *cb ) ;
 
       private :
@@ -195,10 +278,8 @@ namespace engine
          INT32 _regWholeInternal( UINT64 opID ) ;
          void  _unregWholeInternal( UINT64 opID ) ;
 
-         void  _blockCheck( const CHAR *pName,
-                            const OP_SET &setID,
+         void  _blockCheck( const OP_SET &setID,
                             UINT64 testOPID,
-                            UINT64 testTransOPID,
                             _pmdEDUCB *cb,
                             BOOLEAN &result,
                             BOOLEAN &forceEnd ) ;

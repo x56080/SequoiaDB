@@ -130,7 +130,6 @@ namespace engine
 
       _curTransLSN      = DPS_INVALID_LSN_OFFSET ;
       _curTransID       = DPS_INVALID_TRANS_ID ;
-      _transWritingID   = 0 ;
 
 #if defined (_LINUX)
       _threadID         = 0 ;
@@ -787,14 +786,6 @@ namespace engine
 
    void _pmdEDUCB::setCurTransLsn( UINT64 lsn )
    {
-      if ( 0 == _transWritingID && DPS_INVALID_LSN_OFFSET != lsn )
-      {
-         _transWritingID = _writingID ;
-      }
-      else if ( DPS_INVALID_LSN_OFFSET == lsn )
-      {
-         _transWritingID = 0 ;
-      }
       _curTransLSN = lsn ;
    }
 
@@ -1077,7 +1068,6 @@ namespace engine
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
       _transRC = SDB_OK ;
       _transStatus = DPS_TRANS_UNKNOWN ;
-      _transWritingID = 0 ;
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       if ( pTransCB )
       {

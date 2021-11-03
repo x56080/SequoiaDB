@@ -67,6 +67,9 @@ namespace engine
                                        UINT32 bufSize ) ;
 
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID ) ;
+
+   typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
+
 }
 
 #endif // DPSUTIL_HPP_

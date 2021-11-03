@@ -573,51 +573,6 @@ namespace engine
       _mapCSCLLockID[ lockMgrType ].clear() ;
    }
 
-   UINT32 _dpsTransExecutor::countLock( const dpsTransLockId &lockID,
-                                        UINT8 lockType,
-                                        LOCKMGR_TYPE managerType,
-                                        BOOLEAN needLock )
-   {
-      UINT32 count = 0 ;
-      DPS_LOCKID_MAP_CIT cit ;
-
-      if ( !lockID.isValid() )
-      {
-         if ( needLock )
-         {
-            _mapMutex.get() ;
-         }
-
-         cit = _mapCSCLLockID[ managerType ].begin() ;
-         while ( cit != _mapCSCLLockID[ managerType ].end() )
-         {
-            const dpsTransLRB *lrb = cit->second ;
-            if ( -1 == lockType || lrb->lockMode == lockType )
-            {
-               count += lrb->refCounter ;
-            }
-            ++cit ;
-         }
-
-         if ( needLock )
-         {
-            _mapMutex.release() ;
-         }
-      }
-      else
-      {
-         dpsTransLRB *lrb = NULL ;
-
-         if ( findLock( lockID, lrb, managerType, needLock ) &&
-              ( -1 == lockType || lrb->lockMode == lockType ) )
-         {
-            count = lrb->refCounter ;
-         }
-      }
-
-      return count ;
-   }
-
    void _dpsTransExecutor::incLockCount( LOCKMGR_TYPE lockMgrType )
    {
       _lockCount[ lockMgrType ]++ ;

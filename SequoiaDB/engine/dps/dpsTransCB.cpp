@@ -49,6 +49,7 @@
 #include "dpsTransLockCallback.hpp"
 #include "dpsTransVersionCtrl.hpp"
 #include "dpsLogWrapper.hpp"
+#include "dpsUtil.hpp"
 #include "pmdStartup.hpp"
 
 namespace engine
@@ -1485,6 +1486,47 @@ namespace engine
       SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
       return _transLockMgr->hasWait( lockId );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETINCOMPTRANS, "dpsTransCB::getIncompTrans" )
+   INT32 dpsTransCB::getIncompTrans( _pmdEDUCB *               cb,
+                                     const dpsTransLockId &    lockID,
+                                     const DPS_TRANSLOCK_TYPE  lockMode,
+                                     BOOLEAN                   canSelfIncomp,
+                                     DPS_TRANS_ID_SET &        incompTrans )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETINCOMPTRANS ) ;
+
+      if ( !_isOn )
+      {
+         goto done ;
+      }
+
+      rc = _transLockMgr->getIncompTrans( lockID, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions for "
+                   "lock [%s], lock mode [%s], rc: %d",
+                   lockID.toString().c_str(), lockModeToString( lockMode ),
+                   rc ) ;
+
+      if ( !canSelfIncomp && NULL != cb && cb->isTransaction() )
+      {
+         DPS_TRANS_ID selfTransID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
+         PD_CHECK( 0 == incompTrans.count( selfTransID ),
+                   SDB_DPS_TRANS_LOCK_INCOMPATIBLE, error, PDERROR,
+                   "Failed to get incompatible transactions, "
+                   "self [%s] is incompatible with lock mode [%s]",
+                   dpsTransIDToString( selfTransID ).c_str(),
+                   lockModeToString( lockMode ) ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETINCOMPTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // Agorithm to decide if we have sufficent log space for new LR:

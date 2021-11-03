@@ -2942,6 +2942,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
+      DPS_TRANS_ID_SET incompList ;
+
       if ( _ntyOverTime > 0 )
       {
          /// Blocking has been started, the sync process might be restarted
@@ -2961,20 +2965,36 @@ namespace engine
 
       /// Block collection and main-collection ( if have ) together
       rc = _pFreezingWindow->registerCL( clFullName, _ntyOverTime ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Session[%s]: Block all write operations of "
-                 "collection[%s] failed, rc: %d",
-                 sessionName(), clFullName, rc ) ;
-      }
-      else
-      {
-         PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
-                 "of collection[%s], ID: %llu", sessionName(), clFullName,
-                 _ntyOverTime ) ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Block all write operations of "
+                   "collection[%s] failed, rc: %d",
+                   sessionName(), clFullName, rc ) ;
+      PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
+              "of collection[%s], ID: %llu", sessionName(), clFullName,
+              _ntyOverTime ) ;
 
+      // get white list of transactions, who had already acquired write
+      // locks on the same collection, they must be finished before split
+      rc = transCB->getIncompTrans( eduCB(),
+                                    lockID,
+                                    DPS_TRANSLOCK_S,
+                                    TRUE,
+                                    incompList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to get white list for "
+                   "collection [%s], rc: %d", sessionName(), clFullName, rc ) ;
+
+      // set white list to freezing window
+      rc = _pFreezingWindow->updateCLWhiteList( clFullName,
+                                                _ntyOverTime,
+                                                incompList ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to set white list for "
+                   "collection [%s], ID: %llu, rc: %d", sessionName(),
+                   clFullName, _ntyOverTime, rc ) ;
+
+   done:
       return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsSplitSrcSession::_scanType() const
@@ -2990,15 +3010,65 @@ namespace engine
    {
       if ( _ntyOverTime > 0 )
       {
+         INT32 rc = SDB_OK ;
+
          pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
+         dpsTransCB *transCB = sdbGetTransCB() ;
          dpsTransLockId lockID( _curCSLID, _curMBID, NULL ) ;
-         if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime,
-                                           EDU_BLOCK_FREEZING_WND,
-                                           lockID ) > 0 )
+         DPS_TRANS_ID_SET incompList ;
+
+         // Step 1. check writing EDU with blocking ID, if no smaller
+         //         operation ID than blocking ID on the same collection,
+         //         it means all running operations on the same collection
+         //         before blocking ID had been finished
+         // Step 2. check transaction with incompatible locks on the same
+         //         collection, if no incompatible transactions, it means all
+         //         running transactions on the same collection had been
+         //         finished, otherwise, add the incompatible transactions
+         //         as white list for blocking, so they won't be blocked
+
+         // check if writing EDU on the same collection
+         if ( pEDUMgr->hasWritingEDU( -1,
+                                      _ntyOverTime,
+                                      EDU_BLOCK_FREEZING_WND ) )
          {
             PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
                     "other operations to finish", sessionName(),
                     _ntyOverTime ) ;
+            return FALSE ;
+         }
+
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection, they must be finished before split
+         rc = transCB->getIncompTrans( eduCB(),
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       TRUE,
+                                       incompList ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Session[%s]: Failed to get incompatible "
+                    "transaction list for collection [%s], rc: %d",
+                    sessionName(), _curCollecitonName.c_str(), rc ) ;
+            // failed to check, retry later
+            return FALSE ;
+         }
+
+         if ( incompList.size() > 0 )
+         {
+            // update white list to freezing window
+            rc = _pFreezingWindow->updateCLWhiteList(
+                                                   _curCollecitonName.c_str(),
+                                                   _ntyOverTime,
+                                                   incompList ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Failed to set white list for "
+                       "collection [%s], ID: %llu, rc: %d", sessionName(),
+                       _curCollecitonName.c_str(), _ntyOverTime, rc ) ;
+            }
+
+            // still have incompatible transactions, retry later
             return FALSE ;
          }
 

@@ -151,11 +151,9 @@ namespace engine
             When excludeBlockType = -1, will exclude all block type.
             0 will exclude none
          */
-         UINT32            getWritingEDUCount( INT32 eduTypeFilter = -1,
-                                               UINT64 idThreshold = 0,
-                                               EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
-                                               const dpsTransLockId &lockID = dpsTransLockId(),
-                                               UINT32 *pTransCnt = NULL ) ;
+         BOOLEAN           hasWritingEDU( INT32 eduTypeFilter = -1,
+                                          UINT64 idThreshold = 0,
+                                          EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
 
          void              resetMon( EDUID eduID = PMD_INVALID_EDUID ) ;
          void              resetIOService() ;
@@ -209,11 +207,9 @@ namespace engine
             When excludeBlockType = -1, will exclude all block type.
             0 will exclude none
          */
-         UINT32            _getWritingEDUCount( INT32 eduTypeFilter = -1,
-                                                UINT64 idThreshold = 0,
-                                                EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND,
-                                                const dpsTransLockId &lockID = dpsTransLockId(),
-                                                UINT32 *pTransCnt = NULL ) ;
+         BOOLEAN           _hasWritingEDU( INT32 eduTypeFilter = -1,
+                                           UINT64 idThreshold = 0,
+                                           EDU_BLOCK_TYPE excludeBlockType = EDU_BLOCK_FREEZING_WND ) ;
 
          void              setDestroyed( BOOLEAN b ) ;
          void              setQuiesced( BOOLEAN b ) ;

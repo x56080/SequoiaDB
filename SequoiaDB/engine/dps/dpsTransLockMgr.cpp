@@ -382,7 +382,6 @@ namespace engine
       return foundIncomp ;
    }
 
-
    //
    // Description: walk through the upgrade list check if the request
    //              LRB might be dead-lock with others, and
@@ -4063,5 +4062,127 @@ nextLock:
       _releaseOpLatch( bktIdx ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS, "dpsTransLockManager::getIncompTrans" )
+   INT32 dpsTransLockManager::getIncompTrans
+   (
+      const dpsTransLockId &     lockID,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS ) ;
+
+      dpsTransLRBHeader *pLRBHdr = NULL ;
+      UINT32 bktIdx = _getBucketNo( lockID ) ;
+
+      _acquireOpLatch( bktIdx ) ;
+
+      pLRBHdr = _LockHdrBkt[ bktIdx ].lrbHdr ;
+      if ( !_getLRBHdrByLockId( lockID, pLRBHdr ) )
+      {
+         goto done ;
+      }
+
+      rc = _getIncompTrans( pLRBHdr, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "for lock [%s], lock mode [%s], rc: %d",
+                   lockID.toString().c_str(), lockModeToString( lockMode ),
+                   rc ) ;
+
+   done:
+      _releaseOpLatch( bktIdx ) ;
+
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_GETINCOMPTRANS, rc ) ;
+
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER, "dpsTransLockManager::_getIncompTrans" )
+   INT32 dpsTransLockManager::_getIncompTrans
+   (
+      const dpsTransLRBHeader *  pLRBHdr,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER ) ;
+
+      if ( NULL == pLRBHdr )
+      {
+         goto done ;
+      }
+
+      rc = _getIncompTrans( pLRBHdr->ownerLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from owner LRB list, rc: %d", rc ) ;
+
+      rc = _getIncompTrans( pLRBHdr->waiterLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from waiter LRB list, rc: %d", rc ) ;
+
+      rc = _getIncompTrans( pLRBHdr->upgradeLRB, lockMode, incompTrans ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                   "from upgrader LRB list, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS_HEADER, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS, "dpsTransLockManager::_getIncompTrans" )
+   INT32 dpsTransLockManager::_getIncompTrans
+   (
+      const dpsTransLRB *        pLRBBegin,
+      const DPS_TRANSLOCK_TYPE   lockMode,
+      DPS_TRANS_ID_SET &         incompTrans
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS ) ;
+
+      dpsTransLRB *pLRB = (dpsTransLRB *)pLRBBegin ;
+      while ( NULL != pLRB )
+      {
+         if ( !dpsIsLockCompatible( pLRB->lockMode, lockMode ) )
+         {
+            DPS_TRANS_ID transID = pLRB->dpsTxExectr->getOrigTransID() ;
+            // check if transaction ID is valid, if not, it is only a write
+            // operation without transaction
+            if ( DPS_INVALID_TRANS_ID != transID )
+            {
+               try
+               {
+                  incompTrans.insert( transID ) ;
+               }
+               catch ( exception &e )
+               {
+                  PD_LOG( PDERROR, "Failed to save incompatible transaction, "
+                          "occur exception %s", e.what() ) ;
+                  rc = ossException2RC( &e ) ;
+                  goto error ;
+               }
+            }
+         }
+         pLRB = pLRB->nextLRB ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__GETINCOMPTRANS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 
 }  // namespace engine

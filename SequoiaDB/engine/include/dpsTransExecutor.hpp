@@ -316,15 +316,6 @@ namespace engine
                                           LOCKMGR_TYPE managerType ) ;
          void                 clearLock( LOCKMGR_TYPE managerType ) ;
 
-         /*
-            lockID is invalid, means count all the cs/cl lock
-            lockType is -1, means all the lock type
-         */
-         UINT32               countLock( const dpsTransLockId &lockID,
-                                         UINT8 lockType = DPS_TRANSLOCK_IX,
-                                         LOCKMGR_TYPE managerType = LOCKMGR_TRANS_LOCK,
-                                         BOOLEAN needLock = FALSE ) ;
-
          void                 incLockCount( LOCKMGR_TYPE managerType ) ;
          void                 decLockCount( LOCKMGR_TYPE managerType ) ;
          void                 clearLockCount( LOCKMGR_TYPE managerType ) ;
@@ -376,6 +367,17 @@ namespace engine
                                      UINT64 & totalRecords ) const ;
 
          UINT64   getReservedSpace() const ;
+
+         // interface to get transaction ID
+         OSS_INLINE DPS_TRANS_ID getTransID()
+         {
+            return getExecutor()->getTransID() ;
+         }
+
+         OSS_INLINE DPS_TRANS_ID getOrigTransID()
+         {
+            return DPS_TRANS_GET_ID( getTransID() ) ;
+         }
 
       protected:
          void                 initTransConf( INT32 isolation,

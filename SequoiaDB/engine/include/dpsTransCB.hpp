@@ -481,6 +481,12 @@ namespace engine
       BOOLEAN hasWait( UINT32 logicCSID, UINT16 collectionID,
                        const dmsRecordID *recordID) ;
 
+      INT32 getIncompTrans( _pmdEDUCB *               cb,
+                            const dpsTransLockId &    lockID,
+                            const DPS_TRANSLOCK_TYPE  lockMode,
+                            BOOLEAN                   canSelfIncomp,
+                            DPS_TRANS_ID_SET &        incompTrans ) ;
+
       INT32 reservedLogSpace( UINT32 length, _pmdEDUCB *cb ) ;
 
       void releaseLogSpace( UINT32 length, _pmdEDUCB *cb ) ;
