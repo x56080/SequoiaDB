@@ -1152,6 +1152,7 @@ namespace engine
       UINT32 logicCSID = DMS_INVALID_LOGICCSID ;
       dmsStorageUnit *su = NULL ;
       pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 i = 0 ;
 
       /// get cs logical id
@@ -1181,48 +1182,136 @@ namespace engine
                  _blockID ) ;
       }
 
-      /// wait write done
+      {
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection space, they must be finished before
+         // rename
+         dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
+         DPS_TRANS_ID_SET incompList ;
+         rc = transCB->getIncompTrans( cb,
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       FALSE,
+                                       incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                      "for rename collection space [%s], rc: %d", _oldName,
+                      rc ) ;
+
+         // set white list to freezing window
+         rc = _pFreezingWnd->updateCSWhiteList( _oldName,
+                                                _blockID,
+                                                incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set white list for "
+                      "blocking collection space [%s], blocking ID [%llu], "
+                      "rc: %d", _oldName, _blockID, rc ) ;
+      }
+
+      /// start to wait write EDUs or transactions done
       cb->setBlock( EDU_BLOCK_RENAMECHK,
                     "Waiting for writing operations check in rename" ) ;
+
+      // Step 1. check writing EDU with blocking ID, if no smaller
+      //         operation ID than blocking ID on the same collection space,
+      //         it means all running operations on the same collection space
+      //         before blocking ID had been finished
+      // Step 2. check transaction with incompatible locks on the same
+      //         collection space, if no incompatible transactions, it means
+      //         all running transactions on the same collection space had been
+      //         finished, otherwise, add the incompatible transactions
+      //         as white list for blocking, so they won't be blocked
+
       i = 0 ;
-      while( TRUE )
+      while ( TRUE )
       {
-         ++i ;
-         UINT32 cnt = 0 ;
-         UINT32 transCnt = 0 ;
-         dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
-         cnt = eduMgr->getWritingEDUCount( -1, _blockID,
-                                           ( EDU_BLOCK_FREEZING_WND |
-                                             EDU_BLOCK_RENAMECHK ),
-                                           lockID, &transCnt ) ;
-         if ( cnt > 0 )
+         ++ i ;
+         // check if writing EDU on the same collection
+         if ( eduMgr->hasWritingEDU( -1, _blockID, ( EDU_BLOCK_FREEZING_WND |
+                                                     EDU_BLOCK_RENAMECHK ) ) )
          {
             if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
             {
+               // can retry
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
             }
             else if ( cb->isInterrupted() )
             {
+               // current session is interrupted
                rc = SDB_APP_INTERRUPT ;
             }
             else
             {
-               rc = ( cnt == transCnt ) ?
-                    SDB_DPS_TRANS_LOCK_INCOMPATIBLE : SDB_LOCK_FAILED ;
+               // timeout to wait
+               rc = SDB_LOCK_FAILED ;
                PD_LOG_MSG( PDERROR, "Failed to wait for other write "
                            "operations to finish" ) ;
             }
+
+            /// failed to wait write EDUs or transactions done
+            cb->unsetBlock() ;
+            goto error ;
          }
 
          break ;
       }
-      cb->unsetBlock() ;
 
-      if ( rc )
+      while ( TRUE )
       {
-         goto error ;
+         ++ i ;
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection space, they must be finished before
+         // rename
+         dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
+         DPS_TRANS_ID_SET incompList ;
+         rc = transCB->getIncompTrans( cb,
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       FALSE,
+                                       incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                      "for rename collection space [%s], rc: %d", _oldName,
+                      rc ) ;
+
+         if ( incompList.size() > 0 )
+         {
+            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               // update white list to freezing window
+               rc = _pFreezingWnd->updateCSWhiteList( _oldName,
+                                                      _blockID,
+                                                      incompList ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to set white list for "
+                            "blocking collection space [%s], "
+                            "blocking ID [%llu], rc: %d", _oldName, _blockID,
+                            rc ) ;
+
+               // go retry
+               ossSleep( OSS_ONE_SEC ) ;
+               continue ;
+            }
+            else if ( cb->isInterrupted() )
+            {
+               // current session is interrupted
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else
+            {
+               // timeout to wait
+               rc = SDB_DPS_TRANS_LOCK_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write "
+                           "transactions to finish" ) ;
+            }
+
+            /// failed to wait write EDUs or transactions done
+            cb->unsetBlock() ;
+            goto error ;
+         }
+
+         break ;
       }
+
+      /// finish to wait write EDUs or transactions done
+      cb->unsetBlock() ;
 
       rc = _pDmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
@@ -1575,6 +1664,7 @@ namespace engine
       dmsMBContext* mbContext = NULL ;
       UINT16 mbID             = DMS_INVALID_MBID ;
       pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 i = 0 ;
 
       {
@@ -1612,48 +1702,132 @@ namespace engine
                  _blockID ) ;
       }
 
-      /// wait write done
+      {
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection, they must be finished before rename
+         dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
+         DPS_TRANS_ID_SET incompList ;
+         rc = transCB->getIncompTrans( cb,
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       FALSE,
+                                       incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                      "for rename collection [%s], rc: %d", _clFullName,
+                      rc ) ;
+
+         // set white list to freezing window
+         rc = _pFreezingWnd->updateCLWhiteList( _clFullName,
+                                                _blockID,
+                                                incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set white list for "
+                      "blocking collection [%s], blocking ID [%llu], rc: %d",
+                      _clFullName, _blockID, rc ) ;
+      }
+
+      /// start to wait write EDUs or transactions done
       cb->setBlock( EDU_BLOCK_RENAMECHK,
                     "Waiting for writing operations check in rename" ) ;
+
+      // Step 1. check writing EDU with blocking ID, if no smaller
+      //         operation ID than blocking ID on the same collection,
+      //         it means all running operations on the same collection
+      //         before blocking ID had been finished
+      // Step 2. check transaction with incompatible locks on the same
+      //         collection, if no incompatible transactions, it means all
+      //         running transactions on the same collection had been
+      //         finished, otherwise, add the incompatible transactions
+      //         as white list for blocking, so they won't be blocked
+
       i = 0 ;
-      while( TRUE )
+      while ( TRUE )
       {
-         ++i ;
-         UINT32 cnt = 0 ;
-         UINT32 transCnt = 0 ;
-         dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
-         cnt = eduMgr->getWritingEDUCount( -1, _blockID,
-                                           ( EDU_BLOCK_FREEZING_WND |
-                                             EDU_BLOCK_RENAMECHK ),
-                                           lockID, &transCnt ) ;
-         if ( cnt > 0 )
+         ++ i ;
+         // check if writing EDU on the same collection
+         if ( eduMgr->hasWritingEDU( -1, _blockID, ( EDU_BLOCK_FREEZING_WND |
+                                                     EDU_BLOCK_RENAMECHK ) ) )
          {
             if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
             {
+               // can retry
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
             }
             else if ( cb->isInterrupted() )
             {
+               // current session is interrupted
                rc = SDB_APP_INTERRUPT ;
             }
             else
             {
-               rc = ( cnt == transCnt ) ?
-                    SDB_DPS_TRANS_LOCK_INCOMPATIBLE : SDB_LOCK_FAILED ;
+               // timeout to wait
+               rc = SDB_LOCK_FAILED ;
                PD_LOG_MSG( PDERROR, "Failed to wait for other write "
                            "operations to finish" ) ;
             }
+
+            /// failed to wait write EDUs or transactions done
+            cb->unsetBlock() ;
+            goto error ;
+         }
+         break ;
+      }
+
+      while ( TRUE )
+      {
+         ++ i ;
+         // get white list of transactions, who had already acquired write
+         // locks on the same collection, they must be finished before rename
+         dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
+         DPS_TRANS_ID_SET incompList ;
+         rc = transCB->getIncompTrans( cb,
+                                       lockID,
+                                       DPS_TRANSLOCK_S,
+                                       FALSE,
+                                       incompList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
+                      "for rename collection [%s], rc: %d", _clFullName,
+                      rc ) ;
+
+         if ( incompList.size() > 0 )
+         {
+            if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
+            {
+               // update white list to freezing window
+               rc = _pFreezingWnd->updateCLWhiteList( _clFullName,
+                                                      _blockID,
+                                                      incompList ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to set white list for "
+                            "blocking collection [%s], blocking ID [%llu], "
+                            "rc: %d", _clFullName, _blockID, rc ) ;
+
+               // go retry
+               ossSleep( OSS_ONE_SEC ) ;
+               continue ;
+            }
+            else if ( cb->isInterrupted() )
+            {
+               // current session is interrupted
+               rc = SDB_APP_INTERRUPT ;
+            }
+            else
+            {
+               // timeout to wait
+               rc = SDB_DPS_TRANS_LOCK_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Failed to wait for other write "
+                           "transactions to finish" ) ;
+            }
+
+            /// failed to wait write EDUs or transactions done
+            cb->unsetBlock() ;
+            goto error ;
          }
 
          break ;
       }
-      cb->unsetBlock() ;
 
-      if ( rc )
-      {
-         goto error ;
-      }
+      /// finish to wait write EDUs or transactions done
+      cb->unsetBlock() ;
 
       rc = _pDmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;

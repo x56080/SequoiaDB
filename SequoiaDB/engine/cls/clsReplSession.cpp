@@ -185,8 +185,11 @@ namespace engine
       }
       else if ( _isFirstToSync &&
                 CLS_SESSION_STATUS_FULL_SYNC != _status &&
-                pmdGetKRCB()->getEDUMgr()->getWritingEDUCount() > 0 )
+                ( pmdGetKRCB()->getEDUMgr()->hasWritingEDU() ||
+                  sdbGetTransCB()->getTransCBSize() > 0 ) )
       {
+         // either have writing EDU or uncommitted transactions
+         // ( including read transactions ), we can not start synchronize
          PD_LOG( PDWARNING, "Session[%s]: Has some writing edus don't "
                  "exit, can't to sync", sessionName() ) ;
          goto done ;

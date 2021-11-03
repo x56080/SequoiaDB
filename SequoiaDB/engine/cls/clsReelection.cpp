@@ -184,8 +184,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4ALLWRITEDONE ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-      UINT32 writingCount = 0 ;
-      UINT32 transCount = 0 ;
 
       while ( timePassed < timeout )
       {
@@ -195,10 +193,8 @@ namespace engine
             goto error ;
          }
 
-         writingCount = eduMgr->getWritingEDUCount( -1, 0, EDU_BLOCK_REELECT,
-                                                    dpsTransLockId(),
-                                                    &transCount ) ;
-         if ( 0 == writingCount || writingCount == transCount )
+         // NOTE: uncommitted transactions need rollback
+         if ( !eduMgr->hasWritingEDU( -1, 0, EDU_BLOCK_REELECT ) )
          {
             rc = SDB_OK ;
             break ;

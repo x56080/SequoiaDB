@@ -279,6 +279,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // No need to set white list
+      // - if opID is valid, the rename context already set white list
+      // - if opID is invalid, it is triggered by primary switching, so there
+      //   should be no transactions at the same time
       if ( 0 == _opID )
       {
          rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
