@@ -551,6 +551,7 @@ namespace engine
          UINT64            _curOffset ;
          UINT32            _curSequence ;
          INT32             _replStatus ;
+         BOOLEAN           _blockSync ;
          BOOLEAN           _hasRegBackup ;
 
          CHAR              *_pExtentBuff ;

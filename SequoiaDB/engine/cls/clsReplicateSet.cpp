@@ -402,10 +402,10 @@ namespace engine
    {
       if ( pmdGetOptionCB()->maxReplSync() != getBucket()->maxReplSync() )
       {
-         _sync.enableSync( FALSE ) ;
+         _sync.disableSync() ;
          _syncEmptyEvent.wait() ;
          getBucket()->enforceMaxReplSync( pmdGetOptionCB()->maxReplSync() ) ;
-         _sync.enableSync( TRUE ) ;
+         _sync.enableSync() ;
       }
       if ( getStartShiftTime() >= 0 )
       {
