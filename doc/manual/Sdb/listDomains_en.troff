@@ -5,16 +5,16 @@
 .hy
 .SH NAME
 .PP
-listDomains \- Enumerate domains
+listDomains \- list all created domains
 .SH SYNOPSIS
 .PP
-\f[B]db.listDomain( [cond], [sel], [sort] )\f[]
+\f[B]db.listDomains([cond], [sel], [sort])\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-Enumerate all user\-created domains in the system.
+This function is used to list all user\-created domains in the system.
 .SH PARAMETERS
 .PP
 .TS
@@ -37,7 +37,7 @@ T{
 T}@T{
 cond
 T}@T{
-Json
+object
 T}@T{
 Match condictions, and
 T}@T{
@@ -70,7 +70,7 @@ T{
 T}@T{
 sel
 T}@T{
-Json
+object
 T}@T{
 Select the returned
 T}@T{
@@ -96,7 +96,7 @@ T{
 T}@T{
 sort
 T}@T{
-Json
+object
 T}@T{
 Sort the returned
 T}@T{
@@ -127,9 +127,10 @@ T}
 .TE
 .SH RETURN VALUE
 .PP
-When the function executes successfully, it will return a detailed list of
-collections through the cursor.Users can refer to SYSDOMAINS colletion to get
-the returned field information.
+When the function executes successfully, it will return an object of type
+SdbCursor.
+Users can get the detailed information list of the domain through this object.
+For field descriptions, refer to SYSDOMAINS colletion.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -142,8 +143,8 @@ For more details, refer to Troubleshooting.
 .PP
 v2.0 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Enumerate all user\-created domains in the system.
+.PP
+List all user\-created domains in the system.
 .IP
 .nf
 \f[C]

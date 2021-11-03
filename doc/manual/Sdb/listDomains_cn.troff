@@ -5,16 +5,16 @@
 .hy
 .SH 名称
 .PP
-listDomains \- 枚举用户创建的域
+listDomains \- 列举所有已创建的域
 .SH 语法
 .PP
-\f[B]db.listDomains( [cond], [sel], [sort] )\f[]
+\f[B]db.listDomains([cond], [sel], [sort])\f[]
 .SH 类别
 .PP
 Sdb
 .SH 描述
 .PP
-该函数用于枚举系统中所有由用户创建的域。
+该函数用于列举系统中所有由用户创建的域。
 .SH 参数
 .PP
 .TS
@@ -37,7 +37,7 @@ T{
 T}@T{
 cond
 T}@T{
-Json 对象
+object
 T}@T{
 匹配条件，只返
 T}@T{
@@ -69,7 +69,7 @@ T{
 T}@T{
 sel
 T}@T{
-Json 对象
+object
 T}@T{
 选择返回的字段
 T}@T{
@@ -101,7 +101,7 @@ T{
 T}@T{
 sort
 T}@T{
-Json 对象
+object
 T}@T{
 对返回的记录按
 T}@T{
@@ -118,7 +118,7 @@ T{
 T}@T{
 T}@T{
 T}@T{
-1为升序；\-1为降
+1 为升序；\-1 为降
 T}@T{
 T}
 T{
@@ -131,8 +131,8 @@ T}
 .TE
 .SH 返回值
 .PP
-函数执行成功时，将返回游标对象。通过游标对象获取的结果字段说明可查看 SYSDOMAINS
-集合
+函数执行成功时，将返回一个 SdbCursor
+类型的对象。通过该对象获取域的详细信息列表，字段说明可参考 SYSDOMAINS 集合。
 .PP
 函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
@@ -143,9 +143,8 @@ T}
 .PP
 v2.0 及以上版本
 .SH 示例
-.IP \[bu] 2
-列出系统中所有由用户创建的域
-.RS 2
+.PP
+列举系统中所有由用户创建的域
 .IP
 .nf
 \f[C]
@@ -172,4 +171,3 @@ v2.0 及以上版本
 }
 \f[]
 .fi
-.RE

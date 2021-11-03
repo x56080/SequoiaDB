@@ -1,10 +1,10 @@
 ##NAME##
 
-listDomains - Enumerate domains
+listDomains - list all created domains
 
 ##SYNOPSIS##
 
-**db.listDomain( [cond], [sel], [sort] )**
+**db.listDomains([cond], [sel], [sort])**
 
 ##CATEGORY##
 
@@ -12,19 +12,19 @@ Sdb
 
 ##DESCRIPTION##
 
-Enumerate all user-created domains in the system. 
+This function is used to list all user-created domains in the system. 
 
 ##PARAMETERS##
 
 | Name    | Type   | Description    | Required or Not |
 |---------|--------|----------------|-----------------|
-| cond    | Json   | Match condictions, and only return records that match cond. When null, return all.              | Not             |
-| sel     | Json   | Select the returned field name. When null, return all field names.                        | Not             |
-| sort    | Json   | Sort the returned records by the selected field. 1 is ascending and -1 is descending.        | Not             |
+| cond    | object   | Match condictions, and only return records that match cond. When null, return all.              | Not             |
+| sel     | object   | Select the returned field name. When null, return all field names.                        | Not             |
+| sort    | object   | Sort the returned records by the selected field. 1 is ascending and -1 is descending.        | Not             |
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return a detailed list of collections through the cursor.Users can refer to [SYSDOMAINS colletion][SYSDOMAINS] to get the returned field information.
+When the function executes successfully, it will return an object of type SdbCursor. Users can get the detailed information list of the domain through this object. For field descriptions, refer to [SYSDOMAINS colletion][SYSDOMAINS].
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -38,7 +38,7 @@ v2.0 and above
 
 ##EXAMPLES##
 
-* Enumerate all user-created domains in the system.
+List all user-created domains in the system. 
 
 ```lang-javascript
 > db.listDomains()
