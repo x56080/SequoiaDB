@@ -225,6 +225,7 @@
     <Compile Include="Index\TestIndex14546.cs" />
     <Compile Include="Index\TestIndex14547.cs" />
     <Compile Include="Index\TestIndex14548.cs" />
+    <Compile Include="Index\TestGetIndexStat24549.cs" />
     <Compile Include="Aggregate\TestAggregate14549.cs" />
     <Compile Include="Aggregate\TestAggregate14550.cs" />
     <Compile Include="Transaction\TestTransaction14565.cs" />
