@@ -777,30 +777,41 @@ namespace engine
             (UTIL_COMPRESSOR_TYPE)_metaHeader._compressionType ) ;
       }
 
-      // 1. prepare for backup
-      rc = _prepareBackup( cb, isEmpty ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
-
-      hasPrepared = TRUE ;
-
-      if ( !isEmpty )
+      try
       {
-         // 2. backup config
-         rc = _backupConfig() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+         // 1. prepare for backup
+         rc = _prepareBackup( cb, isEmpty ) ;
+         PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
 
-         // 3. do backup data
-         rc = _doBackup ( cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+         hasPrepared = TRUE ;
 
-         // 4. write meta file
-         rc = _writeMetaFile () ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+         if ( !isEmpty )
+         {
+            // 2. backup config
+            rc = _backupConfig() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+
+            // 3. do backup data
+            rc = _doBackup ( cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+
+            // 4. write meta file
+            rc = _writeMetaFile () ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d",
+                         rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
+                    backupName() ) ;
+         }
       }
-      else
+      catch ( exception &e )
       {
-         PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
-                 backupName() ) ;
+         PD_LOG( PDERROR, "Failed to run backup [%s], occur exception %s",
+                 backupName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
       // 5. clean up after backup
@@ -1269,7 +1280,7 @@ namespace engine
       _curDataType = BAR_DATA_TYPE_RAW_DATA ;
       _curOffset   = 0 ;
       _curSequence = 0 ;
-      _replStatus  = -1 ;
+      _blockSync   = FALSE ;
       _hasRegBackup = FALSE ;
       _pExtentBuff = NULL ;
    }
@@ -1301,8 +1312,8 @@ namespace engine
       {
          if ( SDB_ROLE_STANDALONE != krcb->getDBRole() )
          {
-            _replStatus = PMD_DB_STATUS() ;
-            PMD_SET_DB_STATUS( SDB_DB_OFFLINE_BK ) ;
+            _pClsCB->getReplCB()->syncMgr()->disableSync() ;
+            _blockSync = TRUE ;
 
             _pClsCB->getReplCB()->getSyncEmptyEvent()->wait() ;
 
@@ -1410,10 +1421,10 @@ namespace engine
          _pDMSCB->backupDown( cb ) ;
          _hasRegBackup = FALSE ;
       }
-      if ( -1 != _replStatus )
+      if ( _blockSync )
       {
-         PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
-         _replStatus = -1 ;
+         _pClsCB->getReplCB()->syncMgr()->enableSync() ;
+         _blockSync = FALSE ;
       }
       goto done ;
    }
@@ -1430,10 +1441,10 @@ namespace engine
          _pDMSCB->backupDown( cb ) ;
          _hasRegBackup = FALSE ;
       }
-      if ( -1 != _replStatus )
+      if ( _blockSync )
       {
-         PMD_SET_DB_STATUS( (SDB_DB_STATUS)_replStatus ) ;
-         _replStatus = -1 ;
+         _pClsCB->getReplCB()->syncMgr()->enableSync() ;
+         _blockSync = FALSE ;
       }
       return SDB_OK ;
    }

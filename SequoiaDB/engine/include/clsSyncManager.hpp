@@ -89,7 +89,7 @@ namespace engine
 
       OSS_INLINE BOOLEAN isReadyToReplay()
       {
-         BOOLEAN rc = _enableSync ;
+         BOOLEAN rc = _blockSync.peek() > 0 ? FALSE : TRUE ;
          if ( rc )
          {
             _info->mtx.lock_r() ;
@@ -101,9 +101,15 @@ namespace engine
          return rc ;
       }
 
-      void  enableSync( BOOLEAN enable )
+      void  enableSync()
       {
-         _enableSync = enable ;
+         SDB_ASSERT( _blockSync.peek() > 0, "block sync should be > 0" ) ;
+         _blockSync.dec() ;
+      }
+
+      void disableSync()
+      {
+         _blockSync.inc() ;
       }
 
       void cut( UINT32 alives, BOOLEAN isFTWhole = FALSE ) ;
@@ -147,8 +153,8 @@ namespace engine
       UINT32 _aliveCount ;
 
       UINT32   _wakeTimeout ;
-      BOOLEAN  _enableSync ;
-
+      // counts of operations which are blocking repl sync
+      ossAtomic32 _blockSync ;
    } ;
 }
 

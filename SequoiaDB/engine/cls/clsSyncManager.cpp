@@ -63,7 +63,8 @@ namespace engine
                                      _info( info ),
                                      _validSync( 0 ),
                                      _timeout( 0 ),
-                                     _aliveCount( 0 )
+                                     _aliveCount( 0 ),
+                                     _blockSync( 0 )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
@@ -74,14 +75,12 @@ namespace engine
          _checkList[i] = DPS_INVALID_LSN_OFFSET ;
       }
 
-      _enableSync = TRUE ;
-
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
    }
 
    _clsSyncManager::~_clsSyncManager()
    {
-
+      SDB_ASSERT( 0 == _blockSync.peek(), "block sync should be 0" ) ;
    }
 
    // The function is called already in _info->mtx.lock_w(),
