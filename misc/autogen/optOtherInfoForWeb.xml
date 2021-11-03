@@ -45,7 +45,7 @@
       </second>
       <third>
          <en>Blank reload type configurations cannot be modified online.Synchronization log configurations logfilesz and logfilenum cannot be modified online,although they can be modified in a special way,please refer to [log_synchronization](manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md).</en>
-         <cn>“生效类型”为空的配置不能进行在线修改。同步日志参数 logfilesz 和 logfilenum 虽然不能在线修改配置，但是可以通过特殊方式进行修改，请参考[同步日志](manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md#配置同步日志参数)。</cn>
+         <cn>“生效类型”为空的配置不能进行在线修改。同步日志参数 logfilesz 和 logfilenum 虽然不能在线修改配置，但是可以通过特殊方式进行修改，可参考 [logfilesz/logfilenum](manual/Distributed_Engine/Maintainance/Database_Configuration/Special_Configuration_Modify/log_synchronization.md)。</cn>
       </third>
    </note>
 
