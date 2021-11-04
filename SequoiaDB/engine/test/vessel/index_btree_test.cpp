@@ -246,3 +246,68 @@ TEST_F(index_btree_test, test2)
    cl.close();
    db.close(&session, closeDBOptions());
    }
+
+   TEST_F(index_btree_test, test3)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource;
+   resource.logger = test_logger::instance();
+   resource.sessionMgr = test_session_mgr::instance();
+   test_session session(test_logger::instance());
+   openDBOptions options;
+   createCSOptions csOptions;
+   createCLOptions clOptions;
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   createIndexOptions indexOptions;
+   indexParameters indexParams;
+   indexParams.type = INDEX_TYPE_BTREE;
+   collectionHandler cl;
+   bson::BufBuilder builder;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, clOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), cl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   const CHAR *indexName = "a0";
+   strSlice nameSlice(indexName);
+   bson::BSONObj patternObj = BSON(indexName << 1);
+   rc = cl.createIndex(&session, nameSlice, patternObj, indexParams, indexOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   insertOptions o;
+   std::stringstream ss;
+   CHAR keyPad[128] = {};
+   ossMemset(keyPad, 'a', sizeof(keyPad) - 1);
+
+   for (UINT32 i = 0; i < 100000; ++i)
+   {
+      UINT32 rand = ossRand();
+      ss.str("");
+      ss << rand << keyPad;
+      utilInsertResult result;
+      builder.reset();
+      bson::BSONObjBuilder recordBuilder(builder);
+      recordBuilder.append(indexName, ss.str().c_str());
+      bson::BSONObj obj = recordBuilder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = cl.insert(&session, record, DPS_TRANS_ID(), INVALID_STRIPING_ID, o, result);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   cl.close();
+   db.close(&session, closeDBOptions());
+   }

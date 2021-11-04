@@ -182,11 +182,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::advanceTo(const bson::BSONObj &prevKey,
-                                     INT32 fieldCountToCmpInPrev,
-                                     const VEC_ELE_CMP &matchEles,
-                                     const inclusiveVec &matchInclusive,
-                                     const options &o)
+   INT32 lsmIndexIterator::seekFromCurrentPosition(const bson::BSONObj &prevKey,
+                                                   INT32 fieldCountToCmpInPrev,
+                                                   const VEC_ELE_CMP &matchEles,
+                                                   const inclusiveVec &matchInclusive,
+                                                   const options &o)
    {
       return seek(prevKey, fieldCountToCmpInPrev,
                   matchEles, matchInclusive, o);
@@ -217,6 +217,47 @@ namespace vessel
       return rc;
    error:
       close();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::contains(const ixmKey &key, recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      options o(TRUE, TRUE);
+      rid = recordID();
+
+      if (OSS_UNLIKELY(!key.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = seekKey(key, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to seek key:%d", rc);
+         goto error;
+      }
+
+      if (_isReadyToRead())
+      {
+         if (_currentEntry.getKey().woEqual(key))
+         {
+            rid = _currentEntry.getRid();
+         }
+      }
+
+      _currentEntry.reset();
+   done:
+      return rc;
+   error:
+      close();
+      rid = recordID();
       goto done;
    }
 
@@ -604,6 +645,7 @@ namespace vessel
       return _currentEntry.getRid();
    }
 
+/*
    indexScanEntry lsmIndexIterator::getCurrentEntry()const
    {
       INT32 rc = SDB_OK;
@@ -618,7 +660,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to parse entry data:%d", rc);
       }
       return entry;
-   }
+   }*/
 
    INT32 lsmIndexIterator::pushCurrentEntryToBatch(indexScanEntryBatch &batch)const
    {
@@ -654,7 +696,7 @@ namespace vessel
       return;
    }
 
-   INT32 lsmIndexIterator::next()
+   INT32 lsmIndexIterator::next(BOOLEAN forward)
    {
       INT32 rc = SDB_OK;
       if (!_isReadyToRead())
@@ -663,31 +705,17 @@ namespace vessel
          goto error;
       }
 
-      rc = moveToNextDiffKeyOrRid(TRUE);
+      rc = moveToNextDiffKeyOrRid(forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to move iterator:%d", rc);
          goto error;
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
-   INT32 lsmIndexIterator::prev()
-   {
-      INT32 rc = SDB_OK;
-      if (!_isReadyToRead())
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = moveToNextDiffKeyOrRid(FALSE);
+      rc = moveIfEntryRemoved(forward);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to move iterator:%d", rc);
+         PD_LOG(PDERROR, "failed move iterator:%d", rc);
          goto error;
       }
    done:

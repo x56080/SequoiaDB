@@ -3068,6 +3068,16 @@ namespace vessel
             goto error;
          }
 
+         for (bson::BSONObjSet::const_iterator itr = keySet.begin();
+              itr != keySet.end(); ++itr)
+         {
+            if (MAX_INDEX_KEY_SIZE < itr->objsize())
+            {
+               rc = SDB_IXM_KEY_TOO_LARGE;
+               goto error;
+            }
+         }
+
          rc = ra.append(itr->second, keySet);
          if (SDB_OK != rc)
          {
@@ -3078,6 +3088,7 @@ namespace vessel
    done:
       return rc;
    error:
+      ra.clear();
       goto done;
    }
 

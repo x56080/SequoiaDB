@@ -50,34 +50,21 @@ namespace vessel
       public:
          btreeIndexItem(){}
          ~btreeIndexItem(){}
-         btreeIndexItem(const btreeIndexItem &o):
-         _slotPos(o._slotPos),
-         _slot(o._slot),
-         _keyData(o._keyData),
-         _prefixData(o._prefixData)
-         {}
-         btreeIndexItem &operator=(const btreeIndexItem &o)
-         {
-            _slotPos = o._slotPos;
-            _slot = o._slot;
-            _keyData = o._keyData;
-            _prefixData = o._prefixData;
-            return *this;
-         }
-
+         btreeIndexItem(const btreeIndexItem &o) = delete;
+         btreeIndexItem &operator=(const btreeIndexItem &o) = delete;
       public:
          OSS_INLINE RECORD_SLOT_ID getSlotPos()const
          {
             return _slotPos;
          }
 
-         OSS_INLINE const btreeItemSlot *getSlot()const
+         OSS_INLINE const btreeItemSlot &getSlot()const
          {
             return _slot;
          }
 
          /// key data may be null
-         OSS_INLINE const CHAR *getKeyData()const
+         OSS_INLINE const CHAR *getSavingKeyData()const
          {
             return _keyData;
          }
@@ -90,7 +77,7 @@ namespace vessel
          OSS_INLINE recordID getRid()const
          {
             return isValid() ?
-                   recordID(_slot->ridPage, _slot->ridSlot) : recordID();
+                   recordID(_slot.ridPage, _slot.ridSlot) : recordID();
          }
 
       public:
@@ -120,19 +107,23 @@ namespace vessel
 
          /// WARNING: when key is compressed, key size is suffix size actually;
          ///          when key is external, key size is size of external key;
-         UINT32 getKeyDataSize()const;
+         UINT32 getSavedKeyDataSize()const;
+
+         UINT32 getOriginalKeySize()const;
 
          INT32 woCompare(const ixmKey &key,
                          const bson::Ordering &ordering)const;
 
-         void exportCompleteKey(StackBufBuilder &builder)const;
+         void exportOriginalKey(bson::StackBufBuilder &builder)const;
+
+         //void cacheOriginalKey();
 
       private:
          RECORD_SLOT_ID _slotPos = INVALID_RECORD_SLOT_ID;
-         const btreeItemSlot *_slot = NULL;
+         btreeItemSlot _slot;
          const CHAR *_keyData = NULL;
-         memoryBlock _externalKey;
          const CHAR *_prefixData = NULL;
+         memoryBlock _extKeyBuffer;
    };//class btreeIndexItem
 } // namespace vessel
 

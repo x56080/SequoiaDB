@@ -87,9 +87,12 @@ namespace vessel
    static const UINT32 BTREE_NODE_MAX_PREFIX_COUNT = 128;
 
 
+   /// btreeNode flags begin
+   static const UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x01;
+
    /// tried to generate(or regenerate) prefixes but failed.
    /// reset until next split.
-   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x01;
+   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x02;
    /// btreeNode flags end
 
    struct btreeNodePageHead
@@ -249,7 +252,7 @@ namespace vessel
                              PAGE_SNAPSHOT_VERION psv,
                              UINT32 cllid,
                              UINT32 indexId,
-                             PAGE_ID rightChild,
+                             BOOLEAN isLeaf,
                              CHAR *buf);
 
 

@@ -39,6 +39,7 @@
 #include "vessel/pageIdentifier.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/logicalPageBuffer.h"
+#include "vessel/btreeItemLocation.h"
 
 namespace engine
 {
@@ -53,12 +54,14 @@ namespace vessel
          btreeAccessPathNode(const btreeAccessPathNode &o):
          _lpid(o._lpid),
          _splitedTimes(o._splitedTimes),
-         _lpb(o._lpb){}
+         _lpb(o._lpb),
+         _childLocation(o._childLocation){}
          btreeAccessPathNode &operator=(const btreeAccessPathNode &o)
          {
             _lpid = o._lpid;
             _splitedTimes = o._splitedTimes;
             _lpb = o._lpb;
+            _childLocation = o._childLocation;
             return *this;
          }
 
@@ -75,6 +78,11 @@ namespace vessel
          {
             return _lpb;
          }
+         OSS_INLINE const logicalPageBuffer *getPageBuffer()const
+         {
+            return _lpb;
+         }
+      
          OSS_INLINE BOOLEAN isValid()const
          {
             return INVALID_PAGE_ID != _lpid;
@@ -87,18 +95,25 @@ namespace vessel
          {
             _lpb = NULL;
          }
+         void reaccess(logicalPageBuffer *lpb);
          
-      public:
-         ossSharedLatchMode getNodeMode()const
+         OSS_INLINE ossSharedLatchMode getNodeMode()const
          {
             SDB_ASSERT(isAccessing(), "must be accessing");
             return _lpb->getLockingMode();
          }
 
-      public:
+         OSS_INLINE const btreeItemLocation &getChildLocation()const
+         {
+            return _childLocation;
+         }
+         void setChildLocation(const btreeItemLocation &location);
+         
+      private:
          PAGE_ID _lpid = INVALID_PAGE_ID;
          UINT32 _splitedTimes = 0;
          logicalPageBuffer *_lpb = NULL;
+         btreeItemLocation _childLocation;
    };//btreeAccessPathNode
 } // namespace vessel
 

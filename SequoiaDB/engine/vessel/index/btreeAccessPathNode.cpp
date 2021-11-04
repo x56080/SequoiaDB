@@ -51,6 +51,25 @@ namespace vessel
       SDB_ASSERT(NULL != head, "can not be null");
       _splitedTimes = head->splitedTimes;
    }
+
+   void btreeAccessPathNode::setChildLocation(const btreeItemLocation &location)
+   {
+      SDB_ASSERT(isAccessing(), "must be accessing");
+      SDB_ASSERT(location.isValid(), "can not be invalid");
+      _childLocation = location;
+      return;
+   }
+
+   void btreeAccessPathNode::reaccess(logicalPageBuffer *lpb)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
+      SDB_ASSERT(lpb->getLogicalPid() == _lpid, "must be same");
+      SDB_ASSERT(NULL == _lpb, "must be null");
+      _lpb = lpb;
+      return;
+   }
+      
 } // namespace vessel
   
 } // namespace engine

@@ -37,13 +37,15 @@
 #define VESSEL_BTREE_INDEX_ITERATOR_H_
 
 #include "vessel/indexIterator.h"
-#include "vessel/btreeAccessor.h"
 #include "../bson/util/builder.h"
+#include "vessel/btreeAccessContext.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class requestContext;
+
    class btreeIndexIterator : public indexIterator
    {
       public:
@@ -56,7 +58,7 @@ namespace vessel
       public:
          virtual BOOLEAN isOpen()const
          {
-            return _accessor.isValid();
+            return NULL != _context;
          }
 
          virtual INT32 open(requestContext *context,
@@ -76,17 +78,17 @@ namespace vessel
          virtual INT32 seekKey(const ixmKey &key,
                                const options &o);
 
-         virtual INT32 next();
+         virtual INT32 next(BOOLEAN forward);
 
-         virtual INT32 prev();
-
-         virtual INT32 advanceTo(const bson::BSONObj &prevKey,
-                                 INT32 fieldCountToCmpInPrev,
-                                 const VEC_ELE_CMP &matchEles,
-                                 const inclusiveVec &matchInclusive,
-                                 const options &o);
+         virtual INT32 seekFromCurrentPosition(const bson::BSONObj &prevKey,
+                                               INT32 fieldCountToCmpInPrev,
+                                               const VEC_ELE_CMP &matchEles,
+                                               const inclusiveVec &matchInclusive,
+                                               const options &o);
 
          virtual BOOLEAN isReadyToRead()const;
+
+         virtual INT32 contains(const ixmKey &key, recordID &rid);
 
          virtual void pause();
       public:
@@ -96,17 +98,66 @@ namespace vessel
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
          virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const;
-         virtual indexScanEntry getCurrentEntry()const;
-      private:
-         void resetToSeek();
-         INT32 cacheSeekResult(const btreeItemLocation &location);
+         //virtual indexScanEntry getCurrentEntry()const;
 
       private:
-         btreeAccessor _accessor;
-         bson::BufBuilder _builder;
+         OSS_INLINE BOOLEAN hasLocation()const
+         {
+            return INVALID_RECORD_SLOT_ID != _pos;
+         }
+         INT32 locateKeyInTree(const bson::BSONObj &prevKey,
+                               INT32 fieldCountToCmpInPrev,
+                               const VEC_ELE_CMP &matchEles,
+                               const inclusiveVec &matchInclusive,
+                               const options &o);
+
+         INT32 relocateKeyAndRidInTree(const ixmKey &key,
+                                       const recordID &rid,
+                                       btreeItemLocation &location);
+
+         INT32 relocateAndMoveToNext(BOOLEAN forward);
+
+      private:
+         void resetLocation();
+
+         void resetPositionOfCurrentNode(RECORD_SLOT_ID pos);
+
+         void clearPositionOfCurrentNode();
+
+         INT32 cacheCurrentItem();
+
+         INT32 prepareToGoBackToAncestors(BOOLEAN forward,
+                                          BOOLEAN &obstructed,
+                                          INT32 &ancestorDepth,
+                                          BOOLEAN &footPrintIsFaithFul);
+
+         BOOLEAN isCurrentItemMarkedDeleted();
+
+         INT32 nextAtLeaf(BOOLEAN forward, BOOLEAN &obstructed);
+
+         INT32 nextAtNonLeaf(BOOLEAN forward,
+                             BOOLEAN &obstructed);
+
+         INT32 goBackToAncestor(RECORD_SLOT_ID pos,
+                                BOOLEAN forward,
+                                BOOLEAN &obstructed);
+
+         INT32 findPosInAncestor(UINT32 ancestorDepth,
+                                 RECORD_SLOT_ID &pos);
+
+      private:
+
+         recordID getCurrentIndexRid()const;
+
+         slice getOriginalKeySlice()const;
+
+      private:
+         requestContext *_context = NULL;
          btreeAccessContext _bac;
-         btreeNode _node;
+         RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
          btreeIndexItem _item;
+         bson::StackBufBuilder _originalKeyBuffer;
+         bson::BufBuilder _builder;
    };//class btreeIndexIterator
 } // namespace vessel
 

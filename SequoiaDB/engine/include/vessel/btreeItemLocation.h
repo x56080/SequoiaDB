@@ -48,16 +48,16 @@ namespace vessel
          btreeItemLocation(){}
          ~btreeItemLocation(){}
          btreeItemLocation(const btreeItemLocation &o):
-         keyMatched(o.keyMatched),
          identical(o.identical),
          child(o.child),
-         slotPos(o.slotPos){}
+         slotPos(o.slotPos),
+         isUpperBound(o.isUpperBound){}
          btreeItemLocation &operator=(const btreeItemLocation &o)
          {
-            keyMatched = o.keyMatched;
             identical = o.identical;
             child = o.child;
             slotPos = o.slotPos;
+            isUpperBound = o.isUpperBound;
             return *this;
          }
 
@@ -68,10 +68,10 @@ namespace vessel
          }
 
       public:
-         BOOLEAN keyMatched = FALSE;
          BOOLEAN identical = FALSE;
          PAGE_ID child = INVALID_PAGE_ID;
          RECORD_SLOT_ID slotPos = INVALID_RECORD_SLOT_ID;
+         BOOLEAN isUpperBound = FALSE;
    };//class btreeItemLocation
 } // namespace vessel
 

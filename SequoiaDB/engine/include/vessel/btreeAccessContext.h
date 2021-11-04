@@ -97,18 +97,34 @@ namespace vessel
 
          INT32 pushRootIntoPath(btreeNode *node=NULL);
 
-         INT32 pushChildNodeIntoPath(PAGE_ID lpid, btreeNode *node=NULL);
+         INT32 pushChildNodeIntoPath(PAGE_ID lpid,
+                                     const btreeItemLocation &footprint,
+                                     btreeNode *node=NULL);
          
+         INT32 tryToReaccessNode(UINT32 depth,
+                                 const ossSharedLatchMode &mode,
+                                 BOOLEAN &obstructed);
+
          void clearAccessPath();
 
          void endToAccessNonPathEndNodes();
 
+         void endToAccessPreNodeInPath(UINT32 maxAccessingNum);
+
          void popEnd();
+
+         void popEnds(UINT32 n);
 
          btreeNode getEndNodeInPath();
          UINT32 getPathSize()const;
          btreeNode getNodeInPath(UINT32 depth);
          BOOLEAN isStillAccessing(UINT32 depth)const;
+
+         INT32 prepareToReadAncestors(BOOLEAN forward,
+                                      BOOLEAN &obstructed,
+                                      BOOLEAN &footPrintIsFaithful);
+
+         const btreeAccessPathNode &getPathNode(UINT32 depth)const;
 
       private:
          INT32 pushIntoPath(logicalPageBuffer *buffer);

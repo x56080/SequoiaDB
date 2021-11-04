@@ -194,8 +194,8 @@ namespace vessel
          else if (0 <= res)
          {
             indexIterator::options o(predicate->after(), _forward);
-            rc = _iterator->advanceTo(keyObj, rc, predicate->cmp(),
-                                      predicate->inc(), o);
+            rc = _iterator->seekFromCurrentPosition(keyObj, rc, predicate->cmp(),
+                                                    predicate->inc(), o);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to reseek key:%d", rc);
@@ -383,23 +383,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
-      if (_forward)
+      rc = _iterator->next(_forward);
+      if (SDB_OK != rc)
       {
-         rc = _iterator->next();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get next:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = _iterator->prev();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get prev:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to get next:%d", rc);
+         goto error;
       }
    done:
       return rc;

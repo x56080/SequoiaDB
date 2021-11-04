@@ -569,6 +569,8 @@ namespace engine
       _b.appendBuf ( obj.objdata(), obj.objsize() ) ;
       _keyData = (const UINT8 *)_b.buf() ;
    }
+
+
    // compare of two compact buffer
    static INT32 compare(const UINT8 *&l, const UINT8 *&r)
    {
@@ -1241,7 +1243,36 @@ namespace engine
       return extracted;
    }
 
-
+   
 ////////////////ixmKeyPrefixGenerator end
+
+
+   void ixmKeyUtils::buildMinKey(UINT32 nfields,
+                                 const bson::Ordering &ordering,
+                                 StackBufBuilder &builder)
+   {
+      SDB_ASSERT(0 < nfields && nfields <= 32, "invalid nfields");
+      builder.reset();
+      for (UINT32 i = 0; i < nfields; ++i)
+      {
+         CHAR p = 0;
+         if (ordering.get(i) < 0)
+         {
+            p = cmaxkey;
+            if ((i + 1) < nfields)
+            {
+               p |= cHASMORE;
+            }
+            builder.appendChar(p);
+         }
+         else
+         {
+            p = cminkey;
+            builder.appendChar(p);
+            break;
+         }
+      }
+      return;
+   }
 }
 

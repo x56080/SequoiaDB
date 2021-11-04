@@ -125,6 +125,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if ((INT32)MAX_INDEX_KEY_SIZE < key.dataSize())
+      {
+         PD_LOG(PDERROR, "key size too large");
+         rc = SDB_IXM_KEY_TOO_LARGE;
+         goto error;
+      }
 
       rc = _is->blockCheckpoint(_context);
       if (SDB_OK != rc)
@@ -295,7 +301,7 @@ namespace vessel
                _bac.endToAccessNonPathEndNodes();
             }
 
-            rc = _bac.pushChildNodeIntoPath(location.child);
+            rc = _bac.pushChildNodeIntoPath(location.child, location);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
@@ -498,6 +504,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       btreeSplitRaisedKey newRaisedKey;
       btreeNode newRootNode;
+      slice newRootBufferSlice;
       //logicalPageBuffer entryBuffer;
       //indexEntryPageAccessor accessor;
       //UINT32 rootUpdatedTimes = 0;
@@ -505,7 +512,7 @@ namespace vessel
       SDB_ASSERT(_ic->getObj().getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
 
-      initer.set(_context->getLogicalCLID(), _ic->getIndexID());
+      initer.set(_context->getLogicalCLID(), _ic->getIndexID(), FALSE);
       rc = _is->allocatePage(_context, &initer, newRoot);
       if (SDB_OK != rc)
       {
@@ -517,6 +524,13 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get new root node buffer:%d", rc);
+         goto error;
+      }
+
+      rc = newRootBuffer.autoGetWritableBodySlice(newRootBufferSlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get writable slice:%d", rc);
          goto error;
       }
 
@@ -555,6 +569,8 @@ namespace vessel
          }
       }
 
+      /// set right child of new root first, which init it as non-leaf node.
+      newRootBufferSlice.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
       newRootNode = btreeNode(&newRootBuffer, 0, _ic);
       rc = newRootNode.insertRaisedKey(newRaisedKey, transID);
       if (SDB_OK != rc)
@@ -584,7 +600,7 @@ namespace vessel
       }
 
       _ic->getObj().updateBtreeRoot(node.getBuffer()->getLogicalPid(),
-                                    node.getSplitedTimes());
+                                    node.getSplitedTimes() + 1);
 
       /// clear accessing path cause we updated root node.
       _bac.clearAccessPath();
@@ -634,7 +650,7 @@ namespace vessel
       }
 
       initer.set(_context->getLogicalCLID(),
-                 _ic->getIndexID());
+                 _ic->getIndexID(), TRUE);
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
       if (SDB_OK != rc)
       {
@@ -651,7 +667,7 @@ namespace vessel
          goto error;
       }
 
-      _ic->getObj().updateBtreeRoot(lpid, 0);
+      _ic->getObj().updateBtreeRoot(lpid, 1);
 
    done:
       entryBuffer.fini();

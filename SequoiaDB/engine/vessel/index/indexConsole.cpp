@@ -855,6 +855,8 @@ namespace vessel
                                                        recordID &rid)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != iterator, "can not be null");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
 
       ixmKeyOwned ownedKey(key);
       indexIterator::options o(TRUE, TRUE);
@@ -867,17 +869,11 @@ namespace vessel
          goto error;
       }
          
-      rc = iterator->seekKey(ownedKey, o);
+      rc = iterator->contains(ownedKey, rid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to seek key:%d", rc);
+         PD_LOG(PDERROR, "failed to check if contains key:%d", rc);
          goto error;
-      }
-
-      if (iterator->isReadyToRead() &&
-          iterator->equalToCurrentKey(ownedKey))
-      {
-         rid = iterator->getRid();
       }
    done:
       iterator->close();

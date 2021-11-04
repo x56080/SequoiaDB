@@ -205,6 +205,7 @@ namespace vessel
    }
 
    INT32 btreeAccessContext::pushChildNodeIntoPath(PAGE_ID lpid,
+                                                   const btreeItemLocation &footprint,
                                                    btreeNode *node)
    {
       INT32 rc = SDB_OK;
@@ -216,14 +217,27 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
+      else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
+                            !footprint.isValid()))
       {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(lpid != footprint.child))
+      {
+         SDB_ASSERT(FALSE, "wrong child in footprint");
          rc = SDB_INVALIDARG;
          goto error;
       }
       else if (_path.empty())
       {
          PD_LOG(PDERROR, "can not push child node into path with out root");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (!_path[_path.size() - 1].isAccessing())
+      {
+         PD_LOG(PDERROR, "can not push child when not accessing father");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -260,6 +274,8 @@ namespace vessel
          goto error;
       }
 
+      _path[_path.size() - 2].setChildLocation(footprint);
+
       if (NULL != node)
       {
          *node = getEndNodeInPath();
@@ -272,6 +288,85 @@ namespace vessel
          buffer->fini();
          releaseBuffer(buffer);
       }
+      goto done;
+   }
+
+   INT32 btreeAccessContext::tryToReaccessNode(UINT32 depth,
+                                               const ossSharedLatchMode &mode,
+                                               BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      logicalPageBuffer *buffer = NULL;
+      SDB_ASSERT(isReadonly() && mode.isShared(), "TODO");
+
+      obstructed = FALSE;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(mode.isNone()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_path.size() <= depth))
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (isStillAccessing(depth))
+      {
+         SDB_ASSERT(FALSE, "node is still be accessing");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      buffer = allocateBuffer();
+      if (OSS_UNLIKELY(NULL == buffer))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _is->tryToGetLogicalPageBuffer(_context,
+                                          _path[depth].getLogicalPageId(),
+                                          mode, *buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page buffer:%d", rc);
+         goto error;
+      }
+      else if (!buffer->isValid())
+      {
+         obstructed = TRUE;
+      }
+      else
+      {
+         btreeNode node(buffer, depth, _ic);
+         if (node.getSplitedTimes() != _path[depth].getSplitedTimes())
+         {
+            buffer->fini();
+            PD_LOG(PDDEBUG, "current splited times[%d] not as same as[%d]",
+                   node.getSplitedTimes(), _path[depth].getSplitedTimes());
+            obstructed = TRUE;
+         }
+         else
+         {
+            _path[depth].reaccess(buffer);
+            buffer = NULL;
+         }
+      }
+   done:
+      if (NULL != buffer)
+      {
+         buffer->fini();
+         releaseBuffer(buffer);
+      }
+      return rc;
+   error:
       goto done;
    }
 
@@ -319,9 +414,14 @@ namespace vessel
 
    void btreeAccessContext::endToAccessNonPathEndNodes()
    {
+      endToAccessPreNodeInPath(1);
+      return; 
+   }
+
+   void btreeAccessContext::endToAccessPreNodeInPath(UINT32 maxAccessingNum)
+   {
       SDB_ASSERT(isValid(), "can not be invalid");
-      
-      INT32 max = (INT32)_path.size() - 1;
+      INT32 max = (INT32)_path.size() - (INT32)maxAccessingNum;
       for (INT32 i = 0; i < max; ++i)
       {
          btreeAccessPathNode &pn = _path[i];
@@ -332,8 +432,8 @@ namespace vessel
             pn.endToAccess();
          }
       }
-   
-      return; 
+
+      return;
    }
 
    void btreeAccessContext::popEnd()
@@ -348,6 +448,22 @@ namespace vessel
             _free.push_back(pn.getPageBuffer());
          }
       }
+      return;
+   }
+
+   void btreeAccessContext::popEnds(UINT32 n)
+   {
+      SDB_ASSERT(n <= _path.size(), "out of bound");
+      for (UINT32 i = 0; i < n; ++i)
+      {
+         btreeAccessPathNode pn;
+         if (_path.popBack(pn) && pn.isAccessing())
+         {
+            pn.getPageBuffer()->fini();
+            _free.push_back(pn.getPageBuffer());
+         }
+      }
+
       return;
    }
    
@@ -387,6 +503,49 @@ namespace vessel
    {
       SDB_ASSERT(depth < _path.size(), "out of bound");
       return _path[depth].isAccessing();
+   }
+
+   const btreeAccessPathNode &btreeAccessContext::getPathNode(UINT32 depth)const
+   {
+      SDB_ASSERT(depth < _path.size(), "out of bound");
+      return _path[depth];
+   }
+
+   INT32 btreeAccessContext::prepareToReadAncestors(BOOLEAN forward,
+                                                    BOOLEAN &obstructed,
+                                                    BOOLEAN &footPrintIsFaithFul)
+   {
+      INT32 rc = SDB_OK;
+      INT32 depth = -1;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_path.size() <= 1)
+      {
+         SDB_ASSERT(FALSE, "no ancestors");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (isStillAccessing(_path.size() - 1))
+      {
+         SDB_ASSERT(FALSE, "end node must be accessing");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      depth = (INT32)_path.size() - 1;
+      do
+      {
+         
+      } while (0 <= depth);
+      
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    ossSharedLatchMode btreeAccessContext::estimateRootMode()const

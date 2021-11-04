@@ -80,7 +80,7 @@ namespace vessel
 
    BOOLEAN btreeNode::isLeaf()const
    {
-      return INVALID_PAGE_ID == getReadableHead()->rightChild;
+      return 0 != OSS_BIT_TEST(getReadableHead()->flags, BTREE_NODE_FLAG_IS_LEAF);
    }
 
    BOOLEAN btreeNode::isVainPrefixRegen()const
@@ -146,6 +146,11 @@ namespace vessel
       return getReadableHead()->splitedTimes;
    }
 
+   btreeItemSlot btreeNode::getItemSlot(RECORD_SLOT_ID pos)const
+   {
+      return *getReadableSlot(pos);
+   }
+
    BOOLEAN btreeNode::isCompressionDisabled()const
    {
       return !isLeaf() ||
@@ -182,6 +187,7 @@ namespace vessel
    {
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
                       (BTREE_NODE_PREFIX_SLOT_SIZE * getReadableHead()->prefixCount) +
                       (BTREE_NODE_SLOT_SIZE * pos);
@@ -277,6 +283,29 @@ namespace vessel
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
       return getReadableSlot(pos)->data.nlf.leftChild;
+   }
+
+   PAGE_ID btreeNode::getChild(RECORD_SLOT_ID pos)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+
+      PAGE_ID child = INVALID_PAGE_ID;
+      const btreeNodePageHead *head = getReadableHead();
+      if (pos < head->totalSlotCount)
+      {
+         child = getReadableSlot(pos)->data.nlf.leftChild;
+      }
+      else if (pos == head->totalSlotCount)
+      {
+         child = head->rightChild;
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "out of bound");
+      }
+      return child;
    }
 
    INT32 btreeNode::leafInsert(const ixmKey &key,
@@ -492,6 +521,15 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeNode::seek(const BSONObj &prevKey,
+                    INT32 fieldCountToCmpInPrev,
+                    BOOLEAN exlusive,
+                    const VEC_ELE_CMP &matchEle,
+                    const inclusiveVec &matchInclusive,
+                    INT32 direction,
+                    btreeItemLocation &location,
+                    bson::BufBuilder *bb){return SDB_OK;}
+
    INT32 btreeNode::locateKeyAndRid(const ixmKey &key,
                                     const recordID &rid,
                                     btreeItemLocation &res)const
@@ -536,7 +574,6 @@ namespace vessel
          if (0 == cmp)
          {
             cmp = rid.compare(item.getRid());
-            res.keyMatched = TRUE;
          }
 
          if (cmp < 0)
@@ -553,8 +590,9 @@ namespace vessel
             res.identical = TRUE;
             if (!isLeaf())
             {
-               res.child = item.getSlot()->data.nlf.leftChild;
+               res.child = item.getSlot().data.nlf.leftChild;
             }
+            res.isUpperBound = FALSE;
             goto done;
          }
 
@@ -573,9 +611,12 @@ namespace vessel
             res.child = getReadableSlot(low)->data.nlf.leftChild;
          }
       }
+
+      res.isUpperBound = (head->totalSlotCount == res.slotPos);
    done:
       return rc;
    error:
+      res = btreeItemLocation();
       goto done;
    }
 
@@ -708,10 +749,12 @@ namespace vessel
       /// do not goto error from here
       if (INVALID_PAGE_ID == leftChild)
       {
+         SDB_ASSERT(isLeaf(), "must be leaf node");
          slot->initAsLeafFormat(rid, keyOffset, keySize);
       }
       else
       {
+         SDB_ASSERT(!isLeaf(), "can not be leaf node");
          slot->initAsNonLeafFormat(rid, keyOffset, keySize, leftChild);
       }
 
@@ -1347,7 +1390,7 @@ namespace vessel
       }
 
       raisedKey.rid = item.getRid();
-      item.exportCompleteKey(raisedKey.keyBuilder);
+      item.exportOriginalKey(raisedKey.keyBuilder);
       item.fini();
 
       rc = _split(pivot, rightNode);
@@ -1543,7 +1586,7 @@ namespace vessel
             goto error;
          }
 
-         SDB_ASSERT(!item.getSlot()->isKeyCompressed(), "TODO");
+         SDB_ASSERT(!item.getSlot().isKeyCompressed(), "TODO");
 
          if (newHead->freeSapceAfterLastSlot <= item.getSavingSize())
          {
@@ -1552,16 +1595,16 @@ namespace vessel
             goto error;
          }
 
-         keyOffset = getKeyDataOffsetToWrite(newHead, item.getKeyDataSize());
-         rc = node.write(keyOffset, item.getKeyDataSize(), item.getKeyData());
+         keyOffset = getKeyDataOffsetToWrite(newHead, item.getSavedKeyDataSize());
+         rc = node.write(keyOffset, item.getSavedKeyDataSize(), item.getSavingKeyData());
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             PD_LOG(PDERROR, "failed to write slice[%d,%d], rc:%d",
-                   keyOffset, item.getKeyDataSize(), rc);
+                   keyOffset, item.getSavedKeyDataSize(), rc);
             goto error;
          }
 
-         newHead->totalFreeSpace -= item.getKeyDataSize();
+         newHead->totalFreeSpace -= item.getSavedKeyDataSize();
          newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
 
          if (newHead->freeSapceAfterLastSlot < BTREE_NODE_SLOT_SIZE)
@@ -1574,13 +1617,13 @@ namespace vessel
          slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
          if (isLeaf())
          {
-            slot->initAsLeafFormat(item.getRid(), keyOffset, item.getKeyDataSize());
+            slot->initAsLeafFormat(item.getRid(), keyOffset, item.getSavedKeyDataSize());
          }
          else
          {
             slot->initAsNonLeafFormat(item.getRid(), keyOffset,
-                                      item.getKeyDataSize(),
-                                      item.getSlot()->data.nlf.leftChild);
+                                      item.getSavedKeyDataSize(),
+                                      item.getSlot().data.nlf.leftChild);
          }
          newHead->totalFreeSpace -= BTREE_NODE_SLOT_SIZE;
          newHead->freeSapceAfterLastSlot = newHead->totalFreeSpace;
@@ -1623,10 +1666,7 @@ namespace vessel
 
    BOOLEAN btreeNode::isRecentWriteOrdered()const
    {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      
-      const btreeNodePageHead *head = getReadableHead();
-      return _ORDERED_W_FACTOR == head->appendingFactor;
+      return _ORDERED_W_FACTOR == getReadableHead()->appendingFactor;
    }
 
    void btreeNode::updateAppendingFactor(btreeNodePageHead *head,
@@ -1705,7 +1745,7 @@ namespace vessel
                   PD_LOG(PDERROR, "failed to get index item[%d], rc:%d", i, rc);
                   goto error;
                }
-               keyData.reset(extItem.getKeyDataSize(), extItem.getKeyData());
+               keyData.reset(extItem.getSavedKeyDataSize(), extItem.getSavingKeyData());
                removedExtPage = slot->data.ekf.extp;
             }
          }
@@ -1904,7 +1944,7 @@ namespace vessel
       }
 
       raisedKey.rid = item.getRid();
-      item.exportCompleteKey(raisedKey.keyBuilder);
+      item.exportOriginalKey(raisedKey.keyBuilder);
       item.fini();
 
       rc = _split(pivot, rightNode);
@@ -1940,21 +1980,22 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else if (OSS_UNLIKELY(isLeaf()))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
       else if (OSS_UNLIKELY(!raisedKeyFromChild.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (getLockingMode().isExclusive())
+      else if (!getLockingMode().isExclusive())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (isLeaf())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
+      
 
       rc = locateKeyAndRid(ixmKey(raisedKeyFromChild.getKeyData()),
                            raisedKeyFromChild.rid, location);
@@ -1985,7 +2026,7 @@ namespace vessel
       }
 
       raisedKey.rid = item.getRid();
-      item.exportCompleteKey(raisedKey.keyBuilder);
+      item.exportOriginalKey(raisedKey.keyBuilder);
       item.fini();
 
       rc = _split(pivot, rightNode);

@@ -105,7 +105,7 @@ namespace vessel
                              PAGE_SNAPSHOT_VERION psv,
                              UINT32 cllid,
                              UINT32 indexId,
-                             PAGE_ID rightChild,
+                             BOOLEAN isLeaf,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
@@ -132,9 +132,13 @@ namespace vessel
       headPtr->version = BTREE_NODE_PAGE_HEAD_VERSION;
       headPtr->clLogicalID = cllid;
       headPtr->indexId = indexId;
-      headPtr->rightChild = rightChild;
+      headPtr->rightChild = INVALID_PAGE_ID;
       headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
       headPtr->freeSapceAfterLastSlot = headPtr->totalFreeSpace;
+      if (isLeaf)
+      {
+         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
       r = TRUE;
 
    done:

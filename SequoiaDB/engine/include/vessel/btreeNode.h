@@ -43,6 +43,7 @@
 #include "vessel/btreeItemLocation.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/btreeSplitRaisedKey.h"
+#include "rtnPredicate.hpp"
 
 namespace engine
 {
@@ -100,8 +101,10 @@ namespace vessel
          BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const;
          PAGE_ID getRightChild()const;
          PAGE_ID getLeftChild(RECORD_SLOT_ID pos)const;
+         PAGE_ID getChild(RECORD_SLOT_ID pos)const;
          DPS_TRANS_ID getTransID()const;
          UINT32 getSplitedTimes()const;
+
          const logicalPageBuffer *getBuffer()const
          {
             return _buffer;
@@ -110,6 +113,7 @@ namespace vessel
          {
             return _depth;
          }
+         btreeItemSlot getItemSlot(RECORD_SLOT_ID pos)const;
 
       public:
 
@@ -154,6 +158,15 @@ namespace vessel
 
          INT32 getItem(RECORD_SLOT_ID pos,
                         btreeIndexItem &item)const;
+
+         INT32 seek(const BSONObj &prevKey,
+                    INT32 fieldCountToCmpInPrev,
+                    BOOLEAN exlusive,
+                    const VEC_ELE_CMP &matchEle,
+                    const inclusiveVec &matchInclusive,
+                    INT32 direction,
+                    btreeItemLocation &location,
+                    bson::BufBuilder *bb=NULL);
 
       private:
          OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const

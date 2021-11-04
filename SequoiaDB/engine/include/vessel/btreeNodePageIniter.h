@@ -57,11 +57,12 @@ namespace vessel
                                 PAGE_SNAPSHOT_VERION psv,
                                 runtimePageBuffer *rpb);
 
-         void set(UINT32 clid, UINT32 indexId);
+         void set(UINT32 clid, UINT32 indexId, BOOLEAN isLeaf);
 
       private:
          UINT32 _logicalCLID = DMS_INVALID_LOGICCLID;
          UINT32 _indexId = INVALID_LOGICAL_INDEX_ID;
+         BOOLEAN _isLeaf = TRUE;
    };//class btreeRootPageIniter
 
    class btreeNodePageSplitIniter : public pageInitializer

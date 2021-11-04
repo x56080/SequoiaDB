@@ -95,6 +95,10 @@ namespace vessel
                {
                   _inclusive = inclusive;
                }
+               OSS_INLINE INT32 getDirection()const
+               {
+                  return _forward ? 1 : -1;
+               }
 
             private:
                BOOLEAN _inclusive = TRUE;
@@ -115,25 +119,25 @@ namespace vessel
                             const inclusiveVec &matchInclusive,
                             const options &o) = 0;
 
-         virtual INT32 seekEntry(const slice &entry,
-                                 const options &o) = 0;
-
          virtual INT32 seekKey(const ixmKey &key,
                                const options &o) = 0;
 
-         virtual INT32 next() = 0;
-
-         virtual INT32 prev() = 0;
-
-         virtual INT32 advanceTo(const bson::BSONObj &prevKey,
-                                 INT32 fieldCountToCmpInPrev,
-                                 const VEC_ELE_CMP &matchEles,
-                                 const inclusiveVec &matchInclusive,
+         virtual INT32 seekEntry(const slice &entry,
                                  const options &o) = 0;
+
+         virtual INT32 next(BOOLEAN forward) = 0;
+
+         virtual INT32 seekFromCurrentPosition(const bson::BSONObj &prevKey,
+                                               INT32 fieldCountToCmpInPrev,
+                                               const VEC_ELE_CMP &matchEles,
+                                               const inclusiveVec &matchInclusive,
+                                               const options &o) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
          virtual void pause() = 0;
+
+         virtual INT32 contains(const ixmKey &key, recordID &rid) = 0;
 
       public:
          /// The functions to access current tuple saved in iterator.
@@ -143,7 +147,7 @@ namespace vessel
          virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const = 0;
-         virtual indexScanEntry getCurrentEntry()const = 0;
+         //virtual indexScanEntry getCurrentEntry()const = 0;
          virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const = 0;
    };//class indexIterator
 

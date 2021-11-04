@@ -72,6 +72,13 @@ namespace vessel
                                              INT32 keyFieldsToCmp,
                                              const VEC_ELE_CMP & matchEle,
                                              bson::BufBuilder *outerBuilder=NULL);
+
+         static INT32 compareKey(const BSONObj &currentKey,
+                                 const BSONObj &prevKey,
+                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
+                                 const VEC_ELE_CMP &matchEle,
+                                 const inclusiveVec &matchInclusive,
+                                 const bson::Ordering &o, INT32 direction);
    };//class indexUtils
 
    

@@ -142,5 +142,78 @@ namespace vessel
          return builder.done();
       }
    }
+
+   INT32 indexUtils::compareKey(const BSONObj &currentKey,
+                                 const BSONObj &prevKey,
+                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
+                                 const VEC_ELE_CMP &matchEle,
+                                 const inclusiveVec &matchInclusive,
+                                 const bson::Ordering &o, INT32 direction)
+   {
+      BSONObjIterator ll ( currentKey ) ;
+      BSONObjIterator rr ( prevKey ) ;
+      VEC_ELE_CMP::const_iterator eleItr = matchEle.begin() ;
+      UINT32 incVecPos = 0;
+      UINT32 mask = 1 ;
+      INT32 retCode = 0 ;
+      // match keepFieldsNum fields
+      for ( INT32 i = 0 ; i < keepFieldsNum; ++i, mask<<=1 )
+      {
+         BSONElement curEle = ll.next() ;
+         BSONElement prevEle = rr.next() ;
+         // skip those fields since we don't want to match them from
+         // startstopkey iterator
+         ++eleItr ;
+         ++incVecPos ;
+         INT32 result = curEle.woCompare ( prevEle, FALSE ) ;
+         if ( o.descending ( mask ))
+            result = -result ;
+         if ( result )
+         {
+            retCode = result ;
+            goto done ;
+         }
+      }
+      // if all the keepFieldsNum fields got matched, let's see if we want to
+      // simply skip to next key, if so we don't need to match all other
+      // elements
+      // if that happen, the return value should be -direction, since we want to
+      // return -1 if searching forward, otherwise return 1
+      if ( skipToNext )
+      {
+         retCode = -direction ;
+         goto done ;
+      }
+      // if all keepFieldsNum fields got matched, and we want to further match
+      // startstopkey iterator, let's move on
+      for ( ; ll.more(); mask<<=1 )
+      {
+         // curEle is always get from current key
+         BSONElement curEle = ll.next() ;
+         // now let's get the expected element from startstopkey iterator
+         BSONElement prevEle = **eleItr ;
+         ++eleItr ;
+         INT32 result = curEle.woCompare ( prevEle, FALSE ) ;
+         if ( o.descending ( mask ))
+            result = -result ;
+         if ( result )
+         {
+            retCode = result ;
+            goto done ;
+         }
+         // when getting here, that means the key matches expectation, then
+         // let's see if we want inclusive predicate. If not we need to return
+         // the negative of direction ( -1 for forward scan, otherwise 1 )
+         if (!matchInclusive[incVecPos])
+         {
+            retCode = -direction ;
+            goto done ;
+         }
+         // when get here, it means key match AND inclusive
+         ++incVecPos ;
+      }
+   done :
+      return retCode ;
+   }
 }//namespace vessel
 }//namespace engine

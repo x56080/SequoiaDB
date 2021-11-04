@@ -118,7 +118,6 @@ namespace vessel
       ++_totalAllocated;
       page = _free.front();
       _free.pop_front();
-      goto done;
 
    done:
       return rc;

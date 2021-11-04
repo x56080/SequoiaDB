@@ -81,24 +81,24 @@ namespace vessel
          virtual INT32 seekEntry(const slice &entry,
                                  const options &o);
 
-         virtual INT32 advanceTo(const bson::BSONObj &prevKey,
-                                 INT32 fieldCountToCmpInPrev,
-                                 const VEC_ELE_CMP &matchEles,
-                                 const inclusiveVec &matchInclusive,
-                                 const options &o);
+         virtual INT32 seekFromCurrentPosition(const bson::BSONObj &prevKey,
+                                               INT32 fieldCountToCmpInPrev,
+                                               const VEC_ELE_CMP &matchEles,
+                                               const inclusiveVec &matchInclusive,
+                                               const options &o);
 
-         virtual INT32 next();
-
-         virtual INT32 prev();
+         virtual INT32 next(BOOLEAN forward);
 
          virtual void pause();
+
+         virtual INT32 contains(const ixmKey &key, recordID &rid);
       public:
          virtual DPS_LSN_OFFSET getLSN()const;
          virtual slice getKey()const;
          virtual DPS_TRANS_ID getTransID()const;
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
-         virtual indexScanEntry getCurrentEntry()const;
+         //virtual indexScanEntry getCurrentEntry()const;
          virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const;
       private:
          INT32 seekFullKey(const rocksdb::Slice &fullKey, BOOLEAN forPrev);
