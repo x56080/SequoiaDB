@@ -220,7 +220,8 @@ namespace engine
    enum CLS_SUBCL_SORT_TYPE
    {
       SUBCL_SORT_BY_ID     = 1,
-      SUBCL_SORT_BY_BOUND
+      SUBCL_SORT_BY_BOUND,
+      SUBCL_SORT_BY_REVERSE_BOUND
    } ;
 
    class _clsShardingKeySite ;
@@ -243,6 +244,7 @@ namespace engine
       typedef ossPoolMap<clsCataItemKey, clsCatalogItem*>   MAP_CAT_ITEM ;
       typedef MAP_CAT_ITEM::iterator                        MAP_CAT_ITEM_IT ;
       typedef MAP_CAT_ITEM_IT                               POSITION ;
+      typedef MAP_CAT_ITEM::reverse_iterator                MAP_CAT_ITEM_RIT ;
 
       public:
          _clsCatalogSet ( const CHAR * name,
@@ -332,6 +334,7 @@ namespace engine
          // sort sub-collections by bounds
          // return a map from sorted orders to index in subCLList
          INT32             sortSubCL( CLS_SUBCL_LIST &subCLList,
+                                      INT32 direction,
                                       CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap ) ;
          BOOLEAN           isSortSubCLPrepared() const ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;

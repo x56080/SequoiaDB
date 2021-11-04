@@ -368,7 +368,7 @@ namespace engine
 
          INT32 _includeShardingOrder( const CHAR *pCollectionName,
                                       const BSONObj &orderBy,
-                                      BOOLEAN &result ) ;
+                                      INT32 &result ) ;
          INT32 _insertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
                                 INT16 w, BOOLEAN onlyCheck,
                                 utilInsertResult &inResult ) ;
@@ -456,7 +456,7 @@ namespace engine
                                 BOOLEAN isAllowEmptyList,
                                 BSONObj &boNewMatcher,
                                 CLS_SUBCL_LIST &strSubCLList,
-                                BOOLEAN *pIncludeShardingOrder ) ;
+                                INT32 *pIncludeShardingOrder ) ;
 
          // prepare sub-collection list from query matcher
          INT32 _prepareSubCLList( const BSONObj &matcher,
@@ -464,7 +464,7 @@ namespace engine
                                   CLS_SUBCL_LIST &subCLList ) ;
          // get sub-collection list by sharding order
          INT32 _getSubCLOrder( const CHAR *pCollectionName,
-                               BOOLEAN &includeShardingOrder,
+                               INT32 &includeShardingOrder,
                                CLS_SUBCL_LIST &subCLList ) ;
 
          // check sub-collections ( write operators, version, etc )

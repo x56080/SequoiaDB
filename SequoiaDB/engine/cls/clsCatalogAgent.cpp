@@ -2575,6 +2575,15 @@ namespace engine
                ++rit ;
             }
          }
+         else if ( SUBCL_SORT_BY_REVERSE_BOUND == sortType )
+         {
+            MAP_CAT_ITEM_RIT rit = _mapItems.rbegin() ;
+            while( rit != _mapItems.rend() )
+            {
+               subCLLst.push_back( rit->second->getSubClName() ) ;
+               ++rit ;
+            }
+         }
          else
          {
             MAP_CAT_ITEM_IT it = _mapItems.begin() ;
@@ -2594,9 +2603,12 @@ namespace engine
    }
 
    INT32 _clsCatalogSet::sortSubCL( CLS_SUBCL_LIST &subCLList,
+                                    INT32 direction,
                                     CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap )
    {
       INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( 0 != direction, "invalid direction" ) ;
 
       if ( _subCLOrderMap.empty() )
       {
@@ -2619,7 +2631,14 @@ namespace engine
                goto error ;
             }
             // order -> index in subCL list
-            subCLIdxMap[ iterOrder->second ] = index ++ ;
+            if ( direction > 0 )
+            {
+               subCLIdxMap[ iterOrder->second ] = index ++ ;
+            }
+            else
+            {
+               subCLIdxMap[ OSS_UINT32_MAX - iterOrder->second ] = index ++ ;
+            }
          }
       }
       catch ( exception &e )

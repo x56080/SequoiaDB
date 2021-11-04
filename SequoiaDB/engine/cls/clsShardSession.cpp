@@ -3976,13 +3976,13 @@ namespace engine
 
    INT32 _clsShdSession::_includeShardingOrder( const CHAR *pCollectionName,
                                                 const BSONObj &orderBy,
-                                                BOOLEAN &result )
+                                                INT32 &result )
    {
       INT32 rc = SDB_OK;
       BSONObj shardingKey;
       _clsCatalogSet *pCataSet = NULL;
       BOOLEAN catLocked = FALSE;
-      result = FALSE;
+      result = 0 ;
       BOOLEAN isRange = FALSE;
       try
       {
@@ -4013,17 +4013,55 @@ namespace engine
          }
          if ( !shardingKey.isEmpty() )
          {
-            result = TRUE;
+            result = 0 ;
             BSONObjIterator iterOrder( orderBy );
             BSONObjIterator iterSharding( shardingKey );
             while( iterOrder.more() && iterSharding.more() )
             {
                BSONElement beOrder = iterOrder.next();
                BSONElement beSharding = iterSharding.next();
-               if ( 0 != beOrder.woCompare( beSharding ) )
+               INT32 dirOrder = 0, dirSharding = 0 ;
+               if ( 0 != ossStrcmp( beOrder.fieldName(),
+                                    beSharding.fieldName() ) )
                {
-                  result = FALSE;
-                  break;
+                  result = 0 ;
+                  break ;
+               }
+               dirOrder = beOrder.numberInt() ;
+               dirSharding = beSharding.numberInt() ;
+               if ( dirOrder == dirSharding )
+               {
+                  // order and sharding field in the same direction
+                  if ( 0 == result )
+                  {
+                     // first field, set opening sub-collections in
+                     // the forward direction
+                     result = 1 ;
+                  }
+                  else if ( result < 0 )
+                  {
+                     // already in backward direction, sharding and order is
+                     // not matched
+                     result = 0 ;
+                     break ;
+                  }
+               }
+               else
+               {
+                  // order and sharding field in different direction
+                  if ( 0 == result )
+                  {
+                     // first field, set openning sub-collections in
+                     // the backward direction
+                     result = -1 ;
+                  }
+                  else if ( result > 0 )
+                  {
+                     // already in forward direction, sharding and order is
+                     // not matched
+                     result = 0 ;
+                     break ;
+                  }
                }
             }
          }
@@ -4053,7 +4091,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       CLS_SUBCL_LIST strSubCLList ;
       BSONObj boNewMatcher ;
-      BOOLEAN includeShardingOrder = FALSE ;
+      INT32 includeShardingOrder = 0 ;
       SINT64 tmpContextID = -1 ;
       rtnContext * pContext = NULL ;
 
@@ -4088,7 +4126,7 @@ namespace engine
          pContext = pContextMainCL ;
 
          rc = pContextMainCL->open( options, strSubCLList,
-                                    includeShardingOrder, cb ) ;
+                                    0 != includeShardingOrder, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open main-collection context, "
                       "rc: %d", rc ) ;
       }
@@ -4115,7 +4153,7 @@ namespace engine
          pContext->setIsAffectGIndex( cb->isAffectGIndex() ) ;
 
          rc = pContextMainCL->open( options, strSubCLList,
-                                    includeShardingOrder, cb ) ;
+                                    0 != includeShardingOrder, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open main-collection context, "
                       "rc: %d", rc ) ;
 
@@ -4179,12 +4217,12 @@ namespace engine
                                           BOOLEAN isAllowEmptyList,
                                           BSONObj &boNewMatcher,
                                           CLS_SUBCL_LIST &strSubCLList,
-                                          BOOLEAN *pIncludeShardingOrder )
+                                          INT32 *pIncludeShardingOrder )
    {
       INT32 rc = SDB_OK;
 
-      BOOLEAN includeShardingOrder =
-            NULL == pIncludeShardingOrder ? FALSE : *pIncludeShardingOrder ;
+      INT32 includeShardingOrder =
+            NULL == pIncludeShardingOrder ? 0 : *pIncludeShardingOrder ;
 
       rc = _prepareSubCLList( matcher, boNewMatcher, strSubCLList ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare sub-collection list by "
@@ -4196,14 +4234,16 @@ namespace engine
          // no sub-collection list is given from matcher, acquire all
          // sub-collections from main-collection
          rc = _getSubCLList( pCollectionName, strSubCLList,
-                             includeShardingOrder ?
-                                   SUBCL_SORT_BY_BOUND :
-                                   SUBCL_SORT_BY_ID ) ;
+                             0 == includeShardingOrder ?
+                                   SUBCL_SORT_BY_ID :
+                                   ( includeShardingOrder > 0 ?
+                                         SUBCL_SORT_BY_BOUND :
+                                         SUBCL_SORT_BY_REVERSE_BOUND ) ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list "
                       "for main-collection [%s], rc: %d",
                       pCollectionName, rc ) ;
       }
-      else if ( includeShardingOrder )
+      else if ( 0 != includeShardingOrder )
       {
          // sub-collection list is given by matcher, and sharding order is
          // required, sort the sub-collections
@@ -4283,10 +4323,12 @@ namespace engine
    }
 
    INT32 _clsShdSession::_getSubCLOrder( const CHAR *pCollectionName,
-                                         BOOLEAN &includeShardingOrder,
+                                         INT32 &includeShardingOrder,
                                          CLS_SUBCL_LIST &subCLList )
    {
       INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( 0 != includeShardingOrder, "invalid sharding order" ) ;
 
       clsCatalogSet *pCataSet = NULL ;
       CLS_ORDER2SUBCLIDX_MAP sortedSubCLIdxMap ;
@@ -4301,13 +4343,15 @@ namespace engine
                  pCollectionName, rc ) ;
 
          // ignore
-         includeShardingOrder = FALSE ;
+         includeShardingOrder = 0 ;
       }
       else if ( pCataSet->isSortSubCLPrepared() )
       {
          // if catalog info has sub-collection prepared for sort
          // use the sort info
-         rc = pCataSet->sortSubCL( subCLList, sortedSubCLIdxMap ) ;
+         rc = pCataSet->sortSubCL( subCLList,
+                                   includeShardingOrder,
+                                   sortedSubCLIdxMap ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to get sub-collection list "
@@ -4315,26 +4359,28 @@ namespace engine
                     "disable sharding order", pCollectionName, rc ) ;
             // ignore
             rc = SDB_OK ;
-            includeShardingOrder = FALSE ;
+            includeShardingOrder = 0 ;
          }
       }
       else
       {
          // no sort info is prepared, use the old method
          rc = pCataSet->getSubCLList( sortedSubCLList,
-                                      SUBCL_SORT_BY_BOUND ) ;
+                                      includeShardingOrder > 0 ?
+                                            SUBCL_SORT_BY_BOUND :
+                                            SUBCL_SORT_BY_REVERSE_BOUND ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to get sub-collection list "
                     "by bound for main-collection [%s], rc: %d, "
                     "disable sharding order", pCollectionName, rc ) ;
             rc = SDB_OK ;
-            includeShardingOrder = FALSE ;
+            includeShardingOrder = 0 ;
          }
       }
       _pCatAgent->release_r() ;
 
-      if ( includeShardingOrder )
+      if ( 0 != includeShardingOrder )
       {
          try
          {
@@ -4387,7 +4433,7 @@ namespace engine
                   ++it ;
                }
 
-               /// has some sub cl not found
+               /// has some sub collections not found in ordered list
                if ( !setNameFilter.empty() )
                {
                   rc = SDB_SYS ;
@@ -4398,6 +4444,8 @@ namespace engine
                      subCLList[ index ++ ] = ( *itSet ) ;
                      ++itSet ;
                   }
+                  // in this case, the order is unknown
+                  includeShardingOrder = 0 ;
                }
             }
          }
