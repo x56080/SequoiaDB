@@ -545,6 +545,7 @@ namespace engine
 
          BOOLEAN                 _canPrepareMore ;
          INT32                   _prepareMoreDataLimit ;
+         INT32                   _prepareMoreTimeLimit ;
 
          BOOLEAN                 _isTransCtx ;
 

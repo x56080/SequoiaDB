@@ -51,6 +51,10 @@ namespace engine
    #define RTN_CONTEXT_MAX_BUFF_SIZE         ( 5 * RTN_RESULTBUFFER_SIZE_MAX )
    #define RTN_CTX_PREPARE_MORE_DATA_INIT    (1024 * 4)     /* 4KB */
    #define RTN_CTX_PREPARE_MORE_DATA_MAX     (1024 * 512)   /* 512KB */
+   // minimum timeout for prepare more 4ms
+   #define RTN_CTX_PREPARE_MORE_TIME_INIT    ( 4000 )
+   // maximum timeout for prepare more 512ms
+   #define RTN_CTX_PREPARE_MORE_TIME_MAX     ( 512000 )
 
    _rtnContextStoreBuf::_rtnContextStoreBuf()
    {
@@ -480,6 +484,7 @@ namespace engine
 
       _canPrepareMore      = FALSE ;
       _prepareMoreDataLimit = RTN_CTX_PREPARE_MORE_DATA_INIT ;
+      _prepareMoreTimeLimit = RTN_CTX_PREPARE_MORE_TIME_INIT ;
 
       _enableMonContext    = FALSE ;
       _enableQueryActivity = FALSE ;
@@ -785,8 +790,6 @@ namespace engine
 
    INT32 _rtnContextBase::_prepareMoreData( _pmdEDUCB *cb )
    {
-      const UINT32 PREPARE_TIMEOUT = 1000 ; // 1ms
-
       INT32 rc = SDB_OK ;
       UINT64 beginTime ;
 
@@ -817,7 +820,7 @@ namespace engine
 
          // prepare timeout
          currentTime = ossGetCurrentMicroseconds() ;
-         if ( currentTime - beginTime >= PREPARE_TIMEOUT )
+         if ( currentTime - beginTime >= (UINT64)_prepareMoreTimeLimit )
          {
             break ;
          }
@@ -826,6 +829,10 @@ namespace engine
       if ( _prepareMoreDataLimit < RTN_CTX_PREPARE_MORE_DATA_MAX )
       {
          _prepareMoreDataLimit *= 2 ;
+      }
+      if ( _prepareMoreTimeLimit < RTN_CTX_PREPARE_MORE_TIME_MAX )
+      {
+         _prepareMoreTimeLimit *= 2 ;
       }
 
    done:
