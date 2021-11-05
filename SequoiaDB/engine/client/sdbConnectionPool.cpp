@@ -783,15 +783,9 @@ namespace sdbclient
             }
             continue ;
          } // connect success
-         else if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+         else if ( SDB_NETWORK == rc || SDB_NET_CANNOT_CONNECT == rc )
          {
-            // username or passwd is wrong, let's stop
-            SAFE_OSS_DELETE( conn ) ;
-            goto error ;
-         }
-         else
-         {
-            // if connect failed, we will retry 3 times. on success,
+            // if newtwork error, we will retry 3 times. on success,
             // let's save the connection; on error, let's discard
             // that coord address temporarily
             INT32 retryTime = 0 ;
@@ -838,7 +832,11 @@ namespace sdbclient
                goto done ;
             }
          } // connect failed
-
+         else
+         {
+            SAFE_OSS_DELETE( conn ) ;
+            goto error ;
+         }
       } // while
 
    done:
@@ -1235,6 +1233,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
       if ( !ret )
       {
          rc = SDB_INVALIDARG ;
+         _connMutex.release() ;
          goto error ;
       }
 

@@ -165,7 +165,7 @@ namespace sdbclient
       _coordMutex.get() ;
       iter = std::find( _abnormalCoordList.begin(), 
          _abnormalCoordList.end(), coord ) ;
-      if ( iter != _normalCoordList.end() )
+      if ( iter != _abnormalCoordList.end() )
       {
          _abnormalCoordList.erase( iter ) ;
          _normalCoordList.push_back( coord ) ;
@@ -513,7 +513,7 @@ namespace sdbclient
       _coordMutex.get() ;
       iter = std::find( _abnormalCoordList.begin(), 
          _abnormalCoordList.end(), coord ) ;
-      if ( iter != _normalCoordList.end() )
+      if ( iter != _abnormalCoordList.end() )
       {
          _abnormalCoordList.erase( iter ) ;
          _normalCoordList.push_back( coord ) ;
