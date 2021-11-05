@@ -94,46 +94,48 @@ SequoiaDB 相关进程以数据库管理用户（安装 SequoiaDB 时指定，�
     # /sbin/sysctl -p  
     ```
 
-##关闭transparent_hugepage##
+##禁用transparent_hugepage##
+
+transparent_hugepage 在运行期间动态分配内存。该分配方式会导致内存分配延迟，程序性能下降。因此，建议用户使用 SequoiaDB 时禁用 transparent_hugepage。
+
+###检查transparent_hugepage状态###
+
+1. 执行如下命令
+
+    ```lang-bash
+    # cat /sys/kernel/mm/transparent_hugepage/enabled
+    # cat /sys/kernel/mm/transparent_hugepage/defrag
+    ```
+
+2. 若返回结果为 [never]，则表示 transparent_hugepage 已被禁用
+    
+    ```lang-bash
+    always madvise [never]
+    ````
+
+###关闭transparent_hugepage###
 
 1. 修改文件 `/etc/rc.local`
 
     ```lang-bash
     # vi /etc/rc.local
     ```
+
+    >**Note:**
+    >
+    > 不同操作系统需要修改的文件存在差异，用户需根据实际情况获取确切的文件。
+
+2. 在末尾添加如下内容：
     
-    在第一行“#!/bin/sh”的下一行添加如下内容：
-    
-    ```lang-text
+    ```lang-bash
     echo never > /sys/kernel/mm/transparent_hugepage/enabled
     echo never > /sys/kernel/mm/transparent_hugepage/defrag
     ```
 
-2. 执行如下命令使配置生效：
+3. 执行命令使配置生效：
     
     ```lang-bash
     # source /etc/rc.local
-    ```
-
-3. 检查关闭 transparent_hugepage 是否成功
-
-    若关闭成功，如下两条命令显示为：
-    
-    ```lang-bash
-    # cat /sys/kernel/mm/transparent_hugepage/enabled 
-      always madvise [never]
-    # cat /sys/kernel/mm/transparent_hugepage/defrag
-      always madvise [never]
-    ````
-    
-    若关闭失败，如下两条命令显示为：
-    
-    ```lang-bash
-    # cat /sys/kernel/mm/transparent_hugepage/enabled 
-      [always] madvise never
-    # cat /sys/kernel/mm/transparent_hugepage/defrag
-      [always] madvise never
-    ```
 
 ##禁用NUMA##
 
