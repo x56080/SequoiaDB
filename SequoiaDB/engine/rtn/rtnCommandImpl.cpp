@@ -837,6 +837,22 @@ namespace engine
                           std::vector< dmsRecordID > &idxRIDs )
    {
       INT32 rc = SDB_OK ;
+      rtnPredicateList * predList = NULL ;
+      BSONObj startObj ;
+      BSONObj endObj ;
+      BSONObj prevObj ;
+      dmsRecordID prevRid ;
+      dmsExtentID rootID ;
+      const CHAR *keyData = NULL ;
+      BOOLEAN findPos = FALSE ;
+      BSONObj key ;
+      dmsRecordID rid ;
+      UINT32 segmentCount  = 1 ;
+      UINT32 deep = 1 ;
+      UINT32 mod  = 0 ;
+      UINT32 step = 1 ;
+      UINT32 index = 0 ;
+      UINT32 keyNodeCount ;
 
       SDB_ASSERT( planRuntime, "planRuntime is invalid" ) ;
 
@@ -846,8 +862,6 @@ namespace engine
       SDB_ASSERT( IXSCAN == planRuntime->getScanType(),
                   "Scan type must be IXSCAN" ) ;
 
-      ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
-
       if ( !mbContext->isMBLock() )
       {
          rc = mbContext->mbLock( SHARED ) ;
@@ -855,41 +869,39 @@ namespace engine
                       mbContext->toString().c_str(), rc ) ;
       }
 
-      if ( !indexCB.isInitialized() )
       {
-         PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
-      {
-         PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                 "expected[%d]", planRuntime->getIndexCBExtent(),
-                 indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
-         rc = SDB_IXM_NOTEXIST ;
-         goto error ;
-      }
+         ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
 
-      {
-         rtnPredicateList * predList = planRuntime->getPredList() ;
+         if ( !indexCB.isInitialized() )
+         {
+            PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
+         {
+            PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
+                    "expected[%d]", planRuntime->getIndexCBExtent(),
+                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
+            rc = SDB_IXM_NOTEXIST ;
+            goto error ;
+         }
+
+         predList = planRuntime->getPredList() ;
          SDB_ASSERT ( predList, "predList can't be NULL" ) ;
 
-         BSONObj startObj = predList->startKey() ;
-         BSONObj endObj = predList->endKey() ;
-         BSONObj prevObj ;
-         dmsRecordID prevRid ;
+         startObj = predList->startKey() ;
+         endObj = predList->endKey() ;
+
          if ( planRuntime->getDirection() < 0 )
          {
             startObj = endObj ;
             endObj = predList->startKey() ;
          }
+
          Ordering order = Ordering::make( indexCB.keyPattern() ) ;
-         dmsExtentID rootID = indexCB.getRoot() ;
-         const CHAR *keyData = NULL ;
-         BOOLEAN findPos = FALSE ;
-         BSONObj key ;
-         dmsRecordID rid ;
-         UINT32 segmentCount  = 1 ;
+         rootID = indexCB.getRoot() ;
 
          if ( DMS_INVALID_EXTENT != mbContext->mb()->_mbExExtentID )
          {
@@ -907,11 +919,7 @@ namespace engine
             }
          }
 
-         UINT32 deep = 1 ;
-         UINT32 mod  = 0 ;
-         UINT32 step = 1 ;
-         UINT32 index = 0 ;
-         UINT32 keyNodeCount = _rtnIndexKeyNodeCount( rootID, su, deep ) ;
+         keyNodeCount = _rtnIndexKeyNodeCount( rootID, su, deep ) ;
          while ( keyNodeCount < segmentCount && deep < 3 )
          {
             ++deep ;
