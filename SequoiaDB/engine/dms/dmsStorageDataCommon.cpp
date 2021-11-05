@@ -4267,7 +4267,7 @@ namespace engine
       UINT32           logRecSize  = 0 ;
       dpsMergeInfo     info ;
       dpsLogRecord     &record     = info.getMergeBlock().record() ;
-      UINT32           writeMod    = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32           writeMod    = DPS_LOG_WRITE_MOD_INCREMENT ;
       UINT32          *pWriteMod   = NULL ;
       dpsTransCB      *pTransCB    = pmdGetKRCB()->getTransCB() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
@@ -4357,8 +4357,7 @@ namespace engine
 
             if ( dpscb )
             {
-               if ( DMS_LOG_WRITE_MOD_INCREMENT
-                                      == _pStorageInfo->_logWriteMod )
+               if ( DPS_LOG_WRITE_MOD_INCREMENT == cb->getLogWriteMod() )
                {
                   rc = modifier.modify ( obj, newobj, &oldMatch, &oldChg,
                                          &newMatch, &newChg,
@@ -4368,7 +4367,7 @@ namespace engine
                }
                else
                {
-                  writeMod = DMS_LOG_WRITE_MOD_FULL ;
+                  writeMod = DPS_LOG_WRITE_MOD_FULL ;
                   rc = modifier.modify ( obj, newobj, &oldMatch, NULL,
                                          &newMatch, NULL,
                                          &oldShardingKey, &newShardingKey ) ;

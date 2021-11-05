@@ -40,7 +40,6 @@
 #include <algorithm>
 #include "pd.hpp"
 #include "mthModifier.hpp"
-#include "dms.hpp"
 #include "rtn.hpp"
 #include "pdTrace.hpp"
 #include "mthTrace.hpp"
@@ -2542,7 +2541,7 @@ namespace engine
       _ignoreTypeError = ignoreTypeError ;
       _fieldCompare.setDollarList( _dollarList ) ;
 
-      if ( DMS_LOG_WRITE_MOD_FULL == logWriteMod )
+      if ( DPS_LOG_WRITE_MOD_FULL == logWriteMod )
       {
          rc = _parseFullRecord( _modifierPattern ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse full record[%s], rc = %d",

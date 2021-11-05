@@ -315,7 +315,7 @@ namespace engine
 #endif /* SDB_ENTERPRISE */
 
          /// update trans conf should here
-         _pEDUCB->updateTransConf() ;
+         _pEDUCB->updateConf() ;
          // recv rest header
          rc = pAdptor->recvHeader( socket(), &request ) ;
          if ( rc )

@@ -93,7 +93,8 @@ namespace engine
       }
       _syncInterval = optCB->getSyncInterval() ;
       _syncRecordNum = optCB->getSyncRecordNum() ;
-      dpsSetTimeonFlag( optCB->logTimeOn() ) ;
+      dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
+                                          optCB->logWriteMod() ) ;
 
       pmdGetSyncMgr()->setLogAccess( this ) ;
       pmdGetSyncMgr()->setMainUnit( this ) ;
@@ -240,7 +241,8 @@ namespace engine
       _dpslocal = optCB->isDpsLocal() ;
       _syncInterval = optCB->getSyncInterval() ;
       _syncRecordNum = optCB->getSyncRecordNum() ;
-      dpsSetTimeonFlag( optCB->logTimeOn() ) ;
+      dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
+                                          optCB->logWriteMod() ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_SEARCH, "_dpsLogWrapper::search" )

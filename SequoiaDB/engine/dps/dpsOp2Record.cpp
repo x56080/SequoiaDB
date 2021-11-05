@@ -42,14 +42,23 @@
 #include "dpsTrace.hpp"
 #include "dpsUtil.hpp"
 #include "ossUtil.hpp"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
+
+   static BOOLEAN _dpsIsTimeOn()
+   {
+      return NULL != sdbGetThreadExecutor() ?
+                         sdbGetThreadExecutor()->isLogTimeOn() :
+                         dpsGetGlobalLogConfig().isLogTimeOn() ;
+   }
+
    static INT32 checkAndAddTimeInfo( dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
       UINT64 *timeMicroSeconds = NULL ;
-      if ( !dpsGetTimeonFlag() )
+      if ( !_dpsIsTimeOn() )
       {
          goto done ;
       }

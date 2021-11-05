@@ -48,7 +48,7 @@
 #include "../bson/bsonobj.h"
 #include "mthCommon.hpp"
 #include "ixmIndexKey.hpp"
-#include "dms.hpp"
+#include "dpsDef.hpp"
 #include "msgDef.hpp"
 
 using namespace bson ;
@@ -483,7 +483,7 @@ namespace engine
                           BOOLEAN ignoreTypeError = TRUE,
                           const BSONObj* shardingKey = NULL,
                           BOOLEAN strictDataMode = FALSE,
-                          UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT,
+                          UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT,
                           BOOLEAN calcIdxHash = FALSE ) ;
       void modifierSort() ;
       INT32 modify ( const BSONObj &source, BSONObj &target,
