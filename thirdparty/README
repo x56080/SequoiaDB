@@ -358,6 +358,7 @@ ARM64:
         chmod +x ./tools/build/src/engine/build.sh
         ./bootstrap.sh --with-libraries=system,filesystem,thread,program_options,chrono --prefix=./
         ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC" architecture=arm
+        mkdir -p ./lib/armlinux64/release
         cp ./stage/lib/* ./lib/armlinux64/release
 
         # for debug build:
@@ -366,6 +367,7 @@ ARM64:
         chmod +x ./tools/build/src/engine/build.sh
         ./bootstrap.sh --with-libraries=system,filesystem,thread,program_options,chrono --prefix=./
         ./bjam link=static threading=multi variant=debug address-model=64 toolset=gcc runtime-link=static cxxflags="-fPIC" architecture=arm
+        mkdir -p ./lib/armlinux64/debug
         cp ./stage/lib/* ./lib/armlinux64/debug
 
     SpiderMonkey 1.8.5:
@@ -407,7 +409,8 @@ ARM64:
         chmod +x ./config
         ./config -fPIC
         make -j 4
-        cp libcrypto.a lib/armlinux64/release
+        mkdir -p ./lib/armlinux64/release
+        cp libcrypto.a ./lib/armlinux64/release   
         cp libssl.a ./lib/armlinux64/release
 
         # for debug build:
@@ -417,7 +420,8 @@ ARM64:
         chmod +x ./config
         ./config -fPIC -d
         make -j 4
-        cp libcrypto.a lib/armlinux64/debug
+        mkdir -p ./lib/armlinux64/debug
+        cp libcrypto.a ./lib/armlinux64/debug
         cp libssl.a ./lib/armlinux64/debug
 
     snappy 1.1.0:
@@ -425,12 +429,14 @@ ARM64:
         cd thirdparty/snappy
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/libsnappy.a ./lib/armlinux64/release
 
         # for debug build:
         cd thirdparty/snappy
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/libsnappy.a ./lib/armlinux64/debug
 
     lz4 1.7.1:
@@ -438,12 +444,14 @@ ARM64:
         cd thirdparty/lz4
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/liblz4.a ./lib/armlinux64/release
 
         # for debug build:
         cd thirdparty/lz4
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/liblz4.a ./lib/armlinux64/debug
 
     zlib 1.2.8:
@@ -452,12 +460,14 @@ ARM64:
         cd thirdparty/zlib
         scons --clean
         scons
+        mkdir -p ./lib/armlinux64/release
         cp stage/lib/libzlib.a ./lib/armlinux64/release/libzlib.a
 
         # for debug build:
         cd thirdparty/zlib
         scons --clean
         scons --dd
+        mkdir -p ./lib/armlinux64/debug
         cp stage/lib/libzlib.a ./lib/armlinux64/debug/libzlib.a
 
         # The second way to build:
@@ -465,16 +475,18 @@ ARM64:
         chmod +x configure
         ./configure
         make -j 4
+        mkdir -p ./lib/armlinux64/release
         cp ./libz.a ./lib/armlinux64/release/libzlib.a
 
     fuse 2.8.6
-        cd fuse
+        cd thirdparty/fuse
         chmod +x makeconf.sh
         ./makeconf.sh
         ./configure
         make -j 4
         sudo make install
         whereis libfuse.a
+        mkdir -p ./lib/armlinux64/release
         cp ./lib/.libs/libfuse.a ./lib/armlinux64/release/libfuse.a
 
 PowerLinux64:
