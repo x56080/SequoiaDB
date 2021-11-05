@@ -1,11 +1,10 @@
-
 ##NAME##
 
-traceFmt - Format trace input to output by type.
+traceFmt - parse the trace log
 
 ##SYNOPSIS##
 
-**traceFmt(\<formatType\>,\<input\>,\<output\>)**
+**traceFmt(\<formatType\>, \<input\>, \<output\>)**
 
 ##CATEGORY##
 
@@ -13,64 +12,65 @@ Global
 
 ##DESCRIPTION##
 
-The trace file exported by db.traceOff() is in binary format and is not convenient for users to read. This command can be used to format the trace file into user-readable content and output it to the specified file. 
+This function is used to parse the trace log and output the result to the corresponding file according to the format type specified by the user.
 
 ##PARAMETERS##
 
-* `formatType` ( *Int32*, *Required* )
+- formatType ( *number, required* )
 
-  `formatType` can take the following two values:
+	Formate type, the values are as follows:
 
-  * 0: Output analysis file, including thread execution sequence (output file suffix is .flw), execution time analysis(output file suffix is .CSV), execution time peak(output file suffix is .except) and trace record error information(output file suffix is .error).
+    - 0：Output trace log analysis file, including thread execution sequence(flw file), function execution time analysis(CSV file), execution time peak(except file) and trace error information(error file).
+    - 1：Output the parsed trace log(fmt file).
 
-  * 1: Output dump record information(output file suffix is .fmt).
+- input ( *string, required* )
 
-  > **Note:**   
-	
-  > The CSV file can be viewed by using Excel.
- 
-* `input` ( *String*， *Required* )
+    The path where the trace log is located.
 
-	The binary file that db.traceOff() exports
+- output ( *string, required* ) 
 
-* `output` ( *String*， *Required* )
-
-	Output target file
-
+    The path where the output file is located.
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-the exceptions of `traceFmt()` are as below:
+The common exceptions of `traceFmt()` function are as follows:
 
-| Error code | Error type                | Description             | Solution |
-| ---------- | ------------------------- | ----------------------- | -------- |
-| -3         | SDB_PERM                  | Permission Error        | Check the path of the input and output file is ok or not. |
-| -4         | SDB_FNE                   | File Not Exist          | Check the input file exist or not. |
-| -6         | SDB_INVALIDARG            | Invalid Argument        | Check the input format type is valid or not. |
-| -189       | SDB_PD_TRACE_FILE_INVALID | Trace file is not valid | Check the input file is ok or not.	|
+| Error Code | Error Type | Description | Solution |
+| ------ | -------- | -------------- | -------- |
+| -3     | SDB_PERM                  | Permissions error              | Check whether the path of the input or output file has permission. |
+| -4     | SDB_FNE                   | File dose not exist            | Check whether the input file exists.   |
+| -6     | SDB_INVALIDARG            | Parameter error              | Check whether the input type is correct. |
+| -189   | SDB_PD_TRACE_FILE_INVALID | The input file is not a trace log | Check whether the input file is [traceOff()][traceOff] exported trace log. |
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+     
+##VERSION##
 
-##HISTORY##
-
-Since v1.0.
+v1.0 and above
 
 ##EXAMPLES##
 
-* Format trace input to output.
+Parsing trace logs `trace.dump`.
 
 ```lang-javascript
-> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
+> traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output")
 ```
 
-* Using [traceStatus()](manual/Manual/Sequoiadb_command/Sdb/traceStatus.md) to view the tracking status of the current program. 
+>**Note:**
+>
+> If users want to view the trace status of the current program, refer to [traceStatus()][traceStatus].
 
-```lang-javascript
-> db.traceStatus()
-```
+[^_^]:
+    Links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
+[traceStatus]:manual/Manual/Sequoiadb_Command/Sdb/traceStatus.md
+[traceOff]:manual/Manual/Sequoiadb_Command/Sdb/traceOff.md
