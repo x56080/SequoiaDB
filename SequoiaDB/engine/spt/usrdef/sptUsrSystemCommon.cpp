@@ -684,28 +684,20 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
                  rc, exitCode ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_SYS ;
-         }
-         stringstream ss ;
-         ss << "failed to exec cmd \" " << CPU_CMD << "\",rc:"
-            << rc
-            << ",exit:"
-            << exitCode ;
-         err = ss.str() ;
-         goto error ;
+         rc = SDB_OK ;
       }
-
-      rc = runner.read( outStr ) ;
-      if ( SDB_OK != rc )
+      else 
       {
-         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
-         stringstream ss ;
-         ss << "failed to read msg from cmd \"" << CPU_CMD << "\", rc:"
-            << rc ;
-         err = ss.str() ;
-         goto error ;
+         rc = runner.read( outStr ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+            stringstream ss ;
+            ss << "failed to read msg from cmd \"" << CPU_CMD << "\", rc:"
+               << rc ;
+            err = ss.str() ;
+            goto error ;
+         } 
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -758,30 +750,21 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
                  rc, exitCode ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_SYS ;
-         }
-         stringstream ss ;
-         ss << "failed to exec cmd \" " << cmd << "\",rc:"
-            << rc
-            << ",exit:"
-            << exitCode ;
-         err = ss.str() ;
-         goto error ;
+         rc = SDB_OK ;
       }
-
-      rc = runner.read( outStr ) ;
-      if ( SDB_OK != rc )
+      else
       {
-         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
-         stringstream ss ;
-         ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
-            << rc ;
-         err = ss.str() ;
-         goto error ;
+         rc = runner.read( outStr ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+            stringstream ss ;
+            ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
+               << rc ;
+            err = ss.str() ;
+            goto error ;
+         }
       }
-
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
       if ( SDB_OK != rc )
       {
