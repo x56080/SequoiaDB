@@ -1955,7 +1955,7 @@ done:
       _preferedPeriod = PMD_DFT_PREFINST_PERIOD ;
 
       ossMemset( _logWriteModStr, 0, sizeof(_logWriteModStr) ) ;
-      _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       _logTimeOn = FALSE ;
 
@@ -2545,7 +2545,7 @@ done:
       {
          std::cerr << PMD_OPTION_LOGWRITEMOD << " value error, use default"
                    << endl ;
-         _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+         _logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
          _invalidConfNum++ ;
       }
       _logWriteModStr[0] = 0 ;
@@ -3482,7 +3482,7 @@ done:
       INT32 rc = SDB_OK ;
       if ( !str || !*str )
       {
-         value = DMS_LOG_WRITE_MOD_INCREMENT ;
+         value = DPS_LOG_WRITE_MOD_INCREMENT ;
       }
       else
       {
@@ -3490,12 +3490,12 @@ done:
          if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len ) &&
               len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR ) )
          {
-            value = DMS_LOG_WRITE_MOD_INCREMENT ;
+            value = DPS_LOG_WRITE_MOD_INCREMENT ;
          }
          else if ( 0 == ossStrncasecmp( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len ) &&
                    len == ossStrlen( PMD_OPTION_LOG_WRITEMOD_FULL_STR ) )
          {
-            value = DMS_LOG_WRITE_MOD_FULL ;
+            value = DPS_LOG_WRITE_MOD_FULL ;
          }
          else
          {
@@ -3646,11 +3646,11 @@ done:
 
       switch ( value )
       {
-         case DMS_LOG_WRITE_MOD_INCREMENT :
+         case DPS_LOG_WRITE_MOD_INCREMENT :
             ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR, len - 1 ) ;
             break ;
 
-         case DMS_LOG_WRITE_MOD_FULL :
+         case DPS_LOG_WRITE_MOD_FULL :
             ossStrncpy( str, PMD_OPTION_LOG_WRITEMOD_FULL_STR, len -1 ) ;
             break ;
 

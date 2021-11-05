@@ -123,6 +123,9 @@ typedef UINT32 DPS_LSN_VER ;
 #define DPS_TRANS_GET_SN( id )               ( (id) & DPS_TRANSID_SN_BIT )
 #define DPS_TRANS_GET_ID( id )               ( (id) & DPS_TRANSID_VALID_BIT )
 
+#define DPS_LOG_WRITE_MOD_INCREMENT 0
+#define DPS_LOG_WRITE_MOD_FULL      1
+
 enum DPS_LOG_TYPE
 {
    LOG_TYPE_DUMMY        = 0x00,
@@ -192,6 +195,53 @@ namespace engine
                                   INT32 errcode ) = 0 ;
    } ;
    typedef _dpsEventHandler dpsEventHandler ;
+
+   /*
+      _dpsLogConfig define
+    */
+   class _dpsLogConfig
+   {
+   public:
+      _dpsLogConfig()
+      : _logTimeOn( FALSE ),
+        _logWriteMod( DPS_LOG_WRITE_MOD_INCREMENT )
+      {
+      }
+
+      ~_dpsLogConfig() {}
+
+      BOOLEAN updateConf( BOOLEAN logTimeOn,
+                          UINT32 logWriteMod,
+                          BOOLEAN isInTrans = FALSE )
+      {
+         BOOLEAN changed = FALSE ;
+
+         if ( !isInTrans )
+         {
+            _logTimeOn = logTimeOn ;
+            _logWriteMod = logWriteMod ;
+            changed = TRUE ;
+         }
+
+         return changed ;
+      }
+
+      BOOLEAN isLogTimeOn() const
+      {
+         return _logTimeOn ;
+      }
+
+      UINT32 getLogWriteMod() const
+      {
+         return _logWriteMod ;
+      }
+
+   protected:
+      BOOLEAN _logTimeOn ;
+      UINT32  _logWriteMod ;
+   } ;
+
+   typedef class _dpsLogConfig dpsLogConfig ;
 
 }
 

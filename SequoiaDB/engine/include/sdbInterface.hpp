@@ -470,6 +470,11 @@ namespace engine
          virtual BOOLEAN   contextFind( INT64 contextID ) = 0 ;
          virtual UINT32    contextNum() = 0 ;
 
+         /*
+            Log config
+          */
+         virtual BOOLEAN   isLogTimeOn() const = 0 ;
+         virtual UINT32    getLogWriteMod() const = 0 ;
    } ;
    typedef _IExecutor IExecutor ;
 

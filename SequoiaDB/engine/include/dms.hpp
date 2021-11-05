@@ -76,10 +76,6 @@ namespace engine
 #define DMS_DEFAULT_LOB_PAGE_SZ  DMS_PAGE_SIZE256K
 #define DMS_DO_NOT_CREATE_LOB    0
 
-#define DMS_LOG_WRITE_MOD_INCREMENT 0
-#define DMS_LOG_WRITE_MOD_FULL      1
-
-
 // the maximum number of pages * size for the storage unit
 // this number does NOT count metadata
 // max SU size:

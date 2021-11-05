@@ -873,7 +873,7 @@ namespace replay
       BSONObj newMatch;
       BSONObj newModifier;
       BSONObj oldShardingKey ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       SDB_ASSERT(LOG_TYPE_DATA_UPDATE == header._type, "not data update log");
 
@@ -2393,7 +2393,7 @@ namespace replay
       BSONObj newModifier;
       BSONObj oldShardingKey ;
       BSONObj newShardingKey ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       SDB_ASSERT(LOG_TYPE_DATA_UPDATE == header._type, "not data update log");
 

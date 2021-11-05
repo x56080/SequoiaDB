@@ -114,7 +114,7 @@ namespace engine
             break ;
          }
          /// update conf should here
-         _pEDUCB->updateTransConf() ;
+         _pEDUCB->updateConf() ;
 
          // if system info msg
          if ( msgSize == (UINT32)MSG_SYSTEM_INFO_LEN )

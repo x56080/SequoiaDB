@@ -79,7 +79,7 @@ namespace engine
             cb->resetInterrupt() ;
             cb->resetInfo( EDU_INFO_ERROR ) ;
             cb->resetLsn() ;
-            cb->updateTransConf() ;
+            cb->updateConf() ;
 
             if ( PMD_EDU_EVENT_TERM == eventData._eventType )
             {

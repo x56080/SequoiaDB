@@ -193,6 +193,12 @@ namespace engine
          virtual BOOLEAN   contextFind( INT64 contextID ) ;
          virtual UINT32    contextNum() ;
 
+         /*
+            Log config
+          */
+         virtual BOOLEAN   isLogTimeOn() const ;
+         virtual UINT32    getLogWriteMod() const ;
+
          INT64             getCurAutoTransCtxID() const ;
          void              setCurAutoTransCtxID( INT64 contextID ) ;
          BOOLEAN           isTransRBPending() const ;
@@ -248,7 +254,7 @@ namespace engine
       BOOLEAN     isOnlySelfWhenInterrupt() const ;
       INT32       getInterruptRC() const ;
 
-      void        updateTransConf() ;
+      void        updateConf() ;
 
       void        setUserInfo( const string &userName,
                                const string &password ) ;
@@ -559,7 +565,7 @@ namespace engine
 
       void        initMonAppCB() ;
 
-      void        initTransConf() ;
+      void        initConf() ;
 
       /*
          Only for pmdEDUMgr call, and must under pmdEDUMgr::_latch protected
@@ -623,6 +629,7 @@ namespace engine
       INT32                   _transStatus ;
 
       pmdTransExecutor        _transExecutor ;
+      dpsLogConfig            _logConfig ;
       UINT32                  _confChangeID ;
 
       INT16                   _orgReplSize ;

@@ -2078,8 +2078,8 @@
         <cn>复制日志写模式，取值：increment,full,默认为increment。</cn>
       </description>
       <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
       </reloadable>
       <detail>
         <en>Replica log write mod, value enumeration:increment,full, default:increment.</en>
@@ -2098,8 +2098,8 @@
         <cn>开启复制日志保存时间信息功能，默认为false。</cn>
       </description>
       <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
+         <en>takes effect upon next transaction</en>
+         <cn>下一次事务中生效</cn>
       </reloadable>
       <detail>
         <en>Turn on replica log save timestamp info, default false.</en>

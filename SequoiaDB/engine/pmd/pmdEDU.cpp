@@ -47,6 +47,7 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "utilUniqueID.hpp"
+#include "dpsUtil.hpp"
 #include <map>
 
 namespace engine
@@ -843,6 +844,24 @@ namespace engine
       return _contextList.size() ;
    }
 
+   BOOLEAN _pmdEDUCB::isLogTimeOn() const
+   {
+#if defined ( SDB_ENGINE )
+      return _logConfig.isLogTimeOn() ;
+#else
+      return FALSE ;
+#endif
+   }
+
+   UINT32 _pmdEDUCB::getLogWriteMod() const
+   {
+#if defined ( SDB_ENGINE )
+      return _logConfig.getLogWriteMod() ;
+#else
+      return 0 ;
+#endif
+   }
+
    void _pmdEDUCB::setCurAutoTransCtxID( INT64 contextID )
    {
       _curAutoTransCtxID = contextID ;
@@ -887,13 +906,13 @@ namespace engine
       }
    }
 
-   void _pmdEDUCB::initTransConf()
+   void _pmdEDUCB::initConf()
    {
 #if defined ( SDB_ENGINE )
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _confChangeID = optCB->getChangeID() ;
       if ( optCB->transactionOn() )
       {
-         _confChangeID = optCB->getChangeID() ;
          _transExecutor.initTransConf( optCB->transIsolation(),
                                        optCB->transTimeout() * OSS_ONE_SEC,
                                        optCB->transLockwait(),
@@ -906,6 +925,8 @@ namespace engine
       {
          _transExecutor.setTransAutoCommit( FALSE, FALSE ) ;
       }
+      _logConfig.updateConf( optCB->logTimeOn(),
+                             optCB->logWriteMod() ) ;
 
       // make sure meta-block statistics are cleared
       if ( !_transExecutor.isMBStatsEmpty() )
@@ -916,21 +937,44 @@ namespace engine
 #endif //SDB_ENGINE
    }
 
-   void _pmdEDUCB::updateTransConf()
+   void _pmdEDUCB::updateConf()
    {
 #if defined ( SDB_ENGINE )
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      if ( optCB->transactionOn() && _confChangeID != optCB->getChangeID() )
+      UINT32 confChangeID = optCB->getChangeID() ;
+
+      if ( confChangeID != _confChangeID )
       {
-         if ( _transExecutor.updateTransConf( optCB->transIsolation(),
-                                              optCB->transTimeout() * OSS_ONE_SEC,
-                                              optCB->transLockwait(),
-                                              optCB->transAutoCommit(),
-                                              optCB->transAutoRollback(),
-                                              optCB->transUseRBS(),
-                                              optCB->transRCCount() ) )
+         BOOLEAN needUpdateChangeID = TRUE ;
+         if ( optCB->transactionOn() )
          {
-            _confChangeID = optCB->getChangeID() ;
+            // update transaction config
+            if ( !_transExecutor.updateTransConf(
+                                          optCB->transIsolation(),
+                                          optCB->transTimeout() * OSS_ONE_SEC,
+                                          optCB->transLockwait(),
+                                          optCB->transAutoCommit(),
+                                          optCB->transAutoRollback(),
+                                          optCB->transUseRBS(),
+                                          optCB->transRCCount() ) )
+            {
+               // failed to update, wait for next round
+               needUpdateChangeID = FALSE ;
+            }
+         }
+
+         // update DPS log config
+         if ( !_logConfig.updateConf( optCB->logTimeOn(),
+                                      optCB->logWriteMod(),
+                                      isTransaction() ) )
+         {
+            // failed to update, wait for next round
+            needUpdateChangeID = FALSE ;
+         }
+
+         if ( needUpdateChangeID )
+         {
+            _confChangeID = confChangeID ;
          }
       }
 #endif //SDB_ENGINE

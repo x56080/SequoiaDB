@@ -86,7 +86,6 @@ namespace engine
 
       BOOLEAN     _enableSparse ;
       BOOLEAN     _directIO ;
-      UINT32      _logWriteMod ;
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
 
@@ -111,7 +110,6 @@ namespace engine
          _extentThreshold = 0 ;
          _enableSparse = FALSE ;
          _directIO = FALSE ;
-         _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
          _cacheMergeSize = 0 ;
          _pageAllocTimeout = 0 ;
 

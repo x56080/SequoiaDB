@@ -49,8 +49,7 @@ namespace engine
 
    #define DPS_TRANS_STR_LEN           ( 64 )
 
-   void dpsSetTimeonFlag( BOOLEAN flag ) ;
-   BOOLEAN dpsGetTimeonFlag() ;
+   dpsLogConfig &dpsGetGlobalLogConfig() ;
 
    const CHAR* dpsTransStatusToString( INT32 status ) ;
 

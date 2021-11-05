@@ -873,7 +873,7 @@ namespace engine
             BSONObj modifier ;   //new change obj
             const CHAR *fullname = NULL ;
             utilUpdateResult upResult ;
-            UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+            UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
             rc = dpsRecord2Update( (CHAR *)recordHeader,
                                    &fullname,
                                    match,
@@ -916,7 +916,7 @@ namespace engine
             // 1. ignore duplicated key by caller
             // 2. conflict objects has the same OID
             else if ( SDB_IXM_DUP_KEY == rc &&
-                      DMS_LOG_WRITE_MOD_FULL == logWriteMod &&
+                      DPS_LOG_WRITE_MOD_FULL == logWriteMod &&
                       ( ignoreDupKey || upResult.isSameID() ) )
             {
                PD_LOG( PDINFO, "Record[%s] already exist when update",
@@ -1718,7 +1718,7 @@ namespace engine
             BSONObj modifier ;  //old modifier
             BSONObj newMatch ;     //new matcher
             BSONObj newObj ;
-            UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+            UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
             utilUpdateResult upResult ;
 
             rc = dpsRecord2Update( (const CHAR *)recordHeader,
@@ -2375,7 +2375,7 @@ namespace engine
       dpsTransPendingKey newPendingKey, oldPendingKey ;
       dpsTransPendingValue newPendingValue, oldPendingValue ;
       BOOLEAN isPendingKeyExist = FALSE ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       rc = dpsRecord2Update( (const CHAR *)recordHeader,
                               &clFullName, oldMatch, oldObject,
@@ -2420,7 +2420,7 @@ namespace engine
             // need to replace whole object with the new one
             newMatch = oldPendingValue._obj ;
             oldObject = BSON( "$replace" << rollbackObject ) ;
-            logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+            logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
          }
 
          if ( mapPendingObj.empty() )
@@ -2754,7 +2754,7 @@ namespace engine
       dpsTransPendingKey newPendingKey, oldPendingKey ;
       dpsTransPendingValue newPendingValue, oldPendingValue ;
       BOOLEAN isPendingKeyExist = FALSE, added = FALSE ;
-      UINT32 logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32 logWriteMod = DPS_LOG_WRITE_MOD_INCREMENT ;
 
       rc = dpsRecord2Update( (const CHAR *)recordHeader,
                               &clFullName, oldMatch, oldObject,

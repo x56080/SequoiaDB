@@ -44,16 +44,11 @@
 
 namespace engine
 {
-   static BOOLEAN g_TimeonFlag = FALSE ;
 
-   void dpsSetTimeonFlag( BOOLEAN flag )
+   dpsLogConfig &dpsGetGlobalLogConfig()
    {
-      g_TimeonFlag = flag ;
-   }
-
-   BOOLEAN dpsGetTimeonFlag()
-   {
-      return g_TimeonFlag ;
+      static dpsLogConfig g_logConfig ;
+      return g_logConfig ;
    }
 
    const CHAR* dpsTransStatusToString( INT32 status )

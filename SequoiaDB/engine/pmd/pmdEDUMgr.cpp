@@ -2408,7 +2408,7 @@ namespace engine
 
             *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
             cb->initMonAppCB() ;
-            cb->initTransConf() ;
+            cb->initConf() ;
 
             rc = pItem->_pFunc( cb, event._Data ) ;
             // copy name

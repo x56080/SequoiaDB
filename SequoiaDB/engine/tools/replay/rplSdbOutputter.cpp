@@ -32,6 +32,7 @@
 
 #include "rplSdbOutputter.hpp"
 #include "msgDef.h"
+#include "dpsDef.hpp"
 #include "dms.hpp"
 
 using namespace sdbclient ;
@@ -194,7 +195,7 @@ namespace replay
       BSONObj modifier;
       BSONObj hint = BSON( "" << "$id" );
 
-      if ( DMS_LOG_WRITE_MOD_FULL == logWriteMod )
+      if ( DPS_LOG_WRITE_MOD_FULL == logWriteMod )
       {
          modifier = BSON( "$replace" << newModifier ) ;
       }
