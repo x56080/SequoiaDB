@@ -1694,6 +1694,14 @@ namespace engine
       mbContext->mbUnlock() ;
       return rc ;
    error:
+      if ( NULL != _mbContext )
+      {
+         _mbContext = NULL ;
+      }
+      if ( NULL != _su )
+      {
+         _su = NULL ;
+      }
       goto done ;
    }
 
