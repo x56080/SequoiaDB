@@ -6,7 +6,7 @@
 + [索引][index]
 + [记录][record]
 + [Lob][Lob]
-+ [修改存储集群配置][sequoiadb_configs]
+
 
 [^_^]:
     引用页面
@@ -18,4 +18,3 @@
 [index]:manual/SAC/Operation/Sequoiadb_Data/index.md
 [record]:manual/SAC/Operation/Sequoiadb_Data/record.md
 [Lob]:manual/SAC/Operation/Sequoiadb_Data/lob.md
-[sequoiadb_configs]:manual/SAC/Operation/Sequoiadb_Data/sequoiadb_configs.md

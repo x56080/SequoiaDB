@@ -1858,7 +1858,7 @@
       {
          "id": 1483942793,
          "dir": "SAC",
-         "cn": "SAC管控中心",
+         "cn": "SAC 管控中心",
          "en": "SAC",
          "contents": [
             {
@@ -1918,19 +1918,19 @@
                         {
                            "id": 1534834770,
                            "file": "deployment_mysql",
-                           "cn": "部署MySQL实例",
+                           "cn": "部署 MySQL 实例",
                            "en": "Deployment MySQL"
                         },
                         {
                            "id": 1501736518,
                            "file": "deployment_postgresql",
-                           "cn": "部署PostgreSQL实例",
+                           "cn": "部署 PostgreSQL 实例",
                            "en": "Deployment PostgreSQL"
                         },
                         {
                            "id": 1632992351,
                            "file": "deployment_mariadb",
-                           "cn": "部署MariaDB实例",
+                           "cn": "部署 MariaDB 实例",
                            "en": "Deployment MariaDB"
                         }
                      ]
@@ -1971,9 +1971,15 @@
                      "contents": [
                         {
                            "id": 1509430534,
-                           "file": "basic_operation",
-                           "cn": "基本操作",
-                           "en": "Basic Operation"
+                           "file": "manage_module",
+                           "cn": "管理存储集群",
+                           "en": "Manage Module"
+                        },
+                        {
+                           "id": 1548829161,
+                           "file": "restart_module",
+                           "cn": "重启存储集群",
+                           "en": "Restart Module"
                         },
                         {
                            "id": 1483944504,
@@ -1986,7 +1992,7 @@
                   {
                      "id": 1523182044,
                      "dir": "Sequoiadb_Data",
-                     "cn": "SequoiaDB数据操作",
+                     "cn": "SequoiaDB 数据操作",
                      "en": "SequoiaDB Data",
                      "contents": [
                         {
@@ -2016,33 +2022,21 @@
                         {
                            "id": 1483944513,
                            "file": "lob",
-                           "cn": "Lob",
-                           "en": "Lob"
-                        },
-                        {
-                           "id": 1548829158,
-                           "file": "sequoiadb_configs",
-                           "cn": "修改存储集群配置",
-                           "en": "Distributed Storage Configs"
+                           "cn": "LOB",
+                           "en": "LOB"
                         }
                      ]
                   },
                   {
                      "id": 1562317092,
                      "dir": "Mysql",
-                     "cn": "MySQL实例操作",
+                     "cn": "MySQL 实例操作",
                      "en": "MySQL Instance",
                      "contents": [
                         {
-                           "id": 1562312142,
-                           "file": "basic_operation",
-                           "cn": "基础操作",
-                           "en": "Basic Operation"
-                        },
-                        {
                            "id": 1534834767,
                            "file": "database",
-                           "cn": "数据库",
+                           "cn": "数据库操作",
                            "en": "Database"
                         },
                         {
@@ -2053,40 +2047,46 @@
                         },
                         {
                            "id": 1534834769,
-                           "file": "field",
-                           "cn": "字段结构",
-                           "en": "Field"
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1562312142,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Manage Instance"
+                        },
+                        {
+                           "id": 1562652775,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
                         },
                         {
                            "id": 1562641633,
-                           "file": "uninstall_mysql",
+                           "file": "uninstall_instance",
                            "cn": "删除实例",
-                           "en": "Uninstall instance"
+                           "en": "Uninstall Instance"
                         },
                         {
                            "id": 1562586902,
-                           "file": "remove_mysql_storage",
+                           "file": "remove_instance_storage",
                            "cn": "移除实例存储",
-                           "en": "Remove instance storage"
+                           "en": "Remove Instance Storage"
                         }
                      ]
                   },
                   {
                      "id": 1562317093,
                      "dir": "Postgresql",
-                     "cn": "PostgreSQL实例操作",
+                     "cn": "PostgreSQL 实例操作",
                      "en": "PostgreSQL Instance",
                      "contents": [
                         {
-                           "id": 1562312143,
-                           "file": "basic_operation",
-                           "cn": "基础操作",
-                           "en": "Basic Operation"
-                        },
-                        {
                            "id": 1520921810,
                            "file": "database",
-                           "cn": "数据库",
+                           "cn": "数据库操作",
                            "en": "Database"
                         },
                         {
@@ -2097,40 +2097,46 @@
                         },
                         {
                            "id": 1520921813,
-                           "file": "field",
-                           "cn": "字段结构",
-                           "en": "Field"
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1562312143,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Manage Instance"
+                        },
+                        {
+                           "id": 156265278,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
                         },
                         {
                            "id": 1562641764,
-                           "file": "uninstall_postgresql",
+                           "file": "uninstall_instance",
                            "cn": "删除实例",
-                           "en": "Uninstall instance"
+                           "en": "Uninstall Instance"
                         },
                         {
                            "id": 1562586901,
-                           "file": "remove_pg_storage",
+                           "file": "remove_instance_storage",
                            "cn": "移除实例存储",
-                           "en": "Remove instance storage"
+                           "en": "Remove Instance Storage"
                         }
                      ]
                   },
                   {
                      "id": 1632992352,
                      "dir": "Mariadb",
-                     "cn": "MariaDB实例操作",
+                     "cn": "MariaDB 实例操作",
                      "en": "MariaDB Instance",
                      "contents": [
                         {
-                           "id": 1632992353,
-                           "file": "basic_operation",
-                           "cn": "基础操作",
-                           "en": "Basic Operation"
-                        },
-                        {
                            "id": 1632992354,
                            "file": "database",
-                           "cn": "数据库",
+                           "cn": "数据库操作",
                            "en": "Database"
                         },
                         {
@@ -2141,21 +2147,33 @@
                         },
                         {
                            "id": 1632992356,
-                           "file": "field",
-                           "cn": "字段结构",
-                           "en": "Field"
+                           "file": "manage_table",
+                           "cn": "管理数据表",
+                           "en": "Manage Table"
+                        },
+                        {
+                           "id": 1632992353,
+                           "file": "manage_instance",
+                           "cn": "管理实例",
+                           "en": "Restart Instance"
+                        },
+                        {
+                           "id": 1635303476,
+                           "file": "restart_instance",
+                           "cn": "重启实例",
+                           "en": "Restart Instance"
                         },
                         {
                            "id": 1632992357,
                            "file": "uninstall_mariadb",
                            "cn": "删除实例",
-                           "en": "Uninstall instance"
+                           "en": "Uninstall Instance"
                         },
                         {
                            "id": 1632992358,
                            "file": "remove_mariadb_storage",
                            "cn": "移除实例存储",
-                           "en": "Remove instance storage"
+                           "en": "Remove Instance Storage"
                         }
                      ]
                   }

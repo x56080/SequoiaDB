@@ -1,11 +1,11 @@
-本文档将介绍 PostgreSQL 实例的查看节点详细配置、修改配置、同步配置、设置鉴权及重启实例操作。
+本文档将介绍 PostgreSQL 实例的查看节点详细配置、修改配置、同步配置及设置鉴权操作。
 
-## 查看节点详细配置  
+##查看节点详细配置##
 
 用户通过点击左侧导航 **配置** 选择 PostgreSQL 实例点击进入配置页面，点击 **查看详细配置** 按钮查看当前实例的详细配置。
 ![查看配置][pgsql_config_2]
 
-## 修改配置  
+##修改配置##
 
 用户在修改 PostgreSQL 实例配置页面可以查看当前服务的配置以及对配置进行在线修改。
 
@@ -15,7 +15,7 @@
 如果修改的配置项中有需要重启生效的项，则该配置项会在提示窗口中说明，需要点击 **重启节点** 按钮进行重启服务
 ![重启配置][pgsql_config_4]
 
-## 同步配置
+##同步配置##
 
 同步配置可以把 PostgreSQL 数据库实例配置同步到 SAC 中。
 
@@ -31,7 +31,7 @@
 
    ![同步配置][sync_3]
 
-## 设置鉴权
+##设置鉴权##
 
 用户可以通过修改配置文件或 SAC 设置鉴权
 
@@ -113,19 +113,7 @@
 
      ![设置鉴权][auth_3]
 
-## 重启实例
 
-1. 进入【部署页面】->【数据库实例】页面，点击【实例操作】->【重启实例】按钮
-
-   ![重启弹窗][restart_1]
-
-2. 选择需要重启的数据库实例，点击 **确定** 按钮
-
-   ![重启弹窗][restart_2]
-
-3. 重启完成
-
-   ![重启完成][restart_4]
 
 
 
@@ -140,9 +128,6 @@
 [auth_1]:images/SAC/Operation/Postgresql/auth_1.png
 [auth_2]:images/SAC/Operation/Postgresql/auth_2.png
 [auth_3]:images/SAC/Operation/Postgresql/auth_3.png
-[restart_1]:images/SAC/Operation/Postgresql/restart_1.png
-[restart_2]:images/SAC/Operation/Postgresql/restart_2.png
-[restart_4]:images/SAC/Operation/Postgresql/restart_4.png
 
 
 

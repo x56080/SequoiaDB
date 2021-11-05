@@ -1,4 +1,6 @@
-用户通过点击导航【数据】->【数据库实例】的名字，可以进入MariaDB 实例操作页面。在 MariaDB 实例操作页面可以进行创建数据库、删除数据库、创建数据表、删除数据表等操作。
+
+用户通过点击导航【数据】->【数据库实例的名字】，可以进入 MariaDB 实例操作页面。在 MariaDB 实例操作页面可以进行创建数据库、删除数据库、创建数据表、删除数据表等操作。
+
 
 ![SequoiaSQL-MariaDB数据库][database]
 
@@ -43,7 +45,6 @@
     本文使用的所有引用和链接
 [deployment_mariadb]:manual/SAC/Deployment/Deployment_Bystep/deployment_mariadb.md#添加MariaDB实例存储
 [record]:manual/SAC/Operation/Mariadb/record.md
-
 [database]:images/SAC/Operation/Mariadb/mariadb_database_1.png
 [create_database]:images/SAC/Operation/Mariadb/mariadb_database_2.png
 [create_table_normal]:images/SAC/Operation/Mariadb/mariadb_database_3.png
