@@ -677,6 +677,18 @@ namespace engine
             {
                if ( MSG_INVALID_ROUTEID != _header.routeID.value )
                {
+                  // check service ID
+                  if ( _header.routeID.columns.serviceID >=
+                                       (UINT16)MSG_ROUTE_SERVICE_TYPE_MAX )
+                  {
+                     PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] "
+                             "received message[%s] with unknown "
+                             "service ID [%u]", _handle,
+                             routeID2String( _id ).c_str(),
+                             msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
+                             _header.routeID.columns.serviceID ) ;
+                     goto error_close ;
+                  }
                   _id = _header.routeID ;
                   if ( SDB_OK !=
                         _evSuitPtr->getFrame()->_addRoute( _getSharedBase() ) )
