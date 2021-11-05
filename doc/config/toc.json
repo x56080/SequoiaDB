@@ -438,6 +438,12 @@
                                  "en": "Config"
                               },
                               {
+                                 "id": 1634111005,
+                                 "file": "sdb_pg_ctl",
+                                 "cn": "实例管理",
+                                 "en": "Instance Management"
+                              },
+                              {
                                  "id": 1630572050,
                                  "file": "upgrade",
                                  "cn": "升级",

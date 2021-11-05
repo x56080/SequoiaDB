@@ -156,51 +156,10 @@
     Total: 1
     ```
 
-##PostgreSQL 实例组件系统服务##
+##sequoiasql-postgresql 系统服务##
 
-安装 PostgreSQL 实例组件时，会自动添加 sequoiasql-postgresql 系统服务。该服务会在系统启动的时候自动运行。该服务是 PostgreSQL 实例的守护进程。它能在机器启动时，自动启动相关的 PostgreSQL 实例；它能实时重启异常退出的 PostgreSQL 实例进程。
+sequoiasql-postgresql 系统服务是 PostgreSQL 实例的守护进程，会在系统启动的时候自动运行，用于保证 PostgreSQL 实例的可靠性。该服务启动时，会自动启动相关的实例。在实例进程异常退出时，sequoiasql-postgresql 服务会自动重启该实例进程。
 
-   > **Note:**  
-   > 
-   > 一个安装对应一个 sequoiasql-postgresql 服务，一台机器上存在多个安装时，系统服务名为 sequoiasql-postgresql[i]，i 为小于 50 的数值或者为空。
-
-
-用户可通过 service 命令管理 sequoiasql-postgresql 系统服务。
-
-- 如果需要查看服务的运行状态，可使用如下命令：
-
-    ```lang-bash
-    $ sudo service sequoiasql-postgresql status
-    ```
-
-- 如果需要停止服务，可使用如下命令：
-
-    ```lang-bash
-    $ sudo service sequoiasql-postgresql stop
-    ```
-
-- 如果需要启动服务，可使用如下命令：
-
-    ```lang-bash
-    $ sudo service sequoiasql-postgresql start
-    ```
-
-用户添加的新实例会自动加入 sequoiasql-postgresql 系统服务的管理中。
-
-- 如果需要将指定实例从服务的管理中剔除，可使用如下命令：
-
-    ```lang-bash
-    $ bin/sdb_pg_ctl delfromsvc myinst
-    ```
-   
-    或者在添加实例的时候指定参数--addtosvc
- 
-    ```lang-bash
-    $ bin/sdb_pg_ctl addinst myinst -D database/5432/ --addtosvc=false
-    ```
-
-- 如果需要将被剔除的实例重新纳入服务的管理，可使用如下命令：
-
-    ```lang-bash
-    $ bin/sdb_pg_ctl addtosvc myinst
-    ```
+> **Note:**  
+> 
+> 一个安装对应一个 sequoiasql-postgresql 服务，一台机器上存在多个安装时，系统服务名为 sequoiasql-postgresql[i]，i 为小于 50 的数值或者为空。
