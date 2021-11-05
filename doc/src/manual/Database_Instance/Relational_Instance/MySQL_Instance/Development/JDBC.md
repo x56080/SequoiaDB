@@ -2,7 +2,7 @@
     MySQL 实例-JDBC 驱动
 
 
-用户下载 [JDBC 驱动][download] 并导入 jar 包后，即可以使用 JDBC 提供的 API。下述示例为通过 maven 工程使用 JDBC 进行简单的增删改查操作。
+用户下载 [JDBC 驱动][download]并导入 jar 包后，即可以使用 JDBC 提供的 API。下述示例为通过 maven 工程使用 JDBC 进行简单的增删改查操作。
 
 1. 在 `pom.xml` 中添加 MySQL JDBC 驱动的依赖，以 mysql-connector-java-5.1.38 为例
 
@@ -16,7 +16,7 @@
     </dependencies>
     ```
 
-2. 假设本地有默认安装的 MySQL 实例，存在 sadbadmin 用户，密码为 123456，连接到该实例并准备样例使用的数据库 db 和表 tb
+2. 假设本地有默认安装的 MySQL 实例，存在 sdbadmin 用户，密码为 123456，连接到该实例并准备样例使用的数据库 db 和表 tb
 
     ```lang-sql
     CREATE DATABASE db;
