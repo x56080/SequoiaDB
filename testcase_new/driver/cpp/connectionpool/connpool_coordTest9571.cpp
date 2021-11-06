@@ -38,33 +38,32 @@ protected:
 TEST_F( coordTest9571, stop9571 )
 {
    INT32 rc = SDB_OK ;
+   string url1 = "192.168.20.165:11810" ;
+   // string url2 = "192.168.20.166:11810" ;
+   // string url3 = "192.168.20.166:50000" ;
+   vector<string> urllist ;
+   urllist.push_back( url1 ) ;
+   // urllist.push_back( url2 ) ;
+   // urllist.push_back( url3 ) ;
 
-	string url1 = "192.168.20.165:11810" ;
-	// string url2 = "192.168.20.166:11810" ;
-	// string url3 = "192.168.20.166:50000" ;
-	vector<string> urllist ;
-	urllist.push_back( url1 ) ;
-	// urllist.push_back( url2 ) ;
-	// urllist.push_back( url3 ) ;
-
-	// conf.setSyncCoordInterval( 10 * 1000 ) ;
-	conf.setSyncCoordInterval( 0 ) ;
+   // conf.setSyncCoordInterval( 10 * 1000 ) ;
+   conf.setSyncCoordInterval( 0 ) ;
    
    rc = ds.init( urllist, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 	
-	CHAR flag ;
-	for( INT32 i = 0;;i++ )
-	{
-		sdb* conn = NULL ;
+   CHAR flag ;
+   for( INT32 i = 0;;i++ )
+   {
+      sdb* conn = NULL ;
       rc = ds.getConnection( conn ) ;
-		ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-		if( i % 10 == 0 && i != 0 )
-		{
-			cout << "continue??[y/n]: " ;
-			cin >> flag ;
-			if( flag == 'n' )
-				break ;
-		}
-	}
+      ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
+      if( i % 10 == 0 && i != 0 )
+      {
+         cout << "continue??[y/n]: " ;
+         cin >> flag ;
+         if( flag == 'n' )
+            break ;
+      }
+   }
 }

@@ -33,25 +33,25 @@ protected:
 TEST_F( timeJumpTest9580, jump9580 )
 {
    INT32 rc = SDB_OK ;
-	conf.setCheckIntervalInfo( 3, 6 ) ;
+   conf.setCheckIntervalInfo( 3, 6 ) ;
 
    rc = ds.init( url, conf ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 
-	sdb* conn = NULL ;
+   sdb* conn = NULL ;
    rc = ds.getConnection( conn ) ;
-	ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
 
    // 使用date命令使时间跳变
-	CHAR flag ;
-	while( true )
-	{
-		cout << "wait signal, please input( y/n ):" ;
-		cin >> flag ;
-		if( flag == 'n' )
-			break ;
-	}
+   CHAR flag ;
+   while( true )
+   {
+      cout << "wait signal, please input( y/n ):" ;
+      cin >> flag ;
+      if( flag == 'n' )
+         break ;
+   }
    
-	ds.releaseConnection( conn ) ;
-	ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after time jump" ;
+   ds.releaseConnection( conn ) ;
+   ASSERT_EQ( 0, ds.getIdleConnNum() ) << "fail to check idle conn num after time jump" ;
 }

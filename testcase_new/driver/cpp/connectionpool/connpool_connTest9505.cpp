@@ -1,25 +1,9 @@
 /********************************************************************
  * @Description: testcase for connectionpool
- *               seqDB-9530:addCoord增加的url不符合格式要求
- *               seqDB-9531:addCoord增加的url已经存在
- *               seqDB-9532:removeCoord的url不符合格式要求
- *               seqDB-9533:removeCoord的url不存在
  *               seqDB-9505:申请到池满，再次申请连接
- *               seqDB-9515:disable后，获取连接
- *               seqDB-9516:disable后，addCoord
- *               seqDB-9506:禁用连接池后，空闲队列中的资源被回收
- *               seqDB-9507:禁用连接池后，所有队列中的资源被回收
- *               seqDB-9509:禁用连接池后，再次禁用连接池
  *               seqDB-9517:close后，获取连接
- *               seqDB-9518:close后，addCoord
- *               seqDB-9519:close后，enable连接池
- *               seqDB-9520:close后，disable连接池
  *               seqDB-9510:没有调用init，获取连接
- *               seqDB-9511:没有调用init,addCoord
- *               seqDB-9512:没有调用init，enable连接池
- *               seqDB-9513:没有调用init，disable连接池
  *               seqDB-9514:没有调用init，close连接池
- *               seqDB-9521:获取连接后，没有释放连接，disable连接池
  *               seqDB-9534:releaseConnection不属于连接池的连接
  * @Modify:      Liangxw
  *               2019-09-05
@@ -47,53 +31,7 @@ protected:
    }
 } ;
 
-// 启用连接池获取及释放连接,添加及删除节点( 9530-9533 )
-TEST_F( connTest9505, enableConn9530 )
-{
-   INT32 rc = SDB_OK ;
-   conf.setSyncCoordInterval( 0 ) ;
-   sdb* conn = NULL ;
-
-   // init connectionpool and get connection
-   rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection after enable" ;
-   ds.releaseConnection( conn ) ;
-
-#if 0
-   // add normal coord
-	ds.addCoord( url ) ;
-	ASSERT_EQ( 1, ds.getNormalAddrNum () ) << "fail to test add coord " << url ;
-	ds.addCoord( "localhost:11910" ) ;
-	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to test add coord localhost:11910" ;
-	ds.addCoord( "1.2.3.4:000000" ) ;
-	ASSERT_EQ( 3, ds.getNormalAddrNum () ) << "fail to test add coord 1.2.3.4:000000" ;
-
-   // add abnormal coord
-	ds.addCoord( "something:000000" ) ;
-	ASSERT_EQ( 3, ds.getNormalAddrNum () ) << "fail to test add abnormal coord something:000000" ;
-
-   // add existed coord
-   ds.addCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 3, ds.getNormalAddrNum () ) << "fail to test add existed coord localhost:11910" ;
-   
-   // remove normal coord
-   ds.removeCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to test remove coord localhost:11910" ;   
-
-   // remove abnormal coord
-	ds.removeCoord( "something:000000" ) ;
-	ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to test remove abnormal coord something:000000" ;
-
-   // remove not exist coord
-   ds.removeCoord( "9.8.7.6:11810" ) ;
-   ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to test remove not exist coord 9.8.7.6:11810" ;
-#endif
-}
-
-// 启用连接池获取连接到连接池满后继续申请连接
+// 获取连接到连接池满后继续申请连接
 TEST_F( connTest9505, fullConn9505 )
 {
    INT32 rc = SDB_OK ;
@@ -119,61 +57,6 @@ TEST_F( connTest9505, fullConn9505 )
    {
       ds.releaseConnection( vec[i] ) ;
    }
-}
-
-// 禁用连接池获取连接( 9515-9516 )
-TEST_F( connTest9505, disableConn9515 )
-{
-   INT32 rc = SDB_OK ;
-   // init and disable connectionpool
-   rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-
-   // get connection
-   sdb* conn = NULL ;
-#if 0
-   // add/remove coord
-	ds.addCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 2, ds.getNormalAddrNum () ) << "fail to test add coord after disable connectionpool" ;			
-	ds.removeCoord( "localhost:11910" ) ;
-   ASSERT_EQ( 1, ds.getNormalAddrNum () ) << "fail to test remove coord after disable connectionpool" ;
-#endif
-}
-
-// 禁用连接池后资源回收情况,禁用连接池后,连接队列被清空( 9506-9507 )
-TEST_F( connTest9505, disableResource9506 )
-{
-   INT32 rc = SDB_OK ;
-   // init connectionpool
-   rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-
-   // get connection and check idle/used conn num
-   sdb* conn ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-   ASSERT_EQ( 9, ds.getIdleConnNum() ) << "fail to check idle conn num" ;
-   ASSERT_EQ( 1, ds.getUsedConnNum() ) << "fail to check used conn num" ;
-   ds.releaseConnection( conn ) ; 
-   
-   // disable and check idle/used conn num
-}
-
-// 重复禁用连接池后资源回收情况,禁用连接池后,连接队列被清空
-TEST_F( connTest9505, disableResourceAgain9509 )
-{
-   INT32 rc = SDB_OK ;
-   // init connectionpool
-   rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-
-   // getConnection
-   sdb* conn ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-   ASSERT_EQ( 9, ds.getIdleConnNum() ) << "fail to check idle conn num" ;
-   ASSERT_EQ( 1, ds.getUsedConnNum() ) << "fail to check used conn num" ;
-   ds.releaseConnection( conn ) ;
 }
 
 // 调用close后继续执行相关操作( 9517-9520 )
@@ -205,24 +88,6 @@ TEST_F( connTest9505, withoutInit9510 )
    rc = ds.getConnection( conn ) ;	
    ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_ENABLE, rc ) << "fail to test get connection before init" ;
    ds.close() ;		
-}
-
-//获取连接后没有释放,直接disable 正常返回
-TEST_F( connTest9505, disableWithoutRelease9521 )
-{
-   INT32 rc = SDB_OK ;
-   // init connectionpool
-   rc = ds.init( url, conf ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-
-   // get connection
-   sdb* conn = NULL ;
-   rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-
-   // 此处不应该如此使用，请参考SEQUOIADBMAINSTREAM-2854以了解更多信息。
-   // ASSERT_EQ( 1, conn->isValid() ) << "fail to check connection valid" ;  connection invalid
-   // conn->disconnect() ;  core
 }
 
 // 释放不属于连接池的连接
