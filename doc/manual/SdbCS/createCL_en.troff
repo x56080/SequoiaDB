@@ -5,219 +5,246 @@
 .hy
 .SH NAME
 .PP
-createCL \- Create a new collection.
+createCL \- create a collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.createCL(<name>,[options])\f[]
+\f[B]db.collectionspace.createCL(<name>, [options])\f[]
 .SH CATEGORY
 .PP
-Collection Space
+SdbCS
 .SH DESCRIPTION
 .PP
-Create a collection in a specified collection space.
-Collection is a logical object which stores records.
-Each record should belong to one and only one collection.
+This function is used to create a collection in the specified collection space.
+Collection is a logical object that stores document records in a database.
+Any document record must belong to one and only one collection.
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]name\f[] ( \f[I]String\f[] , \f[I]Required\f[] )
+name ( \f[I]string, required\f[] )
 .RS 2
 .PP
-The name of the collection, should be unique to each other in a collection
-space.
+Collection name
+.IP \[bu] 2
+In the same collection space, the collection name must be unique.
+.IP \[bu] 2
+Refer to Restrictions for restrictions on collections and collection naming.
 .RE
 .IP \[bu] 2
-\f[C]options\f[] ( \f[I]Object\f[], \f[I]Optional\f[] )
+options ( \f[I]object, optional\f[] )
 .RS 2
 .PP
-The options for creating the collection, could be a combination of the following
-options:
-.IP " 1." 4
-\f[C]ShardingKey\f[] ( \f[I]Object\f[] ): Sharding key, the value is 1 or \-1,
-indicating forward or backward sorting.
-.RS 4
-.PP
-Format: \f[C]ShardingKey:{<field1> : <1|\-1>,[<field1> : <1|\-1>, ...]}\f[]
-.RE
-.IP " 2." 4
-\f[C]ShardingType\f[] ( \f[I]String\f[] ): The sharding type of the collection,
-could be one of the following:
-.RS 4
+Modify the collection space properties through the parameter "options":
 .IP \[bu] 2
-"hash": Sharding by hash.
+ShardingKey ( \f[I]object\f[] ): Sharding key, and the value is 1 or \-1,
+indicating forward or reverse sorting.
+.RS 2
+.PP
+Format: \f[C]ShardingKey: {<Field1>: <1|\-1>, [<Field2>: <1|\-1>, ...]}\f[]
+.RE
 .IP \[bu] 2
-"range": Sharding by range.
+ShardingType ( \f[I]string\f[] ): Sharding type, and the default value is
+"hash".
+.RS 2
 .PP
-Format: \f[C]ShardingType:"hash"|"range"\f[]
-.RE
-.IP " 3." 4
-\f[C]Partition\f[] ( \f[I]Int32\f[] ): Specify the number of hash slices, only
-valid when \f[C]ShardingType\f[] is "hash".
-The number of hash slices should be power of 2 and in the range of [2^3，2^20],
-default to be 1024.
-.RS 4
-.PP
-Format: \f[C]Partition: <num>\f[]
-.RE
-.IP " 4." 4
-\f[C]ReplSize\f[] ( \f[I]Int32\f[] ): Number of WriteConcern, default to be 1,
-can be one of the follow:
-.RS 4
+The values are as follows:
 .IP \[bu] 2
-\-1: WriteConcern equals to the number of the active nodes in the replica group.
+"hash": Hash sharding
 .IP \[bu] 2
-0: WriteConcern equals to the number of all the nodes in replica group.
+"range": Range sharding
+.PP
+Format: \f[C]ShardingType: "range"\f[]
+.RE
 .IP \[bu] 2
-1 \- 7: WriteConcern = 1\-7.
-.PP
-Format: \f[C]ReplSize: <num>\f[]
-.RE
-.IP " 5." 4
-\f[C]Compressed\f[] ( \f[I]Bool\f[] ): Compress the collection or not, default
-to be true.
-.RS 4
-.PP
-Format: \f[C]Compressed:true|false\f[]
-.RE
-.IP " 6." 4
-\f[C]CompressionType\f[] ( \f[I]String\f[] ): The algorithm for compressing,
-default to be "lzw", can be one of the follow:
-.RS 4
+Partition ( \f[I]number\f[] ): The number of sharding, and the default value is
+4096.
+.RS 2
 .IP \[bu] 2
-"snappy": use snappy algorithm to compress.
+The value of this parameter must be a power of 2, and the range is [2^3, 2^20].
 .IP \[bu] 2
-"lzw": use lzw algorithm to compress.
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
 .PP
-Format: \f[C]CompressionType:"snappy"|"lzw"\f[]
+Format: \f[C]Partition: 4096\f[]
 .RE
-.IP " 7." 4
-\f[C]IsMainCL\f[] ( \f[I]Bool\f[] ): Is main collection or not, default to be
-false.
-.RS 4
-.PP
-Format: \f[C]IsMainCL:true|false\f[]
-.RE
-.IP " 8." 4
-\f[C]AutoSplit\f[] ( \f[I]Bool\f[] ): Automatic split or not, default to be
-false.
-.RS 4
-.PP
-Format: \f[C]AutoSplit:true|false\f[]
-.RE
-.IP " 9." 4
-\f[C]Group\f[] ( \f[I]String\f[] ): Specify a replica group which the collection
-should be in.
-.RS 4
-.PP
-Format: \f[C]Group:<group name>\f[]
-.RE
-.IP "10." 4
-\f[C]AutoIndexId\f[] ( \f[I]Bool\f[] ): Creating unique index by using field
-"_id" or not, default to be true.
-.RS 4
-.PP
-Format: \f[C]AutoIndexId:true|false\f[]
-.RE
-.IP "11." 4
-\f[C]EnsureShardingIndex\f[] ( \f[I]Bool\f[] ): Creating index by using the
-fields of the \f[C]ShardingKey\f[] or not, default to be true.
-.RS 4
-.PP
-Format: \f[C]EnsureShardingIndex:true|false\f[]
-.RE
-.IP "12." 4
-\f[C]StrictDataMode\f[] ( \f[I]Bool\f[] ): using strict date mode in numeric
-operations or not, default to be false.
-.RS 4
-.PP
-Format: \f[C]StrictDataMode:true|false\f[]
-.RE
-.IP "13." 4
-\f[C]AutoIncrement\f[] ( \f[I]Object\f[] )：Specify auto increment field
-.RS 4
-.PP
-Format: \f[C]AutoIncrement:{Field: <field1>, ...}\f[] or
-\f[C]AutoIncrement:[ {Field: <field1>, ...}, {Field: <field2>, ...}, ... ]\f[]
-.PP
-Example: \f[C]AutoIncrement: { Field: "userID", Generated: "always" }\f[]
 .IP \[bu] 2
-See AutoIncrement for more detail.
-.RE
-.IP "14." 4
-\f[C]LobShardingKeyFormat\f[] ( \f[I]String\f[] )：Specify Lob ShardingKey\[aq]s
-value format on main collection.
-Can be one of the follow:
-.RS 4
-.IP \[bu] 2
-"YYYYMMDD": Transform a lob\[aq]s ID to date string format, for example:
-"20190701".
-.IP \[bu] 2
-"YYYYMM": Transform a lob\[aq]s ID to month string format, for example:
-"201907".
-.IP \[bu] 2
-"YYYY"：Transform a lob\[aq]s ID to year string format, for example: "2019".
+ReplSize ( \f[I]number\f[] ): The number of replicas that need to be
+synchronized for write operations, and the default value is 1, which means that
+write operations only need to be written to the master node.
+.RS 2
 .PP
-Format: \f[C]LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"\f[]
+The values are as follows:
+.IP \[bu] 2
+\-1: The write request needs to be synchronized to a number of active nodes in
+the replication group before the database write operation returns a response to
+the client.
+.IP \[bu] 2
+0: The write request needs to be synchronized to all nodes in the replication
+group before the database write operation returns a response to the client.
+.IP \[bu] 2
+1~7: The write request needs to be synchronized to the specified number of nodes
+in the replication group before the database write operation returns a response
+to the client.
+.PP
+Format: \f[C]ReplSize: 0\f[]
 .RE
+.IP \[bu] 2
+Compressed ( \f[I]boolean\f[] ): Whether to enable the data compression
+function, and the default value is "true", enable the data compression function.
+.RS 2
+.PP
+Format: \f[C]Compressed: false\f[]
 .RE
+.IP \[bu] 2
+CompressionType ( \f[I]string\f[] ): Compression algorithm type, and the default
+value is "lzw".
+.RS 2
+.PP
+The values are as follows:
+.IP \[bu] 2
+"snappy": snappy algorithm compression
+.IP \[bu] 2
+"lzw": lzw algorithm compression
+.PP
+Format: \f[C]CompressionType: "snappy"\f[]
 .RS
 .PP
 \f[B]Note:\f[]
+.PP
+For the usage scenarios of "snappy" compression and "lzw" compression, please
+refer to data compression.
+.RE
+.RE
 .IP \[bu] 2
-The parameter \f[C]name\f[] can not be an empty string, and can not include "."
-or "$"; The length of it should not be greater than 127B, or exception will
-occur.
-.IP \[bu] 2
-The parameter \f[C]options\f[] haves one or more fields, please use comma(,) to
-separate.
-.IP \[bu] 2
-When creating collection space, user can specify \f[C]Domain\f[].
-When creating collection, using \f[C]Group\f[] parameter, the specified
-replication group must be in the domain; when no using \f[C]Group\f[] parameter,
-the collection will be created on any replication group in the domain.
-.IP \[bu] 2
-\f[C]AutoSplit\f[] parameter in createCL() has higher priority than
-\f[C]AutoSplit\f[] attribute in domain.
-.IP \[bu] 2
-\f[C]AutoSplit\f[] must cooperate with hash partitioning.
-.IP \[bu] 2
-\f[C]AutoSplit\f[] and Group cannot be set at the same time.
-.IP \[bu] 2
-Compression algorithm selection strategy: the snappy algorithm compresses data
-in units of a single record, and the internal data repeatability directly
-affects the compression ratio.
-Therefore, when the internal data of the record is relatively high in
-repetition, such as the field name and field value of a record are similar, the
-snappy algorithm can be used to obtain good compression performance.
-If the internal data of record is very low in repetition, but the records have
-higher similarity, such as different records with the same field name, similar
-field values, etc., lzw compression is better.
-.IP \[bu] 2
-\f[C]LobShardingKeyFormat\f[] can only be used in main collection and requires
-that the ShardingKey have only one partition field.
-.IP \[bu] 2
-When using main collection and sub collection, you need to pay attention to the
-use relationship of their attributes:
+AutoSplit ( \f[I]boolean\f[] ): Whether to enable the automatic segmentation
+function, and the default value is "false", and the automatic segmentation is
+not enabled.
 .RS 2
-.IP "1." 3
-When inserting data from main collection, \f[C]ReplSize\f[],
-\f[C]AutoIncrement\f[] will use main collection attributes value.
-.IP "2." 3
-When inserting data from sub collection, \f[C]ReplSize\f[],
-\f[C]AutoIncrement\f[] will use sub collection attributes value.
-.IP "3." 3
-For other attributes of the collection, such as \f[C]ShardingKey\f[],
-\f[C]Compressed\f[], \f[C]AutoIndexId\f[] and so on, sub collection uses its own
-attributes instead of the attributes of main collection.
+.IP \[bu] 2
+This parameter cannot be used simultaneously with the parameter "Group".
+.IP \[bu] 2
+This parameter can only take effect when the value of the parameter
+"ShardingType" is "hash".
+.PP
+Format: \f[C]AutoSplit: true\f[]
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+User can specify the parameter AutoSplit when creating domains and collections.
+If user explicitly specify AutoSplit for a collection, the system will give
+priority to determining whether to enable automatic splitting according to the
+value specified by the collection.
+.RE
+.RE
+.IP \[bu] 2
+Group ( \f[I]string\f[] ): Collection replication group.
+.RS 2
+.IP \[bu] 2
+The value specified by this parameter must be the replication group contained in
+the domain to which the collection belongs.
+.IP \[bu] 2
+If the value of this parameter is not specified, the collection will be created
+in any replication group of the domain to which the collection belongs.
+.PP
+Format: \f[C]Group: "group1"\f[]
+.RE
+.IP \[bu] 2
+AutoIndexId ( \f[I]boolean\f[] ): Whether to automatically create a unique index
+named "$id" based on the field "_id", and the default value is "true",
+automatically created.
+.RS 2
+.PP
+Format: \f[C]AutoIndexId: false\f[]
+.RE
+.IP \[bu] 2
+EnsureShardingIndex ( \f[I]boolean\f[] ): Whether to automatically create an
+index named "$shard" according to the field specified by the parameter
+"ShardingKey", and the default value is "true", automatically created.
+.RS 2
+.PP
+Format: \f[C]EnsureShardingIndex: false\f[]
+.RE
+.IP \[bu] 2
+StrictDataMode ( \f[I]boolean\f[] ): Whether to enable strict data type mode,
+and the default is false, not enable.
+.RS 2
+.PP
+After enabling strict mode, if the data type is numeric, an error will be
+reported if an overflow occurs during the operation.
+if the data type is not numeric, no operation will be performed.
+.PP
+Format: \f[C]StrictDataMode: true\f[]
+.RE
+.IP \[bu] 2
+AutoIncrement ( \f[I]object\f[] ): Self\-increment field, function introduction
+can refer to Auto\-increment field.
+.RS 2
+.PP
+Format: \f[C]AutoIncrement: {Field: <Field name>, ...}\f[] 或
+\f[C]AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]\f[]
+.RE
+.IP \[bu] 2
+LobShardingKeyFormat ( \f[I]string\f[] ): Specify the conversion format of the
+LOB ID converted to the partition key key value.
+.RS 2
+.PP
+Currently, only the conversion of the time attribute in the LOB ID is supported,
+and the format is as follows:
+.IP \[bu] 2
+"YYYYMMDD": Converted to the string form of year, month and day, such as
+"20190701".
+.IP \[bu] 2
+"YYYYMM": Converted to the string form of year and month, such as "201907".
+.IP \[bu] 2
+"YYYY": Converted to the string form of the year, such as "2019".
+.PP
+This parameter is only used in the main collection.
+When specifying this parameter, user must ensure that there is only one
+segmentation field specified by the parameter "ShardingKey".
+.PP
+Format: \f[C]LobShardingKeyFormat: "2021"\f[]
+.RE
+.IP \[bu] 2
+IsMainCL ( \f[I]boolean\f[] ): Whether it is the main collection, and the
+default value is "false", and it is not set as the main collection.
+.RS 2
+.PP
+When the designated collection is the main collection, the parameters "ReplSize"
+and "AutoIncrement" in the sub\-collection will follow the values of the
+corresponding parameters in the main collection, and other parameters will
+follow the values of their own parameters.
+.PP
+Format: \f[C]IsMainCL: true\f[]
+.RE
+.IP \[bu] 2
+DataSource ( \f[I]string\f[] ): The name of the data source used.
+.RS 2
+.PP
+Format: \f[C]DataSource: "ds1"\f[]
+.RE
+.IP \[bu] 2
+Mapping ( \f[I]string\f[] ): The name of the mapped collection.
+.RS 2
+.PP
+Format: \f[C]Mapping: "employee"\f[]
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+For the specific usage scenarios of the parameters "DataSource" and "Mapping",
+refer to Data Source.
+.RE
 .RE
 .RE
 .SH RETURN VALUE
 .PP
-On success, createCL() creates a new collection and return the object.
+When the function executes successfully, it will return an object of type
+SdbCollection.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-The exceptions of \f[C]createCL()\f[] are as below:
+The common exceptions of \f[C]createCL()\f[] function are as follows:
 .PP
 .TS
 tab(@);
@@ -241,16 +268,9 @@ T}@T{
 T}@T{
 SDB_OOM
 T}@T{
-Out of Memory.
+No memory available
 T}@T{
-Check the settings and
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-usage of physical
+Check the physical
 T}
 T{
 T}@T{
@@ -269,20 +289,27 @@ T}
 T{
 2
 T}@T{
-\-11
+\-6
 T}@T{
-SDB_NOSPC
+SDB_INVALIDARG
 T}@T{
-Out of space.
+Parameter error
 T}@T{
-Check the remaining
+Check whether the
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-disk space.
+parameters are filled
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+in correctly.
 T}
 T{
 3
@@ -299,99 +326,145 @@ T{
 T}@T{
 T}@T{
 T}@T{
-exist.
+exists
 T}@T{
-collection exist or not.
+collection exists.
+T}
+T{
+4
+T}@T{
+\-34
+T}@T{
+SDB_DMS_CS_NOTEXIST
+T}@T{
+Collection space does
+T}@T{
+Check whether the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+not exist
+T}@T{
+collection space exists.
+T}
+T{
+5
+T}@T{
+\-318
+T}@T{
+SDB_VALUE_OVERFLOW
+T}@T{
+Numerical operation
+T}@T{
+Check whether there is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+overflows
+T}@T{
+overflow in the
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+operation process.
 T}
 .TE
 .PP
-When error happen, use getLastErrMsg() to get the error message or use
+When the exception happens, use getLastErrMsg() to get the error message or use
 getLastError() to get the error code.
-See troubleshooting for more detail.
-.SH HISTORY
+For more details, refer to Troubleshooting.
+.SH VERSION
 .PP
-Since v1.0.
+v1.0 and above
 .SH EXAMPLES
-.IP "1." 3
-Create collection "bar" in collection space "foo" without sharding key.
-.nf
-\f[C]
-> db.foo.createCL( "bar" )
-localhost:11810.foo.bar
-Takes 0.1250s.
-\f[]
-.fi
-.RE
-.IP "2." 3
-Create collection "bar" in collection space "foo".
-If the collection splits data into other replication groups, it will use the age
-field for hash segmentation.
-It has data compression enabled by default, using the default lzw algorithm.When
-a write operation is applied to the collection, it only needs to be written to
-the primary node to be returned.
-.nf
-\f[C]
-> db.foo.createCL( "bar", { ShardingKey:{ age: 1 }, ShardingType: "hash", 
-                            Partition: 4096, ReplSize: 1 } )
-localhost:11810.foo.bar
-Takes 0.32450s.
-\f[]
-.fi
-.RE
-.IP "3." 3
-Create collection "bar" in collection space "foo" with the StrictDataMode turn
-on.
-.nf
-\f[C]
-> db.foo.createCL( "bar", { StrictDataMode: true } )
-localhost:11810.foo.bar
-Takes 0.1250s.
-\f[]
-.fi
-.RE
-.IP "4." 3
-Deal with main collection with lob.
-.RS 4
 .IP \[bu] 2
-Create a main collection "maincl" in collection space "foo" with
-LobShardingKeyFormat "YYYYMMDD".
+Create the collection "employee" under the collection space "sample" without
+specifying the partition key.
+.RS 2
 .IP
 .nf
 \f[C]
-> db.foo.createCL("maincl", { LobShardingKeyFormat:"YYYYMMDD", ShardingKey:{ date:1 }, IsMainCL:true, ShardingType:"range" } )
-localhost:11810.foo.maincl
-Takes 0.058532s.
-> db.foo.createCL("subcl")
-localhost:11810.foo.subcl
-Takes 0.294612s.
-> db.foo.maincl.attachCL( "foo.subcl", { LowBound: { date: "20190701" }, UpBound: { date: "20190801" } } )
-Takes 0.008561s.
+> db.sample.createCL("employee")
 \f[]
 .fi
+.RE
 .IP \[bu] 2
-Time between[20190701, 20190801), Lob which is putted into collection "maincl"
-will be actually stored in foo.subcl
+Create the collection "employee" under the collection space "sample", specify
+the partition key as the field "age" and the number of partitions as 4096 for
+"hash" segmentation.
+Specify the parameter "ReplSize" as 1, when a write request is issued, only
+write to the master node to return.
+.RS 2
 .IP
 .nf
 \f[C]
-> Timestamp()
-Timestamp("2019\-07\-23\-18.04.07.539050")
-> db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
+> db.sample.createCL("employee", {ShardingKey: {age: 1}, ShardingType: "hash", Partition: 4096, ReplSize: 1})
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create the collection "employee" under the collection space "sample", and
+specify the strict data type mode to be turned on.
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.createCL("employee", {StrictDataMode: true})
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Use LOB under the main collection
+.RS 2
+.PP
+Create the main collection "sample.maincl" that supports large objects, mount
+the sub\-collection "sample.subcl" to the main collection, and specify the
+partition range as [20190701, 20190801).
+.IP
+.nf
+\f[C]
+> db.sample.createCL("maincl", {LobShardingKeyFormat: "YYYYMMDD", ShardingKey: {date: 1}, IsMainCL: true, ShardingType: "range"})
+> db.sample.createCL("subcl")
+> db.sample.maincl.attachCL("sample.subcl", {LowBound: {date: "20190701"}, UpBound: {date: "20190801"}})
+\f[]
+.fi
+.PP
+Create a LOB ID and specify time attributes.
+.IP
+.nf
+\f[C]
+> db.sample.maincl.createLobID("2019\-07\-23\-18.04.07")
+00005d36db97360002de8081
+\f[]
+.fi
+.PP
+Specify the LOB ID and insert the file \f[C]/opt/data/test.dat\f[] into the
+collection "sample.maincl" as a LOB.
+.IP
+.nf
+\f[C]
+> db.sample.maincl.putLob(\[aq]/opt/data/test.dat\[aq], \[aq]00005d36db97360002de8081\[aq])
+00005d36db97360002de8081
+\f[]
+.fi
+.PP
+Without specifying the LOB ID, directly insert the file
+\f[C]/opt/data/test.dat\f[] into the collection "sample.maincl" in the form of a
+large object.
+After the insertion is successful, the LOB ID is automatically generated, and
+its time attribute is the current time.
+.IP
+.nf
+\f[C]
+> db.sample.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
 00005d36dbee370002de8080
-Takes 0.246062s.
-\f[]
-.fi
-.IP \[bu] 2
-Time can be specified to a particular time.
-.IP
-.nf
-\f[C]
-> db.foo.maincl.createLobID("2019\-07\-23\-18.04.07.539050")
-00005d36db97360002de8081
-Takes 0.108365s.
-> db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq], \[aq]00005d36db97360002de8081\[aq])
-00005d36db97360002de8081
-Takes 0.002216s.
 \f[]
 .fi
 .RE
