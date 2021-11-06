@@ -75,6 +75,8 @@ namespace vessel
       head->size = keySize;
       ossMemcpy((CHAR *)((ossValuePtr)buf + PAGE_HEAD_SIZE + BTREE_EXT_KEY_PAGE_HEAD_SIZE),
                 keyData, keySize);
+
+      r = TRUE;
    done:
       return r;
    }

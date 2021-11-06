@@ -39,7 +39,7 @@
 #include "vessel/pageIdentifier.h"
 #include "ossSharedLatch.hpp"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/btreeItemLocation.h"
+#include "vessel/btreePathFootprint.h"
 
 namespace engine
 {
@@ -55,13 +55,13 @@ namespace vessel
          _lpid(o._lpid),
          _splitedTimes(o._splitedTimes),
          _lpb(o._lpb),
-         _childLocation(o._childLocation){}
+         _footprint(o._footprint){}
          btreeAccessPathNode &operator=(const btreeAccessPathNode &o)
          {
             _lpid = o._lpid;
             _splitedTimes = o._splitedTimes;
             _lpb = o._lpb;
-            _childLocation = o._childLocation;
+            _footprint = o._footprint;
             return *this;
          }
 
@@ -103,17 +103,21 @@ namespace vessel
             return _lpb->getLockingMode();
          }
 
-         OSS_INLINE const btreeItemLocation &getChildLocation()const
+         OSS_INLINE const btreePathFootprint &getChildFootprint()const
          {
-            return _childLocation;
+            return _footprint;
          }
-         void setChildLocation(const btreeItemLocation &location);
+         void setChildFootprint(const btreePathFootprint &fp);
+         void clearChildFootprint()
+         {
+            _footprint = btreePathFootprint();
+         }
          
       private:
          PAGE_ID _lpid = INVALID_PAGE_ID;
          UINT32 _splitedTimes = 0;
          logicalPageBuffer *_lpb = NULL;
-         btreeItemLocation _childLocation;
+         btreePathFootprint _footprint;
    };//btreeAccessPathNode
 } // namespace vessel
 

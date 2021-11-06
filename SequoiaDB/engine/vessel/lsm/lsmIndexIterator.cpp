@@ -182,11 +182,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::seekFromCurrentPosition(const bson::BSONObj &prevKey,
-                                                   INT32 fieldCountToCmpInPrev,
-                                                   const VEC_ELE_CMP &matchEles,
-                                                   const inclusiveVec &matchInclusive,
-                                                   const options &o)
+   INT32 lsmIndexIterator::fastNext(const bson::BSONObj &prevKey,
+                                    INT32 fieldCountToCmpInPrev,
+                                    const VEC_ELE_CMP &matchEles,
+                                    const inclusiveVec &matchInclusive,
+                                    const options &o)
    {
       return seek(prevKey, fieldCountToCmpInPrev,
                   matchEles, matchInclusive, o);
@@ -321,8 +321,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 lsmIndexIterator::seekEntry(const slice &entry,
-                                     const options &o)
+   INT32 lsmIndexIterator::moveToTheNextOfEntry(const slice &entry,
+                                                BOOLEAN forward)
    {
       INT32 rc = SDB_OK;
       rocksdb::Slice fullKey;
@@ -343,13 +343,13 @@ namespace vessel
          goto error;
       }
 
-      if (o.isForward())
+      if (forward)
       {
-         lsn = o.isInclusive() ? DPS_INVALID_LSN_OFFSET : 0;
+         lsn = 0;
       }
       else
       {
-         lsn = o.isInclusive() ? 0 : DPS_INVALID_LSN_OFFSET;
+         lsn = DPS_INVALID_LSN_OFFSET;
       }
 
       fullKey = packFullKey(parser.getKey(), parser.getRid(),
@@ -360,14 +360,14 @@ namespace vessel
          goto error;
       }
 
-      rc = seekFullKey(fullKey, !o.isForward());
+      rc = seekFullKey(fullKey, !forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to seek full key:%d", rc);
          goto error;
       }
 
-      rc = moveIfEntryRemoved(o.isForward());
+      rc = moveIfEntryRemoved(forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed move iterator:%d", rc);
@@ -627,10 +627,10 @@ namespace vessel
       return _currentEntry.getDataLsn();
    }
 
-   slice lsmIndexIterator::getKey()const
+   bson::BSONObj lsmIndexIterator::getKeyObj(bson::BufBuilder *builder)const
    {
       SDB_ASSERT(_isReadyToRead(), "must be valid");
-      return slice(_currentEntry.getKey().dataSize(), _currentEntry.getKey().data());
+      return _currentEntry.getKey().toBson(builder);
    }
 
    DPS_TRANS_ID lsmIndexIterator::getTransID()const

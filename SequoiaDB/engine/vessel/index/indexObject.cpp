@@ -44,8 +44,7 @@ namespace vessel
                                   const strSlice &indexName,
                                   const indexKeyPattern &pattern,
                                   const indexParameters &params,
-                                  PAGE_ID btreeRoot,
-                                  UINT32 btreeRootUpdatedTimes)
+                                  PAGE_ID btreeRoot)
    {
       INT32 rc = SDB_OK;
       fini();
@@ -59,11 +58,12 @@ namespace vessel
          goto error;
       }
 
+      SDB_ASSERT(!(params.isLsmIndex() && INVALID_PAGE_ID != btreeRoot), "impossible");
+
       _indexId = indexId;
       _nameSlice = indexName;
       _pattern = pattern;
       _params = params;
-      _btreeRootUpdatedTimes = btreeRootUpdatedTimes;
       _btreeRoot = btreeRoot;
    done:
       return rc;
@@ -80,7 +80,7 @@ namespace vessel
          _nameSlice = o._nameSlice;
          _pattern = o._pattern;
          _params = o._params;
-         _btreeRootUpdatedTimes = o._btreeRootUpdatedTimes;
+         _btreeRootSplitTimes = o._btreeRootSplitTimes;
          _btreeRoot = o._btreeRoot;
       }
       return;
@@ -110,21 +110,26 @@ namespace vessel
       _indexName.clear();
       _pattern.reset();
       _params = indexParameters();
-      _btreeRootUpdatedTimes = 0;
+      _btreeRootSplitTimes = 0;
       _btreeRoot = INVALID_PAGE_ID;
       return;
    }
 
    void indexObject::updateBtreeRoot(PAGE_ID root,
-                                     UINT32 updatedTimes)
+                                     UINT32 splitTimes)
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != root, "can not be invalid");
       SDB_ASSERT(INDEX_TYPE_BTREE == _params.type, "must be btree");
       _btreeRoot = root;
-      _btreeRootUpdatedTimes = updatedTimes;
+      _btreeRootSplitTimes = splitTimes;
       
       return;
+   }
+
+   void indexObject::updateBtreeRootSplitTimes(UINT32 splitTimes)
+   {
+      _btreeRootSplitTimes = splitTimes;
    }
 
    BOOLEAN indexObject::hasBtreeRoot()const

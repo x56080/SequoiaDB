@@ -205,7 +205,7 @@ namespace vessel
    }
 
    INT32 btreeAccessContext::pushChildNodeIntoPath(PAGE_ID lpid,
-                                                   const btreeItemLocation &footprint,
+                                                   const btreePathFootprint &footprint,
                                                    btreeNode *node)
    {
       INT32 rc = SDB_OK;
@@ -220,12 +220,6 @@ namespace vessel
       else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
                             !footprint.isValid()))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(lpid != footprint.child))
-      {
-         SDB_ASSERT(FALSE, "wrong child in footprint");
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -274,7 +268,7 @@ namespace vessel
          goto error;
       }
 
-      _path[_path.size() - 2].setChildLocation(footprint);
+      _path[_path.size() - 2].setChildFootprint(footprint);
 
       if (NULL != node)
       {
@@ -438,16 +432,7 @@ namespace vessel
 
    void btreeAccessContext::popEnd()
    {
-      btreeAccessPathNode pn;
-      if (_path.popBack(pn))
-      {
-         SDB_ASSERT(pn.isAccessing(), "impossible");
-         if (pn.isAccessing())
-         {
-            pn.getPageBuffer()->fini();
-            _free.push_back(pn.getPageBuffer());
-         }
-      }
+      popEnds(1);
       return;
    }
 
@@ -457,10 +442,18 @@ namespace vessel
       for (UINT32 i = 0; i < n; ++i)
       {
          btreeAccessPathNode pn;
-         if (_path.popBack(pn) && pn.isAccessing())
+         if (_path.popBack(pn))
          {
-            pn.getPageBuffer()->fini();
-            _free.push_back(pn.getPageBuffer());
+            if (pn.isAccessing())
+            {
+               pn.getPageBuffer()->fini();
+               _free.push_back(pn.getPageBuffer());
+            }
+
+            if (!_path.empty())
+            {
+               _path[_path.size() - 1].clearChildFootprint();
+            }
          }
       }
 
@@ -561,7 +554,7 @@ namespace vessel
       {
          mode.setExclusive();
       }
-      else if (_ic->getObj().getBtreeRootUpdatedTimes() <= _SMALL_SCALE)
+      else if (_ic->getObj().getBtreeRootSplitTimes() < _SMALL_SCALE)
       {
          mode.setExclusive();
       }

@@ -161,6 +161,9 @@ namespace vessel
                                        const slice &defObj,
                                        PAGE_ID &out)const;
 
+         INT32 cacheBtreeRootSplitTimes(requestContext *context,
+                                        indexContextMap *indexes);
+
       private:
          CL_MB_ID _mbID = INVALID_CL_MB_ID;
          indexSpace *_is = NULL;

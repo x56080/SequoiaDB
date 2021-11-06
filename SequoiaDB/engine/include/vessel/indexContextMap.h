@@ -99,7 +99,9 @@ namespace vessel
          CONST_ITERATOR begin()const {return _contexts.begin();}
          CONST_ITERATOR end()const {return _contexts.end();}
 
-      
+         typedef _CONTEXT_MAP::iterator ITERATOR;
+         ITERATOR begin() {return _contexts.begin();}
+         ITERATOR end() {return _contexts.end();}
       private:
          UINT32 _nextIndexId = 0;
          UINT64 _freeIndexSlots = OSS_UINT64_MAX;

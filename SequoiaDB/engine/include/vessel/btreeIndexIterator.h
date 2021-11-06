@@ -72,28 +72,28 @@ namespace vessel
                             const inclusiveVec &matchInclusive,
                             const options &o);
 
-         virtual INT32 seekEntry(const slice &entry,
-                                 const options &o);
-
          virtual INT32 seekKey(const ixmKey &key,
                                const options &o);
 
          virtual INT32 next(BOOLEAN forward);
 
-         virtual INT32 seekFromCurrentPosition(const bson::BSONObj &prevKey,
-                                               INT32 fieldCountToCmpInPrev,
-                                               const VEC_ELE_CMP &matchEles,
-                                               const inclusiveVec &matchInclusive,
-                                               const options &o);
+         virtual INT32 fastNext(const bson::BSONObj &prevKey,
+                                INT32 fieldCountToCmpInPrev,
+                                const VEC_ELE_CMP &matchEles,
+                                const inclusiveVec &matchInclusive,
+                                const options &o);
 
          virtual BOOLEAN isReadyToRead()const;
 
          virtual INT32 contains(const ixmKey &key, recordID &rid);
 
          virtual void pause();
+
+         virtual INT32 moveToTheNextOfEntry(const slice &entry,
+                                            BOOLEAN forward);
       public:
          virtual UINT64 getLSN()const;
-         virtual slice getKey()const;
+         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const;
          virtual DPS_TRANS_ID getTransID()const;
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
@@ -111,12 +111,21 @@ namespace vessel
                                const inclusiveVec &matchInclusive,
                                const options &o);
 
+         INT32 locateKeyInSubTree(const bson::BSONObj &prevKey,
+                                  INT32 fieldCountToCmpInPrev,
+                                  const VEC_ELE_CMP &matchEles,
+                                  const inclusiveVec &matchInclusive,
+                                  const options &o);
+
+         INT32 advanceInSubTree(const bson::BSONObj &prevKey,
+                                 INT32 fieldCountToCmpInPrev,
+                                 const VEC_ELE_CMP &matchEles,
+                                 const inclusiveVec &matchInclusive,
+                                 const options &o);
+
          INT32 relocateKeyAndRidInTree(const ixmKey &key,
                                        const recordID &rid,
                                        btreeItemLocation &location);
-
-         INT32 relocateAndMoveToNext(BOOLEAN forward);
-
       private:
          void resetLocation();
 
@@ -138,25 +147,24 @@ namespace vessel
          INT32 nextAtNonLeaf(BOOLEAN forward,
                              BOOLEAN &obstructed);
 
-         INT32 goBackToAncestor(RECORD_SLOT_ID pos,
-                                BOOLEAN forward,
+         INT32 goBackToAncestor(BOOLEAN forward,
                                 BOOLEAN &obstructed);
 
          INT32 findPosInAncestor(UINT32 ancestorDepth,
                                  RECORD_SLOT_ID &pos);
 
+         INT32 traverseDownToBottom(BOOLEAN forward,
+                                    const btreeItemLocation &location);
+
       private:
 
          recordID getCurrentIndexRid()const;
-
-         slice getOriginalKeySlice()const;
 
       private:
          requestContext *_context = NULL;
          btreeAccessContext _bac;
          RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
          btreeIndexItem _item;
-         bson::StackBufBuilder _originalKeyBuffer;
          bson::BufBuilder _builder;
    };//class btreeIndexIterator
 } // namespace vessel

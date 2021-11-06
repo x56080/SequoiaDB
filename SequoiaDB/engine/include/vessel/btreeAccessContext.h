@@ -98,7 +98,7 @@ namespace vessel
          INT32 pushRootIntoPath(btreeNode *node=NULL);
 
          INT32 pushChildNodeIntoPath(PAGE_ID lpid,
-                                     const btreeItemLocation &footprint,
+                                     const btreePathFootprint &footprint,
                                      btreeNode *node=NULL);
          
          INT32 tryToReaccessNode(UINT32 depth,

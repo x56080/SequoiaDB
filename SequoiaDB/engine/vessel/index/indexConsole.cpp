@@ -688,6 +688,13 @@ namespace vessel
             goto error;
          }
       }
+
+      rc = cacheBtreeRootSplitTimes(context, indexes);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cache btree root split times:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -954,6 +961,56 @@ namespace vessel
       return rc;
    error:
       SDB_ASSERT(0 < cnt, "TODO");
+      goto done;
+   }
+
+   INT32 indexConsole::cacheBtreeRootSplitTimes(requestContext *context,
+                                                indexContextMap *indexes)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be invalid");
+      SDB_ASSERT(NULL != indexes, "can not be invalid");
+
+      ossSharedLatchMode mode;
+      mode.setShared();
+      logicalPageSpace *lps = NULL;
+      rc = context->getEnv()->dms.getLogicalPageSpace(context->getSpaceID(),
+                                                      SPACE_TYPE_IDX, &lps);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lps of[%d], rc:%d", context->getSpaceID(), rc);
+         goto error;
+      }
+      
+      for (indexContextMap::ITERATOR itr = indexes->begin();
+           itr != indexes->end(); ++itr)
+      {
+         btreeNode node;
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+         if (INDEX_TYPE_BTREE == ic->getIndexType() &&
+             ic->getObj().hasBtreeRoot())
+         {
+            logicalPageBuffer lpb;
+            rc = lps->getLogicalPageBuffer(context, ic->getObj().getBtreeRoot(),
+                                           mode, lpb);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get buffer of page[%d], rc:%d",
+                      ic->getObj().getBtreeRoot(), rc);
+               goto error;
+            }
+
+            node = btreeNode(&lpb, 0, ic);
+            ic->getObj().updateBtreeRootSplitTimes(node.getSplitedTimes());
+
+            lpb.fini();
+         }
+
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 }//namespace vessel

@@ -56,15 +56,14 @@
 #include "vessel/indexEntryPage.h"
 #include "vessel/indexConsole.h"
 #include "vessel/redoLogUtil.h"
-#include "rtnIxmKeySorter.hpp"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
 #include "vessel/recordReader.h"
-#include "ixmIndexKey.hpp"
 #include "vessel/indexScanner.h"
 #include "vessel/buildingIndexContext.h"
 #include "vessel/indexScanContext.h"
 #include "vessel/indexScanCursor.h"
+
 
 namespace engine
 {
@@ -2178,8 +2177,8 @@ namespace vessel
       SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
       SDB_ASSERT(0 < sortBuffer.getCapacity(), "can not be zero");
 
-      rtnIxmKeySorterCreator creator;
-      dmsIxmKeySorter *sorter = NULL;
+      btreeRebuildingSortElement::comparer cmp;
+      BTREE_SORTOR sortor;
       scanEntry entry;
       orderingWrapper ow = ic->getObj().getPattern().getOrdering();
       buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(ic->getUnstatbleContext());
@@ -2202,32 +2201,24 @@ namespace vessel
          goto done;
       }
 
-      rc = creator.createSorter(sortBuffer.getCapacity(),
-                                sortBuffer.getBuffer(),
-                                dmsIxmKeyComparer(ow.toBsonOrdering()),
-                                &sorter);
+      cmp.ow = ow;
+      rc = sortor.init(&cmp, sortBuffer.getCapacity(), &sortBuffer);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create sorter:%d", rc);
+         PD_LOG(PDERROR, "failed to init sortor:%d", rc);
          goto error;
       }
 
-
-      rc = fillSorterAndUpdateEntry(context, ic, sorter, maxRdpCount);
+      rc = fillSorterAndUpdateEntry(context, ic, &sortor, maxRdpCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fill sorter:%d", rc);
          goto error;
       }
 
-      rc = sorter->sort();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to sort index keys:%d", rc);
-         goto error;
-      }
+      sortor.sort();
 
-      rc = mergeSorterAndContextIntoIndex(context, ic, sorter);
+      rc = mergeSorterAndContextIntoIndex(context, ic, &sortor);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to merge data into index:%d", rc);
@@ -2235,10 +2226,6 @@ namespace vessel
       }
 
    done:
-      if (NULL != sorter)
-      {
-         creator.releaseSorter(sorter);
-      }
       return rc;
    error:
       goto done;
@@ -2371,15 +2358,17 @@ namespace vessel
 
    INT32 collection::fillSorterAndUpdateEntry(requestContext *context,
                                               indexContext *ic,
-                                              _dmsIxmKeySorter *sorter,
+                                              BTREE_SORTOR *sorter,
                                               UINT32 maxRdpCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
+      SDB_ASSERT(NULL != sorter && sorter->isValid(), "can not be invalid");
       memoryBlock mb;
       mainDataSpace *mds = &(_collectionSpace->getSU()->getMainDataSpace());
       scanEntry entry;
       bson::BSONObjSet keySet;
+      BTREE_SORTOR::batch batch;
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(ic->getUnstatbleContext());
       if (OSS_UNLIKELY(NULL == buildingContext))
@@ -2425,6 +2414,7 @@ namespace vessel
          do
          {
             keySet.clear();
+            batch.reset();
 
             slice record;
             BOOLEAN hitThePageEnd = FALSE;
@@ -2459,7 +2449,17 @@ namespace vessel
                goto error;
             }
 
-            rc = sorter->push(keySet, dmsRecordID(lpid, rr.getCurrentRid().getSlotID()));
+            for (bson::BSONObjSet::const_iterator itr = keySet.begin();
+                 itr != keySet.end(); ++itr)
+            {
+               btreeRebuildingSortElement se;
+               se.set(ixmKeyOwned(*itr), rr.getCurrentRid(),
+                      rr.getCurrentRecordHead().getTransID());
+               batch.pushFragments({se.getKeySlice(), se.getRidSlice(), 
+                                    se.getTransIDSlice()});
+            }
+            
+            if (!sorter->push(batch))
             if (SDB_DMS_EOC == rc)
             {
                entry.reset(entry.getSeq(), rr.getCurrentRid().getSlotID());
@@ -2762,7 +2762,7 @@ namespace vessel
 
    INT32 collection::mergeSorterAndContextIntoIndex(requestContext *context,
                                                     indexContext *ic,
-                                                    _dmsIxmKeySorter *sorter)
+                                                    BTREE_SORTOR *sorter)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != sorter, "can not be null");
@@ -2779,36 +2779,18 @@ namespace vessel
          goto error;
       }
 
-      do
+      for (UINT64 i = 0; i < sorter->getCount(); ++i)
       {
-         ixmKey key;
-         dmsRecordID dmsRid;
-
-         rc = sorter->fetch(key, dmsRid);
-         if (SDB_DMS_EOC == rc)
-         {
-            rc = SDB_OK;
-            break;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fetch key from sorter:%d", rc);
-            goto error;
-         }
-
-         /// TODO, we should add transid into sorter
-         rc = console.insert(context,
-                             ic,
-                             key,
-                             recordID(dmsRid._extent, dmsRid._offset),
-                             DPS_TRANS_ID());
+         btreeRebuildingSortElement se;
+         sorter->get(i, se);
+         rc = console.insert(context, ic, se.getKey(), se.getRid(), se.getTransID());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
                    ic->getObj().getIndexName().str(), rc);
             goto error;
          }
-      } while (TRUE);
+      }
 
       rc = endToBuildCurrentRange(context, buildingContext);
       if (SDB_OK != rc)
@@ -3071,7 +3053,7 @@ namespace vessel
          for (bson::BSONObjSet::const_iterator itr = keySet.begin();
               itr != keySet.end(); ++itr)
          {
-            if (MAX_INDEX_KEY_SIZE < itr->objsize())
+            if ((INT32)MAX_INDEX_KEY_SIZE < itr->objsize())
             {
                rc = SDB_IXM_KEY_TOO_LARGE;
                goto error;

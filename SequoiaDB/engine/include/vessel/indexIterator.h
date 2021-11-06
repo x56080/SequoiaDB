@@ -122,16 +122,13 @@ namespace vessel
          virtual INT32 seekKey(const ixmKey &key,
                                const options &o) = 0;
 
-         virtual INT32 seekEntry(const slice &entry,
-                                 const options &o) = 0;
-
          virtual INT32 next(BOOLEAN forward) = 0;
 
-         virtual INT32 seekFromCurrentPosition(const bson::BSONObj &prevKey,
-                                               INT32 fieldCountToCmpInPrev,
-                                               const VEC_ELE_CMP &matchEles,
-                                               const inclusiveVec &matchInclusive,
-                                               const options &o) = 0;
+         virtual INT32 fastNext(const bson::BSONObj &prevKey,
+                                INT32 fieldCountToCmpInPrev,
+                                const VEC_ELE_CMP &matchEles,
+                                const inclusiveVec &matchInclusive,
+                                const options &o) = 0;
 
          virtual BOOLEAN isReadyToRead()const = 0;
 
@@ -139,11 +136,14 @@ namespace vessel
 
          virtual INT32 contains(const ixmKey &key, recordID &rid) = 0;
 
+         virtual INT32 moveToTheNextOfEntry(const slice &entry,
+                                            BOOLEAN forward) = 0;
+
       public:
          /// The functions to access current tuple saved in iterator.
          /// User should always call 'isReadyToRead' first.
+         virtual bson::BSONObj getKeyObj(bson::BufBuilder *builder)const = 0;
          virtual DPS_LSN_OFFSET getLSN()const = 0;
-         virtual slice getKey()const = 0;
          virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const = 0;

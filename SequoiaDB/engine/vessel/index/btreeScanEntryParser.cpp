@@ -72,6 +72,13 @@ namespace vessel
          goto error;
       }
 
+      if (!fields->rid.isValid() ||
+          !fields->indexRid.isValid())
+      {
+         PD_LOG(PDERROR, "invalid rids found in entry:%d", rc);
+         goto error;
+      }
+
       _fields = *fields;
       _keySlice = slice(keySize, keyData);
    done:

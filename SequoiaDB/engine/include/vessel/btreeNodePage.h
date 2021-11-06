@@ -88,11 +88,12 @@ namespace vessel
 
 
    /// btreeNode flags begin
-   static const UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x01;
+   static const UINT32 BTREE_NODE_FLAG_IS_ROOT = 0x01;
+   static const UINT32 BTREE_NODE_FLAG_IS_LEAF = 0x02;
 
    /// tried to generate(or regenerate) prefixes but failed.
    /// reset until next split.
-   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x02;
+   static const UINT32 BTREE_NODE_FLAG_VAIN_PREFIX_REGENERATION = 0x04;
    /// btreeNode flags end
 
    struct btreeNodePageHead
@@ -253,6 +254,7 @@ namespace vessel
                              UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
+                             BOOLEAN isRoot,
                              CHAR *buf);
 
 

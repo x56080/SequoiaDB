@@ -42,17 +42,7 @@ namespace engine
 {
 namespace vessel
 {
-   void btreeRootPageIniter::set(UINT32 clid, UINT32 indexId, BOOLEAN isLeaf)
-   {
-      SDB_ASSERT(DMS_INVALID_LOGICCLID != clid, "can not be invalid");
-      SDB_ASSERT(INVALID_LOGICAL_INDEX_ID != indexId, "can not be invalid");
-      _logicalCLID = clid;
-      _indexId = indexId;
-      _isLeaf = isLeaf;
-      return;
-   }
-
-   INT32 btreeRootPageIniter::initPage(requestContext *context,
+   INT32 btreeNodePageIniter::initPage(requestContext *context,
                                        PAGE_ID lpid,
                                        PAGE_SNAPSHOT_VERION psv,
                                        runtimePageBuffer *rpb)
@@ -78,7 +68,7 @@ namespace vessel
       if (!initBtreeNodePage(rpb->getPageSize(),
                              rpb->getGlobalPid().page(),
                              lpid, psv,
-                             _logicalCLID, _indexId, _isLeaf,
+                             _logicalCLID, _indexId, _isLeaf, _isRoot,
                              rpb->getWritableSlice().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",

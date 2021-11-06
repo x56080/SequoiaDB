@@ -52,11 +52,11 @@ namespace vessel
       _splitedTimes = head->splitedTimes;
    }
 
-   void btreeAccessPathNode::setChildLocation(const btreeItemLocation &location)
+   void btreeAccessPathNode::setChildFootprint(const btreePathFootprint &fp)
    {
       SDB_ASSERT(isAccessing(), "must be accessing");
-      SDB_ASSERT(location.isValid(), "can not be invalid");
-      _childLocation = location;
+      SDB_ASSERT(fp.isValid(), "can not be invalid");
+      _footprint = fp;
       return;
    }
 

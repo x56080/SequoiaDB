@@ -258,10 +258,9 @@ namespace vessel
    }
 
    INT32 indexEntryPageAccessor::updateBtreeRoot(requestContext *context,
-                                               UINT32 indexId,
-                                               PAGE_ID root,
-                                               logicalPageBuffer *lpb,
-                                               UINT32 *updatedTimes)const
+                                                 UINT32 indexId,
+                                                 PAGE_ID root,
+                                                 logicalPageBuffer *lpb)const
    {
       INT32 rc = SDB_OK;
       const indexEntryPageHead *readableHead = NULL;
@@ -331,11 +330,6 @@ namespace vessel
       }
 
       head->btreeRoot = root;
-      ++head->btreeRootUpdatedTimes;
-      if (NULL != updatedTimes)
-      {
-         *updatedTimes = head->btreeRootUpdatedTimes;
-      }
       lpb->commit(context->getSession()->getLastLSN());
    done:
       return rc;
@@ -414,7 +408,8 @@ namespace vessel
 
       rc = obj.shallowInit(readableHead->indexLogicalID,
                            indexName,
-                           pattern, params);
+                           pattern, params,
+                           readableHead->btreeRoot);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init index obj:%d", rc);

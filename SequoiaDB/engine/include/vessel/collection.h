@@ -50,11 +50,12 @@
 #include "vessel/indexParameters.h"
 #include "vessel/indexContextMap.h"
 #include "vessel/dmlIndexRequest.h"
+#include "vessel/btreeRebuildingSortElement.h"
 
 namespace engine
 {
    class _dpsLogRecord;
-   class _dmsIxmKeySorter;
+
 namespace vessel
 {
    class collectionSpace;
@@ -318,12 +319,12 @@ namespace vessel
 
          INT32 fillSorterAndUpdateEntry(requestContext *context,
                                         indexContext *ic,
-                                        _dmsIxmKeySorter *sorter,
+                                        BTREE_SORTOR *sortor,
                                         UINT32 maxRdpCount);
 
          INT32 mergeSorterAndContextIntoIndex(requestContext *context,
                                               indexContext *ic,
-                                              _dmsIxmKeySorter *sorter);
+                                              BTREE_SORTOR *sorter);
 
          INT32 endToBuildCurrentRange(requestContext *context,
                                       buildingIndexContext *buildingContext);

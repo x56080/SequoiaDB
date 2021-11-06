@@ -202,120 +202,114 @@ namespace vessel
       SDB_ASSERT(isValid(), "must be inited");
       SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
       SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
+      SDB_ASSERT(_bac.isPathEmpty(), "must be empty");
 
       obstructed = FALSE;
 
-      btreeNode node;
-
-      if (_bac.isPathEmpty())
+      rc = _bac.pushRootIntoPath();
+      if (SDB_OK != rc)
       {
-         rc = _bac.pushRootIntoPath(&node);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to push root node into path:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         node = _bac.getEndNodeInPath();
+         PD_LOG(PDERROR, "failed to push root node into path:%d", rc);
+         goto error;
       }
 
-      if (node.isLeaf())
-      {  
-         if (node.hasFreeSpaceToInsert(key.dataSize()))
-         {
-            _bac.endToAccessNonPathEndNodes();
-            rc = insertWhenPathEndIsLeaf(key, rid, transID, obstructed);
-            if (SDB_OK != rc)
+      SDB_ASSERT(_bac.getEndNodeInPath().isRoot(), "must be root");
+
+      do
+      {
+         btreeNode node = _bac.getEndNodeInPath();
+         if (node.isLeaf())
+         {  
+            if (node.hasFreeSpaceToInsert(key.dataSize()))
             {
-               PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
-                      _ic->getIndexID(), node.getBuffer()->getLogicalPid(), rc);
-               goto error;
+               _bac.endToAccessNonPathEndNodes();
+               rc = insertWhenPathEndIsLeaf(key, rid, transID, obstructed);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
+                        _ic->getIndexID(), node.getBuffer()->getLogicalPid(), rc);
+                  goto error;
+               }
             }
+            else
+            {
+               rc = splitAndInsertWhenPathEndIsLeaf(key, rid, transID, obstructed);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to split and insert:%d", rc);
+                  goto error;
+               }
+            }
+            
+            goto done;
          }
          else
          {
-            rc = splitAndInsertWhenPathEndIsLeaf(key, rid, transID, obstructed);
+            btreeItemLocation location;
+            rc = node.locateKeyAndRid(key, rid, location);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to split and insert:%d", rc);
-               goto error;
-            }
-         }
-      }
-      else
-      {
-         btreeItemLocation location;
-         rc = node.locateKeyAndRid(key, rid, location);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
-            goto error;
-         }
-
-         if (location.identical)
-         {
-            _bac.endToAccessNonPathEndNodes();
-            if (!node.ensureExclusiveLocking())
-            {
-               obstructed = TRUE;
-               goto done;
-            }
-
-            rc = node.reactiveRemovedKey(location, transID);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
-               goto error;
-            }
-         }
-         else if (node.hasExternalKey())
-         {
-            rc = splitNonLeafPathEnd(obstructed);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to split node with ext key:%d", rc);
+               PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
                goto error;
             }
 
-            if (obstructed)
-            {
-               goto done;
-            }
-
-            /// restart inserting from the last node which received raised key.
-            rc = traverseDownAndInsert(key, rid, transID, obstructed);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to traverse down and insert after split:%d", rc);
-               goto error;
-            }
-         }
-         else/// be sure to traverse down from this non-leaf node
-         {
-            /// node's free space is enough to save raised key with any size,
-            /// end to access ancestors.
-            if (node.hasFreeSpaceToInsertRaisedKey(MAX_INDEX_KEY_SIZE))
+            if (location.identical)
             {
                _bac.endToAccessNonPathEndNodes();
-            }
+               if (!node.ensureExclusiveLocking())
+               {
+                  obstructed = TRUE;
+                  goto done;
+               }
 
-            rc = _bac.pushChildNodeIntoPath(location.child, location);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
-               goto error;
-            }
+               rc = node.reactiveRemovedKey(location, transID);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
+                  goto error;
+               }
 
-            rc = traverseDownAndInsert(key, rid, transID, obstructed);
-            if (SDB_OK != rc)
+               goto done;
+            }
+            else if (node.hasExternalKey())
             {
-               PD_LOG(PDERROR, "failed to traverse down and insert after split:%d", rc);
-               goto error;
+               rc = splitNonLeafPathEnd(obstructed);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to split node with ext key:%d", rc);
+                  goto error;
+               }
+
+               if (obstructed)
+               {
+                  goto done;
+               }
+
+               continue;
+            }
+            else/// be sure to traverse down from this non-leaf node
+            {
+               btreePathFootprint footprint;
+               footprint.setPos(location.slotPos);
+               footprint.setUpperBound(location.isUpperBound);
+               /// node's free space is enough to save raised key with any size,
+               /// end to access ancestors.
+               if (node.hasFreeSpaceToInsertRaisedKey(MAX_INDEX_KEY_SIZE))
+               {
+                  _bac.endToAccessNonPathEndNodes();
+               }
+
+               rc = _bac.pushChildNodeIntoPath(location.child, footprint);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
+                  goto error;
+               }
+
+               continue;
             }
          }
-      }
+      } while (TRUE);
 
    done:
       return rc;
@@ -498,7 +492,7 @@ namespace vessel
       SDB_ASSERT(!(node.isLeaf() && NULL != raisedKey),
                  "can not insert raised key into leaf");
 
-      btreeRootPageIniter initer;
+      btreeNodePageIniter initer;
       PAGE_ID newRoot = INVALID_PAGE_ID;
       logicalPageBuffer newRootBuffer;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
@@ -512,7 +506,10 @@ namespace vessel
       SDB_ASSERT(_ic->getObj().getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
 
-      initer.set(_context->getLogicalCLID(), _ic->getIndexID(), FALSE);
+      initer._logicalCLID = _context->getLogicalCLID();
+      initer._indexId = _ic->getIndexID();
+      initer._isLeaf = FALSE;
+      initer._isRoot = TRUE;
       rc = _is->allocatePage(_context, &initer, newRoot);
       if (SDB_OK != rc)
       {
@@ -599,8 +596,7 @@ namespace vessel
          goto error;
       }
 
-      _ic->getObj().updateBtreeRoot(node.getBuffer()->getLogicalPid(),
-                                    node.getSplitedTimes() + 1);
+      _ic->getObj().updateBtreeRootSplitTimes(node.getSplitedTimes());
 
       /// clear accessing path cause we updated root node.
       _bac.clearAccessPath();
@@ -624,7 +620,7 @@ namespace vessel
 
       logicalPageBuffer entryBuffer;
       indexEntryPageAccessor accessor;
-      btreeRootPageIniter initer;
+      btreeNodePageIniter initer;
       PAGE_ID lpid = INVALID_PAGE_ID;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
@@ -649,8 +645,10 @@ namespace vessel
          goto done;
       }
 
-      initer.set(_context->getLogicalCLID(),
-                 _ic->getIndexID(), TRUE);
+      initer._logicalCLID = _context->getLogicalCLID();
+      initer._indexId = _ic->getIndexID();
+      initer._isLeaf = TRUE;
+      initer._isRoot = TRUE;
       rc = _is->allocatePages(_context, &initer, 1, &lpid);
       if (SDB_OK != rc)
       {
@@ -694,7 +692,7 @@ namespace vessel
       SDB_ASSERT(node.getBuffer()->isWritable(), "must be writable");
       SDB_ASSERT(!node.hasExternalKey(), "must split node first");
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
-      SDB_ASSERT(node.hasFreeSpaceToInsertRaisedKey(0),
+      SDB_ASSERT(node.isRoot() || node.hasFreeSpaceToInsertRaisedKey(0),
                  "one slot should always be reserved");
       
       /// one slot always be reserved

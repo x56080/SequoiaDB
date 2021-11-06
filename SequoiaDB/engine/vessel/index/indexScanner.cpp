@@ -184,8 +184,7 @@ namespace vessel
       do
       {
          _keyBuilder.reset();
-         ixmKey key(_iterator->getKey().data());
-         bson::BSONObj keyObj = key.toBson(&_keyBuilder);
+         bson::BSONObj keyObj = _iterator->getKeyObj(&_keyBuilder);
          INT32 res = predicate->advance(keyObj);
          if (-2 == res)
          {
@@ -194,8 +193,8 @@ namespace vessel
          else if (0 <= res)
          {
             indexIterator::options o(predicate->after(), _forward);
-            rc = _iterator->seekFromCurrentPosition(keyObj, rc, predicate->cmp(),
-                                                    predicate->inc(), o);
+            rc = _iterator->fastNext(keyObj, rc, predicate->cmp(),
+                                     predicate->inc(), o);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to reseek key:%d", rc);
@@ -350,8 +349,7 @@ namespace vessel
 
       if (context->getCursor()->hasEntry())
       {
-         indexIterator::options o(FALSE, _forward);
-         rc = _iterator->seekEntry(context->getCursor()->getEntryData(), o);
+         rc = _iterator->moveToTheNextOfEntry(context->getCursor()->getEntryData(), _forward);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek entry:%d", rc);

@@ -114,6 +114,8 @@ namespace vessel
          INT32 woCompare(const ixmKey &key,
                          const bson::Ordering &ordering)const;
 
+         BOOLEAN woEqual(const ixmKey &key)const;
+
          void exportOriginalKey(bson::StackBufBuilder &builder)const;
 
          //void cacheOriginalKey();

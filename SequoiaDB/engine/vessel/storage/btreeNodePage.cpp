@@ -106,6 +106,7 @@ namespace vessel
                              UINT32 cllid,
                              UINT32 indexId,
                              BOOLEAN isLeaf,
+                             BOOLEAN isRoot,
                              CHAR *buf)
    {
       BOOLEAN r = FALSE;
@@ -135,9 +136,14 @@ namespace vessel
       headPtr->rightChild = INVALID_PAGE_ID;
       headPtr->totalFreeSpace = getPageBodySize(pageSize) - BTREE_NODE_PAGE_HEAD_SIZE;
       headPtr->freeSapceAfterLastSlot = headPtr->totalFreeSpace;
+      headPtr->flags = 0;
       if (isLeaf)
       {
          OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
+      if (isRoot)
+      {
+         OSS_BIT_SET(headPtr->flags, BTREE_NODE_FLAG_IS_ROOT);
       }
       r = TRUE;
 

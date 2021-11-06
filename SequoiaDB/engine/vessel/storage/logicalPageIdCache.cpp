@@ -800,7 +800,7 @@ namespace vessel
 
       if (_basePageCount <= pid)
       {
-         PD_LOG(PDERROR, "imp pid[%d] is over total page count[%d]", pid, _basePageCount);
+         PD_LOG(PDDEBUG, "imp pid[%d] is over total page count[%d]", pid, _basePageCount);
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
       }

@@ -43,13 +43,13 @@
 #include "vessel/btreeNodePageIniter.h"
 #include "vessel/btreeNodeCompressedKey.h"
 #include "vessel/logicalPageBuffer.h"
-#include "vessel/btreeNodePageIniter.h"
 #include "vessel/memoryBlock.h"
 #include "ossMemPool.hpp"
 #include "vessel/btreeExtKeyPageIniter.h"
 #include "vessel/btreeExternalKeyPage.h"
 #include "vessel/btreeAccessContext.h"
 #include "vessel/indexEntryPageAccessor.h"
+#include "vessel/indexUtils.h"
 
 namespace engine
 {
@@ -70,7 +70,7 @@ namespace vessel
    BOOLEAN btreeNode::isRoot()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return 0 == _depth;
+      return 0 != OSS_BIT_TEST(getReadableHead()->flags, BTREE_NODE_FLAG_IS_ROOT);
    }
 
    BOOLEAN btreeNode::hasExternalKey()const
@@ -521,14 +521,254 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::seek(const BSONObj &prevKey,
-                    INT32 fieldCountToCmpInPrev,
-                    BOOLEAN exlusive,
-                    const VEC_ELE_CMP &matchEle,
-                    const inclusiveVec &matchInclusive,
-                    INT32 direction,
-                    btreeItemLocation &location,
-                    bson::BufBuilder *bb){return SDB_OK;}
+   INT32 btreeNode::keyLocate(const BSONObj &prevKey,
+                              INT32 fieldCountToCmpInPrev,
+                              const VEC_ELE_CMP &matchEle,
+                              const inclusiveVec &matchInclusive,
+                              BOOLEAN exclusive,
+                              BOOLEAN forward,
+                              btreeItemLocation &location,
+                              BOOLEAN &outOfBound,
+                              bson::BufBuilder *bb)
+   {
+      INT32 rc = SDB_OK;
+      bson::BufBuilder localBuilder;
+      bson::BufBuilder *builder = (NULL == bb) ? &localBuilder : bb;
+      INT32 direction = forward ? 1 : -1;
+      RECORD_SLOT_ID low = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_ID high = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_ID bound = INVALID_RECORD_SLOT_ID;
+      btreeIndexItem item;
+      INT32 result = 0;
+      orderingWrapper ow;
+      RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
+
+      location = btreeItemLocation();
+      outOfBound = FALSE;
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      
+      SDB_ASSERT(0 < getItemCount(), "can not be empty");
+      SDB_ASSERT(!hasCompressedKeys(), "TODO");
+
+      ow = _ic->getObj().getPattern().getOrdering();
+      low = 0;
+      high = getItemCount() - 1;
+      bound = forward ? low : high;
+
+      rc = getItem(bound, item);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get item of pos[%d], rc:%d",
+                bound, rc);
+         goto error;
+      }
+
+      builder->reset();
+      result = indexUtils::compareKey(ixmKey(item.getSavingKeyData()).toBson(builder),
+                                      prevKey, fieldCountToCmpInPrev,
+                                      exclusive, matchEle, matchInclusive,
+                                      ow.toBsonOrdering(), direction);
+      if (0 <= (direction * result))
+      {
+         outOfBound = FALSE;
+         
+         if (forward)
+         {
+            /// can not get child at leaf node, it may used to save prefix ptr.
+            location.child = isLeaf() ? INVALID_PAGE_ID : getLeftChild(0);
+            location.isUpperBound = FALSE;
+            location.slotPos = 0;
+         }
+         else
+         {
+            location.child = isLeaf() ? INVALID_PAGE_ID : getRightChild();
+            location.isUpperBound = TRUE;
+            location.slotPos = high + 1;
+         }
+
+         goto done;
+      }
+
+      bound = forward ? high : low;
+      rc = getItem(bound, item);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get item of pos[%d], rc:%d",
+                bound, rc);
+         goto error;
+      }
+
+      builder->reset();
+      result = indexUtils::compareKey(ixmKey(item.getSavingKeyData()).toBson(builder),
+                                      prevKey, fieldCountToCmpInPrev,
+                                      exclusive, matchEle, matchInclusive,
+                                      ow.toBsonOrdering(), direction);
+      if ( direction * result < 0 )
+      {
+         outOfBound = TRUE;
+         if (forward)
+         {
+            location.child = isLeaf() ? INVALID_PAGE_ID : getRightChild();
+            location.isUpperBound = TRUE;
+            location.slotPos = high + 1;
+         }
+         else
+         {
+            location.child = isLeaf() ? INVALID_PAGE_ID : getLeftChild(0);
+            location.isUpperBound = FALSE;
+            location.slotPos = 0;
+         }
+
+         goto done;
+      }
+
+      builder->reset();
+      rc = find(low, high, prevKey, fieldCountToCmpInPrev,
+                matchEle, matchInclusive, exclusive,
+                forward, *builder, pos);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to find key in node:%d", rc);
+         goto error;
+      }
+
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      {
+         PD_LOG(PDERROR, "failed to find key in current node");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      SDB_ASSERT(pos <= high, "out of bound");
+      outOfBound = FALSE;
+      location.child = isLeaf() ? INVALID_PAGE_ID : getLeftChild(pos);
+      location.isUpperBound = FALSE;
+      location.slotPos = pos;
+
+   done:
+      return rc;
+   error:
+      location = btreeItemLocation();
+      goto done;
+   }
+
+   INT32 btreeNode::keyAdvance(RECORD_SLOT_ID pos,
+                              const BSONObj &prevKey,
+                              INT32 fieldCountToCmpInPrev,
+                              const VEC_ELE_CMP &matchEle,
+                              const inclusiveVec &matchInclusive,
+                              BOOLEAN exclusive,
+                              BOOLEAN forward,
+                              BOOLEAN &goBackToFather,
+                              btreeItemLocation &location,
+                              bson::BufBuilder *bb)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!hasCompressedKeys(), "TODO");
+      RECORD_SLOT_ID low = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_ID high = INVALID_RECORD_SLOT_ID;
+      BOOLEAN currentNode = FALSE;
+      btreeIndexItem item;
+      orderingWrapper ow;
+      INT32 direction = forward ? 1 : -1;
+      bson::BufBuilder localBuilder;
+      bson::BufBuilder *builder = (NULL == bb) ? &localBuilder : bb;
+
+      goBackToFather = FALSE;
+      location = btreeItemLocation();
+      if (NULL != bb)
+      {
+         bb->reset();
+      }
+
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      SDB_ASSERT(0 < getItemCount(), "can not be empty");
+      ow = _ic->getObj().getPattern().getOrdering();
+
+      if (forward)
+      {
+         ixmKey key;
+         low = (INVALID_RECORD_SLOT_ID == pos) ?
+                0 : pos;
+         high = getItemCount() - 1;
+         rc = getItem(high, item);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", high, rc);
+            goto error;
+         }
+
+         key.assign(item.getSavingKeyData());
+         builder->reset();
+         currentNode = (0 <= indexUtils::compareKey(key.toBson(builder), prevKey,
+                                                    fieldCountToCmpInPrev,
+                                                    exclusive, matchEle,
+                                                    matchInclusive,
+                                                    ow.toBsonOrdering(),
+                                                    direction));
+      }
+      else
+      {
+         ixmKey key;
+         low = 0;
+         high = (INVALID_RECORD_SLOT_ID == pos) ?
+                 (getItemCount() - 1) : pos;
+         rc = getItem(high, item);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", high, rc);
+            goto error;
+         }
+         key.assign(item.getSavingKeyData());
+         builder->reset();
+         currentNode = (0 >= indexUtils::compareKey(key.toBson(builder), prevKey,
+                                                    fieldCountToCmpInPrev,
+                                                    exclusive, matchEle,
+                                                    matchInclusive,
+                                                    ow.toBsonOrdering(),
+                                                    direction));
+      }
+
+      if (!currentNode)
+      {
+         goBackToFather = TRUE;
+         goto done;
+      }
+      else
+      {
+         RECORD_SLOT_ID found = INVALID_RECORD_SLOT_ID;
+         builder->reset();
+         rc = find(low, high, prevKey, fieldCountToCmpInPrev,
+                matchEle, matchInclusive, exclusive,
+                forward, *builder, found);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find key in current node:%d", rc);
+            goto error;
+         }
+
+         SDB_ASSERT(found < getReadableHead()->totalSlotCount, "impossible");
+         location.child = isLeaf() ? INVALID_PAGE_ID : getLeftChild(found);
+         location.slotPos = found;
+         location.isUpperBound = FALSE;
+         location.identical = FALSE;
+      }
+
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
    INT32 btreeNode::locateKeyAndRid(const ixmKey &key,
                                     const recordID &rid,
@@ -588,10 +828,8 @@ namespace vessel
          {
             res.slotPos = (RECORD_SLOT_ID)middle;
             res.identical = TRUE;
-            if (!isLeaf())
-            {
-               res.child = item.getSlot().data.nlf.leftChild;
-            }
+            res.child = isLeaf() ? INVALID_PAGE_ID :
+                        item.getSlot().data.nlf.leftChild;
             res.isUpperBound = FALSE;
             goto done;
          }
@@ -788,7 +1026,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(isLeaf() && !isRoot()))
+      else if (OSS_UNLIKELY(isLeaf()))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -841,7 +1079,7 @@ namespace vessel
       appendOnly = (insertPos == head->totalSlotCount);
 
       /// one slot will be reserved at any time.
-      if (!hasFreeSpaceToInsertRaisedKey(savingSize))
+      if (!hasFreeSpaceToInsertRaisedKey(keySize))
       {
          if (head->freeSapceAfterLastSlot < BTREE_NODE_SLOT_SIZE)
          {
@@ -880,6 +1118,8 @@ namespace vessel
             PD_LOG(PDERROR, "failed to insert key:%d", rc);
             goto error;
          }
+
+         SDB_ASSERT(BTREE_NODE_SLOT_SIZE <= head->totalFreeSpace, "impossible");
       }
 
       if (appendOnly)
@@ -919,6 +1159,7 @@ namespace vessel
       btreeNodePageHead *head = NULL;
       slice ns;
       BOOLEAN appendonly = FALSE;
+      UINT32 keySize = key.dataSize();
 
       rc = _buffer->autoGetWritableBodySlice(ns);
       if (SDB_OK != rc)
@@ -941,7 +1182,7 @@ namespace vessel
       }
 
       initer._indexId = _ic->getIndexID();
-      initer._key.reset(key.dataSize(), key.data());
+      initer._key.reset(keySize, key.data());
       rc = lps->allocatePage(_buffer->getContext(),
                              &initer, extp);
       if (SDB_OK != rc)
@@ -958,6 +1199,7 @@ namespace vessel
          ossMemmove(slot + 1, slot, moveSize);
       }
 
+      head->externalKeySize = keySize;
       slot->initWhenKeyInExtPage(rid, leftChild, extp);
       updateAppendingFactor(head, appendonly);
       ++head->totalSlotCount;
@@ -1566,6 +1808,10 @@ namespace vessel
       ossMemcpy(newHead, &tmp, BTREE_NODE_PAGE_HEAD_SIZE);
 
       newHead->version = head->version;
+      if (0 != OSS_BIT_TEST(head->flags, BTREE_NODE_FLAG_IS_LEAF))
+      {
+         OSS_BIT_SET(newHead->flags, BTREE_NODE_FLAG_IS_LEAF);
+      }
       newHead->clLogicalID = head->clLogicalID;
       newHead->indexId = head->indexId;
       newHead->totalFreeSpace = getNodeSize() - BTREE_NODE_PAGE_HEAD_SIZE;
@@ -2115,6 +2361,8 @@ namespace vessel
       UINT32 splitedTimes = 0;
       memoryBlock mb;
       UINT32 nodeSize = 0;
+      btreeNodePageHead *currentPageHead = NULL;
+      btreeNodePageHead *newRootHead = NULL;
 
       if (OSS_UNLIKELY(!isValid() || !newRoot.isValid()))
       {
@@ -2133,6 +2381,7 @@ namespace vessel
       }
 
       SDB_ASSERT(1 == newRoot.getItemCount(), "must be one");
+      SDB_ASSERT(0 == newRoot.getSplitedTimes(), "must be 0");
       SDB_ASSERT(_buffer->getLogicalPid() == newRoot.getReadableSlot(0)->data.nlf.leftChild,
                  "must be same");
       SDB_ASSERT(getReadableHead()->clLogicalID == newRoot.getReadableHead()->clLogicalID,
@@ -2155,12 +2404,109 @@ namespace vessel
                 _buffer->getReadableBodySlice().data(), nodeSize);
       ossMemcpy(_buffer->getWritableBodySlice().getWPtr(),
                 mb.getBuffer(), nodeSize);
-      _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0)->splitedTimes = splitedTimes;
+
+      /// reset current page
+      currentPageHead =  _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      currentPageHead->splitedTimes = splitedTimes;
+      OSS_BIT_CLEAR(currentPageHead->flags, BTREE_NODE_FLAG_IS_LEAF);
       getWritableSlot(0)->data.nlf.leftChild = newRoot._buffer->getLogicalPid();
+
+      /// reset new root page head
+      newRootHead = newRoot._buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      newRootHead->splitedTimes = 0;
+      OSS_BIT_CLEAR(newRootHead->flags, BTREE_NODE_FLAG_IS_ROOT);
    done:
       return rc;
    error:
       goto error;
+   }
+
+   INT32 btreeNode::find(RECORD_SLOT_ID low,
+                         RECORD_SLOT_ID high,
+                         const bson::BSONObj &prevKey,
+                         INT32 fieldCountToCmpInPrev,
+                         const VEC_ELE_CMP &matchEle,
+                         const inclusiveVec &matchInclusive,
+                         BOOLEAN exclusive,
+                         BOOLEAN forward,
+                         bson::BufBuilder &bb,
+                         RECORD_SLOT_ID &pos)const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != low, "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != high, "can not be invalid");
+      SDB_ASSERT(low <= high, "can not be invalid");
+      SDB_ASSERT(!hasCompressedKeys(), "TODO");
+
+      INT32 direction = forward ? 1 : -1;
+      btreeIndexItem item;
+      orderingWrapper ow = _ic->getObj().getPattern().getOrdering();
+
+      pos = INVALID_RECORD_SLOT_ID;
+
+      INT32 l = (INT32)low;
+      INT32 h = (INT32)high;
+      INT32 m = 0;
+
+      while (TRUE)
+      {
+         INT32 result = 0;
+         ixmKey key;
+         item.fini();
+
+         if (l > h)
+         {
+            INT32 tmp = forward ? l : h;
+            if ((INT32)low <= tmp && tmp <= (INT32)high)
+            {
+               pos = (RECORD_SLOT_ID)tmp;
+            }
+            goto done;
+         }
+
+         m = (l + h) >> 1;
+         rc = getItem((RECORD_SLOT_ID)m, item);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", m, rc);
+            goto error;
+         }
+
+         bb.reset();
+         key.assign(item.getSavingKeyData());
+         result = indexUtils::compareKey(key.toBson(&bb), prevKey,
+                                         fieldCountToCmpInPrev,
+                                         exclusive,
+                                         matchEle,
+                                         matchInclusive,
+                                         ow.toBsonOrdering(),
+                                         direction);
+         if (result < 0)
+         {
+            l = m + 1;
+         }
+         else if (0 < result)
+         {
+            h = m - 1;
+         }
+         else
+         {
+            if (forward)
+            {
+               h = m - 1;
+            }
+            else
+            {
+               l = m + 1;
+            }
+         }
+      }
+   done:
+      return rc;
+   error:
+      pos = INVALID_RECORD_SLOT_ID;
+      goto done;
    }
 } // namespace vessel
 

@@ -50,6 +50,15 @@ namespace vessel
          goto error;
       }
 
+      if (!_lsmEntry.getRid().isValid() ||
+           DPS_INVALID_LSN_OFFSET == _lsmEntry.getDataLsn() ||
+           0 == _lsmEntry.getDataLsn())
+      {
+         PD_LOG(PDERROR, "invalid rid or lsn found in entry");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       _fullEntry = entryData.getReadableSlice(0, entryData.getSize());
    done:
       return rc;

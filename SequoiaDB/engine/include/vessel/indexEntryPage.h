@@ -83,7 +83,6 @@ namespace vessel
       UINT16 flags = 0;
       UINT16 status = INDEX_STATUS_INVALID;
       UINT32 btreeRoot = INVALID_PAGE_ID;
-      UINT32 btreeRootUpdatedTimes = 0;
       UINT32 defObjSize = 0;
       CHAR pad[32] = {};
    };//struct indexEntryPageHead

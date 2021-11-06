@@ -141,6 +141,14 @@ namespace vessel
       return r;
    }
 
+   BOOLEAN btreeIndexItem::woEqual(const ixmKey &key)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid(), "can not be invalid");
+      SDB_ASSERT(!_slot.isKeyCompressed(), "TODO");
+      return key.woEqual(ixmKey(_keyData));
+   }
+
    UINT32 btreeIndexItem::getSavedKeyDataSize()const
    {
       if (isValid())

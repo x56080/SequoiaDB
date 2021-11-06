@@ -59,8 +59,7 @@ namespace vessel
                            const strSlice &indexName,
                            const indexKeyPattern &pattern,
                            const indexParameters &params,
-                           PAGE_ID btreeRoot=INVALID_PAGE_ID,
-                           UINT32 btreeRootUpdatedTimes=0);
+                           PAGE_ID btreeRoot=INVALID_PAGE_ID);
 
          void shallowCopy(const indexObject &o);
 
@@ -94,15 +93,17 @@ namespace vessel
          {
             return _params.type;
          }
-         OSS_INLINE UINT32 getBtreeRootUpdatedTimes()const
+         OSS_INLINE UINT32 getBtreeRootSplitTimes()const
          {
-            return _btreeRootUpdatedTimes;
+            return _btreeRootSplitTimes;
          }
          OSS_INLINE PAGE_ID getBtreeRoot()const
          {
             return _btreeRoot;
          }
-         void updateBtreeRoot(PAGE_ID root, UINT32 updatedTimes);
+         void updateBtreeRoot(PAGE_ID root, UINT32 splitTimes);
+
+         void updateBtreeRootSplitTimes(UINT32 splitTimes);
 
          BOOLEAN hasBtreeRoot()const;
 
@@ -112,7 +113,7 @@ namespace vessel
          ossPoolString _indexName;
          indexKeyPattern _pattern;
          indexParameters _params;
-         UINT32 _btreeRootUpdatedTimes = 0;
+         UINT32 _btreeRootSplitTimes = 0;
          PAGE_ID _btreeRoot = INVALID_PAGE_ID;
    };//class indexObject
 }//namespace vessel

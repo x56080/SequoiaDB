@@ -125,7 +125,7 @@ static void thread_insert(vesselImpl *db, test_logger *logger,
    handler.close();
 }
 
-TEST_F(index_scan_test, test1)
+void test1(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -142,7 +142,7 @@ TEST_F(index_scan_test, test1)
    UINT32 count = 1000;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
    strSlice indexName("index1");
@@ -254,7 +254,17 @@ TEST_F(index_scan_test, test1)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-TEST_F(index_scan_test, test2)
+TEST_F(index_scan_test, test1_1)
+{
+   test1(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_scan_test, test1_2)
+{
+   test1(INDEX_TYPE_BTREE);
+}
+
+void test2(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -271,7 +281,7 @@ TEST_F(index_scan_test, test2)
    UINT32 count = 1000000;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
    strSlice indexName("index1");
@@ -336,6 +346,8 @@ TEST_F(index_scan_test, test2)
       ASSERT_EQ(SDB_OK, rc);
       bson::BSONObj recordObj(row.getRecord().data());
       ASSERT_EQ(i, recordObj.getIntField("a"));
+      rc = cursor.getNextRow(&session, row);
+      ASSERT_EQ(SDB_VESSEL_EOC, rc);
       cursor.close();
       mt.clear();
    }
@@ -346,7 +358,17 @@ TEST_F(index_scan_test, test2)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-TEST_F(index_scan_test, test3)
+TEST_F(index_scan_test, test2_1)
+{
+   test2(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_scan_test, test2_2)
+{
+   test2(INDEX_TYPE_BTREE);
+}
+
+void test3(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -360,10 +382,10 @@ TEST_F(index_scan_test, test3)
    options.path.lsmPath = LSM_PATH;
 
    collectionHandler handler;
-   UINT32 count = 1000;
+   UINT32 count = 100000;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
    strSlice indexName("index1");
@@ -451,8 +473,17 @@ TEST_F(index_scan_test, test3)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-///backword scan
-TEST_F(index_scan_test, test4)
+TEST_F(index_scan_test, test3_1)
+{
+   test3(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_scan_test, test3_2)
+{
+   test3(INDEX_TYPE_BTREE);
+}
+
+void test4(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -466,10 +497,10 @@ TEST_F(index_scan_test, test4)
    options.path.lsmPath = LSM_PATH;
 
    collectionHandler handler;
-   UINT32 count = 1000;
+   UINT32 count = 100000;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
    strSlice indexName("index1");
@@ -551,8 +582,18 @@ TEST_F(index_scan_test, test4)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-/// index covered
-TEST_F(index_scan_test, test5)
+///backword scan
+TEST_F(index_scan_test, test4_1)
+{
+   test4(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_scan_test, test4_2)
+{
+   test4(INDEX_TYPE_BTREE);
+}
+
+void test5(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -566,10 +607,10 @@ TEST_F(index_scan_test, test5)
    options.path.lsmPath = LSM_PATH;
 
    collectionHandler handler;
-   UINT32 count = 1000;
+   UINT32 count = 100000;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    bson::BSONObj pattern = BSON("a" << 1);
    strSlice indexName("index1");
@@ -641,4 +682,15 @@ TEST_F(index_scan_test, test5)
 
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
+}
+
+/// index covered
+TEST_F(index_scan_test, test5_1)
+{
+   test5(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_scan_test, test5_2)
+{
+   test5(INDEX_TYPE_BTREE);
 }

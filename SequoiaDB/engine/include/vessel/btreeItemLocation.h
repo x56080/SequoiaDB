@@ -73,6 +73,8 @@ namespace vessel
          RECORD_SLOT_ID slotPos = INVALID_RECORD_SLOT_ID;
          BOOLEAN isUpperBound = FALSE;
    };//class btreeItemLocation
+
+   
 } // namespace vessel
 
 } // namespace engine

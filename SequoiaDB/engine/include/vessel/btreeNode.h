@@ -159,14 +159,26 @@ namespace vessel
          INT32 getItem(RECORD_SLOT_ID pos,
                         btreeIndexItem &item)const;
 
-         INT32 seek(const BSONObj &prevKey,
-                    INT32 fieldCountToCmpInPrev,
-                    BOOLEAN exlusive,
-                    const VEC_ELE_CMP &matchEle,
-                    const inclusiveVec &matchInclusive,
-                    INT32 direction,
-                    btreeItemLocation &location,
-                    bson::BufBuilder *bb=NULL);
+         INT32 keyLocate(const BSONObj &prevKey,
+                         INT32 fieldCountToCmpInPrev,
+                         const VEC_ELE_CMP &matchEle,
+                         const inclusiveVec &matchInclusive,
+                         BOOLEAN exclusive,
+                         BOOLEAN forward,
+                         btreeItemLocation &location,
+                         BOOLEAN &outOfBound,
+                         bson::BufBuilder *bb=NULL);
+
+         INT32 keyAdvance(RECORD_SLOT_ID pos,
+                          const BSONObj &prevKey,
+                          INT32 fieldCountToCmpInPrev,
+                          const VEC_ELE_CMP &matchEle,
+                          const inclusiveVec &matchInclusive,
+                          BOOLEAN exclusive,
+                          BOOLEAN forward,
+                          BOOLEAN &goBackToFather,
+                          btreeItemLocation &location,
+                          bson::BufBuilder *bb=NULL);
 
       private:
          OSS_INLINE UINT32 getSizeToSaveInNode(UINT32 keySize)const
@@ -195,6 +207,17 @@ namespace vessel
          slice getReadableSlice()const;
 
          BOOLEAN isRecentWriteOrdered()const;
+
+         INT32 find(RECORD_SLOT_ID low,
+                    RECORD_SLOT_ID high,
+                    const bson::BSONObj &prevKey,
+                    INT32 fieldCountToCmpInPrev,
+                    const VEC_ELE_CMP &matchEle,
+                    const inclusiveVec &matchInclusive,
+                    BOOLEAN exclusive,
+                    BOOLEAN forward,
+                    bson::BufBuilder &bb,
+                    RECORD_SLOT_ID &pos)const;
 
       private:
          void commit();
