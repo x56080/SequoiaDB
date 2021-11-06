@@ -1708,13 +1708,15 @@ namespace engine
 
    INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
                                 vector< UINT32 > &groups,
-                                BOOLEAN includeSubCLGroups )
+                                BOOLEAN includeSubCLGroups,
+                                BOOLEAN checkDataSource )
    {
       INT32 rc = SDB_OK ;
 
       ossPoolSet< UINT32 > groupSet ;
 
-      rc = catGetCSGroups( csName, cb, groupSet, includeSubCLGroups ) ;
+      rc = catGetCSGroups( csName, cb, groupSet, includeSubCLGroups,
+                           checkDataSource ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get groups of "
                    "collection space [%s], rc: %d", csName, rc ) ;
 
@@ -1740,7 +1742,8 @@ namespace engine
    INT32 catGetCSGroups ( const CHAR * csName,
                           pmdEDUCB * cb,
                           ossPoolSet< UINT32 > & groups,
-                          BOOLEAN includeSubCLGroups )
+                          BOOLEAN includeSubCLGroups,
+                          BOOLEAN checkDataSource )
    {
       INT32 rc = SDB_OK ;
 
@@ -1772,6 +1775,7 @@ namespace engine
                          << BSON( "$gt" << lowBound << "$lt" << upBound ) ) ;
 
       INT8 loopTime = includeSubCLGroups ? 2 : 1 ;
+      INT64 contextID = -1 ;
       for ( INT8 i = 0; i < loopTime; i++ )
       {
          if ( 0 == i )
@@ -1784,7 +1788,6 @@ namespace engine
          }
 
          // query
-         INT64 contextID = -1 ;
          rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
                       "rc: %d", CAT_COLLECTION_INFO_COLLECTION, rc ) ;
@@ -1797,6 +1800,7 @@ namespace engine
             rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
             if ( SDB_DMS_EOC == rc )
             {
+               contextID = -1 ;
                rc = SDB_OK ;
                break ;
             }
@@ -1828,7 +1832,6 @@ namespace engine
             }
             catch( exception & e )
             {
-               rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
                PD_LOG( PDERROR,
                        "Get collection name from obj[%s] occur exception: %s",
                        obj.toString().c_str(), e.what() ) ;
@@ -1837,7 +1840,45 @@ namespace engine
             }
          }// end of get more
       }
+
+      // check if this collection space is mapped from data source
+      if ( groups.empty() && checkDataSource )
+      {
+         BOOLEAN isMappingCS = FALSE ;
+         BSONObj boCollectionSpace ;
+         rc = catCheckPureMappingCS( csName, cb, isMappingCS,
+                                     &boCollectionSpace ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check collection space [%s] for "
+                      "data source mapping, rc: %d", csName, rc ) ;
+
+         if ( isMappingCS )
+         {
+            UTIL_DS_UID dsUID = UTIL_INVALID_DS_UID ;
+            rc = catCheckDataSourceID( boCollectionSpace, dsUID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check data source ID from "
+                         "collection space [%s], rc: %d", csName, rc ) ;
+
+            try
+            {
+               groups.insert( SDB_DSID_2_GROUPID( dsUID ) ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save data source group ID, "
+                       "occur exception %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+         }
+      }
+
+
    done :
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
       PD_TRACE_EXITRC( SDB_CATGETCSGRPS, rc ) ;
       return rc ;
 
@@ -5795,20 +5836,15 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKCLINPUREMAPPINGCS, "catCheckCLInPureMappingCS" )
-   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
-                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
-                                    BSONObj *csMeta )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKPUREMAPPINGCS, "catCheckPureMappingCS" )
+   INT32 catCheckPureMappingCS( const CHAR *csName,
+                                pmdEDUCB *cb,
+                                BOOLEAN &isMappingCS,
+                                BSONObj *csMeta )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CATCHECKCLINPUREMAPPINGCS ) ;
-      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-      const CHAR *dot = ossStrchr( clFullName, '.' ) ;
-      SDB_ASSERT( dot, "Not a full name" ) ; ;
-      SDB_ASSERT( ( ( dot - clFullName ) > 0 ) &&
-                  ( ( dot - clFullName ) <= DMS_COLLECTION_SPACE_NAME_SZ ),
-                  "cs name is invalid" ) ;
-      ossStrncpy( csName, clFullName, dot - clFullName ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCHECKPUREMAPPINGCS ) ;
 
       try
       {
@@ -5821,7 +5857,7 @@ namespace engine
                             dummyObj, cb, csMetaRecord ) ;
          if ( SDB_DMS_EOC == rc )
          {
-            inMappingCS = FALSE ;
+            isMappingCS = FALSE ;
             rc = SDB_OK ;
             goto done ;
          }
@@ -5832,18 +5868,47 @@ namespace engine
             goto error ;
          }
 
-         inMappingCS = csMetaRecord.hasField( FIELD_NAME_DATASOURCE_ID ) ;
+         isMappingCS = csMetaRecord.hasField( FIELD_NAME_DATASOURCE_ID ) ;
          if ( csMeta )
          {
             *csMeta = csMetaRecord.getOwned() ;
          }
       }
-      catch ( std::exception &e )
+      catch ( exception &e )
       {
          rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Failed to check mapping collection space, "
+                 "occur exception %s", e.what() ) ;
          goto error ;
       }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKPUREMAPPINGCS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKCLINPUREMAPPINGCS, "catCheckCLInPureMappingCS" )
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKCLINPUREMAPPINGCS ) ;
+
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+      rc = rtnResolveCollectionSpaceName( clFullName, ossStrlen( clFullName ),
+                                          csName,
+                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection space name "
+                   "from collection name [%s], rc: %d", clFullName, rc ) ;
+
+      rc = catCheckPureMappingCS( csName, cb, inMappingCS, csMeta ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check pure mapping collection "
+                   "space [%s], rc: %d", csName, rc ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_CATCHECKCLINPUREMAPPINGCS, rc ) ;
@@ -5907,4 +5972,46 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHKDSUID, "catCheckDataSourceID" )
+   INT32 catCheckDataSourceID( const BSONObj &boObject,
+                               UTIL_DS_UID &dsUID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATCHKDSUID ) ;
+
+      dsUID = UTIL_INVALID_DS_UID ;
+
+      try
+      {
+         BSONElement ele = boObject.getField( FIELD_NAME_DATASOURCE_ID ) ;
+         if ( EOO == ele.type() )
+         {
+            // not from data source
+            goto done ;
+         }
+         PD_CHECK( NumberInt == ele.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it is not integer",
+                   FIELD_NAME_DATASOURCE_ID ) ;
+         dsUID = (UTIL_DS_UID)( ele.numberInt() ) ;
+         SDB_ASSERT( UTIL_INVALID_DS_UID != dsUID,
+                     "Data source ID is invalid" ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get data source ID, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHKDSUID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
