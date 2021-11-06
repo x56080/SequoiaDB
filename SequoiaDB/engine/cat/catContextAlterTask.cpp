@@ -2953,7 +2953,17 @@ namespace engine
                    SDB_LOCK_FAILED, error, PDWARNING,
                    "Failed to lock group [%s]",
                    groupName ) ;
-         _groups.push_back( groupID ) ;
+         try
+         {
+            _groups.push_back( groupID ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add group ID, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
       }
 
    done :

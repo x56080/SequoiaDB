@@ -231,11 +231,13 @@ namespace engine
 
    INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
                                 vector< UINT32 > &groups,
-                                BOOLEAN includeSubCLGroups = FALSE ) ;
+                                BOOLEAN includeSubCLGroups = FALSE,
+                                BOOLEAN checkDataSource = FALSE ) ;
    INT32 catGetCSGroups ( const CHAR * csName,
                           pmdEDUCB * cb,
                           ossPoolSet< UINT32 > & groups,
-                          BOOLEAN includeSubCLGroups = FALSE ) ;
+                          BOOLEAN includeSubCLGroups = FALSE,
+                          BOOLEAN checkDataSource = FALSE ) ;
 
    /* Collection[CAT_INDEX_INFO_COLLECTION] functions: */
    INT32 catAddIndex( const CHAR *collectionName,
@@ -589,8 +591,14 @@ namespace engine
    string catGetSeqName4AutoIncFld( const utilCLUniqueID id,
                                     const CHAR* fldName ) ;
 
+   /* Data Source */
    INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
                                   BSONObj &obj, pmdEDUCB *cb ) ;
+
+   INT32 catCheckPureMappingCS( const CHAR *csName,
+                                pmdEDUCB *cb,
+                                BOOLEAN &isMappingCS,
+                                BSONObj *csMeta = NULL ) ;
 
    INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
                                     pmdEDUCB *cb, BOOLEAN &inMappingCS,
@@ -599,6 +607,10 @@ namespace engine
    INT32 catBuildCatalogByPureMappingCS( const CHAR *clFullName,
                                          const BSONObj &csMetaData,
                                          BSONObj &catalog, pmdEDUCB *cb ) ;
+
+   INT32 catCheckDataSourceID( const bson::BSONObj &boObject,
+                               UTIL_DS_UID &dsUID ) ;
+
 }
 
 #endif //CAT_COMMON_HPP__

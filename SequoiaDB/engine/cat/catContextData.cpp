@@ -1353,7 +1353,7 @@ namespace engine
          // we need reply groups list to coord, so that coord can send msg to
          // corresponding data by groups list
          rc = catGetCSGroupsFromCLs( _targetName.c_str(), cb,
-                                     _groupList, TRUE ) ;
+                                     _groupList, TRUE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get group list of cs[%s], rc: %d",
                       _targetName.c_str(), rc ) ;
