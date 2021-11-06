@@ -932,6 +932,7 @@ namespace vessel
       rc = initAndMapPages(context, initer, 1, &mpid);
       if (SDB_OK != rc)
       {
+         _dpc->releasePage(pid);
          PD_LOG(PDERROR, "failed to init page:%d", rc);
          goto error;
       }
