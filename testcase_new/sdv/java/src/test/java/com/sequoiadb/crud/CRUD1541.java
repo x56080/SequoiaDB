@@ -44,6 +44,7 @@ public class CRUD1541 extends SdbTestBase {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         cs = sdb.getCollectionSpace( SdbTestBase.csName );
         BasicBSONObject options = new BasicBSONObject();
+        options.put( "ReplSize", -1 );
         options.put( "Compressed", false );
         cl = cs.createCollection( clName, options );
         int beginNo = 0;
