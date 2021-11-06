@@ -2533,6 +2533,18 @@
                            "en": "getCL()"
                         },
                         {
+                           "id": 1634980924,
+                           "file": "getDomainName",
+                           "cn": "getDomainName()",
+                           "en": "getDomainName()"
+                        },
+                        {
+                           "id": 1634981086,
+                           "file": "listCollections",
+                           "cn": "listCollections()",
+                           "en": "listCollections()"
+                        },
+                        {
                            "id": 1524019771,
                            "file": "removeDomain",
                            "cn": "removeDomain()",
