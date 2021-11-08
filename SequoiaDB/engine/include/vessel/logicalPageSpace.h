@@ -181,6 +181,8 @@ namespace vessel
                                         ossPoolSet<UINT32> &segments);
 
          virtual void endToCreateCheckpoint(requestContext *context){return;}
+
+         void applyCheckpointIfNecessary(requestContext *context);
   
       protected:
          OSS_INLINE const storageFileCreater &getCreater()const
@@ -244,9 +246,11 @@ namespace vessel
          virtual UINT32 getFreeBoundOfLpidAllocator()const = 0;
 
       private:/// page management
-         virtual INT32 getPageFromCache(PAGE_ID lpid,
-                                        idMapSlot &slot,
-                                        BOOLEAN &isMutable);
+         INT32 getIdMapSlotFromCache(PAGE_ID lpid,
+                                     idMapSlot &slot,
+                                     BOOLEAN &isMutable);
+
+         virtual BOOLEAN isLogicalPageAlwaysMutable()const = 0;
 
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,
@@ -313,8 +317,8 @@ namespace vessel
 
          INT32 removeHistoryIdMapAndDeltaLogFiles();
 
-         INT32 flushSegments(requestContext *context,
-                             const ossPoolSet<UINT32> &segments)const;
+         INT32 flushSegmentsAtCheckpoint(requestContext *context,
+                                         const ossPoolSet<UINT32> &segments)const;
 
       private:
          INT32 preallocateLpids(requestContext *context,

@@ -57,24 +57,6 @@ namespace vessel
    replicatedLPS::~replicatedLPS()
    {}
 
-   INT32 replicatedLPS::getPageFromCache(PAGE_ID lpid,
-                                         idMapSlot &slot,
-                                         BOOLEAN &isMutable)
-   {
-      INT32 rc = SDB_OK;
-      rc = logicalPageSpace::getCache().get(lpid, slot, isMutable);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      isMutable = TRUE;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 replicatedLPS::map(requestContext *context,
                             PAGE_SNAPSHOT_VERION psv,
                             UINT32 count,

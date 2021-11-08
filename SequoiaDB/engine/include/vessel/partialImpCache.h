@@ -44,9 +44,8 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 ID_MAP_PAGE_CACHE_SIZE = 512;
+   constexpr UINT32 ID_MAP_PAGE_CACHE_SIZE = 256;
    constexpr UINT32 ID_MAP_PAGE_CACHE_SLOT_COUNT = ID_MAP_PAGE_CACHE_SIZE / sizeof(idMapSlot);
-   constexpr UINT32 ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED = ID_MAP_FILE_PAGE_SIZE / ID_MAP_PAGE_CACHE_SIZE;
 
    class partialImpCache : public _utilPooledObject
    {
@@ -55,12 +54,6 @@ namespace vessel
          ~partialImpCache();
          partialImpCache(const partialImpCache &) = delete;
          partialImpCache &operator=(const partialImpCache &) = delete;
-
-      public:
-         OSS_INLINE static UINT32 getSlotNoByLpid(PAGE_ID lpid)
-         {
-            return lpid & (ID_MAP_PAGE_CACHE_SLOT_COUNT - 1);
-         }
 
       public:
          void reset();
@@ -92,7 +85,7 @@ namespace vessel
          BOOLEAN isMutable(UINT32 slotNo)const;
 
       private:
-         UINT64 _flags = 0;
+         UINT32 _flags = 0;
          idMapSlot _buffer[ID_MAP_PAGE_CACHE_SLOT_COUNT];
 
    };//class partialImpCache

@@ -78,9 +78,10 @@ namespace vessel
                                                runtimePageBuffer &rpb);
 
       private:
-         virtual INT32 getPageFromCache(PAGE_ID lpid,
-                                        idMapSlot &slot,
-                                        BOOLEAN &isMutable);
+         virtual BOOLEAN isLogicalPageAlwaysMutable()const
+         {
+            return TRUE;
+         }
 
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,

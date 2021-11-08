@@ -40,6 +40,7 @@
 #include "ossMemPool.hpp"
 #include "vessel/partialImpCache.h"
 #include "ossLatch.hpp"
+#include "ossAtomic.hpp"
 
 namespace engine
 {
@@ -50,7 +51,28 @@ namespace vessel
    class partialImpCacheMap : public _utilPooledObject
    {
       public:
-         typedef ossPoolMap<UINT32, partialImpCache *> CACHE_MAP;
+         ///<imp pid, pos in imp page>
+         typedef std::pair<PAGE_ID, UINT32> KEY;
+         struct cmp
+         {
+            OSS_INLINE BOOLEAN operator()(const KEY &l, const KEY &r)const
+            {
+               if (l.first < r.first)
+               {
+                  return TRUE;
+               }
+               else if (l.first > r.first)
+               {
+                  return FALSE;
+               }
+               else
+               {
+                  return l.second < r.second;
+               }
+            }
+         };
+      public:
+         typedef ossPoolMap<KEY, partialImpCache *, cmp> CACHE_MAP;
       public:
          partialImpCacheMap(){}
          ~partialImpCacheMap()
@@ -62,15 +84,15 @@ namespace vessel
 
       public:
          void fini();
-         const partialImpCache *find(UINT32 key)const;
-         INT32 insert(UINT32 key, partialImpCache *cache);
-         partialImpCache *find(UINT32 key);
+         const partialImpCache *find(const KEY &key)const;
+         INT32 insert(const KEY &key, partialImpCache *cache);
+         partialImpCache *find(const KEY &key);
          void exportTo(partialImpCacheMap &o, UINT32 &replaced);
          const CACHE_MAP &get()const {return _map;} 
          CACHE_MAP &get(){return _map;}
       private:
          CACHE_MAP _map;
-   };
+   };//class partialImpCacheMap
    
    class logicalPageIdCache : public SDBObject
    {
@@ -126,14 +148,15 @@ namespace vessel
             public:
                void reset();
 
-               INT32 add(UINT32 key, partialImpCache *cache);
+               INT32 add(const partialImpCacheMap::KEY &key, partialImpCache *cache);
 
-               INT32 addEmptyCache(UINT32 key, partialImpCache **cache);
+               INT32 addEmptyCache(const partialImpCacheMap::KEY &key,
+                                   partialImpCache **cache);
 
-               const partialImpCache *findToRead(UINT32 key)const;
+               const partialImpCache *findToRead(const partialImpCacheMap::KEY &key)const;
 
                ///WARNING: Always check if cache is null when return ok.
-               INT32 findToUpdate(UINT32 key, partialImpCache **cache);
+               INT32 findToUpdate(const partialImpCacheMap::KEY &key, partialImpCache **cache);
 
                void mergeMainMapToFlushingMap();
 
@@ -185,6 +208,7 @@ namespace vessel
          INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
 
       public:         
+         INT32 getModifieldCount()const;
          INT32 setPagesImmutable(UINT32 pageCountPerSeg,
                                   ossPoolSet<UINT32> &mutableSegmentIds);
 
@@ -202,43 +226,30 @@ namespace vessel
          INT32 _remove(PAGE_ID lpid, idMapSlot *slot);
          INT32 getFromBase(PAGE_ID lpid, idMapSlot &slot);
 
-         INT32 createCacheFromBase(UINT32 key,
+         INT32 createCacheFromBase(const partialImpCacheMap::KEY &key,
                                    partialImpCache **cache);
 
          INT32 flushPreparedMapToFile(const _cacheBucket &bucket,
                                       idMapFile *file);
 
       private:
-         OSS_INLINE UINT32 getBucketNo(PAGE_ID lpid)const
-         {
-            return (getImpPidOfLpid(lpid) & (_bucketCount - 1));
-         }
-         OSS_INLINE UINT32 getKeyByLpid(PAGE_ID lpid)
-         {
-            return lpid / ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED;
-         }
-         OSS_INLINE PAGE_ID getImpPidByKey(UINT32 key)const
-         {
-            return getImpPidOfLpid(key * ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED);
-         }
+         UINT32 getBucketAndPartialCacheIdentity(PAGE_ID lpid,
+                                                 partialImpCacheMap::KEY &key,
+                                                 UINT32 &slotInPartialCache)const;
+
          OSS_INLINE ossSLatch *getBucketLatch(UINT32 bucketNo)
          {
             return _latches + (bucketNo & (_latchCount - 1));
          }
-         OSS_INLINE UINT32 getOffsetInImpByKey(UINT32 key)const
-         {
-            return (key & (ID_MAP_PAGE_CACHE_COUNT_WHOLE_PAGE_NEEDED - 1))
-                    * ID_MAP_PAGE_CACHE_SIZE;
-         }
 
       private:
-         //UINT32 _flags = 0;
          const idMapFile *_base = NULL;
          UINT32 _basePageCount = 0;
          UINT32 _latchCount = 0;
          _ossSpinSLatchPOSIX *_latches = NULL;
          UINT32 _bucketCount = 0;
          _cacheBucket *_buckets = NULL;
+         ossAtomic32 _modifiedCount;
    };//class logicalPageIdCache
 }//namespace vessel
 }//namespace engine

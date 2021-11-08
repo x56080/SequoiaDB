@@ -149,7 +149,7 @@ namespace vessel
 
    UINT32 partialImpCache::getMutablePageCount()const
    {
-      return ossGetNonZeroBitCount64(_flags);
+      return ossGetNonZeroBitCount32(_flags);
    }
 
    void partialImpCache::setAllPageImmutable(UINT32 pageCountPerSeg,
@@ -160,7 +160,7 @@ namespace vessel
          do
          {
             INT32 mutableSlot = -1;
-            mutableSlot = ossGetLowestBit1From64Bits(_flags);
+            mutableSlot = ossGetLowestBit1From32Bits(_flags);
             if (mutableSlot < 0)
             {
                break;
@@ -168,7 +168,7 @@ namespace vessel
             
             SDB_ASSERT(!_buffer[mutableSlot].isFree(), "impossible");
             mutableSegmentIds->insert((_buffer[mutableSlot].pid / pageCountPerSeg));
-            OSS_BIT_CLEAR(_flags, ((UINT64)1 << mutableSlot));
+            OSS_BIT_CLEAR(_flags, ((UINT32)1 << mutableSlot));
          } while (TRUE);
       }
       else
@@ -181,16 +181,16 @@ namespace vessel
 
    void partialImpCache::setAsInmmutable(UINT32 slotNo)
    {
-      UINT64 v = 1;
-      v <<= slotNo;
+      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      UINT32 v = ((UINT32)1 << slotNo);
       OSS_BIT_CLEAR(_flags, v);
       return;
    }
 
    void partialImpCache::setAsMutable(UINT32 slotNo)
    {
-      UINT64 v = 1;
-      v <<= slotNo;
+      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      UINT32 v = ((UINT32)1 << slotNo);
       OSS_BIT_SET(_flags, v);
       return;
    }
@@ -198,8 +198,7 @@ namespace vessel
    BOOLEAN partialImpCache::isMutable(UINT32 slotNo)const
    {
       SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
-      UINT64 v = 1;
-      v <<= slotNo;
+      UINT32 v = ((UINT32)1 << slotNo);
       return 0 != OSS_BIT_TEST(_flags, v);
    }
 

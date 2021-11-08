@@ -93,22 +93,39 @@ namespace vessel
       {
          _el->popOrWait(event);
          SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
-         if (event.isQuitEvent())
+
+         switch (event.getType())
+         {
+         case backgroundEvent::EVENT_TYPE_QUIT:
          {
             PD_LOG(PDINFO, "get quit event, exit");
-            break;
+            goto done;
          }
-         else if (backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType())
+         case backgroundEvent::EVENT_TYPE_CACHE_TASK:
          {
             diskIOTask *task = (diskIOTask *)(event.getEventMsg());
             handleCacheEvent(*task, event.getReponseList());
+            break;
          }
-         else
+         case backgroundEvent::EVENT_TYPE_SYNC_SEG:
          {
+            const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
+            handleLpsSegmentFlushing(*msg, event.getReponseList());
+            break;
+         }
+         case backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT:
+         {
+            const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
+            handleLpsCheckpointEvent(*msg, event.getReponseList()); 
+            break;
+         }
+         default:
             SDB_ASSERT(FALSE, "invalid type");
+            break;
          }
       } while (TRUE);
-      
+   
+   done:
       fini();
    }
 
@@ -143,6 +160,91 @@ namespace vessel
          backgroundEvent res;
          res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
          res.setEventMsg(sizeof(UINT32), &jobID);
+         rl->push(res);
+      }
+   }
+
+   void backgroundWorker::handleLpsCheckpointEvent(const lpsCheckpointApplying &msg,
+                                                   autoEventList<backgroundEvent> *rl)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_SPACE_ID != msg._sid &&
+                 INVALID_SPACE_TYPE != msg._type, "can not be invalid");
+      logicalPageSpace *lps = NULL;
+      requestContext context;
+
+      context.open(_session, _env, _resource);
+      rc = context.lockSpaceID(msg._sid, SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
+         goto done;
+      }
+
+      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
+         goto done;
+      }
+
+      rc = lps->createCheckpoint(&context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create checkpoint on lps[%d,%d], rc:%d",
+                msg._sid, msg._type, rc);
+         goto done;
+      }
+   
+   done:
+      context.close();
+      if (NULL != rl)
+      {
+         backgroundEvent res;
+         res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
+         rl->push(res);
+      }
+      return;
+   }
+
+   void backgroundWorker::handleLpsSegmentFlushing(const lpsFlushingSegments &msg,
+                                                   autoEventList<backgroundEvent> *rl)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_SPACE_ID != msg._sid &&
+                 INVALID_SPACE_TYPE != msg._type, "can not be invalid");
+      logicalPageSpace *lps = NULL;
+      requestContext context;
+
+      context.open(_session, _env, _resource);
+      rc = context.lockSpaceID(msg._sid, SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
+         goto done;
+      }
+
+      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
+         goto done;
+      }
+
+      rc = lps->fsyncSegment(msg._segmentId);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
+                msg._segmentId, msg._sid, msg._type, rc);
+         goto done;
+      }
+   
+   done:
+      context.close();
+      if (NULL != rl)
+      {
+         backgroundEvent res;
+         res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
          rl->push(res);
       }
    }

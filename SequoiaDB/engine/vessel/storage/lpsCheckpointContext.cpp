@@ -52,6 +52,7 @@ namespace vessel
       _checkpoint = LPS_CHECKPOINT();
       _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
       _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      _applying.clear();
       return;
    }
 
@@ -83,6 +84,18 @@ namespace vessel
          _maxDirtyLsn = lsn;
       }
       return;
+   }
+
+   BOOLEAN lpsCheckpointContext::tryToApplyCheckpoint()
+   {
+      return NONE == _status &&
+             !_applying.test_and_set(std::memory_order_acquire);
+   }
+
+   void lpsCheckpointContext::clearApplyingCheckpoint()
+   {
+      SDB_ASSERT(NONE == _status, "must be none");
+      _applying.clear(std::memory_order_release);
    }
 }//namespace vessel
 }//namespace engine

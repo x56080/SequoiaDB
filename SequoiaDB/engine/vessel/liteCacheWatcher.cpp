@@ -252,7 +252,6 @@ namespace vessel
 
       BOOLEAN hitTheEnd = FALSE;
       INT32 rc = SDB_OK;
-      backgroundWorkers &ioWorkers = _env->ioWorkers;
 
       job->prepareForDispatching();
 
@@ -275,7 +274,7 @@ namespace vessel
          event.setType(backgroundEvent::EVENT_TYPE_CACHE_TASK);
          event.setEventMsg(sizeof(diskIOTask), &task);
          event.setResponseList(&_list);
-         ioWorkers.pushEvent(event);
+         _env->workers.pushEvent(event);
          ++_runningTaskCount;
       } while (TRUE);
       

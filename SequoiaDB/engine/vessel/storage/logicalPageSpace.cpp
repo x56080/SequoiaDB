@@ -55,12 +55,14 @@
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
+#include "vessel/backgroundEventMsg.h"
 
 namespace engine
 {
 namespace vessel
 {
-   static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608;
+   static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
+   static const UINT32 CHECKPOINT_TRIGGER_PAGE_COUNT = 32768;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -401,6 +403,7 @@ namespace vessel
       UINT32 totalImpCount = 0;
       ossPoolSet<UINT32> segments;
       IRedoLogger *logger = NULL;
+      BOOLEAN pausedNewApplying = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -423,6 +426,11 @@ namespace vessel
          rc = SDB_VESSEL_SAME_TASK_RUNNING;
          goto error;
       }
+
+      /// checkpoint applying flag may already been set.
+      /// we just make sure no new applying when running.
+      _checkpointContext.tryToApplyCheckpoint();
+      pausedNewApplying = TRUE;
 
       maxDirtyLsn = _checkpointContext.getMaxDirtyLsn();
       if (DPS_INVALID_LSN_OFFSET == maxDirtyLsn)
@@ -470,7 +478,7 @@ namespace vessel
 
       if (!segments.empty())
       {
-         rc = flushSegments(context, segments);
+         rc = flushSegmentsAtCheckpoint(context, segments);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to flush segments:%d", rc);
@@ -519,12 +527,14 @@ namespace vessel
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
       endToCreateCheckpoint(context);
-
-   
    done:
       if (locked)
       {
          _checkpointContext.getLatch()->release_w();
+      }
+      if (pausedNewApplying)
+      {
+         _checkpointContext.clearApplyingCheckpoint();
       }
       return rc;
    error:
@@ -535,7 +545,6 @@ namespace vessel
             _checkpointContext.getLatch()->lock_w();
             locked = TRUE;
          }
-         _checkpointContext.setStatus(lpsCheckpointContext::NONE);
       }
       goto done;
    }
@@ -629,7 +638,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getPageFromCache(lpid, slot, isMutablePage);
+      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
@@ -696,7 +705,7 @@ namespace vessel
          goto done;
       }
 
-      rc = getPageFromCache(lpid, slot, isMutablePage);
+      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to find lpid[%d] in cache:%d", lpid, rc);
@@ -765,7 +774,7 @@ namespace vessel
          }
       }
 
-      rc = getPageFromCache(lpid, slot, isMutablePage);
+      rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
       if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
       {
          rc = SDB_OK;
@@ -794,6 +803,7 @@ namespace vessel
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
       requestContext *context = lpb._lh.getContext();
+      BOOLEAN remapped = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -845,6 +855,7 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
+         remapped = TRUE;
       }
       else if (!lpb.getCowTrigger().isMutablePid())
       {
@@ -855,6 +866,7 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
+         remapped = TRUE;
       }
       
       SDB_ASSERT(rpb.isValid(), "must be valid");
@@ -1216,7 +1228,7 @@ namespace vessel
          ossPoolVector<mappedLogicalPageId> *vec = NULL;
          BOOLEAN releaseOld = FALSE;
 
-         INT32 rc = getPageFromCache(lpid, slot, isMutable);
+         INT32 rc = getIdMapSlotFromCache(lpid, slot, isMutable);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page[%d] from cache, rc:%d", lpid, rc);
@@ -2457,9 +2469,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::getPageFromCache(PAGE_ID lpid,
-                                            idMapSlot &slot,
-                                            BOOLEAN &isMutable)
+   INT32 logicalPageSpace::getIdMapSlotFromCache(PAGE_ID lpid,
+                                                 idMapSlot &slot,
+                                                 BOOLEAN &isMutable)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
@@ -2467,6 +2479,11 @@ namespace vessel
       if (SDB_OK != rc)
       {
          goto error;
+      }
+
+      if (isLogicalPageAlwaysMutable())
+      {
+         isMutable = TRUE;
       }
    done:
       return rc;
@@ -2505,29 +2522,84 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::flushSegments(requestContext *context,
-                                         const ossPoolSet<UINT32> &segments)const
+   INT32 logicalPageSpace::flushSegmentsAtCheckpoint(requestContext *context,
+                                                     const ossPoolSet<UINT32> &segments)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != _dpc, "can not be null");
       SDB_ASSERT(_dpc->isOpen(), "can not be closed");
+      SDB_ASSERT(!isLogicalPageAlwaysMutable(), "impossible");
+
+      static const UINT32 _DISPATCH_FLUSHING_TASK_THRESHOLD = 4;
+      UINT32 dispatched = 0;
+      UINT32 totalCount = segments.size();
+      //UINT32 failureCount = 0;
+      autoEventList<backgroundEvent> rl;
+      backgroundWorkers &workers = context->getEnv()->workers;
 
       for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
            itr != segments.end(); ++itr)
       {
-         rc = _dpc->fsyncSegment(*itr);
-         if (SDB_OK != rc)
+         if ((totalCount - dispatched) <= _DISPATCH_FLUSHING_TASK_THRESHOLD)
          {
-            PD_LOG(PDERROR, "failed to flush global segment[%d], rc:%d",
-                   *itr, rc);
-            goto error;
+            rc = _dpc->fsyncSegment(*itr);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
+                     getSpaceID(), getSpaceType(), *itr, rc);
+               //++failureCount;
+            }
          }
+         else
+         {
+            backgroundEvent event;
+            lpsFlushingSegments msg;
+            msg._sid = getSpaceID();
+            msg._type = getSpaceType();
+            msg._segmentId = *itr;
+            event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
+            event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
+            event.setResponseList(&rl);
+            workers.pushEvent(event);
+            ++dispatched;
+         }
+      }
+
+      PD_LOG(PDDEBUG, "[%d] tasks dispatched,  when flushing[%d,%d]",
+             dispatched, getSpaceID(), getSpaceType());
+      while (0 < dispatched)
+      {
+         backgroundEvent event;
+         rl.popOrWait(event);
+         --dispatched;
       }
    done:
       return rc;
    error:
       goto done;
+   }
+
+   void logicalPageSpace::applyCheckpointIfNecessary(requestContext *context)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
+
+      if (_lpidCache.getModifieldCount() <= (INT32)CHECKPOINT_TRIGGER_PAGE_COUNT)
+      {
+         if (_checkpointContext.tryToApplyCheckpoint())
+         {
+            backgroundEvent event;
+            lpsCheckpointApplying msg;
+            msg._sid = getSpaceID();
+            msg._type = getSpaceType();
+            event.setType(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT);
+            event.setEventMsg(sizeof(lpsCheckpointApplying), &msg);
+            context->getEnv()->workers.pushEvent(event);
+         }
+      }
+
+      return;
    }
 }//namespace vessel
 }//namespace engine

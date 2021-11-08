@@ -38,6 +38,7 @@
 
 #include "vessel/logicalPageSpaceCheckpoint.h"
 #include "ossRWMutex.hpp"
+#include <atomic> /// c++11
 
 namespace engine
 {
@@ -53,8 +54,8 @@ namespace vessel
          enum CHECKPOINT_STATUS
          {
             NONE = 0,
-            RUNNING = 1,
-            CREATING_NEW_BASE =  2
+            RUNNING = 2,
+            CREATING_NEW_BASE = 3
          };//enum CHECKPOINT_STATUS
 
       public:
@@ -106,12 +107,16 @@ namespace vessel
             SDB_ASSERT(lsn <= _maxDirtyLsn, "impossible");
             _minDirtyLsn = lsn;
          }
+
+         BOOLEAN tryToApplyCheckpoint();
+         void clearApplyingCheckpoint();
       private:
          ossRWMutex _checkpointLatch;
          CHECKPOINT_STATUS _status = NONE;
          LPS_CHECKPOINT _checkpoint;
          DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
          DPS_LSN_OFFSET _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+         std::atomic_flag _applying = ATOMIC_FLAG_INIT;
    };//class lpsCheckpointContext
 }//namespace vessel
 }//namespace engine

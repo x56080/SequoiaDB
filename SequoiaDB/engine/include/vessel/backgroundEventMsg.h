@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = instanceEnv.h
+   Source File Name = backgroundEventMsg.h
 
    Descriptive Name =
 
@@ -33,45 +33,46 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSTANCE_ENV_H_
-#define VESSEL_INSTANCE_ENV_H_
+#ifndef VESSEL_BACKGROUND_EVENT_MSG_H_
+#define VESSEL_BACKGROUND_EVENT_MSG_H_
 
-#include "vessel/spaceIDLocker.h"
-#include "vessel/liteCache.h"
-#include "vessel/vesselOptions.h"
-#include "vessel/checkpointController.h"
-#include "vessel/dataManagementService.h"
-#include "vessel/liteCacheConsole.h"
-#include "vessel/objectLatchMap.hpp"
-#include "vessel/lsm/lsmDB.hpp"
-#include "vessel/backgroundWorkers.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/vesselFileDef.h"
 
 namespace engine
 {
 namespace vessel
-{
-   class instanceEnv : public SDBObject
+{ 
+   class lpsCheckpointApplying : public SDBObject
    {
       public:
-         instanceEnv(){}
-         ~instanceEnv(){}
-         instanceEnv(const instanceEnv &) = delete;
-         instanceEnv &operator=(const instanceEnv &) = delete;
+         lpsCheckpointApplying(){}
+         ~lpsCheckpointApplying(){}
+         lpsCheckpointApplying(const lpsCheckpointApplying &) = delete;
+         lpsCheckpointApplying &operator=(const lpsCheckpointApplying &) = delete;
 
+      
       public:
-         openDBOptions options;
-         checkpointController checkpointer;
-         spaceIDLocker spaceLocker;
-         dataManagementService dms;
-         liteCacheConsole cacheConsole;
-         LOGICAL_ID_LATCH_MAP lpidLatchMap;
-         RECORD_ID_LATCH_MAP ridLatchMap;
-         UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
-         lsmDB lsm;
-         backgroundWorkers workers;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         SPACE_TYPE _type = INVALID_SPACE_TYPE;
+   };//class lpsCheckpointApplying
 
-   }; /// end of class instanceEnv
-} /// end of namespace vessel
-} /// end of namespace engine
+   class lpsFlushingSegments
+   {
+      public:
+         lpsFlushingSegments(){}
+         ~lpsFlushingSegments(){}
+         lpsFlushingSegments(const lpsFlushingSegments &) = delete;
+         lpsFlushingSegments &operator=(const lpsFlushingSegments &) = delete;
+      
+      public:
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         SPACE_TYPE _type = INVALID_SPACE_TYPE;
+         UINT32 _segmentId = 0;
+   };//class lpsFlushingSegments
+} // namespace vessel
 
-#endif // VESSEL_INSTANCE_ENV_H_
+} // namespace engine
+
+
+#endif//VESSEL_BACKGROUND_EVENT_MSG_H_

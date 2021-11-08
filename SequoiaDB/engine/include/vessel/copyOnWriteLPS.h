@@ -80,6 +80,8 @@ namespace vessel
                                                runtimePageBuffer &rpb);
 
       private:
+         virtual BOOLEAN isLogicalPageAlwaysMutable()const {return FALSE;}
+
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,
                            UINT32 count,

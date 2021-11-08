@@ -39,6 +39,7 @@
 #include "vessel/backgroundEvent.h"
 #include "ossThread.h"
 #include "vessel/autoEventList.hpp"
+#include "vessel/backgroundEventMsg.h"
 
 namespace engine
 {
@@ -65,6 +66,10 @@ namespace vessel
          void fini();
          void handleCacheEvent(diskIOTask &task,
                                autoEventList<backgroundEvent> *rl);
+         void handleLpsCheckpointEvent(const lpsCheckpointApplying &msg,
+                                       autoEventList<backgroundEvent> *rl);
+         void handleLpsSegmentFlushing(const lpsFlushingSegments &msg,
+                                       autoEventList<backgroundEvent> *rl);
 
       private:
          outerResource *_resource = NULL;

@@ -138,7 +138,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.ioWorkers.init(&_outerResource, &_env, options.ioWorkerCount);
+      rc = _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init background workes:%d", rc);
@@ -171,7 +171,7 @@ namespace vessel
          }
 
          _cacheWatcher.fini();    
-         _env.ioWorkers.fini(); 
+         _env.workers.fini(); 
          _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context);
@@ -818,7 +818,7 @@ namespace vessel
       {
          _open = FALSE;
          _cacheWatcher.fini();    
-         _env.ioWorkers.fini();  
+         _env.workers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
          _env.dms.close();
