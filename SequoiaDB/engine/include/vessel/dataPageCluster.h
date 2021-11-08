@@ -125,6 +125,8 @@ namespace vessel
                                        BOOLEAN &isSparse)const = 0;
 
          virtual BOOLEAN mayBeSparse()const = 0;
+
+         virtual BOOLEAN hasSparseFile()const = 0;
       
       protected:
          OSS_INLINE const storageFileCreater *getCreater()const

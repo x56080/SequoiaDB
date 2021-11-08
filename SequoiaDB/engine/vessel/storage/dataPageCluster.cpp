@@ -176,7 +176,7 @@ namespace vessel
 
       rollback = TRUE;
 
-      if (mayBeSparse())
+      if (mayBeSparse() && hasSparseFile())
       {
          /// Files may be sparse.
          rc = ensureAllPagesNotSparse(count, pids);
@@ -227,7 +227,7 @@ namespace vessel
          goto error;
       }
 
-      if (mayBeSparse())
+      if (mayBeSparse() && hasSparseFile())
       {
          rc = ensureAllPagesNotSparse(count, pids);
          if (SDB_OK != rc)
