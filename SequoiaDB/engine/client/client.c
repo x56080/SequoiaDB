@@ -163,6 +163,30 @@ do                                        \
    }                                      \
 }while( FALSE )
 
+static INT32 _mergeBson( bson* to, bson* from )
+{
+   INT32 rc = SDB_OK ;
+   bson_iterator iter ;
+
+   if ( NULL == to || NULL == from )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   bson_iterator_init( &iter, from ) ;
+   while ( bson_iterator_more( &iter ) )
+   {
+      bson_iterator_next( &iter ) ;
+      BSON_APPEND( *to, NULL, &iter, element ) ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 #define SET_INVALID_HANDLE( handle ) \
 if ( handle )                        \
 {                                    \
@@ -3586,11 +3610,28 @@ error :
 SDB_EXPORT INT32 sdbDropCollectionSpace ( sdbConnectionHandle cHandle,
                                           const CHAR *pCollectionSpaceName )
 {
-   INT32 rc               = SDB_OK ;
-   CHAR *pDropCollection  = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
-   CHAR *pName            = FIELD_NAME_NAME ;
+   INT32 rc                        = SDB_OK ;
+   
+   rc = sdbDropCollectionSpace1( cHandle, pCollectionSpaceName, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbDropCollectionSpace1 ( sdbConnectionHandle cHandle,
+                                           const CHAR *pCollectionSpaceName,
+                                           bson *options)
+{
+   INT32 rc                        = SDB_OK ;
+   CHAR *pDropCollection           = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
+   CHAR *pName                     = FIELD_NAME_NAME ;
    sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
-   BOOLEAN bsoninit       = FALSE ;
+   BOOLEAN bsoninit                = FALSE ;
    bson newObj ;
 
    BSON_INIT( newObj ) ;
@@ -3601,8 +3642,15 @@ SDB_EXPORT INT32 sdbDropCollectionSpace ( sdbConnectionHandle cHandle,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
-   BSON_APPEND( newObj, pName, pCollectionSpaceName, string ) ;
+   BSON_APPEND( newObj, pName, pCollectionSpaceName, string ) ;   
+   if ( NULL != options )
+   {
+      rc = _mergeBson( &newObj, options ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
    BSON_FINISH ( newObj ) ;
 
    rc = _runCommand ( cHandle, connection->_sock, &connection->_pSendBuffer,
@@ -3629,7 +3677,7 @@ done :
 error :
    goto done ;
 }
-
+ 	
 SDB_EXPORT INT32 sdbCreateReplicaGroup ( sdbConnectionHandle cHandle,
                                          const CHAR *pGroupName,
                                          sdbReplicaGroupHandle *handle )
@@ -7033,30 +7081,6 @@ SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
     }
     return _sdbQuery( cHandle, condition, select, orderBy, hint,
                       numToSkip, numToReturn, flag, handle ) ;
-}
-
-static INT32 _mergeBson( bson* to, bson* from )
-{
-   INT32 rc = SDB_OK ;
-   bson_iterator iter ;
-
-   if ( NULL == to || NULL == from )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   bson_iterator_init( &iter, from ) ;
-   while ( bson_iterator_more( &iter ) )
-   {
-      bson_iterator_next( &iter ) ;
-      BSON_APPEND( *to, NULL, &iter, element ) ;
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
 }
 
 static INT32 _sdbQueryAndModify ( sdbCollectionHandle cHandle,

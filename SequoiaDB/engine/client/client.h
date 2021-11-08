@@ -817,6 +817,23 @@ SDB_EXPORT INT32 sdbCreateCollectionSpaceV2 ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbDropCollectionSpace ( sdbConnectionHandle cHandle,
                                           const CHAR *pCollectionSpaceName ) ;
 
+/** \fn INT32 sdbDropCollectionSpace1 ( sdbConnectionHandle cHandle,
+                                         const CHAR *pCollectionSpaceName,
+                                         bson *options )
+    \brief Drop the specified collection space
+    \param [in] cHandle The database connection handle
+    \param [in] pCollectionSpaceName The name of collection space
+    \param [in] options The options specified by user, e.g. {"EnsureEmpty": true}.
+
+        EnsureEmpty   : Check whether the collection space is empty when deleting it. false in default.
+                        if EnsureEmpty is true but CollectionSpace is not empty, it will report SDB_DMS_CS_NOT_EMPTY error code. 
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbDropCollectionSpace1 ( sdbConnectionHandle cHandle,
+                                           const CHAR *pCollectionSpaceName,
+                                           bson *options) ;
+
 /** \fn INT32 sdbCreateReplicaGroup ( sdbConnectionHandle cHandle,
                                       const CHAR *pRGName,
                                       sdbReplicaGroupHandle *handle )
