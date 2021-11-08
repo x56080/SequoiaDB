@@ -34,7 +34,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 创建实例
    
-    sdb_pg_ctl addinst <INSTNAME> <-D DATADIR> [-l LOGFILE] [--print] [-p PORT] [-o "OPTIONS"] [--skip-initdb] [--addtosvc=BOOL]
+    sdb_pg_ctl addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-o "OPTIONS"] [--skip-initdb] [--addtosvc=BOOL]
 
     创建名为“myinst”的实例，并指定数据存储路径为 `/opt/sequoiasql/postgresql/database/5432`
 
@@ -44,7 +44,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 启动实例
 
-    sdb_pg_ctl start <INSTNAME> [--print] [-o "OPTIONS"]
+    sdb_pg_ctl start \<INSTNAME\> [--print] [-o "OPTIONS"]
 
     启动名为“myinst”的实例
 
@@ -76,7 +76,9 @@ sdb_pg_ctl 支持如下参数：
 
 - 重启实例
 
-    sdb_pg_ctl restart <INSTNAME> [-m SHUTDOWN-MODE] [--print] [-o "OPTIONS"]
+    sdb_pg_ctl restart \<INSTNAME\> [-m SHUTDOWN-MODE] [--print] [-o "OPTIONS"]
+
+    重启名为“myinst”的实例
 
     ```lang-bash
     $ sdb_pg_ctl restart myinst
@@ -84,7 +86,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 停止实例
 
-    sdb_pg_ctl stop <INSTNAME> [-m SHUTDOWN-MODE] [--print]
+    sdb_pg_ctl stop \<INSTNAME\> [-m SHUTDOWN-MODE] [--print]
 
     停止名为“myinst”的实例，并指定服务器的关闭模式为 smart
 
@@ -95,14 +97,16 @@ sdb_pg_ctl 支持如下参数：
 - 停止所有实例
 
     sdb_pg_ctl stopall [-m SHUTDOWN-MODE] [--print]
+ 
+    停止所有实例，并指定服务器的关闭模式为 smart
 
     ```lang-bash
-    $ sdb_pg_ctl stopall
+    $ sdb_pg_ctl stopall -m smart
     ```
 
 - 删除实例
 
-    sdb_pg_ctl delinst <INSTNAME> [--baklog] [--force]
+    sdb_pg_ctl delinst \<INSTNAME\> [--baklog] [--force]
 
     删除名为“myinst”的实例，并备份该实例日志文件
 
@@ -112,7 +116,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 重载实例配置
 
-    sdb_pg_ctl reload <INSTNAME> [--print]
+    sdb_pg_ctl reload \<INSTNAME\> [--print]
 
     重载名为“myinst”实例的配置
 
@@ -122,7 +126,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 将实例添加至系统服务
 
-    sdb_pg_ctl addtosvc <INSTNAME> [--print]
+    sdb_pg_ctl addtosvc \<INSTNAME\> [--print]
 
     将名为“myinst”的实例添加至 sequoiasql-postgresql 系统服务
 
@@ -132,7 +136,7 @@ sdb_pg_ctl 支持如下参数：
 
 - 将实例从系统服务中移除
 
-    sdb_pg_ctl delfromsvc <INSTNAME>
+    sdb_pg_ctl delfromsvc \<INSTNAME\>
 
     将名为“myinst”的实例从 sequoiasql-postgresql 系统服务中移除
 
@@ -147,7 +151,7 @@ sdb_pg_ctl 支持如下参数：
 
 ```lang-text
 sdb_pg_ctl chconf <INSTNAME> [-p PORT] [-c LEVEL] [-e LEVEL] [-a MAX-CON]
-sdb_pg_ctl chconf [-f CNT]
+							 [-f CNT]
 ```
 
 **示例**
@@ -155,7 +159,7 @@ sdb_pg_ctl chconf [-f CNT]
 修改实例 myinst 的引擎日志级别为 notice
 
 ```lang-bash
-$ sdb_pg_ctl chconf testinst -e notice
+$ sdb_pg_ctl chconf myinst -e notice
 ```
 
 查看配置是否修改成功
