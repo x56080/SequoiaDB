@@ -341,6 +341,22 @@ function getHostInfo()
     fi
 }
 
+function getPassword()
+{
+    local password1
+    local password2
+
+    password1=$(getOptionFCmd "--password" $@)
+    password2=$(getOptionFCmd "-w" $@)
+    if [ ! -z "$password1" ]; then
+        echo "$password1"
+    elif [ ! -z "$password2" ]; then
+        echo "$password2"
+    else
+        echo ""
+    fi
+}
+
 function getOptionFCmd()
 {
     local opt=$1

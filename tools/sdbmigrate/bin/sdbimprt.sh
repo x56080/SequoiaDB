@@ -582,12 +582,14 @@ function importData()
     local cl
     local rc=0
     local msg
+    local password
 
     buildImportCommand
 
     for ((i=0; i<${#import_cmd_list[@]}; i++)); do
         import_cmd=${import_cmd_list[i]}
         cl=$(getCLInfo $import_cmd)
+        password=$(getPassword $import_cmd)
         msg=$(eval "$import_cmd" 2>&1)
         rc=$?
         if [ $rc = 0 ]; then
@@ -598,6 +600,8 @@ function importData()
         fi
 
         if [ $rc != 0 -o "$opt_debug" = "true" ]; then
+            import_cmd=${import_cmd/--password $password/}
+            import_cmd=${import_cmd/-w $password/}
             addResultBody "Collection:$cl\n$msg" "Import cmd: $import_cmd"
         else
             addResultBody "Collection:$cl\n$msg"

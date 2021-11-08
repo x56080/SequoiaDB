@@ -793,6 +793,7 @@ function exportData()
     local cl
     local hosts
     local msg
+    local password
 
     exec_cmd "touch $export_tmp_file"
     exec_cmd "mkfifo $TMP_FIFO_FILE_1 2>&1"
@@ -820,9 +821,11 @@ function exportData()
         {
             cl=$(getCLInfo $export_cmd)
             hosts=$(getHostInfo $export_cmd)
+            password=$(getPassword $export_cmd)
             msg=$(eval "$export_cmd" 2>&1)
             if [ $? -ne 0 -o "$opt_debug" = "true" ]; then
                 msg="$hosts\nCollection:$cl\n$msg"
+                export_cmd=${export_cmd/--password $password/}
                 addResultBody "$msg" "Export cmd:$export_cmd"
             else
                 msg="$hosts\nCollection:$cl\n$msg\n"
