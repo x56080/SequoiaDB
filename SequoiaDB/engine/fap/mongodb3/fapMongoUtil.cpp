@@ -472,5 +472,57 @@ error :
    goto done ;
 }
 
+INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
+                              BSONObj &mongoErrObj )
+{
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder berror ;
+   BSONElement indexNameEle ;
+   BSONElement indexValueEle ;
+   stringstream ss ;
+
+   try
+   {
+      berror.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+      berror.append( FAP_MONGO_FIELD_NAME_CODE, SDB_IXM_DUP_KEY ) ;
+
+      ss << getErrDesp( SDB_IXM_DUP_KEY ) ;
+
+      indexNameEle = sdbErrobj.getField( FIELD_NAME_INDEXNAME ) ;
+      indexValueEle = sdbErrobj.getField( FIELD_NAME_INDEXVALUE ) ;
+
+      if ( clFullName )
+      {
+         ss << " collection: " << clFullName ;
+      }
+
+      if ( String == indexNameEle.type() )
+      {
+         ss << " index: " << indexNameEle.String() ;
+      }
+
+      if ( Object == indexValueEle.type() )
+      {
+         ss << " dup key: " << indexValueEle.embeddedObject().toString() ;
+      }
+
+      berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, ss.str().c_str() ) ;
+
+      mongoErrObj = berror.obj() ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when building duplicate key "
+              "error obj: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
 }
 

@@ -90,7 +90,7 @@ private:
 
    void  _resetBuffers() ;
    INT32 _autoCreateCS( const CHAR *pCsName, BSONObj &errorObj ) ;
-   INT32 _autoCreateCL( const CHAR *pCSName, const CHAR *pClFullName, 
+   INT32 _autoCreateCL( const CHAR *pCSName, const CHAR *pClFullName,
                         BSONObj &errorObj ) ;
    INT32 _autoInsert( const CHAR *pClFullName, const BSONObj &matcher,
                       const BSONObj &updatorObj, BSONObj &target,
@@ -134,6 +134,9 @@ private:
                                engine::pmdEDUEvent &event,
                                mongoSessionCtx &sessCtx ) ;
 
+   void    _buildErrorObj( const engine::rtnContextBuf &contextBuff,
+                           INT32 errCode, BSONObj &errObj ) ;
+
 private:
    MsgOpReply              _replyHeader ;
    BOOLEAN                 _masterRead ;
@@ -148,6 +151,7 @@ private:
    INT64                   _cursorIdOfPostEvent ;
    ossQueue<engine::pmdEDUEvent> _fapEvents ;
    ossQueue<engine::pmdEDUEvent> _coordEvents ;
+   const CHAR*             _clFullName ;
 } ;
 
 typedef _mongoSession mongoSession ;

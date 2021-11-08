@@ -109,7 +109,8 @@ _mongoSession::_mongoSession( SOCKET fd, engine::IResource *pResource )
                   _pResource( pResource ),
                   _isAuthed( FALSE ), _requestIDOfPostEvent( 0 ),
                   _opCodeOfPostEvent( 0 ),
-                  _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID )
+                  _cursorIdOfPostEvent( SDB_INVALID_CONTEXTID ),
+                  _clFullName( NULL )
 {
 }
 
@@ -1428,6 +1429,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
    MONGO_CMD_TYPE cmdType = pCommand->type() ;
    BOOLEAN isNewCS = FALSE ;
    BOOLEAN needKillCursor = FALSE ;
+   _clFullName = pCommand->clFullName() ;
 
    while ( TRUE )
    {
@@ -1569,7 +1571,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 
    if ( rc )
    {
-      errorObj = mongoGetErrorBson( rc ) ;
+      _buildErrorObj( _contextBuff, _replyHeader.flags, errorObj ) ;
       _contextBuff = engine::rtnContextBuf( errorObj ) ;
       _replyHeader.numReturned = 1 ;
 
@@ -1602,6 +1604,39 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
 done:
    PD_TRACE_EXITRC( SDB_FAPMONGO_PROCESSMSG2, rc ) ;
    return rc ;
+error:
+   goto done ;
+}
+
+void _mongoSession::_buildErrorObj( const engine::rtnContextBuf &contextBuff,
+                                    INT32 errCode, BSONObj &errObj )
+{
+   INT32 rc = SDB_OK ;
+   BSONObj obj ;
+   errObj = BSONObj() ;
+
+   if ( NULL == contextBuff.data() )
+   {
+      goto done ;
+   }
+
+   obj = BSONObj( contextBuff.data() ) ;
+
+   if ( SDB_IXM_DUP_KEY == errCode )
+   {
+      rc = mongoBuildDupkeyErrObj( obj, _clFullName, errObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   }
+
+done:
+   if ( errObj.isEmpty() )
+   {
+      errObj = mongoGetErrorBson( errCode ) ;
+   }
+   return ;
 error:
    goto done ;
 }

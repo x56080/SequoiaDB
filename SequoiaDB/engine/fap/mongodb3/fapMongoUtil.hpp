@@ -143,5 +143,8 @@ INT32 mongoGetNumberLongElement ( const BSONObj &obj,
                                   const CHAR *pFieldName,
                                   INT64 &value ) ;
 
+INT32 mongoBuildDupkeyErrObj( const BSONObj &sdbErrobj, const CHAR* clFullName,
+                              BSONObj &mongoErrObj ) ;
+
 }
 #endif
