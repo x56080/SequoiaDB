@@ -440,17 +440,17 @@ namespace engine
             goto error ;
          }
          SDB_ASSERT ( pos <= getNumKeyNode(), "pos is out of range" ) ;
-         // if we still don't have enough space, let's return error
-         if ( bytesNeeded > getFreeSize() )
-         {
-            rc = SDB_IXM_NOSPC ;
-            goto error ;
-         }
          // after reorg, the pos may points to an element with different lchild,
          // in this case we should be careful and perform find again
          if ( getChildExtentID( pos ) != ch )
          {
             rc = SDB_IXM_REORG_DONE ;
+            goto error ;
+         }
+         // if we still don't have enough space, let's return error
+         if ( bytesNeeded > getFreeSize() )
+         {
+            rc = SDB_IXM_NOSPC ;
             goto error ;
          }
       }
@@ -2772,6 +2772,7 @@ namespace engine
                                        _pageSize,
                                        pBuffer, indexExtentDumpBufferSize,
                                        NULL,
+                                       DMS_SU_DMP_OPT_HEX |
                                        DMS_SU_DMP_OPT_FORMATTED,
                                        childExtents,
                                        TRUE ) ;
