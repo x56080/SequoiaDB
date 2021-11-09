@@ -294,7 +294,7 @@ namespace engine
                       collectionName ) ;
          goto error ;
       }
-      if ( !sys && dmsIsSysCLName(collectionName) )
+      if ( !sys && dmsIsSysCLName( collectionName ) )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG ( PDERROR, "collection name is system: %s", collectionName ) ;

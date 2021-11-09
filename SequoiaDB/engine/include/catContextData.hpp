@@ -451,7 +451,8 @@ namespace engine
          virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
       protected :
-         std::string _newCLFullName ;
+         std::string   _newCLFullName ;
+         ossPoolString _newCLShortName ;
    } ;
 
    typedef class _catCtxRenameCL catCtxRenameCL ;

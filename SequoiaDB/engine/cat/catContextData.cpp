@@ -2706,21 +2706,23 @@ namespace engine
 
       SDB_ASSERT( MSG_CAT_RENAME_CL_REQ == _cmdType, "Wrong command type" ) ;
 
-      string csName, oldCLName, newCLName ;
+      const CHAR* csName = NULL ;
+      const CHAR* oldCLName = NULL ;
+      const CHAR* newCLName = NULL ;
 
       try
       {
-         rc = rtnGetSTDStringElement ( _boQuery, CAT_COLLECTIONSPACE, csName ) ;
+         rc = rtnGetStringElement ( _boQuery, CAT_COLLECTIONSPACE, &csName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       CAT_COLLECTIONSPACE, rc ) ;
 
-         rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_OLDNAME,
-                                      oldCLName ) ;
+         rc = rtnGetStringElement( _boQuery, CAT_COLLECTION_OLDNAME,
+                                   &oldCLName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                      CAT_COLLECTION_NAME, rc ) ;
+                      CAT_COLLECTION_OLDNAME, rc ) ;
 
-         rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_NEWNAME,
-                                      newCLName ) ;
+         rc = rtnGetStringElement( _boQuery, CAT_COLLECTION_NEWNAME,
+                                   &newCLName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       CAT_COLLECTION_NEWNAME, rc ) ;
 
@@ -2731,6 +2733,8 @@ namespace engine
          _newCLFullName = csName ;
          _newCLFullName += "." ;
          _newCLFullName += newCLName ;
+
+         _newCLShortName = newCLName ;
       }
       catch ( exception & e )
       {
@@ -2760,6 +2764,12 @@ namespace engine
 
       try
       {
+         // make sure new collection name is valid
+         rc = dmsCheckCLName( _newCLShortName.c_str(), FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to check collection name [%s], rc: %d",
+                      _newCLShortName.c_str(), rc ) ;
+
          // lock old cl
          rc = catGetAndLockCollection( _targetName, boOldCL,
                                        cb, &_lockMgr, EXCLUSIVE ) ;
