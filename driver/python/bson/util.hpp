@@ -254,6 +254,24 @@
       }                                                                 \
    }while( FALSE )
 
+#define MAKE_PYLIST_TO_STRARR( py_list, str_arr )                       \
+   do                                                                   \
+   {                                                                    \
+      if( !PyList_Check( py_list) )                                     \
+      {                                                                 \
+         rc = SDB_INVALIDARGS ;                                         \
+         goto done ;                                                    \
+      }                                                                 \
+                                                                        \
+      Py_ssize_t list_size = PyList_Size( py_list ) ;                   \
+      for ( int idx = 0 ; idx < list_size ; ++idx )                     \
+      {                                                                 \
+         CHAR *str = NULL ;                                             \
+         str = PyString_AsString( PyList_GetItem( py_list, idx) ) ;     \
+         str_arr[idx] = str;                                            \
+      }                                                                 \
+   }while( FALSE )
+
 struct module_state {
     PyObject *error;
 };
