@@ -803,7 +803,6 @@ namespace vessel
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
       requestContext *context = lpb._lh.getContext();
-      BOOLEAN remapped = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -855,7 +854,6 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
-         remapped = TRUE;
       }
       else if (!lpb.getCowTrigger().isMutablePid())
       {
@@ -866,7 +864,6 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
-         remapped = TRUE;
       }
       
       SDB_ASSERT(rpb.isValid(), "must be valid");
@@ -879,6 +876,8 @@ namespace vessel
             goto error;
          }
       }
+
+      applyCheckpointIfNecessary(context);
       
    done:
       return rc;
@@ -948,6 +947,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to init page:%d", rc);
          goto error;
       }
+
+      applyCheckpointIfNecessary(context);
    done:
       return rc;
    error:
@@ -1171,6 +1172,8 @@ namespace vessel
       {
          lpids[i] = ((const mappedLogicalPageId *)buffer)[i].getLpid();
       }
+
+      applyCheckpointIfNecessary(context);
    done:
       if (NULL != buffer)
       {
@@ -1280,6 +1283,8 @@ namespace vessel
       {
          releaseLpidsPreallocated(context, notReservedLpids.size(), notReservedLpids.data());
       }
+
+      applyCheckpointIfNecessary(context);
    done:
       return rc;
    error:
@@ -2585,7 +2590,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
-      if (_lpidCache.getModifieldCount() <= (INT32)CHECKPOINT_TRIGGER_PAGE_COUNT)
+      if ((INT32)CHECKPOINT_TRIGGER_PAGE_COUNT <= _lpidCache.getModifieldCount())
       {
          if (_checkpointContext.tryToApplyCheckpoint())
          {

@@ -74,6 +74,8 @@ namespace vessel
          virtual INT32 isSparseSegment(UINT32 globalSegmentId,
                                        BOOLEAN &isSparse)const;
 
+         virtual BOOLEAN mayBeSparse()const {return TRUE;}
+
          virtual BOOLEAN hasSparseFile()const {return FALSE;}
 
       private:

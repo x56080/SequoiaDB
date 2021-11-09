@@ -44,6 +44,7 @@
 #include "vessel/ISesseionManager.h"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
+#include "pd.hpp"
 #include <atomic>
 
 using namespace engine::vessel;
@@ -142,6 +143,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
                                       
          static test_logger *instance()
          {
+            sdbEnablePD("/tmp/sdb.log", 1, 1000);
             static test_logger logger;
             return &logger;
          }

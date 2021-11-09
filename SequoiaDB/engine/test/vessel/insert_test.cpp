@@ -702,13 +702,7 @@ void thread_insert_index(vesselImpl *db, test_logger *logger,
    test_session session(logger);
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
-   builder.reset();
-   builder.append("a", 1);   /// just for benchmark.
-   builder.append("b", 2);
-   builder.append("c", pad, 1024);
-   bson::BSONObj obj = builder.done();
-   slice record;
-   record.reset(obj.objsize(), obj.objdata());
+
 
    collectionHandler handler;
    INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
@@ -716,6 +710,13 @@ void thread_insert_index(vesselImpl *db, test_logger *logger,
 
    for (UINT32 i = 0; i < count; ++i)
    {
+      builder.reset();
+      builder.append("a", ossRand());   /// just for benchmark.
+      builder.append("b", 2);
+      builder.append("c", pad, 1024);
+      bson::BSONObj obj = builder.done();
+      slice record;
+      record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
       rc = handler.insert(&session, record, DPS_TRANS_ID(),
                           INVALID_STRIPING_ID,
@@ -815,8 +816,7 @@ TEST_F(insert_test, test7)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-/// insert with nonunique index
-TEST_F(insert_test, test8_1)
+void insert_test_nonunique_index(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -845,7 +845,7 @@ TEST_F(insert_test, test8_1)
    collectionHandler clHandler;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -878,8 +878,19 @@ TEST_F(insert_test, test8_1)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-/// insert with unique index
-TEST_F(insert_test, test8_2)
+/// insert with nonunique index
+TEST_F(insert_test, test8_1_1)
+{
+   insert_test_nonunique_index(INDEX_TYPE_LSM);
+}
+
+TEST_F(insert_test, test8_1_2)
+{
+   insert_test_nonunique_index(INDEX_TYPE_BTREE);
+}
+
+
+void insert_test_unique_index(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
@@ -908,7 +919,7 @@ TEST_F(insert_test, test8_2)
    collectionHandler clHandler;
 
    indexParameters params;
-   params.type = INDEX_TYPE_LSM;
+   params.type = type;
    params.isUnique = TRUE;
 
    rc = db.open(&session, &resource, options);
@@ -942,4 +953,15 @@ TEST_F(insert_test, test8_2)
 
    rc = db.close(&session, co);
    ASSERT_EQ(SDB_OK, rc);
+}
+
+/// insert with unique index
+TEST_F(insert_test, test8_2_1)
+{
+   insert_test_unique_index(INDEX_TYPE_LSM);
+}
+
+TEST_F(insert_test, test8_2_2)
+{
+   insert_test_unique_index(INDEX_TYPE_BTREE);
 }

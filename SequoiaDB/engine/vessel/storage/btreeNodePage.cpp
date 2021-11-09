@@ -46,10 +46,12 @@ namespace vessel
    void btreeItemSlot::initAsNonLeafFormat(const recordID &rid,
                                           UINT16 offset,
                                           UINT16 size,
-                                          PAGE_ID leftChild)
+                                          PAGE_ID leftChild,
+                                          BOOLEAN isExternalKey)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(0 != offset && 0 != size, "can not be invalid");
+      SDB_ASSERT(0 != size, "can not be invalid");
+      SDB_ASSERT(!(!isExternalKey && 0 == offset), "can not be invalid");
       reset();
       OSS_BIT_SET(flags, (FLAG_IN_USED));
       ridSlot = rid.getSlotID();
@@ -57,6 +59,10 @@ namespace vessel
       data.key.offset = offset;
       data.key.size = size;
       data.nlf.leftChild = leftChild;
+      if (isExternalKey)
+      {
+         OSS_BIT_SET(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
+      }
       return;
    }
 
@@ -72,31 +78,14 @@ namespace vessel
       ridPage = rid.getPageID();
       data.key.offset = offset;
       data.key.size = size;
-      /// only leaf node can be inited with compressed key
-      data.lf.prefixSlot = prefixPos;
+      
       if (INVALID_RECORD_SLOT_ID != prefixPos)
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
+         data.lf.prefixSlot = prefixPos;
       }
       return;
    }
-
-   void btreeItemSlot::initWhenKeyInExtPage(const recordID &rid,
-                                            PAGE_ID leftChild,
-                                            PAGE_ID extp)
-   {
-      SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != leftChild, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != extp, "can not be invalid");
-      reset();
-      OSS_BIT_SET(flags, (FLAG_IN_USED|FLAG_KEY_IN_EXTERNAL_PAGE));
-      ridSlot = rid.getSlotID();
-      ridPage = rid.getPageID();
-      data.ekf.leftChild = leftChild;
-      data.ekf.extp = extp;
-      return;
-   }
-
 ////////btreeItemSlot end
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,

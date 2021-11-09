@@ -213,11 +213,10 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(_bac.getEndNodeInPath().isRoot(), "must be root");
-
       do
       {
          btreeNode node = _bac.getEndNodeInPath();
+
          if (node.isLeaf())
          {  
             if (node.hasFreeSpaceToInsert(key.dataSize()))
@@ -289,6 +288,7 @@ namespace vessel
             }
             else/// be sure to traverse down from this non-leaf node
             {
+               SDB_ASSERT(node.isRoot() || node.hasFreeSpaceToInsert(0), "impossible");
                btreePathFootprint footprint;
                footprint.setPos(location.slotPos);
                footprint.setUpperBound(location.isUpperBound);
@@ -325,6 +325,7 @@ namespace vessel
       SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
 
       btreeSplitRaisedKey raisedKey;
+      DPS_TRANS_ID transID;
       btreeNode father;
       btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
@@ -337,6 +338,7 @@ namespace vessel
          goto done;
       }
 
+      SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1), "must be accessing");
       father = _bac.getNodeInPath(node.getDepth() - 1);
       if (!father.ensureExclusiveLocking())
       {
@@ -351,23 +353,26 @@ namespace vessel
          goto error;
       }
 
+      SDB_ASSERT(!father.hasExternalKey(), "impossible");
+      SDB_ASSERT(father.isRoot() || father.hasFreeSpaceToInsert(0), "impossible");
+
+      transID = node.getTransID();
       rc = node.split(raisedKey);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to split node[%d], rc:%d",
-                node.getBuffer()->getLogicalPid(), rc);
+               node.getBuffer()->getLogicalPid(), rc);
          goto error;
       }
-
-      SDB_ASSERT(!node.hasExternalKey(), "impossible");
 
       _bac.popEnd();
-      rc = insertRaisedKeyRecursively(raisedKey, node.getTransID());
+      rc = insertRaisedKeyRecursively(raisedKey, transID);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to insert raised key into ancestors:%d", rc);
+         PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
          goto error;
       }
+   
    done:
       return rc;
    error:
@@ -446,6 +451,7 @@ namespace vessel
             goto done;
          }
 
+         SDB_ASSERT(father.isRoot() || father.hasFreeSpaceToInsert(0), "impossible");
          rc = father.prepareToWrite();
          if (SDB_OK != rc)
          {
@@ -502,6 +508,7 @@ namespace vessel
       //logicalPageBuffer entryBuffer;
       //indexEntryPageAccessor accessor;
       //UINT32 rootUpdatedTimes = 0;
+      BOOLEAN wasLeaf = node.isLeaf();
 
       SDB_ASSERT(_ic->getObj().getBtreeRoot() == node.getBuffer()->getLogicalPid(),
                  "must be same");
@@ -598,8 +605,13 @@ namespace vessel
 
       _ic->getObj().updateBtreeRootSplitTimes(node.getSplitedTimes());
 
-      /// clear accessing path cause we updated root node.
-      _bac.clearAccessPath();
+      SDB_ASSERT(node.isRoot(), "must be root");
+      SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+      SDB_ASSERT(!newRootNode.isRoot(), "can not be root");
+      if (wasLeaf)
+      {
+         SDB_ASSERT(newRootNode.isLeaf(), "must be leaf");
+      }
    done:
       //entryBuffer.fini();
       newRootBuffer.fini();
@@ -692,7 +704,7 @@ namespace vessel
       SDB_ASSERT(node.getBuffer()->isWritable(), "must be writable");
       SDB_ASSERT(!node.hasExternalKey(), "must split node first");
       SDB_ASSERT(!node.isLeaf(), "can not be leaf");
-      SDB_ASSERT(node.isRoot() || node.hasFreeSpaceToInsertRaisedKey(0),
+      SDB_ASSERT(node.isRoot() || node.hasFreeSpaceToInsert(0),
                  "one slot should always be reserved");
       
       /// one slot always be reserved
@@ -717,45 +729,45 @@ namespace vessel
       }
       else
       {
-         if (_bac.isStillAccessing(node.getDepth() - 1))
+         SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1),
+                    "should keep accessing");
+         btreeNode father = _bac.getNodeInPath(node.getDepth() - 1);
+         SDB_ASSERT(father.hasFreeSpaceToInsert(0), "impossible");
+         if (father.ensureExclusiveLocking())
          {
-            btreeNode father = _bac.getNodeInPath(node.getDepth() - 1);
-            if (father.ensureExclusiveLocking())
+            btreeSplitRaisedKey newRaisedKey;
+
+            rc = father.prepareToWrite();
+            if (SDB_OK != rc)
             {
-               btreeSplitRaisedKey newRaisedKey;
+               PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
+               goto error;
+            }
 
-               rc = father.prepareToWrite();
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
-                  goto error;
-               }
+            rc = node.splitNonLeafAndInsert(raisedKey, transID, newRaisedKey);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
+               goto error;
+            }
 
-               rc = node.splitNonLeafAndInsert(raisedKey, transID, newRaisedKey);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
-                  goto error;
-               }
-
-               _bac.popEnd();
-               rc = insertRaisedKeyRecursively(newRaisedKey, transID);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
-                  goto error;
-               }
-
-               goto done;
+            _bac.popEnd();
+            rc = insertRaisedKeyRecursively(newRaisedKey, transID);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
+               goto error;
             }
          }
-
-         /// will create external key page
-         rc = node.insertRaisedKey(raisedKey, transID);
-         if (SDB_OK != rc)
+         else
          {
-            PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
-            goto error;
+            /// will create external key page
+            rc = node.insertRaisedKeyAsExtKey(raisedKey, transID);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
+               goto error;
+            }
          }
       }
    done:

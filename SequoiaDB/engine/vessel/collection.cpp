@@ -2460,7 +2460,6 @@ namespace vessel
             }
             
             if (!sorter->push(batch))
-            if (SDB_DMS_EOC == rc)
             {
                entry.reset(entry.getSeq(), rr.getCurrentRid().getSlotID());
                buildingContext->updateBuildingHighBound(entry);

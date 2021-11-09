@@ -132,9 +132,12 @@ namespace vessel
                                   const DPS_TRANS_ID &transID,
                                   btreeSplitRaisedKey &raisedKey);
 
-         /// non-leaf node or new root only
+         /// non-leaf node only
          INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  const DPS_TRANS_ID &transID);
+
+         INT32 insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey,
+                                       const DPS_TRANS_ID &transID);
 
          INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
                                        const DPS_TRANS_ID &transID,
@@ -223,7 +226,7 @@ namespace vessel
          void commit();
          void updateTransSN(const DPS_TRANS_ID &transID);
 
-         INT32 _compact(BOOLEAN tryToRestoreExternalKey=TRUE);
+         INT32 _compact(UINT32 reserved);
 
          INT32 _leafInsert(const ixmKey &key,
                            const recordID &rid,
@@ -237,9 +240,12 @@ namespace vessel
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
 
+         INT32 _insertExternalKey(const btreeSplitRaisedKey &raisedKey,
+                                  RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
 
-         INT32 _split(RECORD_SLOT_ID pivot,
-                        PAGE_ID &rightNode);
+
+         INT32 _splitAndCompact(RECORD_SLOT_ID pivot,
+                                PAGE_ID &rightNode);
 
          INT32 insertExternalKey(RECORD_SLOT_ID pos,
                                  const ixmKey &key,
@@ -249,7 +255,7 @@ namespace vessel
          INT32 getItemWithExtKey(RECORD_SLOT_ID pos,
                                  btreeIndexItem &item)const;
 
-         INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID pivot,
+         INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID begin,
                                        slice &node)const;
 
          INT32 findSplitPivot(BOOLEAN idleRight,

@@ -114,12 +114,12 @@ namespace vessel
       UINT32 clLogicalID = DMS_INVALID_LOGICCLID;
       UINT32 indexId = INVALID_LOGICAL_INDEX_ID;
       UINT32 flags = 0;
-      UINT16 totalFreeSpace = 0;
-      UINT16 freeSapceAfterLastSlot = 0;
-      UINT16 totalSlotCount = 0;
-      UINT16 externalKeySize = 0;
+      UINT32 totalFreeSpace = 0;
+      UINT32 freeSapceAfterLastSlot = 0;
+      UINT32 totalSlotCount = 0;
       UINT32 rightChild = INVALID_PAGE_ID;
       UINT32 splitedTimes = 0;
+      UINT32 externalKeyPage = INVALID_PAGE_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
       UINT16 prefixCount = 0;
@@ -176,16 +176,13 @@ namespace vessel
       void initAsNonLeafFormat(const recordID &rid,
                                UINT16 offset,
                                UINT16 size,
-                               PAGE_ID leftChild);
+                               PAGE_ID leftChild,
+                               BOOLEAN isExternalKey);
 
       void initAsLeafFormat(const recordID &rid,
                             UINT16 offset,
                             UINT16 size,
                             RECORD_SLOT_ID prefixPos = INVALID_RECORD_SLOT_ID);
-
-      void initWhenKeyInExtPage(const recordID &rid,
-                                PAGE_ID leftChild,
-                                PAGE_ID extp);
 
       OSS_INLINE BOOLEAN isMarkedDeleted()const
       {
@@ -203,11 +200,7 @@ namespace vessel
       {
          return isKeyCompressed() && 0 == data.key.size;
       }
-      OSS_INLINE PAGE_ID getExternalPage()const
-      {
-         return data.ekf.extp;
-      }
-   
+
       union slotData
       {
          struct
@@ -228,12 +221,6 @@ namespace vessel
             UINT16 prefixSlot;
             UINT16 flags;
          }lf; // leaf format
-
-         struct
-         {
-            UINT32 extp;
-            UINT32 leftChild;
-         }ekf;/// external key format
 
          UINT64 value = 0;
       };//slotData
