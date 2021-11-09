@@ -168,34 +168,53 @@ class client(object):
     USER = ""
     PSW = ""
 
-    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False):
-        """initialize when product a object.
+    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False, host_list=None, policy=None, token=None,
+                 cipher_file=None):
+        """initialize when product an object.
 
-           it will try to connect to SequoiaDB using host and port given,
-           localhost and 11810 are the default value of host and port,
-           user and password are "".
+           it will try to connect to SequoiaDB.
 
         Parameters:
-           Name       Type      Info:
-           host       str       The hostname or IP address of SequoiaDB server.
-                                      If None, "localhost" will be used.
-           service    str/int   The service name or port number of SequoiaDB server.
-                                      If None, "11810" will be used.
-           user       str       The user name to access to SequoiaDB server.
-                                      If None, "" will be used.
-           psw        str       The user password to access to SequoiaDB server.
-                                      If None, "" will be used.
-           ssl        bool      Decide whether to use ssl or not, default is False.
+           Name           Type      Info:
+           host           str       The hostname or IP address of SequoiaDB server. If None, "localhost" will be used.
+           service        str/int   The service name or port number of SequoiaDB server. If None, "11810" will be used.
+           user           str       The user name to access to SequoiaDB server. If None, "" will be used.
+           psw            str       The user password to access to SequoiaDB server. If None, "" will be used.
+           ssl            bool      Decide whether to use ssl or not, default is False.
+           host_list      list      The list contains hosts. If both 'host' and 'host_list' exist, the 'host' is
+                                    preferred, if the size of the 'host_list' is 0, "localhost" will be used.
+                                    eg.
+                                    [ {'host':'sdbservre1', 'service':11810},
+                                      {'host':'sdbservre2', 'service':11810},
+                                      {'host':'sdbservre3', 'service':11810} ]
+           policy         str       The policy of select hosts. it must be string of 'random' or 'local_first' or
+                                    'one_by_one', default is 'random'. 'local_first' will choose local host firstly,
+                                    then use 'random' if no local host.
+           token          str       The Password encryption token, it needs to used with 'cipher_file'.
+           cipher_file    str       The cipher file location, if both 'psw' and 'cipher_file' exist, the 'psw' is
+                                    preferred.
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         self.__connected = False
-        if host is None:
-            self.__host = self.HOST
-        elif isinstance(host, str_type):
-            self.__host = host
+        _host_list = None
+
+        if host is not None:
+            if isinstance(host, str_type):
+                self.__host = host
+            else:
+                raise SDBTypeError("host must be an instance of str_type")
         else:
-            raise SDBTypeError("host must be an instance of str_type")
+            if host_list is None:
+                self.__host = self.HOST
+            elif isinstance(host_list, list):
+                if len(host_list) is 0 :
+                    self.__host = self.HOST
+                else:
+                    _host_list = host_list
+            else:
+                raise SDBTypeError("host_list must be an instance of list")
 
         if service is None:
             self.__service = self.SERVICE
@@ -230,8 +249,12 @@ class client(object):
         except SystemError:
             raise SDBSystemError(SDB_OOM, "Failed to alloc client")
 
-        # try to connect with default user and password
-        self.connect(self.__host, self.__service, user=_user, password=_psw)
+        if _host_list is None:
+            self.connect(self.__host, self.__service, user=_user, password=_psw, token=token,
+                         cipher_file=cipher_file)
+        else:
+            self.connect_to_hosts(_host_list, user=_user, password=_psw, token=token,
+                                  cipher_file=cipher_file, policy=policy)
 
     def __del__(self):
         """release resource when del called.
@@ -312,29 +335,29 @@ class client(object):
         """try to connect a host in specified hosts
 
         Parameters:
-           Name        Type  Info:
-           hosts       list  The list contains hosts.
+           Name           Type     Info:
+           hosts          list     The list contains hosts.
                                    eg.
-                                   [ {'host':'localhost',     'service':'11810'},
-                                     {'host':'192.168.10.30', 'service':'11810'},
-                                     {'host':'192.168.20.63', 'service':11810}, ]
-           **kwargs          Useful options are below:
-           -  user     str   The user name to access to database.
-           -  password str   The user password to access to database.
-           -  policy   str   The policy of select hosts. it must be string
-                                of 'random' or 'local_first' or 'one_by_one', default is 'random'.
-                                'local_first' will choose local host firstly,
-                                then use 'random' if no local host.
+                                   [ {'host':'sdbservre1', 'service':11810},
+                                     {'host':'sdbservre2', 'service':11810},
+                                     {'host':'sdbservre3', 'service':11810} ]
+           **kwargs       Useful options are below:
+           -  user        str      The user name to access to database.
+           -  password    str      The user password to access to database.
+           -  policy      str      The policy of select hosts. it must be string of 'random' or 'local_first' or
+                                   'one_by_one', default is 'random'. 'local_first' will choose local host firstly,
+                                   then use 'random' if no local host.
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         if not isinstance(hosts, list):
             raise SDBTypeError("hosts must be an instance of list")
-        if "policy" in kwargs:
-            policy = kwargs.get("policy")
-        else:
+
+        policy = kwargs.get("policy")
+        if policy is None:
             policy = "random"
-        if not isinstance(policy, str):
+        elif not isinstance(policy, str):
             raise SDBTypeError("policy must be an instance of str_type")
 
         if len(hosts) == 0:
@@ -357,6 +380,18 @@ class client(object):
             _psw = kwargs.get("password")
         else:
             _psw = self.PSW
+
+        token = kwargs.get("token")
+        if token is None:
+            token = ""
+        elif not isinstance(token, str_type):
+            raise SDBTypeError("token must be an instance of str_type")
+
+        cipher_file = kwargs.get("cipher_file")
+        if cipher_file is None:
+            cipher_file = ""
+        elif not isinstance(cipher_file, str_type):
+            raise SDBTypeError("cipher_file must be an instance of str_type")
 
         # connect to localhost first
         if "local_first" == policy:
@@ -381,7 +416,7 @@ class client(object):
 
                     try:
                         self.connect(self.__host, self.__service,
-                                     user=_user, password=_psw)
+                                     user=_user, password=_psw, token=token, cipher_file=cipher_file)
                     except SDBBaseError:
                         continue
 
@@ -416,7 +451,7 @@ class client(object):
 
             try:
                 self.connect(self.__host, self.__service,
-                             user=_user, password=_psw)
+                             user=_user, password=_psw, token=token, cipher_file=cipher_file)
             except SDBBaseError:
                 position += 1
                 if position >= size:
@@ -432,12 +467,13 @@ class client(object):
         """connect to specified database
 
         Parameters:
-           Name        Type     Info:
-           host        str      The host name or IP address of database server.
-           service     int/str  The service name of database server.
-           **kwargs             Useful options are below:
-           -  user     str      The user name to access to database.
-           -  password str      The user password to access to database.
+           Name           Type     Info:
+           host           str      The host name or IP address of database server.
+           service        int/str  The service name of database server.
+           **kwargs                Useful options are below:
+           -  user        str      The user name to access to database.
+           -  password    str      The user password to access to database,
+
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -471,8 +507,22 @@ class client(object):
         else:
             raise SDBTypeError("password must be an instance of str_type")
 
-        rc = sdb.sdb_connect(self._client, self.__host, self.__service,
-                             _user, _psw)
+        token = kwargs.get("token")
+        if token is None:
+            token = ""
+        elif not isinstance(token, str_type):
+            raise SDBTypeError("token must be an instance of str_type")
+
+        cipher_file = kwargs.get("cipher_file")
+        if cipher_file is None:
+            cipher_file = ""
+        elif not isinstance(cipher_file, str_type):
+            raise SDBTypeError("cipher_file must be an instance of str_type")
+
+        hosts_list = []
+        hosts_list.append(self.__host + ":" + self.__service)
+        rc = sdb.sdb_connect(self._client, hosts_list, len(hosts_list),
+                             _user, _psw, token, cipher_file)
         raise_if_error(rc, "Failed to connect to %s:%s" %
                        (self.__host, self.__service))
 

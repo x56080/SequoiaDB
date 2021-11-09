@@ -108,15 +108,19 @@ done:
 
 __METHOD_IMP(sdb_connect)
 {
-   INT32 rc            = 0 ;
-   PYOBJECT *obj       = NULL ;
-   sdb *client         = NULL ;
-   const CHAR *host    = NULL ;
-   const CHAR *service = NULL ;
-   const CHAR *user    = NULL ;
-   const CHAR *psw     = NULL ;
+   INT32 rc               = 0 ;
+   PYOBJECT *obj          = NULL ;
+   PYOBJECT *hostList     = NULL ;
+   sdb *client            = NULL ;
+   INT32 hostsNum         = 0 ;
+   const CHAR *user       = NULL ;
+   const CHAR *psw        = NULL ;
+   const CHAR *token      = NULL ;
+   const CHAR *cipherFile = NULL ;
+   const CHAR **pConnAddrs ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "Ossss", &obj, &host, &service, &user, &psw ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OOissss", &obj, &hostList, &hostsNum, &user, &psw,
+        &token, &cipherFile ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -124,7 +128,16 @@ __METHOD_IMP(sdb_connect)
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
 
-   rc = client->connect( host, service, user, psw ) ;
+   pConnAddrs = new const CHAR* [hostsNum] ;
+   MAKE_PYLIST_TO_STRARR( hostList, pConnAddrs ) ;
+
+   if ( '\0' != *psw || ( '\0' == *psw && '\0' == *cipherFile ) )
+   {
+      rc = client->connect( pConnAddrs, hostsNum, user, psw ) ;
+   } else
+   {
+      rc = client->connect( pConnAddrs, hostsNum, user, token, cipherFile ) ;
+   }
 
 done:
    return MAKE_RETURN_INT( rc ) ;
