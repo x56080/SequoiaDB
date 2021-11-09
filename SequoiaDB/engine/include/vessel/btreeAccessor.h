@@ -67,34 +67,28 @@ namespace vessel
          void fini();
 
          INT32 insert(const ixmKey &key,
-                      const recordID &rid,
-                      const DPS_TRANS_ID &transID);
+                      const recordID &rid);
 
       private:/// writing
 
          INT32 traverseDownAndInsert(const ixmKey &key,
                                      const recordID &rid,
-                                     const DPS_TRANS_ID &transID,
                                      BOOLEAN &obstructed);
 
-         INT32 insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey,
-                                          const DPS_TRANS_ID &transID);
+         INT32 insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey);
          INT32 createRootIfNotExists();
 
          INT32 insertWhenPathEndIsLeaf(const ixmKey &key,
                                        const recordID &rid,
-                                       const DPS_TRANS_ID &transID,
                                        BOOLEAN &obstructed);
 
          INT32 splitAndInsertWhenPathEndIsLeaf(const ixmKey &key,
                                                const recordID &rid,
-                                               const DPS_TRANS_ID &transID,
                                                BOOLEAN &obstructed);
 
          /// insert key and rid when raised key is null
          INT32 splitAndInsertWhenPathEndIsRoot(const ixmKey &key,
                                                const recordID &rid,
-                                               const DPS_TRANS_ID &transID,
                                                const btreeSplitRaisedKey *raisedKey=NULL);
 
          /// also can not be root

@@ -61,6 +61,7 @@ namespace vessel
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
       slice bufferSlice;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -155,8 +156,7 @@ namespace vessel
 
       rh.setSize(RDP_RECORD_HEAD_LEN + record.getSize());
       rh.setCompressionType(context->getCompressionType());
-      rh.setTransInfo(context->getTransID().getNodeID(),
-                      context->getTransID().getSN());
+      rh.setTransInfo(transID.getNodeID(), transID.getSN());
 
       if (context->needToLockRid())
       {
@@ -448,6 +448,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < recordHeadAndBodySize, "can not be zero");
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
       UINT32 fullNameSize = 0;
       rc = pageAccessor::prepareLog(context, rpb,
                                     LOG_TYPE_VESSEL_RDP_INSERT,
@@ -464,7 +465,7 @@ namespace vessel
                      context->getCLName().strLen() + 2;
 
       lrc->prepush(fullNameSize);
-      if (context->getTransID().isValid())
+      if (transID.isValid())
       {
          lrc->prepush(sizeof(DPS_TRANS_ID));
       }
@@ -518,6 +519,7 @@ namespace vessel
                                   context->getCLName().strLen() + 2;
       SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
       SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
       
       fullNameBuffer = context->allocateBuffer(fullNameBufferSize);
       if (NULL == fullNameBuffer)
@@ -545,11 +547,11 @@ namespace vessel
          goto error;
       }
 
-      if (context->getTransID().isValid())
+      if (transID.isValid())
       {
          rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_TRANSID,
                                         sizeof(DPS_TRANS_ID),
-                                        &(context->getTransID()), lrc);
+                                        &transID, lrc);
          if (SDB_OK != rc)
          {
             goto error;

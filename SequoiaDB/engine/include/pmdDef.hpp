@@ -176,6 +176,7 @@ namespace engine
       EDU_TYPE_FAPLISTENER,
       EDU_TYPE_DBMONITOR,
       EDU_TYPE_RTNNETWORK,
+
 #if defined (_LINUX)
       EDU_TYPE_SIGNALTEST,
 #endif // _LINUX
@@ -214,6 +215,11 @@ namespace engine
       EDU_TYPE_STP_NET_AGENT,
       EDU_TYPE_STP_MODULE,
       EDU_TYPE_STP_SESSION,
+
+      /// vessel begin
+      EDU_TYPE_VESSEL_CACHE_WATCHER,
+      EDU_TYPE_VESSEL_WORKER,
+      /// vessel end
 
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN

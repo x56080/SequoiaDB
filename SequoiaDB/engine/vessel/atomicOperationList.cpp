@@ -71,7 +71,7 @@ namespace vessel
       if (DPS_INVALID_LSN_OFFSET != lsn)
       {
          IRedoLogger *logger = context->getOuterResource()->logger;
-         logger->abortOplist(context->getSession(), lsn);
+         logger->abortOplist(context->getExecutor(), lsn);
       }
       fini();
       return;

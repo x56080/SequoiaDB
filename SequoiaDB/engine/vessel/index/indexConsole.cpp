@@ -229,8 +229,7 @@ namespace vessel
    INT32 indexConsole::insert(requestContext *context,
                               indexContext *ic,
                               const ixmKey &key,
-                              const recordID &rid,
-                              const DPS_TRANS_ID &transID)
+                              const recordID &rid)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isInitialized()))
@@ -250,7 +249,7 @@ namespace vessel
 
       if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
       {
-         rc = lsmInsert(context, ic, key, rid, transID);
+         rc = lsmInsert(context, ic, key, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
@@ -259,7 +258,7 @@ namespace vessel
       }
       else
       {
-         rc = btreeInsert(context, ic, key, rid, transID);
+         rc = btreeInsert(context, ic, key, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
@@ -275,15 +274,14 @@ namespace vessel
    INT32 indexConsole::lsmInsert(requestContext *context,
                                  indexContext *ic,
                                  const ixmKey &key,
-                                 const recordID &rid,
-                                 const DPS_TRANS_ID &transID)
+                                 const recordID &rid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != ic, "can not be null");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(rid.valid(), "can not be invalid");
-      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       globalIndexID gid(context->getLogicalCSID(),
                         context->getLogicalCLID(),
@@ -299,7 +297,7 @@ namespace vessel
          goto error;
       }
 
-      lsmEntry.shallowCopy(key, rid, lsn, transID);
+      lsmEntry.shallowCopy(key, rid, lsn, context->getExecutor()->getTransID());
 
       rc = lsm.keyInsert(lsmEntry);
       if (SDB_OK != rc)
@@ -542,7 +540,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lsm.truncateIndex(context->getSession()->getLastLSN());
+      rc = lsm.truncateIndex(context->getExecutor()->getEndLsn());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to truncate lsm index[%s]:%d",
@@ -790,7 +788,8 @@ namespace vessel
             recordID rid(context->getLastDmlRid().getPageID(),
                             context->getLastDmlRid().getSlotID());
 
-            ke.shallowCopy(key, rid, context->getLastDmlLSN(), context->getTransID());
+            ke.shallowCopy(key, rid, context->getLastDmlLSN(),
+                           context->getExecutor()->getTransID());
             rc = lsmBatch.put(meta, ke, NULL);
             if (SDB_OK != rc)
             {
@@ -892,8 +891,7 @@ namespace vessel
    INT32 indexConsole::btreeInsert(requestContext *context,
                                    indexContext *ic,
                                    const ixmKey &key,
-                                   const recordID &rid,
-                                   const DPS_TRANS_ID &transID)
+                                   const recordID &rid)
    {
       INT32 rc = SDB_OK;
       btreeAccessor accessor;
@@ -904,7 +902,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.insert(key, rid, transID);
+      rc = accessor.insert(key, rid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert into btree:%d", rc);
@@ -947,8 +945,7 @@ namespace vessel
               itr != req->getKeys().end(); ++itr)
          {
             rc = accessor.insert(ixmKeyOwned(*itr),
-                                 context->getLastDmlRid(),
-                                 context->getTransID());
+                                 context->getLastDmlRid());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to insert index key:%d", rc);

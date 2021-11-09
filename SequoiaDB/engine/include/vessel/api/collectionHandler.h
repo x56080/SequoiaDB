@@ -40,20 +40,20 @@
 #include "vessel/collectionHandle.h"
 #include "utilInsertResult.hpp"
 #include "dpsTransID.hpp"
-#include "vessel/cursorHandler.h"
+#include "vessel/api/cursorHandler.h"
 #include "vessel/indexOptions.h"
 #include "vessel/indexParameters.h"
 #include "vessel/cursorOptions.h"
 #include "../bson/bson.hpp"
 #include "vessel/collectionOptions.h"
 #include "rtnPredicate.hpp"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    class vesselImpl;
-   class ISession;
    class insertOptions;
    class IQueryFilter;
 
@@ -96,35 +96,34 @@ namespace vessel
          }
 
       public:
-         INT32 createIndex(ISession *session,
+         INT32 createIndex(IExecutor *executor,
                            const strSlice &indexName,
                            const bson::BSONObj &keyPattern,
                            const indexParameters &params,
                            const createIndexOptions &options);
 
-         INT32 listIndexes(ISession *session,
+         INT32 listIndexes(IExecutor *executor,
                            ossPoolVector<bson::BSONObj> &indexes);
 
       public:
-         INT32 insert(ISession *session,
+         INT32 insert(IExecutor *executor,
                       const slice &record,
-                      const DPS_TRANS_ID &transID,
                       STRIPING_ID striping,
                       const insertOptions &options,
                       utilInsertResult &res);
 
-         INT32 getTotalRecordCountInPageHead(ISession *session,
+         INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              UINT64 &count);
 
          /// The releasing of cursor is not related to handler.
          /// You can call their "close" functions in any order.
-         INT32 openScanCursor(ISession *session,
+         INT32 openScanCursor(IExecutor *executor,
                               IQueryFilter *filter,
                               const collectionScanOptions &scanOptions,
                               cursorHandler &cursor,
                               const cursorOptions *co=NULL);
 
-         INT32 openIndexScanCursor(ISession *session,
+         INT32 openIndexScanCursor(IExecutor *executor,
                                    const strSlice &indexName,
                                    const rtnPredicateList &predicate,
                                    const indexScanOptions &scanOptions,

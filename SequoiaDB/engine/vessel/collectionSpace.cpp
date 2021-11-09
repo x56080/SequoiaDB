@@ -642,14 +642,21 @@ namespace vessel
       {
          PAGE_ID lpid = COLLECTION_RECORD_PAGE_MIN_LPID + i;
          logicalPageBuffer lpb;
+         BOOLEAN mapped = FALSE;
 
-         rc = mds->getLogicalPageBuffer(context, lpid, mode, lpb);
-         if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
+         rc = mds->isLogicalPageMapped(context, lpid, mapped);
+         if (SDB_OK != rc)
          {
-            rc = SDB_OK;
+            PD_LOG(PDERROR, "failed to test if lpid[%d] mapped:%d", lpid, rc);
+            goto error;
+         }
+         else if (!mapped)
+         {
             continue;
          }
-         else if (SDB_OK != rc)
+
+         rc = mds->getLogicalPageBuffer(context, lpid, mode, lpb);
+         if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d", lpid, rc);
             goto error;

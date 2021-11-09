@@ -38,7 +38,6 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/collection.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/scanCLCursor.h"
 #include "vessel/requestContext.h"
 
 namespace engine
@@ -70,15 +69,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(),
-                        getEnv(),
-                        getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to open context:%d", rc);
-         goto error;
-      }
-
+      context.open(getExecutor(), getEnv(), getOuterResource());
       handle = &(cursor->getHandle());
 
       rc = context.lockSpaceID(handle->getSpaceID(), SHARED);

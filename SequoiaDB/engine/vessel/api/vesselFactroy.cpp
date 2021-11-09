@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = outerResource.h
+   Source File Name = vesselFactory.cpp
 
    Descriptive Name =
 
@@ -33,48 +33,23 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_OUTER_RESOURCE_H_
-#define VESSEL_OUTER_RESOURCE_H_
+#include "vessel/api/vesselFactory.h"
+#include "vessel/vesselImpl.h"
 
-#include "core.hpp"
-#include "oss.hpp"
-#include "vessel/indexKeyGenerator.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRedoLogger;
-   class ISessionManager;
-   class IIndexKeyGenerator;
-
-   class outerResource : public SDBObject
+   IVessel *vesselFactroy::createInstance()const
    {
-      public:
-         outerResource(){}
-         ~outerResource(){}
-         outerResource(const outerResource &o):
-         logger(o.logger),
-         indexKeyGen(o.indexKeyGen){}
-         outerResource &operator=(const outerResource &o)
-         {
-            logger = o.logger;
-            indexKeyGen = o.indexKeyGen;
-            return *this;
-         }
+      return SDB_OSS_NEW vesselImpl();
+   }
 
-      public:
-         BOOLEAN isValid()const
-         {
-            return NULL != logger &&
-                   !(!indexKeyGen);
-         }
+   void vesselFactroy::releaseInstance(IVessel *o)const
+   {
+      SAFE_OSS_DELETE(o);
+   }
+} // namespace vessel
 
-      public:
-         IRedoLogger *logger = NULL;
-         INDEX_KEY_GENERATOR indexKeyGen = indexKeyGenForBsonRecord;
-   };//class outerResource
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_OUTER_RESOURCE_H_
+} // namespace engine

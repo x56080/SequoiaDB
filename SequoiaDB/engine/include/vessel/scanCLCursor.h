@@ -98,7 +98,7 @@ namespace vessel
          }
 
       public:
-         virtual INT32 getNextRow(ISession *session,
+         virtual INT32 getNextRow(IExecutor *executor,
                                   cursorRow *row);
 
       private:

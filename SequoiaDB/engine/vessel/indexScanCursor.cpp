@@ -45,7 +45,7 @@ namespace vessel
       
    }
 
-   INT32 indexScanCursor::getNextRow(ISession *session,
+   INT32 indexScanCursor::getNextRow(IExecutor *executor,
                                      cursorRow *row)
    {
       INT32 rc = SDB_OK;
@@ -69,7 +69,7 @@ namespace vessel
 
       dsr = static_cast<dataScanRow *>(row);
 
-      rc = cursorKernal::getNext(session, content);
+      rc = cursorKernal::getNext(executor, content);
       if (SDB_OK != rc)
       {
          goto error;

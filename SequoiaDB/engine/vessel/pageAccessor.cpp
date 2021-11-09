@@ -43,7 +43,6 @@
 #include "vessel/IRedoLogger.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/logRecordContext.h"
-#include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
 #include "vessel/atomicOperationList.h"
 
@@ -128,11 +127,11 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
 
-      ISession *session = context->getSession();
+      IExecutor *executor = context->getExecutor();
       IRedoLogger *logger = context->getOuterResource()->logger;
    
       lrc->prepushDone();
-      rc = logger->prepare(session, lrc);
+      rc = logger->prepare(executor, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -156,10 +155,10 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
 
-      ISession *session = context->getSession();
+      IExecutor *executor = context->getExecutor();
       IRedoLogger *logger = context->getOuterResource()->logger;
 
-      rc = logger->pushLogRecordElement(session, lrc, tag, size, data);
+      rc = logger->pushLogRecordElement(executor, lrc, tag, size, data);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push log ele[%d], size[%d], rc:%d", tag, size, rc);
@@ -179,7 +178,7 @@ namespace vessel
       IRedoLogger *logger = context->getOuterResource()->logger;
       if (lrc->prepared())
       {
-         logger->abort(context->getSession(), lrc);
+         logger->abort(context->getExecutor(), lrc);
       }
       return;
    }
@@ -191,12 +190,12 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(lrc->prepared(), "can not be prepared");
 
-      ISession *session = context->getSession();
+      IExecutor *executor = context->getExecutor();
       IRedoLogger *logger = context->getOuterResource()->logger;
 
       if (lrc->needFullDump())
       {
-         rc = logger->pushLogRecordElement(session, lrc,
+         rc = logger->pushLogRecordElement(executor, lrc,
                                            DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
                                            lrc->getFullDumpDataSize(),
                                            lrc->getFullDumpBuffer());
@@ -206,7 +205,7 @@ namespace vessel
          }
       }
 
-      rc = logger->commit(session, lrc);
+      rc = logger->commit(executor, lrc);
       if (SDB_OK != rc)
       {
          goto error;

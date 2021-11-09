@@ -40,7 +40,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 scanCLCursor::getNextRow(ISession *session,
+   INT32 scanCLCursor::getNextRow(IExecutor *executor,
                                   cursorRow *row)
    {
       INT32 rc = SDB_OK;
@@ -70,7 +70,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cursorKernal::getNext(session, content);
+      rc = cursorKernal::getNext(executor, content);
       if (SDB_OK != rc)
       {
          goto error;

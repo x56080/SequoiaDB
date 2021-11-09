@@ -37,14 +37,13 @@
 #define VESSEL_TEST_TEST_DEF_H_
 
 #include "ossTypes.hpp"
-#include "vessel/ISession.h"
 #include "vessel/IRedoLogger.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/logRecordContext.h"
-#include "vessel/ISesseionManager.h"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
 #include "pd.hpp"
+#include "sdbInterface.hpp"
 #include <atomic>
 
 using namespace engine::vessel;
@@ -53,6 +52,8 @@ using namespace engine;
 static const CHAR *DATA_PATH = "/tmp/vessel_test";
 //static const CHAR *DATA_PATH = "/opt/test/vessel_test";
 static const CHAR *LSM_PATH = "/tmp/vessel_lsm";
+
+
 
 class test_logger : public ::engine::vessel::IRedoLogger
 {
@@ -151,56 +152,105 @@ class test_logger : public ::engine::vessel::IRedoLogger
       std::atomic_ullong _lsn;
 };
 
-class test_session : public ::engine::vessel::ISession
+class test_executor : public IExecutor
 {
    public:
-      test_session(test_logger *logger):
-      _id(0),_logger(logger){}
-      test_session(UINT32 id, test_logger *logger):
-      _id(id),
-      _logger(logger)
-      {}
-      virtual ~test_session(){}
+      test_executor()
+      virtual ~test_executor(){}
 
    public:
-      virtual UINT64 getSessionID()const
+      virtual EDUID     getID() const
       {
-         return _id;
+         return 0;
+      }
+      virtual UINT32    getTID() const
+      {
+         return 0;
       }
 
-      virtual void setLastError(INT32 rc, const CHAR *fmt, ...)
-      {
-         return ;
-      }
+      /*
+         Session Related
+      */
+      virtual ISession* getSession() {return NULL;}
+      virtual IRemoteSite* getRemoteSite() {return NULL;}
 
-      virtual void clearLastError()
-      {
-         return;
-      }
+      /*
+         Status and Control
+      */
+      virtual BOOLEAN   isInterrupted ( BOOLEAN onlyFlag = FALSE ) {return FALSE;}
+      virtual BOOLEAN   isDisconnected () {return FALSE;}
+      virtual BOOLEAN   isForced () {return FALSE;}
 
-      virtual BOOLEAN quit()const
-      {
-         return FALSE;
-      }
+      virtual BOOLEAN   isWritingDB() const {return FALSE;}
+      virtual UINT64    getWritingID() const {return 0;}
+      virtual void      writingDB( BOOLEAN writing ) {}
 
-      virtual BOOLEAN nowait()const
-      {
-         return FALSE;
-      }
+      virtual UINT32    getProcessedNum() const {return 0;}
+      virtual void      incEventCount( UINT32 step = 1 ) {}
 
-      virtual UINT64 getLastLSN()const
-      {
-         return _logger->_lsn.load();
-      }
+      virtual UINT32    getQueSize() {return 0;}
 
-      virtual void waitForCurrentWritingId()
-      {
-         return ;
-      }
-   private:
-      UINT32 _id = 0;
-      test_logger *_logger = NULL;
-};
+      /*
+         Resource Info
+      */
+      virtual sdbLockItem* getLockItem( SDB_LOCK_TYPE lockType ) {return NULL;}
+      virtual INT32        appendInfo( EDU_INFO_TYPE type, const CHAR * format, ...) {return SDB_OK;}
+      virtual INT32        printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) {return SDB_OK;}
+      virtual const CHAR*  getInfo ( EDU_INFO_TYPE type ) {return NULL;}
+      virtual void         resetInfo ( EDU_INFO_TYPE type ) {}
+
+      /*
+         Buffer Manager
+      */
+      virtual INT32     allocBuff( UINT32 len,
+                                    CHAR **ppBuff,
+                                    UINT32 *pRealSize = NULL ) {return -1;}
+
+      virtual INT32     reallocBuff( UINT32 len,
+                                       CHAR **ppBuff,
+                                       UINT32 *pRealSize = NULL ) {return -1;}
+
+      virtual void      releaseBuff( CHAR *pBuff ) {}}
+
+      virtual void*     getAlignedBuff( UINT32 size,
+                                          UINT32 *pRealSize = NULL,
+                                          UINT32 alignment =
+                                          OSS_FILE_DIRECT_IO_ALIGNMENT ) {return NULL;}
+
+      virtual void      releaseAlignedBuff() {return ;}
+
+      virtual CHAR*     getBuffer( UINT32 len ) {return NULL;}
+
+      virtual void      releaseBuffer() {}
+
+      /*
+         Operation Related
+      */
+      /// for read
+      virtual UINT64    getBeginLsn () const {return 0;}
+      virtual UINT64    getEndLsn() const {return test_logger::instance()->_lsn.load();}
+      virtual UINT32    getLsnCount () const {return 0;}
+      virtual BOOLEAN   isDoRollback () const {return FALSE;}
+
+      virtual const DPS_TRANS_ID &getTransID () const {return DPS_TRANS_ID();}
+      virtual UINT64    getCurTransLsn () const {return -1;}
+      /// for write
+      virtual void      resetLsn() {}
+      virtual void      insertLsn( UINT64 lsn,
+                                    BOOLEAN isRollback = FALSE ) {}
+
+      virtual void      setTransID( const DPS_TRANS_ID &transID ) {}
+      virtual void      setCurTransLsn( UINT64 lsn ) {}
+
+      /*
+         Context Related
+      */
+      virtual void      contextInsert( INT64 contextID ) {}
+      virtual void      contextDelete( INT64 contextID ) {}
+      virtual INT64     contextPeek() {return -1;}
+      virtual BOOLEAN   contextFind( INT64 contextID ) {return FALSE;}
+      virtual UINT32    contextNum() {return 0;}
+};//
 
 class test_session_mgr : public ::engine::vessel::ISessionManager
 {

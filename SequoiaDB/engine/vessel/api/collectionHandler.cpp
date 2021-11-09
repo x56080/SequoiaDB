@@ -33,10 +33,10 @@
 
 ******************************************************************************/
 
-#include "vessel/collectionHandler.h"
+#include "vessel/api/collectionHandler.h"
 #include "vessel/insertOptions.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/IQueryFilter.h"
+#include "vessel/api/IQueryFilter.h"
 #include "vessel/scanCLCursor.h"
 #include "vessel/indexScanCursor.h"
 
@@ -44,7 +44,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 collectionHandler::createIndex(ISession *session,
+   INT32 collectionHandler::createIndex(IExecutor *executor,
                                         const strSlice &indexName,
                                         const bson::BSONObj &keyPattern,
                                         const indexParameters &params,
@@ -57,7 +57,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->createIndex(session, _handle, indexName,
+      rc = _db->createIndex(executor, _handle, indexName,
                             keyPattern, params, options);
       if (SDB_OK != rc)
       {
@@ -69,7 +69,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::listIndexes(ISession *session,
+   INT32 collectionHandler::listIndexes(IExecutor *executor,
                                         ossPoolVector<bson::BSONObj> &indexes)
    {
       INT32 rc = SDB_OK;
@@ -79,7 +79,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->listIndexes(session, _handle, indexes);
+      rc = _db->listIndexes(executor, _handle, indexes);
       if (SDB_OK != rc)
       {
          goto error;
@@ -90,9 +90,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::insert(ISession *session,
+   INT32 collectionHandler::insert(IExecutor *executor,
                                    const slice &record,
-                                   const DPS_TRANS_ID &transID,
                                    STRIPING_ID striping,
                                    const insertOptions &options,
                                    utilInsertResult &res)
@@ -103,15 +102,15 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (NULL == session ||
+      else if (NULL == executor ||
                !record.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insert(session, _handle, record,
-                       transID, striping, options, res);
+      rc = _db->insert(executor, _handle, record,
+                       striping, options, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -122,7 +121,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::openScanCursor(ISession *session,
+   INT32 collectionHandler::openScanCursor(IExecutor *executor,
                                            IQueryFilter *filter,
                                            const collectionScanOptions &scanOptions,
                                            cursorHandler &cursor,
@@ -131,7 +130,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       scanCLCursor *kernal = NULL;
 
-      if (OSS_UNLIKELY(NULL == session))
+      if (OSS_UNLIKELY(NULL == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -168,7 +167,7 @@ namespace vessel
    }
    
 
-   INT32 collectionHandler::getTotalRecordCountInPageHead(ISession *session,
+   INT32 collectionHandler::getTotalRecordCountInPageHead(IExecutor *executor,
                                                           UINT64 &count)
    {
       INT32 rc = SDB_OK;
@@ -177,13 +176,13 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == session))
+      else if (OSS_UNLIKELY(NULL == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->getTotalRecordCountInPageHead(session, _handle, count);
+      rc = _db->getTotalRecordCountInPageHead(executor, _handle, count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -194,7 +193,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionHandler::openIndexScanCursor(ISession *session,
+   INT32 collectionHandler::openIndexScanCursor(IExecutor *executor,
                                                 const strSlice &indexName,
                                                 const rtnPredicateList &predicate,
                                                 const indexScanOptions &scanOptions,
@@ -203,7 +202,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexScanCursor *kernal = NULL;
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        indexName.empty()))
       {
          rc = SDB_INVALIDARG;

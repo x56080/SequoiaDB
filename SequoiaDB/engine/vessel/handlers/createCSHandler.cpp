@@ -36,7 +36,6 @@
 #include "vessel/createCSHandler.h"
 #include "dms.hpp"
 #include "pdTrace.hpp"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
@@ -77,11 +76,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(), getEnv(), getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      context.open(getExecutor(), getEnv(), getOuterResource());
 
       nameSlice.reset(name);
       rc = validateOptions(nameSlice, options);

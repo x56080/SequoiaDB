@@ -659,7 +659,8 @@ namespace vessel
          /// page in dirty list job may not be dirty
          if (tag->isMemPageDirty())
          {
-            INT32 tmpRC = logger->pushMaxFileLSN(context->getSession(), tag->getMaxMemDirtyLSN());
+            INT32 tmpRC = logger->pushMaxFileLSN(context->getExecutor(),
+                                                 tag->getMaxMemDirtyLSN());
             if (OSS_UNLIKELY(SDB_OK != tmpRC))
             {
                PD_LOG(PDSEVERE, "failed to push max file lsn:%lld, rc:%d",

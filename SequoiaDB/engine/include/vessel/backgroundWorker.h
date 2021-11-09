@@ -37,33 +37,55 @@
 #define VESSEL_BACKGRUOND_WORKER_H_
 
 #include "vessel/backgroundEvent.h"
-#include "ossThread.h"
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEventMsg.h"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    class outerResource;
-   class ISession;
    class instanceEnv;
 
-   class backgroundWorker : public ossThread
+   class backgroundWorker : public SDBObject
    {
       public:
-         backgroundWorker();
-         virtual ~backgroundWorker();
+         backgroundWorker(){}
+         ~backgroundWorker(){}
+         backgroundWorker(const backgroundWorker &o):
+         _outer(o._outer),
+         _env(o._env),
+         _executor(o._executor),
+         _el(o._el){}
+
+         backgroundWorker &operator=(const backgroundWorker &o)
+         {
+            _outer = o._outer;
+            _env = o._env;
+            _executor = o._executor;
+            _el = o._el;
+            return *this;
+         }
 
       public:
-         INT32 init(outerResource *resource,
+         BOOLEAN isValid()const
+         {
+            return NULL != _outer &&
+                   NULL != _env &&
+                   NULL != _executor &&
+                   NULL != _el;
+         }
+         void init(outerResource *outer,
                    instanceEnv *env,
+                   IExecutor *executor,
                    autoEventList<backgroundEvent> *el);
 
-         virtual void activeEntry();
+         void activeEntry();
+
+     
 
       private:
-         void fini();
          void handleCacheEvent(diskIOTask &task,
                                autoEventList<backgroundEvent> *rl);
          void handleLpsCheckpointEvent(const lpsCheckpointApplying &msg,
@@ -72,9 +94,9 @@ namespace vessel
                                        autoEventList<backgroundEvent> *rl);
 
       private:
-         outerResource *_resource = NULL;
+         outerResource *_outer = NULL;
          instanceEnv *_env = NULL;
-         ISession *_session = NULL;
+         IExecutor *_executor = NULL;
          autoEventList<backgroundEvent> *_el = NULL;
    };//class backgroundWorker
 }//namespace vessel

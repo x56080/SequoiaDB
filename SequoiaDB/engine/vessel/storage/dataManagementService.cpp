@@ -43,7 +43,7 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/IQueryFilter.h"
+#include "vessel/api/IQueryFilter.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/vesselFileName.h"
 

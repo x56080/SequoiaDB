@@ -37,7 +37,7 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
-#include "vessel/collectionHandler.h"
+#include "vessel/api/collectionHandler.h"
 #include "vessel/spaceIDLockHelper.h"
 
 namespace engine
@@ -67,11 +67,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(), getEnv(), getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      context.open(getExecutor(), getEnv(), getOuterResource());
 
       rc = getEnv()->dms.getCSByName(&context, csName, SHARED, &cs);
       if (SDB_OK != rc)

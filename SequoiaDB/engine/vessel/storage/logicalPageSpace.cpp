@@ -486,7 +486,7 @@ namespace vessel
          }
       }
 
-      logger->pushMaxFileLSN(context->getSession(), maxDirtyLsn);
+      logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLsn);
 
       rc = _logConsole.commitCheckpointPrecreated();
       if (SDB_OK != rc)

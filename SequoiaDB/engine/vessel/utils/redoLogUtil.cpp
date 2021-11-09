@@ -81,7 +81,6 @@ namespace vessel
                               const slice &indexDef)
    {
       INT32 rc = SDB_OK;
-      ISession *session = NULL;
       IRedoLogger *logger = NULL;
       logRecordContext lrc;
 
@@ -93,7 +92,6 @@ namespace vessel
          goto error;
       }
 
-      session = context->getSession();
       logger = context->getOuterResource()->logger;
 
       lrc.open(LOG_TYPE_IX_CRT);
@@ -104,14 +102,14 @@ namespace vessel
       lrc.prepush(indexDef.getSize());
       lrc.prepushDone();
 
-      rc = logger->prepare(session, &lrc);
+      rc = logger->prepare(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_PUBLIC_FULLNAME,
                                         fullName.strLen() + 1,
                                         fullName.str());
@@ -121,7 +119,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_IX_SLOT,
                                         sizeof(INT32),
                                         &indexSlot);
@@ -131,7 +129,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_IX_INDEX_ID,
                                         sizeof(UINT32),
                                         &indexId);
@@ -141,7 +139,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_IX_DEF_OBJ,
                                         indexDef.getSize(),
                                         indexDef.getRPtr());
@@ -151,7 +149,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->commit(session, &lrc);
+      rc = logger->commit(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -163,7 +161,7 @@ namespace vessel
    error:
       if (lrc.prepared())
       {
-         logger->abort(session, &lrc);
+         logger->abort(context->getExecutor(), &lrc);
       }
       goto done;
    }
@@ -176,7 +174,6 @@ namespace vessel
                                  INT32 result)
    {
       INT32 rc = SDB_OK;
-      ISession *session = NULL;
       IRedoLogger *logger = NULL;
       logRecordContext lrc;
 
@@ -188,7 +185,6 @@ namespace vessel
          goto error;
       }
 
-      session = context->getSession();
       logger = context->getOuterResource()->logger;
 
       lrc.open(LOG_TYPE_IX_CRT_END);
@@ -201,14 +197,14 @@ namespace vessel
       lrc.prepush(sizeof(INT32));
       lrc.prepushDone();
 
-      rc = logger->prepare(session, &lrc);
+      rc = logger->prepare(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_PUBLIC_FULLNAME,
                                         fullName.strLen() + 1,
                                         fullName.str());
@@ -218,7 +214,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_END_IX_SLOT,
                                         sizeof(INT32),
                                         &indexSlot);
@@ -228,7 +224,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_END_IX_INDEX_ID,
                                         sizeof(UINT32),
                                         &indexId);
@@ -238,7 +234,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_END_IX_NAME,
                                         indexName.strLen() + 1,
                                         indexName.str());
@@ -248,7 +244,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_END_RC,
                                         sizeof(INT32),
                                         &result);
@@ -258,7 +254,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->commit(session, &lrc);
+      rc = logger->commit(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
@@ -269,7 +265,7 @@ namespace vessel
    error:
       if (lrc.prepared())
       {
-         logger->abort(session, &lrc);
+         logger->abort(context->getExecutor(), &lrc);
       }
       goto done;
    }
@@ -301,7 +297,6 @@ namespace vessel
                               logRecordContext &lrc)
    {
       INT32 rc = SDB_OK;
-      ISession *session = NULL;
       IRedoLogger *logger = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -312,7 +307,6 @@ namespace vessel
          goto error;
       }
 
-      session = context->getSession();
       logger = context->getOuterResource()->logger;
 
       lrc.open(LOG_TYPE_VESSEL_LPS_PAGE_MANAGEMENT);
@@ -339,7 +333,7 @@ namespace vessel
       lrc.prepush(dlr.getLogHead()->_size);
       lrc.prepushDone();
 
-      rc = logger->prepare(session, &lrc);
+      rc = logger->prepare(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed prepare log record:%d", rc);
@@ -366,13 +360,11 @@ namespace vessel
       SDB_ASSERT(INVALID_FILE_TYPE != fileType, "can not be invalid");
       SDB_ASSERT(dlr.isValid(), "can not be invalid");
 
-      ISession *session = NULL;
       IRedoLogger *logger = NULL;
       UINT32 packedSidAndType = packSidAndType(sid, spaceType, fileType);
-      session = context->getSession();
       logger = context->getOuterResource()->logger;
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE,
                                         sizeof(UINT32), &packedSidAndType);
       if (SDB_OK != rc)
@@ -381,7 +373,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_VESSEL_LPS_PM_DELTA_LOG,
                                         dlr.getLogHead()->_size,
                                         dlr.getLogHead());
@@ -391,7 +383,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->commit(session, &lrc);
+      rc = logger->commit(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log[%lld]:%d", lrc.getLsn(), rc);
@@ -413,7 +405,6 @@ namespace vessel
                            logRecordContext &lrc)
    {
       INT32 rc = SDB_OK;
-      ISession *session = NULL;
       IRedoLogger *logger = NULL;
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -423,9 +414,8 @@ namespace vessel
          goto error;
       }
 
-      session = context->getSession();
       logger = context->getOuterResource()->logger;
-      rc = logger->abort(session, &lrc);
+      rc = logger->abort(context->getExecutor(), &lrc);
       if (SDB_OK != rc)
       {
          goto error;

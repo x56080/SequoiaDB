@@ -161,7 +161,7 @@ namespace vessel
 
       *slot = lpid;
       
-      lpb.commit(context->getSession()->getLastLSN());
+      lpb.commit(context->getExecutor()->getEndLsn());
 
    done:
       return rc;

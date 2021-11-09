@@ -36,7 +36,6 @@
 #ifndef VESSEL_LITE_CACHE_WATCHER_H_
 #define VESSEL_LITE_CACHE_WATCHER_H_
 
-#include "ossThread.h"
 #include "vessel/diskIOJob.h"
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEvent.h"
@@ -50,31 +49,34 @@ namespace vessel
    class ISession;
    class requestContext;
 
-   class liteCacheWatcher : public ossThread
+   class liteCacheWatcher : public SDBObject
    {
    public:
-         liteCacheWatcher();
-         virtual ~liteCacheWatcher();
+         liteCacheWatcher(){}
+         ~liteCacheWatcher(){}
 
       public:
-         INT32 init(instanceEnv *env, outerResource *resource);
-         void fini();
+         void active(requestContext *context);
+         void deactive();
 
-         virtual void activeEntry();
+         OSS_INLINE BOOLEAN isActived()const
+         {
+            return _actived;
+         }
 
       private:
+         void fini();
          void createJobIfNecessary(requestContext *context);
          void createDirtyListJobWhenTimeout(requestContext *context);
          void dispatch(requestContext *context, diskIOJob *job);
-         void handleFinishedEvent(const backgroundEvent &event);
+         void handleFinishedEvent(requestContext *context,
+                                  const backgroundEvent &event);
          BOOLEAN hasRunningTask()const
          {
             return 0 < _runningTaskCount;
          }
       private:
-         instanceEnv *_env = NULL;
-         outerResource *_or = NULL;
-         ISession *_session = NULL;
+         BOOLEAN _actived = FALSE;
          UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
          diskIOJob _job;

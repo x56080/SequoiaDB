@@ -36,7 +36,7 @@
 #ifndef VESSEL_VESSEL_IMPL_H_
 #define VESSEL_VESSEL_IMPL_H_
 
-#include "vessel/vessel.h"
+#include "vessel/api/vessel.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
 #include "vessel/indexOptions.h"
@@ -51,7 +51,7 @@ namespace vessel
    class requestContext;
    class cursorKernal;
    
-   class vesselImpl : public vessel, SDBObject
+   class vesselImpl : public IVessel 
    {
       public:
          vesselImpl(){}
@@ -59,85 +59,88 @@ namespace vessel
       public:
          virtual BOOLEAN isOpen(){return _open;}
 
-         virtual INT32 open(ISession *session,
+         virtual INT32 open(IExecutor *executor,
                             const outerResource *resource,
                             const openDBOptions &options);
                             
-         virtual INT32 close(ISession *session, const closeDBOptions &options);
+         virtual INT32 close(IExecutor *executor,
+                             const closeDBOptions &options);
 
-         virtual INT32 listCollectionSpace(ISession *session,
+         virtual INT32 listCollectionSpace(IExecutor *executor,
                                            IQueryFilter *filter,
                                            cursorHandler &cursor);
 
-         virtual INT32 getCollectionSpaceCount(ISession *session,
+         virtual INT32 getCollectionSpaceCount(IExecutor *executor,
                                                UINT32 &count);
 
-         virtual INT32 createCollectionSpace(ISession *session,
+         virtual INT32 createCollectionSpace(IExecutor *executor,
                                              const CHAR *name,
                                              utilCSUniqueID uniqueId,
                                              const createCSOptions &options);
 
-         virtual INT32 dropCollectionSpace(ISession *session,
+         virtual INT32 dropCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
                                            UINT32 logicalID,
                                            const dropCSOptions &options);
 
-         virtual INT32 createCollection(ISession *session,
+         virtual INT32 createCollection(IExecutor *executor,
                                         const CHAR *csName,
                                         const CHAR* clName,
                                         utilCLInnerID innerID,
                                         const createCLOptions &options);
                                         
-         virtual INT32 listCollections(ISession *session,
+         virtual INT32 listCollections(IExecutor *executor,
                                        const CHAR *csName,
                                        IQueryFilter *filter,
                                        cursorHandler &cursor);
 
-         virtual INT32 getCollectionCount(ISession *session,
+         virtual INT32 getCollectionCount(IExecutor *executor,
                                           const CHAR *csName,
                                           UINT32 &count);
 
-         virtual INT32 openCollection(ISession *session,
+         virtual INT32 openCollection(IExecutor *executor,
                                       const CHAR *csName,
                                       const CHAR *clName,
                                       const openCLOptions &options,
                                       collectionHandler &handler);
 
       public:
-         INT32 createIndex(ISession *session,
+         INT32 createIndex(IExecutor *executor,
                            const collectionHandle &handle,
                            const strSlice &indexName,
                            const bson::BSONObj &keyPattern,
                            const indexParameters &params,
                            const createIndexOptions &options);
 
-         INT32 listIndexes(ISession *session,
+         INT32 listIndexes(IExecutor *executor,
                            const collectionHandle &handle,
                            ossPoolVector<bson::BSONObj> &indexes);
       
       public:
 
-         INT32 insert(ISession *session,
+         INT32 insert(IExecutor *executor,
                       const collectionHandle &handle,
                       const slice &record,
-                      const DPS_TRANS_ID &transID,
                       STRIPING_ID striping,
                       const insertOptions &options,
                       utilInsertResult &res);
 
-         INT32 getTotalRecordCountInPageHead(ISession *session,
+         INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              const collectionHandle &handle,
                                              UINT64 &count);
 
       public:
-         INT32 pushMoreToCursor(ISession * session,
+         INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   
+
+         INT32 attachCacheWatcher(IExecutor *executor);
+         INT32 attachBackgroundWorker(IExecutor *executor);
          
       private:
+
          void fini();
          INT32 initLsmDB(const openDBOptions &options);
          INT32 flushWholeDirtyList(requestContext *context);
-         INT32 openCacheWatcher();
 
       private:
          BOOLEAN _open = FALSE;
@@ -145,6 +148,8 @@ namespace vessel
          outerResource _outerResource;
          liteCacheWatcher _cacheWatcher;
    }; /// end of class vesselImpl 
+
+
 } /// end of namespace vessel 
 } /// end of namespace engine
 #endif // VESSEL_VESSEL_IMPL_H_

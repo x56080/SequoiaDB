@@ -38,7 +38,6 @@
 #include "vessel/outerResource.h"
 #include "pdTrace.hpp"
 #include "vessel/liteCache.h"
-#include "vessel/ISesseionManager.h"
 #include "vessel/requestContext.h"
 #include "vessel/diskIOTask.h"
 
@@ -46,55 +45,19 @@ namespace engine
 {
 namespace vessel
 {
-   liteCacheWatcher::liteCacheWatcher()
+   void liteCacheWatcher::active(requestContext *context)
    {
-     
-   }
-
-   liteCacheWatcher::~liteCacheWatcher()
-   {}
-
-   INT32 liteCacheWatcher::init(instanceEnv *env, outerResource *resource)
-   {
-      SDB_ASSERT(NULL == _env, "do not reinit");
-
-      INT32 rc = SDB_OK;
-
-      if (NULL == env ||
-          NULL == resource ||
-          !resource->isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _session = resource->sessionMgr->createNewSession();
-      if (NULL == _session)
-      {
-         PD_LOG(PDERROR, "failed to create new session");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      _env = env;
-      _or = resource;
-      _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
-   done:
-      return rc;
-   error:
-      goto error;
-   }
-
-   void liteCacheWatcher::activeEntry()
-   {
-      SDB_ASSERT(NULL != _env, "can not be null");
-      requestContext context;
-      context.open(_session, _env, _or);
+      SDB_ASSERT(NULL != context && context->isOpen(), "can not be null");
+      SDB_ASSERT(!isActived(), "do not reactive");
       UINT32 millis = 10;
       backgroundEvent event;
       diskIOJob _job;
       BOOLEAN quit = FALSE;
-      UINT32 flushDirtyListTimeout = _env->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
+      UINT32 flushDirtyListTimeout =
+      context->getEnv()->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
+
+      _actived = TRUE;
+      _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
 
       do
       {
@@ -107,10 +70,10 @@ namespace vessel
             }
             else if (backgroundEvent::EVENT_TYPE_FINISHED == event.getType())
             {
-               handleFinishedEvent(event);
+               handleFinishedEvent(context, event);
                if (!quit && !hasRunningTask())
                {
-                  createJobIfNecessary(&context);
+                  createJobIfNecessary(context);
                }
             }
             else
@@ -130,38 +93,49 @@ namespace vessel
             UINT64 currentTime = ossGetCurrentMilliseconds();
             if ((_lastFlushDirtyListTime + flushDirtyListTimeout) <= currentTime)
             {
-               createDirtyListJobWhenTimeout(&context);
+               createDirtyListJobWhenTimeout(context);
             }
             else
             {
-               createJobIfNecessary(&context);
+               createJobIfNecessary(context);
             }
          }
       } while (!quit || hasRunningTask());
+
+      fini();
+      return;
+   }
+
+   void liteCacheWatcher::deactive()
+   {
+      if (isActived())
+      {
+         backgroundEvent event;
+         event.setType(backgroundEvent::EVENT_TYPE_QUIT);
+         _list.push(event);
+         const volatile BOOLEAN *actived = &_actived;
+
+         while ((*actived))
+         {
+            PD_LOG(PDINFO, "waiting for running task[%d] done", _runningTaskCount);
+            ossSleep(1000);
+         }
+      }
 
       return;
    }
    
    void liteCacheWatcher::fini()
    {
-      if (NULL != _session)
+      backgroundEvent event;
+      while (_list.tryToPop(event))
       {
-         backgroundEvent event;
-         event.setType(backgroundEvent::EVENT_TYPE_QUIT);
-         _list.pushPriority(event);
-         this->join();
-         while (_list.tryToPop(event))
-         {
-            event.release();
-         }
-         _or->sessionMgr->destroySession(_session);
-         _session = NULL;
+         event.release();
       }
-      _env = NULL;
-      _or = NULL;
       _lastFlushDirtyListTime = 0;
       _job.reset();
       _runningTaskCount = 0;
+      _actived = FALSE;
    }
 
    void liteCacheWatcher::createJobIfNecessary(requestContext *context)
@@ -169,7 +143,7 @@ namespace vessel
       SDB_ASSERT(!_job.isRunning(), "can not be running");
 
       INT32 rc = SDB_OK;
-      liteCache &cache = _env->cacheConsole.get32KBCache();
+      liteCache &cache = context->getEnv()->cacheConsole.get32KBCache();
       rc = cache.createIOJobIfNecessary(context, &_job);
       if (SDB_OK != rc)
       {
@@ -194,7 +168,7 @@ namespace vessel
    {
       SDB_ASSERT(!_job.isRunning(), "can not be running");
       INT32 rc = SDB_OK;
-      liteCache &cache = _env->cacheConsole.get32KBCache();
+      liteCache &cache = context->getEnv()->cacheConsole.get32KBCache();
       UINT32 depth = cache.getDirtyListSizeFast() * 0.3;
       if (depth < 128)
       {
@@ -221,7 +195,8 @@ namespace vessel
       return;
    }
 
-   void liteCacheWatcher::handleFinishedEvent(const backgroundEvent &event)
+   void liteCacheWatcher::handleFinishedEvent(requestContext *context,
+                                              const backgroundEvent &event)
    {
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "msut be finished");
       const UINT32 *jobID = (const UINT32 *)(event.getEventMsg());
@@ -231,13 +206,13 @@ namespace vessel
          {
             if (_job.isDirtyListJob())
             {
-               _env->cacheConsole.get32KBCache().updateMinCacheLsn();
+               context->getEnv()->cacheConsole.get32KBCache().updateMinCacheLsn();
                /// reset dirty list flushting time.
                _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
             }
             else
             {
-               _env->cacheConsole.get32KBCache().resetLRUEvictBegin();
+               context->getEnv()->cacheConsole.get32KBCache().resetLRUEvictBegin();
             }
             _job.reset();
          }
@@ -274,7 +249,7 @@ namespace vessel
          event.setType(backgroundEvent::EVENT_TYPE_CACHE_TASK);
          event.setEventMsg(sizeof(diskIOTask), &task);
          event.setResponseList(&_list);
-         _env->workers.pushEvent(event);
+         context->getEnv()->workers.pushEvent(event);
          ++_runningTaskCount;
       } while (TRUE);
       

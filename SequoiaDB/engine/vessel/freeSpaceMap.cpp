@@ -273,7 +273,7 @@ namespace vessel
       }
       else
       {
-         bucketNo = (context->getSession()->getSessionID() & (_bucketCount - 1));
+         bucketNo = (context->getExecutor()->getID() & (_bucketCount - 1));
       }
 
       rc = _find(bucketNo, lvl, candidate);

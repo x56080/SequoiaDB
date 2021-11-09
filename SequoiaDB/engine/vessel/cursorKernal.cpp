@@ -38,7 +38,6 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 
 namespace engine
 {
@@ -111,7 +110,7 @@ namespace vessel
       return;
    }
 
-   INT32 cursorKernal::getNext(ISession *session, slice &content)
+   INT32 cursorKernal::getNext(IExecutor *executor, slice &content)
    {
       INT32 rc = SDB_OK;
       UINT32 size = 0;
@@ -133,7 +132,7 @@ namespace vessel
          _pushedThisLoop = 0;
          _read = 0;
          _mb.resize(0);
-         rc = _db->pushMoreToCursor(session, this);
+         rc = _db->pushMoreToCursor(executor, this);
          if (SDB_OK != rc)
          {
             goto error;
@@ -261,7 +260,10 @@ namespace vessel
       rc = allocateSpaceForPushing(len);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
+         if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate space for pushing:%d", rc);
+         }
          goto error;
       }
 

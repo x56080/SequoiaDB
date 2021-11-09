@@ -41,6 +41,7 @@
 #include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
 #include "vessel/cursorRow.h"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
@@ -68,14 +69,14 @@ namespace vessel
 
          ///return SDB_VESSEL_EOC when hit the end.
          ///WARNING: shallow copy
-         INT32 getNext(ISession *session, slice &content);
+         INT32 getNext(IExecutor *executor, slice &content);
 
          ///return SDB_VESSEL_EOC when hit the end.
-         INT32 getNextRow(ISession *session, cursorRow &row);
+         INT32 getNextRow(IExecutor *executor, cursorRow &row);
 
       private:
          template <class T, class ... Args>
-         INT32 _getNext(ISession *session, Args && ...args)
+         INT32 _getNext(IExecutor *executor, Args && ...args)
          {
             INT32 rc = SDB_OK;
             if (!_cursor.isValid())
@@ -84,7 +85,7 @@ namespace vessel
                goto error;
             }
 
-            rc = _cursor.get<T>->getNext(session, args...);
+            rc = _cursor.get<T>->getNext(executor, args...);
             if (SDB_OK != rc)
             {
                goto error;

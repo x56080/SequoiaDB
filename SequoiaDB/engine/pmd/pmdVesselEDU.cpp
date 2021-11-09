@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCollectionsHandler.cpp
+   Source File Name = pmdVesselEDU.cpp
 
    Descriptive Name =
 
@@ -33,70 +33,69 @@
 
 ******************************************************************************/
 
-#include "vessel/listCollectionsHandler.h"
+#include "pd.hpp"
+#include "pmd.hpp"
 #include "pdTrace.hpp"
-#include "vessel/listCLCursor.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/collectionSpace.h"
-#include "vessel/slice.h"
-#include "vessel/requestContext.h"
+#include "pmdTrace.hpp"
+#include "pmdEDUMgr.hpp"
+
+#include "vessel/vesselImpl.h"
 
 namespace engine
 {
-namespace vessel
-{
-   INT32 listCollectionsHandler::doit(listCLCursor *cursor)
+   INT32 pmdVesselWorkerEntryPoint(pmdEDUCB *cb, void *pData)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "can not be null");
-      collectionSpace *obj = NULL;
-      SDB_ASSERT(NULL != cursor, "can not be null");
-      SPACE_ID sid = INVALID_SPACE_ID;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      requestContext context;
-
-      if (OSS_UNLIKELY(NULL == cursor || !cursor->isOpen()))
+      vessel::vesselImpl *impl = NULL;
+      rc = cb->getEDUMgr()->activateEDU(cb);
+      if ( SDB_OK != rc )
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
+         PD_LOG ( PDERROR, "Failed to active EDU" ) ;
+         goto error ;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
-      sid = cursor->getSpaceID();
-      logicalID = cursor->getCSLogicalID();
-
-      rc = context.lockSpaceID(sid, SHARED);
+      impl = (vessel::vesselImpl *)pData;
+      rc = impl->attachBackgroundWorker(cb);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to attach vessel worker:%d", rc);
          goto error;
       }
-
-      rc = getEnv()->dms.getCSByLockedSpaceID(&context, logicalID, &obj);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = obj->listCollections(&context, cursor);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
    done:
-      if (NULL != obj)
-      {
-         context.unlockSpaceID();
-      }
-      context.close();
       return rc;
    error:
       goto done;
    }
-}//namespace vessel
-}//namespace engine
+
+   INT32 pmdVesselWatcherEntryPoint(pmdEDUCB *cb, void *pData)
+   {
+      INT32 rc = SDB_OK;
+      vessel::vesselImpl *impl = NULL;
+      rc = cb->getEDUMgr()->activateEDU(cb);
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to active EDU" ) ;
+         goto error ;
+      }
+
+      impl = (vessel::vesselImpl *)pData;
+      rc = impl->attachCacheWatcher(cb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to attach vessel worker:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_WORKER, FALSE,
+                         pmdVesselWorkerEntryPoint,
+                         "vesselWorker");
+
+   PMD_DEFINE_ENTRYPOINT(EDU_TYPE_VESSEL_CACHE_WATCHER, FALSE,
+                         pmdVesselWatcherEntryPoint,
+                         "vesselCacheWatcher");
+} // namespace engine

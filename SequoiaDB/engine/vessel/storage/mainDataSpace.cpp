@@ -70,7 +70,7 @@ namespace vessel
       PAGE_ID lpid = COLLECTION_SPACE_GP_LPID;
       PAGE_ID pid = 0;
       PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      ISession *session = NULL;
+      IExecutor *executor = NULL;
       IRedoLogger *logger = NULL;
       csMetaRecord *recordOnDisk = NULL;
       logRecordContext lrc;
@@ -90,7 +90,7 @@ namespace vessel
       }
 
       sid = logicalPageSpace::getSpaceID();
-      session = context->getSession();
+      executor = context->getExecutor();
       logger = context->getOuterResource()->logger;
 
       SDB_ASSERT(0 == _storage.getTotalSegmentCountAllocated(), "must be empty");
@@ -145,7 +145,7 @@ namespace vessel
       lrc.prepush(CS_META_RECORD_LEN);
       lrc.prepush(options.getSize());
       lrc.prepushDone();
-      rc = logger->prepare(session, &lrc);
+      rc = logger->prepare(executor, &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
@@ -155,7 +155,7 @@ namespace vessel
       /// update page lsn
       if (!updatePageLsn(ptr.get(), lrc.getLsn()))
       {
-         logger->abort(session, &lrc);
+         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to update page lsn:%d", rc);
          goto error;
       }
@@ -168,40 +168,40 @@ namespace vessel
       }
 
       /// commit dps log
-      rc = logger->pushLogRecordElement(session, &lrc, DPS_LOG_CSCRT_VESSEL_SID,
+      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_SID,
                                         sizeof(SPACE_ID), &sid);
       if (SDB_OK != rc)
       {
-         logger->abort(session, &lrc);
+         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
                 DPS_LOG_CSCRT_VESSEL_SID, rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc, DPS_LOG_CSCRT_VESSEL_META,
+      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_META,
                                         CS_META_RECORD_LEN, &record);
       if (SDB_OK != rc)
       {
-         logger->abort(session, &lrc);
+         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
                 DPS_LOG_CSCRT_VESSEL_META, rc);
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, &lrc, DPS_LOG_CSCRT_VESSEL_OPTIONS,
+      rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_OPTIONS,
                                         options.getSize(), options.getRPtr());
       if (SDB_OK != rc)
       {
-         logger->abort(session, &lrc);
+         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to push ele[%d], rc:%d",
                 DPS_LOG_CSCRT_VESSEL_OPTIONS, rc);
          goto error;
       }
 
-      rc = logger->commit(session, &lrc);
+      rc = logger->commit(executor, &lrc);
       if (SDB_OK != rc)
       {
-         logger->abort(session, &lrc);
+         logger->abort(executor, &lrc);
          PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",
                 lrc.getLsn(), rc);
          goto error;

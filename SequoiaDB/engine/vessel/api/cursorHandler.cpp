@@ -33,9 +33,8 @@
 
 ******************************************************************************/
 
-#include "vessel/cursorHandler.h"
+#include "vessel/api/cursorHandler.h"
 #include "vessel/cursorKernal.h"
-#include "vessel/scanCLCursor.h"
 
 namespace engine
 {
@@ -84,17 +83,17 @@ namespace vessel
       return;
    }
 
-   INT32 cursorHandler::getNext(ISession *session, slice &content)
+   INT32 cursorHandler::getNext(IExecutor *executor, slice &content)
    {
       if (_cursor.isValid())
       {
-         return _cursor.get<cursorKernal>()->getNext(session, content);
+         return _cursor.get<cursorKernal>()->getNext(executor, content);
       }
       
       return SDB_VESSEL_RESOURCES_NOT_INIT;
    }
 
-   INT32 cursorHandler::getNextRow(ISession *session,
+   INT32 cursorHandler::getNextRow(IExecutor *executor,
                                    cursorRow &row)
    {
       INT32 rc = SDB_OK;
@@ -104,7 +103,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _cursor.get<cursorKernal>()->getNextRow(session, &row);
+      rc = _cursor.get<cursorKernal>()->getNextRow(executor, &row);
       if (SDB_OK != rc)
       {
          goto error;

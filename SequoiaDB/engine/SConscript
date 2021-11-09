@@ -930,6 +930,7 @@ vesselFiles = [
       "vessel/handlers/indexScanHandler.cpp",
       "vessel/api/cursorHandler.cpp",
       "vessel/api/collectionHandler.cpp",
+      "vessel/api/vesselFactroy.cpp",
       "vessel/index/indexConsole.cpp",
       "vessel/index/indexKeyPattern.cpp",
       "vessel/index/indexParameters.cpp",
@@ -1013,10 +1014,7 @@ vesselFiles = [
       "vessel/scanCLCursor.cpp",
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
-      "vessel/slice.cpp"
-]
-
-lsmFiles = [
+      "vessel/slice.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
       "vessel/lsm/lsmIndex.cpp",
@@ -1113,8 +1111,6 @@ env.StaticLibrary('zstd', zstd_lib)
 env.StaticLibrary('bzip2', bzip2_lib)
 #vessel
 env.StaticLibrary('vessel', vesselFiles)
-#lsm
-env.StaticLibrary('lsm', lsmFiles)
 
 
 #gtest main
@@ -1132,7 +1128,7 @@ vesseltest = env.Object('vesseltest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
-         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
    env.Install( '#/bin', engine )
@@ -1175,7 +1171,7 @@ if hasTestcase:
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
    clienttest = env.Program("clienttest", clientTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "vessel"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
    utilListTest = env.Program("utilListTest", utilListFiles,
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
@@ -1261,17 +1257,17 @@ if hasTestcase:
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
    vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "lsm", "vessel"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
 if hasTool:
    sdbrestore = env.Program("sdbrestore", sdbrestoreFiles,
-          LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","net", "sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
    sdbdmsdump = env.Program("sdbdmsdump", sdbdmsdumpMain,
-         LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"util","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","mon","dps","net", "sql","auth", "aggr","spd", "omsvc", "stpagent", "stpclient"],
+         LIBDEPS=["qgm","bar","rest","cat","coord",snappy_lib,lz4_lib,zlib_lib,"util","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","mon","dps","net", "sql","auth", "aggr","spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Install testcases

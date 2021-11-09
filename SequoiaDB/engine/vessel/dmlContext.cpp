@@ -66,7 +66,6 @@ namespace vessel
 
       _minFreeSize = 0;
       _compressionType = UTIL_COMPRESSOR_INVALID;
-      _transID.reset();
       _lockRid = FALSE;
       _uniqueKeyHash.clear();
       _uniqueKeyContext.clear();

@@ -231,12 +231,11 @@ namespace vessel
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
       ossXLatchGuard guard(logicalPageSpace::getMappingLatch(), FALSE);
-      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
       {
-         PD_LOG(PDERROR, "last lsn of session[%lld] is invalid",
-                context->getSession()->getSessionID());
+         PD_LOG(PDERROR, "last lsn of executor is invalid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -321,12 +320,11 @@ namespace vessel
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
 
-      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
       {
-         PD_LOG(PDERROR, "last lsn of session[%lld] is invalid",
-                context->getSession()->getSessionID());
+         PD_LOG(PDERROR, "last lsn of executor is invalid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -412,12 +410,11 @@ namespace vessel
       CHAR *buffer = NULL;
       UINT32 bufferSize = count * sizeof(PAGE_ID);
 
-      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
       {
-         PD_LOG(PDERROR, "last lsn of session[%lld] is invalid",
-                context->getSession()->getSessionID());
+         PD_LOG(PDERROR, "last lsn of session is invalid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -529,11 +526,10 @@ namespace vessel
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
 
-      DPS_LSN_OFFSET lsn = context->getSession()->getLastLSN();
+      DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
       if (DPS_INVALID_LSN_OFFSET == lsn)
       {
-         PD_LOG(PDERROR, "last lsn of session[%lld] is invalid",
-                context->getSession()->getSessionID());
+         PD_LOG(PDERROR, "last lsn of session is invalid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
@@ -597,8 +593,7 @@ namespace vessel
       
       logicalPageSpace::getCheckpointContext().getLatch()->release_w();
 
-      ISession *session = context->getSession();
-      session->waitForCurrentWritingId();
+      ///TODO: wait until pre requests done
 
       /// resume locking.
       logicalPageSpace::getCheckpointContext().getLatch()->lock_w();

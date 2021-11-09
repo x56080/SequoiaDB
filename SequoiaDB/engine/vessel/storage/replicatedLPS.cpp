@@ -703,7 +703,6 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(isValidPageSize(pageSize), "can not be invalid");
       SDB_ASSERT(NULL != lrc, "can not be null");
-      ISession *session = context->getSession();
       IRedoLogger *logger = context->getOuterResource()->logger;
       lrc->open(LOG_TYPE_VESSEL_COPY_PAGE);
       lrc->setResetPage();
@@ -711,7 +710,7 @@ namespace vessel
       lrc->prepush(pageSize);
       lrc->prepush(sizeof(PAGE_ID));
       lrc->prepushDone();
-      rc = logger->prepare(session, lrc);
+      rc = logger->prepare(context->getExecutor(), lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
@@ -739,10 +738,9 @@ namespace vessel
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
 
-      ISession *session = context->getSession();
       IRedoLogger *logger = context->getOuterResource()->logger;
 
-      rc = logger->pushLogRecordElement(session, lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
                                         DPS_LOG_PUBLIC_VESSEL_GPID,
                                         sizeof(gpid),
                                         &gpid);
@@ -752,7 +750,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
                                         DPS_LOG_VESSEL_COPY_PAGE_LPID,
                                         sizeof(PAGE_ID), &lpid);
       if (SDB_OK != rc)
@@ -761,7 +759,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->pushLogRecordElement(session, lrc,
+      rc = logger->pushLogRecordElement(context->getExecutor(), lrc,
                                         DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
                                         pageSize, pageBuffer);
       if (SDB_OK != rc)
@@ -770,7 +768,7 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->commit(session, lrc);
+      rc = logger->commit(context->getExecutor(), lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit:%d", rc);
@@ -788,9 +786,8 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
-      ISession *session = context->getSession();
       IRedoLogger *logger = context->getOuterResource()->logger;
-      logger->abort(session, lrc);
+      logger->abort(context->getExecutor(), lrc);
       return;
    }
 

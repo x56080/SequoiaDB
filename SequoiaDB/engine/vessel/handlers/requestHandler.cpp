@@ -35,7 +35,6 @@
 
 #include "vessel/requestHandler.h"
 #include "ossLikely.hpp"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
@@ -44,33 +43,24 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 requestHandler::init(instanceEnv *env,
-                               ISession *session,
+   void requestHandler::init(instanceEnv *env,
+                               IExecutor *executor,
                                outerResource *resource)
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == env ||
-                       NULL == session ||
-                       NULL == resource ||
-                       !resource->isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(NULL != env, "can not be null");
+      SDB_ASSERT(NULL != executor, "can not be null");
+      SDB_ASSERT(NULL != resource && resource->isValid(), "can not be null");
       
       _env = env;
-      _session = session;
+      _executor = executor;
       _outerResource = resource;
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    BOOLEAN requestHandler::isInitialized()const
    {         
       return NULL != _env &&
-             NULL != _session &&
+             NULL != _executor &&
              NULL != _outerResource &&
              _outerResource->isValid();
          

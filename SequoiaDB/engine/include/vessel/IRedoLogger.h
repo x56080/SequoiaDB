@@ -40,6 +40,7 @@
 #define VESSEL_I_REDO_LOGGER_H_
 
 #include "dpsDef.hpp"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
@@ -58,32 +59,32 @@ namespace vessel
       public:
          /// normal api.
          /// prepare and commit.
-         virtual INT32 log(ISession *session,
+         virtual INT32 log(IExecutor *executor,
                            const _dpsLogRecord *record,
                            DPS_LSN_OFFSET *lsn) = 0;
 
          /// allocate lsn and log buffer.
-         virtual INT32 prepare(ISession *session,
+         virtual INT32 prepare(IExecutor *executor,
                                logRecordContext *context) = 0;
 
-         virtual INT32 pushLogRecordElement(ISession *session,
+         virtual INT32 pushLogRecordElement(IExecutor *executor,
                                             logRecordContext *context,
                                             DPS_TAG tag,
                                             UINT32 len,
                                             const void *value) = 0;
 
-         virtual INT32 commit(ISession *session,
+         virtual INT32 commit(IExecutor *executor,
                               logRecordContext *context) = 0;
 
          /// do not abort log after committing.
-         virtual INT32 abort(ISession *session,
+         virtual INT32 abort(IExecutor *executor,
                              logRecordContext *context) = 0;
 
-         virtual INT32 pushMaxFileLSN(ISession *session,
+         virtual INT32 pushMaxFileLSN(IExecutor *executor,
                                       DPS_LSN_OFFSET lsn) = 0;
 
          /// 
-         virtual INT32 abortOplist(ISession *session,
+         virtual INT32 abortOplist(IExecutor *executor,
                                    DPS_LSN_OFFSET lsn) = 0;
 
          virtual DPS_LSN_OFFSET getMinFileLsn() = 0;

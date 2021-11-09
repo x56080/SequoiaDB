@@ -56,7 +56,6 @@ namespace vessel
       public:
          INT32 doit(const collectionHandle &handle,
                     const slice &record,
-                    const DPS_TRANS_ID &transID,
                     STRIPING_ID striping,
                     const insertOptions &options,
                     utilInsertResult &res);

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = ISessionManager.h
+   Source File Name = vesselFactory.h
 
    Descriptive Name =
 
@@ -33,27 +33,28 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_I_SESSION_MANAGER_H_
-#define VESSEL_I_SESSION_MANAGER_H_
+#ifndef VESSEL_FACTORY_H_
+#define VESSEL_FACTORY_H_
 
-#include "vessel/ISession.h"
-#include <thread>
+#include "vessel/api/vessel.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class ISessionManager : public SDBObject
+   class vesselFactroy : public SDBObject
    {
       public:
-         ISessionManager(){}
-         virtual ~ISessionManager(){}
+         vesselFactroy(){}
+         ~vesselFactroy(){}
 
       public:
-         virtual ISession *createNewSession() = 0;
-         virtual void destroySession(ISession *session) = 0;
-   };//class ISessionManager
-}//namespace vessel
-}//namespace engine
+         IVessel *createInstance()const;
+         void releaseInstance(IVessel *)const;
+   };//class vesselFactroy
+} // namespace vessel
 
-#endif//VESSEL_I_SESSION_MANAGER_H_
+} // namespace engine
+
+
+#endif//VESSEL_FACTORY_H_

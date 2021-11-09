@@ -87,12 +87,7 @@ namespace vessel
          goto error;
       }
       
-      rc = context.open(getSession(), getEnv(), getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init context:%d", rc);
-         goto error;
-      }
+      context.open(getExecutor(), getEnv(), getOuterResource());
 
       rc = lh.lock(handle.getSpaceID(), SHARED);
       if (SDB_OK != rc)

@@ -65,14 +65,6 @@ namespace vessel
       public:
          virtual void close();
 
-         OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
-         {
-            _transID = transID;
-         }
-         OSS_INLINE const DPS_TRANS_ID &getTransID()const
-         {
-            return _transID;
-         }
          OSS_INLINE UINT32 getUniqueKeyHashSize()const
          {
             return _uniqueKeyHash.size();
@@ -170,7 +162,6 @@ namespace vessel
       private:
          UINT32 _minFreeSize = 0;
          UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
-         DPS_TRANS_ID _transID;
          BOOLEAN _lockRid = FALSE;
 
          ossPoolVector<UINT32> _uniqueKeyHash;

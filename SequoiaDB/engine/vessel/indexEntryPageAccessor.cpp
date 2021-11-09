@@ -101,7 +101,7 @@ namespace vessel
       *headPtr = head;
       ossMemcpy((void *)((CHAR *)headPtr + INDEX_ENTRY_PAGE_HEAD_SIZE),
                  defObj.getRPtr(), defObj.getSize());
-      lpb->commit(context->getSession()->getLastLSN());
+      lpb->commit(context->getExecutor()->getEndLsn());
 
    done:
       return rc;
@@ -250,7 +250,7 @@ namespace vessel
 
       head->status = status;
       head->alteredTime = ossGetCurrentMilliseconds();
-      lpb->commit(context->getSession()->getLastLSN());
+      lpb->commit(context->getExecutor()->getEndLsn());
    done:
       return rc;
    error:
@@ -330,7 +330,7 @@ namespace vessel
       }
 
       head->btreeRoot = root;
-      lpb->commit(context->getSession()->getLastLSN());
+      lpb->commit(context->getExecutor()->getEndLsn());
    done:
       return rc;
    error:

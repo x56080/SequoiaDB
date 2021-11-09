@@ -38,9 +38,8 @@
 #include "vessel/globalControlFile.h"
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
-#include "vessel/ISession.h"
 #include "vessel/handlers.h"
-#include "vessel/IQueryFilter.h"
+#include "vessel/api/IQueryFilter.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/listCLCursor.h"
 #include "vessel/diskIOJob.h"
@@ -59,7 +58,7 @@ namespace vessel
       fini();
    }
 
-   INT32 vesselImpl::open(ISession *session,
+   INT32 vesselImpl::open(IExecutor *executor,
                           const outerResource *resource,
                           const openDBOptions &options)
    {
@@ -67,7 +66,7 @@ namespace vessel
       SDB_ASSERT(!isOpen(), "do not reopen");
       requestContext context;
 
-      if (NULL == session ||
+      if (NULL == executor ||
           NULL == resource ||
           !resource->isValid())
       {
@@ -75,13 +74,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(session, &_env, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-
+      context.open(executor, &_env, &_outerResource);
       _open = TRUE;
       _outerResource = *resource;
       _env.options = options;
@@ -138,19 +131,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init background workes:%d", rc);
-         goto error;
-      }
-
-      rc = openCacheWatcher();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open cache watcher:%d", rc);
-         goto error;
-      }
+      _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
    done:
       return rc;
    error:
@@ -158,19 +139,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::close(ISession *session, const closeDBOptions &options)
+   INT32 vesselImpl::close(IExecutor *executor, const closeDBOptions &options)
    {
       INT32 rc = SDB_OK;
       if (isOpen() && closeDBOptions::CLOSE_MODE_NORMAL == options.closeMode)
       {
          requestContext context;
-         rc = context.open(session, &_env, &_outerResource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         context.open(executor, &_env, &_outerResource);
 
-         _cacheWatcher.fini();    
+         _cacheWatcher.deactive();    
          _env.workers.fini(); 
          _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
@@ -183,13 +160,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::listCollectionSpace(ISession *session,
+   INT32 vesselImpl::listCollectionSpace(IExecutor *executor,
                                          IQueryFilter *filter,
                                          cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
       listCSCursor *listCursor = NULL;
-      if (OSS_UNLIKELY(NULL == session))
+      if (OSS_UNLIKELY(NULL == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -223,7 +200,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::getCollectionSpaceCount(ISession *session,
+   INT32 vesselImpl::getCollectionSpaceCount(IExecutor *executor,
                                              UINT32 &count)
    {
       INT32 rc = SDB_OK;
@@ -240,7 +217,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::createCollectionSpace(ISession *session,
+   INT32 vesselImpl::createCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
                                            utilCSUniqueID uniqueId,
                                            const createCSOptions &options)
@@ -248,7 +225,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       createCSHandler handler;
 
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        NULL == name))
       {
          rc = SDB_INVALIDARG;
@@ -261,11 +238,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.init(&_env, session, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      handler.init(&_env, executor, &_outerResource);
 
       rc = handler.doit(name, uniqueId, options);
       if (SDB_OK != rc)
@@ -279,13 +252,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::dropCollectionSpace(ISession *session,
+   INT32 vesselImpl::dropCollectionSpace(IExecutor *executor,
                                          const CHAR *name,
                                          UINT32 logicalID,
                                          const dropCSOptions &options)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
           NULL == name ||
           DMS_COLLECTION_SPACE_NAME_SZ < ossStrlen(name) ||
           DMS_INVALID_LOGICCSID == logicalID))
@@ -305,7 +278,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::createCollection(ISession *session,
+   INT32 vesselImpl::createCollection(IExecutor *executor,
                                         const CHAR *csName,
                                         const CHAR* clName,
                                         utilCLInnerID innerID,
@@ -320,11 +293,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.init(&_env, session, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      handler.init(&_env, executor, &_outerResource);
 
       rc = handler.doit(strSlice(csName), strSlice(clName), innerID, options);
       if (SDB_OK != rc)
@@ -338,7 +307,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::listCollections(ISession *session,
+   INT32 vesselImpl::listCollections(IExecutor *executor,
                                      const CHAR *csName,
                                      IQueryFilter *filter,
                                      cursorHandler &cursor)
@@ -349,7 +318,7 @@ namespace vessel
       SPACE_ID sid = INVALID_SPACE_ID;
       requestContext context;
 
-      if (OSS_UNLIKELY(NULL == session || NULL == csName))
+      if (OSS_UNLIKELY(NULL == executor || NULL == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -360,12 +329,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(session, &_env, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
+      context.open(executor, &_env, &_outerResource);
       rc = _env.dms.testCS(&context, strSlice(csName),
                            logicalID, sid);
       if (SDB_OK != rc)
@@ -400,7 +364,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::getCollectionCount(ISession *session,
+   INT32 vesselImpl::getCollectionCount(IExecutor *executor,
                                         const CHAR *csName,
                                         UINT32 &count)
    {
@@ -408,7 +372,7 @@ namespace vessel
       requestContext context;
       collectionSpace *obj = NULL;
 
-      if (OSS_UNLIKELY(NULL == session || NULL == csName))
+      if (OSS_UNLIKELY(NULL == executor || NULL == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -419,11 +383,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(session, &_env, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      context.open(executor, &_env, &_outerResource);
 
       rc = _env.dms.getCSByName(&context, strSlice(csName), SHARED, &obj);
       if (SDB_OK != rc)
@@ -439,7 +399,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::openCollection(ISession *session,
+   INT32 vesselImpl::openCollection(IExecutor *executor,
                                     const CHAR *csName,
                                     const CHAR *clName,
                                     const openCLOptions &options,
@@ -448,7 +408,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       openCLHandler h;
       
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        NULL == csName ||
                        NULL == clName))
       {
@@ -461,11 +421,7 @@ namespace vessel
          goto error;
       }
 
-      rc = h.init(&_env, session, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      h.init(&_env, executor, &_outerResource);
 
       rc = h.doit(this, strSlice(csName), strSlice(clName), options, handler);
       if (SDB_OK != rc)
@@ -479,11 +435,11 @@ namespace vessel
    }
 
 
-   INT32 vesselImpl::pushMoreToCursor(ISession *session,
+   INT32 vesselImpl::pushMoreToCursor(IExecutor *executor,
                                       cursorKernal *cursor)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        NULL == cursor ||
                        !cursor->isOpen() ||
                        CURSOR_TYPE_INVALID == cursor->getType()))
@@ -497,11 +453,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION_SPACE:
       {
          listCollectionSpaceHandler handler;
-         rc = handler.init(&_env, session, &_outerResource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         handler.init(&_env, executor, &_outerResource);
 
          rc = handler.doit(static_cast<listCSCursor*>(cursor));
          if (SDB_OK != rc)
@@ -514,11 +466,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION:
       {
          listCollectionsHandler handler;
-         rc = handler.init(&_env, session, &_outerResource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         handler.init(&_env, executor, &_outerResource);
 
          rc = handler.doit(static_cast<listCLCursor*>(cursor));
          if (SDB_OK != rc)
@@ -530,12 +478,7 @@ namespace vessel
       case CURSOR_TYPE_SCAN_COLLECTION:
       {
          scanCLHandler handler;
-         rc = handler.init(&_env, session, &_outerResource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
+         handler.init(&_env, executor, &_outerResource);
          rc = handler.doit(static_cast<scanCLCursor*>(cursor));
          if (SDB_OK != rc)
          {
@@ -546,11 +489,7 @@ namespace vessel
       case CURSOR_TYPE_INDEX_SCAN:
       {
          indexScanHandler handler;
-         rc = handler.init(&_env, session, &_outerResource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         handler.init(&_env, executor, &_outerResource);
 
          rc = handler.doit(static_cast<indexScanCursor*>(cursor));
          if (SDB_OK != rc)
@@ -569,7 +508,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::createIndex(ISession *session,
+   INT32 vesselImpl::createIndex(IExecutor *executor,
                                  const collectionHandle &handle,
                                  const strSlice &indexName,
                                  const bson::BSONObj &keyPattern,
@@ -578,7 +517,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       createIndexHandler handler;
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        !handle.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -590,12 +529,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.init(&_env, session, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init handler:%d", rc);
-         goto error;
-      }
+      handler.init(&_env, executor, &_outerResource);
 
       rc = handler.doit(handle, indexName, keyPattern, params, options);
       if (SDB_OK != rc)
@@ -608,7 +542,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::listIndexes(ISession *session,
+   INT32 vesselImpl::listIndexes(IExecutor *executor,
                                  const collectionHandle &handle,
                                  ossPoolVector<bson::BSONObj> &indexes)
    {
@@ -618,7 +552,7 @@ namespace vessel
       requestContext context;
       spaceIDLockHelper lh(&context);
 
-      if (OSS_UNLIKELY(NULL == session ||
+      if (OSS_UNLIKELY(NULL == executor ||
                        !handle.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -630,12 +564,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(session, &_env, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init context:%d", rc);
-         goto error;
-      }
+      context.open(executor, &_env, &_outerResource);
       rc = lh.lock(handle.getSpaceID(), SHARED);
       if (SDB_OK != rc)
       {
@@ -673,17 +602,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::insert(ISession *session,
+   INT32 vesselImpl::insert(IExecutor *executor,
                             const collectionHandle &handle,
                             const slice &record,
-                            const DPS_TRANS_ID &transID,
                             STRIPING_ID striping,
                             const insertOptions &options,
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
       insertHandler handler;
-      if (OSS_UNLIKELY(NULL == session))
+      if (OSS_UNLIKELY(NULL == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -694,14 +622,14 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.init(&_env, session, &_outerResource);
+      handler.init(&_env, executor, &_outerResource);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to init handler:%d", rc);
          goto error;
       }
 
-      rc = handler.doit(handle, record, transID, striping, options, res);
+      rc = handler.doit(handle, record, striping, options, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -712,14 +640,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::getTotalRecordCountInPageHead(ISession *session,
+   INT32 vesselImpl::getTotalRecordCountInPageHead(IExecutor *executor,
                                                    const collectionHandle &handle,
                                                    UINT64 &count)
    {
       INT32 rc = SDB_OK;
       countCLHandler handler;
 
-      if (OSS_UNLIKELY(NULL == session))
+      if (OSS_UNLIKELY(NULL == executor))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -730,11 +658,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.init(&_env, session, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      handler.init(&_env, executor, &_outerResource);
 
       rc = handler.doit(handle, count);
       if (SDB_OK != rc)
@@ -817,7 +741,7 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
-         _cacheWatcher.fini();    
+         _cacheWatcher.deactive();    
          _env.workers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
@@ -866,17 +790,45 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::openCacheWatcher()
+   INT32 vesselImpl::attachBackgroundWorker(IExecutor *executor)
    {
       INT32 rc = SDB_OK;
-      rc = _cacheWatcher.init(&_env, &_outerResource);
-      if (SDB_OK != rc)
+      if (OSS_UNLIKELY(!isOpen()))
       {
-         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _cacheWatcher.active();
+      _env.workers.attach(executor);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::attachCacheWatcher(IExecutor *executor)
+   {
+      INT32 rc = SDB_OK;
+      requestContext context;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(executor, &_env, &_outerResource);
+      _cacheWatcher.active(&context);
    done:
       return rc;
    error:

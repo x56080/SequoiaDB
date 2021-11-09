@@ -34,7 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/requestContext.h"
-#include "vessel/ISession.h"
 #include "vessel/spaceIDLocker.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/atomicOperationList.h"
@@ -236,28 +235,19 @@ namespace vessel
 
 /////////////////////////requestContext
 
-   INT32 requestContext::open(ISession *session,
+   void requestContext::open(IExecutor *executor,
                               instanceEnv *env,
                               outerResource *outer)
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!isOpen(), "do not reinit");
-      
-      if (OSS_UNLIKELY(NULL == session ||
-                            NULL == env ||
-                            NULL == outer))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(NULL != executor, "can not be null");
+      SDB_ASSERT(NULL != env, "can not be null");
+      SDB_ASSERT(NULL != outer, "can not be null");
+      SDB_ASSERT(NULL == _executor, "do not reinit");
 
-      _session = session;
+      _executor = executor;
       _env = env;
       _outerResource = outer;
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    requestContext::~requestContext()
@@ -291,7 +281,7 @@ namespace vessel
       
       _spaceContext.close(&_env->spaceLocker);
 
-      _session = NULL;
+      _executor = NULL;
       _env = NULL;
       _outerResource = NULL;
       

@@ -43,6 +43,7 @@
 #include "vessel/localThreadSharedPointer.h"
 #include "vessel/cursorDef.h"
 #include "vessel/cursorRow.h"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
@@ -50,7 +51,6 @@ namespace vessel
 {
    class vesselImpl;
    class IQueryFilter;
-   class ISession;
 
    class cursorKernal : public localThreadSharedCounter
    {
@@ -63,7 +63,7 @@ namespace vessel
       public:
          virtual CURSOR_TYPE getType()const = 0;
 
-         virtual INT32 getNextRow(ISession *session,
+         virtual INT32 getNextRow(IExecutor *executor,
                                   cursorRow *row){return SDB_VESSEL_INTERNAL_ERR;}
 
          virtual UINT32 getStepLengthInLoop()const
@@ -78,7 +78,7 @@ namespace vessel
                     const cursorOptions *o=NULL);
          void close();
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
-         INT32 getNext(ISession *session, slice &content);
+         INT32 getNext(IExecutor *executor, slice &content);
          
          /// push completed record
          INT32 pushData(UINT32 len, const CHAR *data);

@@ -76,7 +76,7 @@ namespace vessel
             return _o.stepLength;
          }
 
-         virtual INT32 getNextRow(ISession *session,
+         virtual INT32 getNextRow(IExecutor *executor,
                                   cursorRow *row);
 
       public:

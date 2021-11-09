@@ -38,14 +38,13 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-
+#include "sdbInterface.hpp"
 
 namespace engine
 {
 namespace vessel
 {
    class instanceEnv;
-   class ISession;
    class outerResource;
 
    class requestHandler : public SDBObject
@@ -61,9 +60,9 @@ namespace vessel
          requestHandler &operator=(const requestHandler &o) = delete;
 
       public:
-         INT32 init(instanceEnv *env,
-                    ISession *session,
-                    outerResource *outer);
+         void init(instanceEnv *env,
+                   IExecutor *executor,
+                   outerResource *outer);
 
          BOOLEAN isInitialized()const;
 
@@ -72,16 +71,16 @@ namespace vessel
          {
             return _env;
          }
-         OSS_INLINE ISession *getSession()
+         OSS_INLINE IExecutor *getExecutor()
          {
-            return _session;
+            return _executor;
          }
          OSS_INLINE outerResource *getOuterResource()
          {
             return _outerResource;
          }
       private:
-         ISession *_session = NULL;
+         IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;
          outerResource *_outerResource = NULL;
          

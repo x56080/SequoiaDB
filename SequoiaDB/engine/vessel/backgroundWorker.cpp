@@ -34,8 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/backgroundWorker.h"
-#include "vessel/ISesseionManager.h"
-#include "vessel/ISession.h"
 #include "pdTrace.hpp"
 #include "vessel/diskIOTask.h"
 #include "vessel/instanceEnv.h"
@@ -47,46 +45,26 @@ namespace engine
 {
 namespace vessel
 {
-   backgroundWorker::backgroundWorker()
-   {}
-
-   backgroundWorker::~backgroundWorker()
-   {}
-
-   INT32 backgroundWorker::init(outerResource *resource,
+   void backgroundWorker::init(outerResource *outer,
                                instanceEnv *env,
+                               IExecutor *executor,
                                autoEventList<backgroundEvent> *el)
    {
-      INT32 rc = SDB_OK;
-      if (NULL == resource ||
-          NULL == env ||
-          NULL == el)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(NULL != outer, "can not be null");
+      SDB_ASSERT(NULL != env, "can not be null");
+      SDB_ASSERT(NULL != executor, "can not be null");
+      SDB_ASSERT(NULL != el, "can not be null");
 
-      _session = resource->sessionMgr->createNewSession();
-      if (NULL == _session)
-      {
-         PD_LOG(PDERROR, "failed to create new session");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      _resource = resource;
+      _outer = outer;
       _env = env;
+      _executor = executor;
       _el = el;
-
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    void backgroundWorker::activeEntry()
    {
-      SDB_ASSERT(NULL != _resource, "can not be null");
+      SDB_ASSERT(NULL != _executor, "can not be null");
       backgroundEvent event;
 
       do
@@ -124,21 +102,8 @@ namespace vessel
             break;
          }
       } while (TRUE);
-   
-   done:
-      fini();
-   }
 
-   void backgroundWorker::fini()
-   {
-      if (NULL != _session)
-      {
-         _resource->sessionMgr->destroySession(_session);
-      }
-      _resource = NULL;
-      _env = NULL;
-      _session = NULL;
-      _el = NULL;
+   done:
       return;
    }
 
@@ -149,7 +114,7 @@ namespace vessel
       
       requestContext context;
       UINT32 jobID = task.getJob()->getJobID();
-      context.open(_session, _env, _resource);
+      context.open(_executor, _env, _outer);
       INT32 rc = cache.executeIOTask(&context, &task);
       if (SDB_OK != rc)
       {
@@ -173,7 +138,7 @@ namespace vessel
       logicalPageSpace *lps = NULL;
       requestContext context;
 
-      context.open(_session, _env, _resource);
+      context.open(_executor, _env, _outer);
       rc = context.lockSpaceID(msg._sid, SHARED);
       if (SDB_OK != rc)
       {
@@ -216,7 +181,7 @@ namespace vessel
       logicalPageSpace *lps = NULL;
       requestContext context;
 
-      context.open(_session, _env, _resource);
+      context.open(_executor, _env, _outer);
       rc = context.lockSpaceID(msg._sid, SHARED);
       if (SDB_OK != rc)
       {

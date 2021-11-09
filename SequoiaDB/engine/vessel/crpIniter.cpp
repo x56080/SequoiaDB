@@ -37,7 +37,6 @@
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/collectionRecordPage.h"
 #include "vessel/logRecordContext.h"
-#include "vessel/ISession.h"
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/requestContext.h"

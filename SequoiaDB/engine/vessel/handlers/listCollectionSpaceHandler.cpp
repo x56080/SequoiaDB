@@ -65,11 +65,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(), getEnv(), getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      context.open(getExecutor(), getEnv(), getOuterResource());
 
       rc = getEnv()->dms.listCollectionSpaces(&context, cursor);
       if (SDB_OK != rc)

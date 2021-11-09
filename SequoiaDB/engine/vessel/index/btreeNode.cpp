@@ -1978,8 +1978,8 @@ namespace vessel
    {
       if (isValid() && _buffer->isWritable())
       {
-         ISession *session = _buffer->getContext()->getSession();
-         _buffer->commit(session->getLastLSN());
+         IExecutor *executor = _buffer->getContext()->getExecutor();
+         _buffer->commit(executor->getEndLsn());
       }
       return;
    }

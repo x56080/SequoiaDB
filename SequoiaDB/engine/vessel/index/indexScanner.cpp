@@ -322,9 +322,9 @@ namespace vessel
          {
             goto done;
          }
-         else if (context->getSession()->quit())
+         else if (context->getExecutor()->isInterrupted())
          {
-            PD_LOG(PDERROR, "session[%lld] quit", context->getSession()->getSessionID());
+            PD_LOG(PDERROR, "excutor[%lld] interrupted", context->getExecutor()->getID());
             rc = SDB_APP_INTERRUPT;
             goto error;
          }

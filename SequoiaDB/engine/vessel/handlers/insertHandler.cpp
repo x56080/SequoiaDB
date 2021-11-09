@@ -47,7 +47,6 @@ namespace vessel
 {
    INT32 insertHandler::doit(const collectionHandle &handle,
                               const slice &record,
-                              const DPS_TRANS_ID &transID,
                               STRIPING_ID striping,
                               const insertOptions &options,
                               utilInsertResult &res)
@@ -69,11 +68,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(), getEnv(), getOuterResource());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      context.open(getExecutor(), getEnv(), getOuterResource());
 
       rc = getEnv()->dms.getCSBySpaceID(&context,
                                         handle.getSpaceID(),
@@ -94,7 +89,6 @@ namespace vessel
          goto error;
       }
 
-      context.setTransID(transID);
       context.setOptions(options);
       context.setStriping(striping);
       context.setOriginalRecord(record);

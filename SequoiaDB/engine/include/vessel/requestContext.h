@@ -39,13 +39,14 @@
 #include "vessel/vesselIdDef.h"
 #include "ossLatch.hpp"
 #include "ossLikely.hpp"
-#include "vessel/ISession.h"
 #include "vessel/pageDef.h"
 #include "vessel/lpsCheckpointBlocker.h"
 #include "vessel/objectLatchMap.hpp"
 #include "dms.hpp"
 #include "vessel/collectionHandle.h"
+#include "sdbInterface.hpp"
 
+/*
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
    do\
    {\
@@ -55,7 +56,7 @@
          context->getSession()->setLastError(rc, fmt, ##__VA_ARGS__);\
       }\
    } while (0)
-
+*/
 namespace engine
 {
 namespace vessel
@@ -193,9 +194,9 @@ namespace vessel
          virtual ~requestContext();
 
       public:
-         INT32 open(ISession *session,
-                     instanceEnv *env,
-                     outerResource *outer);
+         void open(IExecutor *executor,
+                   instanceEnv *env,
+                   outerResource *outer);
          virtual void close()
          {
             _close();
@@ -203,12 +204,12 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _session;
+            return NULL != _executor;
          }
 
-         OSS_INLINE ISession *getSession()const
+         OSS_INLINE IExecutor *getExecutor()const
          {
-            return _session;
+            return _executor;
          }
 
          OSS_INLINE instanceEnv *getEnv()const
@@ -357,11 +358,17 @@ namespace vessel
                            atomicOperationList **oldOplist);
          BOOLEAN isInProcessingOplist()const;
 
+      public:
+         DPS_TRANS_ID getTransIDWithoutTag()const
+         {
+            return _executor->getTransID().getOrigTransID();
+         }
+
       private:
          void _close();
 
       private:
-         ISession *_session = NULL;
+         IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;
          outerResource *_outerResource = NULL;
 

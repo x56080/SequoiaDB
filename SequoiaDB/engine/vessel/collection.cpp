@@ -476,7 +476,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       count = 0;
-      ISession *session = context->getSession();
+      IExecutor *executor = context->getExecutor();
       const static UINT32 _QUIT_CHECK = 7;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -491,7 +491,7 @@ namespace vessel
          UINT32 countInRdp = 0;
          if (0 == (i & _QUIT_CHECK))
          {
-            if (session->quit())
+            if (executor->isInterrupted())
             {
                rc = SDB_APP_INTERRUPT;
                goto error;
@@ -2332,8 +2332,7 @@ namespace vessel
                rc = console.insert(context,
                                    ic,
                                    ixmKeyOwned(*itr),
-                                   rr.getCurrentRid(),
-                                   rr.getCurrentRecordHead().getTransID());
+                                   rr.getCurrentRid());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert key into index[%s], rc:%d",
@@ -2782,7 +2781,7 @@ namespace vessel
       {
          btreeRebuildingSortElement se;
          sorter->get(i, se);
-         rc = console.insert(context, ic, se.getKey(), se.getRid(), se.getTransID());
+         rc = console.insert(context, ic, se.getKey(), se.getRid());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
@@ -3190,7 +3189,7 @@ namespace vessel
                                       context->getLastDmlScanEntry(),
                                       context->getLastDmlRid().getPageID(),
                                       context->getLastDmlLSN(),
-                                      context->getTransID(),
+                                      context->getTransIDWithoutTag(),
                                       ir->getKeys(),
                                       refused);
 

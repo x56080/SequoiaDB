@@ -107,8 +107,7 @@ namespace vessel
    }
 
    INT32 btreeAccessor::insert(const ixmKey &key,
-                               const recordID &rid,
-                               const DPS_TRANS_ID &transID)
+                               const recordID &rid)
    {
       INT32 rc = SDB_OK;
       BOOLEAN checkpointBlocked = FALSE;
@@ -149,7 +148,7 @@ namespace vessel
 
       _bac.clearAccessPath();
       _bac.setReadonly(FALSE);
-      rc = traverseDownAndInsert(key, rid, transID, obstructed);
+      rc = traverseDownAndInsert(key, rid, obstructed);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
@@ -163,7 +162,7 @@ namespace vessel
          _bac.setPessimistic(TRUE);
          
          obstructed = FALSE;
-         rc = traverseDownAndInsert(key, rid, transID, obstructed);
+         rc = traverseDownAndInsert(key, rid, obstructed);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key and rid:%d", rc);
@@ -195,7 +194,6 @@ namespace vessel
 
    INT32 btreeAccessor::traverseDownAndInsert(const ixmKey &key,
                                               const recordID &rid,
-                                              const DPS_TRANS_ID &transID,
                                               BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
@@ -222,7 +220,7 @@ namespace vessel
             if (node.hasFreeSpaceToInsert(key.dataSize()))
             {
                _bac.endToAccessNonPathEndNodes();
-               rc = insertWhenPathEndIsLeaf(key, rid, transID, obstructed);
+               rc = insertWhenPathEndIsLeaf(key, rid, obstructed);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert into leaf node[%d,%d]:%d",
@@ -232,7 +230,7 @@ namespace vessel
             }
             else
             {
-               rc = splitAndInsertWhenPathEndIsLeaf(key, rid, transID, obstructed);
+               rc = splitAndInsertWhenPathEndIsLeaf(key, rid, obstructed);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to split and insert:%d", rc);
@@ -261,7 +259,7 @@ namespace vessel
                   goto done;
                }
 
-               rc = node.reactiveRemovedKey(location, transID);
+               rc = node.reactiveRemovedKey(location, _context->getTransIDWithoutTag());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
@@ -366,7 +364,7 @@ namespace vessel
       }
 
       _bac.popEnd();
-      rc = insertRaisedKeyRecursively(raisedKey, transID);
+      rc = insertRaisedKeyRecursively(raisedKey);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
@@ -381,7 +379,6 @@ namespace vessel
 
    INT32 btreeAccessor::insertWhenPathEndIsLeaf(const ixmKey &key,
                                                 const recordID &rid,
-                                                const DPS_TRANS_ID &transID,
                                                 BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
@@ -399,7 +396,7 @@ namespace vessel
          goto done;
       }
 
-      rc = node.leafInsert(key, rid, transID);
+      rc = node.leafInsert(key, rid, _context->getTransIDWithoutTag());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert into leaf node:%d", rc);
@@ -414,7 +411,6 @@ namespace vessel
 
    INT32 btreeAccessor::splitAndInsertWhenPathEndIsLeaf(const ixmKey &key,
                                                         const recordID &rid,
-                                                        const DPS_TRANS_ID &transID,
                                                         BOOLEAN &obstructed)
    {
       INT32 rc = SDB_OK;
@@ -433,7 +429,7 @@ namespace vessel
 
       if (node.isRoot())
       {
-         rc = splitAndInsertWhenPathEndIsRoot(key, rid, transID);
+         rc = splitAndInsertWhenPathEndIsRoot(key, rid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split root and insert:%d", rc);
@@ -459,7 +455,7 @@ namespace vessel
             goto error;
          }
 
-         rc = node.splitLeafAndInsert(key, rid, transID, raisedKey);
+         rc = node.splitLeafAndInsert(key, rid, _context->getTransIDWithoutTag(), raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split leaf node [%d] and insert:%d",
@@ -468,7 +464,7 @@ namespace vessel
          }
 
          _bac.popEnd();
-         rc = insertRaisedKeyRecursively(raisedKey, transID);
+         rc = insertRaisedKeyRecursively(raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to traverse up and insert raised key:%d", rc);
@@ -483,7 +479,6 @@ namespace vessel
 
    INT32 btreeAccessor::splitAndInsertWhenPathEndIsRoot(const ixmKey &key,
                                                         const recordID &rid,
-                                                        const DPS_TRANS_ID &transID,
                                                         const btreeSplitRaisedKey *raisedKey)
    {
       INT32 rc = SDB_OK;
@@ -556,7 +551,7 @@ namespace vessel
 
       if (NULL == raisedKey)
       {
-         rc = node.splitLeafAndInsert(key, rid, transID, newRaisedKey);
+         rc = node.splitLeafAndInsert(key, rid, _context->getTransIDWithoutTag(), newRaisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split leaf and insert:%d", rc);
@@ -565,7 +560,7 @@ namespace vessel
       }
       else
       {
-         rc = node.splitNonLeafAndInsert(*raisedKey, transID, newRaisedKey);
+         rc = node.splitNonLeafAndInsert(*raisedKey, _context->getTransIDWithoutTag(), newRaisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split non leaf root and insert:%d", rc);
@@ -576,7 +571,7 @@ namespace vessel
       /// set right child of new root first, which init it as non-leaf node.
       newRootBufferSlice.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
       newRootNode = btreeNode(&newRootBuffer, 0, _ic);
-      rc = newRootNode.insertRaisedKey(newRaisedKey, transID);
+      rc = newRootNode.insertRaisedKey(newRaisedKey, _context->getTransIDWithoutTag());
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert raised key into new root:%d", rc);
@@ -690,8 +685,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeAccessor::insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey,
-                                                   const DPS_TRANS_ID &transID)
+   INT32 btreeAccessor::insertRaisedKeyRecursively(const btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -710,7 +704,7 @@ namespace vessel
       /// one slot always be reserved
       if (node.hasFreeSpaceToInsertRaisedKey(raisedKey.getKeySize()))
       {
-         rc = node.insertRaisedKey(raisedKey, transID);
+         rc = node.insertRaisedKey(raisedKey, _context->getTransIDWithoutTag());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
@@ -720,7 +714,7 @@ namespace vessel
       else if (node.isRoot())
       {
          rc = splitAndInsertWhenPathEndIsRoot(ixmKey(), recordID(),
-                                              transID, &raisedKey);
+                                              &raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split root and insert raised key:%d", rc);
@@ -744,7 +738,9 @@ namespace vessel
                goto error;
             }
 
-            rc = node.splitNonLeafAndInsert(raisedKey, transID, newRaisedKey);
+            rc = node.splitNonLeafAndInsert(raisedKey,
+                                            _context->getTransIDWithoutTag(),
+                                            newRaisedKey);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
@@ -752,7 +748,7 @@ namespace vessel
             }
 
             _bac.popEnd();
-            rc = insertRaisedKeyRecursively(newRaisedKey, transID);
+            rc = insertRaisedKeyRecursively(newRaisedKey);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
@@ -762,7 +758,7 @@ namespace vessel
          else
          {
             /// will create external key page
-            rc = node.insertRaisedKeyAsExtKey(raisedKey, transID);
+            rc = node.insertRaisedKeyAsExtKey(raisedKey, _context->getTransIDWithoutTag());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
