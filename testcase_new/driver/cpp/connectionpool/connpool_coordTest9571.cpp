@@ -38,7 +38,7 @@ protected:
 TEST_F( coordTest9571, stop9571 )
 {
    INT32 rc = SDB_OK ;
-   string url1 = "192.168.20.165:11810" ;
+   string url1 = "localhost:50000" ;
    // string url2 = "192.168.20.166:11810" ;
    // string url3 = "192.168.20.166:50000" ;
    vector<string> urllist ;

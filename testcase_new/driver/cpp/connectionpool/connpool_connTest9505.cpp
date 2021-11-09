@@ -86,7 +86,7 @@ TEST_F( connTest9505, withoutInit9510 )
    
    // operation before init
    rc = ds.getConnection( conn ) ;	
-   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_ENABLE, rc ) << "fail to test get connection before init" ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_INIT, rc ) << "fail to test get connection before init" ;
    ds.close() ;		
 }
 

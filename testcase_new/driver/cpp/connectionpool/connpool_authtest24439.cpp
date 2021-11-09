@@ -43,7 +43,7 @@ TEST_F( connPoolAuthTest24439, authSuccess24439 )
    sdb* conn = NULL ;
    BOOLEAN ret = FALSE ;
 
-   conf.setAuthInfo("sdbadmin", "/home/sdbadmin/sequoiadb/passwd", "");
+   conf.setAuthInfo("sdbadmin", "/home/sdbadmin/sequoiadb/passwd", "sequoiadb");
    rc = pool.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 
@@ -131,7 +131,7 @@ TEST_F( connPoolAuthTest24439, authFailureWithErrToken24443 )
    INT32 rc = SDB_OK ;
    sdb* conn = NULL ;
 
-   conf.setAuthInfo("sequoiadb", "/home/sdbadmin/sequoiadb/passwd", "sdbadmin");
+   conf.setAuthInfo("sdbadmin", "/home/sdbadmin/sequoiadb/passwd", "sdbadmin");
    rc = pool.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 
@@ -150,6 +150,6 @@ TEST_F( connPoolAuthTest24439, authFailureWithErrCipherFile24442 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 
    rc = pool.getConnection( conn ) ;
-   ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) << "fail to get connection from connectionpool" ;
+   ASSERT_EQ( SDB_FNE, rc ) << "fail to get connection from connectionpool" ;
 
 }
