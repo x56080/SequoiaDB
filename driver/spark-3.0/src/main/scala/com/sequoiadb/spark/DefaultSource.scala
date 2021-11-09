@@ -19,7 +19,7 @@ package com.sequoiadb.spark
 import com.sequoiadb.base.{DBCollection, Sequoiadb}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
+import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
 import org.bson.util.JSON
 import org.bson.{BSONObject, BasicBSONObject}
 
@@ -69,7 +69,7 @@ class DefaultSource extends DataSourceRegister
         if (isCollectionWritable(config, mode)) {
             // get schema for execution
             val schema = data.schema
-            data.foreachPartition(it => {
+            data.foreachPartition((it: Iterator[Row]) => {
                 // always write through coord node which specified in config
                 new SdbWriter(config).write(it, schema)
             })
