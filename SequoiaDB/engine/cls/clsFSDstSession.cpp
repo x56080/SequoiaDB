@@ -1858,6 +1858,7 @@ namespace engine
       pmdGetStartup().ok( FALSE ) ;
       // clear all log
       dpsCB->move ( 0, 0 ) ;
+      dpsCB->beforeFS() ;
       /*
       Don't to move the lsn to expect to prevent the node change to primary
       when the primary node crashed
@@ -2180,7 +2181,6 @@ namespace engine
          PMD_SET_DB_STATUS( SDB_DB_FULLSYNC ) ;
       }
       sdbGetReplCB()->getFaultEvent()->signalAll( SDB_CLS_FULL_SYNC ) ;
-
       // not use trans lock
       eduCB()->getTransExecutor()->setUseTransLock( FALSE ) ;
 
@@ -2192,7 +2192,6 @@ namespace engine
    void _clsFSDstSession::_onDetach()
    {
       PD_TRACE_ENTRY ( SDB__CLSFSDS__ONDETACH );
-
       if ( CLS_FS_STATUS_END == _status && CLS_FS_STEP_END == _fsStep )
       {
          rtnDBFSPostCleaner fsCleaner ;
@@ -2203,7 +2202,7 @@ namespace engine
          /// move dps to 0
          pmdGetKRCB()->getDPSCB()->move( 0, 0 ) ;
       }
-
+      pmdGetKRCB()->getDPSCB()->afterFS();
       PD_LOG( PDEVENT, "Session[%s]: start sync session.", sessionName() ) ;
       pmdGetKRCB()->getClsCB()->startInnerSession( CLS_REPL,
                                                    CLS_TID_REPL_SYC ) ;

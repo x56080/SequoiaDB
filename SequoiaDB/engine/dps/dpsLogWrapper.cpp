@@ -632,6 +632,17 @@ namespace engine
    {
    }
 
+   void _dpsLogWrapper::beforeFS()
+   {
+      _buf.beforeFS() ;
+   }
+
+   void _dpsLogWrapper::afterFS()
+   {
+      DPS_LSN lsn = expectLsn() ;
+      _buf.afterFS( lsn.offset, lsn.version ) ;
+   }
+
    /*
       get dps cb
    */
