@@ -96,9 +96,9 @@ namespace engine
 
       virtual INT32 _checkMarkInsert( dmsMBContext *context,
                                       const DPS_TRANS_ID &transID,
-                                      INT64 position,
                                       const BSONObj &insertObj,
                                       pmdEDUCB *cb,
+                                      INT64 &position,
                                       BOOLEAN &markInsert,
                                       dmsRecordID &foundRID,
                                       dmsRecordData &recordData,

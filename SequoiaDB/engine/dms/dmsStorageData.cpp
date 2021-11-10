@@ -190,9 +190,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKMARKINST, "_dmsStorageData::_checkMarkInsert" )
    INT32 _dmsStorageData::_checkMarkInsert( dmsMBContext *context,
                                             const DPS_TRANS_ID &transID,
-                                            INT64 position,
                                             const BSONObj &insertObj,
                                             pmdEDUCB *cb,
+                                            INT64 &position,
                                             BOOLEAN &markInsert,
                                             dmsRecordID &foundRID,
                                             dmsRecordData &recordData,
@@ -201,6 +201,8 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKMARKINST ) ;
+
+      markInsert = FALSE ;
 
       /// when is rollback, and the rid is found
       if ( -1 != position &&
@@ -245,8 +247,18 @@ namespace engine
          }
 
          context->mbUnlock() ;
-         recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
+
+         if ( markInsert )
+         {
+            recordData.setData( insertObj.objdata(), insertObj.objsize(),
+                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
+         }
+      }
+
+      // can not use mark insert, the position should be cleared
+      if ( !markInsert && -1 != position )
+      {
+         position = -1 ;
       }
 
    done:

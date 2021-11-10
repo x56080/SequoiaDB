@@ -443,9 +443,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__CHKMARKINST, "_dmsStorageDataCapped::_checkMarkInsert" )
    INT32 _dmsStorageDataCapped::_checkMarkInsert( dmsMBContext *context,
                                                   const DPS_TRANS_ID &transID,
-                                                  INT64 position,
                                                   const BSONObj &insertObj,
                                                   pmdEDUCB *cb,
+                                                  INT64 &position,
                                                   BOOLEAN &markInsert,
                                                   dmsRecordID &foundRID,
                                                   dmsRecordData &recordData,

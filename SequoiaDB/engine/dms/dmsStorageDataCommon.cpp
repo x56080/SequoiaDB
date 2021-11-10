@@ -3112,7 +3112,7 @@ namespace engine
 
       try
       {
-         rc = _checkMarkInsert( context, transID, position, insertObj, cb,
+         rc = _checkMarkInsert( context, transID, insertObj, cb, position,
                                 markInsert, foundRID, recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
