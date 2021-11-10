@@ -3326,8 +3326,8 @@ namespace engine
 
       try
       {
-         rc = _checkMarkInsert( context, transInfo._transID, position,
-                                insertObj, cb, markInsert, foundRID,
+         rc = _checkMarkInsert( context, transInfo._transID, insertObj,
+                                cb, position, markInsert, foundRID,
                                 recordData, recordRW ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check mark insert "
                       "[position %lld, obj %s], rc: %d",
