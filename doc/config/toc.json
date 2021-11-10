@@ -385,6 +385,12 @@
                "file": "auto_increment",
                "cn": "自增字段",
                "en": "Auto-increment"
+            },
+            {
+               "id": 1634711899,
+               "file": "instance",
+               "cn": "实例",
+               "en": "Instance"
             }
          ]
       },
