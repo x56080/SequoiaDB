@@ -116,7 +116,8 @@ namespace vessel
       return;
    }
 
-   INT32 indexScanner::batchNext(indexScanContext *context)
+   INT32 indexScanner::batchNext(indexScanContext *context,
+                                 UINT32 rowLimited)
    {
       INT32 rc = SDB_OK;
 
@@ -146,7 +147,7 @@ namespace vessel
          goto error;
       }
 
-      rc = fillBatch(context);
+      rc = fillBatch(context, rowLimited);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fill batch:%d", rc);
@@ -166,7 +167,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexScanner::fillBatch(indexScanContext *context)
+   INT32 indexScanner::fillBatch(indexScanContext *context,
+                                 UINT32 rowLimited)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
@@ -174,10 +176,10 @@ namespace vessel
       SDB_ASSERT(context->getRidLatchContext().isEmpty(), "must be empty");
       SDB_ASSERT(!_mode.isNone(), "can not be none");
       SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
+      SDB_ASSERT(0 < rowLimited, "can not be zero");
 
       UNORDERED_RID_SET *ridSet = context->getRidSet();
       SDB_ASSERT(NULL != ridSet, "can not be null");
-      UINT32 maxBatchSize = context->getCursor()->getOptions().stepLength;
       rtnPredicateListIterator *predicate = context->getCursor()->getPredicate();
       SDB_ASSERT(NULL != predicate, "can not be null");
 
@@ -249,7 +251,7 @@ namespace vessel
             }
          }
       } while( _iterator->isReadyToRead() &&
-               context->getBatch().getEntryCount() < maxBatchSize);
+               context->getBatch().getEntryCount() < rowLimited);
 
    done:
       return rc;

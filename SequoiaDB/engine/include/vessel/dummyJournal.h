@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IRedoLogger.h
+   Source File Name = dummyJournal.h
 
    Descriptive Name =
 
@@ -36,61 +36,102 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_I_REDO_LOGGER_H_
-#define VESSEL_I_REDO_LOGGER_H_
+#ifndef VESSEL_DUMMY_JOURNAL_H_
+#define VESSEL_DUMMY_JOURNAL_H_
 
-#include "dpsDef.hpp"
-#include "sdbInterface.hpp"
+#include "vessel/IRedoLogger.h"
+#include "ossAtomic.hpp"
+#include "vessel/logRecordContext.h"
 
 namespace engine
 {
-   class _dpsLogRecord;
 namespace vessel
 {
-   class logRecordContext;
-
-   class IRedoLogger : public SDBObject
+   class dummyJournal : public IRedoLogger
    {
       public:
-         IRedoLogger(){}
-         virtual ~IRedoLogger(){}
+         dummyJournal():
+         _lsn(0)
+         {
+
+         }
+         virtual ~dummyJournal(){}
 
       public:
-         /// normal api.
-         /// prepare and commit.
          virtual INT32 log(IExecutor *executor,
                            const _dpsLogRecord *record,
-                           DPS_LSN_OFFSET *lsn) = 0;
+                           DPS_LSN_OFFSET *lsn)
+         {
+            UINT64 t = _lsn.add(record->alignedLen());
+            if (NULL != lsn)
+            {
+               *lsn = t;
+            }
+            return SDB_OK;
+         }
 
          /// allocate lsn and log buffer.
          virtual INT32 prepare(IExecutor *executor,
-                               logRecordContext *context) = 0;
+                               logRecordContext *context)
+         {
+            SDB_ASSERT(!context->prepared(), "impossible");
+            UINT64 t = _lsn.fetch();
+            context->getHead()._lsn = t;
+            if (0 != OSS_BIT_TEST(context->getHead()._flags,
+                                  DPS_VESSEL_LOG_FLAG_OPL_HEAD))
+            {
+               context->getHead()._opListLSN = t;
+            }
+            
+            return SDB_OK;
+         }
 
          virtual INT32 pushLogRecordElement(IExecutor *executor,
                                             logRecordContext *context,
                                             DPS_TAG tag,
                                             UINT32 len,
-                                            const void *value) = 0;
+                                            const void *value)
+         {
+            SDB_ASSERT(context->prepared(), "impossible");
+            return SDB_OK;
+         }
 
          virtual INT32 commit(IExecutor *executor,
-                              logRecordContext *context) = 0;
+                              logRecordContext *context)
+         {
+            SDB_ASSERT(context->prepared(), "impossible");
+            return SDB_OK;
+         }
 
          /// do not abort log after committing.
          virtual INT32 abort(IExecutor *executor,
-                             logRecordContext *context) = 0;
+                             logRecordContext *context)
+         {
+            SDB_ASSERT(context->prepared(), "impossible");
+            return SDB_OK;
+         }
 
          virtual INT32 pushMaxFileLSN(IExecutor *executor,
-                                      DPS_LSN_OFFSET lsn) = 0;
+                                      DPS_LSN_OFFSET lsn) {return SDB_OK;}
 
          /// 
          virtual INT32 abortOplist(IExecutor *executor,
-                                   DPS_LSN_OFFSET lsn) = 0;
+                                   DPS_LSN_OFFSET lsn) {}
 
-         virtual DPS_LSN_OFFSET getMinFileLsn() = 0;
-   };//class IRedoLogger
+         virtual DPS_LSN_OFFSET getMinFileLsn() {return _lsn.fetch();}
 
-   
-}//namespace vessel
-}//namespace engine
+         static dummyJournal *instance()
+         {
+            static dummyJournal journal;
+            return &journal;
+         }
 
-#endif//VESSEL_I_REDO_LOGGER_H_
+      private:
+         ossAtomic64 _lsn;
+   };
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_DUMMY_JOURNAL_H_

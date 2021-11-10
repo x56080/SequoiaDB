@@ -48,7 +48,6 @@ namespace engine
 namespace vessel
 {
    class IRedoLogger;
-   class ISession;
    class requestContext;
 
    UINT32 packSidAndType(SPACE_ID sid,

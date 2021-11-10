@@ -39,13 +39,13 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
 #include "vessel/autoEventList.hpp"
-#include "vessel/diskIOTask.h"
+#include "ossEvent.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   static const UINT32 BG_EVENT_MSG_BUFFER_SIZE = sizeof(diskIOTask);
+   static const UINT32 BG_EVENT_MSG_BUFFER_SIZE = 16;
 
    class backgroundEvent : public SDBObject
    {
@@ -54,6 +54,7 @@ namespace vessel
          ~backgroundEvent(){}
          backgroundEvent(const backgroundEvent &o):
          _type(o._type),
+         _responseEvent(o._responseEvent),
          _responseList(o._responseList)
          {
             ossMemcpy(_msg, o._msg, BG_EVENT_MSG_BUFFER_SIZE);
@@ -62,6 +63,7 @@ namespace vessel
          {
             _type = o._type;
             ossMemcpy(_msg, o._msg, BG_EVENT_MSG_BUFFER_SIZE);
+            _responseEvent = o._responseEvent;
             _responseList = o._responseList;
             return *this;
          }
@@ -82,6 +84,7 @@ namespace vessel
          {
             _type = EVENT_TYPE_INVALID;
             ossMemset(_msg, 0, BG_EVENT_MSG_BUFFER_SIZE);
+            _responseEvent = NULL;
             _responseList = NULL;
          }
 
@@ -120,10 +123,28 @@ namespace vessel
          {
             return NULL != _responseList;
          }
+         OSS_INLINE BOOLEAN hasResponseEvent()const
+         {
+            return NULL != _responseEvent;
+         }
+         OSS_INLINE ossEvent *getResponseEvent()
+         {
+            return _responseEvent;
+         }
+         OSS_INLINE void resetResponseEvent(ossEvent *e)
+         {
+            if (NULL != e)
+            {
+               e->reset();
+            }
+            _responseEvent = e;
+            return;
+         }
 
       private:
          EVENT_TYPE _type = EVENT_TYPE_INVALID;
          CHAR _msg[BG_EVENT_MSG_BUFFER_SIZE] = {};
+         ossEvent *_responseEvent = NULL;
          autoEventList<backgroundEvent> *_responseList = NULL;
    };//class backgroundEvent
 }//namespace vessel

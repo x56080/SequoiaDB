@@ -77,6 +77,7 @@ namespace vessel
       OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
       if (NULL != o)
       {
+         SDB_ASSERT(0 < o->rowBatchSize, "can not be zero");
          _options = *o;
       }
       _db = db;
@@ -169,7 +170,7 @@ namespace vessel
 
    BOOLEAN cursorKernal::isWaitingMorePushing()const
    {
-      return !hitTheEnd() && (_pushedThisLoop < getStepLengthInLoop());
+      return !hitTheEnd() && (_pushedThisLoop < _options.rowBatchSize);
              
    }
 
@@ -307,13 +308,7 @@ namespace vessel
       }
 
       extendingSize = needSize - _mb.getFreeCapacity();
-      if (_options.maxBufSize < (_mb.getCapacity() + extendingSize))
-      {
-         /// max buf size is too small
-         rc = SDB_VESSEL_OUT_OF_RESOURCE;
-         goto error;
-      }
-      else if (!_mb.isEmpty())
+      if (!_mb.isEmpty())
       {
          /// Extend buffer only at the first pushing of current loop.
          rc = SDB_VESSEL_CURSOR_NO_SPACE;

@@ -40,7 +40,6 @@
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEvent.h"
 #include "vessel/backgroundWorker.h"
-#include "ossLatch.hpp"
 #include "ossAtomic.hpp"
 
 namespace engine
@@ -59,29 +58,25 @@ namespace vessel
          backgroundWorkers &operator=(const backgroundWorkers &) = delete;
 
       public:
-         void init(outerResource *resource,
-                   instanceEnv *env,
-                   UINT32 max);
+         INT32 init(outerResource *resource,
+                    instanceEnv *env,
+                    UINT32 workerCount);
          void fini();
-
-         void attach(IExecutor *executor);
 
          void pushEvent(const backgroundEvent &event);
 
-         UINT32 getAttachedCount()const
-         {
-            return _attached;
-         }
       private:
-         typedef ossPoolVector<backgroundWorker> _WORKER_VEC;
+         INT32 _active(UINT32 count);
+         void _deactive();
+
+      private:
+         typedef ossPoolList<backgroundWorker *> _WORKERS;
 
       private:
          outerResource *_or = NULL;
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> _el;
-         ossSpinXLatch _latch;
-         _WORKER_VEC _workers;
-         UINT32 _attached = 0;
+         _WORKERS _workers;
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine

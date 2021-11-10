@@ -57,8 +57,7 @@ namespace vessel
    void inMemBitmap::_inMemBitPage::fini()
    {
       _pageID = -1;
-      _free = 0;
-      _firstFreeBits = -1;
+      _scanner.reset();
       if (NULL != _buf)
       {
          SDB_THREAD_FREE(_buf);
@@ -67,43 +66,9 @@ namespace vessel
       return;
    }
 
-   INT32 inMemBitmap::_inMemBitPage::initWithNoFree(INT32 pageId,
-                                                    UINT32 capacity)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!isReady(), "do not reinit");
-      UINT32 bufferSize = capacity >> 3;
-
-      if (OSS_UNLIKELY(pageId < 0 ||
-                       0 == capacity ||
-                       !ossIsAligned64(capacity)))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _buf = (UINT64 *)SDB_THREAD_ALLOC(bufferSize);
-      if (NULL == _buf)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      ossMemset(_buf, 0x0, bufferSize);
-      
-      _pageID = pageId;
-      _free = 0;
-      _firstFreeBits = -1;
-   done:
-      return rc;
-   error:
-      fini();
-      goto done;
-   }
-
    INT32 inMemBitmap::_inMemBitPage::init(INT32 pageId,
-                                          UINT32 capacity)
+                                          UINT32 capacity,
+                                          BOOLEAN noFree)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isReady(), "do not reinit");
@@ -124,12 +89,9 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
-
-      ossMemset(_buf, 0xFF, bufferSize);
       
       _pageID = pageId;
-      _free = capacity;
-      _firstFreeBits = 0;
+      _scanner.init(_buf, capacity, noFree);
    done:
       return rc;
    error:
@@ -137,195 +99,84 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitmap::_inMemBitPage::initFromBuf(INT32 pageId,
-                                                 UINT32 capacity,
-                                                 const UINT64 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(!isReady(), "do not reinit");
-      UINT32 bufSize = capacity >> 3;
-      UINT32 count = capacity >> 6;
-
-      if (OSS_UNLIKELY(pageId < 0 ||
-                       0 == capacity ||
-                       !ossIsAligned64(capacity) ||
-                       NULL == buf))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _pageID = pageId;
-      _buf = (UINT64 *)SDB_THREAD_ALLOC(bufSize);
-      if (NULL == _buf)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      ossMemcpy(_buf, buf, bufSize);
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         UINT32 freeCnt = ossGetNonZeroBitCount64(_buf[i]);
-         if (0 < freeCnt && _firstFreeBits < 0)
-         {
-            _firstFreeBits = (INT32)i;
-         }
-         _free += freeCnt;
-      }
-   done:
-      return rc;
-   error:
-      fini();
-      goto done;
-   }
-
-   INT32 inMemBitmap::_inMemBitPage::allocate(UINT32 capacity,
-                                              UINT32 count,
+   INT32 inMemBitmap::_inMemBitPage::allocate(UINT32 count,
                                               UINT32 *buf,
                                               UINT32 *stillFreeCount)
    {
       INT32 rc = SDB_OK;
       UINT32 allocatedCount = 0;
-      UINT32 bitsCount = capacity >> 6;
 
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 == capacity ||
-                            !ossIsAligned64(capacity)))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
       else if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      if (_free < count)
+      if (_scanner.getNonZeroedCount() < count)
       {
          rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 
-      /// from here, do not goto error.
-      SDB_ASSERT(0 <= _firstFreeBits, "impossible");
-
       do
       {
-         UINT32 offset = 0;
-         if (findAndClearFirstNonzeroBit(bitsCount,
-                                         (UINT32)_firstFreeBits,
-                                         _buf, offset))
+         INT32 offset = -1;
+         if (_scanner.findAndClearNext(offset))
          {
-            buf[allocatedCount++] = offset;
-            --_free;
+            buf[allocatedCount++] = (UINT32)offset;
          }
          else
          {
-            SDB_ASSERT(FALSE, "free count in head is not zero, but failed to find free bit from bitmap");
-            PD_LOG(PDERROR, "free count in head is not zero, but failed to find free bit from bitmap");
+            PD_LOG(PDERROR, "free count in scanner is not zero, but failed to find free bit from bitmap");
+            SDB_ASSERT(FALSE, "impossible");
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
       } while (allocatedCount < count);
 
-      if (0 < _free)
-      {
-         updateFirstFree(bitsCount, (buf[count - 1] >> 6));
-      }
-      else
-      {
-         _firstFreeBits = -1;
-      }
-
       if (NULL != stillFreeCount)
       {
-         *stillFreeCount = _free;
+         *stillFreeCount = _scanner.getNonZeroedCount();
       }
       
    done:
       return rc;
    error:
+      for (UINT32 i = 0; i < allocatedCount; ++i)
+      {
+         _scanner.setBit(buf[i], FALSE);
+      }
       goto done;
    }
 
-   void inMemBitmap::_inMemBitPage::release(UINT32 capacity,
-                                            UINT32 count,
+   void inMemBitmap::_inMemBitPage::release(UINT32 count,
                                             const UINT32 *buf)
    {
-      UINT32 bitsCount = capacity >> 6;
-
       if (OSS_UNLIKELY(!isReady()))
       {
          SDB_ASSERT(FALSE, "invalid page");
          goto done;
       }
-      if (OSS_UNLIKELY(0 == capacity ||
-                       !ossIsAligned64(capacity)))
-      {
-         SDB_ASSERT(FALSE, "not valid capacity");
-         goto done;
-      }
       else if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
-         goto done;
-      }
-      else if (OSS_UNLIKELY(capacity < (_free + count)))
-      {
-         SDB_ASSERT(FALSE, "impossible");
+         SDB_ASSERT(FALSE, "invalid releasing");
          goto done;
       }
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 offset = buf[i];
-         if (setBitIfZeroed(bitsCount, _buf, offset))
-         {
-            ++_free;
-            if (_firstFreeBits < 0)
-            {
-               _firstFreeBits = (INT32)offset;
-            }
-            else if ((INT32)offset < _firstFreeBits)
-            {
-               _firstFreeBits = (INT32)offset;
-            }
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "bit to released is free");
-         }
+         _scanner.setBit(buf[i]);
       }
    done:
       return;
    }
 
-   void inMemBitmap::_inMemBitPage::updateFirstFree(UINT32 bitsCount, UINT32 beginBits)
-   {
-      SDB_ASSERT(isReady(), "impossible");
-      SDB_ASSERT(0 < _free, "impossible");
-      UINT32 offset = 0;
-      if (findFirstNonzeroBit(bitsCount, beginBits, _buf, offset))
-      {
-         _firstFreeBits = offset >> 6;
-      }
-      else
-      {
-         _firstFreeBits = -1;
-      }
-      
-   done:
-      return;
-   }
-
-   INT32 inMemBitmap::_inMemBitPage::test(UINT32 capacity,
-                                          UINT32 offset,
+   INT32 inMemBitmap::_inMemBitPage::test(UINT32 offset,
                                           BOOLEAN &isFree)const
    {
       INT32 rc = SDB_OK;
@@ -334,89 +185,49 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(capacity <= offset))
+      else if (OSS_UNLIKELY(_scanner.getCapacity() <= offset))
       {
-         rc = SDB_OUT_OF_BOUND;
+         rc = SDB_INVALIDARG;
          goto error;
       }
 
-      isFree = testBitIsNonzero(capacity >> 6, _buf, offset);
+      isFree = _scanner.testBit(offset);
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 inMemBitmap::_inMemBitPage::occupy(UINT32 capacity,
-                                            UINT32 offset,
+   INT32 inMemBitmap::_inMemBitPage::occupy(UINT32 offset,
                                             UINT32 *stillFreeCount)
    {
       INT32 rc = SDB_OK;
-      UINT32 bitsCount = capacity >> 6;
 
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(capacity <= offset))
+      else if (OSS_UNLIKELY(_scanner.getCapacity() <= offset))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 == _free))
-      {
-         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
-         goto error;
-      }
-
-      if (!clearBitIfNonzero(bitsCount, _buf, offset))
+      else if (!_scanner.clearBit(offset))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-
-      SDB_ASSERT(0 < _free, "impossible");
-      --_free;
-      if (0 < _free)
-      {
-         updateFirstFree(bitsCount, _firstFreeBits);
-      }
-      else
-      {
-         _firstFreeBits = -1;
-      }
+      
 
       if (NULL != stillFreeCount)
       {
-         *stillFreeCount = _free;
+         *stillFreeCount = _scanner.getNonZeroedCount();
       }
    done:
       return rc;
    error:
       goto done;
-   }
-
-   void inMemBitmap::_inMemBitPage::bitsAnd(UINT32 capacity, const UINT64 *bits)
-   {
-      SDB_ASSERT(0 < capacity, "can not be zero");
-      SDB_ASSERT(ossIsPowerOf2(capacity), "must be power of 2");
-      SDB_ASSERT(NULL != bits, "can not be null");
-      SDB_ASSERT(isReady(), "must be ready");
-      UINT32 count = capacity >> 6;
-
-      bitsAndMerge(count, bits, _buf);
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         UINT32 freeCnt = ossGetNonZeroBitCount64(_buf[i]);
-         if (0 < freeCnt && _firstFreeBits < 0)
-         {
-            _firstFreeBits = (INT32)i;
-         }
-         _free += freeCnt;
-      }
-      return;
    }
 
 ////////////////inMemBitmap
@@ -585,7 +396,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->init(_pageCount++, _pageCapacity);
+      rc = page->init(_pageCount++, _pageCapacity, FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init bitmap page:%d", rc);
@@ -625,7 +436,7 @@ namespace vessel
             goto error;
          }
 
-         rc = page->init(_pageCount + i, _pageCapacity);
+         rc = page->init(_pageCount + i, _pageCapacity, FALSE);
          if (SDB_OK != rc)
          {
             goto error;
@@ -907,7 +718,7 @@ namespace vessel
       SDB_ASSERT(NULL != page, "can not be null");
 
       UINT32 stillFreeCount = 0;
-      rc = page->occupy(_pageCapacity, offset, &stillFreeCount);
+      rc = page->occupy(offset, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -937,7 +748,7 @@ namespace vessel
       SDB_ASSERT(NULL != page, "can not be null");
 
       UINT32 stillFreeCount = 0;
-      rc = page->occupy(_pageCapacity, offset, &stillFreeCount);
+      rc = page->occupy(offset, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1156,7 +967,7 @@ namespace vessel
       SDB_ASSERT(NULL != page, "can not be null");
 
       UINT32 oldFree = page->getFree();
-      page->release(_pageCapacity, count, buf);
+      page->release(count, buf);
       if (OSS_LIKELY(page->getFree() > oldFree))
       {
          _totalFreeCount += (page->getFree() - oldFree);
@@ -1177,7 +988,7 @@ namespace vessel
       SDB_ASSERT(NULL != page, "can not be null");
 
       UINT32 oldFree = page->getFree();
-      page->release(_pageCapacity, count, buf);
+      page->release(count, buf);
 
       if (OSS_LIKELY(page->getFree() > oldFree))
       {
@@ -1196,49 +1007,6 @@ namespace vessel
       return ;
    }
 
-   void inMemBitmap::bitsAndFromHFC(_inMemBitPage *page,
-                                    const UINT64 *bits)
-   {
-      SDB_ASSERT(NULL != page, "can not be null");
-      SDB_ASSERT(NULL != bits, "can not be null");
-      UINT32 oldFree = page->getFree();
-      UINT32 newFree = 0;
-      page->bitsAnd(_pageCapacity, bits);
-      newFree = page->getFree();
-      SDB_ASSERT(newFree <= oldFree, "impossible");
-      _totalFreeCount -= (oldFree - newFree);
-      if (0 == newFree)
-      {
-         _pagesWithHighFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-      else if (newFree < _freeBound)
-      {
-         _pagesWithHighFreeCount.erase(page->getPageID());
-         _pagesWithLowFreeCount[page->getPageID()] = page;
-      }
-      return;
-   }
-
-   void inMemBitmap::bitsAndFromLFC(_inMemBitPage *page,
-                                    const UINT64 *bits)
-   {
-      SDB_ASSERT(NULL != page, "can not be null");
-      SDB_ASSERT(NULL != bits, "can not be null");
-      UINT32 oldFree = page->getFree();
-      UINT32 newFree = 0;
-      page->bitsAnd(_pageCapacity, bits);
-      newFree = page->getFree();
-      SDB_ASSERT(newFree <= oldFree, "impossible");
-      _totalFreeCount -= (oldFree - newFree);
-      if (0 == newFree)
-      {
-         _pagesWithLowFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-      return;
-   }
-
    void inMemBitmap::releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf)
    {
       INT32 rc = SDB_OK;
@@ -1252,14 +1020,14 @@ namespace vessel
          goto error;
       }
 
-      rc = page->initWithNoFree(pageID, _pageCapacity);
+      rc = page->init(pageID, _pageCapacity, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page[%d], rc:%d", pageID, rc);
          goto error;
       }
 
-      page->release(_pageCapacity, count, buf);
+      page->release(count, buf);
       if (OSS_UNLIKELY(0 == page->getFree()))
       {
          SDB_ASSERT(FALSE, "impossible");
@@ -1306,7 +1074,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->allocate(_pageCapacity, count, buf, &stillFreeCount);
+      rc = page->allocate(count, buf, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1358,7 +1126,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->allocate(_pageCapacity, count, buf, &stillFreeCount);
+      rc = page->allocate(count, buf, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1421,8 +1189,7 @@ namespace vessel
          goto done;
       }
 
-      rc = page->test(_pageCapacity,
-                      (bitOffset % _pageCapacity),
+      rc = page->test((bitOffset % _pageCapacity),
                       isFree);
       if (SDB_OK != rc)
       {

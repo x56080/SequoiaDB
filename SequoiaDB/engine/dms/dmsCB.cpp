@@ -55,6 +55,9 @@
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
 
+#include "vessel/api/vesselFactory.h"
+#include "vessel/dummyJournal.h"
+
 #include <list>
 
 using namespace std;
@@ -100,7 +103,8 @@ namespace engine
     _statSUMgr( this ),
     _rbsSUMgr(),
     _localSUMgr( this ),
-    _ixmKeySorterCreator( NULL )
+    _ixmKeySorterCreator( NULL ),
+    _vse(NULL)
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -170,6 +174,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init local su manager, rc: %d",
                    rc ) ;
 
+      rc = _initVesselEngine();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init data engine:%d", rc);
+         goto error;
+      }
    done:
       return rc ;
    error:
@@ -238,6 +248,7 @@ namespace engine
          }
       }
 
+      _finiVesselEngine();
       return SDB_OK ;
    }
 
@@ -3286,6 +3297,50 @@ namespace engine
       goto done ;
    }
 
+   INT32 _SDB_DMSCB::_initVesselEngine()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL == _vse, "do not reinit");
+      vessel::vesselFactroy factory;
+      vessel::openDBOptions o;
+      vessel::outerResource outer;
+      outer.logger = vessel::dummyJournal::instance();
+      outer.executorPool = pmdGetKRCB()->getEDUMgr();
+
+      _vse = factory.createInstance();
+      if (NULL == _vse)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      pmdGetOptionCB()->makeOpenDBOptions(o);
+      rc = _vse->open(pmdGetThreadEDUCB(), &outer, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open db engine:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      _finiVesselEngine();
+      goto done;
+   }
+
+   void _SDB_DMSCB::_finiVesselEngine()
+   {
+      if (NULL != _vse)
+      {
+         vessel::vesselFactroy factory;
+         vessel::closeDBOptions o;
+         _vse->close(pmdGetThreadEDUCB(), o);
+         factory.releaseInstance(_vse);
+         _vse = NULL;
+      }
+      return;
+   }
    /*
       _dmsCSMutexScope implement
    */

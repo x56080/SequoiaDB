@@ -132,9 +132,6 @@ namespace vessel
       public:
          INT32 pushMoreToCursor(IExecutor *executor,
                                  cursorKernal *cursor);   
-
-         INT32 attachCacheWatcher(IExecutor *executor);
-         INT32 attachBackgroundWorker(IExecutor *executor);
          
       private:
 

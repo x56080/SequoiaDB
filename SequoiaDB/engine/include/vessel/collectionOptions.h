@@ -39,6 +39,7 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/collectionRecordPage.h"
 #include "../bson/bson.hpp"
+#include "vessel/cursorOptions.h"
 
 namespace engine
 {
@@ -114,34 +115,36 @@ namespace vessel
          ~collectionScanOptions(){}
          collectionScanOptions(const collectionScanOptions &o):
          base(o.base),
-         stepLength(o.stepLength){}
+         cursor(o.cursor){}
          collectionScanOptions &operator=(const collectionScanOptions &o)
          {
             base = o.base;
-            stepLength = o.stepLength;
+            cursor = o.cursor;
             return *this;
          }
 
       public:
           baseScanOptions base;
-          UINT32 stepLength = (UINT32)(-1);
+          cursorOptions cursor;
    };//class collectionScanOptions
 
    class indexScanOptions : public SDBObject
    {
       public:
-         indexScanOptions(){}
+         indexScanOptions()
+         {
+            cursor.rowBatchSize = 16;
+         }
          ~indexScanOptions(){}
          indexScanOptions(const indexScanOptions &o):
          base(o.base),
-         stepLength(o.stepLength),
+         cursor(o.cursor),
          indexCoverd(o.indexCoverd),
-         forward(o.forward)
-         {}
+         forward(o.forward){}
          indexScanOptions &operator=(const indexScanOptions &o)
          {
             base = o.base;
-            stepLength = o.stepLength;
+            cursor = o.cursor;
             indexCoverd = o.indexCoverd;
             forward = o.forward;
             return *this;
@@ -149,7 +152,7 @@ namespace vessel
 
       public:
          baseScanOptions base;
-         UINT32 stepLength = 10;
+         cursorOptions cursor;
          BOOLEAN indexCoverd = FALSE;
          BOOLEAN forward = TRUE;
    };//class indexScanOptions

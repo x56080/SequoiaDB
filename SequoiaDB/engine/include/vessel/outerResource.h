@@ -39,6 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "vessel/indexKeyGenerator.h"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
@@ -55,10 +56,12 @@ namespace vessel
          ~outerResource(){}
          outerResource(const outerResource &o):
          logger(o.logger),
+         executorPool(o.executorPool),
          indexKeyGen(o.indexKeyGen){}
          outerResource &operator=(const outerResource &o)
          {
             logger = o.logger;
+            executorPool = o.executorPool;
             indexKeyGen = o.indexKeyGen;
             return *this;
          }
@@ -67,11 +70,13 @@ namespace vessel
          BOOLEAN isValid()const
          {
             return NULL != logger &&
+                   NULL != executorPool &&
                    !(!indexKeyGen);
          }
 
       public:
          IRedoLogger *logger = NULL;
+         IExecutorMgr *executorPool = NULL;
          INDEX_KEY_GENERATOR indexKeyGen = indexKeyGenForBsonRecord;
    };//class outerResource
 }//namespace vessel

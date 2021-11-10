@@ -49,18 +49,22 @@ namespace vessel
       public:
          cursorOptions(){}
           ~cursorOptions(){}
-         cursorOptions(const cursorOptions &) = delete;
+         cursorOptions(const cursorOptions &o):
+         initBufSize(o.initBufSize),
+         rowBatchSize(o.rowBatchSize){}
          cursorOptions &operator=(const cursorOptions &o)
          {
-            maxBufSize = o.maxBufSize;
             initBufSize = o.initBufSize;
+            rowBatchSize = o.rowBatchSize;
             return *this;
          }
 
          ///cursor will try to extend buf only when the buf can not hold at
-         /// least one slice.
-         UINT32 maxBufSize = 16777216; /// 16MB
+         /// least one row.
          UINT32 initBufSize = 32768;   /// 32KB
+
+         /// max row count for each loop
+         UINT32 rowBatchSize = 1024;
    };
 }//namespace vessel
 }//namespace engine

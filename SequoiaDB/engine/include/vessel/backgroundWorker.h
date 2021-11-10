@@ -40,6 +40,7 @@
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEventMsg.h"
 #include "sdbInterface.hpp"
+#include "ossEvent.hpp"
 
 namespace engine
 {
@@ -53,51 +54,37 @@ namespace vessel
       public:
          backgroundWorker(){}
          ~backgroundWorker(){}
-         backgroundWorker(const backgroundWorker &o):
-         _outer(o._outer),
-         _env(o._env),
-         _executor(o._executor),
-         _el(o._el){}
-
-         backgroundWorker &operator=(const backgroundWorker &o)
-         {
-            _outer = o._outer;
-            _env = o._env;
-            _executor = o._executor;
-            _el = o._el;
-            return *this;
-         }
+         backgroundWorker(const backgroundWorker &o) = delete;
+         backgroundWorker &operator=(const backgroundWorker &o) = delete;
 
       public:
          BOOLEAN isValid()const
          {
             return NULL != _outer &&
                    NULL != _env &&
-                   NULL != _executor &&
                    NULL != _el;
          }
          void init(outerResource *outer,
                    instanceEnv *env,
-                   IExecutor *executor,
                    autoEventList<backgroundEvent> *el);
 
-         void activeEntry();
+         void activeEntry(IExecutor *executor);
 
-     
+         void waitAttaching();
 
       private:
-         void handleCacheEvent(diskIOTask &task,
-                               autoEventList<backgroundEvent> *rl);
-         void handleLpsCheckpointEvent(const lpsCheckpointApplying &msg,
-                                       autoEventList<backgroundEvent> *rl);
-         void handleLpsSegmentFlushing(const lpsFlushingSegments &msg,
-                                       autoEventList<backgroundEvent> *rl);
+         void handleCacheEvent(IExecutor *executor,
+                               backgroundEvent &event);
+         void handleLpsCheckpointEvent(IExecutor *executor,
+                                       backgroundEvent &event);
+         void handleLpsSegmentFlushing(IExecutor *executor,
+                                       backgroundEvent &event);
 
       private:
          outerResource *_outer = NULL;
          instanceEnv *_env = NULL;
-         IExecutor *_executor = NULL;
          autoEventList<backgroundEvent> *_el = NULL;
+         ossEvent _attachEvent;
    };//class backgroundWorker
 }//namespace vessel
 }//namespce engine

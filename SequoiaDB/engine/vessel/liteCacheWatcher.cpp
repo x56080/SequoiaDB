@@ -40,24 +40,93 @@
 #include "vessel/liteCache.h"
 #include "vessel/requestContext.h"
 #include "vessel/diskIOTask.h"
+#include "pmdDef.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void liteCacheWatcher::active(requestContext *context)
+   INT32 liteCacheWatcher::init(instanceEnv *env,
+                                outerResource *outer)
    {
-      SDB_ASSERT(NULL != context && context->isOpen(), "can not be null");
-      SDB_ASSERT(!isActived(), "do not reactive");
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL == _env, "do not reinit");
+      if (OSS_UNLIKELY(NULL == env ||
+                       NULL == outer))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _env = env;
+      _outer = outer;
+
+      rc = _active();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to active watcher:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      _fini();
+      goto done;
+   }
+
+   void liteCacheWatcher::fini()
+   {
+      if (_actived)
+      {
+         _deactive();
+      }
+
+      _fini();
+      return;
+   }
+
+   INT32 liteCacheWatcher::_active()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _outer, "can not be null");
+      SDB_ASSERT(!_actived, "do not reactive");
+
+      _attachEvent.reset();
+      rc = _outer->executorPool->startEDU(EDU_TYPE_VESSEL_CACHE_WATCHER,
+                                          this);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to start new watcher:%d", rc);
+         goto error;
+      }
+
+      _attachEvent.wait();
+      SDB_ASSERT(_actived, "must be actived");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void liteCacheWatcher::attach(IExecutor *executor)
+   {
+      SDB_ASSERT(NULL != executor, "can not be null");
+      SDB_ASSERT(NULL != _env, "can not be null");
+      SDB_ASSERT(!_actived, "already been actived");
+
+      requestContext context;
+      context.open(executor, _env, _outer);
       UINT32 millis = 10;
       backgroundEvent event;
       diskIOJob _job;
       BOOLEAN quit = FALSE;
       UINT32 flushDirtyListTimeout =
-      context->getEnv()->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
+      context.getEnv()->options.cacheOptions.flush.flushDirtyListTimeout * 1000;
+      _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
 
       _actived = TRUE;
-      _lastFlushDirtyListTime = ossGetCurrentMilliseconds();
+      _attachEvent.signalAll();
 
       do
       {
@@ -70,10 +139,10 @@ namespace vessel
             }
             else if (backgroundEvent::EVENT_TYPE_FINISHED == event.getType())
             {
-               handleFinishedEvent(context, event);
+               handleFinishedEvent(&context, event);
                if (!quit && !hasRunningTask())
                {
-                  createJobIfNecessary(context);
+                  createJobIfNecessary(&context);
                }
             }
             else
@@ -93,39 +162,49 @@ namespace vessel
             UINT64 currentTime = ossGetCurrentMilliseconds();
             if ((_lastFlushDirtyListTime + flushDirtyListTimeout) <= currentTime)
             {
-               createDirtyListJobWhenTimeout(context);
+               createDirtyListJobWhenTimeout(&context);
             }
             else
             {
-               createJobIfNecessary(context);
+               createJobIfNecessary(&context);
             }
          }
       } while (!quit || hasRunningTask());
 
-      fini();
+      _actived = FALSE;
+      _attachEvent.signalAll();
       return;
    }
 
-   void liteCacheWatcher::deactive()
+   void liteCacheWatcher::_deactive()
    {
-      if (isActived())
-      {
-         backgroundEvent event;
-         event.setType(backgroundEvent::EVENT_TYPE_QUIT);
-         _list.push(event);
-         const volatile BOOLEAN *actived = &_actived;
+      SDB_ASSERT(_actived, "not actived yet");
+      _attachEvent.reset();
+      backgroundEvent event;
+      event.setType(backgroundEvent::EVENT_TYPE_QUIT);
+      _list.push(event);
 
-         while ((*actived))
+      do
+      {
+         INT32 timeout = _attachEvent.wait(1000, NULL);
+         if (SDB_OK == timeout)
          {
-            PD_LOG(PDINFO, "waiting for running task[%d] done", _runningTaskCount);
-            ossSleep(1000);
+            PD_LOG(PDINFO, "cache watcher deactived");
+            break;
          }
-      }
+         else
+         {
+            PD_LOG(PDINFO, "waiting for watcher deactived, running task[%d]",
+                  _runningTaskCount);
+         }
+      } while (TRUE);
+
+      SDB_ASSERT(!_actived, "still be actived");
 
       return;
    }
    
-   void liteCacheWatcher::fini()
+   void liteCacheWatcher::_fini()
    {
       backgroundEvent event;
       while (_list.tryToPop(event))
@@ -135,7 +214,10 @@ namespace vessel
       _lastFlushDirtyListTime = 0;
       _job.reset();
       _runningTaskCount = 0;
+      _attachEvent.reset();
       _actived = FALSE;
+      _outer = NULL;
+      _env = NULL;
    }
 
    void liteCacheWatcher::createJobIfNecessary(requestContext *context)

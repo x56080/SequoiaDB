@@ -164,7 +164,7 @@ namespace vessel
          BOOLEAN locked = FALSE;
          ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
          
-         rc = context->tryToLockRid(lockRid, mode, locked);
+         rc = context->tryLockRid(lockRid, mode, locked);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",

@@ -119,16 +119,14 @@ namespace vessel
          /// You can call their "close" functions in any order.
          INT32 openScanCursor(IExecutor *executor,
                               IQueryFilter *filter,
-                              const collectionScanOptions &scanOptions,
-                              cursorHandler &cursor,
-                              const cursorOptions *co=NULL);
+                              const collectionScanOptions &o,
+                              cursorHandler &cursor);
 
          INT32 openIndexScanCursor(IExecutor *executor,
                                    const strSlice &indexName,
                                    const rtnPredicateList &predicate,
-                                   const indexScanOptions &scanOptions,
-                                   cursorHandler &cursor,
-                                   const cursorOptions *co=NULL);
+                                   const indexScanOptions &o,
+                                   cursorHandler &cursor);
           
       private:
          collectionHandle _handle;

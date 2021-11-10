@@ -39,6 +39,8 @@
 #include "vessel/diskIOJob.h"
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEvent.h"
+#include "ossEvent.hpp"
+#include "sdbInterface.hpp"
 
 namespace engine
 {
@@ -46,7 +48,6 @@ namespace vessel
 {
    class instanceEnv;
    class outerResource;
-   class ISession;
    class requestContext;
 
    class liteCacheWatcher : public SDBObject
@@ -54,18 +55,20 @@ namespace vessel
    public:
          liteCacheWatcher(){}
          ~liteCacheWatcher(){}
+         liteCacheWatcher(const liteCacheWatcher &) = delete;
+         liteCacheWatcher &operator=(const liteCacheWatcher &) = delete;
 
       public:
-         void active(requestContext *context);
-         void deactive();
+         INT32 init(instanceEnv *env,
+                    outerResource *outer);
 
-         OSS_INLINE BOOLEAN isActived()const
-         {
-            return _actived;
-         }
-
-      private:
          void fini();
+         
+         void attach(IExecutor *executor);
+      private:
+         INT32 _active();
+         void _deactive();
+         void _fini();
          void createJobIfNecessary(requestContext *context);
          void createDirtyListJobWhenTimeout(requestContext *context);
          void dispatch(requestContext *context, diskIOJob *job);
@@ -76,11 +79,14 @@ namespace vessel
             return 0 < _runningTaskCount;
          }
       private:
-         BOOLEAN _actived = FALSE;
+         instanceEnv *_env = NULL;
+         outerResource *_outer = NULL;
          UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
          diskIOJob _job;
          UINT32 _runningTaskCount = 0;
+         ossEvent _attachEvent;
+         BOOLEAN _actived = FALSE;
 
    };//class liteCacheWatcher
 }//namespace vessel

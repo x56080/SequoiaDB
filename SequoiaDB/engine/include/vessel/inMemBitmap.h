@@ -39,6 +39,7 @@
 #include "ossLatch.hpp"
 #include "utilPooledObject.hpp"
 #include "ossMemPool.hpp"
+#include "bitmapScanner.h"
 
 namespace engine
 {
@@ -65,31 +66,22 @@ namespace vessel
                }
 
                INT32 init(INT32 pageId,
-                          UINT32 capacity);
+                          UINT32 capacity,
+                          BOOLEAN noFree);
 
-               INT32 initWithNoFree(INT32 pageId,
-                                    UINT32 capacity);
-
-               INT32 initFromBuf(INT32 pageId,
-                                 UINT32 capacity,
-                                 const UINT64 *buf);
                void fini();
 
-               INT32 allocate(UINT32 capacity,
-                              UINT32 count,
+               INT32 allocate(UINT32 count,
                               UINT32 *buf,
                               UINT32 *stillFreeCount = NULL);
-               void release(UINT32 capacity, UINT32 count, const UINT32 *buf);
 
-               INT32 test(UINT32 capacity,
-                          UINT32 offset,
+               void release( UINT32 count, const UINT32 *buf);
+
+               INT32 test(UINT32 offset,
                           BOOLEAN &isFree)const;
 
-               INT32 occupy(UINT32 capacity,
-                            UINT32 offset,
+               INT32 occupy(UINT32 offset,
                             UINT32 *stillFreeCount = NULL);
-
-               void bitsAnd(UINT32 capacity, const UINT64 *bits);
 
                OSS_INLINE INT32 getPageID()const
                {
@@ -97,17 +89,13 @@ namespace vessel
                }
                OSS_INLINE UINT32 getFree()const
                {
-                  return _free;
+                  return _scanner.getNonZeroedCount();
                }
 
             private:
-               void updateFirstFree(UINT32 bitsCount, UINT32 beginBits);
-
-            private:
                INT32 _pageID = -1;
-               UINT32 _free = 0; /// free <= _size
-               INT32 _firstFreeBits = -1;
                UINT64 *_buf = NULL;
+               bitmapScanner _scanner;
 
          };// class _inMemBitPage
 
@@ -214,12 +202,6 @@ namespace vessel
          void releaseBitFromLFC(UINT32 count,
                                  const UINT32 *buf,
                                  _inMemBitPage *page);
-
-         void bitsAndFromHFC(_inMemBitPage *page,
-                             const UINT64 *bits);
-
-         void bitsAndFromLFC(_inMemBitPage *page,
-                             const UINT64 *bits);
 
          void releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf);
 

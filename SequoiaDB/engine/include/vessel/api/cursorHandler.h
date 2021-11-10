@@ -47,7 +47,6 @@ namespace engine
 {
 namespace vessel
 {
-   class ISession;
    class cursorKernal;
 
    class cursorHandler : public SDBObject

@@ -59,6 +59,7 @@
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 
+#include "vessel/api/vessel.h"
 
 using namespace std ;
 
@@ -214,7 +215,12 @@ namespace engine
 
       dmsPageMappingDispatcher   _pageMapDispatcher ;
 
+      vessel::IVessel *_vse;
+
    private:
+      INT32 _initVesselEngine();
+      void _finiVesselEngine();
+
       void  _logCSCBNameMap () ;
 
       INT32 _CSCBNameInsert ( const CHAR *pName,

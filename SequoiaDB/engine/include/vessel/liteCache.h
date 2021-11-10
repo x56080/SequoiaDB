@@ -53,7 +53,6 @@ class lcFreeList;
 class diskIOJob;
 class diskIOTask;
 class requestContext;
-class ISession;
 class logicalPageSpace;
 
 class liteCache : public SDBObject

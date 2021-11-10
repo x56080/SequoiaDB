@@ -131,7 +131,19 @@ namespace vessel
          goto error;
       }
 
-      _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
+      rc = _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init background workers:%d", rc);
+         goto error;
+      }
+
+      rc = _cacheWatcher.init(&_env, &_outerResource);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -147,7 +159,7 @@ namespace vessel
          requestContext context;
          context.open(executor, &_env, &_outerResource);
 
-         _cacheWatcher.deactive();    
+         _cacheWatcher.fini();    
          _env.workers.fini(); 
          _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
@@ -741,7 +753,7 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
-         _cacheWatcher.deactive();    
+         _cacheWatcher.fini();    
          _env.workers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();
@@ -784,51 +796,6 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 vesselImpl::attachBackgroundWorker(IExecutor *executor)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == executor))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _env.workers.attach(executor);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 vesselImpl::attachCacheWatcher(IExecutor *executor)
-   {
-      INT32 rc = SDB_OK;
-      requestContext context;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == executor))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      context.open(executor, &_env, &_outerResource);
-      _cacheWatcher.active(&context);
    done:
       return rc;
    error:

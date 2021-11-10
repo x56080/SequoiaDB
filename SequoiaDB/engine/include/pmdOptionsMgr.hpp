@@ -56,6 +56,8 @@
 #include <map>
 #include "../bson/bson.h"
 
+#include "vessel/vesselOptions.h"
+
 using namespace std ;
 using namespace bson ;
 
@@ -86,6 +88,9 @@ namespace engine
       PMD_CFG_DATA_CMD        = 0,           // command
       PMD_CFG_DATA_BSON                      // BSON
    } ;
+
+   static const CHAR * const PMD_VESSEL_SUB_PATH = "vessel";
+   static const CHAR * const PMD_VESSEL_LSM_SUB_PATH = "lsm";
 
    /*
       _pmdParamValue define
@@ -674,6 +679,8 @@ namespace engine
          OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
 
          std::string getOmAddr() const ;
+
+         void makeOpenDBOptions(vessel::openDBOptions &o)const;
 
 #ifdef SDB_ENTERPRISE
 

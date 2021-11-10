@@ -62,7 +62,6 @@ namespace vessel
    {
       SDB_ASSERT(_uniqueKeyContext.empty(), "release locks first");
       SDB_ASSERT(_uniqueKeyHash.empty(), "release locks first");
-      SDB_ASSERT(_ridLatchContext.isEmpty(), "release locks first");
 
       _minFreeSize = 0;
       _compressionType = UTIL_COMPRESSOR_INVALID;
@@ -196,8 +195,8 @@ namespace vessel
             PD_LOG(PDWARNING, "loop count is:%d now", loopCount);
          }
 
-         UINT32 stopped = 0;
          UINT32 lockedThisLoop = 0;
+         
          for (UINT32 i = 0; i < _uniqueKeyContext.size(); ++i)
          {
             UNIQUE_INDEX_LATCH_MAP::object &latch = _uniqueKeyContext[i];
@@ -207,7 +206,6 @@ namespace vessel
             }
             else
             {
-               stopped = i;
                break;
             }
          }
@@ -217,13 +215,13 @@ namespace vessel
             break;
          }
 
-         for (UINT32 i = lockedThisLoop; i > 0; --i)
+         for (UINT32 i = 0; i < lockedThisLoop; ++i)
          {
-            _uniqueKeyContext[i - 1].getValue().release();
+            _uniqueKeyContext[i].getValue().release();
          }
 
-         _uniqueKeyContext[stopped].getValue().get();
-         _uniqueKeyContext[stopped].getValue().release();
+         _uniqueKeyContext[lockedThisLoop].getValue().get();
+         _uniqueKeyContext[lockedThisLoop].getValue().release();
       } while (TRUE);
       return;
    }
@@ -242,166 +240,6 @@ namespace vessel
       lh.releaseAll(latchMap, _uniqueKeyContext);
       _uniqueKeyHash.clear();
       }
-   done:
-      return;
-   }
-
-   INT32 dmlContext::tryToLockRid(const recordID &rid,
-                                  const ossSharedLatchMode &mode,
-                                  BOOLEAN &locked)
-   {
-      INT32 rc = SDB_OK;
-      recordIdLatchKey key(getSpaceID(), getMBID(), rid);
-      locked = FALSE;
-      RECORD_ID_LATCH_MAP *latchMap = NULL;
-      RECORD_ID_LATCH_MAP::object latchObj;
-
-      if (OSS_UNLIKELY(!requestContext::isOpen() ||
-                        !requestContext::isSpaceIdLocked() ||
-                        !requestContext::isMbLocked()))
-      {
-         SDB_ASSERT(FALSE, "context not ready");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!rid.valid() ||
-                             mode.isNone()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      latchMap = &(getEnv()->ridLatchMap);
-      rc = latchMap->ensure(key, latchObj);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
-         goto error;
-      }
-
-      locked = latchObj.getValue().tryLockWith(mode);
-      if (!locked)
-      {
-         latchMap->release(latchObj);
-         goto done;
-      }
-
-      rc = _ridLatchContext.push(latchObj, mode);
-      if (SDB_OK != rc)
-      {
-         latchObj.getValue().unlockWith(mode);
-         latchMap->release(latchObj);
-         PD_LOG(PDERROR, "failed toi push latch obj:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 dmlContext::lockRid(const recordID &rid,
-                             const ossSharedLatchMode &mode)
-   {
-      INT32 rc = SDB_OK;
-      recordIdLatchKey key(getSpaceID(), getMBID(), rid);
-      RECORD_ID_LATCH_MAP *latchMap = NULL;
-      RECORD_ID_LATCH_MAP::object latchObj;
-
-      if (OSS_UNLIKELY(!requestContext::isOpen() ||
-                        !requestContext::isSpaceIdLocked() ||
-                        !requestContext::isMbLocked()))
-      {
-         SDB_ASSERT(FALSE, "context not ready");
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!rid.valid() ||
-                            mode.isNone()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      latchMap = &(getEnv()->ridLatchMap);
-      rc = latchMap->ensure(key, latchObj);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
-         goto error;
-      }
-
-      rc = _ridLatchContext.push(latchObj, mode);
-      if (SDB_OK != rc)
-      {
-         latchMap->release(latchObj);
-         PD_LOG(PDERROR, "failed toi push latch obj:%d", rc);
-         goto error;
-      }
-
-      latchObj.getValue().lockWith(mode);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void dmlContext::unlockRid(const recordID &rid)
-   {
-      recordIdLatchKey key(getSpaceID(), getMBID(), rid);
-      RECORD_ID_LATCH_MAP *latchMap = NULL;
-      RECORD_ID_LATCH_MAP::object latchObj;
-      ossSharedLatchMode mode;
-      INT32 rc = SDB_OK;
-
-      if (OSS_UNLIKELY(!requestContext::isOpen() ||
-                        !requestContext::isSpaceIdLocked() ||
-                        !requestContext::isMbLocked()))
-      {
-         SDB_ASSERT(FALSE, "context not ready");
-         goto done;
-      }
-      else if (OSS_UNLIKELY(!rid.valid()))
-      {
-         SDB_ASSERT(FALSE, "rid can not be invalid");
-         goto done;
-      }
-
-      latchMap = &(getEnv()->ridLatchMap);
-      rc = _ridLatchContext.pop(key, latchObj, mode);
-      if (SDB_OK != rc)
-      {
-         SDB_ASSERT(FALSE, "rid not found");
-         goto done;
-      }
-
-      latchObj.getValue().unlockWith(mode);
-      latchMap->release(latchObj);
-
-   done:
-      return;
-   }
-
-   void dmlContext::unlockRids()
-   {
-      RECORD_ID_LATCH_MAP *latchMap = NULL;
-      objectLatchHelper<recordIdLatchKey> lh;
-
-      if (_ridLatchContext.isEmpty())
-      {
-         goto done;
-      }
-
-      if (OSS_UNLIKELY(!requestContext::isOpen() ||
-                        !requestContext::isSpaceIdLocked() ||
-                        !requestContext::isMbLocked()))
-      {
-         SDB_ASSERT(FALSE, "context not ready");
-         goto done;
-      }
-
-      latchMap = &(getEnv()->ridLatchMap);
-      lh.releaseAll(*latchMap, _ridLatchContext);
    done:
       return;
    }

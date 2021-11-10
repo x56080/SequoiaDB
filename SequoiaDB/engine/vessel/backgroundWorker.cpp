@@ -35,10 +35,10 @@
 
 #include "vessel/backgroundWorker.h"
 #include "pdTrace.hpp"
-#include "vessel/diskIOTask.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/requestContext.h"
 #include "vessel/outerResource.h"
+#include "vessel/diskIOTask.h"
 #include "vessel/diskIOJob.h"
 
 namespace engine
@@ -47,25 +47,31 @@ namespace vessel
 {
    void backgroundWorker::init(outerResource *outer,
                                instanceEnv *env,
-                               IExecutor *executor,
                                autoEventList<backgroundEvent> *el)
    {
       SDB_ASSERT(NULL != outer, "can not be null");
       SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(NULL != executor, "can not be null");
       SDB_ASSERT(NULL != el, "can not be null");
 
       _outer = outer;
       _env = env;
-      _executor = executor;
       _el = el;
       return;
    }
 
-   void backgroundWorker::activeEntry()
+   void backgroundWorker::waitAttaching()
    {
-      SDB_ASSERT(NULL != _executor, "can not be null");
+      SDB_ASSERT(NULL != _outer, "can not be null");
+      _attachEvent.wait();
+      return;
+   }
+
+   void backgroundWorker::activeEntry(IExecutor *executor)
+   {
+      SDB_ASSERT(NULL != executor, "can not be null");
+      SDB_ASSERT(NULL != _outer, "can not be null");
       backgroundEvent event;
+      _attachEvent.signalAll();
 
       do
       {
@@ -81,75 +87,99 @@ namespace vessel
          }
          case backgroundEvent::EVENT_TYPE_CACHE_TASK:
          {
-            diskIOTask *task = (diskIOTask *)(event.getEventMsg());
-            handleCacheEvent(*task, event.getReponseList());
+            handleCacheEvent(executor, event);
             break;
          }
          case backgroundEvent::EVENT_TYPE_SYNC_SEG:
          {
-            const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
-            handleLpsSegmentFlushing(*msg, event.getReponseList());
+            handleLpsSegmentFlushing(executor, event);
             break;
          }
          case backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT:
          {
-            const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
-            handleLpsCheckpointEvent(*msg, event.getReponseList()); 
+            handleLpsCheckpointEvent(executor, event); 
             break;
          }
          default:
             SDB_ASSERT(FALSE, "invalid type");
             break;
          }
+
+         event.release();
       } while (TRUE);
 
    done:
+      SDB_ASSERT(event.isQuitEvent(), "must be quit");
+      if (event.hasResponseEvent())
+      {
+         event.getResponseEvent()->signalAll();
+      }
+      else if (event.hasResponseList())
+      {
+         backgroundEvent quitEvent;
+         quitEvent.setType(backgroundEvent::EVENT_TYPE_FINISHED);
+         event.getReponseList()->push(quitEvent);
+      }
       return;
    }
 
-   void backgroundWorker::handleCacheEvent(diskIOTask &task,
-                                           autoEventList<backgroundEvent> *rl)
+   void backgroundWorker::handleCacheEvent(IExecutor *executor,
+                                           backgroundEvent &event)
    {
-      liteCache &cache = _env->cacheConsole.get32KBCache();
-      
+      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType(),
+                 "can not be other type");
       requestContext context;
+      context.open(executor, _env, _outer);
+      liteCache &cache = context.getEnv()->cacheConsole.get32KBCache();
+      diskIOTask task = *((const diskIOTask *)(event.getEventMsg()));
+
       UINT32 jobID = task.getJob()->getJobID();
-      context.open(_executor, _env, _outer);
+
       INT32 rc = cache.executeIOTask(&context, &task);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to execute io task:%d", rc);
       }
-      if (NULL != rl)
+
+      if (event.hasResponseEvent())
+      {
+         event.getResponseEvent()->signalAll();
+      }
+      else if (event.hasResponseList())
       {
          backgroundEvent res;
          res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
          res.setEventMsg(sizeof(UINT32), &jobID);
-         rl->push(res);
+         event.getReponseList()->push(res);
       }
+
+      return;
    }
 
-   void backgroundWorker::handleLpsCheckpointEvent(const lpsCheckpointApplying &msg,
-                                                   autoEventList<backgroundEvent> *rl)
+   void backgroundWorker::handleLpsCheckpointEvent(IExecutor *executor,
+                                                   backgroundEvent &event)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != msg._sid &&
-                 INVALID_SPACE_TYPE != msg._type, "can not be invalid");
-      logicalPageSpace *lps = NULL;
+      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(backgroundEvent::EVENT_TYPE_LPS_CHECKPOINT == event.getType(),
+                 "can not be other type");
       requestContext context;
-
-      context.open(_executor, _env, _outer);
-      rc = context.lockSpaceID(msg._sid, SHARED);
+      context.open(executor, _env, _outer);
+      logicalPageSpace *lps = NULL;
+      const lpsCheckpointApplying *msg = (const lpsCheckpointApplying *)(event.getEventMsg());
+      
+      rc = context.lockSpaceID(msg->_sid, SHARED);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg->_sid, rc);
          goto done;
       }
 
-      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
+      rc = _env->dms.getLogicalPageSpace(msg->_sid, msg->_type, &lps);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
          goto done;
       }
 
@@ -157,60 +187,69 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checkpoint on lps[%d,%d], rc:%d",
-                msg._sid, msg._type, rc);
+                msg->_sid, msg->_type, rc);
          goto done;
       }
    
    done:
       context.close();
-      if (NULL != rl)
+      if (event.hasResponseEvent())
+      {
+         event.getResponseEvent()->signalAll();
+      }
+      else if (event.hasResponseList())
       {
          backgroundEvent res;
          res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         rl->push(res);
+         event.getReponseList()->push(res);
       }
       return;
    }
 
-   void backgroundWorker::handleLpsSegmentFlushing(const lpsFlushingSegments &msg,
-                                                   autoEventList<backgroundEvent> *rl)
+   void backgroundWorker::handleLpsSegmentFlushing(IExecutor *executor,
+                                                   backgroundEvent &event)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != msg._sid &&
-                 INVALID_SPACE_TYPE != msg._type, "can not be invalid");
+      SDB_ASSERT(NULL != executor, "can not be invalid");
+      SDB_ASSERT(backgroundEvent::EVENT_TYPE_SYNC_SEG == event.getType(),
+                 "can not be other type");
       logicalPageSpace *lps = NULL;
+      const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
       requestContext context;
-
-      context.open(_executor, _env, _outer);
-      rc = context.lockSpaceID(msg._sid, SHARED);
+      context.open(executor, _env, _outer);
+      rc = context.lockSpaceID(msg->_sid, SHARED);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg._sid, rc);
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", msg->_sid, rc);
          goto done;
       }
 
-      rc = _env->dms.getLogicalPageSpace(msg._sid, msg._type, &lps);
+      rc = _env->dms.getLogicalPageSpace(msg->_sid, msg->_type, &lps);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg._sid, msg._type, rc);
+         PD_LOG(PDERROR, "failed to get lps[%d,%d], rc:%d", msg->_sid, msg->_type, rc);
          goto done;
       }
 
-      rc = lps->fsyncSegment(msg._segmentId);
+      rc = lps->fsyncSegment(msg->_segmentId);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
-                msg._segmentId, msg._sid, msg._type, rc);
+                msg->_segmentId, msg->_sid, msg->_type, rc);
          goto done;
       }
    
    done:
       context.close();
-      if (NULL != rl)
+      if (event.hasResponseEvent())
+      {
+         event.getResponseEvent()->signalAll();
+      }
+      else if (event.hasResponseList())
       {
          backgroundEvent res;
          res.setType(backgroundEvent::EVENT_TYPE_FINISHED);
-         rl->push(res);
+         event.getReponseList()->push(res);
       }
    }
 }//namespace vessel

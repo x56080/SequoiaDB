@@ -197,6 +197,10 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+      else if (!_bac.getIndexContext()->getObj().hasBtreeRoot())
+      {
+         goto done;
+      }
 
       if (o.isForward())
       {
@@ -272,6 +276,10 @@ namespace vessel
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
+      }
+      else if (!_bac.getIndexContext()->getObj().hasBtreeRoot())
+      {
+         goto done;
       }
 
       rc = locateKeyInTree(prevKey, fieldCountToCmpInPrev,

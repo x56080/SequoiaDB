@@ -67,9 +67,9 @@ namespace vessel
          void releaseAll(sharedObjectMap<KEY, ossSpinXLatch> &latchMap,
                          ossPoolVector<typename sharedObjectMap<KEY, ossSpinXLatch>::object> &context)
          {
-            typename ossPoolVector<typename sharedObjectMap<KEY, ossSpinXLatch>::object>::reverse_iterator itr =
-                                                                               context.rbegin();
-            for (; itr != context.rend(); ++itr)
+            typename ossPoolVector<typename sharedObjectMap<KEY, ossSpinXLatch>::object>::iterator itr =
+                                                                               context.begin();
+            for (; itr != context.end(); ++itr)
             {
                itr->getValue().release();
                latchMap.release(*itr);

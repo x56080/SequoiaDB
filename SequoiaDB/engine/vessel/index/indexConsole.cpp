@@ -648,15 +648,15 @@ namespace vessel
          }
 
          rc = _is->getIndexDefPage(context, _mbID, i, lpid);
-         if (SDB_IXM_NOTEXIST == rc)
-         {
-            rc = SDB_OK;
-            continue;
-         }
-         else if (SDB_OK != rc)
+         if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get index def lpid of slot[%d], rc:%d", i, rc);
             goto error;
+         }
+
+         if (INVALID_PAGE_ID == lpid)
+         {
+            continue;
          }
 
          rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);

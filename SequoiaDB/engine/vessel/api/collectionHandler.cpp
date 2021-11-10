@@ -123,9 +123,8 @@ namespace vessel
 
    INT32 collectionHandler::openScanCursor(IExecutor *executor,
                                            IQueryFilter *filter,
-                                           const collectionScanOptions &scanOptions,
-                                           cursorHandler &cursor,
-                                           const cursorOptions *co)
+                                           const collectionScanOptions &o,
+                                           cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
       scanCLCursor *kernal = NULL;
@@ -149,14 +148,14 @@ namespace vessel
          goto error;
       }
 
-      rc = kernal->open(_db, filter, co);
+      rc = kernal->open(_db, filter, &(o.cursor));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open cursor:%d", rc);
          goto error;
       }
 
-      kernal->resetToScan(_handle, scanOptions);
+      kernal->resetToScan(_handle, o);
 
       cursor = cursorHandler(kernal);
    done:
@@ -196,9 +195,8 @@ namespace vessel
    INT32 collectionHandler::openIndexScanCursor(IExecutor *executor,
                                                 const strSlice &indexName,
                                                 const rtnPredicateList &predicate,
-                                                const indexScanOptions &scanOptions,
-                                                cursorHandler &cursor,
-                                                const cursorOptions *co)
+                                                const indexScanOptions &o,
+                                                cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
       indexScanCursor *kernal = NULL;
@@ -213,13 +211,8 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 == scanOptions.stepLength))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      kernal = SDB_OSS_NEW indexScanCursor(scanOptions, predicate, _handle, indexName);
+      kernal = SDB_OSS_NEW indexScanCursor(o, predicate, _handle, indexName);
       if (OSS_UNLIKELY(NULL == kernal))
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -227,7 +220,7 @@ namespace vessel
          goto error;
       }
 
-      rc = kernal->open(_db, NULL, co);
+      rc = kernal->open(_db, NULL, &(o.cursor));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open cursor kernal:%d", rc);

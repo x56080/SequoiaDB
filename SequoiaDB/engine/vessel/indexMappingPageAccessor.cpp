@@ -89,15 +89,7 @@ namespace vessel
          goto error;
       }
       
-      if (INVALID_PAGE_ID != *page)
-      {
-         lpid = *page;
-      }
-      else
-      {
-         rc = SDB_IXM_NOTEXIST;
-         goto error;
-      }
+      lpid = *page;
    done:
       return rc;
    error:

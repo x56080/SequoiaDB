@@ -66,11 +66,6 @@ namespace vessel
          virtual INT32 getNextRow(IExecutor *executor,
                                   cursorRow *row){return SDB_VESSEL_INTERNAL_ERR;}
 
-         virtual UINT32 getStepLengthInLoop()const
-         {
-            return (UINT32)(-1);
-         }
-
       public:
          BOOLEAN isOpen()const;
          INT32 open(vesselImpl *db,

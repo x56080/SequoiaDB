@@ -132,18 +132,6 @@ namespace vessel
             return _lockRid;
          }
 
-         INT32 tryToLockRid(const recordID &rid,
-                            const ossSharedLatchMode &mode,
-                            BOOLEAN &locked);
-
-         /// WARNING: Always try lock rid under page latch!
-         INT32 lockRid(const recordID &rid,
-                       const ossSharedLatchMode &mode);
-
-         void unlockRid(const recordID &rid);
-
-         void unlockRids();
-
          void unlockRidsAndUniqueKeys();
 
       private:
@@ -166,7 +154,6 @@ namespace vessel
 
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
-         RID_LATCH_CONTEXT _ridLatchContext;
 
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;

@@ -178,6 +178,8 @@ namespace vessel
                offset += objSize;
             }
 
+            r = TRUE;
+
          done:
             return r;
          }

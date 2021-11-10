@@ -3388,6 +3388,7 @@ namespace vessel
       bson::BSONObjBuilder keyObjBuilder;
       UINT32 pushed = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      UINT32 rowLimited = context->getCursor()->getOptions().cursor.rowBatchSize;
 
       rc = scanner.open(context, ic, context->getCursor()->getOptions(), mode);
       if (SDB_OK != rc)
@@ -3396,7 +3397,7 @@ namespace vessel
          goto error;
       }
 
-      rc = scanner.batchNext(context);
+      rc = scanner.batchNext(context, rowLimited);
       if (SDB_IXM_EOC == rc)
       {
          rc = SDB_OK;

@@ -70,12 +70,7 @@ namespace vessel
          {
             return CURSOR_TYPE_INDEX_SCAN;
          }
-
-         virtual UINT32 getStepLengthInLoop()const
-         {
-            return _o.stepLength;
-         }
-
+         
          virtual INT32 getNextRow(IExecutor *executor,
                                   cursorRow *row);
 

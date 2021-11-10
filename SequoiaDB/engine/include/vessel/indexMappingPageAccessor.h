@@ -51,6 +51,7 @@ namespace vessel
          ~indexMappingPageAccessor(){}
 
       public:
+         /// lpid may be invalid
          INT32 getIndexDefPage(requestContext *context,
                                UINT32 pos,
                                logicalPageBuffer &lpb,

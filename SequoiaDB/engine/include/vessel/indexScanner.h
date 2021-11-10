@@ -74,10 +74,12 @@ namespace vessel
 
          /// return SDB_IXM_EOC when hit the end.
          /// always clear batch outside first
-         INT32 batchNext(indexScanContext *context);
+         INT32 batchNext(indexScanContext *context,
+                         UINT32 rowLimited);
 
       private:
-         INT32 fillBatch(indexScanContext *context);
+         INT32 fillBatch(indexScanContext *context,
+                         UINT32 rowLimited);
 
          INT32 pauseAndRescan(indexScanContext *context);
 

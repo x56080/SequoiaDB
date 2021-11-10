@@ -38,6 +38,7 @@
 #include "ossLikely.hpp"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
+#include "pmdDef.hpp"
 
 namespace engine
 {
@@ -48,94 +49,132 @@ namespace vessel
       fini();
    }
 
-   void backgroundWorkers::init(outerResource *resource,
+   INT32 backgroundWorkers::init(outerResource *resource,
                                 instanceEnv *env,
-                                UINT32 max)
+                                UINT32 workerCount)
    {
-      SDB_ASSERT(NULL != resource, "can not be null");
-      SDB_ASSERT(NULL != env, "can not be null");
-      SDB_ASSERT(0 < max, "can not be zero");
-      SDB_ASSERT(0 == _workers.size(), "do not reinit");
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL == _or, "do not reinit");
+
+      if (OSS_UNLIKELY(NULL == resource ||
+                       NULL == env ||
+                       0 == workerCount))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       _or = resource;
       _env = env;
-      _workers.resize(max);
-      _attached = 0;
-      return;
+
+      rc = _active(workerCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to active workers:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
    }
 
-   void backgroundWorkers::attach(IExecutor *executor)
+   INT32 backgroundWorkers::_active(UINT32 count)
    {
-      SDB_ASSERT(NULL != executor, "can not be null");
-      SDB_ASSERT(NULL != _env, "can not be null");
-      EDUID id = 0;
-      UINT32 pos = 0;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _or, "can not be null");
+      SDB_ASSERT(0 != count, "can not be zero");
+      SDB_ASSERT(_workers.empty(), "must be empty");
+
+      for (UINT32 i = 0; i < count; ++i)
       {
-         ossScopedLock guard(&_latch);
-         SDB_ASSERT(_attached < _workers.size(), "already full");
-         backgroundWorker worker;
-         worker.init(_or, _env, executor, &_el);
-         SDB_ASSERT(!_workers.at(_attached).isValid(), "impossible");
-         _workers[_attached] = worker;
-         pos = _attached++;
+         backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
+         if (OSS_UNLIKELY(NULL == worker))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         worker->init(_or, _env, &_el);
+         rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
+                                          worker);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to start new worker:%d", rc);
+            goto error;
+         }
+
+         worker->waitAttaching();
+         _workers.push_back(worker); 
+         PD_LOG(PDINFO, "[%d] workers attached", _workers.size());
       }
-
-      id = executor->getID();
-      PD_LOG(PDDEBUG, "worker[%lld] attached", id);
-
-      /// loop handle event
-      _workers[pos].activeEntry();
-
-      /// quit
-      _workers[pos] = backgroundWorker();
-      {
-         ossScopedLock guard(&_latch);
-         SDB_ASSERT(0 < _attached, "impossible");
-         --_attached;
-      }
-
-      PD_LOG(PDDEBUG, "worker[%lld] detached", id);
-      return;
+   done:
+      return rc;
+   error:
+      _deactive();
+      goto done;
    }
 
    void backgroundWorkers::fini()
    {
-      backgroundEvent event;
-      event.setType(backgroundEvent::EVENT_TYPE_QUIT);
-      for (UINT32 i = 0; i < _attached; ++i)
+      if (NULL != _or)
       {
-         _el.pushPriority(event);
-      }
+         _deactive();
 
-      do
-      {
+         backgroundEvent e;
+         while (_el.tryToPop(e))
          {
-            ossScopedLock guard(&_latch);
-            if (0 == _attached)
-            {
-               break;
-            }
-         }
-         
-         ossSleep(1000);
-      } while (TRUE);
-
-      while (_el.tryToPop(event))
-      {
-         event.release();
+            /// do nothing
+         } 
+         _or = NULL;
+         _env = NULL; 
       }
-      _or = NULL;
-      _env = NULL;
-      _workers.clear();
-      _attached = 0;
       return;
    }
 
    void backgroundWorkers::pushEvent(const backgroundEvent &event)
    {
       SDB_ASSERT(NULL != _or, "not inited");
-      SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "can not be invalid");
-      SDB_ASSERT(0 < _attached, "no worker attached");
+      SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(),
+                 "can not be invalid");
+      SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
+      SDB_ASSERT(!_workers.empty(), "no worker attached");
       _el.push(event);
+   }
+
+   void backgroundWorkers::_deactive()
+   {
+      SDB_ASSERT(NULL != _or, "can not be null");
+      backgroundEvent event;
+      autoEventList<backgroundEvent> finishList;
+      event.setType(backgroundEvent::EVENT_TYPE_QUIT);
+      event.setResponseList(&finishList);
+
+      for (UINT32 i = 0; i < _workers.size(); ++i)
+      {
+         _el.pushPriority(event);
+      }
+
+      for (UINT32 i = 0; i < _workers.size(); ++i)
+      {
+         event.release();
+         finishList.popOrWait(event);
+         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "impossible");
+         PD_LOG(PDINFO, "[%d] workers detached", i+1);
+      }
+
+      for (_WORKERS::const_iterator itr = _workers.begin();
+           itr != _workers.end(); ++itr)
+      {
+         backgroundWorker *worker = *itr;
+         SDB_OSS_DEL worker;
+      }
+
+      _workers.clear();
+
+      return;
    }
 }//namespace vessel
 }//namespace engine

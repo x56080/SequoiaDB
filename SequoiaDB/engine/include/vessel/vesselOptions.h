@@ -158,7 +158,8 @@ namespace vessel
          std::string lobPath;
          std::string lobMetaPath;
          std::string lsmPath;
-
+         std::string snapshotPath;
+         
          const std::string &autoGetIndexPath()const
          {
             return indexPath.empty() ? dataPath : indexPath;
@@ -177,9 +178,7 @@ namespace vessel
 
       public:
          storagePathOptions path;
-         std::string snapshotPath;
-         std::string lsmPath;
-
+         
          BOOLEAN fullDumpPageLog = FALSE;
          BOOLEAN sparseExtendingFile = TRUE;
 
