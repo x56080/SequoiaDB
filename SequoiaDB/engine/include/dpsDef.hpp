@@ -193,6 +193,13 @@ namespace engine
                                   DPS_LSN_VER expectVersion,
                                   DPS_MOMENT moment,
                                   INT32 errcode ) = 0 ;
+
+         virtual BOOLEAN isEnabled() = 0 ;
+
+         virtual void beforeFS() = 0 ;
+
+         virtual void afterFS( const DPS_LSN_OFFSET &offset,
+                               const DPS_LSN_VER &version ) = 0 ;
    } ;
    typedef _dpsEventHandler dpsEventHandler ;
 
