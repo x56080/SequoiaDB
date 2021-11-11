@@ -62,13 +62,13 @@
    在 Linux 下，可以使用如下命令编译及链接动态链接库文件 `libsdbcpp.so`：
 
   ```lang-bash
-  $ g++ -o connect connect.cpp -I <PATH>/sdbdriver/include -lsdbcpp -L <PATH>/sdbdriver/lib  
+  $ g++ -o connect connect.cpp -I <PATH>/sdbdriver/include -lsdbcpp -L <PATH>/sdbdriver/lib -D_GLIBCXX_USE_CXX11_ABI=0
   $ ./connect localhost 11810 "" ""
   ```
 
   >**Note:**
   >
-  > * 当用户使用的 GCC 编译器版本大于 GCC 4.x（如 GCC 5 或以上版本）时，使用 CPP 驱动动态库或者静态库需要添加 -D_GLIBCXX_USE_CXX11_ABI=0 编译选项。
+  > * 当用户使用的 GCC 编译器版本小于 GCC 5.1 时，使用 CPP 驱动动态库或者静态库不需要添加 -D_GLIBCXX_USE_CXX11_ABI=0 编译选项。
   > * 本示例连接到本地数据库的 11810 端口，使用的是空的用户名和密码。用户可以实际情况配置参数，如：`./connect localhost 11810 "sequoiadb" "sequoiadb"`。当数据库已经创建用户时，应该使用正确的用户及密码连接到数据库，否则连接失败。
 
 * 创建集合空间和集合

@@ -14,18 +14,30 @@
  *    Win: buildApp.bat sdb
  * Manual Compile:
  *    Dynamic Linking:
- *    Linux: g++ -c -std=c99 -o sql.o -I../../include sql.cpp
- *        g++ -c -std=c++0x -o common.o -I../../include common.cpp
- *        g++ sql.cpp common.cpp -o sql -I../../include \
- *        -L../../lib -lsdbcpp
+ *    Linux: 
+ *       if GCC version >= 5.1
+ *          g++ -c -std=c99 -o sql.o -I../../include sql.cpp
+ *          g++ -c -std=c++0x -o common.o -I../../include common.cpp
+ *          g++ sql.cpp common.cpp -o sql -I../../include \
+ *          -L../../lib -lsdbcpp -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ -c -std=c99 -o sql.o -I../../include sql.cpp
+ *          g++ -c -std=c++0x -o common.o -I../../include common.cpp
+ *          g++ sql.cpp common.cpp -o sql -I../../include \
+ *          -L../../lib -lsdbcpp
  *    Win:
  *       cl /Fosql.obj /c sql.cpp /I..\..\include /wd4047
  *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047
  *       link /OUT:sql.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib sql.obj common.obj
  *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
  *    Static Linking:
- *    Linux: g++ sql.cpp common.cpp -o sql.static -I../../include -O0
- *           -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
+ *    Linux: 
+ *       if GCC version >= 5.1
+ *          g++ sql.cpp common.cpp -o sql.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ sql.cpp common.cpp -o sql.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./insert <hostname> \
  *           <servicename> <username> <password>

@@ -15,8 +15,12 @@
  * Manual Compile:
  *    Dynamic Linking:
  *    Linux:
- *       g++ index.cpp common.cpp -o index -I../../include -O0 -ggdb \
- *       -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
+ *       if GCC version >= 5.1
+ *          g++ index.cpp common.cpp -o index -I../../include -O0 -ggdb \
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ index.cpp common.cpp -o index -I../../include -O0 -ggdb \
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
  *    Win:
  *       cl /Foindex.obj /c index.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 \ 
  *       /Z7 /TP
@@ -26,8 +30,13 @@
  *       /build
  *       copy ..\..\lib\cpp\debug\dll\sdbcpp.dll .
  *    Static Linking:
- *    Linux: g++ index.cpp common.cpp -o index.static -I../../include -O0
- *           -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
+ *    Linux: 
+ *       if GCC version >= 5.1
+  *          g++ index.cpp common.cpp -o index.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ index.cpp common.cpp -o index.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./index <hostname> \
  *           <servicename> <username> <password>
