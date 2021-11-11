@@ -99,6 +99,8 @@ namespace engine
       INT32 mode = OSS_READWRITE | OSS_CREATE ;
       INT32 permission = OSS_DEFAULTFILE ;
 
+      ossScopedLock _lock( &_loggerLock, EXCLUSIVE ) ;
+
       // 1. open file
       rc = utilBuildFullPath( pmdGetOptionCB()->getDbPath(),
                               PMD_STARTUPHST_FILE_NAME,
@@ -343,10 +345,12 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSTARTHSTLOG_GETLATEST, "_pmdStartupHistoryLogger::getLatestLogs" )
    INT32 _pmdStartupHistoryLogger::getLatestLogs( UINT32 num,
-                                              vector<pmdStartupLog> &vecLogs )
+                                                  PMD_STARTUP_LOG_LIST &vecLogs )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__PMDSTARTHSTLOG_GETLATEST ) ;
+
+      ossScopedLock _lock( &_loggerLock, SHARED ) ;
 
       if( FALSE == _initOk )
       {
@@ -354,11 +358,21 @@ namespace engine
          goto error ;
       }
 
-      for( vector<pmdStartupLog>::reverse_iterator it = _buffer.rbegin();
-           it != _buffer.rend() && vecLogs.size() < num ;
-           it++ )
+      try
       {
-         vecLogs.push_back(*it) ;
+         for( PMD_STARTUP_LOG_LIST::reverse_iterator it = _buffer.rbegin();
+              it != _buffer.rend() && vecLogs.size() < num ;
+              it++ )
+         {
+            vecLogs.push_back(*it) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to get startup logs, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
       }
 
    done :
@@ -373,6 +387,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__PMDSTARTHSTLOG_CLRALL ) ;
+
+      ossScopedLock _lock( &_loggerLock, EXCLUSIVE ) ;
 
       if( FALSE == _initOk )
       {

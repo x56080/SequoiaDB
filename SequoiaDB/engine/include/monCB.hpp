@@ -85,14 +85,14 @@ namespace engine
       }                                                              \
    }
 
-   #define MON_SAVE_OP_OPTION( _pMonAppCB_, opType, options )        \
+   #define MON_SAVE_OP_OPTION( _pMonAppCB_, msg, options )           \
    {                                                                 \
       if ( NULL != _pMonAppCB_ )                                     \
       {                                                              \
          try {                                                       \
-            _pMonAppCB_->setLastOpType( opType ) ;                   \
+            _pMonAppCB_->setLastOpType( msg->opCode ) ;              \
             _pMonAppCB_->setLastCmdType( CMD_UNKNOW ) ;              \
-            _pMonAppCB_->saveLastOpQuery( options ) ;                \
+            _pMonAppCB_->saveLastOpQuery( msg, options ) ;           \
          } catch( ... ) {}                                           \
       }                                                              \
    }
@@ -721,9 +721,9 @@ namespace engine
       ossTick        _lastOpEndTime ;
       ossTickDelta   _readTimeSpent ;
       ossTickDelta   _writeTimeSpent ;
+
       CHAR           _lastOpDetail[ MON_APP_LASTOP_DESC_LEN + 1 ] ;
-      BOOLEAN        _lastOpQuerySaved ;
-      rtnQueryOptions _lastQueryOptions ;
+      BOOLEAN        _lastOpMsgSaved ;
 
       void monOperationTimeInc( MON_OPERATION_TYPES op, ossTickDelta &delta )
       {
@@ -826,9 +826,12 @@ namespace engine
       void setLastCmdType( INT32 cmdType ) ;
       void opTimeSpentInc( ossTickDelta delta );
       const CHAR * getLastOpDetail() ;
-      void saveLastOpQuery( const rtnQueryOptions &options ) ;
+      void saveLastOpQuery( const MsgHeader *message,
+                            const rtnQueryOptions &options ) ;
       void saveLastOpDetail( const CHAR *format, ... ) ;
       void formatLastOpDetail( const rtnQueryOptions &options ) ;
+      void formatLastOpDetail( const MsgHeader *message,
+                               INT32 expectingOpType ) ;
 
       OSS_INLINE void setCRUDCB ( monCRUDCB * crudCB )
       {

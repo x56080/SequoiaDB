@@ -184,11 +184,20 @@ namespace engine
       _lastOpEndTime            = rhs._lastOpEndTime ;
       _readTimeSpent            = rhs._readTimeSpent ;
       _writeTimeSpent           = rhs._writeTimeSpent ;
-      ossStrcpy( _lastOpDetail, rhs._lastOpDetail ) ;
-      if ( rhs._lastOpQuerySaved )
+
+      // no matter rhs has message or not, we will format to last op detail
+      if ( rhs._lastOpMsgSaved )
       {
-         formatLastOpDetail( rhs._lastQueryOptions ) ;
+         formatLastOpDetail( (const MsgHeader *)( rhs._lastOpDetail ),
+                             _lastOpType ) ;
       }
+      else
+      {
+         ossStrncpy( _lastOpDetail, rhs._lastOpDetail, MON_APP_LASTOP_DESC_LEN ) ;
+         _lastOpDetail[ MON_APP_LASTOP_DESC_LEN ] = '\0' ;
+      }
+      _lastOpMsgSaved = FALSE ;
+
       return *this ;
    }
 
@@ -259,9 +268,10 @@ namespace engine
       _lastOpEndTime.clear() ;
       _readTimeSpent.clear() ;
       _writeTimeSpent.clear() ;
-      _lastOpDetail[ 0 ] = '\0' ;
-      _lastQueryOptions.reset() ;
-      _lastOpQuerySaved = FALSE ;
+      // reset first 4 bytes to make sure both length of message and
+      // first char of formatted detail are reset
+      *( (INT32 *)_lastOpDetail ) = 0 ;
+      _lastOpMsgSaved = FALSE ;
    }
 
    void _monAppCB::startOperator()
@@ -270,9 +280,10 @@ namespace engine
       _lastOpEndTime.clear() ;
       _lastOpType = MSG_NULL ;
       _cmdType = CMD_UNKNOW ;
-      _lastOpDetail[ 0 ] = '\0' ;
-      _lastQueryOptions.reset() ;
-      _lastOpQuerySaved = FALSE ;
+      // reset first 4 bytes to make sure both length of message and
+      // first char of formatted detail are reset
+      *( (INT32 *)_lastOpDetail ) = 0 ;
+      _lastOpMsgSaved = FALSE ;
    }
 
    void _monAppCB::endOperator()
@@ -335,29 +346,27 @@ namespace engine
 
    const CHAR *_monAppCB::getLastOpDetail()
    {
-      if ( _lastOpQuerySaved )
+      if ( _lastOpMsgSaved )
       {
-         formatLastOpDetail( _lastQueryOptions ) ;
-         _lastOpQuerySaved = FALSE ;
+         formatLastOpDetail( (const MsgHeader *)_lastOpDetail, _lastOpType ) ;
+         _lastOpMsgSaved = FALSE ;
       }
       return _lastOpDetail ;
    }
 
-   void _monAppCB::saveLastOpQuery( const rtnQueryOptions &options )
+   void _monAppCB::saveLastOpQuery( const MsgHeader *message,
+                                    const rtnQueryOptions &options )
    {
-      // only cache small query, large query will save string directly
-      if ( options.getOrderBy().objsize() < MON_APP_LASTOP_DESC_LEN &&
-           options.getSelector().objsize() < MON_APP_LASTOP_DESC_LEN &&
-           options.getHint().objsize() < MON_APP_LASTOP_DESC_LEN &&
-           options.getQuery().objsize() < MON_APP_LASTOP_DESC_LEN )
+      if ( NULL != message &&
+           message->messageLength <= MON_APP_LASTOP_DESC_LEN )
       {
-         _lastQueryOptions = options ;
-         _lastQueryOptions.getOwned() ;
-         _lastOpQuerySaved = TRUE ;
+         ossMemcpy( _lastOpDetail, message, message->messageLength ) ;
+         _lastOpMsgSaved = TRUE ;
       }
       else
       {
          formatLastOpDetail( options ) ;
+         _lastOpMsgSaved = FALSE ;
       }
    }
 
@@ -385,7 +394,7 @@ namespace engine
       va_end( argList ) ;
 
       _lastOpDetail[ sizeof( _lastOpDetail ) - 1 ] = '\0' ;
-      _lastOpQuerySaved = FALSE ;
+      _lastOpMsgSaved = FALSE ;
 
    done:
       return ;
@@ -393,63 +402,149 @@ namespace engine
 
    void _monAppCB::formatLastOpDetail( const rtnQueryOptions &options )
    {
-      switch ( _lastOpType )
+      // reset flag first
+      _lastOpMsgSaved = FALSE ;
+      // reset first 4 bytes to make sure both length of message and
+      // first char of formatted detail are reset
+      *( (INT32 *)_lastOpDetail ) = 0 ;
+
+      try
       {
-         case MSG_BS_QUERY_REQ :
+         switch ( _lastOpType )
          {
-            saveLastOpDetail( "Collection:%s, Matcher:%s, Selector:%s, "
-                              "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
-                              "Flag:0x%08x(%u)",
-                              options.getCLFullName(),
-                              options.getQuery().toPoolString().c_str(),
-                              options.getSelector().toPoolString().c_str(),
-                              options.getOrderBy().toPoolString().c_str(),
-                              options.getHint().toPoolString().c_str(),
-                              options.getSkip(),
-                              options.getLimit(),
-                              options.getFlag(),
-                              options.getFlag() ) ;
-            break ;
-         }
-         case MSG_BS_INSERT_REQ :
-         {
-            saveLastOpDetail( "Collection:%s, Insertors:%s, ObjNum:%d, "
-                              "Flag:0x%08x(%u)",
-                              options.getCLFullName(),
-                              options.getInsertor().toPoolString().c_str(),
-                              options.getInsertNum(),
-                              options.getFlag(),
-                              options.getFlag() ) ;
-            break ;
-         }
-         case MSG_BS_UPDATE_REQ :
-         {
-            saveLastOpDetail( "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
-                              "Flag:0x%08x(%u)",
-                              options.getCLFullName(),
-                              options.getQuery().toPoolString().c_str(),
-                              options.getUpdator().toPoolString().c_str(),
-                              options.getHint().toPoolString().c_str(),
-                              options.getFlag(),
-                              options.getFlag() ) ;
-            break ;
-         }
-         case MSG_BS_DELETE_REQ :
-         {
-            saveLastOpDetail( "Collection:%s, Deletor:%s, Hint:%s, "
-                              "Flag:0x%08x(%u)",
-                              options.getCLFullName(),
-                              options.getQuery().toPoolString().c_str(),
-                              options.getHint().toPoolString().c_str(),
-                              options.getFlag(),
-                              options.getFlag() ) ;
-            break ;
-         }
-         default :
-         {
-            break ;
+            case MSG_BS_QUERY_REQ :
+            {
+               saveLastOpDetail( "Collection:%s, Matcher:%s, Selector:%s, "
+                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
+                                 "Flag:0x%08x(%u)",
+                                 options.getCLFullName(),
+                                 options.getQuery().toPoolString().c_str(),
+                                 options.getSelector().toPoolString().c_str(),
+                                 options.getOrderBy().toPoolString().c_str(),
+                                 options.getHint().toPoolString().c_str(),
+                                 options.getSkip(),
+                                 options.getLimit(),
+                                 options.getFlag(),
+                                 options.getFlag() ) ;
+               break ;
+            }
+            case MSG_BS_INSERT_REQ :
+            {
+               saveLastOpDetail( "Collection:%s, Insertors:%s, ObjNum:%d, "
+                                 "Flag:0x%08x(%u)",
+                                 options.getCLFullName(),
+                                 options.getInsertor().toPoolString().c_str(),
+                                 options.getInsertNum(),
+                                 options.getFlag(),
+                                 options.getFlag() ) ;
+               break ;
+            }
+            case MSG_BS_UPDATE_REQ :
+            {
+               saveLastOpDetail( "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
+                                 "Flag:0x%08x(%u)",
+                                 options.getCLFullName(),
+                                 options.getQuery().toPoolString().c_str(),
+                                 options.getUpdator().toPoolString().c_str(),
+                                 options.getHint().toPoolString().c_str(),
+                                 options.getFlag(),
+                                 options.getFlag() ) ;
+               break ;
+            }
+            case MSG_BS_DELETE_REQ :
+            {
+               saveLastOpDetail( "Collection:%s, Deletor:%s, Hint:%s, "
+                                 "Flag:0x%08x(%u)",
+                                 options.getCLFullName(),
+                                 options.getQuery().toPoolString().c_str(),
+                                 options.getHint().toPoolString().c_str(),
+                                 options.getFlag(),
+                                 options.getFlag() ) ;
+               break ;
+            }
+            default :
+            {
+               break ;
+            }
          }
       }
+      catch ( exception &e )
+      {
+         PD_LOG( PDDEBUG, "Failed to save last op detail, "
+                 "occur exception %s", e.what() ) ;
+         // cut detail
+         // reset first 4 bytes to make sure both length of message and
+         // first char of formatted detail are reset
+         *( (INT32 *)_lastOpDetail ) = 0 ;
+      }
+   }
+
+   void _monAppCB::formatLastOpDetail( const MsgHeader *msg,
+                                       INT32 expectingOpType )
+   {
+      SDB_ASSERT( NULL != msg, "message is invalid" ) ;
+
+      BOOLEAN isValid = FALSE ;
+      rtnQueryOptions options ;
+
+      if ( msg->opCode == expectingOpType &&
+           msg->messageLength > sizeof( MsgHeader ) &&
+           msg->messageLength <= MON_APP_LASTOP_DESC_LEN )
+      {
+         CHAR temp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;
+         ossMemcpy( temp, (const CHAR *)msg, MON_APP_LASTOP_DESC_LEN ) ;
+         switch ( expectingOpType )
+         {
+            case MSG_BS_QUERY_REQ :
+            {
+               if ( SDB_OK == options.fromQueryMsg( temp ) )
+               {
+                  isValid = TRUE ;
+               }
+               break ;
+            }
+            case MSG_BS_INSERT_REQ :
+            {
+               if ( SDB_OK == options.fromInsertMsg( temp ) )
+               {
+                  isValid = TRUE ;
+               }
+               break ;
+            }
+            case MSG_BS_DELETE_REQ :
+            {
+               if ( SDB_OK == options.fromDeleteMsg( temp ) )
+               {
+                  isValid = TRUE ;
+               }
+               break ;
+            }
+            case MSG_BS_UPDATE_REQ :
+            {
+               if ( SDB_OK == options.fromUpdateMsg( temp ) )
+               {
+                  isValid = TRUE ;
+               }
+               break ;
+            }
+            default:
+            {
+               // not support
+               break ;
+            }
+         }
+
+      }
+      if ( isValid )
+      {
+         formatLastOpDetail( options ) ;
+      }
+      else
+      {
+         // cut the message
+         *( (INT32 *)_lastOpDetail ) = 0 ;
+      }
+      _lastOpMsgSaved = FALSE ;
    }
 
    /*

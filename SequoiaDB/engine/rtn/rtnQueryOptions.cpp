@@ -331,7 +331,8 @@ namespace engine
 
       rc = msgExtractQuery( pMsg, &_flag, &_fullName, &_skip, &_limit,
                             &pQuery, &pSelector, &pOrderBy, &pHint ) ;
-      PD_RC_CHECK( rc, PDERROR, "Extrace query msg failed, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract query message, "
+                   "rc: %d", rc ) ;
 
       _fullNameBuf.clear() ;
       _mainCLNameBuf.clear() ;
@@ -345,9 +346,120 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Extrace query msg occur exception: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to extract query message, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnQueryOptions::fromInsertMsg( CHAR *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *pInsert = NULL ;
+      INT32 count = 0 ;
+
+      rc = msgExtractInsert( pMsg, &_flag, &_fullName, &pInsert, count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract insert message, "
+                   "rc: %d", rc ) ;
+
+      _fullNameBuf.clear() ;
+      _mainCLNameBuf.clear() ;
+
+      try
+      {
+         BSONObj insertor = BSONObj( pInsert ) ;
+
+         setInsertor( insertor ) ;
+         setInsertNum( count ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to extract insert message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnQueryOptions::fromDeleteMsg( CHAR *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *pDelete = NULL ;
+      const CHAR *pHint = NULL ;
+
+      rc = msgExtractDelete( pMsg, &_flag, &_fullName, &pDelete, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract delete message, "
+                   "rc: %d", rc ) ;
+
+      _fullNameBuf.clear() ;
+      _mainCLNameBuf.clear() ;
+
+      try
+      {
+         BSONObj deletor = BSONObj( pDelete ) ;
+         BSONObj hint = BSONObj( pHint ) ;
+
+         setQuery( deletor ) ;
+         setHint( hint ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to extract delete message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnQueryOptions::fromUpdateMsg( CHAR *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+
+      const CHAR *pQuery = NULL ;
+      const CHAR *pUpdator = NULL ;
+      const CHAR *pHint = NULL ;
+
+      rc = msgExtractUpdate( pMsg, &_flag, &_fullName, &pQuery, &pUpdator,
+                             &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract update message, "
+                   "rc: %d", rc ) ;
+
+      _fullNameBuf.clear() ;
+      _mainCLNameBuf.clear() ;
+
+      try
+      {
+         BSONObj query = BSONObj( pQuery ) ;
+         BSONObj updator = BSONObj( pUpdator ) ;
+         BSONObj hint = BSONObj( pHint ) ;
+
+         setQuery( query ) ;
+         setUpdator( updator ) ;
+         setHint( hint ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to extract update message, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 

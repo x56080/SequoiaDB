@@ -203,6 +203,9 @@ namespace engine
          _rtnQueryOptions & operator = ( const _rtnQueryOptions &o ) ;
 
          INT32 fromQueryMsg ( CHAR *pMsg ) ;
+         INT32 fromInsertMsg( CHAR *pMSg ) ;
+         INT32 fromDeleteMsg( CHAR *pMsg ) ;
+         INT32 fromUpdateMsg( CHAR *pMsg ) ;
          INT32 toQueryMsg ( CHAR **ppMsg, INT32 &buffSize,
                             IExecutor *cb = NULL ) const ;
 

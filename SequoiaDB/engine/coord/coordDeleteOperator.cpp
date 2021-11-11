@@ -141,7 +141,7 @@ namespace engine
                                   0, -1, oldFlag ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
       }
       catch ( std::exception &e )
       {
