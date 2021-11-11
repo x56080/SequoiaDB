@@ -2191,6 +2191,7 @@ namespace vessel
          if (slot->isKeyInExtPage())
          {
             SDB_ASSERT(!isLeaf(), "should not be leaf");
+            SDB_ASSERT(INVALID_PAGE_ID != head->externalKeyPage, "impossible");
             rc = _buffer->getLogicalPageSpace()
                  ->releasePage(_buffer->getContext(), head->externalKeyPage);
             if (SDB_OK != rc)

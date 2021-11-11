@@ -1042,7 +1042,8 @@ vesselTestFiles = [
       "test/vessel/index_btree_test.cpp",
       "test/vessel/lsm_insert_test.cpp",
       "test/vessel/index_keygen_test.cpp",
-      "test/vessel/index_scan_test.cpp"
+      "test/vessel/index_scan_test.cpp",
+      "test/vessel/index_write_test.cpp"
 ]
 
 #BSON

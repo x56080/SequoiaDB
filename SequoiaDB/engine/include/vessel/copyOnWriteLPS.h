@@ -118,8 +118,8 @@ namespace vessel
          void fini();
 
       private:
-         forwardList<PAGE_ID> *_removingList = NULL;
-         forwardList<PAGE_ID> *_removedList = NULL;
+         forwardList<PAGE_ID> *_waitingForReleasing = NULL;
+         forwardList<PAGE_ID> *_readyForReleasing = NULL;
    };//class copyOnWriteLPS
 }//namespace vessel
 }//namespace engine

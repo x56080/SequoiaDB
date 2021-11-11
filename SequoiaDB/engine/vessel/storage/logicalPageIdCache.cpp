@@ -1040,7 +1040,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageIdCache::getModifieldCount()const
+   INT32 logicalPageIdCache::getModifiedCount()const
    {
       return _modifiedCount.peek();
    }

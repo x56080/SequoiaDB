@@ -898,6 +898,48 @@ namespace vessel
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != buf, "can not be null");
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         _PAGE_MAP::iterator itr;
+         UINT32 bitOffset = buf[i] % _pageCapacity;
+         UINT32 pageId = buf[i] / _pageCapacity;
+         if (_pageCount <= pageId)
+         {
+            PD_LOG(PDERROR, "invalid offset to release:%d", pageId);
+            continue;
+         }
+         else if (pageId < _pageSkipped)
+         {
+            PD_LOG(PDERROR, "invalid offset to release:%d", pageId);
+            continue;
+         }
+
+         itr = _pagesWithHighFreeCount.find(pageId);
+         if (_pagesWithHighFreeCount.end() != itr)
+         {
+            releaseBitFromHFC(1, &bitOffset, itr->second);
+         }
+         else
+         {
+            itr = _pagesWithLowFreeCount.find(pageId);
+            if (_pagesWithLowFreeCount.end() != itr)
+            {
+               releaseBitFromLFC(1, &bitOffset, itr->second);
+            }
+            else
+            {
+               releaseAtDestroyedPage(pageId, 1, &bitOffset);
+            }
+         }
+      }
+   }
+
+/*
+   void inMemBitmap::_releaseBits(UINT32 count, const UINT32 *buf)
+   {
+      SDB_ASSERT(isInitialized(), "must be inited");
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != buf, "can not be null");
       static const UINT32 BATCH_SIZE = 16;
       UINT32 batch[BATCH_SIZE];
       UINT32 released = 0;
@@ -957,6 +999,7 @@ namespace vessel
    done:
       return;
    }
+   */
 
    void inMemBitmap::releaseBitFromHFC(UINT32 count,
                                         const UINT32 *buf,

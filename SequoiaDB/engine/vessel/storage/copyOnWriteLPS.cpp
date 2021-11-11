@@ -53,17 +53,17 @@ namespace vessel
 
    void copyOnWriteLPS::fini()
    {
-      if (NULL != _removingList)
+      if (NULL != _waitingForReleasing)
       {
-         _removingList->clear();
-         SDB_OSS_DEL _removingList;
-         _removingList = NULL;
+         _waitingForReleasing->clear();
+         SDB_OSS_DEL _waitingForReleasing;
+         _waitingForReleasing = NULL;
       }
-      if (NULL != _removedList)
+      if (NULL != _readyForReleasing)
       {
-         _removedList->clear();
-         SDB_OSS_DEL _removedList;
-         _removedList = NULL;
+         _readyForReleasing->clear();
+         SDB_OSS_DEL _readyForReleasing;
+         _readyForReleasing = NULL;
       }
       return;
    }
@@ -622,19 +622,18 @@ namespace vessel
       static const UINT32 _SIZE = 16;
       ossScopedRWLock guard(logicalPageSpace::getCheckpointContext().getLatch(), SHARED);
 
-      /// If status is not none, release pids at next ending.
-      if (getCheckpointContext().getStatus() == lpsCheckpointContext::NONE &&
-          NULL != _removedList)
+      /// no checkpoint can be created now, coz we are holding shared latch
+      if (NULL != _readyForReleasing)
       {
          ossPoolVector<PAGE_ID> pids;
          pids.reserve(_SIZE);
 
-         while (0 != _removedList->getSize())
+         while (0 != _readyForReleasing->getSize())
          {
             for (UINT32 i = 0; i < _SIZE; ++i)
             {
                PAGE_ID pid = INVALID_PAGE_ID;
-               if (_removedList->popForward(pid))
+               if (_readyForReleasing->popForward(pid))
                {
                   if (OSS_LIKELY(INVALID_PAGE_ID != pid))
                   {
@@ -653,14 +652,14 @@ namespace vessel
             }
             else if (1 < pids.size())
             {
-               std::sort(pids.begin(), pids.end());
+               //std::sort(pids.begin(), pids.end());
             }
             getDataStorageObj()->releasePages(pids.size(), pids.data());
             pids.clear();
          }
 
-         SDB_OSS_DEL _removedList;
-         _removedList = NULL;
+         SDB_OSS_DEL _readyForReleasing;
+         _readyForReleasing = NULL;
       }
       return;
    }
@@ -670,10 +669,10 @@ namespace vessel
    {
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != pids, "can not be null");
-      if (NULL == _removingList)
+      if (NULL == _waitingForReleasing)
       {
-         _removingList = SDB_OSS_NEW forwardList<PAGE_ID>();
-         if (NULL == _removingList)
+         _waitingForReleasing = SDB_OSS_NEW forwardList<PAGE_ID>();
+         if (NULL == _waitingForReleasing)
          {
             PD_LOG(PDSEVERE, "failed to allocate mem for removing list");
             goto done;
@@ -683,7 +682,7 @@ namespace vessel
       for (UINT32 i = 0; i < count; ++i)
       {
          SDB_ASSERT(INVALID_PAGE_ID != pids[i], "can not be invalid");
-         INT32 rc = _removingList->pushForward(pids[i]);
+         INT32 rc = _waitingForReleasing->pushForward(pids[i]);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to push pid[%d] into list:%d", rc);
@@ -698,29 +697,27 @@ namespace vessel
       INT32 rc = SDB_OK;
       PAGE_ID pid = INVALID_PAGE_ID;
       
-      if (NULL == _removingList)
+      if (NULL == _waitingForReleasing || _waitingForReleasing->getSize() == 0)
       {
          goto done;
       }
-      else if (NULL == _removedList)
+      else if (NULL == _readyForReleasing)
       {
-         _removedList = _removingList;
+         _readyForReleasing = _waitingForReleasing;
+         _waitingForReleasing = NULL;
          goto done;
       }
 
       /// for some reason last checkpoint not done.
-      while (_removingList->popForward(pid))
+      while (_waitingForReleasing->popForward(pid))
       {
-         rc = _removedList->pushForward(pid);
+         rc = _readyForReleasing->pushForward(pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to push pid[%d] into backup list:%d",
                    pid, rc);
          }
       }
-
-      SDB_OSS_DEL _removingList;
-      _removingList = NULL;
    done:
       return;
    }

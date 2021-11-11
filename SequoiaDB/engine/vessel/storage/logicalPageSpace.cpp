@@ -62,7 +62,7 @@ namespace engine
 namespace vessel
 {
    static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
-   static const UINT32 CHECKPOINT_TRIGGER_PAGE_COUNT = 32768;
+   static const UINT32 CHECKPOINT_TRIGGER_PAGE_COUNT = 8192;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -510,7 +510,7 @@ namespace vessel
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
-      /// checkpoint applying flag still not clear
+      /// checkpoint applying flag still be valid
       endToCreateCheckpoint(context);
    done:
       if (locked)
@@ -2546,7 +2546,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
-      if ((INT32)CHECKPOINT_TRIGGER_PAGE_COUNT <= _lpidCache.getModifieldCount())
+      if ((INT32)CHECKPOINT_TRIGGER_PAGE_COUNT <= _lpidCache.getModifiedCount())
       {
          if (_checkpointContext.tryToApplyCheckpoint())
          {

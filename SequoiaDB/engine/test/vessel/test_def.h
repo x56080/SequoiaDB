@@ -54,9 +54,8 @@
 using namespace engine::vessel;
 using namespace engine;
 
-static const CHAR *DATA_PATH = "/tmp/vessel_test";
-//static const CHAR *DATA_PATH = "/opt/test/vessel_test";
-static const CHAR *LSM_PATH = "/tmp/vessel_lsm";
+static const CHAR *DATA_PATH = "/opt/unit_test/vessel/";
+static const CHAR *LSM_PATH = "/opt/unit_test/lsm";
 
 
 class test_executor : public IExecutor

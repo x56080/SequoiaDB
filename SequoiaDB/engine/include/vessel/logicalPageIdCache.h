@@ -208,7 +208,7 @@ namespace vessel
          INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
 
       public:         
-         INT32 getModifieldCount()const;
+         INT32 getModifiedCount()const;
          INT32 setPagesImmutable(UINT32 pageCountPerSeg,
                                   ossPoolSet<UINT32> &mutableSegmentIds);
 
