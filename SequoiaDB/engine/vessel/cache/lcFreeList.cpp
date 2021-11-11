@@ -209,5 +209,11 @@ namespace vessel
    error:
       goto done;
    }
+
+   BOOLEAN lcFreeList::fastCheckIfHasFreePage()const
+   {
+      SDB_ASSERT(NULL != _chunks, "can not be null");
+      return !_free.empty() || _size < _options.maxChunkCount;
+   }
 } /// end of namespace vessel
 } /// end of namespace engine

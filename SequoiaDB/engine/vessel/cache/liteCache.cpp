@@ -783,7 +783,6 @@ namespace vessel
       {
          if (1 < scanLoop)
          {
-            PD_LOG(PDWARNING, "eviction times over one:%d", scanLoop);
             ossSleepmillis(10);
          }
 
@@ -806,10 +805,33 @@ namespace vessel
                break;
             }
             
+            if (_fl->fastCheckIfHasFreePage())
+            {
+               rc = _fl->allocate(page);
+               if (SDB_OK == rc)
+               {
+                  goto done;
+               }
+               else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL != rc)
+               {
+                  PD_LOG(PDERROR, "failed to allocate page from free list:%d", rc);
+                  goto error;
+               }
+               else
+               {
+                  /// do nothing.
+               }
+            }
+
             ++scanLoop;
+            if (0 == scanLoop % 5)
+            {
+               PD_LOG(PDWARNING, "eviction times over :%d", scanLoop);
+            }
          }
          else
          {
+            PD_LOG(PDERROR, "failed to allocate page from free list:%d", rc);
             goto error;
          }
       } while (scanLoop < _MAX_LOOP);

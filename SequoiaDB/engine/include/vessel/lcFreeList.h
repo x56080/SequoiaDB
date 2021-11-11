@@ -85,6 +85,8 @@ namespace vessel
 
          void releasePages(UINT32 size, const freeListPage *pages);
 
+         BOOLEAN fastCheckIfHasFreePage()const;
+
       private:
          INT32 pushNewChunkIntoFreeList();
 
