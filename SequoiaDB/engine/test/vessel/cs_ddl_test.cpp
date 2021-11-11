@@ -35,7 +35,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
@@ -80,8 +79,8 @@ TEST_F(cs_ddl_test, test1)
    vesselImpl db;
    outerResource resource;
    resource.logger = test_logger::instance(); 
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -123,9 +122,9 @@ TEST_F(cs_ddl_test, test2)
    INT32 rc = SDB_OK;
    outerResource resource;
    resource.logger = test_logger::instance(); 
-   resource.sessionMgr = test_session_mgr::instance();
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    vesselImpl db;
-   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -187,9 +186,9 @@ TEST_F(cs_ddl_test, test3)
    INT32 rc = SDB_OK;
    outerResource resource;
    resource.logger = test_logger::instance(); 
-   resource.sessionMgr = test_session_mgr::instance();
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    vesselImpl db;
-   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;
@@ -223,9 +222,9 @@ TEST_F(cs_ddl_test, test4)
 
    outerResource resource;
    resource.logger = test_logger::instance(); 
-   resource.sessionMgr = test_session_mgr::instance();
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    vesselImpl db;
-   test_session session(test_logger::instance());
    openDBOptions options;
    createCSOptions csOptions;
    options.path.dataPath = DATA_PATH;

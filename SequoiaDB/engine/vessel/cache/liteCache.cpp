@@ -805,6 +805,7 @@ namespace vessel
                break;
             }
             
+            /// fast check again, pages may released before we locked lru.
             if (_fl->fastCheckIfHasFreePage())
             {
                rc = _fl->allocate(page);

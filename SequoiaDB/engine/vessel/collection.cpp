@@ -374,7 +374,7 @@ namespace vessel
    }
 
    INT32 collection::insert(insertContext *context,
-                            utilInsertResult &res)
+                            utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 == context->getUniqueKeyHashSize(), "must be zero");
@@ -457,11 +457,14 @@ namespace vessel
          goto error;
       }
 
-      res.incInsertedNum();
-      if (res.isEnableReturnIDInfo())
+      if (NULL != res)
       {
-         res.setInsertLoc(context->getLastDmlRid().getPageID(),
-                          context->getLastDmlRid().getSlotID());
+         res->incInsertedNum();
+         if (res->isEnableReturnIDInfo())
+         {
+            res->setInsertLoc(context->getLastDmlRid().getPageID(),
+                              context->getLastDmlRid().getSlotID());
+         }
       }
    done:
       context->unlockRidsAndUniqueKeys();
@@ -3074,7 +3077,7 @@ namespace vessel
 
    INT32 collection::constraintCheck(dmlContext *context,
                                      const dmlIndexRequestArray &ra,
-                                     utilInsertResult &res)
+                                     utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       recordID rid;
@@ -3122,14 +3125,18 @@ namespace vessel
                       req->getContext()->getObj().getIndexName().str(),
                       rid.getPageID(), rid.getSlotID());
                rc = SDB_IXM_DUP_KEY;
-               res.incDuplicatedNum();
-               if (res.isEnaleIndexErrInfo())
+               if (NULL != res)
                {
-                  const indexObject &indexObj = req->getContext()->getObj();
-                  res.setIndexErrInfo(indexObj.getIndexName().str(),
-                                      indexObj.getPattern().getPattern(),
-                                      *itr);
+                  res->incDuplicatedNum();
+                  if (res->isEnaleIndexErrInfo())
+                  {
+                     const indexObject &indexObj = req->getContext()->getObj();
+                     res->setIndexErrInfo(indexObj.getIndexName().str(),
+                                          indexObj.getPattern().getPattern(),
+                                          *itr);
+                  }
                }
+               
                goto error;
             }
          }

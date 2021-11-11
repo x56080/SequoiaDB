@@ -567,11 +567,14 @@ namespace vessel
 
    INT32 dataManagementService::testCS(requestContext *context,
                                        const strSlice &nameSlice,
-                                       UINT32 &logicalID,
-                                       SPACE_ID &sid)
+                                       collectionSpaceIdentifier &identifier)
    {
       INT32 rc = SDB_OK;
-      
+      UINT32 lid = DMS_INVALID_LOGICCSID;
+      SPACE_ID sid = INVALID_SPACE_ID;
+      collectionSpace *obj = NULL;
+
+      identifier = collectionSpaceIdentifier();
 
       if (OSS_UNLIKELY(NULL == context ||
                        nameSlice.empty()))
@@ -587,11 +590,13 @@ namespace vessel
 
       {
       ossScopedRWLock guard(&_latch, SHARED);
-      if (!testCS(nameSlice, logicalID, sid, NULL))
+      if (!testCS(nameSlice, lid, sid, &obj))
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
       }
+
+      identifier = collectionSpaceIdentifier(lid, obj->getUniqueID(), sid);
       }
 
    done:

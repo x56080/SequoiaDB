@@ -43,6 +43,7 @@ namespace engine
 namespace vessel
 {
    constexpr UINT32 MAX_CONTENT_SIZE = CONTROL_FILE_SIZE - sizeof(controlFile::head);
+   constexpr UINT32 MAX_ALIVE_VERSION_COUNT = 64;
 
    OSS_INLINE UINT32 getMagicCode()
    {
@@ -101,11 +102,13 @@ namespace vessel
       close();
    }
 
+/*
    INT32 controlFile::create(const strSlice &dir)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < getMaxAliveVersionCount() &&
-                 getMaxAliveVersionCount() <= 64, "can not be invalid");
+                 getMaxAliveVersionCount() <= MAX_ALIVE_VERSION_COUNT,
+                 "can not be invalid");
       SDB_ASSERT(!isOpen(), "do not reinit");
       close();
 
@@ -122,6 +125,7 @@ namespace vessel
       destroy();
       goto done;
    }
+   */
 
    INT32 controlFile::open(const strSlice &dir)
    {
@@ -129,7 +133,7 @@ namespace vessel
       SDB_ASSERT(0 < getMaxAliveVersionCount() &&
                  getMaxAliveVersionCount() <= 64, "can not be invalid");
       SDB_ASSERT(!isOpen(), "do not reinit");
-      close();
+
       if (OSS_UNLIKELY(dir.empty()))
       {
          rc = SDB_INVALIDARG;
@@ -141,13 +145,6 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open control files:%s, rc:%d", dir.str(), rc);
-         goto error;
-      }
-
-      if (getMaxAliveVersionCount() != (_workshop.size() + _unused.size()))
-      {
-         PD_LOG(PDERROR, "invalid file count under path:%s", dir.str());
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
 
@@ -491,7 +488,7 @@ namespace vessel
       UINT32 count = getMaxAliveVersionCount();
       CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
       _fileObj *obj = NULL;
-      UINT32 flags = OSS_READWRITE | OSS_EXCLUSIVE;
+      UINT32 flags = OSS_CREATE |OSS_READWRITE | OSS_EXCLUSIVE;
 
       for (UINT32 i = 0; i < count; ++i)
       {
@@ -558,6 +555,7 @@ namespace vessel
                goto error;
             }
             pushToUnusedListWhenOpen(obj);
+            continue;
          }
 
          rc = readFile(obj);
@@ -603,6 +601,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 controlFile::createFiles()
    {
       INT32 rc = SDB_OK;
@@ -670,21 +669,18 @@ namespace vessel
       SAFE_OSS_DELETE(obj);
       goto done;
    }
+*/
 
    void controlFile::initFileBuf(_fileObj *obj)
    {
-      INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != obj, "can not be null");
       ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
       controlFile::head *head = obj->getHead();
+      *head = controlFile::head();
 
       head->magicCode = getMagicCode();
       head->headVerion = CONTROL_FILE_VERSION;
-      head->flags = 0;
-      head->commitVersion = INVALID_COMMIT_VERSION;
       head->updateMillis = ossGetCurrentMilliseconds();
-      head->contentLen = 0;
-      head->pad = 0;
       head->checksum = createChecksum(head);
       return;
    }
@@ -694,14 +690,13 @@ namespace vessel
       SDB_ASSERT(NULL != obj, "can not be null");
       SDB_ASSERT(NULL != buf, "can not be null");
       controlFile::head *head = obj->getHead();
+      *head = controlFile::head();
 
       head->magicCode = getMagicCode();
       head->headVerion = CONTROL_FILE_VERSION;
-      head->flags = 0;
       head->commitVersion = _commitVersion;
       head->updateMillis = ossGetCurrentMilliseconds();
       head->contentLen = size;
-      head->pad = 0;
       ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
       ossMemset(obj->buf + sizeof(controlFile::head) + size,
                 0, CONTROL_FILE_SIZE - sizeof(controlFile::head) - size);

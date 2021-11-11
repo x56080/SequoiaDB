@@ -75,7 +75,7 @@ namespace vessel
                                logRecordContext *context)
          {
             SDB_ASSERT(!context->prepared(), "impossible");
-            UINT64 t = _lsn.fetch();
+            UINT64 t = _lsn.add(context->getHead()._length);
             context->getHead()._lsn = t;
             if (0 != OSS_BIT_TEST(context->getHead()._flags,
                                   DPS_VESSEL_LOG_FLAG_OPL_HEAD))
@@ -116,7 +116,7 @@ namespace vessel
 
          /// 
          virtual INT32 abortOplist(IExecutor *executor,
-                                   DPS_LSN_OFFSET lsn) {}
+                                   DPS_LSN_OFFSET lsn) {return SDB_OK;}
 
          virtual DPS_LSN_OFFSET getMinFileLsn() {return _lsn.fetch();}
 

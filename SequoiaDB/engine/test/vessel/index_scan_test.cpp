@@ -35,7 +35,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
@@ -100,7 +99,7 @@ static void thread_insert(vesselImpl *db, test_logger *logger,
                    const CHAR *csName, const CHAR *clName,
                    UINT32 count)
 {
-   test_session session(logger);
+   test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
    collectionHandler handler;
@@ -117,9 +116,9 @@ static void thread_insert(vesselImpl *db, test_logger *logger,
       bson::BSONObj obj = builder.obj();
       slice record;
       record.reset(obj.objsize(), obj.objdata());     
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
    handler.close();
@@ -129,10 +128,8 @@ void test1(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -172,9 +169,9 @@ void test1(INDEX_TYPE type)
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -268,10 +265,8 @@ void test2(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -307,9 +302,9 @@ void test2(INDEX_TYPE type)
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -372,10 +367,8 @@ void test3(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -415,9 +408,9 @@ void test3(INDEX_TYPE type)
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -487,10 +480,8 @@ void test4(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -530,9 +521,9 @@ void test4(INDEX_TYPE type)
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -597,10 +588,8 @@ void test5(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -640,9 +629,9 @@ void test5(INDEX_TYPE type)
       builder.append("b", i+1);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 

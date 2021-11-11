@@ -411,6 +411,7 @@ namespace engine
    {
       DMS_STORAGE_NORMAL = 0,
       DMS_STORAGE_CAPPED,
+      DMS_STORAGE_VESSEL,
       DMS_STORAGE_DUMMY
    } ;
 

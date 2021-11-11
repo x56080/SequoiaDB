@@ -78,6 +78,10 @@ namespace vessel
                                              utilCSUniqueID uniqueId,
                                              const createCSOptions &options);
 
+         virtual INT32 testCollectionSpace(IExecutor *executor,
+                                           const CHAR *name,
+                                           collectionSpaceIdentifier &identifier);
+
          virtual INT32 dropCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
                                            UINT32 logicalID,
@@ -123,7 +127,13 @@ namespace vessel
                       const slice &record,
                       STRIPING_ID striping,
                       const insertOptions &options,
-                      utilInsertResult &res);
+                      utilInsertResult *res);
+
+         INT32 insertBatch(IExecutor *executor,
+                           const collectionHandle &handle,
+                           const requestBatch &batch,
+                           const insertOptions &options,
+                           utilInsertResult *res);
 
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              const collectionHandle &handle,

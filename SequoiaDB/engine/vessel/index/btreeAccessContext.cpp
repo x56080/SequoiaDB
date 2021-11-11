@@ -442,7 +442,7 @@ namespace vessel
       for (UINT32 i = 0; i < n; ++i)
       {
          btreeAccessPathNode pn;
-         if (_path.popBack(pn))
+         if (_path.popBack(&pn))
          {
             if (pn.isAccessing())
             {

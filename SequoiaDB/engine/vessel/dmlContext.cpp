@@ -47,7 +47,7 @@ namespace vessel
 {
    dmlContext::~dmlContext()
    {
-      unlockRidsAndUniqueKeys();
+      unlockUniqueKeys();
    }
 
    void dmlContext::close()

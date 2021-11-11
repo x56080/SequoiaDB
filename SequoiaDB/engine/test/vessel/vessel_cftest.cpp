@@ -111,7 +111,7 @@ TEST_F(cftest, test0)
    INT32 rc = SDB_OK;
    v::strSlice dirSlice(TEST_PATH); 
    testControlFile file(1);
-   rc = file.create(dirSlice);
+   rc = file.open(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    dummyContent content;
    UINT64 version = 0;
@@ -148,7 +148,7 @@ TEST_F(cftest, test1)
    INT32 rc = SDB_OK;
    v::strSlice dirSlice(TEST_PATH); 
    testControlFile f(16);
-   rc = f.create(dirSlice);
+   rc = f.open(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    dummyContent content;
    UINT64 version = 0;
@@ -193,7 +193,7 @@ TEST_F(cftest, test2)
    INT32 rc = SDB_OK;
    v::strSlice dirSlice(TEST_PATH); 
    testControlFile f(16);
-   rc = f.create(dirSlice);
+   rc = f.open(dirSlice);
    ASSERT_EQ(SDB_OK, rc);
    UINT64 version = 0;
    dummyContent content;

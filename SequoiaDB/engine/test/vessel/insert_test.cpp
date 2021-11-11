@@ -35,7 +35,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
@@ -104,14 +103,11 @@ TEST_F(insert_test, test1)
 
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   test_executor session;
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
-   DPS_TRANS_ID transID;
    utilInsertResult res;
    CHAR pad[1024] = {0};
 
@@ -142,8 +138,8 @@ TEST_F(insert_test, test1)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = handler.insert(&session, record, transID,
-                          INVALID_STRIPING_ID, insertOptions(), res);
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID, insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -178,15 +174,12 @@ TEST_F(insert_test, test2)
    test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   test_executor session;
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
    slice record;
-   DPS_TRANS_ID transID;
    utilInsertResult res;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
@@ -215,9 +208,9 @@ TEST_F(insert_test, test2)
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      rc = handler.insert(&session, record, transID,
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -280,7 +273,7 @@ void thread_insert(vesselImpl *db, test_logger *logger,
                    const CHAR *csName, const CHAR *clName,
                    UINT32 count)
 {
-   test_session session(logger);
+   test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
    builder.append("a", 1);
@@ -297,9 +290,9 @@ void thread_insert(vesselImpl *db, test_logger *logger,
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record, 
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
    handler.close();
@@ -309,10 +302,8 @@ TEST_F(insert_test, test3_1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -359,10 +350,8 @@ TEST_F(insert_test, test3_2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -411,9 +400,7 @@ TEST_F(insert_test, test4)
    test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(&logger);
+   test_executor session;
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -511,7 +498,7 @@ void thread_insert_striping(vesselImpl *db, test_logger *logger,
                             const CHAR *csName, const CHAR *clName,
                             UINT32 count)
 {
-   test_session session(logger);
+   test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
    builder.append("a", 1);
@@ -528,9 +515,9 @@ void thread_insert_striping(vesselImpl *db, test_logger *logger,
    for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           ossRand() % 65535,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
    handler.close();
@@ -542,9 +529,7 @@ TEST_F(insert_test, test5)
    test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   test_executor session;
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -595,9 +580,7 @@ TEST_F(insert_test, test6)
    test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   test_executor session;
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
@@ -699,7 +682,7 @@ void thread_insert_index(vesselImpl *db, test_logger *logger,
                          const CHAR *csName, const CHAR *clName,
                          UINT32 count)
 {
-   test_session session(logger);
+   test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
 
@@ -718,9 +701,9 @@ void thread_insert_index(vesselImpl *db, test_logger *logger,
       slice record;
       record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
    handler.close();
@@ -730,7 +713,7 @@ void thread_insert_unique_index(vesselImpl *db, test_logger *logger,
                          const CHAR *csName, const CHAR *clName,
                          UINT32 begin, UINT32 count)
 {
-   test_session session(logger);
+   test_executor session;
    CHAR pad[1024] = {0};
    bson::BSONObjBuilder builder;
    collectionHandler handler;
@@ -747,9 +730,9 @@ void thread_insert_unique_index(vesselImpl *db, test_logger *logger,
       slice record;
       record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
    handler.close();
@@ -760,10 +743,8 @@ TEST_F(insert_test, test7)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -806,9 +787,9 @@ TEST_F(insert_test, test7)
       builder.append("b", pad, PAD_SIZE);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record,
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -820,10 +801,8 @@ void insert_test_nonunique_index(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
@@ -894,10 +873,8 @@ void insert_test_unique_index(INDEX_TYPE type)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource= test_outer_resource::getResource();
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;

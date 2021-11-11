@@ -76,17 +76,18 @@ namespace vessel
             UINT64 commitVersion = INVALID_COMMIT_VERSION;
             UINT64 updateMillis = 0; /// milli seconds
             UINT32 contentLen = 0; 
-            UINT64 pad = 0;
+            UINT64 pad[2] = {0,0};
 
             OSS_INLINE head &operator=(const head &h)
             {
                magicCode = h.magicCode;
+               checksum = h.checksum;
                headVerion = h.headVerion;
                flags = h.flags;
                commitVersion = h.commitVersion;
                updateMillis = h.updateMillis;
                contentLen = h.contentLen;
-               pad = h.pad;
+               ossMemcpy(pad, h.pad, sizeof(pad));
                return *this;
             }
 
@@ -98,7 +99,7 @@ namespace vessel
 #pragma pack()
 
       public:
-         INT32 create(const strSlice &dir);
+         //INT32 create(const strSlice &dir);
          INT32 open(const strSlice &dir);
          void close();
          void destroy();
@@ -111,7 +112,7 @@ namespace vessel
          {
             return _workshop.size();
          }
-         OSS_INLINE UINT32 getAvailableVersionCount()const
+         OSS_INLINE UINT32 getTotalFileCount()const
          {
             return _workshop.size() + _unused.size();
          }
@@ -185,7 +186,7 @@ namespace vessel
          typedef ossPoolList<_fileObj *> _FILE_OBJ_LIST;
 
       private:
-         INT32 createFiles();
+         //INT32 createFiles();
          INT32 openFiles();
 
          void initFileBuf(_fileObj *obj);

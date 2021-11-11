@@ -39,14 +39,15 @@
 #include "pmdTrace.hpp"
 #include "pmdEDUMgr.hpp"
 
-#include "vessel/vesselImpl.h"
+#include "vessel/liteCacheWatcher.h"
+#include "vessel/backgroundWorker.h"
 
 namespace engine
 {
    INT32 pmdVesselWorkerEntryPoint(pmdEDUCB *cb, void *pData)
    {
       INT32 rc = SDB_OK;
-      vessel::vesselImpl *impl = NULL;
+      vessel::backgroundWorker *worker = NULL;
       rc = cb->getEDUMgr()->activateEDU(cb);
       if ( SDB_OK != rc )
       {
@@ -54,13 +55,8 @@ namespace engine
          goto error ;
       }
 
-      impl = (vessel::vesselImpl *)pData;
-      rc = impl->attachBackgroundWorker(cb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to attach vessel worker:%d", rc);
-         goto error;
-      }
+      worker = (vessel::backgroundWorker *)pData;
+      worker->activeEntry(cb);
    done:
       return rc;
    error:
@@ -70,7 +66,7 @@ namespace engine
    INT32 pmdVesselWatcherEntryPoint(pmdEDUCB *cb, void *pData)
    {
       INT32 rc = SDB_OK;
-      vessel::vesselImpl *impl = NULL;
+      vessel::liteCacheWatcher *watcher = NULL;
       rc = cb->getEDUMgr()->activateEDU(cb);
       if ( SDB_OK != rc )
       {
@@ -78,13 +74,9 @@ namespace engine
          goto error ;
       }
 
-      impl = (vessel::vesselImpl *)pData;
-      rc = impl->attachCacheWatcher(cb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to attach vessel worker:%d", rc);
-         goto error;
-      }
+      watcher = (vessel::liteCacheWatcher *)pData;
+      watcher->attach(cb);
+
    done:
       return rc;
    error:

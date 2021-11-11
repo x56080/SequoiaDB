@@ -55,6 +55,8 @@
 #include "ossMemPool.hpp"
 #include "rtnTSClt.hpp"
 
+#include "dmsVesselDef.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -1260,6 +1262,32 @@ namespace engine
       goto done ;
    }
 
+   static INT32 rtnCreateCSInVessel(const CHAR *pCollectionSpace,
+                                    pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                    utilCSUniqueID csUniqueID)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
+      SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
+
+      vessel::createCSOptions o;
+      vessel::IVessel *vse = dmsCB->getVesselEngine();
+      SDB_ASSERT(NULL != vse, "can not be null");
+
+      rc = vse->createCollectionSpace(cb, pCollectionSpace,
+                                      csUniqueID, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create cs in storage engine:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATECSCOMMAND, "rtnCreateCollectionSpaceCommand" )
    INT32 rtnCreateCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                            pmdEDUCB *cb, SDB_DMSCB *dmsCB,
@@ -1301,6 +1329,19 @@ namespace engine
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
+
+      if (DMS_STORAGE_VESSEL == type)
+      {
+         rc = rtnCreateCSInVessel(pCollectionSpace,
+                                  cb, dmsCB, csUniqueID);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "faield to create collection space:%d", rc);
+            goto error;
+         }
+
+         goto done;
+      }
 
       // let's see if the CS already exist or not
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
@@ -1428,6 +1469,34 @@ namespace engine
       goto done ;
    }
 
+   static INT32 rtnCreateCollectionInVessel(const CHAR *pCollection,
+                                            utilCLUniqueID clUniqueID,
+                                            _pmdEDUCB *cb,
+                                            SDB_DMSCB *dmsCB)
+   {
+      INT32 rc = SDB_OK;
+      CHAR collectionSpaceName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+      const CHAR *dot = NULL;
+      vessel::IVessel *vse = dmsCB->getVesselEngine();
+      vessel::createCLOptions o;
+
+      dot = ossStrchr(pCollection, '.');
+      SDB_ASSERT((dot - pCollection) <= DMS_COLLECTION_SPACE_NAME_SZ, "out of bound");
+      ossMemcpy(collectionSpaceName, pCollection, dot - pCollection);
+
+      rc = vse->createCollection(cb, collectionSpaceName,
+                                 dot + 1, clUniqueID, o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create collection in engine:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       UINT32 attributes,
                                       _pmdEDUCB * cb,
@@ -1479,6 +1548,25 @@ namespace engine
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
+
+      if (!sysCall && SDB_DMS_CS_NOTEXIST == rc)
+      {
+         rc = rtnCreateCollectionInVessel(pCollection, clUniqueID,
+                                          cb, dmsCB);
+         if (SDB_OK == rc)
+         {
+            goto done;
+         }
+         else if (SDB_OK != SDB_DMS_CS_NOTEXIST)
+         {
+            PD_LOG(PDERROR, "failed to create cs:%d", rc);
+            goto error;
+         }
+         else
+         {
+            /// go on in mmap engine
+         }
+      }
 
       if ( rc && pCollectionShortName && (flags&FLG_CREATE_WHEN_NOT_EXIST) )
       {
@@ -2228,6 +2316,50 @@ namespace engine
       goto done ;
    }
 
+   static INT32 rtnTestCollectionSpaceInVessel(const CHAR *csName,
+                                               SDB_DMSCB *dmsCB,
+                                               utilCSUniqueID *pCsUniqueID,
+                                               utilCSUniqueID *pCurCsUniqueID)
+   {
+      INT32 rc = SDB_OK;
+      vessel::IVessel *vse = dmsCB->getVesselEngine();
+      vessel::collectionSpaceIdentifier identifier;
+      rc = vse->testCollectionSpace(pmdGetThreadEDUCB(), csName, identifier);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (NULL != pCsUniqueID)
+      {
+         if ( identifier.getUniqueId() != *pCsUniqueID )
+         {
+            if ( UTIL_IS_VALID_CSUNIQUEID( identifier.getUniqueId() &&
+                 UTIL_IS_VALID_CSUNIQUEID( *pCsUniqueID)))
+            {
+               rc = SDB_DMS_CS_REMAIN ;
+            }
+            else
+            {
+               rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
+            }
+            PD_LOG ( PDERROR, "Collection space[%s]'s cs unique id error, "
+                     "expect: %u, actual: %u, rc: %d",
+                     csName, *pCsUniqueID, identifier.getUniqueId(), rc ) ;
+            goto error ;
+         }
+      }
+
+      if (NULL != pCurCsUniqueID)
+      {
+         *pCurCsUniqueID = identifier.getUniqueId();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }  
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCSCOMMAND, "rtnTestCollectionSpaceCommand" )
    INT32 rtnTestCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          SDB_DMSCB *dmsCB,
@@ -2250,8 +2382,16 @@ namespace engine
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( SDB_OK != rc )
       {
-         rc = SDB_DMS_CS_NOTEXIST ;
-         goto error ;
+         rc = rtnTestCollectionSpaceInVessel(pCollectionSpace,
+                                             dmsCB, pCsUniqueID, pCurCsUniqueID);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+         else
+         {
+            goto done;
+         }
       }
       curCsUniqueID = su->CSUniqueID() ;
 

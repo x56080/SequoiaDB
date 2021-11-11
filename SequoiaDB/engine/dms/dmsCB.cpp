@@ -173,13 +173,6 @@ namespace engine
       rc = _localSUMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init local su manager, rc: %d",
                    rc ) ;
-
-      rc = _initVesselEngine();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init data engine:%d", rc);
-         goto error;
-      }
    done:
       return rc ;
    error:
@@ -198,6 +191,12 @@ namespace engine
          goto error ;
       }
 
+      rc = _initVesselEngine();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init data engine:%d", rc);
+         goto error;
+      }
    done:
       return rc ;
    error:
@@ -221,6 +220,8 @@ namespace engine
                     rc ) ;
          }
       }
+
+      _finiVesselEngine();
       return rc ;
    }
 
@@ -248,7 +249,6 @@ namespace engine
          }
       }
 
-      _finiVesselEngine();
       return SDB_OK ;
    }
 

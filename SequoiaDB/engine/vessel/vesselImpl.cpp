@@ -243,8 +243,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -258,6 +257,38 @@ namespace vessel
          goto error;
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::testCollectionSpace(IExecutor *executor,
+                                         const CHAR *name,
+                                         collectionSpaceIdentifier &identifier)
+   {
+      INT32 rc = SDB_OK;
+
+      requestContext context;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       NULL == name))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(executor, &_env, &_outerResource);
+      rc = _env.dms.testCS(&context, strSlice(name), identifier);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -326,9 +357,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       listCLCursor *listCursor = NULL;
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      SPACE_ID sid = INVALID_SPACE_ID;
       requestContext context;
+      collectionSpaceIdentifier identifier;
 
       if (OSS_UNLIKELY(NULL == executor || NULL == csName))
       {
@@ -342,8 +372,7 @@ namespace vessel
       }
 
       context.open(executor, &_env, &_outerResource);
-      rc = _env.dms.testCS(&context, strSlice(csName),
-                           logicalID, sid);
+      rc = _env.dms.testCS(&context, strSlice(csName), identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -363,7 +392,7 @@ namespace vessel
          goto error;
       }
 
-      listCursor->setCollectionSpace(logicalID, sid);
+      listCursor->setCollectionSpace(identifier.getLogicalId(), identifier.getSpaceId());
 
       cursor = cursorHandler(listCursor);
 
@@ -619,7 +648,7 @@ namespace vessel
                             const slice &record,
                             STRIPING_ID striping,
                             const insertOptions &options,
-                            utilInsertResult &res)
+                            utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       insertHandler handler;
@@ -642,6 +671,43 @@ namespace vessel
       }
 
       rc = handler.doit(handle, record, striping, options, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::insertBatch(IExecutor *executor,
+                                 const collectionHandle &handle,
+                                 const requestBatch &batch,
+                                 const insertOptions &options,
+                                 utilInsertResult *res)
+   {
+      INT32 rc = SDB_OK;
+      insertHandler handler;
+      if (OSS_UNLIKELY(NULL == executor))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handler.init(&_env, executor, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init handler:%d", rc);
+         goto error;
+      }
+
+      rc = handler.doit(handle, batch, options, res);
       if (SDB_OK != rc)
       {
          goto error;

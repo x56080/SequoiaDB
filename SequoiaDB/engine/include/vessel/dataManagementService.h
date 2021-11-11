@@ -44,6 +44,7 @@
 #include "vessel/storageUnit.h"
 #include "vessel/lazyArray.hpp"
 #include "ossRWMutex.hpp"
+#include "vessel/collectionSpaceIdentifier.h"
 
 namespace engine
 {
@@ -88,8 +89,7 @@ namespace vessel
       public:
          INT32 testCS(requestContext *context,
                       const strSlice &nameSlice,
-                      UINT32 &logicalID,
-                      SPACE_ID &sid);
+                      collectionSpaceIdentifier &identifier);
 
          INT32 testCS(requestContext *context,
                       utilCSUniqueID uniqueID,

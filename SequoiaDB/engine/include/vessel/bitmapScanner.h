@@ -55,6 +55,9 @@ namespace vessel
                    UINT32 capacity,
                    BOOLEAN zeroed);
 
+         void load(UINT64 *bitmap,
+                   UINT32 capacity);
+
          void reset();
 
          OSS_INLINE BOOLEAN isReady()const
@@ -63,6 +66,8 @@ namespace vessel
          }
 
          BOOLEAN findAndClearNext(INT32 &offset);
+
+         BOOLEAN moveToNextUnzeroPos(INT32 &offset);
 
          /// set offset as nonzero
          void setBit(UINT32 offset, BOOLEAN resetPosToBackward=FALSE);

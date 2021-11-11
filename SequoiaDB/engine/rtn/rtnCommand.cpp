@@ -54,6 +54,8 @@
 #include "rtnRollbackManager.hpp"
 #include "utilBSON.hpp"
 
+#include "dmsVesselDef.hpp"
+
 #if defined (_DEBUG)
 // for qgmDebugQuery function
 #endif
@@ -925,6 +927,8 @@ namespace engine
                                            const CHAR * pHintBuff)
    {
       BSONObj matcher ( pMatcherBuff ) ;
+      const CHAR *engineType = NULL;
+
       INT32 rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
                                     _pageSize ) ;
       if ( SDB_OK != rc )
@@ -939,15 +943,26 @@ namespace engine
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
       }
 
-      BOOLEAN capped = FALSE ;
-      rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
-      if ( SDB_OK == rc && capped  )
+      
+
+      rc = rtnGetStringElement(matcher, FIELD_NAME_ENGINE_TYPE, &engineType);
+      if (SDB_OK == rc &&
+          0 == ossStrcmp(engineType, DMS_VESSEL_DB_NAME))
       {
-         _storageType = DMS_STORAGE_CAPPED ;
+         _storageType = DMS_STORAGE_VESSEL;
       }
       else
       {
-         _storageType = DMS_STORAGE_NORMAL ;
+         BOOLEAN capped = FALSE ;
+         rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
+         if ( SDB_OK == rc && capped  )
+         {
+            _storageType = DMS_STORAGE_CAPPED ;
+         }
+         else
+         {
+            _storageType = DMS_STORAGE_NORMAL ;
+         }
       }
 
       return rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
@@ -962,8 +977,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
       rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
-                                             dpsCB, _csUniqueID, _pageSize,
-                                             _lobPageSize, _storageType ) ;
+                                                dpsCB, _csUniqueID, _pageSize,
+                                                _lobPageSize, _storageType ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {

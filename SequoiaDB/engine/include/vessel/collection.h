@@ -135,7 +135,7 @@ namespace vessel
                     bson::BSONObj &record);
 
          INT32 insert(insertContext *context,
-                      utilInsertResult &res);
+                      utilInsertResult *res);
 
          INT32 getMoreWhenScan(requestContext *context,
                                scanCLCursor *cursor);
@@ -164,7 +164,7 @@ namespace vessel
 
          INT32 constraintCheck(dmlContext *context,
                                const dmlIndexRequestArray &ra,
-                               utilInsertResult &res);
+                               utilInsertResult *res);
 
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);

@@ -442,6 +442,11 @@ namespace engine
 
       INT32 getMaxDMSLSN( DPS_LSN_OFFSET &maxLsn ) ;
 
+      vessel::IVessel *getVesselEngine()
+      {
+         return _vse;
+      }
+
    public:
       typedef std::vector<SDB_DMS_CSCB*>::iterator CSCB_ITERATOR;
 

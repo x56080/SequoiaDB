@@ -48,6 +48,7 @@
 #include "vessel/collectionOptions.h"
 #include "rtnPredicate.hpp"
 #include "sdbInterface.hpp"
+#include "vessel/requestBatch.h"
 
 namespace engine
 {
@@ -110,7 +111,12 @@ namespace vessel
                       const slice &record,
                       STRIPING_ID striping,
                       const insertOptions &options,
-                      utilInsertResult &res);
+                      utilInsertResult *res);
+
+         INT32 insertBatch(IExecutor *executor,
+                           const requestBatch &batch,
+                           const insertOptions &options,
+                           utilInsertResult *res);
 
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              UINT64 &count);

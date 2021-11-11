@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = requestBatch.h
 
    Descriptive Name =
 
@@ -33,41 +33,57 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
+#ifndef VESSEL_REQUEST_BATCH_H_
+#define VESSEL_REQUEST_BATCH_H_
 
-#include "vessel/requestHandler.h"
 #include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "utilInsertResult.hpp"
-#include "dpsTransID.hpp"
-#include "vessel/requestBatch.h"
+#include "utilArray.hpp"
+#include "utilResult.hpp"
+#include "../bson/bson.hpp"
+#include "vessel/vesselIdDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions;
-   class insertHandler : public requestHandler
+   class requestBatch : public SDBObject
    {
       public:
-         insertHandler(){}
-         virtual ~insertHandler(){}
+         requestBatch(){}
+         ~requestBatch(){}
+         requestBatch(const requestBatch &) = delete;
+         requestBatch &operator=(const requestBatch &) = delete;
+
+      private:
+         typedef std::pair<STRIPING_ID, slice> _DATA;
+         typedef _utilArray<std::pair<STRIPING_ID, slice>, 8> _BATCH; 
 
       public:
-         INT32 doit(const collectionHandle &handle,
-                    const slice &record,
-                    STRIPING_ID striping,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+         OSS_INLINE void reset()
+         {
+            _batch.clear();
+         }
+         
+         OSS_INLINE UINT32 getSize()const
+         {
+            return _batch.size();
+         }
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return 0 == _batch.size();
+         }
 
-         INT32 doit(const collectionHandle &handle,
-                    const requestBatch &batch,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+         slice get(UINT32 pos, STRIPING_ID &striping)const;
 
-   };//class insertHandler
-}//namespace vessel
-}//namespace engine
+         INT32 add(STRIPING_ID striping, const slice &data);
 
-#endif//VESSEL_INSERT_HANDLER_H_
+         INT32 addObjs(UINT32 count, const BSONObj &objs);
+      private:
+         _BATCH _batch;
+   };//class requestBatch
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_INSERT_BATCH_H_

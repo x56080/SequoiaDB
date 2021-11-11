@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = dmsVesselDef.hpp
 
    Descriptive Name =
 
@@ -33,41 +33,18 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
+#ifndef SDB_DMS_VESSEL_DEF_HPP_
+#define SDB_DMS_VESSEL_DEF_HPP_
 
-#include "vessel/requestHandler.h"
-#include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "utilInsertResult.hpp"
-#include "dpsTransID.hpp"
-#include "vessel/requestBatch.h"
+#include "core.hpp"
+#include "oss.hpp"
+#include "vessel/api/vessel.h"
 
 namespace engine
 {
-namespace vessel
-{
-   class insertOptions;
-   class insertHandler : public requestHandler
-   {
-      public:
-         insertHandler(){}
-         virtual ~insertHandler(){}
+   static const CHAR * const DMS_VESSEL_DB_NAME = "vessel";
+   static const CHAR * const DMS_VESSEL_LSM_NAME = "lsm";
+} // namespace engine
 
-      public:
-         INT32 doit(const collectionHandle &handle,
-                    const slice &record,
-                    STRIPING_ID striping,
-                    const insertOptions &options,
-                    utilInsertResult *res);
 
-         INT32 doit(const collectionHandle &handle,
-                    const requestBatch &batch,
-                    const insertOptions &options,
-                    utilInsertResult *res);
-
-   };//class insertHandler
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_INSERT_HANDLER_H_
+#endif//SDB_DMS_VESSEL_DEF_HPP_

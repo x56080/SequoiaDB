@@ -84,7 +84,8 @@ namespace vessel
                                 UINT64 *bits);
 
    UINT32 getNonzeroBitCount(UINT32 bitsCount,
-                             const UINT64 *bits);
+                             const UINT64 *bits,
+                             UINT32 *firstPos=NULL);
 
 
    /// set bit at offet

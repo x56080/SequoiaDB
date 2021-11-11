@@ -283,16 +283,28 @@ namespace vessel
    }
 
    UINT32 getNonzeroBitCount(UINT32 bitsCount,
-                             const UINT64 *bits)
+                             const UINT64 *bits,
+                             UINT32 *firstPos)
    {
       SDB_ASSERT(0 < bitsCount, "can not be zero");
       SDB_ASSERT(NULL != bits, "can not be null");
+
+      INT64 firstNonzero = -1;
       UINT32 totalCount = 0;
       for (UINT32 i = 0; i < bitsCount; ++i)
       {
          const UINT64 &n = bits[i];
          UINT32 cnt = ossGetNonZeroBitCount64(n);
+         if (0 != cnt && firstNonzero < 0)
+         {
+            firstNonzero = i;
+         }
          totalCount += cnt;
+      }
+      
+      if (NULL != firstPos && 0 <= firstNonzero)
+      {
+         *firstPos = (UINT32)firstNonzero;
       }
       return totalCount;
    }

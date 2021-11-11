@@ -45,6 +45,10 @@
 #include "pd.hpp"
 #include "sdbInterface.hpp"
 #include <atomic>
+#include "ossThread.h"
+#include "pmdDef.hpp"
+#include "vessel/liteCacheWatcher.h"
+#include "vessel/backgroundWorker.h"
 
 using namespace engine::vessel;
 using namespace engine;
@@ -63,7 +67,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
       }
       virtual ~test_logger(){}
 
-      virtual INT32 log(::engine::vessel::ISession *session,
+      virtual INT32 log(::engine::IExecutor *executor,
                            const _dpsLogRecord *record,
                            DPS_LSN_OFFSET *lsn)
       {
@@ -76,7 +80,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
       }
 
          /// allocate lsn and log buffer.
-         virtual INT32 prepare(::engine::vessel::ISession *session,
+         virtual INT32 prepare(::engine::IExecutor *executor,
                                logRecordContext *context)
          {
             if (context->prepared())
@@ -93,7 +97,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
             return SDB_OK;
          }
 
-         virtual INT32 pushLogRecordElement(::engine::vessel::ISession *session,
+         virtual INT32 pushLogRecordElement(::engine::IExecutor *executor,
                                             logRecordContext *context,
                                             DPS_TAG tag,
                                             UINT32 len,
@@ -106,7 +110,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
             return SDB_OK;
          }
 
-         virtual INT32 commit(::engine::vessel::ISession *session,
+         virtual INT32 commit(::engine::IExecutor *executor,
                               logRecordContext *context)
          {
             if (!context->prepared())
@@ -117,7 +121,7 @@ class test_logger : public ::engine::vessel::IRedoLogger
          }
 
          /// do not commit log after commit.
-         virtual INT32 abort(::engine::vessel::ISession *session,
+         virtual INT32 abort(::engine::IExecutor *executor,
                              logRecordContext *context)
          {
             if (!context->prepared())
@@ -128,13 +132,13 @@ class test_logger : public ::engine::vessel::IRedoLogger
             
          }
 
-         virtual INT32 pushMaxFileLSN(::engine::vessel::ISession *session,
+         virtual INT32 pushMaxFileLSN(::engine::IExecutor *executor,
                                       DPS_LSN_OFFSET lsn)
          {
             return SDB_OK;
          }
 
-         virtual INT32 abortOplist(::engine::vessel::ISession *session,
+         virtual INT32 abortOplist(::engine::IExecutor *executor,
                                       DPS_LSN_OFFSET lsn){return SDB_OK;}
 
          virtual DPS_LSN_OFFSET getMinFileLsn()
@@ -155,17 +159,17 @@ class test_logger : public ::engine::vessel::IRedoLogger
 class test_executor : public IExecutor
 {
    public:
-      test_executor()
+      test_executor(){}
       virtual ~test_executor(){}
 
    public:
       virtual EDUID     getID() const
       {
-         return 0;
+         return _id;
       }
       virtual UINT32    getTID() const
       {
-         return 0;
+         return ossGetCurrentThreadID();
       }
 
       /*
@@ -210,7 +214,7 @@ class test_executor : public IExecutor
                                        CHAR **ppBuff,
                                        UINT32 *pRealSize = NULL ) {return -1;}
 
-      virtual void      releaseBuff( CHAR *pBuff ) {}}
+      virtual void      releaseBuff( CHAR *pBuff ) {}
 
       virtual void*     getAlignedBuff( UINT32 size,
                                           UINT32 *pRealSize = NULL,
@@ -232,7 +236,7 @@ class test_executor : public IExecutor
       virtual UINT32    getLsnCount () const {return 0;}
       virtual BOOLEAN   isDoRollback () const {return FALSE;}
 
-      virtual const DPS_TRANS_ID &getTransID () const {return DPS_TRANS_ID();}
+      virtual const DPS_TRANS_ID &getTransID () const {return transID;}
       virtual UINT64    getCurTransLsn () const {return -1;}
       /// for write
       virtual void      resetLsn() {}
@@ -250,31 +254,94 @@ class test_executor : public IExecutor
       virtual INT64     contextPeek() {return -1;}
       virtual BOOLEAN   contextFind( INT64 contextID ) {return FALSE;}
       virtual UINT32    contextNum() {return 0;}
+
+   public:
+      EDUID _id = 0;
+      DPS_TRANS_ID transID;
 };//
 
-class test_session_mgr : public ::engine::vessel::ISessionManager
+static void cache_watcher_entry(test_executor *executor, void *obj)
+{
+   ::engine::vessel::liteCacheWatcher *watcher = (::engine::vessel::liteCacheWatcher *)obj;
+   watcher->attach(executor);
+}
+
+static void worker_entry(test_executor *executor, void *obj)
+{
+   ::engine::vessel::backgroundWorker *worker = (::engine::vessel::backgroundWorker *)obj;
+   worker->activeEntry(executor);
+}
+
+class test_session_mgr : public ::engine::IExecutorMgr
 {
    public:
       test_session_mgr(){}
-      virtual ~test_session_mgr(){}
+      virtual ~test_session_mgr()
+      {
+         clear();
+      }
 
    public:
-      virtual ::engine::vessel::ISession *createNewSession()
+      void clear()
       {
-         static std::atomic_int id;
-         test_logger *logger = test_logger::instance();
-         return SDB_OSS_NEW test_session(id++, logger);
+         for (UINT32 i = 0; i < _executors.size(); ++i)
+         {
+            SDB_OSS_DEL _executors[i];
+         }
+         _executors.clear();
+         for (UINT32 i = 0; i < _threads.size(); ++i)
+         {
+            _threads[i].join();
+         }
+         _threads.clear();
       }
-      virtual void destroySession(::engine::vessel::ISession *session)
+      virtual INT32 startEDU( INT32 type,
+                              void *args,
+                              EDUID *pEDUID,
+                              const CHAR *pInitName)
       {
-         SAFE_OSS_DELETE(session);
+         INT32 rc = SDB_OK;
+         test_executor *executor = SDB_OSS_NEW test_executor();
+         if (NULL == executor)
+         {
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         executor->_id = _executors.size();
+
+         if (type == EDU_TYPE_VESSEL_CACHE_WATCHER)
+         {
+            _threads.push_back(std::move(std::thread(cache_watcher_entry, executor, args)));
+         }
+         else if (type == EDU_TYPE_VESSEL_WORKER)
+         {
+            _threads.push_back(std::move(std::thread(worker_entry, executor, args)));
+         }
+         else
+         {
+            SDB_ASSERT(FALSE, "invalid type");
+         }
+
+         _executors.push_back(executor);
+      done:
+         return rc;
+      error:
+         goto done;
       }
+
+      virtual void      addIOService( IIOService *pIOService ){}
+      virtual void      delIOSerivce( IIOService *pIOService ){}
 
       static test_session_mgr *instance()
       {
          static test_session_mgr mgr;
          return &mgr;
       }
+
+   private:
+      ossPoolVector<test_executor *> _executors;
+      ossPoolVector<std::thread> _threads;
       
 };//class test_session_mgr
 
@@ -290,7 +357,8 @@ class test_outer_resource
          ::engine::vessel::outerResource r;
          r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
          r.logger = test_logger::instance();
-         r.sessionMgr = test_session_mgr::instance();
+         r.executorPool = test_session_mgr::instance();
+         test_session_mgr::instance()->clear();
          return r;
       }
 };//class test_outer_resource

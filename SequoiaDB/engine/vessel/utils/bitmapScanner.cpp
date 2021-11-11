@@ -59,6 +59,21 @@ namespace vessel
       return;
    }
 
+   void bitmapScanner::load(UINT64 *bitmap,
+                           UINT32 capacity)
+   {
+      SDB_ASSERT(NULL != bitmap, "can not be null");
+      SDB_ASSERT(0 < capacity, "can not be zero");
+      SDB_ASSERT(ossIsAligned64(capacity), "must be 64 aligned");
+      SDB_ASSERT(capacity <= OSS_SINT32_MAX, "out of range");
+
+      _bitmap = bitmap;
+      _size = capacity >> 6;
+      _pos = 0;
+      _nonzeroed = getNonzeroBitCount(_size, _bitmap, &_pos);
+      return;
+   }
+
    void bitmapScanner::reset()
    {
       _bitmap = NULL;
@@ -68,11 +83,43 @@ namespace vessel
       return;
    }
 
+   BOOLEAN bitmapScanner::moveToNextUnzeroPos(INT32 &offset)
+   {
+      SDB_ASSERT(NULL != _bitmap, "can not be null");
+
+      UINT32 bitOffset = 0;
+      offset = -1;
+      if (0 == _nonzeroed)
+      {
+         goto done;
+      }
+
+      if (findFirstNonzeroBit(_size, _pos, _bitmap, bitOffset))
+      {
+         offset = (INT32)bitOffset;
+         _pos = bitOffset >> 6;
+         goto done;
+      }
+      else if (0 < _pos)
+      {
+         if (findFirstNonzeroBit(_pos, 0, _bitmap, bitOffset))
+         {
+            offset = (INT32)bitOffset;
+            _pos = bitOffset >> 6;
+            goto done;
+         }
+      }
+
+      SDB_ASSERT(FALSE, "counter is not zero but not found in bitmap");
+   done:
+      return 0 <= offset;
+   }
+
    BOOLEAN bitmapScanner::findAndClearNext(INT32 &offset)
    {
       SDB_ASSERT(NULL != _bitmap, "can not be null");
       offset = -1;
-      UINT32 o = 0;
+      UINT32 bitOffset = 0;
 
       if (0 == _nonzeroed)
       {
@@ -80,29 +127,25 @@ namespace vessel
       }
 
       SDB_ASSERT(_pos < _size, "impossible");
-      if (findAndClearFirstNonzeroBit(_size, _pos, _bitmap, o))
+      if (findAndClearFirstNonzeroBit(_size, _pos, _bitmap, bitOffset))
       {
-         offset = (INT32)o;
+         offset = (INT32)bitOffset;
+         _pos = bitOffset >> 6;
          --_nonzeroed;
-         _pos = o >> 6;
+         goto done;
       }
       else if (0 < _pos)
       {
-         if (findAndClearFirstNonzeroBit(_pos, 0, _bitmap, o))
+         if (findAndClearFirstNonzeroBit(_pos, 0, _bitmap, bitOffset))
          {
-            offset = (INT32)o;
+            offset = (INT32)bitOffset;
+            _pos = bitOffset >> 6;
             --_nonzeroed;
-            _pos = o >> 6;
-         }
-         else
-         {
-            SDB_ASSERT(FALSE, "not found");
+            goto done;
          }
       }
-      else
-      {
-         SDB_ASSERT(FALSE, "not found");
-      }
+      
+      SDB_ASSERT(FALSE, "counter is not zero but not found in bitmap");
 
    done:
       return 0 <= offset;

@@ -614,7 +614,8 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-     protected:
+
+      protected:
          const CHAR                 *_spaceName ;
          utilCSUniqueID             _csUniqueID ;
          INT32                      _pageSize ;

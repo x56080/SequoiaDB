@@ -152,11 +152,15 @@ namespace engine
          goto done ;
       }
 
-      OSS_INLINE BOOLEAN popBack(T &t)
+      OSS_INLINE BOOLEAN popBack(T *t = NULL)
       {
          if (!empty())
          {
-            t = _dynamicBuf[--_eleSize];
+            --_eleSize;
+            if (NULL != t)
+            {
+               *t = _dynamicBuf[_eleSize];
+            }
             return TRUE;
          }
          return FALSE;

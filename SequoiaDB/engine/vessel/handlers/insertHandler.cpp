@@ -49,12 +49,16 @@ namespace vessel
                               const slice &record,
                               STRIPING_ID striping,
                               const insertOptions &options,
-                              utilInsertResult &res)
+                              utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       insertContext context;
+      if (NULL != res)
+      {
+         res->reset();
+      }
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -110,5 +114,82 @@ namespace vessel
    error:
       goto done;
    }
+
+   INT32 insertHandler::doit(const collectionHandle &handle,
+                             const requestBatch &batch,
+                             const insertOptions &options,
+                             utilInsertResult *res)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *cs = NULL;
+      collection *cl = NULL;
+      insertContext context;
+      if (NULL != res)
+      {
+         res->reset();
+      }
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!handle.isValid() ||
+                            batch.isEmpty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(getExecutor(), getEnv(), getOuterResource());
+
+      rc = getEnv()->dms.getCSBySpaceID(&context,
+                                        handle.getSpaceID(),
+                                        handle.getCSLId(),
+                                        SHARED, &cs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get collection space[%d,%d], rc:%d",
+                handle.getSpaceID(), handle.getCSLId(), rc);
+         goto error;
+      }
+
+
+      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
+                                   handle.getCLLId(), SHARED, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      context.setOptions(options);
+      context.setMinFreeSize(cl->getRecord().freeSizeReserved);
+      for (UINT32 i = 0; i < batch.getSize(); ++i)
+      {
+         
+         STRIPING_ID striping = INVALID_STRIPING_ID;
+         slice record = batch.get(i, striping);
+         SDB_ASSERT(!record.isEmpty(), "can not be empty");
+         context.setStriping(striping);
+         context.setOriginalRecord(record);
+
+         rc = cl->insert(&context, res);
+         if (SDB_OK != rc)
+         {
+            if (SDB_IXM_DUP_KEY != rc)
+            {
+               PD_LOG(PDERROR, "failed to insert record to collection[%s], rc:%d",
+                      cl->getName(), rc);
+               goto error;
+            }
+         }
+      }
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

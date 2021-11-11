@@ -94,7 +94,7 @@ namespace vessel
                                    const slice &record,
                                    STRIPING_ID striping,
                                    const insertOptions &options,
-                                   utilInsertResult &res)
+                                   utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       if (!isOpen())
@@ -121,6 +121,35 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionHandler::insertBatch(IExecutor *executor,
+                                        const requestBatch &batch,
+                                        const insertOptions &options,
+                                        utilInsertResult *res)
+   {
+      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == executor ||
+               batch.isEmpty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->insertBatch(executor, _handle, batch, options, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+ 
    INT32 collectionHandler::openScanCursor(IExecutor *executor,
                                            IQueryFilter *filter,
                                            const collectionScanOptions &o,

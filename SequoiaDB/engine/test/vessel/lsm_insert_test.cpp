@@ -34,7 +34,6 @@
 ******************************************************************************/
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
@@ -131,7 +130,6 @@ void thread_insert(lsmDB *db, UINT32 count)
 
 TEST_F(lsm_insert_test, DISABLED_test1)
 {
-   INT32 rc = SDB_OK;
    rocksdb::Status status;
    LSMConfig conf;
    conf.dbPath = LSM_PATH;

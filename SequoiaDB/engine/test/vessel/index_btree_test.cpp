@@ -36,7 +36,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include <gtest/gtest.h>
 #include "ixm_common.hpp"
 
@@ -92,10 +91,8 @@ TEST_F(index_btree_test, test1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -192,10 +189,8 @@ TEST_F(index_btree_test, test2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -239,7 +234,7 @@ TEST_F(index_btree_test, test2)
       recordBuilder.append(indexName, ossRand());
       bson::BSONObj obj = recordBuilder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, DPS_TRANS_ID(), INVALID_STRIPING_ID, o, result);
+      rc = cl.insert(&session, record, INVALID_STRIPING_ID, o, &result);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -251,10 +246,8 @@ TEST_F(index_btree_test, test2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -304,7 +297,7 @@ TEST_F(index_btree_test, test2)
       recordBuilder.append(indexName, ss.str().c_str());
       bson::BSONObj obj = recordBuilder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, DPS_TRANS_ID(), INVALID_STRIPING_ID, o, result);
+      rc = cl.insert(&session, record, INVALID_STRIPING_ID, o, &result);
       ASSERT_EQ(SDB_OK, rc);
    }
 

@@ -35,7 +35,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
@@ -84,8 +83,8 @@ TEST_F(cl_ddl_test, test1)
    outerResource resource;
    
    resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor executor;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -98,25 +97,25 @@ TEST_F(cl_ddl_test, test1)
    slice slice;
    bson::BSONObj record;
 
-   rc = db.open(&session, &resource, options);
+   rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCollectionSpace(&executor, "foo", 1, csOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
+   rc = db.createCollection(&executor, "foo", "bar1", 1, clOptions);
    ASSERT_EQ(SDB_OK, rc);
-   rc = db.createCollection(&session, "foo", "bar1", 2, clOptions);
+   rc = db.createCollection(&executor, "foo", "bar1", 2, clOptions);
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar2", 1, clOptions);
+   rc = db.createCollection(&executor, "foo", "bar2", 1, clOptions);
    ASSERT_EQ(SDB_DMS_EXIST, rc);
-   rc = db.createCollection(&session, "foo", "bar2", 2, clOptions);
+   rc = db.createCollection(&executor, "foo", "bar2", 2, clOptions);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.listCollections(&session, "foo", NULL, cursor);
+   rc = db.listCollections(&executor, "foo", NULL, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = cursor.getNext(&session, slice);
+   rc = cursor.getNext(&executor, slice);
    ASSERT_EQ(SDB_OK, rc);
 
    record = bson::BSONObj(slice.getRPtr());
@@ -125,17 +124,17 @@ TEST_F(cl_ddl_test, test1)
    ASSERT_EQ(0, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar1", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = cursor.getNext(&session, slice);
+   rc = cursor.getNext(&executor, slice);
    record = bson::BSONObj(slice.getRPtr());
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_MB_ID));
    ASSERT_EQ(2, record.getIntField(CL_DUMP_RECORD_FIELD_INNER_ID));
    ASSERT_EQ(1, record.getIntField(CL_DUMP_RECORD_FIELD_CL_LOGICAL_ID));
    ASSERT_EQ(0, ossStrcmp("bar2", record.getStringField(CL_DUMP_RECORD_FIELD_NAME)));
 
-   rc = cursor.getNext(&session, slice);
+   rc = cursor.getNext(&executor, slice);
    ASSERT_EQ(SDB_VESSEL_EOC, rc);
 
-   db.close(&session, closeDBOptions());
+   db.close(&executor, closeDBOptions());
 }
 
 TEST_F(cl_ddl_test, test2)
@@ -144,8 +143,8 @@ TEST_F(cl_ddl_test, test2)
    vesselImpl db;
    outerResource resource;
    resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -205,8 +204,8 @@ TEST_F(cl_ddl_test, test3)
    vesselImpl db;
    outerResource resource;
    resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -255,7 +254,7 @@ TEST_F(cl_ddl_test, test3)
 
 }
 
-void thread_create_cl(vesselImpl *db, engine::vessel::ISession *session, UINT32 innerId, UINT32 count)
+void thread_create_cl(vesselImpl *db, engine::IExecutor *session, UINT32 innerId, UINT32 count)
 {
    INT32 rc = SDB_OK;
    createCLOptions clOptions;
@@ -275,8 +274,8 @@ TEST_F(cl_ddl_test, test4)
    vesselImpl db;
    outerResource resource;
    resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance(); 
-   test_session session(test_logger::instance());
+   resource.executorPool = test_session_mgr::instance(); 
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;

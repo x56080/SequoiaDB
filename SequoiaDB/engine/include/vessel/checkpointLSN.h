@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = checkpointLSN.h
 
    Descriptive Name =
 
@@ -33,41 +33,21 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
+#ifndef VESSEL_CHECKPOINT_LSN_H_
+#define VESSEL_CHECKPOINT_LSN_H_
 
-#include "vessel/requestHandler.h"
-#include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "utilInsertResult.hpp"
-#include "dpsTransID.hpp"
-#include "vessel/requestBatch.h"
+#include "dpsDef.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions;
-   class insertHandler : public requestHandler
+   class checkpointLSN : public SDBObject
    {
-      public:
-         insertHandler(){}
-         virtual ~insertHandler(){}
 
-      public:
-         INT32 doit(const collectionHandle &handle,
-                    const slice &record,
-                    STRIPING_ID striping,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+   };//class checkpointLSN
+} // namespace vessel
 
-         INT32 doit(const collectionHandle &handle,
-                    const requestBatch &batch,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+} // namespace engine
 
-   };//class insertHandler
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_INSERT_HANDLER_H_
+#endif//VESSEL_CHECKPOINT_LSN_H_

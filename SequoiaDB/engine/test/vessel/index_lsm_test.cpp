@@ -35,7 +35,6 @@
 
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
-#include "vessel/ISession.h"
 #include <gtest/gtest.h>
 #include "ixm_common.hpp"
 
@@ -90,10 +89,8 @@ TEST_F(index_lsm_test, test1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -190,10 +187,8 @@ TEST_F(index_lsm_test, test2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -236,7 +231,7 @@ TEST_F(index_lsm_test, test2)
       builder.appendBinData("b", pad_size, bson::BinDataType::bdtCustom, pad);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, DPS_TRANS_ID(), INVALID_STRIPING_ID, insertOptions(), r);
+      rc = cl.insert(&session, record, INVALID_STRIPING_ID, insertOptions(), &r);
       ASSERT_EQ(rc, SDB_OK);
    }
 
@@ -301,10 +296,8 @@ TEST_F(index_lsm_test, test3)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;
@@ -348,8 +341,8 @@ TEST_F(index_lsm_test, test3)
       builder.append("a", i);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, DPS_TRANS_ID(),
-                     INVALID_STRIPING_ID, insertOptions(), res);
+      rc = cl.insert(&session, record,
+                     INVALID_STRIPING_ID, insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
    }
 
@@ -360,8 +353,8 @@ TEST_F(index_lsm_test, test3)
       builder.append("a", i);
       bson::BSONObj obj = builder.done();
       slice record(obj.objsize(), obj.objdata());
-      rc = cl.insert(&session, record, DPS_TRANS_ID(),
-                     INVALID_STRIPING_ID, insertOptions(), res);
+      rc = cl.insert(&session, record,
+                     INVALID_STRIPING_ID, insertOptions(), &res);
       ASSERT_EQ(SDB_IXM_DUP_KEY, rc);
    }
 
@@ -373,7 +366,7 @@ void duplicated_insert(vesselImpl *db, test_logger *logger,
                        const CHAR *csName, const CHAR *clName,
                        UINT32 count, UINT32 range)
 {
-   test_session session(logger);
+   test_executor session;
    bson::BSONObjBuilder builder;
    collectionHandler handler;
    INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
@@ -388,9 +381,9 @@ void duplicated_insert(vesselImpl *db, test_logger *logger,
       slice record;
       record.reset(obj.objsize(), obj.objdata());
       utilInsertResult res;
-      rc = handler.insert(&session, record, DPS_TRANS_ID(),
+      rc = handler.insert(&session, record, 
                           INVALID_STRIPING_ID,
-                          insertOptions(), res);
+                          insertOptions(), &res);
       ASSERT_TRUE((SDB_OK == rc || SDB_IXM_DUP_KEY == rc));
    }
    handler.close();
@@ -401,10 +394,8 @@ TEST_F(index_lsm_test, test4)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.sessionMgr = test_session_mgr::instance();
-   test_session session(test_logger::instance());
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
    createCLOptions clOptions;

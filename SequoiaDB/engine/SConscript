@@ -1017,14 +1017,16 @@ vesselFiles = [
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
       "vessel/slice.cpp",
+      "vessel/requestBatch.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
       "vessel/lsm/lsmIndex.cpp",
       "vessel/lsm/lsmOwnedRecord.cpp",
       "vessel/lsm/lsmInsertBatch.cpp",
       "vessel/lsm/lsmIndexIterator.cpp",
-      "vessel/lsm/lsmScanEntryParser.cpp"
+      "vessel/lsm/lsmScanEntryParser.cpp",
 ]
+#vesselend
 
 #vessel unit test
 vesselTestFiles = [

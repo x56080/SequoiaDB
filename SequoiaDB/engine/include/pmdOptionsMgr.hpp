@@ -89,9 +89,6 @@ namespace engine
       PMD_CFG_DATA_BSON                      // BSON
    } ;
 
-   static const CHAR * const PMD_VESSEL_SUB_PATH = "vessel";
-   static const CHAR * const PMD_VESSEL_LSM_SUB_PATH = "lsm";
-
    /*
       _pmdParamValue define
    */

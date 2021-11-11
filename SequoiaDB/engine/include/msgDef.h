@@ -594,6 +594,9 @@
 #define FIELD_NAME_CHECK_CLIENT_CATA_VERSION "CheckClientCataVersion"
 #define FIELD_NAME_SDB_VERSION               "Version"
 
+/// vessel
+#define FIELD_NAME_ENGINE_TYPE               "EngineType"
+
 /// strategy field begin
 #define FIELD_NAME_NICE                      "Nice"
 #define FIELD_NAME_TASK_NAME                 "TaskName"

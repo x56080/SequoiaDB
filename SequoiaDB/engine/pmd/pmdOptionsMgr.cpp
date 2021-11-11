@@ -57,6 +57,8 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
+#include "dmsVesselDef.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -3283,6 +3285,36 @@ done:
    {
       INT32 rc = SDB_OK ;
 
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
+      }
+
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
+      }
+
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_LSM_NAME);
+         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
+      }
+
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
+      }
+
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
+      }
+
       PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _archivePath ) ;
 
       PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM( _dmsTmpBlkPath ) ;
@@ -3389,6 +3421,59 @@ done:
          std::cerr << "Failed to create lob meta dir: " << _krcbLobMetaPath <<
                       ", rc = " << rc << std::endl ;
          goto error ;
+      }
+
+      /// make vessel dirs
+      {
+         ossPoolString pathStr;
+         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         rc = ossMkdir(pathStr.c_str());
+         if ( rc && SDB_FE != rc )
+         {
+            std::cerr << "Failed to create sub data dir: " << pathStr <<
+                        ", rc = " << rc << std::endl ;
+            goto error ;
+         }
+
+         pathStr.clear();
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         rc = ossMkdir(pathStr.c_str());
+         if ( rc && SDB_FE != rc )
+         {
+            std::cerr << "Failed to create sub data dir: " << pathStr <<
+                        ", rc = " << rc << std::endl ;
+            goto error ;
+         }
+
+         pathStr.clear();
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_LSM_NAME);
+         rc = ossMkdir(pathStr.c_str());
+         if ( rc && SDB_FE != rc )
+         {
+            std::cerr << "Failed to create sub data dir: " << pathStr <<
+                        ", rc = " << rc << std::endl ;
+            goto error ;
+         }
+
+         pathStr.clear();
+         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         rc = ossMkdir(pathStr.c_str());
+         if ( rc && SDB_FE != rc )
+         {
+            std::cerr << "Failed to create sub data dir: " << pathStr <<
+                        ", rc = " << rc << std::endl ;
+            goto error ;
+         }
+
+         pathStr.clear();
+         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         rc = ossMkdir(pathStr.c_str());
+         if ( rc && SDB_FE != rc )
+         {
+            std::cerr << "Failed to create sub data dir: " << pathStr <<
+                        ", rc = " << rc << std::endl ;
+            goto error ;
+         }
       }
 
       rc = SDB_OK ;
@@ -3524,6 +3609,31 @@ done:
       }
       ossStrncpy( _prefInstStr, ss.str().c_str(), sizeof( _prefInstStr ) ) ;
    }
+
+   void _pmdOptionsMgr::makeOpenDBOptions(vessel::openDBOptions &o)const
+   {
+      o = vessel::openDBOptions();
+      o.path.dataPath.append(_krcbDbPath);
+      o.path.dataPath.append(OSS_FILE_SEP);
+      o.path.dataPath.append(DMS_VESSEL_DB_NAME);
+
+      o.path.indexPath.append(_krcbIndexPath);
+      o.path.indexPath.append(OSS_FILE_SEP);
+      o.path.indexPath.append(DMS_VESSEL_DB_NAME);
+
+      o.path.lobMetaPath.append(_krcbLobMetaPath);
+      o.path.lobMetaPath.append(OSS_FILE_SEP);
+      o.path.lobMetaPath.append(DMS_VESSEL_DB_NAME);
+
+      o.path.lobPath.append(_krcbLobPath);
+      o.path.lobPath.append(OSS_FILE_SEP);
+      o.path.lobPath.append(DMS_VESSEL_DB_NAME);
+
+      o.path.lsmPath.append(_krcbIndexPath);
+      o.path.lsmPath.append(OSS_FILE_SEP);
+      o.path.lsmPath.append(DMS_VESSEL_LSM_NAME);
+   }
+
 
    INT32 optString2LogMod( const CHAR *str, UINT32 &value )
    {
