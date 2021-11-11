@@ -146,6 +146,7 @@
     <Compile Include="Meta\RenameCL16641.cs" />
     <Compile Include="Meta\RenameCL16642.cs" />
     <Compile Include="Meta\RenameCS16638.cs" />
+    <Compile Include="Meta\DropCS24536.cs" />
     <Compile Include="Split\Common.cs" />
     <Compile Include="Split\TestSplit14551.cs" />
     <Compile Include="Split\TestSplit14552.cs" />
