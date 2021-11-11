@@ -262,7 +262,7 @@ namespace engine
       options.setInsertor( BSONObj( pInsertor ) ) ;
 
       // add list op info
-      MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+      MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 

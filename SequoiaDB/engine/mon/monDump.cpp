@@ -574,7 +574,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_MONAPPENDSTARTINFO ) ;
-      vector<pmdStartupLog> startLogs ;
+      PMD_STARTUP_LOG_LIST startLogs ;
       UINT32 logNum = 10 ;
 
       rc = pmdGetStartupHstLogger()->getLatestLogs( logNum, startLogs ) ;
@@ -583,7 +583,7 @@ namespace engine
 
       {
          vector<string> startHst, abnormalHst;
-         vector<pmdStartupLog>::iterator i ;
+         PMD_STARTUP_LOG_LIST::iterator i ;
          for ( i = startLogs.begin(); i != startLogs.end(); ++i )
          {
             pmdStartupLog log = *i ;
@@ -1668,6 +1668,7 @@ namespace engine
          }
          ob.append( FIELD_NAME_LASTOPEND, timestamp ) ;
 
+         SDB_ASSERT( !moncb._lastOpMsgSaved, "should not save message" ) ;
          ob.append( FIELD_NAME_LASTOPINFO, moncb._lastOpDetail ) ;
       }
       catch ( std::exception &e )

@@ -153,7 +153,7 @@ namespace engine
          options.setWriteOp( TRUE ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
       }
       catch ( std::exception &e )
       {

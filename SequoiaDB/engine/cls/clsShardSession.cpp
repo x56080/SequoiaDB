@@ -2270,7 +2270,7 @@ namespace engine
          options.setWriteOp( TRUE ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
 
          /*
          PD_LOG ( PDDEBUG, "Session[%s] Update: selctor: %s\nupdator: %s\n"
@@ -2397,7 +2397,7 @@ namespace engine
          options.setInsertor( insertor ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
 
          /*
          PD_LOG ( PDDEBUG, "Session[%s] Insert: %s\nCollection: %s",
@@ -2521,7 +2521,7 @@ namespace engine
          options.setWriteOp( TRUE ) ;
 
          // add last op info
-         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;
+         MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
 
          if ( _isMainCL )
          {
@@ -2673,7 +2673,7 @@ namespace engine
             options.setMainCLName( mainCLName ) ;
 
             // add last op info
-            MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg->opCode, options ) ;
+            MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
 
             /*
             PD_LOG ( PDDEBUG, "Session[%s] Query: matcher: %s\nselector: "
