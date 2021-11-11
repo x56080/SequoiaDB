@@ -49,6 +49,7 @@
 #include "pmdDef.hpp"
 #include "vessel/liteCacheWatcher.h"
 #include "vessel/backgroundWorker.h"
+#include "vessel/dummyJournal.h"
 
 using namespace engine::vessel;
 using namespace engine;
@@ -57,104 +58,6 @@ static const CHAR *DATA_PATH = "/tmp/vessel_test";
 //static const CHAR *DATA_PATH = "/opt/test/vessel_test";
 static const CHAR *LSM_PATH = "/tmp/vessel_lsm";
 
-
-
-class test_logger : public ::engine::vessel::IRedoLogger
-{
-   public:
-      test_logger(){
-         _lsn = 0;
-      }
-      virtual ~test_logger(){}
-
-      virtual INT32 log(::engine::IExecutor *executor,
-                           const _dpsLogRecord *record,
-                           DPS_LSN_OFFSET *lsn)
-      {
-         UINT64 t = _lsn.fetch_add(record->alignedLen());
-         if (NULL != lsn)
-         {
-            *lsn = t;
-         }
-         return SDB_OK;
-      }
-
-         /// allocate lsn and log buffer.
-         virtual INT32 prepare(::engine::IExecutor *executor,
-                               logRecordContext *context)
-         {
-            if (context->prepared())
-            {
-               return SDB_INVALIDARG;
-            }
-            context->getHead()._lsn = _lsn;
-            if (0 != OSS_BIT_TEST(context->getHead()._flags,
-                                  DPS_VESSEL_LOG_FLAG_OPL_HEAD))
-            {
-               context->getHead()._opListLSN = _lsn;
-            }
-            _lsn += context->getHead()._length;
-            return SDB_OK;
-         }
-
-         virtual INT32 pushLogRecordElement(::engine::IExecutor *executor,
-                                            logRecordContext *context,
-                                            DPS_TAG tag,
-                                            UINT32 len,
-                                            const void *value)
-         {
-            if (!context->prepared())
-            {
-              return SDB_INVALIDARG;
-            }
-            return SDB_OK;
-         }
-
-         virtual INT32 commit(::engine::IExecutor *executor,
-                              logRecordContext *context)
-         {
-            if (!context->prepared())
-            {
-               return SDB_INVALIDARG;
-            }
-            return SDB_OK;
-         }
-
-         /// do not commit log after commit.
-         virtual INT32 abort(::engine::IExecutor *executor,
-                             logRecordContext *context)
-         {
-            if (!context->prepared())
-            {
-               return SDB_INVALIDARG;
-            }
-            return SDB_OK;
-            
-         }
-
-         virtual INT32 pushMaxFileLSN(::engine::IExecutor *executor,
-                                      DPS_LSN_OFFSET lsn)
-         {
-            return SDB_OK;
-         }
-
-         virtual INT32 abortOplist(::engine::IExecutor *executor,
-                                      DPS_LSN_OFFSET lsn){return SDB_OK;}
-
-         virtual DPS_LSN_OFFSET getMinFileLsn()
-         {
-            return _lsn.load();
-         } 
-                                      
-         static test_logger *instance()
-         {
-            sdbEnablePD("/tmp/sdb.log", 1, 1000);
-            static test_logger logger;
-            return &logger;
-         }
-   public:
-      std::atomic_ullong _lsn;
-};
 
 class test_executor : public IExecutor
 {
@@ -232,7 +135,7 @@ class test_executor : public IExecutor
       */
       /// for read
       virtual UINT64    getBeginLsn () const {return 0;}
-      virtual UINT64    getEndLsn() const {return test_logger::instance()->_lsn.load();}
+      virtual UINT64    getEndLsn() const {return dummyJournal::instance()->_lsn.fetch();}
       virtual UINT32    getLsnCount () const {return 0;}
       virtual BOOLEAN   isDoRollback () const {return FALSE;}
 
@@ -333,6 +236,8 @@ class test_session_mgr : public ::engine::IExecutorMgr
       virtual void      addIOService( IIOService *pIOService ){}
       virtual void      delIOSerivce( IIOService *pIOService ){}
 
+      virtual UINT64 getMinRunningLSN(){return -1;}
+
       static test_session_mgr *instance()
       {
          static test_session_mgr mgr;
@@ -354,9 +259,10 @@ class test_outer_resource
    public:
       static ::engine::vessel::outerResource getResource()
       {
+         sdbEnablePD("/opt/diaglog/sdb.log", 1, 1000);
          ::engine::vessel::outerResource r;
          r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
-         r.logger = test_logger::instance();
+         r.logger = ::engine::vessel::dummyJournal::instance();
          r.executorPool = test_session_mgr::instance();
          test_session_mgr::instance()->clear();
          return r;

@@ -36,9 +36,9 @@
 #ifndef VESSEL_LOGICAL_PAGE_SPACE_CHECKPOINT_H_
 #define VESSEL_LOGICAL_PAGE_SPACE_CHECKPOINT_H_
 
-#include "dpsDef.hpp"
-#include "vessel/vesselFileDef.h"
-#include "vessel/storageFileDef.h"
+#include "vessel/checkpointLSN.h"
+#include "pdTrace.hpp"
+#include <sstream>
 
 namespace engine
 {
@@ -70,17 +70,17 @@ namespace vessel
       OSS_INLINE BOOLEAN isValid()const
       {
          return LPS_CHECKPOINT_VERSION == version &&
-                DPS_INVALID_LSN_OFFSET != lsn &&
+                lsn.isValid() &&
                 DPS_INVALID_LSN_OFFSET != offset;
       }
 
       void init(UINT32 flags,
-                UINT64 lsn,
+                const checkpointLSN &lsn,
                 UINT64 offset,
                 UINT64 precheckpoint)
       {
          version = LPS_CHECKPOINT_VERSION;
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+         SDB_ASSERT(lsn.isValid(), "can not be invalid");
          SDB_ASSERT(DPS_INVALID_LSN_OFFSET != offset, "can not be invalid");
          flags = flags;
          this->lsn = lsn;
@@ -94,7 +94,9 @@ namespace vessel
          std::stringstream ss;
          ss << "{version:" << version
             << ", flags:" << flags
-            << ", lsn:" << lsn
+            << ", lsn:" << lsn._lsn
+            << ", minDirtyLsn:" << lsn._minDirtyLSN
+            << ", minUncompletedLsn:" << lsn._minUncompletedLSN
             << ", offset:" << offset
             << ", preCheckpoint:" << preCheckpoint
             << "}";
@@ -103,7 +105,7 @@ namespace vessel
 
       UINT32 version = 0;
       UINT32 flags = 0;
-      UINT64 lsn = DPS_INVALID_LSN_OFFSET;
+      checkpointLSN lsn;
       UINT64 offset = DPS_INVALID_LSN_OFFSET;
       UINT64 preCheckpoint = DPS_INVALID_LSN_OFFSET;
    };//struct logicalPageSpaceCheckpoint

@@ -120,7 +120,7 @@ namespace vessel
    {
       _creater = NULL;
       _logFiles.close();
-      _nextCheckpoint = LPS_CHECKPOINT();
+      _nextCheckpointOffset = DPS_INVALID_LSN_OFFSET;
       _checkpoint = LPS_CHECKPOINT();
       _nextRecordOffset = 0;
       _minDirtyOffset = 0;
@@ -206,8 +206,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogConsole::precreateCheckpoint(UINT32 flags,
-                                              DPS_LSN_OFFSET lsn)
+   INT32 deltaLogConsole::reserveNextCheckpoint()
    {
       INT32 rc = SDB_OK;
       deltaLogRecordBuilder builder;
@@ -218,11 +217,13 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
+      else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET != _nextCheckpointOffset))
       {
-         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "checkpoint has already been reserved");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
+
 
       rc = builder.buildDummyLog(LPS_CHECKPOINT_SIZE + DELTA_LOG_RECORD_HEAD_SIZE);
       if (OSS_UNLIKELY(SDB_OK != rc))
@@ -245,7 +246,7 @@ namespace vessel
          goto error;
       }
 
-      _nextCheckpoint.init(flags, lsn, offset, _checkpoint.offset);
+      _nextCheckpointOffset = offset;
 
    done:
       return rc;
@@ -253,7 +254,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogConsole::commitCheckpointPrecreated()
+   INT32 deltaLogConsole::commitCheckpoint(const checkpointLSN &lsn)
    {
       INT32 rc = SDB_OK;
       storageFile *file = NULL;
@@ -264,19 +265,27 @@ namespace vessel
       UINT32 segmentId = 0;
       UINT32 offsetInSegment = 0;
       DELTA_LOG_CHECKSUM checksum = 0;
+      LPS_CHECKPOINT checkpoint;
 
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (OSS_UNLIKELY(!_nextCheckpoint.isValid()))
+      else if (OSS_UNLIKELY(!lsn.isValid()))
       {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == _nextCheckpointOffset))
+      {
+         PD_LOG(PDERROR, "reserve checkpoint first before committing");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
-      rc = builder.buildCheckpointLog(_nextCheckpoint);
+      checkpoint.init(0, lsn, _nextCheckpointOffset, _checkpoint.offset);
+      rc = builder.buildCheckpointLog(checkpoint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build checkpoint log record:%d", rc);
@@ -286,9 +295,9 @@ namespace vessel
       dlr = builder.getDeltaLogRecord();
       checksum = createDeltaLogRecordChecksum(dlr);
 
-      fileId = deltaLogFileDef::getLogFileSequenceByOffset(_nextCheckpoint.offset);
-      segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_nextCheckpoint.offset);
-      offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(_nextCheckpoint.offset);
+      fileId = deltaLogFileDef::getLogFileSequenceByOffset(_nextCheckpointOffset);
+      segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_nextCheckpointOffset);
+      offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(_nextCheckpointOffset);
       SDB_ASSERT((offsetInSegment + dlr.getLogHead()->_size + deltaLogFileDef::CHECKSUM_SIZE) <=
                   deltaLogFileDef::FILE_SEGMENT_SIZE, "impossible");
 
@@ -311,7 +320,7 @@ namespace vessel
                 dlr.getLogHead(), dlr.getLogHead()->_size);
       *((DELTA_LOG_CHECKSUM *)(ptr + offsetInSegment + dlr.getLogHead()->_size)) = checksum;
 
-      rc = fsyncDeltaLog(_nextCheckpoint.offset +
+      rc = fsyncDeltaLog(_nextCheckpointOffset +
                          dlr.getLogHead()->_size +
                          deltaLogFileDef::CHECKSUM_SIZE - 1);
       if (SDB_OK != rc)
@@ -320,12 +329,13 @@ namespace vessel
          goto error;
       }
 
-      _checkpoint = _nextCheckpoint;
-      _nextCheckpoint = LPS_CHECKPOINT();
+      _checkpoint = checkpoint;
+      _nextCheckpointOffset = DPS_INVALID_LSN_OFFSET;
    done:
       return rc;
    error:
-      _nextCheckpoint = LPS_CHECKPOINT();
+      /// clear offset reserved, waiting for next creating.
+      _nextCheckpointOffset = DPS_INVALID_LSN_OFFSET;
       goto done;
    }
 

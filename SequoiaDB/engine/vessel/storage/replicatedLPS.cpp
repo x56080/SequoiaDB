@@ -792,33 +792,16 @@ namespace vessel
    }
 
    INT32 replicatedLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                  DPS_LSN_OFFSET &checkpointLsn,
-                                                  DPS_LSN_OFFSET &maxDirtyLsn)
+                                                  BOOLEAN fullCheckpoint,
+                                                  ossPoolSet<UINT32> &dirtySegments)
    {
       INT32 rc = SDB_OK;
-      DPS_LSN_OFFSET lsn = logicalPageSpace::getCheckpointContext().getMaxDirtyLsn();
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "should not try to prepare if no dirty data");
-      checkpointLsn = lsn;
-      maxDirtyLsn = lsn;
-   done:
-      return rc;
-   error:
-      goto error;
-   }
-
-   INT32 replicatedLPS::turnMutablePages(requestContext *context,
-                                         BOOLEAN isFullCheckpoint,
-                                         ossPoolSet<UINT32> &segments)
-   {
-      INT32 rc = SDB_OK;
-      const storageCoreArgs &args = logicalPageSpace::getStorageCoreArgs();
-      SDB_ASSERT(args.isValid(), "can not be invalid");
-      if (!isFullCheckpoint)
+      if (!fullCheckpoint)
       {
          goto done;
       }
 
-      rc = logicalPageSpace::getCache().prepareToCreateNewBase(args.maxPageCountPerSeg, NULL);
+      rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cache ready to create new base:%d", rc);
@@ -827,7 +810,7 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;
+      goto error;
    }
 }//namespace vessel
 }//namespace engine

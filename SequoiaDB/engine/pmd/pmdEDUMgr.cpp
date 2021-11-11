@@ -148,6 +148,22 @@ namespace engine
       }
    }
 
+   UINT64 _pmdEDUMgr::getMinRunningLSN()
+   {
+      UINT64 lsn = OSS_UINT64_MAX;
+      ossScopedLock lock( &_latch, SHARED ) ;
+      MAP_EDUCB::const_iterator itr = _mapRuns.begin();
+      for (; itr != _mapRuns.end(); ++itr)
+      {
+         UINT64 l = itr->second->getBeginLsn();
+         if (l < lsn)
+         {
+            lsn = l;
+         }
+      }
+      return lsn;
+   }
+
    INT32 _pmdEDUMgr::init( IResource *pResource )
    {
       INT32 rc = SDB_OK ;

@@ -95,7 +95,7 @@ class index_scan_test : public testing::Test
    }
 };
 
-static void thread_insert(vesselImpl *db, test_logger *logger,
+static void thread_insert(vesselImpl *db,
                    const CHAR *csName, const CHAR *clName,
                    UINT32 count)
 {

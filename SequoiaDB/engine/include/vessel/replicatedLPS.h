@@ -106,12 +106,8 @@ namespace vessel
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 DPS_LSN_OFFSET &checkpointLsn,
-                                                 DPS_LSN_OFFSET &maxDirtyLsn);
-
-         virtual INT32 turnMutablePages(requestContext *context,
-                                        BOOLEAN isFullCheckpoint,
-                                        ossPoolSet<UINT32> &segments);
+                                                  BOOLEAN fullCheckpoint,
+                                                  ossPoolSet<UINT32> &dirtySegments);
 
       private:
          INT32 prepareCopyLog(requestContext *context,

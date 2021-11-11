@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = checkpointLSN.h
+   Source File Name = outerResource.cpp
 
    Descriptive Name =
 
@@ -33,45 +33,22 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CHECKPOINT_LSN_H_
-#define VESSEL_CHECKPOINT_LSN_H_
-
+#include "vessel/outerResource.h"
 #include "dpsDef.hpp"
+#include "vessel/IRedoLogger.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class checkpointLSN : public SDBObject
+   UINT64 outerResource::getMinUncompletedLSN()
    {
-      public:
-         checkpointLSN(){}
-         ~checkpointLSN(){}
-         checkpointLSN(const checkpointLSN &o):
-         _lsn(o._lsn),
-         _minDirtyLSN(o._minDirtyLSN),
-         _minUncompletedLSN(o._minUncompletedLSN){}
-         checkpointLSN &operator=(const checkpointLSN &o)
-         {
-            _lsn = o._lsn;
-            _minDirtyLSN = o._minDirtyLSN;
-            _minUncompletedLSN = o._minUncompletedLSN;
-            return *this;
-         }
-
-      public:
-         OSS_INLINE BOOLEAN isValid()const
-         {
-            return DPS_INVALID_LSN_OFFSET != _lsn;
-         }
-
-      public:
-         DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
-         DPS_LSN_OFFSET _minDirtyLSN = DPS_INVALID_LSN_OFFSET;
-         DPS_LSN_OFFSET _minUncompletedLSN = DPS_INVALID_LSN_OFFSET;
-   };//class checkpointLSN
+      SDB_ASSERT(isValid(), "can not be invalid");
+      UINT64 uncommitedLSN = logger->getMinUncommitedLSN();
+      UINT64 minRunningLSN = executorPool->getMinRunningLSN();
+      return OSS_MIN(uncommitedLSN, minRunningLSN);
+   }
 } // namespace vessel
 
 } // namespace engine
 
-#endif//VESSEL_CHECKPOINT_LSN_H_

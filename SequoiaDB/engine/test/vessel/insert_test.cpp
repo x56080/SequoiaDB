@@ -171,7 +171,6 @@ TEST_F(insert_test, test1)
 TEST_F(insert_test, test2)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
@@ -269,7 +268,7 @@ TEST_F(insert_test, test2)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-void thread_insert(vesselImpl *db, test_logger *logger,
+void thread_insert(vesselImpl *db,
                    const CHAR *csName, const CHAR *clName,
                    UINT32 count)
 {
@@ -333,7 +332,7 @@ TEST_F(insert_test, test3_1)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert, &db, test_logger::instance(),
+      threads[i] = std::move(std::thread(thread_insert, &db,
                                          "foo", "bar1", countPerThread));
    }
 
@@ -380,7 +379,7 @@ TEST_F(insert_test, test3_2)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert, &db, test_logger::instance(),
+      threads[i] = std::move(std::thread(thread_insert, &db, 
                                          "foo", "bar1", countPerThread));
    }
 
@@ -397,7 +396,6 @@ TEST_F(insert_test, test3_2)
 TEST_F(insert_test, test4)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
@@ -427,7 +425,7 @@ TEST_F(insert_test, test4)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert, &db, &logger,
+      threads[i] = std::move(std::thread(thread_insert, &db,
                                          "foo", "bar1", countPerThread));
    }
 
@@ -494,7 +492,7 @@ TEST_F(insert_test, test4)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-void thread_insert_striping(vesselImpl *db, test_logger *logger,
+void thread_insert_striping(vesselImpl *db,
                             const CHAR *csName, const CHAR *clName,
                             UINT32 count)
 {
@@ -526,7 +524,6 @@ void thread_insert_striping(vesselImpl *db, test_logger *logger,
 TEST_F(insert_test, test5)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
@@ -561,7 +558,7 @@ TEST_F(insert_test, test5)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert_striping, &db, &logger,
+      threads[i] = std::move(std::thread(thread_insert_striping, &db,
                                          "foo", "bar1", countPerThread));
    }
 
@@ -577,7 +574,6 @@ TEST_F(insert_test, test5)
 TEST_F(insert_test, test6)
 {
    INT32 rc = SDB_OK;
-   test_logger logger;
    vesselImpl db;
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
@@ -611,7 +607,7 @@ TEST_F(insert_test, test6)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert_striping, &db, &logger,
+      threads[i] = std::move(std::thread(thread_insert_striping, &db,
                                          "foo", "bar1", countPerThread));
    }
 
@@ -678,7 +674,7 @@ TEST_F(insert_test, test6)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-void thread_insert_index(vesselImpl *db, test_logger *logger,
+void thread_insert_index(vesselImpl *db,
                          const CHAR *csName, const CHAR *clName,
                          UINT32 count)
 {
@@ -709,7 +705,7 @@ void thread_insert_index(vesselImpl *db, test_logger *logger,
    handler.close();
 }
 
-void thread_insert_unique_index(vesselImpl *db, test_logger *logger,
+void thread_insert_unique_index(vesselImpl *db,
                          const CHAR *csName, const CHAR *clName,
                          UINT32 begin, UINT32 count)
 {
@@ -844,7 +840,7 @@ void insert_test_nonunique_index(INDEX_TYPE type)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert_index, &db, test_logger::instance(),
+      threads[i] = std::move(std::thread(thread_insert_index, &db,
                                          "foo", "bar1", countPerThread));
    }
 
@@ -918,7 +914,7 @@ void insert_test_unique_index(INDEX_TYPE type)
    for (UINT32 i = 0; i < threadCount; ++i)
    {
       threads[i] = std::move(std::thread(thread_insert_unique_index,
-                                         &db, test_logger::instance(),
+                                         &db,
                                          "foo", "bar1", i * countPerThread,
                                          countPerThread));
    }

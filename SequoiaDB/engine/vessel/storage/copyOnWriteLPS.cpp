@@ -59,11 +59,11 @@ namespace vessel
          SDB_OSS_DEL _removingList;
          _removingList = NULL;
       }
-      if (NULL != _rmlistAfterCheckpoint)
+      if (NULL != _removedList)
       {
-         _rmlistAfterCheckpoint->clear();
-         SDB_OSS_DEL _rmlistAfterCheckpoint;
-         _rmlistAfterCheckpoint = NULL;
+         _removedList->clear();
+         SDB_OSS_DEL _removedList;
+         _removedList = NULL;
       }
       return;
    }
@@ -582,26 +582,35 @@ namespace vessel
    }
 
    INT32 copyOnWriteLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                   DPS_LSN_OFFSET &checkpointLsn,
-                                                   DPS_LSN_OFFSET &maxDirtyLsn)
+                                                   BOOLEAN fullCheckpoint,
+                                                   ossPoolSet<UINT32> &dirtySegments)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-
-      DPS_LSN_OFFSET lsn = logicalPageSpace::getCheckpointContext().getMaxDirtyLsn();
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "impossible");
       
-      logicalPageSpace::getCheckpointContext().getLatch()->release_w();
+      if (fullCheckpoint)
+      {
+         rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
+                                                &dirtySegments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get ready to create new base:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = getCache().setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
+                                           dirtySegments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
+            goto error;
+         }
+      }
 
-      ///TODO: wait until pre requests done
+      switchRemovingList();
 
-      /// resume locking.
-      logicalPageSpace::getCheckpointContext().getLatch()->lock_w();
-
-      backupAndClearRemovingList();
-      maxDirtyLsn = logicalPageSpace::getCheckpointContext().getMaxDirtyLsn();
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != maxDirtyLsn, "impossible");
-      checkpointLsn = lsn;
    done:
       return rc;
    error:
@@ -615,18 +624,17 @@ namespace vessel
 
       /// If status is not none, release pids at next ending.
       if (getCheckpointContext().getStatus() == lpsCheckpointContext::NONE &&
-          NULL != _rmlistAfterCheckpoint)
+          NULL != _removedList)
       {
          ossPoolVector<PAGE_ID> pids;
          pids.reserve(_SIZE);
 
-         while (0 != _rmlistAfterCheckpoint->getSize())
+         while (0 != _removedList->getSize())
          {
-            pids.clear();
             for (UINT32 i = 0; i < _SIZE; ++i)
             {
                PAGE_ID pid = INVALID_PAGE_ID;
-               if (_rmlistAfterCheckpoint->pushForward(pid))
+               if (_removedList->popForward(pid))
                {
                   if (OSS_LIKELY(INVALID_PAGE_ID != pid))
                   {
@@ -639,15 +647,20 @@ namespace vessel
                }
             }
 
-            if (1 < pids.size())
+            if (pids.empty())
+            {
+               continue;
+            }
+            else if (1 < pids.size())
             {
                std::sort(pids.begin(), pids.end());
             }
             getDataStorageObj()->releasePages(pids.size(), pids.data());
+            pids.clear();
          }
 
-         SDB_OSS_DEL _rmlistAfterCheckpoint;
-         _rmlistAfterCheckpoint = NULL;
+         SDB_OSS_DEL _removedList;
+         _removedList = NULL;
       }
       return;
    }
@@ -680,7 +693,7 @@ namespace vessel
       return;
    }
 
-   void copyOnWriteLPS::backupAndClearRemovingList()
+   void copyOnWriteLPS::switchRemovingList()
    {
       INT32 rc = SDB_OK;
       PAGE_ID pid = INVALID_PAGE_ID;
@@ -689,15 +702,16 @@ namespace vessel
       {
          goto done;
       }
-      else if (NULL == _rmlistAfterCheckpoint)
+      else if (NULL == _removedList)
       {
-         _rmlistAfterCheckpoint = _removingList;
+         _removedList = _removingList;
          goto done;
       }
 
+      /// for some reason last checkpoint not done.
       while (_removingList->popForward(pid))
       {
-         rc = _rmlistAfterCheckpoint->pushForward(pid);
+         rc = _removedList->pushForward(pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to push pid[%d] into backup list:%d",

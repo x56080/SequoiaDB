@@ -96,6 +96,8 @@ namespace engine
          virtual void      addIOService( IIOService *pIOService ) ;
          virtual void      delIOSerivce( IIOService *pIOService ) ;
 
+         virtual UINT64    getMinRunningLSN();
+
       public:
          INT32             init( IResource *pResource ) ;
          BOOLEAN           reset( INT64 timeout = PMD_STOP_TIMEOUT ) ;

@@ -398,8 +398,8 @@ namespace vessel
       BOOLEAN fullCheckpoint = FALSE;
       BOOLEAN abortCheckpoint = FALSE;
 
-      DPS_LSN_OFFSET maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
-      DPS_LSN_OFFSET checkpointLsn = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
+      checkpointLSN lsn;
       UINT32 totalImpCount = 0;
       ossPoolSet<UINT32> segments;
       IRedoLogger *logger = NULL;
@@ -432,8 +432,8 @@ namespace vessel
       _checkpointContext.tryToApplyCheckpoint();
       pausedNewApplying = TRUE;
 
-      maxDirtyLsn = _checkpointContext.getMaxDirtyLsn();
-      if (DPS_INVALID_LSN_OFFSET == maxDirtyLsn)
+      maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
+      if (DPS_INVALID_LSN_OFFSET == maxDirtyLSN)
       {
          goto done;
       }
@@ -442,19 +442,11 @@ namespace vessel
       abortCheckpoint = TRUE;
 
       fullCheckpoint = (FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize());
+      lsn._lsn = logger->getCurrentLSN();
+      lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
+      _checkpointContext.clearLsn();
 
-      rc = prepareToCreateCheckpoint(context, checkpointLsn, maxDirtyLsn);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
-         goto error;
-      }
-
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != checkpointLsn, "can not be invalid");
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != maxDirtyLsn, "can not be invalid");
-      SDB_ASSERT(checkpointLsn <= maxDirtyLsn, "impossible");
-
-      rc = _logConsole.precreateCheckpoint(0, checkpointLsn);
+      rc = _logConsole.reserveNextCheckpoint();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get log console ready to create checkpoint:%d", rc);
@@ -466,7 +458,7 @@ namespace vessel
       /// saved into new base id map file.
       totalImpCount = _allocator.getPageCount();
 
-      rc = turnMutablePages(context, fullCheckpoint, segments);
+      rc = prepareToCreateCheckpoint(context, fullCheckpoint, segments);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create segment list:%d", rc);
@@ -486,9 +478,10 @@ namespace vessel
          }
       }
 
-      logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLsn);
+      logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLSN);
+      lsn._minDirtyLSN = _checkpointContext.getMinDirtyLsn();
 
-      rc = _logConsole.commitCheckpointPrecreated();
+      rc = _logConsole.commitCheckpoint(lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit checkpoint:%d", rc);
@@ -497,17 +490,6 @@ namespace vessel
 
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
-
-      _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
-      if (maxDirtyLsn == _checkpointContext.getMaxDirtyLsn())
-      {
-         /// no more new request
-         _checkpointContext.clearLsn();
-      }
-      else
-      {
-         _checkpointContext.setMinDirtyLsn(checkpointLsn + 1);
-      }
 
       if (fullCheckpoint)
       {
@@ -523,9 +505,12 @@ namespace vessel
          locked = TRUE;
       }
 
+      _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
       _checkpointContext.setStatus(lpsCheckpointContext::NONE);
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
+
+      /// checkpoint applying flag still not clear
       endToCreateCheckpoint(context);
    done:
       if (locked)
@@ -544,6 +529,7 @@ namespace vessel
          {
             _checkpointContext.getLatch()->lock_w();
             locked = TRUE;
+            _checkpointContext.setStatus(lpsCheckpointContext::NONE);
          }
       }
       goto done;
@@ -2496,37 +2482,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::turnMutablePages(requestContext *context,
-                                            BOOLEAN isFullCheckpoint,
-                                            ossPoolSet<UINT32> &segments)
-   {
-      INT32 rc = SDB_OK;
-      if (isFullCheckpoint)
-      {
-         rc = _lpidCache.prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
-                                                &segments);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get ready to create new base:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = _lpidCache.setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
-                                           segments);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 logicalPageSpace::flushSegmentsAtCheckpoint(requestContext *context,
                                                      const ossPoolSet<UINT32> &segments)const
    {
@@ -2546,7 +2501,8 @@ namespace vessel
       for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
            itr != segments.end(); ++itr)
       {
-         if ((totalCount - dispatched) <= _DISPATCH_FLUSHING_TASK_THRESHOLD)
+         if (!workers.isReady() ||
+             (totalCount - dispatched) <= _DISPATCH_FLUSHING_TASK_THRESHOLD)
          {
             rc = _dpc->fsyncSegment(*itr);
             if (SDB_OK != rc)

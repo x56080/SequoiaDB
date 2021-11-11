@@ -362,7 +362,7 @@ TEST_F(index_lsm_test, test3)
    db.close(&session, closeDBOptions());
 }
 
-void duplicated_insert(vesselImpl *db, test_logger *logger,
+void duplicated_insert(vesselImpl *db,
                        const CHAR *csName, const CHAR *clName,
                        UINT32 count, UINT32 range)
 {
@@ -435,7 +435,7 @@ TEST_F(index_lsm_test, test4)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(duplicated_insert, &db, test_logger::instance(),
+      threads[i] = std::move(std::thread(duplicated_insert, &db,
                                          "foo", "bar", 100000, range));
    }
 

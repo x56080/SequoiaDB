@@ -98,10 +98,9 @@ namespace vessel
 
          INT32 append(const deltaLogRecord &dlr, UINT64 *offset=NULL);
 
-         INT32 precreateCheckpoint(UINT32 flags,
-                                   DPS_LSN_OFFSET lsn);
+         INT32 reserveNextCheckpoint();
 
-         INT32 commitCheckpointPrecreated();
+         INT32 commitCheckpoint(const checkpointLSN &lsn);
 
          UINT32 getDirtyLogSize()const;
 
@@ -148,8 +147,8 @@ namespace vessel
          const storageFileCreater *_creater = NULL;
          sortedStorageFileList _logFiles;
 
-         LPS_CHECKPOINT _nextCheckpoint;
          LPS_CHECKPOINT _checkpoint;
+         DPS_LSN_OFFSET _nextCheckpointOffset = DPS_INVALID_LSN_OFFSET;
 
          UINT64 _nextRecordOffset = 0;
          UINT64 _minDirtyOffset = 0;

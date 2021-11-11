@@ -74,6 +74,8 @@ namespace vessel
                    !(!indexKeyGen);
          }
 
+         UINT64 getMinUncompletedLSN();
+
       public:
          IRedoLogger *logger = NULL;
          IExecutorMgr *executorPool = NULL;

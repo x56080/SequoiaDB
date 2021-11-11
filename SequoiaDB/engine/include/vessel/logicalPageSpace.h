@@ -170,15 +170,9 @@ namespace vessel
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
 
       private:
-         /// Under checkpoint x latch.
-         /// Must resume x latch if released in func.
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 DPS_LSN_OFFSET &checkpointLsn,
-                                                 DPS_LSN_OFFSET &maxDirtyLsn) = 0;
-
-         virtual INT32 turnMutablePages(requestContext *context,
-                                        BOOLEAN isFullCheckpoint,
-                                        ossPoolSet<UINT32> &segments);
+                                                 BOOLEAN fullCheckpoint,
+                                                 ossPoolSet<UINT32> &dirtySegments) = 0;
 
          virtual void endToCreateCheckpoint(requestContext *context){return;}
 

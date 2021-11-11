@@ -1018,6 +1018,7 @@ vesselFiles = [
       "vessel/btreeNodePageIniter.cpp",
       "vessel/slice.cpp",
       "vessel/requestBatch.cpp",
+      "vessel/outerResource.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
       "vessel/lsm/lsmIndex.cpp",

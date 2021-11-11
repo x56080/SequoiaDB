@@ -65,6 +65,11 @@ namespace vessel
 
          void pushEvent(const backgroundEvent &event);
 
+         BOOLEAN isReady()const
+         {
+            return NULL != _or;
+         }
+
       private:
          INT32 _active(UINT32 count);
          void _deactive();

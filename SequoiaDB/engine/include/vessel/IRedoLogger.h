@@ -86,7 +86,11 @@ namespace vessel
          virtual INT32 abortOplist(IExecutor *executor,
                                    DPS_LSN_OFFSET lsn) = 0;
 
-         virtual DPS_LSN_OFFSET getMinFileLsn() = 0;
+         virtual DPS_LSN_OFFSET getMinFileLSN() = 0;
+
+         virtual DPS_LSN_OFFSET getMinUncommitedLSN() = 0;
+
+         virtual DPS_LSN_OFFSET getCurrentLSN() = 0;
    };//class IRedoLogger
 
    

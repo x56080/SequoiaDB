@@ -160,7 +160,6 @@ namespace vessel
          context.open(executor, &_env, &_outerResource);
 
          _cacheWatcher.fini();    
-         _env.workers.fini(); 
          _env.lsm.closeLsmDB(TRUE, FALSE);
          flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context);
@@ -764,6 +763,7 @@ namespace vessel
 
       do
       {
+         /// we'd better dispath tasks to workers.
          rc = _env.cacheConsole.get32KBCache().createDirtyListIOJob(context, scanDepth,
                                                                     DPS_INVALID_LSN_OFFSET,
                                                                     &job);

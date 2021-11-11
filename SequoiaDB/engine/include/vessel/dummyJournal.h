@@ -118,7 +118,17 @@ namespace vessel
          virtual INT32 abortOplist(IExecutor *executor,
                                    DPS_LSN_OFFSET lsn) {return SDB_OK;}
 
-         virtual DPS_LSN_OFFSET getMinFileLsn() {return _lsn.fetch();}
+         virtual DPS_LSN_OFFSET getMinFileLSN() {return _lsn.fetch();}
+
+         virtual DPS_LSN_OFFSET getMinUncommitedLSN()
+         {
+            return _lsn.fetch();
+         }
+
+         virtual DPS_LSN_OFFSET getCurrentLSN()
+         {
+            return _lsn.fetch();
+         }
 
          static dummyJournal *instance()
          {
@@ -126,7 +136,7 @@ namespace vessel
             return &journal;
          }
 
-      private:
+      public:
          ossAtomic64 _lsn;
    };
 } // namespace vessel

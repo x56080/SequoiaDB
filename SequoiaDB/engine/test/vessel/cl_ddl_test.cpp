@@ -80,10 +80,8 @@ TEST_F(cl_ddl_test, test1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   
-   resource.logger = test_logger::instance();
-   resource.executorPool = test_session_mgr::instance(); 
+   outerResource resource = test_outer_resource::getResource();
+
    test_executor executor;
    openDBOptions options;
    createCSOptions csOptions;
@@ -141,9 +139,7 @@ TEST_F(cl_ddl_test, test2)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.executorPool = test_session_mgr::instance(); 
+   outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
@@ -202,9 +198,7 @@ TEST_F(cl_ddl_test, test3)
    INT32 rc = SDB_OK;
 
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.executorPool = test_session_mgr::instance(); 
+   outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
    createCSOptions csOptions;
@@ -272,9 +266,7 @@ TEST_F(cl_ddl_test, test4)
    INT32 rc = SDB_OK;
 
    vesselImpl db;
-   outerResource resource;
-   resource.logger = test_logger::instance();
-   resource.executorPool = test_session_mgr::instance(); 
+   outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
    createCSOptions csOptions;

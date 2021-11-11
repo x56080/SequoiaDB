@@ -513,6 +513,9 @@ namespace engine
          virtual void      addIOService( IIOService *pIOService ) = 0 ;
          virtual void      delIOSerivce( IIOService *pIOService ) = 0 ;
 
+      public:
+         virtual UINT64 getMinRunningLSN() = 0;
+
    } ;
    typedef _IExecutorMgr IExecutorMgr ;
 

@@ -105,21 +105,21 @@ namespace vessel
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 DPS_LSN_OFFSET &checkpointLsn,
-                                                 DPS_LSN_OFFSET &maxDirtyLsn);
+                                                 BOOLEAN fullCheckpoint,
+                                                 ossPoolSet<UINT32> &dirtySegments);
          
          virtual void endToCreateCheckpoint(requestContext *context);
       private:
          void pushIntoRemovingList(UINT32 count,
                                    const PAGE_ID *pids);
 
-         void backupAndClearRemovingList();
+         void switchRemovingList();
 
          void fini();
 
       private:
          forwardList<PAGE_ID> *_removingList = NULL;
-         forwardList<PAGE_ID> *_rmlistAfterCheckpoint = NULL;
+         forwardList<PAGE_ID> *_removedList = NULL;
    };//class copyOnWriteLPS
 }//namespace vessel
 }//namespace engine

@@ -133,7 +133,7 @@ namespace vessel
       clearCurrentRecord();
       SDB_ASSERT(_scanner.isOpen(), "must be open");
       latchMap = &(_context->getEnv()->ridLatchMap);
-      minFileLsn = _context->getOuterResource()->logger->getMinFileLsn();
+      minFileLsn = _context->getOuterResource()->logger->getMinFileLSN();
       
       do
       {     
