@@ -34,7 +34,7 @@
 
 *******************************************************************************/
 
-#include "sdbConnectionPool.hpp"
+#include "sdbConnectionPoolImpl.hpp"
 #include "sdbConnectionPoolStrategy.hpp"
 #include "client.hpp"
 #include "sdbConnectionPoolWorker.hpp"
@@ -58,20 +58,20 @@ namespace sdbclient
 
    void createConnFunc( void *args )
    {
-      ((sdbConnectionPool*)args)->_createConn() ;
+      ((sdbConnectionPoolImpl*)args)->_createConn() ;
    }
 
    void destroyConnFunc( void *args )
    {
-      ((sdbConnectionPool*)args)->_destroyConn() ;
+      ((sdbConnectionPoolImpl*)args)->_destroyConn() ;
    }
 
    void bgTaskFunc( void *args )
    {
-      ((sdbConnectionPool*)args)->_bgTask() ;
+      ((sdbConnectionPoolImpl*)args)->_bgTask() ;
    }
 
-   sdbConnectionPool::~sdbConnectionPool()
+   sdbConnectionPoolImpl::~sdbConnectionPoolImpl()
    {
       _disable() ;
       // clear strategy
@@ -79,7 +79,7 @@ namespace sdbclient
    }
 
    // init connection pool with address(hostname:port) and conf
-   INT32 sdbConnectionPool::init(
+   INT32 sdbConnectionPoolImpl::init(
       const string &address,
       const sdbConnectionPoolConf &conf )
    {
@@ -90,7 +90,7 @@ namespace sdbclient
    }
 
    // init connection pool with address vector and conf
-   INT32 sdbConnectionPool::init(
+   INT32 sdbConnectionPoolImpl::init(
       const std::vector<string> &addrs,
       const sdbConnectionPoolConf &conf )
    {
@@ -147,19 +147,19 @@ namespace sdbclient
    }
 
    // get idle connection number
-   INT32 sdbConnectionPool::getIdleConnNum() const
+   INT32 sdbConnectionPoolImpl::getIdleConnNum() const
    {
       return _isInited ? _idleSize.peek() : -1 ;
    }
 
    // get used connection number
-   INT32 sdbConnectionPool::getUsedConnNum() const
+   INT32 sdbConnectionPoolImpl::getUsedConnNum() const
    {
       return _isInited ? _busySize.peek() : -1 ;
    }
 
    // get the number of normal coord node
-   INT32 sdbConnectionPool::getNormalAddrNum() const
+   INT32 sdbConnectionPoolImpl::getNormalAddrNum() const
    {
       if ( _isInited )
       {
@@ -173,7 +173,7 @@ namespace sdbclient
    }
 
    // get the number of abnormal coord node
-   INT32 sdbConnectionPool::getAbnormalAddrNum() const
+   INT32 sdbConnectionPoolImpl::getAbnormalAddrNum() const
    {
       if ( _isInited )
       {
@@ -187,7 +187,7 @@ namespace sdbclient
    }
 
    // get the number of local coord node
-   INT32 sdbConnectionPool::getLocalAddrNum() const
+   INT32 sdbConnectionPoolImpl::getLocalAddrNum() const
    {
       if ( _isInited )
       {
@@ -201,7 +201,7 @@ namespace sdbclient
    }
 
    // enable connection pool, start background task
-   INT32 sdbConnectionPool::_enable()
+   INT32 sdbConnectionPoolImpl::_enable()
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isLocked = FALSE ;
@@ -287,7 +287,7 @@ namespace sdbclient
    }
 
    // disable connection pool, stop background task
-   INT32 sdbConnectionPool::_disable()
+   INT32 sdbConnectionPoolImpl::_disable()
    {
       INT32 ret = SDB_OK ;
       BOOLEAN isLocked = FALSE ;
@@ -345,7 +345,7 @@ namespace sdbclient
       goto done  ;
    }
 
-   INT32 sdbConnectionPool::getConnection( sdb*& conn, INT64 timeoutms )
+   INT32 sdbConnectionPoolImpl::getConnection( sdb*& conn, INT64 timeoutms )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isGet = FALSE ;
@@ -452,7 +452,7 @@ namespace sdbclient
    }
 
    // give back a connection
-   void sdbConnectionPool::releaseConnection( sdb *conn )
+   void sdbConnectionPoolImpl::releaseConnection( sdb *conn )
    {
       // TODO:  in java, before we call "close", the current function
       // can release connections
@@ -522,7 +522,7 @@ namespace sdbclient
    }
 
    // try to get a connection
-   BOOLEAN sdbConnectionPool::_tryGetConn( sdb*& conn )
+   BOOLEAN sdbConnectionPoolImpl::_tryGetConn( sdb*& conn )
    {
       sdb* pConn    = NULL ;
       BOOLEAN isGet = FALSE ;
@@ -585,7 +585,7 @@ namespace sdbclient
    }
 
    // check address arguments, if valid, add it
-   BOOLEAN sdbConnectionPool::_checkAddrArg( const string &address )
+   BOOLEAN sdbConnectionPoolImpl::_checkAddrArg( const string &address )
    {
       BOOLEAN rc = TRUE ;
 
@@ -600,7 +600,7 @@ namespace sdbclient
    }
 
    // new a strategy with config
-   INT32 sdbConnectionPool::_buildStrategy()
+   INT32 sdbConnectionPoolImpl::_buildStrategy()
    {
       INT32 rc = SDB_OK ;
 
@@ -632,7 +632,7 @@ namespace sdbclient
 
 
    // clear connection pool
-   void sdbConnectionPool::_clearConnPool()
+   void sdbConnectionPoolImpl::_clearConnPool()
    {
       // clear connection list
       list<sdbclient::sdb*>::const_iterator iter ;
@@ -691,7 +691,7 @@ namespace sdbclient
 
 
    // create connections function
-   void sdbConnectionPool::_createConn()
+   void sdbConnectionPoolImpl::_createConn()
    {
       while ( !_toStopWorkers )
       {
@@ -724,7 +724,7 @@ namespace sdbclient
    // create connection by a number
    // return the amount of connections we had created,
    // it may less than what we expect
-   INT32 sdbConnectionPool::_createConnByNum( INT32 num,  INT32 &retNum )
+   INT32 sdbConnectionPoolImpl::_createConnByNum( INT32 num,  INT32 &retNum )
    {
       INT32 rc     = SDB_OK ;
       INT32 count  = 0 ;
@@ -847,7 +847,7 @@ namespace sdbclient
    }
 
    // add new connection and make sure not reach max connection count
-   BOOLEAN sdbConnectionPool::_addNewConnSafely( sdb *conn,
+   BOOLEAN sdbConnectionPoolImpl::_addNewConnSafely( sdb *conn,
                                              const string &coord )
    {
       BOOLEAN ret = FALSE ;
@@ -869,14 +869,14 @@ namespace sdbclient
    }
 /*
 #if defined (_DEBUG)
-      void sdbConnectionPool::printCreateInfo(const string& coord)
+      void sdbConnectionPoolImpl::printCreateInfo(const string& coord)
       {
          std::cout << "create a connection at " << coord << std::endl ;
       }
 #endif
 */
    //destroy connections function
-   void sdbConnectionPool::_destroyConn()
+   void sdbConnectionPoolImpl::_destroyConn()
    {
       while ( !_toStopWorkers )
       {
@@ -903,7 +903,7 @@ namespace sdbclient
       }
    }
 
-   INT32 sdbConnectionPool::_connect( sdb *conn, const string &address )
+   INT32 sdbConnectionPoolImpl::_connect( sdb *conn, const string &address )
    {
       INT32 rc = SDB_OK ;
       string username ;
@@ -940,7 +940,7 @@ namespace sdbclient
    }
 
    // background task function
-   void sdbConnectionPool::_bgTask()
+   void sdbConnectionPoolImpl::_bgTask()
    {
       INT64 syncCoordInterval = _conf.getSyncCoordInterval() ;
       INT64 ckAbnormalInterval = SDB_CONNPOOL_CHECKUNNORMALCOORD_INTERVAL ;
@@ -985,7 +985,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
    }
 
    // sync coord node info
-   void sdbConnectionPool::_syncCoordNodes()
+   void sdbConnectionPoolImpl::_syncCoordNodes()
    {
       INT32 rc ;
       string tmp ;
@@ -1045,7 +1045,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
    // get back the coord address from the abnormal address list
    // and return the amount of normal coord address which we
    // have retrieved
-   INT32 sdbConnectionPool::_retrieveAddrFromAbnormalList()
+   INT32 sdbConnectionPoolImpl::_retrieveAddrFromAbnormalList()
    {
       // try abnormal coord
       INT32 rc          = SDB_OK ;
@@ -1078,7 +1078,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
    }
 
    // check keep alive time out or not
-   BOOLEAN sdbConnectionPool::_keepAliveTimeOut( sdb *conn )
+   BOOLEAN sdbConnectionPoolImpl::_keepAliveTimeOut( sdb *conn )
    {
       INT32 checkInterval = _conf.getCheckInterval() ;
       INT32 keepAlive = _conf.getKeepAliveTimeout() ;
@@ -1096,7 +1096,7 @@ cout << "ckConnTimeCnt is: " << ckConnTimeCnt << endl ;
    }
 
    // check max connection number intervally
-   void sdbConnectionPool::_checkMaxIdleConn()
+   void sdbConnectionPoolImpl::_checkMaxIdleConn()
    {
       INT32 freeNum       = 0 ;
       sdb* conn           = NULL ;
@@ -1160,7 +1160,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
    }
 
    // close connection pool
-   INT32 sdbConnectionPool::close()
+   INT32 sdbConnectionPoolImpl::close()
    {
       INT32 rc = SDB_OK ;
 
@@ -1181,7 +1181,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
       goto done  ;
    }
 
-   void sdbConnectionPool::updateAuthInfo( const string &username,
+   void sdbConnectionPoolImpl::updateAuthInfo( const string &username,
                                            const string &passwd )
    {
       _confShare.get() ;
@@ -1191,7 +1191,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
       _confShare.release() ;
    }
 
-   void sdbConnectionPool::updateAuthInfo( const string &username,
+   void sdbConnectionPoolImpl::updateAuthInfo( const string &username,
                                            const string &cipherFile,
                                            const string &token )
    {
@@ -1202,7 +1202,7 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
       _confShare.release() ;
    }
 
-   INT32 sdbConnectionPool::updateAddress( const std::vector<string> &addrs )
+   INT32 sdbConnectionPoolImpl::updateAddress( const std::vector<string> &addrs )
    {
       INT32 rc            = SDB_OK ;
       sdb* conn           = NULL ;

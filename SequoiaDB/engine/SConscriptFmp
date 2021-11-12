@@ -208,7 +208,7 @@ clientCFiles = [
       ]
 clientcppFiles = [
       "client/clientcpp.cpp",
-      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolImpl.cpp",
       "client/sdbConnectionPoolComm.cpp",
       "client/sdbConnectionPoolStrategy.cpp",
       "client/sdbConnectionPoolWorker.cpp"
