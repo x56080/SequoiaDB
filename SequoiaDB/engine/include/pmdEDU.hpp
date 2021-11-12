@@ -192,7 +192,7 @@ namespace engine
          /*
             Context Related
          */
-         virtual void      contextInsert( INT64 contextID ) ;
+         virtual BOOLEAN   contextInsert( INT64 contextID ) ;
          virtual void      contextDelete( INT64 contextID ) ;
          virtual INT64     contextPeek() ;
          virtual BOOLEAN   contextFind( INT64 contextID ) ;
@@ -698,6 +698,9 @@ namespace engine
       }
 
       INT32 getDumpTransCount() { return _dumpTransCount.fetch() ; }
+
+      // WARNING: internal copy contexts, no lock protect
+      void _contextCopy( SET_CONTEXT &contextList ) ;
 
    private :
       _pmdEDUMgr     *_eduMgr ;

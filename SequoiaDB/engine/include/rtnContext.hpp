@@ -47,6 +47,7 @@
 #include "ossMemPool.hpp"
 #include "dpsLogWrapper.hpp"
 #include "mthSelector.hpp"
+#include "rtnContextDef.hpp"
 #include "rtnContextBuff.hpp"
 #include "rtnQueryOptions.hpp"
 #include "rtnResultSetFilter.hpp"
@@ -58,7 +59,6 @@ using namespace bson ;
 
 namespace engine
 {
-   #define RTN_CONTEXT_GETNUM_ONCE              (1000)
 
    class _pmdEDUCB ;
    class _dmsStorageUnit ;

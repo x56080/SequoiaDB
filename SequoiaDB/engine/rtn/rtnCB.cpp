@@ -48,6 +48,8 @@ namespace engine
 {
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
+        _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
+        _maxSessionContextNum( RTN_MAX_SESS_CTX_NUM_DFT ),
         _remoteMessenger( NULL ),
         _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION)
    {
@@ -90,6 +92,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      pmdOptionsCB *optionCB = pmdGetOptionCB() ;
+
       rtnIxmKeySorterCreator* creator = SDB_OSS_NEW _rtnIxmKeySorterCreator() ;
       if ( NULL == creator )
       {
@@ -118,11 +122,14 @@ namespace engine
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
               SDB_ROLE_STANDALONE == pmdGetDBRole() ||
               SDB_ROLE_OM == pmdGetDBRole() ) ?
-             pmdGetOptionCB()->getPlanBuckets() : 0,
-            (OPT_PLAN_CACHE_LEVEL) pmdGetOptionCB()->getPlanCacheLevel(),
-            pmdGetOptionCB()->getSortBufSize(),
-            pmdGetOptionCB()->getOptCostThreshold(),
-            pmdGetOptionCB()->isEnabledMixCmp() ) ;
+                    optionCB->getPlanBuckets() : 0,
+            (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
+            optionCB->getSortBufSize(),
+            optionCB->getOptCostThreshold(),
+            optionCB->isEnabledMixCmp() ) ;
+
+      _maxContextNum = optionCB->maxContextNum() ;
+      _maxSessionContextNum = optionCB->maxSessionContextNum() ;
 
    done:
       return rc ;
@@ -195,15 +202,20 @@ namespace engine
 
    void _SDB_RTNCB::onConfigChange ()
    {
+      pmdOptionsCB *optionCB = pmdGetOptionCB() ;
+
       _accessPlanManager.reinit(
             ( SDB_ROLE_DATA == pmdGetDBRole() ||
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
               SDB_ROLE_STANDALONE == pmdGetDBRole() ) ?
-            pmdGetOptionCB()->getPlanBuckets() : 0,
-            (OPT_PLAN_CACHE_LEVEL) pmdGetOptionCB()->getPlanCacheLevel(),
-            pmdGetOptionCB()->getSortBufSize(),
-            pmdGetOptionCB()->getOptCostThreshold(),
-            pmdGetOptionCB()->isEnabledMixCmp() ) ;
+                    optionCB->getPlanBuckets() : 0,
+            (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
+            optionCB->getSortBufSize(),
+            optionCB->getOptCostThreshold(),
+            optionCB->isEnabledMixCmp() ) ;
+
+      _maxContextNum = optionCB->maxContextNum() ;
+      _maxSessionContextNum = optionCB->maxSessionContextNum() ;
    }
 
    rtnContext* _SDB_RTNCB::contextFind ( SINT64 contextID, _pmdEDUCB *cb )
@@ -285,6 +297,28 @@ namespace engine
       SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
       monSvcTaskInfo *pTaskInfo = NULL ;
 
+      if ( pEDUCB->isFromLocal() )
+      {    
+         // WARNING: the check may fail when context flooding ( too many
+         //          context are creating in the same time )
+         if ( _maxContextNum > 0 &&
+              _contextMap.size( FALSE ) >= (UINT32)( _maxContextNum ) )
+         {
+            PD_LOG_MSG( PDERROR, "the number of contexts exceeds the limit "
+                        "[%s:%d]", PMD_OPTION_MAXCONTEXTNUM, _maxContextNum ) ;
+            return SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT ;
+         }
+
+         if ( _maxSessionContextNum > 0 &&
+              pEDUCB->contextNum() >= (UINT32)( _maxSessionContextNum ) )
+         {
+            PD_LOG_MSG( PDERROR, "the number of contexts in the session "
+                        "exceeds the limit [%s:%d]",
+                        PMD_OPTION_MAXSESSIONCONTEXTNUM, _maxSessionContextNum ) ;
+            return SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT ;
+         }
+      }
+
       // if hit max signed 64 bit integer?
       if ( _contextIdGenerator.fetch() < 0 )
       {
@@ -305,8 +339,21 @@ namespace engine
          return SDB_OOM ;
       }
 
-      _contextMap.insert( _contextId, *context ) ;
-      pEDUCB->contextInsert( _contextId ) ;
+      if ( !( _contextMap.insert( _contextId, *context ).second ) )
+      {
+         sdbGetRTNContextBuilder()->release( *context ) ;
+         *context = NULL ;
+         return SDB_OOM ;
+      }
+
+      if ( !pEDUCB->contextInsert( _contextId ) )
+      {
+         _contextMap.erase( _contextId ) ;
+         sdbGetRTNContextBuilder()->release( *context ) ;
+         *context = NULL ;
+         return SDB_OOM ;
+      }
+
       contextID = _contextId ;
 
       pTaskInfo = pEDUCB->getMonAppCB()->getSvcTaskInfo() ;

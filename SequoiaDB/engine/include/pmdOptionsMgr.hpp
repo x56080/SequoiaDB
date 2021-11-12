@@ -675,7 +675,8 @@ namespace engine
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
          OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
          OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
-
+         OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
+         OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
          std::string getOmAddr() const ;
 
 #ifdef SDB_ENTERPRISE
@@ -813,6 +814,9 @@ namespace engine
          BOOLEAN     _globTransOn ;
          INT32       _globTransMaxTimeError ;
          UINT32      _mvccRBSNum ;
+
+         INT32       _maxContextNum ;
+         INT32       _maxSessionContextNum ;
 
 #ifdef SDB_ENTERPRISE
 
