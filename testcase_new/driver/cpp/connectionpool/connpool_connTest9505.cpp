@@ -99,13 +99,15 @@ TEST_F( connTest9505, releaseNormalConnection9534 )
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
 
    // get a normal connection
-   sdb tmp ;
-   rc = tmp.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
+   sdb *tmp ;
+   sdb conn ;
+   rc = conn.connect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd() ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to connect sdb" ;
    
    // release normal connection
-   ds.releaseConnection( &tmp ) ;
+   tmp = &conn ;
+   ds.releaseConnection( tmp ) ;
    
-   ASSERT_EQ( 1, tmp.isValid() ) << "fail to check connection valid" ;
-   tmp.disconnect() ;
+   ASSERT_EQ( 1, conn.isValid() ) << "fail to check connection valid" ;
+   conn.disconnect() ;
 }

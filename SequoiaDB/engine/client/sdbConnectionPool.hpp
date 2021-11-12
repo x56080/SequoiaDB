@@ -146,13 +146,13 @@ namespace sdbclient
       */
       INT32 getConnection( sdb*& conn, INT64 timeoutms = 5000 ) ;
 
-      /** \fn INT32 releaseConnection(sdb *conn)
+      /** \fn INT32 releaseConnection( sdb*& conn )
          \brief Give back a connection to connection pool
          \param [in] conn A connection
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
-      void releaseConnection(sdb *conn) ;
+      void releaseConnection( sdb*& conn ) ;
 
       /** \fn void close()
          \brief Close connection pool
