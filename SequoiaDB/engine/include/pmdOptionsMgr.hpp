@@ -671,6 +671,8 @@ namespace engine
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
          OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
+         OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
+         OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
          std::string getOmAddr() const ;
 
 #ifdef SDB_ENTERPRISE
@@ -804,6 +806,9 @@ namespace engine
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
          UINT32      _serviceMask ;
+
+         INT32       _maxContextNum ;
+         INT32       _maxSessionContextNum ;
 
 #ifdef SDB_ENTERPRISE
 

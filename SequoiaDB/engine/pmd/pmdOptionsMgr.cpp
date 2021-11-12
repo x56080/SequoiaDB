@@ -52,6 +52,7 @@
 #include "optCommon.hpp"
 #include "dpsTransDef.hpp"
 #include "monMgr.hpp"
+#include "rtnContextDef.hpp"
 #include "rtnSortDef.hpp"
 #include "clsUtil.hpp"
 #include <vector>
@@ -1929,6 +1930,8 @@ done:
       _syncRecordNum       = PMD_DFT_SYNC_RECORDNUM ;
       _syncDeep            = FALSE ;
       _serviceMask         = PMD_SVC_MASK_NONE ;
+      _maxContextNum       = RTN_MAX_CTX_NUM_DFT ;
+      _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_DFT ;
 
       // archive related
       _archiveOn = FALSE ;
@@ -2475,6 +2478,17 @@ done:
                  sizeof( _serviceMaskStr ), FALSE, PMD_CFG_CHANGE_REBOOT,
                  PMD_SVC_MASK_NONE_STR ) ;
 
+      // --maxcontextnum
+      rdxInt( pEX, PMD_OPTION_MAXCONTEXTNUM, _maxContextNum, FALSE,
+              PMD_CFG_CHANGE_RUN, RTN_MAX_CTX_NUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _maxContextNum, 0, RTN_MAX_CTX_NUM_MAX, TRUE ) ;
+
+      // --maxsessioncontextnum
+      rdxInt( pEX, PMD_OPTION_MAXSESSIONCONTEXTNUM, _maxSessionContextNum,
+              FALSE, PMD_CFG_CHANGE_RUN, RTN_MAX_CTX_NUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _maxSessionContextNum, 0, RTN_MAX_SESS_CTX_NUM_MAX,
+                 TRUE ) ;
+
       // end map
 
       return getResult () ;
@@ -2950,6 +2964,20 @@ done:
       if ( SCHED_TYPE_NONE == _svcSchedulerType )
       {
          _svcMaxConcurrency = 0 ;
+      }
+
+      if ( _maxContextNum > 0 &&
+           _maxContextNum < RTN_MAX_CTX_NUM_MIN )
+      {
+         // avoid the value is too small
+         _maxContextNum = RTN_MAX_CTX_NUM_MIN ;
+      }
+
+      if ( _maxSessionContextNum > 0 &&
+           _maxSessionContextNum < RTN_MAX_SESS_CTX_NUM_MIN )
+      {
+         // avoid the value is too small
+         _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_MIN ;
       }
 
    done:

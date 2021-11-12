@@ -71,6 +71,8 @@ namespace engine
 
       ossAtomicSigned64    _contextIdGenerator ;
       RTN_CTX_MAP          _contextMap ;
+      INT32                _maxContextNum ;
+      INT32                _maxSessionContextNum ;
 
       optAccessPlanManager _accessPlanManager ;
 

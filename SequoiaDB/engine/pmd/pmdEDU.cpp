@@ -790,10 +790,21 @@ namespace engine
       _curTransLSN = lsn ;
    }
 
-   void _pmdEDUCB::contextInsert( INT64 contextID )
+   BOOLEAN _pmdEDUCB::contextInsert( INT64 contextID )
    {
-      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-      _contextList.insert ( contextID ) ;
+      BOOLEAN result = FALSE ;
+      try
+      {
+         ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+         _contextList.insert ( contextID ) ;
+         result = TRUE ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to insert context, occur exception %s",
+                 e.what() ) ;
+      }
+      return result ;
    }
 
    void _pmdEDUCB::contextDelete( INT64 contextID )
@@ -834,13 +845,15 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::contextFind( INT64 contextID )
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
+      ossScopedLock _lock(
+            pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
       return _contextList.end() != _contextList.find( contextID ) ;
    }
 
    UINT32 _pmdEDUCB::contextNum()
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
+      ossScopedLock _lock(
+            pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
       return _contextList.size() ;
    }
 
@@ -891,10 +904,24 @@ namespace engine
       DPS_TRANS_CLEAR_RBPENDING( _curTransID ) ;
    }
 
+   void _pmdEDUCB::_contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
+   {
+      try
+      {
+         contextList = _contextList ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to copy context list, "
+                 "occur exception %s", e.what() ) ;
+      }
+   }
+
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
    {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
-      contextList = _contextList ;
+      ossScopedLock _lock(
+                  pmdGetThreadEDUCB() == this ? NULL : &_mutex, SHARED ) ;
+      _contextCopy( contextList ) ;
    }
 
    void _pmdEDUCB::initMonAppCB()
@@ -1089,7 +1116,9 @@ namespace engine
 
       full._monApplCB = _monApplCB ;
       full._threadHdl = _threadHdl ;
-      full._eduContextList = _contextList ;
+
+      _contextCopy( full._eduContextList ) ;
+
       if ( _pSession )
       {
          full._relatedNID = _pSession->identifyID() ;

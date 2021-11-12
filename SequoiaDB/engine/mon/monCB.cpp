@@ -488,7 +488,7 @@ namespace engine
       rtnQueryOptions options ;
 
       if ( msg->opCode == expectingOpType &&
-           msg->messageLength > sizeof( MsgHeader ) &&
+           msg->messageLength > (INT32)( sizeof( MsgHeader ) ) &&
            msg->messageLength <= MON_APP_LASTOP_DESC_LEN )
       {
          CHAR temp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;

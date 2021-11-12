@@ -2576,4 +2576,56 @@
       <typeofweb>boolean</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_MAXCONTEXTNUM</name>
+      <long>maxcontextnum</long>
+      <description>
+        <en>Maximum number of contexts in a node, default: 100000, range: 0 and [ 1000, 2^31-1 ]</en>
+        <cn>节点中最多可以同时开启的上下文个数，默认：100000，取值范围：0 和 [ 1000, 2^31-1 ]。</cn>
+      </description>
+      <reloadable>
+        <en>Take effect immediately</en>
+        <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Maximum number of contexts in a node.<fig></fig>
+            2. Default is 100000, range is 0 and [ 1000, 2^31-1 ].<fig></fig>
+            3. If the number of contexts exceeds the limit, creating new contexts will fail.<fig></fig>
+            4. 0 means no limit on number of contexts.</en>
+        <cn>1. 节点中最多可以同时开启的上下文个数。<fig></fig>
+            2. 默认是100000，取值范围是 0 和 [ 1000, 2^31-1 ]。<fig></fig>
+            3. 如果节点中同时开启的上下文个数达到上限，新开启的上下文将会报错。<fig></fig>
+            4. 取值为0，表示对上下文的个数没有限制。</cn>
+      </detail>
+      <type>int</type>
+      <default>100000</default>
+      <typeofweb>int</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MAXSESSIONCONTEXTNUM</name>
+      <long>maxsessioncontextnum</long>
+      <description>
+        <en>Maximum number of contexts in a session per node, default: 100, range: 0 and [ 10, 2^31-1 ]</en>
+        <cn>会话在每个节点中最多可以同时开启的上下文个数，默认：100，取值范围：0 和 [ 10, 2^31-1 ]。</cn>
+      </description>
+      <reloadable>
+        <en>Take effect immediately</en>
+        <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Maximum number of contexts in a session per node.<fig></fig>
+            2. Default is 100, range is 0 and [ 10, 2^31-1 ].<fig></fig>
+            3. If the number of contexts in the session exceeds the limit, creating new contexts will fail in the same session.<fig></fig>
+            4. 0 means no limit on number of contexts in the session.</en>
+        <cn>1. 会话在每个节点中最多可以同时开启的上下文个数。<fig></fig>
+            2. 默认是100，取值范围是 0 和 [ 10, 2^31-1 ]。<fig></fig>
+            3. 如果会话在节点中同时开启的上下文个数达到上限，会话新开启的上下文将会报错。<fig></fig>
+            4. 取值为0，表示对会话的上下文的个数没有限制。</cn>
+      </detail>
+      <type>int</type>
+      <default>100</default>
+      <typeofweb>int</typeofweb>
+   </opt>
+
 </optlist>

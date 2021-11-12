@@ -464,7 +464,7 @@ namespace engine
          /*
             Context Related
          */
-         virtual void      contextInsert( INT64 contextID ) = 0 ;
+         virtual BOOLEAN   contextInsert( INT64 contextID ) = 0 ;
          virtual void      contextDelete( INT64 contextID ) = 0 ;
          virtual INT64     contextPeek() = 0 ;
          virtual BOOLEAN   contextFind( INT64 contextID ) = 0 ;

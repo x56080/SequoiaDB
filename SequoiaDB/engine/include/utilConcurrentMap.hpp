@@ -42,6 +42,7 @@
 #include "ossLatch.hpp"
 #include <boost/functional/hash.hpp>
 #include "ossMemPool.hpp"
+#include "ossAtomic.hpp"
 
 namespace engine
 {
@@ -69,6 +70,7 @@ namespace engine
 
    public:
       utilConcurrentMap()
+      : _count( 0 )
       {
          SDB_ASSERT( BUCKET_NUM <= UTIL_CONCURRENT_MAP_MAX_BUCKET_NUM &&
                      BUCKET_NUM > 1,
@@ -174,23 +176,11 @@ namespace engine
 
       OSS_INLINE UINT32 size( BOOLEAN lock = TRUE )
       {
-         UINT32 count = 0 ;
-
-         for ( INT32 i = 0 ; i < BUCKET_NUM ; i++ )
+         if ( lock )
          {
-            Bucket& bucket = _bucketAt( i ) ;
-            if ( lock )
-            {
-               BUCKET_SLOCK( bucket ) ;
-               count += bucket.size() ;
-            }
-            else
-            {
-               count += bucket.size() ;
-            }
+           return _count.fetch() ;
          }
-
-         return count ;
+         return _count.peek() ;
       }
 
       OSS_INLINE bool empty()
@@ -200,9 +190,24 @@ namespace engine
 
       OSS_INLINE std::pair<map_iterator,bool> insert( const value_type& val )
       {
+         std::pair<map_iterator,bool> res ;
+         res.second = false ;
+
          Bucket& bucket = getBucket( val.first ) ;
-         BUCKET_XLOCK( bucket ) ;
-         return bucket.insert( val ) ;
+         try
+         {
+            BUCKET_XLOCK( bucket ) ;
+            res = bucket.insert( val ) ;
+            if ( res.second )
+            {
+               _count.inc() ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+         }
+
+         return res ;
       }
 
       OSS_INLINE std::pair<map_iterator,bool> insert( Key& key, T& value )
@@ -214,7 +219,7 @@ namespace engine
       {
          Bucket& bucket = getBucket( key ) ;
          BUCKET_XLOCK( bucket ) ;
-         bucket.erase( key ) ;
+         _count.sub( (UINT64)( bucket.erase( key ) ) ) ;
       }
 
       OSS_INLINE std::pair<T, bool> find( const Key& key )
@@ -240,12 +245,17 @@ namespace engine
             if ( lock )
             {
                BUCKET_XLOCK( bucket ) ;
+               _count.sub( bucket.size() ) ;
                bucket.clear() ;
             }
             else
             {
                bucket.clear() ;
             }
+         }
+         if ( !lock )
+         {
+            _count.poke( 0 ) ;
          }
       }
 
@@ -387,6 +397,7 @@ namespace engine
    private:
       Bucket   _buckets[ BUCKET_NUM ] ;
       Hash     _hasher ;
+      ossAtomic64 _count ;
    } ;
 
    // shared lock
