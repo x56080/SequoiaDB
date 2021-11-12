@@ -13,14 +13,19 @@
    > 
    > 可参考 [Spark 官方文档][install_spark]
 
-3. 从 [SequoiaDB 官网][sequoiadb] 或者 [maven 仓库][spark_sdb_maven]下载相应版本的 Spark-SequoiaDB连接器 和 SequoiaDB Java 驱动
+3. 通过 [SequoiaDB 官网][sequoiadb]、[Maven 仓库][spark_sdb_maven] 或 SequoiaDB 安装目录下的 `spark`、`java` 目录下获取相应版本的 Spark-SequoiaDB 连接器 和 SequoiaDB Java 驱动
 
    > **Note:**
    >
-   > Spark-SequoiaDB 连接组件的环境要求：
+   > Spark-SequoiaDB_2.11 连接组件的环境要求：
    > - JDK 1.7+
    > - Scala 2.11+
    > - Spark 2.0.0+
+   > 
+   > Spark-SequoiaDB_3.0 连接组件的环境要求：
+   > - JDK 1.8+
+   > - Scala 2.12+
+   > - Spark 3.0.0+
 
 
 ##Spark-SequoiaDB 连接器安装##

@@ -41,6 +41,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |preferredinstancestrict|boolean|TRUE|在 preferredinstance 指定的实例 ID 都不符合时是否报错 |否|
 |ignoreduplicatekey|boolean|FALSE|向表中插入数据时忽略主键重复的错误 |否|
 |ignorenullfield|boolean|FALSE|向表中插入数据时忽略值为 null 的字段 |否|
+|configpath|string|-|配置文件路径<br>如果同时在 options 和配置文件中指定同一参数，将优先使用 options 参数进行配置| 否|
 |pagesize|int32|65536|create table as select 创建集合空间时指定数据页大小，如果集合空间已存在则忽略该参数 |否|
 |domain|string|-|create table as select 创建集合空间时指定所属域，如果集合空间已存在则忽略该参数 |否|
 |shardingkey|json|-|create table as select 创建集合时指定分区键 |否|
@@ -49,6 +50,11 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |compressiontype|string|"none"|create table as select 创建集合时指定压缩类型，取值可以是"none"、"lzw"和"snappy"，"none"表示不压缩 |否|
 |autosplit|boolean|FALSE|create table as select 创建集合时指定是否自动切分，必须配合散列分区和域使用，且不能与 group 同时使用 |否|
 |group|string|-|create table as select 创建集合时指定创建在某个复制组，group 必须存在于集合空间所属的域中 |否|
+|ensureshardingindex|boolean|TRUE|create table as select 创建集合时指定是否使用 ShardingKey 包含的字段创建名字为"$shard"的索引 |否|
+|autoindexid|boolean|TRUE|create table as select 创建集合时指定是否自动使用字段 _id 创建名字为"$id"的唯一索引 |否|
+|strictdatamode|boolean|FALSE|create table as select 创建集合时指定对该集合的操作是否开启严格数据模式 <br>开启严格数据模式后对数值操作将存在以下限制：<br>1）运算过程不改数据类型<br>2）数值运算出现溢出时直接报错|否|
+|autoincrement|json|-|create table as select 创建集合时指定集合使用的自增字段<br>自增字段相关说明可参考 [autoincrement][autoincrement] |否|
+
 
 ##示例##
 
@@ -69,3 +75,4 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 [^_^]:
      本文使用的所有引用和链接
 [parameter]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+[autoincrement]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
