@@ -242,6 +242,72 @@ TEST( connectionPool, updateAddrTest )
    connPool.releaseConnection( conn6 ) ;
    rc = connPool.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connPool.updateAddress( newAddrList ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_CLOSE, rc ) ;
+}
+
+TEST( connectionPool, noInitTest )
+{
+   INT32 rc                  = SDB_OK ;
+   string host               = HOST ;
+   string svcName            = SERVER ;
+   string address            = host + ":" + svcName ;
+   vector<string> addrList ;
+   sdbConnectionPool connPool ;
+   sdb* conn ;
+
+   addrList.push_back( address ) ;
+
+   rc = connPool.getConnection( conn ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_INIT, rc ) ;
+
+   connPool.releaseConnection( conn ) ;
+
+   rc = connPool.updateAddress( addrList ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_INIT, rc ) ;
+
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_INIT, rc ) ;
+}
+
+TEST( connectionPool, closedTest )
+{
+   INT32 rc                  = SDB_OK ;
+   string host               = HOST ;
+   string svcName            = SERVER ;
+   string address            = host + ":" + svcName ;
+   vector<string> addrList ;
+   sdbConnectionPoolConf conf ;
+   sdbConnectionPool connPool ;
+   sdb conn ;
+   sdb* conn1 ;
+   sdb* conn2 ;
+
+   addrList.push_back( address ) ;
+   rc = conn.connect( host.c_str(), svcName.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to connect sdb" ;
+
+   rc = connPool.init( address, conf ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = connPool.getConnection( conn1 ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_CLOSE, rc ) ;
+
+   conn2 = &conn ;
+   connPool.releaseConnection( conn2 ) ;
+   ASSERT_EQ( &conn, conn2 ) ;
+   connPool.releaseConnection( conn2 ) ;
+
+   rc = connPool.updateAddress( addrList ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_CLOSE, rc ) ;
+
+   rc = connPool.init( address, conf ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 }
 
 TEST( connectionPool, releaseConnectionTest )

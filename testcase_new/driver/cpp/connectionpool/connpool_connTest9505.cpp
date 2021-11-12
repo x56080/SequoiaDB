@@ -73,7 +73,7 @@ TEST_F( connTest9505, close9517 )
    // operation after close
    sdb* conn ;
    rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NOT_ENABLE, rc ) << "fail to test get connection after close" ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_CLOSE, rc ) << "fail to test get connection after close" ;
 }
 
 

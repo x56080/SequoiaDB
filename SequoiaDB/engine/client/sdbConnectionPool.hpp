@@ -147,7 +147,8 @@ namespace sdbclient
       INT32 getConnection( sdb*& conn, INT64 timeoutms = 5000 ) ;
 
       /** \fn INT32 releaseConnection( sdb*& conn )
-         \brief Give back a connection to connection pool
+         \brief Give back a connection to connection pool. If the connection pool had
+                been closed, do nothing.
          \param [in] conn A connection
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
@@ -180,7 +181,9 @@ namespace sdbclient
                            const string &token ) ;
 
       /** \fn INT32 updateAddress( const std::vector<std::string> &addrs )
-         \brief update the addresses of the connection pool
+         \brief update the addresses of the connection pool, the new address list will
+                replace the old address list, and idle connections whose addresses are
+                not in the new address list will be cleared.
          \param [in] coordAddrs A list of coord node
          \retval SDB_OK Operation Success
          \retval Others Operation Fail

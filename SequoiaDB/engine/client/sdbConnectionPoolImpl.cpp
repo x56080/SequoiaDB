@@ -73,7 +73,7 @@ namespace sdbclient
 
    sdbConnectionPoolImpl::~sdbConnectionPoolImpl()
    {
-      _disable() ;
+      close() ;
       // clear strategy
       SAFE_OSS_DELETE(_strategy) ;
    }
@@ -97,7 +97,7 @@ namespace sdbclient
       INT32 rc = SDB_OK ;
       int validAddrCnt = 0 ;
 
-      if ( TRUE == _isInited )
+      if ( _isInited )
       {
          goto done ;
       }
@@ -134,12 +134,13 @@ namespace sdbclient
          goto error ;
       }
 
-      _isInited = TRUE ;
       rc = _enable() ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
+      _isInited = TRUE ;
+      _isClosed = FALSE ;
    done :
       return rc  ;
    error :
@@ -206,68 +207,60 @@ namespace sdbclient
       INT32 rc = SDB_OK ;
       BOOLEAN isLocked = FALSE ;
 
-      if ( !_isInited )
+      if ( _isEnabled )
       {
-         rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
-         goto error ;
+         goto done ;
       }
       else
       {
-         if ( _isEnabled )
+         _globalMutex.get() ;
+         isLocked = TRUE ;
+         if ( !_isEnabled )
          {
-            goto done ;
-         }
-         else
-         {
-            _globalMutex.get() ;
-            isLocked = TRUE ;
-            if ( !_isEnabled )
+            _toStopWorkers = FALSE ;
+            // prepare some connections
+            INT32 retNum = 0 ;
+            _createConnByNum( _conf.getInitConnCount(), retNum ) ;
+            // start create connection thread
+            _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
+               createConnFunc, this ) ;
+            if ( NULL == _createConnWorker )
             {
-               _toStopWorkers = FALSE ;
-               // prepare some connections
-               INT32 retNum = 0 ;
-               _createConnByNum( _conf.getInitConnCount(), retNum ) ;
-               // start create connection thread
-               _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
-                  createConnFunc, this ) ;
-               if ( NULL == _createConnWorker )
-               {
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               // start destroy connection thread
-               _destroyConnWorker = SDB_OSS_NEW sdbConnPoolWorker( destroyConnFunc,
-                                                             this ) ;
-               if ( NULL == _destroyConnWorker )
-               {
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               // start background task thread
-               _bgTaskWorker= SDB_OSS_NEW sdbConnPoolWorker( bgTaskFunc, this ) ;
-               if ( NULL == _bgTaskWorker )
-               {
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               rc = _createConnWorker->start() ;
-               if ( SDB_OK != rc )
-               {
-                  goto error ;
-               }
-               rc = _destroyConnWorker->start() ;
-               if ( SDB_OK != rc )
-               {
-                  goto error ;
-               }
-               rc = _bgTaskWorker->start() ;
-               if ( SDB_OK != rc )
-               {
-                  goto error ;
-               }
-
-               _isEnabled = TRUE ;
+               rc = SDB_OOM ;
+               goto error ;
             }
+            // start destroy connection thread
+            _destroyConnWorker = SDB_OSS_NEW sdbConnPoolWorker( destroyConnFunc,
+                                                          this ) ;
+            if ( NULL == _destroyConnWorker )
+            {
+               rc = SDB_OOM ;
+               goto error ;
+            }
+            // start background task thread
+            _bgTaskWorker= SDB_OSS_NEW sdbConnPoolWorker( bgTaskFunc, this ) ;
+            if ( NULL == _bgTaskWorker )
+            {
+               rc = SDB_OOM ;
+               goto error ;
+            }
+            rc = _createConnWorker->start() ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            rc = _destroyConnWorker->start() ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            rc = _bgTaskWorker->start() ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            _isEnabled = TRUE ;
          }
       }
 
@@ -355,12 +348,14 @@ namespace sdbclient
          timeoutms = 0 ;
       }
 
-      if ( !_isEnabled )
+      if ( _isClosed )
       {
-         // TODO: (new) before we call "close", "getConnection"
-         // can return a connection in java,
-         // but here, the behave is different
-         rc = SDB_CLIENT_CONNPOOL_NOT_ENABLE ;
+         rc = SDB_CLIENT_CONNPOOL_CLOSE ;
+         goto error ;
+      }
+      if ( !_isInited )
+      {
+         rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
          goto error ;
       }
 
@@ -460,7 +455,11 @@ namespace sdbclient
       INT32                rc = SDB_OK ;
       sdb*                 tmp = NULL ;
 
-      // TODO: (new) when _isEnabled is false, what will happen??
+      if ( _isClosed || !_isInited )
+      {
+         goto done ;
+      }
+
       if ( _isEnabled )
       {
          list<sdb*>::iterator iter ;
@@ -499,6 +498,7 @@ namespace sdbclient
                   }
                   _idleList.push_back( tmp ) ;
                   _idleSize.inc() ;
+                  conn = NULL ;
                }
             }
          } // secondly check _isEnabled
@@ -639,6 +639,7 @@ namespace sdbclient
       list<sdbclient::sdb*>::const_iterator iter ;
       sdbclient::sdb* conn = NULL ;
 
+      _connMutex.get();
       for ( iter = _idleList.begin() ; iter != _idleList.end() ; ++iter )
       {
          conn = *iter ;
@@ -657,7 +658,7 @@ namespace sdbclient
          if ( conn )
          {
             conn->disconnect() ;
-            SAFE_OSS_DELETE( conn) ;
+            SAFE_OSS_DELETE( conn ) ;
          }
       }
       _busyList.clear() ;
@@ -673,6 +674,7 @@ namespace sdbclient
          }
       }
       _destroyList.clear() ;
+      _connMutex.release() ;
 
       // release thread worker
       if ( _createConnWorker )
@@ -1164,18 +1166,23 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
    INT32 sdbConnectionPoolImpl::close()
    {
       INT32 rc = SDB_OK ;
+      if ( _isClosed )
+      {
+         goto done ;
+      }
+	  if ( !_isInited )
+      {
+         rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
+         goto error ;
+      }
 
       rc = _disable() ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // clear strategy
-      if ( _strategy )
-      {
-         SAFE_OSS_DELETE( _strategy ) ;
-      }
-      _isInited = FALSE;
+      _isInited = FALSE ;
+      _isClosed = TRUE ;
    done :
       return rc  ;
    error :
@@ -1212,6 +1219,11 @@ cout << ", diffTime + checkInterval * SDB_CONNPOOL_MULTIPLE is:" << diffTime + c
       std::vector<string> delAddrs ;
       list<sdb*>::iterator iter ;
 
+      if ( _isClosed )
+      {
+         rc = SDB_CLIENT_CONNPOOL_CLOSE ;
+         goto error ;
+      }
       if ( !_isInited )
       {
          rc = SDB_CLIENT_CONNPOOL_NOT_INIT ;
