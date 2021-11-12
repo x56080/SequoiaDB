@@ -58,8 +58,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reopen");
       inMemBitmap::options o;
-      o.bitmapPageSkipped = 0;
-      o.freeBound = freeBound;
+      o.bitmapBeginPage = 0;
 
       if (OSS_UNLIKELY(!args.isValid() ||
                        NULL == creater ||
@@ -375,7 +374,7 @@ namespace vessel
             ++_segmentCountOnDisk;
          }
          
-         rc = _allocator.allocateNewBitmapPage();
+         rc = _allocator.allocateNewBitmapPages(1);
          if (SDB_OK != rc)
          {
             /// No need to do anything to rollback file.

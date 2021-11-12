@@ -88,8 +88,7 @@ namespace vessel
          goto error;
       }
 
-      o.freeBound = 0;
-      o.bitmapPageSkipped = 0;
+      o.bitmapBeginPage = 0;
       o.maxBitmapPageCount = MAX_SU_COUNT / ALLOCATOR_PAGE_CAPACITY;
 
       rc = _suAllocator.initWithNoLatch(ALLOCATOR_PAGE_CAPACITY, o);

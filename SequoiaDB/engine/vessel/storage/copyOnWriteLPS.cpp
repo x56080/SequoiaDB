@@ -53,18 +53,28 @@ namespace vessel
 
    void copyOnWriteLPS::fini()
    {
-      if (NULL != _waitingForReleasing)
+      for (_BLOCK_LIST::const_iterator itr = _waitingList.begin();
+           itr != _waitingList.end(); ++itr)
       {
-         _waitingForReleasing->clear();
-         SDB_OSS_DEL _waitingForReleasing;
-         _waitingForReleasing = NULL;
+         SDB_POOL_FREE(itr->second);
       }
-      if (NULL != _readyForReleasing)
+      _waitingList.clear();
+
+      for (_BLOCK_LIST::const_iterator itr = _readyList.begin();
+           itr != _readyList.end(); ++itr)
       {
-         _readyForReleasing->clear();
-         SDB_OSS_DEL _readyForReleasing;
-         _readyForReleasing = NULL;
+         SDB_POOL_FREE(itr->second);
       }
+      _readyList.clear();
+
+      if (NULL != _block)
+      {
+         SDB_POOL_FREE(_block);
+         _block = NULL;
+      }
+
+      _size = 0;
+
       return;
    }
 
@@ -316,7 +326,6 @@ namespace vessel
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      ossXLatchGuard guard(logicalPageSpace::getMappingLatch(), FALSE); /// do not get latch here.
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
 
@@ -346,25 +355,21 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      guard.lock();
-      /// write local delta log
-      rc = logicalPageSpace::getLogConsole().append(dlr);
-      if (SDB_OK != rc)
       {
-         guard.unlock();
-         PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                lsn, rc);         
-         goto error;
-      }
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         /// write local delta log
+         rc = logicalPageSpace::getLogConsole().append(dlr);
+         if (SDB_OK != rc)
+         {
+            guard.unlock();
+            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
+                  lsn, rc);         
+            goto error;
+         }
 
-      /// update dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-
-      if (releaseOld)
-      {
-         pushIntoRemovingList(count, oldPids);
+         /// update dirty lsn
+         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
       }
-      guard.unlock();
 
       ///update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -377,6 +382,11 @@ namespace vessel
             ossPanic();
             goto error;
          }
+      }
+
+      if (releaseOld)
+      {
+         insertIntoReleasingBlock(count, oldPids);
       }
 
       context->unblockCheckpoint();
@@ -404,7 +414,6 @@ namespace vessel
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      ossXLatchGuard guard(logicalPageSpace::getMappingLatch(), FALSE); /// do not get latch here.
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
       CHAR *buffer = NULL;
@@ -460,26 +469,21 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      guard.lock();
-      /// write local delta log
-      rc = logicalPageSpace::getLogConsole().append(dlr);
-      if (SDB_OK != rc)
       {
-         guard.unlock();
-         PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                lsn, rc);
-         goto error;
-      }
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch()); 
+         /// write local delta log
+         rc = logicalPageSpace::getLogConsole().append(dlr);
+         if (SDB_OK != rc)
+         {
+            guard.unlock();
+            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
+                  lsn, rc);
+            goto error;
+         }
 
-      /// update dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-
-      if (releasePid)
-      {
-         pushIntoRemovingList(count,
-                              (const PAGE_ID *)buffer);
+         /// update dirty lsn
+         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
       }
-      guard.unlock();
 
       /// update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -491,6 +495,12 @@ namespace vessel
             ossPanic();
             goto error;
          }
+      }
+
+      if (releasePid)
+      {
+         insertIntoReleasingBlock(count,
+                                  (const PAGE_ID *)buffer);
       }
 
       context->unblockCheckpoint();
@@ -522,7 +532,6 @@ namespace vessel
       SDB_ASSERT(NULL != pids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      ossXLatchGuard guard(logicalPageSpace::getMappingLatch(), FALSE); /// do not get latch here.
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
 
@@ -551,21 +560,22 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      guard.lock();
-      /// write local delta log
-      rc = logicalPageSpace::getLogConsole().append(dlr);
-      if (SDB_OK != rc)
       {
-         guard.unlock();
-         PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                lsn, rc);
-         
-         goto error;
-      }
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         /// write local delta log
+         rc = logicalPageSpace::getLogConsole().append(dlr);
+         if (SDB_OK != rc)
+         {
+            guard.unlock();
+            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
+                  lsn, rc);
+            
+            goto error;
+         }
 
-      ///update dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      guard.unlock();
+         ///update dirty lsn
+         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
+      }
 
       context->unblockCheckpoint();
       checkpointBlocked = FALSE;
@@ -609,7 +619,7 @@ namespace vessel
          }
       }
 
-      switchRemovingList();
+      mergeBlocksToReadyList();
 
    done:
       return rc;
@@ -619,106 +629,81 @@ namespace vessel
 
    void copyOnWriteLPS::endToCreateCheckpoint(requestContext *context)
    {
-      static const UINT32 _SIZE = 16;
       ossScopedRWLock guard(logicalPageSpace::getCheckpointContext().getLatch(), SHARED);
 
-      /// no checkpoint can be created now, coz we are holding shared latch
-      if (NULL != _readyForReleasing)
+      for (_BLOCK_LIST::const_iterator itr = _readyList.begin();
+           itr != _readyList.end(); ++itr)
       {
-         ossPoolVector<PAGE_ID> pids;
-         pids.reserve(_SIZE);
-
-         while (0 != _readyForReleasing->getSize())
-         {
-            for (UINT32 i = 0; i < _SIZE; ++i)
-            {
-               PAGE_ID pid = INVALID_PAGE_ID;
-               if (_readyForReleasing->popForward(pid))
-               {
-                  if (OSS_LIKELY(INVALID_PAGE_ID != pid))
-                  {
-                     pids.push_back(pid);
-                  }
-               }
-               else
-               {
-                  break;
-               }
-            }
-
-            if (pids.empty())
-            {
-               continue;
-            }
-            else if (1 < pids.size())
-            {
-               //std::sort(pids.begin(), pids.end());
-            }
-            getDataStorageObj()->releasePages(pids.size(), pids.data());
-            pids.clear();
-         }
-
-         SDB_OSS_DEL _readyForReleasing;
-         _readyForReleasing = NULL;
+         getDataStorageObj()->releasePages(itr->first, (const PAGE_ID *)(itr->second));
+         SDB_POOL_FREE(itr->second);
       }
+      _readyList.clear();
       return;
    }
 
-   void copyOnWriteLPS::pushIntoRemovingList(UINT32 count,
-                                             const PAGE_ID *pids)
+   void copyOnWriteLPS::insertIntoReleasingBlock(UINT32 count,
+                                                 const PAGE_ID *pids)
    {
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != pids, "can not be null");
-      if (NULL == _waitingForReleasing)
+      UINT32 pushed = 0;
+      ossXLatchGuard guard(&_blockLatch);
+
+      while (pushed < count)
       {
-         _waitingForReleasing = SDB_OSS_NEW forwardList<PAGE_ID>();
-         if (NULL == _waitingForReleasing)
+         if (NULL == _block)
          {
-            PD_LOG(PDSEVERE, "failed to allocate mem for removing list");
-            goto done;
+            SDB_ASSERT(0 == _size, "impossible");
+            _block = (CHAR *)SDB_POOL_ALLOC(_BLOCK_CAPACITY * sizeof(PAGE_ID));
+            if (OSS_UNLIKELY(NULL == _block))
+            {
+               PD_LOG(PDERROR, "failed to allocate mem. pids leak!");
+               goto done;   
+            }
+         }
+
+         for (UINT32 i = pushed; i < count; ++i)
+         {
+            PAGE_ID pid = pids[i];
+            SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+            ((PAGE_ID *)_block)[_size++] = pid;
+            ++pushed;
+            if (_BLOCK_CAPACITY == _size)
+            {
+               break;
+            }
+         }
+
+         if (_BLOCK_CAPACITY == _size)
+         {
+            _waitingList.push_back(std::make_pair(_size, _block));
+            _size = 0;
+            _block = NULL;
          }
       }
 
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         SDB_ASSERT(INVALID_PAGE_ID != pids[i], "can not be invalid");
-         INT32 rc = _waitingForReleasing->pushForward(pids[i]);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDSEVERE, "failed to push pid[%d] into list:%d", rc);
-         }
-      }
    done:
       return;
    }
 
-   void copyOnWriteLPS::switchRemovingList()
+   void copyOnWriteLPS::mergeBlocksToReadyList()
    {
-      INT32 rc = SDB_OK;
-      PAGE_ID pid = INVALID_PAGE_ID;
-      
-      if (NULL == _waitingForReleasing || _waitingForReleasing->getSize() == 0)
+      /// we should holding checkpoint x latch now,
+      /// no need to get block latch
+
+      if (0 < _size)
       {
-         goto done;
-      }
-      else if (NULL == _readyForReleasing)
-      {
-         _readyForReleasing = _waitingForReleasing;
-         _waitingForReleasing = NULL;
-         goto done;
+         _waitingList.push_back(std::make_pair(_size, _block));
+         _size = 0;
+         _block = NULL;
       }
 
-      /// for some reason last checkpoint not done.
-      while (_waitingForReleasing->popForward(pid))
+      if (!_waitingList.empty())
       {
-         rc = _readyForReleasing->pushForward(pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to push pid[%d] into backup list:%d",
-                   pid, rc);
-         }
+         /// merge list by move
+         _readyList.merge(std::move(_waitingList));
       }
-   done:
+      
       return;
    }
 }//namespace vessel

@@ -255,7 +255,7 @@ namespace vessel
 
    void logicalPageIdCache::_cacheBucket::mergeMainMapToFlushingMap()
    {
-      if (NULL == _mainMap)
+      if (NULL == _mainMap || _mainMap->get().empty())
       {
          goto done;
       }
@@ -269,8 +269,7 @@ namespace vessel
       {
          UINT32 replaced = 0;
          _mainMap->exportTo(*_flushingMap, replaced);
-         SDB_OSS_DEL _mainMap;
-         _mainMap = NULL;
+         SDB_ASSERT(_mainMap->get().empty(), "must be empty");
       }
    done:
       return ;
@@ -381,8 +380,7 @@ namespace vessel
    _latchCount(0),
    _latches(NULL),
    _bucketCount(0),
-   _buckets(NULL),
-   _modifiedCount(0)
+   _buckets(NULL)
    {
       SDB_ASSERT(ossIsPowerOf2(ID_MAP_PAGE_CACHE_SLOT_COUNT), "impossible");
    }
@@ -458,7 +456,7 @@ namespace vessel
          SDB_OSS_DEL []_buckets;
          _buckets = NULL;
       }
-      _modifiedCount.init(0);
+
       return;
    }
 
@@ -520,7 +518,6 @@ namespace vessel
       }
 
       /// clear modified count first
-      _modifiedCount.init(0);
       for (UINT32 i = 0; i < _bucketCount; ++i)
       {
          ossSLatch *latch = getBucketLatch(i);
@@ -557,7 +554,6 @@ namespace vessel
          goto error;
       }
 
-      _modifiedCount.inc();
    done:
       return rc;
    error:
@@ -586,7 +582,6 @@ namespace vessel
          goto error;
       }
 
-      _modifiedCount.inc();
    done:
       return rc;
    error:
@@ -693,7 +688,6 @@ namespace vessel
          goto error;
       }
 
-      _modifiedCount.inc();
    done:
       return rc;
    error:
@@ -739,12 +733,9 @@ namespace vessel
             {
                if (_basePageCount <= key.first)
                {
-                  rc = _buckets[bucketNo].addEmptyCache(key, &cache);
-                  if (SDB_OK != rc)
-                  {
-                     PD_LOG(PDERROR, "failed to add empty cache to bucket:%d", rc);
-                     goto error;
-                  }
+                  PD_LOG(PDERROR, "lpid[%d] not mapped yet", lpid);
+                  rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+                  goto error;
                }
                else
                {
@@ -935,7 +926,7 @@ namespace vessel
       SDB_ASSERT(NULL != file, "can not be null");
       idMapFileHead head;
       const partialImpCacheMap *flushing = bucket.getFlushingMap();
-      if (NULL == flushing)
+      if (NULL == flushing || flushing->get().empty())
       {
          goto done;
       }
@@ -989,7 +980,6 @@ namespace vessel
          goto error;
       }
 
-      _modifiedCount.init(0);
       for (UINT32 i = 0; i < _bucketCount; ++i)
       {
          ossSLatch *latch = getBucketLatch(i);
@@ -1038,11 +1028,6 @@ namespace vessel
    error:
       SAFE_OSS_DELETE(tmp);
       goto done;
-   }
-
-   INT32 logicalPageIdCache::getModifiedCount()const
-   {
-      return _modifiedCount.peek();
    }
 
    UINT32 logicalPageIdCache::getBucketAndPartialCacheIdentity(PAGE_ID lpid,

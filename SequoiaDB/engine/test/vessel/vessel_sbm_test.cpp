@@ -53,7 +53,7 @@ TEST(sbmtest, test1)
    ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
 
-   rc = bitmap.allocateNewBitmapPage();
+   rc = bitmap.allocateNewBitmapPages(1);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < capacity; ++i)
@@ -68,6 +68,7 @@ TEST(sbmtest, test1)
    bitmap.fini();
 }
 
+/*
 TEST(sbmtest, test2)
 {
    engine::vessel::inMemBitmap bitmap;
@@ -109,6 +110,8 @@ TEST(sbmtest, test2)
    bitmap.fini();
 }
 
+*/
+
 TEST(sbmtest, test3)
 {
    engine::vessel::inMemBitmap bitmap;
@@ -116,12 +119,12 @@ TEST(sbmtest, test3)
    INT32 rc = SDB_OK;
    UINT32 capacity = 16384;
    UINT32 offset = 0;
-   o.bitmapPageSkipped = 8;
+   o.bitmapBeginPage = 8;
 
    rc = bitmap.init(capacity, o);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = bitmap.allocateNewBitmapPage();
+   rc = bitmap.allocateNewBitmapPages(1);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < capacity; ++i)

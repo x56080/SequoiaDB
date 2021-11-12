@@ -36,9 +36,8 @@
 #ifndef VESSEL_PARTIAL_IMP_CACHE_H_
 #define VESSEL_PARTIAL_IMP_CACHE_H_
 
-#include "utilPooledObject.hpp"
+#include "utilGlobalPooledObject.hpp"
 #include "vessel/idMapPage.h"
-#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -47,7 +46,7 @@ namespace vessel
    constexpr UINT32 ID_MAP_PAGE_CACHE_SIZE = 256;
    constexpr UINT32 ID_MAP_PAGE_CACHE_SLOT_COUNT = ID_MAP_PAGE_CACHE_SIZE / sizeof(idMapSlot);
 
-   class partialImpCache : public _utilPooledObject
+   class partialImpCache : public utilGlobalPooledObject
    {
       public:
          partialImpCache();

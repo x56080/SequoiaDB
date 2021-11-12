@@ -1006,8 +1006,7 @@ namespace vessel
       static constexpr UINT32 CHUNK_SIZE = 16;
       static constexpr UINT32 CAPACITY = (MAX_CL_MB_COUNT +1) / collectionObjHolderGroup::CAPACITY;
 
-      o.bitmapPageSkipped = 0;
-      o.freeBound = 0;
+      o.bitmapBeginPage = 0;
       o.maxBitmapPageCount = (MAX_CL_MB_COUNT + 1) / ALLOCATOR_PAGE_CAPAITY;
       rc = _allocator.initWithNoLatch(ALLOCATOR_PAGE_CAPAITY, o);
       if (SDB_OK != rc)

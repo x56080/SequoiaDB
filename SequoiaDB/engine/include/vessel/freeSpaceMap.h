@@ -41,7 +41,6 @@
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/fsmCandidateBucket.h"
 #include "vessel/fsmCandidate.h"
-#include "vessel/forwardList.hpp"
 
 namespace engine
 {

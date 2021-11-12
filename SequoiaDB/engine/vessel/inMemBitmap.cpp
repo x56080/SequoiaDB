@@ -219,7 +219,6 @@ namespace vessel
          goto error;
       }
       
-
       if (NULL != stillFreeCount)
       {
          *stillFreeCount = _scanner.getNonZeroedCount();
@@ -263,23 +262,21 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(pageCapacity <= o.freeBound))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(o.maxBitmapPageCount <= o.bitmapPageSkipped))
+      else if (OSS_UNLIKELY(o.maxBitmapPageCount <= o.bitmapBeginPage))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       _pageCapacity = pageCapacity;
-      _freeBound = o.freeBound;
-      _pageSkipped = o.bitmapPageSkipped;
-      _pageCount = o.bitmapPageSkipped;
-      _maxBitmapPageCount = o.maxBitmapPageCount;
+      _o = o;
       _latch = latch;
+      _totalFreeBitCount = 0;
+
+      if (0 < _o.bitmapBeginPage)
+      {
+         _pages.resize(_o.bitmapBeginPage, NULL);
+      }
    done:
       return rc;
    error:
@@ -288,144 +285,41 @@ namespace vessel
 
    void inMemBitmap::fini()
    {
-      if (!_pagesWithLowFreeCount.empty())
-      {
-         _PAGE_MAP::iterator itr = _pagesWithLowFreeCount.begin();
-         for (; itr != _pagesWithLowFreeCount.end(); ++itr)
-         {
-            if (NULL != itr->second)
-            {
-               SDB_OSS_DEL(itr->second);
-            }
-         }
-         _pagesWithLowFreeCount.clear();
-      }
+     _free.clear();
 
-      if (!_pagesWithHighFreeCount.empty())
+      for (UINT32 i = 0; i < _pages.size(); ++i)
       {
-         _PAGE_MAP::iterator itr = _pagesWithHighFreeCount.begin();
-         for (; itr != _pagesWithHighFreeCount.end(); ++itr)
+         if (NULL != _pages[i])
          {
-            if (NULL != itr->second)
-            {
-               SDB_OSS_DEL(itr->second);
-            }
+            SDB_OSS_DEL _pages[i];
          }
-         _pagesWithHighFreeCount.clear();
       }
+      _pages.clear();
 
       _latch = NULL;
       _pageCapacity = 0;
-      _freeBound = 0;
-      _pageSkipped = 0;
-      _maxBitmapPageCount = 0;
-      _pageCount = 0;
-      _totalFreeCount = 0;
+      _o = options();
+      _totalFreeBitCount = 0;
 
       return;
-   }
-
-   INT32 inMemBitmap::incPageCount(UINT32 cnt)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_LIKELY(isInitialized()))
-      {
-         ossXLatchGuard guard(_latch);
-         if ((_pageCount + cnt) <= _maxBitmapPageCount)
-         {
-            _pageCount += cnt;
-         }
-         else
-         {
-            rc = SDB_VESSEL_OUT_OF_RESOURCE;
-            goto error;
-         }
-      }
-      else
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::allocateNewBitmapPage()
-   {
-      INT32 rc = SDB_OK;
-      ossXLatchGuard guard(_latch, FALSE);
-
-      if (OSS_UNLIKELY(!isInitialized()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      guard.lock();
-      rc = _allocateNewBitmapPage();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::_allocateNewBitmapPage()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      _inMemBitPage *page = NULL;
-
-      if (_pageCount == _maxBitmapPageCount)
-      {
-         rc = SDB_VESSEL_OUT_OF_RESOURCE;
-         goto error;
-      }
-
-      page = SDB_OSS_NEW _inMemBitPage();
-      if (NULL == page)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = page->init(_pageCount++, _pageCapacity, FALSE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init bitmap page:%d", rc);
-         goto error;
-      }
-
-      _pagesWithHighFreeCount[page->getPageID()] = page;
-      _totalFreeCount += _pageCapacity;
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(page);
-      goto done;
    }
 
    INT32 inMemBitmap::_allocateNewBitmapPages(UINT32 count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(1 < count, "impossible");
-      ossPoolVector<_inMemBitPage *> pages;
+      SDB_ASSERT(0 < count, "impossible");
+      INT32 nextPageId = (INT32)(_pages.size());
+      UINT32 pushed = 0;
 
-      if (_maxBitmapPageCount < (_pageCount + count))
+      if (_o.maxBitmapPageCount < (_pages.size() + count))
       {
          rc = SDB_VESSEL_OUT_OF_RESOURCE;
          goto error;
       }
 
-      pages.reserve(count);
+      _pages.reserve(count);
+
       for (UINT32 i = 0; i < count; ++i)
       {
          _inMemBitPage *page = SDB_OSS_NEW _inMemBitPage();
@@ -436,28 +330,27 @@ namespace vessel
             goto error;
          }
 
-         rc = page->init(_pageCount + i, _pageCapacity, FALSE);
+         rc = page->init(nextPageId++, _pageCapacity, FALSE);
          if (SDB_OK != rc)
          {
             goto error;
          }
 
-         pages.push_back(page);
+         _pages.push_back(page);
+         _free[page->getPageID()] = page;
+         ++pushed;
       }
 
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         _inMemBitPage *page = pages[i];
-         _pagesWithHighFreeCount[page->getPageID()] = page;
-         _totalFreeCount += _pageCapacity;
-      }
-      _pageCount += count;
+      _totalFreeBitCount += (count * _pageCapacity);
    done:
       return rc;
    error:
-      for (UINT32 i = 0; i < pages.size(); ++i)
+      for (UINT32 i = 0; i < pushed; ++i)
       {
-         SAFE_OSS_DELETE(pages[i]);
+         _inMemBitPage *page = _pages.back();
+         _free.erase(page->getPageID());
+         SDB_OSS_DEL page;
+         _pages.pop_back();
       }
       goto done;
    }
@@ -478,15 +371,7 @@ namespace vessel
       }
 
       guard.lock();
-      if (1 == count)
-      {
-         rc = _allocateNewBitmapPage();
-      }
-      else
-      {
-         rc = _allocateNewBitmapPages(count);
-      }
-
+      rc = _allocateNewBitmapPages(count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -523,41 +408,28 @@ namespace vessel
       }
 
       guard.lock();
-      do
+      if (_totalFreeBitCount < count)
       {
-         rc = _allocateBits(count, buf);
-         if (SDB_OK == rc)
+         if (0 < autoExtendingCount)
          {
-            goto done;
-         }
-         else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE == rc)
-         {
-            if (0 == autoExtendingCount)
+            rc = _allocateNewBitmapPages(autoExtendingCount);
+            if (SDB_OK != rc)
             {
                goto error;
-            }
-            else if (1 == autoExtendingCount)
-            {
-               rc = _allocateNewBitmapPage();
-               if (SDB_OK != rc)
-               {
-                  goto error;
-               }
-            }
-            else
-            {
-               rc = _allocateNewBitmapPages(autoExtendingCount);
-               if (SDB_OK != rc)
-               {
-                  goto error;
-               }
             }
          }
          else
          {
+            rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
             goto error;
          }
-      } while (TRUE);
+      }
+
+      rc = _allocateBits(count, buf);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    
    done:
       return rc;
@@ -580,34 +452,23 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (count <= _pageCount)
+      else if (count <= _pages.size())
       {
+         /// pages never shrink
          goto done;
       }
 
       guard.lock();
-      if (count <= _pageCount)
+      if (count <= _pages.size())
       {
          goto done;
       }
 
-      if ((_pageCount + 1) == count)
+      rc = _allocateNewBitmapPages(count - _pages.size());
+      if (SDB_OK != rc)
       {
-         rc = _allocateNewBitmapPage();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = _allocateNewBitmapPages(count - _pageCount);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to allocate multiple pages:%d", rc);
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to allocate multiple pages:%d", rc);
+         goto error;
       }
    done:
       return rc;
@@ -634,10 +495,13 @@ namespace vessel
          goto error;
       }
 
-      rc = _occupy(count, buf);
-      if (SDB_OK != rc)
       {
-         goto error;
+         ossScopedLock guard(_latch);
+         rc = _occupy(count, buf);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
    done:
       return rc;
@@ -653,52 +517,51 @@ namespace vessel
       SDB_ASSERT(NULL != buf, "can not be null");
 
       UINT32 occupied = 0;
-      ossScopedLock guard(_latch);
 
       for (UINT32 i = 0; i < count; ++i)
       {
+         UINT32 stillFree = 0;
          INT32 pageId = buf[i] / _pageCapacity;
          UINT32 offset = buf[i] % _pageCapacity;
          _inMemBitPage *page = NULL;
 
-         if ((INT32)_pageCount <= pageId)
+         if ((INT32)_pages.size() <= pageId)
          {
             rc = SDB_OUT_OF_BOUND;
             goto error;
          }
-         else if (pageId < (INT32)_pageSkipped)
+         else if (pageId < (INT32)(_o.bitmapBeginPage))
          {
             rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
             goto error;
          }
 
-         page = getFromHFC(pageId);
-         if (NULL != page)
+         page = _pages[pageId];
+         if (NULL == page)
          {
-            rc = occupyFromHFC(page, offset);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            ++occupied;
-            continue;
-         }
-         
-         page = getFromLFC(pageId);
-         if (NULL != page)
-         {
-            rc = occupyFromLFC(page, offset);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            ++occupied;
-            continue;
+            PD_LOG(PDERROR, "page obj is not valid at[%d]", pageId);
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            goto error;
          }
 
-         /// already been occupied.
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
+         rc = page->occupy(offset, &stillFree);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         --_totalFreeBitCount;
+         if (0 == stillFree)
+         {
+            _free.erase(page->getPageID());
+            if (!_o.keepEmptyPageInMem)
+            {
+               SDB_OSS_DEL page;
+               _pages[pageId] = NULL;
+            }
+         }
+
+         ++occupied;
       }
 
    done:
@@ -711,155 +574,60 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitmap::occupyFromHFC(_inMemBitPage *page,
-                                    UINT32 offset)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != page, "can not be null");
-
-      UINT32 stillFreeCount = 0;
-      rc = page->occupy(offset, &stillFreeCount);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      --_totalFreeCount;
-      if (0 == stillFreeCount)
-      {
-         _pagesWithHighFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-      else if (stillFreeCount < _freeBound)
-      {
-         _pagesWithHighFreeCount.erase(page->getPageID());
-         _pagesWithLowFreeCount[page->getPageID()] =  page;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::occupyFromLFC(_inMemBitPage *page,
-                                    UINT32 offset)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != page, "can not be null");
-
-      UINT32 stillFreeCount = 0;
-      rc = page->occupy(offset, &stillFreeCount);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      --_totalFreeCount;
-      if (0 == stillFreeCount)
-      {
-         _pagesWithLowFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 inMemBitmap::_allocateBits(UINT32 count, UINT32 *buf)
    {
       SDB_ASSERT(isInitialized(), "must be inited");
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != buf, "can not be null");
+      SDB_ASSERT((INT64)count <= _totalFreeBitCount, "not enough resource");
       INT32 rc = SDB_OK;
+      UINT32 allocated = 0;
 
-      if (_totalFreeCount < (INT32)count)
+      if (_totalFreeBitCount < (INT64)count)
       {
          rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 
-      rc = allocateOnSinglePage(count, buf);
-      if (SDB_OK == rc)
+      for (UINT32 i = 0; i < count; ++i)
       {
-         goto done;
-      }
-      else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate from bitmap:%d", rc);
-         goto error;
-      }
-      else
-      {
-         rc = allocateOnMultiPages(count, buf);
+         UINT32 stillFree = 0;
+         _FREE_MAP::const_iterator itr = _free.begin();
+         if (_free.end() == itr)
+         {
+            break;
+         }
+
+         _inMemBitPage *page = itr->second;
+         rc = itr->second->allocate(1, buf + allocated, &stillFree);
          if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to allocate from page[%d], rc:%d",
+                   itr->first, rc);
             goto error;
          }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::allocateOnSinglePage(UINT32 count, UINT32 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != buf, "can not be null");
-
-      if (_freeBound <= count || _pagesWithLowFreeCount.empty())
-      {
-         rc = allocateBitsFromHFC(count, buf);
-         if (SDB_OK != rc)
+         
+         /// transfer it to global offset.
+         buf[allocated] += page->getPageID() * _pageCapacity;
+         ++allocated;
+         --_totalFreeBitCount;
+         if (0 == stillFree)
          {
-            goto error;
-         }
-      }
-      else
-      {
-         rc = allocateBitsFromLFC(count, buf);
-         if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE == rc)
-         {
-            rc = allocateBitsFromHFC(count, buf);
-            if (SDB_OK != rc)
+            _free.erase(itr);
+            if (!_o.keepEmptyPageInMem)
             {
-               goto error;
+               _pages[page->getPageID()] = NULL;
+               SDB_OSS_DEL page;
             }
          }
-         else if (SDB_OK != rc)
-         {
-            goto error;
-         }  
       }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
-   INT32 inMemBitmap::allocateOnMultiPages(UINT32 count, UINT32 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != buf, "can not be null");
-
-      UINT32 allocated = 0;
-
-      do
+      if (count != allocated)
       {
-         rc = allocateOnSinglePage(1, buf + allocated);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         ++allocated;
-      } while (allocated < count);
-      
+         PD_LOG(PDERROR, "unexpected failure when allocating");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -872,7 +640,6 @@ namespace vessel
 
    void inMemBitmap::releaseBits(UINT32 count, const UINT32 *buf)
    {
-      ossXLatchGuard guard(_latch, FALSE);
       if (OSS_UNLIKELY(!isInitialized()))
       {
          goto done;
@@ -882,8 +649,10 @@ namespace vessel
          goto done;
       }
 
-      guard.lock();
-      _releaseBits(count, buf);
+      {
+         ossXLatchGuard guard(_latch);
+         _releaseBits(count, buf);
+      }
    done:
       return;
    }
@@ -893,6 +662,7 @@ namespace vessel
       return releaseBits(1, &bitOffset);
    }
 
+
    void inMemBitmap::_releaseBits(UINT32 count, const UINT32 *buf)
    {
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -900,370 +670,56 @@ namespace vessel
       SDB_ASSERT(NULL != buf, "can not be null");
       for (UINT32 i = 0; i < count; ++i)
       {
-         _PAGE_MAP::iterator itr;
+         UINT32 oldFreeCount = 0;
+         _inMemBitPage *page = NULL;
          UINT32 bitOffset = buf[i] % _pageCapacity;
-         UINT32 pageId = buf[i] / _pageCapacity;
-         if (_pageCount <= pageId)
+         INT32 pageId = buf[i] / _pageCapacity;
+         if ((INT32)(_pages.size()) <= pageId)
          {
-            PD_LOG(PDERROR, "invalid offset to release:%d", pageId);
+            PD_LOG(PDERROR, "invalid offset to release:%d", buf[i]);
             continue;
          }
-         else if (pageId < _pageSkipped)
+         else if (pageId < (INT32)_o.bitmapBeginPage)
          {
-            PD_LOG(PDERROR, "invalid offset to release:%d", pageId);
+            PD_LOG(PDERROR, "invalid offset to release:%d", buf[i]);
             continue;
          }
 
-         itr = _pagesWithHighFreeCount.find(pageId);
-         if (_pagesWithHighFreeCount.end() != itr)
+         page = _pages[pageId];
+         if (NULL == page)
          {
-            releaseBitFromHFC(1, &bitOffset, itr->second);
+            page = SDB_OSS_NEW _inMemBitPage();
+            if (OSS_UNLIKELY(NULL == page))
+            {
+               PD_LOG(PDERROR, "failed to allocate mem when releasing:%d", buf[i]);
+               continue;
+            }
+
+            INT32 rc = page->init(pageId, _pageCapacity, TRUE);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to init page when releasing:%d, rc:%d", buf[i], rc);
+               continue;
+            }
+
+            oldFreeCount = 0;
          }
          else
          {
-            itr = _pagesWithLowFreeCount.find(pageId);
-            if (_pagesWithLowFreeCount.end() != itr)
-            {
-               releaseBitFromLFC(1, &bitOffset, itr->second);
-            }
-            else
-            {
-               releaseAtDestroyedPage(pageId, 1, &bitOffset);
-            }
+            oldFreeCount = page->getFree();
          }
+
+         page->release(1, &bitOffset);
+         if (0 == oldFreeCount && 0 < page->getFree())
+         {
+            _free[page->getPageID()] = page;
+         }
+
+         _totalFreeBitCount += (page->getFree() - oldFreeCount);
       }
-   }
 
-/*
-   void inMemBitmap::_releaseBits(UINT32 count, const UINT32 *buf)
-   {
-      SDB_ASSERT(isInitialized(), "must be inited");
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != buf, "can not be null");
-      static const UINT32 BATCH_SIZE = 16;
-      UINT32 batch[BATCH_SIZE];
-      UINT32 released = 0;
-
-      while (released < count)
-      {
-         _PAGE_MAP::iterator itr;
-         INT32 pageId = buf[released] / _pageCapacity;
-         UINT32 currentBatchCount = 0;
-         batch[currentBatchCount++] = buf[released] % _pageCapacity;
-         while (currentBatchCount < BATCH_SIZE &&
-                ((released + currentBatchCount) < count))
-         {
-            INT32 nextPage = buf[released + currentBatchCount] / _pageCapacity;
-            if (pageId == nextPage)
-            {
-               batch[currentBatchCount] = buf[released + currentBatchCount] % _pageCapacity;
-               ++currentBatchCount;
-            }
-            else
-            {
-               break;
-            }
-         }
-
-         released += currentBatchCount;
-
-         if ((INT32)_pageCount <= pageId)
-         {
-            SDB_ASSERT(FALSE, "invalid offset to be released");
-            continue;
-         }
-         if ((INT32)_pageSkipped > pageId)
-         {
-            SDB_ASSERT(FALSE, "invalid offset to be released");
-            continue;
-         }
-
-         itr = _pagesWithHighFreeCount.find(pageId);
-         if (_pagesWithHighFreeCount.end() != itr)
-         {
-            releaseBitFromHFC(currentBatchCount, batch, itr->second);
-         }
-         else
-         {
-            itr = _pagesWithLowFreeCount.find(pageId);
-            if (_pagesWithLowFreeCount.end() != itr)
-            {
-               releaseBitFromLFC(currentBatchCount, batch, itr->second);
-            }
-            else
-            {
-               releaseAtDestroyedPage(pageId, currentBatchCount, batch);
-            }
-         }
-      }
-   done:
-      return;
-   }
-   */
-
-   void inMemBitmap::releaseBitFromHFC(UINT32 count,
-                                        const UINT32 *buf,
-                                        _inMemBitPage *page)
-   {
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != buf, "can not be null");
-      SDB_ASSERT(NULL != page, "can not be null");
-
-      UINT32 oldFree = page->getFree();
-      page->release(count, buf);
-      if (OSS_LIKELY(page->getFree() > oldFree))
-      {
-         _totalFreeCount += (page->getFree() - oldFree);
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "free count not changed");
-      }
       return;
    }
 
-   void inMemBitmap::releaseBitFromLFC(UINT32 count,
-                                       const UINT32 *buf,
-                                       _inMemBitPage *page)
-   {
-      SDB_ASSERT(0 < count, "can not be zero");
-      SDB_ASSERT(NULL != buf, "can not be null");
-      SDB_ASSERT(NULL != page, "can not be null");
-
-      UINT32 oldFree = page->getFree();
-      page->release(count, buf);
-
-      if (OSS_LIKELY(page->getFree() > oldFree))
-      {
-         _totalFreeCount += (page->getFree() - oldFree);
-      }
-      else
-      {
-         SDB_ASSERT(FALSE, "free count not changed");
-      }
-
-      if (_freeBound <= page->getFree())
-      {
-         _pagesWithLowFreeCount.erase(page->getPageID());
-         _pagesWithHighFreeCount[page->getPageID()] = page;
-      }
-      return ;
-   }
-
-   void inMemBitmap::releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 <= pageID, "can not be invalid");
-      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
-      SDB_ASSERT((INT32)_pageSkipped <= pageID, "impossible");
-      _inMemBitPage *page = SDB_OSS_NEW _inMemBitPage();
-      if (NULL == page)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         goto error;
-      }
-
-      rc = page->init(pageID, _pageCapacity, TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init page[%d], rc:%d", pageID, rc);
-         goto error;
-      }
-
-      page->release(count, buf);
-      if (OSS_UNLIKELY(0 == page->getFree()))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         goto done;
-      }
-
-      if (page->getFree() < _freeBound)
-      {
-         _pagesWithLowFreeCount[pageID] = page;
-      }
-      else
-      {
-         _pagesWithHighFreeCount[pageID] = page;
-      }
-
-      _totalFreeCount += page->getFree();
-      
-   done:
-      return;
-   error:
-      SAFE_OSS_DELETE(page);
-      goto done;
-   }
-
-   INT32 inMemBitmap::allocateBitsFromHFC(UINT32 count, UINT32 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
-      _inMemBitPage *page = NULL;
-      UINT32 stillFreeCount = 0;
-      std::map<INT32, _inMemBitPage*>::iterator itr = _pagesWithHighFreeCount.begin();
-      for (; itr != _pagesWithHighFreeCount.end(); ++itr)
-      {
-         page = itr->second;
-         if (page->getFree() < count)
-         {
-            continue;
-         }
-      }
-
-      if (NULL == page)
-      {
-         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
-         goto error;
-      }
-
-      rc = page->allocate(count, buf, &stillFreeCount);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         buf[i] = buf[i] + (_pageCapacity * page->getPageID());
-      }
-
-      _totalFreeCount -= count;
-
-      if (0 == stillFreeCount)
-      {
-         _pagesWithHighFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-      else if (stillFreeCount < _freeBound)
-      {
-         _pagesWithLowFreeCount[page->getPageID()] = page;
-         _pagesWithHighFreeCount.erase(page->getPageID());
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::allocateBitsFromLFC(UINT32 count, UINT32 *buf)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
-      _inMemBitPage *page = NULL;
-      UINT32 stillFreeCount = 0;
-      std::map<INT32, _inMemBitPage*>::iterator itr = _pagesWithLowFreeCount.begin();
-      for (; itr != _pagesWithLowFreeCount.end(); ++itr)
-      {
-         page = itr->second;
-         if (page->getFree() < count)
-         {
-            continue;
-         }
-      }
-
-      if (NULL == page)
-      {
-         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
-         goto error;
-      }
-
-      rc = page->allocate(count, buf, &stillFreeCount);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      _totalFreeCount -= count;
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         buf[i] = buf[i] + (_pageCapacity * page->getPageID());
-      }
-
-      if (0 == stillFreeCount)
-      {
-         _pagesWithLowFreeCount.erase(page->getPageID());
-         SDB_OSS_DEL page;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitmap::testBit(UINT32 bitOffset, BOOLEAN &isFree)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
-      INT32 pageId = bitOffset / _pageCapacity;
-      const _inMemBitPage *page = NULL;
-      _PAGE_MAP::const_iterator itr;
-
-      if ((INT32)_pageCount <= pageId)
-      {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-      else if (pageId < (INT32)_pageSkipped)
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
-      
-      itr = _pagesWithHighFreeCount.find(pageId);
-      if (_pagesWithHighFreeCount.end() != itr)
-      {
-         page = itr->second;
-      }
-      else
-      {
-         itr = _pagesWithLowFreeCount.find(pageId);
-         if (_pagesWithLowFreeCount.end() != itr)
-         {
-            page = itr->second;
-         }
-      }
-
-      if (NULL == page)
-      {
-         isFree = FALSE;
-         goto done;
-      }
-
-      rc = page->test((bitOffset % _pageCapacity),
-                      isFree);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   inMemBitmap::_inMemBitPage *inMemBitmap::getFromHFC(INT32 pageId)const
-   {
-      _inMemBitPage *page = NULL;
-      _PAGE_MAP::const_iterator itr = _pagesWithHighFreeCount.find(pageId);
-      if (_pagesWithHighFreeCount.end() != itr)
-      {
-         page = itr->second;
-      }
-      return page;
-   }
-
-   inMemBitmap::_inMemBitPage *inMemBitmap::getFromLFC(INT32 pageId)const
-   {
-      _inMemBitPage *page = NULL;
-      _PAGE_MAP::const_iterator itr = _pagesWithLowFreeCount.find(pageId);
-      if (_pagesWithLowFreeCount.end() != itr)
-      {
-         page = itr->second;
-      }
-      return page;
-   }
 } // namespace vessel
 } // namespace engine

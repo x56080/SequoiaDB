@@ -58,7 +58,7 @@ namespace vessel
       dataPageCountInSeg(o.dataPageCountInSeg),
       dataSegCountInFile(o.dataSegCountInFile),
       totalPageCount(o.totalPageCount),
-      deltaLogOffset(o.deltaLogOffset)
+      deltaLogBeginOffset(o.deltaLogBeginOffset)
       {}
       OSS_INLINE idMapFileHead &operator=(const idMapFileHead &o)
       {
@@ -68,7 +68,7 @@ namespace vessel
          dataPageCountInSeg = o.dataPageCountInSeg;
          dataSegCountInFile = o.dataSegCountInFile;
          totalPageCount = o.totalPageCount;
-         deltaLogOffset = o.deltaLogOffset;
+         deltaLogBeginOffset = o.deltaLogBeginOffset;
          return *this;
       }
 
@@ -109,7 +109,7 @@ namespace vessel
       UINT32 dataPageCountInSeg = 0;
       UINT32 dataSegCountInFile = 0;
       UINT32 totalPageCount = 0;
-      UINT64 deltaLogOffset = DPS_INVALID_LSN_OFFSET;
+      UINT64 deltaLogBeginOffset = DPS_INVALID_LSN_OFFSET;
 
    };//struct idMapFileHead
 

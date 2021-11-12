@@ -78,6 +78,10 @@ namespace vessel
          {
             return _minDirtyLsn;
          }
+         OSS_INLINE DPS_LSN_OFFSET peekMinDirtyLsn()const
+         {
+            return ((const ossAtomic64 *)(&_minDirtyLsn))->peek();
+         }
          OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLsn()const
          {
             return _maxDirtyLsn;

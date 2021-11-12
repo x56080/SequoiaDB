@@ -102,7 +102,7 @@ namespace vessel
 
          INT32 commitCheckpoint(const checkpointLSN &lsn);
 
-         UINT32 getDirtyLogSize()const;
+         UINT64 getFuzzyDirtyLogSize()const;
 
          INT32 tryToDestroyHistroyFiles(UINT64 offset);
 
@@ -127,8 +127,7 @@ namespace vessel
 
          INT32 _append(const deltaLogRecord &dlr, UINT64 &offset);
 
-         /// maxOffset is the last byte offset to be fsynced.
-         INT32 fsyncDeltaLog(UINT64 maxOffset);
+         INT32 fsyncDeltaLog(UINT64 upperOffset);
 
       private:
          INT32 initLogBuffer();

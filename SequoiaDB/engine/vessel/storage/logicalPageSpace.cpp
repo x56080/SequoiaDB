@@ -62,7 +62,8 @@ namespace engine
 namespace vessel
 {
    static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
-   static const UINT32 CHECKPOINT_TRIGGER_PAGE_COUNT = 8192;
+   static const UINT32 FULL_CHECKPOINT_DELTA_LOG_SIZE = 4096 * 1024;
+   static const UINT32 CHECKPOINT_TRIGGER_DELTA_LOG_SIZE = 512 * 1024;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -166,8 +167,7 @@ namespace vessel
       SDB_ASSERT(NULL != baseFile, "can not be null");
 
       /// 2. init lpid allocator.
-      bitmapOptions.bitmapPageSkipped = getReservedImpCount();
-      bitmapOptions.freeBound = getFreeBoundOfLpidAllocator();
+      bitmapOptions.bitmapBeginPage = getReservedImpCount();
       bitmapOptions.maxBitmapPageCount = ID_MAP_FILE_MAX_PAGE_COUNT;
       rc = _allocator.init(ID_MAP_PAGE_CAPACITY, bitmapOptions);
       if (SDB_OK != rc)
@@ -290,8 +290,7 @@ namespace vessel
                     base->getCommonHeadInMem().secretValue, dirSlice);
       
       /// init allocator.
-      o.bitmapPageSkipped = getReservedImpCount();
-      o.freeBound = getFreeBoundOfLpidAllocator();
+      o.bitmapBeginPage = getReservedImpCount();
       o.maxBitmapPageCount = ID_MAP_FILE_MAX_PAGE_COUNT;
       rc = _allocator.init(ID_MAP_PAGE_CAPACITY, o);
       if (SDB_OK != rc)
@@ -329,7 +328,7 @@ namespace vessel
       /// open delta log files
       rc = _logConsole.init(&_creater,
                             loader.getFileList(FILE_TYPE_DELTA_LOG),
-                            baseHead.deltaLogOffset);
+                            baseHead.deltaLogBeginOffset);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init log console:%d", rc);
@@ -347,10 +346,10 @@ namespace vessel
          }
       }
       else if (0 != base->getCommonHeadInMem().sequence &&
-               _logConsole.getCheckpoint().offset < baseHead.deltaLogOffset)
+               _logConsole.getCheckpoint().offset < baseHead.deltaLogBeginOffset)
       {
          PD_LOG(PDERROR, "offset in base file[%lld] does not match checkpoint[%lld]",
-                baseHead.deltaLogOffset, _logConsole.getCheckpoint().offset);
+                baseHead.deltaLogBeginOffset, _logConsole.getCheckpoint().offset);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
@@ -365,10 +364,8 @@ namespace vessel
 
       if (_logConsole.getCheckpoint().isValid())
       {
-         UINT64 beginOffset = (DPS_INVALID_LSN_OFFSET == baseHead.deltaLogOffset) ?
-                              0 : baseHead.deltaLogOffset;
          /// restore allocator and cache to last checkpoint
-         rc = replayDeltaLogWhenOpen(beginOffset);
+         rc = replayDeltaLogWhenOpen(baseHead.deltaLogBeginOffset);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init in-mem pools:%d", rc);
@@ -441,7 +438,7 @@ namespace vessel
       _checkpointContext.setStatus(lpsCheckpointContext::RUNNING);
       abortCheckpoint = TRUE;
 
-      fullCheckpoint = (FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize());
+      fullCheckpoint = needFullCheckpoint();
       lsn._lsn = logger->getCurrentLSN();
       lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
       _checkpointContext.clearLsn();
@@ -479,7 +476,7 @@ namespace vessel
       }
 
       logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLSN);
-      lsn._minDirtyLSN = _checkpointContext.getMinDirtyLsn();
+      lsn._minDirtyLSN = _checkpointContext.peekMinDirtyLsn();
 
       rc = _logConsole.commitCheckpoint(lsn);
       if (SDB_OK != rc)
@@ -493,12 +490,14 @@ namespace vessel
 
       if (fullCheckpoint)
       {
+         SDB_ASSERT(_checkpointContext.getStatus() == lpsCheckpointContext::RUNNING,
+                   "must be running");
          _checkpointContext.setStatus(lpsCheckpointContext::CREATING_NEW_BASE);
          _checkpointContext.getLatch()->release_w();
          locked = FALSE;
 
          rebaseWhenCreatingCheckpoint(totalImpCount,
-                                      _checkpointContext.getCheckpoint().offset);
+                                      _logConsole.getCheckpoint().offset);
          removeHistoryIdMapAndDeltaLogFiles();
 
          _checkpointContext.getLatch()->lock_w();
@@ -789,6 +788,7 @@ namespace vessel
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
       requestContext *context = lpb._lh.getContext();
+      BOOLEAN copyOnWrite = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -840,6 +840,8 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
+
+         copyOnWrite = TRUE;
       }
       else if (!lpb.getCowTrigger().isMutablePid())
       {
@@ -850,6 +852,8 @@ namespace vessel
                    lpb.getLogicalPid(), rc);
             goto error;
          }
+
+         copyOnWrite = TRUE;
       }
       
       SDB_ASSERT(rpb.isValid(), "must be valid");
@@ -863,7 +867,10 @@ namespace vessel
          }
       }
 
-      applyCheckpointIfNecessary(context);
+      if (copyOnWrite)
+      {
+         applyCheckpointIfNecessary(context);
+      }
       
    done:
       return rc;
@@ -1726,7 +1733,7 @@ namespace vessel
       imfHead.dataPageCountInSeg = dataArgs.maxPageCountPerSeg;
       imfHead.dataSegCountInFile = dataArgs.maxSegmentCountPerFile;
       imfHead.totalPageCount = 0;
-      imfHead.deltaLogOffset = DPS_INVALID_LSN_OFFSET;
+      imfHead.deltaLogBeginOffset = 0;
 
       slice hs(sizeof(idMapFileHead), &imfHead);
 
@@ -1794,7 +1801,7 @@ namespace vessel
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
       imfHead.totalPageCount = totalImpCount;
-      imfHead.deltaLogOffset = deltaLogOffset;
+      imfHead.deltaLogBeginOffset = deltaLogOffset;
       slice hs(sizeof(idMapFileHead), &imfHead);
 
       base = _idMapFiles.getBack();
@@ -2546,7 +2553,8 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
-      if ((INT32)CHECKPOINT_TRIGGER_PAGE_COUNT <= _lpidCache.getModifiedCount())
+      if (CHECKPOINT_TRIGGER_DELTA_LOG_SIZE <=
+          _logConsole.getFuzzyDirtyLogSize())
       {
          if (_checkpointContext.tryToApplyCheckpoint())
          {
@@ -2561,6 +2569,28 @@ namespace vessel
       }
 
       return;
+   }
+
+   BOOLEAN logicalPageSpace::needFullCheckpoint()
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(!_idMapFiles.isEmpty(), "can not be empty");
+      BOOLEAN r = FALSE;
+      if ((FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize()))
+      {
+         r = TRUE;
+         goto done;
+      }
+      else
+      {
+         UINT64 baseOffset = 0;
+         UINT64 deltaLogOffset = _logConsole.getNextOffset();
+         idMapFile *base = static_cast<idMapFile *>(_idMapFiles.getBack());
+         base->getDeltaLogOffset(baseOffset);
+         r = ((baseOffset + FULL_CHECKPOINT_DELTA_LOG_SIZE) <= deltaLogOffset);
+      }
+   done:
+      return r;
    }
 }//namespace vessel
 }//namespace engine

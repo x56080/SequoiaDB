@@ -38,8 +38,8 @@
 
 #include "vessel/logicalPageSpace.h"
 #include "vessel/idMapFile.h"
-#include "vessel/forwardList.hpp"
-#include "ossSpinLatch.hpp"
+#include "ossMemPool.hpp"
+#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -110,16 +110,27 @@ namespace vessel
          
          virtual void endToCreateCheckpoint(requestContext *context);
       private:
-         void pushIntoRemovingList(UINT32 count,
-                                   const PAGE_ID *pids);
+         void insertIntoReleasingBlock(UINT32 count,
+                                       const PAGE_ID *pids);
 
-         void switchRemovingList();
+         void mergeBlocksToReadyList();
 
          void fini();
 
       private:
-         forwardList<PAGE_ID> *_waitingForReleasing = NULL;
-         forwardList<PAGE_ID> *_readyForReleasing = NULL;
+         typedef std::pair<UINT32, CHAR *> _RELEASING_BLOCK;
+
+         ///list always be extended by user threads but
+         /// cleared by background workers.  Should we use std::list here?
+         typedef ossPoolList<_RELEASING_BLOCK> _BLOCK_LIST;
+
+         static const UINT32 _BLOCK_CAPACITY = 64;
+
+         ossSpinXLatch _blockLatch;
+         CHAR *_block = NULL;
+         UINT32 _size = 0;
+         _BLOCK_LIST _waitingList;
+         _BLOCK_LIST _readyList;
    };//class copyOnWriteLPS
 }//namespace vessel
 }//namespace engine

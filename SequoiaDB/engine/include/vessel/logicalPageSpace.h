@@ -314,6 +314,8 @@ namespace vessel
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;
 
+         BOOLEAN needFullCheckpoint();
+
       private:
          INT32 preallocateLpids(requestContext *context,
                                 UINT32 count,

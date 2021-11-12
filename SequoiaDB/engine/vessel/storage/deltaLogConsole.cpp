@@ -81,7 +81,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _creater, "do not reinit");
-      UINT64 searchBegin = 0;
       fini();
 
       if (OSS_UNLIKELY(NULL == creater ||
@@ -98,12 +97,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to init log files:%d", rc);
          goto error;
       }
-
-      if (DPS_INVALID_LSN_OFFSET != beginOffset)
-      {
-         searchBegin = beginOffset;
-      }
-      rc = restoreToLastCheckpoint(fl, searchBegin);
+      rc = restoreToLastCheckpoint(fl, beginOffset);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to restore to last checkpoint:%d", rc);
@@ -322,7 +316,7 @@ namespace vessel
 
       rc = fsyncDeltaLog(_nextCheckpointOffset +
                          dlr.getLogHead()->_size +
-                         deltaLogFileDef::CHECKSUM_SIZE - 1);
+                         deltaLogFileDef::CHECKSUM_SIZE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to fsync log files:%d", rc);
@@ -339,15 +333,13 @@ namespace vessel
       goto done;
    }
 
-   UINT32 deltaLogConsole::getDirtyLogSize()const
+   UINT64 deltaLogConsole::getFuzzyDirtyLogSize()const
    {
-      if (OSS_UNLIKELY(!isReady()))
-      {
-         SDB_ASSERT(FALSE, "not ready");
-         return 0;
-      }
-      SDB_ASSERT(_minDirtyOffset <= _nextRecordOffset, "impossible");
-      return _nextRecordOffset - _minDirtyOffset;
+      SDB_ASSERT(isReady(), "can not be invalid");
+      UINT64 dirtyOffset = ((const ossAtomic64 *)(&_minDirtyOffset))->peek();
+      UINT64 nextRecordOffset = ((const ossAtomic64 *)(&_nextRecordOffset))->peek();
+      return (dirtyOffset <= nextRecordOffset) ?
+             (nextRecordOffset - dirtyOffset) : 0;
    }
 
    INT32 deltaLogConsole::tryToDestroyHistroyFiles(UINT64 offset)
@@ -934,14 +926,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogConsole::fsyncDeltaLog(UINT64 maxOffset)
+   INT32 deltaLogConsole::fsyncDeltaLog(UINT64 upperOffset)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(_minDirtyOffset < maxOffset, "impossible");
-      SDB_ASSERT(maxOffset < _nextRecordOffset, "impossible");
-      SDB_ASSERT(maxOffset < _fileWriteOffset, "impossible");
+      SDB_ASSERT(0 < upperOffset, "can not be zero");
+      SDB_ASSERT(_minDirtyOffset < upperOffset, "impossible");
+      SDB_ASSERT(upperOffset <= _nextRecordOffset, "impossible");
+      SDB_ASSERT(upperOffset <= _fileWriteOffset, "impossible");
       UINT64 minGlobalSegmentId = _minDirtyOffset / deltaLogFileDef::FILE_SEGMENT_SIZE;
-      UINT64 maxGlobalSegmentId = maxOffset / deltaLogFileDef::FILE_SEGMENT_SIZE;
+      UINT64 maxGlobalSegmentId = (upperOffset - 1) /
+                                  deltaLogFileDef::FILE_SEGMENT_SIZE;
+
+      SDB_ASSERT(ossIsPowerOf2(deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE),
+                 "must be power of 2");
 
       for (UINT64 i = minGlobalSegmentId; i <= maxGlobalSegmentId; ++i)
       {
@@ -964,7 +961,7 @@ namespace vessel
          }
       }
 
-      _minDirtyOffset = maxOffset + 1;
+      _minDirtyOffset = upperOffset;
    done:
       return rc;
    error:

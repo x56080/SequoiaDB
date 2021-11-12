@@ -91,12 +91,11 @@ namespace vessel
                {
                   return _scanner.getNonZeroedCount();
                }
-
+               
             private:
                INT32 _pageID = -1;
                UINT64 *_buf = NULL;
                bitmapScanner _scanner;
-
          };// class _inMemBitPage
 
       public:
@@ -106,10 +105,9 @@ namespace vessel
          inMemBitmap &operator=(const inMemBitmap &) = delete;
 
       public:
-         /// _pageCount will never become smaller.no latch protected.
          OSS_INLINE UINT32 getPageCount()const
          {
-            return _pageCount;
+            return _pages.size();
          }
          OSS_INLINE UINT32 getPageCapacity()const
          {
@@ -119,23 +117,26 @@ namespace vessel
          {
             return 0 < _pageCapacity;
          }
-         OSS_INLINE UINT32 getPageSkipped()const
-         {
-            return _pageSkipped;
-         }
+
 
       public:
          class options : public SDBObject
          {
             public:
-               /// freeBound will be used to quickly skip bit pages
-               /// with insufficient free count.
-               UINT32 freeBound = 0;
-
-               /// capacity * bitmapPageSkipped pages will not managed by bitmap.
-               UINT32 bitmapPageSkipped = 0;
+               options &operator=(const options &o)
+               {
+                  bitmapBeginPage = o.bitmapBeginPage;
+                  maxBitmapPageCount = o.maxBitmapPageCount;
+                  keepEmptyPageInMem = o.keepEmptyPageInMem;
+                  return *this;
+               }
+            public:
+               /// capacity * bitmapBeginPage bits will not managed by bitmap.
+               UINT32 bitmapBeginPage = 0;
 
                UINT32 maxBitmapPageCount = UINT32(-1);
+
+               BOOLEAN keepEmptyPageInMem = FALSE;
          };//class options
       public:       
          /// capacity must be 64 aligned.
@@ -146,8 +147,6 @@ namespace vessel
          INT32 initWithNoLatch(UINT32 pageCapacity,
                              const options &o);
          void fini();
-
-         INT32 allocateNewBitmapPage();
 
          /// All or nothing created.
          INT32 allocateNewBitmapPages(UINT32 count);
@@ -166,66 +165,30 @@ namespace vessel
 
          INT32 occupy(UINT32 count, const UINT32 *buf);
 
-      public:
-         /// Increase total page count with no free bits.
-         INT32 incPageCount(UINT32 cnt = 1);
       private:
          INT32 init(UINT32 pageCapacity,
                     const options &o,
                     ossSpinXLatch *latch);
-
-         INT32 _allocateNewBitmapPage();
 
          INT32 _allocateNewBitmapPages(UINT32 count);
 
       private:
          INT32 _allocateBits(UINT32 count, UINT32 *buf);
          void _releaseBits(UINT32 count, const UINT32 *buf);
-
          INT32 _occupy(UINT32 count, const UINT32 *buf);
-
-         INT32 allocateOnSinglePage(UINT32 count, UINT32 *buf);
-         INT32 allocateOnMultiPages(UINT32 count, UINT32 *buf);
-
-         INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
-         INT32 allocateBitsFromLFC(UINT32 count, UINT32 *buf);
-
-         INT32 occupyFromHFC(_inMemBitPage *page,
-                             UINT32 offset);
-
-         INT32 occupyFromLFC(_inMemBitPage *page,
-                             UINT32 offset);
-
-         void releaseBitFromHFC(UINT32 count,
-                                 const UINT32 *buf,
-                                 _inMemBitPage *page);
-         void releaseBitFromLFC(UINT32 count,
-                                 const UINT32 *buf,
-                                 _inMemBitPage *page);
-
-         void releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf);
-
-         INT32 testBit(UINT32 bitOffset, BOOLEAN &isFree)const;
-
-         _inMemBitPage *getFromHFC(INT32 pageId)const;
-
-         _inMemBitPage *getFromLFC(INT32 pageId)const;
 
       private:
          ossSpinXLatch _innerLatch;
          ossSpinXLatch *_latch = NULL;
          UINT32 _pageCapacity = 0;
-         UINT32 _freeBound = 0;
-         UINT32 _pageSkipped = 0;
-         UINT32 _maxBitmapPageCount = 0;
+         options _o;
+         INT64 _totalFreeBitCount = 0;
 
-         /// we will not keep bit pages in mem when it's free count is zero.
-         /// _pageCount means total count of page we ever allocated.
-         UINT32 _pageCount = 0;
-         INT32 _totalFreeCount = 0;
-         typedef ossPoolMap<INT32, _inMemBitPage*> _PAGE_MAP;
-         _PAGE_MAP _pagesWithLowFreeCount;
-         _PAGE_MAP _pagesWithHighFreeCount;
+         typedef ossPoolMap<INT32, _inMemBitPage *> _FREE_MAP;
+         typedef ossPoolVector<_inMemBitPage *> _PAGE_VEC;
+
+         _PAGE_VEC _pages;
+         _FREE_MAP _free;
    };//class inMemBitmap
 } /// end of namespace vessel
 } /// end of namespace engine

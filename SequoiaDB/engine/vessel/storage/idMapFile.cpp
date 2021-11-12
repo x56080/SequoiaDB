@@ -115,7 +115,7 @@ namespace vessel
          goto error;
       }
 
-      offset = head.deltaLogOffset;
+      offset = head.deltaLogBeginOffset;
    done:
       return rc;
    error:

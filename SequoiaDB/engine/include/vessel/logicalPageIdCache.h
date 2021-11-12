@@ -208,7 +208,6 @@ namespace vessel
          INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
 
       public:         
-         INT32 getModifiedCount()const;
          INT32 setPagesImmutable(UINT32 pageCountPerSeg,
                                   ossPoolSet<UINT32> &mutableSegmentIds);
 
@@ -249,7 +248,6 @@ namespace vessel
          _ossSpinSLatchPOSIX *_latches = NULL;
          UINT32 _bucketCount = 0;
          _cacheBucket *_buckets = NULL;
-         ossAtomic32 _modifiedCount;
    };//class logicalPageIdCache
 }//namespace vessel
 }//namespace engine
