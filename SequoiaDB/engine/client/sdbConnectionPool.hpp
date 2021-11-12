@@ -43,16 +43,10 @@
 #define SDB_CONNECTIONPOOL_HPP_
 
 #include "sdbConnectionPoolComm.hpp"
-#include <list>
 
 #ifndef SDB_CLIENT
 #define SDB_CLIENT
 #endif
-
-#include "ossLatch.hpp"
-#include "ossMem.hpp"
-#include "ossAtomic.hpp"
-
 
 /** \namespace sdbclient
     \brief SequoiaDB Driver for C++
@@ -60,40 +54,18 @@
 
 namespace sdbclient
 {
-   class sdbConnPoolStrategy ;
-   class sdbConnPoolWorker ;
+   class sdbConnectionPoolImpl ;
+
    /** \class sdbConnectionPool
        \brief The sdb connection pool
    */
-   class DLLEXPORT sdbConnectionPool : public SDBObject
+   class DLLEXPORT sdbConnectionPool
    {
-      friend void createConnFunc( void *args ) ;
-      friend void destroyConnFunc( void *args ) ;
-      friend void bgTaskFunc( void *args ) ;
-
    public:
       /** \fn sdbConnectionPool()
          \brief The constructor of sdbConnectionPool
       */
-      sdbConnectionPool()
-         : _idleList(),
-         _idleSize(0),
-         _busyList(),
-         _busySize(0),
-         _destroyList(),
-         _conf(),
-         _strategy(NULL),
-         _connMutex(),
-         _confShare(),
-         _globalMutex(),
-         _isInited(FALSE),
-         _isEnabled(FALSE),
-         _toCreateConn(FALSE),
-         _toDestroyConn(FALSE),
-         _toStopWorkers(FALSE),
-         _createConnWorker(NULL),
-         _destroyConnWorker(NULL),
-         _bgTaskWorker(NULL) {}
+      sdbConnectionPool() ;
 
       /** \fn ~sdbConnectionPool()
          \brief The destructor of sdbConnectionPool
@@ -132,21 +104,21 @@ namespace sdbclient
                 has not been initialized yet.
          \retval The number of idle connection
       */
-      INT32 getIdleConnNum()const  ;
+      INT32 getIdleConnNum() const  ;
 
       /** \fn INT32 getUsedConnNum()const
          \brief Get used connection number or -1 for connection pool
                 has not been initialized yet.
          \retval The number of used connection
       */
-      INT32 getUsedConnNum()const  ;
+      INT32 getUsedConnNum() const  ;
 
       /** \fn INT32 getNormalAddrNum()const
          \brief Get the number of reachable address or -1 for connection pool
                 has not been initialized yet.
          \retval The number of reachable coord nodes
       */
-      INT32 getNormalAddrNum()const  ;
+      INT32 getNormalAddrNum() const  ;
 
       /** \fn INT32 getAbnormalAddrNum()const
          \brief Get the number of unreachable address or -1 for connection pool
@@ -160,7 +132,7 @@ namespace sdbclient
                 has not been initialized yet.
          \retval The number of local coord nodes
       */
-      INT32 getLocalAddrNum()const  ;
+      INT32 getLocalAddrNum() const  ;
 
       /** \fn INT32 getConnection(sdb*& conn, INT64 timeoutsec = 5000)
          \brief Get a connection form connection pool
@@ -215,93 +187,8 @@ namespace sdbclient
       */
       INT32 updateAddress( const std::vector<std::string> &addrs ) ;
 
-//#if defined (_DEBUG)
-//   private:
-//      void printCreateInfo(const std::string& coord) ;
-//#endif
-
-
    private:
-      // check address arguments, if valid, add it
-      BOOLEAN _checkAddrArg( const string &address ) ;
-
-      // new a strategy with config
-      INT32 _buildStrategy() ;
-
-      // enable connection pool
-      INT32 _enable() ;
-
-      // disable connection pool
-      INT32 _disable() ;
-
-      // clear connection pool
-      void _clearConnPool() ;
-
-      // try to get a connection
-      BOOLEAN _tryGetConn( sdb*& conn ) ;
-
-      // create connection by a number
-      INT32 _createConnByNum( INT32 num, INT32 &crtNum ) ;
-
-      // sync coord node info
-      void _syncCoordNodes() ;
-
-      // get back the coord address from the abnormal address list
-      INT32 _retrieveAddrFromAbnormalList() ;
-
-      // check keep alive time out or not
-      BOOLEAN _keepAliveTimeOut( sdb *conn ) ;
-
-      // check max connection number intervally
-      void _checkMaxIdleConn() ;
-
-      // add new connection and make sure not reach max connection count
-      BOOLEAN _addNewConnSafely( sdb *conn, const std::string &coord );
-
-   private:
-      // create connections function
-      void _createConn() ;
-
-      //destroy connections function
-      void _destroyConn() ;
-
-      // connect to db
-      INT32 _connect( sdb *conn, const std::string &address ) ;
-
-      // background task function
-      void _bgTask() ;
-
-   private:
-      // idle connection list
-      std::list<sdb*>         _idleList ;
-      ossAtomic32             _idleSize ;
-      // busy connection list
-      std::list<sdb*>         _busyList ;
-      ossAtomic32             _busySize ;
-      // to be destroyed connection list
-      std::list<sdb*>         _destroyList ;
-      // connection pool confiture
-      sdbConnectionPoolConf   _conf ;
-      // connection pool strategy
-      sdbConnPoolStrategy*    _strategy ;
-      // lock for connection lists
-      ossSpinXLatch           _connMutex ;
-      // lock for _conf
-      ossSpinSLatch           _confShare ;
-      // lock for global commuincate
-      ossSpinXLatch           _globalMutex ;
-      // if has been inited
-      BOOLEAN                 _isInited ;
-      // if is enabled
-      BOOLEAN                 _isEnabled ;
-
-   private:
-      BOOLEAN                 _toCreateConn ;
-      BOOLEAN                 _toDestroyConn ;
-      BOOLEAN                 _toStopWorkers ;
-      sdbConnPoolWorker*      _createConnWorker ;
-      sdbConnPoolWorker*      _destroyConnWorker ;
-      sdbConnPoolWorker*      _bgTaskWorker ;
+      sdbConnectionPoolImpl *_pImpl ;
    } ;
 }
 

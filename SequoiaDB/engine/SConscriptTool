@@ -399,7 +399,7 @@ clientCppFiles = [
       "client/clientcpp.cpp",
       "client/common.c",
       "client/network.c",
-      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolImpl.cpp",
       "client/sdbConnectionPoolComm.cpp",
       "client/sdbConnectionPoolStrategy.cpp",
       "client/sdbConnectionPoolWorker.cpp",
