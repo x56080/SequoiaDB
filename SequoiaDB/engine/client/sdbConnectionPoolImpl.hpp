@@ -110,7 +110,7 @@ namespace sdbclient
 
       INT32 getConnection( sdb*& conn, INT64 timeoutms = 5000 ) ;
 
-      void releaseConnection(sdb *conn) ;
+      void releaseConnection( sdb*& conn ) ;
 
       INT32 close() ;
 
@@ -306,7 +306,7 @@ namespace sdbclient
       return _pImpl->getConnection( conn, timeoutms ) ;
    }
 
-   void sdbConnectionPool::releaseConnection(sdb *conn)
+   void sdbConnectionPool::releaseConnection( sdb*& conn )
    {
       if ( !_pImpl )
       {

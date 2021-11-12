@@ -452,7 +452,7 @@ namespace sdbclient
    }
 
    // give back a connection
-   void sdbConnectionPoolImpl::releaseConnection( sdb *conn )
+   void sdbConnectionPoolImpl::releaseConnection( sdb*& conn )
    {
       // TODO:  in java, before we call "close", the current function
       // can release connections
@@ -516,6 +516,7 @@ namespace sdbclient
          tmp->disconnect() ;
       }
       SAFE_OSS_DELETE( tmp ) ;
+      conn = NULL ;
       goto done ;
    error :
       goto release ;

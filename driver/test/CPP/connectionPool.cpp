@@ -243,3 +243,37 @@ TEST( connectionPool, updateAddrTest )
    rc = connPool.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 }
+
+TEST( connectionPool, releaseConnectionTest )
+{
+   INT32 rc                  = SDB_OK ;
+   string host               = HOST ;
+   string svcName            = SERVER ;
+   string address            = host + ":" + svcName ;
+   sdbConnectionPoolConf conf ;
+   sdbConnectionPool connPool ;
+   sdb conn ;
+   sdb* conn1 ;
+   sdb* conn2 ;
+
+   rc = connPool.init( address, conf ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 1
+   rc = connPool.getConnection( conn1 ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   connPool.releaseConnection( conn1 ) ;
+   ASSERT_EQ( NULL, conn1 ) ;
+
+   // case 2
+   rc = conn.connect( host.c_str(), svcName.c_str(), USER, PASSWD ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   conn2 = &conn ;
+   connPool.releaseConnection( conn2 ) ;
+   ASSERT_EQ( &conn, conn2 ) ;
+
+   rc = connPool.close() ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+}
+
