@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = generator.cpp
+   Source File Name = idxHashTest.cpp
 
    Descriptive Name =
 
@@ -44,7 +44,7 @@ using namespace std ;
 using namespace engine ;
 using namespace bson ;
 
-TEST( generator, test_base )
+TEST( idxHashTest, test_base )
 {
    dmsMBStatInfo mbStatInfo ;
    mbStatInfo.setIdxHash( 0, "_id" ) ;
@@ -52,8 +52,8 @@ TEST( generator, test_base )
    mbStatInfo.setIdxHash( 1, "b" ) ;
 
    cout << "cl: " << mbStatInfo._clIdxHashBitmap.toString() << endl ;
-   cout << "idx 0: " << mbStatInfo._idxHashBitmaps[ 0 ].toString() << endl ;
-   cout << "idx 1: " << mbStatInfo._idxHashBitmaps[ 1 ].toString() << endl ;
+   cout << "idx 0: " << mbStatInfo._idxHashFields[ 0 ].toString() << endl ;
+   cout << "idx 1: " << mbStatInfo._idxHashFields[ 1 ].toString() << endl ;
 
    ixmIdxHashBitmap fieldBitmap1 ;
    fieldBitmap1.setFieldBit( "_id" ) ;
@@ -89,11 +89,11 @@ TEST( generator, test_base )
    cout << "a1 : " << fieldBitmap6.toString() << endl ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap4 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap3 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap3 ) ) ;
    for ( UINT32 i = 2 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 
    ASSERT_TRUE( mbStatInfo.testIdxHash( fieldBitmap1 ) ) ;
@@ -176,7 +176,7 @@ TEST( generator, test_base )
    }
 }
 
-TEST( generator, test_drop_index )
+TEST( idxHashTest, test_drop_index )
 {
    dmsMBStatInfo mbStatInfo ;
    mbStatInfo.setIdxHash( 0, "_id" ) ;
@@ -184,11 +184,13 @@ TEST( generator, test_drop_index )
    mbStatInfo.setIdxHash( 1, "b" ) ;
    mbStatInfo.setIdxHash( 2, "c" ) ;
    mbStatInfo.setIdxHash( 2, "d" ) ;
+   mbStatInfo.setIdxHash( 3, "e" ) ;
 
    cout << "cl: " << mbStatInfo._clIdxHashBitmap.toString() << endl ;
-   cout << "idx 0: " << mbStatInfo._idxHashBitmaps[ 0 ].toString() << endl ;
-   cout << "idx 1: " << mbStatInfo._idxHashBitmaps[ 1 ].toString() << endl ;
-   cout << "idx 2: " << mbStatInfo._idxHashBitmaps[ 2 ].toString() << endl ;
+   cout << "idx 0: " << mbStatInfo._idxHashFields[ 0 ].toString() << endl ;
+   cout << "idx 1: " << mbStatInfo._idxHashFields[ 1 ].toString() << endl ;
+   cout << "idx 2: " << mbStatInfo._idxHashFields[ 2 ].toString() << endl ;
+   cout << "idx 3: " << mbStatInfo._idxHashFields[ 3 ].toString() << endl ;
 
    ixmIdxHashBitmap fieldBitmap1 ;
    fieldBitmap1.setFieldBit( "_id" ) ;
@@ -202,51 +204,56 @@ TEST( generator, test_drop_index )
    fieldBitmap3.setFieldBit( "d" ) ;
 
    ixmIdxHashBitmap fieldBitmap4 ;
-   fieldBitmap4.setFieldBit( "_id" ) ;
-   fieldBitmap4.setFieldBit( "a" ) ;
-   fieldBitmap4.setFieldBit( "b" ) ;
-   fieldBitmap4.setFieldBit( "c" ) ;
-   fieldBitmap4.setFieldBit( "d" ) ;
+   fieldBitmap4.setFieldBit( "e" ) ;
 
    ixmIdxHashBitmap fieldBitmap5 ;
    fieldBitmap5.setFieldBit( "_id" ) ;
+   fieldBitmap5.setFieldBit( "a" ) ;
+   fieldBitmap5.setFieldBit( "b" ) ;
    fieldBitmap5.setFieldBit( "c" ) ;
    fieldBitmap5.setFieldBit( "d" ) ;
+   fieldBitmap5.setFieldBit( "e" ) ;
 
-   ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap4 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap2 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 2 ].isEqual( fieldBitmap3 ) ) ;
-   for ( UINT32 i = 3 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
+   ixmIdxHashBitmap fieldBitmap6 ;
+   fieldBitmap6.setFieldBit( "_id" ) ;
+   fieldBitmap6.setFieldBit( "a" ) ;
+   fieldBitmap6.setFieldBit( "b" ) ;
+
+   ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap5 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 2 ].isEqual( fieldBitmap3 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 3 ].isEqual( fieldBitmap4 ) ) ;
+   for ( UINT32 i = 4 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 
    // unset index 1
-   mbStatInfo.unsetIdxHash( 1 ) ;
+   mbStatInfo.resetIdxHashFrom( 2 ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEmpty() ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap3 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
    for ( UINT32 i = 2 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 
    // merge bitmaps of indexes into collection
    mbStatInfo.mergeIdxHash( 0 ) ;
    mbStatInfo.mergeIdxHash( 1 ) ;
 
-   ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap5 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap3 ) ) ;
+   ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap6 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
    for ( UINT32 i = 2 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 }
 
-TEST( generator, test_add_index )
+TEST( idxHashTest, test_add_index )
 {
    dmsMBStatInfo mbStatInfo ;
    mbStatInfo.setIdxHash( 0, "_id" ) ;
@@ -254,8 +261,8 @@ TEST( generator, test_add_index )
    mbStatInfo.setIdxHash( 1, "b" ) ;
 
    cout << "cl: " << mbStatInfo._clIdxHashBitmap.toString() << endl ;
-   cout << "idx 0: " << mbStatInfo._idxHashBitmaps[ 0 ].toString() << endl ;
-   cout << "idx 1: " << mbStatInfo._idxHashBitmaps[ 1 ].toString() << endl ;
+   cout << "idx 0: " << mbStatInfo._idxHashFields[ 0 ].toString() << endl ;
+   cout << "idx 1: " << mbStatInfo._idxHashFields[ 1 ].toString() << endl ;
 
    ixmIdxHashBitmap fieldBitmap1 ;
    fieldBitmap1.setFieldBit( "_id" ) ;
@@ -281,22 +288,22 @@ TEST( generator, test_add_index )
    fieldBitmap5.setFieldBit( "d" ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap4 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap2 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
    for ( UINT32 i = 2 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 
    // set index 2
-   mbStatInfo.unsetIdxHash( 2 ) ;
+   mbStatInfo.resetIdxHashFrom( 2 ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEmpty() ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap2 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
    for ( UINT32 i = 2 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 
    // merge bitmaps of indexes into collection
@@ -306,16 +313,16 @@ TEST( generator, test_add_index )
    mbStatInfo.setIdxHash( 2, "d" ) ;
 
    ASSERT_TRUE( mbStatInfo._clIdxHashBitmap.isEqual( fieldBitmap5 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 0 ].isEqual( fieldBitmap1 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 1 ].isEqual( fieldBitmap2 ) ) ;
-   ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ 2 ].isEqual( fieldBitmap3 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 0 ].isEqual( fieldBitmap1 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 1 ].isEqual( fieldBitmap2 ) ) ;
+   ASSERT_TRUE( mbStatInfo._idxHashFields[ 2 ].isEqual( fieldBitmap3 ) ) ;
    for ( UINT32 i = 3 ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
    {
-      ASSERT_TRUE( mbStatInfo._idxHashBitmaps[ i ].isEmpty() ) ;
+      ASSERT_TRUE( mbStatInfo._idxHashFields[ i ].isEmpty() ) ;
    }
 }
 
-TEST( generator, test_set )
+TEST( idxHashTest, test_set )
 {
    INT32 rc = SDB_OK ;
    mthModifier modifier ;
@@ -334,7 +341,7 @@ TEST( generator, test_set )
    ASSERT_TRUE( modifier.getIdxHashBitmap().isEqual( bitmap ) ) ;
 }
 
-TEST( generator, test_rename )
+TEST( idxHashTest, test_rename )
 {
    INT32 rc = SDB_OK ;
    mthModifier modifier ;
@@ -350,7 +357,7 @@ TEST( generator, test_rename )
    ASSERT_TRUE( modifier.getIdxHashBitmap().isEqual( bitmap ) ) ;
 }
 
-TEST( generator, test_replace )
+TEST( idxHashTest, test_replace )
 {
    INT32 rc = SDB_OK ;
    mthModifier modifier ;
@@ -360,4 +367,17 @@ TEST( generator, test_replace )
                               DPS_LOG_WRITE_MOD_INCREMENT, TRUE ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
    ASSERT_TRUE( modifier.getIdxHashBitmap().isFull() ) ;
+}
+
+TEST( idxHashTest, test_multifield_index )
+{
+   ixmIdxHashArray bitmap ;
+
+   for ( UINT32 i = 0 ; i < IXM_IDX_HASH_FIELD_NUM + 1 ; ++ i )
+   {
+      bitmap.setField( i ) ;
+   }
+
+   // too many fields, should not be valid
+   ASSERT_TRUE( !bitmap.isValid() ) ;
 }

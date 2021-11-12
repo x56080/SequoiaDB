@@ -540,6 +540,108 @@ namespace engine
 
    typedef class _ixmIdxHashBitmap ixmIdxHashBitmap ;
 
+   /*
+      _ixmIdxHashArray define
+    */
+
+   // only maintain 7 hash values
+   #define IXM_IDX_HASH_FIELD_NUM      ( 7 )
+
+   class _ixmIdxHashArray : public _utilPooledObject
+   {
+   public:
+      _ixmIdxHashArray()
+      : _size( 0 )
+      {
+      }
+
+      ~_ixmIdxHashArray() {}
+
+      BOOLEAN isEmpty() const
+      {
+         return 0 == _size ;
+      }
+
+      BOOLEAN isValid() const
+      {
+         return _size > 0 && _size <= IXM_IDX_HASH_FIELD_NUM ;
+      }
+
+      void reset()
+      {
+         _size = 0 ;
+      }
+
+      void setField( UINT32 bitIndex )
+      {
+         // only maintain 7 hash values
+         if ( _size < IXM_IDX_HASH_FIELD_NUM )
+         {
+            _fields[ _size ] = (UINT8)bitIndex ;
+         }
+         ++ _size ;
+      }
+
+      BOOLEAN testBitmap( const ixmIdxHashBitmap &bitmap ) const
+      {
+         if ( !bitmap.isEmpty() )
+         {
+            if ( _size > IXM_IDX_HASH_FIELD_NUM )
+            {
+               // too many fields, out-of-range hash values are missing
+               return TRUE ;
+            }
+            else
+            {
+               // check if hash values in bitmap
+               for ( UINT32 i = 0 ; i < _size ; ++ i )
+               {
+                  if ( bitmap.testBit( (UINT32)( _fields[ i ] ) ) )
+                  {
+                     return TRUE ;
+                  }
+               }
+            }
+         }
+
+         return FALSE ;
+      }
+
+      ossPoolString toString() const
+      {
+         ixmIdxHashBitmap temp ;
+         _toBitmap( temp ) ;
+         return temp.toString() ;
+      }
+
+      BOOLEAN isEqual( const ixmIdxHashBitmap &bitmap ) const
+      {
+         ixmIdxHashBitmap temp ;
+         _toBitmap( temp ) ;
+         return temp.isEqual( bitmap ) ;
+      }
+
+      void mergeToBitmap( ixmIdxHashBitmap &bitmap )
+      {
+         _toBitmap( bitmap ) ;
+      }
+
+   protected:
+      void _toBitmap( ixmIdxHashBitmap &bitmap ) const
+      {
+         for ( UINT32 i = 0 ; i < _size ; ++ i )
+         {
+            bitmap.setBit( (UINT32)_fields[ i ] ) ;
+         }
+      }
+
+   protected:
+      UINT8 _size ;
+      UINT8 _fields[ IXM_IDX_HASH_FIELD_NUM ] ;
+   } ;
+
+   typedef class _ixmIdxHashArray ixmIdxHashArray ;
+
 }
 
 #endif //IXMINDEXKEY_HPP_
