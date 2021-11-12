@@ -66,7 +66,7 @@ void dsclose_conn( DsArgs* arg )
    ossSleep( getRand() * 100 ) ;
    sdb* conn = NULL ;
    rc = arg->getDs().getConnection( conn ) ;
-   //ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
+   // ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
    arg->getDs().releaseConnection( conn ) ;
    arg->getDs().close() ;
 }

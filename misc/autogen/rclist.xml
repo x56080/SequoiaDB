@@ -2468,10 +2468,10 @@
          </description>
       </code>
       <code>
-         <name>SDB_CLIENT_CONNPOOL_NOT_ENABLE</name>
+         <name>SDB_CLIENT_CONNPOOL_CLOSE</name>
          <description>
-            <en>Connection pool is not enabled yet</en>
-            <cn>连接池功能未启用</cn>
+            <en>Connection pool had been closed</en>
+            <cn>连接池已关闭</cn>
          </description>
       </code>
       <code>

@@ -77,6 +77,7 @@ namespace sdbclient
          _confShare(),
          _globalMutex(),
          _isInited(FALSE),
+         _isClosed(FALSE),
          _isEnabled(FALSE),
          _toCreateConn(FALSE),
          _toDestroyConn(FALSE),
@@ -198,6 +199,8 @@ namespace sdbclient
       ossSpinXLatch           _globalMutex ;
       // if has been inited
       BOOLEAN                 _isInited ;
+      // if has been closed
+      BOOLEAN                 _isClosed ;
       // if is enabled
       BOOLEAN                 _isEnabled ;
 
