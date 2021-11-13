@@ -28,7 +28,7 @@
     <!--远程机器用户名-->
     <parameter name="REMOTEUSER"    value="sdbadmin" />
     <!--远程机器用户密码-->
-    <parameter name="REMOTEPASSWD"  value="sdbadmin" />
+    <parameter name="REMOTEPASSWD"  value="Sdbadmin@1024" />
     <!--可靠性shell脚本位置-->
     <parameter name="SCRIPTDIR" value="${SCRIPTDIR}" />
 
