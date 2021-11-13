@@ -1584,6 +1584,7 @@ do                                                            \
 
       // try to set flag to be find one
       newFlags |= FLG_QUERY_WITH_RETURNDATA ;
+      newFlags |= QUERY_PREPARE_MORE ;
 
       // run command
       rc = _connection->_runCommand( _collectionFullName,
