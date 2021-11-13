@@ -293,6 +293,8 @@ namespace engine
       PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR_FILTER ) ;
       MsgHeader *msg = pSub->getReqMsg() ;
 
+      SDB_ASSERT( msg, "msg can't be null" ) ;
+
       ignore = FALSE ;
       oprMask = 0 ;
 
@@ -323,14 +325,14 @@ namespace engine
                if ( pClient )
                {
                   pOrgMsg = pClient->getInMsg() ;
+
+                  rc = _lobShouldFilterOut( msg, pOrgMsg, ignore, oprMask ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
                }
             }
-         }
-
-         rc = _lobShouldFilterOut( msg, pOrgMsg, ignore, oprMask ) ;
-         if ( rc )
-         {
-            goto error ;
          }
       }
       else

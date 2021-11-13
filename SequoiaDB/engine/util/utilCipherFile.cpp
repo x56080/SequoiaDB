@@ -138,7 +138,7 @@ INT32 _utilCipherFile::read( CHAR **fileContent, INT64 &contentLen )
    }
 
    *fileContent = ( CHAR* )SDB_OSS_MALLOC( fileSize ) ;
-   if ( NULL == fileContent )
+   if ( NULL == *fileContent )
    {
       rc = SDB_OOM ;
       PD_LOG ( PDERROR, "Failed to malloc for file content, rc: %d", rc ) ;

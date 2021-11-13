@@ -158,14 +158,16 @@ SDB_EXPORT void utilIniRelease( utilIniHandler *handler )
 
 SDB_EXPORT INT32 utilIniParse( utilIniHandler *handler, const CHAR *content )
 {
-   UINT32 flags = handler->flags ;
-   const CHAR *cur = content ;
+   UINT32 flags = 0 ;
+   const CHAR *cur = NULL ;
 
    if( NULL == handler || NULL == content )
    {
       goto done ;
    }
 
+   flags = handler->flags ;
+   cur = content ;
    cur = skipEmptyLine( cur ) ;
 
    while ( *cur )
@@ -245,7 +247,13 @@ SDB_EXPORT INT32 utilIniGetValue( utilIniHandler *handler, const CHAR *section,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) ||
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) ||
         NULL == value || NULL == length )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
@@ -287,7 +295,13 @@ SDB_EXPORT INT32 utilIniGetSectionComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniSection *tmpSection = NULL ;
 
-   if ( NULL == handler || NULL == section || 0 == ossStrlen( section ) ||
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == section || 0 == ossStrlen( section ) ||
         NULL == comment || NULL == length )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
@@ -321,7 +335,13 @@ SDB_EXPORT INT32 utilIniGetItemPreComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) ||
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) ||
         NULL == comment || NULL == length )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
@@ -364,7 +384,13 @@ SDB_EXPORT INT32 utilIniGetItemPosComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) ||
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) ||
         NULL == comment || NULL == length )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
@@ -404,7 +430,13 @@ SDB_EXPORT INT32 utilIniGetLastComment( utilIniHandler *handler,
 {
    INT32 rc = SDB_OK ;
 
-   if ( NULL == handler || NULL == comment || NULL == length )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == comment || NULL == length )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
@@ -425,15 +457,23 @@ SDB_EXPORT INT32 utilIniSetValue( utilIniHandler *handler, const CHAR *section,
                                   INT32 length )
 {
    INT32 rc = SDB_OK ;
-   INT32 keyLen = ossStrlen( key ) ;
+   INT32 keyLen = 0 ;
    utilIniItem *tmpItem = NULL ;
 
-   if ( NULL == key || 0 == keyLen || NULL == value )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) || NULL == value )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+
+   keyLen = ossStrlen( key ) ;
 
    if ( NULL == section || 0 == ossStrlen( section ) )
    {
@@ -555,7 +595,13 @@ SDB_EXPORT INT32 utilIniSetSectionComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniSection *tmpSection = NULL ;
 
-   if ( NULL == handler || NULL == section )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == section )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
@@ -592,7 +638,13 @@ SDB_EXPORT INT32 utilIniSetItemPreComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
@@ -638,7 +690,13 @@ SDB_EXPORT INT32 utilIniSetItemPosComment( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
@@ -683,7 +741,6 @@ SDB_EXPORT INT32 utilIniSetLastComment( utilIniHandler *handler,
 
    if ( NULL == handler )
    {
-      handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
@@ -709,7 +766,13 @@ SDB_EXPORT INT32 utilIniSetCommentItem( utilIniHandler *handler,
    INT32 rc = SDB_OK ;
    utilIniItem *item = NULL ;
 
-   if ( NULL == handler || NULL == key || 0 == ossStrlen( key ) )
+   if ( NULL == handler )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   if ( NULL == key || 0 == ossStrlen( key ) )
    {
       handler->errMsg = UTIL_INI_ERROR_INVALIDARG ;
       rc = SDB_INVALIDARG ;
@@ -1063,7 +1126,7 @@ static const CHAR *parseItem( utilIniHandler *handler, utilIniItem *item,
              ( UTIL_INI_HASHMARK & flags && UTIL_INI_CHAR_HASHMARK == *str ) )
    {
       item->isComment = TRUE ;
-      str = skip( str + 1 ) ; 
+      str = skip( str + 1 ) ;
    }
 
    str = parseItemKey( item, str, flags ) ;

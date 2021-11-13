@@ -860,7 +860,7 @@ namespace engine
          srcNode = childNodes.size() == 1 ? childNodes.front() : NULL ;
       }
 
-      if ( lastDstNode->needReEvaluate() )
+      if ( lastDstNode && lastDstNode->needReEvaluate() )
       {
          lastDstNode->evaluate() ;
       }

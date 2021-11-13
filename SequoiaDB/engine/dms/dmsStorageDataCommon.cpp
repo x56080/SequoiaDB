@@ -2194,7 +2194,7 @@ namespace engine
          else if ( extID == context->mb()->_lastExtentID )
          {
             context->mb()->_lastExtentID = extent->_prevExtent ;
-            if ( !prevExt )
+            if ( prevExt )
             {
                prevExt->_nextExtent = DMS_INVALID_EXTENT ;
             }

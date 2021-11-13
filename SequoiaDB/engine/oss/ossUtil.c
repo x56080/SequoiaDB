@@ -201,7 +201,7 @@ INT32 ossWC2ANSI ( LPCWSTR lpcszWCString,
                                               -1, NULL, 0, NULL, NULL ) ;
    // caller is responsible to free memory
    *plppszString = (LPSTR)SDB_OSS_MALLOC ( requiredSize ) ;
-   if ( !plppszString )
+   if ( !(*plppszString) )
    {
       rc = SDB_OOM ;
       goto error ;
@@ -237,7 +237,7 @@ INT32 ossANSI2WC ( LPCSTR lpcszString,
                                               0, lpcszString, -1, NULL, 0 ) ;
    // caller is responsible to free memory
    *plppszWCString = (LPWSTR)SDB_OSS_MALLOC ( requiredSize * sizeof(WCHAR) ) ;
-   if ( !plppszWCString )
+   if ( !(*plppszWCString) )
    {
       rc = SDB_OOM ;
       goto error ;

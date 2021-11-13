@@ -383,13 +383,13 @@ INT32 sfsOptInitArgs(struct fuse_args *args)
    INT32 rc = SDB_OK;
 
    arg = (fuse_args*)SDB_OSS_MALLOC(sizeof(fuse_args));
-   arg->argc = 0;
    if(!arg)
    {
       std::cerr<<"Failed to malloc mem for argv"<<endl;
       rc = SDB_OOM;
       goto error;
    }
+   arg->argc = 0;
    arg->allocated = 1;
    args = arg;
 
@@ -508,7 +508,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    //Create a pidfile in diagpath and lock it.
    //When the process is exit, the pidfile will be unlocked and deleted.
    if (ossStrlen((sfs->getOptionMgr())->getDiaglogPath()))
-   {  
+   {
       rc = engine::utilBuildFullPath((sfs->getOptionMgr())->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
                                   OSS_MAX_PATHSIZE, pidName);
       if(SDB_OK != rc)
@@ -517,7 +517,7 @@ INT32 main(INT32 argc, CHAR *argv[])
          ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
          goto error;
       }
-      else 
+      else
       {
          rc = ossAccess( pidName, OSS_MODE_READ );
          if(SDB_OK == rc)
@@ -538,10 +538,10 @@ INT32 main(INT32 argc, CHAR *argv[])
                ossRead( &pidFile, oldPid, (INT64)(sizeof(oldPid) - 1), &readSize);
                ossClose( pidFile );
                PD_LOG( PDERROR, "Lock pidfile(%s) failed, maybe the mountpoint(%s)"
-                       "has been mounted by other process(%s), rc: %d", 
+                       "has been mounted by other process(%s), rc: %d",
                        pidName, lobFuseOption.mountpoint, oldPid, rc ) ;
                ossPrintf("Lock pidfile(%s) failed, maybe the mountpoint(%s) has "
-                         "been mounted by other process(%s), exit."OSS_NEWLINE, 
+                         "been mounted by other process(%s), exit."OSS_NEWLINE,
                          pidName, lobFuseOption.mountpoint, oldPid);
                rc = SDB_OPERATION_CONFLICT;
                goto error;
@@ -550,7 +550,7 @@ INT32 main(INT32 argc, CHAR *argv[])
             ossClose( pidFile );
             engine::removePIDFile( pidName ) ;
          }
-         
+
          rc = engine::createPIDFile( pidName ) ;
          if ( rc )
          {
@@ -589,14 +589,14 @@ INT32 main(INT32 argc, CHAR *argv[])
    }
    else
    {
-      rc2 = (sfs->getOptionMgr())->save(); 
+      rc2 = (sfs->getOptionMgr())->save();
       if(SDB_OK != rc2)
       {
          PD_LOG( PDWARNING, "Failed to start close conn pool, rc:%d.", rc2 ) ;
          ossPrintf("Failed to save config (error=%d), exit."OSS_NEWLINE, rc2);
       }
    }
-   
+
    rc2 = sfs->closeDataSource();
    if(SDB_OK != rc2 )
    {
@@ -621,7 +621,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       {
          PD_LOG( PDWARNING, "Failed to remove pid file, rc:%d.", rc2 ) ;
       }
-   } 
+   }
 
 done:
    delete sfs;

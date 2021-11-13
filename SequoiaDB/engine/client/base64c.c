@@ -45,12 +45,13 @@ int getEnBase64Size ( int size )
 int getDeBase64Size ( const char *s )
 {
 
-   int len = strlen ( s ) ;
+   int len = 0 ;
    int zeroize = 0 ;
    if( !s )
    {
       return -1 ;
    }
+   len = strlen ( s ) ;
    if( len == 0 )
    {
       return 0 ;
@@ -160,11 +161,12 @@ int base64Decode ( const char *s, char *_ret, int out_size )
 {
    char lpCode [ 4 ] ;
    int vLen = 0 ;
-   int len = strlen ( s ) ;
+   int len = 0 ;
    if( !s || !_ret )
    {
       return -1 ;
    }
+   len = strlen ( s ) ;
    /* empty base64 */
    if( len == 0 )
    {

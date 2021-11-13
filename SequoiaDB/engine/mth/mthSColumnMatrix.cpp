@@ -427,6 +427,9 @@ namespace engine
                                         _mthSColumn *father,
                                         _mthSColumn *&column )
    {
+      SDB_ASSERT( father, "father node can't be null" ) ;
+      SDB_ASSERT( name, "name can't be null" ) ;
+
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__GETCOLUMN2 ) ;
       MTH_S_COLUMNS &array = father->_getSubColumns() ;
@@ -436,7 +439,7 @@ namespace engine
          _mthSColumn *lastColumn = array[array.size() - 1] ;
          if ( 0 == ossStrcmp( name, lastColumn->getName() ) )
          {
-            column = lastColumn ;       
+            column = lastColumn ;
          }
       }
 

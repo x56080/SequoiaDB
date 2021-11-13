@@ -1623,7 +1623,7 @@ namespace engine
          oid = OID( oidStr ) ;
       }
 
-      rc = file.open( filePath.c_str(), OSS_READONLY|OSS_SHAREREAD,
+      rc = file.open( filePath, OSS_READONLY|OSS_SHAREREAD,
                       OSS_DEFAULTFILE ) ;
       if( SDB_OK != rc )
       {
