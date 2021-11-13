@@ -43,6 +43,7 @@ showNameWidth=60
 testType="basic"
 runAllTest=0
 specificDirorFile=0
+passwordOfSdbadmin=sdbadmin
 
 # define stat parameter
 sucNum=0
@@ -69,7 +70,7 @@ function showHelpInfo()
 {
    echo "run testcase 1.0.0 2014/2/25"
    echo "$0 --help"
-   echo "$0 [-p path]|[-f file] [-t type] [-s stopFlag] [-n svcname] [-h hostname] [-eh eshost] [-en essvcname] [-dh dshost] [-dn dssvcname] [-sh stphostname] [-sn stpsvcname] [-s1] [-s2] [-sp] [-addpid] [-print]"
+   echo "$0 [-p path]|[-f file] [-t type] [-s stopFlag] [-n svcname] [-h hostname] [--password sdbadmin's password] [-eh eshost] [-en essvcname] [-dh dshost] [-dn dssvcname] [-sh stphostname] [-sn stpsvcname] [-s1] [-s2] [-sp] [-addpid] [-print]"
    echo ""
    echo " -p path        : 运行指定路径下的JS用例。为相对目录，默认根目录为用例目录"
    echo " -f file        : 运行指定的JS用例。为相对目录，默认根目录为用例目录"
@@ -77,6 +78,7 @@ function showHelpInfo()
    echo " -s stopFlag    : 发生用例错误是否停止，0表示继续，1表示停止，默认为1"
    echo " -n svcname     : 指定测试的COORD节点服务名，默认为50000"
    echo " -h hostname    : 指定测试的COORD节点HostName或IP"
+   echo " --password sdbadmin's password, 默认为Sdbadmin@1024"
    echo " -c cataport    : 指定测试的CATALOG节点服务名，默认为30000"
    echo " -eh eshost     : 指定es环境主机名或ip，默认是localhost"
    echo " -en essvcname  : 指定es环境节点服务名，默认为9200"
@@ -135,7 +137,7 @@ function runJSFile()
    local file=$1
    
    result=0
-   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var DSSVCNAME='${dssvcname}'; var DSHOSTNAME='${dshostname}';var STPSVCNAME=${stpsvcname}; var STPHOSTNAME='${stphostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
+   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var SDBADMINPWD='${passwordOfSdbadmin}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var DSSVCNAME='${dssvcname}'; var DSHOSTNAME='${dshostname}';var STPSVCNAME=${stpsvcname}; var STPHOSTNAME='${stphostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
 #   runresult=0
    if [ $printOut -eq 1 -o $# -gt 1 ] ; then
       echo "CMD: $lastCmdStr"
@@ -329,6 +331,9 @@ function analyPara()
                          ;;
          -s2)            shift
                          rsrvportend="$1"
+                         ;;
+         --password)     shift
+                         passwordOfSdbadmin="$1"
                          ;;
          -sp )           shift
                          rsrvnodedir="$1"
@@ -567,6 +572,7 @@ echo "STPHOSTNAME   : $stphostname"
 echo "RSRVPORTBEGIN : $rsrvportbegin"
 echo "RSRVPORTEND   : $rsrvportend"
 echo "RSRVNODEDIR   : $rsrvnodedir"
+echo "SDBADMINPWD   : $passwordOfSdbadmin"
 
 # generate command of find test files, and print 
 declare -a findCmds                         #define findCmds as array

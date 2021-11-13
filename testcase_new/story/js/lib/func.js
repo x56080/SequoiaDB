@@ -85,6 +85,7 @@ if( typeof ( STPHOSTNAME ) == "undefined" ) { STPHOSTNAME = 'localhost'; }
 //STP服务端端口号，CI默认传入9622
 if( typeof ( STPSVCNAME ) == "undefined" ) { STPSVCNAME = '9622'; }
 
+if ( typeof( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Sdbadmin@1024"; }
 // CHANGEDPREFIX = local_test
 var cmd = new Cmd();
 var hostname = cmd.run( "hostname" ).split( "\n" )[0];
