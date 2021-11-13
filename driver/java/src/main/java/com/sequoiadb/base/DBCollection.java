@@ -1115,6 +1115,7 @@ public class DBCollection {
         if (returnRows == 1) {
             newFlags |= DBQuery.FLG_QUERY_WITH_RETURNDATA;
         }
+        newFlags |= DBQuery.FLG_QUERY_PREPARE_MORE;
 
         QueryRequest request = new QueryRequest(collectionFullName, matcher, selector, orderBy,
                 hint, skipRows, returnRows, newFlags);

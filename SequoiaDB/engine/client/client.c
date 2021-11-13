@@ -6951,6 +6951,7 @@ static INT32 _sdbQuery ( sdbCollectionHandle cHandle,
 
    newFlags = regulateQueryFlags( flags ) ;
    newFlags |= FLG_QUERY_WITH_RETURNDATA ;
+   newFlags |= QUERY_PREPARE_MORE ;
 
    rc = _runCommand2( cs->_connection,
                       &cs->_pSendBuffer, &cs->_sendBufferSize,
