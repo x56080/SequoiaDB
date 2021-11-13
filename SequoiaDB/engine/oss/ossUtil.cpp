@@ -915,6 +915,7 @@ UINT32 ossHexDumpBuffer
    UINT32 *     pBytesProcessed
 )
 {
+   SDB_ASSERT( szOutBuf != NULL, "szOutBuf can't be null" ) ;
    PD_TRACE_ENTRY ( SDB_OSSHEXDUMPBUF );
    UINT32 bytesProcessed = 0 ;
    CHAR szLineBuf[OSS_HEXDUMP_LINEBUFFER_SIZE] = { 0 } ;

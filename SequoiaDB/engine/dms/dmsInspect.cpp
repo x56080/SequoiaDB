@@ -59,14 +59,15 @@ namespace engine
                                       UINT32 &segmentSize,
                                       UINT64 &secretValue, SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       SINT32 localErr                    = 0 ;
       UINT32 len                         = 0 ;
       UINT32 dataOffset                  = 0 ;
       dmsStorageUnitHeader *header       = (dmsStorageUnitHeader*)inBuf ;
       CHAR   eyeCatcher [ DMS_HEADER_EYECATCHER_LEN+1 ] = {0} ;
 
-
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_HEADER_SZ )
+      if ( NULL == inBuf || inSize != DMS_HEADER_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
@@ -207,12 +208,14 @@ namespace engine
                                           INT64 fileSize,
                                           SINT32 &localErr )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len                         = 0 ;
       dmsStorageUnitHeader *header       = (dmsStorageUnitHeader*)inBuf ;
       CHAR   eyeCatcher [ DMS_HEADER_EYECATCHER_LEN+1 ] = {0} ;
       UINT32 segmentSize = 0 ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_HEADER_SZ )
+      if ( NULL == inBuf || inSize != DMS_HEADER_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
@@ -345,12 +348,14 @@ namespace engine
                                           UINT32 sequence, UINT64 secretValue,
                                           INT64 fileSize, INT32 &totalErr)
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       SINT32 localErr                    = 0 ;
       UINT32 len                         = 0 ;
       dmsStorageUnitHeader *header       = (dmsStorageUnitHeader*)inBuf ;
       CHAR   eyeCatcher [ DMS_HEADER_EYECATCHER_LEN+1 ] = {0} ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_HEADER_SZ )
+      if ( NULL == inBuf || inSize != DMS_HEADER_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
@@ -472,6 +477,8 @@ namespace engine
                                    const CHAR *expBuffer, UINT32 pageNum,
                                    SINT32 &hwmPages, SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       SINT32 localErr       = 0 ;
       UINT32 len            = 0 ;
       UINT32 totalPages     = 0 ;
@@ -480,7 +487,7 @@ namespace engine
       CHAR stateBuf [ DMS_INSPECT_SME_STATE_BUFSZ + 1 ] = {0} ;
       hwmPages              = 0 ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_SME_SZ )
+      if ( NULL == inBuf || inSize != DMS_SME_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectSME input size (%d) doesn't match "
@@ -560,10 +567,12 @@ namespace engine
                                    vector< UINT16 > &collections,
                                    SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       SINT32 localErr = 0 ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_MME_SZ )
+      if ( NULL == inBuf || inSize != DMS_MME_SZ )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectMME input size (%d) doesn't match "
@@ -607,12 +616,14 @@ namespace engine
                                   vector< UINT16 > &collections,
                                   SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       SINT32 localErr = 0 ;
       UINT32 len = 0 ;
       dmsMB *mb = (dmsMB*)inBuf ;
       CHAR   tmpStr [ DMS_COLLECTION_STATUS_LEN + 1 ] = {0} ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize != DMS_MB_SIZE )
+      if ( NULL == inBuf || inSize != DMS_MB_SIZE )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectMMEMetadataBlock input size (%d) "
@@ -845,12 +856,15 @@ namespace engine
                                           UINT64 &compressedNum,
                                           BOOLEAN capped )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       SINT32 localErr      = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
       dmsExtentID origID   = nextExtent ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) ||
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -918,6 +932,9 @@ namespace engine
                                           dmsCompressorEntry *compressorEntry,
                                           BOOLEAN &isCompressed )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       INT32 rc          = SDB_OK ;
       UINT32 len        = 0 ;
       dmsRecord *record = (dmsRecord*)inBuf ;
@@ -926,7 +943,7 @@ namespace engine
       BOOLEAN   isDel   = FALSE ;
       BOOLEAN   isOvf   = FALSE ;
 
-      if ( NULL == inBuf  || NULL == outBuf || inSize < sizeof(dmsRecord) )
+      if ( NULL == inBuf || inSize < sizeof(dmsRecord) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectDataRecord input size (%d) "
@@ -1046,6 +1063,10 @@ namespace engine
                                                 SINT32 &err,
                                                 dmsCompressorEntry *compressorEntry )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( record, "record can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       INT32 rc = SDB_OK ;
       UINT32 len = 0 ;
 
@@ -1089,10 +1110,12 @@ namespace engine
                                             CHAR *outBuf, UINT32 outSize,
                                             UINT16 collectionID, SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) )
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectExtentHeader input size (%d) "
@@ -1139,10 +1162,12 @@ namespace engine
                                                 UINT16 collectionID,
                                                 SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       dmsExtent *extent    = (dmsExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(dmsExtent) )
+      if ( NULL == inBuf || inSize < sizeof(dmsExtent) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectExtentHeader input size (%d) "
@@ -1209,6 +1234,9 @@ namespace engine
                                            CHAR *outBuf, UINT32 outSize,
                                            UINT32 keyOffset, SINT32 &err )
    {
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       dmsRecordID rid ;
       UINT16 keyOfst ;
@@ -1263,10 +1291,12 @@ namespace engine
                                                  dmsExtentID &parentExtent,
                                                  SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       ixmExtentHead *header=(ixmExtentHead*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(ixmExtentHead) )
+      if ( NULL == inBuf || inSize < sizeof(ixmExtentHead) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectIndexExtentHeader input size (%d) "
@@ -1341,10 +1371,12 @@ namespace engine
                                                    UINT16 collectionID,
                                                    SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       ixmIndexCBExtent *header = (ixmIndexCBExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf ||
+      if ( NULL == inBuf ||
            inSize < sizeof(ixmIndexCBExtent) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
@@ -1430,11 +1462,13 @@ namespace engine
                                              UINT16 collectionID,
                                              dmsExtentID &root, SINT32 &err )
    {
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       SINT32 localErr      = 0 ;
       ixmIndexCBExtent *extent = (ixmIndexCBExtent*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf ||
+      if ( NULL == inBuf ||
            inSize < sizeof(ixmIndexCBExtent) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
@@ -1490,11 +1524,14 @@ namespace engine
                                            deque< dmsExtentID > &childExtents,
                                            SINT32 &err )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       SINT32 localErr      = 0 ;
       ixmExtentHead *extentHead = (ixmExtentHead*)inBuf ;
 
-      if ( NULL == inBuf || NULL == outBuf || inSize < sizeof(ixmExtentHead) ||
+      if ( NULL == inBuf || inSize < sizeof(ixmExtentHead) ||
            inSize % DMS_PAGE_SIZE4K != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1595,6 +1632,10 @@ namespace engine
                                            set< dmsRecordID > *ridList,
                                            pmdEDUCB *cb )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       INT32 recordCount = 0 ;
       dmsExtent *extent = (dmsExtent *)inBuf ;
@@ -1648,6 +1689,10 @@ namespace engine
                                            INT32 &localErr,
                                            pmdEDUCB *cb )
    {
+      SDB_ASSERT( cb, "cb can't be null" ) ;
+      SDB_ASSERT( inBuf, "inBuf can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len = 0 ;
       INT32 recordCount = 0 ;
       dmsExtent *extent = (dmsExtent *)inBuf ;
@@ -1750,6 +1795,9 @@ namespace engine
                                                 CHAR * outBuf, UINT32 outSize,
                                                 UINT16 clId,  SINT32 &err )
    {
+      SDB_ASSERT( blk, "blk can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
 
       if ( blk->_mbID !=  clId )
@@ -1778,6 +1826,9 @@ namespace engine
                                           CHAR * outBuf, UINT32 outSize,
                                           SINT32 &err )
    {
+      SDB_ASSERT( lobMeta, "lobMeta can't be null" ) ;
+      SDB_ASSERT( outBuf, "outBuf can't be null" ) ;
+
       UINT32 len           = 0 ;
       CHAR strTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
       UINT64 curTime = ossGetCurrentMilliseconds() ;

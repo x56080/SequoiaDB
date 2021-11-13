@@ -38,7 +38,7 @@
 #include "ossUtil.hpp"
 const static UINT32 utf8Table[] =
 {
-   0x20, // 
+   0x20, //
    0x21, //!
    0x22, //"
    0x23, //#
@@ -7438,7 +7438,7 @@ INT32 utilUnicodeGen ( CHAR *pBuffer, UINT32 len )
    UINT32 tLen = len ;
    if ( 0 == len )
    {
-      return SDB_INVALIDARG ;
+      rc = SDB_INVALIDARG ;
       goto error ;
    }
    while ( SDB_OK == rc && len > 0 )

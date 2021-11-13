@@ -909,7 +909,7 @@ namespace engine
          nodeID = *it ;
          ++it ;
          pSub = addSubSession( nodeID ) ;
-         if ( pSub )
+         if ( !pSub )
          {
             rc = SDB_OOM ;
             PD_LOG( PDERROR, "Session[%s] failed to add sub session[%s]",

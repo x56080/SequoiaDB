@@ -142,7 +142,7 @@ namespace engine
          {
             if ( NULL != _bitmap )
             {
-               ossMemset( _bitmap, 0xFFFFFFFF, _bitmapSize ) ;
+               ossMemset( _bitmap, 0xFF, _bitmapSize ) ;
                _freeSize = 0 ;
             }
          }

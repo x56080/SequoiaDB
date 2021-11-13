@@ -3134,7 +3134,7 @@ namespace engine
 
       BOOLEAN checkGroups = _task->testArgumentMask( UTIL_DOMAIN_GROUPS_FIELD ) ;
 
-      rc = catGetAndLockDomain( _dataName.c_str(), _boData, cb, &lockMgr, EXCLUSIVE ) ;
+      rc = catGetAndLockDomain( _dataName, _boData, cb, &lockMgr, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get domain [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 

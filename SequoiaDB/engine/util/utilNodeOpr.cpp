@@ -159,7 +159,7 @@ namespace engine
                     ENGINE_NPIPE_PREFIX_BW"%s_%d",
                     svcname, ossGetCurrentProcessID() ) ;
 
-      // clear when exist 
+      // clear when exist
       ossCleanNamedPipeByName( _pipeRName ) ;
       ossCleanNamedPipeByName( _pipeWName ) ;
 
@@ -1210,6 +1210,7 @@ namespace engine
          PD_LOG( PDERROR, "File to popen[%s], rc: %d", pCommand,
                  ossGetLastError() ) ;
          rc = SDB_SYS ;
+         goto error ;
       }
 
       fread( buff, OSS_MAX_PATHSIZE, 1, fp ) ;

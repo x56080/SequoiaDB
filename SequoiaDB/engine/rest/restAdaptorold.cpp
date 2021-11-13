@@ -1027,6 +1027,7 @@ error :
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( arg1, *Barg1 ) ;
             if ( rc )
@@ -1043,6 +1044,7 @@ error :
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( arg2, *Barg2 ) ;
             if ( rc )
@@ -1059,6 +1061,7 @@ error :
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
 
             rc = fromjson ( arg3, *Barg3 ) ;
@@ -1076,6 +1079,7 @@ error :
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
 
             rc = fromjson ( arg4, *Barg4 ) ;
@@ -1816,6 +1820,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pCondition, *BsCondition ) ;
             if ( rc )
@@ -1833,6 +1838,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pSelector, *BsSelector ) ;
             if ( rc )
@@ -1850,6 +1856,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pOrderby, *BsOrderby ) ;
             if ( rc )
@@ -1867,6 +1874,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pHint, *BsHint ) ;
             if ( rc )
@@ -2028,6 +2036,7 @@ index:{\"\":\"%s\"}}",
          {
             PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
             rc = SDB_OOM ;
+            goto error ;
          }
          rc = fromjson ( pRule, *BsRule ) ;
          if ( rc )
@@ -2044,6 +2053,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pCondition, *BsCondition ) ;
             if ( rc )
@@ -2061,6 +2071,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pHint, *BsHint ) ;
             if ( rc )
@@ -2190,6 +2201,7 @@ index:{\"\":\"%s\"}}",
          {
             PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
             rc = SDB_OOM ;
+            goto error ;
          }
          rc = fromjson ( pRecord, *BsRecord ) ;
          if ( rc )
@@ -2323,6 +2335,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pCondition, *BsCondition ) ;
             if ( rc )
@@ -2340,6 +2353,7 @@ index:{\"\":\"%s\"}}",
             {
                PD_LOG ( PDERROR, "Failed to allocate bsonobj" ) ;
                rc = SDB_OOM ;
+               goto error ;
             }
             rc = fromjson ( pHint, *BsHint ) ;
             if ( rc )

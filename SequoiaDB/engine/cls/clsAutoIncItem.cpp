@@ -221,6 +221,14 @@ namespace engine
          }
       }
 
+      if ( NULL == pGenStr )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Field[%s] is missing, rc: %d",
+                 CAT_AUTOINC_GENERATED, rc ) ;
+         goto error ;
+      }
+
       if ( 0 == ossStrcmp( CAT_GENERATED_ALWAYS, pGenStr ) )
       {
          genType = AUTOINC_GEN_ALWAYS ;

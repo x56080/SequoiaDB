@@ -798,7 +798,7 @@ static const CHAR* readKey( CJSON *pItem,
       goto error ;
    }
    keyLen = pStr - pStrStart ;
-   
+
    if( ( type == TYPE_STRING_QUOTE && *pStr == CHAR_QUOTE ) ||
        ( type == TYPE_STRING_DOUBLE_QUOTES && *pStr == CHAR_DOUBLE_QUOTES ) )
    {
@@ -874,6 +874,11 @@ static const CHAR* readValue( CJSON *pItem,
       if( pTmpStr == NULL )
       {
          //CJSON_PRINTF_LOG( "Failed to call parse function" ) ;
+         goto error ;
+      }
+      if ( pReadInfo == NULL )
+      {
+         CJSON_PRINTF_LOG( "pReadInfo is null" ) ;
          goto error ;
       }
       if( cJsonReadInfoExecState( pReadInfo ) == CJSON_EXEC_IGNORE )
@@ -1446,8 +1451,8 @@ static const CHAR* parseValue( const CHAR *pStr,
          {
             break ;
          }
-         ++pStr ; 
-      } 
+         ++pStr ;
+      }
       length = pStr - pStrStart ;
       CJSON_PRINTF_LOG( "ReferenceError: '%.*s' is not defined",
                         length,
@@ -1477,7 +1482,7 @@ static CHAR* parseString( const CHAR *pStr,
       goto error ;
    }
    ossMemset( pOut, 0, length + 1 ) ;
-   
+
    pNewStr = pOut ;
 
    while( length > 0 )
@@ -1715,7 +1720,7 @@ static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
    }
 
    /* encode as utf8 */
-   
+
    for ( utf8Position = utf8Length - 1; utf8Position > 0; --utf8Position )
    {
       /* 10xxxxxx */
@@ -2080,8 +2085,8 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
             {
                break ;
             }
-            ++pStr ; 
-         } 
+            ++pStr ;
+         }
          length = pStr - pStrStart ;
          CJSON_PRINTF_LOG( "ReferenceError: '%.*s' is not defined",
                            length,
@@ -2687,6 +2692,8 @@ error:
 
 SDB_EXPORT void* cJsonMalloc( INT32 bytesNum, const CJSON_MACHINE *pMachine )
 {
+   SDB_ASSERT( NULL != pMachine, "pMachine can't be null" ) ;
+
    INT32 useSize = 0 ;
    void *pBuffer = NULL ;
    CJSON_MEMORY_BLOCK *pBlock = NULL ;
