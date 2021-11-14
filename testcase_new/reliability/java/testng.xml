@@ -33,7 +33,7 @@
     <!--远程机器用户名-->
     <parameter name="REMOTEUSER"      value="sdbadmin" />
     <!--远程机器用户密码-->
-    <parameter name="REMOTEPASSWD"    value="Sdbadmin@1024" />
+    <parameter name="REMOTEPASSWD"    value="sdbadmin" />
     <!--可靠性shell脚本位置-->
     <parameter name="SCRIPTDIR"       value="${SCRIPTDIR}" />
     <!-- 适配器配置文件的父目录，默认是/opt/sequoiadb/conf/sdbseadapter -->
