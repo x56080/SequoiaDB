@@ -69,6 +69,7 @@ public class Sequoiadb implements Closeable {
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
     private long requestId;
     private long lastUseTime;
+    private int currentCacheSize = 0;
     private boolean isOldVersionLobServer = false;
 
     // cache cs/cl name
@@ -347,6 +348,13 @@ public class Sequoiadb implements Closeable {
      */
     public long getLastUseTime() {
         return lastUseTime;
+    }
+
+    /**
+     * Reserve.
+     */
+    public int getCurrentCacheSize() {
+        return currentCacheSize;
     }
 
     /**
@@ -2833,6 +2841,7 @@ public class Sequoiadb implements Closeable {
     private void sendRequest(Request request) {
         ByteBuffer buffer = encodeRequest(request);
         if (!isClosed()) {
+            // no need to set currentCacheSize here, for only command message use sendRequest
             connection.send(buffer);
         } else {
             throw new BaseException(SDBError.SDB_NOT_CONNECTED);
@@ -2854,7 +2863,14 @@ public class Sequoiadb implements Closeable {
         if (!isClosed()) {
             connection.send(request);
             lastUseTime = System.currentTimeMillis();
-            return receiveSdbResponse(buff);
+            ByteBuffer response = receiveSdbResponse(buff);
+            if (request.limit() > currentCacheSize) {
+                currentCacheSize = request.limit();
+            }
+            if (response.limit() > currentCacheSize) {
+                currentCacheSize = response.limit();
+            }
+            return response;
         } else {
             throw new BaseException(SDBError.SDB_NOT_CONNECTED);
         }

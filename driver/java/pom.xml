@@ -4,7 +4,7 @@
 
     <groupId>com.sequoiadb</groupId>
     <artifactId>sequoiadb-driver</artifactId>
-    <version>3.2-SNAPSHOT</version>
+    <version>5.0.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>SequoiaDB Java Driver</name>

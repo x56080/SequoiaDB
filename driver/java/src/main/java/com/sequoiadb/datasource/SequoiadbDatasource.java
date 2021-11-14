@@ -192,6 +192,13 @@ public class SequoiadbDatasource {
                     int destroyCount = _idleConnPool.count() - _dsOpt.getMaxIdleCount();
                     _reduceIdleConnections(destroyCount);
                 }
+                // when the number of idle connections in the pool is less than the minIdleCount,
+                // we are going to create some connections
+                if (_idleConnPool.count() < _dsOpt.getMinIdleCount()) {
+                    synchronized (_createConnSignal) {
+                        _createConnSignal.notify();
+                    }
+                }
             } finally {
                 wlock.unlock();
             }
@@ -1181,6 +1188,7 @@ public class SequoiadbDatasource {
 
         int deltaIncCount = newOpt.getDeltaIncCount();
         int maxIdleCount = newOpt.getMaxIdleCount();
+        int minIdleCount = newOpt.getMinIdleCount();
         int maxCount = newOpt.getMaxCount();
         int keepAliveTimeout = newOpt.getKeepAliveTimeout();
         int checkInterval = newOpt.getCheckInterval();
@@ -1191,15 +1199,19 @@ public class SequoiadbDatasource {
 
         // 1. maxCount
         if (maxCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxCount can't be less then 0");
+            throw new BaseException(SDBError.SDB_INVALIDARG, "maxCount can't be less than 0");
 
         // 2. deltaIncCount
         if (deltaIncCount <= 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount should be more then 0");
+            throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount should be more than 0");
 
-        // 3. maxIdleCount
+        // 3. maxIdleCount and minIdleCount
         if (maxIdleCount < 0)
-            throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be less then 0");
+            throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be less than 0");
+        if (minIdleCount < 0)
+            throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be less than 0");
+        if (minIdleCount > maxIdleCount)
+            throw new BaseException(SDBError.SDB_INVALIDARG, "minIdleCount can't be more than maxIdleCount");
 
         // 4. keepAliveTimeout
         if (keepAliveTimeout < 0)
@@ -1217,9 +1229,9 @@ public class SequoiadbDatasource {
 
         if (maxCount != 0) {
             if (deltaIncCount > maxCount)
-                throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount can't be great then maxCount");
+                throw new BaseException(SDBError.SDB_INVALIDARG, "deltaIncCount can't be more than maxCount");
             if (maxIdleCount > maxCount)
-                throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be great then maxCount");
+                throw new BaseException(SDBError.SDB_INVALIDARG, "maxIdleCount can't be more than maxCount");
         }
 
         // check arguments about session
@@ -1479,6 +1491,11 @@ public class SequoiadbDatasource {
     }
 
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
+        // check the send/receive buffer size of the connection is out of the cache limit or not
+        if (_dsOpt.getCacheLimit() > 0 && sdb.getCurrentCacheSize() > _dsOpt.getCacheLimit()) {
+            return false;
+        }
+
         // release the resource contains in connection
         try {
             sdb.releaseResource();
