@@ -2997,7 +2997,7 @@
       <code>
          <name>SDB_DPS_CONTEXT_NUM_UP_TO_LIMIT</name>
          <description>
-            <en>Number of openned contexts is up to config limit</en>
+            <en>Number of opened contexts is up to config limit</en>
             <cn>同时开启的上下文个数达到指定配置上限</cn>
          </description>
       </code>
