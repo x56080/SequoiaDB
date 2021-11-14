@@ -236,8 +236,10 @@ namespace vessel
 
       private:
          virtual UINT32 getReservedImpCount()const {return 0;}
-         virtual UINT32 getFreeBoundOfPageStorage()const = 0;
-         virtual UINT32 getFreeBoundOfLpidAllocator()const = 0;
+         virtual inMemBitmap::options getStorageAllocatorOptions()const
+         {
+            return inMemBitmap::options();
+         }
 
       private:/// page management
          INT32 getIdMapSlotFromCache(PAGE_ID lpid,

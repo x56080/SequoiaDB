@@ -51,20 +51,23 @@ namespace vessel
          ~lpsCheckpointContext();
 
       public:
-         enum CHECKPOINT_STATUS
+      
+         struct STATUS
          {
-            NONE = 0,
-            RUNNING = 2,
-            CREATING_NEW_BASE = 3
+            static const INT32 NONE = 0;
+            static const INT32 APPLYING = 1;
+            static const INT32 RUNNING = 2;
+            static const INT32 CREATING_NEW_BASE = 3;
+            static const INT32 ENDING = 4;
          };//enum CHECKPOINT_STATUS
 
       public:
          
-         OSS_INLINE void setStatus(CHECKPOINT_STATUS s)
+         OSS_INLINE void setStatus(INT32 s)
          {
-            _status = s;
+            _status.store(s);
          }
-         OSS_INLINE CHECKPOINT_STATUS getStatus()const
+         OSS_INLINE INT32 peekStatus()const
          {
             return _status;
          }
@@ -80,7 +83,7 @@ namespace vessel
          }
          OSS_INLINE DPS_LSN_OFFSET peekMinDirtyLsn()const
          {
-            return ((const ossAtomic64 *)(&_minDirtyLsn))->peek();
+            return *((const volatile UINT64 *)(&_minDirtyLsn));
          }
          OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLsn()const
          {
@@ -105,22 +108,15 @@ namespace vessel
             _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
             _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
          }
-         void setMinDirtyLsn(DPS_LSN_OFFSET lsn)
-         {
-            SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
-            SDB_ASSERT(lsn <= _maxDirtyLsn, "impossible");
-            _minDirtyLsn = lsn;
-         }
 
          BOOLEAN tryToApplyCheckpoint();
-         void clearApplyingCheckpoint();
+         BOOLEAN tryToSetRunningFromNoneOrApplying();
       private:
          ossRWMutex _checkpointLatch;
-         CHECKPOINT_STATUS _status = NONE;
+         std::atomic_int _status = {STATUS::NONE};
          LPS_CHECKPOINT _checkpoint;
          DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
          DPS_LSN_OFFSET _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
-         std::atomic_flag _applying = ATOMIC_FLAG_INIT;
    };//class lpsCheckpointContext
 }//namespace vessel
 }//namespace engine

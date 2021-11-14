@@ -976,9 +976,17 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
-      rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
+      if (DMS_STORAGE_VESSEL == _storageType)
+      {
+         rc = rtnCreateCollectionSpaceInVseCommand(_spaceName, cb, dmsCB,
+                                                   dpsCB, _csUniqueID);
+      }
+      else
+      {
+         rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
                                                 dpsCB, _csUniqueID, _pageSize,
                                                 _lobPageSize, _storageType ) ;
+      }
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {

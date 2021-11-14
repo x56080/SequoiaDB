@@ -229,9 +229,19 @@ namespace vessel
    }
 
    INT32 vesselImpl::createCollectionSpace(IExecutor *executor,
+                                             const CHAR *name,
+                                             utilCSUniqueID uniqueId,
+                                             const createCSOptions &options)
+   {
+      collectionSpaceIdentifier identifier;
+      return createCollectionSpace(executor, name, uniqueId, options, identifier);
+   }
+
+   INT32 vesselImpl::createCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
                                            utilCSUniqueID uniqueId,
-                                           const createCSOptions &options)
+                                           const createCSOptions &options,
+                                           collectionSpaceIdentifier &identifier)
    {
       INT32 rc = SDB_OK;
       createCSHandler handler;
@@ -250,7 +260,7 @@ namespace vessel
 
       handler.init(&_env, executor, &_outerResource);
 
-      rc = handler.doit(name, uniqueId, options);
+      rc = handler.doit(name, uniqueId, options, identifier);
       if (SDB_OK != rc)
       {
          goto error;

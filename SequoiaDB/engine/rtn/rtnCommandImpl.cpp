@@ -1262,27 +1262,105 @@ namespace engine
       goto done ;
    }
 
-   static INT32 rtnCreateCSInVessel(const CHAR *pCollectionSpace,
-                                    pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                    utilCSUniqueID csUniqueID)
+   INT32 rtnCreateCollectionSpaceInVseCommand(const CHAR *pCollectionSpace,
+                                              pmdEDUCB *cb,
+                                              SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
+                                              utilCSUniqueID csUniqueID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
 
-      vessel::createCSOptions o;
       vessel::IVessel *vse = dmsCB->getVesselEngine();
       SDB_ASSERT(NULL != vse, "can not be null");
+      BOOLEAN writable     = FALSE ;
+      BOOLEAN hasAquired   = FALSE ;
+      dmsStorageUnitID suID = -1;
+      vessel::collectionSpaceIdentifier identifier;
+      vessel::createCSOptions options;
+
+      // make sure the collectionspace length is not out of range
+      UINT32 length = ossStrlen ( pCollectionSpace ) ;
+      if ( length <= 0 || length > DMS_SU_NAME_SZ )
+      {
+         PD_LOG ( PDERROR, "Invalid length for collectionspace: %s, rc: %d",
+                  pCollectionSpace, rc ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      // validate collection space name
+      rc = dmsCheckCSName ( pCollectionSpace, FALSE ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Invalid collection space name, rc = %d",
+                  rc ) ;
+         goto error ;
+      }
+
+      rc = dmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
+      writable = TRUE ;
+
+      rc = dmsCB->findCollectionSpace(pCollectionSpace, suID);
+      if (SDB_DMS_CS_NOTEXIST == rc)
+      {
+         rc = SDB_OK;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Collection space %s is already exist",
+                  pCollectionSpace ) ;
+         rc = SDB_DMS_CS_EXIST ;
+         goto error ;
+      }
+
+      dmsCB->aquireCSMutex( pCollectionSpace ) ;
+      hasAquired = TRUE ;
+
+      rc = dmsCB->findCollectionSpace(pCollectionSpace, suID);
+      if (SDB_DMS_CS_NOTEXIST == rc)
+      {
+         rc = SDB_OK;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Collection space %s is already exist",
+                  pCollectionSpace ) ;
+         rc = SDB_DMS_CS_EXIST ;
+         goto error ;
+      }
 
       rc = vse->createCollectionSpace(cb, pCollectionSpace,
-                                      csUniqueID, o);
+                                      csUniqueID,
+                                      options,
+                                      identifier);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create cs in storage engine:%d", rc);
+         PD_LOG(PDERROR, "failed to create collection space[%s] in engine:%d",
+                pCollectionSpace, rc);
          goto error;
       }
 
+      rc = dmsCB->addCollectionSpace(pCollectionSpace, 1, identifier, cb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to add cs to dmscb:%d", rc);
+         ossPanic();
+         goto error;
+      }
+
+      PD_LOG( PDEVENT, "Create collectionspace[name: %s, id: %u] succeed",
+              pCollectionSpace, csUniqueID);
+
    done:
+      if ( hasAquired )
+      {
+         dmsCB->releaseCSMutex( pCollectionSpace ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown( cb ) ;
+      }
       return rc;
    error:
       goto done;
@@ -1329,19 +1407,6 @@ namespace engine
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
-
-      if (DMS_STORAGE_VESSEL == type)
-      {
-         rc = rtnCreateCSInVessel(pCollectionSpace,
-                                  cb, dmsCB, csUniqueID);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "faield to create collection space:%d", rc);
-            goto error;
-         }
-
-         goto done;
-      }
 
       // let's see if the CS already exist or not
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
@@ -1472,7 +1537,8 @@ namespace engine
    static INT32 rtnCreateCollectionInVessel(const CHAR *pCollection,
                                             utilCLUniqueID clUniqueID,
                                             _pmdEDUCB *cb,
-                                            SDB_DMSCB *dmsCB)
+                                            SDB_DMSCB *dmsCB,
+                                            const BSONObj *extOptions)
    {
       INT32 rc = SDB_OK;
       CHAR collectionSpaceName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
@@ -1496,6 +1562,7 @@ namespace engine
    error:
       goto done;
    }
+
 
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       UINT32 attributes,
@@ -1548,26 +1615,6 @@ namespace engine
 
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
-
-      if (!sysCall && SDB_DMS_CS_NOTEXIST == rc)
-      {
-         rc = rtnCreateCollectionInVessel(pCollection, clUniqueID,
-                                          cb, dmsCB);
-         if (SDB_OK == rc)
-         {
-            goto done;
-         }
-         else if (SDB_OK != SDB_DMS_CS_NOTEXIST)
-         {
-            PD_LOG(PDERROR, "failed to create cs:%d", rc);
-            goto error;
-         }
-         else
-         {
-            /// go on in mmap engine
-         }
-      }
-
       if ( rc && pCollectionShortName && (flags&FLG_CREATE_WHEN_NOT_EXIST) )
       {
          CHAR temp [ DMS_COLLECTION_SPACE_NAME_SZ +
@@ -1600,6 +1647,19 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
                   pCollection, rc ) ;
          goto error ;
+      }
+      else if (NULL == su)
+      {
+         /// succeed to lock but su is null, it is a vessel cs
+         rc = rtnCreateCollectionInVessel(pCollection, clUniqueID,
+                                          cb, dmsCB, extOptions);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create cl:%d", rc);
+            goto error;
+         }
+
+         goto done;
       }
 
       if ( DMS_STORAGE_CAPPED != su->type() &&

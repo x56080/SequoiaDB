@@ -205,7 +205,7 @@ namespace vessel
       }
 
       rc = _dpc->open(o.dataArgs, &_creater,
-                      NULL, getFreeBoundOfPageStorage());
+                      NULL, getStorageAllocatorOptions());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page storage:%d", rc);
@@ -308,7 +308,8 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->open(dataArgs, &_creater, &loader, getFreeBoundOfPageStorage());
+      rc = _dpc->open(dataArgs, &_creater, &loader,
+                      getStorageAllocatorOptions());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page storage:%d", rc);
@@ -400,7 +401,6 @@ namespace vessel
       UINT32 totalImpCount = 0;
       ossPoolSet<UINT32> segments;
       IRedoLogger *logger = NULL;
-      BOOLEAN pausedNewApplying = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -415,19 +415,16 @@ namespace vessel
 
       logger = context->getOuterResource()->logger;
 
-      _checkpointContext.getLatch()->lock_w();
-      locked = TRUE;
-
-      if (lpsCheckpointContext::NONE != _checkpointContext.getStatus())
+      if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
+         PD_LOG(PDERROR, "lps[%d,%d] checkpoint task is running",
+                getSpaceID(), getSpaceType());
          rc = SDB_VESSEL_SAME_TASK_RUNNING;
          goto error;
       }
-
-      /// checkpoint applying flag may already been set.
-      /// we just make sure no new applying when running.
-      _checkpointContext.tryToApplyCheckpoint();
-      pausedNewApplying = TRUE;
+      abortCheckpoint = TRUE;
+      _checkpointContext.getLatch()->lock_w();
+      locked = TRUE;
 
       maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
       if (DPS_INVALID_LSN_OFFSET == maxDirtyLSN)
@@ -435,13 +432,22 @@ namespace vessel
          goto done;
       }
 
-      _checkpointContext.setStatus(lpsCheckpointContext::RUNNING);
-      abortCheckpoint = TRUE;
+      PD_LOG(PDINFO, "begin to create checkpoint on lps[%d,%d]."
+                      "current dirty lsn:[%lld, %lld].",
+                      getSpaceID(), getSpaceType(),
+                      _checkpointContext.getMinDirtyLsn(),
+                      _checkpointContext.getMaxDirtyLsn());
 
       fullCheckpoint = needFullCheckpoint();
+      if (fullCheckpoint)
+      {
+         PD_LOG(PDINFO, "full checkpoint will be created on lps[%d,%d]",
+                getSpaceID(), getSpaceType());
+      }
       lsn._lsn = logger->getCurrentLSN();
+      /// getMinUncompletedLSN is very expensive.
       lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
-      _checkpointContext.clearLsn();
+      lsn._minDirtyLSN = maxDirtyLSN + 1;
 
       rc = _logConsole.reserveNextCheckpoint();
       if (SDB_OK != rc)
@@ -453,7 +459,7 @@ namespace vessel
       /// New imp may allocated in preallocating.
       /// But we can be sure page count not less than real count to be
       /// saved into new base id map file.
-      totalImpCount = _allocator.getPageCount();
+      totalImpCount = _allocator.getCustomizedPageCount();
 
       rc = prepareToCreateCheckpoint(context, fullCheckpoint, segments);
       if (SDB_OK != rc)
@@ -462,6 +468,7 @@ namespace vessel
          goto error;
       }
 
+      _checkpointContext.clearLsn();
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
@@ -476,7 +483,6 @@ namespace vessel
       }
 
       logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLSN);
-      lsn._minDirtyLSN = _checkpointContext.peekMinDirtyLsn();
 
       rc = _logConsole.commitCheckpoint(lsn);
       if (SDB_OK != rc)
@@ -485,51 +491,34 @@ namespace vessel
          goto error;
       }
 
-      _checkpointContext.getLatch()->lock_w();
-      locked = TRUE;
-
       if (fullCheckpoint)
       {
-         SDB_ASSERT(_checkpointContext.getStatus() == lpsCheckpointContext::RUNNING,
-                   "must be running");
-         _checkpointContext.setStatus(lpsCheckpointContext::CREATING_NEW_BASE);
-         _checkpointContext.getLatch()->release_w();
-         locked = FALSE;
+         _checkpointContext.setStatus(lpsCheckpointContext::STATUS::CREATING_NEW_BASE);
 
          rebaseWhenCreatingCheckpoint(totalImpCount,
                                       _logConsole.getCheckpoint().offset);
          removeHistoryIdMapAndDeltaLogFiles();
-
-         _checkpointContext.getLatch()->lock_w();
-         locked = TRUE;
       }
 
       _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
-      _checkpointContext.setStatus(lpsCheckpointContext::NONE);
-      _checkpointContext.getLatch()->release_w();
-      locked = FALSE;
-
-      /// checkpoint applying flag still be valid
+      _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
       endToCreateCheckpoint(context);
+
+      _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
+      PD_LOG(PDINFO, "end to create checkpoint on lps[%d,%d], :%s",
+             getSpaceID(), getSpaceType(),
+             _checkpointContext.getCheckpoint().toString().c_str());
+      
    done:
       if (locked)
       {
          _checkpointContext.getLatch()->release_w();
       }
-      if (pausedNewApplying)
-      {
-         _checkpointContext.clearApplyingCheckpoint();
-      }
       return rc;
    error:
       if (abortCheckpoint)
       {
-         if (!locked)
-         {
-            _checkpointContext.getLatch()->lock_w();
-            locked = TRUE;
-            _checkpointContext.setStatus(lpsCheckpointContext::NONE);
-         }
+         _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       }
       goto done;
    }
@@ -1100,6 +1089,9 @@ namespace vessel
 
       /// 4. reset cow trigger
       lpb._cowTrigger.reset(psv, TRUE);
+
+      //PD_LOG(PDDEBUG, "remap lpid[%d] from [%d] to [%d] in lps[%d,%d]",
+      //       lpb.getLogicalPid(), oldPid, pid, getSpaceID(), getSpaceType());
 
    done:
       return rc;
@@ -1856,7 +1848,7 @@ namespace vessel
             PD_LOG(PDERROR, "failed to get page[%d] from base:%d", i, rc);
             goto error;
          }
-         rc = file->getPagePtr(i, src);
+         rc = file->getPagePtr(i, dst);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page[%d] from file:%d", i, rc);
@@ -2418,7 +2410,7 @@ namespace vessel
       SDB_ASSERT(_allocator.isInitialized(), "must be inited");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       UINT32 minCount = getImpPidOfLpid(lpid) + 1;
-      if (minCount <= _allocator.getPageCount())
+      if (minCount <= _allocator.getCustomizedPageCount())
       {
          goto done;
       }
@@ -2455,7 +2447,7 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if ((_allocator.getPageCount() * ID_MAP_PAGE_CAPACITY) <= lpid)
+      else if ((_allocator.getCustomizedPageCount() * ID_MAP_PAGE_CAPACITY) <= lpid)
       {
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
@@ -2499,17 +2491,18 @@ namespace vessel
       SDB_ASSERT(!isLogicalPageAlwaysMutable(), "impossible");
 
       static const UINT32 _DISPATCH_FLUSHING_TASK_THRESHOLD = 4;
-      UINT32 dispatched = 0;
+      
       UINT32 totalCount = segments.size();
       //UINT32 failureCount = 0;
       autoEventList<backgroundEvent> rl;
       backgroundWorkers &workers = context->getEnv()->workers;
 
-      for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
-           itr != segments.end(); ++itr)
+      PD_LOG(PDDEBUG, "segments[%d] to be flushed", segments.size());
+
+      if (totalCount <= _DISPATCH_FLUSHING_TASK_THRESHOLD || !workers.isReady())
       {
-         if (!workers.isReady() ||
-             (totalCount - dispatched) <= _DISPATCH_FLUSHING_TASK_THRESHOLD)
+         for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
+              itr != segments.end(); ++itr)
          {
             rc = _dpc->fsyncSegment(*itr);
             if (SDB_OK != rc)
@@ -2519,28 +2512,67 @@ namespace vessel
                //++failureCount;
             }
          }
-         else
+      }
+      else
+      {
+         UINT32 taskDispatched = 0;
+         UINT32 firstSegment = 0;
+         UINT32 batchCount = 0;
+         ossPoolSet<UINT32>::const_iterator itr = segments.begin();
+
+         do
+         {
+            if (0 == batchCount)
+            {
+               batchCount = 1;
+               firstSegment = *itr;
+            }
+            else if ((firstSegment + batchCount) != *itr ||
+                     batchCount == _DISPATCH_FLUSHING_TASK_THRESHOLD)
+            {
+               backgroundEvent event;
+               lpsFlushingSegments msg;
+               msg._sid = getSpaceID();
+               msg._type = getSpaceType();
+               msg._segmentId = firstSegment;
+               msg._count = (UINT8)batchCount;
+               event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
+               event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
+               event.setResponseList(&rl);
+               workers.pushEvent(event);
+               ++taskDispatched;
+
+               firstSegment = *itr;
+               batchCount = 1;
+            }
+            else
+            {
+               ++batchCount;
+            }
+         } while (++itr != segments.end());
+
+         PD_LOG(PDDEBUG, "[%d] tasks dispatched, [%d] segments remained when flushing[%d,%d]",
+                taskDispatched, batchCount, getSpaceID(), getSpaceType());
+
+         for (UINT32 i = 0; i < batchCount; ++i)
+         {
+            rc = _dpc->fsyncSegment(firstSegment + i);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
+                     getSpaceID(), getSpaceType(), *itr, rc);
+               //++failureCount;
+            }
+         }
+
+         while (0 < taskDispatched)
          {
             backgroundEvent event;
-            lpsFlushingSegments msg;
-            msg._sid = getSpaceID();
-            msg._type = getSpaceType();
-            msg._segmentId = *itr;
-            event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
-            event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
-            event.setResponseList(&rl);
-            workers.pushEvent(event);
-            ++dispatched;
+            rl.popOrWait(event);
+            SDB_ASSERT(event.getType() == backgroundEvent::EVENT_TYPE_FINISHED,
+                       ", must be finish");
+            --taskDispatched;
          }
-      }
-
-      PD_LOG(PDDEBUG, "[%d] tasks dispatched,  when flushing[%d,%d]",
-             dispatched, getSpaceID(), getSpaceType());
-      while (0 < dispatched)
-      {
-         backgroundEvent event;
-         rl.popOrWait(event);
-         --dispatched;
       }
    done:
       return rc;
@@ -2553,6 +2585,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
+      
       if (CHECKPOINT_TRIGGER_DELTA_LOG_SIZE <=
           _logConsole.getFuzzyDirtyLogSize())
       {
@@ -2575,22 +2608,17 @@ namespace vessel
    {
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(!_idMapFiles.isEmpty(), "can not be empty");
-      BOOLEAN r = FALSE;
-      if ((FULL_CHECKPOINT_LPID_CACHE_SIZE <= _lpidCache.getTotalCacheSize()))
-      {
-         r = TRUE;
-         goto done;
-      }
-      else
-      {
-         UINT64 baseOffset = 0;
-         UINT64 deltaLogOffset = _logConsole.getNextOffset();
-         idMapFile *base = static_cast<idMapFile *>(_idMapFiles.getBack());
-         base->getDeltaLogOffset(baseOffset);
-         r = ((baseOffset + FULL_CHECKPOINT_DELTA_LOG_SIZE) <= deltaLogOffset);
-      }
-   done:
-      return r;
+      UINT64 cacheSize = _lpidCache.getTotalCacheSize();
+      UINT64 baseOffset = 0;
+      UINT64 deltaLogOffset = _logConsole.getNextOffset();
+      idMapFile *base = static_cast<idMapFile *>(_idMapFiles.getBack());
+      base->getDeltaLogOffset(baseOffset);
+      INT64 deltaLogSize = (INT64)deltaLogOffset - (INT64)baseOffset;
+      PD_LOG(PDDEBUG, "current lpid cache size:%lld, delta log size:%lld",
+             cacheSize, deltaLogSize);
+
+      return (FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize) ||
+             ((INT64)FULL_CHECKPOINT_DELTA_LOG_SIZE <= deltaLogSize);
    }
 }//namespace vessel
 }//namespace engine

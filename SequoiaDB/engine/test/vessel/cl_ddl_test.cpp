@@ -94,11 +94,12 @@ TEST_F(cl_ddl_test, test1)
    cursorHandler cursor;
    slice slice;
    bson::BSONObj record;
+   collectionSpaceIdentifier identifier;
 
    rc = db.open(&executor, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&executor, "foo", 1, csOptions);
+   rc = db.createCollectionSpace(&executor, "foo", 1, csOptions, identifier);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&executor, "foo", "bar1", 1, clOptions);
@@ -149,11 +150,12 @@ TEST_F(cl_ddl_test, test2)
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
+   collectionSpaceIdentifier identifier;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.createCollection(&session, "foo", "bar1", 1, clOptions);
@@ -210,11 +212,12 @@ TEST_F(cl_ddl_test, test3)
    options.path.lsmPath = LSM_PATH;
    UINT32 creatingCount = 65535;
    UINT32 count = 0;
+   collectionSpaceIdentifier identifier;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < creatingCount; ++i)
@@ -282,11 +285,12 @@ TEST_F(cl_ddl_test, test4)
    std::thread threads[threadCount];
    UINT32 innerID = 1;
    UINT32 countPerThread = creatingCount / threadCount;
+   collectionSpaceIdentifier identifier;
 
    rc = db.open(&session, &resource, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions, identifier);
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < threadCount; ++i)

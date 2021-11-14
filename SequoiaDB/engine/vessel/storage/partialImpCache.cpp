@@ -168,7 +168,7 @@ namespace vessel
             
             SDB_ASSERT(!_buffer[mutableSlot].isFree(), "impossible");
             mutableSegmentIds->insert((_buffer[mutableSlot].pid / pageCountPerSeg));
-            OSS_BIT_CLEAR(_flags, ((UINT32)1 << mutableSlot));
+            setAsInmmutable(mutableSlot);
          } while (TRUE);
       }
       else

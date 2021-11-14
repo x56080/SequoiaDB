@@ -69,6 +69,9 @@ namespace vessel
          INT32 insert(const ixmKey &key,
                       const recordID &rid);
 
+         INT32 remove(const ixmKey &key,
+                      const recordID &rid);
+
       private:/// writing
 
          INT32 traverseDownAndInsert(const ixmKey &key,

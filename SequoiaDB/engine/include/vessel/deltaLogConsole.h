@@ -117,7 +117,7 @@ namespace vessel
 
          INT32 initLogFiles(const FILE_NAME_LIST *fl);
 
-         INT32 appendDummyLogToSegment();
+         INT32 appendDummyLogToSwitchSegment();
 
 
          INT32 ensureFileSpace(UINT64 fileId,
@@ -134,7 +134,7 @@ namespace vessel
          INT32 writeLogBuffer(const deltaLogRecord &dlr,
                               DELTA_LOG_CHECKSUM checksum);
 
-         INT32 copyDataFromBufferToFile();
+         INT32 flushLogBuffer();
 
          OSS_INLINE BOOLEAN isBufferReady()const
          {

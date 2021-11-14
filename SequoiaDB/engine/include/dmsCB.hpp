@@ -81,6 +81,8 @@ namespace engine
       UINT32 _topSequence ;
       CHAR   _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
       _dmsStorageUnit *_su ;
+      vessel::collectionSpaceIdentifier _identifier;
+
       _SDB_DMS_CSCB ( const CHAR *pName, UINT32 topSequence,
                       _dmsStorageUnit *su )
       {
@@ -88,6 +90,22 @@ namespace engine
          _name[DMS_COLLECTION_SPACE_NAME_SZ] = 0 ;
          _topSequence = topSequence ;
          _su = su ;
+         _identifier = vessel::collectionSpaceIdentifier();
+      }
+
+      _SDB_DMS_CSCB ( const CHAR *pName, UINT32 topSequence,
+                      const vessel::collectionSpaceIdentifier &identifier)
+      {
+         ossStrncpy ( _name, pName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         _name[DMS_COLLECTION_SPACE_NAME_SZ] = 0 ;
+         _topSequence = topSequence ;
+         _su = NULL;
+         _identifier = identifier;
+      }
+
+      OSS_INLINE BOOLEAN isVesselCS()const
+      {
+         return NULL == _su && _identifier.isValid();
       }
       ~_SDB_DMS_CSCB () ;
    } ;
@@ -228,6 +246,11 @@ namespace engine
                               _dmsStorageUnit *su,
                               dmsStorageUnitID &suID ) ;
 
+      INT32 _CSCBNameInsert(const CHAR *pName,
+                            UINT32 topSequence,
+                            const vessel::collectionSpaceIdentifier &identifier,
+                            dmsStorageUnitID &suID);
+
       INT32 _CSCBNameLookup ( const CHAR *pName,
                               SDB_DMS_CSCB **cscb,
                               dmsStorageUnitID *pSuID = NULL,
@@ -329,6 +352,9 @@ namespace engine
       virtual INT32  fini () ;
       virtual void   onConfigChange() ;
 
+      INT32 findCollectionSpace(const CHAR *pName,
+                                dmsStorageUnitID &suId);
+
       INT32 nameToSUAndLock ( const CHAR *pName,
                               dmsStorageUnitID &suID,
                               _dmsStorageUnit **su,
@@ -362,6 +388,11 @@ namespace engine
       INT32 addCollectionSpace ( const CHAR *pName, UINT32 topSequence,
                                  _dmsStorageUnit *su, _pmdEDUCB *cb,
                                  SDB_DPSCB *dpsCB, BOOLEAN isCreate ) ;
+
+      INT32 addCollectionSpace(const CHAR *pName, UINT32 topSequence,
+                               const vessel::collectionSpaceIdentifier &identifier,
+                               pmdEDUCB *cb);
+
       INT32 dropCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB ) ;
       INT32 dropEmptyCollectionSpace( const CHAR *pName, _pmdEDUCB *cb,

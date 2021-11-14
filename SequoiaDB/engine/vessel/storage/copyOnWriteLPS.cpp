@@ -240,7 +240,6 @@ namespace vessel
       BOOLEAN checkpointBlocked = FALSE;
       deltaLogRecordBuilder builder;
       deltaLogRecord dlr;
-      ossXLatchGuard guard(logicalPageSpace::getMappingLatch(), FALSE);
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
@@ -269,21 +268,21 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      guard.lock();
-
-      /// commit delta log
-      rc = logicalPageSpace::getLogConsole().append(dlr);
-      if (SDB_OK != rc)
       {
-         guard.unlock();
-         PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                lsn, rc);
-         goto error;
-      }
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         /// commit delta log
+         rc = logicalPageSpace::getLogConsole().append(dlr);
+         if (SDB_OK != rc)
+         {
+            guard.unlock();
+            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
+                  lsn, rc);
+            goto error;
+         }
 
-      /// update lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      guard.unlock();
+         /// update lsn
+         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
+      }
 
       /// update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -388,10 +387,6 @@ namespace vessel
       {
          insertIntoReleasingBlock(count, oldPids);
       }
-
-      context->unblockCheckpoint();
-      checkpointBlocked = FALSE;
-
    done:
       if (checkpointBlocked)
       {
@@ -502,10 +497,6 @@ namespace vessel
          insertIntoReleasingBlock(count,
                                   (const PAGE_ID *)buffer);
       }
-
-      context->unblockCheckpoint();
-      checkpointBlocked = FALSE;
-
       
    done:
       if (checkpointBlocked)
@@ -698,6 +689,8 @@ namespace vessel
          _block = NULL;
       }
 
+      PD_LOG(PDDEBUG, "waiting list size to be merged:%d", _waitingList.size());
+
       if (!_waitingList.empty())
       {
          /// merge list by move
@@ -705,6 +698,13 @@ namespace vessel
       }
       
       return;
+   }
+
+   inMemBitmap::options copyOnWriteLPS::getStorageAllocatorOptions()const
+   {
+      inMemBitmap::options o;
+      o.percentFreeReused = 0.1;
+      return o;
    }
 }//namespace vessel
 }//namespace engine

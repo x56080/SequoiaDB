@@ -76,6 +76,13 @@ namespace vessel
          virtual INT32 createCollectionSpace(IExecutor *executor,
                                              const CHAR *name,
                                              utilCSUniqueID uniqueId,
+                                             const createCSOptions &options,
+                                             collectionSpaceIdentifier &identifier);
+
+         /// lazy to modify all unit tests after add identifier in createCollectionSpace
+         INT32 createCollectionSpace(IExecutor *executor,
+                                             const CHAR *name,
+                                             utilCSUniqueID uniqueId,
                                              const createCSOptions &options);
 
          virtual INT32 testCollectionSpace(IExecutor *executor,

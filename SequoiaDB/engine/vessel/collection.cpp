@@ -895,7 +895,7 @@ namespace vessel
          rc = insertNonBigRecordToPage(context, lpid);
          if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
          {
-            PD_LOG(PDDEBUG, "page seq[%] free size may be not correct",
+            PD_LOG(PDDEBUG, "page seq[%d] free size may be not correct",
                    candidate.getSeq());
             rc = SDB_OK;
             continue;

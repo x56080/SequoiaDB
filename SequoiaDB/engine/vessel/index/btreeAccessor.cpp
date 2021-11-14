@@ -148,6 +148,7 @@ namespace vessel
 
       _bac.clearAccessPath();
       _bac.setReadonly(FALSE);
+      //_bac.setPessimistic(TRUE);
       rc = traverseDownAndInsert(key, rid, obstructed);
       if (SDB_OK != rc)
       {

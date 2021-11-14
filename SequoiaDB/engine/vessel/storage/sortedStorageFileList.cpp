@@ -171,6 +171,10 @@ namespace vessel
             SDB_OSS_DEL file;
             _list.pop_front();
          }
+         else
+         {
+            break;
+         }
       }
       return;
    }

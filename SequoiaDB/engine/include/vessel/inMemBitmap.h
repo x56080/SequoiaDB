@@ -72,16 +72,14 @@ namespace vessel
                void fini();
 
                INT32 allocate(UINT32 count,
-                              UINT32 *buf,
-                              UINT32 *stillFreeCount = NULL);
+                              UINT32 *buf);
 
                void release( UINT32 count, const UINT32 *buf);
 
                INT32 test(UINT32 offset,
                           BOOLEAN &isFree)const;
 
-               INT32 occupy(UINT32 offset,
-                            UINT32 *stillFreeCount = NULL);
+               INT32 occupy(UINT32 offset);
 
                OSS_INLINE INT32 getPageID()const
                {
@@ -91,11 +89,20 @@ namespace vessel
                {
                   return _scanner.getNonZeroedCount();
                }
-               
+
             private:
                INT32 _pageID = -1;
                UINT64 *_buf = NULL;
                bitmapScanner _scanner;
+
+            public:
+               BOOLEAN isInFreeList()const
+               {
+                  return _inList;
+               }
+               _inMemBitPage *_pre = NULL;
+               _inMemBitPage *_next = NULL;
+               BOOLEAN _inList = FALSE;
          };// class _inMemBitPage
 
       public:
@@ -105,9 +112,13 @@ namespace vessel
          inMemBitmap &operator=(const inMemBitmap &) = delete;
 
       public:
-         OSS_INLINE UINT32 getPageCount()const
+         OSS_INLINE UINT32 getRealPageCount()const
          {
             return _pages.size();
+         }
+         OSS_INLINE UINT32 getCustomizedPageCount()const
+         {
+            return _o.bitmapBeginPage + _pages.size();
          }
          OSS_INLINE UINT32 getPageCapacity()const
          {
@@ -128,6 +139,7 @@ namespace vessel
                   bitmapBeginPage = o.bitmapBeginPage;
                   maxBitmapPageCount = o.maxBitmapPageCount;
                   keepEmptyPageInMem = o.keepEmptyPageInMem;
+                  percentFreeReused = o.percentFreeReused;
                   return *this;
                }
             public:
@@ -137,6 +149,8 @@ namespace vessel
                UINT32 maxBitmapPageCount = UINT32(-1);
 
                BOOLEAN keepEmptyPageInMem = FALSE;
+
+               FLOAT32 percentFreeReused = 0.0;
          };//class options
       public:       
          /// capacity must be 64 aligned.
@@ -161,9 +175,9 @@ namespace vessel
 
          void releaseBits(UINT32 count, const UINT32 *buf);
 
-         INT32 occupy(UINT32 offset);
-
          INT32 occupy(UINT32 count, const UINT32 *buf);
+
+         INT32 occupy(UINT32 offset);
 
       private:
          INT32 init(UINT32 pageCapacity,
@@ -178,17 +192,45 @@ namespace vessel
          INT32 _occupy(UINT32 count, const UINT32 *buf);
 
       private:
+         OSS_INLINE UINT32 getRealPos(INT32 pageId)const
+         {
+            SDB_ASSERT((INT32)_o.bitmapBeginPage <= pageId, "out of bound");
+            return pageId - _o.bitmapBeginPage;
+         }
+         OSS_INLINE INT32 getNextPageId()const
+         {
+            return (INT32)(_pages.size() + _o.bitmapBeginPage);
+         }
+
+      private:
+         /// WARNING: will not reset pre/next ptr of each item.
+         void clearFreeList();
+
+         BOOLEAN isFreeListEmpty()const;
+
+         void pushBackToFL(_inMemBitPage *page);
+
+         void pushFrontToFL(_inMemBitPage *page);
+
+         void popFrontFromFL();
+
+         void eraseFromFL(_inMemBitPage *page);
+      private:
+         typedef ossPoolVector<_inMemBitPage *> _PAGE_VEC;
+
+      private:
          ossSpinXLatch _innerLatch;
          ossSpinXLatch *_latch = NULL;
          UINT32 _pageCapacity = 0;
          options _o;
          INT64 _totalFreeBitCount = 0;
 
-         typedef ossPoolMap<INT32, _inMemBitPage *> _FREE_MAP;
-         typedef ossPoolVector<_inMemBitPage *> _PAGE_VEC;
-
          _PAGE_VEC _pages;
-         _FREE_MAP _free;
+         
+         /// free list
+         UINT32 _lsize = 0;
+         _inMemBitPage *_head = NULL;
+         _inMemBitPage *_tail = NULL;
    };//class inMemBitmap
 } /// end of namespace vessel
 } /// end of namespace engine

@@ -126,10 +126,9 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   options.cacheOptions.freelist.maxChunkCount = 1024;
    collectionHandler handler;
-   UINT32 count = 10000000;
-   static const UINT32 threadCount = 6;
+   UINT32 count = 100000000;
+   static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
 
@@ -175,7 +174,12 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-TEST_F(index_write_test, test1_1)
+TEST_F(index_write_test, test1_2)
 {
    insert_test_nonunique_index(INDEX_TYPE_BTREE);
+}
+
+TEST_F(index_write_test, test1_1)
+{
+   insert_test_nonunique_index(INDEX_TYPE_LSM);
 }

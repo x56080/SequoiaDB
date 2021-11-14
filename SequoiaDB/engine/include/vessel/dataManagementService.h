@@ -78,8 +78,7 @@ namespace vessel
                         const strSlice &csName,
                         utilCSUniqueID uniqueId,
                         const createCSOptions &options,
-                        SPACE_ID *sid = NULL,
-                        UINT32 *logicalID = NULL);
+                        collectionSpaceIdentifier &identifier);
 
          INT32 listCollectionSpaces(requestContext *context,
                                     listCSCursor *cursor);

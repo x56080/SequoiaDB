@@ -73,7 +73,7 @@ namespace vessel
          INT32 open(const storageCoreArgs &args,
                     const storageFileCreater *creater,
                     const storageFileLoader *loader,
-                    UINT32 freeBound);
+                    const inMemBitmap::options &allocator);
 
          void close();
 

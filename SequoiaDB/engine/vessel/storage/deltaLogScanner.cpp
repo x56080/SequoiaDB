@@ -174,8 +174,8 @@ namespace vessel
       DELTA_LOG_CHECKSUM checksum = 0;
       const DELTA_LOG_CHECKSUM *checksumOnDisk = NULL;
       ossValuePtr segmentPtr = 0;
-      UINT32 segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(offset);
-      UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(offset);
+      UINT32 segmentId = deltaLogFileDef::getInFileSegmentId(offset);
+      UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegment(offset);
       UINT64 fileId = deltaLogFileDef::getLogFileSequenceByOffset(offset);
       const storageFile *file = _logFiles->findFromBackToFront(fileId);
       if (NULL == file)

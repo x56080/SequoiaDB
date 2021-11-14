@@ -48,11 +48,10 @@ namespace vessel
 
    void lpsCheckpointContext::fini()
    {
-      _status = NONE;
       _checkpoint = LPS_CHECKPOINT();
       _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
       _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
-      _applying.clear();
+      _status.store(STATUS::NONE);
       return;
    }
 
@@ -88,14 +87,29 @@ namespace vessel
 
    BOOLEAN lpsCheckpointContext::tryToApplyCheckpoint()
    {
-      return NONE == _status &&
-             !_applying.test_and_set(std::memory_order_acquire);
+      INT32 status = STATUS::NONE;
+      return status == _status &&
+             _status.compare_exchange_strong(status,
+                                             STATUS::APPLYING);
    }
 
-   void lpsCheckpointContext::clearApplyingCheckpoint()
+   BOOLEAN lpsCheckpointContext::tryToSetRunningFromNoneOrApplying()
    {
-      SDB_ASSERT(NONE == _status, "must be none");
-      _applying.clear(std::memory_order_release);
+      INT32 status = STATUS::APPLYING;
+      if (_status.compare_exchange_strong(status,
+                                          STATUS::RUNNING))
+      {
+         return TRUE;
+      }
+
+      ///status will be updated to current value if failed to swap
+      if (STATUS::NONE == status)
+      {
+         return _status.compare_exchange_strong(status,
+                                                STATUS::RUNNING);
+      }
+      
+      return FALSE;
    }
 }//namespace vessel
 }//namespace engine

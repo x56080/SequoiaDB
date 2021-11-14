@@ -69,6 +69,11 @@ namespace vessel
          }
 
       public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return DMS_INVALID_LOGICCSID != _lid &&
+                   INVALID_SPACE_ID != _sid;
+         }
          OSS_INLINE UINT32 getLogicalId()const
          {
             return _lid;

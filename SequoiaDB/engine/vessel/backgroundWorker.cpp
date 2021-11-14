@@ -215,6 +215,10 @@ namespace vessel
                  "can not be other type");
       logicalPageSpace *lps = NULL;
       const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
+      UINT32 count = msg->_count;
+
+      PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
+
       requestContext context;
       context.open(executor, _env, _outer);
       rc = context.lockSpaceID(msg->_sid, SHARED);
@@ -231,12 +235,15 @@ namespace vessel
          goto done;
       }
 
-      rc = lps->fsyncSegment(msg->_segmentId);
-      if (SDB_OK != rc)
+      for (UINT32 i = 0; i < count; ++i)
       {
-         PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
-                msg->_segmentId, msg->_sid, msg->_type, rc);
-         goto done;
+         rc = lps->fsyncSegment(msg->_segmentId + i);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to flush segment[%d] on lps[%d,%d], rc:%d",
+                  msg->_segmentId, msg->_sid, msg->_type, rc);
+            goto done;
+         }
       }
    
    done:

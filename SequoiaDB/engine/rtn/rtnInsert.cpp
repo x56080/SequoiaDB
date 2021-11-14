@@ -268,30 +268,22 @@ namespace engine
 
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
-
-      if (SDB_DMS_CS_NOTEXIST == rc)
-      {
-         rc = rtnInsertIntoVessel(pCollectionName, objs, objNum,
-                                  cb, dmsCB, pResult);
-         if (SDB_OK == rc)
-         {
-            goto done;
-         }
-         else if (SDB_DMS_CS_NOTEXIST != rc)
-         {
-            goto error;
-         }
-         else
-         {
-            /// go on in mmap
-         }
-      }
-
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to resolve collection name %s",
                   pCollectionName ) ;
          goto error ;
+      }
+      else if (NULL == su)
+      {
+         rc = rtnInsertIntoVessel(pCollectionName, objs, objNum, cb, dmsCB, pResult);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert objs:%d", rc);
+            goto error;
+         }
+
+         goto done;
       }
 
       if ( objs.isEmpty () )

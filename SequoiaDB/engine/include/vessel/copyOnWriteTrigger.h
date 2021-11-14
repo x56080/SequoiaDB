@@ -74,7 +74,7 @@ namespace vessel
                                BOOLEAN isMutablePid)
          {
             _psv = psv;
-            _mutablePid = _mutablePid;
+            _mutablePid = isMutablePid;
             return;
          }
 

@@ -236,14 +236,15 @@ namespace vessel
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueID,
                                          const createCSOptions &options,
-                                         SPACE_ID *outSid,
-                                         UINT32 *outLid)
+                                         collectionSpaceIdentifier &identifier)
    {
       INT32 rc = SDB_OK;
       SPACE_ID sid = INVALID_SPACE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       spaceIDLockHelper lh(context);
       collectionSpace *obj = NULL;
+
+      identifier = collectionSpaceIdentifier();
 
       if (OSS_UNLIKELY(NULL == context ||
                        context->isSpaceIdLocked() ||
@@ -295,14 +296,9 @@ namespace vessel
       endToCreateCS(obj);
       lh.unlock();
 
-      if (NULL != outSid)
-      {
-         *outSid = sid;
-      }
-      if (NULL != outSid)
-      {
-         *outLid = logicalID;
-      }
+      identifier = collectionSpaceIdentifier(obj->getLogicalID(),
+                                             obj->getUniqueID(),
+                                             obj->getSpaceId());
    done:
       return rc;
    error:

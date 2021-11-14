@@ -69,13 +69,13 @@ namespace vessel
          {
             return offset / MAX_FILE_SIZE;
          }
-         OSS_INLINE static UINT32 getSegmentIdInFileByOffset(UINT64 offset)
+         OSS_INLINE static UINT32 getInFileSegmentId(UINT64 offset)
          {
-            return (offset / FILE_SEGMENT_SIZE) & (MAX_SEGMENT_COUNT_PER_FILE - 1);
+            return (offset / FILE_SEGMENT_SIZE) % MAX_SEGMENT_COUNT_PER_FILE;
          }
-         OSS_INLINE static UINT32 getOffsetInSegmentByOffset(UINT64 offset)
+         OSS_INLINE static UINT32 getOffsetInSegment(UINT64 offset)
          {
-            return offset & (FILE_SEGMENT_SIZE - 1);
+            return offset % FILE_SEGMENT_SIZE;
          }
          
    };//class deltaLogFile

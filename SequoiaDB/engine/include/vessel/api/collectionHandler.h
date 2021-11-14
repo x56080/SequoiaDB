@@ -49,6 +49,7 @@
 #include "rtnPredicate.hpp"
 #include "sdbInterface.hpp"
 #include "vessel/requestBatch.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
@@ -117,6 +118,14 @@ namespace vessel
                            const requestBatch &batch,
                            const insertOptions &options,
                            utilInsertResult *res);
+
+      public:
+         INT32 deleteRecords(IExecutor *executor,
+                             UINT32 count,
+                             const recordID *rids,
+                             utilDeleteResult *res);
+
+      public:
 
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              UINT64 &count);

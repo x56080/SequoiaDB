@@ -43,6 +43,7 @@ namespace engine
 {
 namespace vessel
 { 
+#pragma pack(4)
    class lpsCheckpointApplying : public SDBObject
    {
       public:
@@ -68,8 +69,10 @@ namespace vessel
       public:
          SPACE_ID _sid = INVALID_SPACE_ID;
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
+         UINT8 _count = 0;
          UINT32 _segmentId = 0;
    };//class lpsFlushingSegments
+#pragma pack()
 } // namespace vessel
 
 } // namespace engine

@@ -53,17 +53,14 @@ namespace vessel
    INT32 dataPageCluster::open(const storageCoreArgs &args,
                                const storageFileCreater *creater,
                                const storageFileLoader *loader,
-                               UINT32 freeBound)
+                               const inMemBitmap::options &allocator)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "do not reopen");
-      inMemBitmap::options o;
-      o.bitmapBeginPage = 0;
 
       if (OSS_UNLIKELY(!args.isValid() ||
                        NULL == creater ||
-                       !creater->isValid() ||
-                       args.maxPageCountPerSeg < freeBound))
+                       !creater->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -72,7 +69,7 @@ namespace vessel
       _args = args;
       _creater = creater;
 
-      rc = _allocator.init(_args.maxPageCountPerSeg, o);
+      rc = _allocator.init(_args.maxPageCountPerSeg, allocator);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page allocator:%d", rc);
@@ -151,7 +148,7 @@ namespace vessel
 
       do
       {
-         UINT32 oldCount = _allocator.getPageCount();
+         UINT32 oldCount = _allocator.getCustomizedPageCount();
          rc = _allocator.allocateBits(count, pids);
          if (SDB_OK == rc)
          {
@@ -350,20 +347,20 @@ namespace vessel
       }
 
       minSegCount = pid / _args.maxPageCountPerSeg + 1;
-      if (minSegCount <= _allocator.getPageCount())
+      if (minSegCount <= _allocator.getCustomizedPageCount())
       {
          goto done;
       }
 
       guard.lock();
-      if (minSegCount <= _allocator.getPageCount())
+      if (minSegCount <= _allocator.getCustomizedPageCount())
       {
          goto done;
       }
 
       do
       {
-         if (_allocator.getPageCount() == _segmentCountOnDisk)
+         if (_allocator.getCustomizedPageCount() == _segmentCountOnDisk)
          {
             rc = allocateNewSegment();
             if (SDB_OK != rc)
@@ -382,7 +379,7 @@ namespace vessel
             PD_LOG(PDERROR, "failed to allocate new page in bitmap:%d", rc);
             goto error;
          }
-      } while (_allocator.getPageCount() < minSegCount);
+      } while (_allocator.getCustomizedPageCount() < minSegCount);
       
    done:
       return rc;
@@ -397,7 +394,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
 
       ossScopedLock guard(&_extendingLatch);
-      UINT32 count = _allocator.getPageCount();
+      UINT32 count = _allocator.getCustomizedPageCount();
       UINT32 targetCount = NULL == oldSegmentCount ?
                            count : *oldSegmentCount;
       targetCount += segmentCount;

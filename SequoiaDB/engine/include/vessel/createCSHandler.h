@@ -40,6 +40,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/collectionSpaceOptions.h"
 #include "vessel/strSlice.h"
+#include "vessel/collectionSpaceIdentifier.h"
 
 namespace engine
 {
@@ -54,7 +55,8 @@ namespace vessel
       public:
          INT32 doit(const CHAR *name,
                     utilCSUniqueID uniqueId,
-                    const createCSOptions &options);
+                    const createCSOptions &options,
+                    collectionSpaceIdentifier &identifier);
 
       private:
          INT32 validateOptions(const strSlice &name,

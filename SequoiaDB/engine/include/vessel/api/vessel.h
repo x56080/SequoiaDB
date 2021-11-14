@@ -73,7 +73,8 @@ namespace vessel
          virtual INT32 createCollectionSpace(IExecutor *executor,
                                              const CHAR *name,
                                              utilCSUniqueID uniqueId,
-                                             const createCSOptions &options) = 0;
+                                             const createCSOptions &options,
+                                             collectionSpaceIdentifier &identifier) = 0;
 
          virtual INT32 testCollectionSpace(IExecutor *executor,
                                            const CHAR *name,

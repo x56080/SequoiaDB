@@ -82,10 +82,10 @@ namespace vessel
          version = LPS_CHECKPOINT_VERSION;
          SDB_ASSERT(lsn.isValid(), "can not be invalid");
          SDB_ASSERT(DPS_INVALID_LSN_OFFSET != offset, "can not be invalid");
-         flags = flags;
+         this->flags = flags;
          this->lsn = lsn;
          this->offset = offset;
-         this->preCheckpoint = preCheckpoint;
+         this->preCheckpoint = precheckpoint;
          return;
       }
 

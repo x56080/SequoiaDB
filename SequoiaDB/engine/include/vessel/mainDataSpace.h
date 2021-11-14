@@ -78,14 +78,6 @@ namespace vessel
          {
             return 1;
          }
-         virtual UINT32 getFreeBoundOfLpidAllocator()const 
-         {
-            return PAGE_COUNT_IN_EXTENT;
-         }
-         virtual UINT32 getFreeBoundOfPageStorage()const
-         {
-            return PAGE_COUNT_IN_EXTENT;
-         }
          virtual dataPageCluster *getDataStorageObj()
          {
             return &_storage;

@@ -233,7 +233,7 @@ namespace vessel
          goto error;
       }
 
-      rc = copyDataFromBufferToFile();
+      rc = flushLogBuffer();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to copy data to file:%d", rc);
@@ -290,8 +290,8 @@ namespace vessel
       checksum = createDeltaLogRecordChecksum(dlr);
 
       fileId = deltaLogFileDef::getLogFileSequenceByOffset(_nextCheckpointOffset);
-      segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_nextCheckpointOffset);
-      offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(_nextCheckpointOffset);
+      segmentId = deltaLogFileDef::getInFileSegmentId(_nextCheckpointOffset);
+      offsetInSegment = deltaLogFileDef::getOffsetInSegment(_nextCheckpointOffset);
       SDB_ASSERT((offsetInSegment + dlr.getLogHead()->_size + deltaLogFileDef::CHECKSUM_SIZE) <=
                   deltaLogFileDef::FILE_SEGMENT_SIZE, "impossible");
 
@@ -336,8 +336,8 @@ namespace vessel
    UINT64 deltaLogConsole::getFuzzyDirtyLogSize()const
    {
       SDB_ASSERT(isReady(), "can not be invalid");
-      UINT64 dirtyOffset = ((const ossAtomic64 *)(&_minDirtyOffset))->peek();
-      UINT64 nextRecordOffset = ((const ossAtomic64 *)(&_nextRecordOffset))->peek();
+      UINT64 dirtyOffset = _minDirtyOffset;
+      UINT64 nextRecordOffset = *((const volatile UINT64 *)(&_nextRecordOffset));
       return (dirtyOffset <= nextRecordOffset) ?
              (nextRecordOffset - dirtyOffset) : 0;
    }
@@ -419,37 +419,50 @@ namespace vessel
       }
 
       sizeNeeded = dlr.getLogHead()->_size + deltaLogFileDef::CHECKSUM_SIZE;
-      currentOffsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(_nextRecordOffset);
+      currentOffsetInSegment = deltaLogFileDef::getOffsetInSegment(_nextRecordOffset);
       currentSegmentFreeSize = deltaLogFileDef::FILE_SEGMENT_SIZE - currentOffsetInSegment;
 
       /// If free size of current segment is not enough, switch to next.
       if (currentSegmentFreeSize < sizeNeeded)
       {
-         rc = copyDataFromBufferToFile();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to copy data to file:%d", rc);
-            goto error;
-         }
-
          if (deltaLogFileDef::MIN_RECORD_SIZE_ON_DISK <= currentSegmentFreeSize)
          {
-            rc = appendDummyLogToSegment();
+            rc = appendDummyLogToSwitchSegment();
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to append dummy log:%d", rc);
                goto error;
             }
-         }
 
-         _nextRecordOffset += currentSegmentFreeSize;
-         _fileWriteOffset = _nextRecordOffset;
+            rc = flushLogBuffer();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to flush log buffer:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            /// no free size to save one record. flush buffer and skip these bytes.
+            rc = flushLogBuffer();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to flush log buffer:%d", rc);
+               goto error;
+            }
+
+            _nextRecordOffset += currentSegmentFreeSize;
+            _fileWriteOffset = _nextRecordOffset;
+         }
+      
+         SDB_ASSERT(0 == (_nextRecordOffset % deltaLogFileDef::FILE_SEGMENT_SIZE),
+                   "must be aligned");
       }
 
-      if (0 == (_nextRecordOffset & (deltaLogFileDef::FILE_SEGMENT_SIZE - 1)))
+      if (0 == (_nextRecordOffset % deltaLogFileDef::FILE_SEGMENT_SIZE))
       {
          UINT64 fileId = deltaLogFileDef::getLogFileSequenceByOffset(_nextRecordOffset);
-         UINT32 segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_nextRecordOffset);
+         UINT32 segmentId = deltaLogFileDef::getInFileSegmentId(_nextRecordOffset);
          rc = ensureFileSpace(fileId, segmentId);
          if (SDB_OK != rc)
          {
@@ -592,7 +605,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogConsole::copyDataFromBufferToFile()
+   INT32 deltaLogConsole::flushLogBuffer()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isBufferReady(), "must be ready");
@@ -608,14 +621,14 @@ namespace vessel
       }
 
       fileId = deltaLogFileDef::getLogFileSequenceByOffset(_fileWriteOffset);
-      segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_fileWriteOffset);
-      offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(_fileWriteOffset);
+      segmentId = deltaLogFileDef::getInFileSegmentId(_fileWriteOffset);
+      offsetInSegment = deltaLogFileDef::getOffsetInSegment(_fileWriteOffset);
 
       if (OSS_UNLIKELY(deltaLogFileDef::FILE_SEGMENT_SIZE <
                        (offsetInSegment + _logBufferWriteSize)))
       {
          PD_LOG(PDSEVERE, "log buffer write size out of range,"
-                          "file write offset[%lld], log buffer write size[%d",
+                          "file write offset[%lld], log buffer write size[%d]",
                           _fileWriteOffset, _logBufferWriteSize);
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
@@ -640,6 +653,7 @@ namespace vessel
       ossMemcpy((void *)(segmentPtr + offsetInSegment), _logBuffer, _logBufferWriteSize);
       _fileWriteOffset += _logBufferWriteSize;
       _logBufferWriteSize = 0;
+      SDB_ASSERT(_fileWriteOffset == _nextRecordOffset, "must be same");
    done:
       return rc;
    error:
@@ -647,40 +661,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogConsole::appendDummyLogToSegment()
+   INT32 deltaLogConsole::appendDummyLogToSwitchSegment()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isReady(), "must be ready");
-      SDB_ASSERT(_fileWriteOffset == _nextRecordOffset, "must be same");
       deltaLogRecordBuilder builder;
-      deltaLogRecord dlr;
-      DELTA_LOG_CHECKSUM checksum = 0;
-      storageFile *file = NULL;
-      ossValuePtr ptr = 0;
-      UINT64 fileId = deltaLogFileDef::getLogFileSequenceByOffset(_nextRecordOffset);
-      UINT32 segmentId = deltaLogFileDef::getSegmentIdInFileByOffset(_nextRecordOffset);
-      UINT32 segmentOffset = deltaLogFileDef::getOffsetInSegmentByOffset(_nextRecordOffset);
-      UINT32 remainSize = deltaLogFileDef::FILE_SEGMENT_SIZE - segmentOffset;
+      UINT64 offset = 0;
 
+      UINT32 segmentOffset = deltaLogFileDef::getOffsetInSegment(_nextRecordOffset);
+      UINT32 remainSize = deltaLogFileDef::FILE_SEGMENT_SIZE - segmentOffset;
       SDB_ASSERT(deltaLogFileDef::MIN_RECORD_SIZE_ON_DISK <= remainSize, "impossible");
       SDB_ASSERT(remainSize < (MAX_DELTA_LOG_RECORD_SIZE + deltaLogFileDef::CHECKSUM_SIZE),
                  "impossible");
-
-      file = _logFiles.findFromBackToFront(fileId);
-      if (NULL == file)
-      {
-         PD_LOG(PDERROR, "failed to get file with sequence[%lld]", fileId);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = file->getSegmentPtr(segmentId, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get segment[%lld, %d] ptr", fileId, segmentId);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       rc = builder.buildDummyLog(remainSize - deltaLogFileDef::CHECKSUM_SIZE);
       if (OSS_UNLIKELY(SDB_OK != rc))
@@ -690,10 +682,12 @@ namespace vessel
          goto error;
       }
 
-      dlr = builder.getDeltaLogRecord();
-      checksum = createDeltaLogRecordChecksum(dlr);
-      ossMemcpy((void *)(ptr + segmentOffset), dlr.getLogHead(), dlr.getLogHead()->_size);
-      *((DELTA_LOG_CHECKSUM *)(ptr + segmentOffset + dlr.getLogHead()->_size)) = checksum;
+      rc = _append(builder.getDeltaLogRecord(), offset);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to append dummy log:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -905,12 +899,14 @@ namespace vessel
       }
       else if (freeSize < size)
       {
-         rc = copyDataFromBufferToFile();
+         rc = flushLogBuffer();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to copy data to file:%d", rc);
             goto error;
          }
+
+         SDB_ASSERT(0 == _logBufferWriteSize, "impossible");
       }
 
       ossMemcpy((void *)((ossValuePtr)_logBuffer + _logBufferWriteSize),
@@ -937,13 +933,10 @@ namespace vessel
       UINT64 maxGlobalSegmentId = (upperOffset - 1) /
                                   deltaLogFileDef::FILE_SEGMENT_SIZE;
 
-      SDB_ASSERT(ossIsPowerOf2(deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE),
-                 "must be power of 2");
-
       for (UINT64 i = minGlobalSegmentId; i <= maxGlobalSegmentId; ++i)
       {
          UINT64 fileId = i / deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE;
-         UINT32 segmentId = (i & (deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE - 1));
+         UINT32 segmentId = i % deltaLogFileDef::MAX_SEGMENT_COUNT_PER_FILE;
          storageFile *file = _logFiles.findFromFrontToBack(fileId);
          if (NULL == file)
          {

@@ -57,14 +57,6 @@ namespace vessel
 
       private:
          virtual UINT32 getReservedImpCount()const;
-         virtual UINT32 getFreeBoundOfLpidAllocator()const 
-         {
-            return 0;
-         }
-         virtual UINT32 getFreeBoundOfPageStorage()const
-         {
-            return 0;
-         }
          virtual dataPageCluster *getDataStorageObj()
          {
             return &_storage;

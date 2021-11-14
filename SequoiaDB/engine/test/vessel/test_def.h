@@ -259,6 +259,7 @@ class test_outer_resource
       static ::engine::vessel::outerResource getResource()
       {
          sdbEnablePD("/opt/diaglog/sdb.log", 1, 1000);
+         setPDLevel(PDDEBUG);
          ::engine::vessel::outerResource r;
          r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
          r.logger = ::engine::vessel::dummyJournal::instance();

@@ -127,6 +127,9 @@ namespace engine
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,
 
+      // vessel
+      RTN_CONTEXT_VESSEL_SCAN,
+
       /// The last
       RTN_CONTEXT_CAT_END
    } ;

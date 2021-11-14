@@ -57,7 +57,8 @@ namespace vessel
 
    INT32 createCSHandler::doit(const CHAR *name,
                                utilCSUniqueID uniqueId,
-                               const createCSOptions &options)
+                               const createCSOptions &options,
+                               collectionSpaceIdentifier &identifier)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
@@ -85,7 +86,9 @@ namespace vessel
          goto error;
       }
 
-      rc = getEnv()->dms.createCS(&context, nameSlice, uniqueId, options);
+      rc = getEnv()->dms.createCS(&context, nameSlice,
+                                  uniqueId, options,
+                                  identifier);
       if (SDB_OK != rc)
       {
          goto error;
@@ -94,6 +97,7 @@ namespace vessel
       context.close();
       return rc;
    error:
+      identifier = collectionSpaceIdentifier();
       goto done;
    }
 

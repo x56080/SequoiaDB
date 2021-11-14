@@ -56,7 +56,7 @@ namespace vessel
    UINT64 alignDeltaLogRecordOffset(UINT64 offset)
    {
       UINT64 algiendOffset = offset;
-      UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegmentByOffset(offset);
+      UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegment(offset);
       UINT32 remainSize = deltaLogFileDef::FILE_SEGMENT_SIZE - offsetInSegment;
       if (remainSize < deltaLogFileDef::MIN_RECORD_SIZE_ON_DISK)
       {

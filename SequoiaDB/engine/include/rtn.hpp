@@ -243,6 +243,11 @@ namespace engine
                                            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL,
                                            BOOLEAN sysCall = FALSE ) ;
 
+   INT32 rtnCreateCollectionSpaceInVseCommand(const CHAR *pCollectionSpace,
+                                              pmdEDUCB *cb,
+                                              SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
+                                              utilCSUniqueID csUniqueID);
+
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       UINT32 attributes,
                                       pmdEDUCB *cb,
@@ -267,6 +272,7 @@ namespace engine
                                       INT32 flags = 0,
                                       BOOLEAN sysCall = FALSE,
                                       const BSONObj *extOptions = NULL ) ;
+
 
    INT32 rtnGetMore ( SINT64 contextID,            // input, context id
                       SINT32 maxNumToReturn,       // input, max record to read

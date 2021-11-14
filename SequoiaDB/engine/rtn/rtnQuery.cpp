@@ -601,6 +601,39 @@ namespace engine
       return rc ;
    }
 
+   static INT32 rtnQueryInVse(rtnQueryOptions &options,
+                              pmdEDUCB *cb,
+                              SDB_DMSCB *dmsCB,
+                              SDB_RTNCB *rtnCB,
+                              SINT64 &contextID,
+                              rtnContextBase **ppContext)
+   {
+      INT32 rc = SDB_OK;
+      vessel::IVessel *vse = dmsCB->getVesselEngine();
+      vessel::collectionHandler handler;
+      CHAR collectionSpaceName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+      const CHAR *dot = NULL;
+      const CHAR *pCollection = options.getCLFullName();
+      dot = ossStrchr(pCollection, '.');
+      SDB_ASSERT((dot - pCollection) <= DMS_COLLECTION_SPACE_NAME_SZ, "out of bound");
+      ossMemcpy(collectionSpaceName, pCollection, dot - pCollection);
+
+      rc = vse->openCollection(cb, collectionSpaceName,
+                               dot + 1, vessel::openCLOptions(),
+                               handler);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open collection[%s] in vse:%d",
+                options.getCLFullName(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNQUERY_OPTIONS, "rtnQuery" )
    INT32 rtnQuery ( rtnQueryOptions &options,
                     pmdEDUCB *cb,
