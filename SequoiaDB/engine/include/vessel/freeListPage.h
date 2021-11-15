@@ -47,33 +47,33 @@ namespace vessel
    {
       public:
          OSS_INLINE freeListPage()
-         :_chunk(UINT32(-1)),
+         :_chunkId(UINT32(-1)),
           _buf(0)
          {}
 
          OSS_INLINE freeListPage(const freeListPage &r)
-         :_chunk(r._chunk), _buf(r._buf)
+         :_chunkId(r._chunkId), _buf(r._buf)
          {}
 
-         OSS_INLINE freeListPage(UINT32 chunk, ossValuePtr buf)
-         :_chunk(chunk), _buf(buf){}
+         OSS_INLINE freeListPage(UINT32 chunk, ossValuePtr buf, INT32 bitPos)
+         :_chunkId(chunk), _buf(buf){}
          
          OSS_INLINE ~freeListPage(){}
 
          OSS_INLINE freeListPage &operator=(const freeListPage &r)
          {
-            _chunk = r._chunk;
+            _chunkId = r._chunkId;
             _buf = r._buf;
             return *this;
          }
 
          OSS_INLINE BOOLEAN operator<(const freeListPage &r)
          {
-            if (_chunk < r._chunk)
+            if (_chunkId < r._chunkId)
             {
                return TRUE;
             }
-            else if (_chunk > r._chunk)
+            else if (_chunkId > r._chunkId)
             {
                return FALSE;
             }
@@ -85,7 +85,7 @@ namespace vessel
 
          OSS_INLINE void reset()
          {
-            _chunk = UINT32(-1);
+            _chunkId = UINT32(-1);
             _buf = 0;
          }
 
@@ -94,24 +94,24 @@ namespace vessel
             return 0 != _buf;
          }
 
-         OSS_INLINE void set(UINT32 chunk, ossValuePtr buf)
+         OSS_INLINE void set(UINT32 chunkid, ossValuePtr buf)
          {
-            _chunk = chunk;
+            _chunkId = chunkid;
             _buf = buf;
          }
 
-         OSS_INLINE UINT32 chunk()const
+         OSS_INLINE UINT32 getChunkId()const
          {
-            return _chunk;
+            return _chunkId;
          }
 
-         OSS_INLINE ossValuePtr buf()const
+         OSS_INLINE ossValuePtr getBuf()const
          {
             return _buf;
          }
 
       private:
-         UINT32 _chunk;
+         UINT32 _chunkId;
          ossValuePtr _buf;
    }; /// end of class freeListPage
 

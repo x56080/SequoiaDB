@@ -143,7 +143,7 @@ namespace vessel
 
       if (_holder.tag()->hasMemPage())
       {
-         ptr = _holder.tag()->getMemPage().buf();
+         ptr = _holder.tag()->getMemPage().getBuf();
       }
       else
       {
@@ -165,7 +165,7 @@ namespace vessel
       }
 
       SDB_ASSERT(_holder.tag()->hasMemPage(), "impossible");
-      ptr = _holder.tag()->getMemPage().buf();
+      ptr = _holder.tag()->getMemPage().getBuf();
    done:
       return ptr;
    }

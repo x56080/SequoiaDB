@@ -40,6 +40,7 @@
 #include "vessel/freeListPage.h"
 #include "vessel/vesselOptions.h"
 #include "ossLatch.hpp"
+#include "ossMemPool.hpp"
 
 #include <list>
 
@@ -60,10 +61,6 @@ namespace vessel
          lcFreeList &operator=(const lcFreeList &) = delete;
 
       public:
-         OSS_INLINE UINT64 getTotalAllocated()const
-         {
-            return _totalAllocated;
-         }
          OSS_INLINE UINT32 getMaxPageCount()const
          {
             return _options.maxChunkCount * _options.pageCountInChunk;
@@ -75,7 +72,8 @@ namespace vessel
          }
 
       public:
-         INT32 init(UINT32 pageSize, const liteCacheOptions::freeListOptions &options);
+         INT32 init(UINT32 pageSize, 
+                    const liteCacheOptions::freeListOptions &options);
          void fini();
 
 
@@ -95,11 +93,10 @@ namespace vessel
       private:
          UINT32 _pageSize;
          ossSpinXLatch _latch;
-         UINT64 _totalAllocated;
          liteCacheOptions::freeListOptions _options;
          lcCacheChunk *_chunks;
          UINT32 _size;
-         std::list<freeListPage> _free;
+         ossPoolList<lcCacheChunk*> _free;
    };
 }/// end of namespace vessel
 } /// end of namespace engine

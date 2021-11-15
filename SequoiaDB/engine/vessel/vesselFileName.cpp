@@ -135,9 +135,17 @@ namespace vessel
       {
          goto done;
       }
+      else if (!ossStrcmp(columns.at(1).c_str(), ""))
+      {
+         goto done;
+      }
       
       _sequence = ossAtoll(columns.at(1).c_str());
       ossMemcpy(_name, fileName.str(), fileName.strLen());
+      if ( _name[fileName.strLen() - 1] == '.')
+      {
+         _name[fileName.strLen() - 1] = '\0' ;
+      }
 
       if (FILE_NAME_FORMAT_MIN_COLUMNS == columns.size())
       {
@@ -212,6 +220,10 @@ namespace vessel
       {
          goto done;
       }
+      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == spaceType))
+      {
+         goto done;
+      }
 
       if (OSS_UNLIKELY(!getFileDescriptor(fileType, fd)))
       {
@@ -219,13 +231,10 @@ namespace vessel
          goto done;
       }
 
-      if (INVALID_SPACE_TYPE != spaceType)
+      if (OSS_UNLIKELY(!getSpaceTypeDescriptor(spaceType, sd)))
       {
-         if (OSS_UNLIKELY(!getSpaceTypeDescriptor(spaceType, sd)))
-         {
-            PD_LOG(PDERROR, "failed to get space descriptor of type[%d]", spaceType);
-            goto done;
-         }
+         PD_LOG(PDERROR, "failed to get space descriptor of type[%d]", spaceType);
+         goto done;
       }
 
       size = ossSnprintf(_name, MAX_FILE_NAME_LEN + 1, "%s%d.%lld.%s",

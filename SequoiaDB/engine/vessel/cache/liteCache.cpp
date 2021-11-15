@@ -527,7 +527,7 @@ namespace vessel
       /// 2. copy data and init tag's mem page
       if (initFromDisk)
       {
-         ossMemcpy((void *)(page.buf()), (const void *)diskPtr, _fl->getPageSize());
+         ossMemcpy((void *)(page.getBuf()), (const void *)diskPtr, _fl->getPageSize());
       }
 
       tag->setMemPage(page);
@@ -670,7 +670,7 @@ namespace vessel
             const freeListPage &buffer = tag->getMemPage();
             void *diskPage = (void *)(tag->getDiskPagePtr());
             SDB_ASSERT(buffer.valid() && NULL != diskPage, "can not be invalid");
-            ossMemcpy(diskPage, (const void *)(buffer.buf()), _fl->getPageSize());
+            ossMemcpy(diskPage, (const void *)(buffer.getBuf()), _fl->getPageSize());
 
             holder.unlockUpgradeAndLock();
             tag->setMaxMemDirtyLSN(DPS_INVALID_LSN_OFFSET);

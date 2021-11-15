@@ -46,7 +46,6 @@ namespace vessel
 {
    lcFreeList::lcFreeList():
    _pageSize(0),
-   _totalAllocated(0),
     _chunks(NULL),
     _size(0)
    {
@@ -101,11 +100,12 @@ namespace vessel
       return;
    }
 
-
    INT32 lcFreeList::allocate(freeListPage &page)
    {
       INT32 rc = SDB_OK;
       ossScopedLock lock(&_latch);
+
+      page.reset();
       if (_free.empty())
       {
          rc = pushNewChunkIntoFreeList();
@@ -115,9 +115,16 @@ namespace vessel
          }
       }
 
-      ++_totalAllocated;
-      page = _free.front();
-      _free.pop_front();
+      if (!_free.front()->allocatePage(page))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if(!_free.front()->hasFreePage())
+      {
+         _free.pop_front();
+      }
 
    done:
       return rc;
@@ -127,16 +134,30 @@ namespace vessel
 
    void lcFreeList::releasePage(const freeListPage &page)
    {
+      UINT32 tmpFreeCount = 0;
+
       if (page.valid())
       {
          ossScopedLock lock(&_latch);
-         _free.push_back(page);
+         SDB_ASSERT(_options.maxChunkCount >= page.getChunkId(), 
+                    "must in range");
+
+         tmpFreeCount = _chunks[page.getChunkId()].getFreePageCount();
+         _chunks[page.getChunkId()].releasePage(page);
+
+         if (0 == tmpFreeCount && 
+             1 == _chunks[page.getChunkId()].getFreePageCount())
+         {
+            _free.push_back(&(_chunks[page.getChunkId()]));
+         }
       }
       return;
    }
 
    void lcFreeList::releasePages(UINT32 size, const freeListPage *pages)
    {
+      UINT32 tmpFreeCount = 0;
+
       if (NULL != pages)
       {
          ossScopedLock lock(&_latch);
@@ -144,7 +165,17 @@ namespace vessel
          {
             if (pages[i].valid())
             {
-               _free.push_back(pages[i]);
+               SDB_ASSERT(_options.maxChunkCount >= pages[i].getChunkId(), 
+                          "must in range");
+
+               tmpFreeCount = _chunks[pages[i].getChunkId()].getFreePageCount();
+               _chunks[pages[i].getChunkId()].releasePage(pages[i]);
+
+               if (0 == tmpFreeCount && 
+                   1 == _chunks[pages[i].getChunkId()].getFreePageCount())
+               {
+                  _free.push_back(&(_chunks[pages[i].getChunkId()]));
+               }
             }
          }
       }
@@ -155,26 +186,22 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       lcCacheChunk *chunk = NULL;
+
       if (_options.maxChunkCount == _size)
       {
          rc = SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL;
          goto error;
       }
 
-      
       chunk = &(_chunks[_size]);
       rc = chunk->setup(_size, _options.pageCountInChunk, _pageSize);
       if (SDB_OK != rc)
       {
          goto error;
       }
-      
-      for (UINT32 i = 0; i < _options.pageCountInChunk; ++i)
-      {
-         _free.push_back(freeListPage(_size, chunk->getPagePtr(i)));
-      }
 
       ++_size;
+      _free.push_back(chunk);
 
    done:
       return rc;
