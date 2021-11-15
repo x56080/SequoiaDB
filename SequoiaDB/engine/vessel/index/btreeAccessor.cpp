@@ -193,6 +193,44 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeAccessor::remove(const ixmKey &key,
+                               const recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN checkpointBlocked = FALSE;
+      
+      if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!key.isValid() ||
+                            !rid.valid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _is->blockCheckpoint(_context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to block checkpoint:%d", rc);
+         goto error;
+      }
+      checkpointBlocked = TRUE;
+
+      if (!_ic->getObj().hasBtreeRoot())
+      {
+         PD_LOG(PDERROR, "btree has no root yet");
+         rc = SDB_IXM_KEY_NOTEXIST;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 btreeAccessor::traverseDownAndInsert(const ixmKey &key,
                                               const recordID &rid,
                                               BOOLEAN &obstructed)
@@ -404,6 +442,37 @@ namespace vessel
          goto error;
       }
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::removeWhenPathEndIsLeaf(const ixmKey &key,
+                                                const recordID &rid,
+                                                BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be invalid");
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(node.isLeaf(), "must be leaf node");
+
+      obstructed = FALSE;
+      if (!node.ensureExclusiveLocking())
+      {
+         obstructed = TRUE;
+         goto done;
+      }
+
+      rc = node.leafRemove(key, rid, _context->getTransIDWithoutTag());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove key from leaf node:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -767,6 +836,55 @@ namespace vessel
             }
          }
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::traverseDownAndRemove(const ixmKey &key,
+                                              const recordID &rid,
+                                              BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "must be inited");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
+      SDB_ASSERT(!_bac.isReadonly(), "can not be readonly");
+      SDB_ASSERT(_bac.isPathEmpty(), "must be empty");
+
+      obstructed = FALSE;
+
+      rc = _bac.pushRootIntoPath();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push root node into path:%d", rc);
+         goto error;
+      }
+
+      do
+      {
+         btreeNode node = _bac.getEndNodeInPath();
+         if (node.isLeaf())
+         {
+            if (1 < node.getItemCount())
+            {
+               /// leaf node will not be empty
+               _bac.endToAccessNonPathEndNodes();
+               rc = removeWhenPathEndIsLeaf(key, rid, obstructed);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to remove from leaf node:%d", rc);
+                  goto error;
+               }
+            }
+            else
+            {
+               btreeItemLocation location;
+               rc = node.locateKeyAndRid(key, rid, location);
+            }
+         }
+      } while (TRUE);
+      
    done:
       return rc;
    error:

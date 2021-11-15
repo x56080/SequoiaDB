@@ -85,6 +85,8 @@ namespace vessel
                                        const recordID &rid,
                                        BOOLEAN &obstructed);
 
+         
+
          INT32 splitAndInsertWhenPathEndIsLeaf(const ixmKey &key,
                                                const recordID &rid,
                                                BOOLEAN &obstructed);
@@ -96,6 +98,14 @@ namespace vessel
 
          /// also can not be root
          INT32 splitNonLeafPathEnd(BOOLEAN &obstructed);
+
+      private:
+         INT32 removeWhenPathEndIsLeaf(const ixmKey &key,
+                                       const recordID &rid,
+                                       BOOLEAN &obstructed);
+         INT32 traverseDownAndRemove(const ixmKey &key,
+                                     const recordID &rid,
+                                     BOOLEAN &obstructed);
 
       private:
          requestContext *_context = NULL;

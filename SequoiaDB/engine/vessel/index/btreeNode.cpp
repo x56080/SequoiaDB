@@ -347,6 +347,17 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeNode::leafRemove(const ixmKey &key,
+                               const recordID &rid,
+                               const DPS_TRANS_ID &transID)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 btreeNode::_leafInsert(const ixmKey &key,
                                 const recordID &rid,
                                 RECORD_SLOT_ID pos)
@@ -518,7 +529,7 @@ namespace vessel
       else if (!getReadableSlot(location.slotPos)->isMarkedDeleted())
       {
          PD_LOG(PDERROR, "item[%d] is not marked as removed", location.slotPos);
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         rc = SDB_IXM_IDENTICAL_KEY;
          goto error;
       }
 

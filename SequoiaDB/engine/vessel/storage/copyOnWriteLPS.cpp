@@ -602,7 +602,7 @@ namespace vessel
       else
       {
          rc = getCache().setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
-                                           dirtySegments);
+                                           &dirtySegments);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);

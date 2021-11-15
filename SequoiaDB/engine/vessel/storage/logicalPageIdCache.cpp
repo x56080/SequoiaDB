@@ -374,15 +374,9 @@ namespace vessel
    }
 
    ////////////////logicalPageIdCache
-   logicalPageIdCache::logicalPageIdCache():
-   _base(NULL),
-   _basePageCount(0),
-   _latchCount(0),
-   _latches(NULL),
-   _bucketCount(0),
-   _buckets(NULL)
+   logicalPageIdCache::logicalPageIdCache()
    {
-      SDB_ASSERT(ossIsPowerOf2(ID_MAP_PAGE_CACHE_SLOT_COUNT), "impossible");
+
    }
 
    logicalPageIdCache::~logicalPageIdCache()
@@ -457,6 +451,8 @@ namespace vessel
          _buckets = NULL;
       }
 
+      _counter.store(0);
+
       return;
    }
 
@@ -472,6 +468,11 @@ namespace vessel
       }
 
       return size;
+   }
+
+   INT32 logicalPageIdCache::estimateMutablePageCount()const
+   {
+      return _counter.load(std::memory_order_relaxed);
    }
 
    INT32 logicalPageIdCache::flushPreparedCacheToFile(idMapFile *file)
@@ -507,7 +508,7 @@ namespace vessel
    }
 
    INT32 logicalPageIdCache::setPagesImmutable(UINT32 pageCountPerSeg,
-                                               ossPoolSet<UINT32> &mutableSegmentIds)
+                                               ossPoolSet<UINT32> *mutableSegmentIds)
    {
       INT32 rc = SDB_OK;
      
@@ -522,9 +523,10 @@ namespace vessel
       {
          ossSLatch *latch = getBucketLatch(i);
          ossSLatchGuard guard(latch, EXCLUSIVE);
-         _buckets[i].setPagesImmutable(pageCountPerSeg, &mutableSegmentIds);
+         _buckets[i].setPagesImmutable(pageCountPerSeg, mutableSegmentIds);
       }
 
+      _counter.store(0);
    done:
       return rc;
    error:
@@ -553,6 +555,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
          goto error;
       }
+
+      ++_counter;
 
    done:
       return rc;
@@ -687,6 +691,8 @@ namespace vessel
       {
          goto error;
       }
+
+      ++_counter;
 
    done:
       return rc;
@@ -987,6 +993,8 @@ namespace vessel
          _buckets[i].setPagesImmutable(pageCountPerSeg, mutableSegmentIds);
          _buckets[i].mergeMainMapToFlushingMap();
       }
+
+      _counter.store(0);
 
    done:
       return rc;

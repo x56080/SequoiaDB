@@ -62,8 +62,8 @@ namespace engine
 namespace vessel
 {
    static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
-   static const UINT32 FULL_CHECKPOINT_DELTA_LOG_SIZE = 4096 * 1024;
-   static const UINT32 CHECKPOINT_TRIGGER_DELTA_LOG_SIZE = 512 * 1024;
+   static const UINT32 FULL_CHECKPOINT_DELTA_LOG_SIZE = 64 * 1024 * 1024;
+   static const UINT32 CHECKPOINT_TRIGGER_MUTABLE_PAGE_COUNT = 32768;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -2586,8 +2586,8 @@ namespace vessel
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
       
-      if (CHECKPOINT_TRIGGER_DELTA_LOG_SIZE <=
-          _logConsole.getFuzzyDirtyLogSize())
+      if ((INT32)CHECKPOINT_TRIGGER_MUTABLE_PAGE_COUNT <=
+          _lpidCache.estimateMutablePageCount())
       {
          if (_checkpointContext.tryToApplyCheckpoint())
          {
@@ -2614,8 +2614,10 @@ namespace vessel
       idMapFile *base = static_cast<idMapFile *>(_idMapFiles.getBack());
       base->getDeltaLogOffset(baseOffset);
       INT64 deltaLogSize = (INT64)deltaLogOffset - (INT64)baseOffset;
-      PD_LOG(PDDEBUG, "current lpid cache size:%lld, delta log size:%lld",
-             cacheSize, deltaLogSize);
+      PD_LOG(PDDEBUG, "lps[%d,%d], current lpid cache size:%lld, base idmap offset[%lld],"
+             "delta log offset:[%lld]",
+             getSpaceID(), getSpaceType(),
+             cacheSize, baseOffset, deltaLogOffset);
 
       return (FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize) ||
              ((INT64)FULL_CHECKPOINT_DELTA_LOG_SIZE <= deltaLogSize);

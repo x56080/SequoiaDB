@@ -796,17 +796,26 @@ namespace vessel
                                                   ossPoolSet<UINT32> &dirtySegments)
    {
       INT32 rc = SDB_OK;
-      if (!fullCheckpoint)
+      if (fullCheckpoint)
       {
-         goto done;
+         rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg, NULL);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get cache ready to create new base:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = getCache().setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
+                                           NULL);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
+            goto error;
+         }
       }
 
-      rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg, NULL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get cache ready to create new base:%d", rc);
-         goto error;
-      }
    done:
       return rc;
    error:

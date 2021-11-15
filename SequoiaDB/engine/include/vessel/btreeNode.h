@@ -126,6 +126,10 @@ namespace vessel
                            const recordID &rid,
                            const DPS_TRANS_ID &transID);
 
+         INT32 leafRemove(const ixmKey &key,
+                          const recordID &rid,
+                          const DPS_TRANS_ID &transID);
+
          /// leaf node only
          INT32 splitLeafAndInsert(const ixmKey &key,
                                   const recordID &rid,

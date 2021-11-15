@@ -40,7 +40,9 @@
 #include "ossMemPool.hpp"
 #include "vessel/partialImpCache.h"
 #include "ossLatch.hpp"
-#include "ossAtomic.hpp"
+
+#include <atomic> // c++11
+
 
 namespace engine
 {
@@ -207,9 +209,11 @@ namespace vessel
          /// Set slot as null if do not care about slot before removing.
          INT32 remove(PAGE_ID lpid, idMapSlot *slot=NULL);
 
+         INT32 estimateMutablePageCount()const;
+
       public:         
          INT32 setPagesImmutable(UINT32 pageCountPerSeg,
-                                  ossPoolSet<UINT32> &mutableSegmentIds);
+                                  ossPoolSet<UINT32> *mutableSegmentIds);
 
          /// set mutableSegmentIds as null if do not care about mutable segments.
          INT32 prepareToCreateNewBase(UINT32 pageCountPerSeg,
@@ -248,6 +252,7 @@ namespace vessel
          _ossSpinSLatchPOSIX *_latches = NULL;
          UINT32 _bucketCount = 0;
          _cacheBucket *_buckets = NULL;
+         std::atomic_int _counter = {0};
    };//class logicalPageIdCache
 }//namespace vessel
 }//namespace engine
