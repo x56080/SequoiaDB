@@ -38,13 +38,14 @@
 
 #include "vessel/lcCacheChunk.h"
 #include "ossMem.hpp"
+#include "ossErr.h"
 
 namespace engine
 {
 namespace vessel
 {
    lcCacheChunk::lcCacheChunk()
-   :_id(0), _pageNum(0), _pageSize(0), _pages(NULL)
+   :_id(0), _pageNum(0), _pageSize(0), _pages(NULL), _pageBitmap(0)
    {}
 
    lcCacheChunk::~lcCacheChunk()
@@ -71,6 +72,8 @@ namespace vessel
       _pageSize = pageSize;
       _pageNum = pageNum;
       _id = id;
+      _pageBitmap.resize(pageNum);
+      _bitPos = 0;
    done:
       return rc;
    error:
@@ -83,28 +86,53 @@ namespace vessel
       _pageNum = 0;
       _pageSize = 0;
       _id = 0;
+      _pageBitmap.resetBitmap();
+      _bitPos = 0;
       return SDB_OK;
    }
 
-   INT32 lcCacheChunk::transferTo(lcCacheChunk &chunk)
+   ossValuePtr lcCacheChunk::getPagePtr(UINT32 pagePos)const
    {
-      INT32 rc = SDB_OK;
-      chunk.teardown();
-
-      chunk = *this;
-      _pages = NULL;
-      _pageNum = 0;
-      _pageSize = 0;
-      _id = 0;
-   done:
-      return rc;
-   error:
-      goto done;
+      SDB_ASSERT(0 <= pagePos && _pageNum >= pagePos, "must in range");
+      return (ossValuePtr)(_pages + (pagePos * _pageSize));
    }
 
-   ossValuePtr lcCacheChunk::getPagePtr(UINT32 page)const
+   UINT32 lcCacheChunk::getPagePos(ossValuePtr pagePtr)const
    {
-      return (ossValuePtr)(_pages + (page * _pageSize));
+      SDB_ASSERT(pagePtr >= getPagePtr(0) && 
+                 pagePtr <= getPagePtr(_pageNum - 1), "must in range");
+      return ((CHAR *)pagePtr - _pages) / _pageSize;
+   }
+
+   BOOLEAN lcCacheChunk::allocatePage(freeListPage &page)
+   {
+      INT32 pos = -1;
+
+      SDB_ASSERT(NULL != _pages, "can not be null");
+      SDB_ASSERT(0 < _pageBitmap.getSize(), "impossible");
+      page.reset();
+      if (this->hasFreePage())
+      {
+         pos = _pageBitmap.nextFreeBitPos(_bitPos);
+         if (pos < 0)
+         {
+            pos = _pageBitmap.nextFreeBitPos();
+            SDB_ASSERT(0 <= pos, "has one free page at least");
+         }
+         _bitPos = pos;
+         _pageBitmap.setBit(_bitPos);
+         page.set(this->getId(), this->getPagePtr(_bitPos));
+         return TRUE;
+      }
+      return FALSE;
+   }
+
+   void lcCacheChunk::releasePage(const freeListPage &page)
+   {
+      if(!_pageBitmap.isEmpty())
+      {
+         _pageBitmap.clearBit(getPagePos(page.getBuf()));
+      }
    }
 } /// end of namespace vessel
 } /// end of namespace engine

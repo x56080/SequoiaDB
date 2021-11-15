@@ -40,6 +40,9 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "utilBitmap.hpp"
+#include "freeListPage.h"
+#include "pd.hpp"
 
 namespace engine
 {
@@ -50,42 +53,47 @@ namespace vessel
       public:
          lcCacheChunk();
          ~lcCacheChunk();
-
-      private:
-         lcCacheChunk(const lcCacheChunk &o):
-         _id(o._id),
-         _pageNum(o._pageNum),
-         _pageSize(o._pageSize),
-         _pages(o._pages)
-         {
-
-         }
-
-         lcCacheChunk &operator=(const lcCacheChunk &o)
-         {
-            _id = o._id;
-            _pageNum = o._pageNum;
-            _pageSize = o._pageSize;
-            _pages = o._pages;
-            return *this;
-         }
+         lcCacheChunk(const lcCacheChunk &o) = delete;
+         lcCacheChunk &operator=(const lcCacheChunk &o) = delete;
 
       public:
          INT32 setup(UINT32 id, UINT32 pageNum, UINT32 pageSize);
          INT32 teardown();
-         INT32 transferTo(lcCacheChunk &chunk);
+         BOOLEAN allocatePage(freeListPage &page);
+         void releasePage(const freeListPage &page);
 
-         ossValuePtr getPagePtr(UINT32 page)const;
+         OSS_INLINE BOOLEAN hasFreePage()
+         {
+            return _pageBitmap.isFull() ? FALSE : TRUE;
+         }
+
+         OSS_INLINE UINT32 getFreePageCount()
+         {
+            return _pageBitmap.freeSize();
+         }
 
          OSS_INLINE UINT32 getPageNum()const
          {
             return _pageNum;
          }
+
+         OSS_INLINE UINT32 getId()const
+         {
+            return _id;
+         }
+
+      private:
+         UINT32 getPagePos(ossValuePtr pagePtr)const;
+         ossValuePtr getPagePtr(UINT32 pagePos)const;
+         
       private:
          UINT32 _id;
          UINT32 _pageNum;
          UINT32 _pageSize;
          CHAR *_pages;
+         UINT32 _bitPos;
+         utilBitmap _pageBitmap;
+
    }; /// end of class lcCacheChunk
 } /// end of namespace vessel
 } /// end of namespace engine
