@@ -415,7 +415,7 @@ namespace engine
 
    BSONObj _rtnSnapshotConfigs::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotConfigsInner)
@@ -427,7 +427,7 @@ namespace engine
 
    BSONObj _rtnSnapshotConfigsInner::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotVCLSessionInfoInner )
@@ -460,7 +460,7 @@ namespace engine
 
    BSONObj _rtnSnapshotQueries::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotQueriesInner )
@@ -472,7 +472,7 @@ namespace engine
 
    BSONObj _rtnSnapshotQueriesInner::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotLatchWaits )
@@ -484,14 +484,14 @@ namespace engine
 
    BSONObj _rtnSnapshotLatchWaits::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotLatchWaitsInner )
 
    BSONObj _rtnSnapshotLatchWaitsInner::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    BOOLEAN _rtnSnapshotLatchWaitsInner::_isCurrent() const
@@ -503,7 +503,7 @@ namespace engine
 
    BSONObj _rtnSnapshotLockWaits::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
    BOOLEAN _rtnSnapshotLockWaits::_isCurrent() const
    {
@@ -519,14 +519,14 @@ namespace engine
 
    BSONObj _rtnSnapshotLockWaitsInner::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotIndexStats )
 
    BSONObj _rtnSnapshotIndexStats::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
    BOOLEAN _rtnSnapshotIndexStats::_isCurrent() const
    {
@@ -542,6 +542,6 @@ namespace engine
 
    BSONObj _rtnSnapshotIndexStatsInner::_getOptObj() const
    {
-      return _getObjectFromHint( "$"FIELD_NAME_OPTIONS ) ;
+      return _getObjectFromHint( "$" FIELD_NAME_OPTIONS ) ;
    }
 }

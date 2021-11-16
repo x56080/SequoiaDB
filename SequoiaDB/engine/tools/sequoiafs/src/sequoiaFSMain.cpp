@@ -416,7 +416,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = sfsOptInitArgs(&fuseArgs);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to init args(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init args(error=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
    ossMemset(optionTemp, 0, OSS_MAX_PATHSIZE);
@@ -428,7 +428,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    {
       if(-ENOENT == rc)
       {
-         ossPrintf("The cl:%s does not exist, exit."OSS_NEWLINE,
+         ossPrintf("The cl:%s does not exist, exit." OSS_NEWLINE,
                    sfs->_collection.c_str());
       }
 
@@ -436,10 +436,10 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(SDB_OK != rc)
       {
          ossPrintf("Failed to start close conn pool(error=%d), "
-                   "exit."OSS_NEWLINE, rc);
+                   "exit." OSS_NEWLINE, rc);
          goto error;
       }
-      ossPrintf("Failed to init, exit."OSS_NEWLINE);
+      ossPrintf("Failed to init, exit." OSS_NEWLINE);
       goto error;
    }
 
@@ -452,7 +452,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = fuse_opt_parse(&fuseArgs, &lobFuseOption, lobOptions, sfsProcessArg);
    if(-1 == rc)
    {
-      ossPrintf("Failed to parse fuse option(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to parse fuse option(error=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -466,7 +466,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(0 != rc)
    {
       PD_LOG( PDERROR, "Failed to add arg:%s, rc:%d", lobFuseOption.mountpoint, rc ) ;
-      ossPrintf("Failed to add arg:%s (error=%d), exit."OSS_NEWLINE,
+      ossPrintf("Failed to add arg:%s (error=%d), exit." OSS_NEWLINE,
                 lobFuseOption.mountpoint, rc);
       goto error;
    }
@@ -476,7 +476,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    {
       PD_LOG( PDERROR, "Failed to write map history collection, rc:%d", rc ) ;
       ossPrintf("Failed to write map history collection(error=%d), "
-                "exit."OSS_NEWLINE, rc);
+                "exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -500,14 +500,14 @@ INT32 main(INT32 argc, CHAR *argv[])
       if (SDB_OK != rc)
       {
          PD_LOG( PDERROR, "mount query failed. cmd:(%s), rc:%d",  mount, rc ) ;
-         ossPrintf("mount query failed. cmd:(%s). errorcode:(%d), exit."OSS_NEWLINE, mount, rc);
+         ossPrintf("mount query failed. cmd:(%s). errorcode:(%d), exit." OSS_NEWLINE, mount, rc);
          rc = SDB_OPERATION_CONFLICT;
          goto error;
       }
       if ( SDB_OK == exitCode )
       {
          PD_LOG( PDERROR, "The alias(%s) is already in use.",  (sfs->getOptionMgr())->getAlias() ) ;
-         ossPrintf("The alias(%s) is already in use, exit."OSS_NEWLINE, (sfs->getOptionMgr())->getAlias() );
+         ossPrintf("The alias(%s) is already in use, exit." OSS_NEWLINE, (sfs->getOptionMgr())->getAlias() );
          rc = SDB_OPERATION_CONFLICT;
          goto error;
       }
@@ -522,7 +522,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc ) ;
-         ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
+         ossPrintf("get pidName failed, rc: %d." OSS_NEWLINE, rc);
          goto error;
       }
       else 
@@ -534,7 +534,7 @@ INT32 main(INT32 argc, CHAR *argv[])
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Open pidfile(%s) failed, rc: %d", pidName, rc ) ;
-               ossPrintf("Open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+               ossPrintf("Open pidfile(%s) failed, exit." OSS_NEWLINE, pidName);
                rc = SDB_OPERATION_CONFLICT;
                goto error;
             }
@@ -549,7 +549,7 @@ INT32 main(INT32 argc, CHAR *argv[])
                        "has been mounted by other process(%s), rc: %d", 
                        pidName, lobFuseOption.mountpoint, oldPid, rc ) ;
                ossPrintf("Lock pidfile(%s) failed, maybe the mountpoint(%s) has "
-                         "been mounted by other process(%s), exit."OSS_NEWLINE, 
+                         "been mounted by other process(%s), exit." OSS_NEWLINE, 
                          pidName, lobFuseOption.mountpoint, oldPid);
                rc = SDB_OPERATION_CONFLICT;
                goto error;
@@ -563,7 +563,7 @@ INT32 main(INT32 argc, CHAR *argv[])
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to create pid file(%s), rc: %d", pidName, rc ) ;
-            ossPrintf("Failed to create pid file(%s), exit."OSS_NEWLINE, pidName);
+            ossPrintf("Failed to create pid file(%s), exit." OSS_NEWLINE, pidName);
             goto error;
          }
          isCreatePidFile = TRUE;
@@ -572,7 +572,7 @@ INT32 main(INT32 argc, CHAR *argv[])
          {
             engine::removePIDFile( pidName ) ;
             PD_LOG( PDERROR, "open pidfile(%s) failed, rc:%d.", pidName, rc ) ;
-            ossPrintf("open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+            ossPrintf("open pidfile(%s) failed, exit." OSS_NEWLINE, pidName);
             rc = SDB_OPERATION_CONFLICT;
             goto error;
          }
@@ -582,7 +582,7 @@ INT32 main(INT32 argc, CHAR *argv[])
             ossClose( pidFile );
             engine::removePIDFile( pidName ) ;
             PD_LOG( PDERROR, "Lock pidfile(%s) failed, rc:%d.", pidName, rc ) ;
-            ossPrintf("Lock pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+            ossPrintf("Lock pidfile(%s) failed, exit." OSS_NEWLINE, pidName);
             rc = SDB_OPERATION_CONFLICT;
             goto error;
          }
@@ -593,7 +593,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(SDB_OK != rc)
    {
       PD_LOG( PDERROR, "Failed to start fuse main, rc:%d.", rc ) ;
-      ossPrintf("Failed to start fuse main(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to start fuse main(error=%d), exit." OSS_NEWLINE, rc);
    }
    else
    {
@@ -601,7 +601,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(SDB_OK != rc2)
       {
          PD_LOG( PDWARNING, "Failed to start close conn pool, rc:%d.", rc2 ) ;
-         ossPrintf("Failed to save config (error=%d), exit."OSS_NEWLINE, rc2);
+         ossPrintf("Failed to save config (error=%d), exit." OSS_NEWLINE, rc2);
       }
    }
    
@@ -609,7 +609,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(SDB_OK != rc2 )
    {
       PD_LOG( PDWARNING, "Failed to close conn pool, rc:%d.", rc2 ) ;
-      ossPrintf("Failed to close conn pool(error=%d)."OSS_NEWLINE, rc2);
+      ossPrintf("Failed to close conn pool(error=%d)." OSS_NEWLINE, rc2);
    }
 
    if(isCreatePidFile)

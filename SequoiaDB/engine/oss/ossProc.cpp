@@ -852,7 +852,7 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
             // are going to get zombie status in child process
             if ( status[0] == PROC_STATUS_ZOMBIE )
             {
-               ossPrintf ( "Error: Failed to start %s"OSS_NEWLINE,
+               ossPrintf ( "Error: Failed to start %s" OSS_NEWLINE,
                             promptName ) ;
                loop = FALSE ;
                rc = SDB_SYS ;
@@ -887,7 +887,7 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
       {
          // if we can't open the /proc/<pid>/stat, the child process is gone (
          // it should never happen thou )
-         ossPrintf ( "Error: Unable to read %s"OSS_NEWLINE, pathName ) ;
+         ossPrintf ( "Error: Unable to read %s" OSS_NEWLINE, pathName ) ;
          rc = SDB_SYS ;
          loop = FALSE ;
       }

@@ -498,7 +498,7 @@ INT32 utilSdbTemplet::_resolveArgument ( po::options_description &desc,
                rc = SDB_INVALIDARG ;
                PD_LOG ( PDERROR, "%s must be greater than %d",
                         pVar->pKey, pVar->minInt ) ;
-               ossPrintf( "%s must be greater than %d"OSS_NEWLINE,
+               ossPrintf( "%s must be greater than %d" OSS_NEWLINE,
                           pVar->pKey, pVar->minInt ) ;
                goto error ;
             }
@@ -507,7 +507,7 @@ INT32 utilSdbTemplet::_resolveArgument ( po::options_description &desc,
                rc = SDB_INVALIDARG ;
                PD_LOG ( PDERROR, "%s must be less than %d",
                         pVar->pKey, pVar->maxInt ) ;
-               ossPrintf( "%s must be less than %d"OSS_NEWLINE,
+               ossPrintf( "%s must be less than %d" OSS_NEWLINE,
                           pVar->pKey, pVar->maxInt ) ;
                goto error ;
             }
@@ -531,7 +531,7 @@ INT32 utilSdbTemplet::_resolveArgument ( po::options_description &desc,
                   PD_LOG ( PDERROR, "%s must be 1 char \
 of 16 hex format ( e.g. 0x09 )", pVar->pKey ) ;
                   ossPrintf( "%s must be 1 char \
-of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
+of 16 hex format ( e.g. 0x09 )" OSS_NEWLINE, pVar->pKey ) ;
                   goto error ;
                }
                for ( INT32 i = 3; i <= tempStrSize; ++i )
@@ -558,7 +558,7 @@ of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
                PD_LOG ( PDERROR, "%s must be 1 char \
 of 16 hex format ( e.g. 0x09 )", pVar->pKey ) ;
                ossPrintf( "%s must be 1 char \
-of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
+of 16 hex format ( e.g. 0x09 )" OSS_NEWLINE, pVar->pKey ) ;
                goto error ;
             }
             pVar->varChar = tempChar ;
@@ -590,7 +590,7 @@ of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
             else
             {
                rc = SDB_INVALIDARG ;
-               ossPrintf( "%s max size is %d"OSS_NEWLINE,
+               ossPrintf( "%s max size is %d" OSS_NEWLINE,
                           pVar->pKey, pVar->maxStringSize );
                PD_LOG ( PDERROR, "%s max size is %d",
                         pVar->pKey, pVar->maxStringSize ) ;
@@ -616,7 +616,7 @@ of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
             if ( !isFind )
             {
                rc = SDB_INVALIDARG ;
-               ossPrintf( "%s unknow %s cmd"OSS_NEWLINE, pVar->pKey, pTempStr );
+               ossPrintf( "%s unknow %s cmd" OSS_NEWLINE, pVar->pKey, pTempStr );
                PD_LOG ( PDERROR, "%s unknow %s cmd", pVar->pKey, pTempStr ) ;
                goto error ;
             }
@@ -625,7 +625,7 @@ of 16 hex format ( e.g. 0x09 )"OSS_NEWLINE, pVar->pKey ) ;
       else if ( pVar->require )
       {
          rc = SDB_INVALIDARG ;
-         ossPrintf ( "%s must input, rc=%d"OSS_NEWLINE, pVar->pKey, rc ) ;
+         ossPrintf ( "%s must input, rc=%d" OSS_NEWLINE, pVar->pKey, rc ) ;
          PD_LOG ( PDERROR, "%s must input, rc=%d", pVar->pKey, rc ) ;
          goto error ;
       }

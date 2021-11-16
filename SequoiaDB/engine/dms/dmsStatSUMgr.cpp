@@ -55,19 +55,19 @@ namespace engine
 {
 
 #define DMS_STAT_CL_IDX_DEF \
-   "{ "IXM_FIELD_NAME_NAME"      : \""DMS_STAT_CL_IDX_NAME"\", \
-      "IXM_FIELD_NAME_KEY"       : { "DMS_STAT_COLLECTION_SPACE" : 1, \
-                                     "DMS_STAT_COLLECTION" : 1 }, \
-      "IXM_FIELD_NAME_UNIQUE"    : true, \
-      "IXM_FIELD_NAME_ENFORCED"  : true }"
+   "{ " IXM_FIELD_NAME_NAME "      : \"" DMS_STAT_CL_IDX_NAME "\", \
+      " IXM_FIELD_NAME_KEY "       : { " DMS_STAT_COLLECTION_SPACE " : 1, \
+                                     " DMS_STAT_COLLECTION " : 1 }, \
+      " IXM_FIELD_NAME_UNIQUE "    : true, \
+      " IXM_FIELD_NAME_ENFORCED "  : true }"
 
 #define DMS_STAT_IDX_IDX_DEF \
-   "{ "IXM_FIELD_NAME_NAME"      : \""DMS_STAT_IDX_IDX_NAME"\", \
-      "IXM_FIELD_NAME_KEY"       : { "DMS_STAT_COLLECTION_SPACE" : 1, \
-                                     "DMS_STAT_COLLECTION" : 1, \
-                                     "DMS_STAT_IDX_INDEX" : 1 } , \
-      "IXM_FIELD_NAME_UNIQUE"    : true, \
-      "IXM_FIELD_NAME_ENFORCED"  : true }"
+   "{ " IXM_FIELD_NAME_NAME "      : \"" DMS_STAT_IDX_IDX_NAME "\", \
+      " IXM_FIELD_NAME_KEY "       : { " DMS_STAT_COLLECTION_SPACE " : 1, \
+                                     " DMS_STAT_COLLECTION " : 1, \
+                                     " DMS_STAT_IDX_INDEX " : 1 } , \
+      " IXM_FIELD_NAME_UNIQUE "    : true, \
+      " IXM_FIELD_NAME_ENFORCED "  : true }"
 
    /*
       _dmsStatSUMgr implement

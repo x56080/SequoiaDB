@@ -1181,9 +1181,9 @@ namespace engine
       UINT64 oorTimes = _oorTimes.fetch() ;
 
       len = ossSnprintf( pBuff, buffLen,
-                         "      Max Size : %llu"OSS_NEWLINE
-                         "    Total Size : %llu"OSS_NEWLINE
-                         "Alloc Threshold: %u"OSS_NEWLINE,
+                         "      Max Size : %llu" OSS_NEWLINE
+                         "    Total Size : %llu" OSS_NEWLINE
+                         "Alloc Threshold: %u" OSS_NEWLINE,
                          _maxSize,
                          _totalSize.fetch(),
                          _allocThreshold ) ;
@@ -1299,13 +1299,13 @@ namespace engine
 
       len += ossSnprintf( pBuff + len, buffLen - len,
                           OSS_NEWLINE
-                          "Pool Memory Stat"OSS_NEWLINE
-                          " Acquire Times : %llu (Inc: %lld )"OSS_NEWLINE
-                          " Release Times : %llu (Inc: %lld )"OSS_NEWLINE
-                          "     OOM Times : %llu (Inc: %lld )"OSS_NEWLINE
-                          "     OOL Times : %llu (Inc: %lld )"OSS_NEWLINE
-                          "     OOR Times : %llu (Inc: %lld )"OSS_NEWLINE
-                          "   Shrink Size : %llu (Inc: %lld )"OSS_NEWLINE,
+                          "Pool Memory Stat" OSS_NEWLINE
+                          " Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
+                          " Release Times : %llu (Inc: %lld )" OSS_NEWLINE
+                          "     OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
+                          "     OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
+                          "     OOR Times : %llu (Inc: %lld )" OSS_NEWLINE
+                          "   Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
                           acquireTimes,
                           acquireTimes - _acquireTimes,
                           releaseTimes,

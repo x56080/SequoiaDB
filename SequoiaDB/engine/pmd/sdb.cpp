@@ -115,10 +115,10 @@ struct ArgInfo
 
 void printUsage()
 {
-   ossPrintf ( "Usage:"OSS_NEWLINE ) ;
-   ossPrintf ( "   ./sdb (Interactive mode)"OSS_NEWLINE ) ;
-   ossPrintf ( "   ./sdb -f <FILE> (Batch mode), eg: ./sdb -e \"var v = \'123\'\" -f example.js"OSS_NEWLINE ) ;
-   ossPrintf ( "   ./sdb -s <CMD> (Front end mode), eg: ./sdb -s \"var db = new Sdb(\'localhost\', 11810)\""OSS_NEWLINE ) ;
+   ossPrintf ( "Usage:" OSS_NEWLINE ) ;
+   ossPrintf ( "   ./sdb (Interactive mode)" OSS_NEWLINE ) ;
+   ossPrintf ( "   ./sdb -f <FILE> (Batch mode), eg: ./sdb -e \"var v = \'123\'\" -f example.js" OSS_NEWLINE ) ;
+   ossPrintf ( "   ./sdb -s <CMD> (Front end mode), eg: ./sdb -s \"var db = new Sdb(\'localhost\', 11810)\"" OSS_NEWLINE ) ;
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_PARSEARGUMENTS, "parseArguments" )
@@ -339,7 +339,7 @@ INT32 enterBatchMode( sptScope * scope , const CHAR *filename,
    }
    else
    {
-      ossPrintf( "File %s is empty."OSS_NEWLINE , filename ) ;
+      ossPrintf( "File %s is empty." OSS_NEWLINE , filename ) ;
    }
 
 done :
@@ -376,8 +376,8 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
    linenoiseHistoryLoad( historyFile.c_str() ) ;
    g_lnBuilder.loadCmd( historyFile.c_str() ) ;
 
-   ossPrintf ( "Welcome to SequoiaDB shell!"OSS_NEWLINE ) ;
-   ossPrintf ( "help() for help, Ctrl+c or quit to exit"OSS_NEWLINE ) ;
+   ossPrintf ( "Welcome to SequoiaDB shell!" OSS_NEWLINE ) ;
+   ossPrintf ( "help() for help, Ctrl+c or quit to exit" OSS_NEWLINE ) ;
 
    while ( TRUE )
    {
@@ -432,7 +432,7 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
                ( tmBegin.time * 1000000 + tmBegin.microtm ) ;
       sec = tkTime/1000000 ;
       microSec = tkTime%1000000 ;
-      ossPrintf ( "Takes %lld.%06llds."OSS_NEWLINE , sec, microSec ) ;
+      ossPrintf ( "Takes %lld.%06llds." OSS_NEWLINE , sec, microSec ) ;
 
    loop_next :
          SAFE_OSS_FREE ( code ) ;
@@ -472,7 +472,7 @@ INT32 formatArgs ( const CHAR * program ,
    if ( NULL == *args )
    {
       rc = SDB_OOM ;
-      ossPrintf( "Alloc memory failed"OSS_NEWLINE ) ;
+      ossPrintf( "Alloc memory failed" OSS_NEWLINE ) ;
       goto error ;
    }
 
@@ -519,7 +519,7 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
    rc = ossAccess( program ) ;
    if ( rc )
    {
-      ossPrintf( "The program[%s] is not exist, rc: %d"OSS_NEWLINE,
+      ossPrintf( "The program[%s] is not exist, rc: %d" OSS_NEWLINE,
                   program, rc ) ;
       goto error ;
    }
@@ -527,7 +527,7 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
    rc = getWaitPipeName ( ppid ,  waitName , sizeof ( waitName ) ) ;
    if ( rc )
    {
-      ossPrintf( "Get wait pipe name failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Get wait pipe name failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -539,7 +539,7 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
                              1 , 0 , waitPipe ) ;
    if ( rc )
    {
-      ossPrintf( "Create named pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Create named pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -554,7 +554,7 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
                   result , NULL , NULL ) ;
    if ( rc )
    {
-      ossPrintf( "Run program[%s] failed, rc: %d"OSS_NEWLINE, program, rc ) ;
+      ossPrintf( "Run program[%s] failed, rc: %d" OSS_NEWLINE, program, rc ) ;
       goto error ;
    }
 
@@ -565,7 +565,7 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
                         d2fCtlName, sizeof( d2fCtlName ) ) ;
    if ( rc )
    {
-      ossPrintf( "Get pipe name failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Get pipe name failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -577,14 +577,14 @@ INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
    rc = ossConnectNamedPipe ( waitPipe , OSS_NPIPE_INBOUND ) ;
    if ( rc )
    {
-      ossPrintf( "Connect to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Connect to pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
    rc = ossDisconnectNamedPipe ( waitPipe ) ;
    if ( rc )
    {
-      ossPrintf( "Disconnect pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Disconnect pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -639,7 +639,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
                                 f2dCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dCtlName, rc ) ;
             goto error ;
          }
@@ -647,14 +647,14 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          rc = ossWriteNamedPipe( f2dCtlPipe, line, ossStrlen( line ), NULL ) ;
          if ( rc )
          {
-            ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Write to pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
          rc = ossCloseNamedPipe ( f2dCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Close pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
@@ -662,7 +662,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
                                 d2fCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dCtlName, rc ) ;
             goto error ;
          }
@@ -670,7 +670,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          rc = ossCloseNamedPipe ( d2fCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Close pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
       }
@@ -722,7 +722,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
                                 f2dCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dCtlName, rc ) ;
             goto error ;
          }
@@ -730,14 +730,14 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          rc = ossWriteNamedPipe( f2dCtlPipe, buf, ossStrlen( buf ), NULL ) ;
          if ( rc )
          {
-            ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Write to pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
          rc = ossCloseNamedPipe ( f2dCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Close pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
 
@@ -745,7 +745,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
                                 d2fCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dCtlName, rc ) ;
             goto error ;
          }
@@ -753,7 +753,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          rc = ossCloseNamedPipe ( d2fCtlPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Close pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
       }
@@ -814,7 +814,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
    rc = ossGetEWD( pbFullPath, OSS_MAX_PATHSIZE ) ;
    if ( rc )
    {
-      ossPrintf( "Get current path failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Get current path failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
    else
@@ -823,7 +823,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
       if ( strLen + ossStrlen( SDB_PB_PROGRAM_NAME ) + 2 > OSS_MAX_PATHSIZE )
       {
          rc = SDB_INVALIDARG ;
-         ossPrintf( "Path[%s] is to long"OSS_NEWLINE, pbFullPath ) ;
+         ossPrintf( "Path[%s] is to long" OSS_NEWLINE, pbFullPath ) ;
          goto error ;
       }
       else if ( strLen > 0 && pbFullPath[strLen-1] != OSS_FILE_SEP_CHAR )
@@ -863,7 +863,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
                        d2fCtlName, sizeof( d2fCtlName ) ) ;
    if ( rc )
    {
-      ossPrintf( "Build pipe names failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Build pipe names failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -892,7 +892,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
          rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dName, rc ) ;
             goto error ;
          }
@@ -903,28 +903,28 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
          rc = ossCleanNamedPipeByName ( bpf2dName ) ;
          if ( rc )
          {
-            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Clean pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dName, rc ) ;
             goto error ;
          }
          rc = ossCleanNamedPipeByName ( bpd2fName ) ;
          if ( rc )
          {
-            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Clean pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpd2fName, rc ) ;
             goto error ;
          }
          rc = ossCleanNamedPipeByName ( bpf2dCtlName ) ;
          if ( rc )
          {
-            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Clean pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dCtlName, rc ) ;
             goto error ;
          }
          rc = ossCleanNamedPipeByName ( bpd2fCtlName ) ;
          if ( rc )
          {
-            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Clean pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpd2fCtlName, rc ) ;
             goto error ;
          }
@@ -939,7 +939,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
          rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
          if ( rc )
          {
-            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+            ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                        bpf2dName, rc ) ;
             goto error ;
          }
@@ -961,13 +961,13 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
       rc = ossOpenNamedPipe ( bpf2dName , OSS_NPIPE_OUTBOUND , 0 , f2dPipe ) ;
       if ( rc )
       {
-         ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                     bpf2dName, rc ) ;
       }
    }
    else
    {
-      ossPrintf( "Get pipe names failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Get pipe names failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -975,14 +975,14 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
    rc = ossWriteNamedPipe ( f2dPipe , cmd , ossStrlen ( cmd ) , NULL ) ;
    if ( rc )
    {
-      ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Write to pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
    rc = ossCloseNamedPipe ( f2dPipe ) ;
    if ( rc )
    {
-      ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Close pipe failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -990,7 +990,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
                            OSS_NPIPE_INFINITE_TIMEOUT , d2fPipe ) ;
    if ( rc )
    {
-      ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+      ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
                  bpd2fName, rc ) ;
       goto error ;
    }
@@ -1042,7 +1042,7 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
       else
       {
          // something wrong, we should never hit here
-         ossPrintf ( "SEVERE Error, we should never hit here"OSS_NEWLINE ) ;
+         ossPrintf ( "SEVERE Error, we should never hit here" OSS_NEWLINE ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -1130,7 +1130,7 @@ int main ( int argc , CHAR **argv )
    rc = container.init() ;
    if ( rc )
    {
-      ossPrintf( "Init container failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Init container failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
@@ -1146,7 +1146,7 @@ int main ( int argc , CHAR **argv )
    }
    else if ( rc )
    {
-      ossPrintf( "Parse args failed, rc: %d"OSS_NEWLINE, rc ) ;
+      ossPrintf( "Parse args failed, rc: %d" OSS_NEWLINE, rc ) ;
       goto error ;
    }
 

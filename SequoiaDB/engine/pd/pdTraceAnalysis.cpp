@@ -201,8 +201,8 @@ INT32 _pdTraceParser::_outputDBVersionInfo( const CHAR *versionFilePath )
    if ( PD_TRACE_INVALID_FIXVERSION == _traceHeader._engineFixVersion )
    {
       versionInfoSize = ossSnprintf( versionInfo, TRACE_VERSION_INFO_SIZE,
-                                     "SequoiaDB version : %u.%u"OSS_NEWLINE
-                                     "Release : %u"OSS_NEWLINE,
+                                     "SequoiaDB version : %u.%u" OSS_NEWLINE
+                                     "Release : %u" OSS_NEWLINE,
                                      _traceHeader._engineVersion,
                                      _traceHeader._engineSubVersion,
                                      _traceHeader._release ) ;
@@ -210,8 +210,8 @@ INT32 _pdTraceParser::_outputDBVersionInfo( const CHAR *versionFilePath )
    else
    {
       versionInfoSize = ossSnprintf( versionInfo, TRACE_VERSION_INFO_SIZE,
-                                     "SequoiaDB version : %u.%u.%u"OSS_NEWLINE
-                                     "Release : %u"OSS_NEWLINE,
+                                     "SequoiaDB version : %u.%u.%u" OSS_NEWLINE
+                                     "Release : %u" OSS_NEWLINE,
                                      _traceHeader._engineVersion,
                                      _traceHeader._engineSubVersion,
                                      _traceHeader._engineFixVersion,
@@ -822,7 +822,7 @@ INT32 _pdTraceParser::_analysisRecordsByThread( UINT32 tid,
    PD_STACK_FUNCS funcStack ;
 
    length = ossSnprintf( _pFormatBuf, _bufSize,
-                         OSS_NEWLINE OSS_NEWLINE"tid: %u"OSS_NEWLINE,
+                         OSS_NEWLINE OSS_NEWLINE"tid: %u" OSS_NEWLINE,
                          tid ) ;
    rc = ossWriteN( flwFile, _pFormatBuf, length ) ;
    if ( rc )
@@ -940,7 +940,7 @@ INT32  _pdTraceParser::_outputErrorFunctions( PD_MAP_FUNCS &errFunctions,
          ++it )
    {
       length = ossSnprintf( _pFormatBuf, _bufSize,
-                            "%d: %s "OSS_NEWLINE"       ( ",
+                            "%d: %s " OSS_NEWLINE"       ( ",
                             nCount, _getFunctionName( it->first ) ) ;
 
       for ( UINT32 item = 0 ; item < it->second.size() ; ++item )
@@ -958,7 +958,7 @@ INT32  _pdTraceParser::_outputErrorFunctions( PD_MAP_FUNCS &errFunctions,
       }
 
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
-                             " )"OSS_NEWLINE ) ;
+                             " )" OSS_NEWLINE ) ;
 
       /// write to file
       ossWriteN( errFile, _pFormatBuf, length ) ;
@@ -1277,10 +1277,10 @@ INT32 _pdTraceParser::_outputExceptionReport( OSSFILE *inFile,
       length = ossSnprintf( _pFormatBuf, _bufSize,
                             OSS_NEWLINE"------------------------------"
                             "-----------------------------------------"
-                            "--"OSS_NEWLINE ) ;
+                            "--" OSS_NEWLINE ) ;
 
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
-                             "%s "OSS_NEWLINE,
+                             "%s " OSS_NEWLINE,
                              _getFunctionName( rit->_functionID ) ) ;
 
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
@@ -1511,7 +1511,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
    tmpTime = pRecord->getCurTime() ;
    ossTimestampToString ( tmpTime, timestamp ) ;
    length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
-                          "%s %s(%u): %s"OSS_NEWLINE,
+                          "%s %s(%u): %s" OSS_NEWLINE,
                           _getFunctionName( pRecord->_functionID ),
                           pTypeStr,
                           pRecord->_line,
@@ -1519,7 +1519,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
 
    // write pid/tid/arguments
    length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
-                          "tid: %u, numArgs: %u"OSS_NEWLINE,
+                          "tid: %u, numArgs: %u" OSS_NEWLINE,
                           pRecord->_tid,
                           pRecord->_numArgs ) ;
 
@@ -1549,14 +1549,14 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\tNULL"OSS_NEWLINE ) ;
+                                   "\tNULL" OSS_NEWLINE ) ;
             break ;
          }
          case PD_TRACE_ARGTYPE_CHAR :
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%c"OSS_NEWLINE,
+                                   "\t%c" OSS_NEWLINE,
                                    *(pArgs->argData()) ) ;
             break ;
          }
@@ -1564,7 +1564,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t0x%x"OSS_NEWLINE,
+                                   "\t0x%x" OSS_NEWLINE,
                                    (UINT32)(*(pArgs->argData())) ) ;
             break ;
          }
@@ -1572,7 +1572,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%d"OSS_NEWLINE,
+                                   "\t%d" OSS_NEWLINE,
                                    (INT32)(*(INT16*)pArgs->argData()) ) ;
             break ;
          }
@@ -1580,7 +1580,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%u"OSS_NEWLINE,
+                                   "\t%u" OSS_NEWLINE,
                                    (UINT32)(*(UINT16*)pArgs->argData()) ) ;
             break ;
          }
@@ -1588,7 +1588,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%d"OSS_NEWLINE,
+                                   "\t%d" OSS_NEWLINE,
                                    *(INT32*)pArgs->argData() ) ;
             break ;
          }
@@ -1596,7 +1596,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%u"OSS_NEWLINE,
+                                   "\t%u" OSS_NEWLINE,
                                    *(UINT32*)pArgs->argData() ) ;
             break ;
          }
@@ -1604,7 +1604,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%lld"OSS_NEWLINE,
+                                   "\t%lld" OSS_NEWLINE,
                                    *(INT64*)pArgs->argData() ) ;
             break ;
          }
@@ -1612,7 +1612,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%llu"OSS_NEWLINE,
+                                   "\t%llu" OSS_NEWLINE,
                                    *(UINT64*)pArgs->argData() ) ;
             break ;
          }
@@ -1620,7 +1620,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%f"OSS_NEWLINE,
+                                   "\t%f" OSS_NEWLINE,
                                    *(FLOAT32*)pArgs->argData() ) ;
             break ;
          }
@@ -1628,7 +1628,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%f"OSS_NEWLINE,
+                                   "\t%f" OSS_NEWLINE,
                                    *(FLOAT64*)pArgs->argData() ) ;
             break ;
          }
@@ -1636,7 +1636,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          {
             length += ossSnprintf( _pFormatBuf + length,
                                    _bufSize - length,
-                                   "\t%s"OSS_NEWLINE,
+                                   "\t%s" OSS_NEWLINE,
                                    pArgs->argData() ) ;
             break ;
          }
@@ -1666,7 +1666,7 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
                BSONObj argument( pArgs->argData() ) ;
                length += ossSnprintf( _pFormatBuf + length,
                                       _bufSize - length,
-                                      "\t%s"OSS_NEWLINE,
+                                      "\t%s" OSS_NEWLINE,
                                       argument.toString( FALSE, TRUE ).c_str() ) ;
             }
             catch ( std::exception &e )

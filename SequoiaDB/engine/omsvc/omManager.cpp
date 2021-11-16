@@ -833,7 +833,7 @@ namespace engine
       {
          BSONObj selector ;
          BSONObj matcher = BSON( OM_CLUSTER_FIELD_NAME << clusertName <<
-               OM_CLUSTER_FIELD_GRANTCONF"."OM_CLUSTER_FIELD_GRANTNAME <<
+               OM_CLUSTER_FIELD_GRANTCONF "." OM_CLUSTER_FIELD_GRANTNAME <<
                grantName ) ;
 
          rc = rtnQuery( OM_CS_DEPLOY_CL_CLUSTER, selector, matcher, sort,
