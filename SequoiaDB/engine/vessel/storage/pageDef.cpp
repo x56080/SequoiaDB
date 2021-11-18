@@ -46,7 +46,7 @@ namespace vessel
       SDB_ASSERT(isValidPageSize(pageSize), "must be valid");
       const pageHead *head = (const pageHead *)ptr;
       const UINT64 *tail =(const UINT64 *)(ptr + pageSize - PAGE_TAIL_SIZE);
-      CHAR eyecacher[2] = {0};
+      CHAR eyecacher[2] = {};
       getPageEyeCatcher(eyecacher[0], eyecacher[1]);
 
       return head->eyeCatcher[0] != eyecacher[0] ||

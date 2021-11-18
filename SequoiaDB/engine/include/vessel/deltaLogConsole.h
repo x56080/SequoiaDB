@@ -38,18 +38,16 @@
 
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
-#include "ossMemPool.hpp"
-#include "vessel/vesselFileName.h"
-#include "vessel/deltaLogRecord.h"
-#include "vessel/logicalPageSpaceCheckpoint.h"
 #include "vessel/sortedStorageFileList.h"
-#include "vessel/deltaLogScanner.h"
+#include "vessel/vesselFileName.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class storageFileCreater;
+   class requestContext;
+   class idMapFile;
+   class deltaLogFile;
 
    class deltaLogConsole : public SDBObject
    {
@@ -62,98 +60,46 @@ namespace vessel
          deltaLogConsole &operator=(const deltaLogConsole &) = delete;
 
       public:
-         OSS_INLINE const LPS_CHECKPOINT &getCheckpoint()const
-         {
-            return _checkpoint;
-         }
-         OSS_INLINE UINT64 getNextOffset()const
-         {
-            return _nextRecordOffset;
-         }
          OSS_INLINE BOOLEAN isReady()const
          {
-            return NULL != _creater;
+            return INVALID_SPACE_TYPE != _type;
+         }
+         OSS_INLINE BOOLEAN isEmtpy()const
+         {
+            return _files.isEmpty();
          }
 
       public:
-         /// init when creating.
-         INT32 init(const storageFileCreater *creater);
-
-         /// init when opening.
-         /// If begingOffset is invalid, will search from offset zero.
-         /// But if log files does not exist, will return error.
-         INT32 init(const storageFileCreater *creater,
-                    const FILE_NAME_LIST *fl,
-                    UINT64 beginOffset);
+         INT32 init(requestContext *context,
+                    const idMapFile *base,
+                    const FILE_NAME_LIST *fl);
 
          void fini();
 
          void destroy();
-         
 
-         /// WARNING: Can be used only before adding new log record and
-         /// valid checkpoint exists.
-         INT32 initReaderBeforeAddingNewRecord(UINT64 beginOffset,
-                                               deltaLogScanner &reader);
+         INT32 reserveTmpLogFile(requestContext *context,
+                                 UINT32 secretValue);
 
-         INT32 append(const deltaLogRecord &dlr, UINT64 *offset=NULL);
+         INT32 addReservedFileToList();
 
-         INT32 reserveNextCheckpoint();
+         deltaLogFile *getLatestFile();
 
-         INT32 commitCheckpoint(const checkpointLSN &lsn);
-
-         UINT64 getFuzzyDirtyLogSize()const;
-
-         INT32 tryToDestroyHistroyFiles(UINT64 offset);
-
-
-      private:
-         INT32 restoreToLastCheckpoint(const FILE_NAME_LIST *fl,
-                                       UINT64 beginOffset);
-
-         INT32 findLastCheckpoint(UINT64 beginOffset,
-                                  BOOLEAN &found,
-                                  LPS_CHECKPOINT &checkpoint);
-
-         INT32 initLogFiles(const FILE_NAME_LIST *fl);
-
-         INT32 appendDummyLogToSwitchSegment();
-
-
-         INT32 ensureFileSpace(UINT64 fileId,
-                               UINT32 segmentId);
-
-         INT32 createNewLogFile(UINT64 fileId);
-
-         INT32 _append(const deltaLogRecord &dlr, UINT64 &offset);
-
-         INT32 fsyncDeltaLog(UINT64 upperOffset);
-
-      private:
-         INT32 initLogBuffer();
-         INT32 writeLogBuffer(const deltaLogRecord &dlr,
-                              DELTA_LOG_CHECKSUM checksum);
-
-         INT32 flushLogBuffer();
-
-         OSS_INLINE BOOLEAN isBufferReady()const
+         deltaLogFile *getReservedFile()
          {
-            return NULL != _logBuffer;
+            return _reserved;
          }
 
+      private:
+
+         INT32 initLogFiles(requestContext *context,
+                            const idMapFile *base,
+                            const FILE_NAME_LIST *fl);
    
       private:
-         const storageFileCreater *_creater = NULL;
-         sortedStorageFileList _logFiles;
-
-         LPS_CHECKPOINT _checkpoint;
-         DPS_LSN_OFFSET _nextCheckpointOffset = DPS_INVALID_LSN_OFFSET;
-
-         UINT64 _nextRecordOffset = 0;
-         UINT64 _minDirtyOffset = 0;
-         UINT64 _fileWriteOffset = 0;
-         CHAR *_logBuffer = NULL;
-         UINT32 _logBufferWriteSize = 0;
+         SPACE_TYPE _type = INVALID_SPACE_TYPE;
+         sortedStorageFileList _files;
+         deltaLogFile *_reserved = NULL;
    };//class deltaLogConsole
 }//namespace vessel
 }//namespace engine

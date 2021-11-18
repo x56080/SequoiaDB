@@ -93,35 +93,17 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
+      /// prepare dps log
+      rc = lpsLogUtil::prepare(context, dlr, lrc);
+      if (SDB_OK != rc)
       {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// prepare dps log
-         rc = lpsLogUtil::prepare(context, dlr, lrc);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to prepare log:%d", rc);
-            goto error;
-         }
-
-         /// commit delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, reserved lsn[%lld], rc:%d",
-                  lrc.getLsn(), rc);
-            INT32 tmpRc = lpsLogUtil::abort(context, lrc);
-            if (SDB_OK != tmpRc)
-            {
-               PD_LOG(PDSEVERE, "failed to abort log[%lld], rc:%d", lrc.getLsn(), rc);
-               ossPanic();
-            }
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
          goto error;
       }
+   
 
       /// update lsn
       logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
-      }
 
       /// commit dps log
       rc = lpsLogUtil::commit(context, lrc,
@@ -197,36 +179,14 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
+      rc = lpsLogUtil::prepare(context, dlr, lrc);
+      if (SDB_OK != rc)
       {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch()); 
-         /// 1. reserve lsn
-         rc = lpsLogUtil::prepare(context, dlr, lrc);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
-            goto error;
-         }
-
-         /// 2. write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, reserved lsn[%lld], rc:%d",
-                  lrc.getLsn(), rc);
-            INT32 tmpRc = lpsLogUtil::abort(context, lrc);
-            if (SDB_OK != tmpRc)
-            {
-               PD_LOG(PDSEVERE, "failed to abort log[%lld], rc:%d", lrc.getLsn(), rc);
-               ossPanic();
-            }
-            
-            goto error;
-         }
-
-         /// 3. update dirty lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+         PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
+         goto error;
       }
+
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
                               getSpaceType(),
@@ -328,36 +288,15 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
+      rc = lpsLogUtil::prepare(context, dlr, lrc);
+      if (SDB_OK != rc)
       {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// 1. reserve lsn
-         rc = lpsLogUtil::prepare(context, dlr, lrc);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
-            goto error;
-         }
-
-         /// 2. write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, reserved lsn[%lld], rc:%d",
-                  lrc.getLsn(), rc);
-            INT32 tmpRc = lpsLogUtil::abort(context, lrc);
-            if (SDB_OK != tmpRc)
-            {
-               PD_LOG(PDSEVERE, "failed to abort log[%lld], rc:%d", lrc.getLsn(), rc);
-               ossPanic();
-            }
-            
-            goto error;
-         }
-
-         /// 3. update dirty lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+         PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
+         goto error;
       }
+
+      /// 3. update dirty lsn
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
                               getSpaceType(),
@@ -435,36 +374,15 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
+      rc = lpsLogUtil::prepare(context, dlr, lrc);
+      if (SDB_OK != rc)
       {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// 1. reserve lsn
-         rc = lpsLogUtil::prepare(context, dlr, lrc);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
-            goto error;
-         }
-
-         /// 2. write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, reserved lsn[%lld], rc:%d",
-                  lrc.getLsn(), rc);
-            INT32 tmpRc = lpsLogUtil::abort(context, lrc);
-            if (SDB_OK != tmpRc)
-            {
-               PD_LOG(PDSEVERE, "failed to abort log[%lld], rc:%d", lrc.getLsn(), rc);
-               ossPanic();
-            }
-            
-            goto error;
-         }
-
-         /// 3. update dirty lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+         PD_LOG(PDERROR, "failed to prepare global log record:%d", rc);
+         goto error;
       }
+
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+      
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
                               getSpaceType(),
@@ -792,34 +710,9 @@ namespace vessel
    }
 
    INT32 replicatedLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                  BOOLEAN fullCheckpoint,
-                                                  ossPoolSet<UINT32> &dirtySegments)
+                                                  BOOLEAN fullCheckpoint)
    {
-      INT32 rc = SDB_OK;
-      if (fullCheckpoint)
-      {
-         rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg, NULL);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get cache ready to create new base:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = getCache().setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
-                                           NULL);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto error;
+      return SDB_OK;
    }
 }//namespace vessel
 }//namespace engine

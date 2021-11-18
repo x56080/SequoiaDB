@@ -105,13 +105,6 @@ namespace vessel
          goto error;
       }
 
-      rc = su->getMainDataSpace().ensureNameFile(name.str());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create name file:%d", rc);
-         goto error;
-      }
-
       _recordInMem.version = CMR_VERSION_1;
       _recordInMem.status = CMR_STATUS_ONLINE;
       _recordInMem.type = CMR_TYPE_NORMAL;
@@ -130,6 +123,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to init meta page when creating:%d", rc);
          goto error;
       }
+
+      createCSNameFile();
    done:
       return rc;
    error:
@@ -581,7 +576,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::createCheckpoint(requestContext *context)
+   INT32 collectionSpace::createCheckpoint(requestContext *context,
+                                           BOOLEAN forceFullCheckpoint)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
@@ -595,14 +591,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getMainDataSpace().createCheckpoint(context);
+      rc = _su->getMainDataSpace().createCheckpoint(context, forceFullCheckpoint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checkpoint on mds:%d", rc);
          goto error;
       }
 
-      rc = _su->getIndexSpace().createCheckpoint(context);
+      rc = _su->getIndexSpace().createCheckpoint(context, forceFullCheckpoint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checkpoint on is:%d", rc);
@@ -1141,5 +1137,126 @@ namespace vessel
       return r;
    }
    
+   INT32 collectionSpace::createCSNameFile()const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
+   
+      ossPoolString fullPath;
+      OSSFILE file;
+      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
+      CHAR nameBuffer[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
+      strSlice nameSlice(_recordInMem.name);
+      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
+      UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
+
+
+      rc = _su->getDirPathOfType(SPACE_TYPE_MAIN_DATA, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get main data space dir:%d", rc);
+         goto error;
+      }
+
+      if (nameSlice.empty() ||
+          DMS_COLLECTION_SPACE_NAME_SZ < nameSlice.strLen())
+      {
+         PD_LOG(PDERROR, "invalid collection space name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!vesselFileName::buildSimpleName(_su->getSpaceID(),
+                                           suffix, MAX_FILE_NAME_LEN + 1,
+                                           fileName))
+      {
+         PD_LOG(PDERROR, "failed to build csname file");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      ossMemcpy(nameBuffer, nameSlice.str(), nameSlice.strLen());
+      nameBuffer[nameSlice.strLen()] = '\n';
+
+      fullPath.append(OSS_FILE_SEP);
+      fullPath.append(fileName);
+
+      rc = ossOpen(fullPath.c_str(), flags, OSS_RU|OSS_WU|OSS_RG, file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create file[%s], rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      rc = ossWriteN(&file, nameBuffer, nameSlice.strLen() + 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      rc = ossFdatasync(&file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fdatasync file[%s], rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      ossClose(file);
+      ossChmod(fullPath.c_str(), OSS_RU);
+   done:
+      return rc;
+   error:
+      if (file.isOpened())
+      {
+         ossClose(file);
+         ossDelete(fullPath.c_str());
+      }
+      goto done;
+   }
+
+   INT32 collectionSpace::removeCSNameFile()const
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _su && _su->isOpen(), "can not be invalid");
+
+      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {};
+      ossPoolString fullPath;
+      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
+
+      if (!vesselFileName::buildSimpleName(_su->getSpaceID(),
+                                           suffix, MAX_FILE_NAME_LEN + 1, fileName))
+      {
+         PD_LOG(PDERROR, "failed to build csname file");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = _su->getDirPathOfType(SPACE_TYPE_MAIN_DATA, fullPath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get main data space dir:%d", rc);
+         goto error;
+      }
+
+      fullPath.append(OSS_FILE_SEP);
+      fullPath.append(fileName);
+
+      PD_LOG(PDINFO, "removing cs name file:%s", fullPath.c_str());
+      rc = ossDelete(fullPath.c_str());
+      if (SDB_FNE == rc)
+      {
+         rc = SDB_OK;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

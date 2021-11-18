@@ -37,7 +37,7 @@
 #define VESSEL_DELTA_LOG_FILE_H_
 
 #include "vessel/storageFile.h"
-#include "vessel/deltaLogRecord.h"
+#include "vessel/logicalPageSpaceCheckpoint.h"
 
 namespace engine
 {
@@ -45,24 +45,51 @@ namespace vessel
 {
    typedef UINT16 DELTA_LOG_CHECKSUM;
 
-   class deltaLogFileDef
+#pragma pack(4)
+   struct deltaLogFileHead
+   {
+      deltaLogFileHead(){}
+      ~deltaLogFileHead(){}
+      deltaLogFileHead(const deltaLogFileHead &) = delete;
+      deltaLogFileHead &operator=(const deltaLogFileHead &o)
+      {
+         version = o.version;
+         baseIdMapFile = o.baseIdMapFile;
+         checkpoint = o.checkpoint;
+         elementCount = o.elementCount;
+         return *this;
+      }
+
+      UINT32 version = 0;
+      UINT64 baseIdMapFile = 0;
+      LPS_CHECKPOINT checkpoint;
+      UINT64 elementCount = 0;
+
+   };//struct deltaLogFileHead
+
+   
+#pragma pack()
+
+   class deltaLogFile : public storageFile
    {
       public:
-         deltaLogFileDef(){}
-         ~deltaLogFileDef() = delete;
+         deltaLogFile(){}
+         virtual ~deltaLogFile(){}
 
       public:
+         static const UINT32 VERSION = 1;
+
          static const UINT32 PAGE_SIZE = DMS_PAGE_SIZE4K;
-         static const UINT32 PAGE_COUNT_PER_SEGMENT = 1024;
+         static const UINT32 PAGE_COUNT_PER_SEGMENT = 16;
          static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
                                                  PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 16;
+         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 2048;
          static const UINT32 MAX_PAGE_COUNT_PER_FILE = PAGE_COUNT_PER_SEGMENT *
                                                        MAX_SEGMENT_COUNT_PER_FILE;
          static const UINT32 MAX_FILE_SIZE = PAGE_SIZE * MAX_PAGE_COUNT_PER_FILE;
 
-         static const UINT32 CHECKSUM_SIZE = sizeof(DELTA_LOG_CHECKSUM);
-         static const UINT32 MIN_RECORD_SIZE_ON_DISK = DELTA_LOG_RECORD_HEAD_SIZE + CHECKSUM_SIZE;
+      public:
+         virtual BOOLEAN validateUserDefinedHead(const void *head)const;
 
       public:
          OSS_INLINE static UINT64 getLogFileSequenceByOffset(UINT64 offset)
@@ -77,6 +104,8 @@ namespace vessel
          {
             return offset % FILE_SEGMENT_SIZE;
          }
+
+         INT32 getDeltaLogFileHead(deltaLogFileHead &h)const;
          
    };//class deltaLogFile
 }//namespace vessel

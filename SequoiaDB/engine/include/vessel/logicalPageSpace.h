@@ -46,12 +46,12 @@
 #include "vessel/vesselFileName.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/deltaLogConsole.h"
-#include "vessel/storageFileCreater.h"
 #include "vessel/logicalPageIdCache.h"
 #include "vessel/lpsCheckpointContext.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/sortedStorageFileList.h"
+
 
 namespace engine
 {
@@ -74,11 +74,11 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _creater.isValid();
+            return INVALID_SPACE_ID != _sid;
          }
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _creater.getSpaceID();
+            return _sid;
          }
 
          static constexpr UINT32 MAX_LPID_COUNT = ID_MAP_PAGE_CAPACITY * ID_MAP_FILE_MAX_PAGE_COUNT;
@@ -94,8 +94,7 @@ namespace vessel
                       const createLogicalPageSpaceOptions &o);
 
          INT32 open(requestContext *context,
-                    SPACE_ID sid,
-                    const CHAR *dirPath);
+                    const storageFileLoader &loader);
 
          INT32 getLogicalPageBuffer(requestContext *context,
                                     PAGE_ID lpid,
@@ -164,25 +163,29 @@ namespace vessel
                                   PAGE_ID pid,
                                   mmapPagePointer &ptr)const;
       public:
-         INT32 createCheckpoint(requestContext *context);
+         INT32 createCheckpoint(requestContext *context,
+                                BOOLEAN forceFullCheckpoint);
 
          INT32 blockCheckpoint(requestContext *context);
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
 
       private:
+         void applyCheckpointIfNecessary(requestContext *context);
+         INT32 createDeltaCheckpoint(requestContext *context);
+         INT32 createFullCheckpoint(requestContext *context);
+
+         INT32 completeDetaLogFile(const ossPoolVector<memoryBlock> &buffers,
+                                   UINT32 itemCount,
+                                   const LPS_CHECKPOINT &checkpoint);
+      private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 BOOLEAN fullCheckpoint,
-                                                 ossPoolSet<UINT32> &dirtySegments) = 0;
+                                                 BOOLEAN fullCheckpoint){return SDB_OK;}
 
          virtual void endToCreateCheckpoint(requestContext *context){return;}
 
-         void applyCheckpointIfNecessary(requestContext *context);
+         
   
       protected:
-         OSS_INLINE const storageFileCreater &getCreater()const
-         {
-            return _creater;
-         }
          OSS_INLINE ossSpinXLatch *getMappingLatch()
          {
             return &_mappingLatch;
@@ -211,6 +214,11 @@ namespace vessel
          INT32 validateLpidBeforeGet(PAGE_ID lpid)const;
 
          BOOLEAN isReservedLpid(PAGE_ID lpid)const;
+
+         const sortedStorageFileList &getIdMapFileList()
+         {
+            return _idMapFiles;
+         }
       protected:
          class _runtimePageBufferIniter : public SDBObject
          {
@@ -241,12 +249,12 @@ namespace vessel
             return inMemBitmap::options();
          }
 
-      private:/// page management
+      protected:/// page management
          INT32 getIdMapSlotFromCache(PAGE_ID lpid,
                                      idMapSlot &slot,
                                      BOOLEAN &isMutable);
 
-         virtual BOOLEAN isLogicalPageAlwaysMutable()const = 0;
+         virtual BOOLEAN isCopyOnWrite()const = 0;
 
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,
@@ -297,27 +305,32 @@ namespace vessel
 
       private:
          void fini();
-         INT32 createFirstIdMapFile(const storageCoreArgs &dataArgs);
-         INT32 openIdMapFiles(SPACE_ID sid,
-                              const strSlice &dir,
+         INT32 createFirstIdMapFile(requestContext *context,
+                                    const createLogicalPageSpaceOptions &o);
+         INT32 openIdMapFiles(requestContext *context,
                               const storageFileLoader &loader);
 
          INT32 validateIdMapFileMap();
 
-         INT32 restoreAllocatorByBaseFile(const idMapFile *base);
-         INT32 restoreAllocatorByReservedImp(const idMapFile *base, PAGE_ID pid);
-         INT32 restoreAllocatorByImp(const idMapFile *base, PAGE_ID pid);
+         INT32 restoreAllocatorByBaseFile(requestContext *context,
+                                          const idMapFile *base);
 
-         INT32 rebaseWhenCreatingCheckpoint(UINT32 totalImpCount,
-                                            UINT64 deltaLogOffset);
+         INT32 restoreAllocatorByImp(requestContext *context,
+                                     PAGE_ID impPid,
+                                     const CHAR *page);
 
-         INT32 removeHistoryIdMapAndDeltaLogFiles();
+         INT32 mergeAndRestoreAllocator(requestContext *context);
+
+         INT32 rebaseWhenCreatingCheckpoint(requestContext *context,
+                                            const LPS_CHECKPOINT &checkpoint,
+                                            UINT32 totalImpCount);
 
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;
 
          BOOLEAN needFullCheckpoint();
 
+         INT32 restoreToLatestCheckpoint(requestContext *context);
       private:
          INT32 preallocateLpids(requestContext *context,
                                 UINT32 count,
@@ -338,15 +351,8 @@ namespace vessel
                                const mappedLogicalPageId *mpids);
 
       private:
-         INT32 replayDeltaLogWhenOpen(UINT64 beginOffset);
-         INT32 replayLogRecord(const deltaLogRecord &dlr);
-         INT32 replayMappingLogRecord(const deltaLogRecord &dlr);
-         INT32 replayRemappingLogRecord(const deltaLogRecord &dlr);
-         INT32 replayUnmappingLogRecord(const deltaLogRecord &dlr);
-         INT32 replayReleasingLogRecord(const deltaLogRecord &dlr);
-
-      private:
-         storageFileCreater _creater;
+//         storageFileCreater _creater;
+         SPACE_ID _sid = INVALID_SPACE_ID;
          sortedStorageFileList _idMapFiles;
          inMemBitmap _allocator;
          ossSpinXLatch _mappingLatch;

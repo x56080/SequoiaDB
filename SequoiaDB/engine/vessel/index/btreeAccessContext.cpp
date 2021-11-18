@@ -291,7 +291,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       logicalPageBuffer *buffer = NULL;
-      SDB_ASSERT(isReadonly() && mode.isShared(), "TODO");
 
       obstructed = FALSE;
 

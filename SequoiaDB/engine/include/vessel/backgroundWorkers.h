@@ -52,7 +52,7 @@ namespace vessel
    class backgroundWorkers : public SDBObject
    {
       public:
-         backgroundWorkers(){}
+         backgroundWorkers():_workingCounter(0){}
          ~backgroundWorkers();
          backgroundWorkers(const backgroundWorkers &) = delete;
          backgroundWorkers &operator=(const backgroundWorkers &) = delete;
@@ -65,9 +65,14 @@ namespace vessel
 
          void pushEvent(const backgroundEvent &event);
 
-         BOOLEAN isReady()const
+         OSS_INLINE BOOLEAN isReady()const
          {
             return NULL != _or;
+         }
+
+         OSS_INLINE BOOLEAN hasIdleWorkers()const
+         {
+            return _workingCounter.peek() < (INT32)(_workers.size());
          }
 
       private:
@@ -82,6 +87,7 @@ namespace vessel
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> _el;
          _WORKERS _workers;
+         ossAtomicSigned32 _workingCounter;
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine

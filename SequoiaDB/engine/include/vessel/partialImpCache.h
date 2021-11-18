@@ -43,8 +43,10 @@ namespace engine
 {
 namespace vessel
 {
-   constexpr UINT32 ID_MAP_PAGE_CACHE_SIZE = 256;
-   constexpr UINT32 ID_MAP_PAGE_CACHE_SLOT_COUNT = ID_MAP_PAGE_CACHE_SIZE / sizeof(idMapSlot);
+   constexpr UINT32 ID_MAP_PARTIAL_PAGE_CACHE_SIZE = 256;
+   constexpr UINT32 ID_MAP_PARTIAL_CACHE_SLOT_COUNT = ID_MAP_PARTIAL_PAGE_CACHE_SIZE / sizeof(idMapSlot);
+   constexpr UINT32 ID_MAP_PARTIAL_CACHE_COUNT_PER_IMP =
+                                  ID_MAP_FILE_PAGE_SIZE / ID_MAP_PARTIAL_PAGE_CACHE_SIZE;
 
    class partialImpCache : public utilGlobalPooledObject
    {
@@ -55,20 +57,24 @@ namespace vessel
          partialImpCache &operator=(const partialImpCache &) = delete;
 
       public:
+         static const UINT32 SLOT_COUNT = ID_MAP_PARTIAL_PAGE_CACHE_SIZE/sizeof(idMapSlot);
+
+      public:
          void reset();
-         void copy(const void *data, UINT64 flags);
+         void copy(const void *data, UINT32 flags);
 
          /// WARNGING: User should always validate if slot is free when return ok.
          INT32 get(UINT32 slotNo, idMapSlot &slot, BOOLEAN &isMutable)const;
-         INT32 upsert(UINT32 slotNo,
-                      const idMapSlot &slot,
-                      BOOLEAN isMutable);
-         INT32 drop(UINT32 slotNo, idMapSlot *beforeDropping=NULL);
+         const idMapSlot *get(UINT32 pos, BOOLEAN &isMutable)const;
+         INT32 upsert(UINT32 pos,
+                      const idMapSlot &slot);
+         INT32 remove(UINT32 pos, idMapSlot *beforeDropping=NULL);
 
          UINT32 getMutablePageCount()const;
 
          void setAllPageImmutable(UINT32 pageCountPerSeg,
-                                  ossPoolSet<UINT32> *mutableSegmentIds);
+                                  ossPoolSet<UINT32> *mutableSegmentIds,
+                                  UINT32 *mutableCount=NULL);
          UINT64 getFlags()const
          {
             return _flags;
@@ -85,7 +91,7 @@ namespace vessel
 
       private:
          UINT32 _flags = 0;
-         idMapSlot _buffer[ID_MAP_PAGE_CACHE_SLOT_COUNT];
+         idMapSlot _buffer[ID_MAP_PARTIAL_CACHE_SLOT_COUNT];
 
    };//class partialImpCache
 }//namespace vessel

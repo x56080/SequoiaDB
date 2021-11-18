@@ -383,6 +383,9 @@ error :
           case EMFILE :
              rc = SDB_TOO_MANY_OPEN_FD ;
              break ;
+          case ENOSPC :
+             rc = SDB_NOSPC ;
+             break ;
           default:
              rc = SDB_IO ;
              break ;

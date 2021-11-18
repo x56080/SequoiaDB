@@ -80,13 +80,21 @@ namespace vessel
 
    storageFile *sortedStorageFileList::getBack()
    {
-      ossScopedRWLock lock(&_latch, SHARED);
+      return _list.empty() ? NULL : _list.back();
+   }
+
+   const storageFile *sortedStorageFileList::getBack()const
+   {
       return _list.empty() ? NULL : _list.back();
    }
 
    storageFile *sortedStorageFileList::getFront()
    {
-      ossScopedRWLock lock(&_latch, SHARED);
+      return _list.empty() ? NULL : _list.front();
+   }
+
+   const storageFile *sortedStorageFileList::getFront()const
+   {
       return _list.empty() ? NULL : _list.front();
    }
 
@@ -99,7 +107,6 @@ namespace vessel
 
    void sortedStorageFileList::resort()
    {
-      ossScopedRWLock lock(&_latch, EXCLUSIVE);
       _list.sort(cmp);
    }
 
@@ -114,8 +121,6 @@ namespace vessel
          goto error;
       }
 
-      {
-      ossScopedRWLock lock(&_latch, EXCLUSIVE);
       if (_list.empty())
       {
          _list.push_back(file);
@@ -132,7 +137,6 @@ namespace vessel
       else
       {
          _list.push_back(file);
-      }
       }
    done:
       return rc;
@@ -160,7 +164,6 @@ namespace vessel
    void sortedStorageFileList::destroyIfLess(UINT64 sequence)
    {
       SDB_ASSERT(STORAGE_FILE_INVALID_SEQUENCE != sequence, "can not be invalid");
-      ossScopedRWLock lock(&_latch, EXCLUSIVE);
       while (!_list.empty())
       {
          storageFile *file = _list.front();
@@ -179,10 +182,24 @@ namespace vessel
       return;
    }
 
+   void sortedStorageFileList::truncate(UINT32 minCount)
+   {
+      UINT32 size = _list.size();
+      while (minCount < size)
+      {
+         storageFile *file = _list.front();
+         PD_LOG(PDINFO, "will destroy file[%s]", file->getFullPath());
+         file->destroy();
+         SDB_OSS_DEL file;
+         _list.pop_front();
+         --size;
+      }
+      return;
+   }
+
    storageFile *sortedStorageFileList::findFromBackToFront(UINT64 sequence)
    {
       storageFile *file = NULL;
-      ossScopedRWLock lock(&_latch, SHARED);
       _FILE_LIST::const_reverse_iterator itr = _list.rbegin();
       for (;itr != _list.rend(); ++itr)
       {
@@ -203,7 +220,6 @@ namespace vessel
    storageFile *sortedStorageFileList::findFromFrontToBack(UINT64 sequence)
    {
       storageFile *file = NULL;
-      ossScopedRWLock lock(&_latch, SHARED);
       _FILE_LIST::const_iterator itr = _list.begin();
       for (;itr != _list.end(); ++itr)
       {
@@ -226,16 +242,8 @@ namespace vessel
       return _list.empty();
    }
 
-   BOOLEAN sortedStorageFileList::isEmpty(BOOLEAN lock)
+   UINT32 sortedStorageFileList::getSize()const
    {
-      ossRWMutexBase *mutex = lock ? &_latch : NULL;
-      ossScopedRWLock guard(mutex, SHARED);
-      return _list.empty();
-   }
-   UINT32 sortedStorageFileList::getSize(BOOLEAN lock)
-   {
-      ossRWMutexBase *mutex = lock ? &_latch : NULL;
-      ossScopedRWLock guard(mutex, SHARED);
       return _list.size();
    }
 

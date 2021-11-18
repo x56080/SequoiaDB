@@ -59,7 +59,9 @@ namespace vessel
    {}
 
    mainDataSpace::~mainDataSpace()
-   {}
+   {
+      SAFE_OSS_DELETE(_fsm);
+   }
    
    INT32 mainDataSpace::initMetaPageWhenCreateCS(requestContext *context,
                                                  const csMetaRecord &record,
@@ -94,14 +96,14 @@ namespace vessel
       logger = context->getOuterResource()->logger;
 
       SDB_ASSERT(0 == _storage.getTotalSegmentCountAllocated(), "must be empty");
-      rc = _storage.extendPageSpace(1, NULL);
+      rc = _storage.extendPageSpace(context, 1, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend storage:%d", rc);
          goto error;
       }
 
-      rc = _storage.occupyPage(pid);
+      rc = _storage.occupyPage(context, pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to occupy meta page pid:%d", rc);
@@ -128,14 +130,6 @@ namespace vessel
 
       recordOnDisk = (csMetaRecord *)(ptr.get() + PAGE_HEAD_SIZE);
       *recordOnDisk = record;
-
-      /// init local mapping
-      rc = mapGlobalMetaPageWhenCreating(psv, lpid, pid);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update local mapping:%d", rc);
-         goto error;
-      }
 
       /// prepare dps log
       lrc.open(LOG_TYPE_CS_CRT);
@@ -198,10 +192,17 @@ namespace vessel
          goto error;
       }
 
-      rc = logger->commit(executor, &lrc);
+      rc = logicalPageSpace::getCache().upsert(lpid, idMapSlot(psv, pid));
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);
+         PD_LOG(PDERROR, "failed to map meta page:%d", rc);
+         goto error;
+      }
+
+      rc = logger->commit(executor, &lrc);
+      if (SDB_OK != rc)
+      {
          PD_LOG(PDERROR, "failed to commit dps log[%lld], rc:%d",
                 lrc.getLsn(), rc);
          goto error;
@@ -253,131 +254,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 mainDataSpace::mapGlobalMetaPageWhenCreating(PAGE_SNAPSHOT_VERION psv,
-                                                      PAGE_ID lpid,
-                                                      PAGE_ID pid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      mappedLogicalPageId mpid(lpid, pid);
-      idMapSlot slot(psv, pid);
-      deltaLogRecordBuilder builder;
-
-      rc = builder.buildMappingLog(psv, 1, &mpid);
-      if (SDB_OK!= rc)
-      {
-         PD_LOG(PDERROR, "failed to build mapping log:%d", rc);
-         goto error;
-      }
-
-      rc = logicalPageSpace::getLogConsole().append(builder.getDeltaLogRecord());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append delta log:%d", rc);
-         goto error;
-      }
-
-      rc = logicalPageSpace::getCache().upsert(lpid, slot);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to upsert into cache:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 mainDataSpace::ensureNameFile(const CHAR *csName)const
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != csName, "can not be null");
-      const storageFileCreater &creater = logicalPageSpace::getCreater();
-      SDB_ASSERT(creater.isValid(), "can not be invalid");
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {0};
-      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      CHAR nameBuffer[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
-      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
-      UINT32 flags = OSS_READWRITE|OSS_EXCLUSIVE|OSS_REPLACE;
-      OSSFILE file;
-      strSlice nameSlice(csName);
-
-      if (nameSlice.empty() ||
-          DMS_COLLECTION_SPACE_NAME_SZ < nameSlice.strLen())
-      {
-         PD_LOG(PDERROR, "invalid cs name");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      ossMemcpy(nameBuffer, csName, nameSlice.strLen());
-      nameBuffer[nameSlice.strLen()] = '\n';
-
-      if (!vesselFileName::buildSimpleName(logicalPageSpace::getSpaceID(),
-                                           suffix, MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build csname file");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = utilBuildFullPath(creater.getDir().c_str(),
-                             fileName, OSS_MAX_PATHSIZE + 1,
-                             fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build fullpath:%d", rc);
-         goto error;
-      }
-
-      rc = ossOpen(fullPath, flags, OSS_RU|OSS_WU|OSS_RG, file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create file[%s], rc:%d", fullPath, rc);
-         goto error;
-      }
-
-      rc = ossWriteN(&file, nameBuffer, nameSlice.strLen() + 1);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath, rc);
-         goto error;
-      }
-
-      rc = ossFdatasync(&file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fdatasync file[%s], rc:%d", fullPath, rc);
-         goto error;
-      }
-
-      ossClose(file);
-      ossChmod(fullPath, OSS_RU);
-   done:
-      return rc;
-   error:
-      if (file.isOpened())
-      {
-         ossClose(file);
-         ossDelete(fullPath);
-      }
-      goto done;
-   }
-
    INT32 mainDataSpace::_open(requestContext *context,
                               const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL == _fsm, "must be null");
-      const storageFileCreater &creater = logicalPageSpace::getCreater();
-      SDB_ASSERT(creater.isValid(), "can not be inalvid");
       fsmFile *file = NULL;
       const vesselFileName *fn = NULL;
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
 
-      const FILE_NAME_LIST *fl = loader.getFileList(FILE_TYPE_FSM);
+      const FILE_NAME_LIST *fl = loader.getFileList(SPACE_TYPE_MAIN_DATA,
+                                                    FILE_TYPE_FSM);
       if (NULL == fl || fl->empty())
       {
          PD_LOG(PDERROR, "fsm file not found");
@@ -400,7 +289,7 @@ namespace vessel
          goto error;
       }
 
-      rc = file->open(creater.getDirSlice(), *fn);
+      rc = su->openStorageFile(*fn, file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open file[%s], rc:%d",
@@ -431,13 +320,25 @@ namespace vessel
    INT32 mainDataSpace::_create(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL == _fsm, "must be null");
       storageCoreArgs args(FSM_FILE_PAGE_SIZE,
                            FSM_FILE_PAGE_COUNT_PER_SEG,
                            FSM_FILE_MAX_SEG_COUNT);
+
+      createStorageFileOptions o;
+      o.args = args;
+      o.createAsTmpFile = TRUE;
+      o.replaceWhenCreate = TRUE;
+      vesselFileName fn;
+
+      const sortedStorageFileList &imf = getIdMapFileList();
+      SDB_ASSERT(!imf.isEmpty(), "can not be empty");
+      o.secretValue = imf.getBack<idMapFile>()->getCommonHeadInMem().secretValue;
+
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(context->getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
                            
-      const storageFileCreater &creater = logicalPageSpace::getCreater();
-      SDB_ASSERT(creater.isValid(), "can not be inalvid");
       fsmFile *file = SDB_OSS_NEW fsmFile();
       if (NULL == file)
       {
@@ -446,7 +347,15 @@ namespace vessel
          goto error;
       }
 
-      rc = creater.createTmpFile(FILE_TYPE_FSM, 0, args, file);
+      if (!fn.build(context->getSpaceID(), FILE_TYPE_FSM,
+                    SPACE_TYPE_MAIN_DATA, 0))
+      {
+         PD_LOG(PDERROR, "failed to build fsm file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = su->createStorageFile(fn, o, slice(), file);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create tmp fsm file:%d", rc);
@@ -460,12 +369,13 @@ namespace vessel
          goto error;
       }
 
-      rc = renameToFormalAndReopen(creater.getDirSlice(),
-                                   FALSE, FILE_SHADOW_SUFFIX_TMP,
-                                   file);
+      file->fsync();
+
+      rc = file->removeShadowSuffix();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to rename to formal file:%d", rc);
+         PD_LOG(PDERROR, "failed to remove shadow suffix of file[%s]:%d",
+                fn.getFileName(), rc);
          goto error;
       }
 
@@ -496,11 +406,6 @@ namespace vessel
 
    void mainDataSpace::_destroy()
    {
-      INT32 rc = ensureNameFileRemoved();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove name file:%d", rc);
-      }
       if (NULL != _fsm)
       {
          _fsm->destroy();
@@ -508,48 +413,6 @@ namespace vessel
          _fsm = NULL;
       }
       return;
-   }
-
-   INT32 mainDataSpace::ensureNameFileRemoved()
-   {
-      INT32 rc = SDB_OK;
-
-      const storageFileCreater &creater = logicalPageSpace::getCreater();
-      SDB_ASSERT(creater.isValid(), "can not be invalid");
-      CHAR fileName[MAX_FILE_NAME_LEN + 1] = {0};
-      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      strSlice suffix(SIMPLE_FILE_SUFFIX_CSNAME);
-
-      if (!vesselFileName::buildSimpleName(logicalPageSpace::getSpaceID(),
-                                           suffix, MAX_FILE_NAME_LEN + 1, fileName))
-      {
-         PD_LOG(PDERROR, "failed to build csname file");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      rc = utilBuildFullPath(creater.getDir().c_str(),
-                             fileName, OSS_MAX_PATHSIZE + 1,
-                             fullPath);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build fullpath:%d", rc);
-         goto error;
-      }
-
-      rc = ossDelete(fullPath);
-      if (SDB_FNE == rc)
-      {
-         rc = SDB_OK;
-      }
-      else if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
 }//namespace vessel

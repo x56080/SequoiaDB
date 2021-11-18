@@ -188,7 +188,7 @@ namespace vessel
 
    void controlFile::destroy()
    {
-      CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
+      CHAR path[OSS_MAX_PATHSIZE + 1] = {};
       for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
            itr != _unused.end(); ++itr)
       {
@@ -318,7 +318,7 @@ namespace vessel
       SDB_ASSERT(!_workshop.empty(), "can not be empty");
       SDB_ASSERT(size <= MAX_CONTENT_SIZE, "can not be invalid");
 
-      CHAR backup[CONTROL_FILE_SIZE] = {0};
+      CHAR backup[CONTROL_FILE_SIZE] = {};
       _fileObj *obj = _workshop.front();
       ossMemcpy(backup, obj->buf, CONTROL_FILE_SIZE);
 
@@ -486,7 +486,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(!_dir.empty(), "can not be empty");
       UINT32 count = getMaxAliveVersionCount();
-      CHAR path[OSS_MAX_PATHSIZE + 1] = {0};
+      CHAR path[OSS_MAX_PATHSIZE + 1] = {};
       _fileObj *obj = NULL;
       UINT32 flags = OSS_CREATE |OSS_READWRITE | OSS_EXCLUSIVE;
 

@@ -62,9 +62,12 @@ namespace vessel
       return;
    }
 
-   void lpsCheckpointContext::updateDirtyLsn(DPS_LSN_OFFSET lsn)
+   void lpsCheckpointContext::updateDirtyLsn(DPS_LSN_OFFSET lsn, BOOLEAN lock)
    {
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+
+      ossSpinGuard guard(lock ? &_lsnLatch : NULL);
+
       if (DPS_INVALID_LSN_OFFSET == _minDirtyLsn)
       {
          _minDirtyLsn = lsn;
@@ -82,6 +85,7 @@ namespace vessel
       {
          _maxDirtyLsn = lsn;
       }
+
       return;
    }
 

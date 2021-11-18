@@ -54,31 +54,51 @@ namespace vessel
          storageFileLoader &operator=(const storageFileLoader &) = delete;
 
       public:
+         typedef ossPoolMap<FILE_TYPE, FILE_NAME_LIST> FILES_WITH_SPACE_TYPE;
+
+      private:
+         typedef ossPoolMap<SPACE_TYPE, FILES_WITH_SPACE_TYPE*> _ALL_FILE_MAP;
+
+      public:
+         void init(SPACE_ID sid);
+         void fini();
+
          void clear();
 
-         INT32 load(const strSlice &dir,
-                    SPACE_ID sid,
-                    SPACE_TYPE type,
-                    BOOLEAN removeTmpFile);
+         INT32 load(const strSlice &dir);
+
+         INT32 append(const strSlice &dir, SPACE_TYPE type);
 
          /// return null if type not exists
-         const FILE_NAME_LIST *getFileList(FILE_TYPE type)const;
+         const FILE_NAME_LIST *getFileList(SPACE_TYPE stype,
+                                           FILE_TYPE ftype)const;
 
          BOOLEAN isEmpty()const
          {
-            return _map.empty();
+            return _all.empty();
          }
-         UINT32 getSize()const
+         SPACE_ID getSpaceID()const
          {
-            return _map.size();
+            return _sid;
+         }
+         BOOLEAN isValid()const
+         {
+            return INVALID_SPACE_ID != _sid;
+         }
+
+         void doNotRemoveTmpFiles()
+         {
+            _removeTmpFile = FALSE;
          }
 
       private:
-         typedef ossPoolMap<FILE_TYPE, FILE_NAME_LIST> _FILES_MAP;
-
+         /// load all types when specifiedType is not valid
+         INT32 _load(const strSlice &dir, SPACE_TYPE specifiedType);
       
       private:
-         _FILES_MAP _map;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         BOOLEAN _removeTmpFile = TRUE;
+         _ALL_FILE_MAP _all;
 
    };//class storageFileLoader
 }//namespace vessel

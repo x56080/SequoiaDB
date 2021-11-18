@@ -54,6 +54,9 @@ namespace vessel
 {
    class requestContext;
    class logicalPageSpace;
+   class storageFileLoader;
+   class storageFile;
+   class storagePathOptions;
 
    class storageUnit : public SDBObject
    {
@@ -84,11 +87,9 @@ namespace vessel
 
       public:
          INT32 create(requestContext *context,
-                      SPACE_ID sid,
                       const createSUOptions &options);
 
-         INT32 open(requestContext *context,
-                    SPACE_ID sid);
+         INT32 open(requestContext *context);
 
          INT32 destroy(requestContext *context);
                     
@@ -103,6 +104,19 @@ namespace vessel
          INT32 getCoreArgs(SPACE_TYPE spaceType,
                            FILE_TYPE fileType,
                            storageCoreArgs &args);
+
+      public:
+         INT32 openStorageFile(const vesselFileName &fn,
+                               storageFile *file)const;
+
+         INT32 createStorageFile(const vesselFileName &fn,
+                                 const createStorageFileOptions &o,
+                                 const slice &userDefinedHead,
+                                 storageFile *file)const;
+
+         INT32 getDirPathOfType(SPACE_TYPE type,
+                                ossPoolString &dir)const;
+
       private:
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
@@ -143,26 +157,21 @@ namespace vessel
 
       private:
          INT32 createMainDataSpace(requestContext *context,
-                                   SPACE_ID sid,
-                                   const strSlice &dir,
                                    UINT32 secretValue,
                                    const storageCoreArgs &args);
 
-         INT32 openMainDataSpace(requestContext *context,
-                                 const strSlice &dir,
-                                 SPACE_ID sid);
-
          INT32 createIndexSpace(requestContext *context,
-                                SPACE_ID sid,
-                                const strSlice &dir,
                                 UINT32 secretValue,
                                 const storageCoreArgs &args);
-
-         INT32 openIndexSpace(requestContext *context,
-                              const strSlice &dir,
-                              SPACE_ID sid);
+      private:
+         void buildFullDir(const storagePathOptions *path,
+                           SPACE_TYPE type,
+                           FILE_TYPE ftype,
+                           ossPoolString &dir)const;
       private:
          SPACE_ID _sid = INVALID_SPACE_ID;
+         ossPoolString _unitEntryDir;
+         const storagePathOptions *_path = NULL;
          mainDataSpace _mds;
          indexSpace _is;
 

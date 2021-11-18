@@ -37,6 +37,7 @@
 #define VESSEL_ID_MAP_FILE_H_
 
 #include "vessel/storageFile.h"
+#include "vessel/logicalPageSpaceCheckpoint.h"
 
 namespace engine
 {
@@ -47,19 +48,13 @@ namespace vessel
    static const UINT32 ID_MAP_FILE_FLAG_REPLICATED = 0x01;
    static const UINT32 ID_MAP_FILE_FLAG_COPY_ON_WRITE = 0x02;
 
+#pragma pack(4)
    struct idMapFileHead
    {
       OSS_INLINE idMapFileHead(){}
       OSS_INLINE ~idMapFileHead(){}
-      OSS_INLINE idMapFileHead(const idMapFileHead &o):
-      version(o.version),
-      flags(o.flags),
-      dataPageSize(o.dataPageSize),
-      dataPageCountInSeg(o.dataPageCountInSeg),
-      dataSegCountInFile(o.dataSegCountInFile),
-      totalPageCount(o.totalPageCount),
-      deltaLogBeginOffset(o.deltaLogBeginOffset)
-      {}
+      OSS_INLINE idMapFileHead(const idMapFileHead &o) = delete;
+
       OSS_INLINE idMapFileHead &operator=(const idMapFileHead &o)
       {
          version = o.version;
@@ -68,7 +63,7 @@ namespace vessel
          dataPageCountInSeg = o.dataPageCountInSeg;
          dataSegCountInFile = o.dataSegCountInFile;
          totalPageCount = o.totalPageCount;
-         deltaLogBeginOffset = o.deltaLogBeginOffset;
+         checkpoint = o.checkpoint;
          return *this;
       }
 
@@ -108,10 +103,16 @@ namespace vessel
       UINT32 dataPageSize = 0;
       UINT32 dataPageCountInSeg = 0;
       UINT32 dataSegCountInFile = 0;
+
+      /// mutable fields
       UINT32 totalPageCount = 0;
-      UINT64 deltaLogBeginOffset = DPS_INVALID_LSN_OFFSET;
+      
+      ///checkpoint
+      LPS_CHECKPOINT checkpoint;
 
    };//struct idMapFileHead
+
+#pragma pack()
 
    class idMapFile : public storageFile
    {
@@ -122,7 +123,6 @@ namespace vessel
       public:
          virtual BOOLEAN validateUserDefinedHead(const void *head)const;
          INT32 getTotalPageCount(UINT32 &count)const;
-         INT32 getDeltaLogOffset(UINT64 &offset)const;
          INT32 getIdMapFileHead(idMapFileHead &h)const;
          INT32 ensureSegmentCountAndInit(UINT32 count);
 

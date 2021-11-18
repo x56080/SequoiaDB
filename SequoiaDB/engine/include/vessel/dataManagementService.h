@@ -55,6 +55,7 @@ namespace vessel
    class listCSCursor;
    class storageUnit;
    class IQueryFilter;
+   class storageFileLoader;
 
    class dataManagementService : public SDBObject
    {
@@ -140,6 +141,8 @@ namespace vessel
          INT32 getLogicalPageSpace(SPACE_ID sid,
                                    SPACE_TYPE type,
                                    logicalPageSpace **lps)const;
+
+         storageUnit *getStorageUnit(SPACE_ID sid);
 
       public:
          INT32 createCheckpointBeforeClosing(requestContext *context);

@@ -98,30 +98,7 @@ namespace vessel
    error:
       goto done;
    }
-
-   INT32 idMapFile::getDeltaLogOffset(UINT64 &offset)const
-   {
-      INT32 rc = SDB_OK;
-      idMapFileHead head;
-      rc = getIdMapFileHead(head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (!head.isValid())
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      offset = head.deltaLogBeginOffset;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
+   
    INT32 idMapFile::getIdMapFileHead(idMapFileHead &h)const
    {
       INT32 rc = SDB_OK;

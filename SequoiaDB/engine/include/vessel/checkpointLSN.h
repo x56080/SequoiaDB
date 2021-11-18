@@ -64,6 +64,14 @@ namespace vessel
          {
             return DPS_INVALID_LSN_OFFSET != _lsn;
          }
+         OSS_INLINE void set(DPS_LSN_OFFSET lsn,
+                             DPS_LSN_OFFSET minDirtyLSN,
+                             DPS_LSN_OFFSET minUncompletedLSN)
+         {
+            _lsn = lsn;
+            _minDirtyLSN = minDirtyLSN;
+            _minUncompletedLSN = minUncompletedLSN;
+         }
 
       public:
          DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;

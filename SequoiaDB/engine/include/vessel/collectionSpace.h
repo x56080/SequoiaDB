@@ -122,7 +122,8 @@ namespace vessel
 
          void close();
 
-         INT32 createCheckpoint(requestContext *context);
+         INT32 createCheckpoint(requestContext *context,
+                                BOOLEAN forceFullCheckpoint);
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
@@ -153,6 +154,12 @@ namespace vessel
          void fini();
          INT32 initInMemStructures();
 
+         INT32 createCSNameFile()const;
+
+         INT32 removeCSNameFile()const;
+
+      private:
+
          INT32 initCollectionsFromDisk(requestContext *context);
          INT32 initCollection(requestContext *context,
                               const collectionRecord *record);
@@ -164,7 +171,6 @@ namespace vessel
          INT32 ensureCollectionRecordPage(requestContext *context,
                                           CL_MB_ID mbID);
 
-      private:
          INT32 precreateCL(const strSlice &clName,
                            utilCLInnerID innerID,
                            CL_MB_ID &mbID,

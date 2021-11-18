@@ -120,7 +120,7 @@ namespace vessel
                                         UINT32 bufferSize,
                                         CHAR *buffer);
       private:
-         CHAR _name[MAX_FILE_NAME_LEN + 1] = {0};
+         CHAR _name[MAX_FILE_NAME_LEN + 1] = {};
          SPACE_ID _space = INVALID_SPACE_ID;
          FILE_TYPE _fileType = INVALID_FILE_TYPE;
          SPACE_TYPE _spaceType = INVALID_SPACE_TYPE;

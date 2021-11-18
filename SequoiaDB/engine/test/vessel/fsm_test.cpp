@@ -72,17 +72,18 @@ TEST_F(fsm_test, diskmap_0)
    INT32 rc = SDB_OK;
    v::fsmFile file;
    v::createStorageFileOptions options;
-   options.dir.reset(DATA_PATH);
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
    v::vesselFileName fn;
    UINT32 count = 8;
 
+   strSlice dirSlice(DATA_PATH);
+
    v::diskFreeSpaceMap dfsm;
 
    ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
-   rc = file.create(fn, options);
+   rc = file.create(dirSlice, fn, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = file.initToWork();
@@ -130,17 +131,17 @@ TEST_F(fsm_test, diskmap_1)
    INT32 rc = SDB_OK;
    v::fsmFile file;
    v::createStorageFileOptions options;
-   options.dir.reset(DATA_PATH);
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
    v::vesselFileName fn;
    UINT32 count = 65536 * 10 + 1;
+   strSlice dirSlice(DATA_PATH);
 
    v::diskFreeSpaceMap dfsm;
 
    ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
-   rc = file.create(fn, options);
+   rc = file.create(dirSlice, fn, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = file.initToWork();
@@ -188,17 +189,17 @@ TEST_F(fsm_test, diskmap_2)
    INT32 rc = SDB_OK;
    v::fsmFile file;
    v::createStorageFileOptions options;
-   options.dir.reset(DATA_PATH);
+
    options.args.pageSize = FSM_FILE_PAGE_SIZE;
    options.args.maxPageCountPerSeg = FSM_FILE_PAGE_COUNT_PER_SEG;
    options.args.maxSegmentCountPerFile = FSM_FILE_MAX_SEG_COUNT;
    v::vesselFileName fn;
    UINT32 count = 65536 * 100 + 1;
-
+   strSlice dirSlice(DATA_PATH);
    v::diskFreeSpaceMap dfsm;
 
    ASSERT_TRUE(fn.build(0, FILE_TYPE_FSM, SPACE_TYPE_MAIN_DATA));
-   rc = file.create(fn, options);
+   rc = file.create(dirSlice, fn, options);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = file.initToWork();

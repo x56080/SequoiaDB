@@ -50,42 +50,32 @@ namespace vessel
    {
       OSS_INLINE logicalPageSpaceCheckpoint(){}
       OSS_INLINE ~logicalPageSpaceCheckpoint(){}
-      OSS_INLINE logicalPageSpaceCheckpoint(const logicalPageSpaceCheckpoint &o):
-      version(o.version),
-      flags(o.flags),
-      lsn(o.lsn),
-      preCheckpoint(o.preCheckpoint)
-      {}
+      OSS_INLINE logicalPageSpaceCheckpoint(const logicalPageSpaceCheckpoint &o) = delete;
 
       OSS_INLINE logicalPageSpaceCheckpoint &operator=(const logicalPageSpaceCheckpoint &o)
       {
          version = o.version;
          flags = o.flags;
          lsn = o.lsn;
-         offset = o.offset;
-         preCheckpoint = o.preCheckpoint;
+         time = o.time;
          return *this;
       }
 
       OSS_INLINE BOOLEAN isValid()const
       {
          return LPS_CHECKPOINT_VERSION == version &&
-                lsn.isValid() &&
-                DPS_INVALID_LSN_OFFSET != offset;
+                lsn.isValid();
       }
 
       void init(UINT32 flags,
                 const checkpointLSN &lsn,
-                UINT64 offset,
-                UINT64 precheckpoint)
+                UINT64 time)
       {
          version = LPS_CHECKPOINT_VERSION;
          SDB_ASSERT(lsn.isValid(), "can not be invalid");
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != offset, "can not be invalid");
          this->flags = flags;
          this->lsn = lsn;
-         this->offset = offset;
-         this->preCheckpoint = precheckpoint;
+         this->time = time;
          return;
       }
 
@@ -97,17 +87,17 @@ namespace vessel
             << ", lsn:" << lsn._lsn
             << ", minDirtyLsn:" << lsn._minDirtyLSN
             << ", minUncompletedLsn:" << lsn._minUncompletedLSN
-            << ", offset:" << offset
-            << ", preCheckpoint:" << preCheckpoint
+            << ", time:" << time
             << "}";
          return ss.str();
       }
 
+      static const UINT32 FLAG_FULL_CHECKPOINT = 0x01;
+
       UINT32 version = 0;
       UINT32 flags = 0;
       checkpointLSN lsn;
-      UINT64 offset = DPS_INVALID_LSN_OFFSET;
-      UINT64 preCheckpoint = DPS_INVALID_LSN_OFFSET;
+      UINT64 time = 0;
    };//struct logicalPageSpaceCheckpoint
 
    static const UINT32 LPS_CHECKPOINT_SIZE = sizeof(logicalPageSpaceCheckpoint);

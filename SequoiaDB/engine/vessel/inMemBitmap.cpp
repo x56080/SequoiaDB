@@ -510,6 +510,55 @@ namespace vessel
       goto done;
    }
 
+   INT32 inMemBitmap::test(UINT32 offset, BOOLEAN &isFree)const
+   {
+      INT32 rc = SDB_OK;
+      INT32 pageId = -1;
+      UINT32 offsetInPage = 0;
+      _inMemBitPage *page = NULL;
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      pageId = offset / _pageCapacity;
+      offsetInPage = offset % _pageCapacity;
+
+      {
+         ossScopedLock guard(_latch);
+         if (pageId < (INT32)(_o.bitmapBeginPage))
+         {
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            goto error;
+         }
+         else if (_pages.size() <= getRealPos(pageId))
+         {
+            rc = SDB_OUT_OF_BOUND;
+            goto error;
+         }
+
+         page = _pages[getRealPos(pageId)];
+         if (NULL == page)
+         {
+            isFree = FALSE;
+         }
+         else
+         {
+            rc = page->test(offsetInPage, isFree);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 inMemBitmap::_occupy(UINT32 count, const UINT32 *buf)
    {
       INT32 rc = SDB_OK;

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCSCursor.h
+   Source File Name = deltaLogFileScanner.h
 
    Descriptive Name =
 
@@ -33,54 +33,40 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LIST_CS_CURSOR_H_
-#define VESSEL_LIST_CS_CURSOR_H_
+#ifndef VESSEL_DELTA_LOG_FILE_SCANNER_H_
+#define VESSEL_DELTA_LOG_FILE_SCANNER_H_
 
-#include "vessel/cursorKernal.h"
-#include "ossMemPool.hpp"
-#include "dms.hpp"
+#include "vessel/deltaLogFileDef.h"
+#include "vessel/partialImpCache.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCSCursor : public cursorKernal
+   class deltaLogFileScanner : public SDBObject
    {
       public:
-         listCSCursor(){}
-         virtual ~listCSCursor(){}
+         deltaLogFileScanner(){}
+         ~deltaLogFileScanner(){}
+         deltaLogFileScanner(const deltaLogFileScanner &) = delete;
+         deltaLogFileScanner &operator=(const deltaLogFileScanner &) = delete;
 
       public:
-         virtual CURSOR_TYPE getType()const
-         {
-            return CURSOR_TYPE_LIST_COLLECTION_SPACE;
-         }
+         INT32 open(const deltaLogFile *file);
+         void close();
 
-         OSS_INLINE void setLastName(const CHAR *name)
-         {
-            ossStrcpy(_csName, name);
-         }
-
-         OSS_INLINE const CHAR *getCSName()const
-         {
-            return _csName;
-         }
-
-         OSS_INLINE void markLIdPushed(UINT32 lid)
-         {
-            _pushedLIds.insert(lid);
-         }
-
-         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
-         {
-            return 0 < _pushedLIds.count(lid);
-         }
+         slice getCurrent(PAGE_ID &imp, UINT32 &offset)const;
+         BOOLEAN hasMore()const;
+         INT32 next();
 
       private:
-         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
-         ossPoolSet<UINT32> _pushedLIds;
-   };//class listCSCursor
-}//namespace vessel
-}//namespace engine
+         const deltaLogFile *_file = NULL;
+         deltaLogFileHead _header;
+         UINT32 _pos = 0;
+   };//class deltaLogFileScanner
+} // namespace vessel
 
-#endif//VESSEL_LIST_CS_CURSOR_H_
+} // namespace engine
+
+
+#endif//VESSEL_DELTA_LOG_FILE_SCANNER_H_

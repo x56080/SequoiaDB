@@ -67,8 +67,6 @@ namespace vessel
          INT32 readMetaRecordWhenOpen(requestContext *context,
                                       csMetaRecord &record);
 
-         INT32 ensureNameFile(const CHAR *csName)const;
-
          fsmFile *getFsmFile()
          {
             return _fsm;
@@ -89,12 +87,6 @@ namespace vessel
          virtual void _close();
          virtual void _destroy();
 
-      private:
-         INT32 mapGlobalMetaPageWhenCreating(PAGE_SNAPSHOT_VERION psv,
-                                             PAGE_ID lpid,
-                                             PAGE_ID pid);
-
-         INT32 ensureNameFileRemoved();
 
       private:
          dataStorageFileCluster _storage;

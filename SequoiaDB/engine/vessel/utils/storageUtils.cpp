@@ -120,6 +120,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 renameToFormalAndReopen(const strSlice &dir,
                                  BOOLEAN replaceNewFile,
                                  UINT32 shadowSuffix,
@@ -182,6 +183,7 @@ namespace vessel
    error:
       goto done;
    }
+   */
 
    INT32 createFileListUnderDir(const strSlice &dir,
                                 SPACE_ID sid,

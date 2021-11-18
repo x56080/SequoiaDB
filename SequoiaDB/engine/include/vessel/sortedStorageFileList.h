@@ -54,42 +54,49 @@ namespace vessel
          sortedStorageFileList &operator=(const sortedStorageFileList &) = delete;
 
       public:
-         /// not thread safe
          BOOLEAN isEmpty()const;
+         UINT32 getSize()const;
 
-         BOOLEAN isEmpty(BOOLEAN lock);
-         UINT32 getSize(BOOLEAN lock);
-
-         /// not thread safe
          void close();
 
-         /// not thread safe
          void destroy();
 
-         /// not thread safe
          void resort();
 
-         /// not thread safe
          INT32 unsortedPushBack(storageFile *file);
 
-         /// thread safe
          storageFile *getBack();
 
-         /// thread safe
+         const storageFile *getBack()const;
+
+         template <class T>
+         T *getBack()
+         {
+            storageFile *file = getBack();
+            return static_cast<T *>(file);
+         }
+
+         template <class T>
+         const T *getBack()const
+         {
+            const storageFile *file = getBack();
+            return static_cast<const T *>(file);
+         }
+
          storageFile *getFront();
 
-         /// thread safe
+         const storageFile *getFront()const;
+
          /// new file's sequence must over current back file's sequence.
          INT32 pushBack(storageFile *file);
 
-         /// thread safe
          void destroyIfLess(UINT64 sequence);
 
-         /// thread safe
+         void truncate(UINT32 minCount);
+
          /// files must be sorted
          storageFile *findFromBackToFront(UINT64 sequence);
 
-         /// thread safe
          /// files must be sorted
          storageFile *findFromFrontToBack(UINT64 sequence);
 
@@ -97,12 +104,10 @@ namespace vessel
          typedef ossPoolList<storageFile *> _FILE_LIST;
 
       public:
-         /// not thread safe
          typedef ossPoolList<storageFile *>::const_iterator CONST_ITERATOR;
          CONST_ITERATOR begin()const;
          CONST_ITERATOR end()const;
-      private:
-         ossRWMutex _latch;         
+      private:         
          _FILE_LIST _list;
    };//class sortedStorageFileList
 }//namespace vessel

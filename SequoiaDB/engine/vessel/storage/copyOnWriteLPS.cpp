@@ -238,8 +238,6 @@ namespace vessel
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      deltaLogRecordBuilder builder;
-      deltaLogRecord dlr;
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
@@ -248,15 +246,6 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-
-      /// build delta log
-      rc = builder.buildMappingLog(psv, count, mpids);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build mapping log:%d", rc);
-         goto error;
-      }
-      dlr = builder.getDeltaLogRecord();
       
       /// block checkpoint
       rc = context->blockCheckpoint(getSpaceType(),
@@ -267,22 +256,6 @@ namespace vessel
          goto error;
       }
       checkpointBlocked = TRUE;
-
-      {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// commit delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                  lsn, rc);
-            goto error;
-         }
-
-         /// update lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      }
 
       /// update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -297,6 +270,8 @@ namespace vessel
             goto error;
          }
       }
+
+      getCheckpointContext().updateDirtyLsn(lsn);
 
    done:
       /// Can not unblock checkpoint by bloker.isBlocking().
@@ -325,9 +300,6 @@ namespace vessel
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      deltaLogRecordBuilder builder;
-      deltaLogRecord dlr;
-
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
 
       if (DPS_INVALID_LSN_OFFSET == lsn)
@@ -337,14 +309,6 @@ namespace vessel
          goto error;
       }
 
-      rc = builder.buildRemappingLog(psv, count, mpids, oldPids, releaseOld);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to build remapping log:%d", rc);
-         goto error;
-      }
-      dlr = builder.getDeltaLogRecord();
-
       rc = context->blockCheckpoint(getSpaceType(),
                                     logicalPageSpace::getCheckpointContext().getLatch());
       if (SDB_OK != rc)
@@ -353,22 +317,6 @@ namespace vessel
          goto error;
       }
       checkpointBlocked = TRUE;
-
-      {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                  lsn, rc);         
-            goto error;
-         }
-
-         /// update dirty lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      }
 
       ///update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -382,6 +330,8 @@ namespace vessel
             goto error;
          }
       }
+
+      getCheckpointContext().updateDirtyLsn(lsn);
 
       if (releaseOld)
       {
@@ -409,8 +359,6 @@ namespace vessel
       SDB_ASSERT(NULL != mpids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      deltaLogRecordBuilder builder;
-      deltaLogRecord dlr;
       CHAR *buffer = NULL;
       UINT32 bufferSize = count * sizeof(PAGE_ID);
 
@@ -447,14 +395,6 @@ namespace vessel
          }
       }
 
-      rc = builder.buildUnmappingLog(count, mpids, releasePid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to build unmapping log:%d", rc);
-         goto error;
-      }
-      dlr = builder.getDeltaLogRecord();
-
       rc = context->blockCheckpoint(getSpaceType(),
                                     logicalPageSpace::getCheckpointContext().getLatch());
       if (SDB_OK != rc)
@@ -463,22 +403,6 @@ namespace vessel
          goto error;
       }
       checkpointBlocked = TRUE;
-
-      {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch()); 
-         /// write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                  lsn, rc);
-            goto error;
-         }
-
-         /// update dirty lsn
-         logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      }
 
       /// update cache
       for (UINT32 i = 0; i < count; ++i)
@@ -491,6 +415,8 @@ namespace vessel
             goto error;
          }
       }
+
+      getCheckpointContext().updateDirtyLsn(lsn);
 
       if (releasePid)
       {
@@ -523,8 +449,6 @@ namespace vessel
       SDB_ASSERT(NULL != pids, "can not be null");
 
       BOOLEAN checkpointBlocked = FALSE;
-      deltaLogRecordBuilder builder;
-      deltaLogRecord dlr;
 
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
       if (DPS_INVALID_LSN_OFFSET == lsn)
@@ -533,14 +457,6 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-
-      rc = builder.buildReleasingLog(count, pids);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to build unmapping log:%d", rc);
-         goto error;
-      }
-      dlr = builder.getDeltaLogRecord();
 
       rc = context->blockCheckpoint(getSpaceType(),
                                     logicalPageSpace::getCheckpointContext().getLatch());
@@ -551,23 +467,8 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      {
-         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
-         /// write local delta log
-         rc = logicalPageSpace::getLogConsole().append(dlr);
-         if (SDB_OK != rc)
-         {
-            guard.unlock();
-            PD_LOG(PDERROR, "failed to append record to delta log, lsn[%lld], rc:%d",
-                  lsn, rc);
-            
-            goto error;
-         }
-
-         ///update dirty lsn
+      ///update dirty lsn
          logicalPageSpace::getCheckpointContext().updateDirtyLsn(lsn);
-      }
-
       context->unblockCheckpoint();
       checkpointBlocked = FALSE;
 
@@ -583,33 +484,10 @@ namespace vessel
    }
 
    INT32 copyOnWriteLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                   BOOLEAN fullCheckpoint,
-                                                   ossPoolSet<UINT32> &dirtySegments)
+                                                   BOOLEAN fullCheckpoint)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      
-      if (fullCheckpoint)
-      {
-         rc = getCache().prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
-                                                &dirtySegments);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get ready to create new base:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         rc = getCache().setPagesImmutable(getStorageCoreArgs().maxPageCountPerSeg,
-                                           &dirtySegments);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to set pages immutable:%d", rc);
-            goto error;
-         }
-      }
-
       mergeBlocksToReadyList();
 
    done:

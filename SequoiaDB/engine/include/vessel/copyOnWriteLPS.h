@@ -81,8 +81,8 @@ namespace vessel
                                                PAGE_ID newPid,
                                                runtimePageBuffer &rpb);
 
-      private:
-         virtual BOOLEAN isLogicalPageAlwaysMutable()const {return FALSE;}
+      protected:
+         virtual BOOLEAN isCopyOnWrite()const {return TRUE;}
 
          virtual INT32 map(requestContext *context,
                            PAGE_SNAPSHOT_VERION psv,
@@ -107,8 +107,7 @@ namespace vessel
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 BOOLEAN fullCheckpoint,
-                                                 ossPoolSet<UINT32> &dirtySegments);
+                                                 BOOLEAN fullCheckpoint);
          
          virtual void endToCreateCheckpoint(requestContext *context);
       private:

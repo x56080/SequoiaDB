@@ -179,6 +179,8 @@ namespace vessel
 
          INT32 occupy(UINT32 offset);
 
+         INT32 test(UINT32 offset, BOOLEAN &isFree)const;
+
       private:
          INT32 init(UINT32 pageCapacity,
                     const options &o,

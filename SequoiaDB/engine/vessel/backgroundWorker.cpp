@@ -47,7 +47,8 @@ namespace vessel
 {
    void backgroundWorker::init(outerResource *outer,
                                instanceEnv *env,
-                               autoEventList<backgroundEvent> *el)
+                               autoEventList<backgroundEvent> *el,
+                               ossAtomicSigned32 *counter)
    {
       SDB_ASSERT(NULL != outer, "can not be null");
       SDB_ASSERT(NULL != env, "can not be null");
@@ -56,6 +57,7 @@ namespace vessel
       _outer = outer;
       _env = env;
       _el = el;
+      _workingCounter = counter;
       return;
    }
 
@@ -77,14 +79,19 @@ namespace vessel
       {
          _el->popOrWait(event);
          SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
-
-         switch (event.getType())
-         {
-         case backgroundEvent::EVENT_TYPE_QUIT:
+         if (event.isQuitEvent())
          {
             PD_LOG(PDINFO, "get quit event, exit");
             goto done;
          }
+
+         if (NULL != _workingCounter)
+         {
+            _workingCounter->inc();
+         }
+
+         switch (event.getType())
+         {
          case backgroundEvent::EVENT_TYPE_CACHE_TASK:
          {
             handleCacheEvent(executor, event);
@@ -105,6 +112,10 @@ namespace vessel
             break;
          }
 
+         if (NULL != _workingCounter)
+         {
+            _workingCounter->dec();
+         }
          event.release();
       } while (TRUE);
 
@@ -183,7 +194,7 @@ namespace vessel
          goto done;
       }
 
-      rc = lps->createCheckpoint(&context);
+      rc = lps->createCheckpoint(&context, FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checkpoint on lps[%d,%d], rc:%d",

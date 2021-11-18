@@ -50,84 +50,65 @@ namespace vessel
    void partialImpCache::reset()
    {
       _flags = 0;
-      ossMemset(_buffer, 0xFF, ID_MAP_PAGE_CACHE_SIZE);
+      ossMemset(_buffer, 0xFF, ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
       return;
    }
 
-   void partialImpCache::copy(const void *data, UINT64 flags)
+   void partialImpCache::copy(const void *data, UINT32 flags)
    {
       SDB_ASSERT(NULL != data, "can not be null");
       _flags = flags;
-      ossMemcpy(_buffer, data, ID_MAP_PAGE_CACHE_SIZE);
+      ossMemcpy(_buffer, data, ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
       return;
    }
 
-   INT32 partialImpCache::get(UINT32 slotNo,
-                             idMapSlot &slot,
-                             BOOLEAN &mutablePage)const
+   const idMapSlot *partialImpCache::get(UINT32 pos, BOOLEAN &isMutable)const
    {
-      INT32 rc = SDB_OK;
-
-      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo))
+      const idMapSlot *slot = NULL;
+      if (OSS_LIKELY(pos < ID_MAP_PARTIAL_CACHE_SLOT_COUNT))
       {
-         rc = SDB_OUT_OF_BOUND;
-         goto error;
-      }
-
-      if (_buffer[slotNo].isFree())
-      {
-         rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
-         goto error;
+         isMutable = this->isMutable(pos);
+         slot = _buffer + pos;
       }
       else
       {
-         slot = _buffer[slotNo];
-         mutablePage = isMutable(slotNo);
+         SDB_ASSERT(FALSE, "out of bound");
       }
 
-   done:
-      return rc;
-   error:
-      goto done;
+      return slot;
    }
 
-   INT32 partialImpCache::upsert(UINT32 slotNo,
-                                 const idMapSlot &slot,
-                                 BOOLEAN isMutable)
+
+   INT32 partialImpCache::upsert(UINT32 pos,
+                                 const idMapSlot &slot)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo ||
+      if (OSS_UNLIKELY(ID_MAP_PARTIAL_CACHE_SLOT_COUNT <= pos ||
                        slot.isFree()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _buffer[slotNo] = slot;
-      if (isMutable)
-      {
-         setAsMutable(slotNo);
-      }
-      else
-      {
-         setAsInmmutable(slotNo);
-      }
+      SDB_ASSERT(_buffer[pos].isFree() || !isMutable(pos), "can not update mutable page");
+      _buffer[pos] = slot;
+      setAsMutable(pos);
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 partialImpCache::drop(UINT32 slotNo, idMapSlot *beforeDropping)
+   INT32 partialImpCache::remove(UINT32 pos, idMapSlot *beforeDropping)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(ID_MAP_PAGE_CACHE_SLOT_COUNT <= slotNo))
+      if (OSS_UNLIKELY(ID_MAP_PARTIAL_CACHE_SLOT_COUNT <= pos))
       {
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      if (_buffer[slotNo].isFree())
+      if (_buffer[pos].isFree())
       {
          SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
@@ -136,11 +117,11 @@ namespace vessel
 
       if (NULL != beforeDropping)
       {
-         *beforeDropping = _buffer[slotNo];
+         *beforeDropping = _buffer[pos];
       }
 
-      _buffer[slotNo].reset();
-      setAsInmmutable(slotNo);
+      _buffer[pos].reset();
+      setAsInmmutable(pos);
    done:
       return rc;
    error:
@@ -153,8 +134,13 @@ namespace vessel
    }
 
    void partialImpCache::setAllPageImmutable(UINT32 pageCountPerSeg,
-                                             ossPoolSet<UINT32> *mutableSegmentIds)
+                                             ossPoolSet<UINT32> *mutableSegmentIds,
+                                             UINT32 *mutableCount)
    {
+      if (NULL != mutableCount)
+      {
+         *mutableCount = ossGetNonZeroBitCount32(_flags);
+      }
       if (NULL != mutableSegmentIds)
       {
          do
@@ -181,7 +167,7 @@ namespace vessel
 
    void partialImpCache::setAsInmmutable(UINT32 slotNo)
    {
-      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      SDB_ASSERT(slotNo < ID_MAP_PARTIAL_CACHE_SLOT_COUNT, "out of bound");
       UINT32 v = ((UINT32)1 << slotNo);
       OSS_BIT_CLEAR(_flags, v);
       return;
@@ -189,7 +175,7 @@ namespace vessel
 
    void partialImpCache::setAsMutable(UINT32 slotNo)
    {
-      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      SDB_ASSERT(slotNo < ID_MAP_PARTIAL_CACHE_SLOT_COUNT, "out of bound");
       UINT32 v = ((UINT32)1 << slotNo);
       OSS_BIT_SET(_flags, v);
       return;
@@ -197,7 +183,7 @@ namespace vessel
 
    BOOLEAN partialImpCache::isMutable(UINT32 slotNo)const
    {
-      SDB_ASSERT(slotNo < ID_MAP_PAGE_CACHE_SLOT_COUNT, "out of bound");
+      SDB_ASSERT(slotNo < ID_MAP_PARTIAL_CACHE_SLOT_COUNT, "out of bound");
       UINT32 v = ((UINT32)1 << slotNo);
       return 0 != OSS_BIT_TEST(_flags, v);
    }

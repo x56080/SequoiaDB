@@ -37,11 +37,30 @@
 #include "ossLikely.hpp"
 #include "vessel/idMapFile.h"
 #include "ossLatchGuard.hpp"
+#include "vessel/deltaLogFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
+
+#pragma pack(4)
+   struct _partialCacheDumpEle
+   {
+      static UINT32 getKeySize()
+      {
+         return sizeof(UINT32) + sizeof(UINT32);
+      }
+      UINT32 imp;
+      UINT32 offset;
+      CHAR cache[ID_MAP_PARTIAL_PAGE_CACHE_SIZE];
+   };
+
+   static const UINT32 _PARTIAL_CACHE_DUMP_ELE_SIZE = sizeof(_partialCacheDumpEle);
+   static const UINT32 _PARTIAL_CACHE_DUMP_ELE_COUNT_PER_PAGE = 
+   deltaLogFile::PAGE_SIZE / _PARTIAL_CACHE_DUMP_ELE_SIZE;
+
+#pragma pack()
 
 ///////////////////////////partialImpCacheMap
    void partialImpCacheMap::fini()
@@ -68,6 +87,7 @@ namespace vessel
    partialImpCache *partialImpCacheMap::find(const KEY &key)
    {
       partialImpCache *out = NULL;
+      SDB_ASSERT(isValidKey(key), "can not be invalid");
       CACHE_MAP::const_iterator itr = _map.find(key);
       if (_map.end() != itr)
       {
@@ -84,10 +104,15 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(!isValidKey(key)))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       if (!_map.insert(std::make_pair(key, cache)).second)
       {
-         PD_LOG(PDERROR, "duplicated key[%d]", key);
+         PD_LOG(PDERROR, "duplicated key[%d, %d]", key.first, key.second);
          rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;
       }
@@ -95,6 +120,13 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   BOOLEAN partialImpCacheMap::isValidKey(const KEY &key)
+   {
+      return INVALID_PAGE_ID != key.first &&
+             0 == key.second % ID_MAP_PARTIAL_PAGE_CACHE_SIZE &&
+             key.second < ID_MAP_FILE_PAGE_SIZE;
    }
 
    void partialImpCacheMap::exportTo(partialImpCacheMap &o, UINT32 &replaced)
@@ -120,258 +152,7 @@ namespace vessel
       return;
    }
 
-///////////////////////////partialImpCacheMap
-   logicalPageIdCache::_cacheBucket::_cacheBucket()
-   {}
-
-   logicalPageIdCache::_cacheBucket::~_cacheBucket()
-   {
-      reset();
-   }
-
-   void logicalPageIdCache::_cacheBucket::reset()
-   {
-      SAFE_OSS_DELETE(_mainMap);
-      SAFE_OSS_DELETE(_flushingMap);
-      return;
-   }
-
-   INT32 logicalPageIdCache::_cacheBucket::add(const partialImpCacheMap::KEY &key,
-                                               partialImpCache *cache)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == cache))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (NULL == _mainMap)
-      {
-         _mainMap = SDB_OSS_NEW partialImpCacheMap();
-         if (OSS_UNLIKELY(NULL == _mainMap))
-         {
-            PD_LOG(PDERROR, "failed to allocate mem");
-            rc = SDB_OOM;
-            goto error;
-         }
-      }
-
-      rc = _mainMap->insert(key, cache);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   const partialImpCache *logicalPageIdCache::_cacheBucket::findToRead(const partialImpCacheMap::KEY &key)const
-   {
-      const partialImpCache *cache = NULL;
-      if (NULL != _mainMap)
-      {
-         cache = _mainMap->find(key);
-         if (NULL != cache)
-         {
-            goto done;
-         }
-      }
-
-      if (NULL != _flushingMap)
-      {
-         cache = _flushingMap->find(key);
-      }
-
-   done:
-      return cache;
-   }
-
-   INT32 logicalPageIdCache::_cacheBucket::findToUpdate(const partialImpCacheMap::KEY &key,
-                                                        partialImpCache **cache)
-   {
-      INT32 rc = SDB_OK;
-      partialImpCache *tmp = NULL;
-      partialImpCache *newCache = NULL;
-
-      if (OSS_UNLIKELY(NULL == cache))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      *cache = NULL;
-      if (NULL != _mainMap)
-      {
-         tmp = _mainMap->find(key);
-         if (NULL != tmp)
-         {
-            *cache = tmp;
-            goto done;
-         }
-      }
-
-      if (NULL != _flushingMap)
-      {
-         tmp = _flushingMap->find(key);
-         if (NULL != tmp)
-         {
-            newCache = SDB_OSS_NEW partialImpCache();
-            if (NULL == newCache)
-            {
-               PD_LOG(PDERROR, "failed to allocate mem");
-               rc = SDB_OOM;
-               goto error;
-            }
-            newCache->copy(tmp->getBuffer(), 0);
-            
-            rc = ensureMainMap();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure main map:%d", rc);
-               goto error;
-            }
-
-            rc = _mainMap->insert(key, newCache);
-            if (OSS_UNLIKELY(SDB_OK != rc))
-            {
-               PD_LOG(PDERROR, "failed to add cache:%d", rc);
-               goto error;
-            }
-
-            *cache = newCache;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(newCache);
-      goto done;
-   }
-
-   void logicalPageIdCache::_cacheBucket::mergeMainMapToFlushingMap()
-   {
-      if (NULL == _mainMap || _mainMap->get().empty())
-      {
-         goto done;
-      }
-
-      if (NULL == _flushingMap)
-      {
-         _flushingMap = _mainMap;
-         _mainMap = NULL;
-      }
-      else
-      {
-         UINT32 replaced = 0;
-         _mainMap->exportTo(*_flushingMap, replaced);
-         SDB_ASSERT(_mainMap->get().empty(), "must be empty");
-      }
-   done:
-      return ;
-   }
-
-   void logicalPageIdCache::_cacheBucket::removeFlushingMap()
-   {
-      if (NULL != _flushingMap)
-      {
-         SDB_OSS_DEL _flushingMap;
-         _flushingMap = NULL;
-      }
-      return;
-   }
-
-   UINT64 logicalPageIdCache::_cacheBucket::getTotalCacheSize()const
-   {
-      UINT64 size = 0;
-      if (NULL != _mainMap)
-      {
-         size = (UINT64)(_mainMap->get().size()) * ID_MAP_PAGE_CACHE_SIZE;
-      }
-      if (NULL != _flushingMap)
-      {
-         size += (UINT64)(_flushingMap->get().size()) * ID_MAP_PAGE_CACHE_SIZE;
-      }
-      return size;
-   }
-
-   INT32 logicalPageIdCache::_cacheBucket::ensureMainMap()
-   {
-      INT32 rc = SDB_OK;
-      if (NULL != _mainMap)
-      {
-         goto done;
-      }
-
-      _mainMap = SDB_OSS_NEW partialImpCacheMap();
-      if (NULL == _mainMap)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageIdCache::_cacheBucket::addEmptyCache(const partialImpCacheMap::KEY &key,
-                                                         partialImpCache **cache)
-   {
-      INT32 rc = SDB_OK;
-      partialImpCache *tmp = SDB_OSS_NEW partialImpCache();
-      if (OSS_UNLIKELY(NULL == tmp))
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = add(key, tmp);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (NULL != cache)
-      {
-         *cache = tmp;
-      }
-
-      tmp = NULL;
-   done:
-      return rc;
-   error:
-      SAFE_OSS_DELETE(tmp);
-      goto done;
-   }
-
-   void logicalPageIdCache::_cacheBucket::setPagesImmutable(UINT32 pageCountPerSeg,
-                                                            ossPoolSet<UINT32> *mutableSegmentIds)
-   {
-      if (NULL == _mainMap)
-      {
-         goto done;
-      }
-
-      for (partialImpCacheMap::CACHE_MAP::iterator itr = _mainMap->get().begin();
-           itr != _mainMap->get().end(); ++itr)
-      {
-         if (0 ==  itr->second->getMutablePageCount())
-         {
-            continue;
-         }
-
-         itr->second->setAllPageImmutable(pageCountPerSeg, mutableSegmentIds);
-      }
-   done:
-      return;
-   }
+///////////////////////////partialImpCacheMap end
 
    ////////////////logicalPageIdCache
    logicalPageIdCache::logicalPageIdCache()
@@ -399,34 +180,27 @@ namespace vessel
          goto error;
       }
 
-      _base = base;
-      rc = _base->getIdMapFileHead(head);
+      _latches.resize(o.bucketLatchCount);
+      _buckets.resize(o.bucketCount);
+      for (UINT32 i = 0; i < o.bucketCount; ++i)
+      {
+         partialImpCacheMap *cm = SDB_OSS_NEW partialImpCacheMap();
+         if (OSS_UNLIKELY(NULL == cm))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+         _buckets[i] = cm;
+      }
+
+      rc = resetBase(base);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get id map file head from file[%s], rc:%d",
-                _base->getFullPath(), rc);
+         PD_LOG(PDERROR, "failed to reset base file:%d", rc);
          goto error;
       }
-
-      _basePageCount = head.totalPageCount;
-
-      _latchCount = o.bucketLatchCount;
-      _latches = SDB_OSS_NEW _ossSpinSLatchPOSIX[_latchCount];
-      if (NULL == _latches)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      _bucketCount = o.bucketCount;
-      _buckets = SDB_OSS_NEW _cacheBucket[_bucketCount];
-      if (NULL == _buckets)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
+   
    done:
       return rc;
    error:
@@ -434,37 +208,60 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageIdCache::restore(const deltaLogFile *delta)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isReady()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == delta ||
+                            !delta->isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = restoreDeltaCache(delta);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to restore delta cache:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    void logicalPageIdCache::fini()
    {
       _base = NULL;
       _basePageCount = 0;
-      _latchCount = 0;
-      if (NULL != _latches)
-      {
-         SDB_OSS_DEL []_latches;
-         _latches = NULL;
-      }
-      _bucketCount = 0;
-      if (NULL != _buckets)
-      {
-         SDB_OSS_DEL []_buckets;
-         _buckets = NULL;
-      }
-
+      _latches.clear();
+      _immutableMap.fini();
+      _immutableCache = NULL;
       _counter.store(0);
+
+      for (UINT32 i = 0; i < _buckets.size(); ++i)
+      {
+         if (NULL != _buckets[i])
+         {
+            SDB_OSS_DEL _buckets[i];
+         }
+      }
+      _buckets.clear();
 
       return;
    }
 
    UINT64 logicalPageIdCache::getTotalCacheSize()const
    {
-      UINT32 size = 0;
-      if (OSS_LIKELY(isReady()))
+      UINT64 size = 0;
+      for (UINT32 i = 0; i < _buckets.size(); ++i)
       {
-         for (UINT32 i = 0; i < _bucketCount; ++i)
-         {
-            size += _buckets[i].getTotalCacheSize();
-         }
+         size += _buckets[i]->getCacheSize();
       }
 
       return size;
@@ -472,12 +269,15 @@ namespace vessel
 
    INT32 logicalPageIdCache::estimateMutablePageCount()const
    {
-      return _counter.load(std::memory_order_relaxed);
+      return _counter.load();
    }
 
    INT32 logicalPageIdCache::flushPreparedCacheToFile(idMapFile *file)
    {
       INT32 rc = SDB_OK;
+      idMapFileHead head;
+      BOOLEAN locked = FALSE;
+
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -490,27 +290,75 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = 0; i < _bucketCount; ++i)
+      if (_immutableMap.isEmpty())
       {
-         /// No need to hold latch here.
-         rc = flushPreparedMapToFile(_buckets[i], file);
-         if (SDB_OK != rc)
+         goto done;
+      }
+
+      rc = file->getIdMapFileHead(head);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get id map file head in file[%s], rc:%d",
+                file->getFullPath(), rc);
+         goto error;
+      }
+
+      _latch.lock_r();
+      locked = TRUE;
+
+      for (partialImpCacheMap::CACHE_MAP::const_iterator itr = _immutableMap.begin();
+           itr != _immutableMap.end(); ++itr)
+      {
+         ossValuePtr ptr = 0;
+         PAGE_ID pid = itr->first.first;
+
+         if (head.totalPageCount <= pid)
          {
-            PD_LOG(PDERROR, "failed to dump cache to file, bucket no[%d], rc:%d",
-                   i, rc);
+            PD_LOG(PDERROR, "pid[%d] over max page count in head[%d]",
+                   pid, head.totalPageCount);
+            rc = SDB_OUT_OF_BOUND;
             goto error;
          }
+
+         rc = file->getPagePtr(pid, ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", pid, rc);
+            goto error;
+         }
+
+         ossMemcpy((void *)(ptr + itr->first.second),
+                   itr->second->getBuffer(),
+                   ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
       }
+
+
    done:
+      if (locked)
+      {
+         _latch.release_r();
+      }
       return rc;
    error:
       goto done;
    }
 
-   INT32 logicalPageIdCache::setPagesImmutable(UINT32 pageCountPerSeg,
-                                               ossPoolSet<UINT32> *mutableSegmentIds)
+   INT32 logicalPageIdCache::dumpBufferAndSetImmutable(UINT32 pageCountPerSeg,
+                                                       ossPoolVector<memoryBlock> &buffers,
+                                                       UINT32 &itemCount,
+                                                       ossPoolSet<UINT32> *mutableSegmentIds)
    {
       INT32 rc = SDB_OK;
+      UINT32 pushed = 0;
+      UINT32 segmentSize = deltaLogFile::FILE_SEGMENT_SIZE;
+      memoryBlock buffer;
+      BOOLEAN locked = FALSE;
+      UINT32 mutableCount = 0;
+
+      buffers.clear();
+      itemCount = 0;
+
+      SDB_ASSERT(0 < pageCountPerSeg, "invalid");
      
       if (OSS_UNLIKELY(!isReady()))
       {
@@ -518,16 +366,63 @@ namespace vessel
          goto error;
       }
 
-      /// clear modified count first
-      for (UINT32 i = 0; i < _bucketCount; ++i)
+      rc = buffer.reserve(segmentSize);
+      if (SDB_OK != rc)
       {
-         ossSLatch *latch = getBucketLatch(i);
-         ossSLatchGuard guard(latch, EXCLUSIVE);
-         _buckets[i].setPagesImmutable(pageCountPerSeg, mutableSegmentIds);
+         PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
+         goto error;
+      }
+
+      _latch.lock_w();
+      locked = TRUE;
+
+      /// clear modified count first
+      for (UINT32 i = 0; i < getBucketCount(); ++i)
+      {
+         partialImpCacheMap &cacheMap = *_buckets[i];
+         partialImpCacheMap::CACHE_MAP::const_iterator itr = cacheMap.begin();
+         for (; itr != cacheMap.end(); ++itr)
+         {
+            UINT32 cnt = 0;
+            UINT32 freeSize = segmentSize - buffer.getSize();
+            if (freeSize < _PARTIAL_CACHE_DUMP_ELE_SIZE)
+            {
+               buffers.push_back(std::move(buffer));
+               rc = buffer.reserve(segmentSize);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
+                  goto error;
+               }
+            }
+
+            buffer.append(sizeof(UINT32), &(itr->first.first));
+            buffer.append(sizeof(UINT32), &(itr->first.second));
+            buffer.append(ID_MAP_PARTIAL_PAGE_CACHE_SIZE, itr->second->getBuffer());
+            itr->second->setAllPageImmutable(pageCountPerSeg, mutableSegmentIds, &cnt);
+            ++pushed;
+            mutableCount += cnt;
+         }
+      }
+
+      _latch.release_w();
+      locked = FALSE;
+
+      if (0 < buffer.getSize())
+      {
+         buffers.push_back(std::move(buffer));
       }
 
       _counter.store(0);
+      itemCount = pushed;
+
+      PD_LOG(PDDEBUG, "dump mutable buffer:%d, item count:%d, mutable pages:%d",
+             buffers.size(), pushed, mutableCount);
    done:
+      if (locked)
+      {
+         _latch.release_w();
+      }
       return rc;
    error:
       goto done;
@@ -549,11 +444,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _upsert(lpid, slot, TRUE);
-      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
-         goto error;
+         ossScopedRWLock guard(&_latch, SHARED);
+         rc = _upsert(lpid, slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
+            goto error;
+         }
       }
 
       ++_counter;
@@ -564,45 +462,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageIdCache::upsertAsImmutable(PAGE_ID lpid, const idMapSlot &slot)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isReady()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
-                            slot.isFree()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _upsert(lpid, slot, FALSE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 logicalPageIdCache::_upsert(PAGE_ID lpid,
-                                     const idMapSlot &slot,
-                                     BOOLEAN isMutable)
+                                     const idMapSlot &slot)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(!slot.isFree(), "can not be free");
       partialImpCacheMap::KEY key;
       UINT32 slotInCache = 0;
-      UINT32 bucketNo = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
-      ossSLatch *latch = getBucketLatch(bucketNo);
+      UINT32 bucketPos = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
+      ossSLatch *latch = getBucketLatch(bucketPos);
       partialImpCache *cache = NULL;
       partialImpCache *newCache = NULL;
       ossSLatchGuard guard(latch, EXCLUSIVE, FALSE);
@@ -610,60 +479,71 @@ namespace vessel
       do
       {
          guard.lock();
-         rc = _buckets[bucketNo].findToUpdate(key, &cache);
+         rc = findInMemToUpdate(bucketPos, key, &cache);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find cache to update:%d", rc);
             goto error;
          }
 
-         if (NULL == cache)
+         if (NULL != cache)
          {
-            if (NULL != newCache)
-            {
-               rc = _buckets[bucketNo].add(key, newCache);
-               if (OSS_UNLIKELY(SDB_OK != rc))
-               {
-                  PD_LOG(PDERROR, "failed to add new cache[%d] to bucket:%d", key, rc);
-                  goto error;
-               }
-               cache = newCache;
-               newCache = NULL;
-            }
-            else
-            {
-               if (_basePageCount <= key.first)
-               {
-                  rc = _buckets[bucketNo].addEmptyCache(key, &cache);
-                  if (SDB_OK != rc)
-                  {
-                     PD_LOG(PDERROR, "failed to add empty cache to bucket:%d", rc);
-                     goto error;
-                  }
-               }
-               else
-               {
-                  guard.unlock();
-                  rc = createCacheFromBase(key, &newCache);
-                  if (SDB_OK != rc)
-                  {
-                     PD_LOG(PDERROR, "failed to create new cache from base:%d", rc);
-                     goto error;
-                  }
-                  continue;
-               }
-            }
+            break;
          }
+         else if (NULL != newCache)
+         {
+            rc = _buckets[bucketPos]->insert(key, newCache);
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "failed to add new cache[%d, %d] to bucket:%d",
+                        key.first, key.second, rc);
+               goto error;
+            }
+            cache = newCache;
+            newCache = NULL;
+            break;
+         }
+         else if (_basePageCount <= key.first)
+         {
+            newCache = SDB_OSS_NEW partialImpCache();
+            if (OSS_UNLIKELY(NULL == newCache))
+            {
+               PD_LOG(PDERROR, "failed to allocate mem.");
+               rc = SDB_OOM;
+               goto error;
+            }
 
-         SDB_ASSERT(NULL != cache, "impossible");
-         rc = cache->upsert(slotInCache, slot, isMutable);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
-            goto error;
+            rc = _buckets[bucketPos]->insert(key, newCache);
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "failed to add new cache[%d, %d] to bucket:%d",
+                        key.first, key.second, rc);
+               goto error;
+            }
+            cache = newCache;
+            newCache = NULL;
+            break;
          }
-         break;
+         else
+         {
+            guard.unlock();
+            rc = createCacheFromBase(key, &newCache);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create new cache from base:%d", rc);
+               goto error;
+            }
+            continue;
+         }
       } while (TRUE);
+
+      SDB_ASSERT(NULL != cache, "impossible");
+      rc = cache->upsert(slotInCache, slot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
+         goto error;
+      }
       
    done:
       SAFE_OSS_DELETE(newCache);
@@ -686,10 +566,13 @@ namespace vessel
          goto error;
       }
 
-      rc = _remove(lpid, slot);
-      if (SDB_OK != rc)
       {
-         goto error;
+         ossScopedRWLock guard(&_latch, SHARED);
+         rc = _remove(lpid, slot);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
 
       ++_counter;
@@ -706,8 +589,8 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       partialImpCacheMap::KEY key;
       UINT32 slotInCache = 0;
-      UINT32 bucketNo = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
-      ossSLatch *latch = getBucketLatch(bucketNo);
+      UINT32 bucketPos = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
+      ossSLatch *latch = getBucketLatch(bucketPos);
       partialImpCache *cache = NULL;
       partialImpCache *newCache = NULL;
       ossSLatchGuard guard(latch, EXCLUSIVE, FALSE);
@@ -715,57 +598,71 @@ namespace vessel
       do
       {
          guard.lock();
-         rc = _buckets[bucketNo].findToUpdate(key, &cache);
+         rc = findInMemToUpdate(bucketPos, key, &cache);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to find cache to update:%d", rc);
             goto error;
          }
 
-         if (NULL == cache)
+         if (NULL != cache)
          {
-            if (NULL != newCache)
-            {
-               rc = _buckets[bucketNo].add(key, newCache);
-               if (OSS_UNLIKELY(SDB_OK != rc))
-               {
-                  PD_LOG(PDERROR, "failed to add new cache[%d] to bucket:%d", key, rc);
-                  goto error;
-               }
-               cache = newCache;
-               newCache = NULL;
-            }
-            else
-            {
-               if (_basePageCount <= key.first)
-               {
-                  PD_LOG(PDERROR, "lpid[%d] not mapped yet", lpid);
-                  rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
-                  goto error;
-               }
-               else
-               {
-                  guard.unlock();
-                  rc = createCacheFromBase(key, &newCache);
-                  if (SDB_OK != rc)
-                  {
-                     PD_LOG(PDERROR, "failed to create new cache from base:%d", rc);
-                     goto error;
-                  }
-                  continue;
-               }
-            }
+            break;
          }
+         else if (NULL != newCache)
+         {
+            rc = _buckets[bucketPos]->insert(key, newCache);
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "failed to add new cache[%d, %d] to bucket:%d",
+                        key.first, key.second, rc);
+               goto error;
+            }
+            cache = newCache;
+            newCache = NULL;
+            break;
+         }
+         else if (_basePageCount <= key.first)
+         {
+            newCache = SDB_OSS_NEW partialImpCache();
+            if (OSS_UNLIKELY(NULL == newCache))
+            {
+               PD_LOG(PDERROR, "failed to allocate mem.");
+               rc = SDB_OOM;
+               goto error;
+            }
 
-         SDB_ASSERT(NULL != cache, "impossible");
-         rc = cache->drop(slotInCache, slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to drop lpid[%d] in cache:%d", lpid, rc);
-            goto error;
+            rc = _buckets[bucketPos]->insert(key, newCache);
+            if (OSS_UNLIKELY(SDB_OK != rc))
+            {
+               PD_LOG(PDERROR, "failed to add new cache[%d, %d] to bucket:%d",
+                        key.first, key.second, rc);
+               goto error;
+            }
+            cache = newCache;
+            newCache = NULL;
+            break;
          }
-         break;
+         else
+         {
+            guard.unlock();
+            rc = createCacheFromBase(key, &newCache);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create new cache from base:%d", rc);
+               goto error;
+            }
+            continue;
+         }
       } while (TRUE);
+
+      SDB_ASSERT(NULL != cache, "can not be null");
+      rc = cache->remove(slotInCache, slot);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove lpid[%d] rc:%d", lpid, rc);
+         goto error;
+      }
       
    done:
       SAFE_OSS_DELETE(newCache);
@@ -792,10 +689,13 @@ namespace vessel
          goto error;
       }
 
-      rc = _get(lpid, slot, isMutable);
-      if (SDB_OK != rc)
       {
-         goto error;
+         ossScopedRWLock guard(&_latch, SHARED);
+         rc = _get(lpid, slot, isMutable);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
       }
    done:
       return rc;
@@ -815,7 +715,7 @@ namespace vessel
 
       if (_basePageCount <= pid)
       {
-         PD_LOG(PDDEBUG, "imp pid[%d] is over total page count[%d]", pid, _basePageCount);
+         //PD_LOG(PDDEBUG, "imp pid[%d] is over total page count[%d]", pid, _basePageCount);
          rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
          goto error;
       }
@@ -847,31 +747,75 @@ namespace vessel
                                   BOOLEAN &isMutable)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(slot.isFree(), "must be free");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+
       partialImpCacheMap::KEY key;
       UINT32 slotInCache = 0;
-      UINT32 bucketNo = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
-      ossSLatch *latch = getBucketLatch(bucketNo);
+      UINT32 bucketPos = getBucketAndPartialCacheIdentity(lpid, key, slotInCache);
+      ossSLatch *latch = getBucketLatch(bucketPos);
       const partialImpCache *cache = NULL;
-      
+      const idMapSlot *slotPtr = NULL; 
+
       ossSLatchGuard guard(latch, SHARED);
-      cache = _buckets[bucketNo].findToRead(key);
+      cache = _buckets[bucketPos]->find(key);
       if (NULL != cache)
       {
-         rc = cache->get(slotInCache, slot, isMutable);
-         if (SDB_OK != rc)
+         slotPtr = cache->get(slotInCache, isMutable);
+         if (OSS_UNLIKELY(NULL == slotPtr))
          {
+            PD_LOG(PDERROR, "may be ouf of bound");
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         goto done;
+
+         if (slotPtr->isFree())
+         {
+            rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+            goto error;
+         }
+         else
+         {
+            slot = *slotPtr;
+            goto done;
+         }
       }
 
       guard.unlock();
 
+      /// user should holding lpid lock now.
+      /// once we can not find it in mutable cache,
+      /// just release the bucket latch.
+
+      if (NULL != _immutableCache)
+      {
+         cache = _immutableCache->find(key);
+         if (NULL != cache)
+         {
+            slotPtr = cache->get(slotInCache, isMutable);
+            if (OSS_UNLIKELY(NULL == slotPtr))
+            {
+               PD_LOG(PDERROR, "may be ouf of bound");
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            if (slotPtr->isFree())
+            {
+               rc = SDB_VESSEL_LOGICAL_PAGE_UNMAPPED;
+               goto error;
+            }
+            else
+            {
+               slot = *slotPtr;
+               goto done;
+            }
+         }
+      }
+
       rc = getFromBase(lpid, slot);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDDEBUG, "failed to get lpid[%d] from base file:%d", lpid, rc);
+         //PD_LOG(PDDEBUG, "failed to get lpid[%d] from base file:%d", lpid, rc);
          goto error;
       }
 
@@ -889,6 +833,7 @@ namespace vessel
       SDB_ASSERT(file->isOpen(), "can not be closed");
 
       idMapFileHead head;
+      BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(!isReady()))
       {
@@ -909,68 +854,20 @@ namespace vessel
          goto error;
       }
 
+      _latch.lock_w();
+      locked = TRUE;
       _base = file;
       _basePageCount = head.totalPageCount;
-
-      for (UINT32 i = 0; i < _bucketCount; ++i)
-      {
-         ossSLatch *latch = getBucketLatch(i);
-         ossSLatchGuard guard(latch, EXCLUSIVE);
-         _buckets[i].removeFlushingMap();
-      }
-
+      _immutableCache = NULL;
+      _latch.release_w();
+      locked = FALSE;
+      _immutableMap.fini();
+      
    done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageIdCache::flushPreparedMapToFile(const logicalPageIdCache::_cacheBucket &bucket,
-                                                    idMapFile *file)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != file, "can not be null");
-      idMapFileHead head;
-      const partialImpCacheMap *flushing = bucket.getFlushingMap();
-      if (NULL == flushing || flushing->get().empty())
+      if (locked)
       {
-         goto done;
+         _latch.release_w();
       }
-
-      rc = file->getIdMapFileHead(head);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to get id map file head in file[%s], rc:%d",
-                file->getFullPath(), rc);
-         goto error;
-      }
-
-      for (partialImpCacheMap::CACHE_MAP::const_iterator itr = flushing->get().begin();
-           itr != flushing->get().end(); ++itr)
-      {
-         UINT32 offset = 0;
-         ossValuePtr ptr = 0;
-         PAGE_ID pid = itr->first.first;
-
-         if (head.totalPageCount <= pid)
-         {
-            PD_LOG(PDERROR, "pid[%d] over max page count in head[%d]",
-                   pid, head.totalPageCount);
-            rc = SDB_OUT_OF_BOUND;
-            goto error;
-         }
-
-         rc = file->getPagePtr(pid, ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", pid, rc);
-            goto error;
-         }
-
-         offset = itr->first.second * ID_MAP_PAGE_CACHE_SIZE;
-         ossMemcpy((void *)(ptr + offset), itr->second->getBuffer(), ID_MAP_PAGE_CACHE_SIZE);
-      }
-   done:
       return rc;
    error:
       goto done;
@@ -980,25 +877,47 @@ namespace vessel
                                                     ossPoolSet<UINT32> *mutableSegmentIds)
    {
       INT32 rc = SDB_OK;
+      BOOLEAN locked = FALSE;
+
       if (OSS_UNLIKELY(!isReady()))
       {
          rc = SDB_VESSEL_OUT_OF_RESOURCE;
          goto error;
       }
 
-      for (UINT32 i = 0; i < _bucketCount; ++i)
+      SDB_ASSERT(_immutableMap.isEmpty(), "must be empty");
+
+      _latch.lock_w();
+      locked = TRUE;
+
+      for (UINT32 i = 0; i < getBucketCount(); ++i)
       {
-         ossSLatch *latch = getBucketLatch(i);
-         ossScopedLock guard(latch, EXCLUSIVE);
-         _buckets[i].setPagesImmutable(pageCountPerSeg, mutableSegmentIds);
-         _buckets[i].mergeMainMapToFlushingMap();
+         UINT32 replaced = 0;
+         partialImpCacheMap &cacheMap = *_buckets[i];
+         cacheMap.exportTo(_immutableMap, replaced);
       }
+
+      if (!_immutableMap.isEmpty())
+      {
+         _immutableCache = &_immutableMap;
+      }
+
+      _latch.release_w();
+      locked = FALSE;
 
       _counter.store(0);
 
    done:
+      if (locked)
+      {
+         _latch.release_w();
+      }
       return rc;
    error:
+      if (NULL != mutableSegmentIds)
+      {
+         mutableSegmentIds->clear();
+      }
       goto done;
    }
 
@@ -1006,17 +925,16 @@ namespace vessel
                                                  partialImpCache **cache)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(partialImpCacheMap::isValidKey(key), "can not be invalid");
       SDB_ASSERT(NULL != cache, "can not be null");
       ossValuePtr ptr = 0;
       partialImpCache *tmp = NULL;
-      PAGE_ID impPid = key.first;
-      UINT32 offset = key.second * ID_MAP_PAGE_CACHE_SIZE;
-      SDB_ASSERT(impPid < _basePageCount, "impossible");
+      SDB_ASSERT( key.first < _basePageCount, "impossible");
 
-      rc = _base->getPagePtr(impPid, ptr);
+      rc = _base->getPagePtr(key.first, ptr);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", impPid, rc);
+         PD_LOG(PDERROR, "failed to get page[%d] ptr:%d",  key.first, rc);
          goto error;
       }
 
@@ -1028,7 +946,7 @@ namespace vessel
          goto error;
       }
 
-      tmp->copy((const void *)(ptr + offset), 0);
+      tmp->copy((const void *)(ptr + key.second), 0);
       *cache = tmp;
       tmp = NULL;
    done:
@@ -1038,21 +956,195 @@ namespace vessel
       goto done;
    }
 
+   INT32 logicalPageIdCache::_insertWhenRestore(const partialImpCacheMap::KEY &key,
+                                                const CHAR *cache)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isReady(), "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != key.first && key.second < ID_MAP_FILE_PAGE_SIZE, 
+                 "can not be invalid");
+      SDB_ASSERT(NULL != cache, "can not be invalid");
+
+      partialImpCache *cacheObj = SDB_OSS_NEW partialImpCache();
+      if (OSS_UNLIKELY(NULL == cacheObj))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      cacheObj->copy(cache, 0);
+      rc = _immutableMap.insert(key, cacheObj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into immutable map:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(cacheObj);
+      goto done;
+   }
+
    UINT32 logicalPageIdCache::getBucketAndPartialCacheIdentity(PAGE_ID lpid,
                                                                partialImpCacheMap::KEY &key,
                                                                UINT32 &slotInPartialCache)const
    {
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      PAGE_ID impPid = getImpPidOfLpid(lpid);
-      UINT32 bucket = (impPid & (_bucketCount - 1));
-      UINT32 offset = (lpid % ID_MAP_PAGE_CAPACITY) /
-                      ID_MAP_PAGE_CACHE_SLOT_COUNT;
+      SDB_ASSERT(!_buckets.empty(), "can not be empty");
 
-      slotInPartialCache = (lpid % ID_MAP_PAGE_CAPACITY) %
-                           ID_MAP_PAGE_CACHE_SLOT_COUNT;
+      PAGE_ID impPid = getImpPidOfLpid(lpid);
+      UINT32 pos = lpid / ID_MAP_PARTIAL_CACHE_SLOT_COUNT;
+      UINT32 bucket =  pos & (getBucketCount() - 1);
+      UINT32 offset = (pos % ID_MAP_PARTIAL_CACHE_COUNT_PER_IMP) *
+                      ID_MAP_PARTIAL_PAGE_CACHE_SIZE;
+
+      slotInPartialCache = lpid % ID_MAP_PARTIAL_CACHE_SLOT_COUNT;
       key.first = impPid;
       key.second = offset;
       return bucket;
+   }
+
+   INT32 logicalPageIdCache::resetBase(const idMapFile *base)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != base && base->isOpen(), "can not be invalid");
+      idMapFileHead head;
+      rc = base->getIdMapFileHead(head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get id map file head from file[%s], rc:%d",
+                _base->getFullPath(), rc);
+         goto error;
+      }
+
+      _basePageCount = head.totalPageCount;
+      _base = base;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageIdCache::restoreDeltaCache(const deltaLogFile *delta)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _base, "init base first");
+      SDB_ASSERT(NULL != delta && delta->isOpen(), "can not be invalid");
+
+      UINT32 totalEleCount = 0;
+      UINT32 read = 0;
+      deltaLogFileHead head;
+      UINT32 segmentSize = 0;
+
+      rc = delta->getDeltaLogFileHead(head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get delta log file head:%d", rc);
+         goto error;
+      }
+     
+      SDB_ASSERT(_base->getCommonHeadInMem().sequence <= head.baseIdMapFile,
+                 "not valid delta file");
+
+      segmentSize = delta->getCommonHeadInMem().getSegmentSize();
+      totalEleCount = (UINT32)head.elementCount;
+
+      PD_LOG(PDINFO, "total ele count[%d] in delta file[%s]",
+             totalEleCount, delta->getFullPath());
+
+      for (UINT32 i = 0; i < delta->getSegmentCount(); ++i)
+      {
+         UINT32 offset = 0;
+         ossValuePtr ptr;
+         rc = delta->getSegmentPtr(i, ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get segment[%d] ptr:%d", i, rc);
+            goto error;
+         }
+
+         while (read < totalEleCount)
+         {
+            const _partialCacheDumpEle *ele = (const _partialCacheDumpEle *)(ptr + offset);
+            partialImpCacheMap::KEY key;
+            key.first = ele->imp;
+            key.second = ele->offset;
+            rc = _insertWhenRestore(key, ele->cache);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to restore delta log file[%s]at segment[%d], offset[%d], rc:%d",
+                      delta->getFullPath(), i, offset, rc);
+               goto error;
+            }
+
+            ++read;
+            offset += _PARTIAL_CACHE_DUMP_ELE_SIZE;
+            if (segmentSize <= (offset + _PARTIAL_CACHE_DUMP_ELE_SIZE))
+            {
+               break;
+            }
+         }
+      }
+
+      if (read != totalEleCount)
+      {
+         PD_LOG(PDERROR, "unexpected count[%d] from file [%s]", read, delta->getFullPath());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!_immutableMap.isEmpty())
+      {
+         _immutableCache = &_immutableMap;
+      }
+   done:
+      return rc;
+   error:
+      _immutableMap.fini();
+      goto done;
+   }
+
+   INT32 logicalPageIdCache::findInMemToUpdate(UINT32 bucketPos,
+                                               const partialImpCacheMap::KEY &key,
+                                               partialImpCache **out)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(bucketPos < getBucketCount(), "out of bound");
+      SDB_ASSERT(partialImpCacheMap::isValidKey(key), "can not be invalid");
+      SDB_ASSERT(NULL != out, "can not be null");
+
+      partialImpCache *cache = _buckets[bucketPos]->find(key);
+      if (NULL != cache)
+      {
+         *out = cache;
+         goto done;
+      }
+
+      if (NULL != _immutableCache)
+      {
+         const partialImpCache *immutableCache = _immutableCache->find(key);
+         if (NULL != immutableCache)
+         {
+            cache = SDB_OSS_NEW partialImpCache();
+            if (OSS_UNLIKELY(NULL == cache))
+            {
+               PD_LOG(PDERROR, "failed to allocate mem.");
+               rc = SDB_OOM;
+               goto error;
+            }
+
+            cache->copy(immutableCache->getBuffer(), 0);
+            _buckets[bucketPos]->insert(key, cache);
+            *out = cache;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

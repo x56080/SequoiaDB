@@ -60,8 +60,13 @@ namespace vessel
          {
             return ossMmapFile::_file.isOpened();
          }
+         OSS_INLINE BOOLEAN hasShadowSuffix()const
+         {
+            return INVALID_FILE_SHADOW_SUFFIX != _shadowSuffix;
+         }
 
-         INT32 create(const vesselFileName &fn,
+         INT32 create(const strSlice &dir,
+                      const vesselFileName &fn,
                       const createStorageFileOptions &options,
                       const slice &userDefinedHead = slice());
 
@@ -108,6 +113,12 @@ namespace vessel
             return _headInMem.pageSize;
          }
 
+         INT32 removeShadowSuffix();
+
+         INT32 updateUserDefinedHead(const slice &h);
+
+         INT32 copySemgmentsTo(storageFile *file)const;
+
       protected:
          
          INT32 getCommonHeadPtr(ossValuePtr &ptr)const;
@@ -118,7 +129,8 @@ namespace vessel
             return TRUE;
          }
       private:
-         INT32 createFileAndInitHead(const vesselFileName &fn,
+         INT32 createFileAndInitHead(const strSlice &dir,
+                                     const vesselFileName &fn,
                                      const createStorageFileOptions &options,
                                      const slice &userDefinedHead);
 
@@ -152,7 +164,8 @@ namespace vessel
          }
 
       private:
-         storageFileHead _headInMem;
+         storageFileHead _headInMem;      
+         UINT32 _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
          UINT32 _dataSegmentCount = 0;
    }; // class storageFile
 } // namespace vessel

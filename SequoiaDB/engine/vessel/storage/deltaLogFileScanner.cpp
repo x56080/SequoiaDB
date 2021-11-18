@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogUtils.cpp
+   Source File Name = deltaLogFileScanner.cpp
 
    Descriptive Name =
 
@@ -33,36 +33,42 @@
 
 ******************************************************************************/
 
-#include "vessel/deltaLogUtils.h"
+#include "vessel/deltaLogFileScanner.h"
 #include "pdTrace.hpp"
-#include "ossLikely.hpp"
-#include "xxHashInc.h"
 
 namespace engine
 {
 namespace vessel
 {
-   DELTA_LOG_CHECKSUM createDeltaLogRecordChecksum(const deltaLogRecord &dlr)
+   INT32 deltaLogFileScanner::open(const deltaLogFile *file)
    {
-      SDB_ASSERT(dlr.isValid(), "can not be invalid");
-      DELTA_LOG_CHECKSUM checksum = 0;
-      if (OSS_LIKELY(dlr.isValid()))
+      INT32 rc = SDB_OK;
+      close();
+
+      if (NULL == file || !file->isOpen())
       {
-         checksum = XXH3_64bits(dlr.getLogHead(), dlr.getLogHead()->_size);
+         rc = SDB_INVALIDARG;
+         goto error;
       }
-      return checksum;
+
+      rc = _file->getDeltaLogFileHead(_header);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get file header:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
-   UINT64 alignDeltaLogRecordOffset(UINT64 offset)
+   void deltaLogFileScanner::close()
    {
-      UINT64 algiendOffset = offset;
-      UINT32 offsetInSegment = deltaLogFileDef::getOffsetInSegment(offset);
-      UINT32 remainSize = deltaLogFileDef::FILE_SEGMENT_SIZE - offsetInSegment;
-      if (remainSize < deltaLogFileDef::MIN_RECORD_SIZE_ON_DISK)
-      {
-         algiendOffset += remainSize;
-      }
-      return algiendOffset;
+      _file = NULL;
+      _header = deltaLogFileHead();
+      _pos = 0;
    }
-}//namespace vessel
-}//namespace engine
+} // namespace vessel
+
+} // namespace engine

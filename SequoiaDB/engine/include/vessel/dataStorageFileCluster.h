@@ -65,12 +65,14 @@ namespace vessel
          virtual UINT32 getTotalSegmentCountAllocated()const;
 
       private:
-         virtual INT32 openFiles(const storageFileLoader *loader);
+         virtual INT32 openFiles(requestContext *context,
+                                 const storageFileLoader *loader);
          virtual void closeFiles();
          virtual void destroyFiles();
 
-         virtual INT32 allocateNewSegment();
-         virtual INT32 ensureSegmentNotSparse(UINT32 globalSegmentId);
+         virtual INT32 allocateNewSegment(requestContext *context);
+         virtual INT32 ensureSegmentNotSparse(requestContext *context,
+                                              UINT32 globalSegmentId);
          virtual INT32 isSparseSegment(UINT32 globalSegmentId,
                                        BOOLEAN &isSparse)const;
 
@@ -79,9 +81,9 @@ namespace vessel
          virtual BOOLEAN hasSparseFile()const {return FALSE;}
 
       private:
-         INT32 createNewFile();
+         INT32 createNewFile(requestContext *context);
 
-         INT32 createFileEverShrinked(UINT32 sequence);
+         INT32 createFileEverShrinked(requestContext *context, UINT32 sequence);
 
          void _close();
 

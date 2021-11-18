@@ -53,22 +53,43 @@ class cs_ddl_test : public testing::Test
    public:
    static void SetUpTestCase()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
    }
 
    static void TearDownTestCase()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      }
    }
 
    virtual void SetUp()
    {
+      {
       fs::path testPath(DATA_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      }
+
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
    }
 };
 

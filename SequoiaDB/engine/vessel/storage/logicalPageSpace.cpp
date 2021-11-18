@@ -47,7 +47,6 @@
 #include "vessel/dataStorageFileCluster.h"
 #include "vessel/storageFileLoader.h"
 #include "vessel/deltaLogRecordReader.h"
-#include "vessel/deltaLogScanner.h"
 #include "vessel/deltaLogRecordBuilder.h"
 #include "ossLatchGuard.hpp"
 #include "vessel/redoLogUtil.h"
@@ -56,14 +55,15 @@
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/backgroundEventMsg.h"
+#include "vessel/deltaLogFileDef.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
    static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
-   static const UINT32 FULL_CHECKPOINT_DELTA_LOG_SIZE = 64 * 1024 * 1024;
-   static const UINT32 CHECKPOINT_TRIGGER_MUTABLE_PAGE_COUNT = 32768;
+   static const UINT64 CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE = 1024 * 1024 * 1024;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -104,13 +104,13 @@ namespace vessel
 
    void logicalPageSpace::fini()
    {
+      _sid = INVALID_SPACE_ID;
       _lpidCache.fini();
       _idMapFiles.close();
       _allocator.fini();
       _logConsole.fini();
       _dpc = NULL;
       _checkpointContext.fini();
-      _creater.fini();
       return;
    }
 
@@ -148,22 +148,23 @@ namespace vessel
       }
 
       if (OSS_UNLIKELY(NULL == context ||
+                       !context->isOpen() ||
                        !o.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _creater.init(o.sid, getSpaceType(), o.secretValue, o.dir);
+      _sid = context->getSpaceID();
    
       /// 1. create id map file
-      rc = createFirstIdMapFile(o.dataArgs);
+      rc = createFirstIdMapFile(context, o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create id map file:%d", rc);
          goto error;
       }
-      baseFile = (const idMapFile *)(_idMapFiles.getBack());
+      baseFile = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != baseFile, "can not be null");
 
       /// 2. init lpid allocator.
@@ -177,7 +178,7 @@ namespace vessel
       }
 
       /// 3. init delta log
-      rc = _logConsole.init(&_creater);
+      rc = _logConsole.init(context, baseFile, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cached args:%d", rc);
@@ -204,8 +205,10 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->open(o.dataArgs, &_creater,
-                      NULL, getStorageAllocatorOptions());
+      rc = _dpc->open(context, getSpaceType(),
+                      baseFile->getCommonHeadInMem().secretValue,
+                      NULL, o.dataArgs,
+                      getStorageAllocatorOptions());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init page storage:%d", rc);
@@ -227,17 +230,15 @@ namespace vessel
    }
 
    INT32 logicalPageSpace::open(requestContext *context,
-                                SPACE_ID sid,
-                                const CHAR *dirPath)
+                                const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
-      storageFileLoader loader;
-      strSlice dirSlice(dirPath);
       inMemBitmap::options o;
       const idMapFile *base = NULL;
       idMapFileHead baseHead;
       storageCoreArgs dataArgs;
       logicalPageIdCache::options cacheOptions;
+      const openDBOptions *globalOptions = NULL;
 
       if (OSS_UNLIKELY(isOpen()))
       {
@@ -246,29 +247,26 @@ namespace vessel
       }
 
       if (OSS_UNLIKELY(NULL == context ||
-                       INVALID_SPACE_ID == sid ||
-                       dirSlice.empty()))
+                       !context->isOpen() ||
+                       !loader.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = loader.load(dirSlice, sid, getSpaceType(), TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to load files:%d", rc);
-         goto error;
-      }
+      globalOptions = &(context->getEnv()->options);
+      _sid = context->getSpaceID();
+      SDB_ASSERT(loader.getSpaceID() == _sid, "must be same");
 
       /// Open id map files
-      rc = openIdMapFiles(sid, dirSlice, loader);
+      rc = openIdMapFiles(context, loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open id map file:%d", rc);
          goto error;
       }
 
-      base = (const idMapFile *)(_idMapFiles.getBack());
+      base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
 
       rc = base->getIdMapFileHead(baseHead);
@@ -286,8 +284,6 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-      _creater.init(sid, getSpaceType(),
-                    base->getCommonHeadInMem().secretValue, dirSlice);
       
       /// init allocator.
       o.bitmapBeginPage = getReservedImpCount();
@@ -308,7 +304,9 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->open(dataArgs, &_creater, &loader,
+      rc = _dpc->open(context, getSpaceType(),
+                      base->getCommonHeadInMem().secretValue,
+                      &loader, dataArgs,
                       getStorageAllocatorOptions());
       if (SDB_OK != rc)
       {
@@ -316,63 +314,30 @@ namespace vessel
          goto error;
       }
 
-      /// init cache
-      cacheOptions.bucketCount = context->getEnv()->options._spaceLpidCacheBucketCount;
-      cacheOptions.bucketLatchCount = context->getEnv()->options._spaceLpidCacheBucketLatchCount;
-      rc = _lpidCache.init(cacheOptions, base);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init cache:%d", rc);
-         goto error;
-      }
-
       /// open delta log files
-      rc = _logConsole.init(&_creater,
-                            loader.getFileList(FILE_TYPE_DELTA_LOG),
-                            baseHead.deltaLogBeginOffset);
+      rc = _logConsole.init(context, base,
+                            loader.getFileList(getSpaceType(),
+                                               FILE_TYPE_DELTA_LOG));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init log console:%d", rc);
          goto error;
       }
 
-      if (!_logConsole.getCheckpoint().isValid())
-      {
-         if (0 != base->getCommonHeadInMem().sequence)
-         {
-            PD_LOG(PDERROR, "can not find checkpoint in log but base sequence is[%lld]",
-                   base->getCommonHeadInMem().sequence);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-      }
-      else if (0 != base->getCommonHeadInMem().sequence &&
-               _logConsole.getCheckpoint().offset < baseHead.deltaLogBeginOffset)
-      {
-         PD_LOG(PDERROR, "offset in base file[%lld] does not match checkpoint[%lld]",
-                baseHead.deltaLogBeginOffset, _logConsole.getCheckpoint().offset);
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      /// restore allocator by base file
-      rc = restoreAllocatorByBaseFile(base);
+      cacheOptions.bucketCount = globalOptions->_spaceLpidCacheBucketCount;
+      cacheOptions.bucketLatchCount = globalOptions->_spaceLpidCacheBucketLatchCount;
+      rc = _lpidCache.init(cacheOptions, base);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
+         PD_LOG(PDERROR, "failed to init lpid cache:%d", rc);
          goto error;
       }
 
-      if (_logConsole.getCheckpoint().isValid())
+      rc = restoreToLatestCheckpoint(context);
+      if (SDB_OK != rc)
       {
-         /// restore allocator and cache to last checkpoint
-         rc = replayDeltaLogWhenOpen(baseHead.deltaLogBeginOffset);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to init in-mem pools:%d", rc);
-            goto error;
-         }
-         _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
+         PD_LOG(PDERROR, "failed to restore to last checkpoint:%d", rc);
+         goto error;
       }
 
       /// do something else.
@@ -389,18 +354,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::createCheckpoint(requestContext *context)
+   INT32 logicalPageSpace::createCheckpoint(requestContext *context,
+                                            BOOLEAN forceFullCheckpoint)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
       BOOLEAN fullCheckpoint = FALSE;
-      BOOLEAN abortCheckpoint = FALSE;
-
-      DPS_LSN_OFFSET maxDirtyLSN = DPS_INVALID_LSN_OFFSET;
-      checkpointLSN lsn;
-      UINT32 totalImpCount = 0;
-      ossPoolSet<UINT32> segments;
-      IRedoLogger *logger = NULL;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -413,7 +371,54 @@ namespace vessel
          goto error;
       }
 
-      logger = context->getOuterResource()->logger;
+      if (DPS_INVALID_LSN_OFFSET == _checkpointContext.getMaxDirtyLsn())
+      {
+         goto done;
+      }
+
+      fullCheckpoint = forceFullCheckpoint ?
+                       TRUE : needFullCheckpoint();
+      if (fullCheckpoint)
+      {
+         rc = createFullCheckpoint(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create full checkpoint:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = createDeltaCheckpoint(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create delta checkpoint:%d", rc);
+            goto error;
+         }
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::createDeltaCheckpoint(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(NULL != context, "can not be null");
+      checkpointLSN lsn;
+      logicalPageSpaceCheckpoint checkpoint;
+      BOOLEAN locked = FALSE;
+      BOOLEAN abortCheckpoint = FALSE;
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      ossPoolVector<memoryBlock> mutableBuffers;
+      UINT32 itemCount = 0;
+      ossPoolSet<UINT32> segments;
+      idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      SDB_ASSERT(NULL != base, "can not be null");
+      DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -423,48 +428,53 @@ namespace vessel
          goto error;
       }
       abortCheckpoint = TRUE;
+
+      rc = _logConsole.reserveTmpLogFile(context, base->getCommonHeadInMem().secretValue);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reserve delta log file:%d", rc);
+         goto error;
+      }
+
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
 
-      maxDirtyLSN = _checkpointContext.getMaxDirtyLsn();
-      if (DPS_INVALID_LSN_OFFSET == maxDirtyLSN)
-      {
-         goto done;
-      }
-
-      PD_LOG(PDINFO, "begin to create checkpoint on lps[%d,%d]."
+      PD_LOG(PDINFO, "begin to create checkpoint (delta) on lps[%d,%d]."
                       "current dirty lsn:[%lld, %lld].",
                       getSpaceID(), getSpaceType(),
                       _checkpointContext.getMinDirtyLsn(),
                       _checkpointContext.getMaxDirtyLsn());
 
-      fullCheckpoint = needFullCheckpoint();
-      if (fullCheckpoint)
+      if (isCopyOnWrite())
       {
-         PD_LOG(PDINFO, "full checkpoint will be created on lps[%d,%d]",
-                getSpaceID(), getSpaceType());
+         lsn._lsn = logger->getCurrentLSN();
+         /// getMinUncompletedLSN is very expensive.
+         lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
+         lsn._minDirtyLSN = lsn._lsn + 1;
+         pushLSN = lsn._lsn;
       }
-      lsn._lsn = logger->getCurrentLSN();
-      /// getMinUncompletedLSN is very expensive.
-      lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
-      lsn._minDirtyLSN = maxDirtyLSN + 1;
+      else
+      {
+         lsn._lsn = logger->getCurrentLSN();
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
+         lsn._minDirtyLSN = lsn._lsn + 1;
+         lsn._minUncompletedLSN = lsn._minDirtyLSN;
+         pushLSN = _checkpointContext.getMaxDirtyLsn();
+      }
 
-      rc = _logConsole.reserveNextCheckpoint();
+      rc = _lpidCache.dumpBufferAndSetImmutable(getStorageCoreArgs().maxPageCountPerSeg,
+                                                mutableBuffers, itemCount,
+                                                isCopyOnWrite() ? &segments : NULL);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get log console ready to create checkpoint:%d", rc);
+         PD_LOG(PDERROR, "failed to dump mutable buffers:%d", rc);
          goto error;
       }
 
-      /// New imp may allocated in preallocating.
-      /// But we can be sure page count not less than real count to be
-      /// saved into new base id map file.
-      totalImpCount = _allocator.getCustomizedPageCount();
-
-      rc = prepareToCreateCheckpoint(context, fullCheckpoint, segments);
+      rc = prepareToCreateCheckpoint(context, FALSE);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create segment list:%d", rc);
+         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
          goto error;
       }
 
@@ -472,7 +482,7 @@ namespace vessel
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
-      if (!segments.empty())
+      if (isCopyOnWrite())
       {
          rc = flushSegmentsAtCheckpoint(context, segments);
          if (SDB_OK != rc)
@@ -482,44 +492,158 @@ namespace vessel
          }
       }
 
-      logger->pushMaxFileLSN(context->getExecutor(), maxDirtyLSN);
+      logger->pushMaxFileLSN(context->getExecutor(), pushLSN);
 
-      rc = _logConsole.commitCheckpoint(lsn);
+      checkpoint.init(0, lsn, ossGetCurrentMilliseconds());
+      rc = completeDetaLogFile(mutableBuffers, itemCount, checkpoint);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to commit checkpoint:%d", rc);
+         PD_LOG(PDERROR, "failed to complete delta log:%d", rc);
          goto error;
       }
 
-      if (fullCheckpoint)
-      {
-         _checkpointContext.setStatus(lpsCheckpointContext::STATUS::CREATING_NEW_BASE);
-
-         rebaseWhenCreatingCheckpoint(totalImpCount,
-                                      _logConsole.getCheckpoint().offset);
-         removeHistoryIdMapAndDeltaLogFiles();
-      }
-
-      _checkpointContext.setCheckpoint(_logConsole.getCheckpoint());
+      _checkpointContext.setCheckpoint(checkpoint);
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
       endToCreateCheckpoint(context);
+      /// TOOD: update global status here
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
-      PD_LOG(PDINFO, "end to create checkpoint on lps[%d,%d], :%s",
+      abortCheckpoint = FALSE;
+       PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
              getSpaceID(), getSpaceType(),
              _checkpointContext.getCheckpoint().toString().c_str());
-      
    done:
       if (locked)
       {
          _checkpointContext.getLatch()->release_w();
       }
-      return rc;
-   error:
       if (abortCheckpoint)
       {
          _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       }
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::createFullCheckpoint(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(NULL != context, "can not be null");
+      checkpointLSN lsn;
+      LPS_CHECKPOINT checkpoint;
+      BOOLEAN locked = FALSE;
+      BOOLEAN abortCheckpoint = FALSE;
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      ossPoolSet<UINT32> segments;
+      DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
+      UINT32 totalImpCount = 0;
+
+      if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
+      {
+         PD_LOG(PDERROR, "lps[%d,%d] checkpoint task is running",
+                getSpaceID(), getSpaceType());
+         rc = SDB_VESSEL_SAME_TASK_RUNNING;
+         goto error;
+      }
+      abortCheckpoint = TRUE;
+
+      _checkpointContext.getLatch()->lock_w();
+      locked = TRUE;
+
+      PD_LOG(PDINFO, "begin to create checkpoint (delta) on lps[%d,%d]."
+                      "current dirty lsn:[%lld, %lld].",
+                      getSpaceID(), getSpaceType(),
+                      _checkpointContext.getMinDirtyLsn(),
+                      _checkpointContext.getMaxDirtyLsn());
+
+      /// New imp may allocated in preallocating.
+      /// But we can be sure page count not less than real count to be
+      /// saved into new base id map file.
+      totalImpCount = _allocator.getCustomizedPageCount();
+
+      if (isCopyOnWrite())
+      {
+         lsn._lsn = logger->getCurrentLSN();
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
+         /// getMinUncompletedLSN is very expensive.
+         lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
+         lsn._minDirtyLSN = lsn._lsn + 1;
+         pushLSN = lsn._lsn;
+      }
+      else
+      {
+         lsn._lsn = logger->getCurrentLSN();
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
+         lsn._minDirtyLSN = lsn._lsn + 1;
+         lsn._minUncompletedLSN = lsn._minDirtyLSN;
+         pushLSN = _checkpointContext.getMaxDirtyLsn();
+      }
+
+      rc = _lpidCache.prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
+                                             isCopyOnWrite() ? &segments : NULL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to create new base:%d", rc);
+         goto error;
+      }
+
+      rc = prepareToCreateCheckpoint(context, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
+         goto error;
+      }
+
+      _checkpointContext.clearLsn();
+      _checkpointContext.getLatch()->release_w();
+      locked = FALSE;
+
+      if (isCopyOnWrite())
+      {
+         rc = flushSegmentsAtCheckpoint(context, segments);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to flush segments:%d", rc);
+            goto error;
+         }
+      }
+
+      logger->pushMaxFileLSN(context->getExecutor(), pushLSN);
+
+      checkpoint.init(LPS_CHECKPOINT::FLAG_FULL_CHECKPOINT, lsn,
+                      ossGetCurrentMilliseconds());
+
+      _checkpointContext.setStatus(lpsCheckpointContext::STATUS::CREATING_NEW_BASE);
+      rc = rebaseWhenCreatingCheckpoint(context, checkpoint, totalImpCount);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to complete delta log:%d", rc);
+         goto error;
+      }
+
+      _checkpointContext.setCheckpoint(checkpoint);
+      _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
+      endToCreateCheckpoint(context);
+      /// TOOD: update global status here
+
+      _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
+      abortCheckpoint = FALSE;
+      PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
+            getSpaceID(), getSpaceType(),
+            _checkpointContext.getCheckpoint().toString().c_str());
+   done:
+      if (locked)
+      {
+         _checkpointContext.getLatch()->release_w();
+      }
+      if (abortCheckpoint)
+      {
+         _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
+      }
+      return rc;
+   error:
       goto done;
    }
 
@@ -914,7 +1038,7 @@ namespace vessel
       }
 
       /// lpid unmapped
-      rc = _dpc->allocatePage(pid);
+      rc = _dpc->allocatePage(context, pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate page from page cluster:%d", rc);
@@ -937,59 +1061,6 @@ namespace vessel
       goto done;
    }
 
-/*
-   INT32 logicalPageSpace::getPageMappingAtNonruntime(requestContext *context,
-                                                      PAGE_ID lpid,
-                                                      PAGE_ID &pid,
-                                                      PAGE_SNAPSHOT_VERION &psv,
-                                                      mmapPagePointer &ptr)
-   {
-      INT32 rc = SDB_OK;
-      idMapSlot slot;
-      BOOLEAN isMutable = FALSE;
-
-      ptr.reset();
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == context ||
-                            INVALID_PAGE_ID == lpid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = validateLpidBeforeGet(lpid);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = _lpidCache.get(lpid, slot, isMutable);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = _dpc->getDataPagePtr(slot.pid, ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      pid = slot.pid;
-      psv = slot.psv;
-   done:
-      return rc;
-   error:
-      pid = INVALID_PAGE_ID;
-      psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      ptr.reset();
-      goto done;
-   }
-   */
 
    INT32 logicalPageSpace::initAndMapPages(requestContext *context,
                                            pageInitializer *initer,
@@ -1063,7 +1134,7 @@ namespace vessel
       mappedLogicalPageId mpid;
 
       /// 1. allocate new pid
-      rc = _dpc->allocatePage(pid);
+      rc = _dpc->allocatePage(context, pid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate data page:%d", rc);
@@ -1276,21 +1347,20 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::openIdMapFiles(SPACE_ID sid,
-                                          const strSlice &dir,
+   INT32 logicalPageSpace::openIdMapFiles(requestContext *context,
                                           const storageFileLoader &loader)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
-      SDB_ASSERT(!dir.empty(), "can not be empty");
-
+      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(_sid);
+      SDB_ASSERT(NULL != su, "can not be null");
       idMapFile *file = NULL;
 
-      const FILE_NAME_LIST *list = loader.getFileList(FILE_TYPE_ID_MAP);
+      const FILE_NAME_LIST *list = loader.getFileList(getSpaceType(), FILE_TYPE_ID_MAP);
       if (NULL == list || list->empty())
       {
-         PD_LOG(PDERROR, "id map file not found in dir[%s]", dir.str());
-         rc = SDB_FNE;
+         PD_LOG(PDERROR, "id map file not found");
+         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
 
@@ -1304,10 +1374,10 @@ namespace vessel
             rc = SDB_INVALIDARG;
             goto error;
          }
-         else if (fn.getSpaceID() != sid)
+         else if (fn.getSpaceID() != _sid)
          {
             PD_LOG(PDERROR, "space id does not match:%d, %d",
-                   fn.getSpaceID(), sid);
+                   fn.getSpaceID(), _sid);
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
@@ -1341,10 +1411,10 @@ namespace vessel
             goto error;
          }
 
-         rc = file->open(dir, fn);
+         rc = su->openStorageFile(fn, file);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to open id map file:%d", rc);
+            PD_LOG(PDERROR, "failed to open id map file[%s], :%d", fn.getFileName(), rc);
             goto error;
          }
 
@@ -1576,7 +1646,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _dpc->allocatePages(count, (PAGE_ID *)pidBuffer);
+      rc = _dpc->allocatePages(context, count, (PAGE_ID *)pidBuffer);
       if (SDB_OK != rc)
       {
          releaseLpidsPreallocated(context, count, (const PAGE_ID *)lpidBuffer);
@@ -1706,13 +1776,19 @@ namespace vessel
       return;
    }
 
-   INT32 logicalPageSpace::createFirstIdMapFile(const storageCoreArgs &dataArgs)
+   INT32 logicalPageSpace::createFirstIdMapFile(requestContext *context,
+                                                const createLogicalPageSpaceOptions &o)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(dataArgs.isValid(), "can not be invalid");
-      SDB_ASSERT(_creater.isValid(), "must be valid");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_SPACE_ID != _sid, "can not be invalid");
+      SDB_ASSERT(o.isValid(), "can not be invalid");
       SDB_ASSERT(_idMapFiles.isEmpty(), "must be empty");
 
+      vesselFileName fn;
+      createStorageFileOptions options;
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
       idMapFile *file = NULL;
       storageCoreArgs args(ID_MAP_FILE_PAGE_SIZE,
                            ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG,
@@ -1721,13 +1797,19 @@ namespace vessel
       idMapFileHead imfHead;
       imfHead.version = ID_MAP_FILE_HEAD_VERSION;
       imfHead.flags = getIdMapFileHeadFlags();
-      imfHead.dataPageSize = dataArgs.pageSize;
-      imfHead.dataPageCountInSeg = dataArgs.maxPageCountPerSeg;
-      imfHead.dataSegCountInFile = dataArgs.maxSegmentCountPerFile;
-      imfHead.totalPageCount = 0;
-      imfHead.deltaLogBeginOffset = 0;
+      imfHead.dataPageSize = o.dataArgs.pageSize;
+      imfHead.dataPageCountInSeg = o.dataArgs.maxPageCountPerSeg;
+      imfHead.dataSegCountInFile = o.dataArgs.maxSegmentCountPerFile;
 
       slice hs(sizeof(idMapFileHead), &imfHead);
+
+      if (!fn.build(_sid, FILE_TYPE_ID_MAP,
+                    getSpaceType(), 0))
+      {
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
 
       file = SDB_OSS_NEW idMapFile();
       if (OSS_UNLIKELY(NULL == file))
@@ -1737,11 +1819,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _creater.createTmpFile(FILE_TYPE_ID_MAP,
-                                  0, args, file, hs);
+      options.secretValue = o.secretValue;
+      options.args = args;
+      options.createAsTmpFile = TRUE;
+      options.replaceWhenCreate = TRUE;
+      rc = su->createStorageFile(fn, options, hs, file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create tmp id map file:%d", rc);
+         PD_LOG(PDERROR, "failed to create id map file[%s], rc:%d", fn.getFileName(), rc);
          goto error;
       }
 
@@ -1752,11 +1837,10 @@ namespace vessel
          goto error;
       }
 
-      rc = renameToFormalAndReopen(_creater.getDirSlice(),
-                                   FALSE, FILE_SHADOW_SUFFIX_TMP, file);
+      rc = file->removeShadowSuffix();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to rename id map file and reopen:%d", rc);
+         PD_LOG(PDERROR, "failed to remove file's shadow suffix:%d", rc);
          goto error;
       }
 
@@ -1774,14 +1858,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::rebaseWhenCreatingCheckpoint(UINT32 totalImpCount,
-                                                        UINT64 deltaLogOffset)
+   INT32 logicalPageSpace::rebaseWhenCreatingCheckpoint(requestContext *context,
+                                                        const LPS_CHECKPOINT &checkpoint,
+                                                        UINT32 totalImpCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      UINT32 oldPageCount = 0;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(0 < totalImpCount, "impossible");
+      SDB_ASSERT(checkpoint.isValid(), "can not be invalid");
+
       UINT32 segmentCount = 0;
-      storageFile *base = NULL;
+      idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      SDB_ASSERT(NULL != base, "can not be null");
       idMapFile *file = NULL;
       storageCoreArgs args(ID_MAP_FILE_PAGE_SIZE,
                            ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG,
@@ -1793,23 +1882,19 @@ namespace vessel
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
       imfHead.totalPageCount = totalImpCount;
-      imfHead.deltaLogBeginOffset = deltaLogOffset;
+      imfHead.checkpoint = checkpoint;
       slice hs(sizeof(idMapFileHead), &imfHead);
 
-      base = _idMapFiles.getBack();
-      if (NULL == base)
-      {
-         PD_LOG(PDERROR, "no base file exists");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
+      createStorageFileOptions o;
+      o.args = getStorageCoreArgs();
+      o.createAsTmpFile = TRUE;
+      o.replaceWhenCreate = TRUE;
+      o.secretValue = base->getCommonHeadInMem().secretValue;
 
-      rc = ((const idMapFile *)base)->getTotalPageCount(oldPageCount);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get old page count from base:%d", rc);
-         goto error;
-      }
+      vesselFileName fn;
+
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
 
       file = SDB_OSS_NEW idMapFile();
       if (OSS_UNLIKELY(NULL == file))
@@ -1819,17 +1904,23 @@ namespace vessel
          goto error;
       }
 
-      rc = _creater.createTmpFile(FILE_TYPE_ID_MAP,
-                                  base->getCommonHeadInMem().sequence + 1,
-                                  args, file, hs);
-      if (SDB_OK != rc)
+      if (!fn.build(getSpaceID(), FILE_TYPE_ID_MAP,
+                    getSpaceType(), base->getCommonHeadInMem().sequence + 1))
       {
-         PD_LOG(PDERROR, "failed to create tmp id map file:%d", rc);
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      segmentCount = ossAlignX(totalImpCount, getStorageCoreArgs().maxPageCountPerSeg) /
-                     getStorageCoreArgs().maxPageCountPerSeg;
+      rc = su->createStorageFile(fn, o, hs, file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create new file:%s, rc:%d", fn.getFileName(), rc);
+         goto error;
+      }
+
+      segmentCount = ossAlignX(totalImpCount, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
+                     ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
 
       rc = file->ensureSegmentCountAndInit(segmentCount);
       if (SDB_OK != rc)
@@ -1838,24 +1929,12 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = 0; i < oldPageCount; ++i)
+      rc = base->copySemgmentsTo(file);
+      if (SDB_OK != rc)
       {
-         ossValuePtr src = 0;
-         ossValuePtr dst = 0;
-         rc = base->getPagePtr(i, src);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page[%d] from base:%d", i, rc);
-            goto error;
-         }
-         rc = file->getPagePtr(i, dst);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get page[%d] from file:%d", i, rc);
-            goto error;
-         }
-
-         ossMemcpy((void *)dst, (const void *)src, getStorageCoreArgs().pageSize);
+         PD_LOG(PDERROR, "failed to copy segments to file:%s, rc:%d",
+                file->getFullPath(), rc);
+         goto error;
       }
 
       rc = _lpidCache.flushPreparedCacheToFile(file);
@@ -1872,22 +1951,18 @@ namespace vessel
          goto error;
       }
 
-      rc = renameToFormalAndReopen(_creater.getDirSlice(),
-                                   FALSE, FILE_SHADOW_SUFFIX_TMP, file);
+      rc = file->removeShadowSuffix();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to rename id map file and reopen:%d", rc);
+         PD_LOG(PDERROR, "failed to remvoe file suffix:%d", rc);
          goto error;
       }
 
-      rc = _lpidCache.resetBaseFileAndClearFlushedMaps(file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to reset base file:%d", rc);
-         goto error;
-      }
-      
       _idMapFiles.pushBack(file);
+      _lpidCache.resetBaseFileAndClearFlushedMaps(file);
+
+      _idMapFiles.truncate(3);
+      
    done:
       return rc;
    error:
@@ -1899,46 +1974,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::removeHistoryIdMapAndDeltaLogFiles()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
-      static const UINT32 _IMF_MIN_SIZE = 3;
-      idMapFile *file = NULL;
-      UINT64 sequence = 0;
-      UINT64 offset = 0;
 
-      UINT32 size = _idMapFiles.getSize(TRUE);
-      if (size < _IMF_MIN_SIZE)
-      {
-         goto done;
-      }
 
-      file = (idMapFile *)(_idMapFiles.getBack());
-      sequence = file->getCommonHeadInMem().sequence + 1 - _IMF_MIN_SIZE;
-      _idMapFiles.destroyIfLess(sequence);
-
-      file = (idMapFile *)(_idMapFiles.getFront());
-      rc = file->getDeltaLogOffset(offset);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get delta log offset:%d", rc);
-         goto error;
-      }
-
-      rc = _logConsole.tryToDestroyHistroyFiles(offset);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to destroy history log files:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::restoreAllocatorByBaseFile(const idMapFile *base)
+   INT32 logicalPageSpace::restoreAllocatorByBaseFile(requestContext *context,
+                                                      const idMapFile *base)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(_allocator.isInitialized(), "must be inited");
@@ -1956,25 +1995,159 @@ namespace vessel
          goto done;
       }
 
-      for (UINT32 i = 0; i < getReservedImpCount(); ++i)
+      rc = _allocator.ensureBitmapPageCount(pageCount);
+      if (SDB_OK != rc)
       {
-         rc = restoreAllocatorByReservedImp(base, i);
+         PD_LOG(PDERROR, "failed to reserve space from allocator:%d", rc);
+         goto error;
+      }
+      
+      for (UINT32 i = 0; i < pageCount; ++i)
+      {
+         ossValuePtr ptr = 0;
+         rc = base->getPagePtr(i, ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get imp[%d] ptr:%d", i, rc);
+            goto error;
+         }
+         rc = restoreAllocatorByImp(context, i, (const CHAR *)ptr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to restore allocator by imp[%d], rc:%d",
                    i, rc);
             goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 logicalPageSpace::mergeAndRestoreAllocator(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      dataPageCluster *dpc = getDataStorageObj();
+      SDB_ASSERT(NULL != dpc && dpc->isOpen(), "can not be invalid");
+      const idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      UINT32 basePageCount = 0;
+      base->getTotalPageCount(basePageCount);
+      SDB_ASSERT(NULL != base, "can not be null");
+      const partialImpCacheMap &delta = _lpidCache.getImmutableMap();
+      memoryBlock mb;
+      partialImpCacheMap::CACHE_MAP::const_iterator deltaIterator;
+      partialImpCacheMap::KEY deltaLowKey;
+
+      if (0 < basePageCount)
+      {
+         rc = mb.reserve(ID_MAP_FILE_PAGE_SIZE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
+            goto error;
+         }
+
+         SDB_ASSERT(getReservedImpCount() <= basePageCount, "impossible");
+
+         for (UINT32 i = 0; i < basePageCount; ++i)
+         {
+            partialImpCacheMap::CACHE_MAP::const_iterator lower;
+            partialImpCacheMap::CACHE_MAP::const_iterator upper;
+            partialImpCacheMap::KEY lowKey = std::make_pair(i, 0);
+            partialImpCacheMap::KEY upKey = std::make_pair(i, ID_MAP_FILE_PAGE_SIZE);
+
+            slice buffer;
+            buffer.makeWritable(ID_MAP_FILE_PAGE_SIZE, mb.getBuffer());
+            ossValuePtr ptr;
+            rc = base->getPagePtr(i, ptr);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", i, rc);
+               goto error;
+            }
+
+            buffer.write(0, ID_MAP_FILE_PAGE_SIZE, (const CHAR *)ptr);
+
+            lower = delta.get().lower_bound(lowKey);
+            upper = delta.get().upper_bound(upKey);
+            for (; lower != upper; ++lower)
+            {
+               SDB_ASSERT(partialImpCacheMap::isValidKey(lower->first), "can not be invalid");
+               rc = buffer.write(lower->first.second,
+                                 ID_MAP_PARTIAL_PAGE_CACHE_SIZE,
+                                 lower->second->getBuffer());
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to copy data to[%d,%d]",
+                         lower->first.second, ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
+                  goto error;
+               }
+            }
+
+            rc = restoreAllocatorByImp(context, i, buffer.data());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to retore imp[%d], rc:%d", i, rc);
+               goto error;
+            }
          }
       }
       
-      for (UINT32 i = getReservedImpCount(); i < pageCount; ++i)
+      /// restore others
+      deltaLowKey.first = basePageCount;
+      deltaLowKey.second = 0;
+      deltaIterator = delta.get().lower_bound(deltaLowKey);
+      for (; deltaIterator != delta.end(); ++deltaIterator)
       {
-         rc = restoreAllocatorByImp(base, i);
+         const partialImpCacheMap::KEY &key = deltaIterator->first;
+         const partialImpCache *cache = deltaIterator->second;
+         SDB_ASSERT(NULL != cache, "can not be null");
+         PAGE_ID baseLpid = key.first * ID_MAP_PAGE_CAPACITY;
+
+         rc = _allocator.ensureBitmapPageCount(key.first + 1);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to restore allocator by imp[%d], rc:%d",
-                   i, rc);
+            PD_LOG(PDERROR, "failed to ensure allocator space:%d", rc);
             goto error;
+         }
+
+         for (UINT32 pos = 0; pos < ID_MAP_PARTIAL_CACHE_SLOT_COUNT; ++pos)
+         {
+            BOOLEAN isMutable = FALSE;
+            PAGE_ID lpid = baseLpid + pos;
+            const idMapSlot *slot = cache->get(pos, isMutable);
+            if (slot->isFree())
+            {
+               continue;
+            }
+
+            if (getReservedImpCount() <= key.first)
+            {
+               /// not reserved, managed by allocator
+               rc = _allocator.occupy(lpid);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to occupy lpid[%d], rc:%d", lpid, rc);
+                  goto error;
+               }
+            }
+
+            rc = dpc->ensurePidSpace(context, slot->pid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure pid[%] space:%d", slot->pid, rc);
+               goto error;
+            }
+
+            rc = dpc->occupyPage(context, slot->pid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to occupy pid[%d], rc:%d", slot->pid, rc);
+               goto error;
+            }
+      
          }
       }
    done:
@@ -1983,420 +2156,52 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageSpace::restoreAllocatorByReservedImp(const idMapFile *base,
-                                                         PAGE_ID pid)
+   INT32 logicalPageSpace::restoreAllocatorByImp(requestContext *context, 
+                                                 PAGE_ID impPid,
+                                                 const CHAR *page)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != base, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      ossValuePtr ptr = 0;
-      rc = base->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", pid, rc);
-         goto error;
-      }
+      SDB_ASSERT(INVALID_PAGE_ID != impPid, "can not be invalid");
+      SDB_ASSERT(_allocator.isInitialized(), "can not be invalid");
+      dataPageCluster *dpc = getDataStorageObj();
+      SDB_ASSERT(NULL != dpc, "can not be invalid");
+      UINT32 baseLpid = impPid * ID_MAP_PAGE_CAPACITY;
 
-      for (UINT32 i = 0;i < ID_MAP_PAGE_CAPACITY; ++i)
-      {
-         idMapSlot slot = getIdMapSlot(ptr, i);
-         if (slot.isFree())
-         {
-            continue;
-         }
-
-         rc = _dpc->ensurePidSpace(slot.pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", slot.pid, rc);
-            goto error;
-         }
-
-         rc = _dpc->occupyPage(slot.pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to occupy pid[%d] in storage, rc:%d",
-                   slot.pid, rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::restoreAllocatorByImp(const idMapFile *base, PAGE_ID pid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != base, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      UINT32 baseLpid = pid * ID_MAP_PAGE_CAPACITY;
-      ossValuePtr ptr = 0;
-      rc = base->getPagePtr(pid, ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page[%d] ptr:%d", pid, rc);
-         goto error;
-      }
+      BOOLEAN isImpReserved = impPid < getReservedImpCount();
 
       for (UINT32 i = 0; i < ID_MAP_PAGE_CAPACITY; ++i)
       {
          PAGE_ID lpid = baseLpid + i;
-         idMapSlot slot = getIdMapSlot(ptr, i);
+         idMapSlot slot = getIdMapSlot((ossValuePtr)page, i);
          if (slot.isFree())
          {
             continue;
          }
 
-         rc = ensureLogicalPidSpace(lpid);
-         if (SDB_OK != rc)
+         if (!isImpReserved)
          {
-            PD_LOG(PDERROR, "failed to ensure lpid[%d] space:%d", lpid, rc);
-            goto error;
+            rc = _allocator.occupy(lpid);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to occupy lpid[%d], rc:%d", lpid, rc);
+               goto error;
+            }
          }
 
-         rc = _allocator.occupy(lpid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to occupy lpid[%d], rc:%d", lpid, rc);
-            goto error;
-         }
-
-         rc = _dpc->ensurePidSpace(slot.pid);
+         rc = _dpc->ensurePidSpace(context, slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d", slot.pid, rc);
             goto error;
          }
 
-         rc = _dpc->occupyPage(slot.pid);
+         rc = _dpc->occupyPage(context, slot.pid);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to occupy pid[%d] in storage, rc:%d",
                    slot.pid, rc);
             goto error;
          }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayDeltaLogWhenOpen(UINT64 beginOffset)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_logConsole.isReady(), "must be ready");
-      SDB_ASSERT(_allocator.isInitialized(), "must be inited");
-      SDB_ASSERT(NULL != _dpc, "can not be null");
-      SDB_ASSERT(_dpc->isOpen(), "must be open");
-
-      deltaLogScanner reader;
-      rc = _logConsole.initReaderBeforeAddingNewRecord(beginOffset, reader);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init log reader:%d", rc);
-         goto error;
-      }
-
-      do
-      {
-         UINT64 offset = 0;
-         deltaLogRecord dlr;
-         rc = reader.getNext(dlr, &offset);
-         if (SDB_OK == rc)
-         {
-            if (!isOperationalDeltaLogRecord(dlr.getLogHead()->_type))
-            {
-               continue;
-            }
-            rc = replayLogRecord(dlr);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to replay log record[%lld], rc:%d", offset, rc);
-               goto error;
-            }
-         }
-         else if (SDB_VESSEL_EOC == rc)
-         {
-            rc = SDB_OK;
-            break;
-         }
-         else
-         {
-            PD_LOG(PDERROR, "failed to get next record from reader:%d", rc);
-            goto error;
-         }
-      }while (TRUE);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayLogRecord(const deltaLogRecord &dlr)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dlr.isValid(), "must be valid");
-
-      switch (dlr.getLogHead()->_type)
-      {
-      case DELTA_LOG_TYPE_MAPPING:
-         rc = replayMappingLogRecord(dlr);
-         break;
-      case DELTA_LOG_TYPE_REMAPPING:
-         rc = replayRemappingLogRecord(dlr);
-         break;
-      case DELTA_LOG_TYPE_UNMAPPING:
-         rc = replayUnmappingLogRecord(dlr);
-         break;
-      case DELTA_LOG_TYPE_RELEASING:
-         rc = replayReleasingLogRecord(dlr);
-         break;
-      default:
-         rc = SDB_INVALIDARG;
-         break;
-      }
-
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to replay log:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayMappingLogRecord(const deltaLogRecord &dlr)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dlr.isValid(), "must be valid");
-      UINT8 count = 0;
-      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-
-      rc = dlrMappingReader::read(dlr, psv, count);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to read log record:%d", rc);
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         idMapSlot slot;
-         mappedLogicalPageId mappedId;
-         rc = dlrMappingReader::getItem(dlr, i, mappedId);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get mapped pid[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         if (!isReservedLpid(mappedId.getLpid()))
-         {
-            rc = ensureLogicalPidSpace(mappedId.getLpid());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure lpid[%d] space:%d", mappedId.getLpid(), rc);
-               goto error;
-            }
-
-            rc = _allocator.occupy(mappedId.getLpid());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to occupy lpid[%d] in allocator:%d",
-                      mappedId.getLpid(), rc);
-               goto error;
-            }
-         }
-
-         rc = _dpc->ensurePidSpace(mappedId.getPid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d",
-                   mappedId.getPid(), rc);
-            goto error;
-         }
-
-         rc = _dpc->occupyPage(mappedId.getPid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to occupy pid[%d], rc:%d", mappedId.getPid(), rc);
-            goto error;
-         }
-
-         slot.psv = psv;
-         slot.pid = mappedId.getPid();
-         rc = _lpidCache.upsertAsImmutable(mappedId.getLpid(), slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", mappedId.getLpid(), rc);
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayRemappingLogRecord(const deltaLogRecord &dlr)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dlr.isValid(), "can not be invalid");
-
-      PAGE_SNAPSHOT_VERION psv = INVALID_PAGE_SNAPSHOT_VERSION;
-      UINT8 flags = 0;
-      UINT8 count = 0;
-
-      rc = dlrRemappingReader::read(dlr, psv, flags, count);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to parse log record:%d", rc);
-         goto error;
-      }
-
-      for (UINT8 i = 0; i < count; ++i)
-      {
-         idMapSlot slot;
-         mappedLogicalPageId mappedId;
-         PAGE_ID oldPid = INVALID_PAGE_ID;
-         rc = dlrRemappingReader::getItem(dlr, i, mappedId, oldPid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get item[%d], rc:%d", i, rc);
-            goto error;
-         }
-
-         if (!isReservedLpid(mappedId.getLpid()))
-         {
-            rc = ensureLogicalPidSpace(mappedId.getLpid());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure lpid[%d] space:%d", mappedId.getLpid(), rc);
-               goto error;
-            }
-
-            rc = _allocator.occupy(mappedId.getLpid());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to occupy lpid[%d] in allocator:%d",
-                      mappedId.getLpid(), rc);
-               goto error;
-            }
-         }
-
-         rc = _dpc->ensurePidSpace(mappedId.getPid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to ensure pid[%d] space:%d",
-                   mappedId.getPid(), rc);
-            goto error;
-         }
-
-         rc = _dpc->occupyPage(mappedId.getPid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to occupy pid[%d], rc:%d", mappedId.getPid(), rc);
-            goto error;
-         }
-
-         slot.psv = psv;
-         slot.pid = mappedId.getPid();
-         rc = _lpidCache.upsertAsImmutable(mappedId.getLpid(), slot);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", mappedId.getLpid(), rc);
-            goto error;
-         }
-
-         if (0 != OSS_BIT_TEST(flags, DELTA_LOG_TYPE_REMAPPING_FLAG_RELEASE_PID))
-         {
-            _dpc->releasePage(oldPid);
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayUnmappingLogRecord(const deltaLogRecord &dlr)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dlr.isValid(), "can not be invalid");
-      UINT8 count = 0;
-      UINT8 flags = 0;
-
-      rc = dlrUnmapingReader::read(dlr, flags, count);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to read unmapping log record:%d", rc);
-         goto error;
-      }
-
-      SDB_ASSERT(0 < count, "impossible");
-      for (UINT8 i = 0; i < count; ++i)
-      {
-         mappedLogicalPageId mappedId;
-         rc = dlrUnmapingReader::getItem(dlr, i, mappedId);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get lpid:%d", rc);
-            goto error;
-         }
-
-         if (!isReservedLpid(mappedId.getLpid()))
-         {
-            _allocator.release(mappedId.getLpid());
-         }
-
-         rc = _lpidCache.remove(mappedId.getLpid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to remove lpid[%d] in cache:%d",
-                   mappedId.getLpid(), rc);
-            goto error;
-         }
-
-         if (0 != OSS_BIT_TEST(flags, DELTA_LOG_TYPE_UNMAPPING_FLAG_RELEASE_PID))
-         {
-            _dpc->releasePage(mappedId.getPid());
-         }
-
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 logicalPageSpace::replayReleasingLogRecord(const deltaLogRecord &dlr)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(dlr.isValid(), "must be valid");
-      UINT8 count = 0;
-      rc = dlrReleasingReader::read(dlr, count);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to read count from reader:%d", rc);
-         goto error;
-      }
-
-      for (UINT8 i = 0; i < count; ++i)
-      {
-         PAGE_ID pid = INVALID_PAGE_ID;
-         rc = dlrReleasingReader::getItem(dlr, i, pid);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get pid:%d", rc);
-            goto error;
-         }
-
-         _dpc->releasePage(pid);
       }
    done:
       return rc;
@@ -2471,7 +2276,7 @@ namespace vessel
          goto error;
       }
 
-      if (isLogicalPageAlwaysMutable())
+      if (!isCopyOnWrite())
       {
          isMutable = TRUE;
       }
@@ -2488,7 +2293,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != _dpc, "can not be null");
       SDB_ASSERT(_dpc->isOpen(), "can not be closed");
-      SDB_ASSERT(!isLogicalPageAlwaysMutable(), "impossible");
+      SDB_ASSERT(isCopyOnWrite(), "impossible");
 
       static const UINT32 _DISPATCH_FLUSHING_TASK_THRESHOLD = 4;
       
@@ -2585,12 +2390,15 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(NULL != context && context->isOpen(), "can not be invalid");
 
-      
-      if ((INT32)CHECKPOINT_TRIGGER_MUTABLE_PAGE_COUNT <=
-          _lpidCache.estimateMutablePageCount())
+      UINT64 dirtySize = (UINT64)(_lpidCache.estimateMutablePageCount()) *
+                         getStorageCoreArgs().pageSize;
+      if (CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE <=
+          dirtySize)
       {
          if (_checkpointContext.tryToApplyCheckpoint())
          {
+            PD_LOG(PDDEBUG, "lps[%d, %d] estimated dirty size:%lld",
+                   getSpaceID(), getSpaceType(), dirtySize);
             backgroundEvent event;
             lpsCheckpointApplying msg;
             msg._sid = getSpaceID();
@@ -2606,21 +2414,153 @@ namespace vessel
 
    BOOLEAN logicalPageSpace::needFullCheckpoint()
    {
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(!_idMapFiles.isEmpty(), "can not be empty");
+      SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
       UINT64 cacheSize = _lpidCache.getTotalCacheSize();
-      UINT64 baseOffset = 0;
-      UINT64 deltaLogOffset = _logConsole.getNextOffset();
-      idMapFile *base = static_cast<idMapFile *>(_idMapFiles.getBack());
-      base->getDeltaLogOffset(baseOffset);
-      INT64 deltaLogSize = (INT64)deltaLogOffset - (INT64)baseOffset;
-      PD_LOG(PDDEBUG, "lps[%d,%d], current lpid cache size:%lld, base idmap offset[%lld],"
-             "delta log offset:[%lld]",
-             getSpaceID(), getSpaceType(),
-             cacheSize, baseOffset, deltaLogOffset);
+      PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld", getSpaceID(), getSpaceType(), cacheSize);
+      return (UINT64)FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize;
+   }
 
-      return (FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize) ||
-             ((INT64)FULL_CHECKPOINT_DELTA_LOG_SIZE <= deltaLogSize);
+   INT32 logicalPageSpace::restoreToLatestCheckpoint(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      SDB_ASSERT(NULL != base, "base id map file not found");
+      SDB_ASSERT(_logConsole.isReady(), "must be ready");
+      SDB_ASSERT(_lpidCache.isReady(), "can not be ready");
+
+      idMapFileHead baseHead;
+      rc = base->getIdMapFileHead(baseHead);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get base file head:%d", rc);
+         goto error;
+      }
+
+      if (_logConsole.isEmtpy())
+      {
+         PD_LOG(PDINFO, "no delta log files found, only base file[%s]",
+                 base->getFullPath());
+         if (0 < base->getCommonHeadInMem().sequence)
+         {
+            rc = restoreAllocatorByBaseFile(context, base);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
+               goto error;
+            }
+             _checkpointContext.setCheckpoint(baseHead.checkpoint);
+         }
+      }
+      else
+      {
+         deltaLogFile *delta = _logConsole.getLatestFile();
+         deltaLogFileHead head;
+         rc = delta->getDeltaLogFileHead(head);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get delta log header:%d", rc);
+            goto error;
+         }
+
+         if (head.baseIdMapFile < base->getCommonHeadInMem().sequence)
+         {
+            PD_LOG(PDINFO, "base version[%lld] in delta log file[%s] is lower than base file[%s]",
+                   head.baseIdMapFile, delta->getFullPath(), base->getFullPath());
+
+            rc = restoreAllocatorByBaseFile(context, base);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
+               goto error;
+            }
+             _checkpointContext.setCheckpoint(baseHead.checkpoint);
+         }
+         else
+         {
+            PD_LOG(PDINFO, "base version[%lld] in delta log file[%s] referenced to base file[%s]",
+                   head.baseIdMapFile, delta->getFullPath(), base->getFullPath());
+
+            rc = _lpidCache.restore(delta);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to restore lpid cache:%d", rc);
+               goto error;
+            }
+
+            rc = mergeAndRestoreAllocator(context);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to merge base and delta:%d", rc);
+               goto error;
+            }
+
+            _checkpointContext.setCheckpoint(head.checkpoint);
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+   
+   INT32 logicalPageSpace::completeDetaLogFile(const ossPoolVector<memoryBlock> &buffers,
+                                               UINT32 itemCount,
+                                               const LPS_CHECKPOINT &checkpoint)
+   {
+      INT32 rc = SDB_OK;
+      deltaLogFile *delta = _logConsole.getReservedFile();
+      SDB_ASSERT(NULL != delta, "can not be null");
+      idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      SDB_ASSERT(NULL != base, "can not be null");
+      UINT32 segmentSize = delta->getCommonHeadInMem().getSegmentSize();
+
+      deltaLogFileHead head;
+      head.version = deltaLogFile::VERSION;
+      head.baseIdMapFile = base->getCommonHeadInMem().sequence;
+      head.checkpoint = checkpoint;
+      head.elementCount = itemCount;
+      slice hs(sizeof(head), &head);
+
+      rc = delta->ensureSegmentCount(buffers.size());
+      for (UINT32 i = 0; i < buffers.size(); ++i)
+      {
+         const memoryBlock &mb = buffers[i];
+         ossValuePtr ptr = 0;
+         rc = delta->getSegmentPtr(i, ptr);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDERROR, "failed to get segment ptr:%d", rc);
+            goto error;
+         }
+
+         if (OSS_UNLIKELY(segmentSize < mb.getSize()))
+         {
+            PD_LOG(PDERROR, "invalid buffer size:%d", mb.getSize());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         ossMemcpy((void *)ptr, mb.getBuffer(), mb.getSize());
+      }
+
+      rc = delta->updateUserDefinedHead(hs);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update delta log head:%d", rc);
+         goto error;
+      }
+
+      rc = _logConsole.addReservedFileToList();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to add file to log list:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

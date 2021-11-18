@@ -150,7 +150,7 @@ namespace vessel
 
       createStorageFileOptions &operator=(const createStorageFileOptions &o)
       {
-         dir = o.dir;
+         //dir = o.dir;
          secretValue = o.secretValue;
          args = o.args;
          replaceWhenCreate = o.replaceWhenCreate;
@@ -159,7 +159,7 @@ namespace vessel
       }
 
       public:
-      strSlice dir;
+      //strSlice dir;
       UINT32 secretValue = 0;
       storageCoreArgs args;
       BOOLEAN replaceWhenCreate = FALSE;
@@ -188,6 +188,22 @@ namespace vessel
       void reset()
       {
          ossMemset(this, 0, sizeof(storageFileHead));
+      }
+
+      BOOLEAN compareCoreArgs(const storageFileHead &h)const
+      {
+         return pageSize == h.pageSize &&
+                maxPageCountPerSeg == h.maxPageCountPerSeg &&
+                maxSegmentCountPerFile == h.maxSegmentCountPerFile;
+      }
+
+      UINT32 getSegmentSize()const
+      {
+         return pageSize * maxPageCountPerSeg;
+      }
+      UINT32 getMaxFileSize()const
+      {
+         return getSegmentSize() * maxSegmentCountPerFile;
       }
 
       ///WARNING: If someone modified page head, remember to 

@@ -128,7 +128,8 @@ namespace vessel
 
          INT32 leafRemove(const ixmKey &key,
                           const recordID &rid,
-                          const DPS_TRANS_ID &transID);
+                          const DPS_TRANS_ID &transID,
+                          RECORD_SLOT_ID *pos=NULL);
 
          /// leaf node only
          INT32 splitLeafAndInsert(const ixmKey &key,
@@ -240,6 +241,10 @@ namespace vessel
                         const ixmKey &key,
                         const recordID &rid,
                         PAGE_ID leftChild=INVALID_PAGE_ID);
+
+         INT32 _leafRemove(const ixmKey &key,
+                           const recordID &rid,
+                           RECORD_SLOT_ID *pos=NULL);
 
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);

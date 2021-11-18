@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogUtils.h
+   Source File Name = deltaLogFileDef.cpp
 
    Descriptive Name =
 
@@ -33,21 +33,43 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_DELTA_LOG_UTILS_H_
-#define VESSEL_DELTA_LOG_UTILS_H_
-
-#include "vessel/deltaLogRecord.h"
 #include "vessel/deltaLogFileDef.h"
-#include "xxHashInc.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   DELTA_LOG_CHECKSUM createDeltaLogRecordChecksum(const deltaLogRecord &dlr);
+   BOOLEAN deltaLogFile::validateUserDefinedHead(const void *head)const
+   {
+      SDB_ASSERT(NULL != head, "can not be null");
+      return ((const deltaLogFileHead *)head)->version == deltaLogFile::VERSION;
+   }
 
-   UINT64 alignDeltaLogRecordOffset(UINT64 offset);
-}//namespace vessel
-}//namespace engine
 
-#endif//VESSEL_DELTA_LOG_UTILS_H_
+   INT32 deltaLogFile::getDeltaLogFileHead(deltaLogFileHead &h)const
+   {
+      INT32 rc = SDB_OK;
+      ossValuePtr ptr = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = getUserDefinedHeadPtr(ptr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      h = *((const deltaLogFileHead *)ptr);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+} // namespace vessel
+
+} // namespace engine

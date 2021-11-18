@@ -168,6 +168,12 @@ namespace vessel
          {
             return lobPath.empty() ? dataPath : lobPath;
          }
+
+         BOOLEAN hasExclusiveIndexPath()const
+         {
+            return !indexPath.empty() && indexPath != dataPath;
+         }
+         
    };// class storageOptions
 
    class openDBOptions : public SDBObject

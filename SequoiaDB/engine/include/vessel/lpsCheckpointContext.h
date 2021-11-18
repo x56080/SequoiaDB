@@ -39,6 +39,7 @@
 #include "vessel/logicalPageSpaceCheckpoint.h"
 #include "ossRWMutex.hpp"
 #include <atomic> /// c++11
+#include "ossSpinLatch.hpp"
 
 namespace engine
 {
@@ -69,7 +70,7 @@ namespace vessel
          }
          OSS_INLINE INT32 peekStatus()const
          {
-            return _status;
+            return _status.load(std::memory_order_relaxed);
          }
          
          OSS_INLINE const LPS_CHECKPOINT &getCheckpoint()const
@@ -102,7 +103,7 @@ namespace vessel
       public:
          void fini();
          void setCheckpoint(const LPS_CHECKPOINT &checkpoint);
-         void updateDirtyLsn(DPS_LSN_OFFSET lsn);
+         void updateDirtyLsn(DPS_LSN_OFFSET lsn, BOOLEAN lock=TRUE);
          void clearLsn()
          {
             _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
@@ -115,6 +116,8 @@ namespace vessel
          ossRWMutex _checkpointLatch;
          std::atomic_int _status = {STATUS::NONE};
          LPS_CHECKPOINT _checkpoint;
+
+         ossSpinLatch _lsnLatch;
          DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
          DPS_LSN_OFFSET _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
    };//class lpsCheckpointContext

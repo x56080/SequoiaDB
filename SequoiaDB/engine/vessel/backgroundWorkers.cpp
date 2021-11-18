@@ -97,7 +97,7 @@ namespace vessel
             goto error;
          }
 
-         worker->init(_or, _env, &_el);
+         worker->init(_or, _env, &_el, &_workingCounter);
          rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
                                           worker);
          if (SDB_OK != rc)

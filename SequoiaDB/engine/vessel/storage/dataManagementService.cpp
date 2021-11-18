@@ -46,6 +46,7 @@
 #include "vessel/api/IQueryFilter.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/vesselFileName.h"
+#include "vessel/storageFileLoader.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -292,13 +293,13 @@ namespace vessel
       /// end:
       /// 1. Drop name and uid from tmp idex.
       /// 2. Add obj to formal index.
-      /// 3. Try to rollback logical id.
       endToCreateCS(obj);
-      lh.unlock();
-
       identifier = collectionSpaceIdentifier(obj->getLogicalID(),
                                              obj->getUniqueID(),
                                              obj->getSpaceId());
+      lh.unlock();
+
+      
    done:
       return rc;
    error:
@@ -354,7 +355,7 @@ namespace vessel
          goto error;
       }
 
-      rc = su->create(context, sid, suOptions);
+      rc = su->create(context, suOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create storage unit[%d], rc:%d", sid, rc);
@@ -1147,6 +1148,7 @@ namespace vessel
       const storagePathOptions &path = context->getEnv()->options.path;
       fs::directory_iterator end_iter ;
       fs::path dataDir(path.dataPath);
+      spaceIDLockHelper lh(context);
 
       if (!fs::exists(dataDir) || !fs::is_directory(dataDir))
       {
@@ -1173,6 +1175,8 @@ namespace vessel
             continue;
          }
 
+         lh.lock(sid, EXCLUSIVE);
+
          rc = occupySpaceId(sid);
          if (SDB_OK != rc)
          {
@@ -1188,7 +1192,7 @@ namespace vessel
             goto error;
          }
 
-         rc = su->open(context, sid);
+         rc = su->open(context);
          if (SDB_VESSEL_TEMP_SU == rc)
          {
             PD_LOG(PDERROR, "storage unit[%s] may crashed when creating/removing",
@@ -1205,8 +1209,10 @@ namespace vessel
          }
 
          sidList.push_back(sid);
+         lh.unlock();
       }
    done:
+      lh.unlock();
       return rc;
    error:
       sidList.clear();
@@ -1492,6 +1498,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 count = 0;
+      spaceIDLockHelper lh(context);
+
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -1506,13 +1514,24 @@ namespace vessel
       for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
            itr != _mainIndex.end(); ++itr)
       {
-         rc = itr->second->createCheckpoint(context);
+         rc = lh.lock(itr->first, SHARED);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", itr->first, rc);
+            rc = SDB_OK;
+            continue;
+         }
+
+         rc = itr->second->createCheckpoint(context, FALSE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "collection space[%d] failed to create checkpoint:%d",
                    itr->first, rc);
             ++count;
+            rc = SDB_OK;
          }
+
+         lh.unlock();
       }
 
       if (0 != count)
@@ -1526,5 +1545,19 @@ namespace vessel
    error:
       goto done;
    }
+
+    storageUnit *dataManagementService::getStorageUnit(SPACE_ID sid)
+    {
+       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
+       SDB_ASSERT(isOpen(), "must be open");
+       storageUnit *su = NULL;
+       INT32 rc = _sus.get(sid, &su);
+       if (SDB_OK != rc)
+       {
+          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", sid, rc);
+       }
+
+       return su;
+    }
 }//namespace vessel
 }//namespace engine

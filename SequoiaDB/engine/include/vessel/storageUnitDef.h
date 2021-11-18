@@ -70,13 +70,9 @@ namespace vessel
 
       BOOLEAN isValid()const
       {
-         return INVALID_SPACE_ID != sid &&
-                !dir.empty() &&
-                dataArgs.isValid(); 
+         return dataArgs.isValid(); 
       }
 
-      SPACE_ID sid = INVALID_SPACE_ID;
-      strSlice dir;
       UINT32 secretValue = 0;
       storageCoreArgs dataArgs;
    };//struct createLogicalPageSpaceOptions

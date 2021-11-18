@@ -329,9 +329,13 @@ namespace vessel
                btreePathFootprint footprint;
                footprint.setPos(location.slotPos);
                footprint.setUpperBound(location.isUpperBound);
-               /// node's free space is enough to save raised key with any size,
-               /// end to access ancestors.
-               if (node.hasFreeSpaceToInsertRaisedKey(MAX_INDEX_KEY_SIZE))
+
+               /// WARNING: the key may be raised is not the current key. 
+               /// Here we are sure external key can be
+               /// saved in current node. And we think most key sizes
+               /// are similar. So if it is free to insert current key,
+               /// just unlock ancestors.
+               if (node.hasFreeSpaceToInsertRaisedKey(key.dataSize() * 1.2f))
                {
                   _bac.endToAccessNonPathEndNodes();
                }
@@ -762,6 +766,7 @@ namespace vessel
       SDB_ASSERT(!_bac.isPathEmpty(), "can not be invalid");
       SDB_ASSERT(raisedKey.isValid(), "can not be invalid");
 
+      btreeNode fatherNode;
       btreeNode node = _bac.getEndNodeInPath();
       SDB_ASSERT(node.getLockingMode().isExclusive(),
                  "must hold exlusive latch first");
@@ -780,6 +785,8 @@ namespace vessel
             PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
             goto error;
          }
+
+         goto done;
       }
       else if (node.isRoot())
       {
@@ -790,52 +797,74 @@ namespace vessel
             PD_LOG(PDERROR, "failed to split root and insert raised key:%d", rc);
             goto error;
          }
+
+         goto done;
+      }
+      else if (_bac.isStillAccessing(node.getDepth() - 1))
+      {
+         btreeNode tmp = _bac.getNodeInPath(node.getDepth() - 1);
+         if (tmp.ensureExclusiveLocking())
+         {
+            fatherNode = tmp;
+         }
       }
       else
       {
-         SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1),
-                    "should keep accessing");
-         btreeNode father = _bac.getNodeInPath(node.getDepth() - 1);
-         SDB_ASSERT(father.hasFreeSpaceToInsert(0), "impossible");
-         if (father.ensureExclusiveLocking())
+         BOOLEAN obstructed = FALSE;
+         ossSharedLatchMode mode;
+         mode.setExclusive();
+         rc = _bac.tryToReaccessNode(node.getDepth() - 1, mode, obstructed);
+         if (SDB_OK != rc)
          {
-            btreeSplitRaisedKey newRaisedKey;
-
-            rc = father.prepareToWrite();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
-               goto error;
-            }
-
-            rc = node.splitNonLeafAndInsert(raisedKey,
-                                            _context->getTransIDWithoutTag(),
-                                            newRaisedKey);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
-               goto error;
-            }
-
-            _bac.popEnd();
-            rc = insertRaisedKeyRecursively(newRaisedKey);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
-               goto error;
-            }
+            PD_LOG(PDERROR, "failed to reaccess father node:%d", rc);
+            rc = SDB_OK; /// do not goto error, just insert ext key in current node.
          }
-         else
+         else if (!obstructed)
          {
-            /// will create external key page
-            rc = node.insertRaisedKeyAsExtKey(raisedKey, _context->getTransIDWithoutTag());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
-               goto error;
-            }
+            fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
          }
       }
+
+      if (fatherNode.isValid())
+      {
+         SDB_ASSERT(fatherNode.getLockingMode().isExclusive(), "impossible");
+         btreeSplitRaisedKey newRaisedKey;
+
+         rc = fatherNode.prepareToWrite();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get father node ready to write:%d", rc);
+            goto error;
+         }
+
+         rc = node.splitNonLeafAndInsert(raisedKey,
+                                          _context->getTransIDWithoutTag(),
+                                          newRaisedKey);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to split and insert raised key:%d", rc);
+            goto error;
+         }
+
+         _bac.popEnd();
+         rc = insertRaisedKeyRecursively(newRaisedKey);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert raised key recursively:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         /// will create external key page
+         rc = node.insertRaisedKeyAsExtKey(raisedKey, _context->getTransIDWithoutTag());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
+         goto error;
+         }
+      }
+            
    done:
       return rc;
    error:

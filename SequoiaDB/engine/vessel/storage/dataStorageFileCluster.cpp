@@ -37,8 +37,10 @@
 #include "vessel/storageFile.h"
 #include "pdTrace.hpp"
 #include "vessel/storageFileLoader.h"
-#include "vessel/storageFileCreater.h"
 #include "vessel/storageUtils.h"
+#include "vessel/requestContext.h"
+#include "vessel/instanceEnv.h"
+#include "vessel/storageUnit.h"
 
 namespace engine
 {
@@ -206,20 +208,21 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::openFiles(const storageFileLoader *loader)
+   INT32 dataStorageFileCluster::openFiles(requestContext *context,
+                                           const storageFileLoader *loader)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be invalid");
       const storageCoreArgs &args = getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
-      const storageFileCreater *creater = dataPageCluster::getCreater();
-      SDB_ASSERT(NULL != creater, "can not be null");
-      SDB_ASSERT(creater->isValid(), "must be valid");
-
       constexpr UINT64 MAX_FILE_SEQUENCE = 1048575;
-
+      
       storageFile *file = NULL;
       const FILE_NAME_LIST *fileList = NULL;
       constexpr UINT32 DEFAULT_CAPACITY = 16;
+
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
 
       if (!args.isValid())
       {
@@ -240,7 +243,7 @@ namespace vessel
          goto done;
       }
 
-      fileList = loader->getFileList(FILE_TYPE_DATA_STORAGE);
+      fileList = loader->getFileList(getSpaceType(), FILE_TYPE_DATA_STORAGE);
       if (NULL == fileList)
       {
          goto done;
@@ -263,13 +266,13 @@ namespace vessel
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
-         else if (fn.getSpaceID() != creater->getSpaceID())
+         else if (fn.getSpaceID() != getSpaceID())
          {
             PD_LOG(PDERROR, "space id does not match creater:%s", fn.getFileName());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
-         else if (fn.getSpaceType() != creater->getSpaceType())
+         else if (fn.getSpaceType() != getSpaceType())
          {
             PD_LOG(PDERROR, "space type does not match creater:%s", fn.getFileName());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
@@ -296,17 +299,17 @@ namespace vessel
             goto error;
          }
 
-         rc = file->open(creater->getDirSlice(), fn);
+         rc = su->openStorageFile(fn, file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open file:%s, rc:%d", fn.getFileName(), rc);
             goto error;
          }
 
-         if (file->getCommonHeadInMem().secretValue != creater->getSecretValue())
+         if (file->getCommonHeadInMem().secretValue != getSecretValue())
          {
             PD_LOG(PDERROR, "secret values do not match[%d,%d]",
-                   file->getCommonHeadInMem().secretValue, creater->getSecretValue());
+                   file->getCommonHeadInMem().secretValue, getSecretValue());
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
@@ -448,7 +451,7 @@ namespace vessel
       return count;
    }
 
-   INT32 dataStorageFileCluster::allocateNewSegment()
+   INT32 dataStorageFileCluster::allocateNewSegment(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(dataPageCluster::isOpen(), "must be open");
@@ -457,7 +460,7 @@ namespace vessel
       storageFile *file = NULL;
       if (0 == _files.getSize())
       {
-         rc = createNewFile();
+         rc = createNewFile(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
@@ -480,7 +483,7 @@ namespace vessel
       }
       else
       {
-         rc = createNewFile();
+         rc = createNewFile(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create new storage file:%d", rc);
@@ -493,7 +496,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::ensureSegmentNotSparse(UINT32 globalSegmentId)
+   INT32 dataStorageFileCluster::ensureSegmentNotSparse(requestContext *context,
+                                                        UINT32 globalSegmentId)
    {
       INT32 rc = SDB_OK;
       storageFile *file = NULL;
@@ -508,7 +512,7 @@ namespace vessel
       file = _files.get<storageFile>(fileId);
       if (NULL == file)
       {
-         rc = createFileEverShrinked(fileId);
+         rc = createFileEverShrinked(context, fileId);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to create file ever shrinked:%d", rc);
@@ -529,13 +533,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::createNewFile()
+   INT32 dataStorageFileCluster::createNewFile(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      const storageFileCreater *creater = dataPageCluster::getCreater();
-      SDB_ASSERT(NULL != creater, "can not be null");
+      SDB_ASSERT(NULL != context, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
       SDB_ASSERT(args.isValid(), "must be valid");
+
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
+
+      createStorageFileOptions o;
+      vesselFileName fn;
 
       storageFile *file = SDB_OSS_NEW storageFile();
       if (OSS_UNLIKELY(NULL == file))
@@ -545,11 +554,23 @@ namespace vessel
          goto error;
       }
 
-      rc = creater->createTmpFile(FILE_TYPE_DATA_STORAGE,
-                                  _files.getSize(), args, file);
+      if (!fn.build(getSpaceID(), FILE_TYPE_DATA_STORAGE,
+                    getSpaceType(), _files.getSize()))
+      {
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      o.args = args;
+      o.createAsTmpFile = TRUE;
+      o.replaceWhenCreate = TRUE;
+      o.secretValue = getSecretValue();
+
+      rc = su->createStorageFile(fn, o, slice(), file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create tmp file:%d", rc);
+         PD_LOG(PDERROR, "failed to create new file[%d], rc:%d", fn.getFileName(), rc);
          goto error;
       }
 
@@ -567,11 +588,10 @@ namespace vessel
          goto error;
       }
 
-      rc = renameToFormalAndReopen(creater->getDirSlice(), FALSE,
-                                   FILE_SHADOW_SUFFIX_TMP, file);
+      rc = file->removeShadowSuffix();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to rename to formal file:%d", rc);
+         PD_LOG(PDERROR, "failed to remove file's shadow suffix:%d", rc);
          goto error;
       }
 
@@ -593,15 +613,19 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataStorageFileCluster::createFileEverShrinked(UINT32 sequence)
+   INT32 dataStorageFileCluster::createFileEverShrinked(requestContext *context,
+                                                        UINT32 sequence)
    {
       INT32 rc = SDB_OK;
-      const storageFileCreater *creater = dataPageCluster::getCreater();
-      SDB_ASSERT(NULL != creater, "can not be null");
+      SDB_ASSERT(NULL != context, "can not be null");
       const storageCoreArgs &args = dataPageCluster::getCoreArgs();
       SDB_ASSERT(args.isValid(), "can not be invalid");
 
+      storageUnit *su = context->getEnv()->dms.getStorageUnit(getSpaceID());
+      SDB_ASSERT(NULL != su, "can not be null");
       storageFile *file = NULL ;
+      createStorageFileOptions o;
+      vesselFileName fn;
 
       if (_files.getSize() <= sequence)
       {
@@ -624,11 +648,23 @@ namespace vessel
          goto error;
       }
 
-      rc = creater->createTmpFile(FILE_TYPE_DATA_STORAGE,
-                                  sequence, args, file);
+      if (!fn.build(getSpaceID(), FILE_TYPE_DATA_STORAGE,
+                    getSpaceType(), _files.getSize()))
+      {
+         PD_LOG(PDERROR, "failed to build file name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      o.args = args;
+      o.createAsTmpFile = TRUE;
+      o.replaceWhenCreate = TRUE;
+      o.secretValue = getSecretValue();
+
+      rc = su->createStorageFile(fn, o, slice(), file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to create tmp file:%d", rc);
+         PD_LOG(PDERROR, "failed to create new file[%d], rc:%d", fn.getFileName(), rc);
          goto error;
       }
 
@@ -646,11 +682,10 @@ namespace vessel
          goto error;
       }
 
-      rc = renameToFormalAndReopen(creater->getDirSlice(), FALSE,
-                                   FILE_SHADOW_SUFFIX_TMP, file);
+      rc = file->removeShadowSuffix();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to rename to formal file:%d", rc);
+         PD_LOG(PDERROR, "failed to remove file's shadow suffix:%d", rc);
          goto error;
       }
 

@@ -54,10 +54,11 @@ namespace vessel
                                 const vesselFileName &oldFileName,
                                 const vesselFileName &newFileName);
 
+/*
    INT32 renameToFormalAndReopen(const strSlice &dir,
                                  BOOLEAN replaceNewFile,
                                  UINT32 shadowSuffix,
-                                 storageFile *file);
+                                 storageFile *file);*/
 
    /// file types must be specified.
    INT32 createFileListUnderDir(const strSlice &dir,

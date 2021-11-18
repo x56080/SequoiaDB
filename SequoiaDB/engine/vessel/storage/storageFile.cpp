@@ -265,7 +265,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::create(const vesselFileName &fn,
+   INT32 storageFile::create(const strSlice &dir,
+                             const vesselFileName &fn,
                              const createStorageFileOptions &options,
                              const slice &userDefinedHead)
    {
@@ -289,6 +290,11 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(dir.empty()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
       else if (OSS_UNLIKELY(STORAGE_FILE_USER_DEFINED_HEAD_SIZE < userDefinedHead.getSize()))
       {
          rc = SDB_INVALIDARG;
@@ -300,7 +306,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createFileAndInitHead(fn, options, userDefinedHead);
+      rc = createFileAndInitHead(dir, fn, options, userDefinedHead);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create file:%d", rc);
@@ -313,7 +319,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::createFileAndInitHead(const vesselFileName &fn,
+   INT32 storageFile::createFileAndInitHead(const strSlice &dir,
+                                            const vesselFileName &fn,
                                             const createStorageFileOptions &options,
                                             const slice &userDefinedHead)
    {
@@ -354,12 +361,12 @@ namespace vessel
          fileName = tmpFn.getFileName();
       }
 
-      rc = utilBuildFullPath(options.dir.str(), fileName, OSS_MAX_PATHSIZE,
+      rc = utilBuildFullPath(dir.str(), fileName, OSS_MAX_PATHSIZE,
                              fullPath) ;
 
       if (SDB_OK != rc)
       {
-         PD_LOG ( PDERROR, "Path+filename are too long: %s, %s", options.dir.str(),
+         PD_LOG ( PDERROR, "Path+filename are too long: %s, %s", dir.str(),
                   fn.getFileName()) ;
          goto error ;
       }
@@ -417,6 +424,10 @@ namespace vessel
       }
 
       _headInMem = *((const storageFileHead *)headPtr);
+      if (options.createAsTmpFile)
+      {
+         _shadowSuffix = FILE_SHADOW_SUFFIX_TMP;
+      }
       
    done:
       return rc;
@@ -437,6 +448,7 @@ namespace vessel
       {
          ossMmapFile::unlink();
       }
+      _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
       return ;
    }
 
@@ -444,6 +456,7 @@ namespace vessel
    {
       _headInMem.reset();
       _dataSegmentCount = 0;
+      _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
       ossMmapFile::close();
       return;
    }
@@ -627,12 +640,6 @@ namespace vessel
    BOOLEAN storageFile::validateOptions(const createStorageFileOptions &options)const
    {
       BOOLEAN r = FALSE;
-
-      if (options.dir.empty())
-      {
-         PD_LOG(PDERROR, "empty dir");
-         goto done;
-      }
 
       if (!options.args.isValid())
       {
@@ -912,6 +919,181 @@ namespace vessel
       SDB_ASSERT(0 != headPtr, "can not be null");
       const void *buf = (const void *)((ossValuePtr)headPtr + 8); /// skip some fields in head.
       return utilCRC32(buf, SOTRAGE_FILE_TOTAL_HEAD_SIZE - 8, checksum);
+   }
+
+   INT32 storageFile::removeShadowSuffix()
+   {
+      INT32 rc = SDB_OK;
+      ossPoolString fullPath;
+      std::size_t pos = std::string::npos;
+      BOOLEAN reset = FALSE;
+      vesselFileName fn;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!hasShadowSuffix())
+      {
+         goto done;
+      }
+
+      /// we never append shadow suffix to file name in header.
+      /// must extract it from full path.
+      fullPath.append(_fileName);
+      pos = fullPath.find_last_of(OSS_FILE_SEP);
+      if (std::string::npos == pos ||
+          fullPath.size() == (pos + 1))
+      {
+         PD_LOG(PDERROR, "unexpected full path name[%s]", _fileName);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      fullPath.resize(pos + 1);
+      fullPath.append(_headInMem.name);
+      reset = TRUE;
+
+#if defined( _LINUX ) || defined (_AIX)
+      rc = ossRenamePath(_fileName, fullPath.c_str());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rename file from %s to %s",
+                _fileName, fullPath.c_str());
+         goto error;
+      }
+
+      _shadowSuffix = INVALID_FILE_SHADOW_SUFFIX;
+      ossMemcpy(_fileName, fullPath.c_str(), fullPath.size() + 1);
+#else
+      fn.extract(strSlice(_headInMem.name));
+      close();
+      /// close will not clear _fileName
+      rc = ossRenamePath(_fileName, fullPath.c_str());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rename file from %s to %s",
+                _fileName, fullPath.c_str());
+         goto error;
+      }
+
+      fullPath.resize(pos + 1);
+      rc = open(strSlice(fullPath.c_str(), fullPath.size()), fn);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reopen dir[%s], name[%s], rc:%d",
+                fullPath.c_str(), fn.getFileName(), rc);
+         goto error;
+      }
+#endif// ( _LINUX ) || defined (_AIX)
+   done:
+      return rc;
+   error:
+      if (reset)
+      {
+         close();
+      }
+      goto done;
+   }
+
+   INT32 storageFile::updateUserDefinedHead(const slice &h)
+   {
+      INT32 rc = SDB_OK;
+      ossValuePtr ptr = 0;
+      ossValuePtr commonPtr = 0;
+      UINT32 checksum = 0;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (h.isEmpty() ||
+               STORAGE_FILE_USER_DEFINED_HEAD_SIZE < h.getSize())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getUserDefinedHeadPtr(ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get head ptr:%d", rc);
+         goto error;
+      }
+
+      rc = getCommonHeadPtr(commonPtr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get common ptr:%d", rc);
+         goto error;
+      }
+
+      ossMemset((void *)ptr, 0x00, STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
+      ossMemcpy((void *)ptr, h.data(), h.getSize());
+
+      createChecksum(commonPtr, checksum);
+      ((storageFileHead *)commonPtr)->headChecksum = checksum;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageFile::copySemgmentsTo(storageFile *file)const
+   {
+      INT32 rc = SDB_OK;
+      UINT32 segmentSize = 0;
+
+      if (OSS_UNLIKELY(NULL == file || !file->isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_headInMem.compareCoreArgs(file->_headInMem))
+      {
+         PD_LOG(PDERROR, "different args found");
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      
+
+      rc = file->ensureSegmentCount(getSegmentCount());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend target file:%d", rc);
+         goto error;
+      }
+
+      segmentSize = _headInMem.getSegmentSize();
+      for (UINT32 i = 0; i < getSegmentCount(); ++i)
+      {
+         ossValuePtr src, dst = 0;
+         rc = getSegmentPtr(i, src);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get src ptr:%d", rc);
+            goto error;
+         }
+         rc = file->getSegmentPtr(i, dst);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get dst ptr:%d", rc);
+            goto error;
+         }
+
+         ossMemcpy((void *)dst, (const void *)src, segmentSize);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
 } // namespace vessel

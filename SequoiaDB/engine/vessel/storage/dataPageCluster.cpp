@@ -34,9 +34,10 @@
 ******************************************************************************/
 
 #include "vessel/dataPageCluster.h"
-#include "vessel/storageFileCreater.h"
 #include "pdTrace.hpp"
 #include "ossLatchGuard.hpp"
+#include "vessel/storageFileLoader.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -50,24 +51,29 @@ namespace vessel
       _close();
    }
 
-   INT32 dataPageCluster::open(const storageCoreArgs &args,
-                               const storageFileCreater *creater,
+   INT32 dataPageCluster::open(requestContext *context,
+                               SPACE_TYPE type,
+                               UINT32 secretValue,
                                const storageFileLoader *loader,
+                               const storageCoreArgs &args,
                                const inMemBitmap::options &allocator)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(!isOpen(), "do not reopen");
+      close();
 
-      if (OSS_UNLIKELY(!args.isValid() ||
-                       NULL == creater ||
-                       !creater->isValid()))
+      if (NULL == context ||
+          !context->isOpen() ||
+          INVALID_SPACE_TYPE == type ||
+          !args.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      _sid = context->getSpaceID();
+      _type = type;
+      _secretValue = secretValue;
       _args = args;
-      _creater = creater;
 
       rc = _allocator.init(_args.maxPageCountPerSeg, allocator);
       if (SDB_OK != rc)
@@ -76,7 +82,7 @@ namespace vessel
          goto error;
       }
 
-      rc = openFiles(loader);
+      rc = openFiles(context, loader);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open files:%d", rc);
@@ -99,7 +105,7 @@ namespace vessel
       close();
       goto done;
    }
-
+ 
    void dataPageCluster::close()
    {
       closeFiles();
@@ -116,19 +122,22 @@ namespace vessel
 
    void dataPageCluster::_close()
    {
+      _sid = INVALID_SPACE_ID;
+      _type = INVALID_SPACE_TYPE;
+      _secretValue = 0;
       _args.reset();
-      _creater = NULL;
       _allocator.fini();
       _segmentCountOnDisk = 0;
       return;
    }
 
-   INT32 dataPageCluster::allocatePage(PAGE_ID &pid)
+   INT32 dataPageCluster::allocatePage(requestContext *context, PAGE_ID &pid)
    {
-      return allocatePages(1, &pid);
+      return allocatePages(context, 1, &pid);
    }
 
-   INT32 dataPageCluster::allocatePages(UINT32 count,
+   INT32 dataPageCluster::allocatePages(requestContext *context,
+                                        UINT32 count,
                                         PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
@@ -161,7 +170,7 @@ namespace vessel
          }
          else
          {
-            rc = extendPageSpace(1, &oldCount);
+            rc = extendPageSpace(context, 1, &oldCount);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to extend page space:%d", rc);
@@ -175,7 +184,7 @@ namespace vessel
       if (mayBeSparse() && hasSparseFile())
       {
          /// Files may be sparse.
-         rc = ensureAllPagesNotSparse(count, pids);
+         rc = ensureAllPagesNotSparse(context, count, pids);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure all pages not sparse:%d", rc);
@@ -195,12 +204,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataPageCluster::occupyPage(PAGE_ID pid)
+   INT32 dataPageCluster::occupyPage(requestContext *context,
+                                     PAGE_ID pid)
    {
-      return occupyPages(1, &pid);
+      return occupyPages(context, 1, &pid);
    }
 
-   INT32 dataPageCluster::occupyPages(UINT32 count, const PAGE_ID *pids)
+   INT32 dataPageCluster::occupyPages(requestContext *context,
+                                      UINT32 count,
+                                      const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
       BOOLEAN rollback = FALSE;
@@ -225,7 +237,7 @@ namespace vessel
 
       if (mayBeSparse() && hasSparseFile())
       {
-         rc = ensureAllPagesNotSparse(count, pids);
+         rc = ensureAllPagesNotSparse(context, count, pids);
          if (SDB_OK != rc)
          {
             rollback = TRUE;
@@ -268,7 +280,8 @@ namespace vessel
       return releasePages(1, &pid);
    }
 
-   INT32 dataPageCluster::ensureAllPagesNotSparse(UINT32 count,
+   INT32 dataPageCluster::ensureAllPagesNotSparse(requestContext *context,
+                                                  UINT32 count,
                                                   const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
@@ -315,7 +328,7 @@ namespace vessel
 
          {
          ossScopedLock guard(&_extendingLatch);
-         rc = ensureSegmentNotSparse(segmentId);
+         rc = ensureSegmentNotSparse(context, segmentId);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to ensure segment not sparse:%d", rc);
@@ -329,7 +342,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataPageCluster::ensurePidSpace(PAGE_ID pid)
+   INT32 dataPageCluster::ensurePidSpace(requestContext *context, PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
       UINT32 minSegCount = 0;
@@ -362,7 +375,7 @@ namespace vessel
       {
          if (_allocator.getCustomizedPageCount() == _segmentCountOnDisk)
          {
-            rc = allocateNewSegment();
+            rc = allocateNewSegment(context);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to allocate new segment on disk:%d", rc);
@@ -387,7 +400,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 dataPageCluster::extendPageSpace(UINT32 segmentCount,
+   INT32 dataPageCluster::extendPageSpace(requestContext *context,
+                                          UINT32 segmentCount,
                                           const UINT32 *oldSegmentCount)
    {
       INT32 rc = SDB_OK;
@@ -401,7 +415,7 @@ namespace vessel
       
       while (_segmentCountOnDisk < targetCount)
       {
-         rc = allocateNewSegment();
+         rc = allocateNewSegment(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate new segment on disk:%d", rc);
