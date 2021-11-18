@@ -116,14 +116,14 @@ namespace engine
 
       if ( NULL == scope )
       {
-         ossPrintf( "it is a unknown type of scope:%d"OSS_NEWLINE, type ) ;
+         ossPrintf( "it is a unknown type of scope:%d" OSS_NEWLINE, type ) ;
          goto error ;
       }
 
       rc = scope->start( loadMask ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to init scope, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to init scope, rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -146,7 +146,7 @@ namespace engine
       scope = _createScope( type, loadMask ) ;
       if ( !scope )
       {
-         ossPrintf( "Failed to create scope[%d]"OSS_NEWLINE, type ) ;
+         ossPrintf( "Failed to create scope[%d]" OSS_NEWLINE, type ) ;
          goto error ;
       }
    done:

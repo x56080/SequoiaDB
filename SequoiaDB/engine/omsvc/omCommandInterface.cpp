@@ -723,7 +723,7 @@ namespace engine
       {
          BSONObj result( buffObj.data() ) ;
          BSONElement eleID = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
-         PD_LOG( PDERROR, "host[%s] is exist in task["OSS_LL_PRINT_FORMAT"]",
+         PD_LOG( PDERROR, "host[%s] is exist in task[" OSS_LL_PRINT_FORMAT "]",
                  hostName.c_str(), eleID.numberLong() ) ;
       }
 
@@ -752,7 +752,7 @@ namespace engine
       arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
       BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
 
-      businessKey = OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ;
+      businessKey = OM_TASKINFO_FIELD_INFO "." OM_BSON_BUSINESS_NAME ;
       matcher = BSON( businessKey << businessName
                       << OM_TASKINFO_FIELD_STATUS << status ) ;
       rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 

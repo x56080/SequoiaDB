@@ -134,7 +134,7 @@ namespace engine
          rc = ossGetEWD( filePath, OSS_MAX_PATHSIZE ) ; \
          if ( rc ) \
          { \
-            ossPrintf( "Error: Failed to get self path: %d"OSS_NEWLINE, \
+            ossPrintf( "Error: Failed to get self path: %d" OSS_NEWLINE, \
                        rc ) ; \
             goto error ; \
          } \
@@ -144,14 +144,14 @@ namespace engine
                                    filename ) ; \
          if ( rc ) \
          { \
-            ossPrintf( "Error: Failed to build self full path: %d"OSS_NEWLINE, \
+            ossPrintf( "Error: Failed to build self full path: %d" OSS_NEWLINE, \
                        rc ) ; \
             goto error ; \
          } \
          rc = utilCheckAndChangeUserInfo( filePath ) ; \
          if ( rc ) \
          { \
-            ossPrintf( "Error: Failed to check and change user info: %d"OSS_NEWLINE, \
+            ossPrintf( "Error: Failed to check and change user info: %d" OSS_NEWLINE, \
                        rc ) ; \
             goto error ; \
          } \

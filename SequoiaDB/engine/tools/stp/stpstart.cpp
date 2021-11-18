@@ -213,7 +213,7 @@ namespace engine
       {
          if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
          {
-            ossPrintf( "Error: Invalid argument: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Error: Invalid argument: %d" OSS_NEWLINE, rc ) ;
             displayArg ( desc ) ;
          }
          else
@@ -249,7 +249,7 @@ namespace engine
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Get module self path failed:  %d"OSS_NEWLINE,
+         ossPrintf( "Error: Get module self path failed:  %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -259,7 +259,7 @@ namespace engine
                               dialogFile ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -267,7 +267,7 @@ namespace engine
       rc = ossMkdir( dialogFile ) ;
       if ( SDB_OK != rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog directory [%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog directory [%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
@@ -276,7 +276,7 @@ namespace engine
       rc = utilCatPath( dialogFile, OSS_MAX_PATHSIZE, STPSTART_LOG_FILE_NAME ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
       }

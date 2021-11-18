@@ -205,21 +205,21 @@ namespace engine
       if ( rc )
       {
          ossPrintf ( "Failed to get excutable file's working "
-                     "directory"OSS_NEWLINE ) ;
+                     "directory" OSS_NEWLINE ) ;
          goto error ;
       }
       rc = utilBuildFullPath( progName, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog dir[%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          goto error ;
       }
@@ -227,7 +227,7 @@ namespace engine
                         SDBCMART_LOG_FILE_NAME ) ;
       if ( rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
       // enable pd log
@@ -257,7 +257,7 @@ namespace engine
          if ( procs.size() > 0 )
          {
             // find it
-            ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
+            ossPrintf( "Success: sdbcmd is already started (%d)" OSS_NEWLINE,
                        (*procs.begin())._pid ) ;
             goto done ;
          }
@@ -267,7 +267,7 @@ namespace engine
       rc = startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
-         ossPrintf ( "Error: Failed to start sdbcm, rc: %d"OSS_NEWLINE,
+         ossPrintf ( "Error: Failed to start sdbcm, rc: %d" OSS_NEWLINE,
                      rc ) ;
          goto error ;
       }
@@ -289,7 +289,7 @@ namespace engine
 
          if ( procs.size() == 0 )
          {
-            ossPrintf ( "Error: Failed to start sdbcm, rc: %d"OSS_NEWLINE,
+            ossPrintf ( "Error: Failed to start sdbcm, rc: %d" OSS_NEWLINE,
                         rc ) ;
             goto error ;
          }
@@ -308,7 +308,7 @@ namespace engine
       }
       else
       {
-         ossPrintf ( "Error: Failed to wait sdbcm ok, rc: %d"OSS_NEWLINE,
+         ossPrintf ( "Error: Failed to wait sdbcm ok, rc: %d" OSS_NEWLINE,
                      rc ) ;
          goto error ;
       }

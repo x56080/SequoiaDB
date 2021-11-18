@@ -262,7 +262,7 @@ INT32 listCollections(sdb &db)
    rc=db.listCollections( cursor);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to list collection, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Failed to list collection, error=%d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -271,7 +271,7 @@ INT32 listCollections(sdb &db)
    {
       if(SDB_OK != rc)
       {
-          ossPrintf("Failed to get record in cursor, error=%d"OSS_NEWLINE, rc);
+          ossPrintf("Failed to get record in cursor, error=%d" OSS_NEWLINE, rc);
           goto error;
       }
       else
@@ -331,14 +331,14 @@ INT32 buildDialogPath(CHAR *diaglogPath, CHAR *diaglogPathFromCmd,
 
    if(bufSize < OSS_MAX_PATHSIZE + 1)
    {
-      ossPrintf("Path buffer size is too small: %u"OSS_NEWLINE, bufSize);
+      ossPrintf("Path buffer size is too small: %u" OSS_NEWLINE, bufSize);
       goto error;
    }
 
    rc = ossGetEWD(currentPath, OSS_MAX_PATHSIZE);
    if(rc)
    {
-      ossPrintf("Get working directory failed: %d"OSS_NEWLINE, rc);
+      ossPrintf("Get working directory failed: %d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -349,7 +349,7 @@ INT32 buildDialogPath(CHAR *diaglogPath, CHAR *diaglogPathFromCmd,
                                   OSS_MAX_PATHSIZE, diaglogPath);
    if(rc)
    {
-      ossPrintf("Build log path failed: %d"OSS_NEWLINE, rc);
+      ossPrintf("Build log path failed: %d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -358,7 +358,7 @@ INT32 buildDialogPath(CHAR *diaglogPath, CHAR *diaglogPathFromCmd,
    {
       if(SDB_FE != rc)
       {
-          ossPrintf("Make diralog path [%s] faild: %d"OSS_NEWLINE,
+          ossPrintf("Make diralog path [%s] faild: %d" OSS_NEWLINE,
                     diaglogPath, rc);
           goto error;
       }
@@ -407,7 +407,7 @@ INT32 sequoiaFS::initDataSource(const CHAR * userName,
    rc = ds.init( _coordHostPort, conf);
    if (SDB_OK != rc)
    {
-      ossPrintf("Fail to init sdbDataSouce, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Fail to init sdbDataSouce, error=%d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -415,7 +415,7 @@ INT32 sequoiaFS::initDataSource(const CHAR * userName,
    rc = ds.enable();
    if(SDB_OK != rc)
    {
-      ossPrintf("Fail to enable sdbDataSource, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Fail to enable sdbDataSource, error=%d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -433,7 +433,7 @@ INT32 sequoiaFS::disableDataSource()
    rc = ds.disable();
    if(SDB_OK != rc)
    {
-      ossPrintf("Fail to disable sdbDataSource, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Fail to disable sdbDataSource, error=%d" OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -473,7 +473,7 @@ INT32 sequoiaFS::getConnection(sdb **connection)
    rc = ds.getConnection(*connection);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to get a connection, error=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to get a connection, error=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -891,7 +891,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
 
    else if(SDB_OK != rc)
    {
-      ossPrintf("Failed to resolving arguments(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to resolving arguments(error=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -902,7 +902,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    rc = buildDialogPath(diaglogPath, tempDialogPath, OSS_MAX_PATHSIZE + 1);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(error=%d), eixt."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(error=%d), eixt." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -911,7 +911,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
                             SDB_SEQUOIAFS_LOG_FILE_NAME);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(error=%d), exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -933,7 +933,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       closeDataSource();
       PD_LOG( PDERROR, "Failed to init connection pool, rc:%d", rc ) ;
-      ossPrintf("Failed to init connection pool(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init connection pool(error=%d), exit." OSS_NEWLINE, rc);
       goto done;
    }
 
@@ -953,7 +953,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
       PD_LOG( PDERROR, "Failed to set the preferred instance for read request "
               "in the current session (PreferedInstance:M), rc:%d", rc ) ;
       ossPrintf("Failed to set the preferred instance for read request "
-                "in the current session (PreferedInstance:M), error=%d"OSS_NEWLINE,
+                "in the current session (PreferedInstance:M), error=%d" OSS_NEWLINE,
                 rc);
       rc = -EIO;
       goto error;
@@ -964,7 +964,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to init collection, cs.cl=%s, rc:%d", 
              _collection.c_str(), rc);
-      ossPrintf("Failed to init collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init collection, cs.cl=%s, error=%d, exit." OSS_NEWLINE,
                 _collection.c_str(), rc);
       goto error;
    }
@@ -978,7 +978,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to parse dir meta collection, cs.cl=%s, rc:%d", 
              _sysDirMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, error=%d, exit." OSS_NEWLINE,
                 _sysDirMetaCLFullName.c_str(), rc);
       goto error;
    }
@@ -989,7 +989,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to parse file meta collection, cs.cl=%s, rc:%d", 
              _sysFileMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse file meta collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse file meta collection, cs.cl=%s, error=%d, exit." OSS_NEWLINE,
                 _sysFileMetaCLFullName.c_str(), rc);
       goto error;
    }
@@ -1000,7 +1000,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to init dir meta collection, cs.cl=%s.%s, rc:%d", 
              _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
       goto error;
    }
@@ -1009,7 +1009,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to init root path, rc:%d", rc);
-      ossPrintf("Failed to init root path, error=%d, exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init root path, error=%d, exit." OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -1019,7 +1019,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to init file meta collection, cs.cl=%s.%s, rc:%d", 
              _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
       goto error;
    }
@@ -1031,7 +1031,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to init file meta collection, cs.cl=%s.%s, rc:%d", 
              _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
       goto error;
    }
@@ -1042,7 +1042,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to create maphistory collection, cs.cl=%s.%s, rc:%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
-      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
       goto error;
    }
@@ -1052,7 +1052,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc:%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
@@ -1062,7 +1062,7 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    {
       PD_LOG(PDERROR, "Failed to init sequenceid collection, cs.cl=%s.%s, rc:%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, error=%d, exit." OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }

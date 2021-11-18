@@ -401,9 +401,9 @@ namespace engine
    // output time
    static INT32 _stpqOutputTime( const stpLogicalTimeNS &currentTime )
    {
-      ossPrintf( "Time:"OSS_NEWLINE
-                 "   %-9s : ( %llu second, %llu nanosec )"OSS_NEWLINE
-                 "   %-9s : %u"OSS_NEWLINE,
+      ossPrintf( "Time:" OSS_NEWLINE
+                 "   %-9s : ( %llu second, %llu nanosec )" OSS_NEWLINE
+                 "   %-9s : %u" OSS_NEWLINE,
                  STP_FIELD_NAME_TIMESTAMP,
                  currentTime.getTime().getSecond(),
                  currentTime.getTime().getNanoSecond(),
@@ -424,7 +424,7 @@ namespace engine
       rc = client.getTime( currentTime ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETTIME ), rc ) ;
          goto error ;
       }
@@ -433,7 +433,7 @@ namespace engine
       rc = _stpqOutputTime( currentTime ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to output time, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Error: Failed to output time, rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -447,9 +447,9 @@ namespace engine
    // output time in microsecond
    static INT32 _stpqOutputTimeUS( const stpLogicalTimeUS &currentTime )
    {
-      ossPrintf( "TimeUS:"OSS_NEWLINE
-                 "   %-9s : %llu microsec"OSS_NEWLINE
-                 "   %-9s : %u"OSS_NEWLINE,
+      ossPrintf( "TimeUS:" OSS_NEWLINE
+                 "   %-9s : %llu microsec" OSS_NEWLINE
+                 "   %-9s : %u" OSS_NEWLINE,
                  STP_FIELD_NAME_TIMESTAMP,
                  currentTime.getTime(),
                  STP_FIELD_NAME_TIME_ERROR,
@@ -469,7 +469,7 @@ namespace engine
       rc = client.getTimeUS( currentTime ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETTIMEUS ), rc ) ;
          goto error ;
       }
@@ -479,7 +479,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output time in microsecond, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
+                    "rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -494,22 +494,22 @@ namespace engine
    static INT32 _stpqOutputFullConfig( const stpOptions &options )
    {
       // print result
-      ossPrintf( "Config:"OSS_NEWLINE
-                 "   %-24s : %s"OSS_NEWLINE  // port
-                 "   %-24s : %s"OSS_NEWLINE  // serverlist
-                 "   %-24s : %s"OSS_NEWLINE  // role
-                 "   %-24s : %u"OSS_NEWLINE  // weight
-                 "   %-24s : %u"OSS_NEWLINE  // syncinterval
-                 "   %-24s : %u"OSS_NEWLINE  // maxtimeerror
-                 "   %-24s : %u"OSS_NEWLINE  // maxsynchist
-                 "   %-24s : %u"OSS_NEWLINE  // maxsyncports
-                 "   %-24s : %u"OSS_NEWLINE  // defclientsperport
-                 "   %-24s : %s"OSS_NEWLINE  // preopenports
-                 "   %-24s : %s"OSS_NEWLINE  // allowsyncwithsysport
-                 "   %-24s : %d"OSS_NEWLINE  // diaglevel
-                 "   %-24s : %u"OSS_NEWLINE  // sharingbreak
-                 "   %-24s : %u"OSS_NEWLINE  // startshifttime
-                 "   %-24s : %s"OSS_NEWLINE, // testmode
+      ossPrintf( "Config:" OSS_NEWLINE
+                 "   %-24s : %s" OSS_NEWLINE  // port
+                 "   %-24s : %s" OSS_NEWLINE  // serverlist
+                 "   %-24s : %s" OSS_NEWLINE  // role
+                 "   %-24s : %u" OSS_NEWLINE  // weight
+                 "   %-24s : %u" OSS_NEWLINE  // syncinterval
+                 "   %-24s : %u" OSS_NEWLINE  // maxtimeerror
+                 "   %-24s : %u" OSS_NEWLINE  // maxsynchist
+                 "   %-24s : %u" OSS_NEWLINE  // maxsyncports
+                 "   %-24s : %u" OSS_NEWLINE  // defclientsperport
+                 "   %-24s : %s" OSS_NEWLINE  // preopenports
+                 "   %-24s : %s" OSS_NEWLINE  // allowsyncwithsysport
+                 "   %-24s : %d" OSS_NEWLINE  // diaglevel
+                 "   %-24s : %u" OSS_NEWLINE  // sharingbreak
+                 "   %-24s : %u" OSS_NEWLINE  // startshifttime
+                 "   %-24s : %s" OSS_NEWLINE, // testmode
                  STP_OPTION_PORT, options.getServiceName(),
                  STP_OPTION_SERVERLIST, options.getServerListString(),
                  STP_OPTION_ROLE, options.getRoleString(),
@@ -535,13 +535,13 @@ namespace engine
    // output configurations
    static INT32 _stpqOutputConfig( const stpOptions &options )
    {
-      ossPrintf( "Config:"OSS_NEWLINE
-                 "   %-14s : %s"OSS_NEWLINE  // port
-                 "   %-14s : %s"OSS_NEWLINE  // serverlist
-                 "   %-14s : %s"OSS_NEWLINE  // role
-                 "   %-14s : %u"OSS_NEWLINE  // syncinterval
-                 "   %-14s : %u"OSS_NEWLINE  // maxtimeerror
-                 "   %-14s : %d"OSS_NEWLINE, // diaglevel
+      ossPrintf( "Config:" OSS_NEWLINE
+                 "   %-14s : %s" OSS_NEWLINE  // port
+                 "   %-14s : %s" OSS_NEWLINE  // serverlist
+                 "   %-14s : %s" OSS_NEWLINE  // role
+                 "   %-14s : %u" OSS_NEWLINE  // syncinterval
+                 "   %-14s : %u" OSS_NEWLINE  // maxtimeerror
+                 "   %-14s : %d" OSS_NEWLINE, // diaglevel
                  STP_OPTION_PORT, options.getServiceName(),
                  STP_OPTION_SERVERLIST, options.getServerListString(),
                  STP_OPTION_ROLE, options.getRoleString(),
@@ -563,7 +563,7 @@ namespace engine
       rc = client.getConf( options ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETCONF ), rc ) ;
          goto error ;
       }
@@ -575,7 +575,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             ossPrintf( "Error: Failed to output full configurations, "
-                       "rc: %d"OSS_NEWLINE, rc ) ;
+                       "rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
       }
@@ -586,7 +586,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             ossPrintf( "Error: Failed to output configurations, "
-                       "rc: %d"OSS_NEWLINE, rc ) ;
+                       "rc: %d" OSS_NEWLINE, rc ) ;
             goto error ;
          }
       }
@@ -605,17 +605,17 @@ namespace engine
                                  const stpMetaData &meta,
                                  DPS_LSN metaLSN )
    {
-      ossPrintf( "Meta:"OSS_NEWLINE
-                 "   %-12s : %s"OSS_NEWLINE  // shm key
-                 "   %-12s : %u"OSS_NEWLINE  // version
-                 "   %-12s : %u"OSS_NEWLINE  // synchronize interval
-                 "   %-12s : ( %llu second, %llu nanosec )"OSS_NEWLINE  // sync hardware time
-                 "   %-12s : ( %llu second, %llu nanosec )"OSS_NEWLINE  // base hardware time
-                 "   %-12s : ( %llu second, %llu nanosec )"OSS_NEWLINE  // base real time
-                 "   %-12s : %lld"OSS_NEWLINE   // offset
-                 "   %-12s : %llu"OSS_NEWLINE   // slew rate
-                 "   %-12s : %u"OSS_NEWLINE     // time error
-                 "   %-12s : ( offset %llu, version %u )"OSS_NEWLINE,   // LSN
+      ossPrintf( "Meta:" OSS_NEWLINE
+                 "   %-12s : %s" OSS_NEWLINE  // shm key
+                 "   %-12s : %u" OSS_NEWLINE  // version
+                 "   %-12s : %u" OSS_NEWLINE  // synchronize interval
+                 "   %-12s : ( %llu second, %llu nanosec )" OSS_NEWLINE  // sync hardware time
+                 "   %-12s : ( %llu second, %llu nanosec )" OSS_NEWLINE  // base hardware time
+                 "   %-12s : ( %llu second, %llu nanosec )" OSS_NEWLINE  // base real time
+                 "   %-12s : %lld" OSS_NEWLINE   // offset
+                 "   %-12s : %llu" OSS_NEWLINE   // slew rate
+                 "   %-12s : %u" OSS_NEWLINE     // time error
+                 "   %-12s : ( offset %llu, version %u )" OSS_NEWLINE,   // LSN
                  STP_FIELD_NAME_META_SHMKEY, shmKey.c_str(),
                  STP_FIELD_NAME_VERSION, meta.getVersion(),
                  STP_FIELD_NAME_SYNC_INTERVAL, meta.getSyncInterval(),
@@ -649,7 +649,7 @@ namespace engine
       rc = client.getMetaData( shmKey, metaData, metaLSN ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETMETA ), rc ) ;
          goto error ;
       }
@@ -658,7 +658,7 @@ namespace engine
       rc = _stpqOutputMeta( shmKey, metaData, metaLSN ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to output meta, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to output meta, rc: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -675,16 +675,16 @@ namespace engine
                                     const STP_SERVER_LIST &serverList,
                                     const stpServerNode &primaryNode )
    {
-      ossPrintf( "Servers:"OSS_NEWLINE ) ;
+      ossPrintf( "Servers:" OSS_NEWLINE ) ;
       // print version
-      ossPrintf( "   %-7s : %u"OSS_NEWLINE, STP_FIELD_NAME_VERSION, version ) ;
+      ossPrintf( "   %-7s : %u" OSS_NEWLINE, STP_FIELD_NAME_VERSION, version ) ;
       // print servers
       for ( STP_SERVER_LIST::const_iterator iter = serverList.begin() ;
             iter != serverList.end() ;
             ++ iter )
       {
          // print host and service names
-         ossPrintf( "   %-7s : %s:%s"OSS_NEWLINE, "Server",
+         ossPrintf( "   %-7s : %s:%s" OSS_NEWLINE, "Server",
                     iter->getHostName(), iter->getServiceName() ) ;
       }
       // print primary
@@ -694,13 +694,13 @@ namespace engine
                            primaryNode.getServiceName() ) )
       {
          // known primary
-         ossPrintf( "   %-7s : %s:%s"OSS_NEWLINE, "Primary",
+         ossPrintf( "   %-7s : %s:%s" OSS_NEWLINE, "Primary",
                     primaryNode.getHostName(), primaryNode.getServiceName() ) ;
       }
       else
       {
          // unknown primary
-         ossPrintf( "   %-7s : %s"OSS_NEWLINE, "Primary",
+         ossPrintf( "   %-7s : %s" OSS_NEWLINE, "Primary",
                     STP_UNKNOWN_HOST_NAME ) ;
       }
 
@@ -720,7 +720,7 @@ namespace engine
       rc = client.getServers( version, serverList, primaryNode ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSERVERS ), rc ) ;
          goto error ;
       }
@@ -729,7 +729,7 @@ namespace engine
       rc = _stpqOutputServers( version, serverList, primaryNode ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to output servers, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to output servers, rc: %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -748,7 +748,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       // print source
-      ossPrintf( "Synchronize Source: %s:%s"OSS_NEWLINE,
+      ossPrintf( "Synchronize Source: %s:%s" OSS_NEWLINE,
                  sourceNode.getHostName(), sourceNode.getServiceName() ) ;
 
       // print synchronize client in below fields
@@ -759,7 +759,7 @@ namespace engine
       // timeError: current and maximum allowed time error
       //            ( in microseconds )
       // passed: microseconds after last synchronize
-      ossPrintf( "Synchronize Clients:"OSS_NEWLINE ) ;
+      ossPrintf( "Synchronize Clients:" OSS_NEWLINE ) ;
 
       if ( clientList.size() > 0 )
       {
@@ -791,7 +791,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add address list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -832,7 +832,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add time error list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -929,7 +929,7 @@ namespace engine
       }
 
       // print total count
-      ossPrintf( "   Total: %llu"OSS_NEWLINE,
+      ossPrintf( "   Total: %llu" OSS_NEWLINE,
                  (UINT64)( clientList.size() ) ) ;
 
    done:
@@ -951,7 +951,7 @@ namespace engine
       rc = client.getSyncClients( sourceNode, clientList ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSYNCCLIENTS ), rc ) ;
          goto error ;
       }
@@ -961,7 +961,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize clients, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
+                    "rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -1006,7 +1006,7 @@ namespace engine
       // passed: microseconds after this synchronize request
 
       // print header
-      ossPrintf( "Synchronize Status:"OSS_NEWLINE ) ;
+      ossPrintf( "Synchronize Status:" OSS_NEWLINE ) ;
 
       if ( isPrimary || !hasSource )
       {
@@ -1197,7 +1197,7 @@ namespace engine
             string histOutput = histOutputSS.str() ;
 
             // print header
-            ossPrintf( "Synchronize history:"OSS_NEWLINE ) ;
+            ossPrintf( "Synchronize history:" OSS_NEWLINE ) ;
             ossPrintf( histHeaderOutput.c_str(), "RequestID", "Valid",
                        "Status", "Delay", "Offset", "Passed" ) ;
 
@@ -1234,7 +1234,7 @@ namespace engine
       rc = client.getSyncStatus( role, isPrimary, status, sourceNode ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSYNCSTATUS ), rc ) ;
          goto error ;
       }
@@ -1244,7 +1244,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize status, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
+                    "rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -1272,7 +1272,7 @@ namespace engine
       // passed: microseconds after last synchronize
 
       // print header
-      ossPrintf( "Synchronize History:"OSS_NEWLINE ) ;
+      ossPrintf( "Synchronize History:" OSS_NEWLINE ) ;
 
       if ( sourceList.size() > 0 )
       {
@@ -1306,7 +1306,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add address list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -1327,7 +1327,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add count list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -1349,7 +1349,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add delay list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -1377,7 +1377,7 @@ namespace engine
             catch ( exception &e )
             {
                ossPrintf( "Error: Failed to add offset list, "
-                          "error: %s"OSS_NEWLINE, e.what() ) ;
+                          "error: %s" OSS_NEWLINE, e.what() ) ;
                rc = SDB_SYS ;
                goto error ;
             }
@@ -1466,7 +1466,7 @@ namespace engine
       }
 
       // print total count
-      ossPrintf( "   Total: %llu"OSS_NEWLINE,
+      ossPrintf( "   Total: %llu" OSS_NEWLINE,
                  (UINT64)( sourceList.size() ) ) ;
 
    done:
@@ -1487,7 +1487,7 @@ namespace engine
       rc = client.getSyncHistory( sourceList ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to execute [%s] command, rc: %d" OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSYNCHISTORY ), rc ) ;
          goto error ;
       }
@@ -1497,7 +1497,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize history, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
+                    "rc: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -1532,7 +1532,7 @@ namespace engine
       {
          if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
          {
-            ossPrintf( "Error: Invalid argument: %d"OSS_NEWLINE, rc ) ;
+            ossPrintf( "Error: Invalid argument: %d" OSS_NEWLINE, rc ) ;
             _stpqDisplayArgument( desc ) ;
          }
          else
@@ -1546,7 +1546,7 @@ namespace engine
       rc = client.connect( hostName.c_str(), serviceName.c_str() ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Failed to connect to STP %s:%s, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Error: Failed to connect to STP %s:%s, rc: %d" OSS_NEWLINE,
                     hostName.c_str(), serviceName.c_str(), rc ) ;
          goto error ;
       }

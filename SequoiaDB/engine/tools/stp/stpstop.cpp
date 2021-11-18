@@ -187,7 +187,7 @@ namespace engine
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Error: Get module self path failed:  %d"OSS_NEWLINE,
+         ossPrintf( "Error: Get module self path failed:  %d" OSS_NEWLINE,
                     rc ) ;
          goto error ;
       }
@@ -197,7 +197,7 @@ namespace engine
                               dialogFile ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog path: %d" OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -205,7 +205,7 @@ namespace engine
       rc = ossMkdir( dialogFile ) ;
       if ( SDB_OK != rc && SDB_FE != rc )
       {
-         ossPrintf( "Create dialog directory [%s] failed, rc: %d"OSS_NEWLINE,
+         ossPrintf( "Create dialog directory [%s] failed, rc: %d" OSS_NEWLINE,
                     dialogFile, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
@@ -214,7 +214,7 @@ namespace engine
       rc = utilCatPath( dialogFile, OSS_MAX_PATHSIZE, STPSTOP_LOG_FILE_NAME ) ;
       if ( SDB_OK != rc )
       {
-         ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to build dialog file: %d" OSS_NEWLINE, rc ) ;
          // not go to error, continue
          rc = SDB_OK ;
       }
@@ -237,17 +237,17 @@ namespace engine
          rc = utilAsyncStopNode( info ) ;
          if ( SDB_OK != rc )
          {
-            ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+            ossPrintf ( "Terminating process %d: %s(%s)" OSS_NEWLINE,
                         info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                         info._svcname.c_str() ) ;
             if ( SDB_CLS_NODE_NOT_EXIST == rc )
             {
                rc = SDB_OK ;
-               ossPrintf( "DONE"OSS_NEWLINE ) ;
+               ossPrintf( "DONE" OSS_NEWLINE ) ;
             }
             else
             {
-               ossPrintf( "FAILED"OSS_NEWLINE ) ;
+               ossPrintf( "FAILED" OSS_NEWLINE ) ;
             }
 
             itrNode = listNodes.erase( itrNode ) ;
@@ -262,7 +262,7 @@ namespace engine
       {
          utilNodeInfo &info = *itrNode ;
 
-         ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+         ossPrintf ( "Terminating process %d: %s(%s)" OSS_NEWLINE,
                      info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                      info._svcname.c_str() ) ;
 
@@ -272,7 +272,7 @@ namespace engine
             PD_LOG( PDEVENT, "Successful to stop stp node %d: %s(%s)",
                     info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                     info._svcname.c_str() ) ;
-            ossPrintf( "DONE"OSS_NEWLINE ) ;
+            ossPrintf( "DONE" OSS_NEWLINE ) ;
             ++ success ;
          }
          else
@@ -280,7 +280,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to stop stp node %d: %s(%s), rc: %d",
                     info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
                     info._svcname.c_str(), rc ) ;
-            ossPrintf( "FAILED"OSS_NEWLINE ) ;
+            ossPrintf( "FAILED" OSS_NEWLINE ) ;
          }
          ++ itrNode ;
          ++ total ;
@@ -288,12 +288,12 @@ namespace engine
 
       if ( total == success )
       {
-         ossPrintf( "Successful to stop stp"OSS_NEWLINE ) ;
+         ossPrintf( "Successful to stop stp" OSS_NEWLINE ) ;
          rc = SDB_OK ;
       }
       else
       {
-         ossPrintf( "Failed to stop stp, rc: %d"OSS_NEWLINE, rc ) ;
+         ossPrintf( "Failed to stop stp, rc: %d" OSS_NEWLINE, rc ) ;
          rc = success == 0 ? STOPFAIL : STOPPART ;
       }
 

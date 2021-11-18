@@ -500,7 +500,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATGETGROUPOBJ2 ) ;
       BSONObj dummyObj ;
       BSONObj boMatcher = BSON(
-            FIELD_NAME_GROUP"."FIELD_NAME_NODEID << nodeID );
+            FIELD_NAME_GROUP "." FIELD_NAME_NODEID << nodeID );
 
       rc = catGetOneObj( CAT_NODE_INFO_COLLECTION, dummyObj, boMatcher,
                          dummyObj, cb, obj ) ;
@@ -553,7 +553,7 @@ namespace engine
       BSONObj groupInfo ;
       BSONObj dummyObj ;
       BSONObj match = BSON( FIELD_NAME_GROUP << BSON( "$elemMatch" <<
-                            BSON( FIELD_NAME_SERVICE"."FIELD_NAME_NAME <<
+                            BSON( FIELD_NAME_SERVICE "." FIELD_NAME_NAME <<
                                   serviceName << FIELD_NAME_HOST <<
                                   hostName )) ) ;
 
@@ -969,7 +969,7 @@ namespace engine
       // remove from all domain
       else
       {
-         matcher = BSON( CAT_GROUPS_NAME"."CAT_GROUPID_NAME <<
+         matcher = BSON( CAT_GROUPS_NAME "." CAT_GROUPID_NAME <<
                          (INT32)groupID ) ;
       }
 
@@ -2544,12 +2544,12 @@ namespace engine
 
       if ( enable )
       {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE "." FIELD_NAME_ENABLE
                                          << true ) ) ;
       }
       else
       {
-         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE "." FIELD_NAME_ENABLE
                                          << false ) ) ;
       }
       rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
