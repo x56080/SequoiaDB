@@ -217,7 +217,7 @@ void ossFuncAddrToName( void * address,
             {
                instruction_offset = (uintptr_t)address -
                                     (uintptr_t)dlip.dli_saddr ;
-               trapFile->fWrite( "%s + 0x%04lx"OSS_NEWLINE"%s (%s)"OSS_NEWLINE,
+               trapFile->fWrite( "%s + 0x%04lx" OSS_NEWLINE "%s (%s)" OSS_NEWLINE,
                                  symbol,
                                  (UINT32_64)instruction_offset,
                                  "                  ",
@@ -230,10 +230,10 @@ void ossFuncAddrToName( void * address,
                // object was loaded. If the dli_fbase is not zero, we may
                // use ( address - dli_fbase ) along with nm command to figure
                // out the symbol and the line of code manually.
-               trapFile->fWrite( "address: 0x"OSS_PRIXPTR
-                                 " ; dli_fbase: 0x"OSS_PRIXPTR
-                                 " ; offset: 0x"OSS_PRIXPTR
-                                 " ; (%s)"OSS_NEWLINE,
+               trapFile->fWrite( "address: 0x" OSS_PRIXPTR
+                                 " ; dli_fbase: 0x" OSS_PRIXPTR
+                                 " ; offset: 0x" OSS_PRIXPTR
+                                 " ; (%s)" OSS_NEWLINE,
                                  (UINT32_64)address,
                                  (UINT32_64)dlip.dli_fbase,//addr where obj is loaded
                                  (CHAR *)address - (CHAR *)dlip.dli_fbase,
@@ -243,7 +243,7 @@ void ossFuncAddrToName( void * address,
          else
          {
             // dladdr returns error
-            trapFile->fWrite( "address: 0x"OSS_PRIXPTR OSS_NEWLINE, address ) ;
+            trapFile->fWrite( "address: 0x" OSS_PRIXPTR OSS_NEWLINE, address ) ;
          }
       }
    }
@@ -290,7 +290,7 @@ void ossDumpDatabaseInfo ( ossPrimitiveFileOp * trapFile )
    {
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       ossSprintVersion( "Version: ", verText, OSS_MAX_PATHSIZE, FALSE ) ;
-      trapFile->fWrite( "%s"OSS_NEWLINE, verText ) ;
+      trapFile->fWrite( "%s" OSS_NEWLINE, verText ) ;
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPDBINFO );
 }
@@ -309,7 +309,7 @@ void ossDumpSystemInfo( ossPrimitiveFileOp * trapFile )
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
       trapFile->fWrite( "System:%s Release:%s Version:%s "
-                        "Machine:%s Node:%s"OSS_NEWLINE,
+                        "Machine:%s Node:%s" OSS_NEWLINE,
                         name.sysname,
                         name.release,
                         name.version,
@@ -351,7 +351,7 @@ void ossDumpSigInfo ( oss_siginfo_t  pSigInfo,
         && ( NULL != trapFile )
         && ( trapFile->isValid() ) )
    {
-      trapFile->Write( OSS_NEWLINE"Siginfo_t:"OSS_NEWLINE ) ;
+      trapFile->Write( OSS_NEWLINE "Siginfo_t:" OSS_NEWLINE ) ;
       buf[0] = '\0' ;
       bytePtr = ( CHAR * ) pSigInfo ;
       while ( i < sizeof( siginfo_t ) )
@@ -364,7 +364,7 @@ void ossDumpSigInfo ( oss_siginfo_t  pSigInfo,
 
          if ( i % 16 == 0 )
          {
-            trapFile->fWrite( "%s"OSS_NEWLINE, buf ) ;
+            trapFile->fWrite( "%s" OSS_NEWLINE, buf ) ;
             buf[0] = '\0' ;
          }
          else if ( i % 4 == 0 )
@@ -385,8 +385,8 @@ void ossDumpSigInfo ( oss_siginfo_t  pSigInfo,
          case SIGFPE:
          case SIGILL:
          case SIGSEGV:
-            trapFile->fWrite ( "Signal #:%d, si_addr: 0x"OSS_PRIXPTR
-                               ", si_code: 0x%08X"OSS_NEWLINE,
+            trapFile->fWrite ( "Signal #:%d, si_addr: 0x" OSS_PRIXPTR
+                               ", si_code: 0x%08X" OSS_NEWLINE,
                                pSigInfo->si_signo,
                                pSigInfo->si_addr,
                                pSigInfo->si_code) ;
@@ -405,7 +405,7 @@ void ossDumpSigInfo ( oss_siginfo_t  pSigInfo,
          case SIGPRE:
       #endif
             trapFile->fWrite ( "Signal #: %d, si_pid: %d, si_uid: %d, "
-                               "si_value: %08X"OSS_NEWLINE,
+                               "si_value: %08X" OSS_NEWLINE,
                                pSigInfo->si_signo,
                                pSigInfo->si_pid,
                                pSigInfo->si_uid,
@@ -413,14 +413,14 @@ void ossDumpSigInfo ( oss_siginfo_t  pSigInfo,
              break ;
          case SIGCHLD:
             trapFile->fWrite ( "Signal #: %d(SIGCHLD), si_code: %d, "
-                               "child_pid: %d, status: 0x%08X"OSS_NEWLINE,
+                               "child_pid: %d, status: 0x%08X" OSS_NEWLINE,
                                pSigInfo->si_signo,
                                pSigInfo->si_code,
                                pSigInfo->si_pid,
                                pSigInfo->si_status ) ;
             break ;
          default :
-            trapFile->fWrite ( "Signal #:%d, si_code: %d"OSS_NEWLINE,
+            trapFile->fWrite ( "Signal #:%d, si_code: %d" OSS_NEWLINE,
                                pSigInfo->si_signo,
                                pSigInfo->si_code ) ;
             break ;
@@ -535,15 +535,15 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
          //     returns 0 when read and discards data when written -- named rzr
          //     (xzr, wzr)
          r = mctx->regs ;
-         trapFile->fWrite( "X0 0x%016lx   X1 0x%016lx  X2 0x%016lx  X3 0x%016lx"OSS_NEWLINE
-                           "X4 0x%016lx   X5 0x%016lx  X6 0x%016lx  X7 0x%016lx"OSS_NEWLINE
-                           "X8 0x%016lx   X9 0x%016lx  X10 0x%016lx X11 0x%016lx"OSS_NEWLINE
-                           "X12 0x%016lx  X13 0x%016lx X14 0x%016lx X15 0x%016lx"OSS_NEWLINE
-                           "X16 0x%016lx  X17 0x%016lx X18 0x%016lx X19 0x%016lx"OSS_NEWLINE
-                           "X20 0x%016lx  X21 0x%016lx X22 0x%016lx X23 0x%016lx"OSS_NEWLINE
-                           "X24 0x%016lx  X25 0x%016lx X26 0x%016lx X27 0x%016lx"OSS_NEWLINE
-                           "X28 0x%016lx  X29 0x%016lx X30 0x%016lx "OSS_NEWLINE
-                           "RSP/XZR 0x%016lx RIP 0x%016lx"OSS_NEWLINE,
+         trapFile->fWrite( "X0 0x%016lx   X1 0x%016lx  X2 0x%016lx  X3 0x%016lx" OSS_NEWLINE
+                           "X4 0x%016lx   X5 0x%016lx  X6 0x%016lx  X7 0x%016lx" OSS_NEWLINE
+                           "X8 0x%016lx   X9 0x%016lx  X10 0x%016lx X11 0x%016lx" OSS_NEWLINE
+                           "X12 0x%016lx  X13 0x%016lx X14 0x%016lx X15 0x%016lx" OSS_NEWLINE
+                           "X16 0x%016lx  X17 0x%016lx X18 0x%016lx X19 0x%016lx" OSS_NEWLINE
+                           "X20 0x%016lx  X21 0x%016lx X22 0x%016lx X23 0x%016lx" OSS_NEWLINE
+                           "X24 0x%016lx  X25 0x%016lx X26 0x%016lx X27 0x%016lx" OSS_NEWLINE
+                           "X28 0x%016lx  X29 0x%016lx X30 0x%016lx " OSS_NEWLINE
+                           "RSP/XZR 0x%016lx RIP 0x%016lx" OSS_NEWLINE,
                            r[REG_R0],  r[REG_R1],  r[REG_R2],  r[REG_R3],
                            r[REG_R4],  r[REG_R5],  r[REG_R6],  r[REG_R7],
                            r[REG_R8],  r[REG_R9],  r[REG_R10], r[REG_R11],
@@ -556,7 +556,7 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       }
       else
       {
-         trapFile->Write ("Unable to dump registers"OSS_NEWLINE) ;
+         trapFile->Write ("Unable to dump registers" OSS_NEWLINE) ;
       }
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPREGSINFO5 );
@@ -589,36 +589,36 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
       // Dump the instructions at the point of failure.
-      trapFile->Write( OSS_NEWLINE "Point of failure:"OSS_NEWLINE ) ;
+      trapFile->Write( OSS_NEWLINE "Point of failure:" OSS_NEWLINE ) ;
       if ( NULL == sigcode )
       {
          trapFile->Write( "Unable to provide disassembly information for "
                           "the point of faliure due to signal info pointer "
-                          "is NULL"OSS_NEWLINE ) ;
+                          "is NULL" OSS_NEWLINE ) ;
       }
       else
       {
          if ( sigcode->si_addr != rip )
          {
             // point of failure disassembly info
-            trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)rip ) ;
+            trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)rip ) ;
             ossFuncAddrToName( (void *)rip, trapFile ) ;
-            trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+            trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                               rip,
                               ossMachineCode( *((UINT32*)rip), mCode ) );
-            trapFile->fWrite( "%s"OSS_NEWLINE,
+            trapFile->fWrite( "%s" OSS_NEWLINE,
                               ossMachineCode( *((UINT32*)( rip+4 )),
                                               mCode ) ) ;
 
             // Dump stack frames from the point of failure to the bottom of
             // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
-               OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-               "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
+               OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+               "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
             INT32 cnt = backtrace( syms, OSS_MAX_BACKTRACE_FRAMES_SUPPORTED ) ;
             for ( INT32 i = 0 ; i < cnt ; i++ )
             {
-               trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
+               trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
                ossFuncAddrToName( syms[i], trapFile ) ;
             }
          }
@@ -633,27 +633,27 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
             if ( dladdr( (void *)rsp, &dlip ) )
             {
                // point of failure disassembly info
-               trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+               trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                                  rsp,
                                  ossMachineCode( *((UINT32*)rsp),
                                                  mCode ) ) ;
-               trapFile->fWrite( "%s"OSS_NEWLINE,
+               trapFile->fWrite( "%s" OSS_NEWLINE,
                                  ossMachineCode( *((UINT32*)(rsp+4)),
                                                  mCode ) ) ;
                trapFile->Write(
-                  OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-                  "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
-               trapFile->fWrite( "0x"OSS_PRIXPTR " [RSP]", rsp ) ;
+                  OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+                  "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
+               trapFile->fWrite( "0x" OSS_PRIXPTR " [RSP]", rsp ) ;
                ossFuncAddrToName( (void *)rsp, trapFile ) ;
             }
             else
             {
                trapFile->Write( "Signal address is equal to "
                                 "instruction pointer( rip )and the valid "
-                                "return address could not be determined."OSS_NEWLINE ) ;
-               trapFile->Write( OSS_NEWLINE"StackTrace:"OSS_NEWLINE
+                                "return address could not be determined." OSS_NEWLINE ) ;
+               trapFile->Write( OSS_NEWLINE"StackTrace:" OSS_NEWLINE
                                 "Unable to provide stack trace info due to "
-                                "above reason"OSS_NEWLINE ) ;
+                                "above reason" OSS_NEWLINE ) ;
             }
             // another thought could be dump raw stack info for
             // advanced users reference.
@@ -677,15 +677,15 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       if ( NULL != pContext )
       {
          r = pContext->uc_mcontext.gregs ;
-         trapFile->fWrite( "rax 0x%016lx  rbx 0x%016lx"OSS_NEWLINE
-                           "rcx 0x%016lx  rdx 0x%016lx"OSS_NEWLINE
-                           "rbp 0x%016lx  rsp 0x%016lx"OSS_NEWLINE
-                           "rsi 0x%016lx  rdi 0x%016lx"OSS_NEWLINE
-                           "efl 0x%016lx  rip 0x%016lx"OSS_NEWLINE
-                           "r8  0x%016lx  r9  0x%016lx"OSS_NEWLINE
-                           "r10 0x%016lx  r11 0x%016lx"OSS_NEWLINE
-                           "r12 0x%016lx  r13 0x%016lx"OSS_NEWLINE
-                           "r14 0x%016lx  r15 0x%016lx"OSS_NEWLINE,
+         trapFile->fWrite( "rax 0x%016lx  rbx 0x%016lx" OSS_NEWLINE
+                           "rcx 0x%016lx  rdx 0x%016lx" OSS_NEWLINE
+                           "rbp 0x%016lx  rsp 0x%016lx" OSS_NEWLINE
+                           "rsi 0x%016lx  rdi 0x%016lx" OSS_NEWLINE
+                           "efl 0x%016lx  rip 0x%016lx" OSS_NEWLINE
+                           "r8  0x%016lx  r9  0x%016lx" OSS_NEWLINE
+                           "r10 0x%016lx  r11 0x%016lx" OSS_NEWLINE
+                           "r12 0x%016lx  r13 0x%016lx" OSS_NEWLINE
+                           "r14 0x%016lx  r15 0x%016lx" OSS_NEWLINE,
                            r[REG_RAX], r[REG_RBX],
                            r[REG_RCX], r[REG_RDX],
                            r[REG_RBP], r[REG_RSP],
@@ -698,7 +698,7 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       }
       else
       {
-         trapFile->Write ("Unable to dump registers"OSS_NEWLINE) ;
+         trapFile->Write ("Unable to dump registers" OSS_NEWLINE) ;
       }
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPREGSINFO );
@@ -732,36 +732,36 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
       // Dump the instructions at the point of failure.
-      trapFile->Write( OSS_NEWLINE "Point of failure:"OSS_NEWLINE ) ;
+      trapFile->Write( OSS_NEWLINE "Point of failure:" OSS_NEWLINE ) ;
       if ( NULL == sigcode )
       {
          trapFile->Write( "Unable to provide disassembly information for "
                           "the point of faliure due to signal info pointer "
-                          "is NULL"OSS_NEWLINE ) ;
+                          "is NULL" OSS_NEWLINE ) ;
       }
       else
       {
          if ( sigcode->si_addr != rip )
          {
             // point of failure disassembly info
-            trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)rip ) ;
+            trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)rip ) ;
             ossFuncAddrToName( (void *)rip, trapFile ) ;
-            trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+            trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                               rip,
                               ossMachineCode( *((UINT32*)rip), mCode ) );
-            trapFile->fWrite( "%s"OSS_NEWLINE,
+            trapFile->fWrite( "%s" OSS_NEWLINE,
                               ossMachineCode( *((UINT32*)( rip+4 )),
                                               mCode ) ) ;
 
             // Dump stack frames from the point of failure to the bottom of
             // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
-               OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-               "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
+               OSS_NEWLINE "StackTrace:" OSS_NEWLINE
+               "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
             cnt = backtrace( syms, OSS_MAX_BACKTRACE_FRAMES_SUPPORTED ) ;
             for ( i = 0 ; i < cnt ; i++ )
             {
-               trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
+               trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
                ossFuncAddrToName( syms[i], trapFile ) ;
             }
          }
@@ -776,27 +776,27 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
             if ( dladdr( (void *)rsp, &dlip ) )
             {
                // point of failure disassembly info
-               trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+               trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                                  rsp,
                                  ossMachineCode( *((UINT32*)rsp),
                                                  mCode ) ) ;
-               trapFile->fWrite( "%s"OSS_NEWLINE,
+               trapFile->fWrite( "%s" OSS_NEWLINE,
                                  ossMachineCode( *((UINT32*)(rsp+4)),
                                                  mCode ) ) ;
                trapFile->Write(
-                  OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-                  "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
-               trapFile->fWrite( "0x"OSS_PRIXPTR " [RSP]", rsp ) ;
+                  OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+                  "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
+               trapFile->fWrite( "0x" OSS_PRIXPTR " [RSP]", rsp ) ;
                ossFuncAddrToName( (void *)rsp, trapFile ) ;
             }
             else
             {
                trapFile->Write( "Signal address is equal to "
                                 "instruction pointer( rip )and the valid "
-                                "return address could not be determined."OSS_NEWLINE ) ;
-               trapFile->Write( OSS_NEWLINE"StackTrace:"OSS_NEWLINE
+                                "return address could not be determined." OSS_NEWLINE ) ;
+               trapFile->Write( OSS_NEWLINE"StackTrace:" OSS_NEWLINE
                                 "Unable to provide stack trace info due to "
-                                "above reason"OSS_NEWLINE ) ;
+                                "above reason" OSS_NEWLINE ) ;
             }
             // another thought could be dump raw stack info for
             // advanced users reference.
@@ -820,12 +820,12 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       if ( NULL != pContext )
       {
          r = pContext->uc_mcontext.gregs ;
-         trapFile->fWrite( "Registers:"OSS_NEWLINE
-                           "eax %08X  ebx %08X  ecx %08X  edx %08X"OSS_NEWLINE
-                           "ebp %08X  esp %08X  edi %08X  esi %08X"OSS_NEWLINE
-                           "efl %08X  eip %08X"OSS_NEWLINE
+         trapFile->fWrite( "Registers:" OSS_NEWLINE
+                           "eax %08X  ebx %08X  ecx %08X  edx %08X" OSS_NEWLINE
+                           "ebp %08X  esp %08X  edi %08X  esi %08X" OSS_NEWLINE
+                           "efl %08X  eip %08X" OSS_NEWLINE
                            "cs %04hx  ss %04hx  ds %04hx  "
-                           "ss %04hx  fs %04hx  ds %04hx"OSS_NEWLINE,
+                           "ss %04hx  fs %04hx  ds %04hx" OSS_NEWLINE,
                            r[REG_EAX], r[REG_EBX], r[REG_ECX], r[REG_EDX],
                            r[REG_EBP], r[REG_ESP], r[REG_EDI], r[REG_ESI],
                            r[REG_EFL], r[REG_EIP],
@@ -834,7 +834,7 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       }
       else
       {
-         trapFile->Write (OSS_NEWLINE"Unable to dump registers"OSS_NEWLINE) ;
+         trapFile->Write (OSS_NEWLINE"Unable to dump registers" OSS_NEWLINE) ;
       }
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPREGSINFO3 );
@@ -862,43 +862,43 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
       // Dump the instructions where trap occurred
-      trapFile->Write( OSS_NEWLINE"Point of failure:"OSS_NEWLINE ) ;
+      trapFile->Write( OSS_NEWLINE"Point of failure:" OSS_NEWLINE ) ;
       if ( 0 == sigcode )
       {
          trapFile->Write( "Unable to provide disassembly information for "
                           "the point of faliure due to signal info pointer "
-                          "is NULL"OSS_NEWLINE ) ;
+                          "is NULL" OSS_NEWLINE ) ;
       }
       else
       {
          if ( eip != sigcode->si_addr )
          {
-            trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)eip ) ;
+            trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)eip ) ;
             ossFuncAddrToName(eip, trapFile ) ;
-            trapFile->fWrite( "0x"OSS_PRIXPTR " : %s",
+            trapFile->fWrite( "0x" OSS_PRIXPTR " : %s",
                               (UINT32_64)eip,
                               ossMachineCode( *eip, mCode ) ) ;
-            trapFile->fWrite( "%s"OSS_NEWLINE, ossMachineCode( *(eip+1 ), mCode ) ) ;
+            trapFile->fWrite( "%s" OSS_NEWLINE, ossMachineCode( *(eip+1 ), mCode ) ) ;
 
             // Dump stack frames from the point of failure to the bottom of
             // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
-               OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-               "-----Address----- ----Function name + Offset---"OSS_NEWLINE) ;
+               OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+               "-----Address----- ----Function name + Offset---" OSS_NEWLINE) ;
             cnt = backtrace( syms, OSS_MAX_BACKTRACE_FRAMES_SUPPORTED ) ;
             for ( i = 0 ; i < cnt ; i++ )
             {
-               trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
+               trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
                ossFuncAddrToName( syms[i], trapFile ) ;
             }
          }
          else
          {
             trapFile->Write( "Signal address equal to instruction pointer and "
-                            "valid return address could not be determined."OSS_NEWLINE );
-            trapFile->Write( OSS_NEWLINE"StackTrace:"OSS_NEWLINE
+                            "valid return address could not be determined." OSS_NEWLINE );
+            trapFile->Write( OSS_NEWLINE"StackTrace:" OSS_NEWLINE
                              "Unable to provide stack trace info due to "
-                             "above reason"OSS_NEWLINE ) ;
+                             "above reason" OSS_NEWLINE ) ;
          }
       }
    }
@@ -944,25 +944,25 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       if ( NULL != pContext )
       {
          r = pContext->uc_mcontext.gp_regs ;
-         trapFile->fWrite( "r0 0x%016lx   r1 0x%016lx  r2 0x%016lx  r3 0x%016lx"OSS_NEWLINE
-                           "r4 0x%016lx   r5 0x%016lx  r6 0x%016lx  r7 0x%016lx"OSS_NEWLINE
-                           "r8 0x%016lx   r9 0x%016lx  r10 0x%016lx r11 0x%016lx"OSS_NEWLINE
-                           "r12 0x%016lx  r13 0x%016lx r14 0x%016lx r15 0x%016lx"OSS_NEWLINE
-                           "r16 0x%016lx  r17 0x%016lx r18 0x%016lx r19 0x%016lx"OSS_NEWLINE
-                           "r20 0x%016lx  r21 0x%016lx r22 0x%016lx r23 0x%016lx"OSS_NEWLINE
-                           "r24 0x%016lx  r25 0x%016lx r26 0x%016lx r27 0x%016lx"OSS_NEWLINE
-                           "r28 0x%016lx  r29 0x%016lx r30 0x%016lx r31 0x%016lx"OSS_NEWLINE
-                           "f0 0x%016lx   f1 0x%016lx  f2 0x%016lx  f3 0x%016lx"OSS_NEWLINE
-                           "f4 0x%016lx   f5 0x%016lx  f6 0x%016lx  f7 0x%016lx"OSS_NEWLINE
-                           "f8 0x%016lx   f9 0x%016lx  f10 0x%016lx f11 0x%016lx"OSS_NEWLINE
-                           "f12 0x%016lx  f13 0x%016lx f14 0x%016lx f15 0x%016lx"OSS_NEWLINE
-                           "f16 0x%016lx  f17 0x%016lx f18 0x%016lx f19 0x%016lx"OSS_NEWLINE
-                           "f20 0x%016lx  f21 0x%016lx f22 0x%016lx f23 0x%016lx"OSS_NEWLINE
-                           "f24 0x%016lx  f25 0x%016lx f26 0x%016lx f27 0x%016lx"OSS_NEWLINE
-                           "f28 0x%016lx  f29 0x%016lx f30 0x%016lx f31 0x%016lx"OSS_NEWLINE
-                           "nip 0x%016lx  msr 0x%016lx origr3 0x%016lx ctr 0x%016lx"OSS_NEWLINE
-                           "lnk 0x%016lx  xer 0x%016lx ccr 0x%016lx softe 0x%016lx"OSS_NEWLINE
-                           "trap 0x%016lx dar 0x%016lx dsisr 0x%016lx result 0x%016lx"OSS_NEWLINE,
+         trapFile->fWrite( "r0 0x%016lx   r1 0x%016lx  r2 0x%016lx  r3 0x%016lx" OSS_NEWLINE
+                           "r4 0x%016lx   r5 0x%016lx  r6 0x%016lx  r7 0x%016lx" OSS_NEWLINE
+                           "r8 0x%016lx   r9 0x%016lx  r10 0x%016lx r11 0x%016lx" OSS_NEWLINE
+                           "r12 0x%016lx  r13 0x%016lx r14 0x%016lx r15 0x%016lx" OSS_NEWLINE
+                           "r16 0x%016lx  r17 0x%016lx r18 0x%016lx r19 0x%016lx" OSS_NEWLINE
+                           "r20 0x%016lx  r21 0x%016lx r22 0x%016lx r23 0x%016lx" OSS_NEWLINE
+                           "r24 0x%016lx  r25 0x%016lx r26 0x%016lx r27 0x%016lx" OSS_NEWLINE
+                           "r28 0x%016lx  r29 0x%016lx r30 0x%016lx r31 0x%016lx" OSS_NEWLINE
+                           "f0 0x%016lx   f1 0x%016lx  f2 0x%016lx  f3 0x%016lx" OSS_NEWLINE
+                           "f4 0x%016lx   f5 0x%016lx  f6 0x%016lx  f7 0x%016lx" OSS_NEWLINE
+                           "f8 0x%016lx   f9 0x%016lx  f10 0x%016lx f11 0x%016lx" OSS_NEWLINE
+                           "f12 0x%016lx  f13 0x%016lx f14 0x%016lx f15 0x%016lx" OSS_NEWLINE
+                           "f16 0x%016lx  f17 0x%016lx f18 0x%016lx f19 0x%016lx" OSS_NEWLINE
+                           "f20 0x%016lx  f21 0x%016lx f22 0x%016lx f23 0x%016lx" OSS_NEWLINE
+                           "f24 0x%016lx  f25 0x%016lx f26 0x%016lx f27 0x%016lx" OSS_NEWLINE
+                           "f28 0x%016lx  f29 0x%016lx f30 0x%016lx f31 0x%016lx" OSS_NEWLINE
+                           "nip 0x%016lx  msr 0x%016lx origr3 0x%016lx ctr 0x%016lx" OSS_NEWLINE
+                           "lnk 0x%016lx  xer 0x%016lx ccr 0x%016lx softe 0x%016lx" OSS_NEWLINE
+                           "trap 0x%016lx dar 0x%016lx dsisr 0x%016lx result 0x%016lx" OSS_NEWLINE,
                            r[REG_R0],  r[REG_R1],  r[REG_R2],  r[REG_R3],
                            r[REG_R4],  r[REG_R5],  r[REG_R6],  r[REG_R7],
                            r[REG_R8],  r[REG_R9],  r[REG_R10], r[REG_R11],
@@ -985,7 +985,7 @@ void ossDumpRegistersInfo( ossSignalContext pContext,
       }
       else
       {
-         trapFile->Write ("Unable to dump registers"OSS_NEWLINE) ;
+         trapFile->Write ("Unable to dump registers" OSS_NEWLINE) ;
       }
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPREGSINFO4 );
@@ -1019,36 +1019,36 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
       // Dump the instructions at the point of failure.
-      trapFile->Write( OSS_NEWLINE "Point of failure:"OSS_NEWLINE ) ;
+      trapFile->Write( OSS_NEWLINE "Point of failure:" OSS_NEWLINE ) ;
       if ( NULL == sigcode )
       {
          trapFile->Write( "Unable to provide disassembly information for "
                           "the point of faliure due to signal info pointer "
-                          "is NULL"OSS_NEWLINE ) ;
+                          "is NULL" OSS_NEWLINE ) ;
       }
       else
       {
          if ( sigcode->si_addr != rip )
          {
             // point of failure disassembly info
-            trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)rip ) ;
+            trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)rip ) ;
             ossFuncAddrToName( (void *)rip, trapFile ) ;
-            trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+            trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                               rip,
                               ossMachineCode( *((UINT32*)rip), mCode ) );
-            trapFile->fWrite( "%s"OSS_NEWLINE,
+            trapFile->fWrite( "%s" OSS_NEWLINE,
                               ossMachineCode( *((UINT32*)( rip+4 )),
                                               mCode ) ) ;
 
             // Dump stack frames from the point of failure to the bottom of
             // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
-               OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-               "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
+               OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+               "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
             cnt = backtrace( syms, OSS_MAX_BACKTRACE_FRAMES_SUPPORTED ) ;
             for ( i = 0 ; i < cnt ; i++ )
             {
-               trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
+               trapFile->fWrite( "0x" OSS_PRIXPTR " ", (UINT32_64)syms[i] ) ;
                ossFuncAddrToName( syms[i], trapFile ) ;
             }
          }
@@ -1063,27 +1063,27 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
             if ( dladdr( (void *)rsp, &dlip ) )
             {
                // point of failure disassembly info
-               trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
+               trapFile->fWrite( OSS_NEWLINE"0x" OSS_PRIXPTR " : %s",
                                  rsp,
                                  ossMachineCode( *((UINT32*)rsp),
                                                  mCode ) ) ;
-               trapFile->fWrite( "%s"OSS_NEWLINE,
+               trapFile->fWrite( "%s" OSS_NEWLINE,
                                  ossMachineCode( *((UINT32*)(rsp+4)),
                                                  mCode ) ) ;
                trapFile->Write(
-                  OSS_NEWLINE"StackTrace:"OSS_NEWLINE
-                  "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
-               trapFile->fWrite( "0x"OSS_PRIXPTR " [RSP]", rsp ) ;
+                  OSS_NEWLINE"StackTrace:" OSS_NEWLINE
+                  "-----Address----- ----Function name + Offset---" OSS_NEWLINE);
+               trapFile->fWrite( "0x" OSS_PRIXPTR " [RSP]", rsp ) ;
                ossFuncAddrToName( (void *)rsp, trapFile ) ;
             }
             else
             {
                trapFile->Write( "Signal address is equal to "
                                 "instruction pointer( rip )and the valid "
-                                "return address could not be determined."OSS_NEWLINE ) ;
-               trapFile->Write( OSS_NEWLINE"StackTrace:"OSS_NEWLINE
+                                "return address could not be determined." OSS_NEWLINE ) ;
+               trapFile->Write( OSS_NEWLINE"StackTrace:" OSS_NEWLINE
                                 "Unable to provide stack trace info due to "
-                                "above reason"OSS_NEWLINE ) ;
+                                "above reason" OSS_NEWLINE ) ;
             }
             // another thought could be dump raw stack info for
             // advanced users reference.

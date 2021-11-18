@@ -463,10 +463,10 @@ namespace engine
    OSS_INLINE string _dpsTransLockId::toString() const
    {
       stringstream ss ;
-      ss << DPS_LOCKID_CSID":" << csID()
-         << ", "DPS_LOCKID_CLID":" << clID()
-         << ", "DPS_LOCKID_EXTENTID":" << extentID()
-         << ", "DPS_LOCKID_OFFSET":" << offset() ;
+      ss << DPS_LOCKID_CSID ":" << csID()
+         << ", " DPS_LOCKID_CLID ":" << clID()
+         << ", " DPS_LOCKID_EXTENTID ":" << extentID()
+         << ", " DPS_LOCKID_OFFSET ":" << offset() ;
       return ss.str() ;
    }
 

@@ -70,7 +70,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
-                              "match expected size (%d)"OSS_NEWLINE,
+                              "match expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_HEADER_SZ ) ;
          ++localErr ;
          goto exit ;
@@ -88,7 +88,7 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Storage Unit Header: %s"OSS_NEWLINE,
+                           " Inspect Storage Unit Header: %s" OSS_NEWLINE,
                            header->_name ) ;
 
       if ( ossStrncmp ( eyeCatcher, DMS_DATASU_EYECATCHER,
@@ -108,7 +108,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid storage unit eye catcher: %s, "
-                              "expected: %s"OSS_NEWLINE,
+                              "expected: %s" OSS_NEWLINE,
                               eyeCatcher, DMS_DATASU_EYECATCHER ) ;
          ++localErr ;
       }
@@ -121,7 +121,7 @@ namespace engine
            pageSize != DMS_PAGE_SIZE64K )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid page size: %d"OSS_NEWLINE,
+                              "Error: Invalid page size: %d" OSS_NEWLINE,
                               pageSize ) ;
          ++localErr ;
       }
@@ -130,7 +130,7 @@ namespace engine
       if ( !DMS_IS_VALID_SEGMENT( segmentSize ) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid segment size: %d"OSS_NEWLINE,
+                              "Error: Invalid segment size: %d" OSS_NEWLINE,
                               segmentSize ) ;
          ++localErr ;
       }
@@ -139,7 +139,7 @@ namespace engine
       {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Storage Unit size is smaller than "
-                                 "header: %d"OSS_NEWLINE,
+                                 "header: %d" OSS_NEWLINE,
                                  header->_storageUnitSize ) ;
             ++localErr ;
       }
@@ -148,7 +148,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Page number is not same with value that "
-                              "storage unit size sub header size: %d"OSS_NEWLINE,
+                              "storage unit size sub header size: %d" OSS_NEWLINE,
                               pageNum ) ;
          ++localErr ;
       }
@@ -157,7 +157,7 @@ namespace engine
            ( pageNum > DMS_MAX_PG ) )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid page number: %d"OSS_NEWLINE,
+                              "Error: Invalid page number: %d" OSS_NEWLINE,
                               pageNum ) ;
          ++localErr ;
       }
@@ -166,7 +166,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "which should not exceed %d"OSS_NEWLINE,
+                              "which should not exceed %d" OSS_NEWLINE,
                               header->_numMB, DMS_MME_SZ/DMS_MB_SIZE ) ;
          ++localErr ;
       }
@@ -175,7 +175,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "HWM is %d"OSS_NEWLINE,
+                              "HWM is %d" OSS_NEWLINE,
                               header->_numMB, header->_MBHWM ) ;
          ++localErr ;
       }
@@ -185,13 +185,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Storage Unit Header Done "
-                              "without Error"OSS_NEWLINE ) ;
+                              "without Error" OSS_NEWLINE ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Storage Unit Header Done "
-                              "with Error: %d"OSS_NEWLINE, localErr ) ;
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
@@ -216,7 +216,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
-                              "match expected size (%d)"OSS_NEWLINE,
+                              "match expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_HEADER_SZ ) ;
          ++localErr ;
          goto exit ;
@@ -234,7 +234,7 @@ namespace engine
       ossMemcpy ( eyeCatcher, header->_eyeCatcher, DMS_HEADER_EYECATCHER_LEN ) ;
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Inspect Storage Unit Header: %s"OSS_NEWLINE,
+                           "Inspect Storage Unit Header: %s" OSS_NEWLINE,
                            header->_name ) ;
 
       if ( ossStrncmp ( eyeCatcher, DMS_LOBM_EYECATCHER,
@@ -242,7 +242,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid storage unit eye catcher: %s, "
-                              "expected: %s"OSS_NEWLINE,
+                              "expected: %s" OSS_NEWLINE,
                               eyeCatcher, DMS_LOBM_EYECATCHER ) ;
          ++localErr ;
       }
@@ -251,7 +251,7 @@ namespace engine
       if ( header->_version > DMS_LOB_CUR_VERSION )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid lob version: %d"OSS_NEWLINE,
+                              "Error: Invalid lob version: %d" OSS_NEWLINE,
                               header->_version ) ;
          ++localErr ;
       }
@@ -260,7 +260,7 @@ namespace engine
            header->_pageSize != DMS_PAGE_SIZE64B)
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid page size: %d"OSS_NEWLINE,
+                              "Error: Invalid page size: %d" OSS_NEWLINE,
                               header->_pageSize ) ;
          ++localErr ;
       }
@@ -269,7 +269,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Storage Unit size is smaller than "
-                              "header: %d"OSS_NEWLINE,
+                              "header: %d" OSS_NEWLINE,
                               header->_storageUnitSize ) ;
          ++localErr ;
       }
@@ -279,7 +279,7 @@ namespace engine
            header->_pageNum > DMS_MAX_PG )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid page number: %d"OSS_NEWLINE,
+                              "Error: Invalid page number: %d" OSS_NEWLINE,
                               header->_pageNum ) ;
          ++localErr ;
       }
@@ -299,7 +299,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: sequence value[%llu] is not "
-                              "expected[%llu]"OSS_NEWLINE,
+                              "expected[%llu]" OSS_NEWLINE,
                               header->_sequence , sequence ) ;
          ++localErr ;
       }
@@ -308,7 +308,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "which should be %d"OSS_NEWLINE,
+                              "which should be %d" OSS_NEWLINE,
                               header->_numMB, 0) ;
          ++localErr ;
       }
@@ -317,7 +317,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "HWM is %d"OSS_NEWLINE,
+                              "HWM is %d" OSS_NEWLINE,
                               header->_numMB, header->_MBHWM ) ;
          ++localErr ;
       }
@@ -327,13 +327,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Inspect Storage Unit Header Done "
-                              "without Error"OSS_NEWLINE ) ;
+                              "without Error" OSS_NEWLINE ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Inspect Storage Unit Header Done "
-                              "with Error: %d"OSS_NEWLINE, localErr ) ;
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
 
@@ -354,7 +354,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectHeader input size (%d) doesn't "
-                              "match expected size (%d)"OSS_NEWLINE,
+                              "match expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_HEADER_SZ ) ;
          ++localErr ;
       }
@@ -362,7 +362,7 @@ namespace engine
       ossMemcpy ( eyeCatcher, header->_eyeCatcher, DMS_HEADER_EYECATCHER_LEN ) ;
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "Inspect Storage Unit Header: %s"OSS_NEWLINE,
+                           "Inspect Storage Unit Header: %s" OSS_NEWLINE,
                            header->_name ) ;
 
       if ( ossStrncmp ( eyeCatcher, DMS_LOBD_EYECATCHER,
@@ -370,7 +370,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid storage unit eye catcher: %s, "
-                              "expected: %s"OSS_NEWLINE,
+                              "expected: %s" OSS_NEWLINE,
                               eyeCatcher, DMS_LOBD_EYECATCHER ) ;
          ++localErr ;
       }
@@ -379,7 +379,7 @@ namespace engine
       if ( header->_version > DMS_LOB_CUR_VERSION )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid lob version: %d"OSS_NEWLINE,
+                              "Error: Invalid lob version: %d" OSS_NEWLINE,
                               header->_version ) ;
          ++localErr ;
       }
@@ -387,7 +387,7 @@ namespace engine
       if ( header->_pageSize != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid page size: %d"OSS_NEWLINE,
+                              "Error: Invalid page size: %d" OSS_NEWLINE,
                               header->_pageSize ) ;
          ++localErr ;
       }
@@ -404,7 +404,7 @@ namespace engine
       if ( header->_pageNum != 0 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: page number should not be: %d"OSS_NEWLINE,
+                              "Error: page number should not be: %d" OSS_NEWLINE,
                               header->_pageNum );
          ++localErr ;
       }
@@ -433,7 +433,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "which should be: %d"OSS_NEWLINE,
+                              "which should be: %d" OSS_NEWLINE,
                               header->_numMB, DMS_MME_SZ/DMS_MB_SIZE ) ;
          ++localErr ;
       }
@@ -442,7 +442,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid number of collections: %d, "
-                              "HWM is %d"OSS_NEWLINE,
+                              "HWM is %d" OSS_NEWLINE,
                               header->_numMB, header->_MBHWM ) ;
          ++localErr ;
       }
@@ -451,13 +451,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Inspect Storage Unit Header Done "
-                              "without Error"OSS_NEWLINE ) ;
+                              "without Error" OSS_NEWLINE ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Inspect Storage Unit Header Done "
-                              "with Error: %d"OSS_NEWLINE, localErr ) ;
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
 
@@ -484,7 +484,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectSME input size (%d) doesn't match "
-                              "expected size (%d)"OSS_NEWLINE,
+                              "expected size (%d)" OSS_NEWLINE,
                               inSize,
                               DMS_SME_SZ ) ;
          ++localErr ;
@@ -492,7 +492,7 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Space Management Extent:"OSS_NEWLINE ) ;
+                           " Inspect Space Management Extent:" OSS_NEWLINE ) ;
 
       totalPages = DMS_MAX_PG ;
 
@@ -503,17 +503,17 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Page State 0x%08x (%d) doesn't "
-                                 "match"OSS_NEWLINE,
+                                 "match" OSS_NEWLINE,
                                  i, i ) ;
             smeMask2String ( pSME->getBitMask(i), stateBuf,
                              DMS_INSPECT_SME_STATE_BUFSZ ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "SME State %d (%s)"OSS_NEWLINE,
+                                 "SME State %d (%s)" OSS_NEWLINE,
                                  pSME->getBitMask(i), stateBuf ) ;
             smeMask2String ( pExpSME->getBitMask(i), stateBuf,
                              DMS_INSPECT_SME_STATE_BUFSZ ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Expected State %d (%s)"OSS_NEWLINE,
+                                 "Expected State %d (%s)" OSS_NEWLINE,
                                  pExpSME->getBitMask(i), stateBuf ) ;
             ++localErr ;
          }
@@ -528,7 +528,7 @@ namespace engine
             // error
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: allocated page (%d) over page number "
-                                 "(%d) "OSS_NEWLINE,
+                                 "(%d) " OSS_NEWLINE,
                                  i, pageNum ) ;
             ++localErr ;
          }
@@ -539,13 +539,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Space Management Extent Done "
-                              "without Error"OSS_NEWLINE ) ;
+                              "without Error" OSS_NEWLINE ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Space Management Extent Done "
-                              "with Error: %d"OSS_NEWLINE, localErr ) ;
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
@@ -567,14 +567,14 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectMME input size (%d) doesn't match "
-                              "expected size (%d)"OSS_NEWLINE,
+                              "expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_MME_SZ ) ;
          ++localErr ;
          goto exit ;
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           " Inspect Metadata Management Extent:"OSS_NEWLINE ) ;
+                           " Inspect Metadata Management Extent:" OSS_NEWLINE ) ;
 
       for ( INT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
@@ -590,7 +590,7 @@ namespace engine
    exit :
       len += ossSnprintf ( outBuf + len, outSize - len,
                            " Inspect Metadata Management Extent Done "
-                           "without Error"OSS_NEWLINE ) ;
+                           "without Error" OSS_NEWLINE ) ;
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
 
@@ -616,7 +616,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectMMEMetadataBlock input size (%d) "
-                              "doesn't match expected size (%d)"OSS_NEWLINE,
+                              "doesn't match expected size (%d)" OSS_NEWLINE,
                               inSize, DMS_MB_SIZE ) ;
          ++localErr ;
          goto exit ;
@@ -682,7 +682,7 @@ namespace engine
             mbFlag2String ( mb->_flag, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Invalid collection flag: "
-                                 "0x%08x (%s)"OSS_NEWLINE,
+                                 "0x%08x (%s)" OSS_NEWLINE,
                                  mb->_flag, tmpStr ) ;
             ++localErr ;
          }
@@ -696,7 +696,7 @@ namespace engine
                                DMS_COLLECTION_STATUS_LEN ) ;
                len += ossSnprintf( outBuf + len, outSize - len,
                                    "Error: Imcompatible attribute[0x%08x (%s)] "
-                                   "and compressor type[%u]"OSS_NEWLINE,
+                                   "and compressor type[%u]" OSS_NEWLINE,
                                    mb->_attributes, tmpStr,
                                    mb->_compressorType ) ;
                ++localErr ;
@@ -708,7 +708,7 @@ namespace engine
             {
                len += ossSnprintf( outBuf + len, outSize - len,
                                    "Error: Imcompatible attribute[0x%08x] "
-                                   "and compressor type[%u]"OSS_NEWLINE,
+                                   "and compressor type[%u]" OSS_NEWLINE,
                                    mb->_attributes,
                                    mb->_compressorType ) ;
                ++localErr ;
@@ -721,7 +721,7 @@ namespace engine
             mbAttr2String ( mb->_attributes, tmpStr, DMS_COLLECTION_STATUS_LEN ) ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Invalid collection attributes: "
-                                 "0x%08x (%s)"OSS_NEWLINE,
+                                 "0x%08x (%s)" OSS_NEWLINE,
                                  mb->_attributes, tmpStr ) ;
             ++localErr ;
          }
@@ -730,7 +730,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Invalid collection ID: 0x%08lx (%d), "
-                                 "expected 0x%08lx (%d)"OSS_NEWLINE,
+                                 "expected 0x%08lx (%d)" OSS_NEWLINE,
                                  mb->_blockID, mb->_blockID,
                                  expCollectionID, expCollectionID ) ;
             ++localErr ;
@@ -742,7 +742,7 @@ namespace engine
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "Error: Invalid first extent: 0x%08lx (%d), "
-                                    "max pages: 0x%08lx (%d)"OSS_NEWLINE,
+                                    "max pages: 0x%08lx (%d)" OSS_NEWLINE,
                                     mb->_firstExtentID, mb->_firstExtentID,
                                     maxPages, maxPages ) ;
                ++localErr ;
@@ -752,7 +752,7 @@ namespace engine
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "Error: Invalid last extent: 0x%08lx (%d), "
-                                    "max pages: 0x%08lx (%d)"OSS_NEWLINE,
+                                    "max pages: 0x%08lx (%d)" OSS_NEWLINE,
                                     mb->_lastExtentID, mb->_lastExtentID,
                                     maxPages, maxPages ) ;
                ++localErr ;
@@ -765,7 +765,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Inconsistent first and last extent: "
-                                 "0x%08lx (%d) : 0x%08lx (%d)"OSS_NEWLINE,
+                                 "0x%08lx (%d) : 0x%08lx (%d)" OSS_NEWLINE,
                                  mb->_firstExtentID, mb->_firstExtentID,
                                  mb->_lastExtentID, mb->_lastExtentID ) ;
             ++localErr ;
@@ -795,7 +795,7 @@ namespace engine
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
                                        "Error: Invalid extent for deleteList[%d]: "
-                                       "0x%08lx 0x%08lx"OSS_NEWLINE,
+                                       "0x%08lx 0x%08lx" OSS_NEWLINE,
                                        i, mb->_deleteList[i]._extent,
                                        mb->_deleteList[i]._offset ) ;
                   ++localErr ;
@@ -811,7 +811,7 @@ namespace engine
                {
                   len += ossSnprintf ( outBuf + len, outSize - len,
                                        "Error: Invalid extent for indexCB[%d]: "
-                                       "0x%08lx"OSS_NEWLINE,
+                                       "0x%08lx" OSS_NEWLINE,
                                        i, mb->_indexExtent[i] ) ;
                   ++localErr ;
                }
@@ -824,7 +824,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Metadata Block [%d] Done "
-                              "with Error: %d"OSS_NEWLINE, expCollectionID,
+                              "with Error: %d" OSS_NEWLINE, expCollectionID,
                               localErr ) ;
          len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       }
@@ -855,7 +855,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectDataExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          nextExtent = DMS_INVALID_EXTENT ;
          ++localErr ;
@@ -866,7 +866,7 @@ namespace engine
            extent->_eyeCatcher[1] != DMS_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          nextExtent = DMS_INVALID_EXTENT ;
          ++localErr ;
@@ -875,7 +875,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Next extent is out of range: "
-                              "0x%08x (%d)"OSS_NEWLINE,
+                              "0x%08x (%d)" OSS_NEWLINE,
                               nextExtent, nextExtent ) ;
          ++localErr ;
       }
@@ -899,7 +899,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Data Extent 0x%08lx (%d) Done "
-                              "with Error: %d"OSS_NEWLINE, origID,
+                              "with Error: %d" OSS_NEWLINE, origID,
                               origID, localErr ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               OSS_NEWLINE ) ;
@@ -930,7 +930,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectDataRecord input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          nextRecord = DMS_INVALID_OFFSET ;
          ++err ;
@@ -973,7 +973,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: my offset (0x%08x) does not match "
-                              "expected ( 0x%08x)"OSS_NEWLINE,
+                              "expected ( 0x%08x)" OSS_NEWLINE,
                               record->_myOffset, nextRecord ) ;
          nextRecord = DMS_INVALID_OFFSET ;
          ++err ;
@@ -1027,7 +1027,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Failed to format "
-                                 "record: %s"OSS_NEWLINE,
+                                 "record: %s" OSS_NEWLINE,
                                  e.what() ) ;
          }
       }
@@ -1074,7 +1074,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Failed to format "
-                              "record: %s"OSS_NEWLINE,
+                              "record: %s" OSS_NEWLINE,
                               e.what() ) ;
       }
 
@@ -1096,7 +1096,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          ++err ;
          goto exit ;
@@ -1125,7 +1125,7 @@ namespace engine
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          ++err ;
       }
@@ -1146,7 +1146,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          ++err ;
          goto exit ;
@@ -1156,7 +1156,7 @@ namespace engine
            DMS_EXTENT_EYECATCHER1 != extent->_eyeCatcher[1] )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          ++err ;
       }
@@ -1164,7 +1164,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Extent ID 0x%08lx (%d) doesn't match "
-                              "expected 0x%08lx (%d)"OSS_NEWLINE,
+                              "expected 0x%08lx (%d)" OSS_NEWLINE,
                               extent->_mbID, extent->_mbID,
                               collectionID, collectionID ) ;
          ++err ;
@@ -1181,7 +1181,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: invalid extent version: 0x%02x, "
-                              "current 0x%02x"OSS_NEWLINE,
+                              "current 0x%02x" OSS_NEWLINE,
                               extent->_version, DMS_EXTENT_CURRENT_V ) ;
          ++err ;
       }
@@ -1270,7 +1270,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectIndexExtentHeader input size (%d) "
-                              "is too small"OSS_NEWLINE,
+                              "is too small" OSS_NEWLINE,
                               inSize ) ;
          ++err ;
          goto exit ;
@@ -1282,7 +1282,7 @@ namespace engine
            IXM_EXTENT_EYECATCHER1 != header->_eyeCatcher[1] )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
          ++err ;
       }
@@ -1290,7 +1290,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Extent ID 0x%08lx (%d) doesn't match "
-                              "expected 0x%08lx (%d)"OSS_NEWLINE,
+                              "expected 0x%08lx (%d)" OSS_NEWLINE,
                               header->_mbID, header->_mbID,
                               collectionID, collectionID ) ;
          ++err ;
@@ -1307,7 +1307,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: invalid extent version: 0x%02x, "
-                              "current 0x%02x"OSS_NEWLINE,
+                              "current 0x%02x" OSS_NEWLINE,
                               header->_version, DMS_EXTENT_CURRENT_V ) ;
          ++err ;
       }
@@ -1316,7 +1316,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: beginFreeOffset is out of range: "
-                              "0x%08lx (%d), inSize 0x%08lx (%d)"OSS_NEWLINE,
+                              "0x%08lx (%d), inSize 0x%08lx (%d)" OSS_NEWLINE,
                               header->_beginFreeOffset,
                               header->_beginFreeOffset,
                               inSize, inSize ) ;
@@ -1326,7 +1326,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: totalFreeSize is out of range: "
-                              "0x%08lx (%d), inSize 0x%08lx (%d)"OSS_NEWLINE,
+                              "0x%08lx (%d), inSize 0x%08lx (%d)" OSS_NEWLINE,
                               header->_totalFreeSize, header->_totalFreeSize,
                               inSize, inSize ) ;
          ++err ;
@@ -1350,7 +1350,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectIndexCBExtentHeader input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          ++err ;
          goto exit ;
@@ -1360,7 +1360,7 @@ namespace engine
            header->_eyeCatcher[1] != IXM_EXTENT_CB_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               header->_eyeCatcher[0], header->_eyeCatcher[1] ) ;
          ++err ;
       }
@@ -1380,7 +1380,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Extent ID 0x%08lx (%d) doesn't match "
-                              "expected 0x%08lx (%d)"OSS_NEWLINE,
+                              "expected 0x%08lx (%d)" OSS_NEWLINE,
                               header->_mbID, header->_mbID,
                               collectionID, collectionID ) ;
          ++err ;
@@ -1398,7 +1398,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: invalid extent version: 0x%02x, "
-                              "current 0x%02x"OSS_NEWLINE,
+                              "current 0x%02x" OSS_NEWLINE,
                               header->_version, DMS_EXTENT_CURRENT_V ) ;
          ++err ;
       }
@@ -1408,7 +1408,7 @@ namespace engine
          if ( !indexDef.isValid() )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 "Error: invalid index def"OSS_NEWLINE ) ;
+                                 "Error: invalid index def" OSS_NEWLINE ) ;
             ++err ;
          }
       }
@@ -1440,7 +1440,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectIndexCBExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          ++localErr ;
          goto exit ;
@@ -1454,7 +1454,7 @@ namespace engine
            extent->_eyeCatcher[1] != IXM_EXTENT_CB_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extent->_eyeCatcher[0], extent->_eyeCatcher[1] ) ;
          goto exit ;
       }
@@ -1469,13 +1469,13 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Index Control Block Extent Done "
-                              "without Error"OSS_NEWLINE ) ;
+                              "without Error" OSS_NEWLINE ) ;
       }
       else
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Index Control Block Extent Done "
-                              "with Error: %d"OSS_NEWLINE, localErr ) ;
+                              "with Error: %d" OSS_NEWLINE, localErr ) ;
       }
       len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       err += localErr ;
@@ -1499,7 +1499,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: inspectIndexExtent input size (%d) "
-                              "is too small or not aligned with 4K"OSS_NEWLINE,
+                              "is too small or not aligned with 4K" OSS_NEWLINE,
                               inSize ) ;
          ++localErr ;
          goto exit ;
@@ -1509,7 +1509,7 @@ namespace engine
            extentHead->_eyeCatcher[1] != IXM_EXTENT_EYECATCHER1 )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Invalid eye catcher: %c%c"OSS_NEWLINE,
+                              "Error: Invalid eye catcher: %c%c" OSS_NEWLINE,
                               extentHead->_eyeCatcher[0],
                               extentHead->_eyeCatcher[1] ) ;
          goto exit ;
@@ -1525,7 +1525,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: key offset is out of range: %d, "
-                                 "extent size: %d, key pos: %d"OSS_NEWLINE,
+                                 "extent size: %d, key pos: %d" OSS_NEWLINE,
                                  keyOffset, inSize, i ) ;
             ++localErr ;
             goto exit ;
@@ -1547,7 +1547,7 @@ namespace engine
       if ( DMS_EXTENT_FLAG_FREED == extentHead->_flag )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Extent is not in use"OSS_NEWLINE ) ;
+                              "Error: Extent is not in use" OSS_NEWLINE ) ;
          ++localErr ;
          goto exit ;
       }
@@ -1560,7 +1560,7 @@ namespace engine
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: key offset is out of range: %d, "
-                                 "extent size: %d, key pos: %d"OSS_NEWLINE,
+                                 "extent size: %d, key pos: %d" OSS_NEWLINE,
                                  keyOffset, inSize, i ) ;
             ++localErr ;
             continue ;
@@ -1576,7 +1576,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Inspect Index Extent 0x%08lx (%d) Done "
-                              "with Error: %d"OSS_NEWLINE,
+                              "with Error: %d" OSS_NEWLINE,
                               extentID, extentID, localErr ) ;
          len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;
       }
@@ -1606,7 +1606,7 @@ namespace engine
       if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Extent is not in use"OSS_NEWLINE ) ;
+                              "Error: Extent is not in use" OSS_NEWLINE ) ;
          ++localErr ;
       }
       // start inspect all records
@@ -1659,7 +1659,7 @@ namespace engine
       if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "Error: Extent is not in use"OSS_NEWLINE ) ;
+                              "Error: Extent is not in use" OSS_NEWLINE ) ;
          ++localErr ;
       }
       // start inspect all records
@@ -1691,7 +1691,7 @@ namespace engine
             if ( nextRecord <= lastRecord )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
-                                   "Error: logicalID (%lld) is invalid"OSS_NEWLINE,
+                                   "Error: logicalID (%lld) is invalid" OSS_NEWLINE,
                                    logicalID ) ;
                nextRecord = DMS_INVALID_OFFSET ;
             }
@@ -1713,7 +1713,7 @@ namespace engine
                {
                   len += ossSnprintf( outBuf + len, outSize - len,
                                       "Error: logicalID (%lld) and offset (%u) "
-                                      "dose not match"OSS_NEWLINE,
+                                      "dose not match" OSS_NEWLINE,
                                       logicalID, nextRecord ) ;
                   nextRecord = DMS_INVALID_OFFSET ;
                }
@@ -1765,7 +1765,7 @@ namespace engine
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Invalid dmsLobDataMapBlk status : "
-                              "%c( UNKOWN STATUS )"OSS_NEWLINE,
+                              "%c( UNKOWN STATUS )" OSS_NEWLINE,
                               blk->_status ) ;
          ++err ;
       }
@@ -1799,7 +1799,7 @@ namespace engine
          len += ossSnprintf ( outBuf + len , outSize - len,
                               "Error: LobMeta version  (%d) in lobd file is "
                               "unknown expected less than "
-                              "DMS_LOB_META_CURRENT_VERSION (%d)"OSS_NEWLINE,
+                              "DMS_LOB_META_CURRENT_VERSION (%d)" OSS_NEWLINE,
                               lobMeta->_version,
                               DMS_LOB_META_CURRENT_VERSION ) ;
          err++ ;
@@ -1810,7 +1810,7 @@ namespace engine
          len += ossSnprintf ( outBuf + len , outSize - len,
                               "Error: LobMeta status  (%d) in lobd file is "
                               "unknown expected less than "
-                              "DMS_LOB_COMPLETE (%d)"OSS_NEWLINE,
+                              "DMS_LOB_COMPLETE (%d)" OSS_NEWLINE,
                               lobMeta->_status, DMS_LOB_COMPLETE ) ;
          err++ ;
       }
@@ -1820,7 +1820,7 @@ namespace engine
          len += ossSnprintf ( outBuf + len , outSize - len,
                               "Error: LobMeta piecesInfoNum  (%d)  or flag %d "
                               "(DMS_LOB_META_MERGE_DATA_VERSION) in lobd file "
-                              "is unknown"OSS_NEWLINE,
+                              "is unknown" OSS_NEWLINE,
                               lobMeta->_piecesInfoNum, DMS_LOB_COMPLETE) ;
          err++ ;
       }
@@ -1831,7 +1831,7 @@ namespace engine
          ossTimestampToString(timestamp, strTime ) ;
          len += ossSnprintf ( outBuf + len , outSize - len,
                               "Error: LobMeta createTime  %lu (%s)  is not "
-                              "correct"OSS_NEWLINE,
+                              "correct" OSS_NEWLINE,
                               lobMeta->_createTime, strTime ) ;
          err++;
       }
@@ -1842,7 +1842,7 @@ namespace engine
          ossTimestampToString(timestamp, strTime) ;
          len += ossSnprintf( outBuf + len , outSize - len,
                              "Error: LobMeta modificationTime  %lu (%s) "
-                             "is not correct"OSS_NEWLINE,
+                             "is not correct" OSS_NEWLINE,
                              lobMeta->_modificationTime, strTime ) ;
          err++;
       }
