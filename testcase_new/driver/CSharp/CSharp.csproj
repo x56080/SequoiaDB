@@ -72,6 +72,7 @@
     <Compile Include="Crud\DataType\DoubleData14596.cs" />
     <Compile Include="Crud\DataType\MinKeyAndMaxKey14582.cs" />
     <Compile Include="Crud\DataType\NullData14583.cs" />
+    <Compile Include="Crud\DataType\ObjectData14585.cs" />
     <Compile Include="Crud\DataType\OidData14591.cs" />
     <Compile Include="Crud\Insert\Insert14528.cs" />
     <Compile Include="Crud\Insert\Insert14529.cs" />
@@ -82,10 +83,12 @@
     <Compile Include="Crud\Insert\TestInsert18244.cs" />
     <Compile Include="Crud\Lob\LockParamVerify13476.cs" />
     <Compile Include="Crud\Lob\ModificationTime13470.cs" />
+    <Compile Include="Crud\Lob\Lob22692.cs" />
     <Compile Include="Crud\Lob\LockAndSeekParamVerify13477.cs" />
     <Compile Include="Crud\Lob\TruncateLob13478.cs" />
     <Compile Include="Crud\Lob\LockAndWrite14794.cs" />
     <Compile Include="Crud\Lob\SeekWriteAndReadLob14888.cs" />
+    <Compile Include="Crud\Lob\TestIsEof15674.cs" />
     <Compile Include="Crud\Query\Count14544.cs" />
     <Compile Include="Crud\Query\Cursor14581.cs" />
     <Compile Include="Crud\Query\Query14543.cs" />
@@ -136,6 +139,10 @@
     <Compile Include="Meta\TestDeleteDomainAndCS14559.cs" />
     <Compile Include="Meta\TestDomain14557.cs" />
     <Compile Include="Meta\TestListDomains14558.cs" />
+    <Compile Include="Meta\RenamCS16637.cs" />
+    <Compile Include="Meta\RenameCL16641.cs" />
+    <Compile Include="Meta\RenameCL16642.cs" />
+    <Compile Include="Meta\RenameCS16638.cs" />
     <Compile Include="Split\Common.cs" />
     <Compile Include="Split\TestSplit14551.cs" />
     <Compile Include="Split\TestSplit14552.cs" />
@@ -205,6 +212,7 @@
     <Compile Include="Monitor\TestGetList13623.cs" />
     <Compile Include="Monitor\TestResetSnapshot14578.cs" />
     <Compile Include="Monitor\TestSnapshot13622.cs" />
+    <Compile Include="Monitor\TestSnapshot22813.cs" />
     <Compile Include="Auth\TestAuth14567.cs" />
     <Compile Include="Sql\TestSQL14580.cs" />
     <Compile Include="Sdb\TestDBCursor14650.cs" />
@@ -228,14 +236,6 @@
     <Compile Include="Cluster\TestConnect14575.cs" />
     <Compile Include="Cluster\TestConnect14576.cs" />
     <Compile Include="Cluster\TestClusterManage14574.cs" />
-    <Compile Include="Crud/Lob/Lob22692.cs" />
-    <Compile Include="Crud/DataType/ObjectData14585.cs" />
-    <Compile Include="Meta/RenamCS16637.cs" />
-    <Compile Include="Meta/RenameCL16641.cs" />
-    <Compile Include="Meta/RenameCL16642.cs" />
-    <Compile Include="Meta/RenameCS16638.cs" />
-    <Compile Include="Crud/Lob/TestIsEof15674.cs" />
-    <Compile Include="Monitor/TestSnapshot22813.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
