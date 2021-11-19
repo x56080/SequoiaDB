@@ -14,17 +14,26 @@
  *    Win: buildApp.bat update
  * Manual Compile:
  *    Dynamic Linking:
- *    Linux:
- *       g++ update.cpp common.cpp -o update -I../../include -O0 -ggdb \ 
- *       -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
+ *    Linux: 
+ *       if GCC version >= 5.1
+ *          g++ update.cpp common.cpp -o update -I../../include -O0 -ggdb \ 
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ update.cpp common.cpp -o update -I../../include -O0 -ggdb \ 
+ *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
  *    Win:
  *       cl /Foupdate.obj /c update.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
  *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
  *       link /OUT:update.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib update.obj common.obj /debug
  *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
  *    Static Linking:
- *    Linux: g++ update.cpp common.cpp -o update.static -I../../include -O0
- *           -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
+ *    Linux: 
+ *       if GCC version >= 5.1
+ *          g++ update.cpp common.cpp -o update.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
+ *       if GCC version < 5.1
+ *          g++ update.cpp common.cpp -o update.static -I../../include -O0 \
+ *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
  * Run:
  *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./update <hostname> \
  *           <servicename> <username> <password>
