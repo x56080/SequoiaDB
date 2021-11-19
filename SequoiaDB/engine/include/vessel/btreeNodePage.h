@@ -116,16 +116,16 @@ namespace vessel
       UINT32 flags = 0;
       UINT32 totalFreeSpace = 0;
       UINT32 freeSapceAfterLastSlot = 0;
-      UINT32 totalSlotCount = 0;
+      UINT16 totalSlotCount = 0;
+      UINT16 prefixCount = 0;
+      UINT16 compressedItemCount = 0;
+      UINT16 appendingFactor = 0;
       UINT32 rightChild = INVALID_PAGE_ID;
       UINT32 splitedTimes = 0;
       UINT32 externalKeyPage = INVALID_PAGE_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
       UINT16 transNode = DPS_INVALID_TRANSID_NODEID;
-      UINT16 prefixCount = 0;
-      UINT16 compressedItemCount = 0;
-      UINT16 appendingFactor = 0;
-      CHAR pad[24] = {};
+      CHAR pad[22] = {};
    };//struct btreeNodeHead
    static const UINT32 BTREE_NODE_PAGE_HEAD_SIZE = sizeof(btreeNodePageHead);
    

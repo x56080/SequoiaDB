@@ -64,6 +64,10 @@ namespace vessel
          {
             return INVALID_FILE_SHADOW_SUFFIX != _shadowSuffix;
          }
+         OSS_INLINE UINT64 getTotalSegmentSize()const
+         {
+            return (UINT64)_dataSegmentCount * _headInMem.getSegmentSize();
+         }
 
          INT32 create(const strSlice &dir,
                       const vesselFileName &fn,

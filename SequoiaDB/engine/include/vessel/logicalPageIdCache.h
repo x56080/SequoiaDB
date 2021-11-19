@@ -99,7 +99,9 @@ namespace vessel
          CACHE_MAP &get(){return _map;}
          UINT32 getCacheSize()const
          {
-            return _map.size() * (ID_MAP_PARTIAL_PAGE_CACHE_SIZE + sizeof(KEY));
+            //return *((const volatile UINT32 *)(&_size));
+            return _map.size() *
+               (sizeof(partialImpCacheMap::KEY) + ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
          }
          BOOLEAN isEmpty()const
          {
@@ -114,6 +116,7 @@ namespace vessel
          static BOOLEAN isValidKey(const KEY &key);
       private:
          CACHE_MAP _map;
+         //UINT32 _size = 0;
    };//class partialImpCacheMap
    
    class logicalPageIdCache : public SDBObject
@@ -176,7 +179,7 @@ namespace vessel
          void fini();
 
          /// WARNING:Will not hold any latch. The result may not be real.
-         UINT64 getTotalCacheSize()const;
+         UINT64 getTotalCacheSize();
 
          ///WARNING: User should ensure that no one can update lpid's mapping when
          /// call put/get.
@@ -210,9 +213,11 @@ namespace vessel
          }
 
       private:
-         INT32 _upsert(PAGE_ID lpid, const idMapSlot &slot);
+         INT32 _upsert(PAGE_ID lpid,
+                       const idMapSlot &slot);
          INT32 _get(PAGE_ID lpid, idMapSlot &slot, BOOLEAN &isMutable);
-         INT32 _remove(PAGE_ID lpid, idMapSlot *slot);
+         INT32 _remove(PAGE_ID lpid,
+                       idMapSlot *slot);
          INT32 getFromBase(PAGE_ID lpid, idMapSlot &slot);
 
          INT32 createCacheFromBase(const partialImpCacheMap::KEY &key,

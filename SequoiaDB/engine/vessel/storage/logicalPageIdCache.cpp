@@ -52,6 +52,7 @@ namespace vessel
          SDB_OSS_DEL itr->second;
       }
       _map.clear();
+      //_size = 0;
    }
 
    const partialImpCache *partialImpCacheMap::find(const KEY &key)const
@@ -97,6 +98,8 @@ namespace vessel
          rc = SDB_VESSEL_DUPLICATED_KEY;
          goto error;
       }
+
+      //_size += sizeof(partialImpCacheMap::KEY) + ID_MAP_PARTIAL_PAGE_CACHE_SIZE;
    done:
       return rc;
    error:
@@ -113,6 +116,10 @@ namespace vessel
          partialImpCache *tmp = res.first->second;
          res.first->second = cache;
          SDB_OSS_DEL tmp;
+      }
+      else
+      {
+         //_size += sizeof(partialImpCacheMap::KEY) + ID_MAP_PARTIAL_PAGE_CACHE_SIZE;
       }
       return;
    }
@@ -142,6 +149,7 @@ namespace vessel
          }
       }
       _map.clear();
+      //_size = 0;
       return;
    }
 
@@ -222,14 +230,17 @@ namespace vessel
       return;
    }
 
-   UINT64 logicalPageIdCache::getTotalCacheSize()const
+   UINT64 logicalPageIdCache::getTotalCacheSize()
    {
       UINT64 size = 0;
+      _latch.lock_r();
       for (UINT32 i = 0; i < _buckets.size(); ++i)
       {
          size += _buckets[i]->getCacheSize();
       }
 
+      size += _immutableMap.getCacheSize();
+      _latch.release_r();
       return size;
    }
 
@@ -318,6 +329,7 @@ namespace vessel
       memoryBlock buffer;
       BOOLEAN locked = FALSE;
       UINT32 mutableCount = 0;
+      UINT32 notDirty = 0;
 
       buffers.clear();
 
@@ -350,6 +362,7 @@ namespace vessel
             if (!itr->second->isDirty())
             {
                SDB_ASSERT(0 == itr->second->getMutablePageCount(), "impossible");
+               ++notDirty;
                continue;
             }
 
@@ -384,8 +397,8 @@ namespace vessel
          buffers.push_back(std::move(buffer));
       }
 
-      PD_LOG(PDDEBUG, "dump mutable buffer:%d, item count:%d, mutable pages:%d",
-             buffers.size(), pushed, mutableCount);
+      PD_LOG(PDDEBUG, "dump mutable buffer:%d, item count:%d, mutable pages:%d, not dirty:%d",
+             buffers.size(), pushed, mutableCount, notDirty);
    done:
       if (locked)
       {
@@ -552,7 +565,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageIdCache::_remove(PAGE_ID lpid, idMapSlot *slot)
+   INT32 logicalPageIdCache::_remove(PAGE_ID lpid,
+                                     idMapSlot *slot)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
@@ -830,6 +844,7 @@ namespace vessel
       _immutableCache = NULL;
       _latch.release_w();
       locked = FALSE;
+      PD_LOG(PDDEBUG, "clear immutable cache size:%lld", _immutableMap.getCacheSize());
       _immutableMap.fini();
       
    done:
@@ -853,8 +868,6 @@ namespace vessel
          rc = SDB_VESSEL_OUT_OF_RESOURCE;
          goto error;
       }
-
-      SDB_ASSERT(_immutableMap.isEmpty(), "must be empty");
 
       _latch.lock_w();
       locked = TRUE;

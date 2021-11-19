@@ -87,6 +87,11 @@ namespace vessel
             return _validSegmentCount;
          }
 
+         UINT64 getDeltaLogSize()const
+         {
+            return _validSegmentCount * deltaLogFile::FILE_SEGMENT_SIZE;
+         }
+
          BOOLEAN hasDeltaLog()const
          {
             return 0 < _validSegmentCount;

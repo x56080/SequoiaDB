@@ -62,8 +62,9 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
-   static const UINT64 CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE = 1024 * 1024 * 1024;
+   constexpr UINT64 FULL_CHECKPOINT_LPID_CACHE_SIZE = 8388608; /// 8MB
+   constexpr UINT64 FULL_CHECKPOINT_DELTA_LOG_SIZE = 128ull * 1024 * 1024; // 128MB
+   constexpr UINT64 CHECKPOINT_TRIGGER_DIRTY_PAGE_SIZE = 1024 * 1024 * 1024;
 
 ///////////////logicalPageSpace::_runtimePageBufferIniter begin
    INT32 logicalPageSpace::
@@ -552,7 +553,7 @@ namespace vessel
          goto done;
       }
 
-      PD_LOG(PDINFO, "begin to create checkpoint (delta) on lps[%d,%d]."
+      PD_LOG(PDINFO, "begin to create checkpoint (full) on lps[%d,%d]."
                       "current dirty lsn:[%lld, %lld].",
                       getSpaceID(), getSpaceType(),
                       _checkpointContext.getMinDirtyLsn(),
@@ -616,7 +617,7 @@ namespace vessel
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       abortCheckpoint = FALSE;
       currentMaxLSN = DPS_INVALID_LSN_OFFSET;
-      PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
+      PD_LOG(PDINFO, "end to create checkpoint (full) on lps[%d,%d], :%s",
             getSpaceID(), getSpaceType(),
             _checkpointContext.getCheckpoint().toString().c_str());
    done:
@@ -1877,7 +1878,7 @@ namespace vessel
       slice hs(sizeof(idMapFileHead), &imfHead);
 
       createStorageFileOptions o;
-      o.args = getStorageCoreArgs();
+      o.args = args;
       o.createAsTmpFile = TRUE;
       o.replaceWhenCreate = TRUE;
       o.secretValue = base->getCommonHeadInMem().secretValue;
@@ -2416,9 +2417,16 @@ namespace vessel
    BOOLEAN logicalPageSpace::needFullCheckpoint()
    {
       SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
+      const idMapFile *base = _idMapFiles.getBack<idMapFile>();
+      SDB_ASSERT(NULL != base, "can not be null");
+      UINT64 baseSize = base->getTotalSegmentSize();
       UINT64 cacheSize = _lpidCache.getTotalCacheSize();
-      PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld", getSpaceID(), getSpaceType(), cacheSize);
-      return (UINT64)FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize;
+      UINT64 deltaLogSize = _logConsole.getDeltaLogSize();
+      PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld, base size:%lld, delta log:%lld",
+             getSpaceID(), getSpaceType(), cacheSize, baseSize, deltaLogSize);
+      return FULL_CHECKPOINT_LPID_CACHE_SIZE <= cacheSize ||
+             FULL_CHECKPOINT_DELTA_LOG_SIZE <= deltaLogSize ||
+             (baseSize * 0.6) <= cacheSize;
    }
 
    INT32 logicalPageSpace::restoreToLatestCheckpoint(requestContext *context)

@@ -114,7 +114,7 @@ namespace vessel
          static const UINT32 PAGE_COUNT_PER_SEGMENT = 16;
          static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
                                                  PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 1024;
+         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 8192;
 
          static const UINT32 MAX_RECORD_COUNT_PER_SEGMENT = 
                       (FILE_SEGMENT_SIZE - sizeof(UINT32) - DELTA_LOG_CHECKPOINT_RECORD_SIZE) /
