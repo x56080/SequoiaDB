@@ -38,8 +38,9 @@
 
 #include "vessel/vesselIdDef.h"
 #include "vessel/vesselFileDef.h"
-#include "vessel/sortedStorageFileList.h"
 #include "vessel/vesselFileName.h"
+#include "vessel/deltaLogFileDef.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
@@ -64,10 +65,6 @@ namespace vessel
          {
             return INVALID_SPACE_TYPE != _type;
          }
-         OSS_INLINE BOOLEAN isEmtpy()const
-         {
-            return _files.isEmpty();
-         }
 
       public:
          INT32 init(requestContext *context,
@@ -76,30 +73,52 @@ namespace vessel
 
          void fini();
 
-         void destroy();
+         void destroy(requestContext *context);
 
-         INT32 reserveTmpLogFile(requestContext *context,
-                                 UINT32 secretValue);
+         deltaLogFile *getOnlineFile();
 
-         INT32 addReservedFileToList();
-
-         deltaLogFile *getLatestFile();
-
-         deltaLogFile *getReservedFile()
+         BOOLEAN hasOnlineFile()const
          {
-            return _reserved;
+            return _file.isOpen();
          }
 
+         UINT32 getValidSegmentCount()const
+         {
+            return _validSegmentCount;
+         }
+
+         BOOLEAN hasDeltaLog()const
+         {
+            return 0 < _validSegmentCount;
+         }
+
+         slice getDumpedRecord(UINT32 segmentId,
+                               deltaLogCheckpointRecord *out)const;
+
+         INT32 rebase(requestContext *context,
+                      UINT64 base);
+
+         INT32 append(requestContext *context,
+                      const ossPoolVector<memoryBlock> &buffers,
+                      const LPS_CHECKPOINT &checkpoint);
       private:
 
          INT32 initLogFiles(requestContext *context,
-                            const idMapFile *base,
                             const FILE_NAME_LIST *fl);
+
+         void destroyHistoryFiles(requestContext *context);
+
+         INT32 findOnlineFileEnding();
+
+         INT32 createOnlineFile(requestContext *context);
    
       private:
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
-         sortedStorageFileList _files;
-         deltaLogFile *_reserved = NULL;
+         UINT32 _secretValue = 0;
+         UINT64 _base = 0;
+         UINT32 _validSegmentCount = 0;
+         deltaLogFile _file;
+         FILE_NAME_LIST _history;
    };//class deltaLogConsole
 }//namespace vessel
 }//namespace engine

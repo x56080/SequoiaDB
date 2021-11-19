@@ -182,6 +182,7 @@ namespace vessel
       void initAsLeafFormat(const recordID &rid,
                             UINT16 offset,
                             UINT16 size,
+                            BOOLEAN compressed,
                             RECORD_SLOT_ID prefixPos = INVALID_RECORD_SLOT_ID);
 
       OSS_INLINE BOOLEAN isMarkedDeleted()const
@@ -191,6 +192,11 @@ namespace vessel
       OSS_INLINE BOOLEAN isKeyInExtPage()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_EXTERNAL_PAGE);
+      }
+      OSS_INLINE BOOLEAN hasPrefixSlot()const
+      {
+         ///WARNING: user should ensure it is in leaf node!
+         return INVALID_RECORD_SLOT_ID != data.lf.prefixSlot;
       }
       OSS_INLINE BOOLEAN isKeyCompressed()const
       {

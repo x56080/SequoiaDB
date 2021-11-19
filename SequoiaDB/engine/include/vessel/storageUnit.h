@@ -117,6 +117,8 @@ namespace vessel
          INT32 getDirPathOfType(SPACE_TYPE type,
                                 ossPoolString &dir)const;
 
+         INT32 destroyStorageFile(const vesselFileName &fn);
+
       private:
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
@@ -152,7 +154,8 @@ namespace vessel
          INT32 ensureOtherDirRemoved(const storagePathOptions &path,
                                      const strSlice &dir);
 
-         INT32 rollbackCreating(const storagePathOptions &path,
+         INT32 rollbackCreating(requestContext *context,
+                                const storagePathOptions &path,
                                 const strSlice &dir);
 
       private:

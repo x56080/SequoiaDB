@@ -38,35 +38,66 @@
 
 #include "vessel/storageFile.h"
 #include "vessel/logicalPageSpaceCheckpoint.h"
+#include "partialImpCache.h"
 
 namespace engine
 {
 namespace vessel
 {
-   typedef UINT16 DELTA_LOG_CHECKSUM;
-
 #pragma pack(4)
-   struct deltaLogFileHead
+   struct deltaLogCheckpointRecord
    {
-      deltaLogFileHead(){}
-      ~deltaLogFileHead(){}
-      deltaLogFileHead(const deltaLogFileHead &) = delete;
-      deltaLogFileHead &operator=(const deltaLogFileHead &o)
+      deltaLogCheckpointRecord(){}
+      ~deltaLogCheckpointRecord(){}
+      deltaLogCheckpointRecord(const deltaLogCheckpointRecord &) = delete;
+      deltaLogCheckpointRecord &operator=(const deltaLogCheckpointRecord &o)
       {
-         version = o.version;
-         baseIdMapFile = o.baseIdMapFile;
+         flags = o.flags;
          checkpoint = o.checkpoint;
          elementCount = o.elementCount;
+         checksum = o.checksum;
+         pad = o.pad;
          return *this;
       }
 
-      UINT32 version = 0;
-      UINT64 baseIdMapFile = 0;
-      LPS_CHECKPOINT checkpoint;
-      UINT64 elementCount = 0;
+      BOOLEAN isBegin()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_BEGIN_OF_BATCH);
+      }
+      void setBegin()
+      {
+         OSS_BIT_SET(flags, FLAG_BEGIN_OF_BATCH);
+      }
+      BOOLEAN isEnd()const
+      {
+         return 0 != OSS_BIT_TEST(flags, FLAG_END_OF_BATCH);
+      }
+      void setEnd()
+      {
+         OSS_BIT_SET(flags, FLAG_END_OF_BATCH);
+      }
 
+      static const UINT32 FLAG_BEGIN_OF_BATCH = 0x01;
+      static const UINT32 FLAG_END_OF_BATCH = 0x02;
+
+
+      UINT32 flags = 0;
+      LPS_CHECKPOINT checkpoint;
+      UINT32 elementCount = 0;
+      UINT32 checksum = 0;
+      UINT64 pad = 0;
    };//struct deltaLogFileHead
 
+   static const UINT32 DELTA_LOG_CHECKPOINT_RECORD_SIZE = sizeof(deltaLogCheckpointRecord);
+
+   struct deltaLogDumpRecord
+   {
+      UINT32 imp;
+      UINT32 offset;
+      CHAR cache[ID_MAP_PARTIAL_PAGE_CACHE_SIZE];
+   };//struct deltaLogDumpRecord
+
+   static const UINT32 DELTA_LOG_DUMP_RECORD_SIZE = sizeof(deltaLogDumpRecord);
    
 #pragma pack()
 
@@ -83,29 +114,11 @@ namespace vessel
          static const UINT32 PAGE_COUNT_PER_SEGMENT = 16;
          static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
                                                  PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 2048;
-         static const UINT32 MAX_PAGE_COUNT_PER_FILE = PAGE_COUNT_PER_SEGMENT *
-                                                       MAX_SEGMENT_COUNT_PER_FILE;
-         static const UINT32 MAX_FILE_SIZE = PAGE_SIZE * MAX_PAGE_COUNT_PER_FILE;
+         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 1024;
 
-      public:
-         virtual BOOLEAN validateUserDefinedHead(const void *head)const;
-
-      public:
-         OSS_INLINE static UINT64 getLogFileSequenceByOffset(UINT64 offset)
-         {
-            return offset / MAX_FILE_SIZE;
-         }
-         OSS_INLINE static UINT32 getInFileSegmentId(UINT64 offset)
-         {
-            return (offset / FILE_SEGMENT_SIZE) % MAX_SEGMENT_COUNT_PER_FILE;
-         }
-         OSS_INLINE static UINT32 getOffsetInSegment(UINT64 offset)
-         {
-            return offset % FILE_SEGMENT_SIZE;
-         }
-
-         INT32 getDeltaLogFileHead(deltaLogFileHead &h)const;
+         static const UINT32 MAX_RECORD_COUNT_PER_SEGMENT = 
+                      (FILE_SEGMENT_SIZE - sizeof(UINT32) - DELTA_LOG_CHECKPOINT_RECORD_SIZE) /
+                      DELTA_LOG_DUMP_RECORD_SIZE;
          
    };//class deltaLogFile
 }//namespace vessel

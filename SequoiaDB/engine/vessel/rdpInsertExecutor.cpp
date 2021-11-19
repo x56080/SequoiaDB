@@ -343,8 +343,8 @@ namespace vessel
 
       if (head->freeSpaceAfterLastSlot < totalSize)
       {
-         PD_LOG(PDDEBUG, "avalible free space[%d] not enough for size[%d]",
-                head->freeSpaceAfterLastSlot, totalSize);
+         //PD_LOG(PDDEBUG, "avalible free space[%d] not enough for size[%d]",
+         //       head->freeSpaceAfterLastSlot, totalSize);
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
          goto error;
       }

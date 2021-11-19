@@ -62,7 +62,7 @@ namespace vessel
          }
 
          virtual void _close();
-         virtual void _destroy();
+         virtual void _destroy(requestContext *context);
 
          virtual inMemBitmap::options getStorageAllocatorOptions()const;
 
@@ -107,7 +107,8 @@ namespace vessel
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 BOOLEAN fullCheckpoint);
+                                                 BOOLEAN fullCheckpoint,
+                                                 checkpointLSN &lsn);
          
          virtual void endToCreateCheckpoint(requestContext *context);
       private:

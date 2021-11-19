@@ -69,6 +69,7 @@ namespace vessel
    void btreeItemSlot::initAsLeafFormat(const recordID &rid,
                                         UINT16 offset,
                                         UINT16 size,
+                                        BOOLEAN compressed,
                                         RECORD_SLOT_ID prefixPos)
    {
       SDB_ASSERT(rid.valid(), "can not be invalid");
@@ -79,13 +80,17 @@ namespace vessel
       data.key.offset = offset;
       data.key.size = size;
       
-      if (INVALID_RECORD_SLOT_ID != prefixPos)
+      if (compressed)
       {
          OSS_BIT_SET(flags, FLAG_KEY_COMPRESSESD);
-         data.lf.prefixSlot = prefixPos;
+         SDB_ASSERT(INVALID_RECORD_SLOT_ID != prefixPos, "can not be invalid");
       }
+      
+      data.lf.prefixSlot = prefixPos;
+
       return;
    }
+
 ////////btreeItemSlot end
 
    BOOLEAN initBtreeNodePage(UINT32 pageSize,

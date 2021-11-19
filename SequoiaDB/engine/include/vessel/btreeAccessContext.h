@@ -115,6 +115,10 @@ namespace vessel
 
          void popEnds(UINT32 n);
 
+         void destroyEnd();
+
+         void destroyEnds(UINT32 n);
+
          btreeNode getEndNodeInPath();
          UINT32 getPathSize()const;
          btreeNode getNodeInPath(UINT32 depth);

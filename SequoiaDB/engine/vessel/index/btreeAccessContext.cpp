@@ -458,6 +458,35 @@ namespace vessel
 
       return;
    }
+
+   void btreeAccessContext::destroyEnds(UINT32 n)
+   {
+      SDB_ASSERT(n <= _path.size(), "out of bound");
+      /// nodes to be destroyed must be all accessing.
+      SDB_ASSERT(isStillAccessing(_path.size() - n), "must be accessing");
+      for (UINT32 i = 0; i < n; ++i)
+      {
+         btreeAccessPathNode pn;
+         if (_path.popBack(&pn))
+         {
+            if (pn.isAccessing())
+            {
+               pn.getPageBuffer()->destroy();
+               _free.push_back(pn.getPageBuffer());
+            }
+
+            if (!_path.empty())
+            {
+               _path[_path.size() - 1].clearChildFootprint();
+            }
+         }
+      }
+   }
+
+   void btreeAccessContext::destroyEnd()
+   {
+      destroyEnds(1);
+   }
    
    btreeNode btreeAccessContext::getEndNodeInPath()
    {

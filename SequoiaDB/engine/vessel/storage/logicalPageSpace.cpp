@@ -114,9 +114,9 @@ namespace vessel
       return;
    }
 
-   void logicalPageSpace::destroy()
+   void logicalPageSpace::destroy(requestContext *context)
    {
-      _destroy();
+      _destroy(context);
       if (NULL != _dpc)
       {
          _dpc->destroy();
@@ -124,7 +124,7 @@ namespace vessel
       }
       if (_logConsole.isReady())
       {
-         _logConsole.destroy();
+         _logConsole.destroy(context);
       }
       _idMapFiles.destroy();
       fini();
@@ -225,7 +225,7 @@ namespace vessel
    done:
       return rc;
    error:
-      destroy();
+      destroy(context);
       goto done;
    }
 
@@ -414,11 +414,11 @@ namespace vessel
       BOOLEAN abortCheckpoint = FALSE;
       IRedoLogger *logger = context->getOuterResource()->logger;
       ossPoolVector<memoryBlock> mutableBuffers;
-      UINT32 itemCount = 0;
       ossPoolSet<UINT32> segments;
       idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET currentMaxLSN = DPS_INVALID_LSN_OFFSET;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -429,15 +429,13 @@ namespace vessel
       }
       abortCheckpoint = TRUE;
 
-      rc = _logConsole.reserveTmpLogFile(context, base->getCommonHeadInMem().secretValue);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to reserve delta log file:%d", rc);
-         goto error;
-      }
-
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
+
+      if (DPS_INVALID_LSN_OFFSET == _checkpointContext.getMaxDirtyLsn())
+      {
+         goto done;
+      }
 
       PD_LOG(PDINFO, "begin to create checkpoint (delta) on lps[%d,%d]."
                       "current dirty lsn:[%lld, %lld].",
@@ -445,25 +443,12 @@ namespace vessel
                       _checkpointContext.getMinDirtyLsn(),
                       _checkpointContext.getMaxDirtyLsn());
 
-      if (isCopyOnWrite())
-      {
-         lsn._lsn = logger->getCurrentLSN();
-         /// getMinUncompletedLSN is very expensive.
-         lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
-         lsn._minDirtyLSN = lsn._lsn + 1;
-         pushLSN = lsn._lsn;
-      }
-      else
-      {
-         lsn._lsn = logger->getCurrentLSN();
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
-         lsn._minDirtyLSN = lsn._lsn + 1;
-         lsn._minUncompletedLSN = lsn._minDirtyLSN;
-         pushLSN = _checkpointContext.getMaxDirtyLsn();
-      }
+      /// actually we only need push lsn to max dirty lsn when space is replicated.
+      pushLSN = logger->getCurrentLSN();
+      currentMaxLSN = _checkpointContext.getMaxDirtyLsn();
 
       rc = _lpidCache.dumpBufferAndSetImmutable(getStorageCoreArgs().maxPageCountPerSeg,
-                                                mutableBuffers, itemCount,
+                                                mutableBuffers,
                                                 isCopyOnWrite() ? &segments : NULL);
       if (SDB_OK != rc)
       {
@@ -471,14 +456,15 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToCreateCheckpoint(context, FALSE);
+      rc = prepareToCreateCheckpoint(context, FALSE, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
          goto error;
       }
 
-      _checkpointContext.clearLsn();
+      SDB_ASSERT(lsn.isValid(), "can not be invalid");
+      _checkpointContext.clearDirtyLSN(FALSE);
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
@@ -495,13 +481,14 @@ namespace vessel
       logger->pushMaxFileLSN(context->getExecutor(), pushLSN);
 
       checkpoint.init(0, lsn, ossGetCurrentMilliseconds());
-      rc = completeDetaLogFile(mutableBuffers, itemCount, checkpoint);
+      rc = _logConsole.append(context, mutableBuffers, checkpoint);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to complete delta log:%d", rc);
+         PD_LOG(PDERROR, "failed to commit delta log:%d", rc);
          goto error;
       }
 
+      mutableBuffers.clear();
       _checkpointContext.setCheckpoint(checkpoint);
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::ENDING);
       endToCreateCheckpoint(context);
@@ -509,13 +496,20 @@ namespace vessel
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       abortCheckpoint = FALSE;
-       PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
+      currentMaxLSN = DPS_INVALID_LSN_OFFSET;
+      PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
              getSpaceID(), getSpaceType(),
              _checkpointContext.getCheckpoint().toString().c_str());
+      
    done:
       if (locked)
       {
          _checkpointContext.getLatch()->release_w();
+      }
+      if (DPS_INVALID_LSN_OFFSET != currentMaxLSN)
+      {
+         /// rollback dir lsn if necessary
+         _checkpointContext.updateDirtyLsn(currentMaxLSN);
       }
       if (abortCheckpoint)
       {
@@ -538,6 +532,7 @@ namespace vessel
       IRedoLogger *logger = context->getOuterResource()->logger;
       ossPoolSet<UINT32> segments;
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET currentMaxLSN = DPS_INVALID_LSN_OFFSET;
       UINT32 totalImpCount = 0;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
@@ -552,6 +547,11 @@ namespace vessel
       _checkpointContext.getLatch()->lock_w();
       locked = TRUE;
 
+      if (DPS_INVALID_LSN_OFFSET == _checkpointContext.getMaxDirtyLsn())
+      {
+         goto done;
+      }
+
       PD_LOG(PDINFO, "begin to create checkpoint (delta) on lps[%d,%d]."
                       "current dirty lsn:[%lld, %lld].",
                       getSpaceID(), getSpaceType(),
@@ -562,24 +562,8 @@ namespace vessel
       /// But we can be sure page count not less than real count to be
       /// saved into new base id map file.
       totalImpCount = _allocator.getCustomizedPageCount();
-
-      if (isCopyOnWrite())
-      {
-         lsn._lsn = logger->getCurrentLSN();
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
-         /// getMinUncompletedLSN is very expensive.
-         lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
-         lsn._minDirtyLSN = lsn._lsn + 1;
-         pushLSN = lsn._lsn;
-      }
-      else
-      {
-         lsn._lsn = logger->getCurrentLSN();
-         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn._lsn, "can not be invalid");
-         lsn._minDirtyLSN = lsn._lsn + 1;
-         lsn._minUncompletedLSN = lsn._minDirtyLSN;
-         pushLSN = _checkpointContext.getMaxDirtyLsn();
-      }
+      currentMaxLSN = _checkpointContext.getMaxDirtyLsn();
+      pushLSN = logger->getCurrentLSN();
 
       rc = _lpidCache.prepareToCreateNewBase(getStorageCoreArgs().maxPageCountPerSeg,
                                              isCopyOnWrite() ? &segments : NULL);
@@ -589,14 +573,15 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToCreateCheckpoint(context, FALSE);
+      rc = prepareToCreateCheckpoint(context, TRUE, lsn);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to create checkpoint:%d", rc);
          goto error;
       }
+      SDB_ASSERT(lsn.isValid(), "can not be invalid");
 
-      _checkpointContext.clearLsn();
+      _checkpointContext.clearDirtyLSN(FALSE);
       _checkpointContext.getLatch()->release_w();
       locked = FALSE;
 
@@ -630,6 +615,7 @@ namespace vessel
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::NONE);
       abortCheckpoint = FALSE;
+      currentMaxLSN = DPS_INVALID_LSN_OFFSET;
       PD_LOG(PDINFO, "end to create checkpoint (delta) on lps[%d,%d], :%s",
             getSpaceID(), getSpaceType(),
             _checkpointContext.getCheckpoint().toString().c_str());
@@ -637,6 +623,11 @@ namespace vessel
       if (locked)
       {
          _checkpointContext.getLatch()->release_w();
+      }
+      if (DPS_INVALID_LSN_OFFSET != currentMaxLSN)
+      {
+         /// rollback dir lsn if necessary
+         _checkpointContext.updateDirtyLsn(currentMaxLSN);
       }
       if (abortCheckpoint)
       {
@@ -1962,6 +1953,13 @@ namespace vessel
       _lpidCache.resetBaseFileAndClearFlushedMaps(file);
 
       _idMapFiles.truncate(3);
+      rc = _logConsole.rebase(context, file->getCommonHeadInMem().sequence);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to rebase delta log:%d", rc);
+         ossPanic(); /// impossible to be failed.
+         goto error;
+      }
       
    done:
       return rc;
@@ -2102,9 +2100,12 @@ namespace vessel
       for (; deltaIterator != delta.end(); ++deltaIterator)
       {
          const partialImpCacheMap::KEY &key = deltaIterator->first;
+         SDB_ASSERT(partialImpCacheMap::isValidKey(key), "can not be invalid");
          const partialImpCache *cache = deltaIterator->second;
          SDB_ASSERT(NULL != cache, "can not be null");
-         PAGE_ID baseLpid = key.first * ID_MAP_PAGE_CAPACITY;
+         PAGE_ID baseLpid = (key.first * ID_MAP_PAGE_CAPACITY) +
+                            ((key.second / ID_MAP_PARTIAL_PAGE_CACHE_SIZE) *
+                             ID_MAP_PARTIAL_CACHE_SLOT_COUNT); 
 
          rc = _allocator.ensureBitmapPageCount(key.first + 1);
          if (SDB_OK != rc)
@@ -2437,9 +2438,9 @@ namespace vessel
          goto error;
       }
 
-      if (_logConsole.isEmtpy())
+      if (!_logConsole.hasDeltaLog())
       {
-         PD_LOG(PDINFO, "no delta log files found, only base file[%s]",
+         PD_LOG(PDINFO, "no delta log records found, restore by base file[%s]",
                  base->getFullPath());
          if (0 < base->getCommonHeadInMem().sequence)
          {
@@ -2449,54 +2450,54 @@ namespace vessel
                PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
                goto error;
             }
-             _checkpointContext.setCheckpoint(baseHead.checkpoint);
+            _checkpointContext.setCheckpoint(baseHead.checkpoint);
          }
       }
       else
       {
-         deltaLogFile *delta = _logConsole.getLatestFile();
-         deltaLogFileHead head;
-         rc = delta->getDeltaLogFileHead(head);
+         SDB_ASSERT(_logConsole.hasOnlineFile(), "impossible");
+         
+         deltaLogFile *delta = _logConsole.getOnlineFile();
+         SDB_ASSERT(delta->getCommonHeadInMem().sequence ==
+                    base->getCommonHeadInMem().sequence, "must be same");
+         PD_LOG(PDINFO, "merge base[%s] and delta[%s] to restore lps",
+                base->getFullPath(), delta->getFullPath());
+         deltaLogCheckpointRecord cr;
+         UINT32 count = _logConsole.getValidSegmentCount();
+         for (UINT32 i = 0; i < count; ++i)
+         {
+            slice batch = _logConsole.getDumpedRecord(i, &cr);
+            SDB_ASSERT(!batch.isEmpty(), "impossible");
+            for (UINT32 pos = 0; pos < cr.elementCount; ++pos)
+            {
+               const deltaLogDumpRecord *dump =
+                         batch.getReadableObjPtr<deltaLogDumpRecord>(pos * DELTA_LOG_DUMP_RECORD_SIZE);
+               if (OSS_UNLIKELY(NULL == dump))
+               {
+                  PD_LOG(PDERROR, "failed to read dump log in batch at seg[%d", i);
+                  rc = SDB_VESSEL_INTERNAL_ERR;
+                  goto error;
+               }
+
+               rc = _lpidCache.upsertWhenRestore(dump);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to upsert cache at seg[%d], rc:%d", i, rc);
+                  goto error;
+               }
+            }
+         }
+
+         SDB_ASSERT(cr.isEnd(), "must be end");
+         SDB_ASSERT(cr.checkpoint.isValid(), "must be valid");
+
+         rc = mergeAndRestoreAllocator(context);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get delta log header:%d", rc);
+            PD_LOG(PDERROR, "failed to merge base and delta:%d", rc);
             goto error;
          }
-
-         if (head.baseIdMapFile < base->getCommonHeadInMem().sequence)
-         {
-            PD_LOG(PDINFO, "base version[%lld] in delta log file[%s] is lower than base file[%s]",
-                   head.baseIdMapFile, delta->getFullPath(), base->getFullPath());
-
-            rc = restoreAllocatorByBaseFile(context, base);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to restore allocator by base file:%d", rc);
-               goto error;
-            }
-             _checkpointContext.setCheckpoint(baseHead.checkpoint);
-         }
-         else
-         {
-            PD_LOG(PDINFO, "base version[%lld] in delta log file[%s] referenced to base file[%s]",
-                   head.baseIdMapFile, delta->getFullPath(), base->getFullPath());
-
-            rc = _lpidCache.restore(delta);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to restore lpid cache:%d", rc);
-               goto error;
-            }
-
-            rc = mergeAndRestoreAllocator(context);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to merge base and delta:%d", rc);
-               goto error;
-            }
-
-            _checkpointContext.setCheckpoint(head.checkpoint);
-         }
+         _checkpointContext.setCheckpoint(cr.checkpoint);
       }
    done:
       return rc;
@@ -2504,63 +2505,5 @@ namespace vessel
       goto done;
    }
    
-   INT32 logicalPageSpace::completeDetaLogFile(const ossPoolVector<memoryBlock> &buffers,
-                                               UINT32 itemCount,
-                                               const LPS_CHECKPOINT &checkpoint)
-   {
-      INT32 rc = SDB_OK;
-      deltaLogFile *delta = _logConsole.getReservedFile();
-      SDB_ASSERT(NULL != delta, "can not be null");
-      idMapFile *base = _idMapFiles.getBack<idMapFile>();
-      SDB_ASSERT(NULL != base, "can not be null");
-      UINT32 segmentSize = delta->getCommonHeadInMem().getSegmentSize();
-
-      deltaLogFileHead head;
-      head.version = deltaLogFile::VERSION;
-      head.baseIdMapFile = base->getCommonHeadInMem().sequence;
-      head.checkpoint = checkpoint;
-      head.elementCount = itemCount;
-      slice hs(sizeof(head), &head);
-
-      rc = delta->ensureSegmentCount(buffers.size());
-      for (UINT32 i = 0; i < buffers.size(); ++i)
-      {
-         const memoryBlock &mb = buffers[i];
-         ossValuePtr ptr = 0;
-         rc = delta->getSegmentPtr(i, ptr);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            PD_LOG(PDERROR, "failed to get segment ptr:%d", rc);
-            goto error;
-         }
-
-         if (OSS_UNLIKELY(segmentSize < mb.getSize()))
-         {
-            PD_LOG(PDERROR, "invalid buffer size:%d", mb.getSize());
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
-         ossMemcpy((void *)ptr, mb.getBuffer(), mb.getSize());
-      }
-
-      rc = delta->updateUserDefinedHead(hs);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update delta log head:%d", rc);
-         goto error;
-      }
-
-      rc = _logConsole.addReservedFileToList();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to add file to log list:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 }//namespace vessel
 }//namespace engine

@@ -290,7 +290,7 @@ namespace vessel
       lsmIndex lsm;
       lsmKeyEntry lsmEntry;
 
-      rc = lsm.init(&context->getEnv()->lsm, lsmMeta);
+      rc = lsm.init(context->getEnv()->lsm, lsmMeta);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
@@ -533,7 +533,7 @@ namespace vessel
       lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
 
-      rc = lsm.init(&context->getEnv()->lsm, meta);
+      rc = lsm.init(context->getEnv()->lsm, meta);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init lsm index:%d", rc);
@@ -727,13 +727,6 @@ namespace vessel
          goto done;
       }
 
-      rc = btreeInsert(context, ra);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
-         goto error;
-      }
-
       rc = createLsmBatch(context, ra, lsmBatch);
       if (SDB_OK != rc)
       {
@@ -741,16 +734,34 @@ namespace vessel
          goto error;
       }
 
-      status = context->getEnv()->lsm.Write(lsmBatch.getBatch());
-      if (!status.ok())
+      if (!lsmBatch.isEmpty() && NULL == context->getEnv()->lsm)
       {
-         PD_LOG(PDERROR, "failed to write lsm batch:%s", status.getState());
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "lsm index instance not inited yet");
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
+      }
+
+      rc = btreeInsert(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
+         goto error;
+      }
+
+      if (!lsmBatch.isEmpty())
+      {
+         status = context->getEnv()->lsm->Write(lsmBatch.getBatch());
+         if (!status.ok())
+         {
+            PD_LOG(PDERROR, "failed to write lsm batch:%s", status.getState());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
       }
    done:
       return rc;
    error:
+      ///TODO: rollback index inserted to btree
       goto done;
    }
 

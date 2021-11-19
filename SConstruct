@@ -661,7 +661,7 @@ if guess_os == "linux":
     nix = True
 
     if debugBuild:
-       env.Append( CPPFLAGS=" -Wno-deprecated-declarations -Wno-literal-suffix " ) 
+       env.Append( CPPFLAGS=" -Wno-deprecated-declarations " ) 
 
 elif guess_os == "win32":
     # when building windows

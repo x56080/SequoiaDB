@@ -38,6 +38,10 @@
 #include "vessel/deltaLogRecordBuilder.h"
 #include "ossLatchGuard.hpp"
 #include "vessel/requestContext.h"
+#include "vessel/IRedoLogger.h"
+#include "vessel/instanceEnv.h"
+#include "vessel/requestContext.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -83,7 +87,7 @@ namespace vessel
       fini();
    }
 
-   void copyOnWriteLPS::_destroy()
+   void copyOnWriteLPS::_destroy(requestContext *context)
    {
       fini();
    }
@@ -484,12 +488,18 @@ namespace vessel
    }
 
    INT32 copyOnWriteLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                   BOOLEAN fullCheckpoint)
+                                                   BOOLEAN fullCheckpoint,
+                                                   checkpointLSN &lsn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      lsn._lsn = logger->getCurrentLSN();
+      /// getMinUncompletedLSN is very expensive.
+      lsn._minUncompletedLSN = context->getOuterResource()->getMinUncompletedLSN();
+      lsn._minDirtyLSN = lsn._lsn + 1;
+      
       mergeBlocksToReadyList();
-
    done:
       return rc;
    error:

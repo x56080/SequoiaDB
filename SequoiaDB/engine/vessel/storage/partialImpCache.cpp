@@ -93,6 +93,7 @@ namespace vessel
       SDB_ASSERT(_buffer[pos].isFree() || !isMutable(pos), "can not update mutable page");
       _buffer[pos] = slot;
       setAsMutable(pos);
+      _dirty = TRUE;
    done:
       return rc;
    error:
@@ -122,6 +123,7 @@ namespace vessel
 
       _buffer[pos].reset();
       setAsInmmutable(pos);
+      _dirty = TRUE;
    done:
       return rc;
    error:
@@ -133,9 +135,9 @@ namespace vessel
       return ossGetNonZeroBitCount32(_flags);
    }
 
-   void partialImpCache::setAllPageImmutable(UINT32 pageCountPerSeg,
-                                             ossPoolSet<UINT32> *mutableSegmentIds,
-                                             UINT32 *mutableCount)
+   void partialImpCache::makeClean(UINT32 pageCountPerSeg,
+                                   ossPoolSet<UINT32> *mutableSegmentIds,
+                                   UINT32 *mutableCount)
    {
       if (NULL != mutableCount)
       {
@@ -160,7 +162,9 @@ namespace vessel
       else
       {
          _flags = 0;
-      }   
+      }
+
+      _dirty = FALSE;
    done:
       return;
    }

@@ -710,8 +710,14 @@ namespace vessel
    }
 
    INT32 replicatedLPS::prepareToCreateCheckpoint(requestContext *context,
-                                                  BOOLEAN fullCheckpoint)
+                                                  BOOLEAN fullCheckpoint,
+                                                  checkpointLSN &lsn)
    {
+      SDB_ASSERT(NULL != context, "can not be null");
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      lsn._lsn = logger->getCurrentLSN();
+      lsn._minDirtyLSN = lsn._lsn + 1;
+      lsn._minUncompletedLSN = lsn._minDirtyLSN;
       return SDB_OK;
    }
 }//namespace vessel

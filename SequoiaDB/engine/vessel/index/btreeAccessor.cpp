@@ -298,7 +298,7 @@ namespace vessel
                   goto done;
                }
 
-               rc = node.reactiveRemovedKey(location, _context->getTransIDWithoutTag());
+               rc = node.reactiveRemovedKey(location);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reactive non-leaf node item:%d", rc);
@@ -439,44 +439,13 @@ namespace vessel
          goto done;
       }
 
-      rc = node.leafInsert(key, rid, _context->getTransIDWithoutTag());
+      rc = node.leafInsert(key, rid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert into leaf node:%d", rc);
          goto error;
       }
 
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 btreeAccessor::removeWhenPathEndIsLeaf(const ixmKey &key,
-                                                const recordID &rid,
-                                                BOOLEAN &obstructed)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(!_bac.isReadonly(), "can not be invalid");
-      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
-
-      btreeNode node = _bac.getEndNodeInPath();
-      SDB_ASSERT(node.isLeaf(), "must be leaf node");
-
-      obstructed = FALSE;
-      if (!node.ensureExclusiveLocking())
-      {
-         obstructed = TRUE;
-         goto done;
-      }
-
-      rc = node.leafRemove(key, rid, _context->getTransIDWithoutTag());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to remove key from leaf node:%d", rc);
-         goto error;
-      }
    done:
       return rc;
    error:
@@ -529,7 +498,7 @@ namespace vessel
             goto error;
          }
 
-         rc = node.splitLeafAndInsert(key, rid, _context->getTransIDWithoutTag(), raisedKey);
+         rc = node.splitLeafAndInsert(key, rid, raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split leaf node [%d] and insert:%d",
@@ -625,7 +594,7 @@ namespace vessel
 
       if (NULL == raisedKey)
       {
-         rc = node.splitLeafAndInsert(key, rid, _context->getTransIDWithoutTag(), newRaisedKey);
+         rc = node.splitLeafAndInsert(key, rid, newRaisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split leaf and insert:%d", rc);
@@ -634,7 +603,7 @@ namespace vessel
       }
       else
       {
-         rc = node.splitNonLeafAndInsert(*raisedKey, _context->getTransIDWithoutTag(), newRaisedKey);
+         rc = node.splitNonLeafAndInsert(*raisedKey, newRaisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to split non leaf root and insert:%d", rc);
@@ -645,7 +614,7 @@ namespace vessel
       /// set right child of new root first, which init it as non-leaf node.
       newRootBufferSlice.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
       newRootNode = btreeNode(&newRootBuffer, 0, _ic);
-      rc = newRootNode.insertRaisedKey(newRaisedKey, _context->getTransIDWithoutTag());
+      rc = newRootNode.insertRaisedKey(newRaisedKey);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert raised key into new root:%d", rc);
@@ -779,7 +748,7 @@ namespace vessel
       /// one slot always be reserved
       if (node.hasFreeSpaceToInsertRaisedKey(raisedKey.getKeySize()))
       {
-         rc = node.insertRaisedKey(raisedKey, _context->getTransIDWithoutTag());
+         rc = node.insertRaisedKey(raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
@@ -838,7 +807,6 @@ namespace vessel
          }
 
          rc = node.splitNonLeafAndInsert(raisedKey,
-                                          _context->getTransIDWithoutTag(),
                                           newRaisedKey);
          if (SDB_OK != rc)
          {
@@ -857,7 +825,7 @@ namespace vessel
       else
       {
          /// will create external key page
-         rc = node.insertRaisedKeyAsExtKey(raisedKey, _context->getTransIDWithoutTag());
+         rc = node.insertRaisedKeyAsExtKey(raisedKey);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert raised key into node:%d", rc);
@@ -893,31 +861,120 @@ namespace vessel
       do
       {
          btreeNode node = _bac.getEndNodeInPath();
+         btreeItemLocation location;
+         rc = node.locateKeyAndRid(key, rid, location);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
+            goto error;
+         }
+
          if (node.isLeaf())
          {
-            if (1 < node.getItemCount())
+            if (!location.identical)
             {
-               /// leaf node will not be empty
+               rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
+               goto error;
+            }
+
+            if (!node.ensureExclusiveLocking())
+            {
+               obstructed = TRUE;
+               goto done;
+            }
+            
+            if (1 < node.getItemCount() || node.isRoot())
+            {
+               /// leaf node will not be released
                _bac.endToAccessNonPathEndNodes();
-               rc = removeWhenPathEndIsLeaf(key, rid, obstructed);
+               rc = node.destroyItem(location.slotPos);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to remove from leaf node:%d", rc);
+                  PD_LOG(PDERROR, "failed to remove item in leaf:%d", rc);
                   goto error;
                }
             }
             else
             {
-               btreeItemLocation location;
-               rc = node.locateKeyAndRid(key, rid, location);
+               const btreePathFootprint &fp = _bac.getPathNode(node.getDepth() - 1).getChildFootprint();
+               SDB_ASSERT(fp.isValid(), "must be valid");
+               btreeNode fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
+               if (!fatherNode.ensureExclusiveLocking())
+               {
+                  obstructed = TRUE;
+                  goto done;
+               }
+
+               rc = fatherNode.removeChild(fp.getPos());
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to remove child in father node:%d", rc);
+                  goto error;
+               }
+
+               _bac.destroyEnd();
+               tryToDestroyNodesIfNecessary();
             }
+            break;
+         }
+         else /// non-leaf
+         {
+            btreePathFootprint  fp;
+            fp.setPos(location.slotPos);
+            fp.setUpperBound(location.isUpperBound);
+            PAGE_ID child = node.getChild(location.slotPos);
+            if (INVALID_PAGE_ID == child)
+            {
+               rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
+               goto error;
+            }
+
+            /// impossible to go back
+            if (node.hasRightChild() || 1 < node.getItemCount())
+            {
+               _bac.endToAccessNonPathEndNodes();
+            }
+
+            rc = _bac.pushChildNodeIntoPath(child, fp);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push child into path:%d", rc);
+               goto error;
+            }
+
+            continue;
          }
       } while (TRUE);
       
    done:
+      _bac.clearAccessPath();
       return rc;
    error:
       goto done;
+   }
+
+   void btreeAccessor::tryToDestroyNodesIfNecessary()
+   {
+      SDB_ASSERT(!_bac.isPathEmpty(), "can not be empty");
+
+      do
+      {
+         btreeNode node = _bac.getEndNodeInPath();
+         SDB_ASSERT(!(!node.isRoot() && node.isLeaf()), "can not begin from leaf node");
+         SDB_ASSERT(node.getLockingMode().isExclusive(), "must be exclusive");
+         if (node.isRoot() ||
+             node.hasRightChild() ||
+             1 < node.getItemCount() ||
+             !node.getItemSlot(0).isMarkedDeleted())
+         {
+            break;
+         }
+
+         ///TODO:
+      } while (TRUE);
+      
+   done:
+      return;
    }
 } // namespace vessel
 

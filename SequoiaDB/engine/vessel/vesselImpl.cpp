@@ -48,6 +48,7 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/indexScanCursor.h"
+#include "vessel/lsm/lsmDB.hpp"
 
 namespace engine
 {
@@ -116,7 +117,6 @@ namespace vessel
          goto error;
       }
 
-
       rc = initLsmDB(options);
       if (SDB_OK != rc)
       {
@@ -159,10 +159,16 @@ namespace vessel
          requestContext context;
          context.open(executor, &_env, &_outerResource);
 
-         _cacheWatcher.fini();    
-         _env.lsm.closeLsmDB(TRUE, FALSE);
+         _cacheWatcher.fini();
+         if (NULL != _env.lsm)
+         {
+            _env.lsm->closeLsmDB(TRUE, FALSE);
+         }
+
+         ///TODO: flush db by workers.
          flushWholeDirtyList(&context);
          _env.dms.createCheckpointBeforeClosing(&context);
+         _env.workers.fini();
       }
    done:
       fini();
@@ -839,9 +845,14 @@ namespace vessel
          _env.uniqueIndexLathMap.fini();
          _env.spaceLocker.fini();
          _env.options = openDBOptions();
-         if (_env.lsm.isDBOpened())
+         if (NULL != _env.lsm)
          {
-            _env.lsm.closeLsmDB(FALSE, TRUE);
+            if (_env.lsm->isDBOpened())
+            {
+               _env.lsm->closeLsmDB(FALSE, TRUE);
+            }
+            SDB_OSS_DEL _env.lsm;
+            _env.lsm = NULL;
          }
          _outerResource.logger = NULL;
       }
@@ -851,6 +862,7 @@ namespace vessel
    INT32 vesselImpl::initLsmDB(const openDBOptions &options)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL == _env.lsm, "do not reinit");
       rocksdb::Status status;
       LSMConfig conf;
       conf.createDBIfMissing = TRUE;
@@ -862,9 +874,17 @@ namespace vessel
       }
 
       conf.dbPath = options.path.lsmPath;
-      _env.lsm.initLsmDB(conf);
+      _env.lsm = SDB_OSS_NEW lsmDB();
+      if (OSS_UNLIKELY(NULL == _env.lsm))
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
 
-      status = _env.lsm.openLsmDB();
+      _env.lsm->initLsmDB(conf);
+
+      status = _env.lsm->openLsmDB();
       if (!status.ok())
       {
          PD_LOG(PDERROR, "failed to open lsm db under path[%s], info:[%s]",
@@ -875,6 +895,11 @@ namespace vessel
    done:
       return rc;
    error:
+      if (NULL != _env.lsm)
+      {
+         SDB_OSS_DEL _env.lsm;
+         _env.lsm = NULL;
+      }
       goto done;
    }
 } // namespace vessel

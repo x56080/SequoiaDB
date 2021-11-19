@@ -77,22 +77,13 @@ namespace vessel
          {
             return _checkpoint;
          }
-
-         OSS_INLINE DPS_LSN_OFFSET getMinDirtyLsn()const
-         {
-            return _minDirtyLsn;
-         }
-         OSS_INLINE DPS_LSN_OFFSET peekMinDirtyLsn()const
-         {
-            return *((const volatile UINT64 *)(&_minDirtyLsn));
-         }
          OSS_INLINE DPS_LSN_OFFSET getMaxDirtyLsn()const
          {
-            return _maxDirtyLsn;
+            return _dirtyLSN;
          }
          OSS_INLINE BOOLEAN isDirty()const
          {
-            return DPS_INVALID_LSN_OFFSET != _minDirtyLsn;
+            return DPS_INVALID_LSN_OFFSET != _dirtyLSN;
          }
 
          OSS_INLINE ossRWMutex *getLatch()
@@ -104,22 +95,19 @@ namespace vessel
          void fini();
          void setCheckpoint(const LPS_CHECKPOINT &checkpoint);
          void updateDirtyLsn(DPS_LSN_OFFSET lsn, BOOLEAN lock=TRUE);
-         void clearLsn()
-         {
-            _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
-            _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
-         }
+         void clearDirtyLSN(BOOLEAN lock=TRUE);
 
          BOOLEAN tryToApplyCheckpoint();
          BOOLEAN tryToSetRunningFromNoneOrApplying();
+
+         DPS_LSN_OFFSET getMinDirtyLsn()const;
       private:
          ossRWMutex _checkpointLatch;
          std::atomic_int _status = {STATUS::NONE};
          LPS_CHECKPOINT _checkpoint;
 
          ossSpinLatch _lsnLatch;
-         DPS_LSN_OFFSET _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
-         DPS_LSN_OFFSET _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _dirtyLSN = DPS_INVALID_LSN_OFFSET;
    };//class lpsCheckpointContext
 }//namespace vessel
 }//namespace engine

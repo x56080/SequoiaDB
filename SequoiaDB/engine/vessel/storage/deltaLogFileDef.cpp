@@ -40,36 +40,8 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN deltaLogFile::validateUserDefinedHead(const void *head)const
-   {
-      SDB_ASSERT(NULL != head, "can not be null");
-      return ((const deltaLogFileHead *)head)->version == deltaLogFile::VERSION;
-   }
 
 
-   INT32 deltaLogFile::getDeltaLogFileHead(deltaLogFileHead &h)const
-   {
-      INT32 rc = SDB_OK;
-      ossValuePtr ptr = 0;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-
-      rc = getUserDefinedHeadPtr(ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      h = *((const deltaLogFileHead *)ptr);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 } // namespace vessel
 
 } // namespace engine

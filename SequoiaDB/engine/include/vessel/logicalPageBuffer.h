@@ -118,6 +118,9 @@ namespace vessel
          slice getReadableBodySlice()const;
          slice getWritableBodySlice();
 
+         /// release lpid and pid
+         void destroy();
+
       private:
          void init(logicalPageSpace *lps,
                    PAGE_SNAPSHOT_VERION psv,

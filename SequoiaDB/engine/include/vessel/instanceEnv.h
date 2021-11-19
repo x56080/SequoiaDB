@@ -50,6 +50,8 @@ namespace engine
 {
 namespace vessel
 {
+   class lsmDB;
+
    class instanceEnv : public SDBObject
    {
       public:
@@ -67,7 +69,7 @@ namespace vessel
          LOGICAL_ID_LATCH_MAP lpidLatchMap;
          RECORD_ID_LATCH_MAP ridLatchMap;
          UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
-         lsmDB lsm;
+         lsmDB *lsm = NULL;
          backgroundWorkers workers;
 
    }; /// end of class instanceEnv

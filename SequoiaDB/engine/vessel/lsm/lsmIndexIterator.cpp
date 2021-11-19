@@ -160,10 +160,10 @@ namespace vessel
       _globalId.reset(context->getLogicalCSID(),
                       context->getLogicalCLID(),
                       ic->getIndexID());
-      _lsmDB = &context->getEnv()->lsm;
+      _lsmDB = context->getEnv()->lsm;
       _lowKey = rocksdb::Slice(_lowBoundKey, LSM_MIN_FULL_KEY_SIZE - 1 + minKeyBuilder.len());
       _upKey = rocksdb::Slice(_upperBoundKey, LSM_MIN_FULL_KEY_SIZE);
-      o = context->getEnv()->lsm.getReadOpt();
+      o = context->getEnv()->lsm->getReadOpt();
       o.iterate_lower_bound = &_lowKey;
       o.iterate_upper_bound = &_upKey;
       o.auto_prefix_mode = TRUE;

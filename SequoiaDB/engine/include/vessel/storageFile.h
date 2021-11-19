@@ -114,7 +114,9 @@ namespace vessel
          }
 
          INT32 removeShadowSuffix();
-
+   
+         /// will auto update checksum in common header.
+         /// file may not be reopen when crashed.
          INT32 updateUserDefinedHead(const slice &h);
 
          INT32 copySemgmentsTo(storageFile *file)const;

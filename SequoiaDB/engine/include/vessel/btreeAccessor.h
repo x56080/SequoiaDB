@@ -100,12 +100,11 @@ namespace vessel
          INT32 splitNonLeafPathEnd(BOOLEAN &obstructed);
 
       private:
-         INT32 removeWhenPathEndIsLeaf(const ixmKey &key,
-                                       const recordID &rid,
-                                       BOOLEAN &obstructed);
          INT32 traverseDownAndRemove(const ixmKey &key,
                                      const recordID &rid,
                                      BOOLEAN &obstructed);
+ 
+         void tryToDestroyNodesIfNecessary(); 
 
       private:
          requestContext *_context = NULL;

@@ -404,7 +404,7 @@ namespace vessel
       return;
    }
 
-   void mainDataSpace::_destroy()
+   void mainDataSpace::_destroy(requestContext *context)
    {
       if (NULL != _fsm)
       {

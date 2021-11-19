@@ -106,7 +106,8 @@ namespace vessel
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                  BOOLEAN fullCheckpoint);
+                                                 BOOLEAN fullCheckpoint,
+                                                 checkpointLSN &lsn);
 
       private:
          INT32 prepareCopyLog(requestContext *context,

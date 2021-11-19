@@ -68,7 +68,7 @@ namespace vessel
          void init(outerResource *outer,
                    instanceEnv *env,
                    autoEventList<backgroundEvent> *el,
-                   ossAtomicSigned32 *counter);
+                   _ossAtomicSigned32 *counter);
 
          void activeEntry(IExecutor *executor);
 
@@ -87,7 +87,7 @@ namespace vessel
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> *_el = NULL;
          ossEvent _attachEvent;
-         ossAtomicSigned32 *_workingCounter = NULL;
+         _ossAtomicSigned32 *_workingCounter = NULL;
    };//class backgroundWorker
 }//namespace vessel
 }//namespce engine

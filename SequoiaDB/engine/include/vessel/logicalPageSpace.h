@@ -88,7 +88,7 @@ namespace vessel
       public:
          void close();
 
-         void destroy();
+         void destroy(requestContext *context);
 
          INT32 create(requestContext *context,
                       const createLogicalPageSpaceOptions &o);
@@ -173,13 +173,10 @@ namespace vessel
          void applyCheckpointIfNecessary(requestContext *context);
          INT32 createDeltaCheckpoint(requestContext *context);
          INT32 createFullCheckpoint(requestContext *context);
-
-         INT32 completeDetaLogFile(const ossPoolVector<memoryBlock> &buffers,
-                                   UINT32 itemCount,
-                                   const LPS_CHECKPOINT &checkpoint);
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
-                                                 BOOLEAN fullCheckpoint){return SDB_OK;}
+                                                 BOOLEAN fullCheckpoint,
+                                                 checkpointLSN &lsn) = 0;
 
          virtual void endToCreateCheckpoint(requestContext *context){return;}
 
@@ -299,7 +296,7 @@ namespace vessel
          virtual INT32 _open(requestContext *context,
                              const storageFileLoader &loader){return SDB_OK;}
          virtual void _close(){return;}
-         virtual void _destroy(){return ;}
+         virtual void _destroy(requestContext *context){return ;}
          virtual UINT32 getIdMapFileHeadFlags()const = 0;
          virtual BOOLEAN validateIdMapFileHeadFlags(UINT32 flags)const = 0;
 

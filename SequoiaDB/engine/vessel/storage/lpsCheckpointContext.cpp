@@ -49,8 +49,8 @@ namespace vessel
    void lpsCheckpointContext::fini()
    {
       _checkpoint = LPS_CHECKPOINT();
-      _minDirtyLsn = DPS_INVALID_LSN_OFFSET;
-      _maxDirtyLsn = DPS_INVALID_LSN_OFFSET;
+      _status.store(STATUS::NONE);
+      _dirtyLSN = DPS_INVALID_LSN_OFFSET;
       _status.store(STATUS::NONE);
       return;
    }
@@ -67,26 +67,39 @@ namespace vessel
       SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
 
       ossSpinGuard guard(lock ? &_lsnLatch : NULL);
-
-      if (DPS_INVALID_LSN_OFFSET == _minDirtyLsn)
+      if (DPS_INVALID_LSN_OFFSET == _dirtyLSN)
       {
-         _minDirtyLsn = lsn;
+         _dirtyLSN = lsn;
       }
-      else if (lsn < _minDirtyLsn)
+      else if (_dirtyLSN < lsn)
       {
-         _minDirtyLsn = lsn;
-      }
-
-      if (DPS_INVALID_LSN_OFFSET == _maxDirtyLsn)
-      {
-         _maxDirtyLsn = lsn;
-      }
-      else if (_maxDirtyLsn < lsn)
-      {
-         _maxDirtyLsn = lsn;
+         _dirtyLSN = lsn;
       }
 
       return;
+   }
+
+   DPS_LSN_OFFSET lpsCheckpointContext::getMinDirtyLsn()const
+   {
+      if (DPS_INVALID_LSN_OFFSET == _checkpoint.lsn._minDirtyLSN)
+      {
+         return _checkpoint.lsn._minUncompletedLSN;
+      }
+      else if (DPS_INVALID_LSN_OFFSET == _checkpoint.lsn._minUncompletedLSN)
+      {
+         return _checkpoint.lsn._minDirtyLSN;
+      }
+      else
+      {
+         return _checkpoint.lsn._minDirtyLSN <= _checkpoint.lsn._minUncompletedLSN ?
+                 _checkpoint.lsn._minDirtyLSN : _checkpoint.lsn._minDirtyLSN;
+      }
+   }
+
+   void lpsCheckpointContext::clearDirtyLSN(BOOLEAN lock)
+   {
+      ossSpinGuard guard(lock ? &_lsnLatch : NULL);
+      _dirtyLSN = DPS_INVALID_LSN_OFFSET;
    }
 
    BOOLEAN lpsCheckpointContext::tryToApplyCheckpoint()

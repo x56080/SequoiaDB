@@ -105,8 +105,8 @@ namespace vessel
          goto error;
       }
 
-      _mds.destroy();
-      _is.destroy();
+      _mds.destroy(context);
+      _is.destroy(context);
 
       rc = ensureOtherDirRemoved(context->getEnv()->options.path, dirSlice);
       if (SDB_OK != rc)
@@ -221,7 +221,7 @@ namespace vessel
    error:
       if (rollback)
       {
-         INT32 t = rollbackCreating(*_path, dirSlice);
+         INT32 t = rollbackCreating(context, context->getEnv()->options.path, dirSlice);
          if (SDB_OK != t)
          {
             /// storage unit with same sid may not be created any more
@@ -271,7 +271,7 @@ namespace vessel
       if (SDB_VESSEL_TEMP_SU == rc)
       {
          PD_LOG(PDINFO, "will remove all files under space id[%d]", _sid);
-         INT32 t = rollbackCreating(*_path, dirSlice);
+         INT32 t = rollbackCreating(context, *_path, dirSlice);
          if (SDB_OK != t)
          {
             PD_LOG(PDSEVERE, "failed to remove files under tmp space[%d], rc:%d",
@@ -330,7 +330,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::rollbackCreating(const storagePathOptions &path,
+   INT32 storageUnit::rollbackCreating(requestContext *context,
+                                       const storagePathOptions &path,
                                        const strSlice &dir)
    {
       INT32 rc = SDB_OK;
@@ -341,11 +342,11 @@ namespace vessel
 
       if (_is.isOpen())
       {
-         _is.destroy();
+         _is.destroy(context);
       }
       if (_mds.isOpen())
       {
-         _mds.destroy();
+         _mds.destroy(context);
       }
 
       rc = ensureOtherDirRemoved(path, dir);
@@ -1085,7 +1086,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (_unitEntryDir.empty() || NULL == _path)
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -1093,6 +1094,38 @@ namespace vessel
 
       dir.clear();
       buildFullDir(_path, type, INVALID_FILE_TYPE, dir);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 storageUnit::destroyStorageFile(const vesselFileName &fn)
+   {
+      INT32 rc = SDB_OK;
+      ossPoolString fullPath;
+
+      if (OSS_UNLIKELY(!fn.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_unitEntryDir.empty() || NULL == _path)
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      buildFullDir(_path, fn.getSpaceType(), fn.getFileType(), fullPath);
+      fullPath.append(OSS_FILE_SEP);
+      fullPath.append(fn.getFileName());
+
+      rc = ossDelete(fullPath.c_str());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove file:%s, rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
    done:
       return rc;
    error:

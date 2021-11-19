@@ -72,9 +72,9 @@ namespace vessel
 
          UINT32 getMutablePageCount()const;
 
-         void setAllPageImmutable(UINT32 pageCountPerSeg,
-                                  ossPoolSet<UINT32> *mutableSegmentIds,
-                                  UINT32 *mutableCount=NULL);
+         void makeClean(UINT32 pageCountPerSeg,
+                        ossPoolSet<UINT32> *mutableSegmentIds,
+                        UINT32 *mutableCount=NULL);
          UINT64 getFlags()const
          {
             return _flags;
@@ -84,6 +84,11 @@ namespace vessel
          {
             return (const CHAR *)_buffer;
          }
+
+         OSS_INLINE BOOLEAN isDirty()const
+         {
+            return _dirty;
+         }
       private:
          void setAsInmmutable(UINT32 slotNo);
          void setAsMutable(UINT32 slotNo);
@@ -92,7 +97,7 @@ namespace vessel
       private:
          UINT32 _flags = 0;
          idMapSlot _buffer[ID_MAP_PARTIAL_CACHE_SLOT_COUNT];
-
+         BOOLEAN _dirty = FALSE;
    };//class partialImpCache
 }//namespace vessel
 }//namespace engine

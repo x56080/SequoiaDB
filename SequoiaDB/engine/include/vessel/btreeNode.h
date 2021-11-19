@@ -100,6 +100,7 @@ namespace vessel
          BOOLEAN ensureExclusiveLocking();
          BOOLEAN isItemMarkedAsDeleted(RECORD_SLOT_ID pos)const;
          PAGE_ID getRightChild()const;
+         BOOLEAN hasRightChild()const;
          PAGE_ID getLeftChild(RECORD_SLOT_ID pos)const;
          PAGE_ID getChild(RECORD_SLOT_ID pos)const;
          DPS_TRANS_ID getTransID()const;
@@ -116,6 +117,8 @@ namespace vessel
          btreeItemSlot getItemSlot(RECORD_SLOT_ID pos)const;
 
       public:
+         INT32 prepareToWrite();
+      public:
 
          BOOLEAN hasFreeSpaceToInsert(UINT32 keySize,
                                        BOOLEAN *needCompact=NULL)const;
@@ -123,41 +126,37 @@ namespace vessel
                                                BOOLEAN *needCompact=NULL)const;
          /// leaf node only
          INT32 leafInsert(const ixmKey &key,
-                           const recordID &rid,
-                           const DPS_TRANS_ID &transID);
-
-         INT32 leafRemove(const ixmKey &key,
-                          const recordID &rid,
-                          const DPS_TRANS_ID &transID,
-                          RECORD_SLOT_ID *pos=NULL);
+                           const recordID &rid);
 
          /// leaf node only
          INT32 splitLeafAndInsert(const ixmKey &key,
                                   const recordID &rid,
-                                  const DPS_TRANS_ID &transID,
                                   btreeSplitRaisedKey &raisedKey);
 
          /// non-leaf node only
-         INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                 const DPS_TRANS_ID &transID);
+         INT32 insertRaisedKey(const btreeSplitRaisedKey &raisedKey);
 
-         INT32 insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey,
-                                       const DPS_TRANS_ID &transID);
+         INT32 insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey);
 
          INT32 splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
-                                       const DPS_TRANS_ID &transID,
                                        btreeSplitRaisedKey &raisedKey);
 
          INT32 split(btreeSplitRaisedKey &raisedKey);
 
          /// non-leaf node only
-         INT32 reactiveRemovedKey(const btreeItemLocation &location,
-                                    const DPS_TRANS_ID &transID);
+         INT32 reactiveRemovedKey(const btreeItemLocation &location);
 
          INT32 exchangeWithNewRoot(btreeNode &newRoot);
 
-         INT32 prepareToWrite();
+         
 
+      public:
+         INT32 destroyItem(RECORD_SLOT_ID pos);
+
+         /// non-leaf node only
+         /// when pos equals to item count in node,
+         /// remove right child
+         INT32 removeChild(RECORD_SLOT_ID pos);
          
       public:
          INT32 locateKeyAndRid(const ixmKey &key,
@@ -229,7 +228,7 @@ namespace vessel
 
       private:
          void commit();
-         void updateTransSN(const DPS_TRANS_ID &transID);
+         void updateTransID();
 
          INT32 _compact(UINT32 reserved);
 
@@ -241,10 +240,6 @@ namespace vessel
                         const ixmKey &key,
                         const recordID &rid,
                         PAGE_ID leftChild=INVALID_PAGE_ID);
-
-         INT32 _leafRemove(const ixmKey &key,
-                           const recordID &rid,
-                           RECORD_SLOT_ID *pos=NULL);
 
          INT32 _insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
                                  RECORD_SLOT_ID pos=INVALID_RECORD_SLOT_ID);
@@ -276,6 +271,12 @@ namespace vessel
                                     BOOLEAN isAppending);
 
          btreeNode getRightNodeWhenSplit(PAGE_ID right, logicalPageBuffer &buffer);
+
+      private:
+
+         INT32 _removeChild(RECORD_SLOT_ID pos);
+
+         INT32 _destroySlot(RECORD_SLOT_ID pos);
 
       private:/// leaf node only
          INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,

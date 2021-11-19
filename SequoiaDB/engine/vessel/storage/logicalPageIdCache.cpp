@@ -43,25 +43,6 @@ namespace engine
 {
 namespace vessel
 {
-
-#pragma pack(4)
-   struct _partialCacheDumpEle
-   {
-      static UINT32 getKeySize()
-      {
-         return sizeof(UINT32) + sizeof(UINT32);
-      }
-      UINT32 imp;
-      UINT32 offset;
-      CHAR cache[ID_MAP_PARTIAL_PAGE_CACHE_SIZE];
-   };
-
-   static const UINT32 _PARTIAL_CACHE_DUMP_ELE_SIZE = sizeof(_partialCacheDumpEle);
-   static const UINT32 _PARTIAL_CACHE_DUMP_ELE_COUNT_PER_PAGE = 
-   deltaLogFile::PAGE_SIZE / _PARTIAL_CACHE_DUMP_ELE_SIZE;
-
-#pragma pack()
-
 ///////////////////////////partialImpCacheMap
    void partialImpCacheMap::fini()
    {
@@ -122,6 +103,20 @@ namespace vessel
       goto done;
    }
 
+   void partialImpCacheMap::upsert(const KEY &key, partialImpCache *cache)
+   {
+      SDB_ASSERT(isValidKey(key), "can not be invalid");
+      SDB_ASSERT(NULL != cache, "can not be null");
+      std::pair<CACHE_MAP::iterator, BOOLEAN> res = _map.insert(std::make_pair(key, cache));
+      if (!res.second)
+      {
+         partialImpCache *tmp = res.first->second;
+         res.first->second = cache;
+         SDB_OSS_DEL tmp;
+      }
+      return;
+   }
+
    BOOLEAN partialImpCacheMap::isValidKey(const KEY &key)
    {
       return INVALID_PAGE_ID != key.first &&
@@ -135,15 +130,13 @@ namespace vessel
       CACHE_MAP::const_iterator itr = _map.begin();
       for (; itr != _map.end(); ++itr)
       {
-         CACHE_MAP::iterator dstItr = o._map.find(itr->first);
-         if (o._map.end() == dstItr)
+         std::pair<CACHE_MAP::iterator, BOOLEAN> res =
+                  o._map.insert(std::make_pair(itr->first, itr->second));
+
+         if (!res.second)
          {
-            o._map.insert(std::make_pair(itr->first, itr->second));
-         }
-         else
-         {
-            partialImpCache *tmp = dstItr->second;
-            dstItr->second = itr->second;
+            partialImpCache *tmp = res.first->second;
+            res.first->second = itr->second;
             SDB_OSS_DEL tmp;
             ++replaced;
          }
@@ -205,33 +198,6 @@ namespace vessel
       return rc;
    error:
       fini();
-      goto done;
-   }
-
-   INT32 logicalPageIdCache::restore(const deltaLogFile *delta)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isReady()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(NULL == delta ||
-                            !delta->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = restoreDeltaCache(delta);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to restore delta cache:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
       goto done;
    }
 
@@ -345,18 +311,15 @@ namespace vessel
 
    INT32 logicalPageIdCache::dumpBufferAndSetImmutable(UINT32 pageCountPerSeg,
                                                        ossPoolVector<memoryBlock> &buffers,
-                                                       UINT32 &itemCount,
                                                        ossPoolSet<UINT32> *mutableSegmentIds)
    {
       INT32 rc = SDB_OK;
       UINT32 pushed = 0;
-      UINT32 segmentSize = deltaLogFile::FILE_SEGMENT_SIZE;
       memoryBlock buffer;
       BOOLEAN locked = FALSE;
       UINT32 mutableCount = 0;
 
       buffers.clear();
-      itemCount = 0;
 
       SDB_ASSERT(0 < pageCountPerSeg, "invalid");
      
@@ -366,7 +329,7 @@ namespace vessel
          goto error;
       }
 
-      rc = buffer.reserve(segmentSize);
+      rc = buffer.reserve(deltaLogFile::FILE_SEGMENT_SIZE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
@@ -384,11 +347,16 @@ namespace vessel
          for (; itr != cacheMap.end(); ++itr)
          {
             UINT32 cnt = 0;
-            UINT32 freeSize = segmentSize - buffer.getSize();
-            if (freeSize < _PARTIAL_CACHE_DUMP_ELE_SIZE)
+            if (!itr->second->isDirty())
+            {
+               SDB_ASSERT(0 == itr->second->getMutablePageCount(), "impossible");
+               continue;
+            }
+
+            if (0 != pushed && 0 == pushed % deltaLogFile::MAX_RECORD_COUNT_PER_SEGMENT)
             {
                buffers.push_back(std::move(buffer));
-               rc = buffer.reserve(segmentSize);
+               rc = buffer.reserve(deltaLogFile::FILE_SEGMENT_SIZE);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to reserve mb size:%d", rc);
@@ -396,15 +364,18 @@ namespace vessel
                }
             }
 
+            SDB_ASSERT(DELTA_LOG_DUMP_RECORD_SIZE <= buffer.getFreeCapacity(), "impossible");
+
             buffer.append(sizeof(UINT32), &(itr->first.first));
             buffer.append(sizeof(UINT32), &(itr->first.second));
             buffer.append(ID_MAP_PARTIAL_PAGE_CACHE_SIZE, itr->second->getBuffer());
-            itr->second->setAllPageImmutable(pageCountPerSeg, mutableSegmentIds, &cnt);
+            itr->second->makeClean(pageCountPerSeg, mutableSegmentIds, &cnt);
             ++pushed;
             mutableCount += cnt;
          }
       }
 
+      _counter.store(0);
       _latch.release_w();
       locked = FALSE;
 
@@ -412,9 +383,6 @@ namespace vessel
       {
          buffers.push_back(std::move(buffer));
       }
-
-      _counter.store(0);
-      itemCount = pushed;
 
       PD_LOG(PDDEBUG, "dump mutable buffer:%d, item count:%d, mutable pages:%d",
              buffers.size(), pushed, mutableCount);
@@ -425,6 +393,7 @@ namespace vessel
       }
       return rc;
    error:
+      buffers.clear();
       goto done;
    }
 
@@ -956,16 +925,33 @@ namespace vessel
       goto done;
    }
 
-   INT32 logicalPageIdCache::_insertWhenRestore(const partialImpCacheMap::KEY &key,
-                                                const CHAR *cache)
+   INT32 logicalPageIdCache::upsertWhenRestore(const deltaLogDumpRecord *lr)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isReady(), "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != key.first && key.second < ID_MAP_FILE_PAGE_SIZE, 
-                 "can not be invalid");
-      SDB_ASSERT(NULL != cache, "can not be invalid");
+      partialImpCacheMap::KEY key;
+      partialImpCache *cacheObj = NULL;
 
-      partialImpCache *cacheObj = SDB_OSS_NEW partialImpCache();
+      if (OSS_UNLIKELY(NULL == lr))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isReady()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      key.first = lr->imp;
+      key.second = lr->offset;
+      if (!partialImpCacheMap::isValidKey(key))
+      {
+         PD_LOG(PDERROR, "invalid key found");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      cacheObj = SDB_OSS_NEW partialImpCache();
       if (OSS_UNLIKELY(NULL == cacheObj))
       {
          PD_LOG(PDERROR, "failed to allocate mem.");
@@ -973,12 +959,11 @@ namespace vessel
          goto error;
       }
 
-      cacheObj->copy(cache, 0);
-      rc = _immutableMap.insert(key, cacheObj);
-      if (SDB_OK != rc)
+      cacheObj->copy(lr->cache, 0);
+      _immutableMap.upsert(key, cacheObj);
+      if (NULL == _immutableCache)
       {
-         PD_LOG(PDERROR, "failed to insert into immutable map:%d", rc);
-         goto error;
+         _immutableCache = &_immutableMap;
       }
 
    done:
@@ -1025,85 +1010,6 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;
-   }
-
-   INT32 logicalPageIdCache::restoreDeltaCache(const deltaLogFile *delta)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _base, "init base first");
-      SDB_ASSERT(NULL != delta && delta->isOpen(), "can not be invalid");
-
-      UINT32 totalEleCount = 0;
-      UINT32 read = 0;
-      deltaLogFileHead head;
-      UINT32 segmentSize = 0;
-
-      rc = delta->getDeltaLogFileHead(head);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get delta log file head:%d", rc);
-         goto error;
-      }
-     
-      SDB_ASSERT(_base->getCommonHeadInMem().sequence <= head.baseIdMapFile,
-                 "not valid delta file");
-
-      segmentSize = delta->getCommonHeadInMem().getSegmentSize();
-      totalEleCount = (UINT32)head.elementCount;
-
-      PD_LOG(PDINFO, "total ele count[%d] in delta file[%s]",
-             totalEleCount, delta->getFullPath());
-
-      for (UINT32 i = 0; i < delta->getSegmentCount(); ++i)
-      {
-         UINT32 offset = 0;
-         ossValuePtr ptr;
-         rc = delta->getSegmentPtr(i, ptr);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to get segment[%d] ptr:%d", i, rc);
-            goto error;
-         }
-
-         while (read < totalEleCount)
-         {
-            const _partialCacheDumpEle *ele = (const _partialCacheDumpEle *)(ptr + offset);
-            partialImpCacheMap::KEY key;
-            key.first = ele->imp;
-            key.second = ele->offset;
-            rc = _insertWhenRestore(key, ele->cache);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to restore delta log file[%s]at segment[%d], offset[%d], rc:%d",
-                      delta->getFullPath(), i, offset, rc);
-               goto error;
-            }
-
-            ++read;
-            offset += _PARTIAL_CACHE_DUMP_ELE_SIZE;
-            if (segmentSize <= (offset + _PARTIAL_CACHE_DUMP_ELE_SIZE))
-            {
-               break;
-            }
-         }
-      }
-
-      if (read != totalEleCount)
-      {
-         PD_LOG(PDERROR, "unexpected count[%d] from file [%s]", read, delta->getFullPath());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (!_immutableMap.isEmpty())
-      {
-         _immutableCache = &_immutableMap;
-      }
-   done:
-      return rc;
-   error:
-      _immutableMap.fini();
       goto done;
    }
 

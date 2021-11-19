@@ -49,14 +49,14 @@ namespace vessel
          goto done;
       }
 
-      if (!ossIsPowerOf2(maxPageCountPerSeg) ||
-          !ossIsAligned64(maxPageCountPerSeg) ||
-          0 == maxPageCountPerSeg)
+      if (!ossIsPowerOf2(maxPageCountPerSeg) &&
+          !ossIsAligned64(maxPageCountPerSeg))
       {
          goto done;
       }
 
-      if (0 == maxSegmentCountPerFile)
+      if (!ossIsAligned4(maxSegmentCountPerFile) ||
+          0 == maxSegmentCountPerFile)
       {
          goto done;
       }

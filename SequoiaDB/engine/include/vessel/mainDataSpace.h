@@ -85,7 +85,7 @@ namespace vessel
          virtual INT32 _open(requestContext *context,
                              const storageFileLoader &loader);
          virtual void _close();
-         virtual void _destroy();
+         virtual void _destroy(requestContext *context);
 
 
       private:

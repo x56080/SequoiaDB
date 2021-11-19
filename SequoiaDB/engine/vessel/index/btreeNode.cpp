@@ -277,6 +277,11 @@ namespace vessel
       return getReadableHead()->rightChild;
    }
 
+   BOOLEAN btreeNode::hasRightChild()const
+   {
+      return INVALID_PAGE_ID != getRightChild();
+   }
+
    PAGE_ID btreeNode::getLeftChild(RECORD_SLOT_ID pos)const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -310,8 +315,7 @@ namespace vessel
    }
 
    INT32 btreeNode::leafInsert(const ixmKey &key,
-                               const recordID &rid,
-                               const DPS_TRANS_ID &transID)
+                               const recordID &rid)
    {
       INT32 rc = SDB_OK;
 
@@ -339,7 +343,6 @@ namespace vessel
          goto error;
       }
 
-      updateTransSN(transID);
       commit();
    done:
       return rc;
@@ -347,14 +350,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::leafRemove(const ixmKey &key,
-                               const recordID &rid,
-                               const DPS_TRANS_ID &transID,
-                               RECORD_SLOT_ID *pos)
+   INT32 btreeNode::destroyItem(RECORD_SLOT_ID pos)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!key.isValid() ||
-                       !rid.isValid()))
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -369,15 +368,19 @@ namespace vessel
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-
-      rc = _leafRemove(key, rid, pos);
-      if (SDB_OK != rc)
+      else if (getReadableHead()->totalSlotCount <= pos)
       {
-         PD_LOG(PDERROR, "failed to remove key and rid:%d", rc);
+         rc = SDB_OUT_OF_BOUND;
          goto error;
       }
 
-      updateTransSN(transID);
+      rc = _destroySlot(pos);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to destroy item[%d], rc:%d", rc);
+         goto error;
+      }
+
       commit();
    done:
       return rc;
@@ -385,75 +388,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::_leafRemove(const ixmKey &key,
-                                const recordID &rid,
-                                RECORD_SLOT_ID *pos)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
-      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
-      SDB_ASSERT(isLeaf(), "must be leaf node");
-
-      UINT16 removedSize = 0;
-      btreeItemSlot *slot = NULL;
-      btreeNodePageHead *head = NULL;
-      slice writableSlice;
-      btreeItemLocation location;
-
-      if (NULL != *pos)
-      {
-         *pos = INVALID_RECORD_SLOT_ID;
-      }
-
-      rc = locateKeyAndRid(key, rid, location);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to locate key and rid:%d", rc);
-         goto error;
-      }
-
-      if (!location.identical)
-      {
-         PD_LOG(PDERROR, "key[%s] and rid[%d,%d] not found in node[%d]",
-                key.toString().c_str(),rid.getPageID(), rid.getSlotID(),
-                _buffer->getLogicalPid());
-         rc = SDB_IXM_KEY_NOTEXIST;
-         goto error;
-      }
-      
-      rc = _buffer->autoGetWritableBodySlice(writableSlice);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
-         goto error;
-      }
-
-      slot = getWritableSlot(location.slotPos);
-      SDB_ASSERT(!slot->isKeyInExtPage(), "impossible");
-      SDB_ASSERT(!slot->isKeyCompressed(), "TODO");
-      removedSize = BTREE_NODE_SLOT_SIZE + slot->data.key.size;
-      head = writableSlice.getWritableObjPtr<btreeNodePageHead>(0);
-
-      if ((location.slotPos + 1) != head->totalSlotCount)
-      {
-         UINT32 moveSize = (head->totalSlotCount - location.slotPos - 1) *
-                           BTREE_NODE_SLOT_SIZE;
-         ossMemmove(slot, slot + 1, moveSize);
-      }
-
-      --head->totalSlotCount;
-      head->totalFreeSpace += removedSize;
-      head->freeSapceAfterLastSlot += BTREE_NODE_SLOT_SIZE;
-      if (NULL != *pos)
-      {
-         *pos = location.slotPos;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
    INT32 btreeNode::_leafInsert(const ixmKey &key,
                                 const recordID &rid,
@@ -559,8 +493,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::insertRaisedKey(const btreeSplitRaisedKey &raisedKey,
-                                    const DPS_TRANS_ID &transID)
+   INT32 btreeNode::insertRaisedKey(const btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
       rc = _insertRaisedKey(raisedKey);
@@ -569,7 +502,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to insert raised key:%d", rc);
          goto error;
       }
-      updateTransSN(transID);
+
       commit();
    done:
       return rc;
@@ -577,8 +510,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey,
-                                            const DPS_TRANS_ID &transID)
+   INT32 btreeNode::insertRaisedKeyAsExtKey(const btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
       rc = _insertExternalKey(raisedKey);
@@ -587,7 +519,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to insert raised key:%d", rc);
          goto error;
       }
-      updateTransSN(transID);
+
       commit();
    done:
       return rc;
@@ -595,8 +527,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::reactiveRemovedKey(const btreeItemLocation &location,
-                                       const DPS_TRANS_ID &transID)
+   INT32 btreeNode::reactiveRemovedKey(const btreeItemLocation &location)
    {
       INT32 rc = SDB_OK;
       slice ws;
@@ -640,7 +571,6 @@ namespace vessel
       slot = getWritableSlot(location.slotPos);
       OSS_BIT_CLEAR(slot->flags, btreeItemSlot::FLAG_MARKED_DELETED);
 
-      updateTransSN(transID);
       commit();
 
    done:
@@ -1116,7 +1046,7 @@ namespace vessel
       if (INVALID_PAGE_ID == leftChild)
       {
          SDB_ASSERT(isLeaf(), "must be leaf node");
-         slot->initAsLeafFormat(rid, keyOffset, keySize);
+         slot->initAsLeafFormat(rid, keyOffset, keySize, FALSE);
       }
       else
       {
@@ -1773,7 +1703,6 @@ namespace vessel
 
    INT32 btreeNode::splitLeafAndInsert(const ixmKey &key,
                                        const recordID &rid,
-                                       const DPS_TRANS_ID &transID,
                                        btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
@@ -1862,7 +1791,7 @@ namespace vessel
             ossPanic();
             goto error;
          }
-         updateTransSN(transID);
+
          commit();
       }
       else
@@ -1886,7 +1815,7 @@ namespace vessel
             ossPanic();
             goto error;
          }
-         node.updateTransSN(transID);
+
          node.commit();
          buffer.fini();
       }
@@ -2062,7 +1991,8 @@ namespace vessel
          slot = node.getWritableObjPtr<btreeItemSlot>(frontOffset);
          if (isLeaf())
          {
-            slot->initAsLeafFormat(item.getRid(), keyOffset, item.getSavedKeyDataSize());
+            slot->initAsLeafFormat(item.getRid(), keyOffset,
+                                   item.getSavedKeyDataSize(), FALSE);
          }
          else
          {
@@ -2088,13 +2018,16 @@ namespace vessel
       {
          IExecutor *executor = _buffer->getContext()->getExecutor();
          _buffer->commit(executor->getEndLsn());
+
+         updateTransID();
       }
       return;
    }
 
-   void btreeNode::updateTransSN(const DPS_TRANS_ID &transID)
+   void btreeNode::updateTransID()
    {
       SDB_ASSERT(isValid() && _buffer->isWritable(), "must be writable");
+      DPS_TRANS_ID transID = _buffer->getContext()->getTransIDWithoutTag();
       if (transID.isValid())
       {
          btreeNodePageHead *head = _buffer->getWritableBodySlice().
@@ -2234,7 +2167,7 @@ namespace vessel
             if (isLeaf())
             {
                newSlot.initAsLeafFormat(recordID(slot->ridPage, slot->ridSlot),
-                                        backOffset, keySize);
+                                        backOffset, keySize, FALSE);
             }
             else
             {
@@ -2421,7 +2354,6 @@ namespace vessel
    }
 
    INT32 btreeNode::splitNonLeafAndInsert(const btreeSplitRaisedKey &raisedKeyFromChild,
-                                          const DPS_TRANS_ID &transID,
                                           btreeSplitRaisedKey &raisedKey)
    {
       INT32 rc = SDB_OK;
@@ -2506,7 +2438,7 @@ namespace vessel
             ossPanic();
             goto error;
          }
-         updateTransSN(transID);
+
          commit();
       }
       else
@@ -2529,7 +2461,7 @@ namespace vessel
             ossPanic();
             goto error;
          }
-         node.updateTransSN(transID);
+
          node.commit();
          buffer.fini();
       }
@@ -2717,6 +2649,153 @@ namespace vessel
       return rc;
    error:
       pos = INVALID_RECORD_SLOT_ID;
+      goto done;
+   }
+
+   INT32 btreeNode::removeChild(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(isLeaf()))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!getLockingMode().isExclusive()))
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rc = _removeChild(pos);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      commit();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeNode::_removeChild(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+
+      const btreeNodePageHead *rh = getReadableHead();
+      btreeNodePageHead *head = NULL;
+      slice bodySlice;
+
+      if (rh->totalSlotCount < pos)
+      {
+         PD_LOG(PDERROR, "pos[%d] to remove is out of total slot count[%d]",
+                pos, rh->totalSlotCount);
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (INVALID_PAGE_ID == getChild(pos))
+      {
+         if (INVALID_PAGE_ID == rh->rightChild)
+         {
+            PD_LOG(PDERROR, "already has no child in pos[%d]", pos);
+            rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+            goto error;
+         }
+      }
+
+      rc = _buffer->autoGetWritableBodySlice(bodySlice);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);
+         goto error;
+      }
+
+      rh = NULL;
+      head = bodySlice.getWritableObjPtr<btreeNodePageHead>(0);
+      if (pos == head->totalSlotCount)
+      {
+         head->rightChild = INVALID_PAGE_ID;
+      }
+      else
+      {
+         btreeItemSlot *slot = getWritableSlot(pos);
+         SDB_ASSERT(INVALID_PAGE_ID != slot->data.nlf.leftChild, "impossible");
+         slot->data.nlf.leftChild = INVALID_PAGE_ID;
+
+         /// non-leaf node must have one item at least
+         if (slot->isMarkedDeleted() && 1 < head->totalSlotCount)
+         {
+            rc = _destroySlot(pos);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to destroy slot[%d], rc:%d", pos, rc);
+               goto error;
+            }
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeNode::_destroySlot(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(getLockingMode().isExclusive(), "must be exlusive");
+      SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
+      SDB_ASSERT(_buffer->isWritable(), "must be writable");
+
+      btreeNodePageHead *head = NULL;
+      btreeItemSlot *slot = getWritableSlot(pos);
+      SDB_ASSERT(NULL != slot, "can not b e null");
+      UINT32 size = BTREE_NODE_SLOT_SIZE;
+
+      SDB_ASSERT(!slot->hasPrefixSlot(), "TODO");
+      if (!slot->isKeyInExtPage())
+      {
+         size += slot->data.key.size;
+      }
+      else
+      {
+         SDB_ASSERT(INVALID_PAGE_ID != head->externalKeyPage, "can not be invalid");
+         SDB_ASSERT(!isLeaf() && !isRoot(), "impossible");
+         _buffer->getLogicalPageSpace()->releasePage(_buffer->getContext(),
+                                                     head->externalKeyPage);
+         head->externalKeyPage = INVALID_PAGE_ID;
+      }
+
+      if ((pos + 1) < head->totalSlotCount)
+      {
+         UINT32 moveSize = (head->totalSlotCount - pos - 1) *
+                           BTREE_NODE_SLOT_SIZE;
+         ossMemmove(slot, slot + 1, moveSize);
+      }
+
+      --head->totalSlotCount;
+      head->freeSapceAfterLastSlot += BTREE_NODE_SLOT_SIZE;
+      head->totalFreeSpace += size;
+
+   done:
+      return rc;
+   error:
       goto done;
    }
 } // namespace vessel

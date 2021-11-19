@@ -52,6 +52,7 @@ namespace vessel
 {
    class idMapFile;
    class deltaLogFile;
+   class deltaLogDumpRecord;
 
    class partialImpCacheMap : public SDBObject
    {
@@ -91,6 +92,7 @@ namespace vessel
          void fini();
          const partialImpCache *find(const KEY &key)const;
          INT32 insert(const KEY &key, partialImpCache *cache);
+         void upsert(const KEY &key, partialImpCache *cache);
          partialImpCache *find(const KEY &key);
          void exportTo(partialImpCacheMap &o, UINT32 &replaced);
          const CACHE_MAP &get()const {return _map;} 
@@ -170,8 +172,7 @@ namespace vessel
    
          INT32 init(const options &o,
                     const idMapFile *base);
-         
-         INT32 restore(const deltaLogFile *delta);
+
          void fini();
 
          /// WARNING:Will not hold any latch. The result may not be real.
@@ -188,6 +189,8 @@ namespace vessel
 
          INT32 estimateMutablePageCount()const;
 
+         INT32 upsertWhenRestore(const deltaLogDumpRecord *lr);
+
       public:         
          /// set mutableSegmentIds as null if do not care about mutable segments.
          INT32 prepareToCreateNewBase(UINT32 pageCountPerSeg,
@@ -199,7 +202,6 @@ namespace vessel
 
          INT32 dumpBufferAndSetImmutable(UINT32 pageCountPerSeg,
                                          ossPoolVector<memoryBlock> &buffers,
-                                         UINT32 &itemCount,
                                          ossPoolSet<UINT32> *mutableSegmentIds);
 
          const partialImpCacheMap &getImmutableMap()const
@@ -216,16 +218,12 @@ namespace vessel
          INT32 createCacheFromBase(const partialImpCacheMap::KEY &key,
                                    partialImpCache **cache);
 
-         INT32 _insertWhenRestore(const partialImpCacheMap::KEY &key,
-                                  const CHAR *cache);
-
          INT32 findInMemToUpdate(UINT32 bucketPos,
                                  const partialImpCacheMap::KEY &key,
                                  partialImpCache **out);
 
       private:
          INT32 resetBase(const idMapFile *base);
-         INT32 restoreDeltaCache(const deltaLogFile *delta);
 
       private:
          UINT32 getBucketAndPartialCacheIdentity(PAGE_ID lpid,

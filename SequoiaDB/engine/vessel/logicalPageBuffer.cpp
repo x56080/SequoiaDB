@@ -172,5 +172,27 @@ namespace vessel
    error:
       goto done;
    }
+
+   void logicalPageBuffer::destroy()
+   {
+      INT32 rc = SDB_OK;
+      requestContext *context = NULL;
+      if (!isValid())
+      {
+         goto done;
+      }
+
+      _rpb.fini();
+      context = _lh.getContext();
+      rc = _lps->releasePage(context, _lh.getLpid());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", _lh.getLpid(), rc);
+      }
+
+      fini();
+   done:
+      return;
+   }
 }//namespace vessel
 }//namespace engine
