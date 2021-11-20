@@ -319,8 +319,7 @@ namespace vessel
          INT32 mergeAndRestoreAllocator(requestContext *context);
 
          INT32 rebaseWhenCreatingCheckpoint(requestContext *context,
-                                            const LPS_CHECKPOINT &checkpoint,
-                                            UINT32 totalImpCount);
+                                            const LPS_CHECKPOINT &checkpoint);
 
          INT32 flushSegmentsAtCheckpoint(requestContext *context,
                                          const ossPoolSet<UINT32> &segments)const;

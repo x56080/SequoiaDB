@@ -534,7 +534,6 @@ namespace vessel
       ossPoolSet<UINT32> segments;
       DPS_LSN_OFFSET pushLSN = DPS_INVALID_LSN_OFFSET;
       DPS_LSN_OFFSET currentMaxLSN = DPS_INVALID_LSN_OFFSET;
-      UINT32 totalImpCount = 0;
 
       if (!_checkpointContext.tryToSetRunningFromNoneOrApplying())
       {
@@ -559,10 +558,6 @@ namespace vessel
                       _checkpointContext.getMinDirtyLsn(),
                       _checkpointContext.getMaxDirtyLsn());
 
-      /// New imp may allocated in preallocating.
-      /// But we can be sure page count not less than real count to be
-      /// saved into new base id map file.
-      totalImpCount = _allocator.getCustomizedPageCount();
       currentMaxLSN = _checkpointContext.getMaxDirtyLsn();
       pushLSN = logger->getCurrentLSN();
 
@@ -602,7 +597,7 @@ namespace vessel
                       ossGetCurrentMilliseconds());
 
       _checkpointContext.setStatus(lpsCheckpointContext::STATUS::CREATING_NEW_BASE);
-      rc = rebaseWhenCreatingCheckpoint(context, checkpoint, totalImpCount);
+      rc = rebaseWhenCreatingCheckpoint(context, checkpoint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to complete delta log:%d", rc);
@@ -1851,19 +1846,30 @@ namespace vessel
    }
 
    INT32 logicalPageSpace::rebaseWhenCreatingCheckpoint(requestContext *context,
-                                                        const LPS_CHECKPOINT &checkpoint,
-                                                        UINT32 totalImpCount)
+                                                        const LPS_CHECKPOINT &checkpoint)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 < totalImpCount, "impossible");
       SDB_ASSERT(checkpoint.isValid(), "can not be invalid");
 
+      const partialImpCacheMap::CACHE_MAP &cm = _lpidCache.getImmutableMap().get();
       UINT32 segmentCount = 0;
       idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
+      UINT32 newImpCount = 0;
+      base->getTotalPageCount(newImpCount);
+      if (!cm.empty())
+      {
+         partialImpCacheMap::CACHE_MAP::const_reverse_iterator itr = cm.rbegin();
+         if (newImpCount <= itr->first.first)
+         {
+            newImpCount = itr->first.first + 1;
+         }
+      }
       idMapFile *file = NULL;
+
+      
       storageCoreArgs args(ID_MAP_FILE_PAGE_SIZE,
                            ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG,
                            ID_MAP_FILE_MAX_SEG_COUNT_IN_FILE);
@@ -1873,7 +1879,7 @@ namespace vessel
       imfHead.dataPageSize = getStorageCoreArgs().pageSize;
       imfHead.dataPageCountInSeg = getStorageCoreArgs().maxPageCountPerSeg;
       imfHead.dataSegCountInFile = getStorageCoreArgs().maxSegmentCountPerFile;
-      imfHead.totalPageCount = totalImpCount;
+      imfHead.totalPageCount = newImpCount;
       imfHead.checkpoint = checkpoint;
       slice hs(sizeof(idMapFileHead), &imfHead);
 
@@ -1911,7 +1917,8 @@ namespace vessel
          goto error;
       }
 
-      segmentCount = ossAlignX(totalImpCount, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
+      SDB_ASSERT(ossIsPowerOf2(ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG), "must be power of 2");
+      segmentCount = ossAlignX(newImpCount, ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG) /
                      ID_MAP_FILE_MAX_PAGE_COUNT_IN_SEG;
 
       rc = file->ensureSegmentCountAndInit(segmentCount);
@@ -1953,7 +1960,6 @@ namespace vessel
       _idMapFiles.pushBack(file);
       _lpidCache.resetBaseFileAndClearFlushedMaps(file);
 
-      _idMapFiles.truncate(3);
       rc = _logConsole.rebase(context, file->getCommonHeadInMem().sequence);
       if (SDB_OK != rc)
       {
@@ -1961,6 +1967,8 @@ namespace vessel
          ossPanic(); /// impossible to be failed.
          goto error;
       }
+
+      _idMapFiles.truncate(3);
       
    done:
       return rc;
@@ -2419,7 +2427,9 @@ namespace vessel
       SDB_ASSERT(_lpidCache.isReady(), "can not be invalid");
       const idMapFile *base = _idMapFiles.getBack<idMapFile>();
       SDB_ASSERT(NULL != base, "can not be null");
-      UINT64 baseSize = base->getTotalSegmentSize();
+      UINT32 impCount = 0;
+      base->getTotalPageCount(impCount);
+      UINT64 baseSize = (UINT64)impCount * ID_MAP_FILE_PAGE_SIZE;
       UINT64 cacheSize = _lpidCache.getTotalCacheSize();
       UINT64 deltaLogSize = _logConsole.getDeltaLogSize();
       PD_LOG(PDDEBUG, "lps[%d,%d] cache size:%lld, base size:%lld, delta log:%lld",

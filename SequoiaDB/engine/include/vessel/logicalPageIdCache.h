@@ -97,13 +97,11 @@ namespace vessel
          void exportTo(partialImpCacheMap &o, UINT32 &replaced);
          const CACHE_MAP &get()const {return _map;} 
          CACHE_MAP &get(){return _map;}
-         UINT32 getCacheSize()const
+         OSS_INLINE UINT32 getMapSize()const
          {
-            //return *((const volatile UINT32 *)(&_size));
-            return _map.size() *
-               (sizeof(partialImpCacheMap::KEY) + ID_MAP_PARTIAL_PAGE_CACHE_SIZE);
+            return _map.size();
          }
-         BOOLEAN isEmpty()const
+         OSS_INLINE BOOLEAN isEmpty()const
          {
             return _map.empty();
          }
@@ -114,6 +112,10 @@ namespace vessel
          CACHE_MAP::const_iterator begin()const {return _map.begin();}
          CACHE_MAP::const_iterator end()const {return _map.end();}
          static BOOLEAN isValidKey(const KEY &key);
+         static constexpr UINT32 getCacheItemSize()
+         {
+            return sizeof(KEY) + sizeof(partialImpCache);
+         }
       private:
          CACHE_MAP _map;
          //UINT32 _size = 0;
@@ -251,7 +253,9 @@ namespace vessel
          const partialImpCacheMap *_immutableCache = NULL;
          partialImpCacheMap _immutableMap;
 
+         /// fuzzy counter
          std::atomic_int _counter = {0};
+         std::atomic_int _bucketsCacheCounter = {0};
    };//class logicalPageIdCache
 }//namespace vessel
 }//namespace engine

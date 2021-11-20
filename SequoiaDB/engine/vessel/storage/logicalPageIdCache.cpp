@@ -183,6 +183,7 @@ namespace vessel
 
       _latches.resize(o.bucketLatchCount);
       _buckets.resize(o.bucketCount);
+
       for (UINT32 i = 0; i < o.bucketCount; ++i)
       {
          partialImpCacheMap *cm = SDB_OSS_NEW partialImpCacheMap();
@@ -217,6 +218,7 @@ namespace vessel
       _immutableMap.fini();
       _immutableCache = NULL;
       _counter.store(0);
+      _bucketsCacheCounter.store(0);
 
       for (UINT32 i = 0; i < _buckets.size(); ++i)
       {
@@ -232,21 +234,17 @@ namespace vessel
 
    UINT64 logicalPageIdCache::getTotalCacheSize()
    {
-      UINT64 size = 0;
+      UINT64 itemCount = 0;
       _latch.lock_r();
-      for (UINT32 i = 0; i < _buckets.size(); ++i)
-      {
-         size += _buckets[i]->getCacheSize();
-      }
-
-      size += _immutableMap.getCacheSize();
+      itemCount = _immutableMap.getMapSize();
       _latch.release_r();
-      return size;
+      itemCount += _bucketsCacheCounter.load(std::memory_order_relaxed);
+      return itemCount * partialImpCacheMap::getCacheItemSize();
    }
 
    INT32 logicalPageIdCache::estimateMutablePageCount()const
    {
-      return _counter.load();
+      return _counter.load(std::memory_order_relaxed);
    }
 
    INT32 logicalPageIdCache::flushPreparedCacheToFile(idMapFile *file)
@@ -388,7 +386,7 @@ namespace vessel
          }
       }
 
-      _counter.store(0);
+      _counter.store(0, std::memory_order_relaxed);
       _latch.release_w();
       locked = FALSE;
 
@@ -436,7 +434,7 @@ namespace vessel
          }
       }
 
-      ++_counter;
+      _counter.fetch_add(1, std::memory_order_relaxed);
 
    done:
       return rc;
@@ -457,10 +455,13 @@ namespace vessel
       partialImpCache *cache = NULL;
       partialImpCache *newCache = NULL;
       ossSLatchGuard guard(latch, EXCLUSIVE, FALSE);
+      INT32 oldSize = 0;
+      INT32 newSize = 0;
       
       do
       {
          guard.lock();
+         oldSize = (INT32)(_buckets[bucketPos]->getMapSize());
          rc = findInMemToUpdate(bucketPos, key, &cache);
          if (SDB_OK != rc)
          {
@@ -526,6 +527,15 @@ namespace vessel
          PD_LOG(PDERROR, "failed to put lpid[%d] to cache:%d", lpid, rc);
          goto error;
       }
+
+      newSize = _buckets[bucketPos]->getMapSize();
+      guard.unlock();
+      if (newSize != oldSize)
+      {
+         _bucketsCacheCounter.fetch_add(newSize - oldSize,
+                                        std::memory_order_relaxed);
+      }
+
       
    done:
       SAFE_OSS_DELETE(newCache);
@@ -557,7 +567,7 @@ namespace vessel
          }
       }
 
-      ++_counter;
+      _counter.fetch_add(1, std::memory_order_relaxed);
 
    done:
       return rc;
@@ -577,10 +587,13 @@ namespace vessel
       partialImpCache *cache = NULL;
       partialImpCache *newCache = NULL;
       ossSLatchGuard guard(latch, EXCLUSIVE, FALSE);
+      INT32 oldSize = 0;
+      INT32 newSize = 0;
       
       do
       {
          guard.lock();
+         oldSize = _buckets[bucketPos]->getMapSize();
          rc = findInMemToUpdate(bucketPos, key, &cache);
          if (SDB_OK != rc)
          {
@@ -645,6 +658,14 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to remove lpid[%d] rc:%d", lpid, rc);
          goto error;
+      }
+
+      newSize = _buckets[bucketPos]->getMapSize();
+      guard.unlock();
+      if (newSize != oldSize)
+      {
+         _bucketsCacheCounter.fetch_add(newSize - oldSize,
+                                        std::memory_order_relaxed);
       }
       
    done:
@@ -842,11 +863,9 @@ namespace vessel
       _base = file;
       _basePageCount = head.totalPageCount;
       _immutableCache = NULL;
-      _latch.release_w();
-      locked = FALSE;
-      PD_LOG(PDDEBUG, "clear immutable cache size:%lld", _immutableMap.getCacheSize());
       _immutableMap.fini();
-      
+      _latch.release_w();
+      locked = FALSE;      
    done:
       if (locked)
       {
@@ -884,10 +903,10 @@ namespace vessel
          _immutableCache = &_immutableMap;
       }
 
+      _bucketsCacheCounter.store(0, std::memory_order_relaxed);
+      _counter.store(0, std::memory_order_relaxed);
       _latch.release_w();
       locked = FALSE;
-
-      _counter.store(0);
 
    done:
       if (locked)
@@ -896,10 +915,6 @@ namespace vessel
       }
       return rc;
    error:
-      if (NULL != mutableSegmentIds)
-      {
-         mutableSegmentIds->clear();
-      }
       goto done;
    }
 
