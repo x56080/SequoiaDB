@@ -167,6 +167,7 @@ namespace engine
    {
       INT32 rc = 0 ;
       BSONObj taskObj ;
+      clsTask *pTmpTask = NULL ;
 
       while ( TRUE )
       {
@@ -179,8 +180,6 @@ namespace engine
             }
             break ;
          }
-
-         clsTask *pTmpTask = NULL ;
 
          rc = clsNewTask( taskObj, pTmpTask ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -196,9 +195,15 @@ namespace engine
                     pTask->toBson().toString().c_str() ) ;
             break ;
          }
+
+         clsReleaseTask( pTmpTask ) ;
       }
 
    done:
+      if ( pTmpTask )
+      {
+         clsReleaseTask( pTmpTask ) ;
+      }
       return rc ;
    error:
       goto done ;
