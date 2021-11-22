@@ -3283,5 +3283,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_IXM_ITEM_NOT_FOUND</name>
+         <description>
+            <en>the index item with key and rid not found</en>
+            <cn>目标索引项不存在</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
