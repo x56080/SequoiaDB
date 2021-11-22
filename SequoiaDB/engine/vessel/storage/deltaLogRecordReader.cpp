@@ -377,7 +377,7 @@ namespace vessel
    }
 
    ////////////dlrReleasingReader
-
+/*
    INT32 dlrReleasingReader::read(const deltaLogRecord &dlr, UINT8 &count)
    {
       INT32 rc = SDB_OK;
@@ -452,5 +452,7 @@ namespace vessel
    error:
       goto done;
    }
+
+   */
 }//namespace vessel
 }//namespace engine

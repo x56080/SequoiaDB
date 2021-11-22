@@ -85,6 +85,7 @@ namespace vessel
                               mappedLogicalPageId &mappedId);
    };//class dlrUnmapingReader
 
+/*
    class dlrReleasingReader : public SDBObject
    {
       public:
@@ -93,6 +94,7 @@ namespace vessel
          static INT32 read(const deltaLogRecord &dlr, UINT8 &count);
          static INT32 getItem(const deltaLogRecord &dlr, UINT8 i, PAGE_ID &pid);
    };//class dlrReleasingReader
+   */
 }//namespace vessel
 }//namespace engine
 

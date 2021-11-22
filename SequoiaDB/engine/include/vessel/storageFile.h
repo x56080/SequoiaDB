@@ -83,7 +83,7 @@ namespace vessel
          const CHAR *getFullPath()const;
 
       public:
-         INT32 allocateNewSegment();
+         INT32 allocateNewSegment(ossValuePtr *out=NULL);
 
          INT32 ensureSegmentCount(UINT32 count);
 

@@ -388,6 +388,49 @@ namespace vessel
       goto done;
    }
 
+   INT32 btreeNode::nonleafRemove(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_buffer->getLockingMode().isExclusive())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+      else if (getReadableHead()->totalSlotCount <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (isLeaf())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = _nonleafRemove(pos);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove item[%d] in node:%d", pos, rc);
+         goto error;
+      }
+
+      commit();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 
    INT32 btreeNode::_leafInsert(const ixmKey &key,
                                 const recordID &rid,
@@ -2793,6 +2836,28 @@ namespace vessel
       head->freeSapceAfterLastSlot += BTREE_NODE_SLOT_SIZE;
       head->totalFreeSpace += size;
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeNode::_nonleafRemove(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+      SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
+
+      const btreeItemSlot *rs = getReadableSlot(pos);
+      if (rs->isMarkedDeleted())
+      {
+         PD_LOG(PDERROR, "item with pos[%d] has already been removed", pos);
+         rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
+         goto error;
+      }
    done:
       return rc;
    error:

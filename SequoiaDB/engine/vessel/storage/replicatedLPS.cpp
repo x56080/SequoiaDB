@@ -100,10 +100,16 @@ namespace vessel
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
          goto error;
       }
-   
 
-      /// update lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+      {
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         rc = logicalPageSpace::getLogConsole().append(context, dlr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+      }
 
       /// commit dps log
       rc = lpsLogUtil::commit(context, lrc,
@@ -116,12 +122,15 @@ namespace vessel
          ossPanic();
          goto error;
       }
+   
+      /// update lsn
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
 
       /// update cache
       for (UINT32 i = 0; i < count; ++i)
       {
          idMapSlot slot(psv, mpids[i].getPid());
-         rc = logicalPageSpace::getCache().upsert(mpids[i].getLpid(), slot);
+         rc = logicalPageSpace::getCache().put(mpids[i].getLpid(), slot);
          if (SDB_OK != rc)
          {
             PD_LOG(PDSEVERE, "failed to insert [%d,%d] into cache, lsn:%lld, rc:%d",
@@ -186,7 +195,15 @@ namespace vessel
          goto error;
       }
 
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+      {
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         rc = logicalPageSpace::getLogConsole().append(context, dlr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+      }
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
                               getSpaceType(),
@@ -198,11 +215,13 @@ namespace vessel
          goto error;
       }
 
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+
       ///4. update cache
       for (UINT32 i = 0; i < count; ++i)
       {
          idMapSlot slot(psv, mpids[i].getPid());
-         rc = logicalPageSpace::getCache().upsert(mpids[i].getLpid(), slot);
+         rc = logicalPageSpace::getCache().put(mpids[i].getLpid(), slot);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert lpid[%d] in cache:%d", mpids[i].getLpid(), rc);
@@ -295,8 +314,15 @@ namespace vessel
          goto error;
       }
 
-      /// 3. update dirty lsn
-      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+      {
+         ossXLatchGuard guard(logicalPageSpace::getMappingLatch());
+         rc = logicalPageSpace::getLogConsole().append(context, dlr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR,"failed to append delta log record:%d", rc);
+            goto error;
+         }
+      }
 
       rc = lpsLogUtil::commit(context, lrc, logicalPageSpace::getSpaceID(),
                               getSpaceType(),
@@ -308,16 +334,12 @@ namespace vessel
          goto error;
       }
 
+      logicalPageSpace::getCheckpointContext().updateDirtyLsn(lrc.getLsn());
+
       ///4. update cache
       for (UINT32 i = 0; i < count; ++i)
       {
-         rc = logicalPageSpace::getCache().remove(mpids[i].getLpid());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to remove lpid[%d] in cache:%d", mpids[i].getLpid(), rc);
-            ossPanic();
-            goto error;
-         }
+         logicalPageSpace::getCache().remove(mpids[i].getLpid());
       }
 
       context->unblockCheckpoint();
@@ -342,6 +364,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 replicatedLPS::releasePids(requestContext *context,
                                     UINT32 count,
                                     const PAGE_ID *pids)
@@ -406,7 +429,7 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
+   }*/
 
    INT32 replicatedLPS::getRuntimePageBuffer(requestContext *context,
                                              PAGE_ID pid,

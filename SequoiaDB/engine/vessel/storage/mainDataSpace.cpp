@@ -77,6 +77,8 @@ namespace vessel
       csMetaRecord *recordOnDisk = NULL;
       logRecordContext lrc;
       SPACE_ID sid = INVALID_SPACE_ID;
+      deltaLogRecordBuilder builder;
+      mappedLogicalPageId mid(lpid, pid);
 
 
       if (OSS_UNLIKELY(NULL == context ||
@@ -94,6 +96,10 @@ namespace vessel
       sid = logicalPageSpace::getSpaceID();
       executor = context->getExecutor();
       logger = context->getOuterResource()->logger;
+
+      psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
+
+      builder.buildMappingLog(psv, 1, &mid);
 
       SDB_ASSERT(0 == _storage.getTotalSegmentCountAllocated(), "must be empty");
       rc = _storage.extendPageSpace(context, 1, NULL);
@@ -192,11 +198,20 @@ namespace vessel
          goto error;
       }
 
-      rc = logicalPageSpace::getCache().upsert(lpid, idMapSlot(psv, pid));
+      rc = logicalPageSpace::getLogConsole().append(context, builder.getDeltaLogRecord());
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);
-         PD_LOG(PDERROR, "failed to map meta page:%d", rc);
+         PD_LOG(PDERROR, "failed to append delta log:%d", rc);
+         goto error;
+      }
+
+      rc = logicalPageSpace::getCache().put(lpid, idMapSlot(psv, pid));
+      if (SDB_OK != rc)
+      {
+         logger->abort(executor, &lrc);
+         PD_LOG(PDERROR, "failed to put mapping into cache:%d", rc);
+         ossPanic();
          goto error;
       }
 

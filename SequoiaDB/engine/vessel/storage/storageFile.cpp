@@ -759,11 +759,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::allocateNewSegment()
+   INT32 storageFile::allocateNewSegment(ossValuePtr *out)
    {
       INT32 rc = SDB_OK;
       UINT32 extendLen = 0;
       ossValuePtr ptr = 0;
+
+      if (NULL != out)
+      {
+         *out = 0;
+      }
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -787,6 +792,10 @@ namespace vessel
       }
 
       ++_dataSegmentCount;
+      if (NULL != out)
+      {
+         *out = ptr;
+      }
    done:
       return rc;
    error:

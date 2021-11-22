@@ -91,7 +91,7 @@ namespace vessel
       }
 
       SDB_ASSERT(_buffer[pos].isFree() || !isMutable(pos), "can not update mutable page");
-      SDB_ASSERT(!(!_buffer[pos].isFree() && _buffer[pos].pid == slot.pid), "can not be same");
+      //SDB_ASSERT(!(!_buffer[pos].isFree() && _buffer[pos].pid == slot.pid), "can not be same");
       _buffer[pos] = slot;
       setAsMutable(pos);
       _dirty = TRUE;

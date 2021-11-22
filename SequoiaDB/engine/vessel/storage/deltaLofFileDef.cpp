@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = deltaLogPage.h
+   Source File Name = deltaLogFileDef.cpp
 
    Descriptive Name =
 
@@ -32,37 +32,26 @@
    Last Changed =
 
 ******************************************************************************/
-
-#ifndef VESSEL_DELTA_LOG_PAGE_H_
-#define VESSEL_DELTA_LOG_PAGE_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/deltaLogFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class deltaLogPage : public SDBObject
+   void deltaLogFile::getDeltaFileHead(deltaLogFileHead &h)const
    {
-      public:
-         static const UINT32 HEAD_SIZE = 4;
-         static const UINT32 TAIL_SIZE = 4;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      ossValuePtr ptr = 0;
+      getUserDefinedHeadPtr(ptr);
+      SDB_ASSERT(0 != ptr, "can not be invalid");
+      h = *((const deltaLogFileHead *)ptr);
+   }
 
-         static const UINT32 PAGE_SIZE = 512;
+   BOOLEAN deltaLogFile::validateUserDefinedHead(const void *head)const
+   {
+      SDB_ASSERT(NULL != head, "can not be null");
+      return ((const deltaLogFileHead *)head)->version != 0;
+   }
+} // namespace vessel
 
-      public:
-         INT32 init(UINT32 pageSize,
-                    ossValuePtr pagePtr);
-
-         INT32 append(UINT32 size,
-                      const void *data,
-                      UINT32 &appended);
-      private:
-         ossValuePtr _pageBegin = 0;
-         UINT32 _w = 0;
-   };//class deltaLogPage
-}//namespace vessel
-}//namespace engine
-
-#endif//VESSEL_DELTA_LOG_UNIT_H_
+} // namespace engine

@@ -57,6 +57,7 @@ namespace vessel
          version = o.version;
          flags = o.flags;
          lsn = o.lsn;
+         sequence = o.sequence;
          time = o.time;
          return *this;
       }
@@ -69,12 +70,14 @@ namespace vessel
 
       void init(UINT32 flags,
                 const checkpointLSN &lsn,
+                UINT64 sequence,
                 UINT64 time)
       {
          version = LPS_CHECKPOINT_VERSION;
          SDB_ASSERT(lsn.isValid(), "can not be invalid");
          this->flags = flags;
          this->lsn = lsn;
+         this->sequence = sequence;
          this->time = time;
          return;
       }
@@ -87,6 +90,7 @@ namespace vessel
             << ", lsn:" << lsn._lsn
             << ", minDirtyLsn:" << lsn._minDirtyLSN
             << ", minUncompletedLsn:" << lsn._minUncompletedLSN
+            << ", sequence:" << sequence
             << ", time:" << time
             << "}";
          return ss.str();
@@ -97,6 +101,7 @@ namespace vessel
       UINT32 version = 0;
       UINT32 flags = 0;
       checkpointLSN lsn;
+      UINT64 sequence = 0;
       UINT64 time = 0;
    };//struct logicalPageSpaceCheckpoint
 

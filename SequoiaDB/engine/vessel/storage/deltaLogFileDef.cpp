@@ -41,7 +41,16 @@ namespace engine
 namespace vessel
 {
 
-
+   void deltaLogFilePage::init()
+   {
+      version = CURRENT_VERSION;
+      frontChecksum = ossRand();
+      flags = 0;
+      checkpointOffset = -1;
+      dataOffset = 0;
+      ossMemset(data, 0, sizeof(data));
+      backChecksum = frontChecksum;
+   }
 } // namespace vessel
 
 } // namespace engine

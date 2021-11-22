@@ -170,10 +170,6 @@ namespace vessel
          INT32 tryToBlockCheckpoint(requestContext *context, BOOLEAN &blocked);
 
       private:
-         void applyCheckpointIfNecessary(requestContext *context);
-         INT32 createDeltaCheckpoint(requestContext *context);
-         INT32 createFullCheckpoint(requestContext *context);
-      private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
                                                  BOOLEAN fullCheckpoint,
                                                  checkpointLSN &lsn) = 0;
@@ -269,10 +265,10 @@ namespace vessel
                              UINT32 count,
                              const mappedLogicalPageId *mpids,
                              BOOLEAN releasePid) = 0;
-
+/*
          virtual INT32 releasePids(requestContext *context,
                                    UINT32 count,
-                                   const PAGE_ID *pids) = 0;
+                                   const PAGE_ID *pids) = 0;*/
 
       private:/// for data storage.
          virtual INT32 getRuntimePageBuffer(requestContext *context,
@@ -316,8 +312,6 @@ namespace vessel
                                      PAGE_ID impPid,
                                      const CHAR *page);
 
-         INT32 mergeAndRestoreAllocator(requestContext *context);
-
          INT32 rebaseWhenCreatingCheckpoint(requestContext *context,
                                             const LPS_CHECKPOINT &checkpoint);
 
@@ -326,7 +320,13 @@ namespace vessel
 
          BOOLEAN needFullCheckpoint();
 
-         INT32 restoreToLatestCheckpoint(requestContext *context);
+         void applyCheckpointIfNecessary(requestContext *context);
+         INT32 createDeltaCheckpoint(requestContext *context);
+         INT32 createFullCheckpoint(requestContext *context);
+
+         INT32 resumeToLatestCheckpoint(requestContext *context);
+
+         void extractDirtySegments(ossPoolSet<UINT32> &segments);
       private:
          INT32 preallocateLpids(requestContext *context,
                                 UINT32 count,
@@ -347,7 +347,12 @@ namespace vessel
                                const mappedLogicalPageId *mpids);
 
       private:
-//         storageFileCreater _creater;
+         INT32 replayDeltaLog(requestContext *context);
+         INT32 replayMappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
+         INT32 replayUnmappingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
+         INT32 replayRemmapingDeltaLog(requestContext *context, const deltaLogRecord &dlr);
+
+      private:
          SPACE_ID _sid = INVALID_SPACE_ID;
          sortedStorageFileList _idMapFiles;
          inMemBitmap _allocator;

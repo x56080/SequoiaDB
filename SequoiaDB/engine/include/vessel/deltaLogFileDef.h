@@ -37,90 +37,53 @@
 #define VESSEL_DELTA_LOG_FILE_H_
 
 #include "vessel/storageFile.h"
-#include "vessel/logicalPageSpaceCheckpoint.h"
-#include "partialImpCache.h"
 
 namespace engine
 {
 namespace vessel
 {
 #pragma pack(4)
-   struct deltaLogCheckpointRecord
+   struct deltaLogFilePage
    {
-      deltaLogCheckpointRecord(){}
-      ~deltaLogCheckpointRecord(){}
-      deltaLogCheckpointRecord(const deltaLogCheckpointRecord &) = delete;
-      deltaLogCheckpointRecord &operator=(const deltaLogCheckpointRecord &o)
-      {
-         flags = o.flags;
-         checkpoint = o.checkpoint;
-         elementCount = o.elementCount;
-         checksum = o.checksum;
-         pad = o.pad;
-         return *this;
-      }
+      deltaLogFilePage(const deltaLogFilePage &) = delete;
+      deltaLogFilePage &operator=(const deltaLogFilePage &) = delete;
 
-      BOOLEAN isBegin()const
-      {
-         return 0 != OSS_BIT_TEST(flags, FLAG_BEGIN_OF_BATCH);
-      }
-      void setBegin()
-      {
-         OSS_BIT_SET(flags, FLAG_BEGIN_OF_BATCH);
-      }
-      BOOLEAN isEnd()const
-      {
-         return 0 != OSS_BIT_TEST(flags, FLAG_END_OF_BATCH);
-      }
-      void setEnd()
-      {
-         OSS_BIT_SET(flags, FLAG_END_OF_BATCH);
-      }
-
-      static const UINT32 FLAG_BEGIN_OF_BATCH = 0x01;
-      static const UINT32 FLAG_END_OF_BATCH = 0x02;
+      static constexpr UINT32 CURRENT_VERSION = 1;
 
 
+      BOOLEAN isValid()const
+      {
+         return CURRENT_VERSION == version &&
+                frontChecksum == backChecksum &&
+                dataOffset <= getDataCapacity();
+      }
+
+      BOOLEAN hasCheckpoint()const
+      {
+         return 0 <= checkpointOffset;
+      }
+
+      static constexpr UINT32 getDataCapacity()
+      {
+         return sizeof(data);
+      }
+
+      void init();
+
+      UINT32 version = 0;
+      UINT32 frontChecksum = 0;
       UINT32 flags = 0;
-      LPS_CHECKPOINT checkpoint;
-      UINT32 elementCount = 0;
-      UINT32 checksum = 0;
-      UINT64 pad = 0;
-   };//struct deltaLogFileHead
+      INT32 checkpointOffset = -1; /// offset in data, not in page
+      UINT32 dataOffset = 0;       /// offset in data, not in page
+      CHAR data[4072];
+      UINT32 backChecksum = 0;
+   };//struct deltaLogFilePage
 
-   static const UINT32 DELTA_LOG_CHECKPOINT_RECORD_SIZE = sizeof(deltaLogCheckpointRecord);
-
-   struct deltaLogDumpRecord
-   {
-      UINT32 imp;
-      UINT32 offset;
-      CHAR cache[ID_MAP_PARTIAL_PAGE_CACHE_SIZE];
-   };//struct deltaLogDumpRecord
-
-   static const UINT32 DELTA_LOG_DUMP_RECORD_SIZE = sizeof(deltaLogDumpRecord);
+   constexpr UINT32 DELTA_LOG_FILE_PAGE_SIZE = sizeof(deltaLogFilePage);
+   constexpr UINT32 DELTA_LOG_FILE_PAGE_COUNT_PER_SEG = 256;
+   constexpr UINT32 DELTA_LOG_FILE_SEG_COUNT_PER_FILE = 4096;
    
 #pragma pack()
-
-   class deltaLogFile : public storageFile
-   {
-      public:
-         deltaLogFile(){}
-         virtual ~deltaLogFile(){}
-
-      public:
-         static const UINT32 VERSION = 1;
-
-         static const UINT32 PAGE_SIZE = DMS_PAGE_SIZE4K;
-         static const UINT32 PAGE_COUNT_PER_SEGMENT = 16;
-         static const UINT32 FILE_SEGMENT_SIZE = PAGE_SIZE *
-                                                 PAGE_COUNT_PER_SEGMENT;
-         static const UINT32 MAX_SEGMENT_COUNT_PER_FILE = 8192;
-
-         static const UINT32 MAX_RECORD_COUNT_PER_SEGMENT = 
-                      (FILE_SEGMENT_SIZE - sizeof(UINT32) - DELTA_LOG_CHECKPOINT_RECORD_SIZE) /
-                      DELTA_LOG_DUMP_RECORD_SIZE;
-         
-   };//class deltaLogFile
 }//namespace vessel
 }//namespace engine
 

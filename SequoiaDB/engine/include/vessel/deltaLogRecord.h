@@ -54,7 +54,7 @@ namespace vessel
    constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_MAPPING = 10;
    constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_REMAPPING = 11;
    constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_UNMAPPING = 12;
-   constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_RELEASING = 13;
+   //constexpr DELTA_LOG_RECORD_TYPE DELTA_LOG_TYPE_RELEASING = 13;
 
    OSS_INLINE BOOLEAN isOperationalDeltaLogRecord(DELTA_LOG_RECORD_TYPE type)
    {
@@ -116,6 +116,17 @@ namespace vessel
          OSS_INLINE const deltaLogRecordHead *getLogHead()const
          {
             return _head;
+         }
+
+         OSS_INLINE UINT32 getLogSize()const
+         {
+            return isValid() ? _head->_size : 0;
+         }
+
+         OSS_INLINE DELTA_LOG_RECORD_TYPE getLogType()const
+         {
+            return isValid() ?  _head->_type :
+                                INVALID_DELTA_LOG_RECORD_TYPE;
          }
          
          void reset(const void *ptr = NULL);

@@ -83,7 +83,7 @@ namespace vessel
       public:
          INT32 buildDummyLog(UINT32 recordSize);
 
-         INT32 buildCheckpointLog(const LPS_CHECKPOINT &checkpoint);
+         void buildCheckpointLog(const LPS_CHECKPOINT &checkpoint);
 
          INT32 buildMappingLog(PAGE_SNAPSHOT_VERION psv,
                                UINT8 count,
@@ -99,8 +99,8 @@ namespace vessel
                                  const mappedLogicalPageId *mpids,
                                  BOOLEAN releaseOld);
 
-         INT32 buildReleasingLog(UINT8 count,
-                                 const PAGE_ID *pids);
+         //INT32 buildReleasingLog(UINT8 count,
+         //                        const PAGE_ID *pids);
       private:
          CHAR _buffer[MAX_DELTA_LOG_RECORD_SIZE] = {};
          UINT32 _w = 0;

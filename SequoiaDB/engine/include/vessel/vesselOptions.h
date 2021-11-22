@@ -202,7 +202,7 @@ namespace vessel
          UINT32 indexLatchMapLatchCount = 256;
          
          ///invisible options.
-         UINT32 _spaceLpidCacheBucketCount = 64;
+         UINT32 _spaceLpidCacheBucketCount = 32;
          UINT32 _spaceLpidCacheBucketLatchCount = 16;
 
          

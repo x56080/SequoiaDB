@@ -137,26 +137,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 deltaLogRecordBuilder::buildCheckpointLog(const LPS_CHECKPOINT &checkpoint)
+   void deltaLogRecordBuilder::buildCheckpointLog(const LPS_CHECKPOINT &checkpoint)
    {
-      INT32 rc = SDB_OK;
-      
-      if (OSS_UNLIKELY(!checkpoint.isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
       ((deltaLogRecordHead *)_buffer)->_version = DELTA_LOG_RECORD_VERSION;
       ((deltaLogRecordHead *)_buffer)->_type = DELTA_LOG_TYPE_CHECKPOINT;
       ((deltaLogRecordHead *)_buffer)->_size = DELTA_LOG_RECORD_HEAD_SIZE + LPS_CHECKPOINT_SIZE;
       SDB_ASSERT(((deltaLogRecordHead *)_buffer)->_size <= MAX_DELTA_LOG_RECORD_SIZE, "impossible");
       ossMemcpy((void *)((ossValuePtr)_buffer + DELTA_LOG_RECORD_HEAD_SIZE),
                 &checkpoint, LPS_CHECKPOINT_SIZE);
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 deltaLogRecordBuilder::buildMappingLog(PAGE_SNAPSHOT_VERION psv,
@@ -361,6 +350,7 @@ namespace vessel
       goto done;
    }
 
+/*
    INT32 deltaLogRecordBuilder::buildReleasingLog(UINT8 count,
                                                   const PAGE_ID *pids)
    {
@@ -406,6 +396,7 @@ namespace vessel
    error:
       goto done;
    }
+   */
 
 }//namespace vessel
 }//namespace engine

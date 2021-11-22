@@ -40,6 +40,8 @@
 #include "vessel/vesselFileDef.h"
 #include "vessel/vesselFileName.h"
 #include "vessel/deltaLogFileDef.h"
+#include "vessel/logicalPageSpaceCheckpoint.h"
+#include "vessel/deltaLogRecord.h"
 #include "vessel/memoryBlock.h"
 
 namespace engine
@@ -49,6 +51,7 @@ namespace vessel
    class requestContext;
    class idMapFile;
    class deltaLogFile;
+   class logicalPageIdCache;
 
    class deltaLogConsole : public SDBObject
    {
@@ -65,7 +68,24 @@ namespace vessel
          {
             return INVALID_SPACE_TYPE != _type;
          }
+         OSS_INLINE UINT64 getBaseSequence()const
+         {
+            return _baseSequence;
+         }
+         OSS_INLINE const LPS_CHECKPOINT &getLastCheckpoint()const
+         {
+            return _lastCheckpoint;
+         }
 
+         OSS_INLINE PAGE_ID getLastCheckpointPid()const
+         {
+            return _lastCheckpointPid;
+         }
+
+         OSS_INLINE const storageFile &getWorkingFile()const
+         {
+            return _workingFile;
+         }
       public:
          INT32 init(requestContext *context,
                     const idMapFile *base,
@@ -73,57 +93,55 @@ namespace vessel
 
          void fini();
 
-         void destroy(requestContext *context);
+         UINT64 getDeltaLogSize()const;
 
-         deltaLogFile *getOnlineFile();
 
-         BOOLEAN hasOnlineFile()const
-         {
-            return _file.isOpen();
-         }
-
-         UINT32 getValidSegmentCount()const
-         {
-            return _validSegmentCount;
-         }
-
-         UINT64 getDeltaLogSize()const
-         {
-            return _validSegmentCount * deltaLogFile::FILE_SEGMENT_SIZE;
-         }
-
-         BOOLEAN hasDeltaLog()const
-         {
-            return 0 < _validSegmentCount;
-         }
-
-         slice getDumpedRecord(UINT32 segmentId,
-                               deltaLogCheckpointRecord *out)const;
-
-         INT32 rebase(requestContext *context,
-                      UINT64 base);
+         void rebase(requestContext *context,
+                     UINT64 base,
+                     BOOLEAN destroyHistoryFileAtOnce);
 
          INT32 append(requestContext *context,
-                      const ossPoolVector<memoryBlock> &buffers,
-                      const LPS_CHECKPOINT &checkpoint);
-      private:
+                      const deltaLogRecord &dlr);
 
-         INT32 initLogFiles(requestContext *context,
-                            const FILE_NAME_LIST *fl);
+         INT32 reserveCheckpoint(requestContext *context);
+
+         void commit(const LPS_CHECKPOINT &checkpoint);
+
+         void destroy(requestContext *context);
 
          void destroyHistoryFiles(requestContext *context);
+      private:
 
-         INT32 findOnlineFileEnding();
+         INT32 load(requestContext *context,
+                    const FILE_NAME_LIST *fl);
 
-         INT32 createOnlineFile(requestContext *context);
+         INT32 createNewFile(requestContext *context);
+
+         INT32 resumeToLastCheckpoint();
+
+         INT32 findLastCheckpointPid(const storageFile &file,
+                                     PAGE_ID &pid)const;
+
+         INT32 ensureFileAndBuffer(requestContext *context);
+
+         void flushBufferAndShiftWritingPid();
+
+         INT32 _append(requestContext *context,
+                       const deltaLogRecord &dlr);
    
       private:
          SPACE_TYPE _type = INVALID_SPACE_TYPE;
          UINT32 _secretValue = 0;
-         UINT64 _base = 0;
-         UINT32 _validSegmentCount = 0;
-         deltaLogFile _file;
+         UINT64 _baseSequence = 0;
+
+         storageFile _workingFile;
+         memoryBlock _buffer;
+         PAGE_ID _writingPid = INVALID_PAGE_ID;
+         deltaLogFilePage *_page = NULL;
+         LPS_CHECKPOINT _lastCheckpoint;
+         PAGE_ID _lastCheckpointPid = INVALID_PAGE_ID;
          FILE_NAME_LIST _history;
+         PAGE_ID _checkpointReserved = INVALID_PAGE_ID;
    };//class deltaLogConsole
 }//namespace vessel
 }//namespace engine

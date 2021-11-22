@@ -222,10 +222,14 @@ namespace vessel
       if (!_ic->getObj().hasBtreeRoot())
       {
          PD_LOG(PDERROR, "btree has no root yet");
-         rc = SDB_IXM_KEY_NOTEXIST;
+         rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
          goto error;
       }
    done:
+      if (checkpointBlocked)
+      {
+         _context->unblockCheckpoint();
+      }
       return rc;
    error:
       goto done;
@@ -896,6 +900,7 @@ namespace vessel
             }
             else
             {
+               SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1), "must be accessing");
                const btreePathFootprint &fp = _bac.getPathNode(node.getDepth() - 1).getChildFootprint();
                SDB_ASSERT(fp.isValid(), "must be valid");
                btreeNode fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
@@ -916,6 +921,22 @@ namespace vessel
                tryToDestroyNodesIfNecessary();
             }
             break;
+         }
+         else if (location.identical) /// non-leaf
+         {
+            if (!node.ensureExclusiveLocking())
+            {
+               obstructed = TRUE;
+               goto done;
+            }
+
+            if (node.isRoot() ||
+               node.hasRightChild() ||
+                1 < node.getItemCount() ||
+                node.getLeftChild(location.slotPos) != INVALID_PAGE_ID)
+            {
+               _bac.endToAccessNonPathEndNodes();
+            }
          }
          else /// non-leaf
          {

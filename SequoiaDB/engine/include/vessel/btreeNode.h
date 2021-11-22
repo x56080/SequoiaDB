@@ -151,6 +151,9 @@ namespace vessel
          
 
       public:
+         /// destroy or mark it removed.
+         INT32 nonleafRemove(RECORD_SLOT_ID pos);
+
          INT32 destroyItem(RECORD_SLOT_ID pos);
 
          /// non-leaf node only
@@ -277,6 +280,8 @@ namespace vessel
          INT32 _removeChild(RECORD_SLOT_ID pos);
 
          INT32 _destroySlot(RECORD_SLOT_ID pos);
+
+         INT32 _nonleafRemove(RECORD_SLOT_ID pos);
 
       private:/// leaf node only
          INT32 tryToCompressKeyInserting(RECORD_SLOT_ID pos,

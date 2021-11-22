@@ -100,9 +100,10 @@ namespace vessel
                              const mappedLogicalPageId *mpids,
                              BOOLEAN releasePid);
 
+/*
          virtual INT32 releasePids(requestContext *context,
                                    UINT32 count,
-                                   const PAGE_ID *pids);
+                                   const PAGE_ID *pids);*/
 
       private:
          virtual INT32 prepareToCreateCheckpoint(requestContext *context,
