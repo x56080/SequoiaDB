@@ -318,13 +318,15 @@
 + 是否支持在线修改生效：是
 
 
-**sequoiadb_strict_collation**
+**sequoiadb_support_mode**
 
-该参数可以配置是否严格校验字符的校对集。取值为 ON 时表示严格校验，即仅支持创建 utf8_bin 或 utf8mb4_bin 校对集的表；取值为 OFF 时表示不校验，即支持创建所有校对集的表。取值为 OFF 时，MariaDB 不保证表相关语句执行的正确性。
+该参数可以配置 MariaDB 实例的行为模式，目前支持的模式如下：
 
-+ 类型：boolean
-+ 默认值：ON
-+ 作用范围：Global
+"strict_on_table"：表级别的强校验模式。该模式仅支持创建 utf8_bin 或 utf8mb4_bin 校对集的表，且不支持创建外键。如果不指定该模式，则支持创建所有校对集的表，同时忽略创建外键的相关定义。不指定该模式时，MariaDB 不保证相关语句执行的正确性。
+
++ 类型：set
++ 默认值：strict_on_table
++ 作用范围： Global,Session
 + 是否支持在线修改生效：是
 
 ##MariaDB 常用系统配置##
