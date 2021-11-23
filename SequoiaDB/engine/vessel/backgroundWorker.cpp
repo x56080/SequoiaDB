@@ -48,7 +48,7 @@ namespace vessel
    void backgroundWorker::init(outerResource *outer,
                                instanceEnv *env,
                                autoEventList<backgroundEvent> *el,
-                               ossAtomicSigned32 *counter)
+                               std::atomic_int *counter)
    {
       SDB_ASSERT(NULL != outer, "can not be null");
       SDB_ASSERT(NULL != env, "can not be null");
@@ -87,7 +87,7 @@ namespace vessel
 
          if (NULL != _workingCounter)
          {
-            _workingCounter->inc();
+            _workingCounter->fetch_add(1, std::memory_order_relaxed);
          }
 
          switch (event.getType())
@@ -114,7 +114,7 @@ namespace vessel
 
          if (NULL != _workingCounter)
          {
-            _workingCounter->dec();
+            _workingCounter->fetch_sub(1, std::memory_order_relaxed);
          }
          event.release();
       } while (TRUE);

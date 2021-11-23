@@ -350,7 +350,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 btreeNode::destroyItem(RECORD_SLOT_ID pos)
+   INT32 btreeNode::leafRemove(RECORD_SLOT_ID pos)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos))
@@ -371,6 +371,11 @@ namespace vessel
       else if (getReadableHead()->totalSlotCount <= pos)
       {
          rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (!isLeaf() || becameEmptyAfterRemoving(pos))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
 
@@ -411,7 +416,7 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if (isLeaf())
+      else if (isLeaf() || becameEmptyAfterRemoving(pos))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -2804,13 +2809,20 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(getLockingMode().isExclusive(), "must be exlusive");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
-      SDB_ASSERT(_buffer->isWritable(), "must be writable");
 
       btreeNodePageHead *head = NULL;
-      btreeItemSlot *slot = getWritableSlot(pos);
+      btreeItemSlot *slot = NULL;
       SDB_ASSERT(NULL != slot, "can not b e null");
       UINT32 size = BTREE_NODE_SLOT_SIZE;
 
+      rc = prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+
+      slot = getWritableSlot(pos);
       SDB_ASSERT(!slot->hasPrefixSlot(), "TODO");
       if (!slot->isKeyInExtPage())
       {
@@ -2847,21 +2859,96 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
       SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(pos < getItemCount(), "out of bound");
       SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
       SDB_ASSERT(!isLeaf(), "can not be leaf");
       SDB_ASSERT(pos < getReadableHead()->totalSlotCount, "out of bound");
 
       const btreeItemSlot *rs = getReadableSlot(pos);
+
       if (rs->isMarkedDeleted())
       {
          PD_LOG(PDERROR, "item with pos[%d] has already been removed", pos);
          rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
          goto error;
       }
+      else if (INVALID_PAGE_ID != rs->data.nlf.leftChild ||
+               1 == getItemCount())
+      {
+         rc = _markRemoved(pos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to mark pos[%d] removed:%d", pos, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _destroySlot(pos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to destroy slot[%d], rc:%d", rc);
+            goto error;
+         }
+      }
    done:
       return rc;
    error:
       goto done;
+   }
+
+   INT32 btreeNode::_markRemoved(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(pos < getItemCount(), "out of bound");
+      SDB_ASSERT(getLockingMode().isExclusive(), "must be exclusive");
+      SDB_ASSERT(!isLeaf(), "can not be leaf");
+
+      btreeItemSlot *slot = NULL;
+
+      rc = prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+
+      slot = getWritableSlot(pos);
+      SDB_ASSERT(!slot->isMarkedDeleted(), "already been removed");
+      slot->markDeleted();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   BOOLEAN btreeNode::becameEmptyAfterRemoving(RECORD_SLOT_ID pos)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(pos < getItemCount(), "out of bound");
+
+      BOOLEAN r = FALSE;
+      if (isLeaf())
+      {
+         if (1 == getItemCount())
+         {
+            r = TRUE;
+         }
+      }
+      else
+      {
+         if (!hasRightChild() &&
+             1 == getItemCount() &&
+             getReadableSlot(pos)->data.nlf.leftChild == INVALID_PAGE_ID)
+         {
+            r = TRUE;
+         }
+      }
+
+      return r;
    }
 } // namespace vessel
 

@@ -2260,8 +2260,6 @@ namespace vessel
       autoEventList<backgroundEvent> rl;
       backgroundWorkers &workers = context->getEnv()->workers;
 
-      PD_LOG(PDDEBUG, "segments[%d] to be flushed", segments.size());
-
       if (totalCount <= _DISPATCH_FLUSHING_TASK_THRESHOLD || !workers.isReady())
       {
          for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
@@ -2272,69 +2270,53 @@ namespace vessel
             {
                PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
                      getSpaceID(), getSpaceType(), *itr, rc);
+               rc = SDB_OK;
                //++failureCount;
             }
          }
       }
       else
       {
-         UINT32 taskDispatched = 0;
-         UINT32 firstSegment = 0;
-         UINT32 batchCount = 0;
+         UINT32 dispatched = 0;
          ossPoolSet<UINT32>::const_iterator itr = segments.begin();
-
-         do
+         for (; itr != segments.end(); ++itr)
          {
-            if (0 == batchCount)
+            if (workers.busy())
             {
-               batchCount = 1;
-               firstSegment = *itr;
+               rc = _dpc->fsyncSegment(*itr);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
+                        getSpaceID(), getSpaceType(), *itr, rc);
+                  rc = SDB_OK;
+               }
             }
-            else if ((firstSegment + batchCount) != *itr ||
-                     batchCount == _DISPATCH_FLUSHING_TASK_THRESHOLD)
+            else
             {
                backgroundEvent event;
                lpsFlushingSegments msg;
                msg._sid = getSpaceID();
                msg._type = getSpaceType();
-               msg._segmentId = firstSegment;
-               msg._count = (UINT8)batchCount;
+               msg._segmentId = *itr;
+               msg._count = 1;
                event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
                event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
                event.setResponseList(&rl);
                workers.pushEvent(event);
-               ++taskDispatched;
-
-               firstSegment = *itr;
-               batchCount = 1;
-            }
-            else
-            {
-               ++batchCount;
-            }
-         } while (++itr != segments.end());
-
-         PD_LOG(PDDEBUG, "[%d] tasks dispatched, [%d] segments remained when flushing[%d,%d]",
-                taskDispatched, batchCount, getSpaceID(), getSpaceType());
-
-         for (UINT32 i = 0; i < batchCount; ++i)
-         {
-            rc = _dpc->fsyncSegment(firstSegment + i);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
-                     getSpaceID(), getSpaceType(), *itr, rc);
-               //++failureCount;
+               ++dispatched;
             }
          }
 
-         while (0 < taskDispatched)
+         PD_LOG(PDDEBUG, "[%d] segments, [%d]tasks dispatched when flushing[%d,%d]",
+                segments.size(), dispatched, getSpaceID(), getSpaceType());
+
+         while (0 < dispatched)
          {
             backgroundEvent event;
             rl.popOrWait(event);
             SDB_ASSERT(event.getType() == backgroundEvent::EVENT_TYPE_FINISHED,
                        ", must be finish");
-            --taskDispatched;
+            --dispatched;
          }
       }
    done:

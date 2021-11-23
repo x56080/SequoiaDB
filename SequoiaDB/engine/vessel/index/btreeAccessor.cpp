@@ -198,6 +198,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN checkpointBlocked = FALSE;
+      BOOLEAN obstructed = FALSE;
       
       if (OSS_UNLIKELY(!isValid()))
       {
@@ -225,7 +226,44 @@ namespace vessel
          rc = SDB_VESSEL_IXM_ITEM_NOT_FOUND;
          goto error;
       }
+
+      _bac.clearAccessPath();
+      _bac.setReadonly(FALSE);
+
+      rc = traverseDownAndRemove(key, rid, obstructed);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove key and rid:%d", rc);
+         goto error;
+      }
+
+      if (obstructed)
+      {
+         obstructed = FALSE;
+         _bac.clearAccessPath();
+         _bac.setReadonly(FALSE);
+         _bac.setPessimistic(TRUE);
+         rc = traverseDownAndRemove(key, rid, obstructed);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove key and rid:%d", rc);
+            goto error;
+         }
+         else if (obstructed)
+         {
+            PD_LOG(PDERROR, "get unexpected obstructing");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+      }
    done:
+      if (_bac.isValid())
+      {
+         _bac.clearAccessPath();
+         _bac.setReadonly(FALSE);
+         _bac.setPessimistic(FALSE);
+      }
+
       if (checkpointBlocked)
       {
          _context->unblockCheckpoint();
@@ -881,62 +919,25 @@ namespace vessel
                goto error;
             }
 
-            if (!node.ensureExclusiveLocking())
+            node = btreeNode();
+            rc = removeFromLeafPathEnd(location, obstructed);
+            if (SDB_OK != rc)
             {
-               obstructed = TRUE;
-               goto done;
-            }
-            
-            if (1 < node.getItemCount() || node.isRoot())
-            {
-               /// leaf node will not be released
-               _bac.endToAccessNonPathEndNodes();
-               rc = node.destroyItem(location.slotPos);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to remove item in leaf:%d", rc);
-                  goto error;
-               }
-            }
-            else
-            {
-               SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1), "must be accessing");
-               const btreePathFootprint &fp = _bac.getPathNode(node.getDepth() - 1).getChildFootprint();
-               SDB_ASSERT(fp.isValid(), "must be valid");
-               btreeNode fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
-               if (!fatherNode.ensureExclusiveLocking())
-               {
-                  obstructed = TRUE;
-                  goto done;
-               }
-
-               rc = fatherNode.removeChild(fp.getPos());
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to remove child in father node:%d", rc);
-                  goto error;
-               }
-
-               _bac.destroyEnd();
-               tryToDestroyNodesIfNecessary();
+               PD_LOG(PDERROR, "failed to remove item from leaf:%d", rc);
+               goto error;
             }
             break;
          }
          else if (location.identical) /// non-leaf
          {
-            if (!node.ensureExclusiveLocking())
+            node = btreeNode();
+            rc = removeFromNonleafPathEnd(location, obstructed);
+            if (SDB_OK != rc)
             {
-               obstructed = TRUE;
-               goto done;
+               PD_LOG(PDERROR, "failed to remove item from non-leaf:%d", rc);
+               goto error;
             }
-
-            if (node.isRoot() ||
-               node.hasRightChild() ||
-                1 < node.getItemCount() ||
-                node.getLeftChild(location.slotPos) != INVALID_PAGE_ID)
-            {
-               _bac.endToAccessNonPathEndNodes();
-            }
+            break;
          }
          else /// non-leaf
          {
@@ -950,7 +951,7 @@ namespace vessel
                goto error;
             }
 
-            /// impossible to go back
+            /// impossible to be empty
             if (node.hasRightChild() || 1 < node.getItemCount())
             {
                _bac.endToAccessNonPathEndNodes();
@@ -996,6 +997,114 @@ namespace vessel
       
    done:
       return;
+   }
+
+   INT32 btreeAccessor::removeFromLeafPathEnd(const btreeItemLocation &location,
+                                              BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(location.isValid() && location.identical, "can not be invalid");
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(node.isLeaf(), "must be leaf");
+      obstructed = FALSE;
+
+      if (!node.ensureExclusiveLocking())
+      {
+         obstructed = TRUE;
+         goto done;
+      }
+
+      if (node.isRoot() || !node.becameEmptyAfterRemoving(location.slotPos))
+      {
+         /// leaf node will not be released
+         _bac.endToAccessNonPathEndNodes();
+         rc = node.leafRemove(location.slotPos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove item in leaf:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1), "must be accessing");
+         const btreePathFootprint &fp = _bac.getPathNode(node.getDepth() - 1).getChildFootprint();
+         SDB_ASSERT(fp.isValid(), "must be valid");
+         btreeNode fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
+         if (!fatherNode.ensureExclusiveLocking())
+         {
+            obstructed = TRUE;
+            goto done;
+         }
+
+         rc = fatherNode.removeChild(fp.getPos());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove child in father node:%d", rc);
+            goto error;
+         }
+
+         _bac.destroyEnd();
+         tryToDestroyNodesIfNecessary();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::removeFromNonleafPathEnd(const btreeItemLocation &location,
+                                                 BOOLEAN &obstructed)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(location.isValid() && location.identical, "can not be invalid");
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(!node.isLeaf(), "can not be leaf");
+      obstructed = FALSE;
+
+      if (!node.ensureExclusiveLocking())
+      {
+         obstructed = TRUE;
+         goto done;
+      }
+
+      if (node.isRoot() || !node.becameEmptyAfterRemoving(location.slotPos))
+      {
+         _bac.endToAccessNonPathEndNodes();
+         rc = node.nonleafRemove(location.slotPos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove pos[%d] from non-leaf:%d",
+                   location.slotPos, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(_bac.isStillAccessing(node.getDepth() - 1), "must be accessing");
+         const btreePathFootprint &fp = _bac.getPathNode(node.getDepth() - 1).getChildFootprint();
+         SDB_ASSERT(fp.isValid(), "must be valid");
+         btreeNode fatherNode = _bac.getNodeInPath(node.getDepth() - 1);
+         if (!fatherNode.ensureExclusiveLocking())
+         {
+            obstructed = TRUE;
+            goto done;
+         }
+
+         rc = fatherNode.removeChild(fp.getPos());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove child in father node:%d", rc);
+            goto error;
+         }
+
+         _bac.destroyEnd();
+         tryToDestroyNodesIfNecessary();
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 } // namespace vessel
 
