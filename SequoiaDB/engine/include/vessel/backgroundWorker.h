@@ -41,7 +41,8 @@
 #include "vessel/backgroundEventMsg.h"
 #include "sdbInterface.hpp"
 #include "ossEvent.hpp"
-#include "ossAtomic.hpp"
+
+#include <atomic> // c++11
 
 namespace engine
 {
@@ -68,7 +69,7 @@ namespace vessel
          void init(outerResource *outer,
                    instanceEnv *env,
                    autoEventList<backgroundEvent> *el,
-                   _ossAtomicSigned32 *counter);
+                   std::atomic_int *counter);
 
          void activeEntry(IExecutor *executor);
 
@@ -87,7 +88,7 @@ namespace vessel
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> *_el = NULL;
          ossEvent _attachEvent;
-         _ossAtomicSigned32 *_workingCounter = NULL;
+         std::atomic_int *_workingCounter = NULL;
    };//class backgroundWorker
 }//namespace vessel
 }//namespce engine

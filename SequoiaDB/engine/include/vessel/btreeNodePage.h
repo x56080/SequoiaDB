@@ -189,6 +189,10 @@ namespace vessel
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_MARKED_DELETED);
       }
+      OSS_INLINE void markDeleted()
+      {
+         OSS_BIT_SET(flags, FLAG_MARKED_DELETED);
+      }
       OSS_INLINE BOOLEAN isKeyInExtPage()const
       {
          return 0 != OSS_BIT_TEST(flags, FLAG_KEY_IN_EXTERNAL_PAGE);

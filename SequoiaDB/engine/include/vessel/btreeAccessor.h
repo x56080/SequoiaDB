@@ -106,6 +106,12 @@ namespace vessel
  
          void tryToDestroyNodesIfNecessary(); 
 
+         INT32 removeFromLeafPathEnd(const btreeItemLocation &location,
+                                     BOOLEAN &obstructed);
+
+         INT32 removeFromNonleafPathEnd(const btreeItemLocation &location,
+                                        BOOLEAN &obstructed);
+
       private:
          requestContext *_context = NULL;
          indexSpace *_is = NULL;

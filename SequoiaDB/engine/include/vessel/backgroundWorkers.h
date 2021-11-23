@@ -40,7 +40,8 @@
 #include "vessel/autoEventList.hpp"
 #include "vessel/backgroundEvent.h"
 #include "vessel/backgroundWorker.h"
-#include "ossAtomic.hpp"
+
+#include <atomic> // c++11
 
 namespace engine
 {
@@ -70,9 +71,10 @@ namespace vessel
             return NULL != _or;
          }
 
-         OSS_INLINE BOOLEAN hasIdleWorkers()const
+         OSS_INLINE BOOLEAN busy()const
          {
-            return _workingCounter.peek() < (INT32)(_workers.size());
+            return (_workingCounter.load(std::memory_order_relaxed) + 2) >=
+                   (INT32)(_workers.size());
          }
 
       private:
@@ -87,7 +89,7 @@ namespace vessel
          instanceEnv *_env = NULL;
          autoEventList<backgroundEvent> _el;
          _WORKERS _workers;
-         ossAtomicSigned32 _workingCounter;
+         std::atomic_int _workingCounter = {0};
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine
