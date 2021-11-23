@@ -62,8 +62,8 @@ namespace vessel
          class options : public SDBObject
          {
             public:
-               UINT32 cacheCleaner = 6;
-               UINT32 commonWorker = 12;
+               UINT32 cacheCleaner = 8;
+               UINT32 commonWorker = 16;
          };//class options
 
       public:

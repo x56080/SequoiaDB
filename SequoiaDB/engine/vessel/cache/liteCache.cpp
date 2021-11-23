@@ -783,7 +783,7 @@ namespace vessel
       {
          if (1 < scanLoop)
          {
-            ossSleepmillis(10 * (scanLoop / 50));
+            ossSleepmillis(10);
          }
 
          rc = _fl->allocate(page);
