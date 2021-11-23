@@ -783,7 +783,7 @@ namespace vessel
       {
          if (1 < scanLoop)
          {
-            ossSleepmillis(10);
+            ossSleepmillis(10 * (scanLoop / 50));
          }
 
          rc = _fl->allocate(page);
@@ -821,6 +821,7 @@ namespace vessel
                else
                {
                   /// do nothing.
+                  rc = SDB_OK;
                }
             }
 

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IQueryFilter.h
+   Source File Name = IRecordModifier.h
 
    Descriptive Name =
 
@@ -33,23 +33,27 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_I_QUERY_FILTER_H_
-#define VESSEL_I_QUERY_FILTER_H_
+#ifndef VESSEL_I_RECORD_MODIFIER_H_
+#define VESSEL_I_RECORD_MODIFIER_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IQueryFilter : public SDBObject
+   class IRecordModifier : public SDBObject
    {
       public:
-         IQueryFilter(){}
-         virtual ~IQueryFilter(){}
-   };//class IQueryFilter
-}//class vessel
-}//class engine
+         IRecordModifier(){}
+         virtual ~IRecordModifier(){}
 
-#endif//VESSEL_I_QUERY_FILTER_H_
+      public:
+         
+   };//class IRecordModifier
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_I_RECORD_MODIFIER_H_

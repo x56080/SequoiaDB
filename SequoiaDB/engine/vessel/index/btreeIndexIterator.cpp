@@ -944,7 +944,7 @@ namespace vessel
 
          if (INVALID_PAGE_ID == locd.child)
          {
-            /// leaf node or child removed
+            /// is leaf node or child removed
             break;
          }
          else

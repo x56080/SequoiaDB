@@ -134,9 +134,6 @@ namespace vessel
          INT32 dump(requestContext *context,
                     bson::BSONObj &record);
 
-         INT32 insert(insertContext *context,
-                      utilInsertResult *res);
-
          INT32 getMoreWhenScan(requestContext *context,
                                scanCLCursor *cursor);
 
@@ -144,6 +141,10 @@ namespace vessel
                                       UINT64 &count);
 
          INT32 getMoreWhenIndexScan(indexScanContext *context);
+
+      public:
+         INT32 insert(insertContext *context,
+                      utilInsertResult *res);
 
       private:
          INT32 testIndex(requestContext *context,
@@ -347,7 +348,7 @@ namespace vessel
 
          indexContextMap _indexes;
 
-         ossRWMutex _dmlLatch;
+         ossRWMutex _ddlLatch;
          ossSpinXLatch _extendingLatch;
    };//class collection
 }//namespace vessel

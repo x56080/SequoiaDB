@@ -377,19 +377,46 @@ namespace vessel
                /// saved in current node. And we think most key sizes
                /// are similar. So if it is free to insert current key,
                /// just unlock ancestors.
-               if (node.hasFreeSpaceToInsertRaisedKey(key.dataSize() * 1.2f))
+               UINT32 raisedKeySizeEstimated = key.dataSize() * 1.5f;
+               if (MAX_INDEX_KEY_SIZE < raisedKeySizeEstimated)
+               {
+                  raisedKeySizeEstimated = MAX_INDEX_KEY_SIZE;
+               }
+               
+               if (node.hasFreeSpaceToInsertRaisedKey(raisedKeySizeEstimated))
                {
                   _bac.endToAccessNonPathEndNodes();
                }
 
-               rc = _bac.pushChildNodeIntoPath(location.child, footprint);
-               if (SDB_OK != rc)
+               if (INVALID_PAGE_ID != location.child)
                {
-                  PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
-                  goto error;
-               }
+                  rc = _bac.pushChildNodeIntoPath(location.child, footprint);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to push child node into path:%d", rc);
+                     goto error;
+                  }
 
-               continue;
+                  continue;
+               }
+               else
+               {
+                  if (!node.ensureExclusiveLocking())
+                  {
+                     obstructed = TRUE;
+                     goto done;
+                  }
+
+                  rc = insertWithRecreatingChild(key, rid, location.slotPos);
+                  if (SDB_OK != rc)
+                  {
+                     PD_LOG(PDERROR, "failed to rebuild child:%d", rc);
+                     goto error;
+                  }
+
+                  break;
+               }
+               
             }
          }
       } while (TRUE);
@@ -1104,6 +1131,69 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 btreeAccessor::insertWithRecreatingChild(const ixmKey &key,
+                                                  const recordID &rid,
+                                                  RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      btreeNodePageIniter initer;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      logicalPageBuffer buffer;
+      btreeNode child;
+      btreeNode node = _bac.getEndNodeInPath();
+      SDB_ASSERT(!node.isLeaf() && node.getLockingMode().isExclusive(),
+                 "can not be invalid");
+      SDB_ASSERT(pos <= node.getItemCount(), "out of bound");
+
+      initer._logicalCLID = _context->getLogicalCLID();
+      initer._indexId = _ic->getIndexID();
+      initer._isLeaf = TRUE;
+      initer._isRoot = FALSE;
+
+      rc = _is->allocatePage(_context, &initer, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+         goto error;
+      }
+
+      rc = _is->getLogicalPageBuffer(_context, lpid, mode, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get logical page buffer[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      child = btreeNode(&buffer, node.getDepth() + 1, _ic);
+      rc = child.leafInsert(key, rid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to key and rid into leaf:%d", rc);
+         goto error;
+      }
+
+      rc = node.resetRemovedChild(pos, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to reset child:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      if (INVALID_PAGE_ID != lpid)
+      {
+         _is->releasePage(_context, lpid);
+      }
       goto done;
    }
 } // namespace vessel

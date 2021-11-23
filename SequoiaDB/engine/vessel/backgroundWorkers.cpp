@@ -51,14 +51,15 @@ namespace vessel
 
    INT32 backgroundWorkers::init(outerResource *resource,
                                 instanceEnv *env,
-                                UINT32 workerCount)
+                                const options &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _or, "do not reinit");
 
       if (OSS_UNLIKELY(NULL == resource ||
                        NULL == env ||
-                       0 == workerCount))
+                       0 == o.cacheCleaner ||
+                       0 == o.commonWorker))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -67,7 +68,7 @@ namespace vessel
       _or = resource;
       _env = env;
 
-      rc = _active(workerCount);
+      rc = _active(o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to active workers:%d", rc);
@@ -80,14 +81,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 backgroundWorkers::_active(UINT32 count)
+   INT32 backgroundWorkers::_active(const options &o)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _or, "can not be null");
-      SDB_ASSERT(0 != count, "can not be zero");
-      SDB_ASSERT(_workers.empty(), "must be empty");
+      SDB_ASSERT(0 != o.cacheCleaner, "can not be zero");
+      SDB_ASSERT(0 != o.commonWorker, "can not be zero");
+      SDB_ASSERT(_cache._workers.empty(), "must be empty");
+      SDB_ASSERT(_common._workers.empty(), "must be empty");
 
-      for (UINT32 i = 0; i < count; ++i)
+      for (UINT32 i = 0; i < o.cacheCleaner; ++i)
       {
          backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
          if (OSS_UNLIKELY(NULL == worker))
@@ -97,7 +100,7 @@ namespace vessel
             goto error;
          }
 
-         worker->init(_or, _env, &_el, &_workingCounter);
+         worker->init(_or, _env, &_cache._el, &_cache._workingCounter);
          rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
                                           worker);
          if (SDB_OK != rc)
@@ -107,9 +110,35 @@ namespace vessel
          }
 
          worker->waitAttaching();
-         _workers.push_back(worker); 
-         PD_LOG(PDINFO, "[%d] workers attached", _workers.size());
+         _cache._workers.push_back(worker); 
+         
       }
+      PD_LOG(PDINFO, "[%d] cache cleaners attached", _cache._workers.size());
+
+      for (UINT32 i = 0; i < o.commonWorker; ++i)
+      {
+         backgroundWorker *worker = SDB_OSS_NEW backgroundWorker();
+         if (OSS_UNLIKELY(NULL == worker))
+         {
+            PD_LOG(PDERROR, "failed to allocate mem.");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         worker->init(_or, _env, &_common._el, &_common._workingCounter);
+         rc = _or->executorPool->startEDU(EDU_TYPE_VESSEL_WORKER,
+                                          worker);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to start new worker:%d", rc);
+            goto error;
+         }
+
+         worker->waitAttaching();
+         _common._workers.push_back(worker); 
+         
+      }
+      PD_LOG(PDINFO, "[%d] common workers attached", _common._workers.size());
    done:
       return rc;
    error:
@@ -122,12 +151,8 @@ namespace vessel
       if (NULL != _or)
       {
          _deactive();
-
-         backgroundEvent e;
-         while (_el.tryToPop(e))
-         {
-            /// do nothing
-         } 
+         SDB_ASSERT(_cache._el.isEmpty(), "must be empty");
+         SDB_ASSERT(_common._el.isEmpty(), "must be empty");
          _or = NULL;
          _env = NULL; 
       }
@@ -140,8 +165,16 @@ namespace vessel
       SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(),
                  "can not be invalid");
       SDB_ASSERT(!event.isQuitEvent(), "can not be quit");
-      SDB_ASSERT(!_workers.empty(), "no worker attached");
-      _el.push(event);
+      SDB_ASSERT(!_cache._workers.empty(), "no worker attached");
+      SDB_ASSERT(!_common._workers.empty(), "no worker attached");
+      if (backgroundEvent::EVENT_TYPE_CACHE_TASK == event.getType())
+      {
+         _cache._el.push(event);
+      }
+      else
+      {
+         _common._el.push(event);
+      }
    }
 
    void backgroundWorkers::_deactive()
@@ -151,28 +184,55 @@ namespace vessel
       autoEventList<backgroundEvent> finishList;
       event.setType(backgroundEvent::EVENT_TYPE_QUIT);
       event.setResponseList(&finishList);
+      UINT32 count = _cache._workers.size();
 
-      for (UINT32 i = 0; i < _workers.size(); ++i)
+      for (UINT32 i = 0; i < _cache._workers.size(); ++i)
       {
-         _el.pushPriority(event);
+         _cache._el.pushPriority(event);
       }
 
-      for (UINT32 i = 0; i < _workers.size(); ++i)
+      for (UINT32 i = 0; i < _cache._workers.size(); ++i)
       {
          event.release();
          finishList.popOrWait(event);
          SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "impossible");
-         PD_LOG(PDINFO, "[%d] workers detached", i+1);
       }
 
-      for (_WORKERS::const_iterator itr = _workers.begin();
-           itr != _workers.end(); ++itr)
+      for (_WORKERS::const_iterator itr = _cache._workers.begin();
+           itr != _cache._workers.end(); ++itr)
       {
          backgroundWorker *worker = *itr;
          SDB_OSS_DEL worker;
       }
 
-      _workers.clear();
+      _cache._workers.clear();
+      _cache._workingCounter.store(0);
+      PD_LOG(PDINFO, "[%d] cache cleaners detached", count);
+
+      count = _common._workers.size();
+
+      for (UINT32 i = 0; i < _common._workers.size(); ++i)
+      {
+         _common._el.pushPriority(event);
+      }
+
+      for (UINT32 i = 0; i < _common._workers.size(); ++i)
+      {
+         event.release();
+         finishList.popOrWait(event);
+         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "impossible");
+      }
+
+      for (_WORKERS::const_iterator itr = _common._workers.begin();
+           itr != _common._workers.end(); ++itr)
+      {
+         backgroundWorker *worker = *itr;
+         SDB_OSS_DEL worker;
+      }
+
+      _common._workers.clear();
+      _common._workingCounter.store(0);
+      PD_LOG(PDINFO, "[%d] common workers detached", count);
 
       return;
    }

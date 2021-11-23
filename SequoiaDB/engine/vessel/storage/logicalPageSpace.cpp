@@ -2281,7 +2281,7 @@ namespace vessel
          ossPoolSet<UINT32>::const_iterator itr = segments.begin();
          for (; itr != segments.end(); ++itr)
          {
-            if (workers.busy())
+            if (workers.isCommonFamilyBusy())
             {
                rc = _dpc->fsyncSegment(*itr);
                if (SDB_OK != rc)

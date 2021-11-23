@@ -151,7 +151,8 @@ namespace vessel
 
          INT32 exchangeWithNewRoot(btreeNode &newRoot);
 
-         
+         INT32 resetRemovedChild(RECORD_SLOT_ID pos,
+                                 PAGE_ID child);
 
       public:
          /// non-leaf only

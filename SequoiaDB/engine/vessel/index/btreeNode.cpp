@@ -2950,6 +2950,73 @@ namespace vessel
 
       return r;
    }
+
+   INT32 btreeNode::resetRemovedChild(RECORD_SLOT_ID pos,
+                                      PAGE_ID child)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == pos ||
+                       INVALID_PAGE_ID == child))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isValid()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(isLeaf()))
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (!getLockingMode().isExclusive())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+      else if (getItemCount() < pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+      else if (getReadableSlot(pos)->isKeyInExtPage())
+      {
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (INVALID_PAGE_ID != getChild(pos))
+      {
+         PD_LOG(PDERROR, "child at [%d] is valid", pos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      rc = prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);
+         goto error;
+      }
+
+      if (pos < getItemCount())
+      {
+         getWritableSlot(pos)->data.nlf.leftChild = child;
+      }
+      else
+      {
+         btreeNodePageHead *head = _buffer->getWritableBodySlice().
+                                   getWritableObjPtr<btreeNodePageHead>(0);
+         head->rightChild = child;
+      }
+      commit();
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 } // namespace vessel
 
 } // namespace engine

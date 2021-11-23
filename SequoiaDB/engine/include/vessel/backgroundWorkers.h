@@ -53,15 +53,23 @@ namespace vessel
    class backgroundWorkers : public SDBObject
    {
       public:
-         backgroundWorkers():_workingCounter(0){}
+         backgroundWorkers(){}
          ~backgroundWorkers();
          backgroundWorkers(const backgroundWorkers &) = delete;
          backgroundWorkers &operator=(const backgroundWorkers &) = delete;
 
       public:
+         class options : public SDBObject
+         {
+            public:
+               UINT32 cacheCleaner = 6;
+               UINT32 commonWorker = 12;
+         };//class options
+
+      public:
          INT32 init(outerResource *resource,
                     instanceEnv *env,
-                    UINT32 workerCount);
+                    const options &o);
          void fini();
 
          void pushEvent(const backgroundEvent &event);
@@ -71,25 +79,30 @@ namespace vessel
             return NULL != _or;
          }
 
-         OSS_INLINE BOOLEAN busy()const
+         OSS_INLINE BOOLEAN isCommonFamilyBusy()const
          {
-            return (_workingCounter.load(std::memory_order_relaxed) + 2) >=
-                   (INT32)(_workers.size());
+            return (_common._workingCounter.load(std::memory_order_relaxed) + 2) >=
+                   (INT32)(_common._workers.size());
          }
 
       private:
-         INT32 _active(UINT32 count);
+         INT32 _active(const options &o);
          void _deactive();
 
       private:
          typedef ossPoolList<backgroundWorker *> _WORKERS;
+         struct _workerFamily : public SDBObject
+         {
+            autoEventList<backgroundEvent> _el;
+            _WORKERS _workers;
+            std::atomic_int _workingCounter = {0};
+         };
 
       private:
          outerResource *_or = NULL;
          instanceEnv *_env = NULL;
-         autoEventList<backgroundEvent> _el;
-         _WORKERS _workers;
-         std::atomic_int _workingCounter = {0};
+         _workerFamily _cache;
+         _workerFamily _common;
    };//class backgroundWorkers
 }//namespace vessel
 }//namespace engine

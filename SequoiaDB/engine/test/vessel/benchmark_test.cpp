@@ -259,11 +259,7 @@ void insertTestwithIndex(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    setPDLevel(PDDEBUG);
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
    options.path.dataPath = datapath;
-   options.path.lsmPath = lsmpath;
-   options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
-   options.cacheOptions.freelist.maxChunkCount = 1024;
    collectionHandler handler;
    std::thread threads[threadcount];
    UINT32 countPerThread = recordcount / threadcount;

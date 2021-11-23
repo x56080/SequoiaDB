@@ -131,11 +131,16 @@ namespace vessel
          goto error;
       }
 
-      rc = _env.workers.init(&_outerResource, &_env, options.ioWorkerCount);
-      if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init background workers:%d", rc);
-         goto error;
+         backgroundWorkers::options o;
+         o.cacheCleaner = options.cacheCleanerCount;
+         o.commonWorker = options.commonBackgroundWorkers;
+         rc = _env.workers.init(&_outerResource, &_env, o);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init background workers:%d", rc);
+            goto error;
+         }
       }
 
       rc = _cacheWatcher.init(&_env, &_outerResource);

@@ -304,7 +304,7 @@ TEST_F(insert_test, test3_1)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
@@ -352,7 +352,7 @@ TEST_F(insert_test, test3_2)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.freelist.maxChunkCount = 64;
@@ -402,7 +402,7 @@ TEST_F(insert_test, test4)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.ioWorkerCount = 4;
+
    options.cacheOptions.freelist.maxChunkCount = 32;
    collectionHandler handler;
    UINT32 count = 4000000;
@@ -580,7 +580,7 @@ TEST_F(insert_test, test6)
    openDBOptions options;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.ioWorkerCount = 4;
+
    collectionHandler handler;
    UINT32 count = 4000000;
    static const UINT32 threadCount = 4;
@@ -742,7 +742,7 @@ TEST_F(insert_test, test7)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    collectionHandler handler;
@@ -800,7 +800,7 @@ void insert_test_nonunique_index(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
@@ -872,7 +872,7 @@ void insert_test_unique_index(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;

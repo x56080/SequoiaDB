@@ -283,7 +283,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexes.clear();
-      ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       if (!isOpen())
       {
@@ -379,7 +379,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 == context->getUniqueKeyHashSize(), "must be zero");
       dmlIndexRequestArray ra;
-      ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -781,7 +781,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       indexContext *ic = NULL;
-      ossRWMutexGuard guard(&_dmlLatch, SHARED, FALSE);
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1991,7 +1991,7 @@ namespace vessel
       indexObject indexObj;
       PAGE_ID lpid = INVALID_PAGE_ID;
 
-      ossScopedRWLock guard(&_dmlLatch, EXCLUSIVE);
+      ossScopedRWLock guard(&_ddlLatch, EXCLUSIVE);
 
       console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
 
@@ -2499,7 +2499,7 @@ namespace vessel
          indexContext *ic = NULL;
          buildingIndexContext *buildingContext = NULL;
 
-         ossRWMutexGuard guard(&_dmlLatch, SHARED);
+         ossRWMutexGuard guard(&_ddlLatch, SHARED);
 
          ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
          if (NULL == ic)
@@ -2550,7 +2550,7 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+         ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
          scanEntry buildEntry;
          buildingIndexContext *buildingContext = NULL;
          indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
@@ -2630,7 +2630,7 @@ namespace vessel
 
       do
       {
-         ossRWMutexGuard guard(&_dmlLatch, SHARED);
+         ossRWMutexGuard guard(&_ddlLatch, SHARED);
          UINT32 currentRdpCount = 0;
          buildingIndexContext *buildingContext = NULL;
          indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
@@ -2680,7 +2680,7 @@ namespace vessel
       } while (TRUE);
 
       {
-         ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+         ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
          buildingIndexContext *buildingContext = NULL;
          indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
          if (NULL == ic)
@@ -3254,7 +3254,7 @@ namespace vessel
       nameSlice.reset(fullNameBuffer, fullNameBufferSize - 1);
 
       {
-         ossRWMutexGuard guard(&_dmlLatch, SHARED);
+         ossRWMutexGuard guard(&_ddlLatch, SHARED);
          indexContext *ic = _indexes.find(indexSlot, INDEX_STATUS_BUILDING);
          if (NULL == ic)
          {
@@ -3294,7 +3294,7 @@ namespace vessel
       }
 
       {
-         ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+         ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
          _indexes.erase(indexSlot);
       }
    done:
@@ -3314,7 +3314,7 @@ namespace vessel
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_dmlLatch, EXCLUSIVE);
+      ossRWMutexGuard guard(&_ddlLatch, EXCLUSIVE);
       console.init(_record.mbID, &is);
       indexContext *ic = _indexes.find(indexSlot);
       if (NULL == ic)
@@ -3347,7 +3347,7 @@ namespace vessel
       SDB_ASSERT(isValidIndexSlot(indexSlot), "can not be invalid");
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
-      ossRWMutexGuard guard(&_dmlLatch, SHARED);
+      ossRWMutexGuard guard(&_ddlLatch, SHARED);
       console.init(_record.mbID, &is);
       indexContext *ic = _indexes.find(indexSlot);
       if (NULL == ic)

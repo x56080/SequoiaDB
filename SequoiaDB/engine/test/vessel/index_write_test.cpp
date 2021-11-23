@@ -36,6 +36,7 @@
 #include "test_def.h"
 #include "vessel/vesselImpl.h"
 #include <gtest/gtest.h>
+#include <atomic>
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -84,6 +85,8 @@ class index_write_test : public testing::Test
    }
 };
 
+std::atomic_llong WRITING_COUNTER;
+
 static void thread_insert_index(vesselImpl *db,
                                 const CHAR *csName,
                                 const CHAR *clName,
@@ -94,15 +97,17 @@ static void thread_insert_index(vesselImpl *db,
    collectionHandler handler;
    INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
    ASSERT_EQ(SDB_OK, rc);
-   CHAR suffix[128] = {};
-   ossMemset(suffix, 'a', sizeof(suffix) - 1);
+   CHAR pad[32] = {};
+   ossMemset(pad, 'a', sizeof(pad) - 1);
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      CHAR pad[16 + sizeof(suffix)] = {0};
-      ossItoa(ossRand(), pad, 10);
+      for (UINT32 pos = 0; pos < 10; ++pos)
+      {
+         pad[pos] = 'a' + ossRand() % 52;
+      }
       builder.reset();
-      builder.append("a", ossStrncat(pad, suffix, sizeof(pad) - 1));
+      builder.append("a", pad);
       bson::BSONObj obj = builder.done();
       slice record;
       record.reset(obj.objsize(), obj.objdata());
@@ -111,6 +116,7 @@ static void thread_insert_index(vesselImpl *db,
                           INVALID_STRIPING_ID,
                           insertOptions(), &res);
       ASSERT_EQ(SDB_OK, rc);
+      WRITING_COUNTER.fetch_add(1, std::memory_order_relaxed);
    }
    handler.close();
 }
@@ -122,7 +128,6 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
@@ -133,7 +138,8 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    UINT32 countPerThread = count / threadCount;
 
    createCSOptions csOptions;
-   csOptions.dataSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
+   csOptions.idxPageSize = 65536;
+   csOptions.idxSegSize = STORAGE_FILE_SEGMENT_SIZE_32MB;
 
    closeDBOptions co;
    co.closeMode = closeDBOptions::CLOSE_MODE_IMMDIETE;
@@ -163,6 +169,13 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    {
       threads[i] = std::move(std::thread(thread_insert_index, &db,
                                          "foo", "bar1", countPerThread));
+   }
+
+   while (TRUE)
+   {
+      UINT64 v = WRITING_COUNTER.exchange(0, std::memory_order_relaxed);
+      std::cout << "record count: " << v << endl;
+      ossSleepmillis(1000); 
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)

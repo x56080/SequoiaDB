@@ -131,7 +131,7 @@ void test1(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
@@ -268,7 +268,7 @@ void test2(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
@@ -370,7 +370,7 @@ void test3(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
@@ -483,7 +483,7 @@ void test4(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 
@@ -591,7 +591,7 @@ void test5(INDEX_TYPE type)
    outerResource resource = test_outer_resource::getResource();
    test_executor session;
    openDBOptions options;
-   options.ioWorkerCount = 4;
+
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
 

@@ -99,6 +99,10 @@ namespace vessel
          /// also can not be root
          INT32 splitNonLeafPathEnd(BOOLEAN &obstructed);
 
+         INT32 insertWithRecreatingChild(const ixmKey &key,
+                                         const recordID &rid,
+                                         RECORD_SLOT_ID pos);
+
       private:
          INT32 traverseDownAndRemove(const ixmKey &key,
                                      const recordID &rid,
