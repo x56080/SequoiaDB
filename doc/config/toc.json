@@ -2222,7 +2222,7 @@
       {
          "id": 1611088100,
          "dir": "SequoiaPerf",
-         "cn": "SequoiaPerf性能分析工具",
+         "cn": "SequoiaPerf 性能分析工具",
          "en": "SequoiaPerf",
          "contents": [
             {
@@ -2246,8 +2246,14 @@
                   {
                      "id": 1611502510,
                      "file": "sequoiaperf_deployment",
-                     "cn": "部署SequoiaPerf实例",
+                     "cn": "部署 SequoiaPerf 实例",
                      "en": "Deploy Instance"
+                  },
+                  {
+                     "id": 1635327651,
+                     "file": "sequoiaperf_agent_deployment",
+                     "cn": "部署 SequoiaPerf Agent 服务",
+                     "en": "Deploy Agent Service"
                   }
                ]
             },
@@ -2260,14 +2266,20 @@
                   {
                      "id": 1611539675,
                      "file": "sequoiaperf_overview_page",
-                     "cn": "SequoiaPerf概览",
+                     "cn": "SequoiaPerf 概览",
                      "en": "Sequoiaperf Overview"
                   },
                   {
                      "id": 1611539783,
                      "file": "sequoiaperf_mysql_monitor_page",
-                     "cn": "MySQL概览",
+                     "cn": "MySQL 概览",
                      "en": "MySQL Overview"
+                  },
+				  {
+                     "id": 1635324402,
+                     "file": "sequoiaperf_host_monitor_page",
+                     "cn": "主机概览",
+                     "en": "Host Overview"
                   },
                   {
                      "id": 1611539811,
@@ -2286,14 +2298,20 @@
                   {
                      "id": 1611501584,
                      "file": "sequoiaperf_configuration_page",
-                     "cn" : "SequoiaPerf配置",
+                     "cn" : "SequoiaPerf 配置",
                      "en" : "SequoiaPerf Configuration"
                   },
                   {
                      "id": 1611887378,
                      "file": "sequoiaperf_add_sql",
-                     "cn": "添加SQL实例",
+                     "cn": "添加 SQL 实例",
                      "en": "Add SQL Instance"
+                  },
+                  {
+                     "id": 1636718292,
+                     "file": "sequoiaperf_add_agent",
+                     "cn": "添加 Agent 服务",
+                     "en": "Add Agent Service"
                   }
                ]
             },
@@ -2306,37 +2324,37 @@
                   {
                      "id": 1611540421,
                      "file": "sequoiaperf_sdb_slowquery_overview_page",
-                     "cn" : "SequoiaDB慢查询监控概览",
+                     "cn" : "SequoiaDB 慢查询监控概览",
                      "en" : "SequoiaDB Slowquery Overview"
                   },
                   {
                      "id": 1619481934,
                      "file": "sequoiaperf_sdb_slowquery_detail_page",
-                     "cn" : "SequoiaDB慢查询监控详情",
+                     "cn" : "SequoiaDB 慢查询监控详情",
                      "en" : "SequoiaDB Slowquery Detail"
                   },
                   {
                      "id": 1619481957,
                      "file": "sequoiaperf_sdb_slowquery_datanode_detail_page",
-                     "cn" : "SequoiaDB慢查询对应的数据节点详情",
+                     "cn" : "SequoiaDB 慢查询对应的数据节点详情",
                      "en" : "SequoiaDB Slowquery Datanode Detail"
                   },
                   {
                      "id": 1619482385,
                      "file": "sequoiaperf_sdb_slowquery_accessplan_page",
-                     "cn" : "SequoiaDB慢查询对应的访问计划详情",
+                     "cn" : "SequoiaDB 慢查询对应的访问计划详情",
                      "en" : "SequoiaDB Slowquery AccessPlan"
                   },
                   {
                      "id": 1611540436,
                      "file": "sequoiaperf_sql_slowquery_overview_page",
-                     "cn": "SQL慢查询监控概览",
+                     "cn": "SQL 慢查询监控概览",
                      "en": "SQL Slowquery Overview"
                   },
                   {
                      "id": 1619483552,
                      "file": "sequoiaperf_sql_slowquery_detail_page",
-                     "cn": "SQL慢查询监控详情",
+                     "cn": "SQL 慢查询监控详情",
                      "en": "SQL Slowquery Detail"
                   }
                ]
@@ -2358,6 +2376,12 @@
                      "file": "sdb_perf_archive",
                      "cn": "归档管理工具",
                      "en": "Archive Management Tool"
+                  },
+				  {
+                     "id": 1635324450,
+                     "file": "sdb_perf_agent_ctl",
+                     "cn": "Agent 管理工具",
+                     "en": "Agent Management Tool"
                   }
                ]
             },

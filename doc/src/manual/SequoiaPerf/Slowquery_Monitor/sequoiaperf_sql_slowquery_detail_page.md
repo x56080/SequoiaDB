@@ -1,25 +1,24 @@
 [^_^]:
-    目录名称：SQL慢查询监控概览
+    SQL 慢查询监控详情
 
-SQL 慢查询监控概览页面，提供指定择时间段内 SQL 引擎端捕捉到的慢查询信息。该页面包含如下内容：
+SQL 慢查询监控详情可以通过 SQL 查询细节页面查看。该页面包含如下内容：
 
-- SQL 慢查询数量
-- 最慢的 SQL 慢查询时间
-- 每个时间段内 SQL 慢查询数量
-- 每个时间段内最慢的 SQL 慢查询时间
-- 前 X 个最慢的 SQL 查询记录，每条记录包括查询已经耗时、开始时间、SQL 客户端地址、所使用数据库和 SQL 语句内容
+![SQL 查询细节页面][sequoiaperf_sql_slowquery_detail_image]
 
-> **Note:**
->
-> 页面上方部分是一系列的慢查询信息筛选器，通过输入或点击指定值可以对信息进行筛选。
-
-![SQL慢查询监控是视图][sequoiaperf_sql_slowquery_overview]
-
+- Query Time Spent：SQL 查询语句的耗时
+- Start Time：查询开始时间
+- Schema：Schema 名称
+- Query Text：SQL 语句
+- Related SDB Operation：[相关 SequoiaDB 操作详情][sequoiaperf_sdb_slowquery_detail]
+- SQL Client：SQL 客户端
+- Thread ID：SQL 实例处理查询的线程 ID
+- LockWaitTime：SQL 线程等待获取锁的时间
 
 
 
 
 [^_^]:
     本文使用的所有引用及链接
-[sequoiaperf_sql_slowquery_overview]:images/SequoiaPerf/Slowquery_Monitor/sequoiaperf_sql_slowquery_overview.png
+[sequoiaperf_sdb_slowquery_detail]:manual/SequoiaPerf/Slowquery_Monitor/sequoiaperf_sdb_slowquery_detail_page.md
+[sequoiaperf_sql_slowquery_detail_image]:images/SequoiaPerf/Slowquery_Monitor/sequoiaperf_sql_slowquery_detail.png
 
