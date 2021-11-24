@@ -260,6 +260,7 @@ void insertTestwithIndex(CHAR *datapath, CHAR *lsmpath, CHAR *logpath,
    test_executor session;
    openDBOptions options;
    options.path.dataPath = datapath;
+   options.path.lsmPath = lsmpath;
    collectionHandler handler;
    std::thread threads[threadcount];
    UINT32 countPerThread = recordcount / threadcount;
@@ -388,9 +389,9 @@ INT32 main(INT32 argc, CHAR** argv)
       fs::create_directory(testPath);
    }
    cout << "Insert with Index:" << endl;
-   insertTestwithIndex(datapath, lsmpath, lsmpath, recordcount, threadcount);
+   insertTestwithIndex(datapath, lsmpath, logpath, recordcount, threadcount);
    // cout << "Insert without Index:" << endl;
-   // insertTest(datapath, lsmpath, lsmpath, recordcount, threadcount);
+   // insertTest(datapath, lsmpath, logpath, recordcount, threadcount);
    {
       fs::path testPath(datapath);
       fs::remove_all(testPath);
