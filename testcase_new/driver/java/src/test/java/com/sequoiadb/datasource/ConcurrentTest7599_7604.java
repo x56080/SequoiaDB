@@ -9,9 +9,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
-
 
 
 public class ConcurrentTest7599_7604 extends DataSourceTestBase {

@@ -30,7 +30,6 @@
             <package name="com.sequoiadb.lob" />
             <package name="com.sequoiadb.numberlong"  />
             <package name="com.sequoiadb.turnoncache" />
-            <package name="com.sequoiadb.datasource" />
             <package name="com.sequoiadb.crud.lob" />
             <package name="com.sequoiadb.crud.truncate" />
             <package name="com.sequoiadb.meta" />

@@ -21,7 +21,6 @@ import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.datasource.ConnectStrategy;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 

@@ -3,7 +3,7 @@
 <!--testcase for function test, which can be excuted concurrently-->
 
 <suite name="driver" verbose="1" parallel="tests" >
-   
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="localhost" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -18,9 +18,9 @@
     <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"        value="/tmp/javatest" />
-   
+
     <test name="javadriver" parallel="classes" thread-count="5">
-        <packages> 
+        <packages>
             <package name="com.sequoiadb.basicoperation" />
             <package name="com.sequoiadb.bsontypes"/>
             <package name="com.sequoiadb.metadata" />
@@ -29,8 +29,9 @@
             <package name="com.sequoiadb.baseexception"/>
             <package name="com.sequoiadb.optimize"/>
             <package name="com.sequoiadb.baseconfigoption" />
-        </packages>    
+            <package name="com.sequoiadb.datasource"/>
+        </packages>
     </test>
-   
+
 </suite>
    
