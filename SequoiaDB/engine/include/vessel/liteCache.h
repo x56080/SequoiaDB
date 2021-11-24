@@ -102,8 +102,9 @@ class liteCache : public SDBObject
       INT32 tryToUpdateLRU(lcPageTagHolder &holder);
 
    public:/// only for background threads
-      INT32 createIOJobIfNecessary(requestContext *context,
-                                   diskIOJob *job);
+      INT32 autoTrimLRU(requestContext *context,
+                        diskIOJob *job,
+                        UINT32 &evicted);
 
       /// we should call this func when last flushing task almost done
       /// coz we always begin flushing from tail of lru. too much pending tags
@@ -117,6 +118,9 @@ class liteCache : public SDBObject
       /// if last flushing is done and no more flushing,
       /// reset lru evict begin
       void resetLRUEvictBegin();
+
+      INT32 createElasticDirtyListJob(requestContext *context,
+                                      diskIOJob *job);
 
       /// it will release exclusive lock of dirty list until hit scanDepth or minLSN.
       INT32 createDirtyListIOJob(requestContext *context,
@@ -141,6 +145,9 @@ class liteCache : public SDBObject
       void releaseTag();
 
       void correctOptions(liteCacheOptions &options);
+
+      void notifyWatcherIfNecessary(requestContext *context,
+                                    UINT32 lruSize);
 
    private:
       INT32 _poolNo = -1;

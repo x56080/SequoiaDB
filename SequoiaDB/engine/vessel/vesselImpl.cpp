@@ -143,7 +143,7 @@ namespace vessel
          }
       }
 
-      rc = _cacheWatcher.init(&_env, &_outerResource);
+      rc = _env.cacheWatcher.init(&_env, &_outerResource);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init cache watcher:%d", rc);
@@ -164,7 +164,7 @@ namespace vessel
          requestContext context;
          context.open(executor, &_env, &_outerResource);
 
-         _cacheWatcher.fini();
+         _env.cacheWatcher.fini();
          if (NULL != _env.lsm)
          {
             _env.lsm->closeLsmDB(TRUE, FALSE);
@@ -840,7 +840,7 @@ namespace vessel
       if (_open)
       {
          _open = FALSE;
-         _cacheWatcher.fini();    
+         _env.cacheWatcher.fini();
          _env.workers.fini();  
          _env.checkpointer.fini();
          _env.cacheConsole.fini();

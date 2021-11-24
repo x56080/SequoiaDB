@@ -148,6 +148,14 @@ namespace vessel
             }
             return r;
          }
+
+         void clear()
+         {
+            std::unique_lock<std::mutex> lk(_mutex);
+            _list.clear();
+            SDB_ASSERT(0 == _waiting, "some one be waiting");
+            _waiting = 0;
+         }
       private:
          std::condition_variable _cv;
          std::mutex _mutex;

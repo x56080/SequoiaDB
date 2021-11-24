@@ -64,9 +64,9 @@ namespace vessel
                      
          public:
             UINT32 lruHotTouchCnt = 2;
-            FLOAT32 lruColdPercent = 0.4;
+            FLOAT32 lruColdPercent = 0.5;
             UINT32 lruMinSplitSize = 512;
-            UINT32 lruScanDepth = 128; /// default scan depth when evicting or flushing
+            UINT32 lruScanDepth = 128; /// default scan depth when evicting
             FLOAT32 lruMaxScanPercent = 0.6; /// max scan depth when evicting
             INT32 lruFlushWaitLockTimeout = -1;
             UINT32 _lruColdMistakeTolerance = 10;
@@ -125,9 +125,10 @@ namespace vessel
             }
 
          public:
-            FLOAT32 flushDirtyListThreshold = 0.9;
+            FLOAT32 flushDirtyListThreshold = 1.0;
             UINT32 flushDirtyListTimeout = 300; /// seconds
             FLOAT32 flushLruListThreshold = 0.75;
+            UINT32 minTrimLRUDepth = 128;
          
       };//class flushOptions
 

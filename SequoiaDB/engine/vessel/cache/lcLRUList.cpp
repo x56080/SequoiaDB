@@ -99,10 +99,11 @@ namespace vessel
 
    UINT32 lcLRUList::getSizeFast()const
    {
-      return *((volatile UINT32 *)(&_size));
+      return *((const volatile UINT32 *)(&_size));
    }
 
    INT32 lcLRUList::insert(lcPageTagHolder &holder,
+                           UINT32 &currentSize,
                            UINT32 beginTouchCount)
    {
       INT32 rc = SDB_OK;
@@ -159,6 +160,8 @@ namespace vessel
             splitLRU();
          }
       }
+
+      currentSize = _size;
       
    done:
       return rc;
@@ -283,7 +286,7 @@ namespace vessel
    INT32 lcLRUList::setPendingWriteOrEvict(requestContext *context,
                                            UINT32 scanDepth,
                                            diskIOJob *job,
-                                           UINT32 *involvedMemPageCount)
+                                           UINT32 *evicted)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
@@ -358,9 +361,9 @@ namespace vessel
 
       guard.unlock();
 
-      if (NULL != involvedMemPageCount)
+      if (NULL != evicted)
       {
-         *involvedMemPageCount = totalEvicted + totalPending;
+         *evicted = totalEvicted;
       }
    done:
       if (!pages.empty())

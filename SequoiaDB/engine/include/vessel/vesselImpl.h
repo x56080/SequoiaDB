@@ -42,7 +42,6 @@
 #include "vessel/indexOptions.h"
 #include "vessel/indexKeyPattern.h"
 #include "vessel/indexParameters.h"
-#include "vessel/liteCacheWatcher.h"
 
 namespace engine
 {
@@ -160,7 +159,6 @@ namespace vessel
          BOOLEAN _open = FALSE;
          instanceEnv _env;
          outerResource _outerResource;
-         liteCacheWatcher _cacheWatcher;
    }; /// end of class vesselImpl 
 
 

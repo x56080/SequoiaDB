@@ -493,6 +493,7 @@ namespace vessel
       liteCachePageTag *tag = NULL;
       freeListPage page;
       ossValuePtr diskPtr = 0;
+      UINT32 lruSize = 0;
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -533,7 +534,7 @@ namespace vessel
       tag->setMemPage(page);
 
       /// 3. insert into lru
-      rc = _lru->insert(holder);
+      rc = _lru->insert(holder, lruSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDSEVERE, "failed to insert tag[%s] into lru:%d",
@@ -542,60 +543,8 @@ namespace vessel
          goto error;
       }
 
-   done:
-      return rc;
-   error:
-      goto done;
-   }
+      notifyWatcherIfNecessary(context, lruSize);
 
-   INT32 liteCache::createIOJobIfNecessary(requestContext *context,
-                                           diskIOJob *job)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 pageCount = 0;
-      UINT32 maxPageCount = 0;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (NULL == context ||
-               NULL == job ||
-               job->isRunning())
-      {
-         SDB_ASSERT(FALSE, "invalid args");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      SDB_ASSERT(!job->isRunning(), "can not be running");
-
-      maxPageCount = _fl->getMaxPageCount();
-      pageCount = _dl->getSizeFast();
-      if ((maxPageCount * _flushOptions.flushDirtyListThreshold) <= pageCount)
-      {
-         rc = _dl->setPendingWrite(context, 128, DPS_INVALID_LSN_OFFSET, job);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create io job on dirty list:%d", rc);
-            goto error;
-         }
-         
-         goto done;
-      }
-
-      pageCount = _lru->getSizeFast();
-      if ((maxPageCount * _flushOptions.flushLruListThreshold) <= pageCount)
-      {
-         rc = _lru->setPendingWriteOrEvict(context, 128, job, NULL);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to create io job on lru list:%d", rc);
-            goto error;
-         }
-      }
-      
    done:
       return rc;
    error:
@@ -840,6 +789,115 @@ namespace vessel
          PD_LOG(PDERROR, "failed to evict page from lru");
          rc = SDB_VESSEL_LC_LRU_BUSY;
          goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void liteCache::notifyWatcherIfNecessary(requestContext *context,
+                                            UINT32 lruSize)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      if ((_fl->getMaxPageCount() * _flushOptions.flushLruListThreshold) <=
+          lruSize)
+      {
+         context->getEnv()->cacheWatcher.notify();
+      }
+   }
+
+   INT32 liteCache::createElasticDirtyListJob(requestContext *context,
+                                              diskIOJob *job)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 maxPageCount = 0;
+      UINT32 dirtyListSize = 0;
+      static constexpr UINT32 _MIN_FLUSH_COUNT = 128;
+      static constexpr UINT32 _MAX_FULSH_COUNT = 4096;
+      static constexpr FLOAT32 _FLUSH_RATIO = 0.1;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               NULL == job ||
+               job->isRunning())
+      {
+         SDB_ASSERT(FALSE, "invalid args");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      maxPageCount = _fl->getMaxPageCount();
+      dirtyListSize = _dl->getSizeFast();
+      if ((maxPageCount * _flushOptions.flushDirtyListThreshold) <= dirtyListSize)
+      {
+         UINT32 depth = dirtyListSize * _FLUSH_RATIO;
+         if (depth < _MIN_FLUSH_COUNT)
+         {
+            depth = _MIN_FLUSH_COUNT;
+         }
+         if (_MAX_FULSH_COUNT < depth)
+         {
+            depth = _MAX_FULSH_COUNT;
+         }
+
+         rc = _dl->setPendingWrite(context, depth, DPS_INVALID_LSN_OFFSET, job);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create io job on dirty list:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 liteCache::autoTrimLRU(requestContext *context,
+                                diskIOJob *job,
+                                UINT32 &evicted)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 maxPageCount = 0;
+      UINT32 pageCount = 0;
+      static constexpr UINT32 _MAX_TRIM_SIZE = 4096;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               NULL == job ||
+               job->isRunning())
+      {
+         SDB_ASSERT(FALSE, "invalid args");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      maxPageCount = _fl->getMaxPageCount();
+      pageCount = _lru->getSizeFast();
+      if ((maxPageCount * _flushOptions.flushLruListThreshold) <= pageCount)
+      {
+         /// we can optimize depth by delta allocating from free list.
+         UINT32 depth = _flushOptions.minTrimLRUDepth;
+         if (_MAX_TRIM_SIZE < depth)
+         {
+            depth = _MAX_TRIM_SIZE;
+         }
+         rc = _lru->setPendingWriteOrEvict(context, depth, job, &evicted);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to create io job on lru list:%d", rc);
+            goto error;
+         }
       }
 
    done:

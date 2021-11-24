@@ -77,6 +77,7 @@ namespace vessel
             EVENT_TYPE_CACHE_TASK = 3,
             EVENT_TYPE_SYNC_SEG = 4,
             EVENT_TYPE_LPS_CHECKPOINT = 5,
+            EVENT_TYPE_CACHE_WATCHER_NOTIFY = 6,
          };//enum EVENT_TYPE
 
       public:

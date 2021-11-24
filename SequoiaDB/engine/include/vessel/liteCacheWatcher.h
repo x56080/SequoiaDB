@@ -42,6 +42,7 @@
 #include "ossEvent.hpp"
 #include "sdbInterface.hpp"
 
+#include <atomic> // c++11
 namespace engine
 {
 namespace vessel
@@ -65,28 +66,60 @@ namespace vessel
          void fini();
          
          void attach(IExecutor *executor);
+
+         void notify();
+      private:
+         enum _JOB_ID
+         {
+            _JOB_ID_DIRTY_LIST = 0,
+            _JOB_ID_LRU = 1,
+            _JOB_ID_MAX = _JOB_ID_LRU,
+            _JOG_ID_COUNT = _JOB_ID_MAX + 1,
+         };//enum _JOB_ID
+
       private:
          INT32 _active();
          void _deactive();
          void _fini();
          void createJobIfNecessary(requestContext *context);
          void createDirtyListJobWhenTimeout(requestContext *context);
-         void dispatch(requestContext *context, diskIOJob *job);
+         void dispatch(requestContext *context, _JOB_ID jid);
          void handleFinishedEvent(requestContext *context,
                                   const backgroundEvent &event);
-         BOOLEAN hasRunningTask()const
+
+         void tryToTrimLRU(requestContext *context);
+         void tryToFlushDirtyList(requestContext *context);
+         void flushDirtyListWhenTimeout(requestContext *context);
+
+         BOOLEAN _hasRunningTask()const
          {
-            return 0 < _runningTaskCount;
+            return 0 != _jobs[_JOB_ID_DIRTY_LIST].runningTask ||
+                   0 != _jobs[_JOB_ID_LRU].runningTask;
          }
+
+      
+
+      private:
+         struct _JOB_CONTEXT
+         {
+            void clear()
+            {
+               runningTask = 0;
+               job.reset();
+            }
+
+            UINT32 runningTask = 0;
+            diskIOJob job;
+         };//struct _JOB_CONTEXT
       private:
          instanceEnv *_env = NULL;
          outerResource *_outer = NULL;
          UINT64 _lastFlushDirtyListTime = 0;
          autoEventList<backgroundEvent> _list;
-         diskIOJob _job;
-         UINT32 _runningTaskCount = 0;
+         _JOB_CONTEXT _jobs[_JOG_ID_COUNT];
          ossEvent _attachEvent;
          BOOLEAN _actived = FALSE;
+         std::atomic_flag _notifyFlag = ATOMIC_FLAG_INIT;
 
    };//class liteCacheWatcher
 }//namespace vessel

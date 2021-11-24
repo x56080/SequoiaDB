@@ -81,7 +81,8 @@ namespace vessel
 
          OSS_INLINE BOOLEAN isCommonFamilyBusy()const
          {
-            return (_common._workingCounter.load(std::memory_order_relaxed) + 2) >=
+            INT32 count = (INT32)(_common._workers.size()) * 0.8f;
+            return (_common._workingCounter.load(std::memory_order_relaxed) + count) >=
                    (INT32)(_common._workers.size());
          }
 
@@ -93,6 +94,7 @@ namespace vessel
          typedef ossPoolList<backgroundWorker *> _WORKERS;
          struct _workerFamily : public SDBObject
          {
+            void clear();
             autoEventList<backgroundEvent> _el;
             _WORKERS _workers;
             std::atomic_int _workingCounter = {0};

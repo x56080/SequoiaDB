@@ -71,6 +71,7 @@ namespace vessel
          /// for user threads
          /// tag under w lock
          INT32 insert(lcPageTagHolder &holder,
+                      UINT32 &currentSize,
                       UINT32 beginTouchCount = 1);
 
          /// for user threads
@@ -89,7 +90,7 @@ namespace vessel
          INT32 setPendingWriteOrEvict(requestContext *context,
                                       UINT32 scanDepth,
                                       diskIOJob *job,
-                                      UINT32 *involvedMemPageCount);
+                                      UINT32 *evicted);
 
          /// for background threads
          /// reset evict begin prt after flush done

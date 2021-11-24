@@ -48,7 +48,7 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 MAX_LRU_TASK_BATCH_SIZE = 128;
+   static const UINT32 MAX_LRU_TASK_BATCH_SIZE = 64;
    static const UINT32 DEFUALT_BUF_COUNT = 128;
 
    BOOLEAN compareTag(const liteCachePageTag*l, const liteCachePageTag*r)
@@ -249,14 +249,18 @@ namespace vessel
              tag->id().getFileType() == gpid.getFileType())
          {
             UINT32 seg = tag->id().page() / lps->getStorageCoreArgs().maxPageCountPerSeg;
-            if (seg == firstSegment)
+            if ((seg == firstSegment) &&
+                 (isDirtyListJob() || (count < MAX_LRU_TASK_BATCH_SIZE)))
             {
                ++count;
                ++_dispatchedCount;
                continue;
             }
+            else
+            {
+               break;
+            }
          }
-
          break;
       }
 

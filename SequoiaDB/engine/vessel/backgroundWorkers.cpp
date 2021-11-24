@@ -44,6 +44,23 @@ namespace engine
 {
 namespace vessel
 {
+   void backgroundWorkers::_workerFamily::clear()
+   {
+      for (_WORKERS::const_iterator itr = _workers.begin();
+           itr != _workers.end(); ++itr)
+      {
+         backgroundWorker *worker = *itr;
+         if (NULL != worker)
+         {
+            SDB_OSS_DEL worker;
+         }
+      }
+
+      _workers.clear();
+      _workingCounter.store(0);
+      _el.clear();
+   }
+
    backgroundWorkers::~backgroundWorkers()
    {
       fini();
@@ -154,7 +171,7 @@ namespace vessel
          SDB_ASSERT(_cache._el.isEmpty(), "must be empty");
          SDB_ASSERT(_common._el.isEmpty(), "must be empty");
          _or = NULL;
-         _env = NULL; 
+         _env = NULL;
       }
       return;
    }
@@ -193,20 +210,11 @@ namespace vessel
 
       for (UINT32 i = 0; i < _cache._workers.size(); ++i)
       {
-         event.release();
-         finishList.popOrWait(event);
-         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "impossible");
+         backgroundEvent response;
+         finishList.popOrWait(response);
+         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == response.getType(), "impossible");
       }
 
-      for (_WORKERS::const_iterator itr = _cache._workers.begin();
-           itr != _cache._workers.end(); ++itr)
-      {
-         backgroundWorker *worker = *itr;
-         SDB_OSS_DEL worker;
-      }
-
-      _cache._workers.clear();
-      _cache._workingCounter.store(0);
       PD_LOG(PDINFO, "[%d] cache cleaners detached", count);
 
       count = _common._workers.size();
@@ -218,22 +226,14 @@ namespace vessel
 
       for (UINT32 i = 0; i < _common._workers.size(); ++i)
       {
-         event.release();
-         finishList.popOrWait(event);
-         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == event.getType(), "impossible");
+         backgroundEvent response;
+         finishList.popOrWait(response);
+         SDB_ASSERT(backgroundEvent::EVENT_TYPE_FINISHED == response.getType(), "impossible");
       }
 
-      for (_WORKERS::const_iterator itr = _common._workers.begin();
-           itr != _common._workers.end(); ++itr)
-      {
-         backgroundWorker *worker = *itr;
-         SDB_OSS_DEL worker;
-      }
-
-      _common._workers.clear();
-      _common._workingCounter.store(0);
       PD_LOG(PDINFO, "[%d] common workers detached", count);
-
+      _cache.clear();
+      _common.clear();
       return;
    }
 }//namespace vessel

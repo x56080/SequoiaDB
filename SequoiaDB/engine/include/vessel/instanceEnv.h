@@ -45,6 +45,7 @@
 #include "vessel/objectLatchMap.hpp"
 #include "vessel/lsm/lsmDB.hpp"
 #include "vessel/backgroundWorkers.h"
+#include "vessel/liteCacheWatcher.h"
 
 namespace engine
 {
@@ -70,6 +71,7 @@ namespace vessel
          RECORD_ID_LATCH_MAP ridLatchMap;
          UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
          lsmDB *lsm = NULL;
+         liteCacheWatcher cacheWatcher;
          backgroundWorkers workers;
 
    }; /// end of class instanceEnv
