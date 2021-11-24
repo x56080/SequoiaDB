@@ -32,8 +32,8 @@ MariaDB 支持多种 SQL 数据类型：数值类型、date 类型、time 类型
 | TEXT       | string       |                                              |
 | MEDIUMTEXT | string       |                                              |
 | LONGTEXT   | string       | 最大长度 16MB                                |
-| ENUM       | int32        |                                              |
-| SET        | int32        |                                              |
+| ENUM       | int64        |                                              |
+| SET        | int64        |                                              |
 | JSON       | string       |                                              |
 | GEOMETRY   | binary       | 不支持索引（spatial/non-spatial 索引）       |
 | NULL       | -            | 不存储                                       |
