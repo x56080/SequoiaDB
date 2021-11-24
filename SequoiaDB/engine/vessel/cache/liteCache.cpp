@@ -561,8 +561,10 @@ namespace vessel
          goto error;
       }
       else if (NULL == context ||
-               NULL == job)
+               NULL == job ||
+               job->isRunning())
       {
+         SDB_ASSERT(FALSE, "invalid args");
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -781,61 +783,56 @@ namespace vessel
       
       do
       {
-         if (1 < scanLoop)
-         {
-            ossSleepmillis(10);
-         }
-
          rc = _fl->allocate(page);
          if (SDB_OK == rc)
          {
             goto done;
          }
-         else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL == rc)
-         {
-            rc = _lru->evict(context, 0 < scanLoop, page);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to evict page from lru:%d", rc);
-               goto error;
-            }
-
-            if (page.valid())
-            {
-               break;
-            }
-            
-            /// fast check again, pages may released before we locked lru.
-            if (_fl->fastCheckIfHasFreePage())
-            {
-               rc = _fl->allocate(page);
-               if (SDB_OK == rc)
-               {
-                  goto done;
-               }
-               else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL != rc)
-               {
-                  PD_LOG(PDERROR, "failed to allocate page from free list:%d", rc);
-                  goto error;
-               }
-               else
-               {
-                  /// do nothing.
-                  rc = SDB_OK;
-               }
-            }
-
-            ++scanLoop;
-            if (0 == scanLoop % 5)
-            {
-               PD_LOG(PDWARNING, "eviction times over :%d", scanLoop);
-            }
-         }
-         else
+         else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL != rc)
          {
             PD_LOG(PDERROR, "failed to allocate page from free list:%d", rc);
             goto error;
          }
+         
+         rc = _lru->evict(context, 0 < scanLoop, page);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to evict page from lru:%d", rc);
+            goto error;
+         }
+
+         if (page.valid())
+         {
+            break;
+         }
+         
+         /// fast check again, pages may released before we locked lru.
+         if (_fl->fastCheckIfHasFreePage())
+         {
+            rc = _fl->allocate(page);
+            if (SDB_OK == rc)
+            {
+               goto done;
+            }
+            else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL != rc)
+            {
+               PD_LOG(PDERROR, "failed to allocate page from free list:%d", rc);
+               goto error;
+            }
+            else
+            {
+               /// do nothing.
+               rc = SDB_OK;
+            }
+         }
+
+         ++scanLoop;
+         if (0 == scanLoop % 5)
+         {
+            PD_LOG(PDWARNING, "eviction times over :%d", scanLoop);
+         }
+         ossSleepmillis(10);
+         
       } while (scanLoop < _MAX_LOOP);
 
       if (!page.valid())

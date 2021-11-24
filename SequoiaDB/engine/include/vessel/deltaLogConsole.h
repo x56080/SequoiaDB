@@ -128,6 +128,8 @@ namespace vessel
 
          INT32 _append(requestContext *context,
                        const deltaLogRecord &dlr);
+
+         void fsyncDirtyPages()const;
    
       private:
          SPACE_TYPE _type = INVALID_SPACE_TYPE;

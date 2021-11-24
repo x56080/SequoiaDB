@@ -48,7 +48,7 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 DEFAULT_MAX_IO_SIZE_PER_TASK = 4 * 1024 * 1024;
+   static const UINT32 MAX_LRU_TASK_BATCH_SIZE = 128;
    static const UINT32 DEFUALT_BUF_COUNT = 128;
 
    BOOLEAN compareTag(const liteCachePageTag*l, const liteCachePageTag*r)

@@ -437,7 +437,10 @@ namespace vessel
       ossMemcpy(page->data + page->checkpointOffset,
                 dlr.getLogHead(), dlr.getLogSize());
 
-      _workingFile.fsync();
+      fsyncDirtyPages();
+      
+      _lastCheckpoint = checkpoint;
+      _lastCheckpointPid = _checkpointReserved;
       _checkpointReserved = INVALID_PAGE_ID;
       return;
    }
@@ -624,6 +627,34 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void deltaLogConsole::fsyncDirtyPages()const
+   {
+      SDB_ASSERT(INVALID_PAGE_ID != _checkpointReserved, "can not be invalid");
+      SDB_ASSERT(_workingFile.isOpen(), "can not be closed");
+      UINT32 pageCount = _workingFile.getCommonHeadInMem().maxPageCountPerSeg;
+      UINT32 minSegment = 0;
+      UINT32 maxSegment = 0;
+
+      if (INVALID_PAGE_ID != _lastCheckpointPid)
+      {
+         minSegment = _lastCheckpointPid / pageCount;
+      }
+
+      maxSegment = _checkpointReserved / pageCount;
+
+      SDB_ASSERT(minSegment <= maxSegment, "impossible");
+      for (UINT32 i = minSegment; i <= maxSegment; ++i)
+      {
+         INT32 rc = _workingFile.fsyncSegment(i);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            PD_LOG(PDSEVERE, "failed to fsync delta log segment[%d], rc:%d", i, rc);
+         }
+      }
+
+      return;
    }
 }//namespace vessel
 }//namespace engine
