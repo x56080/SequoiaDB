@@ -260,6 +260,7 @@ add_option( "shell", "build shell", 0, False)
 add_option( "client", "build C/C++ clients", 0, False)
 add_option( "fmp", "build fmp", 0, False)
 add_option( "stp", "build stp", 0, False)
+add_option( "vessel", "build vessel", 0, False)
 add_option( "doc", "build document(pdf, word)", 0, False)
 add_option( "website", "build web site document", 0, False)
 add_option( "chm", "build chm document", 0, False)
@@ -395,6 +396,7 @@ hasTool = has_option( "tool" )
 hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
 hasStp = has_option("stp")
+hasVessel = has_option( "vessel" )
 hasAll = has_option( "all" )
 hasDoc = has_option( "doc" )
 hasWebSite = has_option( "website" )
@@ -433,7 +435,7 @@ if hasAll:
 # if nothing specified, let's use engine+client+shell by default
 elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or
            hasFmp or hasFap or hasDoc or hasWebSite or hasChm or hasOffline or
-           hasDoxygen or hasStp ):
+           hasDoxygen or hasStp or hasVessel):
    hasEngine = True
    hasClient = True
    hasShell = True
@@ -441,6 +443,8 @@ elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or
    hasFmp = True
    hasStp = True
 elif ( hasTestcase and not hasEngine ):
+   hasEngine = True
+elif ( hasVessel and not hasEngine ):
    hasEngine = True
 
 boostCompiler = ""
@@ -1004,6 +1008,7 @@ Export("hasEngine")
 Export("hasTestcase")
 Export("hasTool")
 Export("hasStp")
+Export("hasVessel")
 Export("driverDir")
 Export("guess_os")
 Export("guess_arch")
