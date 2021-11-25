@@ -2253,17 +2253,34 @@ namespace vessel
       SDB_ASSERT(_dpc->isOpen(), "can not be closed");
       SDB_ASSERT(isCopyOnWrite(), "impossible");
 
-      static const UINT32 _DISPATCH_FLUSHING_TASK_THRESHOLD = 4;
-      
-      UINT32 totalCount = segments.size();
-      //UINT32 failureCount = 0;
+      static const UINT32 _DISPATCH_BATCH_SIZE = 4;
+
       autoEventList<backgroundEvent> rl;
       backgroundWorkers &workers = context->getEnv()->workers;
+      UINT32 i = 1;
+      UINT32 dispatched = 0;
 
-      if (totalCount <= _DISPATCH_FLUSHING_TASK_THRESHOLD || !workers.isReady())
+      PD_LOG(PDDEBUG, "begin to flush [%d] segments at checkpoint", segments.size());
+
+      for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
+              itr != segments.end(); ++itr, ++i)
       {
-         for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
-              itr != segments.end(); ++itr)
+         if ((0 != i % _DISPATCH_BATCH_SIZE) &&
+             !workers.isCommonFamilyBusy())
+         {
+            backgroundEvent event;
+            lpsFlushingSegments msg;
+            msg._sid = getSpaceID();
+            msg._type = getSpaceType();
+            msg._segmentId = *itr;
+            msg._count = 1;
+            event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
+            event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
+            event.setResponseList(&rl);
+            workers.pushEvent(event);
+            ++dispatched;
+         }
+         else
          {
             rc = _dpc->fsyncSegment(*itr);
             if (SDB_OK != rc)
@@ -2271,54 +2288,21 @@ namespace vessel
                PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
                      getSpaceID(), getSpaceType(), *itr, rc);
                rc = SDB_OK;
-               //++failureCount;
             }
          }
       }
-      else
+
+      while (0 < dispatched)
       {
-         UINT32 dispatched = 0;
-         ossPoolSet<UINT32>::const_iterator itr = segments.begin();
-         for (; itr != segments.end(); ++itr)
-         {
-            if (workers.isCommonFamilyBusy())
-            {
-               rc = _dpc->fsyncSegment(*itr);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDSEVERE, "failed to flush global segment[%d, %d, %d], rc:%d",
-                        getSpaceID(), getSpaceType(), *itr, rc);
-                  rc = SDB_OK;
-               }
-            }
-            else
-            {
-               backgroundEvent event;
-               lpsFlushingSegments msg;
-               msg._sid = getSpaceID();
-               msg._type = getSpaceType();
-               msg._segmentId = *itr;
-               msg._count = 1;
-               event.setType(backgroundEvent::EVENT_TYPE_SYNC_SEG);
-               event.setEventMsg(sizeof(lpsFlushingSegments), &msg);
-               event.setResponseList(&rl);
-               workers.pushEvent(event);
-               ++dispatched;
-            }
-         }
-
-         PD_LOG(PDDEBUG, "[%d] segments, [%d]tasks dispatched when flushing[%d,%d]",
-                segments.size(), dispatched, getSpaceID(), getSpaceType());
-
-         while (0 < dispatched)
-         {
-            backgroundEvent event;
-            rl.popOrWait(event);
-            SDB_ASSERT(event.getType() == backgroundEvent::EVENT_TYPE_FINISHED,
-                       ", must be finish");
-            --dispatched;
-         }
+         backgroundEvent event;
+         rl.popOrWait(event);
+         SDB_ASSERT(event.getType() == backgroundEvent::EVENT_TYPE_FINISHED,
+                     ", must be finish");
+         --dispatched;
       }
+
+      PD_LOG(PDDEBUG, "end to flush [%d] segments, [%d]tasks dispatched, lps[%d,%d]",
+             segments.size(), dispatched, getSpaceID(), getSpaceType());
    done:
       return rc;
    error:

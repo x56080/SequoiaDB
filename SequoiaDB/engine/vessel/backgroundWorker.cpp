@@ -228,7 +228,7 @@ namespace vessel
       const lpsFlushingSegments *msg = (const lpsFlushingSegments *)(event.getEventMsg());
       UINT32 count = msg->_count;
 
-      PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
+      //PD_LOG(PDDEBUG, "begin to sync segments[%d, %d]", msg->_segmentId, count);
 
       requestContext context;
       context.open(executor, _env, _outer);
