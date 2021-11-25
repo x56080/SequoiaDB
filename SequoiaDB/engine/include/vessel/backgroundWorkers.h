@@ -82,8 +82,7 @@ namespace vessel
          OSS_INLINE BOOLEAN isCommonFamilyBusy()const
          {
             INT32 count = (INT32)(_common._workers.size()) * 0.8f;
-            return (_common._workingCounter.load(std::memory_order_relaxed) + count) >=
-                   (INT32)(_common._workers.size());
+            return count <= _common._workingCounter.load(std::memory_order_relaxed);
          }
 
       private:
