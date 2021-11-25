@@ -2257,16 +2257,15 @@ namespace vessel
 
       autoEventList<backgroundEvent> rl;
       backgroundWorkers &workers = context->getEnv()->workers;
-      UINT32 i = 1;
       UINT32 dispatched = 0;
       UINT32 responsed = 0;
 
       PD_LOG(PDDEBUG, "begin to flush [%d] segments at checkpoint", segments.size());
 
       for (ossPoolSet<UINT32>::const_iterator itr = segments.begin();
-              itr != segments.end(); ++itr, ++i)
+              itr != segments.end(); ++itr)
       {
-         if ((0 != (i % _DISPATCH_BATCH_SIZE)) &&
+         if (workers.isReady() &&
              !workers.isCommonFamilyBusy())
          {
             backgroundEvent event;
