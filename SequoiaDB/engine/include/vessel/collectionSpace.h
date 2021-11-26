@@ -49,6 +49,7 @@
 #include "vessel/collectionObjHolder.h"
 #include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionOptions.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -149,6 +150,11 @@ namespace vessel
                                    UINT32 logicalID,
                                    OSS_LATCH_MODE mode,
                                    collection **obj);
+
+         INT32 getCollectionById(requestContext *context,
+                                 const collectionId &id,
+                                 OSS_LATCH_MODE mode,
+                                 collection **obj);
 
       private:
          void fini();

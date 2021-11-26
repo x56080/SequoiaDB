@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createIndexHandler.h
+   Source File Name = dmlHandler.h
 
    Descriptive Name =
 
@@ -33,34 +33,47 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CREATE_INDEX_HANDLER_H_
-#define VESSEL_CREATE_INDEX_HANDLER_H_
+#ifndef VESSEL_DML_HANDLER_H_
+#define VESSEL_DML_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/indexOptions.h"
-#include "vessel/strSlice.h"
-#include "vessel/indexKeyPattern.h"
-#include "vessel/indexParameters.h"
+#include "vessel/slice.h"
+#include "utilInsertResult.hpp"
+#include "dpsTransID.hpp"
 #include "vessel/objectIdentifier.h"
+#include "vessel/api/IRecordUpdater.h"
+
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexHandler : public requestHandler
+   class insertOptions;
+   class dmlHandler : public requestHandler
    {
       public:
-         createIndexHandler(){}
-         virtual ~createIndexHandler(){}
+         dmlHandler(){}
+         virtual ~dmlHandler(){}
 
       public:
-         INT32 doit(const globalCollectionId &gcid,
-                    const strSlice &indexName,
-                    const bson::BSONObj &keyPattern,
-                    const indexParameters &params,
-                    const createIndexOptions &options);
-   };//class createIndexHandler
+         INT32 insert(const globalCollectionId &gcid,
+                    const slice &record,
+                    STRIPING_ID striping,
+                    const insertOptions &options,
+                    utilInsertResult *res);
+
+         INT32 insertBatch(const globalCollectionId &gcid,
+                    const ossPoolVector<slice> &batch,
+                    const insertOptions &options,
+                    utilInsertResult *res);
+
+         INT32 update(const globalCollectionId &gcid,
+                      const recordID &rid,
+                      IRecordUpdater *updater,
+                      utilUpdateResult *res);
+
+   };//class dmlHandler
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_CREATE_INDEX_HANDLER_H_
+#endif//VESSEL_DML_HANDLER_H_-

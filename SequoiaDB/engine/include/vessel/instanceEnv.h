@@ -67,7 +67,7 @@ namespace vessel
          spaceIDLocker spaceLocker;
          dataManagementService dms;
          liteCacheConsole cacheConsole;
-         LOGICAL_ID_LATCH_MAP lpidLatchMap;
+         LOGICAL_PID_LATCH_MAP lpidLatchMap;
          RECORD_ID_LATCH_MAP ridLatchMap;
          UNIQUE_INDEX_LATCH_MAP uniqueIndexLathMap;
          lsmDB *lsm = NULL;

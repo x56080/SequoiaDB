@@ -39,6 +39,10 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sdbInterface.hpp"
+#include "vessel/shallowObject.hpp"
+#include "vessel/requestContext.h"
+#include "vessel/vesselObject.h"
+
 
 namespace engine
 {
@@ -79,6 +83,13 @@ namespace vessel
          {
             return _outerResource;
          }
+
+      protected:
+         
+         INT32 getCollectionObject(requestContext *context,
+                                   const globalCollectionId &gcid,
+                                   OSS_LATCH_MODE mode,
+                                   collectionObject &obj);
       private:
          IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;

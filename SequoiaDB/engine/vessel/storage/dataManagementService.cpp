@@ -128,7 +128,7 @@ namespace vessel
       _unformalNameIndex.clear();
       _nameIndex.clear();
       _uidIndex.clear();
-      _nextLogicalID = VESSEL_MIN_CS_LID;
+      _nextLogicalID = 0;
       _suAllocator.fini();
 
       for (_SPACE_ID_INDEX::const_iterator itr = _mainIndex.begin();
@@ -237,7 +237,7 @@ namespace vessel
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueID,
                                          const createCSOptions &options,
-                                         collectionSpaceIdentifier &identifier)
+                                         collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
       SPACE_ID sid = INVALID_SPACE_ID;
@@ -245,7 +245,7 @@ namespace vessel
       spaceIDLockHelper lh(context);
       collectionSpace *obj = NULL;
 
-      identifier = collectionSpaceIdentifier();
+      identifier = collectionSpaceId();
 
       if (OSS_UNLIKELY(NULL == context ||
                        context->isSpaceIdLocked() ||
@@ -294,9 +294,9 @@ namespace vessel
       /// 1. Drop name and uid from tmp idex.
       /// 2. Add obj to formal index.
       endToCreateCS(obj);
-      identifier = collectionSpaceIdentifier(obj->getLogicalID(),
-                                             obj->getUniqueID(),
-                                             obj->getSpaceId());
+      identifier = collectionSpaceId(obj->getLogicalID(),
+                                     obj->getUniqueID(),
+                                     obj->getSpaceId());
       lh.unlock();
 
       
@@ -563,14 +563,14 @@ namespace vessel
 
    INT32 dataManagementService::testCS(requestContext *context,
                                        const strSlice &nameSlice,
-                                       collectionSpaceIdentifier &identifier)
+                                       collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
       UINT32 lid = DMS_INVALID_LOGICCSID;
       SPACE_ID sid = INVALID_SPACE_ID;
       collectionSpace *obj = NULL;
 
-      identifier = collectionSpaceIdentifier();
+      identifier = collectionSpaceId();
 
       if (OSS_UNLIKELY(NULL == context ||
                        nameSlice.empty()))
@@ -592,7 +592,7 @@ namespace vessel
          goto error;
       }
 
-      identifier = collectionSpaceIdentifier(lid, obj->getUniqueID(), sid);
+      identifier = collectionSpaceId(lid, obj->getUniqueID(), sid);
       }
 
    done:
@@ -685,8 +685,71 @@ namespace vessel
          goto error;
       }
 
-      context->initSpaceContextUnderLock(tmp->getLogicalID(),
-                                         strSlice(tmp->getCSName()));
+      context->cacheSpaceInfo(tmp->getLogicalID(),
+                              tmp->getUniqueID(),
+                              tmp->getCSName());
+      *out = tmp;
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockSpaceID();
+      }
+      goto done;
+   }
+
+   INT32 dataManagementService::getCSByCollectionSpaceId(requestContext *context,
+                                                         const collectionSpaceId &id,
+                                                         OSS_LATCH_MODE mode,
+                                                         collectionSpace **out)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *tmp = NULL;
+      BOOLEAN locked = FALSE;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            context->isSpaceIdLocked() ||
+                            !id.isValid() ||
+                            NULL == out))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context->lockSpaceID(id.getSpaceId(), mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock space[%d], rc:%d", id.getSpaceId(), rc);
+         goto error;
+      }
+      locked = TRUE;
+
+      {
+      ossScopedRWLock guard(&_latch, SHARED);
+      tmp = getCS(id.getSpaceId());
+      if (NULL == tmp)
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+      }
+
+      if (id.getLid() != tmp->getLogicalID() ||
+          id.getUniqueId() != tmp->getUniqueID())
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+
+      context->cacheSpaceInfo(tmp->getLogicalID(),
+                              tmp->getUniqueID(),
+                              tmp->getCSName());
       *out = tmp;
    done:
       return rc;
@@ -741,8 +804,9 @@ namespace vessel
          goto error;
       }
 
-      context->initSpaceContextUnderLock(tmp->getLogicalID(),
-                                         strSlice(tmp->getCSName()));
+      context->cacheSpaceInfo(tmp->getLogicalID(),
+                              tmp->getUniqueID(),
+                              tmp->getCSName());
       *obj = tmp;
    done:
       return rc;
@@ -826,8 +890,9 @@ namespace vessel
 
          if (sidLocked)
          {
-            context->initSpaceContextUnderLock(obj->getLogicalID(),
-                                               strSlice(obj->getCSName()));
+            context->cacheSpaceInfo(obj->getLogicalID(),
+                                    obj->getUniqueID(),
+                                    obj->getCSName());
             *out = obj;
             break;
          }
@@ -1073,7 +1138,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 maxLogicalId = VESSEL_MIN_CS_LID;
+      UINT32 maxLogicalId = DMS_INVALID_LOGICCSID;
       collectionSpace *obj = NULL;
 
       for (ossPoolList<SPACE_ID>::const_iterator itr = sidList.begin();
@@ -1114,7 +1179,8 @@ namespace vessel
             goto error;
          }
 
-         if (maxLogicalId < obj->getLogicalID())
+         if (DMS_INVALID_LOGICCSID == maxLogicalId ||
+             maxLogicalId < obj->getLogicalID())
          {
             maxLogicalId = obj->getLogicalID();
          }
@@ -1129,8 +1195,8 @@ namespace vessel
          obj = NULL;
       }
 
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != maxLogicalId, "impossible");
-      _nextLogicalID = maxLogicalId + 1;
+      _nextLogicalID = DMS_INVALID_LOGICCSID == maxLogicalId ?
+                       0 : maxLogicalId + 1;
    done:
       return rc;
    error:

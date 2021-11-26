@@ -58,7 +58,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
       SDB_ASSERT(ic->getIndexType() == INDEX_TYPE_BTREE, "msut be btree");
-      SDB_ASSERT(NULL != context && context->getCollectionHandle().isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != context && context->getGlobalCollectionId().isValid(), "can not be invalid");
       SDB_ASSERT(NULL != is && is->isOpen(), "can not be invalid");
 
       fini();

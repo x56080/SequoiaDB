@@ -58,7 +58,7 @@ namespace vessel
    INT32 createCSHandler::doit(const CHAR *name,
                                utilCSUniqueID uniqueId,
                                const createCSOptions &options,
-                               collectionSpaceIdentifier &identifier)
+                               collectionSpaceId &identifier)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
@@ -97,7 +97,7 @@ namespace vessel
       context.close();
       return rc;
    error:
-      identifier = collectionSpaceIdentifier();
+      identifier = collectionSpaceId();
       goto done;
    }
 

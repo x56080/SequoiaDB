@@ -38,13 +38,12 @@
 #include "vessel/collection.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/spaceIDLockHelper.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 countCLHandler::doit(const collectionHandle &handle,
+   INT32 countCLHandler::doit(const globalCollectionId &gcid,
                               UINT64 &count)
    {
       INT32 rc = SDB_OK;
@@ -52,7 +51,7 @@ namespace vessel
       collection *cl = NULL;
       requestContext context;
 
-      if (OSS_UNLIKELY(!handle.isValid()))
+      if (OSS_UNLIKELY(!gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -68,16 +67,16 @@ namespace vessel
                         getOuterResource());
 
       rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        handle.getSpaceID(),
-                                        handle.getCSLId(),
+                                        gcid.getSpaceId(),
+                                        gcid.getCSLid(),
                                         SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
-                                   handle.getCLLId(),
+      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
+                                   gcid.getCLLid(),
                                    SHARED, &cl);
       if (SDB_OK != rc)
       {

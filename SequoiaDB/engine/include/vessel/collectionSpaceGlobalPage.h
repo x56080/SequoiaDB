@@ -70,7 +70,7 @@ namespace vessel
       UINT16 status = 0;
       UINT16 type = 0;
       UINT32 flags = 0;
-      UINT32 uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
+      UINT32 uniqueID = UTIL_UNIQUEID_NULL;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
 
@@ -103,7 +103,7 @@ namespace vessel
          status = 0;
          type = 0;
          flags = 0;
-         uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
+         uniqueID = UTIL_UNIQUEID_NULL;
          logicalID = DMS_INVALID_LOGICCSID;
          ossMemset(name, 0, sizeof(name));
       }

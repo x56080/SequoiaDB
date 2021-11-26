@@ -74,32 +74,18 @@ namespace vessel
             return _uniqueKeyHash.empty() ? NULL : _uniqueKeyHash.data();
          }
 
-         INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &requests);
+         /// adding can be executed multiple times before locking.
+         void addKeysToBeConstraintCheck(const dmlIndexRequestArray &arr);
+
+         INT32 lockUniqueIndexKeys();
 
          void unlockUniqueKeys();
 
-         OSS_INLINE void setMinFreeSize(UINT32 size)
-         {
-            _minFreeSize = size;
-         }
-         OSS_INLINE UINT32 getMinFreeSize()const
-         {
-            return _minFreeSize;
-         }
-         OSS_INLINE void setCompressionType(UTIL_COMPRESSOR_TYPE type)
-         {
-            _compressionType = type;
-         }
-         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
-         {
-            return _compressionType;
-         }
-
-         OSS_INLINE const recordID &getLastDmlRid()const
+         OSS_INLINE const recordID &getRid()const
          {
             return _rid;
          }
-         OSS_INLINE void setLastDmlRid(const recordID &rid)
+         OSS_INLINE void setRid(const recordID &rid)
          {
             _rid = rid;
          }
@@ -107,38 +93,28 @@ namespace vessel
          {
             return _rid.valid() && INVALID_CL_PAGE_SEQ != _seq;
          }
-         OSS_INLINE void setLastDmlLSN(DPS_LSN_OFFSET lsn)
-         {
-            _lsn = lsn;
-         }
-         OSS_INLINE DPS_LSN_OFFSET getLastDmlLSN()const
-         {
-            return _lsn;
-         }
-         OSS_INLINE void setLastDmlPageSeq(UINT32 s)
+         OSS_INLINE void setPageSeq(UINT32 s)
          {
             _seq = s;
          }
-         OSS_INLINE scanEntry getLastDmlScanEntry()const
+         OSS_INLINE scanEntry getScanEntry()const
          {
             return scanEntry(_seq, _rid.getSlotID());
          }
-         OSS_INLINE void setLockRid(BOOLEAN lock)
-         {
-            _lockRid = lock;
-         }
-         OSS_INLINE BOOLEAN needToLockRid()const
-         {
-            return _lockRid;
-         }
 
-         void unlockRidsAndUniqueKeys();
+   
+         void clearDmlHistroy();
+         
+         void setDmlLSN(const DPS_LSN_OFFSET &lsn)
+         {
+            _dmlLSN = lsn;
+         }
+         const DPS_LSN_OFFSET &getDmlLSN()const
+         {
+            return _dmlLSN;
+         }
 
       private:
-         void fini();
-
-         void buildUniqueKeyHash(const dmlIndexRequestArray &requests,
-                                 ossPoolVector<UINT32> &hashArray)const;
 
          INT32 _lockUniqueIndexKeys();
 
@@ -146,18 +122,12 @@ namespace vessel
 
       private:
          typedef ossPoolVector<UNIQUE_INDEX_LATCH_MAP::object> _UNIQUE_KEY_CONTEXT;
-
       private:
-         UINT32 _minFreeSize = 0;
-         UTIL_COMPRESSOR_TYPE _compressionType = UTIL_COMPRESSOR_INVALID;
-         BOOLEAN _lockRid = FALSE;
-
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
-
-         DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
-         recordID _rid;
          UINT32 _seq = INVALID_CL_PAGE_SEQ;
+         DPS_LSN_OFFSET _dmlLSN = DPS_INVALID_LSN_OFFSET;
+         recordID _rid;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

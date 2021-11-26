@@ -62,6 +62,9 @@ namespace vessel
       UINT32 newFreeSize = 0;
       slice bufferSlice;
       DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      recordID rid;
+      BOOLEAN ridLocked = FALSE;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       if (OSS_UNLIKELY(NULL == context ||
                        NULL == lpb ||
@@ -155,30 +158,26 @@ namespace vessel
       rs.setOffset(offset);
 
       rh.setSize(RDP_RECORD_HEAD_LEN + record.getSize());
-      rh.setCompressionType(context->getCompressionType());
+      rh.setCompressionType(UTIL_COMPRESSOR_INVALID);
       rh.setTransInfo(transID.getNodeID(), transID.getSN());
 
-      if (context->needToLockRid())
+      rid.setPageID(lpb->getLogicalPid());
+      rid.setSlotID(slotId);
+      rc = context->tryLockRid(rid, mode, ridLocked);
+      if (SDB_OK != rc)
       {
-         recordID lockRid(lpb->getLogicalPid(), slotId);
-         BOOLEAN locked = FALSE;
-         ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
-         
-         rc = context->tryLockRid(lockRid, mode, locked);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
-                   lockRid.getPageID(), lockRid.getSlotID(), rc);
-            goto error;
-         }
-         else if (!locked)
-         {
-            PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
-                   lockRid.getPageID(), lockRid.getSlotID());
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
+         PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
+                  rid.getPageID(), rid.getSlotID(), rc);
+         goto error;
       }
+      else if (!ridLocked)
+      {
+         PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
+                  rid.getPageID(), rid.getSlotID());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
 
       rc = insertWithNormalHead(context, slotId,
                                 rs, rh, lpb);
@@ -211,6 +210,10 @@ namespace vessel
    done:
       return rc;
    error:
+      if (ridLocked)
+      {
+         context->unlockRid(rid);
+      }
       goto done;
    }
 
@@ -303,9 +306,9 @@ namespace vessel
          goto error;
       }
 
-      context->setLastDmlLSN(lrc.getLsn());
-      context->setLastDmlRid(rid);
-      context->setLastDmlPageSeq(head->pageSeq);
+      context->setDmlLSN(lrc.getLsn());
+      context->setRid(rid);
+      context->setPageSeq(head->pageSeq);
       lpb->commit(lrc.getLsn());
 
    done:

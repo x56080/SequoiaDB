@@ -103,8 +103,7 @@ namespace engine
     _statSUMgr( this ),
     _rbsSUMgr(),
     _localSUMgr( this ),
-    _ixmKeySorterCreator( NULL ),
-    _vse(NULL)
+    _ixmKeySorterCreator( NULL )
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -190,13 +189,6 @@ namespace engine
                  rc ) ;
          goto error ;
       }
-
-      rc = _initVesselEngine();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init data engine:%d", rc);
-         goto error;
-      }
    done:
       return rc ;
    error:
@@ -221,7 +213,6 @@ namespace engine
          }
       }
 
-      _finiVesselEngine();
       return rc ;
    }
 
@@ -346,45 +337,6 @@ namespace engine
       return rc ;
    error :
       goto done ;
-   }
-
-   INT32 _SDB_DMSCB::_CSCBNameInsert(const CHAR *pName,
-                                     UINT32 topSequence,
-                                     const vessel::collectionSpaceIdentifier &identifier,
-                                     dmsStorageUnitID &suID)
-   {
-      INT32 rc = SDB_OK ;
-      SDB_DMS_CSCB *cscb = NULL ;
-      utilCSUniqueID csUniqueID = identifier.getUniqueId();
-
-      if ( 0 == _freeList.size() )
-      {
-         rc = SDB_DMS_SU_OUTRANGE ;
-         goto error ;
-      }
-
-      cscb = SDB_OSS_NEW SDB_DMS_CSCB(pName, topSequence, identifier) ;
-      if ( !cscb )
-      {
-         PD_LOG ( PDERROR, "Failed to allocate memory to insert cscb" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      // We get from front and return to back so that suID is not reused
-      // immediately.
-      suID = _freeList.front() ;
-      _freeList.pop() ;
-      _cscbNameMap[cscb->_name] = suID ;
-      _cscbVec[suID] = cscb ;
-      if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-      {
-         _cscbIDMap[csUniqueID] = suID ;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
    INT32 _SDB_DMSCB::_CSCBNameLookup ( const CHAR *pName,
@@ -2000,71 +1952,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _SDB_DMSCB::addCollectionSpace(const CHAR *pName, UINT32 topSequence,
-                                        const vessel::collectionSpaceIdentifier &identifier,
-                                        pmdEDUCB *cb)
-   {
-      INT32 rc = SDB_OK;
-      dmsStorageUnitID suID ;
-      SDB_DMS_CSCB *cscb = NULL ;
-      BOOLEAN isLocked = FALSE ;
-
-      if (NULL == pName || !identifier.isValid())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _mutex.get() ;
-      isLocked = TRUE ;
-
-      rc = _CSCBNameLookup( pName, &cscb ) ;
-      if ( SDB_OK == rc )
-      {
-         rc = SDB_DMS_CS_EXIST ;
-         goto error ;
-      }
-      else if ( rc != SDB_DMS_CS_NOTEXIST )
-      {
-         goto error ;
-      }
-
-      rc = _CSCBIdLookup( identifier.getUniqueId(), &cscb ) ;
-      if ( SDB_OK == rc )
-      {
-         rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
-         PD_LOG ( PDERROR,
-                  "CS unique id[%u] already exists[name: %s], rc: %d",
-                  identifier.getUniqueId(), cscb->_name, rc ) ;
-         goto error ;
-      }
-      else if ( rc != SDB_DMS_CS_NOTEXIST )
-      {
-         goto error ;
-      }
-
-      rc = _CSCBNameInsert(pName, topSequence, identifier, suID);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to add cs name:%d", rc);
-         goto error;
-      }
-   done:
-      if ( SDB_OK == rc &&
-           !dmsIsSysCSName( pName ) &&
-           identifier.getUniqueId() == UTIL_UNIQUEID_NULL )
-      {
-         _nullCSUniqueIDCntInc() ;
-      }
-      if ( isLocked )
-      {
-         _mutex.release() ;
-      }
-      return rc;
-   error:
-      goto done;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DELCS, "_SDB_DMSCB::_delCollectionSpace" )
    INT32 _SDB_DMSCB::_delCollectionSpace( const CHAR * pName, _pmdEDUCB * cb,
                                           SDB_DPSCB * dpsCB, BOOLEAN removeFile,
@@ -3426,50 +3313,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _SDB_DMSCB::_initVesselEngine()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _vse, "do not reinit");
-      vessel::vesselFactroy factory;
-      vessel::openDBOptions o;
-      vessel::outerResource outer;
-      outer.logger = vessel::dummyJournal::instance();
-      outer.executorPool = pmdGetKRCB()->getEDUMgr();
-
-      _vse = factory.createInstance();
-      if (NULL == _vse)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem.");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      pmdGetOptionCB()->makeOpenDBOptions(o);
-      rc = _vse->open(pmdGetThreadEDUCB(), &outer, o);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open db engine:%d", rc);
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      _finiVesselEngine();
-      goto done;
-   }
-
-   void _SDB_DMSCB::_finiVesselEngine()
-   {
-      if (NULL != _vse)
-      {
-         vessel::vesselFactroy factory;
-         vessel::closeDBOptions o;
-         _vse->close(pmdGetThreadEDUCB(), o);
-         factory.releaseInstance(_vse);
-         _vse = NULL;
-      }
-      return;
-   }
    /*
       _dmsCSMutexScope implement
    */

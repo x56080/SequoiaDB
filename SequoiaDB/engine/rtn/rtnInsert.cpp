@@ -171,69 +171,6 @@ namespace engine
       return rc ;
    }
 
-   static INT32 rtnInsertIntoVessel(const CHAR *pCollectionName,
-                                    const BSONObj &objs, INT32 objNum,
-                                    pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                    utilInsertResult *pResult)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(0 < objNum, "impossible");
-      CHAR collectionSpaceName[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {};
-      const CHAR *dot = NULL;
-      vessel::insertOptions o;
-      vessel::openCLOptions clo;
-      vessel::collectionHandler handler;
-      vessel::IVessel *vse = dmsCB->getVesselEngine();
-
-      dot = ossStrchr(pCollectionName, '.');
-      SDB_ASSERT((dot - pCollectionName) <= DMS_COLLECTION_SPACE_NAME_SZ, "out of bound");
-      ossMemcpy(collectionSpaceName, pCollectionName, dot - pCollectionName);
-
-      rc = vse->openCollection(cb, collectionSpaceName,
-                               dot + 1, clo, handler);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open collection handler[%s]:%d",
-                pCollectionName, rc);
-         goto error;
-      }
-      
-      if (1 < objNum)
-      {
-         vessel::requestBatch batch;
-         rc = batch.addObjs((UINT32)objNum, objs);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to add data into batch:%d", rc);
-            goto error;
-         }
-
-         rc = handler.insertBatch(cb, batch, o, pResult);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert batch:%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         vessel::slice record(objs.objsize(), objs.objdata());
-         rc = handler.insert(cb, record, vessel::INVALID_STRIPING_ID,
-                             o, pResult);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert record:%d", rc);
-            goto error;
-         }
-      }
-
-   done:
-      handler.close();
-      return rc;
-   error:
-      goto done;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT2, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
@@ -273,17 +210,6 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to resolve collection name %s",
                   pCollectionName ) ;
          goto error ;
-      }
-      else if (NULL == su)
-      {
-         rc = rtnInsertIntoVessel(pCollectionName, objs, objNum, cb, dmsCB, pResult);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to insert objs:%d", rc);
-            goto error;
-         }
-
-         goto done;
       }
 
       if ( objs.isEmpty () )

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = requestBatch.h
+   Source File Name = ITransLockConsole.h
 
    Descriptive Name =
 
@@ -33,57 +33,23 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_REQUEST_BATCH_H_
-#define VESSEL_REQUEST_BATCH_H_
+#ifndef SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
+#define SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
 
-#include "vessel/slice.h"
-#include "utilArray.hpp"
-#include "utilResult.hpp"
-#include "../bson/bson.hpp"
-#include "vessel/vesselIdDef.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestBatch : public SDBObject
+   class ITransLockConsole : public SDBObject
    {
-      public:
-         requestBatch(){}
-         ~requestBatch(){}
-         requestBatch(const requestBatch &) = delete;
-         requestBatch &operator=(const requestBatch &) = delete;
 
-      private:
-         typedef std::pair<STRIPING_ID, slice> _DATA;
-         typedef _utilArray<std::pair<STRIPING_ID, slice>, 8> _BATCH; 
-
-      public:
-         OSS_INLINE void reset()
-         {
-            _batch.clear();
-         }
-         
-         OSS_INLINE UINT32 getSize()const
-         {
-            return _batch.size();
-         }
-         OSS_INLINE BOOLEAN isEmpty()const
-         {
-            return 0 == _batch.size();
-         }
-
-         slice get(UINT32 pos, STRIPING_ID &striping)const;
-
-         INT32 add(STRIPING_ID striping, const slice &data);
-
-         INT32 addObjs(UINT32 count, const BSONObj &objs);
-      private:
-         _BATCH _batch;
-   };//class requestBatch
+   };//class class ITransLockConsole
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_INSERT_BATCH_H_
+#endif//SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_

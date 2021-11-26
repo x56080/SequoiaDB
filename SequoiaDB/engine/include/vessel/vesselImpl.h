@@ -76,7 +76,7 @@ namespace vessel
                                              const CHAR *name,
                                              utilCSUniqueID uniqueId,
                                              const createCSOptions &options,
-                                             collectionSpaceIdentifier &identifier);
+                                             collectionSpaceId &identifier);
 
          /// lazy to modify all unit tests after add identifier in createCollectionSpace
          INT32 createCollectionSpace(IExecutor *executor,
@@ -86,7 +86,7 @@ namespace vessel
 
          virtual INT32 testCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
-                                           collectionSpaceIdentifier &identifier);
+                                           collectionSpaceId &identifier);
 
          virtual INT32 dropCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
@@ -116,33 +116,39 @@ namespace vessel
 
       public:
          INT32 createIndex(IExecutor *executor,
-                           const collectionHandle &handle,
+                           const globalCollectionId &gcid,
                            const strSlice &indexName,
                            const bson::BSONObj &keyPattern,
                            const indexParameters &params,
                            const createIndexOptions &options);
 
          INT32 listIndexes(IExecutor *executor,
-                           const collectionHandle &handle,
+                           const globalCollectionId &gcid,
                            ossPoolVector<bson::BSONObj> &indexes);
       
       public:
 
          INT32 insert(IExecutor *executor,
-                      const collectionHandle &handle,
+                      const globalCollectionId &gcid,
                       const slice &record,
                       STRIPING_ID striping,
                       const insertOptions &options,
                       utilInsertResult *res);
 
          INT32 insertBatch(IExecutor *executor,
-                           const collectionHandle &handle,
-                           const requestBatch &batch,
+                           const globalCollectionId &gcid,
+                           const ossPoolVector<slice> &batch,
                            const insertOptions &options,
                            utilInsertResult *res);
 
+         INT32 update(IExecutor *executor,
+                      const globalCollectionId &gcid,
+                      const recordID &rid,
+                      IRecordUpdater *updater,
+                      utilUpdateResult *res);
+
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,
-                                             const collectionHandle &handle,
+                                             const globalCollectionId &gcid,
                                              UINT64 &count);
 
       public:

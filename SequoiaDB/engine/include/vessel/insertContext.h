@@ -71,7 +71,7 @@ namespace vessel
          }
          OSS_INLINE void setOriginalRecord(const slice &r)
          {
-            _originalRecord = r;
+            _originalRecord = r.getReadableSlice();
          }
          OSS_INLINE const slice &getOriginalRecord()const
          {
@@ -86,6 +86,15 @@ namespace vessel
          {
             return _striping;
          }
+
+         OSS_INLINE UINT32 getMinFreeSize()const
+         {
+            return _minFreeSize;
+         }
+         OSS_INLINE void setMinFreeSize(UINT32 size)
+         {
+            _minFreeSize = size;
+         }
       
       private:
          void fini();
@@ -95,6 +104,7 @@ namespace vessel
          STRIPING_ID _striping = INVALID_STRIPING_ID;
          slice _originalRecord;
          fsmCandidate _candidate;
+         UINT32 _minFreeSize = 0;
    };//class insertContext
 }//namespace vessel
 }//namespace engine

@@ -39,11 +39,11 @@
 #include "vessel/cursorKernal.h"
 #include "vessel/collectionOptions.h"
 #include "rtnPredicate.hpp"
-#include "vessel/collectionHandle.h"
 #include "vessel/indexHandle.h"
 #include "vessel/strSlice.h"
 #include "vessel/unorderedRidSet.h"
 #include "vessel/slice.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -55,11 +55,11 @@ namespace vessel
          indexScanCursor() = delete;
          indexScanCursor(const indexScanOptions &o,
                          const rtnPredicateList &predicateList,
-                         const collectionHandle &clHandle,
+                         const globalCollectionId &gcid,
                          const strSlice &indexName):
          _o(o),
          _predicate(predicateList),
-         _clHandle(clHandle),
+         _gcid(gcid),
          _indexName(indexName)
          {}
 
@@ -93,9 +93,9 @@ namespace vessel
          {
             _handle = h;
          }
-         OSS_INLINE const collectionHandle &getCLHandle()const
+         OSS_INLINE const globalCollectionId &getCollectionId()const
          {
-            return _clHandle;
+            return _gcid;
          }
          OSS_INLINE UNORDERED_RID_SET *getScannedSet()
          {
@@ -128,7 +128,7 @@ namespace vessel
       private:
          indexScanOptions _o;
          rtnPredicateListIterator _predicate;
-         collectionHandle _clHandle;
+         globalCollectionId _gcid;
          strSlice _indexName;
          indexHandle _handle;
          UNORDERED_RID_SET _scanned;

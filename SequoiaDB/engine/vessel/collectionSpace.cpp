@@ -163,8 +163,10 @@ namespace vessel
          PD_LOG(PDERROR, "failed to read meta data when open:%d", rc);
          goto error;
       }
-      context->initSpaceContextUnderLock(_recordInMem.logicalID,
-                                         strSlice(_recordInMem.name));
+
+      context->cacheSpaceInfo(_recordInMem.logicalID,
+                              _recordInMem.uniqueID,
+                              _recordInMem.name);
 
       rc = initInMemStructures();
       if (SDB_OK != rc)
@@ -502,8 +504,10 @@ namespace vessel
 
          SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
          *obj = holder->getObj();
-         context->initCollectionContextUnderLock(holder->getObj()->getLogicalID(),
-                                                 strSlice(holder->getObj()->getName()));
+
+         context->cacheMbInfo(holder->getObj()->getLogicalID(),
+                              holder->getObj()->getInnerID(),
+                              holder->getObj()->getName());
          break;
       } while (TRUE);
    done:
@@ -562,8 +566,69 @@ namespace vessel
       }
 
       SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
-      context->initCollectionContextUnderLock(holder->getObj()->getLogicalID(),
-                                              strSlice(holder->getObj()->getName()));
+      context->cacheMbInfo(holder->getObj()->getLogicalID(),
+                              holder->getObj()->getInnerID(),
+                              holder->getObj()->getName());
+
+      *obj = holder->getObj();
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockMB();
+      }
+      goto done;
+   }
+
+   INT32 collectionSpace::getCollectionById(requestContext *context,
+                                             const collectionId &id,
+                                             OSS_LATCH_MODE mode,
+                                             collection **obj)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN locked = FALSE;
+      collectionObjHolder *holder = NULL;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == context ||
+                            !id.isValid() ||
+                            context->isMbLocked() ||
+                            NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCollectionHolder(id.getMbId(), &holder);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      context->lockMB(id.getMbId(), &(holder->getLatch()), mode);
+      locked = TRUE;
+
+      if (holder->isFree())
+      {
+         rc = SDB_DMS_NOTEXIST;
+         goto error;
+      }
+
+      if (id.getLid() != holder->getObj()->getLogicalID() ||
+          id.getInnerId() != holder->getObj()->getInnerID())
+      {
+         rc = SDB_DMS_NOTEXIST;
+         goto error;
+      }
+
+      SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
+      context->cacheMbInfo(id.getLid(), id.getInnerId(),
+                           holder->getObj()->getName());
 
       *obj = holder->getObj();
    done:
@@ -739,9 +804,7 @@ namespace vessel
       }
 
       context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
-      context->initCollectionContextUnderLock(record->logicalCLID,
-                                              strSlice(record->name));
-
+      context->cacheMbInfo(record->logicalCLID, record->innerID, record->name);
       rc = cl->initWhenOpen(context, *record, this);
       if (SDB_OK != rc)
       {

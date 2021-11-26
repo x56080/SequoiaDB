@@ -44,7 +44,7 @@
 #include "vessel/storageUnit.h"
 #include "vessel/lazyArray.hpp"
 #include "ossRWMutex.hpp"
-#include "vessel/collectionSpaceIdentifier.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -79,7 +79,7 @@ namespace vessel
                         const strSlice &csName,
                         utilCSUniqueID uniqueId,
                         const createCSOptions &options,
-                        collectionSpaceIdentifier &identifier);
+                        collectionSpaceId &identifier);
 
          INT32 listCollectionSpaces(requestContext *context,
                                     listCSCursor *cursor);
@@ -89,7 +89,7 @@ namespace vessel
       public:
          INT32 testCS(requestContext *context,
                       const strSlice &nameSlice,
-                      collectionSpaceIdentifier &identifier);
+                      collectionSpaceId &identifier);
 
          INT32 testCS(requestContext *context,
                       utilCSUniqueID uniqueID,
@@ -120,6 +120,11 @@ namespace vessel
          INT32 getCSByLockedSpaceID(requestContext *context,
                                     UINT32 logicalID,
                                     collectionSpace **out);
+
+         INT32 getCSByCollectionSpaceId(requestContext *context,
+                                        const collectionSpaceId &id,
+                                        OSS_LATCH_MODE mode,
+                                        collectionSpace **out);
 
       public:/// snapshot
          PAGE_SNAPSHOT_VERION getOnlinePageSnapshotVersion();
@@ -237,7 +242,7 @@ namespace vessel
       private:
          BOOLEAN _isOpen = FALSE;
          ossRWMutex _latch;
-         UINT32 _nextLogicalID = VESSEL_MIN_CS_LID;
+         UINT32 _nextLogicalID = 0;
 
          /// formal indexes
          _SPACE_ID_INDEX _mainIndex;

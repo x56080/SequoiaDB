@@ -56,7 +56,7 @@ namespace vessel
          {
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
             ossSharedLatchMode mode;
-            while (context.pop(obj, mode))
+            while (context.popBack(obj, mode))
             {
                obj.getValue().unlockWith(mode);
                latchMap.release(obj);
@@ -83,8 +83,7 @@ namespace vessel
          {
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
             ossSharedLatchMode mode;
-            INT32 rc = context.pop(key, obj, mode);
-            if (SDB_OK != rc)
+            if (!context.findAndPop(key, obj, mode))
             {
                PD_LOG(PDERROR, "object latch key not found");
                SDB_ASSERT(FALSE, "object latch key not found");
@@ -121,13 +120,7 @@ namespace vessel
                goto error;
             }
 
-            rc = context.push(obj, mode);
-            if (SDB_OK != rc)
-            {
-               latchMap.release(obj);
-               PD_LOG(PDERROR, "failed to push obj into context:%d", rc);
-               goto error;
-            }
+            context.pushBack(obj, mode);
 
             obj.getValue().lockWith(mode);
          done:
@@ -165,15 +158,7 @@ namespace vessel
             locked = obj.getValue().tryLockWith(mode);
             if (locked)
             {
-               rc = context.push(obj, mode);
-               if (SDB_OK != rc)
-               {
-                  obj.getValue().unlockWith(mode);
-                  latchMap.release(obj);
-                  locked = FALSE;
-                  PD_LOG(PDERROR, "failed to push obj into context:%d", rc);
-                  goto error;
-               }
+               context.pushBack(obj, mode);
             }
             else
             {

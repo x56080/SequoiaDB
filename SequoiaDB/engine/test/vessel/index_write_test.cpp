@@ -132,7 +132,7 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    options.path.lsmPath = LSM_PATH;
    options.cacheOptions.flush.flushDirtyListThreshold = 0.8;
    collectionHandler handler;
-   UINT32 count = 100000000;
+   UINT32 count = 10000000;
    static const UINT32 threadCount = 4;
    std::thread threads[threadCount];
    UINT32 countPerThread = count / threadCount;
@@ -169,13 +169,6 @@ static void insert_test_nonunique_index(INDEX_TYPE type)
    {
       threads[i] = std::move(std::thread(thread_insert_index, &db,
                                          "foo", "bar1", countPerThread));
-   }
-
-   while (TRUE)
-   {
-      UINT64 v = WRITING_COUNTER.exchange(0, std::memory_order_relaxed);
-      std::cout << "record count: " << v << endl;
-      ossSleepmillis(1000); 
    }
 
    for (UINT32 i = 0; i < threadCount; ++i)

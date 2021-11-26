@@ -54,7 +54,6 @@
 #include "rtnRollbackManager.hpp"
 #include "utilBSON.hpp"
 
-#include "dmsVesselDef.hpp"
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -945,24 +944,15 @@ namespace engine
 
       
 
-      rc = rtnGetStringElement(matcher, FIELD_NAME_ENGINE_TYPE, &engineType);
-      if (SDB_OK == rc &&
-          0 == ossStrcmp(engineType, DMS_VESSEL_DB_NAME))
+      BOOLEAN capped = FALSE ;
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
+      if ( SDB_OK == rc && capped  )
       {
-         _storageType = DMS_STORAGE_VESSEL;
+         _storageType = DMS_STORAGE_CAPPED ;
       }
       else
       {
-         BOOLEAN capped = FALSE ;
-         rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
-         if ( SDB_OK == rc && capped  )
-         {
-            _storageType = DMS_STORAGE_CAPPED ;
-         }
-         else
-         {
-            _storageType = DMS_STORAGE_NORMAL ;
-         }
+         _storageType = DMS_STORAGE_NORMAL ;
       }
 
       return rtnGetStringElement ( matcher, FIELD_NAME_NAME, &_spaceName ) ;
@@ -976,17 +966,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
-      if (DMS_STORAGE_VESSEL == _storageType)
-      {
-         rc = rtnCreateCollectionSpaceInVseCommand(_spaceName, cb, dmsCB,
-                                                   dpsCB, _csUniqueID);
-      }
-      else
-      {
-         rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
+      rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
                                                 dpsCB, _csUniqueID, _pageSize,
                                                 _lobPageSize, _storageType ) ;
-      }
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {

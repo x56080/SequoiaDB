@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.cpp
+   Source File Name = dmlHandler.cpp
 
    Descriptive Name =
 
@@ -33,19 +33,20 @@
 
 ******************************************************************************/
 
-#include "vessel/insertHandler.h"
+#include "vessel/dmlHandler.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/insertOptions.h"
 #include "vessel/insertContext.h"
+#include "vessel/updateContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 insertHandler::doit(const collectionHandle &handle,
+   INT32 dmlHandler::insert(const globalCollectionId &gcid,
                               const slice &record,
                               STRIPING_ID striping,
                               const insertOptions &options,
@@ -65,7 +66,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!handle.isValid() ||
+      else if (OSS_UNLIKELY(!gcid.isValid() ||
                             !record.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -75,28 +76,29 @@ namespace vessel
       context.open(getExecutor(), getEnv(), getOuterResource());
 
       rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        handle.getSpaceID(),
-                                        handle.getCSLId(),
+                                        gcid.getSpaceId(),
+                                        gcid.getCSLid(),
                                         SHARED, &cs);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get collection space[%d,%d], rc:%d",
-                handle.getSpaceID(), handle.getCSLId(), rc);
+         PD_LOG(PDERROR, "failed to get collection space[%d, %d], rc:%d",
+                gcid.getSpaceId(), gcid.getCSLid(), rc);
          goto error;
       }
 
 
-      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
-                                   handle.getCLLId(), SHARED, &cl);
+      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
+                                   gcid.getCLLid(), SHARED, &cl);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get collection[%d,%d], rc:%d",
+                gcid.getMbId(), gcid.getCLLid(), rc);
          goto error;
       }
 
       context.setOptions(options);
       context.setStriping(striping);
       context.setOriginalRecord(record);
-      context.setMinFreeSize(cl->getRecord().freeSizeReserved);
 
       rc = cl->insert(&context, res);
       if (SDB_IXM_DUP_KEY == rc)
@@ -115,8 +117,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 insertHandler::doit(const collectionHandle &handle,
-                             const requestBatch &batch,
+   INT32 dmlHandler::insertBatch(const globalCollectionId &gcid,
+                             const ossPoolVector<slice> &batch,
                              const insertOptions &options,
                              utilInsertResult *res)
    {
@@ -124,6 +126,7 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       insertContext context;
+      
       if (NULL != res)
       {
          res->reset();
@@ -134,44 +137,50 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!handle.isValid() ||
-                            batch.isEmpty()))
+      else if (OSS_UNLIKELY(!gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      context.open(getExecutor(), getEnv(), getOuterResource());
+      for (UINT32 i = 0; i < batch.size(); ++i)
+      {
+         if (!batch[i].isValid())
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+      }
 
+      context.open(getExecutor(), getEnv(), getOuterResource());
       rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        handle.getSpaceID(),
-                                        handle.getCSLId(),
+                                        gcid.getSpaceId(),
+                                        gcid.getCSLid(),
                                         SHARED, &cs);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get collection space[%d,%d], rc:%d",
-                handle.getSpaceID(), handle.getCSLId(), rc);
+         PD_LOG(PDERROR, "failed to get collection space[%d, %d], rc:%d",
+                gcid.getSpaceId(), gcid.getCSLid(), rc);
          goto error;
       }
 
 
-      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
-                                   handle.getCLLId(), SHARED, &cl);
+      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
+                                   gcid.getCLLid(), SHARED, &cl);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get collection[%d,%d], rc:%d",
+                gcid.getMbId(), gcid.getCLLid(), rc);
          goto error;
       }
 
       context.setOptions(options);
-      context.setMinFreeSize(cl->getRecord().freeSizeReserved);
-      for (UINT32 i = 0; i < batch.getSize(); ++i)
+
+      for (UINT32 i = 0; i < batch.size(); ++i)
       {
-         
-         STRIPING_ID striping = INVALID_STRIPING_ID;
-         slice record = batch.get(i, striping);
-         SDB_ASSERT(!record.isEmpty(), "can not be empty");
-         context.setStriping(striping);
-         context.setOriginalRecord(record);
+         SDB_ASSERT(batch[i].isValid(), "can not be invalid");
+         context.setOriginalRecord(batch[i].getReadableSlice());
+         context.getCandidate().reset();
 
          rc = cl->insert(&context, res);
          if (SDB_OK != rc)
@@ -180,10 +189,53 @@ namespace vessel
             {
                PD_LOG(PDERROR, "failed to insert record to collection[%s], rc:%d",
                       cl->getName(), rc);
-               goto error;
             }
+            goto error;
          }
       }
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dmlHandler::update(const globalCollectionId &gcid,
+                            const recordID &rid,
+                            IRecordUpdater *updater,
+                            utilUpdateResult *res)
+   {
+      INT32 rc = SDB_OK;
+      updateContext context;
+      collectionObject obj;
+
+      if (NULL != res)
+      {
+         res->reset();
+      }
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!gcid.isValid() ||
+                            !rid.isValid() ||
+                            NULL == updater))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(getExecutor(), getEnv(), getOuterResource());
+      rc = getCollectionObject(&context, gcid, SHARED, obj);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      context.setRid(rid);
+      context.setUpdater(updater);
    done:
       context.close();
       return rc;

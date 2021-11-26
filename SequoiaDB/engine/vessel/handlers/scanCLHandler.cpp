@@ -50,7 +50,7 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
-      const collectionHandle *handle = NULL;
+      const globalCollectionId *gcid = NULL;
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -58,7 +58,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!cursor->getHandle().isValid()))
+      else if (OSS_UNLIKELY(!cursor->getCollectionId().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -70,25 +70,16 @@ namespace vessel
       }
 
       context.open(getExecutor(), getEnv(), getOuterResource());
-      handle = &(cursor->getHandle());
-
-      rc = context.lockSpaceID(handle->getSpaceID(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle->getSpaceID(), rc);
-         goto error;
-      }
-
-      rc = getEnv()->dms.getCSByLockedSpaceID(&context,
-                                                      handle->getCSLId(),
-                                                      &cs);
+      gcid = &(cursor->getCollectionId());
+      rc = getEnv()->dms.getCSBySpaceID(&context, gcid->getSpaceId(),
+                                        gcid->getCSLid(), SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, cursor->getHandle().getMbId(),
-                                   cursor->getHandle().getCLLId(),
+      rc = cs->getCollectionByMBID(&context, gcid->getMbId(),
+                                   gcid->getCLLid(),
                                    SHARED, &cl);
       if (SDB_OK != rc)
       {

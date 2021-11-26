@@ -57,8 +57,6 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
-#include "dmsVesselDef.hpp"
-
 using namespace bson ;
 
 namespace engine
@@ -114,6 +112,7 @@ namespace engine
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
    #define PMD_DFT_MVCCRBSNUM          ( 16 )
    #define PMD_MAX_MVCCRBSNUM          ( 128 )
+
    /*
       _pmdCfgExchange implement
    */
@@ -3281,37 +3280,38 @@ done:
       }\
    }
 
+
    INT32 _pmdOptionsMgr::removeAllDir()
    {
       INT32 rc = SDB_OK ;
 
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append("vessel");
          PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
       }
 
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("vessel");
          PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
       }
 
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_LSM_NAME);
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("lsm");
          PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
       }
 
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append("vessel");
          PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
       }
 
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append("vessel");
          PMD_RMDIR_WITH_IGNORE_PARENTDIR_PERM(pathStr.c_str());
       }
 
@@ -3426,7 +3426,7 @@ done:
       /// make vessel dirs
       {
          ossPoolString pathStr;
-         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbDbPath).append(OSS_FILE_SEP).append("vessel");
          rc = ossMkdir(pathStr.c_str());
          if ( rc && SDB_FE != rc )
          {
@@ -3436,7 +3436,7 @@ done:
          }
 
          pathStr.clear();
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("vessel");
          rc = ossMkdir(pathStr.c_str());
          if ( rc && SDB_FE != rc )
          {
@@ -3446,7 +3446,7 @@ done:
          }
 
          pathStr.clear();
-         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append(DMS_VESSEL_LSM_NAME);
+         pathStr.append(_krcbIndexPath).append(OSS_FILE_SEP).append("lsm");
          rc = ossMkdir(pathStr.c_str());
          if ( rc && SDB_FE != rc )
          {
@@ -3456,7 +3456,7 @@ done:
          }
 
          pathStr.clear();
-         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbLobMetaPath).append(OSS_FILE_SEP).append("vessel");
          rc = ossMkdir(pathStr.c_str());
          if ( rc && SDB_FE != rc )
          {
@@ -3466,7 +3466,7 @@ done:
          }
 
          pathStr.clear();
-         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append(DMS_VESSEL_DB_NAME);
+         pathStr.append(_krcbLobPath).append(OSS_FILE_SEP).append("vessel");
          rc = ossMkdir(pathStr.c_str());
          if ( rc && SDB_FE != rc )
          {
@@ -3615,23 +3615,23 @@ done:
       o = vessel::openDBOptions();
       o.path.dataPath.append(_krcbDbPath);
       o.path.dataPath.append(OSS_FILE_SEP);
-      o.path.dataPath.append(DMS_VESSEL_DB_NAME);
+      o.path.dataPath.append("vessel");
 
       o.path.indexPath.append(_krcbIndexPath);
       o.path.indexPath.append(OSS_FILE_SEP);
-      o.path.indexPath.append(DMS_VESSEL_DB_NAME);
+      o.path.indexPath.append("vessel");
 
       o.path.lobMetaPath.append(_krcbLobMetaPath);
       o.path.lobMetaPath.append(OSS_FILE_SEP);
-      o.path.lobMetaPath.append(DMS_VESSEL_DB_NAME);
+      o.path.lobMetaPath.append("vessel");
 
       o.path.lobPath.append(_krcbLobPath);
       o.path.lobPath.append(OSS_FILE_SEP);
-      o.path.lobPath.append(DMS_VESSEL_DB_NAME);
+      o.path.lobPath.append("vessel");
 
       o.path.lsmPath.append(_krcbIndexPath);
       o.path.lsmPath.append(OSS_FILE_SEP);
-      o.path.lsmPath.append(DMS_VESSEL_LSM_NAME);
+      o.path.lsmPath.append("lsm");
    }
 
 

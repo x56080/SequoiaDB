@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IRecordModifier.h
+   Source File Name = vesselObject.hpp
 
    Descriptive Name =
 
@@ -33,27 +33,22 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_I_RECORD_MODIFIER_H_
-#define VESSEL_I_RECORD_MODIFIER_H_
+#ifndef VESSEL_VESSEL_OBJECT_H_
+#define VESSEL_VESSEL_OBJECT_H_
 
-#include "vessel/slice.h"
+#include "vessel/shallowObject.hpp"
+#include "vessel/collectionSpace.h"
+#include "vessel/collection.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRecordModifier : public SDBObject
-   {
-      public:
-         IRecordModifier(){}
-         virtual ~IRecordModifier(){}
-
-      public:
-         
-   };//class IRecordModifier
+   typedef shallowObject<collection> collectionObject;
+   typedef shallowObject<collectionSpace> collectionSpaceObject;
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_I_RECORD_MODIFIER_H_
+#endif//VESSEL_VESSEL_OBJECT_H_

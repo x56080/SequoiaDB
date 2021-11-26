@@ -52,36 +52,16 @@ namespace vessel
 
    void dmlContext::close()
    {
-      unlockRidsAndUniqueKeys();
-      fini();
+      clearDmlHistroy();
       requestContext::close();
       return;
    }
 
-   void dmlContext::fini()
-   {
-      SDB_ASSERT(_uniqueKeyContext.empty(), "release locks first");
-      SDB_ASSERT(_uniqueKeyHash.empty(), "release locks first");
-
-      _minFreeSize = 0;
-      _compressionType = UTIL_COMPRESSOR_INVALID;
-      _lockRid = FALSE;
-      _uniqueKeyHash.clear();
-      _uniqueKeyContext.clear();
-      _rid = recordID();
-      _lsn = DPS_INVALID_LSN_OFFSET;
-      _seq = INVALID_CL_PAGE_SEQ;
-      return;
-   }
-
-   INT32 dmlContext::lockUniqueIndexKeys(const dmlIndexRequestArray &requests)
+   INT32 dmlContext::lockUniqueIndexKeys()
    {
       INT32 rc = SDB_OK;
-      if (!requestContext::isOpen() ||
-          !requestContext::isSpaceIdLocked() ||
-          !requestContext::isMbLocked())
+      if (!requestContext::isOpen())
       {
-         SDB_ASSERT(FALSE, "impossible");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
@@ -91,17 +71,13 @@ namespace vessel
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
-      else if (requests.isEmpty())
-      {
-         goto done;
-      }
 
-      buildUniqueKeyHash(requests, _uniqueKeyHash);
+      SDB_ASSERT(requestContext::isSpaceIdLocked() &&
+                 requestContext::isMbLocked(), "must be locking");
 
       rc = _lockUniqueIndexKeys();
       if (SDB_OK != rc)
       {
-         _uniqueKeyHash.clear();
          PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
          goto error;
       }
@@ -112,28 +88,34 @@ namespace vessel
       goto done;
    }
 
-   void dmlContext::buildUniqueKeyHash(const dmlIndexRequestArray &requests,
-                                       ossPoolVector<UINT32> &hashArray)const
+   void dmlContext::addKeysToBeConstraintCheck(const dmlIndexRequestArray &arr)
    {
-      UINT32 size = requests.getSize();
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(_uniqueKeyContext.empty(), "only before locking");
+      UINT32 size = arr.getSize();
+      if (!arr.withConstraint())
+      {
+         goto done;
+      }
+      
       for (UINT32 i = 0; i < size; ++i)
       {
-         uniqueIndexLatchKey keyHash;
-         UNIQUE_INDEX_LATCH_MAP::object obj;
-         dmlIndexRequest *r = requests.get(i);
-         SDB_ASSERT(NULL != r && r->isValid(), "impossible");
-         if (!r->withConstraint())
+         const dmlIndexRequest *req = arr.get(i);
+         SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
+         if (!req->withConstraint())
          {
             continue;
          }
 
-         for (ossPoolList<bson::BSONObj>::const_iterator itr = r->getKeys().begin();
-              itr != r->getKeys().end(); ++itr)
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
+              itr != req->getKeys().end(); ++itr)
          {
-            UINT32 hash = BSON_HASHER::hashObj(*itr) + r->getContext()->getIndexSlot();
-            hashArray.push_back(hash);
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getContext()->getIndexSlot();
+            _uniqueKeyHash.push_back(hash);
          }
       }
+
+   done:
       return;
    }
 
@@ -158,8 +140,8 @@ namespace vessel
       for (UINT32 i = 0; i < _uniqueKeyHash.size(); ++i)
       {
          UNIQUE_INDEX_LATCH_MAP::object obj;
-         uniqueIndexLatchKey key(requestContext::getSpaceID(),
-                                 requestContext::getMBID(),
+         uniqueIndexLatchKey key(requestContext::getLogicalCSID(),
+                                 requestContext::getLogicalCLID(),
                                  _uniqueKeyHash.at(i));
 
          rc = latchMap.ensure(key, obj);
@@ -244,10 +226,22 @@ namespace vessel
       return;
    }
 
-   void dmlContext::unlockRidsAndUniqueKeys()
+   void dmlContext::clearDmlHistroy()
    {
-      unlockRids();
-      unlockUniqueKeys();
+      if (requestContext::isOpen())
+      {
+         unlockRids();
+         unlockUniqueKeys();
+      }
+
+      _uniqueKeyHash.clear();
+      _uniqueKeyContext.clear();
+      _seq = INVALID_CL_PAGE_SEQ;
+      _rid = recordID();
+      _dmlLSN = DPS_INVALID_LSN_OFFSET;
+      return;
    }
+
+
 }//namespace vessel
 }//namespace engine

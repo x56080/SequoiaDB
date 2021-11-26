@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = IRecordUpdater.h
 
    Descriptive Name =
 
@@ -33,41 +33,37 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
+#ifndef VESSEL_I_RECORD_UPDATER_H_
+#define VESSEL_I_RECORD_UPDATER_H_
 
-#include "vessel/requestHandler.h"
 #include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "utilInsertResult.hpp"
-#include "dpsTransID.hpp"
-#include "vessel/requestBatch.h"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions;
-   class insertHandler : public requestHandler
+   class IRecordUpdater : public SDBObject
    {
       public:
-         insertHandler(){}
-         virtual ~insertHandler(){}
+         IRecordUpdater(){}
+         virtual ~IRecordUpdater(){}
+         IRecordUpdater(const IRecordUpdater &) = delete;
+         IRecordUpdater &operator=(const IRecordUpdater &) = delete;
 
       public:
-         INT32 doit(const collectionHandle &handle,
-                    const slice &record,
-                    STRIPING_ID striping,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+         virtual INT32 modify(const slice &record) = 0;
 
-         INT32 doit(const collectionHandle &handle,
-                    const requestBatch &batch,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+      public:/// result
+         virtual slice getModifiedRecord()const = 0;
 
-   };//class insertHandler
-}//namespace vessel
-}//namespace engine
+         virtual UINT32 getFieldsModified()const = 0;
 
-#endif//VESSEL_INSERT_HANDLER_H_
+         virtual strSlice getModifiedFieldName(UINT32 pos)const = 0;
+   };//class IRecordUpdater
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_I_RECORD_UPDATER_H_

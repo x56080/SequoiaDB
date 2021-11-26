@@ -39,7 +39,6 @@
 #include "vessel/indexHandle.h"
 #include "../bson/bson.hpp"
 #include "ossMemPool.hpp"
-#include "utilArray.hpp"
 #include "utilPooledObject.hpp"
 #include "vessel/indexContext.h"
 
@@ -54,6 +53,9 @@ namespace vessel
          ~dmlIndexRequest(){}
          dmlIndexRequest(const dmlIndexRequest &) = delete;
          dmlIndexRequest &operator=(const dmlIndexRequest &)const;
+
+      private:
+         static constexpr UINT32 FLAG_EXECUTED = 0x01;
 
       public:
          OSS_INLINE BOOLEAN isValid()const
@@ -76,14 +78,14 @@ namespace vessel
             return _index;
          }
 
-         OSS_INLINE void setMerged()
+         OSS_INLINE void setExecuted()
          {
-            _merged = TRUE;
+            OSS_BIT_SET(_flags, FLAG_EXECUTED);
          }
 
-         OSS_INLINE BOOLEAN isMerged()const
+         OSS_INLINE BOOLEAN isExecuted()const
          {
-            return _merged;
+            return 0 != OSS_BIT_TEST(_flags, FLAG_EXECUTED);
          }
 
          OSS_INLINE BOOLEAN withConstraint()const
@@ -95,7 +97,7 @@ namespace vessel
       private:
          indexContext *_index = NULL;
          ossPoolList<bson::BSONObj> _keys;
-         BOOLEAN _merged = FALSE;
+         UINT32 _flags = 0;
    };//class dmlIndexRequest
 
    class dmlIndexRequestArray : public SDBObject
@@ -114,10 +116,12 @@ namespace vessel
          }
          OSS_INLINE BOOLEAN isEmpty()const
          {
-            return 0 == _requests.size();
+            return _requests.empty();
          }
 
-         dmlIndexRequest *get(UINT32 i)const;
+         dmlIndexRequest *get(UINT32 i);
+
+         const dmlIndexRequest *get(UINT32 i)const;
 
          void clear();
 
@@ -125,16 +129,16 @@ namespace vessel
          INT32 append(indexContext *index,
                       const bson::BSONObjSet &keys);
 
-         BOOLEAN withoutConstraint()const
+         BOOLEAN withConstraint()const
          {
-            return 0 == _constraintIndexCount;
+            return 0 < _constraintIndexCount;
          }
          BOOLEAN hasBuildingIndex()const
          {
             return 0 < _building;
          }
       private:
-         _utilArray<dmlIndexRequest *, 8> _requests;
+         ossPoolVector<dmlIndexRequest *> _requests;
          UINT32 _constraintIndexCount = 0;
          UINT32 _building = 0;
    };//class dmlIndexRequestArray

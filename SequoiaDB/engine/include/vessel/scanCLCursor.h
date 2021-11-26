@@ -37,9 +37,9 @@
 #define VESSEL_SCAN_CL_CURSOR_H_
 
 #include "vessel/cursorKernal.h"
-#include "vessel/collectionHandle.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/scanEntry.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -57,18 +57,18 @@ namespace vessel
             return CURSOR_TYPE_SCAN_COLLECTION;
          }
 
-         void resetToScan(const collectionHandle &handle,
+         void resetToScan(const globalCollectionId &gcid,
                           const collectionScanOptions &options)
          {
-            _handle = handle;
+            _gcid = gcid;
             _options = options;
             _lpid = INVALID_PAGE_ID;
             _toScan.reset();
             return;
          }
-         OSS_INLINE const collectionHandle &getHandle()const
+         OSS_INLINE const globalCollectionId &getCollectionId()const
          {
-            return _handle;
+            return _gcid;
          }
          OSS_INLINE const collectionScanOptions &getOptions()const
          {
@@ -103,7 +103,7 @@ namespace vessel
 
       private:
          collectionScanOptions _options;
-         collectionHandle _handle;
+         globalCollectionId _gcid;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          scanEntry _toScan;
    };//class scanCLCursor

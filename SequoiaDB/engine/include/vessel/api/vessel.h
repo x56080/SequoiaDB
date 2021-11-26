@@ -44,7 +44,7 @@
 #include "vessel/outerResource.h"
 #include "sdbInterface.hpp"
 #include "vessel/api/IQueryFilter.h"
-#include "vessel/collectionSpaceIdentifier.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -74,11 +74,11 @@ namespace vessel
                                              const CHAR *name,
                                              utilCSUniqueID uniqueId,
                                              const createCSOptions &options,
-                                             collectionSpaceIdentifier &identifier) = 0;
+                                             collectionSpaceId &identifier) = 0;
 
          virtual INT32 testCollectionSpace(IExecutor *executor,
                                            const CHAR *name,
-                                           collectionSpaceIdentifier &identifier) = 0;
+                                           collectionSpaceId &identifier) = 0;
 
          /// cursor's mem managed by user.
          /// filter's mem managed by user.

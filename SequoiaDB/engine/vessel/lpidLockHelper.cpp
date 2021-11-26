@@ -134,13 +134,12 @@ namespace vessel
    void lpidLockHelper::lockExclusiveFromUpgrade()
    {
       SDB_ASSERT(_mode.isUpgrade(), "must holding upgrade");
-      objectSharedLatchContext<logicalIdLatchKey> &lc = _context->getLpidLatchContext();
-      LOGICAL_ID_LATCH_MAP::object obj;
+      LPID_LATCH_CONTEXT &lc = _context->getLpidLatchContext();
+      LOGICAL_PID_LATCH_MAP::object obj;
       ossSharedLatchMode *mode = NULL;
-      logicalIdLatchKey key(_context->getSpaceID(), _type, _lpid);
+      logicalPidLatchKey key(_context->getSpaceID(), _type, _lpid);
 
-      INT32 rc = lc.find(key, obj, &mode);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (!lc.findToUpdate(key, obj, &mode))
       {
          PD_LOG(PDERROR, "failed to find latch obj[%s] in context",
                 key.toString().c_str());
@@ -159,13 +158,12 @@ namespace vessel
       BOOLEAN r = FALSE;
       SDB_ASSERT(_mode.isUpgrade(), "must holding shared lock");
       INT32 rc = SDB_OK;
-      objectSharedLatchContext<logicalIdLatchKey> &lc = _context->getLpidLatchContext();
-      LOGICAL_ID_LATCH_MAP::object obj;
+      objectSharedLatchContext<logicalPidLatchKey> &lc = _context->getLpidLatchContext();
+      LOGICAL_PID_LATCH_MAP::object obj;
       ossSharedLatchMode *mode = NULL;
-      logicalIdLatchKey key(_context->getSpaceID(), _type, _lpid);
+      logicalPidLatchKey key(_context->getSpaceID(), _type, _lpid);
 
-      rc = lc.find(key, obj, &mode);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (!lc.findToUpdate(key, obj, &mode))
       {
          PD_LOG(PDERROR, "failed to find latch obj[%s] in context",
                 key.toString().c_str());
@@ -188,13 +186,12 @@ namespace vessel
       BOOLEAN r = FALSE;
       SDB_ASSERT(_mode.isShared(), "must holding shared lock");
       INT32 rc = SDB_OK;
-      objectSharedLatchContext<logicalIdLatchKey> &lc = _context->getLpidLatchContext();
-      LOGICAL_ID_LATCH_MAP::object obj;
+      objectSharedLatchContext<logicalPidLatchKey> &lc = _context->getLpidLatchContext();
+      LOGICAL_PID_LATCH_MAP::object obj;
       ossSharedLatchMode *mode = NULL;
-      logicalIdLatchKey key(_context->getSpaceID(), _type, _lpid);
+      logicalPidLatchKey key(_context->getSpaceID(), _type, _lpid);
 
-      rc = lc.find(key, obj, &mode);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (!lc.findToUpdate(key, obj, &mode))
       {
          PD_LOG(PDERROR, "failed to find latch obj[%s] in context",
                 key.toString().c_str());

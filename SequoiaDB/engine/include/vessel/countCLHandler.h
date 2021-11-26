@@ -37,7 +37,7 @@
 #define VESSEL_COUNT_CL_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/collectionHandle.h"
+#include "vessel/objectIdentifier.h"
 #include "vessel/scanCLOptions.h"
 
 namespace engine
@@ -53,7 +53,7 @@ namespace vessel
          virtual ~countCLHandler(){}
 
       public:
-         INT32 doit(const collectionHandle &handle,
+         INT32 doit(const globalCollectionId &gcid,
                     UINT64 &count);
    };//class countCLHandler
 }//namespace vessel

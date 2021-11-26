@@ -60,12 +60,6 @@ namespace vessel
 
    static const UINT32 INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
 
-   static const UINT32 VESSEL_MIN_CS_LID = 0x80000000;
-   OSS_INLINE BOOLEAN isVesselCSLogicalID(UINT32 lid)
-   {
-      return OSS_BIT_TEST(lid, VESSEL_MIN_CS_LID);
-   }
-
 } /// end of namespace vessel
 } /// end of namespace engine
 #endif//VESSEL_VESSEL_ID_DEF_H_

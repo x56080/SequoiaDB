@@ -377,7 +377,6 @@ namespace vessel
                             utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(0 == context->getUniqueKeyHashSize(), "must be zero");
       dmlIndexRequestArray ra;
       ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
@@ -399,8 +398,10 @@ namespace vessel
          goto error;
       }
 
+      context->clearDmlHistroy();
       guard.autoLock();
 
+      context->setMinFreeSize(_record.freeSizeReserved);
       /// build indexes keys.
       rc = buildDmlIndexRequests(context, context->getOriginalRecord(), ra);
       if (SDB_OK != rc)
@@ -417,11 +418,6 @@ namespace vessel
             PD_LOG(PDERROR, "failed to check constraint:%d", rc);
          }
          goto error;
-      }
-      
-      if (!ra.isEmpty())
-      {
-         context->setLockRid(TRUE);
       }
 
       if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().getSize()))
@@ -462,15 +458,40 @@ namespace vessel
          res->incInsertedNum();
          if (res->isEnableReturnIDInfo())
          {
-            res->setInsertLoc(context->getLastDmlRid().getPageID(),
-                              context->getLastDmlRid().getSlotID());
+            res->setInsertLoc(context->getRid().getPageID(),
+                              context->getRid().getSlotID());
          }
       }
    done:
-      context->unlockRidsAndUniqueKeys();
+      if (NULL != context)
+      {
+         context->clearDmlHistroy();
+      }
       return rc;
    error:
       goto done;
+   }
+
+   INT32 collection::update(updateContext *context,
+                            utilUpdateResult *res)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               !context->getRid().isValid() ||
+               NULL == context->getUpdater())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto error;
    }
 
    INT32 collection::getTotalCountInRdpHead(requestContext *context,
@@ -606,7 +627,8 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != cursor, "can not be null");
       SDB_ASSERT(cursor->isOpen(), "must be open");
-      SDB_ASSERT(cursor->getHandle().getCLLId() == _record.logicalCLID, "must be same");
+      SDB_ASSERT(cursor->getCollectionId().getCLLid() == _record.logicalCLID,
+                 "must be same");
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -3025,9 +3047,11 @@ namespace vessel
 
    INT32 collection::buildDmlIndexRequests(requestContext *context,
                                            const slice &record,
-                                           dmlIndexRequestArray &ra)
+                                           dmlIndexRequestArray &requests)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(record.isValid(), "can not be invalid");
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       bson::BSONObjSet keySet;
 
@@ -3061,35 +3085,31 @@ namespace vessel
             }
          }
 
-         rc = ra.append(itr->second, keySet);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to set index request at pos[%d], rc:%d", itr->first, rc);
-            goto error;
-         }
+         requests.append(ic, keySet);
       }
    done:
       return rc;
    error:
-      ra.clear();
       goto done;
    }
 
    INT32 collection::constraintCheck(dmlContext *context,
                                      const dmlIndexRequestArray &ra,
-                                     utilInsertResult *res)
+                                     utilInsertResult *res)const
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
       recordID rid;
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
 
-      if (ra.withoutConstraint())
+      if (!ra.withConstraint())
       {
          goto done;
       }
 
-      rc = context->lockUniqueIndexKeys(ra);
+      context->addKeysToBeConstraintCheck(ra);
+      rc = context->lockUniqueIndexKeys();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
@@ -3101,7 +3121,7 @@ namespace vessel
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
          
-         dmlIndexRequest *req = ra.get(i);
+         const dmlIndexRequest *req = ra.get(i);
          SDB_ASSERT(NULL != req && req->isValid(), "impossible");
          if (!req->withConstraint())
          {
@@ -3172,6 +3192,7 @@ namespace vessel
                                                     dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
          dmlIndexRequest *ir = ra.get(i);
@@ -3193,9 +3214,9 @@ namespace vessel
          }
 
          rc = buildingContext->insert(ir->getContext()->getObj().getParams().isUnique,
-                                      context->getLastDmlScanEntry(),
-                                      context->getLastDmlRid().getPageID(),
-                                      context->getLastDmlLSN(),
+                                      context->getScanEntry(),
+                                      context->getRid().getPageID(),
+                                      context->getDmlLSN(),
                                       context->getTransIDWithoutTag(),
                                       ir->getKeys(),
                                       refused);
@@ -3208,7 +3229,7 @@ namespace vessel
 
          if (!refused)
          {
-            ir->setMerged();
+            ir->setExecuted();
          }
       }
    done:

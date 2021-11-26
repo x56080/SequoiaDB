@@ -57,7 +57,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->createIndex(executor, _handle, indexName,
+      rc = _db->createIndex(executor, _gcid, indexName,
                             keyPattern, params, options);
       if (SDB_OK != rc)
       {
@@ -79,7 +79,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->listIndexes(executor, _handle, indexes);
+      rc = _db->listIndexes(executor, _gcid, indexes);
       if (SDB_OK != rc)
       {
          goto error;
@@ -109,7 +109,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->insert(executor, _handle, record,
+      rc = _db->insert(executor, _gcid, record,
                        striping, options, res);
       if (SDB_OK != rc)
       {
@@ -122,7 +122,7 @@ namespace vessel
    }
 
    INT32 collectionHandler::insertBatch(IExecutor *executor,
-                                        const requestBatch &batch,
+                                        const ossPoolVector<slice> &batch,
                                         const insertOptions &options,
                                         utilInsertResult *res)
    {
@@ -133,13 +133,13 @@ namespace vessel
          goto error;
       }
       else if (NULL == executor ||
-               batch.isEmpty())
+               batch.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insertBatch(executor, _handle, batch, options, res);
+      rc = _db->insertBatch(executor, _gcid, batch, options, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -184,7 +184,7 @@ namespace vessel
          goto error;
       }
 
-      kernal->resetToScan(_handle, o);
+      kernal->resetToScan(_gcid, o);
 
       cursor = cursorHandler(kernal);
    done:
@@ -210,7 +210,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _db->getTotalRecordCountInPageHead(executor, _handle, count);
+      rc = _db->getTotalRecordCountInPageHead(executor, _gcid, count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -241,7 +241,7 @@ namespace vessel
          goto error;
       }
 
-      kernal = SDB_OSS_NEW indexScanCursor(o, predicate, _handle, indexName);
+      kernal = SDB_OSS_NEW indexScanCursor(o, predicate, _gcid, indexName);
       if (OSS_UNLIKELY(NULL == kernal))
       {
          PD_LOG(PDERROR, "failed to allocate mem");

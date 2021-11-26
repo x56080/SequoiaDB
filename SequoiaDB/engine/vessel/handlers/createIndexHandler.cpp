@@ -40,7 +40,6 @@
 #include "vessel/requestContext.h"
 #include "pdTrace.hpp"
 #include "vessel/instanceEnv.h"
-#include "vessel/spaceIDLockHelper.h"
 
 
 
@@ -48,7 +47,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 createIndexHandler::doit(const collectionHandle &handle,
+   INT32 createIndexHandler::doit(const globalCollectionId &gcid,
                                   const strSlice &indexName,
                                   const bson::BSONObj &keyPattern,
                                   const indexParameters &params,
@@ -58,7 +57,6 @@ namespace vessel
       collectionSpace *cs = NULL;
       collection *cl = NULL;
       requestContext context;
-      spaceIDLockHelper lh(&context);
       indexKeyPattern pattern;
 
       if (OSS_UNLIKELY(!isInitialized()))
@@ -66,7 +64,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!handle.isValid())
+      else if (!gcid.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -88,23 +86,17 @@ namespace vessel
       }
       
       context.open(getExecutor(), getEnv(), getOuterResource());
-
-      rc = lh.lock(handle.getSpaceID(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock space id[%d], rc:%d", handle.getSpaceID(), rc);
-         goto error;
-      }
-      rc = getEnv()->dms.getCSByLockedSpaceID(&context,
-                                              handle.getCSLId(),
-                                              &cs);
+      rc = getEnv()->dms.getCSBySpaceID(&context,
+                                        gcid.getSpaceId(),
+                                        gcid.getCSLid(),
+                                        SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
-                                   handle.getCLLId(), SHARED, &cl);
+      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
+                                   gcid.getCLLid(), SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
@@ -116,11 +108,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != cl)
-      {
-         context.unlockMB();
-      }
-      lh.unlock();
       context.close();
       return rc;
    error:

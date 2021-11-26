@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = dmsVesselDef.hpp
+   Source File Name = storageUnitIdentifier.h
 
    Descriptive Name =
 
@@ -33,18 +33,13 @@
 
 ******************************************************************************/
 
-#ifndef SDB_DMS_VESSEL_DEF_HPP_
-#define SDB_DMS_VESSEL_DEF_HPP_
-
-#include "core.hpp"
-#include "oss.hpp"
-#include "vessel/api/vessel.h"
+#ifndef SDB_STORAGE_UNIT_IDENTIFIER_H_
+#define SDB_STORAGE_UNIT_IDENTIFIER_H_
 
 namespace engine
 {
-   static const CHAR * const DMS_VESSEL_DB_NAME = "vessel";
-   static const CHAR * const DMS_VESSEL_LSM_NAME = "lsm";
+   
 } // namespace engine
 
 
-#endif//SDB_DMS_VESSEL_DEF_HPP_
+#endif//SDB_STORAGE_UNIT_IDENTIFIER_H_

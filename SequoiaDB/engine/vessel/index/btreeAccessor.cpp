@@ -66,7 +66,7 @@ namespace vessel
       fini();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->getCollectionHandle().isValid() ||
+                       !context->getGlobalCollectionId().isValid() ||
                        NULL == ic ||
                        !ic->isValid() ||
                        ic->getObj().getParams().type != INDEX_TYPE_BTREE))

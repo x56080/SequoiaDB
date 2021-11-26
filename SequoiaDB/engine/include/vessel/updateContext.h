@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createIndexHandler.h
+   Source File Name = updateContext.h
 
    Descriptive Name =
 
@@ -33,34 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CREATE_INDEX_HANDLER_H_
-#define VESSEL_CREATE_INDEX_HANDLER_H_
+#ifndef VESSE_UPDATE_CONTEXT_H_
+#define VESSE_UPDATE_CONTEXT_H_
 
-#include "vessel/requestHandler.h"
-#include "vessel/indexOptions.h"
-#include "vessel/strSlice.h"
-#include "vessel/indexKeyPattern.h"
-#include "vessel/indexParameters.h"
-#include "vessel/objectIdentifier.h"
+#include "vessel/dmlContext.h"
+#include "vessel/api/IRecordUpdater.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexHandler : public requestHandler
+   class updateContext : public dmlContext
    {
       public:
-         createIndexHandler(){}
-         virtual ~createIndexHandler(){}
+         updateContext(){}
+         virtual ~updateContext(){}
 
       public:
-         INT32 doit(const globalCollectionId &gcid,
-                    const strSlice &indexName,
-                    const bson::BSONObj &keyPattern,
-                    const indexParameters &params,
-                    const createIndexOptions &options);
-   };//class createIndexHandler
-}//namespace vessel
-}//namespace engine
+         OSS_INLINE IRecordUpdater *getUpdater()
+         {
+            return _updater;
+         }
+         OSS_INLINE void setUpdater(IRecordUpdater *updater)
+         {
+            _updater = updater;
+         }
 
-#endif//VESSEL_CREATE_INDEX_HANDLER_H_
+      private:
+         IRecordUpdater *_updater = NULL;
+   };//class updateContext
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSE_UPDATE_CONTEXT_H_

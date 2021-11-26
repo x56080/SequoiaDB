@@ -37,7 +37,7 @@
 #define VESSEL_COLLECTION_HANDLER_H_
 
 #include "vessel/vesselIdDef.h"
-#include "vessel/collectionHandle.h"
+#include "vessel/objectIdentifier.h"
 #include "utilInsertResult.hpp"
 #include "dpsTransID.hpp"
 #include "vessel/api/cursorHandler.h"
@@ -48,8 +48,8 @@
 #include "vessel/collectionOptions.h"
 #include "rtnPredicate.hpp"
 #include "sdbInterface.hpp"
-#include "vessel/requestBatch.h"
 #include "vessel/recordID.h"
+#include "vessel/api/IRecordUpdater.h"
 
 namespace engine
 {
@@ -64,13 +64,13 @@ namespace vessel
       public:
          OSS_INLINE collectionHandler(){}
 
-         OSS_INLINE explicit collectionHandler(const collectionHandle &handle,
+         OSS_INLINE explicit collectionHandler(const globalCollectionId &gcid,
                                                vesselImpl *db):
-                    _handle(handle),
+                    _gcid(gcid),
                     _db(db){}
 
          OSS_INLINE collectionHandler(const collectionHandler &o):
-                    _handle(o._handle),
+                    _gcid(o._gcid),
                     _db(o._db){}
 
          OSS_INLINE ~collectionHandler()
@@ -80,7 +80,7 @@ namespace vessel
 
          collectionHandler &operator=(const collectionHandler &o)
          {
-            _handle = o._handle;
+            _gcid = o._gcid;
             _db = o._db;
             return *this;
          }
@@ -88,11 +88,11 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _handle.isValid() && NULL != _db;
+            return _gcid.isValid() && NULL != _db;
          }
          OSS_INLINE void close()
          {
-            _handle.reset();
+            _gcid = globalCollectionId();
             _db = NULL;
             return;
          }
@@ -115,7 +115,7 @@ namespace vessel
                       utilInsertResult *res);
 
          INT32 insertBatch(IExecutor *executor,
-                           const requestBatch &batch,
+                           const ossPoolVector<slice> &batch,
                            const insertOptions &options,
                            utilInsertResult *res);
 
@@ -124,6 +124,12 @@ namespace vessel
                              UINT32 count,
                              const recordID *rids,
                              utilDeleteResult *res);
+
+      public:
+         INT32 updateRecord(IExecutor *executor,
+                            const recordID &rid,
+                            IRecordUpdater *updater,
+                            utilUpdateResult *res);
 
       public:
 
@@ -144,7 +150,7 @@ namespace vessel
                                    cursorHandler &cursor);
           
       private:
-         collectionHandle _handle;
+         globalCollectionId _gcid;
          vesselImpl *_db = NULL;
    };//class collectionHandler
 }//namespace vessel

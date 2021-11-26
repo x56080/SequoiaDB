@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createIndexHandler.h
+   Source File Name = shallowObject.hpp
 
    Descriptive Name =
 
@@ -33,34 +33,43 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CREATE_INDEX_HANDLER_H_
-#define VESSEL_CREATE_INDEX_HANDLER_H_
+#ifndef VESSEL_SHALLOW_OBJECT_H_
+#define VESSEL_SHALLOW_OBJECT_H_
 
-#include "vessel/requestHandler.h"
-#include "vessel/indexOptions.h"
-#include "vessel/strSlice.h"
-#include "vessel/indexKeyPattern.h"
-#include "vessel/indexParameters.h"
-#include "vessel/objectIdentifier.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class createIndexHandler : public requestHandler
+   template <class T>
+   class shallowObject : public SDBObject
    {
       public:
-         createIndexHandler(){}
-         virtual ~createIndexHandler(){}
+         shallowObject(){}
+         ~shallowObject(){_ptr = NULL;}
+         explicit shallowObject(T *ptr):
+         _ptr(ptr){}
+         shallowObject(const shallowObject &o):
+         _ptr(o._ptr){}
+         shallowObject &operator=(const shallowObject &o)
+         {
+            _ptr = o._ptr;
+            return *this;
+         }
 
       public:
-         INT32 doit(const globalCollectionId &gcid,
-                    const strSlice &indexName,
-                    const bson::BSONObj &keyPattern,
-                    const indexParameters &params,
-                    const createIndexOptions &options);
-   };//class createIndexHandler
-}//namespace vessel
-}//namespace engine
+         BOOLEAN isValid()const{return NULL != _ptr;}
+         T *get(){return _ptr;}
+         void reset(){_ptr = NULL;}
 
-#endif//VESSEL_CREATE_INDEX_HANDLER_H_
+      private:
+         T *_ptr = NULL;
+   };//class shallowObject
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_SHALLOW_OBJECT_H_

@@ -58,7 +58,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!cursor->getCLHandle().isValid()))
+      else if (OSS_UNLIKELY(!cursor->getCollectionId().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -79,25 +79,17 @@ namespace vessel
                    getEnv(),
                    getOuterResource());
 
-      rc = context.lockSpaceID(cursor->getCLHandle().getSpaceID(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to lock sid[%d], rc:%d",
-                cursor->getCLHandle().getSpaceID(), rc);
-         goto error;
-      }
-
-      rc = getEnv()->dms.getCSByLockedSpaceID(&context,
-                                              cursor->getCLHandle().getCSLId(),
-                                              &cs);
+      rc = getEnv()->dms.getCSByCollectionSpaceId(&context,
+                                                   cursor->getCollectionId().getCSIdentifier(),
+                                                   SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(&context, cursor->getCLHandle().getMbId(),
-                                   cursor->getCLHandle().getCLLId(),
-                                   SHARED, &cl);
+      rc = cs->getCollectionById(&context,
+                                 cursor->getCollectionId().getCLIdentifier(),
+                                 SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;

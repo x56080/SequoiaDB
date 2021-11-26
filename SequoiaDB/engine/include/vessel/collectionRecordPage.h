@@ -96,7 +96,7 @@ namespace vessel
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
          type = COLLECTION_TYPE_INVALID;
-         innerID = UTIL_INVALID_CL_INNER_ID;
+         innerID = UTIL_UNIQUEID_NULL;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
          pad = 0;
@@ -112,7 +112,7 @@ namespace vessel
 
       UINT16 version = 0;
       UINT16 type = COLLECTION_TYPE_INVALID;
-      UINT32 innerID = UTIL_INVALID_CL_INNER_ID;
+      UINT32 innerID = UTIL_UNIQUEID_NULL;
       UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
       UINT16 mbID = INVALID_CL_MB_ID;
       UINT8 compressionType = UTIL_COMPRESSOR_INVALID;

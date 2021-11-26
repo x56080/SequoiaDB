@@ -39,9 +39,8 @@
 #include "vessel/vesselIdDef.h"
 #include "vessel/pageDef.h"
 #include "vessel/vesselFileDef.h"
-#include <sstream>
-//#define XXH_INLINE_ALL
-//#include "xxhash/xxhash.h"
+#include "ossMemPool.hpp"
+#include "xxHashInc.h"
 
 namespace engine
 {
@@ -105,8 +104,8 @@ class globalPageID
 
       OSS_INLINE UINT32 hash()const
       {
-         //return XXH3_64bits(this, sizeof(globalPageID));
-         return _sid + _pid;
+         return XXH3_64bits(this, sizeof(globalPageID));
+         //return _sid + _pid;
       }
 
       OSS_INLINE BOOLEAN operator==(const globalPageID &r)const
@@ -124,7 +123,7 @@ class globalPageID
          ///Do not cast to uint64 to compare.
          ///Ordered columns in turns. If we scan the gpids of
          /// specified space id in a ordered map, we can know
-         /// when to stop.
+         /// where to stop.
          INT32 res = 0;
          if (_sid < r._sid)
          {
@@ -196,15 +195,26 @@ class globalPageID
          return _spaceType;
       }
 
-      std::string toString()const
+      ossPoolString toString()const
       {
-         std::stringstream ss;
-         ss << "{SPACE_ID:" << _sid
-            << ",SPACE_TYPE:" << _spaceType
-            << ",TYPE:" << _fileType
-            << ",PAGE_ID:" << _pid
-            << "}";
-         return ss.str();
+         static const UINT32 _BUF_SIZE = 16;
+         CHAR buf[_BUF_SIZE] = {};
+         ossPoolString str;
+         str.reserve(64);
+         str.append("{sid:");
+         ossItoa(_sid, buf, _BUF_SIZE);
+         str.append(buf);
+         str.append(", stype:");
+         ossItoa(_spaceType, buf, _BUF_SIZE);
+         str.append(buf);
+         str.append(", ftype:");
+         ossItoa(_fileType, buf, _BUF_SIZE);
+         str.append(buf);
+         str.append(", pid:");
+         ossItoa(_pid, buf, _BUF_SIZE);
+         str.append(buf);
+         str.append("}");
+         return str;
       }
 
    public:

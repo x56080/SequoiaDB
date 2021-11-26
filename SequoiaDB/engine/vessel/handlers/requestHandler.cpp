@@ -65,5 +65,42 @@ namespace vessel
              _outerResource->isValid();
          
    }
+
+   INT32 requestHandler::getCollectionObject(requestContext *context,
+                                             const globalCollectionId &gcid,
+                                             OSS_LATCH_MODE mode,
+                                             collectionObject &obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "must be inited");
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(gcid.isValid(), "can not be invalid");
+
+      collectionSpace *cs = NULL;
+      collection *cl = NULL;
+      obj.reset();
+
+      rc = _env->dms.getCSByCollectionSpaceId(context, gcid.getCSIdentifier(), SHARED, &cs);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cs->getCollectionById(context, gcid.getCLIdentifier(), mode, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+      obj = collectionObject(cl);
+   done:
+      return rc;
+   error:
+      if (NULL != cs)
+      {
+         context->unlockSpaceID();
+      }
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

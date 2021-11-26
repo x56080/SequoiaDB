@@ -59,9 +59,7 @@ namespace engine
    /// While if cl only exists on data, doesn't exists on catalog, the cl inner
    /// id will be 0. In addition, system cs/cl unique id is 0.
    #define UTIL_UNIQUEID_NULL        0
-   
-   #define UTIL_INVALID_CS_UNIQUE_ID 0xFFFFFFFF
-   #define UTIL_INVALID_CL_INNER_ID  0xFFFFFFFF
+
 
    /// Directly connect data node, then create cs/cl
    #define UTIL_CSUNIQUEID_LOCAL     0xFFFFFFFF

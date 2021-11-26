@@ -51,6 +51,7 @@
 #include "vessel/indexContextMap.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
+#include "vessel/updateContext.h"
 
 namespace engine
 {
@@ -146,6 +147,9 @@ namespace vessel
          INT32 insert(insertContext *context,
                       utilInsertResult *res);
 
+         INT32 update(updateContext *context,
+                      utilUpdateResult *res);
+
       private:
          INT32 testIndex(requestContext *context,
                          const strSlice &indexName,
@@ -161,11 +165,11 @@ namespace vessel
       private:
          INT32 buildDmlIndexRequests(requestContext *context,
                                      const slice &record,
-                                     dmlIndexRequestArray &ra);
+                                     dmlIndexRequestArray &requests)const;
 
          INT32 constraintCheck(dmlContext *context,
                                const dmlIndexRequestArray &ra,
-                               utilInsertResult *res);
+                               utilInsertResult *res)const;
 
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);

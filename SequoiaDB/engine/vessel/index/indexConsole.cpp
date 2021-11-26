@@ -780,7 +780,7 @@ namespace vessel
          const dmlIndexRequest *ir = ra.get(i);
          SDB_ASSERT(NULL != ir && ir->isValid(), "impossible");
          if (ir->getContext()->getObj().getParams().type != INDEX_TYPE_LSM ||
-             ir->isMerged())
+             ir->isExecuted())
          {
             continue;
          }
@@ -796,10 +796,8 @@ namespace vessel
          {
             ixmKeyOwned key(*itr);
             lsmKeyEntry ke;
-            recordID rid(context->getLastDmlRid().getPageID(),
-                            context->getLastDmlRid().getSlotID());
 
-            ke.shallowCopy(key, rid, context->getLastDmlLSN(),
+            ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
             rc = lsmBatch.put(meta, ke, NULL);
             if (SDB_OK != rc)
@@ -930,7 +928,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(!ra.isEmpty(), "can not be invalid");
+
       UINT32 cnt = 0;
 
       for (UINT32 i = 0; i < ra.getSize(); ++i)
@@ -939,7 +937,7 @@ namespace vessel
          const dmlIndexRequest *req = ra.get(i);
          SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
          if (!req->getContext()->getObj().getParams().isBtreeIndex() |
-              req->isMerged())
+              req->isExecuted())
          {
             continue;
          }
@@ -956,7 +954,7 @@ namespace vessel
               itr != req->getKeys().end(); ++itr)
          {
             rc = accessor.insert(ixmKeyOwned(*itr),
-                                 context->getLastDmlRid());
+                                 context->getRid());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to insert index key:%d", rc);

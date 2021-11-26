@@ -40,7 +40,7 @@
 #include "vessel/listCollectionSpaceHandler.h"
 #include "vessel/listCollectionsHandler.h"
 #include "vessel/createCLHandler.h"
-#include "vessel/insertHandler.h"
+#include "vessel/dmlHandler.h"
 #include "vessel/openCLHandler.h"
 #include "vessel/scanCLHandler.h"
 #include "vessel/countCLHandler.h"

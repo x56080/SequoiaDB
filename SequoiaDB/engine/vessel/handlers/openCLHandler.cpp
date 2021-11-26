@@ -38,7 +38,7 @@
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/api/collectionHandler.h"
-#include "vessel/spaceIDLockHelper.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -81,20 +81,8 @@ namespace vessel
          goto error;
       }
 
-      clHandler = collectionHandler(collectionHandle(cs->getLogicalID(),
-                                                     cl->getLogicalID(),
-                                                     cs->getSpaceId(),
-                                                     cl->getMBID()),
-                                    db);
+      clHandler = collectionHandler(context.getGlobalCollectionId(), db);
    done:
-      if (NULL != cl)
-      {
-         context.unlockMB();
-      }
-      if (NULL != cs)
-      {
-         context.unlockSpaceID();
-      }
       context.close();
       return rc;
    error:

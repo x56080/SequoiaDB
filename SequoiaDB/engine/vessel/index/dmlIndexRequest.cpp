@@ -45,7 +45,7 @@ namespace vessel
    {
       _index = NULL;
       _keys.clear();
-      _merged = FALSE;
+      _flags = 0;
    }
 
    void dmlIndexRequest::init(indexContext *index,
@@ -114,14 +114,9 @@ namespace vessel
          goto error;
       }
 
-      rc = _requests.append(req);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to append to array:%d", rc);
-         goto error;
-      }
-
       req->init(index, keys);
+      _requests.push_back(req);
+
       if (req->withConstraint())
       {
          ++_constraintIndexCount;
@@ -138,12 +133,17 @@ namespace vessel
       goto done;
    }
 
-   dmlIndexRequest *dmlIndexRequestArray::get(UINT32 i)const
+   dmlIndexRequest *dmlIndexRequestArray::get(UINT32 i)
    {
       SDB_ASSERT(i < _requests.size(), "out of bound");
       return _requests[i];
    }
 
+   const dmlIndexRequest *dmlIndexRequestArray::get(UINT32 i)const
+   {
+      SDB_ASSERT(i < _requests.size(), "out of bound");
+      return _requests[i];
+   }
    
 }//namespace vessel
 }//namespace engine
