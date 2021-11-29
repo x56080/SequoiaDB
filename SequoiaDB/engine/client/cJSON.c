@@ -2692,8 +2692,6 @@ error:
 
 SDB_EXPORT void* cJsonMalloc( INT32 bytesNum, const CJSON_MACHINE *pMachine )
 {
-   SDB_ASSERT( NULL != pMachine, "pMachine can't be null" ) ;
-
    INT32 useSize = 0 ;
    void *pBuffer = NULL ;
    CJSON_MEMORY_BLOCK *pBlock = NULL ;
@@ -2703,6 +2701,9 @@ SDB_EXPORT void* cJsonMalloc( INT32 bytesNum, const CJSON_MACHINE *pMachine )
       the memory list of information.
    */
    CJSON_MACHINE *pStateMachine = (CJSON_MACHINE *)pMachine ;
+
+   SDB_ASSERT( NULL != pMachine, "pMachine can't be null" ) ;
+
    if( pStateMachine->pFirstMemBlock == NULL )
    {
       pBlock = cJsonCreateBlock( bytesNum ) ;
