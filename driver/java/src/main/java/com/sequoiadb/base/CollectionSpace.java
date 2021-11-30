@@ -291,6 +291,26 @@ public class CollectionSpace {
     }
 
     /**
+     * Get the Domain name of the current collection space. Returns an empty string if the current collection space
+     * has no owning domain
+     * @return the Domain name.
+     * @throws BaseException If error happens.
+     */
+    public String getDomainName(){
+        String result= null;
+        String cmd = "select Domain from $LIST_CS where Name = '" + this.name + "'";
+        DBCursor cursor = sequoiadb.exec(cmd);
+        if (cursor.hasNext()) {
+            BSONObject obj = cursor.getNext();
+            result = (String) obj.get("Domain");
+        }
+        if (result == null){
+            result = "";
+        }
+        return result;
+    }
+
+    /**
      * Alter the current collection space to enable capped
      *
      * @throws BaseException If error happens.
