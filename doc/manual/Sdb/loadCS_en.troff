@@ -69,15 +69,6 @@ parameter
 T}@T{
 T}
 .TE
-.RS
-.PP
-\f[B]Note:\f[]
-.RE
-.RS
-.PP
-Only when connecting to the coordination node, the options parameter will take
-effect.
-.RE
 .SH RETURN VALUE
 .PP
 On success, return void.
@@ -91,8 +82,7 @@ For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Query data.
-( Suppose the specific collection space named "sample" existes and the current
-sequoiadb is started in standalone mode )
+( Suppose the specific collection space named "sample" exists )
 .IP
 .nf
 \f[C]
@@ -121,7 +111,8 @@ Query data.
 \f[C]
 > db.sample.employee.find()
 uncaught exception: \-34
-Collection space does not exist
+Collection space does not exist:
+Collection space[sample] has been unloaded
 \f[]
 .fi
 .IP \[bu] 2

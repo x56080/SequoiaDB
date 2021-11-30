@@ -91,6 +91,9 @@ namespace engine
 
       rtnLocalTaskMgr      *_pLTMgr ;
 
+      ossPoolSet<ossPoolString> _unloadCSSet ;
+      ossSpinSLatch             _csLatch ;
+
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
@@ -230,6 +233,10 @@ namespace engine
       {
          return &_idxStatusManager ;
       }
+
+      INT32   addUnloadCS( const CHAR* csName ) ;
+      void    delUnloadCS( const CHAR* csName ) ;
+      BOOLEAN hasUnloadCS( const CHAR* csName ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

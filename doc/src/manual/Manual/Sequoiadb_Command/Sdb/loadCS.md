@@ -21,10 +21,6 @@ Sdb
 | csName  | string   | ---     | 集合空间名         | 是       |
 | options | JSON     | 空      | [命令位置参数](manual/Manual/Sequoiadb_Command/location.md) | 否       |
 
->**Note:**
-
->只有在连接协调节点时，options 参数才会生效
-
 ##返回值##
 
 函数执行成功时，无返回值。
@@ -44,7 +40,7 @@ v3.2 及以上版本
 
 ##示例##
 
-* 查询数据。（假定存在集合空间 “sample”，而且当前 SequoiaDB 是独立模式启动的）
+* 查询数据。（假定存在集合空间 “sample”）
 
     ```lang-javascript
     > db.sample.employee.find()
@@ -68,7 +64,8 @@ v3.2 及以上版本
     ```lang-javascript
     > db.sample.employee.find()
     uncaught exception: -34
-    Collection space does not exist
+    Collection space does not exist:
+    Collection space[sample] has been unloaded
     ```
 
 * 加载集合空间 “sample” 到内存中。
