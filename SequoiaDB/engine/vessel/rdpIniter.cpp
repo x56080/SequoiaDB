@@ -94,7 +94,7 @@ namespace vessel
       if (!initRecordDataPage(rpb->getPageSize(),
                               rpb->getGlobalPid().page(),
                               lpid, psv, _logicalId,
-                              _sequence + i, rpb->getWritableSlice().getWPtr()))
+                              _sequence + i, rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init record data page");
          rc = SDB_VESSEL_INTERNAL_ERR;

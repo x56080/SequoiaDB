@@ -100,8 +100,7 @@ namespace vessel
       SDB_ASSERT(isValid(), "must be valid");
       SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
 
-      slice s = _rpb.getReadbleSlice();
-      rc = ::engine::vessel::validatePage((ossValuePtr)s.getRPtr(),
+      rc = ::engine::vessel::validatePage((ossValuePtr)_rpb.getPageHead(),
                                           type, _rpb.getPageSize(),
                                           _rpb.getGlobalPid().page(),
                                           getLogicalPid(),
@@ -130,16 +129,16 @@ namespace vessel
       return _lh.tryLockExclusiveFromUpgrade();
    }
 
-   slice logicalPageBuffer::getReadableBodySlice()const
+   strictBuffer logicalPageBuffer::getReadableBodyBuffer()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return _rpb.getReadbleBodySlice();
+      return _rpb.getReadableBodyBuffer();
    }
 
-   slice logicalPageBuffer::getWritableBodySlice()
+   strictBuffer logicalPageBuffer::getWritableBodyBuffer()
    {
       SDB_ASSERT(isWritable(), "can not be invalid");
-      return _rpb.getWritableBodySlice();
+      return _rpb.getWritableBodyBuffer();
    }
 
    BOOLEAN logicalPageBuffer::isWritable()const
@@ -147,10 +146,10 @@ namespace vessel
       return isValid() && _rpb.isWritingPrepared();
    }
 
-   INT32 logicalPageBuffer::autoGetWritableBodySlice(slice &s)
+   INT32 logicalPageBuffer::autoGetWritableBodyBuffer(strictBuffer &buffer)
    {
       INT32 rc = SDB_OK;
-      s.reset();
+      buffer.reset();
       if (OSS_UNLIKELY(!isValid()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -166,7 +165,7 @@ namespace vessel
          }
       }
 
-      s = getWritableBodySlice();
+      buffer = getWritableBodyBuffer();
    done:
       return rc;
    error:

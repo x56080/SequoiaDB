@@ -90,7 +90,7 @@ namespace vessel
          goto error;
       }
 
-      headPtr = lpb->getWritableBodySlice().getWritableObjPtr<indexEntryPageHead>(0);
+      headPtr = lpb->getWritableBodyBuffer().getWritableObjPtr<indexEntryPageHead>(0);
       if (NULL == headPtr)
       {
          PD_LOG(PDERROR, "failed to get writable head ptr");
@@ -100,7 +100,7 @@ namespace vessel
 
       *headPtr = head;
       ossMemcpy((void *)((CHAR *)headPtr + INDEX_ENTRY_PAGE_HEAD_SIZE),
-                 defObj.getRPtr(), defObj.getSize());
+                 defObj.data(), defObj.getSize());
       lpb->commit(context->getExecutor()->getEndLsn());
 
    done:
@@ -134,7 +134,7 @@ namespace vessel
          goto error;
       }
 
-      head = lpb->getReadableBodySlice().getReadableObjPtr<indexEntryPageHead>(0);
+      head = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);
@@ -156,7 +156,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = lpb->getReadableBodySlice().getReadablePtr(INDEX_ENTRY_PAGE_HEAD_SIZE,
+      ptr = lpb->getReadableBodyBuffer().getReadablePtr(INDEX_ENTRY_PAGE_HEAD_SIZE,
                                                        head->defObjSize);
       if (NULL == ptr)
       {
@@ -203,7 +203,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getReadableBodySlice().getReadableObjPtr<indexEntryPageHead>(0);
+      readableHead = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -240,7 +240,7 @@ namespace vessel
       }
       readableHead = NULL;
 
-      head = lpb->getWritableBodySlice().getWritableObjPtr<indexEntryPageHead>(0);
+      head = lpb->getWritableBodyBuffer().getWritableObjPtr<indexEntryPageHead>(0);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of head");
@@ -284,7 +284,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getReadableBodySlice().getReadableObjPtr<indexEntryPageHead>(0);
+      readableHead = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -321,7 +321,7 @@ namespace vessel
       }
       readableHead = NULL;
 
-      head = lpb->getWritableBodySlice().getWritableObjPtr<indexEntryPageHead>(0);
+      head = lpb->getWritableBodyBuffer().getWritableObjPtr<indexEntryPageHead>(0);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of head");
@@ -368,7 +368,7 @@ namespace vessel
          goto error;
       }
 
-      readableHead = lpb->getReadableBodySlice().getReadableObjPtr<indexEntryPageHead>(0);
+      readableHead = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable ptr of head");
@@ -390,7 +390,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = lpb->getReadableBodySlice().getReadablePtr(INDEX_ENTRY_PAGE_HEAD_SIZE,
+      ptr = lpb->getReadableBodyBuffer().getReadablePtr(INDEX_ENTRY_PAGE_HEAD_SIZE,
                                                        readableHead->defObjSize);
       if (NULL == ptr)
       {
@@ -459,7 +459,7 @@ namespace vessel
          goto error;
       }
 
-      head = lpb->getReadableBodySlice().getReadableObjPtr<indexEntryPageHead>(0);
+      head = lpb->getReadableBodyBuffer().getReadableObjPtr<indexEntryPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readable head ptr:%d", rc);

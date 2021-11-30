@@ -926,7 +926,6 @@ namespace engine
                                            const CHAR * pHintBuff)
    {
       BSONObj matcher ( pMatcherBuff ) ;
-      const CHAR *engineType = NULL;
 
       INT32 rc = rtnGetIntElement ( matcher, FIELD_NAME_PAGE_SIZE,
                                     _pageSize ) ;

@@ -81,7 +81,7 @@ namespace vessel
          goto error;
       }
 
-      page = lpb.getReadableBodySlice().getReadableObjPtr<PAGE_ID>(sizeof(PAGE_ID) * pos);
+      page = lpb.getReadableBodyBuffer().getReadableObjPtr<PAGE_ID>(sizeof(PAGE_ID) * pos);
       if (NULL == page)
       {
          PD_LOG(PDERROR, "failed to get page ptr of pos[%d]", pos);
@@ -143,7 +143,7 @@ namespace vessel
          goto error;
       }
 
-      slot = lpb.getWritableBodySlice().getWritableObjPtr<PAGE_ID>(pos * sizeof(PAGE_ID));
+      slot = lpb.getWritableBodyBuffer().getWritableObjPtr<PAGE_ID>(pos * sizeof(PAGE_ID));
       if (NULL == slot)
       {
          PD_LOG(PDERROR, "failed to get writable ptr of slot");

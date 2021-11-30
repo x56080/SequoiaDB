@@ -63,14 +63,14 @@ namespace vessel
                           rpb->getPageSize(),
                           rpb->getGlobalPid().page(),
                           lpid, psv,
-                          rpb->getWritableSlice().getWPtr()))
+                          rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init page");
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 
-      buffer = rpb->getWritableBodySlice().getWPtr();
+      buffer = rpb->getWritableBodyBuffer().getWPtr();
       ossMemset(buffer, 0xFF, getPageBodySize(rpb->getPageSize()));
       rpb->commit(DPS_INVALID_LSN_OFFSET);
    done:

@@ -38,7 +38,6 @@
 
 #include "oss.hpp"
 #include "ossTypes.hpp"
-#include "pd.hpp"
 
 namespace engine
 {
@@ -50,140 +49,54 @@ namespace vessel
          OSS_INLINE slice(){}
          OSS_INLINE explicit slice(UINT32 size, const void *data):
                              _size(size),
-                             _rptr((const CHAR *)data),
-                             _wptr(NULL)
-         {
-            SDB_ASSERT(NULL != _rptr, "can not be null");
-         }
+                             _data((const CHAR *)data){}
          OSS_INLINE slice(const slice &r):
                     _size(r._size),
-                    _rptr(r._rptr),
-                    _wptr(r._wptr){}
+                    _data(r._data){}
 
          OSS_INLINE ~slice(){}
 
          OSS_INLINE slice &operator=(const slice &r)
          {
             _size = r._size;
-            _rptr = r._rptr;
-            _wptr = r._wptr;
+            _data = r._data;
             return *this;
          }
 
       public:
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _rptr;
-         }
-         OSS_INLINE BOOLEAN isEmpty()const
-         {
-            return 0 == _size;
-         }
-         OSS_INLINE BOOLEAN isWritale()const
-         {
-            return NULL != _wptr;
+            return NULL != _data && 0 < _size;
          }
          OSS_INLINE UINT32 getSize()const
          {
             return _size;
          }
+         OSS_INLINE const CHAR *getData()const
+         {
+            return _data;
+         }
          OSS_INLINE const CHAR *data()const
          {
-            return _rptr;
+            return _data;
          }
-         OSS_INLINE const CHAR *getRPtr()const
-         {
-            return _rptr;
-         }
-         OSS_INLINE CHAR *getWPtr()
-         {
-            return _wptr;
-         }
-
+         
          OSS_INLINE void reset()
          {
             _size = 0;
-            _rptr = NULL;
-            _wptr = NULL;
+            _data = NULL;
             return;
          }
 
          OSS_INLINE void reset(UINT32 size, const void *data)
          {
-            SDB_ASSERT(NULL != data, "can not be null");
             _size = size;
-            _rptr = (const CHAR *)data;
-            _wptr = NULL;
+            _data = (const CHAR *)data;
             return;
          }
-
-         OSS_INLINE void makeWritable(UINT32 size,
-                                      void *data)
-         {
-            SDB_ASSERT(NULL != data, "can not be null");
-            _size = size;
-            _wptr = (CHAR *)data;
-            _rptr = _wptr;
-            return;
-         }
-
-      public:
-         OSS_INLINE const CHAR *getReadablePtr(UINT32 offset, UINT32 size)const
-         {
-            SDB_ASSERT(isValid(), "can not be invalid");
-            return isValidAccessing(offset, size) ?
-                   (_rptr + offset) : NULL;
-         }
-         OSS_INLINE const CHAR *getReadablePtrWithoutSize(UINT32 offset)const
-         {
-            SDB_ASSERT(isValid(), "can not be invalid");
-            return isValidAccessing(offset, 1) ?
-                   (_rptr + offset) : NULL;
-         }
-
-         OSS_INLINE CHAR *getWritablePtr(UINT32 offset, UINT32 size)
-         {
-            SDB_ASSERT(isWritale(), "can not be invalid");
-            return (isWritale() && isValidAccessing(offset, size)) ?
-                   (_wptr + offset) : NULL;
-         }
-         OSS_INLINE CHAR *getWritablePtrWithoutSize(UINT32 offset)
-         {
-            SDB_ASSERT(isWritale(), "can not be invalid");
-            return (isWritale() && isValidAccessing(offset, 1)) ?
-                   (_wptr + offset) : NULL;
-         }
-
-      public:
-         template<class T>
-         const T *getReadableObjPtr(UINT32 offset)const
-         {
-            return (const T *)getReadablePtr(offset, sizeof(T));
-         }
-
-         template<class T>
-         T *getWritableObjPtr(UINT32 offset)
-         {
-            return (T *)getWritablePtr(offset, sizeof(T));
-         }
-
-      public:
-         INT32 write(UINT32 offset, UINT32 size, const void *data);
-         INT32 read(UINT32 offset, UINT32 size, void *data)const;
-         slice getReadableSlice(UINT32 offset, UINT32 size)const;
-         slice getReadableSlice()const;
-         slice getWritableSlice(UINT32 offset, UINT32 size);
-
-      private:
-         OSS_INLINE BOOLEAN isValidAccessing(UINT32 offset, UINT32 size)const
-         {
-            return (offset + size) <= _size;
-         }
-
       private:
          UINT32 _size = 0;
-         const CHAR *_rptr = NULL;
-         CHAR *_wptr = NULL;
+         const CHAR *_data = NULL;
    };//class slice
 
 } // namespace vessel

@@ -179,7 +179,7 @@ namespace vessel
       for (UINT32 i = 0; i < batch.size(); ++i)
       {
          SDB_ASSERT(batch[i].isValid(), "can not be invalid");
-         context.setOriginalRecord(batch[i].getReadableSlice());
+         context.setOriginalRecord(batch[i]);
          context.getCandidate().reset();
 
          rc = cl->insert(&context, res);

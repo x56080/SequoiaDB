@@ -207,61 +207,60 @@ namespace vessel
       return isValid() ? (const pageHead *)_buffer : NULL;
    }
 
-   slice runtimePageBuffer::getReadbleSlice()const
+   strictBuffer runtimePageBuffer::getReadableBuffer()const
    {
       if (isValid())
       {
-         return slice(_pageSize, (const void *)_buffer);
+         return strictBuffer(_pageSize, (const void *)_buffer);
       }
       else
       {
          SDB_ASSERT(FALSE, "can not be invalid");
-         return slice();
+         return strictBuffer();
       }
    }
    
-   slice runtimePageBuffer::getWritableSlice()
+   strictBuffer runtimePageBuffer::getWritableBuffer()
    {
-      slice s;
+      strictBuffer buffer;
       if (isWritingPrepared())
       {
-         s.makeWritable(_pageSize, (void *)_buffer);
+         buffer.makeWritable(_pageSize, (void *)_buffer);
       }
       else
       {
          SDB_ASSERT(FALSE, "must be prepared");
       }
-      return s;
+      return buffer;
    }
 
-   slice runtimePageBuffer::getReadbleBodySlice()const
+   strictBuffer runtimePageBuffer::getReadableBodyBuffer()const
    {
       if (isValid())
       {
          UINT32 pageBodySize = getPageBodySize(_pageSize);
-         return slice(_pageSize, (const void *)_buffer).
-                getReadableSlice(PAGE_HEAD_SIZE, pageBodySize);
+         return getReadableBuffer().getReadableBuffer(pageBodySize, PAGE_HEAD_SIZE);
       }
       else
       {
          SDB_ASSERT(FALSE, "can not be invalid");
-         return slice();
+         return strictBuffer();
       }
    }
    
-   slice runtimePageBuffer::getWritableBodySlice()
+   strictBuffer runtimePageBuffer::getWritableBodyBuffer()
    {
-      slice s;
+      strictBuffer buffer;
       if (isWritingPrepared())
       {
          UINT32 pageBodySize = getPageBodySize(_pageSize);
-         s.makeWritable(pageBodySize, (CHAR *)(_buffer + PAGE_HEAD_SIZE));
+         buffer.makeWritable(pageBodySize, (CHAR *)_buffer + PAGE_HEAD_SIZE);
       }
       else
       {
          SDB_ASSERT(FALSE, "must be prepared");
       }
-      return s;
+      return buffer;
    }
 }//namespace vessel
 }//namespace engine

@@ -69,7 +69,7 @@ namespace vessel
       UINT32 bufferSize = 0;
       strSlice clNameSlice;
       bson::BSONObj obj;
-      slice bufferSlice;
+      strictBuffer buffer;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
@@ -125,7 +125,7 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getWritableBodySlice();
+      buffer = lpb->getWritableBodyBuffer();
       obj = options.toBson();
 
       rc = prepareCreateCLLog(context, bufferSize, obj.objsize(),
@@ -136,7 +136,7 @@ namespace vessel
       }
       lsn = lrc.getLsn();
 
-      recordPtr = bufferSlice.getWritableObjPtr<collectionRecordOnDisk>
+      recordPtr = buffer.getWritableObjPtr<collectionRecordOnDisk>
                   (COLLECTION_DISK_RECORD_LEN * slot);
       if (NULL == recordPtr)
       {
@@ -185,7 +185,7 @@ namespace vessel
       collectionRecordOnDisk *wptr = NULL;
       collectionRecord oldRecord;
       UINT32 capacity = 0;
-      slice bufferSlice;
+      strictBuffer buffer;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
@@ -220,10 +220,10 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getWritableBodySlice();
-      SDB_ASSERT(bufferSlice.isWritale(), "must be writable");
+      buffer = lpb->getWritableBodyBuffer();
+      SDB_ASSERT(buffer.isWritable(), "must be writable");
 
-      wptr = bufferSlice.getWritableObjPtr<collectionRecordOnDisk>
+      wptr = buffer.getWritableObjPtr<collectionRecordOnDisk>
              (COLLECTION_DISK_RECORD_LEN * slot);
       if (NULL == wptr)
       {
@@ -403,7 +403,7 @@ namespace vessel
    {
       SDB_ASSERT(NULL != rpb && rpb->isValid(), "can not be null");
       UINT32 offset = COLLECTION_DISK_RECORD_LEN * i;
-      return rpb->getReadbleBodySlice().getReadableObjPtr<collectionRecordOnDisk>(offset);
+      return rpb->getReadableBodyBuffer().getReadableObjPtr<collectionRecordOnDisk>(offset);
    }
 
    INT32 crpAccessor::prepareCreateCLLog(requestContext *context,
@@ -490,7 +490,7 @@ namespace vessel
          goto error;
       }
       rc = pageAccessor::pushElement(context, DPS_LOG_CLCRT_VESSEL_ADJUNCT,
-                                     adjunct.getSize(), adjunct.getRPtr(), lrc);
+                                     adjunct.getSize(), adjunct.data(), lrc);
       if (SDB_OK != rc)
       {
          goto error;

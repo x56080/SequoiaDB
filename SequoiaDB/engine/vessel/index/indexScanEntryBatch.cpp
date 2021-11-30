@@ -54,7 +54,7 @@ namespace vessel
       UINT32 offset = _buffer.len();
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         if (i->isEmpty())
+         if (!i->isValid())
          {
             PD_LOG(PDERROR, "can not add empty fragment");
             rc = SDB_INVALIDARG;
@@ -85,7 +85,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 offset = _buffer.len();
-      if (OSS_UNLIKELY(entry.isEmpty()))
+      if (OSS_UNLIKELY(!entry.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;

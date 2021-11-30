@@ -400,7 +400,7 @@ namespace vessel
       if (userDefinedHead.isValid())
       {
          ossMemcpy((void *)(headPtr + STORAGE_FILE_COMMON_HEAD_SIZE),
-                   userDefinedHead.getRPtr(), userDefinedHead.getSize());
+                   userDefinedHead.getData(), userDefinedHead.getSize());
       }
 
       /// create checksum
@@ -1018,7 +1018,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (h.isEmpty() ||
+      else if (!h.isValid() ||
                STORAGE_FILE_USER_DEFINED_HEAD_SIZE < h.getSize())
       {
          rc = SDB_INVALIDARG;
@@ -1040,7 +1040,7 @@ namespace vessel
       }
 
       ossMemset((void *)ptr, 0x00, STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
-      ossMemcpy((void *)ptr, h.data(), h.getSize());
+      ossMemcpy((void *)ptr, h.getData(), h.getSize());
 
       createChecksum(commonPtr, checksum);
       ((storageFileHead *)commonPtr)->headChecksum = checksum;

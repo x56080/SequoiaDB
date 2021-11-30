@@ -67,7 +67,7 @@ namespace vessel
             public:
                void push(const slice &obj)
                {
-                  SDB_ASSERT(!obj.isEmpty(), "can not be empty");
+                  SDB_ASSERT(obj.isValid(), "can not be empty");
                   _bb.appendBuf(obj.data(), obj.getSize());
                   ++_count;
                   return;
@@ -77,7 +77,7 @@ namespace vessel
                {
                   for (auto i = il.begin(); i != il.end(); ++i)
                   {
-                     SDB_ASSERT(!i->isEmpty(), "can not be empty");
+                     SDB_ASSERT(i->isValid(), "can not be empty");
                      _bb.appendBuf(i->data(), i->getSize());
                   }
                   ++_count;

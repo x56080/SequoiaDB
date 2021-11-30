@@ -57,7 +57,7 @@ namespace vessel
          goto error;
       }
       else if (INVALID_LOGICAL_INDEX_ID == _indexId ||
-               _key.isEmpty())
+               !_key.isValid())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -69,7 +69,7 @@ namespace vessel
                                rpb->getGlobalPid().page(),
                                lpid, psv, _indexId,
                                _key.getSize(), _key.data(),
-                               rpb->getWritableSlice().getWPtr()))
+                               rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init page");
          rc = SDB_VESSEL_INTERNAL_ERR;

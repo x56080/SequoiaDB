@@ -75,6 +75,7 @@ namespace vessel
 
          INT32 getPosToInsert(const recordDataPageHead *head,
                               UINT32 alignedHeadAndBodySize,
+                              UINT32 minFreeSize,
                               RECORD_SLOT_ID &slotId,
                               UINT16 &offset,
                               UINT32 &totalSize)const;

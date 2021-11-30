@@ -38,6 +38,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
 #include "vessel/outerResource.h"
+#include "vessel/collectionSpace.h"
 
 namespace engine
 {

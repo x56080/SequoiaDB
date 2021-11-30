@@ -51,7 +51,7 @@
 #include "vessel/storageFileLoader.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/sortedStorageFileList.h"
-
+#include "vessel/shallowObject.hpp"
 
 namespace engine
 {
@@ -362,6 +362,8 @@ namespace vessel
          dataPageCluster *_dpc = NULL;
          lpsCheckpointContext _checkpointContext;
    };//class logicalPageSpace
+
+   typedef shallowObject<logicalPageSpace> lpsObject;
 }//namespace vessel
 }//namespace engine
 

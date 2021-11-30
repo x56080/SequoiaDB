@@ -58,7 +58,8 @@ namespace vessel
    }
 
    INT32 btreeAccessor::init(requestContext *context,
-                             indexContext *ic)
+                             indexContext *ic,
+                             const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       logicalPageSpace *lps = NULL;
@@ -89,6 +90,7 @@ namespace vessel
 
       _is = static_cast<indexSpace *>(lps);
       _bac.init(_ic, _context, _is);
+      _transID = transID;
       
    done:
       return rc;
@@ -103,6 +105,7 @@ namespace vessel
       _is = NULL;
       _ic = NULL;
       _bac.fini();
+      _transID = DPS_TRANS_ID();
       return;
    }
 
@@ -611,7 +614,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       btreeSplitRaisedKey newRaisedKey;
       btreeNode newRootNode;
-      slice newRootBufferSlice;
+      strictBuffer newRootStrictBuffer;
       //logicalPageBuffer entryBuffer;
       //indexEntryPageAccessor accessor;
       //UINT32 rootUpdatedTimes = 0;
@@ -638,7 +641,7 @@ namespace vessel
          goto error;
       }
 
-      rc = newRootBuffer.autoGetWritableBodySlice(newRootBufferSlice);
+      rc = newRootBuffer.autoGetWritableBodyBuffer(newRootStrictBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable slice:%d", rc);
@@ -681,7 +684,7 @@ namespace vessel
       }
 
       /// set right child of new root first, which init it as non-leaf node.
-      newRootBufferSlice.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
+      newRootStrictBuffer.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = newRaisedKey.rightChild;
       newRootNode = btreeNode(&newRootBuffer, 0, _ic);
       rc = newRootNode.insertRaisedKey(newRaisedKey);
       if (SDB_OK != rc)

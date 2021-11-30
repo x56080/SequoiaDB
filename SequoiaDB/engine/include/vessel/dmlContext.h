@@ -53,9 +53,6 @@ namespace engine
 {
 namespace vessel
 {
-   class collectionSpace;
-   class collection;
-
    class dmlContext : public requestContext
    {
       public:

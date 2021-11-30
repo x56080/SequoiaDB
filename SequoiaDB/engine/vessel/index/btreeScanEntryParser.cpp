@@ -35,6 +35,7 @@
 
 #include "vessel/btreeScanEntryParser.h"
 #include "ixmKey.hpp"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
@@ -46,6 +47,7 @@ namespace vessel
       const _fixedSizeFields *fields = NULL;
       UINT32 keySize = 0;
       const CHAR *keyData = NULL;
+      strictBuffer buffer;
 
       if (OSS_UNLIKELY(entryData.getSize() <= sizeof(_fixedSizeFields)))
       {
@@ -53,7 +55,8 @@ namespace vessel
          goto error;
       }
 
-      fields = entryData.getReadableObjPtr<_fixedSizeFields>(0);
+      buffer.reset(entryData.getSize(), entryData.getData());
+      fields = buffer.getReadableObjPtr<_fixedSizeFields>(0);
       if (!fields->indexRid.isValid() ||
           !fields->rid.isValid())
       {
@@ -62,7 +65,7 @@ namespace vessel
          goto error;
       }
 
-      keyData = entryData.getReadablePtrWithoutSize(sizeof(_fixedSizeFields));
+      keyData = buffer.getReadablePtrWithoutSize(sizeof(_fixedSizeFields));
       keySize = ixmKey(keyData).dataSize();
       if (entryData.getSize() < (sizeof(_fixedSizeFields) + keySize))
       {
@@ -95,7 +98,7 @@ namespace vessel
    {
       SDB_ASSERT(indexRid.isValid(), "can not be invalid");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
-      SDB_ASSERT(!keySlice.isEmpty(), "can not be invalid");
+      SDB_ASSERT(keySlice.isValid(), "can not be invalid");
 
       _fields.indexRid = indexRid;
       _fields.rid = rid;

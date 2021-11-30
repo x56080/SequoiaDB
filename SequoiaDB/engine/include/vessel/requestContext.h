@@ -212,6 +212,9 @@ namespace vessel
          {
             return _ridLatchContext;
          }
+
+         BOOLEAN testRidLocked(const recordID &rid,
+                               ossSharedLatchMode *mode=NULL);
       public:
          INT32 blockCheckpoint(SPACE_TYPE type,
                                ossRWMutex *mutex);

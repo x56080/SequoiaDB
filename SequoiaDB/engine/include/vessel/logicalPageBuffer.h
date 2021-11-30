@@ -103,7 +103,7 @@ namespace vessel
          INT32 prepareToWrite();
          void commit(DPS_LSN_OFFSET lsn);
          
-         INT32 autoGetWritableBodySlice(slice &s);
+         INT32 autoGetWritableBodyBuffer(strictBuffer &buffer);
 
          BOOLEAN isWritable()const;
 
@@ -115,8 +115,8 @@ namespace vessel
          /// must hold upgrade lock first
          BOOLEAN tryLockExclusiveFromUpgrade();
 
-         slice getReadableBodySlice()const;
-         slice getWritableBodySlice();
+         strictBuffer getReadableBodyBuffer()const;
+         strictBuffer getWritableBodyBuffer();
 
          /// release lpid and pid
          void destroy();

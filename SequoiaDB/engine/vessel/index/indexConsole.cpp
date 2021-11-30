@@ -229,7 +229,8 @@ namespace vessel
    INT32 indexConsole::insert(requestContext *context,
                               indexContext *ic,
                               const ixmKey &key,
-                              const recordID &rid)
+                              const recordID &rid,
+                              const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isInitialized()))
@@ -249,7 +250,7 @@ namespace vessel
 
       if (INDEX_TYPE_LSM == ic->getObj().getIndexType())
       {
-         rc = lsmInsert(context, ic, key, rid);
+         rc = lsmInsert(context, ic, key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into lsm index:%d", rc);
@@ -258,7 +259,7 @@ namespace vessel
       }
       else
       {
-         rc = btreeInsert(context, ic, key, rid);
+         rc = btreeInsert(context, ic, key, rid, transID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
@@ -274,7 +275,8 @@ namespace vessel
    INT32 indexConsole::lsmInsert(requestContext *context,
                                  indexContext *ic,
                                  const ixmKey &key,
-                                 const recordID &rid)
+                                 const recordID &rid,
+                                 const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -297,7 +299,7 @@ namespace vessel
          goto error;
       }
 
-      lsmEntry.shallowCopy(key, rid, lsn, context->getExecutor()->getTransID());
+      lsmEntry.shallowCopy(key, rid, lsn, transID);
 
       rc = lsm.keyInsert(lsmEntry);
       if (SDB_OK != rc)
@@ -900,11 +902,12 @@ namespace vessel
    INT32 indexConsole::btreeInsert(requestContext *context,
                                    indexContext *ic,
                                    const ixmKey &key,
-                                   const recordID &rid)
+                                   const recordID &rid,
+                                   const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
       btreeAccessor accessor;
-      rc = accessor.init(context, ic);
+      rc = accessor.init(context, ic, transID);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init btree accessor:%d", rc);
@@ -942,7 +945,8 @@ namespace vessel
             continue;
          }
              
-         rc = accessor.init(context, req->getContext());
+         rc = accessor.init(context, req->getContext(),
+                            context->getTransIDWithoutTag());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init btree accessor[%d]:%d",

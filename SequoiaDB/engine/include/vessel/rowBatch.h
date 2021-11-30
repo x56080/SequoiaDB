@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = btreeAccessPathNode.cpp
+   Source File Name = rowBatch.h
 
    Descriptive Name =
 
@@ -33,43 +33,51 @@
 
 ******************************************************************************/
 
-#include "vessel/btreeAccessPathNode.h"
-#include "vessel/logicalPageBuffer.h"
-#include "pdTrace.hpp"
-#include "vessel/btreeNodePage.h"
+#ifndef VESSEL_ROW_BATCH_H_
+#define VESSEL_ROW_BATCH_H_
+
+#include "vessel/slice.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   btreeAccessPathNode::btreeAccessPathNode(logicalPageBuffer *lpb)
+   class rowBatch : public SDBObject
    {
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      _lpid = lpb->getLogicalPid();
-      _lpb = lpb;
-      const btreeNodePageHead *head = lpb->getReadableBodyBuffer().getReadableObjPtr<btreeNodePageHead>(0);
-      SDB_ASSERT(NULL != head, "can not be null");
-      _splitedTimes = head->splitedTimes;
-   }
+      public:
+         rowBatch(){}
+         virtual ~rowBatch(){}
+         rowBatch(const rowBatch &) = delete;
+         rowBatch &operator=(const rowBatch &) = delete;
 
-   void btreeAccessPathNode::setChildFootprint(const btreePathFootprint &fp)
-   {
-      SDB_ASSERT(isAccessing(), "must be accessing");
-      SDB_ASSERT(fp.isValid(), "can not be invalid");
-      _footprint = fp;
-      return;
-   }
+      public:
+         OSS_INLINE UINT32 getBatchSize()const{return _rows.size();}
 
-   void btreeAccessPathNode::reaccess(logicalPageBuffer *lpb)
-   {
-      SDB_ASSERT(isValid(), "can not be invalid");
-      SDB_ASSERT(NULL != lpb && lpb->isValid(), "can not be invalid");
-      SDB_ASSERT(lpb->getLogicalPid() == _lpid, "must be same");
-      SDB_ASSERT(NULL == _lpb, "must be null");
-      _lpb = lpb;
-      return;
-   }
-      
+      public:
+         void init(INT32 rowLimit = -1);
+         void fini();
+         void resetData();
+         BOOLEAN isFreeToPush(UINT32 size)const;
+
+      private:
+         /// <offset, size>
+         typedef std::pair<UINT32, UINT32> _ROW_TAG;
+
+         virtual INT32 writeBuffer(UINT32 offset, const slice &data) = 0;
+         virtual void clearBuffer() = 0;
+         virtual slice getFromBuffer(const _ROW_TAG &rt)const = 0;
+         virtual void _fini(){}
+
+      private:
+         ossPoolVector<_ROW_TAG> _rows;
+         INT32 _rowLimit = -1;
+         UINT32 _bufferCapacity = 0;
+         UINT32 _size = 0;
+   };//class rowBatch
 } // namespace vessel
-  
+
 } // namespace engine
+
+
+#endif//VESSEL_ROW_BATCH_H_

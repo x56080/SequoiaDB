@@ -66,8 +66,8 @@ namespace vessel
                                           UINT32 &pos)const
    {
       PAGE_ID lpid = INVALID_PAGE_ID;
-      static const UINT32 _BEGIN_LPID = TOTAL_DIRECT_MAPPED_IMP *
-                                        ID_MAP_PAGE_CAPACITY;
+      static constexpr UINT32 _BEGIN_LPID = TOTAL_DIRECT_MAPPED_IMP *
+                                            ID_MAP_PAGE_CAPACITY;
 
       if (INVALID_CL_MB_ID != mbID &&
           isValidIndexSlot(slot) &&

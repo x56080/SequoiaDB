@@ -82,10 +82,10 @@ namespace vessel
          goto error;
       }
 
-      rid = (const recordID *)(content.getRPtr());
-      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.getRPtr()) + sizeof(recordID));
+      rid = (const recordID *)(content.data());
+      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
       record.reset(content.getSize() - dataScanRow::MIN_CONTENT_SIZE,
-                      (const CHAR *)((ossValuePtr)(content.getRPtr()) +
+                      (const CHAR *)((ossValuePtr)(content.data()) +
                        dataScanRow::MIN_CONTENT_SIZE));
       dsr->shallowCopy(*rid, *transID, record);
 
@@ -98,7 +98,7 @@ namespace vessel
    INT32 indexScanCursor::saveEntry(const slice &entryData)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(entryData.isEmpty()))
+      if (OSS_UNLIKELY(!entryData.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;

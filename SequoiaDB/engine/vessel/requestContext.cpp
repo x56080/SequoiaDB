@@ -616,6 +616,17 @@ namespace vessel
       _unlockAndClear(_UNLOCK_LVL_RID);
    }
 
+   BOOLEAN requestContext::testRidLocked(const recordID &rid,
+                                         ossSharedLatchMode *mode)
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
+      recordIdLatchKey key(getLogicalCSID(),
+                           getLogicalCLID(),
+                           rid);
+      return _ridLatchContext.test(key, mode);
+   }
+
    void requestContext::_unlockAndClear(_UNLOCK_LVL lvl)
    {
       SDB_ASSERT(isOpen(), "must be open");

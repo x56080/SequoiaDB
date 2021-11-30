@@ -80,7 +80,7 @@ namespace vessel
 
       if (!initCollectionRecordPage(rpb->getPageSize(),
                                     rpb->getGlobalPid().page(),
-                                    lpid, psv, rpb->getWritableSlice().getWPtr()))
+                                    lpid, psv, rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init crp");
          rc = SDB_VESSEL_INTERNAL_ERR;

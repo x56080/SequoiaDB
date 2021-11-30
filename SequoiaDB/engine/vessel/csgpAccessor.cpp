@@ -56,7 +56,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       const runtimePageBuffer *rpb = NULL;
       const csMetaRecord *record = NULL;
-      slice rs;
+      strictBuffer buffer;
 
       if (NULL == context ||
           NULL == lpb ||
@@ -67,8 +67,8 @@ namespace vessel
       }
 
       rpb = &(lpb->getRuntimeBuffer());
-      rs = lpb->getReadableBodySlice();
-      rc = validatePage((ossValuePtr)(rpb->getReadbleSlice().getRPtr()),
+      buffer = lpb->getReadableBodyBuffer();
+      rc = validatePage((ossValuePtr)(rpb->getSlice().data()),
                          PAGE_TYPE_CS_META, rpb->getPageSize(),
                          rpb->getGlobalPid().page(),
                          lpb->getLogicalPid(),
@@ -80,7 +80,7 @@ namespace vessel
          goto error;
       }
 
-      record = rs.getReadableObjPtr<csMetaRecord>(0);
+      record = buffer.getReadableObjPtr<csMetaRecord>(0);
       if (NULL == record)
       {
          PD_LOG(PDERROR, "failed to get readable record ptr");

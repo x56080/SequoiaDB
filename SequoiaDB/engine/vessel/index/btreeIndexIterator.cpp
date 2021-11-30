@@ -758,8 +758,9 @@ namespace vessel
    {
       SDB_ASSERT(isReadyToRead(), "can not be invalid");
       const btreeNodePageHead *head = NULL;
-      slice nodeSlice = _bac.getPathNode(_bac.getPathSize() - 1).getPageBuffer()->getReadableBodySlice();
-      head = nodeSlice.getReadableObjPtr<btreeNodePageHead>(0);         
+      strictBuffer buffer = _bac.getPathNode(_bac.getPathSize() - 1).
+                        getPageBuffer()->getReadableBodyBuffer();
+      head = buffer.getReadableObjPtr<btreeNodePageHead>(0);         
       return DPS_TRANS_ID(head->transSN, head->transNode);
    }
    recordID btreeIndexIterator::getRid()const
@@ -785,7 +786,7 @@ namespace vessel
 
       SDB_ASSERT(_item.isValid(), "can not be invalid");
 
-      head = _bac.getPathNode(_bac.getPathSize() - 1).getPageBuffer()->getReadableBodySlice().
+      head = _bac.getPathNode(_bac.getPathSize() - 1).getPageBuffer()->getReadableBodyBuffer().
              getReadableObjPtr<btreeNodePageHead>(0);
       transID.setNodeID(head->transNode);
       transID.setSN(head->transSN);

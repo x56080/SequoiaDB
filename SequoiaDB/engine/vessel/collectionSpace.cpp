@@ -738,7 +738,7 @@ namespace vessel
                break;
             }
 
-            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getReadbleSlice().getRPtr(),
+            if (!getCollectionRecordIfValid(lpb.getRuntimeBuffer().getPageHead(),
                                             j, record))
             {
                continue;

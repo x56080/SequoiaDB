@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselObject.hpp
+   Source File Name = rowBatch.cpp
 
    Descriptive Name =
 
@@ -33,22 +33,38 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_VESSEL_OBJECT_H_
-#define VESSEL_VESSEL_OBJECT_H_
-
-#include "vessel/shallowObject.hpp"
-#include "vessel/collectionSpace.h"
-#include "vessel/collection.h"
+#include "vessel/rowBatch.h"
 
 namespace engine
 {
 namespace vessel
 {
-   typedef shallowObject<collection> collectionObject;
-   typedef shallowObject<collectionSpace> collectionSpaceObject;
+   void rowBatch::init(INT32 rowLimit)
+   {
+      fini();
+      _rowLimit = rowLimit;
+      return;
+   }
+
+   void rowBatch::fini()
+   {
+      _rows.clear();
+      _rowLimit = -1;
+      _fini();
+   }
+
+   void rowBatch::clearBatch()
+   {
+      _rows.clear();
+      clearBuffer();
+      return;
+   }
+
+   void rowBatch::push(const slice &row)
+   {
+      SDB_ASSERT(row.isValid(), "can not be invalid");
+      _rows.push_back(row.getReadableSlice());
+   }
 } // namespace vessel
 
 } // namespace engine
-
-
-#endif//VESSEL_VESSEL_OBJECT_H_

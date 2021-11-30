@@ -69,7 +69,7 @@ namespace vessel
                              rpb->getGlobalPid().page(),
                              lpid, psv,
                              _logicalCLID, _indexId, _isLeaf, _isRoot,
-                             rpb->getWritableSlice().getWPtr()))
+                             rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",
                 rpb->getGlobalPid().toString().c_str());
@@ -112,7 +112,7 @@ namespace vessel
                           rpb->getGlobalPid().page(),
                           lpid,
                           psv,
-                          rpb->getWritableSlice().getWPtr()))
+                          rpb->getWritableBuffer().getWPtr()))
       {
          PD_LOG(PDERROR, "failed to init btree node page page[%s]",
                 rpb->getGlobalPid().toString().c_str());
@@ -120,7 +120,7 @@ namespace vessel
          goto error;
       }
 
-      rc = rpb->getWritableBodySlice().write(0, _data.getSize(), _data.getRPtr());
+      rc = rpb->getWritableBodyBuffer().write(0, _data.getSize(), _data.data());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to copy page data");

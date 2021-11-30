@@ -41,7 +41,7 @@
 #include "sdbInterface.hpp"
 #include "vessel/shallowObject.hpp"
 #include "vessel/requestContext.h"
-#include "vessel/vesselObject.h"
+#include "vessel/collection.h"
 
 
 namespace engine

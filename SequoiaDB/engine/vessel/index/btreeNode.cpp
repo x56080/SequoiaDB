@@ -127,13 +127,13 @@ namespace vessel
    const btreeNodePageHead *btreeNode::getReadableHead()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return _buffer->getReadableBodySlice().getReadableObjPtr<btreeNodePageHead>(0);
+      return _buffer->getReadableBodyBuffer().getReadableObjPtr<btreeNodePageHead>(0);
    }
 
-   slice btreeNode::getReadableSlice()const
+   strictBuffer btreeNode::getReadableBuffer()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return _buffer->getReadableBodySlice();
+      return _buffer->getReadableBodyBuffer();
    }
 
    DPS_TRANS_ID btreeNode::getTransID()const
@@ -180,7 +180,7 @@ namespace vessel
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
                       (BTREE_NODE_PREFIX_SLOT_SIZE * getReadableHead()->prefixCount) +
                       (BTREE_NODE_SLOT_SIZE * pos);
-      return _buffer->getWritableBodySlice().
+      return _buffer->getWritableBodyBuffer().
              getWritableObjPtr<btreeItemSlot>(offset);
    }
 
@@ -192,7 +192,7 @@ namespace vessel
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE +
                       (BTREE_NODE_PREFIX_SLOT_SIZE * getReadableHead()->prefixCount) +
                       (BTREE_NODE_SLOT_SIZE * pos);
-      return _buffer->getReadableBodySlice().
+      return _buffer->getReadableBodyBuffer().
              getReadableObjPtr<btreeItemSlot>(offset);
    }
 
@@ -202,7 +202,7 @@ namespace vessel
       const btreeNodePageHead *head = getReadableHead();
       SDB_ASSERT(pos < head->prefixCount, "out of bound");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE + (pos * BTREE_NODE_PREFIX_SLOT_SIZE);
-      return getReadableSlice().getReadableObjPtr<btreeNodePrefixSlot>(offset);
+      return getReadableBuffer().getReadableObjPtr<btreeNodePrefixSlot>(offset);
    }
 
    btreeNodePrefixSlot *btreeNode::getWritablePrefixSlot(UINT16 pos)
@@ -211,13 +211,13 @@ namespace vessel
       const btreeNodePageHead *head = getReadableHead();
       SDB_ASSERT(pos < head->prefixCount, "out of bound");
       UINT32 offset = BTREE_NODE_PAGE_HEAD_SIZE + (pos * BTREE_NODE_PREFIX_SLOT_SIZE);
-      return _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePrefixSlot>(offset);
+      return _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePrefixSlot>(offset);
    }
 
    UINT32 btreeNode::getNodeSize()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
-      return _buffer->getReadableBodySlice().getSize();
+      return _buffer->getReadableBodyBuffer().getSize();
    }
 
    BOOLEAN btreeNode::hitHighWaterMark()const
@@ -440,7 +440,7 @@ namespace vessel
    INT32 btreeNode::_leafInsert(const ixmKey &key,
                                 const recordID &rid,
                                 RECORD_SLOT_ID pos)
-   {
+   { 
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(key.isValid() && rid.isValid(), "can not be invalid");
@@ -578,7 +578,6 @@ namespace vessel
    INT32 btreeNode::reactiveRemovedKey(const btreeItemLocation &location)
    {
       INT32 rc = SDB_OK;
-      slice ws;
       btreeItemSlot *slot = NULL;
 
       if (OSS_UNLIKELY(!location.identical ||
@@ -609,7 +608,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _buffer->autoGetWritableBodySlice(ws);
+      rc = _buffer->prepareToWrite();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
@@ -970,7 +969,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       const btreeNodePageHead *head = NULL;
       const btreeItemSlot *slot = NULL;
-      slice rs;
+      strictBuffer buffer;
 
       item.fini();
 
@@ -985,7 +984,7 @@ namespace vessel
          goto error;
       }
 
-      rs = _buffer->getReadableBodySlice();
+      buffer = _buffer->getReadableBodyBuffer();
 
       head = getReadableHead();
       if (head->totalSlotCount <= pos)
@@ -1008,7 +1007,7 @@ namespace vessel
       }
       else if (!slot->isKeyInExtPage())
       {
-         const CHAR *keyData = rs.getReadablePtr(slot->data.key.offset,
+         const CHAR *keyData = buffer.getReadablePtr(slot->data.key.offset,
                                                  slot->data.key.size);
          if (OSS_UNLIKELY(NULL == keyData))
          {
@@ -1051,24 +1050,24 @@ namespace vessel
       UINT32 keyOffset = 0;
       UINT32 size = getSizeToSaveInNode(keySize);
       btreeNodePageHead *head = NULL;
-      slice writableSlice;
+      strictBuffer buffer;
       BOOLEAN appendonly = FALSE;
 
-      rc = _buffer->autoGetWritableBodySlice(writableSlice);
+      rc = _buffer->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable slice:%d", rc);
          goto error;
       }
 
-      head = writableSlice.getWritableObjPtr<btreeNodePageHead>(0);
+      head = buffer.getWritableObjPtr<btreeNodePageHead>(0);
       /// should be prechecked outside
       SDB_ASSERT(size <= head->freeSapceAfterLastSlot, "impossible");
       SDB_ASSERT(pos <= head->totalSlotCount, "impossible");
       appendonly = (pos == head->totalSlotCount);
 
       keyOffset = getKeyDataOffsetToWrite(head, keySize);
-      rc = writableSlice.write(keyOffset, keySize, key.data());
+      rc = buffer.write(keyOffset, keySize, key.data());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to write key data to[%d,%d], rc:%d",
@@ -1204,9 +1203,9 @@ namespace vessel
 
       if (appendOnly)
       {
-         slice s = _buffer->getWritableBodySlice();
-         SDB_ASSERT(s.isWritale(), "must be writable");
-         s.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = raisedKey.rightChild;
+         strictBuffer buffer = _buffer->getWritableBodyBuffer();
+         SDB_ASSERT(buffer.isWritable(), "must be writable");
+         buffer.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = raisedKey.rightChild;
       }
       else
       {
@@ -1311,9 +1310,9 @@ namespace vessel
 
       if (appendOnly)
       {
-         slice s = _buffer->getWritableBodySlice();
-         SDB_ASSERT(s.isWritale(), "must be writable");
-         s.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = raisedKey.rightChild;
+         strictBuffer buffer = _buffer->getWritableBodyBuffer();
+         SDB_ASSERT(buffer.isWritable(), "must be writable");
+         buffer.getWritableObjPtr<btreeNodePageHead>(0)->rightChild = raisedKey.rightChild;
       }
       else
       {
@@ -1344,19 +1343,19 @@ namespace vessel
       btreeExtKeyPageIniter initer;
       PAGE_ID extp = INVALID_PAGE_ID;
       btreeNodePageHead *head = NULL;
-      slice ns;
+      strictBuffer buffer;
       BOOLEAN appendonly = FALSE;
       UINT32 keySize = key.dataSize();
       SDB_ASSERT(0 < keySize, "can not be empty");
 
-      rc = _buffer->autoGetWritableBodySlice(ns);
+      rc = _buffer->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable slice");
          goto error;
       }
 
-      head = ns.getWritableObjPtr<btreeNodePageHead>(0);
+      head = buffer.getWritableObjPtr<btreeNodePageHead>(0);
       SDB_ASSERT(pos <= head->totalSlotCount, "out of bound");
       SDB_ASSERT(BTREE_NODE_SLOT_SIZE <= head->freeSapceAfterLastSlot, "out of resource");
       appendonly = (pos == head->totalSlotCount);
@@ -1414,7 +1413,7 @@ namespace vessel
       logicalPageBuffer lpb;
       ossValuePtr ptr = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      slice rs;
+      strictBuffer buffer;
       const btreeExternalKeyPageHead *head = NULL;
 
       slot = getReadableSlot(pos);
@@ -1437,7 +1436,7 @@ namespace vessel
          goto error;
       }
 
-      ptr = (ossValuePtr)(lpb.getRuntimeBuffer().getReadbleSlice().data());
+      ptr = (ossValuePtr)(lpb.getRuntimeBuffer().getSlice().data());
       rc = validatePage(ptr, PAGE_TYPE_BTREE_EXTERNAL_KEY,
                         lpb.getPageSize(), lpb.getGlobalPid().page(),
                         lpb.getLogicalPid(), lpb.getCowTrigger().getPsv());
@@ -1448,8 +1447,8 @@ namespace vessel
          goto error;
       }
 
-      rs = lpb.getReadableBodySlice();
-      head = rs.getReadableObjPtr<btreeExternalKeyPageHead>(0);
+      buffer = lpb.getReadableBodyBuffer();
+      head = buffer.getReadableObjPtr<btreeExternalKeyPageHead>(0);
       if (head->size != slot->data.key.size ||
           head->indexId != _ic->getIndexID())
       {
@@ -1460,7 +1459,8 @@ namespace vessel
       }
 
       rc = item.initWhenExtKey(pos, slot, head->size,
-                               rs.getReadablePtr(BTREE_EXT_KEY_PAGE_HEAD_SIZE, head->size));
+                               buffer.getReadablePtr(BTREE_EXT_KEY_PAGE_HEAD_SIZE,
+                                                     head->size));
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to save external key:%d", rc);
@@ -1616,7 +1616,7 @@ namespace vessel
       btreeNodePrefixSlot *ps = NULL;
       slice nodeSlice;
 
-      rc = _buffer->autoGetWritableBodySlice(nodeSlice);
+      rc = _buffer->autoGetWritableBodyBuffer(nodeSlice);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable slice:%d", rc);
@@ -1884,7 +1884,7 @@ namespace vessel
       memoryBlock mb;
       btreeNodePageSplitIniter initer;
       logicalPageSpace *lps = _buffer->getLogicalPageSpace();
-      slice buffer;
+      strictBuffer buffer;
       btreeNodePageHead *head = NULL;
       PAGE_ID pivotLeftChild = INVALID_PAGE_ID;
 
@@ -1921,7 +1921,7 @@ namespace vessel
          goto error;
       }
 
-      initer.set(buffer);
+      initer.set(buffer.getSlice());
       rc = lps->allocatePage(_buffer->getContext(), &initer, rightNode);
       if (SDB_OK != rc)
       {
@@ -1941,7 +1941,7 @@ namespace vessel
          goto error;
       }
 
-      head = _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      head = _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePageHead>(0);
       ++head->splitedTimes;
       if (!isLeaf())
       {
@@ -1968,7 +1968,7 @@ namespace vessel
    }
 
    INT32 btreeNode::buildRightNodeWhenSplit(RECORD_SLOT_ID begin,
-                                            slice &node)const
+                                            strictBuffer &node)const
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isValid(), "can not be invalid");
@@ -2067,18 +2067,17 @@ namespace vessel
          IExecutor *executor = _buffer->getContext()->getExecutor();
          _buffer->commit(executor->getEndLsn());
 
-         updateTransID();
+         updateTransID(DPS_TRANS_ID());
       }
       return;
    }
 
-   void btreeNode::updateTransID()
+   void btreeNode::updateTransID(const DPS_TRANS_ID &transID)
    {
       SDB_ASSERT(isValid() && _buffer->isWritable(), "must be writable");
-      DPS_TRANS_ID transID = _buffer->getContext()->getTransIDWithoutTag();
       if (transID.isValid())
       {
-         btreeNodePageHead *head = _buffer->getWritableBodySlice().
+         btreeNodePageHead *head = _buffer->getWritableBodyBuffer().
                                    getWritableObjPtr<btreeNodePageHead>(0);
          if (DPS_INVALID_TRANSID_SN == head->transSN ||
              head->transSN < transID.getSN())
@@ -2118,14 +2117,13 @@ namespace vessel
       SDB_ASSERT(isValid(), "can not be invalid");
       SDB_ASSERT(!hasCompressedKeys(), "TODO");
       memoryBlock mb;
-      slice compactionBuffer;
+      strictBuffer compactionBuffer;
       UINT32 frontOffset = BTREE_NODE_PAGE_HEAD_SIZE;
       UINT32 backOffset = getNodeSize();
       btreeNodePageHead *head = NULL;
       const btreeNodePageHead *rh = getReadableHead();
       BOOLEAN releaseExtPage = FALSE;
-      slice bodySlice = getReadableSlice();
-      slice writableSlice;
+      strictBuffer writableBuffer;
 
 
       if (getReadableHead()->totalFreeSpace ==
@@ -2144,7 +2142,7 @@ namespace vessel
 
       compactionBuffer.makeWritable(mb.getCapacity(), mb.getBuffer());
 
-      rc = _buffer->autoGetWritableBodySlice(writableSlice);
+      rc = _buffer->autoGetWritableBodyBuffer(writableBuffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
@@ -2188,8 +2186,8 @@ namespace vessel
          else
          {
             keySize = slot->data.key.size;
-            keyData = bodySlice.getReadablePtr(slot->data.key.offset,
-                                               slot->data.key.size);
+            keyData = writableBuffer.getReadablePtr(slot->data.key.offset,
+                                                    slot->data.key.size);
             SDB_ASSERT(NULL != keyData && 0 < keySize, "can not be invalid");
          }
 
@@ -2248,7 +2246,7 @@ namespace vessel
          }
       }
 
-      ossMemcpy(writableSlice.getWPtr(), compactionBuffer.data(), compactionBuffer.getSize());
+      ossMemcpy(writableBuffer.getWPtr(), compactionBuffer.getRPtr(), compactionBuffer.getSize());
       SDB_ASSERT(!hasExternalKey(), "ext key should always be compacted so far");
    done:
       return rc;
@@ -2262,7 +2260,7 @@ namespace vessel
       SDB_ASSERT(isValid() && _buffer->isWritable(), "can not be invalid");
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != max, "can not be invalid");
       UINT32 size = 0;
-      btreeNodePageHead *head = _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      btreeNodePageHead *head = _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get writable head ptr");
@@ -2590,20 +2588,20 @@ namespace vessel
          goto error;
       }
 
-      ossMemcpy(mb.getBuffer(), newRoot._buffer->getReadableBodySlice().data(), nodeSize);
-      ossMemcpy(newRoot._buffer->getWritableBodySlice().getWPtr(),
-                _buffer->getReadableBodySlice().data(), nodeSize);
-      ossMemcpy(_buffer->getWritableBodySlice().getWPtr(),
+      ossMemcpy(mb.getBuffer(), newRoot._buffer->getReadableBodyBuffer().getRPtr(), nodeSize);
+      ossMemcpy(newRoot._buffer->getWritableBodyBuffer().getWPtr(),
+                _buffer->getReadableBodyBuffer().getRPtr(), nodeSize);
+      ossMemcpy(_buffer->getWritableBodyBuffer().getWPtr(),
                 mb.getBuffer(), nodeSize);
 
       /// reset current page
-      currentPageHead =  _buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      currentPageHead =  _buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePageHead>(0);
       currentPageHead->splitedTimes = splitedTimes;
       OSS_BIT_CLEAR(currentPageHead->flags, BTREE_NODE_FLAG_IS_LEAF);
       getWritableSlot(0)->data.nlf.leftChild = newRoot._buffer->getLogicalPid();
 
       /// reset new root page head
-      newRootHead = newRoot._buffer->getWritableBodySlice().getWritableObjPtr<btreeNodePageHead>(0);
+      newRootHead = newRoot._buffer->getWritableBodyBuffer().getWritableObjPtr<btreeNodePageHead>(0);
       newRootHead->splitedTimes = 0;
       OSS_BIT_CLEAR(newRootHead->flags, BTREE_NODE_FLAG_IS_ROOT);
    done:
@@ -2746,7 +2744,7 @@ namespace vessel
 
       const btreeNodePageHead *rh = getReadableHead();
       btreeNodePageHead *head = NULL;
-      slice bodySlice;
+      strictBuffer buffer;
 
       if (rh->totalSlotCount < pos)
       {
@@ -2765,7 +2763,7 @@ namespace vessel
          }
       }
 
-      rc = _buffer->autoGetWritableBodySlice(bodySlice);
+      rc = _buffer->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get node ready to write:%d", rc);
@@ -2773,7 +2771,7 @@ namespace vessel
       }
 
       rh = NULL;
-      head = bodySlice.getWritableObjPtr<btreeNodePageHead>(0);
+      head = buffer.getWritableObjPtr<btreeNodePageHead>(0);
       if (pos == head->totalSlotCount)
       {
          head->rightChild = INVALID_PAGE_ID;
@@ -3006,7 +3004,7 @@ namespace vessel
       }
       else
       {
-         btreeNodePageHead *head = _buffer->getWritableBodySlice().
+         btreeNodePageHead *head = _buffer->getWritableBodyBuffer().
                                    getWritableObjPtr<btreeNodePageHead>(0);
          head->rightChild = child;
       }

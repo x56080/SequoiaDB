@@ -189,7 +189,7 @@ namespace vessel
       }
 
       rc = logger->pushLogRecordElement(executor, &lrc, DPS_LOG_CSCRT_VESSEL_OPTIONS,
-                                        options.getSize(), options.getRPtr());
+                                        options.getSize(), options.getData());
       if (SDB_OK != rc)
       {
          logger->abort(executor, &lrc);

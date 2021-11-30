@@ -556,8 +556,8 @@ namespace vessel
          goto error;
       }
 
-      rs = rpb.getReadbleSlice();
-      if (isPageCrashed((ossValuePtr)rs.getRPtr(), pageSize))
+      rs = rpb.getSlice();
+      if (isPageCrashed((ossValuePtr)rs.data(), pageSize))
       {
          PD_LOG(PDERROR, "page[%s] may be crashed", rpb.getGlobalPid().toString().c_str());
          rc = SDB_VESSEL_PAGE_CRASHED;
@@ -565,7 +565,7 @@ namespace vessel
       }
 
       buffer = context->allocateBuffer(pageSize);
-      ossMemcpy(buffer, rs.getRPtr(), pageSize);
+      ossMemcpy(buffer, rs.data(), pageSize);
       rpb.fini();
 
       gpid.reset(logicalPageSpace::getSpaceID(),
@@ -588,7 +588,7 @@ namespace vessel
       }
 
       ossMemcpy((void *)(tuple.getWritableBuffer()),
-                 rs.getRPtr(),
+                 rs.data(),
                  pageSize);
       ((pageHead *)(tuple.getWritableBuffer()))->pid = newPid;
       ((pageHead *)(tuple.getWritableBuffer()))->psv = psv;

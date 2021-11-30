@@ -78,7 +78,7 @@ namespace vessel
 
          void set(const slice &s)
          {
-            _data = s.getReadableSlice();
+            _data = s;
          }
 
       private:

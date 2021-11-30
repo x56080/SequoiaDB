@@ -70,7 +70,7 @@ namespace vessel
 
       const checkpointController *checkpointer = &(context->getEnv()->checkpointer);
       const openDBOptions &options = context->getEnv()->options;
-      slice rs = rpb->getReadbleSlice();
+      strictBuffer buffer = rpb->getReadableBuffer();
 
       lrc->open(logType);
       if (resetPage)
@@ -80,11 +80,11 @@ namespace vessel
       else if (options.fullDumpPageLog &&
                checkpointer->hasAtLeastOneCheckpoint())
       {
-         DPS_LSN_OFFSET lsn = rs.getReadableObjPtr<pageHead>(0)->lsn;
+         DPS_LSN_OFFSET lsn = buffer.getReadableObjPtr<pageHead>(0)->lsn;
          if (DPS_INVALID_LSN_OFFSET != lsn &&
              lsn <= checkpointer->getLastCheckpointLSN())
          {
-            rc = lrc->fullDumpPage(rpb->getPageSize(), rs.getRPtr());
+            rc = lrc->fullDumpPage(rpb->getPageSize(), buffer.getRPtr());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "faile to full dump page:%d", rc);

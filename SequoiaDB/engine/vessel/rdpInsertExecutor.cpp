@@ -60,7 +60,6 @@ namespace vessel
       recordHead rh;
       INT32 newLvl = FSM_INVALID_SPACE_LVL;
       UINT32 newFreeSize = 0;
-      slice bufferSlice;
       DPS_TRANS_ID transID = context->getTransIDWithoutTag();
       recordID rid;
       BOOLEAN ridLocked = FALSE;
@@ -101,8 +100,7 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getReadableBodySlice();
-      head = bufferSlice.getReadableObjPtr<recordDataPageHead>(0);
+      head = lpb->getReadableBodyBuffer().getReadableObjPtr<recordDataPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get readble record page head");
@@ -136,7 +134,8 @@ namespace vessel
 
       alignedSize = getAlignedSizeOfNormalRecordAndHead(record.getSize());
 
-      rc = getPosToInsert(head, alignedSize, slotId, offset, totalSize);
+      rc = getPosToInsert(head, alignedSize, context->getMinFreeSize(),
+                          slotId, offset, totalSize);
       if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
       {
          if (context->getCandidate().isValid() &&
@@ -163,19 +162,23 @@ namespace vessel
 
       rid.setPageID(lpb->getLogicalPid());
       rid.setSlotID(slotId);
-      rc = context->tryLockRid(rid, mode, ridLocked);
-      if (SDB_OK != rc)
+
+      if (context->keepRidLocked())
       {
-         PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
-                  rid.getPageID(), rid.getSlotID(), rc);
-         goto error;
-      }
-      else if (!ridLocked)
-      {
-         PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
-                  rid.getPageID(), rid.getSlotID());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         rc = context->tryLockRid(rid, mode, ridLocked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock rid[%d,%d], rc:%d",
+                     rid.getPageID(), rid.getSlotID(), rc);
+            goto error;
+         }
+         else if (!ridLocked)
+         {
+            PD_LOG(PDERROR, "failed to lock free rid[%d,%d]",
+                     rid.getPageID(), rid.getSlotID());
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
       }
       
 
@@ -235,7 +238,7 @@ namespace vessel
       SDB_ASSERT(0 < record.getSize(), "can not be empty");
       logRecordContext lrc;
       recordID rid;
-      slice bufferSlice;
+      strictBuffer buffer;
       CHAR *recordPtr = NULL;
 
       rc = lpb->prepareToWrite();
@@ -245,7 +248,7 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getWritableBodySlice();
+      buffer = lpb->getWritableBodyBuffer();
 
       rc = prepareInsertLog(context, rh.getSize(), &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
@@ -254,7 +257,7 @@ namespace vessel
          goto error;
       }
 
-      head = bufferSlice.getWritableObjPtr<recordDataPageHead>(0);
+      head = buffer.getWritableObjPtr<recordDataPageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -262,7 +265,7 @@ namespace vessel
          goto error;
       }
 
-      slotPtr = bufferSlice.getWritableObjPtr<recordSlot>(RECORD_PAGE_HEAD_LEN +
+      slotPtr = buffer.getWritableObjPtr<recordSlot>(RECORD_PAGE_HEAD_LEN +
                                                           (slotId * RDP_RSLOT_SIZE));
       if (NULL == slotPtr)
       {
@@ -271,7 +274,7 @@ namespace vessel
          goto error;
       }
 
-      recordPtr = bufferSlice.getWritablePtr(slot.getOffset(), rh.getSize());
+      recordPtr = buffer.getWritablePtr(slot.getOffset(), rh.getSize());
       if (NULL == recordPtr)
       {
          PD_LOG(PDERROR, "failed to get writable record ptr[%d,%d]",
@@ -284,7 +287,7 @@ namespace vessel
       *slotPtr = slot;
       ossMemcpy(recordPtr, &rh, RDP_RECORD_HEAD_LEN);
       ossMemcpy(recordPtr + RDP_RECORD_HEAD_LEN,
-                record.getRPtr(), record.getSize());
+                record.getData(), record.getSize());
       if ((RDP_RECORD_HEAD_LEN + record.getSize()) < rh.getSize())
       {
          ossMemset((void *)(recordPtr + RDP_RECORD_HEAD_LEN + record.getSize()),
@@ -323,6 +326,7 @@ namespace vessel
 
    INT32 rdpInsertExecutor::getPosToInsert(const recordDataPageHead *head,
                                            UINT32 alignedHeadAndBodySize,
+                                           UINT32 minFreeSize,
                                            RECORD_SLOT_ID &slotId,
                                            UINT16 &offset,
                                            UINT32 &totalSize)const
@@ -344,7 +348,7 @@ namespace vessel
          slotId = head->firstFreeSlot;
       }
 
-      if (head->freeSpaceAfterLastSlot < totalSize)
+      if (head->freeSpaceAfterLastSlot < (totalSize + minFreeSize))
       {
          //PD_LOG(PDDEBUG, "avalible free space[%d] not enough for size[%d]",
          //       head->freeSpaceAfterLastSlot, totalSize);

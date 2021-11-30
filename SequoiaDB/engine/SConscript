@@ -968,13 +968,14 @@ vesselFiles = [
       "vessel/crpAccessor.cpp",
       "vessel/routePageAccessor.cpp",
       "vessel/rdpInsertExecutor.cpp",
-      "vessel/rdpScanner.cpp", 
+      "vessel/rdpReader.cpp", 
       "vessel/utils/redoLogUtil.cpp",
       "vessel/utils/bitmapUtils.cpp",
       "vessel/utils/localThreadSharedPointer.cpp",
       "vessel/utils/storageUtils.cpp",
       "vessel/utils/indexUtils.cpp",
       "vessel/utils/bitmapScanner.cpp",
+      "vessel/utils/strictBuffer.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
@@ -1011,11 +1012,10 @@ vesselFiles = [
       "vessel/liteCacheWatcher.cpp",
       "vessel/backgroundWorker.cpp",
       "vessel/backgroundWorkers.cpp",
-      "vessel/recordReader.cpp",
+      "vessel/rdpRecordScanner.cpp",
       "vessel/scanCLCursor.cpp",
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
-      "vessel/slice.cpp",
       "vessel/outerResource.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
@@ -1138,7 +1138,7 @@ vesseltest = env.Object('vesseltest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
-         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+         LIBDEPS=["qgm","bar","rest","dps","cat","coord","cls",snappy_lib,lz4_lib,zlib_lib,"pcre","bson","oss","bps","ixm","pmd","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql", "auth","mig", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
    env.Install( '#/bin', engine )

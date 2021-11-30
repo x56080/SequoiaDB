@@ -59,7 +59,7 @@ namespace vessel
          goto error;
       }
 
-      _fullEntry = entryData.getReadableSlice(0, entryData.getSize());
+      _fullEntry = entryData;
    done:
       return rc;
    error:

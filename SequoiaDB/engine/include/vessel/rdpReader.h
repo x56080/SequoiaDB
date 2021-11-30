@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rdpScanner.h
+   Source File Name = rdpReader.h
 
    Descriptive Name =
 
@@ -33,55 +33,64 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_RDP_SCANNER_H_
-#define VESSEL_RDP_SCANNER_H_
+#ifndef VESSEL_RDP_READER_H_
+#define VESSEL_RDP_READER_H_
 
 #include "vessel/recordID.h"
 #include "vessel/recordDataPage.h"
 #include "vessel/slice.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
 namespace vessel
 {
    class requestContext;
-   class logicalPageBuffer;
 
-   class rdpScanner : public SDBObject
+   class rdpReader : public SDBObject
    {
       public:
-         rdpScanner(){}
-         ~rdpScanner(){}
-         rdpScanner(const rdpScanner &) = delete;
-         rdpScanner &operator=(const rdpScanner &) = delete;
+         rdpReader(){}
+         ~rdpReader(){}
+         rdpReader(const rdpReader &) = delete;
+         rdpReader &operator=(const rdpReader &) = delete;
 
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _head;
+            return NULL != _context;
          }
          INT32 open(requestContext *context,
-                    const logicalPageBuffer *lpb);
+                    PAGE_ID lpid,
+                    const ossSharedLatchMode &mode=
+                    ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED));
          void close();
 
          UINT32 getTotalSlotCount()const;
 
-         INT32 getSlot(UINT32 pos, recordSlot &rs)const;
+         INT32 getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const;
 
-         ///WARNING: User must parse recordSlice according rh.
-         INT32 getNormalRecordHeadAndBody(UINT32 pos,
-                                          recordHead &rh,
-                                          slice &bodySlice)const;
+         INT32 getNormalRecordHead(RECORD_SLOT_ID pos,
+                                   const recordHead **rh)const;
 
-         const recordDataPageHead &getPageHead()const;
+         INT32 getNormalRecordBody(UINT32 pos,
+                                   slice &data)const;
 
-
+      public:
+         const recordDataPageHead &getPageHead()const
+         {
+            return _header;
+         }
+         const logicalPageBuffer &getPageBuffer()const
+         {
+            return _lpb;
+         }
       private:
-         const logicalPageBuffer *_lpb = NULL;
-         const recordDataPageHead *_head = NULL;
-      
+         requestContext *_context = NULL;
+         logicalPageBuffer _lpb;
+         recordDataPageHead _header;
    };
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_RDP_SCANNER_H_
+#endif//VESSEL_RDP_READER_H_

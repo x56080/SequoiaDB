@@ -63,7 +63,8 @@ namespace vessel
          }
 
          INT32 init(requestContext *context,
-                     indexContext *ic);
+                     indexContext *ic,
+                     const DPS_TRANS_ID &transID);
          void fini();
 
          INT32 insert(const ixmKey &key,
@@ -121,6 +122,7 @@ namespace vessel
          indexSpace *_is = NULL;
          indexContext *_ic = NULL;
          btreeAccessContext _bac;
+         DPS_TRANS_ID _transID;
    };//class btreeAccessor
 } // namespace vessel
 

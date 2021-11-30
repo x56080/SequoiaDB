@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -142,7 +139,7 @@ namespace vessel
       rc = logger->pushLogRecordElement(context->getExecutor(), &lrc,
                                         DPS_LOG_IXCRT_IX_DEF_OBJ,
                                         indexDef.getSize(),
-                                        indexDef.getRPtr());
+                                        indexDef.getData());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push element index def:%d", rc);

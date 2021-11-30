@@ -233,6 +233,26 @@ namespace vessel
       goto done;
    }
 
+   INT32 dataManagementService::getLogicalPageSpace(SPACE_ID sid,
+                                                    SPACE_TYPE type,
+                                                    lpsObject &lps)const
+   {
+      INT32 rc = SDB_OK;
+      lps.reset();
+      logicalPageSpace *ptr = NULL;
+      rc = getLogicalPageSpace(sid, type, &ptr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      lps = lpsObject(ptr);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 dataManagementService::createCS(requestContext *context,
                                          const strSlice &csName,
                                          utilCSUniqueID uniqueID,

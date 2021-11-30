@@ -278,7 +278,7 @@ namespace vessel
 
       for (auto i = il.begin(); i != il.end(); ++i)
       {
-         rc = _mb.append(i->getSize(), i->getRPtr());
+         rc = _mb.append(i->getSize(), i->data());
          if (SDB_OK != rc)
          {
             _mb.resize(oldSize);

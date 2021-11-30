@@ -58,7 +58,7 @@ namespace vessel
       routePageHead *writableHead = NULL;
       UINT32 oldCount = 0;
       UINT32 lid = DMS_INVALID_LOGICCLID;
-      slice bufferSlice;
+      strictBuffer buffer;
 
       if (OSS_UNLIKELY(NULL == context ||
                        DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
@@ -98,8 +98,8 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getReadableBodySlice();
-      readableHead = bufferSlice.getReadableObjPtr<routePageHead>(0);
+      buffer = lpb->getReadableBodyBuffer();
+      readableHead = buffer.getReadableObjPtr<routePageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable page head");
@@ -136,9 +136,9 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getWritableBodySlice();
+      buffer = lpb->getWritableBodyBuffer();
 
-      writableHead = bufferSlice.getWritableObjPtr<routePageHead>(0);
+      writableHead = buffer.getWritableObjPtr<routePageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get writable page head");
@@ -150,7 +150,7 @@ namespace vessel
       for (UINT32 i = 0; i < count; ++i)
       {
          UINT32 offset = ROUTE_PAGE_HEAD_SIZE + ((writableHead->size + i) << 2);
-         PAGE_ID *tmp = bufferSlice.getWritableObjPtr<PAGE_ID>(offset);
+         PAGE_ID *tmp = buffer.getWritableObjPtr<PAGE_ID>(offset);
          if (NULL == tmp)
          {
             PD_LOG(PDERROR, "failed to get writable ptr");
@@ -171,7 +171,7 @@ namespace vessel
          for (UINT32 i = 0; i < count; ++i)
          {
             UINT32 offset = ROUTE_PAGE_HEAD_SIZE + ((writableHead->size + i) << 2);
-            PAGE_ID *tmp = bufferSlice.getWritableObjPtr<PAGE_ID>(offset);
+            PAGE_ID *tmp = buffer.getWritableObjPtr<PAGE_ID>(offset);
             if (NULL == tmp)
             {
                PD_LOG(PDERROR, "failed to get writable ptr");
@@ -206,7 +206,7 @@ namespace vessel
       const PAGE_ID *ptr = NULL;
       size = 0;
       last = INVALID_PAGE_ID;
-      slice bufferSlice;
+      strictBuffer buffer;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidRoutePageLvl(targetLvl) ||
@@ -226,9 +226,9 @@ namespace vessel
          goto error;
       }
 
-      bufferSlice = lpb->getReadableBodySlice();
+      buffer = lpb->getReadableBodyBuffer();
 
-      readableHead = bufferSlice.getReadableObjPtr<routePageHead>(0);
+      readableHead = buffer.getReadableObjPtr<routePageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable head");
@@ -255,7 +255,7 @@ namespace vessel
       if (0 < readableHead->size)
       {
          offset = ROUTE_PAGE_HEAD_SIZE + ((UINT32)(readableHead->size - 1) << 2);
-         ptr = bufferSlice.getReadableObjPtr<PAGE_ID>(offset);
+         ptr = buffer.getReadableObjPtr<PAGE_ID>(offset);
          if (NULL == ptr)
          {
             PD_LOG(PDERROR, "failed to get lpid ptr");
@@ -281,7 +281,7 @@ namespace vessel
       const routePageHead *readableHead = NULL;
       UINT32 offset = 0;
       const PAGE_ID *ptr = NULL;
-      slice rs;
+      strictBuffer buffer;
 
       if (OSS_UNLIKELY(NULL == context ||
                        DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
@@ -300,8 +300,8 @@ namespace vessel
          goto error;
       }
 
-      rs = lpb->getReadableBodySlice();
-      readableHead = rs.getReadableObjPtr<routePageHead>(0);
+      buffer = lpb->getReadableBodyBuffer();
+      readableHead = buffer.getReadableObjPtr<routePageHead>(0);
       if (NULL == readableHead)
       {
          PD_LOG(PDERROR, "failed to get readable head");
@@ -325,7 +325,7 @@ namespace vessel
       }
       
       offset = ROUTE_PAGE_HEAD_SIZE + (pos << 2);
-      ptr = rs.getReadableObjPtr<PAGE_ID>(offset);
+      ptr = buffer.getReadableObjPtr<PAGE_ID>(offset);
       if (NULL == ptr)
       {
          PD_LOG(PDERROR, "failed to get lpid ptr");

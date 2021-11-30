@@ -52,6 +52,7 @@
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
 #include "vessel/updateContext.h"
+#include "vessel/shallowObject.hpp"
 
 namespace engine
 {
@@ -197,7 +198,8 @@ namespace vessel
 
       private:
          INT32 getMoreFromPageInCursor(requestContext *context,
-                                       scanCLCursor *cursor);
+                                       scanCLCursor *cursor,
+                                       memoryBlock *buffer);
 
          INT32 getRecordCountInPageHead(requestContext *context,
                                         PAGE_ID lpid,
@@ -355,6 +357,8 @@ namespace vessel
          ossRWMutex _ddlLatch;
          ossSpinXLatch _extendingLatch;
    };//class collection
+
+   typedef shallowObject<collection> collectionObject;
 }//namespace vessel
 }//namespace engine
 

@@ -47,7 +47,6 @@
 #include "vessel/routePage.h"
 #include "vessel/routePageAccessor.h"
 #include "vessel/scanCLCursor.h"
-#include "vessel/rdpScanner.h"
 #include "vessel/routePageIniter.h"
 #include "vessel/atomicOperationList.h"
 #include "vessel/rdpIniter.h"
@@ -58,7 +57,7 @@
 #include "vessel/redoLogUtil.h"
 #include "vessel/indexKeyGenerator.h"
 #include "vessel/outerResource.h"
-#include "vessel/recordReader.h"
+#include "vessel/rdpRecordScanner.h"
 #include "vessel/indexScanner.h"
 #include "vessel/buildingIndexContext.h"
 #include "vessel/indexScanContext.h"
@@ -420,6 +419,11 @@ namespace vessel
          goto error;
       }
 
+      if (!ra.isEmpty())
+      {
+         context->setKeepRidLocked(TRUE);
+      }
+
       if (!isBigRecord(getDataPageSize(), context->getOriginalRecord().getSize()))
       {
          rc = insertNonBigRecord(context);
@@ -630,6 +634,8 @@ namespace vessel
       SDB_ASSERT(cursor->getCollectionId().getCLLid() == _record.logicalCLID,
                  "must be same");
 
+      memoryBlock mb;
+
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -670,7 +676,7 @@ namespace vessel
             cursor->setLpid(lpid);
          }
 
-         rc = getMoreFromPageInCursor(context, cursor);
+         rc = getMoreFromPageInCursor(context, cursor, &mb);
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
             rc = SDB_OK;
@@ -695,83 +701,71 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
-      logicalPageBuffer lpb;
-      rdpScanner scanner;
+      rdpReader rr;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
+      rc = rr.open(context, lpid, mode);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get buffer of lpid[%d], rc:%d",
+         PD_LOG(PDERROR, "failed to open reader of lpid[%d], rc:%d",
                 lpid, rc);
          goto error;
       }
 
-      rc = scanner.open(context, &lpb);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to open scanner of lpid[%d], rc:%d",
-                lpid, rc);
-         goto error;
-      }
-
-      count = scanner.getPageHead().recordCount;
+      count = rr.getPageHead().recordCount;
    done:
-      lpb.fini();
+      rr.close();
       return rc;
    error:
       goto done;
    }
 
    INT32 collection::getMoreFromPageInCursor(requestContext *context,
-                                             scanCLCursor *cursor)
+                                             scanCLCursor *cursor,
+                                             memoryBlock *buffer)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       SDB_ASSERT(NULL != cursor, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != cursor->getLpid(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != cursor->getToScanEntry().getSlot(),
+                 "can not be invalid");
 
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
-      recordReader rr;
-      memoryBlock mb;
-      
-      rc = rr.init(context, cursor->getLpid(), &mds,
-                   cursor->getToScanEntry().getSlot(), &mb);
+      rdpRecordScanner scanner;
+
+      rc = scanner.open(context, cursor->getLpid(), buffer);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init record reader:%d", rc);
+         PD_LOG(PDERROR, "failed to open scanner:%d", rc);
          goto error;
       }
 
-      do
+      rc = scanner.locate(cursor->getToScanEntry().getSlot());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to locate slot in scanner:%d", rc);
+         goto error;
+      }
+
+      while (scanner.isReadyToFetch())
       {
          slice record;
          recordID rid;
          DPS_TRANS_ID transId;
-         BOOLEAN hitTheEnd = FALSE;
-         rc = rr.fetchNextToReader(hitTheEnd);
+
+         rc = scanner.fetchRecord();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to fetch next:%d", rc);
+            PD_LOG(PDERROR, "failed to fetch record by scanner:%d", rc);
             goto error;
          }
-         else if (hitTheEnd)
-         {
-            cursor->incToScanPage();
-            break;
-         }
 
-         if (rr.currentRecordIsTombstone())
-         {
-            SDB_ASSERT(FALSE, "TODO");
-         }
+         SDB_ASSERT(!scanner.isTombstoneRecord(), "TODO");
 
-         rid = rr.getCurrentRid();
+         rid = scanner.getCurrentRid();
+         transId = scanner.getCurrentTransID();
+         record = scanner.getCurrentRecord();
          cursor->setToScanSlot(rid.getSlotID());
-         transId.setNodeID(rr.getCurrentRecordHead().getTransNode());
-         transId.setSN(rr.getCurrentRecordHead().getTransSN());
-         record = rr.getCurrentRecordBody();
 
          rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
                                          slice(sizeof(DPS_TRANS_ID), &transId),
@@ -784,16 +778,25 @@ namespace vessel
             }
             goto error;
          }
-
          cursor->setToScanSlot(rid.getSlotID() + 1);
+
          if (!cursor->isWaitingMorePushing())
          {
-            break;
+            goto done;
          }
-      } while (TRUE);
+
+         rc = scanner.next();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get next:%d", rc);
+            goto error;
+         }
+      }
+
+      cursor->incToScanPage();
       
    done:
-      rr.fini();
+      scanner.close();
       return rc;
    error:
       goto done;
@@ -2264,7 +2267,6 @@ namespace vessel
       SDB_ASSERT(NULL != ic && ic->isBuilding(), "can not be null");
       buildingIndexContext *buildingContext = NULL;
       scanEntry entry;
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       SDB_ASSERT((!(!keyGen)), "can not be invalid");
@@ -2291,7 +2293,7 @@ namespace vessel
 
       while (entry.getSeq() < maxRdpCount)
       {
-         recordReader rr;
+         rdpRecordScanner scanner;
          PAGE_ID lpid = INVALID_PAGE_ID;
          rc = getLpidBySequence(context, entry.getSeq(), lpid);
          if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
@@ -2308,38 +2310,45 @@ namespace vessel
             goto error;
          }
 
-         rc = rr.init(context, lpid, &mds, entry.getSlot(), &mb);
+         rc = scanner.open(context, lpid, &mb);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init record reader on lpid[%d]:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to init scanner on lpid[%d]:%d", lpid, rc);
             goto error;
          }
 
-         do
+         rc = scanner.locate(entry.getSlot());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to locate slot in scanner:%d", rc);
+            goto error;
+         }
+         
+         while (scanner.isReadyToFetch())
          {
             keySet.clear();
             slice record;
-            BOOLEAN hitThePageEnd = FALSE;
-            rc = rr.fetchNextToReader(hitThePageEnd);
+
+            if (scanner.isTombstoneRecord())
+            {
+               rc = scanner.next();
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to get next by scanner:%d", rc);
+                  goto error;
+               }
+
+               continue;
+            }
+
+            rc = scanner.fetchRecord();
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to fetch the next record:%d", rc);
                goto error;
             }
-            else if (hitThePageEnd)
-            {
-               entry.incSeqAndZeroSlot();
-               /// update context with page latch
-               buildingContext->updateBuildingHighBound(entry);
-               rr.fini();
 
-               /// break to scan the next page.
-               break;
-            }
-
-            SDB_ASSERT(!rr.currentRecordIsTombstone(), "TODO");
-            record = rr.getCurrentRecordBody();
-            SDB_ASSERT(record.isValid(), "impossible");
+            record = scanner.getCurrentRecord();
 
             rc = keyGen(ic->getObj().getPattern().getPattern(), 
                         ic->getObj().getParams().notArray,
@@ -2354,10 +2363,10 @@ namespace vessel
             for (bson::BSONObjSet::const_iterator itr = keySet.begin();
                  itr != keySet.end(); ++itr)
             {
-               rc = console.insert(context,
-                                   ic,
+               rc = console.insert(context, ic,
                                    ixmKeyOwned(*itr),
-                                   rr.getCurrentRid());
+                                   scanner.getCurrentRid(),
+                                   scanner.getCurrentTransID());
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to insert key into index[%s], rc:%d",
@@ -2365,7 +2374,19 @@ namespace vessel
                   goto error;
                }
             }
-         } while (TRUE);
+
+            rc = scanner.next();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to move to next visible pos:%d", rc);
+               goto error;
+            }
+         }
+
+         entry.incSeqAndZeroSlot();
+         /// update context with page latch
+         buildingContext->updateBuildingHighBound(entry);
+         scanner.close();
       }
 
       rc = endToBuildCurrentRange(context, buildingContext);
@@ -2389,7 +2410,6 @@ namespace vessel
       SDB_ASSERT(NULL != ic && ic->isBuilding(), "must be building");
       SDB_ASSERT(NULL != sorter && sorter->isValid(), "can not be invalid");
       memoryBlock mb;
-      mainDataSpace *mds = &(_collectionSpace->getSU()->getMainDataSpace());
       scanEntry entry;
       bson::BSONObjSet keySet;
       BTREE_SORTOR::batch batch;
@@ -2411,7 +2431,7 @@ namespace vessel
 
       while (entry.getSeq() < maxRdpCount)
       {
-         recordReader rr;
+         rdpRecordScanner scanner;
          PAGE_ID lpid = INVALID_PAGE_ID;
          rc = getLpidBySequence(context, entry.getSeq(), lpid);
          if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
@@ -2428,44 +2448,50 @@ namespace vessel
             goto error;
          }
 
-         rc = rr.init(context, lpid, mds, entry.getSlot(), &mb);
+         rc = scanner.open(context, lpid, &mb);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init record reader on lpid[%d]:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to open scanner:%d", rc);
             goto error;
          }
 
-         do
+         rc = scanner.locate(entry.getSlot());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to locate entry slot:%d", rc);
+            goto error;
+         }
+
+         while (scanner.isReadyToFetch())
          {
             keySet.clear();
             batch.reset();
+            recordID rid;
 
-            slice record;
-            BOOLEAN hitThePageEnd = FALSE;
-            rc = rr.fetchNextToReader(hitThePageEnd);
+            if (scanner.isTombstoneRecord())
+            {
+               rc = scanner.next();
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to get next by scanner:%d", rc);
+                  goto error;
+               }
+
+               continue;
+            }
+
+            rid = scanner.getCurrentRid();
+
+            rc = scanner.fetchRecord();
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to fetch the next record:%d", rc);
+               PD_LOG(PDERROR, "failed to fetch record to scanner:%d", rc);
                goto error;
             }
-            else if (hitThePageEnd)
-            {
-               entry.incSeqAndZeroSlot();
-               /// update context with page latch
-               buildingContext->updateBuildingHighBound(entry);
-               rr.fini();
-
-               /// break to scan the next page.
-               break;
-            }
-
-            SDB_ASSERT(!rr.currentRecordIsTombstone(), "TODO");
-            record = rr.getCurrentRecordBody();
-            SDB_ASSERT(record.isValid(), "impossible");
 
             rc = keyGen(ic->getObj().getPattern().getPattern(), 
                         ic->getObj().getParams().notArray,
-                        record,
+                        scanner.getCurrentRecord(),
                         keySet);
             if (SDB_OK != rc)
             {
@@ -2477,29 +2503,34 @@ namespace vessel
                  itr != keySet.end(); ++itr)
             {
                btreeRebuildingSortElement se;
-               se.set(ixmKeyOwned(*itr), rr.getCurrentRid(),
-                      rr.getCurrentRecordHead().getTransID());
+               se.set(ixmKeyOwned(*itr), rid, scanner.getCurrentTransID());
                batch.pushFragments({se.getKeySlice(), se.getRidSlice(), 
                                     se.getTransIDSlice()});
             }
             
             if (!sorter->push(batch))
             {
-               entry.reset(entry.getSeq(), rr.getCurrentRid().getSlotID());
+               entry.reset(entry.getSeq(), rid.getSlotID());
                buildingContext->updateBuildingHighBound(entry);
-               rr.fini();
+               scanner.close();
                goto done;
-            }
-            else if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to push key into sorter:%d", rc);
-               goto error;
             }
             else
             {
-               continue;
+               rc = scanner.next();
+               if (SDB_OK != rc)
+               {
+                  scanner.close();
+                  PD_LOG(PDERROR, "failed to move to next pos:%d", rc);
+                  goto error;
+               }
             }
-         } while (TRUE);
+         }
+
+         entry.incSeqAndZeroSlot();
+         /// update context with page latch
+         buildingContext->updateBuildingHighBound(entry);
+         scanner.close();
       }
    done:
       return rc;
@@ -2806,7 +2837,7 @@ namespace vessel
       {
          btreeRebuildingSortElement se;
          sorter->get(i, se);
-         rc = console.insert(context, ic, se.getKey(), se.getRid());
+         rc = console.insert(context, ic, se.getKey(), se.getRid(), se.getTransID());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert key into index[%s]:%d",
@@ -3407,9 +3438,7 @@ namespace vessel
       SDB_ASSERT(context->getBatch().isEmpty(), "must be empty");
       SDB_ASSERT(context->getRidLatchContext().isEmpty(), "must be empty");
 
-      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       memoryBlock mb;
-      recordReader rr;
       const indexScanOptions &o = context->getOptions();
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
@@ -3445,6 +3474,7 @@ namespace vessel
       {
          recordID rid;
          DPS_TRANS_ID transID;
+         rdpRecordScanner recordScanner;
          slice recordBody;
          const indexScanEntryBatch &batch = context->getBatch();
          slice entryData = batch[i];
@@ -3476,7 +3506,7 @@ namespace vessel
          }
          else
          {
-            rc = rr.read(context, rid, &mds, &mb);
+            rc = recordScanner.open(context, rid.getPageID(), &mb, rid.getSlotID());
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to read record[%d,%d], rc:%d",
@@ -3484,8 +3514,30 @@ namespace vessel
                goto error;
             }
 
-            transID = rr.getCurrentRecordHead().getTransID();
-            recordBody = rr.getCurrentRecordBody();
+            rc = recordScanner.locate(rid.getSlotID());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to locate to pos[%d], rc:%d", rid.getSlotID(), rc);
+               goto error;
+            }
+
+            if (!recordScanner.isReadyToFetch() ||
+                 recordScanner.isTombstoneRecord())
+            {
+               PD_LOG(PDERROR, "failed to get record[%d,%d]", rid.getPageID(), rid.getSlotID());
+               rc = SDB_VESSEL_INTERNAL_ERR;
+               goto error;
+            }
+
+            rc = recordScanner.fetchRecord();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to fetch record:%d", rc);
+               goto error;
+            }
+
+            transID = recordScanner.getCurrentTransID();
+            recordBody = recordScanner.getCurrentRecord();
          }
 
          rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
@@ -3502,7 +3554,7 @@ namespace vessel
             goto error;
          }
 
-         rr.fini();
+         recordScanner.close();
 
          ++pushed;
          context->unlockRid(rid);
@@ -3526,7 +3578,6 @@ namespace vessel
       context->clearBatchAndRidLatch();
       return rc;
    error:
-      rr.fini();
       goto done;
    }
 }//namespace vessel

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = slice.cpp
+   Source File Name = strictBuffer.cpp
 
    Descriptive Name =
 
@@ -33,7 +33,7 @@
 
 ******************************************************************************/
 
-#include "vessel/slice.h"
+#include "vessel/strictBuffer.h"
 #include "ossLikely.hpp"
 #include "ossUtil.h"
 
@@ -41,10 +41,10 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 slice::write(UINT32 offset, UINT32 size, const void *data)
+   INT32 strictBuffer::write(UINT32 offset, UINT32 size, const void *data)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isWritale()))
+      if (OSS_UNLIKELY(!isWritable()))
       {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
@@ -66,8 +66,8 @@ namespace vessel
    error:
       goto done;
    }
-   
-   INT32 slice::read(UINT32 offset, UINT32 size, void *data)const
+
+   INT32 strictBuffer::read(UINT32 offset, UINT32 size, void *data)const
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isValid()))
@@ -90,35 +90,42 @@ namespace vessel
    done:
       return rc;
    error:
-      goto done;
+      goto done; 
    }
 
-   slice slice::getReadableSlice(UINT32 offset, UINT32 size)const
-   {
-      slice s;
-      SDB_ASSERT(isValid(), "can not be invalid");
-      if (isValid() && isValidAccessing(offset, size))
-      {
-         s.reset(size, _rptr + offset);
-      }
-      return s;
-   }
-
-   slice slice::getReadableSlice()const
+   slice strictBuffer::getSlice()const
    {
       SDB_ASSERT(isValid(), "can not be invalid");
       return slice(_size, _rptr);
    }
-   
-   slice slice::getWritableSlice(UINT32 offset, UINT32 size)
+
+   slice strictBuffer::getSlice(UINT32 offset, UINT32 size)const
    {
-      slice s;
-      SDB_ASSERT(isWritale(), "can not be invalid");
-      if (isWritale() && isValidAccessing(offset, size))
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return isValidAccessing(offset, size) ? slice(size, _rptr + offset) : slice();
+   }
+
+   strictBuffer strictBuffer::getReadableBuffer()const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return strictBuffer(_size, _rptr);
+   }
+
+   strictBuffer strictBuffer::getReadableBuffer(UINT32 size, UINT32 offset)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      return  isValidAccessing(offset, size) ? strictBuffer(size, _rptr + offset) : strictBuffer();
+   }
+
+   strictBuffer strictBuffer::getWritableBuffer(UINT32 size, UINT32 offset)
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      strictBuffer buffer;
+      if (isValidAccessing(offset, size))
       {
-         s.makeWritable(size, _wptr + offset);
+         buffer.makeWritable(size, _wptr + offset);
       }
-      return s;
+      return buffer;
    }
 } // namespace vessel
 

@@ -147,6 +147,10 @@ namespace vessel
                                    SPACE_TYPE type,
                                    logicalPageSpace **lps)const;
 
+         INT32 getLogicalPageSpace(SPACE_ID sid,
+                                   SPACE_TYPE type,
+                                   lpsObject &lps)const;
+
          storageUnit *getStorageUnit(SPACE_ID sid);
 
       public:

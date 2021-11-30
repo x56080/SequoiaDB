@@ -83,10 +83,10 @@ namespace vessel
          goto error;
       }
 
-      rid = (const recordID *)(content.getRPtr());
-      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.getRPtr()) + sizeof(recordID));
+      rid = (const recordID *)(content.data());
+      transID = (const DPS_TRANS_ID *)((ossValuePtr)(content.data()) + sizeof(recordID));
       record.reset(content.getSize() - dataScanRow::MIN_CONTENT_SIZE,
-                   (const CHAR *)((ossValuePtr)(content.getRPtr()) + dataScanRow::MIN_CONTENT_SIZE));
+                   (const CHAR *)((ossValuePtr)(content.data()) + dataScanRow::MIN_CONTENT_SIZE));
 
       recordRow->shallowCopy(*rid, *transID, record);
 

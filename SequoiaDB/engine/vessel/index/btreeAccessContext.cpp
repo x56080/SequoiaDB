@@ -631,7 +631,7 @@ namespace vessel
       SDB_ASSERT(buffer.isValid(), "can not be invalid");
 
       const runtimePageBuffer &rpb = buffer.getRuntimeBuffer();
-      slice s;
+      strictBuffer pageBuffer;
       const btreeNodePageHead *head = NULL;
 
       rc = buffer.validatePage(PAGE_TYPE_BTREE_NODE);
@@ -642,8 +642,8 @@ namespace vessel
          goto error;
       }
 
-      s = buffer.getReadableBodySlice();
-      head = s.getReadableObjPtr<btreeNodePageHead>(0);
+      pageBuffer = buffer.getReadableBodyBuffer();
+      head = pageBuffer.getReadableObjPtr<btreeNodePageHead>(0);
       if (NULL == head)
       {
          PD_LOG(PDERROR, "failed to get btree page head");

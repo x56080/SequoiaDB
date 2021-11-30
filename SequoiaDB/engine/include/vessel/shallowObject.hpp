@@ -59,6 +59,11 @@ namespace vessel
             return *this;
          }
 
+         T *operator->()const
+         {
+            return _ptr;
+         }
+
       public:
          BOOLEAN isValid()const{return NULL != _ptr;}
          T *get(){return _ptr;}

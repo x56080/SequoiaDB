@@ -40,6 +40,7 @@
 #include "vessel/mmapPagePointer.h"
 #include "vessel/globalPageID.h"
 #include "vessel/slice.h"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
@@ -99,10 +100,14 @@ namespace vessel
 
       public:
          const pageHead *getPageHead()const;
-         slice getReadbleSlice()const;
-         slice getWritableSlice();
-         slice getReadbleBodySlice()const;
-         slice getWritableBodySlice();      
+         strictBuffer getReadableBuffer()const;
+         strictBuffer getWritableBuffer();
+         strictBuffer getReadableBodyBuffer()const;
+         strictBuffer getWritableBodyBuffer();
+         slice getSlice()const
+         {
+            return slice(_pageSize, (const void *)_buffer);
+         }
       private:
          void setWritingPrepared();
          

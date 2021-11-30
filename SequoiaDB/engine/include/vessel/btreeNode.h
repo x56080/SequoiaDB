@@ -44,6 +44,7 @@
 #include "ossSharedLatch.hpp"
 #include "vessel/btreeSplitRaisedKey.h"
 #include "rtnPredicate.hpp"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
@@ -218,7 +219,7 @@ namespace vessel
 
          const btreeNodePageHead *getReadableHead()const;
 
-         slice getReadableSlice()const;
+         strictBuffer getReadableBuffer()const;
 
          BOOLEAN isRecentWriteOrdered()const;
 
@@ -235,7 +236,7 @@ namespace vessel
 
       private:
          void commit();
-         void updateTransID();
+         void updateTransID(const DPS_TRANS_ID &transID);
 
          INT32 _compact(UINT32 reserved);
 
@@ -267,7 +268,7 @@ namespace vessel
                                  btreeIndexItem &item)const;
 
          INT32 buildRightNodeWhenSplit(RECORD_SLOT_ID begin,
-                                       slice &node)const;
+                                       strictBuffer &node)const;
 
          INT32 findSplitPivot(BOOLEAN idleRight,
                               RECORD_SLOT_ID &pivot)const;

@@ -157,7 +157,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(_mode.isUpgrade(), "must holding shared lock");
-      INT32 rc = SDB_OK;
       objectSharedLatchContext<logicalPidLatchKey> &lc = _context->getLpidLatchContext();
       LOGICAL_PID_LATCH_MAP::object obj;
       ossSharedLatchMode *mode = NULL;
@@ -185,7 +184,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(_mode.isShared(), "must holding shared lock");
-      INT32 rc = SDB_OK;
       objectSharedLatchContext<logicalPidLatchKey> &lc = _context->getLpidLatchContext();
       LOGICAL_PID_LATCH_MAP::object obj;
       ossSharedLatchMode *mode = NULL;

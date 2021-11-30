@@ -71,7 +71,7 @@ namespace vessel
          }
          OSS_INLINE void setOriginalRecord(const slice &r)
          {
-            _originalRecord = r.getReadableSlice();
+            _originalRecord = r;
          }
          OSS_INLINE const slice &getOriginalRecord()const
          {
@@ -95,6 +95,15 @@ namespace vessel
          {
             _minFreeSize = size;
          }
+         OSS_INLINE void setKeepRidLocked(BOOLEAN v)
+         {
+            _keepRidLocked = v;
+         }
+
+         OSS_INLINE BOOLEAN keepRidLocked()
+         {
+            return _keepRidLocked;
+         }
       
       private:
          void fini();
@@ -105,6 +114,7 @@ namespace vessel
          slice _originalRecord;
          fsmCandidate _candidate;
          UINT32 _minFreeSize = 0;
+         BOOLEAN _keepRidLocked = FALSE;
    };//class insertContext
 }//namespace vessel
 }//namespace engine
