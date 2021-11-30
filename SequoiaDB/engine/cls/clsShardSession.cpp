@@ -1202,7 +1202,16 @@ namespace engine
                     "catalog failed, rc: %d", sessionName(), csName, rc ) ;
          }
       }
-      else if ( SDB_OK != rc )
+      else if ( SDB_FE == rc )
+      {
+         if ( _pRtnCB->hasUnloadCS( csName ) )
+         {
+            rc = SDB_DMS_CS_NOTEXIST ;
+            PD_LOG_MSG( PDERROR, "Collection space[%s] has been unloaded",
+                        csName ) ;
+         }
+      }
+      if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "Session[%s]: Create collection space[%s] by "
                  "catalog failed, rc: %d", sessionName(), csName, rc ) ;

@@ -398,6 +398,43 @@ namespace engine
       goto done ;
    }
 
+   INT32 _SDB_RTNCB::addUnloadCS( const CHAR* csName )
+   {
+      ossScopedLock lock( &_csLatch, EXCLUSIVE ) ;
+      try
+      {
+         _unloadCSSet.insert( csName ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return ossException2RC( &e ) ;
+      }
+      return SDB_OK ;
+   }
+
+   void _SDB_RTNCB::delUnloadCS( const CHAR* csName )
+   {
+      ossScopedLock lock( &_csLatch, EXCLUSIVE ) ;
+      _unloadCSSet.erase( csName ) ;
+   }
+
+   BOOLEAN _SDB_RTNCB::hasUnloadCS( const CHAR* csName )
+   {
+      BOOLEAN has = FALSE ;
+
+      if ( _unloadCSSet.size() != 0 )
+      {
+         ossScopedLock lock( &_csLatch, SHARED ) ;
+         if ( _unloadCSSet.count( csName ) != 0 )
+         {
+            has = TRUE ;
+         }
+      }
+
+      return has ;
+   }
+
    /*
       get global rtn cb
    */

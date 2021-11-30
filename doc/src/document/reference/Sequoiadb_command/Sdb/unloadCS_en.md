@@ -21,10 +21,6 @@ Unload the specific collection space from memory.
 | csName  | string | ---     | collection space name                | yes             |
 | options | JSON   | NULL    | [command position parameter](reference/Sequoiadb_command/location.md) | not             |
 
->**Note:**
-
->Only when connecting to the coordination node, the options parameter will take effect.
-
 ##RETURN VALUE##
 
 On success, return void.
@@ -37,7 +33,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
 
 ##EXAMPLES##
 
-* Query data. ( Suppose the specific collection space named "foo" existes and the current sequoiadb is started in standalone mode )
+* Query data. ( Suppose the specific collection space named "foo" exists )
 
 ```lang-javascript
 > db.foo.bar.find()
@@ -61,7 +57,8 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
 ```lang-javascript
 > db.foo.bar.find()
 uncaught exception: -34
-Collection space does not exist
+Collection space does not exist:
+Collection space[foo] has been unloaded
 ``` 
 
 * Load the collection space named into memory.

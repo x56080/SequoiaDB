@@ -4599,6 +4599,10 @@ error:
       }
 
    done:
+      if ( SDB_OK == rc )
+      {
+         rtnCB->delUnloadCS( _csName ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -4640,6 +4644,10 @@ error:
       rc = rtnUnloadCollectionSpace( _csName, cb, dmsCB ) ;
 
    done:
+      if ( SDB_OK == rc )
+      {
+         rtnCB->addUnloadCS( _csName ) ;
+      }
       return rc ;
    error:
       goto done ;

@@ -1,3 +1,7 @@
+##名称##
+
+loadCS - 加载集合空间到内存
+
 ##语法##
 
 ***db.loadCS( \<csName\>, [options] )***
@@ -17,10 +21,6 @@ Sdb
 | csName  | string   | ---     | 集合空间名         | 是       |
 | options | JSON     | 空      | [命令位置参数](reference/Sequoiadb_command/location.md) | 否       |
 
->**Note:**
-
->只有在连接协调节点时，options 参数才会生效
-
 ##返回值##
 
 无返回值。
@@ -34,48 +34,49 @@ Sdb
 
 ##示例##
 
-* 查询数据。（假定存在集合空间 “foo”，而且当前 SequoiaDB 是独立模式启动的）
+* 查询数据。（假定存在集合空间 “foo”）
 
-   ```lang-javascript
-   > db.foo.bar.find()
-   {
-      "_id": {
-        "$oid": "5d36c9d5c6b1cee56abefc7e"
-      },
-      "name": "fang",
-      "age": 18
-   }
-   ```  
+    ```lang-javascript
+    > db.foo.bar.find()
+    {
+       "_id": {
+         "$oid": "5d36c9d5c6b1cee56abefc7e"
+       },
+       "name": "fang",
+       "age": 18
+    }
+    ```  
 
 * 卸载内存中的集合空间 “foo”。
 
-   ```lang-javascript
-   > db.unloadCS( "foo" )
-   ```
+    ```lang-javascript
+    > db.unloadCS( "foo" )
+    ```
 
 * 查询数据。
 
-   ```lang-javascript
-   > db.foo.bar.find()
-   uncaught exception: -34
-   Collection space does not exist
-   ``` 
+    ```lang-javascript
+    > db.foo.bar.find()
+    uncaught exception: -34
+    Collection space does not exist:
+    Collection space[foo] has been unloaded
+    ``` 
 
 * 加载集合空间 “foo” 到内存中。
 
-   ```lang-javascript
-   > db.loadCS( "foo" )
-   ```
+    ```lang-javascript
+    > db.loadCS( "foo" )
+    ```
 
 * 再次查询数据。
 
-   ```lang-javascript
-   > db.foo.bar.find()
-   {
-      "_id": {
-        "$oid": "5d36c9d5c6b1cee56abefc7e"
-      },
-      "name": "fang",
-      "age": 18
-   }
-   ```  
+    ```lang-javascript
+    > db.foo.bar.find()
+    {
+       "_id": {
+         "$oid": "5d36c9d5c6b1cee56abefc7e"
+       },
+       "name": "fang",
+       "age": 18
+    }
+    ```  
