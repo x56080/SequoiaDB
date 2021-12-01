@@ -37,6 +37,8 @@
 #include <gtest/gtest.h>
 #include "ossUtil.hpp"
 #include <boost/filesystem.hpp>
+#include "ossFile.hpp"
+#include "utilStr.hpp"
 
 namespace fs = boost::filesystem;
 namespace v = engine::vessel;
@@ -75,6 +77,8 @@ class cftest : public testing::Test
       fs::path testPath(TEST_PATH);
       fs::remove_all(testPath);
       fs::create_directory(testPath);
+      sdbEnablePD("/tmp/sdb.log", 1, 1000);
+      setPDLevel(PDDEBUG);
    }
 };
 
@@ -231,4 +235,165 @@ TEST_F(cftest, test2)
    ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
 
    f.close();
+}
+
+// file crashed with only one version
+TEST_F(cftest, test3)
+{
+   INT32 rc = SDB_OK;
+   v::strSlice dirSlice(TEST_PATH); 
+   testControlFile f(1);
+   rc = f.open(dirSlice);
+   ASSERT_EQ(SDB_OK, rc);
+   dummyContent content;
+   UINT64 version = 0;
+
+   
+   rc = f.readOldestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+
+   rc = f.readLatestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+
+   dummyContent commit;
+   rc = f.commit(sizeof(commit), &commit);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
+   ASSERT_EQ(SDB_OK, rc);
+   f.close();
+
+   CHAR full[OSS_MAX_PATHSIZE + 1] = {'\0'};
+   _OSS_FILE crashFile;
+   SINT64 written = 0;
+   const CHAR tmpBuf[5] = {'C','R','A','S','H'};
+   string filename;
+   f.getFileName(0, filename);
+   rc = engine::utilBuildFullPath(TEST_PATH, filename.c_str(), 
+                                  OSS_MAX_PATHSIZE + 1, full);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = ossOpen(full, OSS_WRITEONLY, OSS_DEFAULTFILE, crashFile);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = ossSeekAndWrite(&crashFile, 0, tmpBuf, sizeof(tmpBuf), &written);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = ossClose(crashFile);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = f.open(dirSlice);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
+   ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+
+   f.close();
+
+}
+
+// file crashed with multi versions
+TEST_F(cftest, test4)
+{
+   INT32 rc = SDB_OK;
+   v::strSlice dirSlice(TEST_PATH);
+   testControlFile f(16);
+   dummyContent content;
+   UINT64 version = 0;
+
+   rc = f.open(dirSlice);
+   ASSERT_EQ(SDB_OK, rc);
+   for (UINT32 i = 0; i < 16; ++i)
+   {
+      dummyContent commit;
+      commit.a = i;
+      rc = f.commit(sizeof(commit), &commit);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   f.close();
+
+   CHAR full[OSS_MAX_PATHSIZE + 1] = {'\0'};
+   string filename;
+   _OSS_FILE crashFile;
+   SINT64 written = 0;
+   const CHAR tmpBuf[5] = {'C','R','A','S','H'};
+   for (UINT32 i = 0; i < 8; ++i)
+   {
+      f.getFileName(i, filename);
+      rc = engine::utilBuildFullPath(TEST_PATH, filename.c_str(), 
+                                     OSS_MAX_PATHSIZE + 1, full);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ossOpen(full, OSS_WRITEONLY, OSS_DEFAULTFILE, crashFile);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ossSeekAndWrite(&crashFile, 5,  tmpBuf, 5, &written);
+      ASSERT_EQ(SDB_OK, rc);
+      rc = ossClose(crashFile);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = f.open(dirSlice);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = f.readLatestVersion(version, sizeof(dummyContent), &content);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(version, 15);
+   ASSERT_EQ(content.a, 15);
+   rc = f.readOldestVersion(version, sizeof(dummyContent), &content);
+   ASSERT_EQ(SDB_OK, rc);
+
+   // test the last 8 files
+   for (UINT32 i = 0; i < 8; ++i)
+   {
+      rc = f.readPreVersion(i, version, sizeof(dummyContent), &content);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   
+   // test the first 8 crashed files
+   for (UINT32 i = 8; i < 16; ++i)
+   {
+      rc = f.readPreVersion(i, version, sizeof(dummyContent), &content);
+      ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+   }
+   
+   f.close();
+}
+
+// remove files
+TEST_F(cftest, test5)
+{
+   INT32 rc = SDB_OK;
+   v::strSlice dirSlice(TEST_PATH); 
+   testControlFile f(16);
+   rc = f.open(dirSlice);
+   ASSERT_EQ(SDB_OK, rc);
+   dummyContent content;
+   UINT64 version = 0;
+
+   rc = f.readOldestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+
+   rc = f.readLatestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_VESSEL_CF_VERSION_NOT_AVAILABLE, rc);
+
+   for (UINT32 i = 0; i < 16; ++i)
+   {
+      dummyContent commit;
+      commit.a = i;
+      rc = f.commit(sizeof(commit), &commit);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   f.close();
+
+
+   string filename;
+   CHAR full[OSS_MAX_PATHSIZE + 1] = {'\0'};
+   for (UINT32 i = 0; i < 16; i += 2)
+   {
+      f.getFileName(i, filename);
+      rc = engine::utilBuildFullPath(TEST_PATH, filename.c_str(), 
+                                     OSS_MAX_PATHSIZE + 1, full);
+      ASSERT_EQ(SDB_OK,rc);
+      fs::path rmFile(full);
+      fs::remove(rmFile);
+   }
+
+   f.open(dirSlice);
+   rc = f.readOldestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = f.readLatestVersion(version, sizeof(content), &content);
+   ASSERT_EQ(SDB_OK, rc);
 }

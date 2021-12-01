@@ -99,7 +99,7 @@ namespace vessel
 
    controlFile::~controlFile()
    {
-      close();
+      release();
    }
 
 /*
@@ -152,6 +152,23 @@ namespace vessel
       {
          _fileObj *obj = _workshop.back();
          _commitVersion = obj->getHead()->commitVersion + 1;
+         PD_LOG(PDINFO, 
+                "ControlFile opened:" OSS_NEWLINE 
+                "Oldest Version:[%llu], Oldest File Name:[%s];" OSS_NEWLINE
+                "Latest Version:[%llu], Latest File Name:[%s];" OSS_NEWLINE
+                "Working Version Count:[%u], Unused Version Count:[%u]", 
+                _workshop.front()->getHead()->commitVersion,
+                _workshop.front()->name.c_str(),
+                _workshop.back()->getHead()->commitVersion,
+                _workshop.back()->name.c_str(),
+                _workshop.size(), _unused.size());
+      }
+      else
+      {
+         PD_LOG(PDINFO, 
+                "ControlFile opened:" OSS_NEWLINE
+                "There's no working version. Unused Version Count:[%u]",
+                _unused.size());
       }
 
    done:
@@ -163,6 +180,27 @@ namespace vessel
 
    void controlFile::close()
    {
+      if (!_workshop.empty())
+      {
+         PD_LOG(PDINFO, 
+                "ControlFile closed:" OSS_NEWLINE 
+                "Oldest Version:[%llu], Oldest File Name:[%s];" OSS_NEWLINE
+                "Latest Version:[%llu], Latest File Name:[%s];" OSS_NEWLINE
+                "Working Version Count:[%u], Unused Version Count:[%u]",
+                _workshop.front()->getHead()->commitVersion,
+                _workshop.front()->name.c_str(),
+                _workshop.back()->getHead()->commitVersion,
+                _workshop.back()->name.c_str(),
+                _workshop.size(), _unused.size());
+      }
+      else
+      {
+         PD_LOG(PDINFO, 
+                "ControlFile closed:" OSS_NEWLINE
+                "There's no working version. Unused Version Count:[%u]",
+                _unused.size());
+      }
+
       for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
            itr != _unused.end(); ++itr)
       {
@@ -599,6 +637,31 @@ namespace vessel
    error:
       SAFE_OSS_DELETE(obj);
       goto done;
+   }
+
+   void controlFile::release()
+   {
+      for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
+           itr != _unused.end(); ++itr)
+      {
+         _fileObj *obj = *itr;
+         obj->close();
+         SDB_OSS_DEL obj;
+      }
+      _unused.clear();
+
+      for (_FILE_OBJ_LIST::iterator itr = _workshop.begin();
+           itr != _workshop.end(); ++itr)
+      {
+         _fileObj *obj = *itr;
+         obj->close();
+         SDB_OSS_DEL obj;
+      }
+      _workshop.clear();
+
+      _commitVersion = 0;
+      _dir.clear();
+      return;
    }
 
 /*

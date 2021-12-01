@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = InsertMainTest.cpp
+   Source File Name = benchmark_test.cpp
 
    Descriptive Name =
 
@@ -221,7 +221,11 @@ INT32 index_insert(vesselImpl *db,
 
    for (UINT32 i = 0; i < count; ++i)
    {
-      ossItoa(ossRand(), randStr, 32);
+      for (UINT32 i = 0; i < 31; ++i)
+      {
+         randStr[i] = 'a' + ossRand() % 26;
+      }
+      randStr[31] = '\0';
       builder.reset();
       builder.append("a", randStr, 32);
       builder.append("b", 2);

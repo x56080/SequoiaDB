@@ -188,6 +188,7 @@ namespace vessel
       private:
          //INT32 createFiles();
          INT32 openFiles();
+         void release();
 
          void initFileBuf(_fileObj *obj);
          void updateFileBuf(_fileObj *obj, UINT32 size, const void *buf);
