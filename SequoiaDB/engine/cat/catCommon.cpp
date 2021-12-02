@@ -3568,7 +3568,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATECONTEXT, "catCreateContext" )
    INT32 catCreateContext ( MSG_TYPE cmdType,
-                            catContext **context,
+                            catContextPtr &context,
                             SINT64 &contextID,
                             _pmdEDUCB *pEDUCB )
    {
@@ -3638,55 +3638,17 @@ namespace engine
       if ( SDB_OK == rc )
       {
          rc = pRtnCB->contextNew( contextType,
-                                  (rtnContext **)context,
+                                  context,
                                   contextID,
                                   pEDUCB ) ;
       }
       if ( SDB_OK == rc &&
            pEDUCB->getMonConfigCB()->timestampON )
       {
-         (*context)->getMonCB()->recordStartTimestamp() ;
+         context->getMonCB()->recordStartTimestamp() ;
       }
 
       PD_TRACE_EXITRC ( SDB_CATCREATECONTEXT, rc ) ;
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATFINDCONTEXT, "catFindContext" )
-   INT32 catFindContext ( SINT64 contextID,
-                          catContext **pCtx,
-                          _pmdEDUCB *pEDUCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATFINDCONTEXT ) ;
-
-      rtnContext *pTmpCtx = NULL ;
-      pmdKRCB *krcb = pmdGetKRCB() ;
-      _SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
-
-      if ( -1 != contextID  )
-      {
-         pTmpCtx = pRtnCB->contextFind( contextID ) ;
-         if ( !pTmpCtx )
-         {
-            rc = SDB_RTN_CONTEXT_NOTEXIST ;
-            goto done ;
-         }
-         else if ( RTN_CONTEXT_CAT_BEGIN >= pTmpCtx->getType() ||
-                   RTN_CONTEXT_CAT_END <= pTmpCtx->getType() )
-         {
-            rc = SDB_RTN_CONTEXT_NOTEXIST ;
-            goto done ;
-         }
-      }
-      if ( pTmpCtx && pCtx )
-      {
-         (*pCtx) = (catContext *)pTmpCtx ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATFINDCONTEXT, rc ) ;
       return rc ;
    }
 

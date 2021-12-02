@@ -54,7 +54,7 @@ namespace engine
    */
    class _rtnContextData : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextData )
       public:
          _rtnContextData ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextData () ;
@@ -221,7 +221,7 @@ namespace engine
    */
    class _rtnContextParaData : public _rtnContextData
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextParaData )
       public:
          _rtnContextParaData( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextParaData () ;
@@ -275,7 +275,7 @@ namespace engine
    */
    class _rtnContextTemp : public _rtnContextData
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTemp )
       public:
          _rtnContextTemp ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextTemp ();

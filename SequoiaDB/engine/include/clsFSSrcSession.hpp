@@ -45,6 +45,7 @@
 #include "dpsLogDef.hpp"
 #include "dpsMessageBlock.hpp"
 #include "rtnLobFetcher.hpp"
+#include "rtnContextData.hpp"
 #include "rtnRecover.hpp"
 #include "../bson/bsonobj.h"
 #include <map>
@@ -65,7 +66,6 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsFreezingWindow ;
    class _clsSplitTask ;
-   class _rtnContextData ;
 
    /*
       _clsDataSrcBaseSession define
@@ -159,7 +159,7 @@ namespace engine
          DPS_LSN                          _lsn ;
          DPS_LSN_OFFSET                   _beginLSNOffset ;
          SINT64                           _contextID ;
-         _rtnContextData                  *_context ;
+         rtnContextData::sharePtr         _context ;
          INT64                            _lobContextID ;
          BOOLEAN                          _findEnd ;
          const CHAR                       *_query ;

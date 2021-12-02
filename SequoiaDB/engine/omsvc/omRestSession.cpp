@@ -655,9 +655,10 @@ namespace engine
 
       if ( -1 != contextID )
       {
-         rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
+         rtnContextPtr pContext ;
+         _pRTNCB->contextFind( contextID, pContext ) ;
 
-         while ( NULL != pContext )
+         while ( pContext )
          {
             rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
             if ( rc )

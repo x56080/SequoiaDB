@@ -342,13 +342,9 @@ namespace engine
                            UINT32 bucketSize = CAT_BUCKET_SIZE ) ;
 
    INT32 catCreateContext ( MSG_TYPE cmdType,
-                            catContext **context,
+                            catContextPtr &context,
                             SINT64 &contextID,
                             _pmdEDUCB * pEDUCB ) ;
-
-   INT32 catFindContext ( SINT64 contextID,
-                          catContext **pCtx,
-                          _pmdEDUCB *pEDUCB ) ;
 
    INT32 catDeleteContext ( SINT64 contextID,
                             _pmdEDUCB *pEDUCB ) ;

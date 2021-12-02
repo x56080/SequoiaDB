@@ -67,7 +67,7 @@ namespace engine
    class _SDB_RTNCB : public _IControlBlock, public _IContextMgr, public _IEventHander
    {
    private :
-      typedef utilConcurrentMap<INT64, rtnContext*> RTN_CTX_MAP ;
+      typedef utilConcurrentMap<INT64, rtnContextPtr> RTN_CTX_MAP ;
 
       ossAtomicSigned64    _contextIdGenerator ;
       RTN_CTX_MAP          _contextMap ;
@@ -114,10 +114,20 @@ namespace engine
       virtual INT32  fini () ;
       virtual void   onConfigChange () ;
 
-      SINT32 contextNew ( RTN_CONTEXT_TYPE type, rtnContext **context,
-                          SINT64 &contextID, _pmdEDUCB * pEDUCB ) ;
+      INT32 contextNew( RTN_CONTEXT_TYPE type,
+                        rtnContextPtr &context,
+                        INT64 &contextID,
+                        _pmdEDUCB * pEDUCB ) ;
 
-      rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb = NULL ) ;
+      INT32 contextFind( INT64 contextID,
+                         rtnContextPtr &context,
+                         _pmdEDUCB *cb = NULL ) ;
+      INT32 contextFind( INT64 contextID,
+                         RTN_CONTEXT_TYPE type,
+                         rtnContextPtr &context,
+                         _pmdEDUCB *cb = NULL,
+                         BOOLEAN closeOnUnexpectType = TRUE ) ;
+      BOOLEAN contextExist( INT64 contextID ) ;
 
       INT32 prepareRemoteMessenger() ;
 
@@ -152,7 +162,10 @@ namespace engine
          FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
          {
             INT64 contextID = -1  ;
-            monContextCB *monCB = NULL ;
+            const monContextCB *monCB = NULL ;
+
+            SDB_ASSERT( NULL != (*it).second.get(), "context is invalid" ) ;
+
             EDUID eduID = (*it).second->eduID() ;
 
             if ( PMD_INVALID_EDUID != filterEDUID &&
@@ -166,7 +179,7 @@ namespace engine
 
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
-            item._info = (*it).second->toString() ;
+            item._info = (*it).second.get()->toString() ;
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -178,12 +191,14 @@ namespace engine
       {
          FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
          {
+            SDB_ASSERT( NULL != (*it).second.get(), "context is invalid" ) ;
+
             INT64 contextID = (*it).second->contextID() ;
-            monContextCB* monCB = (*it).second->getMonCB() ;
+            const monContextCB* monCB = (*it).second->getMonCB() ;
 
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
-            item._info = (*it).second->toString() ;
+            item._info = (*it).second.get()->toString() ;
 
             contextList.insert( item ) ;
          }

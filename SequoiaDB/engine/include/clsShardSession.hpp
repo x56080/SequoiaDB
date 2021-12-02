@@ -376,7 +376,7 @@ namespace engine
          INT32 _queryToMainCL( rtnQueryOptions &options,
                                pmdEDUCB *cb,
                                SINT64 &contextID,
-                               _rtnContextBase **ppContext = NULL,
+                               rtnContextPtr *ppContext,
                                INT16 w = 1,
                                BOOLEAN isWrite = FALSE ) ;
          INT32 _updateToMainCL( rtnQueryOptions &options,
@@ -572,6 +572,18 @@ namespace engine
                                     const stpLogicalTimeUS &sendTime,
                                     stpLogicalTimeUS &preCommitTime ) ;
 
+         void _copyCollectionName( const CHAR *collectionName )
+         {
+            _cmdCollectionName.assign( collectionName ) ;
+            _pCollectionName = _cmdCollectionName.c_str() ;
+         }
+
+         void _clearCollectionName()
+         {
+            _cmdCollectionName.clear() ;
+            _pCollectionName = NULL ;
+         }
+
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;
@@ -586,7 +598,7 @@ namespace engine
          MsgRouteID             _primaryID ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
-         std::string             _cmdCollectionName ;
+         ossPoolString           _cmdCollectionName ;
          INT32                   _clVersion ;
 
          BOOLEAN                _isMainCL ;

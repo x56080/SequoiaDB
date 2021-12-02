@@ -52,7 +52,7 @@ namespace engine
    class _rtnContextSort : public _rtnContextBase,
                            public _rtnSubContextHolder
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextSort )
    public:
       _rtnContextSort( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextSort() ;
@@ -92,7 +92,7 @@ namespace engine
       }
 
       INT32 open( const BSONObj &orderBy,
-                  rtnContext *context,
+                  rtnContextPtr &context,
                   _pmdEDUCB *cb,
                   SINT64 numToSkip = 0,
                   SINT64 numToReturn = -1 ) ;

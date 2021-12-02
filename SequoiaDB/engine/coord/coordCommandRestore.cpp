@@ -358,8 +358,8 @@ class _Context
    engine::pmdEDUCB *_cb;
 
  public:
-   engine::rtnContextCoord *ptr;
-   explicit _Context(engine::pmdEDUCB *cb) : _cb(cb), ptr(NULL){};
+   engine::rtnContextCoord::sharePtr ptr;
+   explicit _Context(engine::pmdEDUCB *cb) : _cb(cb), ptr(){};
    ~_Context()
    {
       if (ptr)

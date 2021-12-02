@@ -1574,39 +1574,30 @@ namespace engine
       _releaseContextInfos() ;
    }
 
-   _rtnContextBase* _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
-                                                   INT64 contextId,
-                                                   EDUID eduId )
+   rtnContextPtr _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
+                                              INT64 contextId,
+                                              EDUID eduId )
    {
+      rtnContextPtr ctx ;
       const _rtnContextInfo* info = find( type ) ;
       if ( NULL != info )
       {
          SDB_ASSERT( type == info->type, "invalid context info" ) ;
          SDB_ASSERT( NULL != info->newFunc, "null pointer of newFunc" ) ;
 
-         _rtnContextBase* ctx = (*(info->newFunc))( contextId, eduId ) ;
-         if ( NULL == ctx )
+         ctx = (*(info->newFunc))( contextId, eduId ) ;
+         if ( NULL != ctx.get() )
          {
-            return NULL ;
+            SDB_ASSERT( 0 == ossStrcmp( ctx->name(), info->name.c_str() ),
+                        "name is wrong" ) ;
+            SDB_ASSERT( ctx->getType() == info->type, "type is wrong" ) ;
          }
-         SDB_ASSERT( 0 == ossStrcmp( ctx->name(), info->name.c_str() ),
-                     "name is wrong" ) ;
-         SDB_ASSERT( ctx->getType() == info->type, "type is wrong" ) ;
-         return ctx ;
       }
       else
       {
          SDB_ASSERT( FALSE, "unknown RTN_CONTEXT_TYPE" ) ;
-         return NULL ;
       }
-   }
-
-   void _rtnContextBuilder::release ( _rtnContextBase* context )
-   {
-      if ( NULL != context)
-      {
-         SDB_OSS_DEL context ;
-      }
+      return ctx ;
    }
 
    const _rtnContextInfo* _rtnContextBuilder::find( RTN_CONTEXT_TYPE type ) const
@@ -1699,9 +1690,7 @@ namespace engine
       _rtnSubContextHolder implement
     */
    _rtnSubContextHolder::_rtnSubContextHolder ()
-   : _subCB( NULL ),
-     _subContext( NULL ),
-     _subContextID( -1 )
+   : _subCB( NULL )
    {
    }
 
@@ -1712,23 +1701,20 @@ namespace engine
 
    void _rtnSubContextHolder::_deleteSubContext ()
    {
-      if ( -1 != _subContextID )
+      if ( _subContext )
       {
-         sdbGetRTNCB()->contextDelete( _subContextID, _subCB ) ;
-         _subContext = NULL ;
-         _subCB = NULL ;
-         _subContextID = -1 ;
+         sdbGetRTNCB()->contextDelete( _subContext->contextID(), _subCB ) ;
+         _subContext.release() ;
       }
    }
 
-   void _rtnSubContextHolder::_setSubContext ( rtnContext *subContext,
+   void _rtnSubContextHolder::_setSubContext ( rtnContextPtr &subContext,
                                                pmdEDUCB *subCB )
    {
       _deleteSubContext() ;
-      if ( NULL != subContext )
+      if ( subContext )
       {
          _subContext = subContext ;
-         _subContextID = subContext->contextID() ;
          _subCB = subCB ;
       }
    }

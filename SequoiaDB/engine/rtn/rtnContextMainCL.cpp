@@ -335,7 +335,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 context = -1 ;
       _SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      rtnContextBase *contextObj = NULL ;
+      rtnContextPtr contextObj ;
       if ( !_subs.empty() )
       {
          // Construct query options of sub-collection
@@ -353,7 +353,7 @@ namespace engine
             goto error ;
          }
 
-         if ( NULL != contextObj && contextObj->isWrite() )
+         if ( contextObj && contextObj->isWrite() )
          {
             _isWrite = TRUE ;
             contextObj->setWriteInfo( this->getDPSCB(),
@@ -478,7 +478,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCTXMAINCL_PREPARESUBDATA ) ;
 
       _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB();
-      rtnContext *pContext = NULL;
+      rtnContextPtr pContext ;
       rtnContextBuf contextBuf;
       SUBCL_CTX_MAP::iterator iterSubCTX = _subContextMap.find( contextID ) ;
       _rtnSubCLContext *subCtx = NULL ;
@@ -495,9 +495,9 @@ namespace engine
          goto done;
       }
 
-      pContext = pRtnCB->contextFind( contextID );
-      PD_CHECK( pContext, SDB_RTN_CONTEXT_NOTEXIST, error, PDERROR,
-                "Context %lld does not exist", contextID ) ;
+      rc = pRtnCB->contextFind( contextID, pContext );
+      PD_RC_CHECK( rc, PDERROR, "Context %lld does not exist, rc: %d",
+                   contextID, rc ) ;
 
       subCtx = iterSubCTX->second ;
 
@@ -622,9 +622,10 @@ namespace engine
          if ( subCtx->recordNum() <= 0 )
          {
             rtnContextBuf contextBuf;
-            rtnContext* rtnCtx = rtnCB->contextFind( subCtx->contextID() );
-            PD_CHECK( rtnCtx, SDB_RTN_CONTEXT_NOTEXIST, error, PDERROR,
-                      "Context %lld does not exist", subCtx->contextID() );
+            rtnContextPtr rtnCtx ;
+            rc = rtnCB->contextFind( subCtx->contextID(), rtnCtx );
+            PD_RC_CHECK( rc, PDERROR, "Context %lld does not exist, rc: %d",
+                         subCtx->contextID(), rc );
 
             for ( ; ; )
             {
@@ -858,20 +859,18 @@ namespace engine
 
       _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
       rtnSubContext *pSubCtx = NULL ;
-      rtnContext *pContext = NULL ;
 
       LST_SUB_CTX_PTR::iterator it = lstCtx.begin() ;
       while( it != lstCtx.end() )
       {
+         rtnContextPtr pContext ;
          pSubCtx = *it ;
          ++it ;
-
-         pContext = pRtnCB->contextFind( pSubCtx->contextID() ) ;
-         if ( !pContext )
+         rc = pRtnCB->contextFind( pSubCtx->contextID(), pContext ) ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Context %lld does not exist",
-                    pSubCtx->contextID() ) ;
-            rc = SDB_RTN_CONTEXT_NOTEXIST ;
+            PD_LOG( PDERROR, "Context %lld does not exist, rc: %d",
+                    pSubCtx->contextID(), rc ) ;
             goto error ;
          }
 
@@ -974,7 +973,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXMAINCLEXP__OPENSUBCTX, "_rtnContextMainCLExplain::_openSubContext" )
    INT32 _rtnContextMainCLExplain::_openSubContext ( rtnQueryOptions & options,
                                                      pmdEDUCB * cb,
-                                                     rtnContext ** ppContext )
+                                                     rtnContextPtr *ppContext )
    {
       INT32 rc = SDB_OK ;
 
@@ -985,14 +984,14 @@ namespace engine
       SDB_RTNCB * rtnCB = sdbGetRTNCB() ;
 
       INT64 queryContextID = -1 ;
-      rtnContextMainCL * queryContext = NULL ;
+      rtnContextMainCL::sharePtr queryContext ;
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_MAINCL, (rtnContext **)&queryContext,
+      rc = rtnCB->contextNew( RTN_CONTEXT_MAINCL, queryContext,
                               queryContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new main-collection "
                    "context, rc: %d", rc ) ;
 
-      PD_CHECK( NULL != queryContext, SDB_SYS, error, PDERROR,
+      PD_CHECK( queryContext, SDB_SYS, error, PDERROR,
                 "Failed to get the context of query" ) ;
 
       if ( options.canPrepareMore() )
@@ -1018,11 +1017,12 @@ namespace engine
          queryContext->setEnableMonContext( TRUE ) ;
       }
 
-   done :
       if ( NULL != ppContext )
       {
-         ( *ppContext ) = queryContext ;
+         *ppContext = queryContext ;
       }
+
+   done :
       PD_TRACE_EXITRC( SDB_RTNCTXMAINCLEXP__OPENSUBCTX, rc ) ;
       return rc ;
 
@@ -1031,7 +1031,6 @@ namespace engine
       {
          rtnCB->contextDelete( queryContextID, cb ) ;
       }
-      queryContext = NULL ;
       goto done ;
    }
 

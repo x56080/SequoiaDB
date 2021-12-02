@@ -1415,7 +1415,7 @@ namespace engine
 
       BSONObj dummyObj ;
       SINT64 contextID = -1 ;
-      rtnContextData *context = NULL ;
+      rtnContextData::sharePtr context ;
       dmsReorgUnit regSU ;
 
       /// In query will create mbcontext, so in here, we need to unlock
@@ -1424,7 +1424,7 @@ namespace engine
       /// begin to query data
       rc = rtnQuery( _clFullName.c_str(), dummyObj, dummyObj, dummyObj,
                      hint, 0, cb, 0, -1, dmsCB, rtnCB, contextID,
-                     (rtnContextBase**)&context ) ;
+                     &context ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC == rc )

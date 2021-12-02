@@ -82,7 +82,7 @@ namespace engine
     */
    class _catCtxActiveGrp : public _catCtxNodeBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxActiveGrp )
    public :
       _catCtxActiveGrp ( INT64 contextID, UINT64 eduID ) ;
 
@@ -115,7 +115,7 @@ namespace engine
     */
    class _catCtxShutdownGrp : public _catCtxNodeBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxShutdownGrp )
    public :
       _catCtxShutdownGrp ( INT64 contextID, UINT64 eduID ) ;
 
@@ -148,7 +148,7 @@ namespace engine
     */
    class _catCtxRemoveGrp : public _catCtxNodeBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxRemoveGrp )
    public :
       _catCtxRemoveGrp ( INT64 contextID, UINT64 eduID ) ;
 
@@ -181,7 +181,7 @@ namespace engine
     */
    class _catCtxCreateNode : public _catCtxNodeBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxCreateNode )
    public :
       _catCtxCreateNode ( INT64 contextID, UINT64 eduID ) ;
 
@@ -237,7 +237,7 @@ namespace engine
     */
    class _catCtxRemoveNode : public _catCtxNodeBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxRemoveNode )
    public :
       _catCtxRemoveNode ( INT64 contextID, UINT64 eduID ) ;
 

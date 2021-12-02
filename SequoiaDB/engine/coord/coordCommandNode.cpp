@@ -225,7 +225,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_NODE3PHASE_DOONCATAP2, "_coordNodeCMD3Phase::_doOnCataGroupP2" )
    INT32 _coordNodeCMD3Phase::_doOnCataGroupP2 ( MsgHeader *pMsg,
                                                  pmdEDUCB *cb,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &pGroupLst )
    {
@@ -1337,7 +1337,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_ACTIVEGRP_DOONCATAGROUP, "_coordCMDActiveGroup::_doOnCataGroup" )
    INT32 _coordCMDActiveGroup::_doOnCataGroup( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
-                                               rtnContextCoord **ppContext,
+                                               rtnContextCoord::sharePtr *ppContext,
                                                coordCMDArguments *pArgs,
                                                CoordGroupList *pGroupLst,
                                                vector<BSONObj> *pReplyObjs )
@@ -1374,7 +1374,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_ACTIVEGRP_DOONDATAGROUP, "_coordCMDActiveGroup::_doOnDataGroup" )
    INT32 _coordCMDActiveGroup::_doOnDataGroup ( MsgHeader *pMsg,
                                                 pmdEDUCB *cb,
-                                                rtnContextCoord **ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments *pArgs,
                                                 const CoordGroupList &groupLst,
                                                 const vector<BSONObj> &cataObjs,
@@ -1509,7 +1509,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_SHUTDOWNGRP_DOONDATA, "_coordCMDShutdownGroup::_doOnDataGroup" )
    INT32 _coordCMDShutdownGroup::_doOnDataGroup ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
-                                                  rtnContextCoord **ppContext,
+                                                  rtnContextCoord::sharePtr *ppContext,
                                                   coordCMDArguments *pArgs,
                                                   const CoordGroupList &groupLst,
                                                   const vector<BSONObj> &cataObjs,
@@ -1547,7 +1547,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_SHUTDOWNGRP_DOCOMMIT, "_coordCMDShutdownGroup::_doCommit" )
    INT32 _coordCMDShutdownGroup::_doCommit ( MsgHeader *pMsg,
                                              pmdEDUCB * cb,
-                                             rtnContextCoord **ppContext,
+                                             rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
@@ -1659,7 +1659,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOGEGRP_DOONDATA, "_coordCMDRemoveGroup::_doOnDataGroup" )
    INT32 _coordCMDRemoveGroup::_doOnDataGroup ( MsgHeader *pMsg,
                                                 pmdEDUCB *cb,
-                                                rtnContextCoord **ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments *pArgs,
                                                 const CoordGroupList &groupLst,
                                                 const vector<BSONObj> &cataObjs,
@@ -1704,7 +1704,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOGEGRP_DOONDATA2, "_coordCMDRemoveGroup::_doOnDataGroupP2" )
    INT32 _coordCMDRemoveGroup::_doOnDataGroupP2 ( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
-                                                  rtnContextCoord **ppContext,
+                                                  rtnContextCoord::sharePtr *ppContext,
                                                   coordCMDArguments *pArgs,
                                                   const CoordGroupList &groupLst,
                                                   const vector<BSONObj> &cataObjs )
@@ -1770,7 +1770,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOGEGRP_DOCOMMIT, "_coordCMDRemoveGroup::_doCommit" )
    INT32 _coordCMDRemoveGroup::_doCommit ( MsgHeader *pMsg,
                                            pmdEDUCB * cb,
-                                           rtnContextCoord **ppContext,
+                                           rtnContextCoord::sharePtr *ppContext,
                                            coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
@@ -2051,7 +2051,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_CREATENODE_DOONDATA, "_coordCMDCreateNode::_doOnDataGroup" )
    INT32 _coordCMDCreateNode::_doOnDataGroup ( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
-                                               rtnContextCoord **ppContext,
+                                               rtnContextCoord::sharePtr *ppContext,
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
@@ -2086,7 +2086,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_CREATENODE_DOONDATA2, "_coordCMDCreateNode::_doOnDataGroupP2" )
    INT32 _coordCMDCreateNode::_doOnDataGroupP2 ( MsgHeader *pMsg,
                                                  pmdEDUCB *cb,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
                                                  const vector<BSONObj> &cataObjs )
@@ -2387,7 +2387,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOVENODE_DOONDATA, "_coordCMDRemoveNode::_doOnDataGroup" )
    INT32 _coordCMDRemoveNode::_doOnDataGroup ( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
-                                               rtnContextCoord **ppContext,
+                                               rtnContextCoord::sharePtr *ppContext,
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
@@ -2425,7 +2425,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_REMOVENODE_DOONDATA2, "_coordCMDRemoveNode::_doOnDataGroupP2" )
    INT32 _coordCMDRemoveNode::_doOnDataGroupP2 ( MsgHeader *pMsg,
                                                  pmdEDUCB *cb,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
                                                  const vector<BSONObj> &cataObjs )

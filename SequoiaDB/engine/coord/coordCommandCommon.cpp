@@ -91,7 +91,7 @@ namespace engine
       SET_RC ignoreRCList ;
       ROUTE_RC_MAP faileds ;
       SET_ROUTEID sucNodes ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       IRtnMonProcessorPtr monProcessorPtr ;
 
       contextID = -1 ;
@@ -215,7 +215,7 @@ namespace engine
       COORD_SHOWERROR_TYPE showError = _getDefaultShowErrorType() ;
       COORD_SHOWERRORMODE_TYPE showErrorMode = _getDefaultShowErrorModeType() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContext *pContext = NULL ;
+      rtnContextPtr pContext ;
       const CHAR *pHint = NULL ;
 
       rc = msgExtractQuery( (const CHAR *)pMsg, NULL, NULL, NULL, NULL,
@@ -249,27 +249,27 @@ namespace engine
          rtnCB->contextDelete( contextID, cb ) ;
          contextID = -1 ;
 
-         rtnContextDump *pDumpContext = NULL ;
+         rtnContextDump::sharePtr pDumpContext ;
 
          /// create new context
-         rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, &pContext, contextID, cb ) ;
+         rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, pDumpContext, contextID, cb ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Create context failed, rc: %d", rc ) ;
             goto error ;
          }
 
-         pDumpContext = (rtnContextDump*)pContext ;
          rc = pDumpContext->open( BSONObj(), BSONObj(), -1, 0 ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Open context failed, rc: %d", rc ) ;
             goto error ;
          }
+         pContext = pDumpContext ;
       }
       else
       {
-         pContext = rtnCB->contextFind( contextID, cb ) ;
+         rc = rtnCB->contextFind( contextID, pContext, cb ) ;
          if ( !pContext )
          {
             PD_LOG( PDERROR, "Context(%lld) is not found", contextID ) ;
@@ -303,7 +303,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextDump *pContext = NULL ;
+      rtnContextDump::sharePtr pContext ;
       INT64 newContextID = -1 ;
       rtnQueryOptions queryOption ;
       monDataSetFetch *dsFetch = NULL ;
@@ -315,7 +315,7 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext **)&pContext,
+      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, pContext,
                               newContextID, cb ) ;
       if ( rc )
       {
@@ -943,8 +943,8 @@ namespace engine
       if ( !outSelector.isEmpty() && -1 != contextID )
       {
          SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-         rtnContext *pContext = rtnCB->contextFind( contextID ) ;
-         if ( pContext )
+         rtnContextPtr pContext ;
+         if ( SDB_OK == rtnCB->contextFind( contextID, pContext ) )
          {
             /// re-load pattern
             pContext->getSelector().clear() ;
@@ -971,11 +971,11 @@ namespace engine
                                                rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_COORD,
-                              ( rtnContext**)&pContext,
+                              pContext,
                               contextID,
                               cb ) ;
       if ( rc )

@@ -723,7 +723,7 @@ namespace engine
       INT64 numToReturn = -1 ;
       _rtnCommand *pCommand = NULL ;
       monClassQuery *monQuery = NULL ;
-      rtnContextBase *pContext = NULL ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractQuery ( (const CHAR *)msg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
@@ -882,9 +882,9 @@ namespace engine
       }
 
       if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
-           ( ( NULL != pContext ) ||
+           ( ( pContext ) ||
              ( -1 != contextID &&
-               NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) ) ) )
+               SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) ) )
       {
          rc = pContext->getMore( -1, buffObj, eduCB() ) ;
          if ( rc || pContext->eof() )
@@ -1014,7 +1014,7 @@ namespace engine
    {
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
-      rtnContext *pContext = NULL ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
@@ -1029,11 +1029,11 @@ namespace engine
       PD_LOG ( PDDEBUG, "Session[%s] GetMore: contextID:%lld\nnumToRead: %d",
                getSession()->sessionName(), contextID, numToRead ) ; */
 
-      pContext = _pRTNCB->contextFind ( contextID, eduCB() ) ;
-      if ( !pContext )
+      rc = _pRTNCB->contextFind ( contextID, pContext, eduCB() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
-         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+         PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d", contextID,
+                  rc ) ;
          goto error ;
       }
 
@@ -2085,7 +2085,7 @@ namespace engine
       const CHAR *pOrderby             = NULL ;
       const CHAR *pHint                = NULL ;
 
-      rtnContextBase *pContext = NULL ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractQuery( (const CHAR*)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
@@ -2179,7 +2179,7 @@ namespace engine
       // query with return data
       if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
            -1 != contextID &&
-           NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )
+           SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
       {
          rc = pContext->getMore( -1, buffObj, eduCB() ) ;
          if ( rc || pContext->eof() )

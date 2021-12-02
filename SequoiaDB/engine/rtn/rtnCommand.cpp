@@ -1265,8 +1265,8 @@ namespace engine
       *pContextID = -1;
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextDelCL *delContext = NULL;
-         rc = rtnCB->contextNew( RTN_CONTEXT_DELCL, (rtnContext **)&delContext,
+         rtnContextDelCL::sharePtr delContext ;
+         rc = rtnCB->contextNew( RTN_CONTEXT_DELCL, delContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, drop "
                       "collection failed(rc=%d)", rc );
@@ -1402,9 +1402,9 @@ namespace engine
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
          // ignore _ensureEmpty because it have been checked by catalog
-         rtnContextDelCS *delContext = NULL;
+         rtnContextDelCS::sharePtr delContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_DELCS,
-                                 (rtnContext **)&delContext,
+                                 delContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, "
                       "drop cs failed(rc=%d)", rc );
@@ -1679,7 +1679,7 @@ namespace engine
                                  INT16 w, INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
 
       SDB_ASSERT( pContextID, "context id can't be NULL" ) ;
 
@@ -1689,7 +1689,7 @@ namespace engine
          _options.setHint( _options.getSelector() ) ;
       }
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, context,
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Create context failed, rc: %d", rc ) ;
 
@@ -1901,9 +1901,9 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextRenameCL *renameContext = NULL;
+         rtnContextRenameCL::sharePtr renameContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_RENAMECL,
-                                 (rtnContext **)&renameContext,
+                                 renameContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create context, rename cl failed, rc: %d",
@@ -2028,9 +2028,9 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
       {
-         rtnContextRenameCS *renameContext = NULL ;
+         rtnContextRenameCS::sharePtr renameContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_RENAMECS,
-                                 (rtnContext **)&renameContext,
+                                 renameContext,
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create context, rename cs failed, rc: %d",
@@ -3471,10 +3471,10 @@ error:
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( pContextID, "context id can't be NULL" ) ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTATUS_DOIT ) ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
       *pContextID = -1 ;
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                *pContextID, cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create new context, rc = %d", rc ) ;
 
@@ -3501,7 +3501,7 @@ error:
 
          if ( !orderBy.isEmpty() )
          {
-            rc = rtnSort( (rtnContext**)&context,
+            rc = rtnSort( context,
                           orderBy,
                           cb, _numToSkip,
                           _numToReturn, *pContextID ) ;
@@ -4120,10 +4120,10 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNLISTLOB_DOIT ) ;
-      rtnContextListLob *context = NULL ;
+      rtnContextListLob::sharePtr context ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_LIST_LOB,
-                              (rtnContext**)(&context),
+                              context,
                               _contextID, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -4141,7 +4141,7 @@ error:
          rc = context->open( _query, _selector, _hint, 0, -1, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open list lob context:%d", rc ) ;
 
-         rc = rtnSort( (rtnContext**)&context, _orderBy, cb,
+         rc = rtnSort( context, _orderBy, cb,
                        _skip, _returnNum, _contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }

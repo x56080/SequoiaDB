@@ -1566,7 +1566,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOORDEXP__OPENSUBCTX, "_rtnContextCoordExplain::_openSubContext" )
    INT32 _rtnContextCoordExplain::_openSubContext ( rtnQueryOptions & options,
                                                      pmdEDUCB * cb,
-                                                     rtnContext ** ppContext )
+                                                     rtnContextPtr *ppContext )
    {
       INT32 rc = SDB_OK ;
 
@@ -1577,16 +1577,16 @@ namespace engine
       SDB_RTNCB * rtnCB = sdbGetRTNCB() ;
 
       INT64 queryContextID = -1 ;
-      rtnContextCoord * queryContext = NULL ;
+      rtnContextCoord::sharePtr queryContext ;
       BOOLEAN needResetSubQuery = TRUE ;
       rtnQueryOptions subOptions( options ) ;
 
-      rc = rtnCB->contextNew( RTN_CONTEXT_COORD, (rtnContext **)&queryContext,
+      rc = rtnCB->contextNew( RTN_CONTEXT_COORD, queryContext,
                               queryContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new main-collection "
                    "context, rc: %d", rc ) ;
 
-      PD_CHECK( NULL != queryContext, SDB_SYS, error, PDERROR,
+      PD_CHECK( queryContext, SDB_SYS, error, PDERROR,
                 "Failed to get the context of query" ) ;
 
       rc = _registerExplainProcessor( queryContext ) ;
@@ -1613,7 +1613,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to open main-collection context, "
                    "rc: %d", rc ) ;
 
-      rc = _explainCoordPath.createCoordPath( queryContext ) ;
+      rc = _explainCoordPath.createCoordPath( queryContext.get() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create MERGE node, rc: %d", rc ) ;
 
       _explainCoordPath.setCollectionName( options.getCLFullName() ) ;
@@ -1623,11 +1623,12 @@ namespace engine
          queryContext->setEnableMonContext( TRUE ) ;
       }
 
-   done :
       if ( NULL != ppContext )
       {
-         ( *ppContext ) = queryContext ;
+         *ppContext = queryContext ;
       }
+
+   done :
       PD_TRACE_EXITRC( SDB_CTXCOORDEXP__OPENSUBCTX, rc ) ;
       return rc ;
 
@@ -1636,7 +1637,6 @@ namespace engine
       {
          rtnCB->contextDelete( queryContextID, cb ) ;
       }
-      queryContext = NULL ;
       goto done ;
    }
 

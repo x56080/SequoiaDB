@@ -51,7 +51,6 @@
 #include "rtnLob.hpp"
 #include "pmdStartup.hpp"
 #include "rtnContextLob.hpp"
-#include "rtnContextData.hpp"
 #include "msgMessageFormat.hpp"
 #include "rtnExtDataHandler.hpp"
 #include <set>
@@ -86,7 +85,6 @@ namespace engine
    {
       _agent = agent ;
       _contextID = -1 ;
-      _context   = NULL ;
       _lobContextID = -1 ;
       _findEnd = FALSE ;
       _query = NULL ;
@@ -188,7 +186,7 @@ namespace engine
          rtnKillContexts( 1, &_contextID , eduCB(),
                           pmdGetKRCB()->getRTNCB() ) ;
          _contextID = -1 ;
-         _context   = NULL ;
+         _context.release() ;
       }
       if ( -1 != _lobContextID )
       {
@@ -356,7 +354,7 @@ namespace engine
       BSONObj hint = builder.obj() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextLobFetcher *pContextLob = NULL ;
+      rtnContextLobFetcher::sharePtr pContextLob ;
 
       ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
                    cs, collection ) ;
@@ -365,7 +363,7 @@ namespace engine
       {
          rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
          _contextID = -1 ;
-         _context   = NULL ;
+         _context.release() ;
       }
 
       if ( -1 != _lobContextID )
@@ -385,7 +383,7 @@ namespace engine
       {
          rc = rtnQuery( fullName, selector, matcher, orderBy, hint, 0, eduCB(),
                         0, -1,  pmdGetKRCB()->getDMSCB(), pRtnCB,
-                        _contextID, (rtnContextBase**)&_context ) ;
+                        _contextID, &_context ) ;
       }
       // SHARD KEY INDEX SCAN
       else
@@ -403,7 +401,7 @@ namespace engine
          {
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
             _contextID = -1 ;
-            _context = NULL ;
+            _context.release() ;
          }
 
          _findEnd = TRUE ;
@@ -425,14 +423,14 @@ namespace engine
             // Empty collection, hit end already
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
             _contextID = -1 ;
-            _context = NULL ;
+            _context.release() ;
             _findEnd = TRUE ;
          }
       }
 
       /// create lob context
       rc = pRtnCB->contextNew( RTN_CONTEXT_LOB_FETCHER,
-                               (rtnContext**)&pContextLob,
+                               pContextLob,
                                _lobContextID, eduCB() ) ;
       if ( rc )
       {
@@ -1072,7 +1070,7 @@ namespace engine
       {
          pRtnCB->contextDelete( _contextID, eduCB() ) ;
          _contextID = -1 ;
-         _context = NULL ;
+         _context.release() ;
       }
 
       if ( _mb.length () != 0 )

@@ -84,7 +84,7 @@ namespace engine
       if ( NULL != tmpPtr.get() &&
            NULL != new( tmpPtr.get() ) netUDPEventSuit( frame, route ) )
       {
-         suitPtr = tmpPtr ;
+         suitPtr.swap( tmpPtr ) ;
       }
 
       return suitPtr ;

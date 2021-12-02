@@ -1482,7 +1482,7 @@ namespace engine
       SDB_DMSCB* dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB* dpsCB = pmdGetKRCB()->getDPSCB() ;
       SDB_RTNCB* rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextBase *pContext = NULL ;
+      rtnContextPtr pContext ;
       rtnContextBuf contextBuf ;
 
       // Use queryAndRemove() to get the sequence id while removing the record
@@ -1589,7 +1589,7 @@ namespace engine
       SDB_DMSCB* dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB* dpsCB = pmdGetKRCB()->getDPSCB() ;
       SDB_RTNCB* rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextBase *pContext = NULL ;
+      rtnContextPtr pContext ;
       rtnContextBuf contextBuf ;
 
       // Use queryAndUpdate() to get the sequence id while updating the record

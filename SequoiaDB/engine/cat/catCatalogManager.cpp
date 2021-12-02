@@ -1423,9 +1423,9 @@ namespace engine
          case MSG_CAT_RENAME_CL_REQ :
          {
             SINT64 contextID = -1;
-            catContext *pCatCtx = NULL ;
+            catContextPtr pCatCtx ;
             rc = catCreateContext ( (MSG_TYPE)pQueryReq->header.opCode,
-                                    &pCatCtx, contextID,
+                                    pCatCtx, contextID,
                                     _pEduCB ) ;
             if ( SDB_OK == rc )
             {
@@ -1434,7 +1434,6 @@ namespace engine
                {
                   catDeleteContext( contextID, _pEduCB ) ;
                   contextID = -1 ;
-                  pCatCtx = NULL ;
                }
                else
                {

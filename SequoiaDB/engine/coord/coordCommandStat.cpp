@@ -82,7 +82,7 @@ namespace engine
       contextID                        = -1 ;
 
       coordQueryOperator queryOpr( isReadOnly() ) ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       coordQueryConf queryConf ;
       coordSendOptions sendOpt ;
       queryConf._openEmptyContext = openEmptyContext() ;
@@ -163,7 +163,7 @@ namespace engine
                                                  INT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
       rtnQueryOptions defaultOptions ;
 
@@ -174,7 +174,7 @@ namespace engine
       }
 
       rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                               (rtnContext**)&pContext,
+                               pContext,
                                contextID, cb ) ;
       if ( rc )
       {

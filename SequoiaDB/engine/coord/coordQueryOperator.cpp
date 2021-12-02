@@ -59,7 +59,6 @@ namespace engine
    */
    _coordQueryOperator::_coordQueryOperator( BOOLEAN readOnly )
    {
-      _pContext = NULL ;
       _processRet = SDB_OK ;
       setReadOnly( readOnly ) ;
 
@@ -71,7 +70,7 @@ namespace engine
 
    _coordQueryOperator::~_coordQueryOperator()
    {
-      SDB_ASSERT( NULL == _pContext, "Context must be NULL" ) ;
+      SDB_ASSERT( !_pContext, "Context must be NULL" ) ;
       SDB_ASSERT( 0 == _vecBlock.size(), "Block must be empty" ) ;
    }
 
@@ -392,7 +391,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR_EXE ) ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       coordCommandFactory *pFactory    = NULL ;
       coordOperator *pOperator         = NULL ;
 
@@ -555,7 +554,7 @@ namespace engine
       {
          sdbGetRTNCB()->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }
@@ -703,7 +702,7 @@ namespace engine
 
    INT32 _coordQueryOperator::queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions & sendOpt,
                                              coordQueryConf *pQueryConf,
                                              rtnContextBuf *buf )
@@ -714,7 +713,7 @@ namespace engine
 
    INT32 _coordQueryOperator::queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions &sendOpt,
                                              CoordGroupList &sucGrpLst,
                                              coordQueryConf *pQueryConf,
@@ -788,7 +787,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( COORD_QUERYOPERATOR__QUERYORDOONCL, "_coordQueryOperator::_queryOrDoOnCL" )
    INT32 _coordQueryOperator::_queryOrDoOnCL( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
-                                              rtnContextCoord **pContext,
+                                              rtnContextCoord::sharePtr *pContext,
                                               coordSendOptions &sendOpt,
                                               CoordGroupList *pSucGrpLst,
                                               coordQueryConf *pQueryConf,
@@ -885,8 +884,9 @@ namespace engine
 
       if ( pContext )
       {
-         if ( NULL == *pContext )
+         if ( NULL == pContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
             RTN_CONTEXT_TYPE contextType = RTN_CONTEXT_COORD ;
 
             if ( FLG_QUERY_EXPLAIN & pQueryMsg->flags )
@@ -896,10 +896,12 @@ namespace engine
 
             // create context
             rc = pRtncb->contextNew( contextType,
-                                     (rtnContext **)pContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *pContext = newContext ;
          }
          else
          {
@@ -1163,7 +1165,7 @@ namespace engine
       }
 
       /// reset info
-      _pContext = NULL ;
+      _pContext.release() ;
       _processRet = SDB_OK ;
       PD_TRACE_EXITRC ( COORD_QUERYOPERATOR__QUERYORDOONCL, rc ) ;
       return rc ;
@@ -1177,7 +1179,7 @@ namespace engine
       {
          pRtncb->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-         *pContext = NULL ;
+         pContext->release() ;
       }
       if ( buf && ( nokRC.size() > 0 || SDB_CLIENT_CATA_VER_OLD == rc ) )
       {

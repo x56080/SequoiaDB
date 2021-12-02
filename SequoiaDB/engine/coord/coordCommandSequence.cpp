@@ -439,7 +439,7 @@ namespace engine
       const CHAR *pQuery = NULL ;
       BSONObj boQuery ;
       const CHAR *pSeqName = NULL ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       utilSequenceID seqID = UTIL_SEQUENCEID_NULL ;
 
       contextID = -1 ;
@@ -498,7 +498,7 @@ namespace engine
       {
          SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
          pRtnCB->contextDelete( pContext->contextID(), cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName, rc, "" ) ;
       PD_TRACE_EXITRC ( COORD_DROP_SEQUENCE_EXE, rc ) ;
@@ -536,7 +536,7 @@ namespace engine
       const CHAR *pSeqName = "" ;
       const CHAR *pAction = "" ;
       utilSequenceID seqID = UTIL_SEQUENCEID_NULL ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       MsgOpQuery *pAttachMsg           = (MsgOpQuery *)pMsg ;
       pAttachMsg->header.opCode        = MSG_GTS_SEQUENCE_ALTER_REQ ;
@@ -626,7 +626,7 @@ namespace engine
       {
          SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
          pRtnCB->contextDelete( pContext->contextID(), cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName,
                         rc, "Options:%s", boQuery.toString().c_str() ) ;

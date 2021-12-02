@@ -52,6 +52,7 @@
 #include "rtnQueryOptions.hpp"
 #include "rtnResultSetFilter.hpp"
 #include "utilPooledObject.hpp"
+#include "utilPooledAutoPtr.hpp"
 #include "monClass.hpp"
 #include <string>
 
@@ -553,6 +554,7 @@ namespace engine
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;
+   typedef utilThreadLocalPtr< rtnContext > rtnContextPtr ;
 
    /*
       _rtnContextBase OSS_INLINE functions
@@ -571,25 +573,43 @@ namespace engine
       return _buffer.freeSize() ;
    }
 
-   typedef _rtnContextBase* (*RTN_CTX_NEW_FUNC)( INT64 contextId, EDUID eduId ) ;
+   typedef rtnContextPtr (*RTN_CTX_NEW_FUNC)( INT64 contextId, EDUID eduId ) ;
 
    class _rtnContextAssit: public SDBObject
    {
    public:
       _rtnContextAssit( RTN_CONTEXT_TYPE type,
-                             std::string name,
-                             RTN_CTX_NEW_FUNC func ) ;
+                        std::string name,
+                        RTN_CTX_NEW_FUNC func ) ;
       ~_rtnContextAssit() ;
    } ;
 
-#define DECLARE_RTN_CTX_AUTO_REGISTER() \
+#define DECLARE_RTN_CTX_AUTO_REGISTER(theClass) \
    public: \
-      static _rtnContextBase *newThis ( INT64 contextId, EDUID eduId ) ;
+      static rtnContextPtr newThis ( INT64 contextId, EDUID eduId ) ; \
+      class sharePtr : public rtnContextPtr \
+      { \
+      public: \
+         theClass* get() const { return (theClass *)( rtnContextPtr::get() ) ; } \
+         theClass* operator->() { return get() ; } \
+         const theClass* operator->() const { return get() ; } \
+         operator const theClass* () { return get() ; } \
+         operator theClass* () { return get() ; } \
+      } ;
 
 #define RTN_CTX_AUTO_REGISTER(theClass, type, name ) \
-   _rtnContextBase *theClass::newThis ( INT64 contextId, EDUID eduId ) \
+   rtnContextPtr theClass::newThis ( INT64 contextId, EDUID eduId ) \
    { \
-      return SDB_OSS_NEW theClass( contextId, eduId ) ;\
+      rtnContextPtr res ; \
+      utilThreadLocalPtr< theClass > ptr = \
+                  utilThreadLocalPtr< theClass >::allocRaw( ALLOC_TC ) ; \
+      if ( NULL != ptr.get() && \
+           NULL != new ( ptr.get() ) theClass( contextId, eduId ) ) \
+      { \
+         res = ptr ; \
+         SDB_ASSERT( NULL != res.get(), "should be valid cast" ) ; \
+      } \
+      return res ; \
    } \
    _rtnContextAssit theClass##Assit ( type, std::string( name ), theClass::newThis ) ;
 
@@ -608,8 +628,9 @@ namespace engine
       _rtnContextBuilder() ;
       ~_rtnContextBuilder() ;
 
-      _rtnContextBase* create ( RTN_CONTEXT_TYPE type, INT64 contextId, EDUID eduId ) ;
-      void             release ( _rtnContextBase* context ) ;
+      rtnContextPtr  create( RTN_CONTEXT_TYPE type,
+                             INT64 contextId,
+                             EDUID eduId ) ;
       const _rtnContextInfo* find( RTN_CONTEXT_TYPE type ) const ;
 
    private:
@@ -641,27 +662,21 @@ namespace engine
       protected :
          void _deleteSubContext () ;
 
-         void _setSubContext ( rtnContext * subContext, _pmdEDUCB * subCB ) ;
+         void _setSubContext ( rtnContextPtr &subContext, _pmdEDUCB *subCB ) ;
 
          OSS_INLINE rtnContext * _getSubContext ()
          {
-            return _subContext ;
+            return _subContext.get() ;
          }
 
          OSS_INLINE const rtnContext * _getSubContext () const
          {
-            return _subContext ;
-         }
-
-         OSS_INLINE _pmdEDUCB * _getSubContextCB ()
-         {
-            return _subCB ;
+            return _subContext.get() ;
          }
 
       protected :
-         _pmdEDUCB *     _subCB ;
-         rtnContext *   _subContext ;
-         INT64          _subContextID ;
+         _pmdEDUCB *    _subCB ;
+         rtnContextPtr  _subContext ;
    } ;
 
    typedef class _rtnSubContextHolder rtnSubContextHolder ;

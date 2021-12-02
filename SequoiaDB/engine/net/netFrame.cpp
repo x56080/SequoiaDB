@@ -95,7 +95,7 @@ namespace engine
                                                      capacity,
                                                      id ) )
       {
-         segPtr = tmpPtr ;
+         segPtr.swap( tmpPtr ) ;
       }
 
       return segPtr ;

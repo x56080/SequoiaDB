@@ -213,7 +213,7 @@ namespace engine
                     SDB_DMSCB *dmsCB,
                     SDB_RTNCB *rtnCB,
                     SINT64 &contextID,
-                    rtnContextBase **ppContext = NULL,
+                    rtnContextPtr *ppContext = NULL,
                     BOOLEAN enablePrefetch = FALSE ) ;
 
    INT32 rtnQuery ( rtnQueryOptions &options,
@@ -221,16 +221,17 @@ namespace engine
                     SDB_DMSCB *dmsCB,
                     SDB_RTNCB *rtnCB,
                     SINT64 &contextID,
-                    rtnContextBase **ppContext = NULL,
+                    rtnContextPtr *ppContext = NULL,
                     BOOLEAN enablePrefetch = FALSE,
                     const rtnExplainOptions *expOptions = NULL ) ;
 
-   INT32 rtnSort ( rtnContext **ppContext,
+   INT32 rtnSort ( rtnContextPtr &pContext,
                    const BSONObj &orderBy,
                    _pmdEDUCB *cb,
                    SINT64 numToSkip,
                    SINT64 numToReturn,
-                   SINT64 &contextID ) ;
+                   SINT64 &contextID,
+                   rtnContextPtr *ppContext = NULL ) ;
 
    // traversal the collection from a given key
    // the key must be normalized by ixm index key generator
@@ -248,7 +249,7 @@ namespace engine
                              SDB_DMSCB *dmsCB,
                              SDB_RTNCB *rtnCB,
                              SINT64 &contextID,
-                             _rtnContextData **ppContext = NULL,
+                             rtnContextPtr *ppContext = NULL,
                              BOOLEAN enablePrefetch = FALSE ) ;
 
    INT32 rtnCreateCollectionSpaceCommand ( const CHAR *pCollectionSpace,
@@ -292,7 +293,7 @@ namespace engine
                       SDB_RTNCB *rtnCB             // input runtimecb
                       ) ;
 
-   INT32 rtnGetMore ( rtnContext *pContext,        // input, context
+   INT32 rtnGetMore ( rtnContextPtr &pContext,     // input, context
                       SINT32 maxNumToReturn,       // input, max record to read
                       rtnContextBuf &buffObj,      // output
                       pmdEDUCB *cb,                // input educb
@@ -634,7 +635,7 @@ namespace engine
    INT32 rtnExplain( rtnQueryOptions &options,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_RTNCB *rtnCB, INT64 &contextID,
-                     rtnContextBase **ppContext = NULL ) ;
+                     rtnContextPtr *ppContext = NULL ) ;
 
    void rtnGetMergedSelector( const BSONObj &original,
                               const BSONObj &orderBy,

@@ -205,8 +205,8 @@ namespace engine
       SDB_ASSERT( !evalRes.isEmpty(), "impossible" ) ;
 
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextSP *context = NULL ;
-      rc = rtnCB->contextNew ( RTN_CONTEXT_SP, (rtnContext**)&context,
+      rtnContextSP::sharePtr context ;
+      rc = rtnCB->contextNew ( RTN_CONTEXT_SP, context,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d", rc ) ;
 

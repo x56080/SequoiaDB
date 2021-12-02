@@ -704,7 +704,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       CLS_SUBCL_LIST_IT iter ;
-      rtnContextDelCL *delContext   = NULL ;
       SINT64 contextID              = -1 ;
 
       SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" ) ;
@@ -724,8 +723,9 @@ namespace engine
       iter = subCLList.begin() ;
       while( iter != subCLList.end() )
       {
+         rtnContextDelCL::sharePtr delContext ;
          rc = _pRtncb->contextNew( RTN_CONTEXT_DELCL,
-                                   (rtnContext **)&delContext,
+                                   delContext,
                                    contextID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create sub-context of sub-"
                       "collection[%s] in drop collection[%s], rc: %d",
@@ -745,7 +745,18 @@ namespace engine
                     (*iter).c_str(), pCollectionName, rc ) ;
             goto error;
          }
-         _subContextList[ *iter ] = contextID ;
+
+         try
+         {
+            _subContextList[ *iter ] = contextID ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add sub-context, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
          ++iter ;
       }
 

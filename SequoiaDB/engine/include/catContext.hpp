@@ -160,6 +160,19 @@ namespace engine
    } ;
 
    typedef class _catContextBase catContext ;
+
+   /*
+      catContextPtr define
+    */
+   class catContextPtr : public rtnContextPtr
+   {
+   public:
+      catContext* get() const { return (catContext *)( rtnContextPtr::get() ) ; }
+      catContext* operator->() { return get() ; }
+      const catContext* operator->() const { return get() ; }
+      operator const catContext* () { return get() ; }
+      operator catContext* () { return get() ; }
+   } ;
 }
 
 #endif //CATCONTEXT_HPP_

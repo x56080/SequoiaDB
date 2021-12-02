@@ -88,14 +88,14 @@ namespace engine
 
          INT32                queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions &sendOpt,
                                              coordQueryConf *pQueryConf = NULL,
                                              rtnContextBuf *buf = NULL ) ;
 
          INT32                queryOrDoOnCL( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **pContext,
+                                             rtnContextCoord::sharePtr *pContext,
                                              coordSendOptions &sendOpt,
                                              CoordGroupList &sucGrpLst,
                                              coordQueryConf *pQueryConf = NULL,
@@ -125,7 +125,7 @@ namespace engine
 
          INT32                _queryOrDoOnCL( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
-                                              rtnContextCoord **pContext,
+                                              rtnContextCoord::sharePtr *pContext,
                                               coordSendOptions &sendOpt,
                                               CoordGroupList *pSucGrpLst = NULL,
                                               coordQueryConf *pQueryConf = NULL,
@@ -190,7 +190,7 @@ namespace engine
                                                    coordProcessResult &result ) ;
 
       private:
-         rtnContextCoord            *_pContext ;
+         rtnContextCoord::sharePtr  _pContext ;
          INT32                      _processRet ;
          vector<CHAR*>              _vecBlock ;
 

@@ -298,13 +298,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       contextID = -1 ;
 
-      rtnContextQGM *context = NULL ;
+      rtnContextQGM::sharePtr context ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rc = rtnCB->contextNew ( RTN_CONTEXT_QGM, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_QGM, context,
                                contextID, cb ) ;
       if ( SDB_OK != rc )
       {
-         context = NULL ;
          PD_LOG ( PDERROR, "Failed to create new context" ) ;
          goto error ;
       }
@@ -403,9 +402,9 @@ namespace engine
       // need dump context to process selector
       if ( !selector.isEmpty() )
       {
-         rtnContextDump *context = NULL ;
+         rtnContextDump::sharePtr context ;
 
-         rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext **)&context,
+         rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                   contextID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d",
                       rc ) ;

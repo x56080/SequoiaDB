@@ -49,7 +49,7 @@ namespace engine
    */
    class _rtnContextLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextLob )
    public:
       _rtnContextLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextLob() ;
@@ -114,7 +114,7 @@ namespace engine
    */
    class _rtnContextLobFetcher : public rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextLobFetcher )
       public:
          _rtnContextLobFetcher( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextLobFetcher() ;

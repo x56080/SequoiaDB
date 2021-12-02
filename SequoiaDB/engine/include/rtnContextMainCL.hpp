@@ -104,7 +104,7 @@ namespace engine
    class _rtnContextMainCL : public _rtnContextMain
    {
       typedef ossPoolMap< INT64, _rtnSubCLContext*>    SUBCL_CTX_MAP ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextMainCL )
    public:
       _rtnContextMainCL( INT64 contextID, UINT64 eduID ) ;
       ~_rtnContextMainCL();
@@ -196,7 +196,7 @@ namespace engine
    class _rtnContextMainCLExplain : public _rtnContextBase,
                                     public _rtnExplainMainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextMainCLExplain )
 
       public :
          _rtnContextMainCLExplain ( INT64 contextID, UINT64 eduID ) ;
@@ -232,7 +232,7 @@ namespace engine
 
          INT32 _openSubContext ( rtnQueryOptions & options,
                                  pmdEDUCB * cb,
-                                 rtnContext ** ppContext ) ;
+                                 rtnContextPtr *ppContext ) ;
 
          INT32 _prepareExplainPath ( rtnContext * context,
                                      pmdEDUCB * cb ) ;

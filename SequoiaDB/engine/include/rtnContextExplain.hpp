@@ -94,7 +94,7 @@ namespace engine
 
          virtual INT32 _openSubContext ( rtnQueryOptions & options,
                                          pmdEDUCB * cb,
-                                         rtnContext ** ppContext ) = 0 ;
+                                         rtnContextPtr *ppContext ) = 0 ;
 
          OSS_INLINE virtual INT32 _finishSubContext ( rtnContext * context,
                                                       pmdEDUCB * cb )
@@ -166,7 +166,7 @@ namespace engine
    class _rtnContextExplain : public _rtnContextBase,
                               public _rtnExplainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextExplain )
 
    public :
       _rtnContextExplain ( INT64 contextID, UINT64 eduID ) ;
@@ -215,7 +215,7 @@ namespace engine
 
       INT32 _openSubContext ( rtnQueryOptions & options,
                               pmdEDUCB * cb,
-                              rtnContext ** ppContext ) ;
+                              rtnContextPtr *ppContext ) ;
 
       INT32 _prepareExplainPath ( rtnContext * context,
                                   pmdEDUCB * cb ) ;

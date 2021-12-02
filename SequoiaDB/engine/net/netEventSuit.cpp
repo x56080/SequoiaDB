@@ -72,7 +72,7 @@ namespace engine
       if ( NULL != tmpPtr.get() &&
            NULL != new( tmpPtr.get() ) netEventSuit( frame ) )
       {
-         suitPtr = tmpPtr ;
+         suitPtr.swap( tmpPtr ) ;
       }
 
       return suitPtr ;

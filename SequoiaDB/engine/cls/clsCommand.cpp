@@ -1047,8 +1047,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTIONSPACE__OPENCONTEXT ) ;
 
-      rtnContextAlterCS * context = NULL ;
-      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCS, (rtnContext **)( &context ),
+      rtnContextAlterCS::sharePtr context ;
+      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCS, context,
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
 
@@ -1125,8 +1125,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTION__OPENCONTEXT ) ;
 
-      rtnContextAlterCL * context = NULL ;
-      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCL, (rtnContext **)( &context ),
+      rtnContextAlterCL::sharePtr context ;
+      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCL, context,
                               *pContextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
 
