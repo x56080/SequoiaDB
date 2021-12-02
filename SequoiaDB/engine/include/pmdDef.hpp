@@ -248,6 +248,9 @@ namespace engine
       // service session to STP client
       EDU_TYPE_STP_SERVICE_SESSION,
 
+      EDU_TYPE_FS_MCS_NET_SERVICE,
+      EDU_TYPE_FS_MCS_NET_AGENT,
+      
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
    } ;

@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-
    Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
@@ -39,34 +38,22 @@
 #include <sys/time.h>
 #include <asm/ioctls.h>
 #include <linux/errno.h>
-#include "sequoiaFSLruCache.hpp"
-#include "sequoiaFSOptionMgr.hpp"
+
 #include "omagentDef.hpp"
 #include "utilStr.hpp"
 #include "ossVer.h"
+#include "ossUtil.hpp"
+#include "ossMem.hpp"
 
-#define SEQUOIAFS_LOG_DIR "sequoiafslog"
-const string SEQUOIAFS_META_MAP_AUDIT_CL= "maphistory";
+const string SEQUOIAFS_META_CS = "sequoiafs";
+const string SEQUOIAFS_META_MAP_AUDIT_CL = "maphistory";
 const string SEQUOIAFS_META_ID_CL = "sequenceid";
+const string SEQUOIAFS_MOUNT_ID_CL = "mountid";
 
 const string SEQUOIAFS_META_MAP_AUDIT_CL_FULL = SEQUOIAFS_META_CS + "." +
                                                 SEQUOIAFS_META_MAP_AUDIT_CL;
 const string SEQUOIAFS_META_ID_CL_FULL = SEQUOIAFS_META_CS + "." +
                                          SEQUOIAFS_META_ID_CL;
-
-#define SEQUOIAFS_NAME          "Name"
-#define SEQUOIAFS_MODE          "Mode"
-#define SEQUOIAFS_UID           "Uid"
-#define SEQUOIAFS_GID           "Gid"
-#define SEQUOIAFS_NLINK         "NLink"
-#define SEQUOIAFS_PID           "Pid"
-#define SEQUOIAFS_ID            "Id"
-#define SEQUOIAFS_LOBOID        "LobOid"
-#define SEQUOIAFS_SIZE          "Size"
-#define SEQUOIAFS_CREATE_TIME      "CreateTime"
-#define SEQUOIAFS_MODIFY_TIME      "ModifyTime"
-#define SEQUOIAFS_ACCESS_TIME      "AccessTime"
-#define SEQUOIAFS_SYMLINK          "SymLink"
 
 #define SEQUOIAFS_SRC_CLNAME       "SourceCL"
 #define SEQUOIAFS_DIR_META_CLNAME  "DirMetaCL"
@@ -76,98 +63,31 @@ const string SEQUOIAFS_META_ID_CL_FULL = SEQUOIAFS_META_CS + "." +
 #define SEQUOIAFS_MOUNT_TIME       "MountTime"
 
 #define SEQUOIAFS_SEQUENCEID       "Sequenceid"
-#define SEQUOIAFS_SEQUENCEID_VALAUE "Value"
-
-#define NUM_OF_META_CL 2
-#define CURSOR_OF_META_DIR_CL 0
-#define CURSOR_OF_META_FILE_CL 1
-
+#define SEQUOIAFS_MOUNTCLID        "Mountclid"
+#define SEQUOIAFS_SEQUENCEID_VALUE "Value"
 
 #define MAXCNT 1000
 #define ENOIOCTLCMD 515
 
+using namespace sdbclient;
 using namespace sequoiafs;
-#define ROOT_ID 1
+using namespace bson;
+
 const INT32 BUFSIZE=1000;
-
-LRUCache *lrucache;
-
-pthread_mutex_t mutex;
-pthread_mutexattr_t attr;
 
 struct lobHandle
 {
-   sdb *hSdb;
-   sdbLob *hLob;
    OID oid;
-   sdbCollection *hSysFileMetaCL;
-   sdbCollection *hSysDirMetaCL;
-   sdbCursor *hCursor[NUM_OF_META_CL];
-   pthread_mutex_t lock;
+   BOOLEAN isDirty;
+   INT32 flId;
+   INT64 parentId;
 };
-
-struct times
-{
-   INT64 getattr;
-   INT64 opendir;
-   INT64 readdir;
-   INT64 releasedir;
-};
-
-#define INIT_NODE(node) \
-{\
-   node.lobName = "";\
-   node.lobMode = 0;\
-   node.uid = 0;\
-   node.gid = 0;\
-   node.nlink = 0;\
-   node.lobIno = 0;\
-   node.lobOid = "";\
-   node.lobSize= 0;\
-   node.lobCTime = 0;\
-   node.lobMTime = 0;\
-   node.lobATime = 0;\
-}
-
-#define INIT_DIR_NODE(node) \
-{\
-   node.name = "";\
-   node.mode = 0;\
-   node.uid = 0;\
-   node.gid = 0;\
-   node.pid = 0;\
-   node.id = 0;\
-   node.size= 0;\
-   node.ctime = 0;\
-   node.mtime = 0;\
-   node.atime = 0;\
-   node.symLink = "";\
-}
-
-#define INIT_FILE_NODE(node) \
-{\
-   node.name = "";\
-   node.mode = 0;\
-   node.uid = 0;\
-   node.gid = 0;\
-   node.nLink = 0;\
-   node.lobOid = "";\
-   node.pid = 0;\
-   node.size= 0;\
-   node.ctime = 0;\
-   node.mtime = 0;\
-   node.atime = 0;\
-   node.symLink = "";\
-}
 
 #define INIT_LOBHANDLE(lh) \
 {\
-   lh->hSdb = NULL;\
-   lh->hCursor[0] = NULL;\
-   lh->hCursor[1] = NULL;\
-   lh->hSysFileMetaCL = NULL;\
-   lh->hSysDirMetaCL = NULL;\
-   lh->hLob = NULL;\
+   lh->flId = 0;\
+   lh->isDirty = FALSE;\
+   lh->parentId = 0;\
 }
 
 INT32 getLocalIPs(string *localhosts)
@@ -195,6 +115,7 @@ INT32 getLocalIPs(string *localhosts)
 
    return rc;
 }
+
 //get cs, it will create a new one if cs does not exist
 INT32 getCollectionSpace(sdb &db, const CHAR *csName,
                          sdbCollectionSpace &cs)
@@ -207,13 +128,13 @@ INT32 getCollectionSpace(sdb &db, const CHAR *csName,
       rc = db.createCollectionSpace(csName, SDB_PAGESIZE_DEFAULT, cs);
       if(SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Failed to create collectionspace:%s. rc:%d", csName, rc ) ;
+         PD_LOG( PDERROR, "Failed to create collectionspace:%s. rc=%d", csName, rc ) ;
          goto error;
       }
    }
    else if(SDB_OK != rc)
    {
-      PD_LOG( PDERROR, "Failed to get collectionspace:%s. rc:%d", csName, rc ) ;
+      PD_LOG( PDERROR, "Failed to get collectionspace:%s. rc=%d", csName, rc ) ;
       goto error;
    }
 
@@ -234,13 +155,13 @@ INT32 getCollection(sdbCollectionSpace &cs, const CHAR *clName,
       rc = cs.createCollection(clName, BSON("ReplSize" << replsize), cl);
       if(SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Failed to create collection:%s. rc:%d", clName, rc ) ;
+         PD_LOG( PDERROR, "Failed to create collection:%s. rc=%d", clName, rc ) ;
          goto error;
       }
    }
    else if(SDB_OK != rc)
    {
-      PD_LOG( PDERROR, "Failed to get collection:%s. rc:%d", clName, rc ) ;
+      PD_LOG( PDERROR, "Failed to get collection:%s. rc=%d", clName, rc ) ;
       goto error;
    }
 
@@ -248,7 +169,6 @@ done:
    return rc;
 error:
    goto done;
-
 }
 
 INT32 listCollections(sdb &db)
@@ -260,7 +180,7 @@ INT32 listCollections(sdb &db)
    rc=db.listCollections( cursor);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to list collection, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Failed to list collection, rc=%d"OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -269,7 +189,7 @@ INT32 listCollections(sdb &db)
    {
       if(SDB_OK != rc)
       {
-          ossPrintf("Failed to get record in cursor, error=%d"OSS_NEWLINE, rc);
+          ossPrintf("Failed to get record in cursor, rc=%d"OSS_NEWLINE, rc);
           goto error;
       }
       else
@@ -292,84 +212,73 @@ error:
    goto done;
 }
 
-static size_t namePidHash(INT64 pid, const char *fullpath)
-{
-   uint64_t hash = 5381;
-   const char *name;
-   char str[100] = {0};
-
-   sprintf(str, "%lld", pid);
-   name = fullpath;
-
-   for (; *name; name++)
-   {
-      hash = hash * 31 + (unsigned char) *name;
-   }
-   name = str;
-
-   for (; *name; name++)
-   {
-       hash = hash * 31 + (unsigned char) *name;
-   }
-   return hash;
-}
-
-void InitLruCace(INT32 size)
-{
-   lrucache = new LRUCache(size);
-   lrucache->initMutex();
-}
-
-INT32 buildDialogPath(CHAR *diaglogPath, CHAR *diaglogPathFromCmd,
-                      UINT32 bufSize)
+INT32 createIndex(sdbCollection &cl,
+                  const CHAR *idxName,
+                  const BSONObj &indexDef,
+                  BOOLEAN isUnique=FALSE,
+                  BOOLEAN isEnforced=FALSE)
 {
    INT32 rc = SDB_OK;
-   CHAR *logPath;
-   CHAR currentPath[OSS_MAX_PATHSIZE + 1] = {0};
+   sdbCursor cursor;
+   BSONObj record;
 
-   if(bufSize < OSS_MAX_PATHSIZE + 1)
+   //get the index if exist, or create index if do not exist
+   rc = cl.getIndexes(cursor, idxName);
+   if(SDB_OK != rc)
    {
-      ossPrintf("Path buffer size is too small: %u"OSS_NEWLINE, bufSize);
+      PD_LOG(PDERROR, "Failed to get index, idx=%s, rc=%d",
+             idxName, rc);
       goto error;
    }
 
-   rc = ossGetEWD(currentPath, OSS_MAX_PATHSIZE);
-   if(rc)
+   rc = cursor.current(record);
+   if(SDB_OK != rc)
    {
-      ossPrintf("Get working directory failed: %d"OSS_NEWLINE, rc);
-      goto error;
-   }
-
-   logPath = (ossStrcmp(diaglogPathFromCmd, "") == 0) ?
-             currentPath :  diaglogPathFromCmd;
-   //./diaglog/sequoiafs.log
-   rc = engine::utilBuildFullPath(logPath, PMD_OPTION_DIAG_PATH,
-                                  OSS_MAX_PATHSIZE, diaglogPath);
-   if(rc)
-   {
-      ossPrintf("Build log path failed: %d"OSS_NEWLINE, rc);
-      goto error;
-   }
-
-   rc = ossMkdir(diaglogPath);
-   if(rc)
-   {
-      if(SDB_FE != rc)
+      if(SDB_IXM_NOTEXIST != rc && SDB_DMS_EOC != rc)
       {
-          ossPrintf("Make diralog path [%s] faild: %d"OSS_NEWLINE,
-                    diaglogPath, rc);
+          PD_LOG(PDERROR, "Error happened during do cursor current, idx=%s, "
+                 "rc=%d", idxName, rc);
           goto error;
       }
-      else
+
+      rc = cl.createIndex(indexDef, idxName, isUnique, isEnforced);
+      if(SDB_OK != rc)
       {
-          rc = SDB_OK;
+          PD_LOG(PDERROR, "Failed to create index, idx=%s, rc=%d",
+                 idxName, rc);
+          goto error;
       }
    }
-
 done:
    return rc;
 error:
    goto done;
+}
+
+sequoiaFS::sequoiaFS()
+{
+  _collection = "";
+  _sysFileMetaCLFullName = "";
+  _sysDirMetaCLFullName = "";
+  _mountpoint = "";
+  _replsize = SDB_SEQUOIAFS_REPLSIZE_DEFAULT_VALUE;
+}
+
+sequoiaFS::~sequoiaFS()
+{
+}
+
+void sequoiaFS::fini()
+{
+   _running = FALSE;
+
+   _fileLobMgr.fini();
+   _metaCache.fini();
+   closeDataSource();
+   if(_thClean != NULL)
+   {
+      _thClean->join();
+   }
 }
 
 sequoiafsOptionMgr * sequoiaFS::getOptionMgr()
@@ -381,16 +290,16 @@ void sequoiaFS::setDataSourceConf(const CHAR * userName,
                                   const CHAR *passwd,
                                   const INT32 connNum)
 {
-   conf.setAuthInfo(userName, passwd);
-   conf.setConnCntInfo(50, 10, 20, connNum);
-   conf.setCheckIntervalInfo( 60*1000, 0 );
-   conf.setSyncCoordInterval( 60*1000 );
-   conf.setConnectStrategy( SDB_CONN_STY_BALANCE );
-   conf.setValidateConnection( TRUE );
-   conf.setUseSSL( FALSE );
+   _conf.setAuthInfo(userName, passwd);
+   _conf.setConnCntInfo(50, 10, 20, connNum);
+   _conf.setCheckIntervalInfo( 60*1000, 0 );
+   _conf.setSyncCoordInterval( 60*1000 );
+   _conf.setConnectStrategy( SDB_CONN_STY_BALANCE );
+   _conf.setValidateConnection( TRUE );
+   _conf.setUseSSL( FALSE );
 }
 
-INT32 sequoiaFS::initDataSource(const CHAR * userName,
+INT32 sequoiaFS::initDataSource(const CHAR *userName,
                                 const CHAR *passwd,
                                 const INT32 connNum)
 {
@@ -400,15 +309,15 @@ INT32 sequoiaFS::initDataSource(const CHAR * userName,
 
    setDataSourceConf(userName, passwd, connNum);
 
-   // init sdbDataSource
+   // init sdbConnectionPool
    getCoordHost();
-   rc = ds.init( _coordHostPort, conf);
+   rc = _ds.init( _coordHostPort, _conf);
    if (SDB_OK != rc)
    {
-      ossPrintf("Fail to init sdbDataSouce, error=%d"OSS_NEWLINE, rc);
+      ossPrintf("Fail to init sdbDataSouce, rc=%d"OSS_NEWLINE, rc);
       goto error;
    }
-
+   
 done:
    return rc;
 
@@ -416,33 +325,21 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::closeDataSource()
+void sequoiaFS::closeDataSource()
 {
-   INT32 rc = SDB_OK;
-
    PD_LOG(PDDEBUG, "Called: closeDataSource()");
 
-   rc = ds.close();
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
-done:
-   return rc;
-error:
-   goto done;
+   _ds.close(); 
 }
 
 INT32 sequoiaFS::getConnection(sdb **connection)
 {
-
    INT32 rc = SDB_OK;
 
-   rc = ds.getConnection(*connection);
+   rc = _ds.getConnection(*connection);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to get a connection, error=%d, exit."OSS_NEWLINE, rc);
+      PD_LOG(PDERROR, "Failed to get a connection, rc=%d", rc);
       goto error;
    }
 
@@ -474,7 +371,6 @@ void sequoiaFS::getCoordHost()
           break;
       }
    }
-
 }
 
 INT32 sequoiaFS::initMetaCSCL(sdb *db, const string csName,
@@ -514,7 +410,7 @@ INT32 sequoiaFS::initMetaCSCL(sdb *db, const string csName,
    rc = collection.getIndexes(cursor, idxName);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get index, idx=%s, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get index, idx=%s, cl=%s, rc=%d",
              idxName, clName.c_str(), rc);
       goto error;
    }
@@ -525,14 +421,14 @@ INT32 sequoiaFS::initMetaCSCL(sdb *db, const string csName,
       if(SDB_IXM_NOTEXIST != rc && SDB_DMS_EOC != rc)
       {
           PD_LOG(PDERROR, "Error happened during do cursor current, idx=%s, "
-                 "cl=%s, error=%d", idxName, clName.c_str(), rc);
+                 "cl=%s, rc=%d", idxName, clName.c_str(), rc);
           goto error;
       }
 
       rc = collection.createIndex(indexDef, idxName, isUnique, isEnforced);
       if(SDB_OK != rc)
       {
-          PD_LOG(PDERROR, "Failed to create index, idx=%s, cl=%s, error=%d",
+          PD_LOG(PDERROR, "Failed to create index, idx=%s, cl=%s, rc=%d",
                  idxName, clName.c_str(), rc);
           goto error;
       }
@@ -547,10 +443,11 @@ error:
 INT32 sequoiaFS::initDataCSCL(sdb *db, const string dataCollection)
 {
    INT32 rc = SDB_OK;
-   sdbCollection collection;
+   sdbCollection cl;
    sdbCollectionSpace cs;
    string csName;
    string clName;
+   BSONObj option;
 
    rc = getOptionMgr()->parseCollection(dataCollection, &csName, &clName);
    if(SDB_OK != rc)
@@ -564,9 +461,23 @@ INT32 sequoiaFS::initDataCSCL(sdb *db, const string dataCollection)
       goto error;
    }
 
-   rc = getCollection(cs, clName.c_str(), collection, replSize());
-   if(SDB_OK != rc)
+   rc = cs.getCollection(clName.c_str(), cl);
+   if(SDB_DMS_NOTEXIST == rc)
    {
+      option = BSON("ReplSize" << replSize() << \
+                    "AutoSplit" << true <<\
+                    "ShardingKey" << BSON("_id" << 1)<<\
+                    "ShardingType" << "hash");
+      rc = cs.createCollection(clName.c_str(), option, cl);
+      if(SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "Failed to create collection:%s. rc=%d", clName.c_str(), rc ) ;
+         goto error;
+      }
+   }
+   else if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "Failed to get collection:%s. rc=%d", clName.c_str(), rc ) ;
       goto error;
    }
 
@@ -576,8 +487,7 @@ error:
    goto done;
 }
 
-
-INT32 sequoiaFS::getAndUpdateID(sdbCollection *cl, INT64 *sequenceId)
+INT32 sequoiaFS::_getAndUpdateID(sdbCollection *cl, CHAR* name, INT64 *id)
 {
    INT32 rc = SDB_OK;
    BSONObj condition;
@@ -585,29 +495,27 @@ INT32 sequoiaFS::getAndUpdateID(sdbCollection *cl, INT64 *sequenceId)
    sdbCursor cursor;
    BSONObj record;
 
-   rule = BSON("$inc"<<BSON(SEQUOIAFS_SEQUENCEID_VALAUE<<1));
-   condition = BSON(SEQUOIAFS_NAME<<SEQUOIAFS_SEQUENCEID);
+   rule = BSON("$inc"<<BSON(SEQUOIAFS_SEQUENCEID_VALUE<<1));
+   condition = BSON(SEQUOIAFS_NAME<<name);
    rc = cl->queryAndUpdate(cursor, rule, condition);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to query and update sequenceid, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to query and update sequenceid, rc=%d", rc);
       goto error;
    }
 
    rc = cursor.current(record);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Error happened during do cursor current, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Error happened during do cursor current, rc=%d", rc);
       goto error;
    }
 
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SEQUENCEID_VALAUE,
-                       (void *)(sequenceId), NumberLong);
+   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SEQUENCEID_VALUE,
+                       (void *)(id), NumberLong);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get value of sequoenceid, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to get value of sequoenceid, rc=%d", rc);
       goto error;
    }
 
@@ -615,10 +523,9 @@ done:
    return rc;
 error:
    goto done;
-
 }
 
-INT32 sequoiaFS::initMetaID(sdb *db)
+INT32 sequoiaFS::_initMetaID(sdb *db)
 {
    INT32 rc = SDB_OK;
    INT32 ret = SDB_OK;
@@ -632,9 +539,8 @@ INT32 sequoiaFS::initMetaID(sdb *db)
    rc = db->getCollection(SEQUOIAFS_META_ID_CL_FULL.c_str(), cl);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
-      rc = -ENOENT;
       goto error;
    }
 
@@ -642,9 +548,8 @@ INT32 sequoiaFS::initMetaID(sdb *db)
    rc = cl.query(cursor, condition);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Fail to query collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
              SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
@@ -654,28 +559,116 @@ INT32 sequoiaFS::initMetaID(sdb *db)
       if(SDB_DMS_EOC == rc)
       {
           obj = BSON(SEQUOIAFS_NAME<<SEQUOIAFS_SEQUENCEID<<\
-              SEQUOIAFS_SEQUENCEID_VALAUE<<(INT64)(value + 1));
+              SEQUOIAFS_SEQUENCEID_VALUE<<(INT64)(value + 1));
           ret = cl.insert(obj);
           if(SDB_OK != ret)
           {
-           PD_LOG(PDERROR, "Fail to insert to collection, cl=%s, error=%d",
-                  SEQUOIAFS_META_ID_CL_FULL.c_str(), ret);
-           rc = ret;
-           goto error;
+             PD_LOG(PDERROR, "Fail to insert to collection, cl=%s, rc=%d",
+                    SEQUOIAFS_META_ID_CL_FULL.c_str(), ret);
+             rc = ret;
+             goto error;
           }
       }
       else
       {
-          PD_LOG(PDERROR, "Error happened during cursor current, cl=%s, error=%d",
+          PD_LOG(PDERROR, "Error happened during cursor current, cl=%s, rc=%d",
                  SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
-          rc = -EIO;
           goto error;
       }
    }
 
    if(SDB_DMS_EOC != rc)
    {
-      rc = getRecordField(record, (CHAR *)SEQUOIAFS_SEQUENCEID_VALAUE,
+      rc = getRecordField(record, (CHAR *)SEQUOIAFS_SEQUENCEID_VALUE,
+                          (void *)(&value), NumberLong);
+      if(SDB_OK != rc)
+      {
+          goto error;
+      }
+   }
+
+   rc = SDB_OK;
+
+   if(value < ROOT_ID)
+   {
+      PD_LOG(PDERROR, "The Mountid of sequoiafs.sequenceid is %d, "
+             "should not small than %d", value, ROOT_ID);
+      rc = -EINVAL;
+      goto error;
+   }
+
+done:
+   return rc;
+error:
+   goto done;
+}
+
+INT32 sequoiaFS::_initMountID(sdb *db)
+{
+   INT32 rc = SDB_OK;
+   INT32 ret = SDB_OK;
+   BSONObj obj;
+   sdbCollection cl;
+   BSONObj condition;
+   sdbCursor cursor;
+   BSONObj record;
+   INT64 value = ROOT_ID;
+   BSONObj emtpyObj;
+
+   rc = initMetaCSCL(db, SEQUOIAFS_META_CS, SEQUOIAFS_META_ID_CL, "", FALSE, emtpyObj);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d", 
+             SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      goto error;
+   }
+
+   rc = db->getCollection(SEQUOIAFS_META_ID_CL_FULL.c_str(), cl);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+             SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
+      goto error;
+   }
+
+   condition = BSON(SEQUOIAFS_NAME<<SEQUOIAFS_MOUNTCLID);
+   rc = cl.query(cursor, condition);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+             SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
+      goto error;
+   }
+
+   rc = cursor.current(record);
+   if(SDB_OK != rc)
+   {
+      if(SDB_DMS_EOC == rc)
+      {
+          obj = BSON(SEQUOIAFS_NAME<<SEQUOIAFS_MOUNTCLID<<\
+              SEQUOIAFS_SEQUENCEID_VALUE<<(INT64)(value + 1));
+          ret = cl.insert(obj);
+          if(SDB_OK != ret)
+          {
+             PD_LOG(PDERROR, "Fail to insert to collection, cl=%s, rc=%d",
+                    SEQUOIAFS_META_ID_CL_FULL.c_str(), ret);
+             rc = ret;
+             goto error;
+          }
+      }
+      else
+      {
+          PD_LOG(PDERROR, "Error happened during cursor current, cl=%s, rc=%d",
+                 SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
+          goto error;
+      }
+   }
+
+   if(SDB_DMS_EOC != rc)
+   {
+      rc = getRecordField(record, (CHAR *)SEQUOIAFS_SEQUENCEID_VALUE,
                           (void *)(&value), NumberLong);
       if(SDB_OK != rc)
           goto error;
@@ -697,14 +690,129 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::initRootPath()
+INT32 sequoiaFS::_addMountID(sdb *db)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
+   INT32 ret = SDB_OK;
+   BSONObj obj;
+   sdbCollection cl;
+   sdbCollection seqcl;
+   BSONObj condition;
+   sdbCursor cursor;
+   BSONObj record;
+   BSONObj emtpyObj;
+   INT64 id = 0L;
+
+   rc = initMetaCSCL(db, SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, "", FALSE, emtpyObj);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to create collection, cs.cl=%s.%s, rc=%d", 
+             SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, rc);
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                SEQUOIAFS_CS, SEQUOIAFS_MOUNTID_CL, rc);
+      goto error;
+   }
+
+   rc = db->getCollection(SEQUOIAFS_MOUNTID_FULLCL, cl);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+             SEQUOIAFS_MOUNTID_FULLCL, rc);
+      goto error;
+   }
+
+   condition = BSON(FS_MOUNT_CL<<_collection.c_str());
+   rc = cl.query(cursor, condition);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+             SEQUOIAFS_MOUNTID_FULLCL, rc);
+      goto error;
+   }
+
+   rc = cursor.current(record);
+   if(SDB_OK != rc)
+   {
+      if(SDB_DMS_EOC == rc)
+      {
+         ret = db->getCollection(SEQUOIAFS_META_ID_CL_FULL.c_str(), seqcl);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+                   SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
+            rc = ret;
+            goto error;
+         } 
+   
+         ret = _getAndUpdateID(&seqcl, SEQUOIAFS_MOUNTCLID, &id);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Fail to get and update id in sequence collecion, "
+                   "rc=%d", ret);
+            rc = ret;
+            goto error;
+         }
+   
+         obj = BSON(FS_MOUNT_CL<<_collection.c_str()<<\
+               FS_MOUNT_PATH<<_mountpoint.c_str()<<\
+               FS_MOUNT_ID<<(id));
+         ret = cl.insert(obj);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Fail to insert to collection, cl=%s, rc=%d",
+                   SEQUOIAFS_META_ID_CL_FULL.c_str(), ret);
+            rc = ret;
+            goto error;
+         }
+
+         rc = SDB_OK;
+      }
+      else
+      {
+         PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+             SEQUOIAFS_MOUNTID_FULLCL, rc);
+         goto error;
+      }
+   }
+   else
+   {
+      if(!_optionMgr.getForceMount())
+      {
+         //check mountpath 名称是否一致
+         BSONObjIterator itr(record);
+         while (itr.more())
+         {
+            BSONElement ele = itr.next();
+            if (0 == ossStrcmp(FS_MOUNT_PATH, ele.fieldName()))
+            {
+               PD_CHECK(String == ele.type(), SDB_INVALIDARG,
+                     error, PDERROR, "The type of field:%s is not string",
+                     FS_MOUNT_PATH);
+               if(0 != ossStrcmp((CHAR*)ele.valuestrsafe(), _mountpoint.c_str()))
+               {
+                  PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+                                   SEQUOIAFS_MOUNTID_FULLCL, rc);
+                  rc = SDB_INVALIDARG;
+                  goto error;
+               }
+               break;
+            }
+         }
+      }
+   }
+
+done:
+   return rc;
+error:
+   goto done;
+}
+
+INT32 sequoiaFS::_initRootPath(sdb *db)
+{
+   INT32 rc = SDB_OK;
    sdbCollection sysDirMetaCL;
    INT64 pid = 0;
    INT64 id = ROOT_ID;
-   struct dirMetaNode dirNode;
    struct timeval tval;
    UINT64 ctime = 0;
    UINT64 mtime = 0;
@@ -712,29 +820,13 @@ INT32 sequoiaFS::initRootPath()
    gid_t gid = getgid();
    BSONObj options;
    INT32 pageSize = getpagesize();
-
-   rc = getConnection(&db);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-   
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
+   dirMeta newDirMeta;
 
    rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Fail to get collection, cl=%s, rc=%d",
              _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
@@ -742,19 +834,20 @@ INT32 sequoiaFS::initRootPath()
    ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
    mtime = ctime;
 
-   dirNode.name = "/";
-   dirNode.mode = S_IFDIR | 0755;
-   dirNode.uid = uid;
-   dirNode.gid = gid;
-   dirNode.nLink = 2;
-   dirNode.pid= pid;
-   dirNode.id = id;
-   dirNode.size = pageSize;
-   dirNode.ctime = ctime;
-   dirNode.mtime = mtime;
-   dirNode.atime= mtime;
+   newDirMeta.setName("/");
+   newDirMeta.setMode(S_IFDIR | 0755);
+   newDirMeta.setUid(uid);
+   newDirMeta.setGid(gid);
+   newDirMeta.setNLink(2);
+   newDirMeta.setPid(pid);
+   newDirMeta.setId(id);
+   newDirMeta.setSize(pageSize);
+   newDirMeta.setCtime(ctime);
+   newDirMeta.setMtime(mtime);
+   newDirMeta.setAtime(mtime);
+   newDirMeta.setSymLink('\0');
 
-   rc = doSetDirNodeAttr(sysDirMetaCL, dirNode);
+   rc = _doSetDirNodeAttr(sysDirMetaCL, newDirMeta);
    if(SDB_OK != rc)
    {
       if (SDB_IXM_DUP_KEY == rc)
@@ -763,7 +856,7 @@ INT32 sequoiaFS::initRootPath()
       }
       else
       {
-         PD_LOG(PDERROR, "Failed to set attr, error=%d", rc);
+         PD_LOG(PDERROR, "Failed to set attr, rc=%d", rc);
          goto error;
       }
    }
@@ -797,9 +890,8 @@ INT32 sequoiaFS::writeMapHistory(const CHAR *hosts)
    rc = db->getCollection(SEQUOIAFS_META_MAP_AUDIT_CL_FULL.c_str(), cl);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              SEQUOIAFS_META_MAP_AUDIT_CL_FULL.c_str(), rc);
-      rc = -ENOENT;
       goto error;
    }
 
@@ -811,7 +903,7 @@ INT32 sequoiaFS::writeMapHistory(const CHAR *hosts)
    rc = getLocalIPs(&localHosts);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get local ips, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to get local ips, rc=%d", rc);
       goto error;
    }
 
@@ -837,171 +929,253 @@ error:
 INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
 {
    INT32 rc = SDB_OK;
-   sdb *db;
+   sdb *db = NULL;  
    BSONObj idxDefObj;
    BSONObj emtpyObj;
    CHAR diaglogPath[OSS_MAX_PATHSIZE + 1] = {0};
-   CHAR *tempDialogPath = NULL;
+   //CHAR *tempDialogPath = NULL;
    CHAR verText[OSS_MAX_PATHSIZE + 1] = {0};
    const CHAR *nameIdx = "NameIndex";
+   const CHAR *idIdx = "IdIndex";
+   const CHAR *pidIdx = "PidIndex";
    const CHAR *lobOidIdx = "LobOidIndex";
-   sequoiafsOptionMgr *optionMgr = getOptionMgr();
+   
    string configs;
    BSONObj options;
-   INT32 capacity = 0;
+   dirMeta dMeta;
 
    //1. init options
-   rc = optionMgr->init(argc, argv, options4fuse);
+   //optionMgr = getOptionMgr();
+   rc = _optionMgr.init(argc, argv, options4fuse);
    if(SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc)
    {
       rc = SDB_OK;
       goto done;
    }
-
    else if(SDB_OK != rc)
    {
-      ossPrintf("Failed to resolving arguments(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to resolving arguments(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
-   tempDialogPath = optionMgr->getDiaglogPath();
-   setReplSize(optionMgr->replsize());
+   //tempDialogPath = optionMgr->getDiaglogPath();
+   
+   setReplSize(_optionMgr.replsize());
 
    //2. init and build diaglogPath
-   rc = buildDialogPath(diaglogPath, tempDialogPath, OSS_MAX_PATHSIZE + 1);
+   rc = buildDialogPath(diaglogPath, _optionMgr.getDiaglogPath(), OSS_MAX_PATHSIZE + 1);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(error=%d), eixt."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
-   //./diaglog/sequoiafs.log
+   // ./log/guestdir/diaglog/sequoiafs.log
    rc = engine::utilCatPath(diaglogPath, OSS_MAX_PATHSIZE,
                             SDB_SEQUOIAFS_LOG_FILE_NAME);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to build dialog path(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to build dialog path(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
-   sdbEnablePD(diaglogPath, optionMgr->getDiagMaxNUm());
-   setPDLevel((PDLEVEL(optionMgr->getDiaglogLevel())));
+   sdbEnablePD(diaglogPath, _optionMgr.getDiagMaxNUm());
+   setPDLevel((PDLEVEL(_optionMgr.getDiaglogLevel())));
    ossSprintVersion("Version", verText, OSS_MAX_PATHSIZE, FALSE);
    PD_LOG((getPDLevel()>PDEVENT)?PDEVENT:getPDLevel(),
            "Start sequoiafs[%s]...", verText);
 
    //print configuration in log file
-   optionMgr->toString(configs);
+   _optionMgr.toString(configs);
    PD_LOG(PDEVENT, "ALL configs:\n%s", configs.c_str());
 
    //3. init datasource
-   rc= initDataSource(optionMgr->getUserName(), \
-              optionMgr->getPasswd(), \
-              optionMgr->getConnNum());
+   rc= initDataSource(_optionMgr.getUserName(), 
+                      _optionMgr.getPasswd(), 
+                      _optionMgr.getConnNum());
    if(SDB_OK != rc)
    {
-      closeDataSource();
-      PD_LOG( PDERROR, "Failed to init connection pool, rc:%d", rc ) ;
-      ossPrintf("Failed to init connection pool(error=%d), exit."OSS_NEWLINE, rc);
-      goto done;
+      PD_LOG( PDERROR, "Failed to init connection pool, rc=%d", rc ) ;
+      ossPrintf("Failed to init connection pool(rc=%d), exit."OSS_NEWLINE, rc);
+      goto error;
    }
-
-   _collection = optionMgr->getCollection();
 
    //4. init data/meta cs and cl
    rc=getConnection(&db);
    if(SDB_OK != rc)
    {
+      ossPrintf("Failed to get a connection(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG( PDERROR, "Failed to set the preferred instance for read request "
-              "in the current session (PreferedInstance:M), rc:%d", rc ) ;
-      ossPrintf("Failed to set the preferred instance for read request "
-                "in the current session (PreferedInstance:M), error=%d"OSS_NEWLINE,
-                rc);
-      rc = -EIO;
-      goto error;
-   }
-
+   _collection = _optionMgr.getCollection();
+   _mountpoint = _optionMgr.getmountpoint();
    rc = initDataCSCL(db, _collection);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to init collection, cs.cl=%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to init collection, cs.cl=%s, rc=%d", 
              _collection.c_str(), rc);
-      ossPrintf("Failed to init collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
                 _collection.c_str(), rc);
       goto error;
    }
 
-   _sysFileMetaCLFullName = optionMgr->getMetaFileCL();
-   _sysDirMetaCLFullName = optionMgr->getMetaDirCL();
+   _sysFileMetaCLFullName = _optionMgr.getMetaFileCL();
+   _sysDirMetaCLFullName = _optionMgr.getMetaDirCL();
 
-   rc = optionMgr->parseCollection(_sysDirMetaCLFullName, &_sysDirMetaCSName,
+   rc = _optionMgr.parseCollection(_sysDirMetaCLFullName, &_sysDirMetaCSName,
                                    &_sysDirMetaCLName);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to parse dir meta collection, cs.cl=%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to parse dir meta collection, cs.cl=%s, rc=%d", 
              _sysDirMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse dir meta collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
                 _sysDirMetaCLFullName.c_str(), rc);
       goto error;
    }
 
-   rc = optionMgr->parseCollection(_sysFileMetaCLFullName,
+   rc = _optionMgr.parseCollection(_sysFileMetaCLFullName,
                                    &_sysFileMetaCSName, &_sysFileMetaCLName);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to parse file meta collection, cs.cl=%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to parse file meta collection, cs.cl=%s, rc=%d", 
              _sysFileMetaCLFullName.c_str(), rc);
-      ossPrintf("Failed to parse file meta collection, cs.cl=%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to parse file meta collection, cs.cl=%s, rc=%d, exit."OSS_NEWLINE,
                 _sysFileMetaCLFullName.c_str(), rc);
       goto error;
    }
-   idxDefObj = BSON(SEQUOIAFS_NAME << 1 << SEQUOIAFS_PID << 1);
-   rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, nameIdx,
-                     TRUE, idxDefObj, TRUE, TRUE);
-   if(SDB_OK != rc)
+
+   try
    {
-      PD_LOG(PDERROR, "Failed to init dir meta collection, cs.cl=%s.%s, rc:%d", 
-             _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      idxDefObj = BSON(SEQUOIAFS_NAME << 1 << SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, nameIdx,
+                        TRUE, idxDefObj, TRUE, TRUE);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create nameIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         ossPrintf("Failed to init dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
       goto error;
    }
 
-   rc = initRootPath();
-   if(SDB_OK != rc)
+   try
    {
-      PD_LOG(PDERROR, "Failed to init root path, rc:%d", rc);
-      ossPrintf("Failed to init root path, error=%d, exit."OSS_NEWLINE, rc);
+      idxDefObj = BSON(SEQUOIAFS_ID << 1);
+      rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, idIdx,
+                        TRUE, idxDefObj, TRUE, TRUE);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         ossPrintf("Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
       goto error;
    }
 
-   rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, nameIdx,
-                     TRUE, idxDefObj, TRUE, TRUE);
+   try
+   {
+      idxDefObj = BSON(SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, pidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         ossPrintf("Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
+      goto error;
+   }
+
+   rc = _initRootPath(db);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to init file meta collection, cs.cl=%s.%s, rc:%d", 
-             _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      PD_LOG(PDERROR, "Failed to init root path, rc=%d", rc);
+      ossPrintf("Failed to init root path, rc=%d, exit."OSS_NEWLINE, rc);
+      goto error;
+   }
+
+   try
+   {
+      idxDefObj = BSON(SEQUOIAFS_NAME << 1 << SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, nameIdx,
+                        TRUE, idxDefObj, TRUE, TRUE);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create nameIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         ossPrintf("Failed to init create nameIdx for meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
       goto error;
    }
 
-   idxDefObj = BSON(SEQUOIAFS_LOBOID << 1);
-   rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, lobOidIdx,
-                     TRUE, idxDefObj);
-   if(SDB_OK != rc)
+   try
    {
-      PD_LOG(PDERROR, "Failed to init file meta collection, cs.cl=%s.%s, rc:%d", 
-             _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
-      ossPrintf("Failed to init file meta collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      idxDefObj = BSON(SEQUOIAFS_LOBOID << 1);
+      rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, lobOidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create lobidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         ossPrintf("Failed to init create lobidIdx for meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
+      goto error;
+   }
+
+   try
+   {
+      idxDefObj = BSON(SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, pidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         ossPrintf("Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                   _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
       goto error;
    }
 
@@ -1009,9 +1183,9 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
                      "", FALSE, emtpyObj);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to create maphistory collection, cs.cl=%s.%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to create maphistory collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
-      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create maphistory collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_MAP_AUDIT_CL.c_str(), rc);
       goto error;
    }
@@ -1019,105 +1193,87 @@ INT32 sequoiaFS::init(INT32 argc, CHAR **argv, vector<string> *options4fuse)
    rc = initMetaCSCL(db, SEQUOIAFS_META_CS, SEQUOIAFS_META_ID_CL, "", FALSE, emtpyObj);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to create sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
 
-   rc = initMetaID(db);
+   rc = _initMetaID(db);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to init sequenceid collection, cs.cl=%s.%s, rc:%d", 
+      PD_LOG(PDERROR, "Failed to init sequenceid collection, cs.cl=%s.%s, rc=%d", 
              SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
-      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, error=%d, exit."OSS_NEWLINE,
+      ossPrintf("Failed to init sequenceid collection, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
                 SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
       goto error;
    }
 
-   capacity = optionMgr->getCacheSize() * 1024 * 1024 / sizeof(struct dirMetaNode);
-   //5. init lru cache
-   InitLruCace(capacity);
-   pthread_mutex_init(&mutex, NULL);
+   rc = _initMountID(db);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to init mountid, cs.cl=%s.%s, rc=%d", 
+             SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      ossPrintf("Failed to init mountid, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      goto error;
+   }
+
+   rc = _addMountID(db);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to add mountid, cs.cl=%s.%s, rc=%d", 
+             SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      ossPrintf("Failed to add mountid, cs.cl=%s.%s, rc=%d, exit."OSS_NEWLINE,
+                SEQUOIAFS_META_CS.c_str(), SEQUOIAFS_META_ID_CL.c_str(), rc);
+      goto error;
+   }
+
+   rc = _fileLobMgr.init(&_ds, 
+                         _optionMgr.getFflag(), 
+                         _optionMgr.getPreReadBlock(),
+                         _optionMgr.getDataCacheSize());  
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to init fileLobMgr. rc=%d", rc);
+      ossPrintf("Failed to init fileLobMgr. rc=%d, exit."OSS_NEWLINE, rc);
+      goto error;
+   }
+
+   rc = _metaCache.init(&_ds, 
+                        _sysDirMetaCLFullName, 
+                        _sysFileMetaCLFullName, 
+                        _collection, 
+                        _mountpoint, 
+                        _optionMgr.getDirCacheSize(),
+                        _optionMgr.getStandAlone());
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to init metaCache. rc=%d", rc);
+      ossPrintf("Failed to init metaCache. rc=%d, exit."OSS_NEWLINE, rc);
+      goto error;
+   }
+
+   _running = TRUE;
+   try
+   {
+      _thClean = new boost::thread( boost::bind( &sequoiaFS::_cleanCounts, this ) );
+   }
+   catch ( std::exception &e )
+   {
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
 done:
    releaseConnection(db);
    return rc;
 
 error:
-   goto done;
-
+   goto done; 
 }
-
-INT32 sequoiaFS::isDir(sdbCollection *sysFileMetaCL,
-                       sdbCollection *sysDirMetaCL,
-                       CHAR *name, INT64 pid, BOOLEAN *is_dir)
-{
-   INT32 rc = SDB_OK;
-   BSONObj rule;
-   BSONObj condition;
-   BSONObj record;
-   BSONElement ele;
-   sdbCursor cursor;
-
-   *is_dir = TRUE;
-   condition = BSON(SEQUOIAFS_NAME<<name<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = sysDirMetaCL->query(cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query file or directory, name=%s, error=%d",
-             name, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor.current(record);
-   if(SDB_DMS_EOC == rc )
-   {
-      rc = sysFileMetaCL->query(cursor, condition);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to query query file or directory, "
-                 "name=%s, error=%d", name, rc);
-          rc = -EIO;
-          goto error;
-      }
-
-      rc = cursor.current(record);
-      if(SDB_DMS_EOC == rc )
-      {
-          PD_LOG(PDINFO, "Such file or directory does not exist, name=%s, "
-                 "error=%d", name, rc);
-          rc = -ENOENT;
-          goto error;
-      }
-
-      else if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, "
-                 "error=%d", name, rc);
-          rc = -EIO;
-          goto error;
-      }
-
-      *is_dir = FALSE;
-
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get such file or directory, name=%s, "
-             "error=%d", name, rc);
-      rc = -EIO;
-      goto error;
-   }
-done:
-   return rc;
-error:
-   goto done;
-
-}
-
 
 INT32 sequoiaFS::getRecordField(BSONObj &record,
                                 CHAR *fieldName,
@@ -1140,7 +1296,7 @@ INT32 sequoiaFS::getRecordField(BSONObj &record,
       else
       {
           PD_LOG(PDERROR, "The type of field:%s is not NumberLong", fieldName);
-          rc = -EIO;
+          rc = SDB_INVALIDARG;
           goto error;
       }
       break;
@@ -1153,7 +1309,7 @@ INT32 sequoiaFS::getRecordField(BSONObj &record,
       else
       {
           PD_LOG(PDERROR, "The type of field:%s is not NumberInt", fieldName);
-          rc = -EIO;
+          rc = SDB_INVALIDARG;
           goto error;
       }
       break;
@@ -1165,10 +1321,11 @@ INT32 sequoiaFS::getRecordField(BSONObj &record,
       else
       {
           PD_LOG(PDERROR, "The type of field:%s is not String", fieldName);
-          rc = -EIO;
+          rc = SDB_INVALIDARG;
           goto error;
       }
       break;
+      
    default:
       break;
    }
@@ -1189,8 +1346,7 @@ INT32 sequoiaFS::doUpdateAttr(sdbCollection *cl,
    rc = cl->update(rule, condition, hint);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to update attr, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to update attr, rc=%d", rc);
       goto error;
    }
 
@@ -1200,24 +1356,24 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::doSetFileNodeAttr(sdbCollection &cl,
-                                   struct fileMetaNode &fileNode)
+INT32 sequoiaFS::_doSetFileNodeAttr(sdbCollection &cl,
+                                   _fileMeta &fileNode)
 {
    INT32 rc = SDB_OK;
    BSONObj obj;
 
-   obj = BSON(SEQUOIAFS_NAME<<fileNode.name<<\
-              SEQUOIAFS_MODE<<fileNode.mode<<\
-              SEQUOIAFS_UID<<fileNode.uid<<\
-              SEQUOIAFS_GID<<fileNode.gid<<\
-              SEQUOIAFS_NLINK<<fileNode.nLink<<\
-              SEQUOIAFS_PID<<fileNode.pid<<\
-              SEQUOIAFS_LOBOID<<fileNode.lobOid<<\
-              SEQUOIAFS_SIZE<<fileNode.size<<\
-              SEQUOIAFS_CREATE_TIME<<fileNode.ctime<<\
-              SEQUOIAFS_MODIFY_TIME<<fileNode.mtime<<\
-              SEQUOIAFS_ACCESS_TIME<<fileNode.atime<<\
-              SEQUOIAFS_SYMLINK<<fileNode.symLink);
+   obj = BSON(SEQUOIAFS_NAME<<fileNode.name()<<\
+              SEQUOIAFS_MODE<<fileNode.mode()<<\
+              SEQUOIAFS_UID<<fileNode.uid()<<\
+              SEQUOIAFS_GID<<fileNode.gid()<<\
+              SEQUOIAFS_NLINK<<fileNode.nLink()<<\
+              SEQUOIAFS_PID<<fileNode.pid()<<\
+              SEQUOIAFS_LOBOID<<fileNode.lobOid()<<\
+              SEQUOIAFS_SIZE<<fileNode.size()<<\
+              SEQUOIAFS_CREATE_TIME<<fileNode.ctime()<<\
+              SEQUOIAFS_MODIFY_TIME<<fileNode.mtime()<<\
+              SEQUOIAFS_ACCESS_TIME<<fileNode.atime()<<\
+              SEQUOIAFS_SYMLINK<<fileNode.symLink());
 
    rc = cl.insert(obj);
    if(SDB_OK != rc)
@@ -1231,80 +1387,23 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::doesFileExist(sdbCollection &cl,
-                               const CHAR *lobName,
-                               BSONObj &condition,
-                               BOOLEAN *exist, OID *oid, BSONObj &record)
-{
-   INT32 rc = SDB_OK;
-   BSONElement ele;
-   INT32 count = 0;
-   sdbCursor cursor;
-
-   rc = cl.query(cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", lobName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor.current(record);
-   while(SDB_DMS_EOC != rc)
-   {
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Error happened during do cursor next, error=%d", rc);
-          rc = -EIO;
-          goto error;
-      }
-      else
-      {
-          count++;
-          ele = record.getField("LobOid");
-          if(bson::String != ele.type())
-          {
-           PD_LOG(PDERROR, "Invalid type of oid");
-           rc = -EIO;
-           goto error;
-          }
-          if(!ele.String().empty())
-           *oid = bson::OID(ele.String());
-          rc = cursor.next(record);
-      }
-   }
-
-   if(1 <= count)
-   {
-      *exist = TRUE;
-   }
-   rc = SDB_OK;
-done:
-   return rc;
-
-error:
-   goto done;
-
-}
-
-
-INT32 sequoiaFS::doSetDirNodeAttr(sdbCollection &cl, struct dirMetaNode &dirNode)
+INT32 sequoiaFS::_doSetDirNodeAttr(sdbCollection &cl, _dirMeta &dirNode)
 {
    INT32 rc = SDB_OK;
    BSONObj obj;
 
-   obj = BSON(SEQUOIAFS_NAME<<dirNode.name<<\
-          SEQUOIAFS_MODE<<dirNode.mode<<\
-          SEQUOIAFS_UID<<dirNode.uid<<\
-          SEQUOIAFS_GID<<dirNode.gid<<\
-          SEQUOIAFS_PID<<dirNode.pid<<\
-          SEQUOIAFS_ID<<dirNode.id<<\
-          SEQUOIAFS_NLINK<<dirNode.nLink<<\
-          SEQUOIAFS_SIZE<<dirNode.size<<\
-          SEQUOIAFS_CREATE_TIME<<dirNode.ctime<<\
-          SEQUOIAFS_MODIFY_TIME<<dirNode.mtime<<\
-          SEQUOIAFS_ACCESS_TIME<<dirNode.atime<<\
-          SEQUOIAFS_SYMLINK<<dirNode.symLink);
+   obj = BSON(SEQUOIAFS_NAME<<dirNode.name()<<\
+          SEQUOIAFS_MODE<<dirNode.mode()<<\
+          SEQUOIAFS_UID<<dirNode.uid()<<\
+          SEQUOIAFS_GID<<dirNode.gid()<<\
+          SEQUOIAFS_PID<<dirNode.pid()<<\
+          SEQUOIAFS_ID<<dirNode.id()<<\
+          SEQUOIAFS_NLINK<<dirNode.nLink()<<\
+          SEQUOIAFS_SIZE<<dirNode.size()<<\
+          SEQUOIAFS_CREATE_TIME<<dirNode.ctime()<<\
+          SEQUOIAFS_MODIFY_TIME<<dirNode.mtime()<<\
+          SEQUOIAFS_ACCESS_TIME<<dirNode.atime()<<\
+          SEQUOIAFS_SYMLINK<<dirNode.symLink());
 
    rc = cl.insert(obj);
    if(SDB_OK != rc)
@@ -1314,141 +1413,6 @@ INT32 sequoiaFS::doSetDirNodeAttr(sdbCollection &cl, struct dirMetaNode &dirNode
 
 done:
    return rc;
-error:
-   goto done;
-}
-
-INT64 sequoiaFS::getDirIno(sdbCollection *sysDirMetaCL,
-                           string dirname, INT64 pid)
-{
-   INT64 id = 0;
-   INT64 rc = SDB_OK;
-   BSONObj condition;
-   sdbCursor cursor;
-   BSONObj record;
-   BOOLEAN exist = TRUE;
-   INT64 hash = 1;
-   struct dirMetaNode dirNode;
-   INIT_DIR_NODE(dirNode);
-
-   condition = BSON(SEQUOIAFS_NAME<<dirname<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = sysDirMetaCL->query(cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to query directory, dir=%s, error=%d",
-             dirname.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor.current(record);
-   if(SDB_DMS_EOC == rc)
-      exist = FALSE;
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, dir=%s, "
-             "error=%d", dirname.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   if(!exist)
-   {
-      PD_LOG(PDERROR, "The directory does not exist, dir=%s, error=%d",
-             dirname.c_str(), rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_ID, (void *)(&id), NumberLong);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get id of directory, dir=%s, error=%d",
-             dirname.c_str(), rc);
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SIZE,
-                       (void *)(&dirNode.size), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_CREATE_TIME,
-                        (void *)(&dirNode.ctime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_ACCESS_TIME,
-                        (void *)(&dirNode.atime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODIFY_TIME,
-                        (void *)(&dirNode.mtime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODE,
-                        (void *)(&dirNode.mode), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_UID,
-                        (void *)(&dirNode.uid), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_GID,
-                        (void *)(&dirNode.gid), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_SYMLINK,
-                        (void *)(&dirNode.symLink), String);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get attr of directory, dir=%s, error=%d",
-             dirname.c_str(), rc);
-      goto error;
-   }
-
-   dirNode.name = dirname;
-   dirNode.id = id;
-   dirNode.pid = pid;
-
-   hash = namePidHash(pid, dirname.c_str());
-   lrucache->put(hash, &dirNode);
-
-   rc = id;
-done:
-   return rc;
-error:
-   goto done;
-}
-
-INT64 sequoiaFS::getDirPIno(sdbCollection *sysDirMetaCL,
-                            CHAR *pathStr, string *basePath, bool flag)
-{
-   CHAR *dir;
-   INT64 pid = 0;
-   const CHAR *delimiter = "/";
-   CHAR *pTemp = NULL;
-   vector<string> dirName;
-   PD_LOG(PDDEBUG, "All nodes path:%s", pathStr);
-   dir = ossStrtok(pathStr, delimiter, &pTemp);
-   while(dir)
-   {
-      dirName.push_back(dir);
-      dir = ossStrtok(NULL, delimiter, &pTemp);
-   }
-
-   if(dirName.size() == 0)
-   {
-      *basePath = "/";
-      goto done;
-   }
-
-   pid = ROOT_ID;
-
-   for(vector<string>::size_type i = 0; i < dirName.size() - 1; i++)
-   {
-      size_t hash = namePidHash(pid, dirName[i].c_str());
-      struct dirMetaNode* node= lrucache->get(hash);
-      if(node)
-      {
-         pid = node->id;
-         continue;
-      }
-      pid = getDirIno(sysDirMetaCL, dirName[i], pid);
-      if(pid < 0)
-      {
-         goto error;
-      }
-   }
-
-   *basePath = dirName[dirName.size() - 1];
-done:
-   return pid;
 error:
    goto done;
 }
@@ -1456,266 +1420,83 @@ error:
 INT32 sequoiaFS::getattr(const CHAR *path, struct stat *sbuf)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
-   string basePath;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
    uid_t uid = getuid();
    gid_t gid = getgid();
-   UINT32 mode = 0;
-   BSONObj record;
-   BSONElement ele;
-   UINT32 nlink = 0;
-   INT64 pid = 0;
-   BOOLEAN is_dir =TRUE;
-   BSONObj options;
    INT32 blocks;
    INT32 pageSize = getpagesize();
+   metaNode meta;
 
    PD_LOG(PDDEBUG, "Called: getattr(). Path:%s", path);
    ossMemset(sbuf, 0, sizeof(struct stat));
 
    sbuf->st_uid = uid;
    sbuf->st_gid = gid;
-   pathStr = ossStrdup(path);
 
-   rc = getConnection(&db);
+   rc = _metaCache.getAttr(path, &meta);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
+      if(SDB_DMS_EOC != rc)
+      {
+         PD_LOG(PDERROR, "metaCache.getAttr pathStr:%s, rc=%d", path, rc);
+      }
       goto error;
    }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
-      goto error;
-   }
-
-   condition = BSON(SEQUOIAFS_NAME<<basePath<<SEQUOIAFS_PID<<pid);
-   //If didn't get the record from sys file meta cl, then search the sys dir meta cl.
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, (CHAR *)basePath.c_str(),
-              pid, &is_dir);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
-   rc = (is_dir?sysDirMetaCL:sysFileMetaCL).query(*cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to query file or dirctory, name=%s, error=%d",
-             basePath.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor->current(record);
-   if(SDB_DMS_EOC == rc )
-   {
-      PD_LOG(PDERROR, "No such file or directory, name=%s, error=%d",
-             basePath.c_str(), rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, error=%d",
-             basePath.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   nlink = 0;
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SIZE,
-                       (void *)(&sbuf->st_size), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_CREATE_TIME,
-                        (void *)(&sbuf->st_ctime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_ACCESS_TIME,
-                        (void *)(&sbuf->st_atime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODIFY_TIME,
-                        (void *)(&sbuf->st_mtime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODE,
-                        (void *)(&mode), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_NLINK,
-                        (void *)(&nlink), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_UID,
-                        (void *)(&sbuf->st_uid), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_GID,
-                        (void *)(&sbuf->st_gid), NumberInt);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get attr, name=%s, error=%d", basePath.c_str(), rc);
-      goto error;
-   }
-
-   sbuf->st_mode = mode;
-   sbuf->st_nlink = nlink;
-   sbuf->st_ctime /= 1000;
-   sbuf->st_mtime /= 1000;
-   sbuf->st_atime /= 1000;
+   
+   sbuf->st_uid = meta.uid();
+   sbuf->st_gid = meta.gid();
+   sbuf->st_size = meta.size();
+   sbuf->st_ctime = meta.ctime() / 1000;
+   sbuf->st_atime = meta.atime() / 1000;
+   sbuf->st_mtime = meta.mtime() / 1000;
+   sbuf->st_mode = meta.mode();
+   sbuf->st_nlink = meta.nLink();
+   
    blocks = sbuf->st_size / pageSize;
    blocks = (sbuf->st_size % pageSize == 0) ? blocks : blocks + 1;
    sbuf->st_blocks = blocks * 8;
-   rc = SDB_OK;
 
 done:
-   delete cursor;
-   SDB_OSS_FREE(pathStr);
-   releaseConnection(db);
+   PD_LOG(PDDEBUG, "getattr() rc=%d.", rc);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
 INT32 sequoiaFS::readlink(const CHAR *path, CHAR * link, size_t size)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
-   CHAR *name = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor cursor;
-   BSONObj record;
-   BSONElement ele;
    string linkName;
-   INT64 pid = 1;
+   INT64 parentId = 1;
    string basePath;
-   BSONObj options;
+   _fileMeta fMeta;
 
    PD_LOG(PDDEBUG, "Called: readlink(), path:%s", path);
 
-   pathStr = ossStrdup(path);
-
-   rc = getConnection(&db);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   
+   _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Fail to query file, name=%s, rc=%d", basePath.c_str(), rc);
       goto error;
    }
 
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Fail to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-
-   condition = BSON(SEQUOIAFS_NAME<<basePath<<SEQUOIAFS_PID<<(INT64)pid);
-   name = (CHAR *)basePath.c_str();
-
-   rc = sysFileMetaCL.query(cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to query file, name=%s, error=%d", name, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor.current(record);
-
-   if(SDB_DMS_EOC == rc )
-   {
-      PD_LOG(PDERROR, "File does not exist, name=%s, error=%d", name, rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, "
-             "error=%d", name, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SYMLINK, (void *)(&linkName), String);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get linkname, name=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      goto error;
-   }
-
-   ossMemcpy(link, linkName.c_str(), ossStrlen(linkName.c_str()));
-   rc = SDB_OK;
+   ossMemcpy(link, fMeta.symLink(), ossStrlen(fMeta.symLink()));
 
 done:
-   releaseConnection(db);
-   SDB_OSS_FREE(pathStr);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 /*Deprecated, use readdir() instead*/
@@ -1756,159 +1537,109 @@ INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
-   sdbLob lob;
-   sdbCollection cl;
    sdbCollection sequenceCl;
    sdbCollection sysDirMetaCL;
-   BSONObj condition;
-   sdbCursor cursor;
-   BSONObj record;
-   BSONObj rule;
-   OID oid;
-   BSONObj obj;
-   BOOLEAN exist = TRUE;
-   struct dirMetaNode dirNode;
    UINT64 ctime = 0;
-   UINT64 mtime = 0;
    uid_t uid = getuid();
    gid_t gid = getgid();
    struct timeval tval;
    INT64 id = 0;
-   INT64 pid = 0;
+   INT64 parentId = 0;
    string basePath;
-   vector<string> dirName;
-   CHAR *pathStr = NULL;
-   INIT_DIR_NODE(dirNode);
-   size_t hash;
    BSONObj options;
-
-   pathStr = ossStrdup(path);
+   dirMeta newDirMeta;
+   fsConnectionDao fsDao(&_ds);
 
    PD_LOG(PDDEBUG, "Called: mkdir(), path:%s, mode:%u", path, mode);
 
    rc = getConnection(&db);
    if(SDB_OK != rc)
-      goto error;
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
       goto error;
    }
 
    rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Fail to get collection, cl=%s, rc=%d",
              _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
    rc = db->getCollection(SEQUOIAFS_META_ID_CL_FULL.c_str(), sequenceCl);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Fail to get collection, cl=%s, rc=%d",
              SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
-   rc = getAndUpdateID(&sequenceCl, &id);
+   rc = _getAndUpdateID(&sequenceCl, SEQUOIAFS_SEQUENCEID, &id);
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Fail to get and update id in sequence collecion, "
-             "error=%d", rc);
-      rc = -EIO;
+             "rc=%d", rc);
       goto error;
    }
 
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Fail to get pid of directory, name=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-
-   condition = BSON(SEQUOIAFS_NAME<<basePath<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = sysDirMetaCL.query(cursor, condition);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Fail to query directory, name=%s, error=%d",
-             basePath.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   rc = cursor.current(record);
-   if(SDB_DMS_EOC == rc)
-   {
-      exist = FALSE;
-   }
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, "
-             "error=%d", basePath.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   if(exist)
-   {
-      PD_LOG(PDERROR, "The directory has alread existed, name=%s",
-             basePath.c_str());
-      rc = -EEXIST;
-      goto error;
-   }
-
+   
    gettimeofday(&tval, NULL);
    ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
-   mtime = ctime;
 
-   dirNode.name = basePath;
-   dirNode.mode = S_IFDIR | mode;
-   dirNode.uid = uid;
-   dirNode.gid = gid;
-   dirNode.nLink = 2;
-   dirNode.pid= pid;
-   dirNode.id = id;
-   dirNode.size = 4096;
-   dirNode.ctime = ctime;
-   dirNode.mtime = mtime;
-   dirNode.atime= mtime;
+   newDirMeta.setName(basePath.c_str());
+   newDirMeta.setMode(S_IFDIR | mode);
+   newDirMeta.setUid(uid);
+   newDirMeta.setGid(gid);
+   newDirMeta.setNLink(2);
+   newDirMeta.setPid(parentId);
+   newDirMeta.setId(id);
+   newDirMeta.setSize(4096);
+   newDirMeta.setCtime(ctime);
+   newDirMeta.setMtime(ctime);
+   newDirMeta.setAtime(ctime);
+   newDirMeta.setSymLink('\0');
 
-   rc = doSetDirNodeAttr(sysDirMetaCL, dirNode);
+   rc = fsDao.transBegin();
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set attr, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to transBegin, rc=%d", rc);
       goto error;
    }
 
-   /*add subdir no on parent dir*/
-   condition = BSON(SEQUOIAFS_ID<<(INT64)pid);
-   rule = BSON("$inc"<<BSON(SEQUOIAFS_NLINK<<1));
-   rc = doUpdateAttr(&sysDirMetaCL, rule, condition);
+   rc = _doSetDirNodeAttr(sysDirMetaCL, newDirMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to update attr, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to insert attr, path:%s, parentId:%d, name:%s, rc=%d", path, basePath.c_str(), rc);
       goto error;
    }
 
-   hash = namePidHash(dirNode.pid, dirNode.name.c_str());
-   lrucache->put(hash, &dirNode);
+   rc = _metaCache.incDirLink(&fsDao, parentId);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to inc parent dir Link, id:%d, rc=%d", parentId, rc);
+      goto error;    
+   }
+
+   rc = fsDao.transCommit();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to transCommit, rc=%d", rc);
+      goto error;
+   }
 
 done:
-   SDB_OSS_FREE(pathStr);
    releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -1918,123 +1649,75 @@ INT32 sequoiaFS::unlink(const CHAR *path)
    sdb *db;
    CHAR *fileName = NULL;
    sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
    sdbCollection cl;
-   BOOLEAN exist = FALSE;
    OID oid;
-   CHAR *pathStr = NULL;
    BSONObj condition;
    BSONObj record;
    BSONObj rule;
-   UINT32 mode = 0;
    UINT32 newmode = 0;
-   UINT32 nlink = 0;
    string lobOid;
    string basePath;
-   INT64 pid = 0;
+   INT64 parentId = 0;
    BSONObj options;
+   _fileMeta fileMeta;
 
    PD_LOG(PDDEBUG, "Called: unlink(), path:%s", path);
 
    rc = getConnection(&db);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get connection, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get connection, rc=%d", rc);
       goto error;
    }
 
    rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
    rc = db->getCollection(_collection.c_str(), cl);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _collection.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
-
-   pathStr = ossStrdup(path);
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-   fileName = (CHAR *)basePath.c_str();
-
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = doesFileExist(sysFileMetaCL, fileName, condition, &exist, &oid, record);
+   
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to query collection for file, name=%s, cl=%s, "
-             "error=%d", fileName, _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   if(!exist)
+   
+   fileName = (CHAR *)basePath.c_str();
+   rc = _metaCache.getFileInfo(parentId, fileName, fileMeta);
+   if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "File does not exist, name=%s", fileName);
-      rc = -ENOENT;
+      PD_LOG(PDERROR, "Failed to get file, parentId=%d, name=%s, rc=%d", 
+                       parentId, fileName, rc);
       goto error;
    }
 
+   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)parentId);
    rc =  sysFileMetaCL.del(condition);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to delete file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_MODE,
-                       (void *)(&mode), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_NLINK,
-                        (void *)(&nlink), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_LOBOID,
-                        (void *)(&lobOid), String);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get attr, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to delete file, name=%s, rc=%d", fileName, rc);
       goto error;
    }
 
    //is link file
-   if(S_ISLNK(mode))
+   if(S_ISLNK(fileMeta.mode()))
    {
       rule = BSON("$inc"<<BSON(SEQUOIAFS_NLINK<<-1));
       newmode = S_IFREG | 0644;
-      condition = BSON("$and"<<BSON_ARRAY(BSON(SEQUOIAFS_LOBOID<<oid)<<\
+      //TODO: newnode的值一定是这样的吗， 这个一定查不到吧，loboid是空啊
+      condition = BSON("$and"<<BSON_ARRAY(BSON(SEQUOIAFS_LOBOID<<fileMeta.lobOid())<<\
                        BSON(SEQUOIAFS_MODE<<newmode)));
       rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
       if(SDB_OK != rc)
@@ -2044,116 +1727,67 @@ INT32 sequoiaFS::unlink(const CHAR *path)
    }
 
    //is regular file
-   if(S_ISREG(mode))
+   if(S_ISREG(fileMeta.mode()))
    {
-      if(nlink > 1)
+      if(fileMeta.nLink() > 1)
       {
-          condition = BSON(SEQUOIAFS_LOBOID<<lobOid);
+          condition = BSON(SEQUOIAFS_LOBOID<<fileMeta.lobOid());
           rule = BSON("$inc"<<BSON(SEQUOIAFS_NLINK<<-1));
           rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
           if(SDB_OK != rc)
           {
-           PD_LOG(PDERROR, "Failed to update attr, error=%d", rc);
-           rc = -EIO;
-           goto error;
+             PD_LOG(PDERROR, "Failed to update attr, rc=%d", rc);
+             goto error;
           }
           goto done;
       }
+
+      oid = bson::OID(fileMeta.lobOid());
 
       rc = cl.removeLob(oid);
       //if lob didnot exist, ignore the error
       if(SDB_FNE == rc)
       {
           PD_LOG(PDWARNING, "Lob for file has alread removed, filename=%s, "
-                 "oid:%s, error=%d", fileName, oid.toString().c_str(), rc);
+                 "oid:%s, rc=%d", fileName, fileMeta.lobOid(), rc);
           rc = SDB_OK;
       }
       else if(SDB_OK != rc)
       {
           PD_LOG(PDERROR, "Failed to remove lob for file, filename=%s, oid:%s, "
-                 "error=%d", fileName, oid.toString().c_str(), rc);
-          rc = -EIO;
-          goto error;
+                 "rc=%d", fileName, fileMeta.lobOid(), rc);
+          rc = SDB_OK; //删除lob失败，元数据已经删除，对外表现，当前文件已经删除，只是lob数据会有残留
       }
    }
 
    PD_LOG(PDDEBUG, "Finish to unlink file:%s", path);
+   
 done:
-   SDB_OSS_FREE(pathStr);
    releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
+
 INT32 sequoiaFS::rmdir(const CHAR *path)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
-   sdbLob lob;
-   sdbCollection cl;
-   sdbCollection sysDirMetaCL;
-   sdbCollection sysFileMetaCL;
-   BSONObj condition;
-   BSONObj record;
-   OID oid;
-   BSONObj obj;
-   INT64 pid = 0;
+   INT64 parentId = 0;
    string basePath;
-   vector<string> dirName;
-   CHAR *pathStr = NULL;
-   BSONObj options;
    INT64 id;
-   sdbCursor *tempCursor;
-   sdbCursor *cursor[2];
-   INT32 i = 0;
-
-   cursor[0] = new sdbCursor();
-   cursor[1] = new sdbCursor();
-   pathStr = ossStrdup(path);
-
+   BOOLEAN is_empty = TRUE;
+   dirMeta pDirMeta;
+   fsConnectionDao fsDao(&_ds);
+   
    PD_LOG(PDDEBUG, "Called: rmdir(), path:%s", path);
 
-   rc = getConnection(&db);
-   if(SDB_OK != rc)
-      goto error;
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
@@ -2164,60 +1798,68 @@ INT32 sequoiaFS::rmdir(const CHAR *path)
    else
    {
       //get the ino of the dir
-      id = getDirIno(&sysDirMetaCL, basePath, pid);
-   }
-
-   //look for files in the dir based on the ino of the dir
-   condition = BSON(SEQUOIAFS_PID<<id);
-   rc = sysDirMetaCL.query(*(cursor[0]), condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = sysFileMetaCL.query(*(cursor[1]), condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   for(i = 0; i < NUM_OF_META_CL; i++)
-   {
-      tempCursor = cursor[i];
-      if(SDB_OK == tempCursor->next(record))
+      rc = _metaCache.getDirInfo(parentId, basePath.c_str(), pDirMeta);
+      if(SDB_OK != rc)
       {
-          PD_LOG(PDERROR, "Failed to remove dir:%s, directory not empty",
-                 basePath.c_str());
-          rc = -ENOTEMPTY;
-          goto error;
+         PD_LOG(PDERROR, "Failed to query collection, cl=%s, rc=%d",
+                _sysDirMetaCLFullName.c_str(), rc);
+         goto error;
       }
+      id = pDirMeta.id();
    }
-
-   condition = BSON(SEQUOIAFS_NAME<<basePath<<SEQUOIAFS_PID<<(INT64)pid);
-   rc =  sysDirMetaCL.del(condition);
+   
+   rc = _metaCache.isDirEmpty(id, &is_empty);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to delete dir:%s, error=%d",
-             basePath.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to query collection, cl=%s, rc=%d",
+             _sysDirMetaCLFullName.c_str(), rc);
       goto error;
    }
+
+   if(!is_empty)
+   {
+      PD_LOG(PDERROR, "Failed to remove dir:%s, directory not empty",
+             basePath.c_str());
+      rc = SDB_DIR_NOT_EMPTY;
+      goto error;
+   }
+
+   rc = fsDao.transBegin();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to transBegin, rc=%d", rc);
+      goto error;
+   }
+
+   rc = _metaCache.delDir(&fsDao, parentId, (CHAR*)basePath.c_str());
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to query collection, cl=%s, rc=%d",
+             _sysDirMetaCLFullName.c_str(), rc);
+      goto error;
+   }
+
+   rc = _metaCache.decDirLink(&fsDao, parentId);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to decDirLink, id=%d, rc=%d",
+                       parentId, rc);
+      goto error;
+   }   
+
+   rc = fsDao.transCommit();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to transCommit, rc=%d", rc);
+      goto error;
+   }
+
 done:
-   delete cursor[0];
-   delete cursor[1];
-   SDB_OSS_FREE(pathStr);
-   releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
@@ -2226,253 +1868,209 @@ INT32 sequoiaFS::symlink(const CHAR *path, const CHAR *link)
    sdb *db;
    CHAR *linkName = NULL;
    sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   BOOLEAN exist = FALSE;
    OID oid;
-   CHAR *linkStr = NULL;
-   BSONObj condition;
-   struct fileMetaNode fileNode;
+   _fileMeta fileNode;
    BSONObj record;
    BSONObj rule;
    BSONObj obj;
    UINT64 ctime = 0;
-   UINT64 mtime = 0;
    uid_t uid = getuid();
    gid_t gid = getgid();
    struct timeval tval;
-   INT64 pid = 1;
+   INT64 parentId = 1;
    string basePath;
-   BSONObj options;
+   _fileMeta fMeta;
 
    PD_LOG(PDDEBUG, "Called: symlink(), path:%s, link:%s", path, link);
-   //INIT_NODE(lobNode);
-   INIT_FILE_NODE(fileNode);
 
-   linkStr = ossStrdup(link);
    rc = getConnection(&db);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get connection, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get connection, rc=%d", rc);
       goto error;
    }
 
    rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
-   pid = getDirPIno(&sysDirMetaCL, linkStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to pid of directory, dir=%s, error=%d",
-             linkStr, pid);
-      rc = pid;
-      goto error;
-   }
-   linkName = (CHAR *)basePath.c_str();
-   condition = BSON(SEQUOIAFS_NAME<<linkName<<SEQUOIAFS_PID<<pid);
-
-   rc = doesFileExist(sysFileMetaCL, linkName, condition, &exist, &oid, record);
+   rc = _metaCache.getParentIdName(link, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to query file, file=%s, error=%d", linkName, rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             link, rc);
       goto error;
    }
+   
+   linkName = (CHAR *)basePath.c_str();
 
-   if(exist)
+   rc = _metaCache.getFileInfo(parentId, linkName, fMeta);
+   if(SDB_OK == rc)
    {
       PD_LOG(PDERROR, "Failed to create symlink:%s, it does exist", linkName);
-      rc = -EEXIST;
+      rc = SDB_FE;
       goto error;
-
+   }
+   else if(SDB_DMS_EOC != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get file, name=%s, rc=%d", linkName, rc);
+      goto error;
    }
 
    ossGetTimeOfDay(&tval);
    ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
-   mtime = ctime;
+   fileNode.setName(linkName);
+   fileNode.setMode(S_IFLNK | 0777);
+   fileNode.setNLink(1);
+   fileNode.setPid(parentId);
+   fileNode.setLobOid("");
+   fileNode.setCtime(ctime);
+   fileNode.setMtime(ctime);
+   fileNode.setAtime(ctime);
+   fileNode.setUid(uid);
+   fileNode.setGid(gid);
+   fileNode.setSize(ossStrlen(path));
+   fileNode.setSymLink(path);
 
-   fileNode.name = linkName;
-   fileNode.mode = S_IFLNK | 0777;//41471  S_IFLNK|06444-41380
-   fileNode.nLink= 1;
-   fileNode.pid = pid;
-   fileNode.lobOid = "";
-   fileNode.ctime= ctime;
-   fileNode.mtime= mtime;
-   fileNode.atime= mtime;
-   fileNode.uid = uid;
-   fileNode.gid = gid;
-   fileNode.size = ossStrlen(path);
-   fileNode.symLink = path;
-
-   rc = doSetFileNodeAttr(sysFileMetaCL, fileNode);
+   rc = _doSetFileNodeAttr(sysFileMetaCL, fileNode);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to insert symlink, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to insert symlink, rc=%d", rc);
       goto error;
    }
 
 done:
-   SDB_OSS_FREE(linkStr);
    releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
-
 
 INT32 sequoiaFS::rename(const CHAR *path, const CHAR *newpath)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
-   CHAR *fileName = NULL;
-   CHAR *fileNewName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   CHAR *pathStr = NULL;
-   CHAR *newPathStr = NULL;
-   BSONObj rule;
-   BSONObj condition;
-   BSONObj cond;
+   CHAR *name = NULL;
+   CHAR *newName = NULL;
    string basePath;
    string newbasePath;
-   INT64 pid =0;
-   INT64 newPino = 0;
-   BSONObj record;
-   BSONElement ele;
-   sdbCursor cursor;
+   INT64 parentId =0;
+   INT64 newParentId = 0;
    BOOLEAN is_dir = true;
-   BSONObj options;
+   _fileMeta fMeta;
+   fsConnectionDao fsDao(&_ds);
 
    PD_LOG(PDDEBUG, "Called: rename(), path:%s, newpath:%s", path, newpath);
-   pathStr = ossStrdup(path);
-   newPathStr = ossStrdup(newpath);
+
    rc = getConnection(&db);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
       goto error;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.getParentIdName(newpath, &newbasePath, newParentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             newpath, rc);
       goto error;
    }
 
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
+   
+   name = (CHAR *)basePath.c_str();
+   newName = (CHAR *)newbasePath.c_str();
+   
+   rc = _metaCache.isDir(parentId, name, &is_dir);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-   fileNewName = basename(newPathStr);
-   newPino = getDirPIno(&sysDirMetaCL,newPathStr, &newbasePath);
-   if(newPino < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of new directory, dir=%s, error=%d",
-             newPathStr, newPino);
-      rc = newPino;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of dorectory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-   fileName = (CHAR *)basePath.c_str();
-   rule = BSON("$set"<<BSON(SEQUOIAFS_NAME<<fileNewName<<SEQUOIAFS_PID<<newPino));
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, fileName, pid, &is_dir);
-   if(SDB_OK != rc)
-      goto error;
 
    //if it is a file, check the newfile exists or not, if exist, should delete it first
    if(!is_dir)
    {
-      cond = BSON(SEQUOIAFS_NAME<<fileNewName<<SEQUOIAFS_PID<<(INT64)newPino);
-      rc = sysFileMetaCL.query(cursor, cond);
-      if(SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", fileName, rc);
-         rc = -EIO;
-         goto error;
-      }
-
-      rc = cursor.current(record);
+      rc = _metaCache.getFileInfo(newParentId, newName, fMeta);
       if(SDB_OK == rc)
-       {
+      {
          rc = unlink(newpath);
          if(SDB_OK != rc)
-          {
-            PD_LOG(PDERROR, "Failed to remove file, name=%s, error=%d", newpath, rc);
+         {
+            PD_LOG(PDERROR, "Failed to remove file, name=%s, rc=%d", newpath, rc);
             goto error;
          }
       }
+      else if(SDB_DMS_EOC != rc)
+      {
+         PD_LOG(PDERROR, "Failed to query file, name=%s, rc=%d", newName, rc);
+         goto error;
+      }
    }
 
-   rc = doUpdateAttr(is_dir ? &sysDirMetaCL : &sysFileMetaCL, rule, condition);
+   rc = fsDao.transBegin();
    if(SDB_OK != rc)
    {
+      PD_LOG(PDERROR, "Failed to transBegin, rc=%d", rc);
+      goto error;
+   }
+
+   rc = _metaCache.renameEntity(&fsDao, 
+                                parentId, name, newParentId, newName);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
+      goto error;
+   }
+
+   if(is_dir && parentId != newParentId)
+   {
+      rc = _metaCache.incDirLink(&fsDao, newParentId);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to incDirLink, newid=%d, rc=%d",
+                          newParentId, rc);
+         goto error;
+      }
+
+      rc = _metaCache.decDirLink(&fsDao, parentId);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to decDirLink, id=%d, rc=%d",
+                          parentId, rc);
+         goto error;
+      }
+   }
+
+   rc = fsDao.transCommit();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to transCommit, rc=%d", rc);
       goto error;
    }
 
 done:
-   SDB_OSS_FREE(newPathStr);
-   SDB_OSS_FREE(pathStr);
    releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
-
 
 INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
 {
@@ -2480,381 +2078,200 @@ INT32 sequoiaFS::link(const CHAR *path, const CHAR *newpath)
    sdb *db;
    CHAR *linkName = NULL;
    CHAR *fileName = NULL;
-   CHAR *pathStr = NULL;
-   sdbCursor cursor;
    sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
    OID oid;
-   CHAR *linkStr = NULL;
    BSONObj condition;
-   struct fileMetaNode fileNode;
-   BSONObj record;
    BSONObj rule;
    BSONObj obj;
    UINT64 ctime = 0;
-   UINT64 mtime = 0;
    uid_t uid = getuid();
    gid_t gid = getgid();
    struct timeval tval;
-   INT64 pid = 1;
+   INT64 parentId = 1;
+   INT64 newParentId = 1;
    string basePath;
-   BSONObj options;
+   string newBasePath;
+   dirMeta  pDirMeta;
+   fileMeta fileNode;       
 
    PD_LOG(PDDEBUG, "Called: link(), path:%s, link:%s", path, newpath);
-   INIT_FILE_NODE(fileNode);
 
    rc = getConnection(&db);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
       goto error;
    }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
 
    rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
-   pathStr = ossStrdup(path);
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
+   if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
+      goto error;
+   }
+
+   rc = _metaCache.getParentIdName(newpath, &newBasePath, newParentId);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get parent parentId, dir=%s, rc=%d",
+             newpath, rc);
       goto error;
    }
 
    fileName = (CHAR *)basePath.c_str();
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
+   linkName = (CHAR *)newBasePath.c_str();
 
-   rc = sysFileMetaCL.query(cursor, condition);
+   rc = _metaCache.getFileInfo(parentId, fileName, fileNode);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get file, parentId=%d, fileName=%s, rc=%d",
+             parentId, fileName, rc);
       goto error;
    }
-
-   rc = cursor.current(record);
-   if(SDB_DMS_EOC == rc )
-   {
-      PD_LOG(PDERROR, "File does not exist, name=%s, error=%d", fileName, rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, error=%d",
-             fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SIZE,
-                       (void *)(&fileNode.size), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_CREATE_TIME,
-                       (void *)(&fileNode.ctime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODIFY_TIME,
-                        (void *)(&fileNode.mtime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_ACCESS_TIME,
-                        (void *)(&fileNode.atime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODE,
-                        (void *)(&fileNode.mode), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_NLINK,
-                        (void *)(&fileNode.nLink), NumberInt);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_LOBOID,
-                        (void *)(&fileNode.lobOid), String);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get attr on file:%s, error=%d", fileName, rc);
-      goto error;
-   }
-
-   linkStr = ossStrdup(newpath);
-   linkName = basename(linkStr);
 
    gettimeofday(&tval, NULL);
    ctime = tval.tv_sec * 1000 + tval.tv_usec/1000;
-   mtime = ctime;
+   fileNode.setName(linkName);
+   fileNode.setAtime(ctime);
+   fileNode.setMtime(ctime);
+   fileNode.setCtime(ctime);
+   fileNode.setUid(uid);
+   fileNode.setGid(gid);
+   fileNode.setPid(newParentId);
 
-   fileNode.name = linkName;
-   fileNode.mode = S_IFREG | 0755;//33188
-   fileNode.ctime= ctime;
-   fileNode.mtime= mtime;
-   fileNode.atime= mtime;
-   fileNode.uid = uid;
-   fileNode.gid = gid;
-   fileNode.pid = pid;
-
-   rc = doSetFileNodeAttr(sysFileMetaCL, fileNode);
+   rc = _doSetFileNodeAttr(sysFileMetaCL, fileNode);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set attr on file:%s, error=%d", pathStr, rc);
+      PD_LOG(PDERROR, "Failed to set attr on file:%s, rc=%d",
+                       newpath, rc);
       goto error;
    }
 
-   condition = BSON(SEQUOIAFS_LOBOID<<fileNode.lobOid);
+   condition = BSON(SEQUOIAFS_LOBOID<<fileNode.lobOid());
    rule = BSON("$inc"<<BSON(SEQUOIAFS_NLINK<<1));
    rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
    if(SDB_OK != rc)
    {
+      PD_LOG(PDERROR, "Failed to update attr on linked file:%s, rc=%d",
+                       path, rc);
       goto error;
    }
 
-
 done:
-   SDB_OSS_FREE(pathStr);
-   SDB_OSS_FREE(linkStr);
    releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
-
 }
 
 INT32 sequoiaFS::chmod(const CHAR *path, mode_t mode)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
    CHAR *fileName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
-   BSONObj rule;
-   INT64 pid = 0;
-   BOOLEAN is_dir = TRUE;
+   INT64 parentId = 0;
    string basePath;
-   BSONObj options;
 
    PD_LOG(PDDEBUG, "Called: chmod(), path:%s, mode:%u", path, mode);
 
-   pathStr = ossStrdup(path);
-   rc = getConnection(&db);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
-      goto error;
-   }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
    fileName = (CHAR *)basePath.c_str();
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, fileName, pid, &is_dir);
+
+   rc = _metaCache.modMetaMode(parentId, fileName, mode);
    if(SDB_OK != rc)
    {
+      PD_LOG(PDERROR, "Failed to mod meta mode, dir=%s, rc=%d",
+             fileName, rc);
       goto error;
    }
-
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   rule = BSON("$set"<<BSON(SEQUOIAFS_MODE<<mode));
-   rc = doUpdateAttr(is_dir?&sysDirMetaCL:&sysFileMetaCL, rule, condition);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
-   rc = SDB_OK;
 
 done:
-   SDB_OSS_FREE(pathStr);
-   delete cursor;
-   releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 INT32 sequoiaFS::chown(const CHAR *path, uid_t uid, gid_t gid)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
    CHAR *fileName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
-   BSONObj rule;
-   INT64 pid = 0;
-   BOOLEAN is_dir = TRUE;
+   INT64 parentId = 0;
    string basePath;
-   BSONObj options;
 
    PD_LOG(PDDEBUG, "Called: chown(), path:%s, uid:%d, gid:%d", path, uid, gid);
 
-   pathStr = ossStrdup(path);
-   rc = getConnection(&db);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
-      goto error;
-   }
-
-   if(ossStrcmp(path, "/") == 0)
-   {
-      goto done;
-   }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
    fileName = (CHAR *)basePath.c_str();
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, fileName, pid, &is_dir);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   rule = BSON("$set"<<BSON(SEQUOIAFS_UID<<uid<<SEQUOIAFS_GID<<gid));
-   rc = doUpdateAttr(is_dir?&sysDirMetaCL:&sysFileMetaCL, rule, condition);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
 
-   rc = SDB_OK;
+   rc = _metaCache.modMetaOwn(parentId, fileName, uid, gid);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to mod meta own, dir=%s, rc=%d",
+             fileName, rc);
+      goto error;
+   }
 
 done:
-   SDB_OSS_FREE(pathStr);
-   delete cursor;
-   releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
 INT32 sequoiaFS::truncate(const CHAR *path, off_t newsize)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
    CHAR *fileName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor cursor;
-   BSONObj rule;
-   INT64 pid = 0;
+   INT64 parentId = 0;
    string basePath;
-   BSONObj record;
-   BSONElement ele;
-   sdbLob lob;
-   sdbCollection cl;
-   BSONObj options;
+   SINT64 lobSize = 0;
    OID oid;
-   lobHandle *lh = new lobHandle;
-   struct fuse_file_info *fi = new fuse_file_info;
+   lobHandle *lh = NULL;
+   struct fuse_file_info *fi = NULL;
+   fileLob *fl;
+   _fileMeta fMeta;
+   
+   PD_LOG(PDDEBUG, "Called: truncate(), path:%s, offset:%d", path, newsize);
 
-   INIT_LOBHANDLE(lh);
-
-   PD_LOG(PDDEBUG, "Called: truncate(), path:%s", path);
-
-   pathStr = ossStrdup(path);
-   rc = getConnection(&db);
-   if(SDB_OK != rc)
+   lh = new lobHandle;
+   if(NULL == lh)
    {
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to new lobHandle.");
+      rc = SDB_OOM;
+      goto error;
+   }
+   INIT_LOBHANDLE(lh);
+   fi = new fuse_file_info;
+   if(NULL == fi)
+   {
+      PD_LOG(PDERROR, "Failed to new fuse_file_info.");
+      rc = SDB_OOM;
       goto error;
    }
 
@@ -2863,216 +2280,97 @@ INT32 sequoiaFS::truncate(const CHAR *path, off_t newsize)
       goto done;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
-      goto error;
-   }
+   
    fileName = (CHAR *)basePath.c_str();
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   rc = sysFileMetaCL.query(cursor, condition);
+   
+   rc = _metaCache.getFileInfo(parentId, fileName, fMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent file meta, dir=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
-   rc = cursor.current(record);
+   oid = bson::OID(fMeta.lobOid());
 
-   if(SDB_DMS_EOC == rc )
+   fl = _fileLobMgr.allocFreeFileLob();
+   if(NULL == fl)
    {
-      PD_LOG(PDERROR, "Failed to get file, name=%s, it does not exist, "
-             "error=%d", fileName, rc);
-      rc = -ENOENT;
+      PD_LOG(PDERROR, "Failed to get flId");
       goto error;
    }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during cursor current, name=%s, "
-             "error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-   ele = record.getField(SEQUOIAFS_LOBOID);
-   if(bson::String != ele.type())
-   {
-      PD_LOG(PDERROR, "Invalid type of oid, the type is not string");
-      rc = -EIO;
-      goto error;
-   }
-
-   if(ele.String().empty())
-   {
-      PD_LOG(PDERROR, "The oid is null");
-      rc = -EIO;
-      goto error;
-   }
-
-   oid = bson::OID(ele.String());
-   rc = db->getCollection(_collection.c_str(), cl);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _collection.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   //open lob according to the mode of open
-   rc = cl.openLob(lob, oid, SDB_LOB_WRITE);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to open lob for file, name=%s, error=%d",
-             fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   lh->hLob = &lob;
-   lh->hSdb = db;
-   lh->hSysFileMetaCL= &sysFileMetaCL;
+   fl->flOpen(_collection.c_str(), oid, _optionMgr.getFflag(), fMeta.size());
+   
+   //lh->hSysFileMetaCL = &sysFileMetaCL;
+   lh->flId = fl->flGetFlId();
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
-   //pthread_mutex_init(&lh->lock, NULL);
 
    ftruncate(path, newsize, fi);
 
+   rc = fl->flClose(&lobSize);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to close file, name=%s, rc=%d", path, rc);
+      goto error;
+   } 
+
 done:
-   releaseConnection(db);
-   SDB_OSS_FREE(pathStr);
-   delete fi;
+   SAFE_OSS_DELETE(fi);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
-
-/*change the access and modification times of lob*/
+/*Deprecated, use utimes() instead*/
 INT32 sequoiaFS::utime(const CHAR *path, struct utimbuf * ubuf)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
    CHAR *fileName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
-   BSONObj rule;
-   INT64 pid = 0;
-   BOOLEAN is_dir = TRUE;
+   INT64 parentId = 0;
    string basePath;
-   BSONObj options;
 
    PD_LOG(PDDEBUG, "Called: utime(), path:%s, actime:%d, modtime:%d",
           path, ubuf->actime, ubuf->modtime);
 
-   pathStr = ossStrdup(path);
-   rc = getConnection(&db);
-   if(SDB_OK != rc)
-   {
-      rc = -EIO;
-      goto error;
-   }
-
    if(ossStrcmp(path, "/") == 0)
    {
       goto done;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
    fileName = (CHAR *)basePath.c_str();
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, fileName, pid, &is_dir);
+
+   rc = _metaCache.modMetaUtime(parentId, fileName, 
+                                (INT64)ubuf->modtime, 
+                                (INT64)ubuf->actime);
    if(SDB_OK != rc)
    {
+      PD_LOG(PDERROR, "Failed to mod meta utime, dir=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   rule = BSON("$set"<<BSON(SEQUOIAFS_MODIFY_TIME<<(INT64)ubuf->modtime<<\
-               SEQUOIAFS_CREATE_TIME<<(INT64)ubuf->actime<<\
-               SEQUOIAFS_ACCESS_TIME<<(INT64)ubuf->actime));
-   rc = doUpdateAttr(is_dir?&sysDirMetaCL:&sysFileMetaCL, rule, condition);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
-   rc = SDB_OK;
 
 done:
-   delete cursor;
-   SDB_OSS_FREE(pathStr);
-   releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -3080,166 +2378,74 @@ INT32 sequoiaFS::open(const CHAR *path, struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
    sdb *db = NULL;
-   CHAR *fileName = NULL;
-   BSONObj record;
-   sdbCursor cursor;
-   BSONElement ele;
-   sdbLob *lob= new sdbLob();
-   sdbCollection cl;
    sdbCollectionSpace cs;
-   sdbCollection *sysFileMetaCL = new sdbCollection();
-   sdbCollection *sysDirMetaCL = new sdbCollection();
    BSONObj condition;
    OID oid;
-   INT64 pid = 0;
-   BSONObj obj;
+   INT64 parentId = 0;
    string basePath;
-   INT32 mode = SDB_LOB_SHAREREAD;
-   CHAR *pathStr = NULL;
-   lobHandle *lh = new lobHandle;
+   lobHandle *lh = NULL;  
    BSONObj options;
+   fileLob *fl = NULL;  
+   _fileMeta fMeta;
 
-   INIT_LOBHANDLE(lh);
    PD_LOG(PDDEBUG, "Called: open(), path:%s, flags:%d", path, fi->flags);
 
-   pathStr = ossStrdup(path);
-   rc = getConnection(&db);
+   lh = new lobHandle;
+   if(NULL == lh)
+   {
+      PD_LOG(PDERROR, "Failed to new lobHandle, path:%s", path);
+      rc = SDB_OOM;
+      goto error;
+   }
+   INIT_LOBHANDLE(lh);
+   
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
-
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   
+   rc = _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent file meta, dir=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
-   if(fi->flags & O_WRONLY)
+   oid = bson::OID(fMeta.lobOid());
+ 
+   fl = _fileLobMgr.allocFreeFileLob();
+   if(NULL == fl)
    {
-      mode = SDB_LOB_WRITE;
+      PD_LOG(PDERROR, "Failed to get flId");
+      rc = SDB_TOO_MANY_OPEN_FD;
+      goto error;
    }
-
-   if(fi->flags & O_RDWR)
-   {
-      mode = (SDB_LOB_WRITE | SDB_LOB_SHAREREAD);
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), *sysFileMetaCL);
+   rc = fl->flOpen(_collection.c_str(), oid, _optionMgr.getFflag(), fMeta.size());
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to flOpen, name=%s, rc=%d", path, rc);
       goto error;
    }
 
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), *sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-   fileName = (CHAR *)basePath.c_str();
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = sysFileMetaCL->query(cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor.current(record);
-
-   if(SDB_DMS_EOC == rc )
-   {
-      PD_LOG(PDERROR, "Failed to get file, name=%s, it does not exist, error=%d",
-             fileName, rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, error=%d",
-             fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-   ele = record.getField(SEQUOIAFS_LOBOID);
-   if(bson::String != ele.type())
-   {
-      PD_LOG(PDERROR, "Invalid type of oid, the type of oid is not string");
-      rc = -EIO;
-      goto error;
-   }
-
-   if(ele.String().empty())
-   {
-      PD_LOG(PDERROR, "The oid is null");
-      rc = -EIO;
-      goto error;
-   }
-
-   oid = bson::OID(ele.String());
-   rc = db->getCollection(_collection.c_str(), cl);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _collection.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   //open lob according to the mode of open
-   rc = cl.openLob(*lob, oid, mode);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to open lob for file, name=%s, error=%d",
-             fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-   lh->hLob = lob;
-   lh->hSdb = db;
    lh->oid = oid;
-   lh->hSysFileMetaCL= sysFileMetaCL;
+   lh->flId = fl->flGetFlId();
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
-   pthread_mutex_init(&lh->lock, NULL);
-   if(fi->flags & O_RDWR)
-   {
-      pthread_mutex_lock(&mutex);
-      _mapOpMode.insert(std::pair<UINT64, INT8>(fi->fh, 1));
-      pthread_mutex_unlock(&mutex);
-   }
 
 done:
-   SDB_OSS_FREE(pathStr);
-   delete sysDirMetaCL;
+   PD_LOG(PDDEBUG, "Called: open() end, path:%s, rc=%d", path, rc);
+   rc = _convertErrorCode(rc);
+   if(db != NULL)
+   {
+      releaseConnection(db);
+   }
    return rc;
 
 error:
-   delete lh;
-   delete lob;
-   delete sysFileMetaCL;
-   releaseConnection(db);
+   SAFE_OSS_DELETE(lh);
    goto done;
 }
 
@@ -3248,48 +2454,40 @@ INT32 sequoiaFS::read(const CHAR *path, CHAR *buf, size_t size, off_t offset ,
 {
    sdbCollection cl;
    INT32 rc = SDB_OK;
-   UINT32 readlen = 0;
-   sdbLob *lob = NULL;
+   INT32 readlen = 0;
    lobHandle *lh = NULL;
    std::map<UINT64, INT8>::iterator it;
    bson::BSONObj sessionAttr;
+   fileLob *fl;
 
    PD_LOG(PDDEBUG, "Called: read(), path:%s, offset:%d, size:%d",
           path, offset, size);
 
    lh = (lobHandle *)fi->fh;
-   lob = (sdbLob *)lh->hLob;
 
-   pthread_mutex_lock(&lh->lock);
-   rc = lob->seek(offset, SDB_LOB_SEEK_SET);
+   fl = _fileLobMgr.getFileLob(lh->flId);
+   if(NULL == fl)
+   {
+      PD_LOG(PDERROR, "Failed to getFileLob, flId=%d", lh->flId);
+      rc = SDB_SYS;
+      goto error;
+   }
+   rc = fl->flRead( offset, size, buf, &readlen);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to seek file, name=%s, error=%d", path, rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to read file, name=%s, offset:%d, size:%d, rc=%d", path, offset, size, rc);
       goto error;
    }
-   rc = lob->read(size, buf, &readlen);
-   if(SDB_EOF == rc)
-   {
-      PD_LOG(PDDEBUG, "Reach the end of the file, name=%s, readlen=%d",
-             path, readlen);
-      rc = SDB_OK;
-      goto done;
-   }
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to read file, name=%s, error=%d", path, rc);
-      rc = -EIO;
-      goto error;
-   }
-   PD_LOG(PDDEBUG, "Succeed to read size=%d", readlen);
+
    rc = (INT32)readlen;
 
 done:
-   pthread_mutex_unlock(&lh->lock);
+   PD_LOG(PDDEBUG, "read end, path:%s, offset:%d, size:%d, readlen=%d",
+             path, offset, size, readlen);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -3299,123 +2497,109 @@ INT32 sequoiaFS::write(const CHAR *path,
                        off_t offset,
                        struct fuse_file_info *fi)
 {
-   sdbCollection cl;
    INT32 rc = SDB_OK;
-   SINT64 lobSize = 0;
-   sdbLob *lob = NULL;
    lobHandle *lh = NULL;
-   sdbCollection *sysFileMetaCL = NULL;
-   BSONObj rule;
-   OID oid;
-   BSONObj condition;
-   UINT64 mtime = 0;
-   std::map<UINT64, INT8>::iterator it;
+   fileLob *fl = NULL;
 
    PD_LOG(PDDEBUG, "Called: write(), path:%s, offset:%d, size:%d",
           path, offset, size);
 
    lh = (lobHandle *)fi->fh;
-   lob = (sdbLob *)lh->hLob;
-   sysFileMetaCL = (sdbCollection *)lh->hSysFileMetaCL;
-
-   //pthread_mutex_lock(&lh->lock);
-   rc = lob->lockAndSeek(offset, size);
+   fl = _fileLobMgr.getFileLob(lh->flId);
+   if(NULL == fl)
+   {
+      PD_LOG(PDERROR, "Failed to getFileLob, flId=%d", lh->flId);
+      rc = SDB_SYS;
+      goto error;
+   }
+   rc = fl->flwrite( offset, size, buf );
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to lockAndseek lob, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to write file, name=%s, offset:%d, size:%d, rc=%d", path, offset, size, rc);
       goto error;
    }
-   rc = lob->write(buf, (UINT32)size);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to write lob, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-   //pthread_mutex_unlock(&lh->lock);
-   rc = lob->getSize(&lobSize);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get size, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   mtime = lob->getModificationTime();
-   if(-1 == (SINT64)mtime)
-   {
-      PD_LOG(PDERROR, "Failed to get modification time, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = lob->getOid(oid);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get lob oid, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rule = BSON("$set"<<BSON(SEQUOIAFS_SIZE<<lobSize<<SEQUOIAFS_MODIFY_TIME<<\
-               (SINT64)mtime<<SEQUOIAFS_ACCESS_TIME<<(SINT64)mtime));
-   condition = BSON(SEQUOIAFS_LOBOID<<oid.toString());
-   rc = doUpdateAttr(sysFileMetaCL, rule, condition);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-
+   lh->isDirty = TRUE;
+   
    rc = size;
 done:
+   PD_LOG(PDDEBUG, "write, rc=%d", rc);
    return rc;
-
+   
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
 INT32 sequoiaFS::release(const CHAR *path, struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
-   sdbLob *lob = NULL;
-   sdb *db = NULL;
+   SINT64 lobSize = 0;
+   UINT64 mtime = 0;
+   BSONObj rule;
+   BSONObj condition;
    lobHandle *lh = NULL;
-   std::map<UINT64, INT8>::iterator it;
+   fileLob *fl;
+   sdb *db = NULL;
+   sdbCollection sysFileMetaCL;
 
    PD_LOG(PDDEBUG, "Called: release(), path:%s", path);
 
    lh = (lobHandle *)fi->fh;
-   lob = (sdbLob *)lh->hLob;
-   db = (sdb *)lh->hSdb;
-
-   rc = lob->close();
-   if(rc != SDB_OK)
+  
+   fl = _fileLobMgr.getFileLob(lh->flId);
+   if(NULL == fl)
    {
-      PD_LOG(PDERROR, "Failed to close lob, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to getFileLob, flId=%d", lh->flId);
+      rc = SDB_SYS;
       goto error;
    }
-
-   pthread_mutex_lock(&mutex);
-   it = _mapOpMode.find(fi->fh);
-   if( it != _mapOpMode.end())
+   rc = fl->flClose(&lobSize);
+   if(SDB_OK != rc)
    {
-      _mapOpMode.erase(it);
-   }
-   pthread_mutex_unlock(&mutex);
-   PD_LOG(PDDEBUG, "succeed to release, path:%s", path);
+      PD_LOG(PDERROR, "Failed to close file, name=%s, rc=%d", path, rc);
+      goto error;
+   } 
 
-done:
-   delete lob;
-   delete lh->hSysFileMetaCL;
-   pthread_mutex_destroy(&lh->lock);
-   delete lh;
-   releaseConnection(db);
+   if(lh->isDirty)
+   {
+      rc = getConnection(&db);
+      if(SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+      rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+                _sysFileMetaCLFullName.c_str(), rc);
+         goto error;
+      }
+      
+      mtime = ossGetCurrentMilliseconds();
+      rule = BSON("$set"<<BSON(SEQUOIAFS_SIZE<<lobSize<<SEQUOIAFS_MODIFY_TIME<<\
+                  (SINT64)mtime<<SEQUOIAFS_ACCESS_TIME<<(SINT64)mtime));
+      condition = BSON(SEQUOIAFS_LOBOID<<(lh->oid).toString());
+      rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "update file meta failed, name=%s, rc=%d", path, rc);
+         goto error;
+      }
+      lh->isDirty = FALSE;
+   }
    
+done:
+   SAFE_OSS_DELETE(lh);
+   if(db != NULL)
+   {
+      releaseConnection(db);
+   }
+   PD_LOG(PDDEBUG, "release, rc=%d", rc);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 /*get filesystem statistics*/
@@ -3425,35 +2609,83 @@ INT32 sequoiaFS::statfs(const CHAR *path, struct statvfs *statfs)
 
    PD_LOG(PDDEBUG, "Called: statfs(), path:%s", path);
    goto error;
+   
 done:
    return rc;
 error:
    goto done;
 }
 
-
 INT32 sequoiaFS::flush(const CHAR *path, struct fuse_file_info *fi)
 {
-   sdb *db = NULL;
    INT32 rc = SDB_OK;
-   sdbLob *lob = NULL;
    lobHandle *lh = NULL;
+   fileLob *fl = NULL;
+   SINT64 lobSize = 0;
+   UINT64 mtime = 0;
+   BSONObj rule;
+   BSONObj condition;
+   sdb *db = NULL;
+   sdbCollection sysFileMetaCL;
 
    PD_LOG(PDDEBUG, "Called: flush(), path:%s", path);
 
    lh = (lobHandle *)fi->fh;
-   db = (sdb *)lh->hSdb;
-   lob = (sdbLob *)lh->hLob;
+   fl = _fileLobMgr.getFileLob(lh->flId);
+   if(NULL == fl)
+   {
+      PD_LOG(PDERROR, "Failed to getFileLob, flId=%d", lh->flId);
+      rc = SDB_SYS;
+      goto error;
+   }
+   rc = fl->flFlush(&lobSize);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to flush file, name=%s, rc=%d", path, rc);
+      goto error;
+   }
 
-   lh = lh;
-   db = db;
-   lob = lob;
-   goto error;
+   if(lh->isDirty)
+   {
+      rc = getConnection(&db);
+      if(SDB_OK != rc)
+      {
+         goto error;
+      }
+      
+      rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+                _sysFileMetaCLFullName.c_str(), rc);
+         goto error;
+      }
+   
+      mtime = ossGetCurrentMilliseconds();
+      rule = BSON("$set"<<BSON(SEQUOIAFS_SIZE<<lobSize<<SEQUOIAFS_MODIFY_TIME<<\
+                  (SINT64)mtime<<SEQUOIAFS_ACCESS_TIME<<(SINT64)mtime));
+      condition = BSON(SEQUOIAFS_LOBOID<<(lh->oid).toString());
+      rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "update file meta failed, name=%s, rc=%d", path, rc);
+         goto error;
+      }
+
+      lh->isDirty = FALSE;
+   }
+   
 done:
+   if(db != NULL)
+   {
+      releaseConnection(db);
+   }
+
+   PD_LOG(PDDEBUG, "flush end, rc=%d", rc);
    return rc;
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 INT32 sequoiaFS::fsync(const CHAR *path,
@@ -3467,117 +2699,58 @@ INT32 sequoiaFS::fsync(const CHAR *path,
 INT32 sequoiaFS::opendir(const CHAR *path, struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
-   BSONObj condition;
-   sdbCollectionSpace cs;
-   sdbCollection *sysDirMetaCL = new sdbCollection;
-   sdbCollection *sysFileMetaCL = new sdbCollection;
-   sdbCursor *cursorDir = new sdbCursor();
-   sdbCursor *cursorFile = new sdbCursor();
-   lobHandle *lh = new lobHandle;
-   CHAR *pathStr = NULL;
-   string lobName;
-   INT64 pid;
+   lobHandle *lh = NULL;
    INT64 id;
    BSONObj options;
+   dirMeta pDirMeta;
+   INT64 parentId = 0;
+   string basePath;
 
-   pathStr = ossStrdup(path);
-   INIT_LOBHANDLE(lh);
    PD_LOG(PDDEBUG, "Called: opendir(), path:%s", path);
 
-   rc = getConnection(&db);
-   if(SDB_OK != rc)
+   lh = new lobHandle;
+   if(NULL == lh)
    {
-      PD_LOG(PDERROR, "Failed to get connection, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to new lobHandle, path:%s", path);
+      rc = SDB_OOM;
       goto error;
    }
+   INIT_LOBHANDLE(lh);
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), *sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), *sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(sysDirMetaCL, pathStr, &lobName);
-   if(pid < 0)
-   {
-      rc = pid;
-      goto error;
-   }
-
-   if(lobName == "/")
+   if(path == "/")
    {
       id = 1;
    }
    else
    {
+      rc = _metaCache.getParentIdName(path, &basePath, parentId);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to get parent dir meta info, path=%s, rc=%d",
+                path, rc);
+         goto error;
+      }
       //get the ino of the dir
-      id = getDirIno(sysDirMetaCL, lobName, pid);
+      rc = _metaCache.getDirInfo(parentId, (CHAR*)(basePath.c_str()), pDirMeta);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to getDirInfo, basePath=%s, rc=%d",
+                basePath.c_str(), rc);
+         goto error;
+      }
+      id = pDirMeta.id();
    }
-   //look for files in the dir based on the ino of the dir
-   condition = BSON(SEQUOIAFS_PID<<id);
-   rc = sysDirMetaCL->query(*cursorDir, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = sysFileMetaCL->query(*cursorFile, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   lh->hCursor[CURSOR_OF_META_DIR_CL] = cursorDir;
-   lh->hCursor[CURSOR_OF_META_FILE_CL] = cursorFile;
-   lh->hSdb = db;
-   lh->hSysDirMetaCL= sysDirMetaCL;
-
+   
+   lh->parentId = id;
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
 
 done:
-   SDB_OSS_FREE(pathStr);
-   delete sysFileMetaCL;
    return rc;
 
 error:
-   delete sysDirMetaCL;
-   delete cursorDir;
-   delete cursorFile;
-   delete lh;
-   releaseConnection(db);
+   SAFE_OSS_DELETE(lh);
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 INT32 sequoiaFS::readdir(const CHAR *path,
@@ -3586,50 +2759,40 @@ INT32 sequoiaFS::readdir(const CHAR *path,
                          off_t offset,
                          struct fuse_file_info *fi)
 {
-   sdbCursor *cursor = NULL;
    lobHandle *lh = NULL;
-   INT32 count = 0;
    INT32 rc = SDB_OK;
-   BSONObj record;
-   BSONElement ele;
-   INT32 i = 0;
 
    PD_LOG(PDDEBUG, "Called: readdir(), path:%s", path);
 
    rc = filler(buf, ".", NULL, 0);
    if(0 != rc)
    {
-      rc = -ENOMEM;
+      rc = SDB_NOSPC;
       goto error;
    }
 
    rc = filler(buf, "..", NULL, 0);
    if(0 != rc)
    {
-      rc = -ENOMEM;
+      rc = SDB_NOSPC;
       goto error;
    }
 
    lh = (lobHandle*)fi->fh;
-   for(i = 0; i < NUM_OF_META_CL; i++)
+
+   rc = _metaCache.readDir(lh->parentId, buf, filler);
+   if(SDB_OK != rc)
    {
-      cursor = lh->hCursor[i];
-      while(SDB_OK == cursor->next(record))
-      {
-          count++;
-          ele = record.getField("Name");
-          rc = filler(buf, ele.String().c_str(), NULL, 0);
-          if(SDB_OK != rc)
-          {
-           rc = -ENOMEM;
-           goto error;
-          }
-      }
+      PD_LOG(PDERROR, "Failed to readDir id:%d, rc=%d",
+             lh->parentId, rc);
+      goto error;
    }
+   
 done:
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -3637,28 +2800,14 @@ INT32 sequoiaFS::releasedir(const CHAR *path, struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
    lobHandle *lh = NULL;
-   sdb *db = NULL;
 
    PD_LOG(PDDEBUG, "Called: releasedir(), path:%s", path);
 
    lh = (lobHandle*)fi->fh;
-   db = lh->hSdb;
-
-   releaseConnection(db);
-   delete lh->hSysDirMetaCL;
-   if(lh->hCursor[CURSOR_OF_META_DIR_CL])
-   {
-      delete lh->hCursor[CURSOR_OF_META_DIR_CL];
-   }
-   if(lh->hCursor[CURSOR_OF_META_FILE_CL])
-   {
-      delete lh->hCursor[CURSOR_OF_META_FILE_CL];
-   }
-   delete lh;
+   SAFE_OSS_DELETE(lh);
 
    return rc;
 }
-
 
 INT32 sequoiaFS::fsyncdir(const CHAR *path,
                           INT32 datasync,
@@ -3676,23 +2825,24 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::do_access(struct stat *stbuf)
+INT32 sequoiaFS::_do_access(struct stat *stbuf)
 {
    INT32 rc = SDB_OK;
 
    if(S_ISREG(stbuf->st_mode) && !(stbuf->st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)))
    {
       rc = -EACCES;
-      PD_LOG(PDERROR, "Failed to access file, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to access file, rc=%d", rc);
       goto error;
    }
 
    if(S_ISDIR(stbuf->st_mode) && !(stbuf->st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)))
    {
       rc = -EACCES;
-      PD_LOG(PDERROR, "Failed to access dir, error=%d", rc);
+      PD_LOG(PDERROR, "Failed to access dir, rc=%d", rc);
       goto error;
    }
+   
 done:
    return rc;
 error:
@@ -3710,19 +2860,19 @@ INT32 sequoiaFS::access(const CHAR *path, INT32 mask)
       rc = getattr(path,&stbuf);
       if(SDB_OK != rc)
       {
-          PD_LOG(PDERROR, "Failed to getattr, error=%d", rc);
+          PD_LOG(PDERROR, "Failed to getattr, rc=%d", rc);
           goto error;
       }
 
-      rc = do_access(&stbuf);
+      rc = _do_access(&stbuf);
    }
 
 done:
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
 
 //when I call creat(filename, 0740), It seams it will call open to create
@@ -3734,201 +2884,153 @@ INT32 sequoiaFS::create(const CHAR *path,
    INT32 rc = SDB_OK;
    sdb *db = NULL;
    CHAR *fileName = NULL;
-   sdbLob *lob= new sdbLob();
+   sdbLob lob;
    sdbCollection cl;
-   sdbCollection *sysFileMetaCL = new sdbCollection();
-   sdbCollection *sysDirMetaCL = new sdbCollection();
-   BSONObj condition;
-   BSONObj record;
+   sdbCollection sysFileMetaCL;
    OID oid;
-   BSONObj obj;
    string basePath;
-   CHAR *pathStr = NULL;
-   lobHandle *lh = new lobHandle;
-   BOOLEAN exist = FALSE;
-   struct fileMetaNode fileNode;
+   lobHandle *lh = NULL;
+   _fileMeta fileNode;
    UINT64 ctime = 0;
-   UINT64 mtime = 0;
-   INT64 pid = 0;
+   //UINT64 mtime = 0;
+   INT64 parentId = 0;
    uid_t uid = getuid();
    gid_t gid = getgid();
-   BSONObj options;
-   INT32 rwMode = SDB_LOB_WRITE;
-
-   INIT_LOBHANDLE(lh);
-   INIT_FILE_NODE(fileNode);
+   fileLob *fl;
+   _fileMeta fMeta;
 
    PD_LOG(PDDEBUG, "Called: create(), path:%s, mode:%u, flags:%d", path, mode, fi->flags);
+   
+   lh = new lobHandle;
+   if(NULL == lh)
+   {
+      PD_LOG(PDERROR, "Failed to new lobHandle, path:%s", path);
+      rc = SDB_NOSPC;
+      goto error;
+   }
+   INIT_LOBHANDLE(lh);
 
-   pathStr = ossStrdup(path);
    rc = getConnection(&db);
    if(SDB_OK != rc)
    {
       goto error;
    }
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+     
+   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), *sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), *sysDirMetaCL);
+  
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, rc);
-      rc = pid;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
    fileName = (CHAR *)basePath.c_str();
-   PD_LOG(PDDEBUG, "Name:%s, Pid:%d", basePath.c_str(), pid);
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = doesFileExist(*sysFileMetaCL, fileName, condition, &exist, &oid, record);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
 
-   if(exist)
+   rc = _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
+   if(SDB_OK == rc)
    {
       PD_LOG(PDERROR, "Failed to create file, name=%s, it does exist", fileName);
-      rc = -EEXIST;
+      rc = SDB_FE;
+      goto error;
+   }
+   else if(SDB_DMS_EOC != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get parent file meta, dir=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
    rc = db->getCollection(_collection.c_str(), cl);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
              _collection.c_str(), rc);
-      rc = -EIO;
       goto error;
    }
 
-   rc = cl.createLob(*lob);
+   rc = cl.createLob(lob);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to create lob, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to create lob, rc=%d", rc);
       goto error;
    }
 
-   rc = lob->getOid(oid);
+   rc = lob.getOid(oid);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get lob oid, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get lob oid, rc=%d", rc);
       goto error;
    }
-   //close the lob to update the lob meta in sdb
-   rc = lob->close();
+
+   rc = lob.close();
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to close lob, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to close lob, rc=%d", rc);
       goto error;
    }
 
-   if(fi->flags & O_RDWR)
-   {
-      rwMode = (SDB_LOB_WRITE | SDB_LOB_SHAREREAD);
-   }
+   ctime = ossGetCurrentMilliseconds();
 
-   //open lob according to the mode of open
-   rc = cl.openLob(*lob, oid, rwMode);
+   fileNode.setName(fileName);
+   fileNode.setMode(S_IFREG | mode);
+   fileNode.setNLink(1);
+   fileNode.setPid(parentId);
+   fileNode.setLobOid(oid.toString().c_str());
+   fileNode.setCtime(ctime);
+   fileNode.setMtime(ctime);
+   fileNode.setAtime(ctime);
+   fileNode.setUid(uid);
+   fileNode.setGid(gid);
+   fileNode.setSize(0);
+   fileNode.setSymLink(path);
+   
+   rc = _doSetFileNodeAttr(sysFileMetaCL, fileNode);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to open lob, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to set attr, rc=%d", rc);
       goto error;
    }
 
-
-   rc = lob->getCreateTime(&ctime);
+   fl = _fileLobMgr.allocFreeFileLob();
+   if(NULL == fl)
+   {
+      PD_LOG(PDERROR, "Failed to get flId");
+      goto error;
+   }
+   
+   rc = fl->flOpen(_collection.c_str(), oid, _optionMgr.getFflag(), 0);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to get lob create time, error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to flOpen, name=%s, rc=%d", fileName, rc);
       goto error;
    }
 
-   mtime = lob->getModificationTime();
-   if(-1 == (SINT64)mtime)
-   {
-      PD_LOG(PDERROR, "Failed to get modification time, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   fileNode.name= fileName;
-   fileNode.uid = uid;
-   fileNode.gid = gid;
-   fileNode.pid= pid;
-   fileNode.nLink= 1;
-   fileNode.lobOid = oid.toString();
-   fileNode.ctime= ctime;
-   fileNode.atime= mtime;
-   fileNode.mtime = mtime;
-   fileNode.mode= S_IFREG | mode;
-   //here to remove the Name uniq index, cause there may be some same name
-   //of files in different dirs
-   rc = doSetFileNodeAttr(*sysFileMetaCL, fileNode);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to set attr, error=%d", rc);
-      goto error;
-   }
-
-   PD_LOG(PDDEBUG, "Called: create() successfully, Name:%s, Pid:%d", fileName, pid);
-   lh->hLob = lob;
-   lh->hSdb = db;
    lh->oid = oid;
-   lh->hSysFileMetaCL= sysFileMetaCL;
-   lh->hSysDirMetaCL= sysDirMetaCL;
+   lh->flId = fl->flGetFlId();
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
-   pthread_mutex_init(&lh->lock, NULL);
-   if(fi->flags & O_RDWR)
-   {
-      pthread_mutex_lock(&mutex);
-      _mapOpMode.insert(std::pair<UINT64, INT8>(fi->fh, 2));
-      pthread_mutex_unlock(&mutex);
-   }
+   
+
+   PD_LOG(PDDEBUG, "Called: create() successfully, Name:%s, Pid:%d", 
+                   fileName, parentId);
 
 done:
-   SDB_OSS_FREE(pathStr);
+   if(db != NULL)
+   {
+      releaseConnection(db);
+   }
    return rc;
 
 error:
-   releaseConnection(db);
-   delete sysDirMetaCL;
-   delete sysFileMetaCL;
-   delete lh;
+   rc = _convertErrorCode(rc);
+   SAFE_OSS_DELETE(lh);
    goto done;
-
 }
 
 INT32 sequoiaFS::ftruncate(const CHAR *path,
@@ -3936,123 +3038,80 @@ INT32 sequoiaFS::ftruncate(const CHAR *path,
                            struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
    SINT64 lobSize = 0;
-   sdbLob *lob = NULL;
    lobHandle *lh = NULL;
-   sdbCollection *sysFileMetaCL = NULL;
    sdbCollection cl;
    BSONObj rule;
    BSONObj condition;
-   CHAR *pathStr = NULL;
    UINT64 mtime = 0;
-   UINT32 size = 0;
-   CHAR *buf = NULL;
    bson::OID oid;
    struct timeval tval;
-   BSONObj record;
+   fileLob *fl;
+   sdb *db = NULL;
+   sdbCollection sysFileMetaCL;
 
    PD_LOG(PDDEBUG, "Called: ftruncate(), path:%s, offset:%d", path, offset);
 
-   lh = (lobHandle *)fi->fh;
-   db = (sdb *)lh->hSdb;
-   lob = (sdbLob *)lh->hLob;
-   pathStr = ossStrdup(path);
-   sysFileMetaCL = (sdbCollection *)lh->hSysFileMetaCL;
-   //first: get the size of lob, then compare the size with offset
-   rc = lob->getSize(&lobSize);
-   if(SDB_OK != rc)
+   if(ossStrcmp(path, "/") == 0)
    {
-      PD_LOG(PDERROR, "Failed to get size, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = lob->getOid(oid);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get lob oid, error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   if(lobSize < offset)
-   {
-      rc = lob->seek(0, SDB_LOB_SEEK_END);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to seek lob, error=%d", rc);
-          rc = -EIO;
-          goto error;
-      }
-      size = offset - lobSize;
-
-      buf = (CHAR *)SDB_OSS_MALLOC(size);
-      ossMemset(buf, '\0', size);
-
-      rc = lob->write(buf, (UINT32)size);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to write lob, error=%d", rc);
-          rc = -EIO;
-          goto error;
-      }
-      SDB_OSS_FREE(buf);
-      lobSize = offset;
-   }
-
-   else if(lobSize > offset)
-   {
-      rc = db->getCollection(_collection.c_str(), cl);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-                 _collection.c_str(), rc);
-          rc = -EIO;
-          goto error;
-      }
-
-      rc = lob->close();
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to close lob, error=%d", rc);
-          rc = -EIO;
-          goto error;
-      }
-
-      rc = cl.truncateLob(oid, offset);
-      if(SDB_OK != rc)
-      {
-          PD_LOG(PDERROR, "Failed to truncate lob, error=%d", rc);
-          rc = -EIO;
-          goto error;
-      }
-      lobSize = offset;
-   }
-
-   else
-   {
-      PD_LOG(PDDEBUG, "Lobsize is equal to offset, nothing to do");
       goto done;
    }
+
+   rc = getConnection(&db);
+   if(SDB_OK != rc)
+   {
+      goto error;
+   }
+
+   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+             _sysFileMetaCLFullName.c_str(), rc);
+      goto error;
+   }
+
+   lh = (lobHandle *)fi->fh;
+   fl = _fileLobMgr.getFileLob(lh->flId);
+   if(NULL == fl)
+   {
+      PD_LOG(PDERROR, "Failed to getFileLob, flId=%d", lh->flId);
+      rc = SDB_SYS;
+      goto error;
+   }
+   rc = fl->fltruncate(offset); 
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to truncate file, name=%s, rc=%d", path, rc);
+      goto error;
+   }
+
+   oid = lh->oid;
 
    gettimeofday(&tval, NULL);
    mtime = tval.tv_sec * 1000 + tval.tv_usec/1000;
 
+   lobSize = offset;
+   //sysFileMetaCL = (sdbCollection *)lh->hSysFileMetaCL;
    rule = BSON("$set"<<BSON(SEQUOIAFS_SIZE<<lobSize<<\
                SEQUOIAFS_MODIFY_TIME<<(SINT64)mtime));
    condition = BSON(SEQUOIAFS_LOBOID<<oid.toString());
-   rc = doUpdateAttr(sysFileMetaCL, rule, condition);
+   rc = doUpdateAttr(&sysFileMetaCL, rule, condition);
    if(SDB_OK != rc)
    {
+      PD_LOG(PDERROR, "Failed to update attr, rc=%d", rc);
       goto error;
    }
 
 done:
-   SDB_OSS_FREE(pathStr);
+   if(db != NULL)
+   {
+      releaseConnection(db);
+   }
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -4060,32 +3119,26 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
                           struct fuse_file_info *fi)
 {
    INT32 rc = SDB_OK;
-   CHAR *fileName = NULL;
-   sdb *db = NULL;
-   BSONObj options;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
    uid_t uid = getuid();
    gid_t gid = getgid();
-   BSONObj record;
-   BSONElement ele;
-   lobHandle *lh = NULL;
-   sdbCollection *sysFileMetaCL = NULL;
-   sdbCollection sysDirMetaCL;
    string basePath;
-   INT64 pid = 1;
-
-   lh = (lobHandle *)fi->fh;
-   sysFileMetaCL = (sdbCollection *)lh->hSysFileMetaCL;
+   INT64 parentId = 1;
+   _fileMeta fMeta;
+   UINT64 mtime;
 
    PD_LOG(PDDEBUG, "Called: fgetattr(), path:%s", path);
 
    ossMemset(buf, 0, sizeof(struct stat));
-
    buf->st_uid = uid;
    buf->st_gid = gid;
-   pathStr = ossStrdup(path);
+
+   buf->st_mode = S_IFREG | 0644;
+   buf->st_nlink = 1;
+   buf->st_size = 0;
+
+   mtime = ossGetCurrentMilliseconds();
+   buf->st_ctime /= mtime / 1000;
+   buf->st_mtime /= mtime / 1000;
 
    if(ossStrcmp(path, "/") == 0)
    {
@@ -4094,94 +3147,35 @@ INT32 sequoiaFS::fgetattr(const CHAR *path, struct stat *buf,
       goto done;
    }
 
-   buf->st_mode = S_IFREG | 0644;
-   buf->st_nlink = 1;
-
-   rc = getConnection(&db);
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get file info, name=%s, ",
+             basePath.c_str());
       goto error;
    }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Fail to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   PD_LOG(PDDEBUG, "The path:%s, pid:%d", pathStr, pid);
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      PD_LOG(PDERROR, "Failed to get pid of directory, dir=%s, error=%d",
-             pathStr, pid);
-      rc = pid;
-      goto error;
-   }
-   PD_LOG(PDDEBUG, "The base path:%s, pid:%d", basePath.c_str(), pid);
-   fileName = (CHAR *)basePath.c_str();
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<(INT64)pid);
-   rc = sysFileMetaCL->query(*cursor, condition);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to query file, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = cursor->current(record);
-   if(SDB_DMS_EOC == rc )
-   {
-      PD_LOG(PDERROR, "Failed to get file, name=%s, it does not exist, error=%d",
-             fileName, rc);
-      rc = -ENOENT;
-      goto error;
-   }
-
-   else if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Error happened during do cursor current, name=%s, error=%d",
-             fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = getRecordField(record, (CHAR *)SEQUOIAFS_SIZE,
-                       (void *)(&buf->st_size), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_CREATE_TIME,
-                        (void *)(&buf->st_ctime), NumberLong);
-   rc += getRecordField(record, (CHAR *)SEQUOIAFS_MODIFY_TIME,
-                        (void *)(&buf->st_mtime), NumberLong);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get file attr, name=%s, error=%d", fileName, rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   buf->st_ctime /= 1000;
-   buf->st_mtime /= 1000;
+   
+   buf->st_size = fMeta.size();
+   buf->st_ctime /= fMeta.ctime() / 1000;
+   buf->st_mtime /= fMeta.mtime() / 1000;
+   buf->st_mode = fMeta.mode();
+   buf->st_nlink = fMeta.nLink();
+   buf->st_uid = fMeta.uid();
+   buf->st_gid = fMeta.gid();
    rc = SDB_OK;
 
 done:
-   SDB_OSS_FREE(pathStr);
-   releaseConnection(db);
    return rc;
 error:
+   rc = _convertErrorCode(rc);
    goto done;
 }
 
@@ -4198,104 +3192,49 @@ error:
    goto done;
 }
 
-INT32 sequoiaFS::utimens(const CHAR *path, const struct timespec ts[2])
+INT32 sequoiaFS::utimes(const CHAR *path, const struct timespec ts[2])
 {
    INT32 rc = SDB_OK;
-   sdb *db = NULL;
-   CHAR *fileName = NULL;
-   sdbCollection sysFileMetaCL;
-   sdbCollection sysDirMetaCL;
-   sdbCollectionSpace cs;
-   CHAR *pathStr = NULL;
-   BSONObj condition;
-   sdbCursor *cursor = new sdbCursor;
-   BSONObj rule;
-   INT64 pid = 0;
-   BOOLEAN is_dir = TRUE;
+   INT64 parentId = 0;
    string basePath;
    INT64 atime = (INT64)(ts[0].tv_sec * 1000 + ts[0].tv_nsec/1000000);
    INT64 mtime = (INT64)(ts[1].tv_sec * 1000 + ts[1].tv_nsec/1000000);
-   BSONObj options;
 
-   PD_LOG(PDDEBUG, "Called: utimens(), path:%s, actime:%d, modtime:%d",
+   PD_LOG(PDDEBUG, "Called: utimes(), path:%s, actime:%d, modtime:%d",
           path, (ts[0].tv_sec * 1000 + ts[0].tv_nsec/1000000),
           (ts[0].tv_sec * 1000 + ts[0].tv_nsec/1000000));
-
-   pathStr = ossStrdup(path);
+ 
    if(ossStrcmp(path, "/") == 0)
    {
       goto done;
    }
-
-   rc = getConnection(&db);
+   
+   rc = _metaCache.getParentIdName(path, &basePath, parentId);
    if(SDB_OK != rc)
    {
-      rc = -EIO;
+      PD_LOG(PDERROR, "Failed to get parent id and name, path=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
-   options = BSON("PreferedInstance" << "M");
-   rc = db->setSessionAttr(options);
+   rc = _metaCache.modMetaUtime(parentId, (CHAR*)basePath.c_str(), 
+                                (INT64)mtime, 
+                                (INT64)atime);  
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to set the preferred instance for read request "
-             "in the current session (PreferedInstance:M), error=%d", rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysFileMetaCLFullName.c_str(), sysFileMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysFileMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   rc = db->getCollection(_sysDirMetaCLFullName.c_str(), sysDirMetaCL);
-   if(SDB_OK != rc)
-   {
-      PD_LOG(PDERROR, "Failed to get collection, cl=%s, error=%d",
-             _sysDirMetaCLFullName.c_str(), rc);
-      rc = -EIO;
-      goto error;
-   }
-
-   pid = getDirPIno(&sysDirMetaCL, pathStr, &basePath);
-   if(pid < 0)
-   {
-      rc = pid;
-      goto error;
-   }
-
-   fileName = (CHAR *)basePath.c_str();
-   rc = isDir(&sysFileMetaCL, &sysDirMetaCL, fileName, pid, &is_dir);
-   if(SDB_OK != rc)
-   {
-      goto error;
-   }
-   condition = BSON(SEQUOIAFS_NAME<<fileName<<SEQUOIAFS_PID<<pid);
-   //ts[0]:atime; ts[1]:mtime
-   rule = BSON("$set"<<BSON(SEQUOIAFS_MODIFY_TIME<<mtime<<\
-               SEQUOIAFS_CREATE_TIME<<mtime<<\
-               SEQUOIAFS_ACCESS_TIME<<atime));
-   rc = doUpdateAttr(is_dir?&sysDirMetaCL:&sysFileMetaCL, rule, condition);
-   if(SDB_OK != rc)
-   {
+      PD_LOG(PDERROR, "Failed to mod meta utime, dir=%s, rc=%d",
+             path, rc);
       goto error;
    }
 
 done:
-   SDB_OSS_FREE(pathStr);
-   delete cursor;
-   releaseConnection(db);
    return rc;
 
 error:
+   rc = _convertErrorCode(rc);
    goto done;
-
 }
+
 INT32 sequoiaFS::bmap(const CHAR *path, size_t blocksize, uint64_t *idx)
 {
    INT32 rc = SDB_OK;
@@ -4306,7 +3245,6 @@ done:
    return rc;
 error:
    goto done;
-
 }
 
 INT32 sequoiaFS::ioctl(const CHAR *path, INT32 cmd, void *arg,
@@ -4323,7 +3261,6 @@ INT32 sequoiaFS::ioctl(const CHAR *path, INT32 cmd, void *arg,
    return rc;
 }
 
-
 INT32 sequoiaFS::flock(const CHAR *path, struct fuse_file_info *fi, INT32 op)
 {
    INT32 rc = SDB_OK;
@@ -4334,7 +3271,116 @@ done:
    return rc;
 error:
    goto done;
+}
 
+void sequoiaFS::getSysInfo()
+{
+   _optionMgr.getDataCacheSize();
+   INT32 usedFlId = _fileLobMgr.getUsedFlIdCount();
+   INT32 cacheUsed = _fileLobMgr.getCacheLoader()->getUsedCount();
+   INT32 queueSize = _fileLobMgr.getCacheQueue()->getQueueSize();
+   INT32 coldSize = _metaCache.getDirMetaCache()->getLRUList()->getColdSize();
+   INT32 hotSize = _metaCache.getDirMetaCache()->getLRUList()->getHotSize();
+   
+   INT32 readCount = _fileLobMgr.getReadCount();
+   INT32 downLoadCount = _fileLobMgr.getDownloadCount();
+   INT32 dataHashCallCount = _fileLobMgr.getHashBucket()->getCallCount();
+   INT32 dataHashConflictCount = _fileLobMgr.getHashBucket()->getConflictCount();
+   INT32 metaGetHashCallCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getGetCallCount();
+   INT32 metaGetHashConflictCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getGetConflictCount();
+   INT32 metaAddHashCallCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getAddCallCount();
+   INT32 metaAddHashConflictCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getAddConflictCount();
+   INT32 metaDelHashCallCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getDelCallCount();
+   INT32 metaDelHashConflictCount = _metaCache.getDirMetaCache()->getMetaHashBucket()->getDelConflictCount();
+
+   PD_LOG(PDEVENT, "\nSysInfo: \n"
+                   "Used FlId = %d \n"
+                   "Cache used(MB) = %d \n"
+                   "Queue length = %d \n"
+                   "Data cache hit rate = %.1f%%, hit count = %d, total count = %d \n"
+                   "Data hash bucket conflict rate = %.1f%%, conflict count = %d, total count = %d \n"
+                   "Meta hash bucket get conflict rate = %.1f%%, get conflict count = %d, get total count = %d \n"
+                   "Meta hash bucket add conflict rate = %.1f%%, add conflict count = %d, add total count = %d \n"
+                   "Meta hash bucket del conflict rate = %.1f%%, del conflict count = %d, del total count = %d \n"
+                   "Meta link hotSize = %d, coldSize = %d ",
+                   usedFlId,
+                   cacheUsed * 4,
+                   queueSize,
+                   readCount == 0 ? 0 : (((FLOAT32)readCount - (FLOAT32)downLoadCount) * 100/readCount),
+                   (readCount - downLoadCount), readCount,
+                   dataHashCallCount == 0 ? 0 : ((FLOAT32)dataHashConflictCount * 100/dataHashCallCount),
+                   dataHashConflictCount, dataHashCallCount,
+                   metaGetHashCallCount == 0 ? 0 : ((FLOAT32)metaGetHashConflictCount * 100/metaGetHashCallCount),
+                   metaGetHashConflictCount, metaGetHashCallCount,
+                   metaAddHashCallCount == 0 ? 0 : ((FLOAT32)metaAddHashConflictCount * 100/metaAddHashCallCount),
+                   metaAddHashConflictCount, metaAddHashCallCount,
+                   metaDelHashCallCount == 0 ? 0 : ((FLOAT32)metaDelHashConflictCount * 100/metaDelHashCallCount),
+                   metaDelHashConflictCount, metaDelHashCallCount,
+                   hotSize, coldSize);
+
+   _fileLobMgr.cleanReadCount();
+   _fileLobMgr.getHashBucket()->cleanDataHashCounts();
+   _metaCache.getDirMetaCache()->getMetaHashBucket()->cleanMetaHashCounts();
+}
+
+void sequoiaFS::_cleanCounts()
+{
+   INT32 count = 0;
+   while(_running)
+   {
+      ossSleepsecs(60);
+      count++;
+      if(count >= 1440)
+      {
+         getSysInfo();
+         count = 0;
+      }
+   }
+}
+
+INT32 sequoiaFS::_convertErrorCode(INT32 rc)
+{
+   INT32 errorCode = rc;
+   
+   switch(rc)
+   {
+      case SDB_OK:
+      {
+         errorCode = SDB_OK;
+         break;
+      }
+      case SDB_DMS_EOC:
+      {
+         errorCode = -ENOENT;
+         break;
+      }
+      case SDB_OOM:
+      case SDB_NOSPC:
+      {
+         errorCode = -ENOMEM;
+         break;
+      }
+      case SDB_DIR_NOT_EMPTY:
+      {
+         errorCode = -ENOTEMPTY;
+         break;
+      }
+      case SDB_FE:
+      {
+         errorCode = -EEXIST;
+         break;
+      }
+      case SDB_TOO_MANY_OPEN_FD:
+      {
+         errorCode = -EMFILE;
+         break;
+      }
+      default:
+         errorCode = -EIO;
+         break;
+   }
+
+   return errorCode;
 }
 
 

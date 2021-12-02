@@ -57,6 +57,7 @@
 #define OSS_FILE_SEP       "/"
 #define OSS_FILE_SEP_CHAR  '/'
 #define OSS_MAX_PATHSIZE   PATH_MAX
+#define OSS_MAX_NAMESIZE   NAME_MAX
 #elif defined (_WINDOWS)
 #define OSS_FILE_SEP       "\\"
 #define OSS_FILE_SEP_CHAR  '\\'
