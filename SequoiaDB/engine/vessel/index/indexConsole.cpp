@@ -706,8 +706,8 @@ namespace vessel
    }
 
 
-   INT32 indexConsole::dmlInsert(dmlContext *context,
-                                 const dmlIndexRequestArray &ra)
+   INT32 indexConsole::handleDmlRequest(dmlContext *context,
+                                        const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       lsmInsertBatch lsmBatch;
@@ -743,7 +743,7 @@ namespace vessel
          goto error;
       }
 
-      rc = btreeInsert(context, ra);
+      rc = btreeCommit(context, ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert into btree index:%d", rc);
@@ -793,8 +793,8 @@ namespace vessel
          lsmIndexMeta meta(gid, ir->getContext()->getObj().getPattern().getOrdering());
 
 
-         ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeys().begin();
-         for (; itr != ir->getKeys().end(); ++itr)
+         ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToInsert().begin();
+         for (; itr != ir->getKeysToInsert().end(); ++itr)
          {
             ixmKeyOwned key(*itr);
             lsmKeyEntry ke;
@@ -926,13 +926,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexConsole::btreeInsert(dmlContext *context,
+   INT32 indexConsole::btreeCommit(dmlContext *context,
                                    const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-
-      UINT32 cnt = 0;
 
       for (UINT32 i = 0; i < ra.getSize(); ++i)
       {
@@ -954,8 +952,8 @@ namespace vessel
             goto error;  
          }
 
-         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
-              itr != req->getKeys().end(); ++itr)
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToInsert().begin();
+              itr != req->getKeysToInsert().end(); ++itr)
          {
             rc = accessor.insert(ixmKeyOwned(*itr),
                                  context->getRid());
@@ -964,13 +962,24 @@ namespace vessel
                PD_LOG(PDERROR, "failed to insert index key:%d", rc);
                goto error;
             }
-            ++cnt;
          }
+
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToRemove().begin();
+              itr != req->getKeysToRemove().end(); ++itr)
+         {
+            rc = accessor.remove(ixmKeyOwned(*itr),
+                                 context->getRid());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to remove index key:%d", rc);
+               goto error;
+            }
+         } 
       }
    done:
       return rc;
    error:
-      SDB_ASSERT(0 < cnt, "TODO");
+      SDB_ASSERT(FALSE, "TODO");
       goto done;
    }
 

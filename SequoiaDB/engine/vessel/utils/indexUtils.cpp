@@ -38,6 +38,8 @@
 #include "pdTrace.hpp"
 #include "vessel/indexDef.h"
 #include "ixm_common.hpp"
+#include "xxHashInc.h"
+
 
 namespace engine
 {
@@ -214,6 +216,97 @@ namespace vessel
       }
    done :
       return retCode ;
+   }
+
+   UINT32 indexUtils::createPatternFieldNameHash(const CHAR *fieldName)
+   {
+      SDB_ASSERT(NULL != fieldName, "can not be null");
+      UINT32 hash = 0;
+      UINT32 size = 0;
+      while (TRUE)
+      {
+         const CHAR *p = fieldName + size;
+         if ('\0' == *p || '.' == *p)
+         {
+            break;
+         }
+         ++size;
+      }
+
+      if (0 < size)
+      {
+         hash = XXH3_64bits(fieldName, size);
+      }
+      return hash;
+   }
+
+   BOOLEAN indexUtils::fieldNameAssociate(const strSlice &l,
+                                          const strSlice &r)
+   {
+      BOOLEAN res = TRUE;
+      UINT32 i = 0;
+
+      while (i < l.strLen() && i < r.strLen())
+      {
+         CHAR lc = l.at(i);
+         CHAR rc = r.at(i);
+         if (lc != rc)
+         {
+            res = FALSE;
+            goto done;
+         }
+
+         if ('.' == lc)
+         {
+            goto done;
+         }
+
+         ++i;
+      }
+
+      if (l.strLen() < r.strLen())
+      {
+         res = ('.' == r.at(i));
+      }
+      else if (r.strLen() < l.strLen())
+      {
+         res = ('.' == l.at(i));
+      }
+
+   done:
+      return res;
+   }
+
+   BOOLEAN indexUtils::fieldNameAssociate(const CHAR *l,
+                                          const CHAR *r)
+   {
+      SDB_ASSERT(NULL != l && NULL != r, "can not be invalid");
+      BOOLEAN res = TRUE;
+      const CHAR *longer = r;
+      UINT32 i = 0;
+      while ('\0' != l[i])
+      {
+         if ('\0' == r[i])
+         {
+            longer = l;
+            break;
+         }
+
+         if (l[i] != r[i])
+         {
+            res = FALSE;
+            goto done;
+         }
+
+         if ('.' == l[i])
+         {
+            goto done;
+         }
+      }
+      
+      res = ('\0' == longer[i] || '.' == longer[i]);
+   done:
+      return res;
    }
 }//namespace vessel
 }//namespace engine

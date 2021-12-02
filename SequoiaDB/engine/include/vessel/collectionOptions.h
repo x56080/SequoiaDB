@@ -46,7 +46,7 @@ namespace engine
 namespace vessel
 {
    static const CHAR * const CRT_CL_OPTIONS_FIELD_TYPE = "type";
-   static const CHAR * const CRT_CL_OPTIONS_FIELD_FREE_SIZE_RESERVED = "free_size_reserved";
+   static const CHAR * const CRT_CL_OPTIONS_FIELD_MIN_FREE_PERCENT = "min_free_percent";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_COMPRESSION = "compression";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_MIN_STRIPING = "min_striping";
    static const CHAR * const CRT_CL_OPTIONS_FIELD_MAX_STRIPING = "max_striping";
@@ -67,7 +67,7 @@ namespace vessel
 
       public:
          UINT16 type = COLLECTION_TYPE_NORMAL;
-         UINT16 freeSizeReserved = 2048; ///64 bytes aligned
+         UINT16 minFreePercent = 10; ///valid range [0, 50]
          UTIL_COMPRESSOR_TYPE compressionType = UTIL_COMPRESSOR_INVALID;
          STRIPING_ID minStriping = INVALID_STRIPING_ID;
          STRIPING_ID maxStriping = INVALID_STRIPING_ID;

@@ -70,7 +70,7 @@ namespace vessel
    INT32 requestHandler::getCollectionObject(requestContext *context,
                                              const globalCollectionId &gcid,
                                              OSS_LATCH_MODE mode,
-                                             collectionObject &obj)
+                                             COLLECTION_PTR &out)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "must be inited");
@@ -79,7 +79,7 @@ namespace vessel
 
       collectionSpace *cs = NULL;
       collection *cl = NULL;
-      obj.reset();
+      out.reset();
 
       rc = _env->dms.getCSByCollectionSpaceId(context, gcid.getCSIdentifier(), SHARED, &cs);
       if (SDB_OK != rc)
@@ -93,7 +93,7 @@ namespace vessel
          goto error;
       }
       
-      obj = collectionObject(cl);
+      out = COLLECTION_PTR(cl);
    done:
       return rc;
    error:

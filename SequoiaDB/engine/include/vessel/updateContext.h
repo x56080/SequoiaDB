@@ -37,7 +37,7 @@
 #define VESSE_UPDATE_CONTEXT_H_
 
 #include "vessel/dmlContext.h"
-#include "vessel/api/IRecordUpdater.h"
+#include "interface/IRecordUpdater.h"
 
 namespace engine
 {
@@ -54,13 +54,46 @@ namespace vessel
          {
             return _updater;
          }
-         OSS_INLINE void setUpdater(IRecordUpdater *updater)
+         OSS_INLINE void reset(IRecordUpdater *updater)
          {
             _updater = updater;
+            _originalRecord.release();
+            _overflow = FALSE;
+            _bigRecord = FALSE;
+            _overflowAddr = recordID();
+         }
+         OSS_INLINE memoryBlock &getOriginalRecordBuffer()
+         {
+            return _originalRecord;
+         }
+         void setOverflowInfo(BOOLEAN isBigRecord,
+                              const recordID &addr)
+         {
+            _overflow = TRUE;
+            _bigRecord = isBigRecord;
+            _overflowAddr = addr;
          }
 
+         OSS_INLINE BOOLEAN isOverflow()const
+         {
+            return _overflow;
+         }
+         OSS_INLINE BOOLEAN isBigRecord()const
+         {
+            return _bigRecord;
+         }
+
+         OSS_INLINE const recordID &getOverflowAddr()const
+         {
+            return _overflowAddr;
+         }
       private:
          IRecordUpdater *_updater = NULL;
+         memoryBlock _originalRecord;
+         BOOLEAN _overflow = FALSE;
+         BOOLEAN _bigRecord = FALSE;
+         recordID _overflowAddr;
+         
    };//class updateContext
 } // namespace vessel
 

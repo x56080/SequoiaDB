@@ -39,7 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sdbInterface.hpp"
-#include "vessel/shallowObject.hpp"
+#include "vessel/shallowPointer.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/collection.h"
 
@@ -89,7 +89,7 @@ namespace vessel
          INT32 getCollectionObject(requestContext *context,
                                    const globalCollectionId &gcid,
                                    OSS_LATCH_MODE mode,
-                                   collectionObject &obj);
+                                   COLLECTION_PTR &out);
       private:
          IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;

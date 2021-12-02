@@ -36,9 +36,10 @@
 #ifndef VESSEL_RDP_RECORD_SCANNER_H_
 #define VESSEL_RDP_RECORD_SCANNER_H_
 
-#include "vessel/rdpReader.h"
+#include "vessel/rdpAccessor.h"
 #include "vessel/memoryBlock.h"
 #include "vessel/recordID.h"
+#include "vessel/logicalPageBuffer.h"
 
 namespace engine
 {
@@ -56,19 +57,16 @@ namespace vessel
             return NULL != _context;
          }
 
-         /// lock lpid and prepare to read.
-         /// min(endBound, real last slot) is inclusive end of scanning.
+         /// lock lpid and locate the first visible slot
+         /// from begin to end.
+         /// end is exlusive
          INT32 open(requestContext *context,
                     PAGE_ID lpid,
                     memoryBlock *buffer=NULL,
-                    RECORD_SLOT_ID endBound = INVALID_RECORD_SLOT_ID);
+                    RECORD_SLOT_ID begin = 0,
+                    RECORD_SLOT_ID end = INVALID_RECORD_SLOT_ID);
 
          void close();
-
-         /// locate once at least before any fetching.
-         /// it will automaticlly search visible slot begin from pos to the end.
-         /// The end pos will be end bound(if set) or the last slot in the page.
-         INT32 locate(RECORD_SLOT_ID pos);
 
          /// auto move the next valid slot fromm current pos.
          INT32 next();
@@ -77,13 +75,16 @@ namespace vessel
          /// which means hit the end.
          BOOLEAN isReadyToFetch()const;
 
+         UINT32 getCurrentPageSeq()const;
+
       public:/// ensure ready to fetch first
          recordID getCurrentRid()const;
-         BOOLEAN isTombstoneRecord()const;
-         BOOLEAN isOverflowRecord()const;
+
+         BOOLEAN isOverflow()const;
+
          BOOLEAN isBigRecord()const;
 
-         INT32 fetchRecord();
+         INT32 fetchRecord(BOOLEAN forceCopy=FALSE);
 
       public:/// fetch record to reader first
          
@@ -96,22 +97,29 @@ namespace vessel
             return _recordData;
          }
 
+         recordID getOverflowAddr()const;
+
       private:
+         /// it will automaticlly search visible slot from pos to the end.
+         /// The end pos will be end bound(if set) or the last slot in the page.
+         INT32 relocateFromPos(RECORD_SLOT_ID pos);
+
          void clearDataCached();
 
          INT32 fetchNormalRecord();
 
-         INT32 searchVisibleAndStableSlot(RECORD_SLOT_ID pos);
+         INT32 initAccessor();
 
       private:
          requestContext *_context = NULL;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          RECORD_SLOT_ID _endBound = INVALID_RECORD_SLOT_ID;
-         rdpReader _reader;
+         logicalPageBuffer _lpb;
+         rdpAccessor _accessor;
 
          RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
          recordSlot _rs;
-         const recordHead *_rh = NULL;
+         recordHead _rh;
          DPS_TRANS_ID _transID;
          slice _recordData;
 

@@ -65,7 +65,7 @@ namespace vessel
       head->clLogcalID = logicalID;
       head->pageSeq = pageSeq;
       head->totalFreeSpace = getMaxFreeSizeOfRdp(pageSize);
-      head->freeSpaceAfterLastSlot = head->totalFreeSpace;
+      head->backOffset = getPageBodySize(pageSize);
    done:
       return r;
    }

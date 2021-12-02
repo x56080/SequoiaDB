@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rdpInsertExecutor.h
+   Source File Name = rdpAccessor.h
 
    Descriptive Name =
 
@@ -33,45 +33,67 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_RDP_INSERT_EXECUTOR_H_
-#define VESSEL_RDP_INSERT_EXECUTOR_H_
+#ifndef VESSEL_RDP_ACCESSOR_H_
+#define VESSEL_RDP_ACCESSOR_H_
 
 #include "vessel/pageAccessor.h"
 #include "vessel/recordDataPage.h"
 #include "vessel/recordID.h"
+#include "vessel/slice.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class requestContext;
    class insertContext;
+   class updateContext;
    class logicalPageBuffer;
    class logRecordContext;
 
-   class rdpInsertExecutor : public pageAccessor
+   class rdpAccessor : public pageAccessor
    {
       public:
-         rdpInsertExecutor(){}
-         virtual ~rdpInsertExecutor(){}
+         rdpAccessor(){}
+         virtual ~rdpAccessor(){}
 
       public:
+         INT32 init(requestContext *context,
+                    logicalPageBuffer *lpb);
+
+         OSS_INLINE void fini() {_lpb = NULL;}
+
          /// non-big-record
-         INT32 insertNormalRecord(insertContext *context,
-                                  logicalPageBuffer *lpb);
+         INT32 insertNormalRecord(insertContext *context);
+
+
+         INT32 updateNormalRecord(updateContext *context);
+
+      public:
+         UINT32 getTotalSlotCount()const;
+         INT32 getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const;
+
+         INT32 getRecord(RECORD_SLOT_ID pos,
+                         recordHead &rh,
+                         slice &data)const;
+
+         const recordDataPageHead *getReadablePageHead()const;
 
       private:
-         INT32 insertWithNormalHead(insertContext *context,
-                                    RECORD_SLOT_ID slotId,
-                                    const recordSlot &slot,
-                                    const recordHead &rh,
-                                    logicalPageBuffer *lpb);
+         INT32 insertNormalRecordToPos(insertContext *context,
+                                       RECORD_SLOT_ID pos,
+                                       UINT16 offset);
 
       private:
-         void updatePageHead(recordDataPageHead *head,
-                             RECORD_SLOT_ID slotId,
-                             const recordSlot &slot,
-                             const recordHead &rh,
-                             STRIPING_ID striping);
+         void updatePageHeadWhenInsert(RECORD_SLOT_ID pos,
+                                       const recordSlot &slot,
+                                       const recordHead &rh,
+                                       STRIPING_ID striping);
+
+         void updateStripingInfo(recordDataPageHead *head,
+                                 STRIPING_ID striping);
+         void updateMasTransSN(recordDataPageHead *head,
+                               UINT64 transSN);
 
          INT32 getPosToInsert(const recordDataPageHead *head,
                               UINT32 alignedHeadAndBodySize,
@@ -80,7 +102,20 @@ namespace vessel
                               UINT16 &offset,
                               UINT32 &totalSize)const;
 
+         BOOLEAN findPositionToInsert(UINT32 recordSize,
+                                      FLOAT32 minFreePercent,
+                                      RECORD_SLOT_ID &pos,
+                                      UINT16 &offset)const;
+
       private:
+         const recordSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
+         
+         UINT32 getFrontOffset(const recordDataPageHead *head)const;
+
+      private:
+         INT32 validatePage(requestContext *context,
+                            logicalPageBuffer *lpb)const;
+
          INT32 prepareInsertLog(insertContext *context,
                                 UINT32 recordHeadAndBodySize,
                                 const runtimePageBuffer *rpb,
@@ -89,13 +124,16 @@ namespace vessel
          INT32 commitInsertLog(insertContext *context,
                                const recordID &rid,
                                const recordSlot &slot,
-                               const recordHead *record,
+                               const void *record,
                                const recordDataPageHead *oldHead,
                                const recordDataPageHead *newHead,
                                const runtimePageBuffer *rpb,
                                logRecordContext *lrc);
-   };//class rdpInsertExecutor 
+
+      private:
+         logicalPageBuffer *_lpb = NULL;
+   };//class rdpAccessor 
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_RDP_INSERT_EXECUTOR_H_
+#endif//VESSEL_RDP_ACCESSOR_H_

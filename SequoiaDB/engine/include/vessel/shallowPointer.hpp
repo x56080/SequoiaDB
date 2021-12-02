@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = IRecordUpdater.h
+   Source File Name = shallowPointer.hpp
 
    Descriptive Name =
 
@@ -33,37 +33,48 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_I_RECORD_UPDATER_H_
-#define VESSEL_I_RECORD_UPDATER_H_
+#ifndef VESSEL_SHALLOW_POINTER_H_
+#define VESSEL_SHALLOW_POINTER_H_
 
-#include "vessel/slice.h"
-#include "vessel/strSlice.h"
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class IRecordUpdater : public SDBObject
+   template <class T>
+   class shallowPointer : public SDBObject
    {
       public:
-         IRecordUpdater(){}
-         virtual ~IRecordUpdater(){}
-         IRecordUpdater(const IRecordUpdater &) = delete;
-         IRecordUpdater &operator=(const IRecordUpdater &) = delete;
+         shallowPointer(){}
+         ~shallowPointer(){_ptr = NULL;}
+         explicit shallowPointer(T *ptr):
+         _ptr(ptr){}
+         shallowPointer(const shallowPointer &o):
+         _ptr(o._ptr){}
+         shallowPointer &operator=(const shallowPointer &o)
+         {
+            _ptr = o._ptr;
+            return *this;
+         }
+
+         T *operator->()const
+         {
+            return _ptr;
+         }
 
       public:
-         virtual INT32 modify(const slice &record) = 0;
+         BOOLEAN isValid()const{return NULL != _ptr;}
+         T *get(){return _ptr;}
+         void reset(){_ptr = NULL;}
 
-      public:/// result
-         virtual slice getModifiedRecord()const = 0;
-
-         virtual UINT32 getFieldsModified()const = 0;
-
-         virtual strSlice getModifiedFieldName(UINT32 pos)const = 0;
-   };//class IRecordUpdater
+      private:
+         T *_ptr = NULL;
+   };//class shallowPointer
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_I_RECORD_UPDATER_H_
+#endif//VESSEL_SHALLOW_POINTER_H_

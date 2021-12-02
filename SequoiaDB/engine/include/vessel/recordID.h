@@ -39,6 +39,7 @@
 #include "vessel/pageDef.h"
 #include "dms.hpp"
 #include "xxHashInc.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -174,6 +175,20 @@ namespace vessel
             v <<= 32;
             v |= _slot;
             return XXH3_64bits(&v, sizeof(v));
+         }
+
+         ossPoolString toString()const
+         {
+            ossPoolString str;
+            str.reserve(32);
+            CHAR buf[16] = {};
+            ossItoa(_page, buf, 16);
+            str.append("[");
+            str.append(buf);
+            ossItoa(_slot, buf, 16);
+            str.append(buf);
+            str.append("]");
+            return str;
          }
 
          static recordID createMinRid()

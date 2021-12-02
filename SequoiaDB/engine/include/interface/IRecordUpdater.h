@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = rowBatch.cpp
+   Source File Name = IRecordUpdater.h
 
    Descriptive Name =
 
@@ -33,38 +33,41 @@
 
 ******************************************************************************/
 
-#include "vessel/rowBatch.h"
+#ifndef VESSEL_I_RECORD_UPDATER_H_
+#define VESSEL_I_RECORD_UPDATER_H_
+
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void rowBatch::init(INT32 rowLimit)
+   class IRecordUpdater : public SDBObject
    {
-      fini();
-      _rowLimit = rowLimit;
-      return;
-   }
+      public:
+         IRecordUpdater(){}
+         virtual ~IRecordUpdater(){}
+         IRecordUpdater(const IRecordUpdater &) = delete;
+         IRecordUpdater &operator=(const IRecordUpdater &) = delete;
 
-   void rowBatch::fini()
-   {
-      _rows.clear();
-      _rowLimit = -1;
-      _fini();
-   }
+      public:
+         virtual INT32 update(UINT32 size,
+                              const CHAR *data) = 0;
 
-   void rowBatch::clearBatch()
-   {
-      _rows.clear();
-      clearBuffer();
-      return;
-   }
+         virtual BOOLEAN done()const = 0;
 
-   void rowBatch::push(const slice &row)
-   {
-      SDB_ASSERT(row.isValid(), "can not be invalid");
-      _rows.push_back(row.getReadableSlice());
-   }
+      public:/// result
+         virtual const CHAR *getResultData()const = 0;
+         virtual UINT32 getResultDataSize()const = 0;
+
+         virtual BOOLEAN nothingUpdated()const = 0;
+         virtual BOOLEAN isWholeRecordReset()const = 0;
+         virtual UINT32 getChangedFieldCount()const = 0;
+         virtual void dumpChangedFileds(ossPoolVector<const CHAR *> &fieldNames)const = 0;
+   };//class IRecordUpdater
 } // namespace vessel
 
 } // namespace engine
+
+
+#endif//VESSEL_I_RECORD_UPDATER_H_

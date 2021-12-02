@@ -40,6 +40,7 @@
 #include "vessel/unstableIndexContext.h"
 #include "vessel/vesselIdDef.h"
 #include "vessel/indexHandle.h"
+#include "vessel/shallowPointer.hpp"
 
 namespace engine
 {
@@ -127,6 +128,8 @@ namespace vessel
 
          void setRemoving();
 
+         BOOLEAN associates(const CHAR *fieldName)const;
+
       private:
          INT32 _indexSlot = -1;
          PAGE_ID _lpid = INVALID_PAGE_ID;
@@ -134,6 +137,8 @@ namespace vessel
          INDEX_STATUS _status = INDEX_STATUS_INVALID;
          unstableIndexContext *_unstatbleContext = NULL;
    };//class indexContext
+
+   typedef shallowPointer<indexContext> INDEX_CONTEXT_PTR;
 } // namespace vessel
 
 } // namespace engine

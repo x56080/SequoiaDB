@@ -41,7 +41,7 @@
 #include "utilInsertResult.hpp"
 #include "dpsTransID.hpp"
 #include "vessel/objectIdentifier.h"
-#include "vessel/api/IRecordUpdater.h"
+#include "interface/IRecordUpdater.h"
 
 
 namespace engine

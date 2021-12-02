@@ -107,6 +107,7 @@ namespace vessel
          UINT64 _freeIndexSlots = OSS_UINT64_MAX;
 
          _CONTEXT_MAP _contexts;
+          
    };//indexContextMap
 }//namespace vessel
 }//nemespace engine

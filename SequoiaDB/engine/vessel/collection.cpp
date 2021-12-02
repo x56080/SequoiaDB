@@ -50,7 +50,6 @@
 #include "vessel/routePageIniter.h"
 #include "vessel/atomicOperationList.h"
 #include "vessel/rdpIniter.h"
-#include "vessel/rdpInsertExecutor.h"
 #include "vessel/indexUtils.h"
 #include "vessel/indexEntryPage.h"
 #include "vessel/indexConsole.h"
@@ -62,7 +61,6 @@
 #include "vessel/buildingIndexContext.h"
 #include "vessel/indexScanContext.h"
 #include "vessel/indexScanCursor.h"
-
 
 namespace engine
 {
@@ -163,7 +161,7 @@ namespace vessel
       _record.innerID = innerID;
       _record.type = options.type;
       _record.logicalCLID = logicalID;
-      _record.freeSizeReserved = options.freeSizeReserved;
+      _record.minFreePercent = options.minFreePercent;
       _record.minStriping = options.minStriping;
       _record.maxStriping = options.maxStriping;
       ossMemcpy(_record.name, clName.str(), clName.strLen());
@@ -397,10 +395,9 @@ namespace vessel
          goto error;
       }
 
-      context->clearDmlHistroy();
       guard.autoLock();
 
-      context->setMinFreeSize(_record.freeSizeReserved);
+      context->setMinFreePercent((FLOAT32)(_record.minFreePercent) / 100);
       /// build indexes keys.
       rc = buildDmlIndexRequests(context, context->getOriginalRecord(), ra);
       if (SDB_OK != rc)
@@ -409,14 +406,21 @@ namespace vessel
          goto error;
       }
 
-      rc = constraintCheck(context, ra, res);
-      if (SDB_OK != rc)
+      if (ra.withConstraint())
       {
-         if (SDB_IXM_DUP_KEY != rc)
+         BOOLEAN duplicated = FALSE;
+         rc = constraintCheck(context, ra, duplicated, res);
+         if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to check constraint:%d", rc);
+            goto error;
          }
-         goto error;
+
+         if (duplicated)
+         {
+            rc = SDB_IXM_DUP_KEY;
+            goto error;
+         }
       }
 
       if (!ra.isEmpty())
@@ -469,7 +473,7 @@ namespace vessel
    done:
       if (NULL != context)
       {
-         context->clearDmlHistroy();
+         context->insertDone();
       }
       return rc;
    error:
@@ -480,6 +484,12 @@ namespace vessel
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
+      dmlIndexRequestArray ra;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+
+      recordID rid;
+      IRecordUpdater *updater = NULL;
+
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
@@ -492,7 +502,60 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      updater = context->getUpdater();
+      rid = context->getRid();
+      guard.autoLock();
+      
+      rc = lockAndFetchRecordToModify(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fetch record to update:%d", rc);
+         goto error;
+      }
+
+      rc = updater->update(context->getOriginalRecordBuffer().getSize(),
+                           context->getOriginalRecordBuffer().getBuffer());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update record:%d", rc);
+         goto error;
+      }
+
+      if (updater->nothingUpdated())
+      {
+         goto done;
+      }
+
+      rc = buildUpdateIndexRequests(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build index update request:%d", rc);
+         goto error;
+      }
+
+      if (ra.withConstraint())
+      {
+         BOOLEAN duplicated = FALSE;
+         rc = constraintCheck(context, ra, duplicated, res);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to check constraint:%d", rc);
+            goto error;
+         }
+
+         if (duplicated)
+         {
+            rc = SDB_IXM_DUP_KEY;
+            goto error;
+         }
+      }
+
    done:
+      if (NULL != context)
+      {
+         context->clearDmlHistroy();
+      }
       return rc;
    error:
       goto error;
@@ -701,20 +764,29 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      rdpReader rr;
+      rdpAccessor accessor;
+      logicalPageBuffer lpb;
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
 
-      rc = rr.open(context, lpid, mode);
+      rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open reader of lpid[%d], rc:%d",
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor to lpid[%d], rc:%d",
                 lpid, rc);
          goto error;
       }
 
-      count = rr.getPageHead().recordCount;
+      count = accessor.getReadablePageHead()->recordCount;
    done:
-      rr.close();
+      lpb.fini();
       return rc;
    error:
       goto done;
@@ -733,17 +805,11 @@ namespace vessel
 
       rdpRecordScanner scanner;
 
-      rc = scanner.open(context, cursor->getLpid(), buffer);
+      rc = scanner.open(context, cursor->getLpid(), buffer,
+                        cursor->getToScanEntry().getSlot());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open scanner:%d", rc);
-         goto error;
-      }
-
-      rc = scanner.locate(cursor->getToScanEntry().getSlot());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to locate slot in scanner:%d", rc);
          goto error;
       }
 
@@ -759,8 +825,6 @@ namespace vessel
             PD_LOG(PDERROR, "failed to fetch record by scanner:%d", rc);
             goto error;
          }
-
-         SDB_ASSERT(!scanner.isTombstoneRecord(), "TODO");
 
          rid = scanner.getCurrentRid();
          transId = scanner.getCurrentTransID();
@@ -888,7 +952,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 size = getMaxSizeOfRecordInRdp(context->getOriginalRecord().getSize());
+      UINT32 size = estimateNormalRecordSavingSize(context->getOriginalRecord().getSize());
       INT32 targetLvl = getFsmSpaceLvl(getDataPageSize(), size);
       PAGE_ID lpid = INVALID_PAGE_ID;
 
@@ -948,7 +1012,7 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       logicalPageBuffer lpb;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
-      rdpInsertExecutor accessor;
+      rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
 
       rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
@@ -959,14 +1023,21 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.insertNormalRecord(context, &lpb);
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.insertNormalRecord(context);
       if (SDB_OK != rc)
       {
          if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE != rc)
          {
-            PD_LOG(PDERROR, "failed to insert record:%d", rc);
+            PD_LOG(PDERROR, "failed to insert normal record into page:%d", rc);
+            goto error;
          }
-         goto error;
       }
    done:
       lpb.fini();
@@ -2310,17 +2381,10 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, &mb);
+         rc = scanner.open(context, lpid, &mb, entry.getSlot());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init scanner on lpid[%d]:%d", lpid, rc);
-            goto error;
-         }
-
-         rc = scanner.locate(entry.getSlot());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to locate slot in scanner:%d", rc);
             goto error;
          }
          
@@ -2328,18 +2392,6 @@ namespace vessel
          {
             keySet.clear();
             slice record;
-
-            if (scanner.isTombstoneRecord())
-            {
-               rc = scanner.next();
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to get next by scanner:%d", rc);
-                  goto error;
-               }
-
-               continue;
-            }
 
             rc = scanner.fetchRecord();
             if (SDB_OK != rc)
@@ -2448,17 +2500,10 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, &mb);
+         rc = scanner.open(context, lpid, &mb, entry.getSlot());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open scanner:%d", rc);
-            goto error;
-         }
-
-         rc = scanner.locate(entry.getSlot());
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to locate entry slot:%d", rc);
             goto error;
          }
 
@@ -2467,18 +2512,6 @@ namespace vessel
             keySet.clear();
             batch.reset();
             recordID rid;
-
-            if (scanner.isTombstoneRecord())
-            {
-               rc = scanner.next();
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to get next by scanner:%d", rc);
-                  goto error;
-               }
-
-               continue;
-            }
 
             rid = scanner.getCurrentRid();
 
@@ -3106,18 +3139,97 @@ namespace vessel
             goto error;
          }
 
-         for (bson::BSONObjSet::const_iterator itr = keySet.begin();
-              itr != keySet.end(); ++itr)
+         rc = requests.append(ic, &keySet, NULL);
+         if (SDB_OK != rc)
          {
-            if ((INT32)MAX_INDEX_KEY_SIZE < itr->objsize())
-            {
-               rc = SDB_IXM_KEY_TOO_LARGE;
-               goto error;
-            }
+            PD_LOG(PDERROR, "failed to append index request to array:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      requests.clear();
+      goto done;
+   }
+
+   INT32 collection::buildUpdateIndexRequests(updateContext *context,
+                                              dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      IRecordUpdater *updater = context->getUpdater();
+      SDB_ASSERT(NULL != updater && updater->done(),"can not be invalid");
+
+      slice original(context->getOriginalRecordBuffer().getSize(),
+                     context->getOriginalRecordBuffer().getBuffer());
+      SDB_ASSERT(original.isValid(), "can not be invalid");
+      slice updated(updater->getResultDataSize(), updater->getResultData());
+      SDB_ASSERT(updated.isValid(), "can not be invalid");
+
+      SDB_ASSERT(!updater->isWholeRecordReset(), "TODO");
+      ossPoolVector<const CHAR *> fields;
+
+      INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
+      bson::BSONObjSet keySetToInsert;
+      bson::BSONObjSet keySetToRemove;
+
+      updater->dumpChangedFileds(fields);
+      indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+      for (; itr != _indexes.end(); ++itr)
+      {
+         BOOLEAN associated = FALSE;
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+         if (!ic->isNormal() && !ic->isBuilding())
+         {
+            continue;
          }
 
-         requests.append(ic, keySet);
+         for (UINT32 i = 0; i < fields.size(); ++i)
+         {
+            if (!ic->associates(fields.at(i)))
+            {
+               continue;
+            }
+
+            associated = TRUE;
+            break;
+         }
+
+         if (!associated)
+         {
+            continue;
+         }
+
+         rc = keyGen(ic->getObj().getPattern().getPattern(),
+                        ic->getObj().getParams().notArray,
+                        original, keySetToRemove);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to generate index keys:%d", rc);
+            goto error;
+         }
+
+         rc = keyGen(ic->getObj().getPattern().getPattern(),
+                     ic->getObj().getParams().notArray,
+                     updated, keySetToInsert);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to generate index keys:%d", rc);
+            goto error;
+         }
+
+         rc = ra.append(ic, &keySetToInsert, &keySetToRemove);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make removing index request:%d", rc);
+            goto error;
+         }
+         keySetToRemove.clear();
+         keySetToInsert.clear();
       }
+      
    done:
       return rc;
    error:
@@ -3126,6 +3238,7 @@ namespace vessel
 
    INT32 collection::constraintCheck(dmlContext *context,
                                      const dmlIndexRequestArray &ra,
+                                     BOOLEAN &duplicated,
                                      utilInsertResult *res)const
    {
       INT32 rc = SDB_OK;
@@ -3133,14 +3246,14 @@ namespace vessel
       recordID rid;
       indexSpace &is = _collectionSpace->getSU()->getIndexSpace();
       indexConsole console;
+      duplicated = FALSE;
 
       if (!ra.withConstraint())
       {
          goto done;
       }
 
-      context->addKeysToBeConstraintCheck(ra);
-      rc = context->lockUniqueIndexKeys();
+      rc = context->lockUniqueIndexKeys(ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
@@ -3159,8 +3272,8 @@ namespace vessel
             continue;
          }
 
-         ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
-         for (; itr != req->getKeys().end(); ++itr)
+         ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToInsert().begin();
+         for (; itr != req->getKeysToInsert().end(); ++itr)
          {
             rc = console.checkUniqueConstraint(context, req->getContext(), *itr, rid);
             if (SDB_OK != rc)
@@ -3175,7 +3288,7 @@ namespace vessel
                       itr->toString().c_str(),
                       req->getContext()->getObj().getIndexName().str(),
                       rid.getPageID(), rid.getSlotID());
-               rc = SDB_IXM_DUP_KEY;
+               duplicated = TRUE;
                if (NULL != res)
                {
                   res->incDuplicatedNum();
@@ -3188,7 +3301,7 @@ namespace vessel
                   }
                }
                
-               goto error;
+               goto done;
             }
          }
       }
@@ -3206,7 +3319,7 @@ namespace vessel
       indexConsole console;
       console.init(_record.mbID, &is);
 
-      rc = console.dmlInsert(context, ra);
+      rc = console.handleDmlRequest(context, ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to insert indexes:%d", rc);
@@ -3249,7 +3362,7 @@ namespace vessel
                                       context->getRid().getPageID(),
                                       context->getDmlLSN(),
                                       context->getTransIDWithoutTag(),
-                                      ir->getKeys(),
+                                      ir->getKeysToInsert(),
                                       refused);
 
          if (SDB_OK != rc)
@@ -3506,7 +3619,8 @@ namespace vessel
          }
          else
          {
-            rc = recordScanner.open(context, rid.getPageID(), &mb, rid.getSlotID());
+            rc = recordScanner.open(context, rid.getPageID(), &mb,
+                                    rid.getSlotID(), rid.getSlotID() + 1);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to read record[%d,%d], rc:%d",
@@ -3514,15 +3628,7 @@ namespace vessel
                goto error;
             }
 
-            rc = recordScanner.locate(rid.getSlotID());
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to locate to pos[%d], rc:%d", rid.getSlotID(), rc);
-               goto error;
-            }
-
-            if (!recordScanner.isReadyToFetch() ||
-                 recordScanner.isTombstoneRecord())
+            if (!recordScanner.isReadyToFetch())
             {
                PD_LOG(PDERROR, "failed to get record[%d,%d]", rid.getPageID(), rid.getSlotID());
                rc = SDB_VESSEL_INTERNAL_ERR;
@@ -3576,6 +3682,79 @@ namespace vessel
    done:
       scanner.close();
       context->clearBatchAndRidLatch();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::lockAndFetchRecordToModify(updateContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && context->getRid().isValid(), "can not be invalid");
+      recordID rid = context->getRid();
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      rdpRecordScanner scanner;
+      BOOLEAN locked = FALSE;
+      memoryBlock &mb = context->getOriginalRecordBuffer();
+      mb.resize(0);
+
+      rc = context->lockRid(rid, mode);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid:%d, rc:%d", rid.toString().c_str(), rc);
+         goto error;
+      }
+      locked = TRUE;
+
+      rc = scanner.open(context, rid.getPageID(), &mb,
+                        rid.getSlotID(), rid.getSlotID() + 1);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open scanner:%d", rc);
+         goto error;
+      }
+
+      if (!scanner.isReadyToFetch())
+      {
+         PD_LOG(PDERROR, "rid:%s not found", rid.toString().c_str());
+         rc = SDB_VESSEL_RECORD_NOT_FOUND;
+         goto error;
+      }
+
+      rc = scanner.fetchRecord(TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fetch record:%s, :%d",
+                rid.toString().c_str(), rc);
+         goto error;
+      }
+
+      context->setPageSeq(scanner.getCurrentPageSeq());
+      if (scanner.isOverflow())
+      {
+         context->setOverflowInfo(scanner.isBigRecord(), scanner.getOverflowAddr());
+      }
+      
+   done:
+      scanner.close();
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockRid(rid);
+      }
+      goto done;
+   }
+
+   INT32 collection::launchUpdate(updateContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be invalid");
+      IRecordUpdater *updater = context->getUpdater();
+      SDB_ASSERT(updater->done(), "must be done");
+
+   done:
       return rc;
    error:
       goto done;

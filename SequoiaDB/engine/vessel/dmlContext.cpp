@@ -57,7 +57,7 @@ namespace vessel
       return;
    }
 
-   INT32 dmlContext::lockUniqueIndexKeys()
+   INT32 dmlContext::lockUniqueIndexKeys(const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       if (!requestContext::isOpen())
@@ -65,15 +65,44 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!_uniqueKeyContext.empty())
+      else if (!_uniqueKeyContext.empty() ||
+               !_uniqueKeyHash.empty())
       {
          SDB_ASSERT(FALSE, "do not relock");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
+      else if (!ra.withConstraint())
+      {
+         goto done;
+      }
 
       SDB_ASSERT(requestContext::isSpaceIdLocked() &&
                  requestContext::isMbLocked(), "must be locking");
+
+      for (UINT32 i = 0; i < ra.getSize(); ++i)
+      {
+         const dmlIndexRequest *req = ra.get(i);
+         SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
+         if (!req->withConstraint())
+         {
+            continue;
+         }
+
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToInsert().begin();
+              itr != req->getKeysToInsert().end(); ++itr)
+         {
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getContext()->getIndexSlot();
+            _uniqueKeyHash.push_back(hash);
+         }
+
+         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeysToRemove().begin();
+              itr != req->getKeysToRemove().end(); ++itr)
+         {
+            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getContext()->getIndexSlot();
+            _uniqueKeyHash.push_back(hash);
+         }
+      }
 
       rc = _lockUniqueIndexKeys();
       if (SDB_OK != rc)
@@ -86,37 +115,6 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   void dmlContext::addKeysToBeConstraintCheck(const dmlIndexRequestArray &arr)
-   {
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_uniqueKeyContext.empty(), "only before locking");
-      UINT32 size = arr.getSize();
-      if (!arr.withConstraint())
-      {
-         goto done;
-      }
-      
-      for (UINT32 i = 0; i < size; ++i)
-      {
-         const dmlIndexRequest *req = arr.get(i);
-         SDB_ASSERT(NULL != req && req->isValid(), "can not be invalid");
-         if (!req->withConstraint())
-         {
-            continue;
-         }
-
-         for (ossPoolList<bson::BSONObj>::const_iterator itr = req->getKeys().begin();
-              itr != req->getKeys().end(); ++itr)
-         {
-            UINT32 hash = BSON_HASHER::hashObj(*itr) + req->getContext()->getIndexSlot();
-            _uniqueKeyHash.push_back(hash);
-         }
-      }
-
-   done:
-      return;
    }
 
    INT32 dmlContext::_lockUniqueIndexKeys()

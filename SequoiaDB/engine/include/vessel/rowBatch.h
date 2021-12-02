@@ -52,28 +52,36 @@ namespace vessel
          rowBatch &operator=(const rowBatch &) = delete;
 
       public:
-         OSS_INLINE UINT32 getBatchSize()const{return _rows.size();}
+         virtual UINT32 getRowCount()const = 0;
+         virtual BOOLEAN isFreeToPush(UINT32 rowSize)const = 0;
+         virtual INT32 pushRow(const slice &row) = 0;
+         virtual INT32 pushRowFragments(std::initializer_list<slice> il) = 0;
+         virtual slice getRow(UINT32 pos)const = 0;
+         virtual void fini() = 0;
+         virtual void clearRows() = 0;
 
       public:
-         void init(INT32 rowLimit = -1);
-         void fini();
-         void resetData();
-         BOOLEAN isFreeToPush(UINT32 size)const;
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return 0 == getRowCount();
+         }
+         slice operator[](UINT32 pos)const {return getRow(pos);}
+         void setLimits(INT32 bufferSizeLimit, INT32 rowLimit)
+         {
+            _bufferSizeLimit = bufferSizeLimit;
+            _rowLimit = rowLimit;
+         }
 
-      private:
-         /// <offset, size>
-         typedef std::pair<UINT32, UINT32> _ROW_TAG;
+      protected:
+         void clearLimits()
+         {
+            _bufferSizeLimit = -1;
+            _rowLimit = -1;
+         }
 
-         virtual INT32 writeBuffer(UINT32 offset, const slice &data) = 0;
-         virtual void clearBuffer() = 0;
-         virtual slice getFromBuffer(const _ROW_TAG &rt)const = 0;
-         virtual void _fini(){}
-
-      private:
-         ossPoolVector<_ROW_TAG> _rows;
+      protected:
+         INT32 _bufferSizeLimit = -1;
          INT32 _rowLimit = -1;
-         UINT32 _bufferCapacity = 0;
-         UINT32 _size = 0;
    };//class rowBatch
 } // namespace vessel
 

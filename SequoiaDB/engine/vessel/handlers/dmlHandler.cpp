@@ -207,7 +207,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       updateContext context;
-      collectionObject obj;
+      COLLECTION_PTR cl;
 
       if (NULL != res)
       {
@@ -228,14 +228,20 @@ namespace vessel
       }
 
       context.open(getExecutor(), getEnv(), getOuterResource());
-      rc = getCollectionObject(&context, gcid, SHARED, obj);
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       context.setRid(rid);
-      context.setUpdater(updater);
+      context.reset(updater);
+
+      rc = cl->update(&context, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       context.close();
       return rc;

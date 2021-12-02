@@ -39,6 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.h"
+#include "pd.hpp"
 
 namespace engine
 {
@@ -128,6 +129,12 @@ namespace vessel
          OSS_INLINE BOOLEAN empty()const
          {
             return 0 == _strLen || NULL == _str;
+         }
+
+         OSS_INLINE CHAR at(UINT32 pos)const
+         {
+            SDB_ASSERT(pos < _strLen, "out of bound");
+            return _str[pos];
          }
          
       private:

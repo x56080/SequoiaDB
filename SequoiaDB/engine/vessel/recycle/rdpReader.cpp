@@ -48,7 +48,7 @@ namespace vessel
                           const ossSharedLatchMode &mode)
    {
       INT32 rc = SDB_OK;
-      lpsObject lps;
+      LPS_OBJ_PTR lps;
       const recordDataPageHead *head = NULL;
       close();
 

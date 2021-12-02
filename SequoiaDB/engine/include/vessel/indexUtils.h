@@ -79,6 +79,17 @@ namespace vessel
                                  const VEC_ELE_CMP &matchEle,
                                  const inclusiveVec &matchInclusive,
                                  const bson::Ordering &o, INT32 direction);
+
+         /// stop at the first dot or terminating.
+         static UINT32 createPatternFieldNameHash(const CHAR *fieldName);
+
+         /// stop at the first dot or terminating.
+         static BOOLEAN fieldNameAssociate(const strSlice &l,
+                                           const strSlice &r);
+
+         /// stop at the first dot or terminating.
+         static BOOLEAN fieldNameAssociate(const CHAR *l,
+                                           const CHAR *r);
    };//class indexUtils
 
    

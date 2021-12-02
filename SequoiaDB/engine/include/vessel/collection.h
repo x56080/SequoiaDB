@@ -52,7 +52,7 @@
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
 #include "vessel/updateContext.h"
-#include "vessel/shallowObject.hpp"
+#include "vessel/shallowPointer.hpp"
 
 namespace engine
 {
@@ -168,8 +168,12 @@ namespace vessel
                                      const slice &record,
                                      dmlIndexRequestArray &requests)const;
 
+         INT32 buildUpdateIndexRequests(updateContext *context,
+                                        dmlIndexRequestArray &ra);
+
          INT32 constraintCheck(dmlContext *context,
                                const dmlIndexRequestArray &ra,
+                               BOOLEAN &duplicated,
                                utilInsertResult *res)const;
 
          INT32 insertIndexRequests(dmlContext *context,
@@ -177,6 +181,8 @@ namespace vessel
 
          INT32 insertNewKeysToBuildingContext(dmlContext *context,
                                               dmlIndexRequestArray &ra);
+
+         INT32 lockAndFetchRecordToModify(updateContext *context);
 
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
@@ -210,6 +216,9 @@ namespace vessel
 
          INT32 insertNonBigRecordToPage(insertContext *context,
                                         PAGE_ID lpid);
+                                 
+      private:
+         INT32 launchUpdate(updateContext *context);
 
       private:
          INT32 findCandidate(requestContext *context,
@@ -358,7 +367,7 @@ namespace vessel
          ossSpinXLatch _extendingLatch;
    };//class collection
 
-   typedef shallowObject<collection> collectionObject;
+   typedef shallowPointer<collection> COLLECTION_PTR;
 }//namespace vessel
 }//namespace engine
 

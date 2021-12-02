@@ -109,8 +109,8 @@ namespace vessel
                       const recordID &rid,
                       const DPS_TRANS_ID &transID);
 
-         INT32 dmlInsert(dmlContext *context,
-                         const dmlIndexRequestArray &ra);
+         INT32 handleDmlRequest(dmlContext *context,
+                                const dmlIndexRequestArray &ra);
 
          /// Must hold unique key latch first.
          INT32 checkUniqueConstraint(requestContext *context,
@@ -140,7 +140,7 @@ namespace vessel
 
       private:
          
-         INT32 btreeInsert(dmlContext *context,
+         INT32 btreeCommit(dmlContext *context,
                            const dmlIndexRequestArray &ra);
 
          INT32 btreeInsert(requestContext *context,

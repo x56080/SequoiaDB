@@ -38,6 +38,7 @@
 #include "vessel/buildingIndexContext.h"
 #include "ixm_common.hpp"
 #include "msgDef.h"
+#include "vessel/indexUtils.h"
 
 namespace engine
 {
@@ -133,6 +134,29 @@ namespace vessel
       builder.append(IXM_KEY_FIELD, _obj.getPattern().getPattern());
       _obj.getParams().exportToBson(builder);
    }
+
+   BOOLEAN indexContext::associates(const CHAR *fieldName)const
+   {
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(NULL != fieldName, "can not be null");
+
+      BOOLEAN r = FALSE;
+      const bson::BSONObj pattern = _obj.getPattern().getPattern();
+      bson::BSONObjIterator itr(pattern);
+      while (itr.more())
+      {
+         const CHAR *patternFieldName = itr.next().fieldName();
+         if (indexUtils::fieldNameAssociate(fieldName, patternFieldName))
+         {
+            r = TRUE;
+            goto done;
+         }
+      }
+
+   done:
+      return r;
+   }
+
 } // namespace vessel
 
 }//namespace engine

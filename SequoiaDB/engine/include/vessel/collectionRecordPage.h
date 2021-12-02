@@ -99,9 +99,8 @@ namespace vessel
          innerID = UTIL_UNIQUEID_NULL;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
-         pad = 0;
          flags = 0;
-         freeSizeReserved = 0;
+         minFreePercent = 0;
          minStriping = INVALID_STRIPING_ID;
          maxStriping = INVALID_STRIPING_ID;
          compressionType = UTIL_COMPRESSOR_INVALID;
@@ -116,9 +115,8 @@ namespace vessel
       UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
       UINT16 mbID = INVALID_CL_MB_ID;
       UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
-      UINT8 pad = 0;
+      UINT8 minFreePercent = 0;
       UINT32 flags = 0;
-      UINT32 freeSizeReserved = 0;
       UINT16 minStriping = INVALID_STRIPING_ID;
       UINT16 maxStriping = INVALID_STRIPING_ID;
 

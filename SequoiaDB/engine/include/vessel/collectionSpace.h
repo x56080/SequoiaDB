@@ -50,7 +50,7 @@
 #include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/objectIdentifier.h"
-#include "vessel/shallowObject.hpp"
+#include "vessel/shallowPointer.hpp"
 
 namespace engine
 {
@@ -238,7 +238,7 @@ namespace vessel
          _INNER_ID_SET _unformalInnerIdIndex;
    };//class collectionSpace
 
-   typedef shallowObject<collectionSpace> collectionSpaceObject;
+   typedef shallowPointer<collectionSpace> CS_OBJ_PTR;
 }
 }
 

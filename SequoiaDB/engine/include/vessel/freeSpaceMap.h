@@ -106,7 +106,8 @@ namespace vessel
                            UINT32 bucketCapacity,
                            UINT32 bucketLatchCount);
 
-         UINT32 getBucketNo(STRIPING_ID striping)const;
+         UINT32 getBucketNoByStriping(STRIPING_ID striping)const;
+         UINT32 getBucketNoByEid(EDUID eid)const;
 
          OSS_INLINE ossXLatch *getBucketLatch(UINT32 bucketNo)
          {

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = shallowObject.hpp
+   Source File Name = mbVecRowBatch.h
 
    Descriptive Name =
 
@@ -33,48 +33,44 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_SHALLOW_OBJECT_H_
-#define VESSEL_SHALLOW_OBJECT_H_
+#ifndef VESSEL_MB_VEC_ROW_BATCH_H_
+#define VESSEL_MB_VEC_ROW_BATCH_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/rowBatch.h"
+#include "vessel/memoryBlock.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   template <class T>
-   class shallowObject : public SDBObject
+   class mbVecRowBatch : public rowBatch
    {
       public:
-         shallowObject(){}
-         ~shallowObject(){_ptr = NULL;}
-         explicit shallowObject(T *ptr):
-         _ptr(ptr){}
-         shallowObject(const shallowObject &o):
-         _ptr(o._ptr){}
-         shallowObject &operator=(const shallowObject &o)
-         {
-            _ptr = o._ptr;
-            return *this;
-         }
-
-         T *operator->()const
-         {
-            return _ptr;
-         }
-
+         mbVecRowBatch(){}
+         virtual ~mbVecRowBatch(){}
       public:
-         BOOLEAN isValid()const{return NULL != _ptr;}
-         T *get(){return _ptr;}
-         void reset(){_ptr = NULL;}
+         virtual void fini();
+         virtual void clearRows();
+
+      protected:
+         virtual INT32 appendRowFragments(std::initializer_list<slice> il);
+
+         virtual INT32 appendRow(const slice &row);
+
+         virtual slice getRowByOffset(UINT32 offset, UINT32 size)const;
+         virtual slice getRowByPos(UINT32 pos)const;
 
       private:
-         T *_ptr = NULL;
-   };//class shallowObject
+         virtual BOOLEAN searchByOffset()const {return FALSE;}
+         virtual BOOLEAN searchByPos()const {return TRUE;}
+
+      private:
+         ossPoolVector<memoryBlock> _mbs;         
+   };//class mbVecRowBatch
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSEL_SHALLOW_OBJECT_H_
+#endif//VESSEL_MB_ROW_BATCH_H_

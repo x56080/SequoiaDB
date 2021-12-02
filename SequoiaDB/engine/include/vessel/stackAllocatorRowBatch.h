@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.cpp
+   Source File Name = stackAllocatorRowBatch.h
 
    Descriptive Name =
 
@@ -33,33 +33,41 @@
 
 ******************************************************************************/
 
-#include "vessel/insertContext.h"
+#ifndef VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_
+#define VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_
+
+#include "vessel/rowBatch.h"
+#include "../../bson/util/builder.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void insertContext::close()
+   class stackAllocatorRowBatch : public rowBatch
    {
-      fini();
-      dmlContext::close();
-   }
+      public:
+         stackAllocatorRowBatch(){}
+         virtual ~stackAllocatorRowBatch(){}
+      public:
+         virtual UINT32 getRowCount()const;
+         virtual BOOLEAN isFreeToPush(UINT32 rowSize)const;
+         virtual INT32 pushRow(const slice &row);
+         virtual INT32 pushRowFragments(std::initializer_list<slice> il);
+         virtual slice getRow(UINT32 pos)const;
+         virtual void fini();
+         virtual void clearRows();
 
-   void insertContext::fini()
-   {
-      _options = insertOptions();
-      _striping = INVALID_STRIPING_ID;
-      _originalRecord.reset();
-      _candidate.reset();
-      _keepRidLocked = FALSE;
-      _minFreePercent = 0.0;
-   }
+      private:
+         /// <offset, size>
+         typedef std::pair<UINT32, UINT32> _TAG;
+         ossPoolVector<_TAG> _tags;
+         bson::StackBufBuilder _builder;
 
-   void insertContext::insertDone()
-   {
-      dmlContext::clearDmlHistroy();
-      fini();
-   }
+   };//class stackAllocatorRowBatch
+} // namespace vessel
 
-}//namespace vessel
-}//namespace engine
+} // namespace engine
+
+
+#endif//VESSEL_STACK_ALLOCATOR_ROW_BATCH_H_

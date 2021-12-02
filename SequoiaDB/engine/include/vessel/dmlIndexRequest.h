@@ -52,7 +52,7 @@ namespace vessel
          dmlIndexRequest(){}
          ~dmlIndexRequest(){}
          dmlIndexRequest(const dmlIndexRequest &) = delete;
-         dmlIndexRequest &operator=(const dmlIndexRequest &)const;
+         dmlIndexRequest &operator=(const dmlIndexRequest &) = delete;
 
       private:
          static constexpr UINT32 FLAG_EXECUTED = 0x01;
@@ -62,15 +62,24 @@ namespace vessel
          {
             return NULL != _index;
          }
+         OSS_INLINE BOOLEAN isEmpty()const
+         {
+            return _toInsert.empty() && _toRemove.empty();
+         }
 
-         void init(indexContext *index,
-                   const bson::BSONObjSet &keys);
+         INT32 init(indexContext *index,
+                    const bson::BSONObjSet *toInsert,
+                    const bson::BSONObjSet *toRemove);
 
          void fini();
 
-         const ossPoolList<bson::BSONObj> &getKeys()const
+         const ossPoolList<bson::BSONObj> &getKeysToInsert()const
          {
-            return _keys;
+            return _toInsert;
+         }
+         const ossPoolList<bson::BSONObj> &getKeysToRemove()const
+         {
+            return _toRemove;
          }
 
          indexContext *getContext()const
@@ -92,11 +101,13 @@ namespace vessel
          {
             SDB_ASSERT(isValid(), "must be valid");
             return _index->getObj().getParams().isUnique &&
-                   _index->isNormal();
+                   _index->isNormal() &&
+                   !_toInsert.empty();
          }
       private:
          indexContext *_index = NULL;
-         ossPoolList<bson::BSONObj> _keys;
+         ossPoolList<bson::BSONObj> _toInsert;
+         ossPoolList<bson::BSONObj> _toRemove;
          UINT32 _flags = 0;
    };//class dmlIndexRequest
 
@@ -127,7 +138,8 @@ namespace vessel
 
          ///The appending better to be orderd as index slot.
          INT32 append(indexContext *index,
-                      const bson::BSONObjSet &keys);
+                      const bson::BSONObjSet *keysToInsert,
+                      const bson::BSONObjSet *keysToRemove);
 
          BOOLEAN withConstraint()const
          {

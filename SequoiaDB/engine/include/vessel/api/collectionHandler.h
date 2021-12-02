@@ -49,7 +49,7 @@
 #include "rtnPredicate.hpp"
 #include "sdbInterface.hpp"
 #include "vessel/recordID.h"
-#include "vessel/api/IRecordUpdater.h"
+#include "interface/IRecordUpdater.h"
 
 namespace engine
 {

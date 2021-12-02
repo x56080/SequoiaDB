@@ -71,13 +71,6 @@ namespace vessel
             return _uniqueKeyHash.empty() ? NULL : _uniqueKeyHash.data();
          }
 
-         /// adding can be executed multiple times before locking.
-         void addKeysToBeConstraintCheck(const dmlIndexRequestArray &arr);
-
-         INT32 lockUniqueIndexKeys();
-
-         void unlockUniqueKeys();
-
          OSS_INLINE const recordID &getRid()const
          {
             return _rid;
@@ -98,18 +91,29 @@ namespace vessel
          {
             return scanEntry(_seq, _rid.getSlotID());
          }
-
-   
-         void clearDmlHistroy();
          
-         void setDmlLSN(const DPS_LSN_OFFSET &lsn)
+         OSS_INLINE void setDmlLSN(const DPS_LSN_OFFSET &lsn)
          {
             _dmlLSN = lsn;
          }
-         const DPS_LSN_OFFSET &getDmlLSN()const
+         OSS_INLINE const DPS_LSN_OFFSET &getDmlLSN()const
          {
             return _dmlLSN;
          }
+
+         OSS_INLINE void setRecordStripingId(STRIPING_ID striping)
+         {
+            _stripingId = striping;
+         }
+         OSS_INLINE STRIPING_ID getRecordStripingId()const
+         {
+            return _stripingId;
+         }
+
+      public:
+         INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
+         void unlockUniqueKeys();
+         void clearDmlHistroy();
 
       private:
 
@@ -125,6 +129,7 @@ namespace vessel
          UINT32 _seq = INVALID_CL_PAGE_SEQ;
          DPS_LSN_OFFSET _dmlLSN = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
+         STRIPING_ID _stripingId = INVALID_STRIPING_ID;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

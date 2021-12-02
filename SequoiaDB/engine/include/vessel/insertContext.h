@@ -87,13 +87,13 @@ namespace vessel
             return _striping;
          }
 
-         OSS_INLINE UINT32 getMinFreeSize()const
+         OSS_INLINE FLOAT32 getMinFreePercent()const
          {
-            return _minFreeSize;
+            return _minFreePercent;
          }
-         OSS_INLINE void setMinFreeSize(UINT32 size)
+         OSS_INLINE void setMinFreePercent(FLOAT32 minFreePercent)
          {
-            _minFreeSize = size;
+            _minFreePercent = minFreePercent;
          }
          OSS_INLINE void setKeepRidLocked(BOOLEAN v)
          {
@@ -104,6 +104,8 @@ namespace vessel
          {
             return _keepRidLocked;
          }
+
+         void insertDone();
       
       private:
          void fini();
@@ -113,8 +115,8 @@ namespace vessel
          STRIPING_ID _striping = INVALID_STRIPING_ID;
          slice _originalRecord;
          fsmCandidate _candidate;
-         UINT32 _minFreeSize = 0;
          BOOLEAN _keepRidLocked = FALSE;
+         FLOAT32 _minFreePercent = 0.0;
    };//class insertContext
 }//namespace vessel
 }//namespace engine

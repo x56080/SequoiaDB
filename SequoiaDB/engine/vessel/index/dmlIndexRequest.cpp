@@ -44,25 +44,75 @@ namespace vessel
    void dmlIndexRequest::fini()
    {
       _index = NULL;
-      _keys.clear();
+      _toInsert.clear();
+      _toRemove.clear();
       _flags = 0;
    }
 
-   void dmlIndexRequest::init(indexContext *index,
-                              const bson::BSONObjSet &keys)
+   INT32 dmlIndexRequest::init(indexContext *index,
+                               const bson::BSONObjSet *toInsert,
+                               const bson::BSONObjSet *toRemove)
    {
       SDB_ASSERT(NULL != index && index->isValid(), "must be valid");
-      SDB_ASSERT(!keys.empty(), "can not be empty");
-      _index = index;
-      _keys.clear();
+      INT32 rc = SDB_OK;
+      bson::BSONObjSet merged;
+      fini();
 
-      for (bson::BSONObjSet::const_iterator itr = keys.begin();
-           itr != keys.end(); ++itr)
+      if (OSS_UNLIKELY(NULL == index || !index->isValid()))
       {
-         _keys.push_back(itr->getOwned());
+         rc = SDB_INVALIDARG;
+         goto error;
       }
 
-      return;
+      _index = index;
+
+      if (NULL != toInsert)
+      {
+         for (bson::BSONObjSet::const_iterator itr = toInsert->begin();
+            itr != toInsert->end(); ++itr)
+         {
+            if ((INT32)MAX_INDEX_KEY_SIZE < itr->objsize())
+            {
+               PD_LOG(PDDEBUG, "index key size[%d] over limit", itr->objsize());
+               rc = SDB_IXM_KEY_TOO_LARGE;
+               goto error;
+            }
+
+            if (NULL != toRemove && 0 < toRemove->count(*itr))
+            {
+               merged.insert(*itr);
+               continue;
+            }
+
+            _toInsert.push_back(itr->getOwned());
+         }
+      }
+
+      if (NULL != toRemove)
+      {
+         for (bson::BSONObjSet::const_iterator itr = toRemove->begin();
+             itr != toRemove->end(); ++itr)
+         {
+            if ((INT32)MAX_INDEX_KEY_SIZE < itr->objsize())
+            {
+               PD_LOG(PDDEBUG, "index key size[%d] over limit", itr->objsize());
+               rc = SDB_IXM_KEY_TOO_LARGE;
+               goto error;
+            }
+
+            if (0 < merged.count(*itr))
+            {
+               continue;
+            }
+
+            _toRemove.push_back(itr->getOwned());
+         }
+      }
+   done:
+      return rc;
+   error:
+      fini();
+      goto done;
    }
 
 /////////////////////////////////////////dmlIndexRequestArray
@@ -88,14 +138,19 @@ namespace vessel
    }
 
    INT32 dmlIndexRequestArray::append(indexContext *index,
-                                      const bson::BSONObjSet &keys)
+                                      const bson::BSONObjSet *keysToInsert,
+                                      const bson::BSONObjSet *keysToRemove)
    {
       INT32 rc = SDB_OK;
       dmlIndexRequest *req = NULL;
 
       if (OSS_UNLIKELY(NULL == index ||
-                       !index->isValid() ||
-                       keys.empty()))
+                       !index->isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == keysToInsert && NULL == keysToRemove))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -114,7 +169,21 @@ namespace vessel
          goto error;
       }
 
-      req->init(index, keys);
+      rc = req->init(index, keysToInsert, keysToRemove);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init index request:%d", rc);
+         goto error;
+      }
+
+      /// we can also use std::move to append req into array,
+      /// which to avoid malloc memory.
+      if (req->isEmpty())
+      {
+         SDB_OSS_DEL req;
+         goto done;
+      }
+
       _requests.push_back(req);
 
       if (req->withConstraint())

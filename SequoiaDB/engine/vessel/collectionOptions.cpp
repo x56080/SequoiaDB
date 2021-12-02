@@ -46,7 +46,7 @@ namespace vessel
       {
          goto done;
       }
-      else if (!ossIsAligned64(freeSizeReserved))
+      else if (50 < minFreePercent)
       {
          goto done;
       }
@@ -73,7 +73,7 @@ namespace vessel
    {
       bson::BSONObjBuilder builder;
       builder.append(CRT_CL_OPTIONS_FIELD_TYPE, type)
-             .append(CRT_CL_OPTIONS_FIELD_FREE_SIZE_RESERVED, freeSizeReserved)
+             .append(CRT_CL_OPTIONS_FIELD_MIN_FREE_PERCENT, minFreePercent)
              .append(CRT_CL_OPTIONS_FIELD_COMPRESSION, compressionType)
              .append(CRT_CL_OPTIONS_FIELD_MIN_STRIPING, minStriping)
              .append(CRT_CL_OPTIONS_FIELD_MAX_STRIPING, maxStriping);

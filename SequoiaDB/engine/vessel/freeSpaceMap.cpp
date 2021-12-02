@@ -45,6 +45,9 @@ namespace vessel
    static const UINT32 NONSHARED_CL_BUCKET_COUNT = 1;
    static const UINT32 NONSHARED_CL_BUCKET_CAPACITY = 8;
 
+   constexpr UINT32 CANDIDATE_BUCKET_COUNT = 16;
+   constexpr UINT32 CANDIDATE_BUCKET_CAPACITY = 2;
+
    freeSpaceMap::freeSpaceMap()
    {
       
@@ -137,18 +140,9 @@ namespace vessel
       _minStriping = min;
       _maxStriping = max;
 
-      if (isSharded())
-      {
-         latchCount = SHARED_CL_BUCKET_COUNT;
-         bucketCount = SHARED_CL_BUCKET_COUNT;
-         bucketCapacity = SHARED_CL_BUCKET_CAPACITY;
-      }
-      else
-      {
-         latchCount = NONSHARED_CL_BUCKET_COUNT;
-         bucketCount = NONSHARED_CL_BUCKET_COUNT;
-         bucketCapacity = NONSHARED_CL_BUCKET_CAPACITY;
-      }
+      latchCount = CANDIDATE_BUCKET_COUNT / 2;
+      bucketCount = CANDIDATE_BUCKET_COUNT;
+      bucketCapacity = CANDIDATE_BUCKET_CAPACITY;
 
       rc = initBuckets(bucketCount,
                        bucketCapacity,
@@ -206,18 +200,9 @@ namespace vessel
       _minStriping = min;
       _maxStriping = max;
 
-      if (isSharded())
-      {
-         latchCount = SHARED_CL_BUCKET_COUNT;
-         bucketCount = SHARED_CL_BUCKET_COUNT;
-         bucketCapacity = SHARED_CL_BUCKET_CAPACITY;
-      }
-      else
-      {
-         latchCount = NONSHARED_CL_BUCKET_COUNT;
-         bucketCount = NONSHARED_CL_BUCKET_COUNT;
-         bucketCapacity = NONSHARED_CL_BUCKET_CAPACITY;
-      }
+      latchCount = CANDIDATE_BUCKET_COUNT / 2;
+      bucketCount = CANDIDATE_BUCKET_COUNT;
+      bucketCapacity = CANDIDATE_BUCKET_CAPACITY;
 
       rc = initBuckets(bucketCount,
                        bucketCapacity,
@@ -269,11 +254,11 @@ namespace vessel
 
       if (isSharded())
       {
-         bucketNo = getBucketNo(striping);
+         bucketNo = getBucketNoByStriping(striping);
       }
       else
       {
-         bucketNo = (context->getExecutor()->getID() & (_bucketCount - 1));
+         bucketNo = getBucketNoByEid(context->getExecutor()->getID());
       }
 
       rc = _find(bucketNo, lvl, candidate);
@@ -579,7 +564,7 @@ namespace vessel
       goto done;
    }
 
-   UINT32 freeSpaceMap::getBucketNo(STRIPING_ID striping)const
+   UINT32 freeSpaceMap::getBucketNoByStriping(STRIPING_ID striping)const
    {
       SDB_ASSERT(0 < _bucketCount, "can not be invalid");
       SDB_ASSERT(INVALID_STRIPING_ID != striping, "can not be invalid");
@@ -610,6 +595,12 @@ namespace vessel
          SDB_ASSERT(bucketNo < _bucketCount, "impossible");
       }
       return bucketNo;
+   }
+
+   UINT32 freeSpaceMap::getBucketNoByEid(EDUID eid)const
+   {
+      SDB_ASSERT(0 < _bucketCount, "can not be invalid");
+      return eid % _bucketCount;
    }
 
    INT32 freeSpaceMap::initBuckets(UINT32 bucketCount,

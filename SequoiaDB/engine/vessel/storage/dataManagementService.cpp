@@ -235,10 +235,10 @@ namespace vessel
 
    INT32 dataManagementService::getLogicalPageSpace(SPACE_ID sid,
                                                     SPACE_TYPE type,
-                                                    lpsObject &lps)const
+                                                    LPS_OBJ_PTR &out)const
    {
       INT32 rc = SDB_OK;
-      lps.reset();
+      out.reset();
       logicalPageSpace *ptr = NULL;
       rc = getLogicalPageSpace(sid, type, &ptr);
       if (SDB_OK != rc)
@@ -246,7 +246,7 @@ namespace vessel
          goto error;
       }
 
-      lps = lpsObject(ptr);
+      out = LPS_OBJ_PTR(ptr);
    done:
       return rc;
    error:
