@@ -53,7 +53,7 @@ public class Index24640 extends SdbTestBase {
 
         for ( int i = 0; i < indexKeys.length; i++ ) {
             dbcl.createIndex( indexName + i,
-                    new BasicBSONObject( indexKeys[ i ], 1 ), null, null );
+                    new BasicBSONObject( indexKeys[ i ], 1 ), null );
             indexNames.add( indexName + i );
         }
 
