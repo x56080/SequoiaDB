@@ -63,7 +63,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       coordCtrlParam ctrlParam ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       ROUTE_RC_MAP failedNodes ;
       SET_ROUTEID sucNodes ;
       UINT32 mask = _getMask() ;

@@ -141,8 +141,7 @@ namespace engine
       INT32 rc             = SDB_OK ;
       omSdbConnector *conn = NULL ;
       MsgHeader *result    = NULL ;
-      rtnContext *pContext = NULL ;
-      _omContextTransfer *pTmpContext = NULL ;
+      _omContextTransfer::sharePtr pTmpContext ;
 
       contextID = -1 ;
       list< omNodeInfo >::iterator iter = _nodeList.begin() ;
@@ -177,11 +176,10 @@ namespace engine
 
       // create context
       rc = pRtncb->contextNew( RTN_CONTEXT_OM_TRANSFER,
-                               &pContext, contextID, eduCB() ) ;
+                               pTmpContext, contextID, eduCB() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                    rc ) ;
 
-      pTmpContext = ( _omContextTransfer *)pContext ;
       //  conn & result will delete in destructor _omContextTransfer
       rc = pTmpContext->open( conn, result ) ;
       if ( SDB_OK != rc )

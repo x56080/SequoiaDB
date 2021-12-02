@@ -164,7 +164,7 @@ namespace engine
       }
       if ( !options.isQueryEmpty() )
       {
-         rtnContextBase *pContextBase = NULL ;
+         rtnContextPtr pContextBase ;
 
          if ( _isSimpleTextSearch( options.getQuery() ) )
          {
@@ -1115,10 +1115,10 @@ namespace engine
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
 
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                contextID, cb ) ;
       if ( rc )
       {
@@ -1165,7 +1165,7 @@ namespace engine
 
       if ( !options.isOrderByEmpty() )
       {
-         rc = rtnSort( (rtnContext**)&context, options.getOrderBy(), cb,
+         rc = rtnSort( context, options.getOrderBy(), cb,
                        options.getSkip(), options.getLimit(), contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }

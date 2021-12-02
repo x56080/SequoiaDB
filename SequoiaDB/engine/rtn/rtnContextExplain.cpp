@@ -72,7 +72,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_RTNEXPBASE__OPENEXP ) ;
 
       BSONObj explainOptions, realHint ;
-      rtnContext * queryContext = NULL ;
+      rtnContextPtr queryContext ;
       rtnQueryOptions subOptions = options ;
 
       _queryOptions = options ;
@@ -113,7 +113,7 @@ namespace engine
       rc = _openSubContext( subOptions, cb, &queryContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open query context, rc: %d", rc ) ;
 
-      SDB_ASSERT( NULL != queryContext, "query context is invalid" ) ;
+      SDB_ASSERT( queryContext, "query context is invalid" ) ;
 
       // Disable setting query activity
       queryContext->setEnableQueryActivity( FALSE ) ;
@@ -144,8 +144,7 @@ namespace engine
 
       SDB_ASSERT( NULL != explainContext, "explain context is invalid" ) ;
 
-      rtnContext * queryContext = _getSubContext() ;
-      pmdEDUCB * queryCB = _getSubContextCB() ;
+      rtnContext *queryContext = _getSubContext() ;
 
       if ( _explained )
       {
@@ -153,12 +152,12 @@ namespace engine
          goto done ;
       }
 
-      PD_CHECK( NULL != queryContext && NULL != queryCB,
+      PD_CHECK( NULL != queryContext,
                 SDB_SYS, error, PDERROR, "Failed to get query context" ) ;
 
       if ( !_explainStarted )
       {
-         rc = getExplainPath()->setExplainStart( queryCB ) ;
+         rc = getExplainPath()->setExplainStart( cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set explain start, "
                       "rc: %d", rc ) ;
          _explainStarted = TRUE ;
@@ -171,7 +170,7 @@ namespace engine
          for ( ; ; )
          {
             rtnContextBuf contextBuf ;
-            rc = queryContext->getMore( -1, contextBuf, queryCB ) ;
+            rc = queryContext->getMore( -1, contextBuf, cb ) ;
             if ( SDB_DMS_EOC == rc )
             {
                rc = SDB_OK ;
@@ -205,17 +204,17 @@ namespace engine
       if ( !_explainPrepared )
       {
          // Set the end of explain
-         rc = getExplainPath()->setExplainEnd( queryContext, queryCB ) ;
+         rc = getExplainPath()->setExplainEnd( queryContext, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set explain end, rc: %d", rc ) ;
 
          // Finish the query context
-         rc = _finishSubContext( queryContext, queryCB ) ;
+         rc = _finishSubContext( queryContext, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to finish query context [%lld], "
                    "rc: %d", queryContext->contextID(), rc ) ;
 
          // Prepare explain paths, must called after finish query context
          // which will collect sub-explain results
-         rc = _prepareExplainPath( queryContext, queryCB ) ;
+         rc = _prepareExplainPath( queryContext, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare explain path, rc: %d", rc ) ;
 
          _explainPrepared = TRUE ;
@@ -793,7 +792,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCONTEXTEXPLAIN__OPENSUBCTX, "_rtnContextExplain::_openSubContext" )
    INT32 _rtnContextExplain::_openSubContext ( rtnQueryOptions & options,
                                                pmdEDUCB * cb,
-                                               rtnContext ** ppContext )
+                                               rtnContextPtr *ppContext )
    {
       INT32 rc = SDB_OK ;
 
@@ -805,22 +804,23 @@ namespace engine
       SDB_DMSCB * dmsCB = sdbGetDMSCB() ;
 
       INT64 queryContextID = -1 ;
-      rtnContext * queryContext = NULL ;
+      rtnContextPtr queryContext ;
 
       rc = rtnQuery( options, cb, dmsCB, rtnCB, queryContextID, &queryContext,
                      FALSE, &_expOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query data, rc: %d", rc ) ;
 
-      PD_CHECK( NULL != queryContext, SDB_SYS, error, PDERROR,
+      PD_CHECK( queryContext, SDB_SYS, error, PDERROR,
                 "Failed to get the context of query" ) ;
 
       _fromLocal = cb->isFromLocal() ;
 
-   done :
       if ( NULL != ppContext )
       {
-         ( *ppContext ) = queryContext ;
+         *ppContext = queryContext ;
       }
+
+   done :
       PD_TRACE_EXITRC( SDB_RTNCONTEXTEXPLAIN__OPENSUBCTX, rc ) ;
       return rc ;
 
@@ -829,7 +829,6 @@ namespace engine
       {
          rtnCB->contextDelete( queryContextID, cb ) ;
       }
-      queryContext = NULL ;
       goto done ;
    }
 

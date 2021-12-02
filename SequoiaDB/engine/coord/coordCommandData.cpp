@@ -105,7 +105,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATA2PHASE_DOONCATA, "_coordDataCMD2Phase::_doOnCataGroup" )
    INT32 _coordDataCMD2Phase::_doOnCataGroup( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
-                                              rtnContextCoord **ppContext,
+                                              rtnContextCoord::sharePtr *ppContext,
                                               coordCMDArguments *pArgs,
                                               CoordGroupList *pGroupLst,
                                               vector<BSONObj> *pReplyObjs )
@@ -113,7 +113,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DATA2PHASE_DOONCATA ) ;
 
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       coordCataSel cataSel ;
 
       if ( _flagUpdateBeforeCata() && _flagDoOnCollection() )
@@ -158,7 +158,7 @@ namespace engine
    done :
       if ( pContext )
       {
-         (*ppContext) = pContext ;
+         *ppContext = pContext ;
       }
       PD_TRACE_EXITRC ( COORD_DATA2PHASE_DOONCATA, rc ) ;
       return rc ;
@@ -167,7 +167,7 @@ namespace engine
       {
          SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
          pRtnCB->contextDelete( pContext->contextID(), cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }
@@ -175,7 +175,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATA2PHASE_DOONDATA, "_coordDataCMD2Phase::_doOnDataGroup" )
    INT32 _coordDataCMD2Phase::_doOnDataGroup ( MsgHeader *pMsg,
                                                pmdEDUCB *cb,
-                                               rtnContextCoord **ppContext,
+                                               rtnContextCoord::sharePtr *ppContext,
                                                coordCMDArguments *pArgs,
                                                const CoordGroupList &groupLst,
                                                const vector<BSONObj> &cataObjs,
@@ -246,7 +246,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATA3PHASE_DOONCATA2, "_coordDataCMD3Phase::_doOnCataGroupP2" )
    INT32 _coordDataCMD3Phase::_doOnCataGroupP2 ( MsgHeader *pMsg,
                                                  pmdEDUCB *cb,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &pGroupLst )
    {
@@ -266,7 +266,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATA3PHASE_DOONDATA2, "_coordDataCMD3Phase::_doOnDataGroupP2" )
    INT32 _coordDataCMD3Phase::_doOnDataGroupP2 ( MsgHeader *pMsg,
                                                  pmdEDUCB *cb,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst,
                                                  const vector<BSONObj> &cataObjs )
@@ -493,7 +493,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER_DOONCATA, "_coordDataCMDAlter::_doOnCataGroup" )
    INT32 _coordDataCMDAlter::_doOnCataGroup ( MsgHeader * pMsg,
                                               pmdEDUCB * cb,
-                                              rtnContextCoord ** ppContext,
+                                              rtnContextCoord::sharePtr * ppContext,
                                               coordCMDArguments * pArgs,
                                               CoordGroupList * pGroupLst,
                                               vector<BSONObj> * pReplyObjs )
@@ -529,7 +529,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER_DOONCATA2, "_coordDataCMDAlter::_doOnCataGroupP2" )
    INT32 _coordDataCMDAlter::_doOnCataGroupP2 ( MsgHeader * pMsg,
                                                 pmdEDUCB * cb,
-                                                rtnContextCoord ** ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments * pArgs,
                                                 const CoordGroupList & groupLst )
    {
@@ -575,7 +575,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER_DOONDATA2, "_coordDataCMDAlter::_doOnDataGroupP2" )
    INT32 _coordDataCMDAlter::_doOnDataGroupP2 ( MsgHeader * pMsg,
                                                 pmdEDUCB * cb,
-                                                rtnContextCoord ** ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 coordCMDArguments * pArgs,
                                                 const CoordGroupList & groupLst,
                                                 const vector<BSONObj> & cataObjs )
@@ -635,7 +635,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATAALTER__DOCOMMIT, "_coordDataCMDAlter::_doCommit" )
    INT32 _coordDataCMDAlter::_doCommit ( MsgHeader * pMsg,
                                          pmdEDUCB * cb,
-                                         rtnContextCoord ** ppContext,
+                                         rtnContextCoord::sharePtr *ppContext,
                                          coordCMDArguments * pArgs )
    {
       INT32 rc = SDB_OK ;
@@ -1146,7 +1146,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SET_RC ignoreRC ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       rtnContextBuf buffObj ;
       pmdKRCB *pKRCB                   = pmdGetKRCB() ;
       contextID                        = -1 ;
@@ -1183,7 +1183,7 @@ namespace engine
          }
 
          pKRCB->getRTNCB()->contextDelete( pContext->contextID(), cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
          ossSleep( OSS_ONE_SEC ) ;
       }
 
@@ -1191,6 +1191,7 @@ namespace engine
       if ( pContext )
       {
          pKRCB->getRTNCB()->contextDelete( pContext->contextID(),  cb ) ;
+         pContext.release() ;
       }
       return rc ;
    error:
@@ -2174,7 +2175,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_CREATECL_ROLLBACKONDATA ) ;
 
       SET_RC ignoreRC ;
-      rtnContextCoord *pCtxForData = NULL ;
+      rtnContextCoord::sharePtr pCtxForData ;
 
       ignoreRC.insert( SDB_DMS_NOTEXIST ) ;
       ignoreRC.insert( SDB_DMS_CS_NOTEXIST ) ;
@@ -2779,7 +2780,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERCL_DOROLLBACK, "_coordCMDAlterCollection::_doRollback" )
    INT32 _coordCMDAlterCollection::_doRollback ( MsgHeader * pMsg,
                                                  pmdEDUCB * cb,
-                                                 rtnContextCoord ** ppCoordCtxForCata,
+                                                 rtnContextCoord::sharePtr * ppCoordCtxForCata,
                                                  coordCMDArguments * pArguments,
                                                  CoordGroupList & sucGroupLst,
                                                  INT32 failedRC )
@@ -3647,7 +3648,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_SPLIT_GETCOUNT ) ;
 
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       BSONObj collectionObj ;
       BSONObj dummy ;
       rtnContextBuf buffObj ;
@@ -4137,7 +4138,6 @@ namespace engine
       INT32 msgSize = 0 ;
       coordCommandFactory *pFactory = NULL ;
       coordOperator *pOperator = NULL ;
-      rtnContextDump *pContext = NULL ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
       // if sync, need to wait task finished
@@ -4195,8 +4195,9 @@ namespace engine
       }
       else // return taskid to client
       {
+         rtnContextDump::sharePtr pContext ;
          rc = rtnCB->contextNew( RTN_CONTEXT_DUMP,
-                                 (rtnContext**)&pContext,
+                                 pContext,
                                  contextID, cb ) ;
          if ( rc )
          {
@@ -4337,7 +4338,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( COORD_SPLIT_GETBOUNDRECORDONDATA ) ;
       INT32 rc = SDB_OK ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       BSONObj obj ;
 
       CHAR *pMsg = NULL ;
@@ -4438,7 +4439,7 @@ namespace engine
      }
 
    done:
-      if ( NULL != pContext )
+      if ( pContext )
       {
          SINT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;

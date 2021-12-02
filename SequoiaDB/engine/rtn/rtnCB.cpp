@@ -59,12 +59,6 @@ namespace engine
 
    _SDB_RTNCB::~_SDB_RTNCB()
    {
-      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
-      {
-         SDB_OSS_DEL ((*it).second) ;
-      }
-      FOR_EACH_CMAP_ELEMENT_END ;
-
       _contextMap.clear() ;
    }
 
@@ -205,32 +199,77 @@ namespace engine
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
    }
 
-   rtnContext* _SDB_RTNCB::contextFind ( SINT64 contextID, _pmdEDUCB *cb )
+   INT32 _SDB_RTNCB::contextFind( INT64 contextID,
+                                  rtnContextPtr &context,
+                                  _pmdEDUCB *cb )
    {
-      rtnContext *pContext = NULL ;
-      std::pair<rtnContext*, bool> ret = _contextMap.find( contextID ) ;
+      INT32 rc = SDB_OK ;
+
+      std::pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
       if ( ret.second )
       {
          if ( cb && !cb->contextFind( contextID ) )
          {
             PD_LOG ( PDWARNING, "Context %lld does not owned by "
                      "current session", contextID ) ;
+            rc = SDB_RTN_CONTEXT_NOTEXIST ;
          }
          else
          {
-            pContext = ret.first ;
+            context = ret.first ;
+#ifdef _DEBUG
+            if ( context && cb && context->getMonQueryCB() )
+            {
+               SDB_ASSERT( cb->getMonQueryCB() == context->getMonQueryCB(),
+                           "Mismatch monQuery" ) ;
+            }
+#endif
+         }
+      }
+      else
+      {
+         rc = SDB_RTN_CONTEXT_NOTEXIST ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _SDB_RTNCB::contextFind( INT64 contextID,
+                                  RTN_CONTEXT_TYPE type,
+                                  rtnContextPtr &context,
+                                  _pmdEDUCB *cb,
+                                  BOOLEAN closeOnUnexpectType )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnContextPtr tempContext ;
+      rc = contextFind( contextID, tempContext, cb ) ;
+      if ( SDB_OK == rc )
+      {
+         if ( type == tempContext->getType() )
+         {
+            context = tempContext ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "Failed to find context [%llu] of type %d[%s], "
+                    "current is %d[%s]", contextID, type,
+                    getContextTypeDesp( type ), tempContext->getType(),
+                    getContextTypeDesp( tempContext->getType() ) ) ;
+            if ( closeOnUnexpectType )
+            {
+               contextDelete( contextID, cb ) ;
+            }
+            rc = SDB_SYS ;
          }
       }
 
-      // This assert is to ensure that the same edu resumes a previous context
-#ifdef _DEBUG
-      if ( pContext && pContext->getMonQueryCB() && cb)
-      {
-         SDB_ASSERT( cb->getMonQueryCB() == pContext->getMonQueryCB(), "Mismatch monQuery" ) ;
-      }
-#endif
+      return rc ;
+   }
 
-      return pContext ;
+   BOOLEAN _SDB_RTNCB::contextExist( INT64 contextID )
+   {
+      return _contextMap.find( contextID ).second ? TRUE : FALSE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_RTNCB_CONTEXTDEL, "_SDB_RTNCB::contextDelete" )
@@ -238,7 +277,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
 
-      rtnContext *pContext = NULL ;
+      rtnContextPtr pContext ;
       pmdEDUCB *cb = ( pmdEDUCB* )pExe ;
 
       if ( cb )
@@ -247,17 +286,20 @@ namespace engine
       }
 
       {
-         pair<rtnContext*, bool> ret = _contextMap.find( contextID ) ;
+         pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
          if ( ret.second )
          {
-            _contextMap.erase( contextID ) ;
             pContext = ret.first ;
+            _contextMap.erase( contextID ) ;
          }
       }
 
       if ( pContext )
       {
-         INT32 reference = pContext->getReference() ;
+         INT32 bufRef = pContext->getReference() ;
+         INT64 ctxRef = pContext.refCount() ;
+
+         // wait for pre-fetching
          pContext->waitForPrefetch() ;
 
          /// wait for sync
@@ -267,25 +309,25 @@ namespace engine
             pContext->getDPSCB()->completeOpr( cb, pContext->getW() ) ;
          }
 
-         sdbGetRTNContextBuilder()->release( pContext ) ;
-         PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %d)",
-                 contextID, reference ) ;
+         pContext.release() ;
+
+         PD_LOG( PDDEBUG, "delete context(contextID=%lld, reference: %u, "
+                 "buffer reference: %d)", contextID, ctxRef, bufRef ) ;
       }
 
       PD_TRACE_EXIT ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
       return ;
    }
 
-   SINT32 _SDB_RTNCB::contextNew ( RTN_CONTEXT_TYPE type,
-                                   rtnContext **context,
-                                   SINT64 &contextID,
-                                   _pmdEDUCB * pEDUCB )
+   INT32 _SDB_RTNCB::contextNew( RTN_CONTEXT_TYPE type,
+                                 rtnContextPtr &context,
+                                 INT64 &contextID,
+                                 _pmdEDUCB * pEDUCB )
    {
-      SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
       monSvcTaskInfo *pTaskInfo = NULL ;
 
       if ( pEDUCB->isFromLocal() )
-      {    
+      {
          // WARNING: the check may fail when context flooding ( too many
          //          context are creating in the same time )
          if ( _maxContextNum > 0 &&
@@ -318,26 +360,24 @@ namespace engine
          return SDB_SYS ;
       }
 
-      (*context) = sdbGetRTNContextBuilder()->create(
+      context = sdbGetRTNContextBuilder()->create(
                      type, _contextId, pEDUCB->getID() ) ;
 
-      if ( !(*context) )
+      if ( !context )
       {
          return SDB_OOM ;
       }
 
-      if ( !( _contextMap.insert( _contextId, *context ).second ) )
+      if ( !( _contextMap.insert( _contextId, context ).second ) )
       {
-         sdbGetRTNContextBuilder()->release( *context ) ;
-         *context = NULL ;
+         context.release() ;
          return SDB_OOM ;
       }
 
       if ( !pEDUCB->contextInsert( _contextId ) )
       {
          _contextMap.erase( _contextId ) ;
-         sdbGetRTNContextBuilder()->release( *context ) ;
-         *context = NULL ;
+         context.release() ;
          return SDB_OOM ;
       }
 
@@ -354,7 +394,7 @@ namespace engine
       if ( NULL != monQuery &&
            !monQuery->anchorToContext )
       {
-         (*context)->setMonQueryCB( monQuery ) ;
+         context->setMonQueryCB( monQuery ) ;
          monQuery->anchorToContext = TRUE ;
       }
 

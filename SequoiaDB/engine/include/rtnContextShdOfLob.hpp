@@ -49,7 +49,7 @@ namespace engine
 
    class _rtnContextShdOfLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextShdOfLob )
    public:
       _rtnContextShdOfLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextShdOfLob() ;

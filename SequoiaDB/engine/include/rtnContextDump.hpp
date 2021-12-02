@@ -51,7 +51,7 @@ namespace engine
    class _rtnContextDump : public _rtnContextBase,
                            public _mthMatchTreeHolder
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDump )
       public:
          _rtnContextDump ( INT64 contextID, UINT64 eduID ) ;
          virtual ~_rtnContextDump () ;

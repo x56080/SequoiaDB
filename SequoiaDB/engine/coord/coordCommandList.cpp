@@ -797,11 +797,11 @@ namespace engine
                                     SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContext *context = NULL ;
+      rtnContextDump::sharePtr context ;
       SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP,
-                              &context,
+                              context,
                               contextID,
                               cb ) ;
       if  ( SDB_OK != rc )
@@ -810,7 +810,7 @@ namespace engine
          goto error ;
       }
 
-      rc = (( rtnContextDump * )context)->open( BSONObj(), BSONObj() ) ;
+      rc = context->open( BSONObj(), BSONObj() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open context:%d", rc ) ;
@@ -912,7 +912,7 @@ namespace engine
       CHAR *pNewMsg = NULL ;
       INT32 bufferSize = 0 ;
 
-      rtnContextCoord *context = NULL ;
+      rtnContextCoord::sharePtr context ;
       coordQueryLobOperator queryOpr ;
       coordQueryConf queryConf ;
       coordSendOptions sendOpt ;

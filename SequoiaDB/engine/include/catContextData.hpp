@@ -156,7 +156,7 @@ namespace engine
     */
    class _catCtxDropCS : public _catCtxCLMultiTask
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxDropCS )
    public :
       _catCtxDropCS ( INT64 contextID, UINT64 eduID ) ;
 
@@ -205,7 +205,7 @@ namespace engine
     */
    class _catCtxRenameCS : public _catCtxDataBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxRenameCS )
 
       public :
          _catCtxRenameCS ( INT64 contextID, UINT64 eduID ) ;
@@ -241,7 +241,7 @@ namespace engine
     */
    class _catCtxAlterCS : public _catCtxDataMultiTaskBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxAlterCS )
 
       public :
          _catCtxAlterCS ( INT64 contextID, UINT64 eduID ) ;
@@ -277,7 +277,7 @@ namespace engine
     */
    class _catCtxCreateCL : public _catCtxDataBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxCreateCL )
    public :
       _catCtxCreateCL ( INT64 contextID, UINT64 eduID ) ;
 
@@ -348,7 +348,7 @@ namespace engine
     */
    class _catCtxDropCL : public _catCtxCLMultiTask
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxDropCL )
    public :
       _catCtxDropCL ( INT64 contextID, UINT64 eduID ) ;
 
@@ -393,7 +393,7 @@ namespace engine
     */
    class _catCtxRenameCL : public _catCtxDataBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxRenameCL )
 
       public :
          _catCtxRenameCL ( INT64 contextID, UINT64 eduID ) ;
@@ -429,7 +429,7 @@ namespace engine
     */
    class _catCtxAlterCL : public _catCtxIndexMultiTask
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxAlterCL )
    public :
       _catCtxAlterCL ( INT64 contextID, UINT64 eduID ) ;
 
@@ -492,7 +492,7 @@ namespace engine
     */
    class _catCtxLinkCL : public _catCtxDataBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxLinkCL )
    public:
       _catCtxLinkCL ( INT64 contextID, UINT64 eduID ) ;
 
@@ -532,7 +532,7 @@ namespace engine
     */
    class _catCtxUnlinkCL : public _catCtxDataBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxUnlinkCL )
    public:
       _catCtxUnlinkCL ( INT64 contextID, UINT64 eduID ) ;
 
@@ -572,7 +572,7 @@ namespace engine
     */
    class _catCtxCreateIdx : public _catCtxIndexMultiTask
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxCreateIdx )
    public :
       _catCtxCreateIdx ( INT64 contextID, UINT64 eduID ) ;
 
@@ -604,7 +604,7 @@ namespace engine
     */
    class _catCtxDropIdx : public _catCtxIndexMultiTask
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _catCtxDropIdx )
    public :
       _catCtxDropIdx ( INT64 contextID, UINT64 eduID ) ;
 

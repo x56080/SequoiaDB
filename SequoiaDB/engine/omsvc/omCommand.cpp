@@ -137,7 +137,7 @@ namespace engine
                                 INT64 numToSkip, INT64 numToReturn )
    {
       INT32 rc                 = SDB_OK ;
-      rtnContextDump *pContext = NULL ;
+      rtnContextDump::sharePtr pContext ;
       if ( -1 == _orgContextID )
       {
          rc = SDB_INVALIDARG ;
@@ -145,7 +145,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _rtncb->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&pContext,
+      rc = _rtncb->contextNew ( RTN_CONTEXT_DUMP, pContext,
                                 _contextID, _cb ) ;
       if ( SDB_OK != rc )
       {

@@ -60,7 +60,7 @@ namespace engine
          DELCSPHASE_0 = 0,
          DELCSPHASE_1
       };
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelCS )
    public:
       _rtnContextDelCS( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextDelCS();
@@ -101,7 +101,7 @@ namespace engine
    */
    class _rtnContextDelCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelCL )
    public:
       _rtnContextDelCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextDelCL();
@@ -147,7 +147,7 @@ namespace engine
    class _rtnContextDelMainCL : public _rtnContextBase
    {
       typedef ossPoolMap< std::string, SINT64>  SUBCL_CONTEXT_LIST ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextDelMainCL )
    public:
       _rtnContextDelMainCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextDelMainCL();
@@ -192,7 +192,7 @@ namespace engine
          RENAMECSPHASE_0 = 0,
          RENAMECSPHASE_1
       } ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameCS )
    public:
       _rtnContextRenameCS( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextRenameCS();
@@ -237,7 +237,7 @@ namespace engine
    */
    class _rtnContextRenameCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameCL )
    public:
       _rtnContextRenameCL( SINT64 contextID, UINT64 eduID ) ;
       ~_rtnContextRenameCL();
@@ -284,7 +284,7 @@ namespace engine
    */
    class _rtnContextRenameMainCL : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextRenameMainCL )
    public:
       _rtnContextRenameMainCL( SINT64 contextID, UINT64 eduID );
       ~_rtnContextRenameMainCL();

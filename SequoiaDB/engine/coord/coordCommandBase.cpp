@@ -248,7 +248,7 @@ namespace engine
                                               BOOLEAN onPrimary,
                                               SET_RC *pIgnoreRC,
                                               CoordGroupList *pSucGrpLst,
-                                              rtnContextCoord **ppContext,
+                                              rtnContextCoord::sharePtr *ppContext,
                                               rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -280,21 +280,25 @@ namespace engine
 
       if ( ppContext )
       {
-         if ( NULL == *ppContext )
+         if ( NULL == ppContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
+
             // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                                     (rtnContext **)ppContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *ppContext = newContext ;
          }
          else
          {
             contextID = (*ppContext)->contextID() ;
             // the context is create in out side, do nothing
          }
-         pTmpContext = *ppContext ;
+         pTmpContext = ppContext->get() ;
 
          // context for catalog: only primary, so query,sel,orderby...will
          // push to catalog
@@ -361,7 +365,7 @@ namespace engine
       {
          pRtncb->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-         *ppContext = NULL ;
+         ppContext->release() ;
       }
       if ( buf && nokRC.size() > 0 )
       {
@@ -381,7 +385,7 @@ namespace engine
                                                  BOOLEAN onPrimary,
                                                  SET_RC *pIgnoreRC,
                                                  CoordGroupList *pSucGrpLst,
-                                                 rtnContextCoord **ppContext,
+                                                 rtnContextCoord::sharePtr *ppContext,
                                                  rtnContextBuf *buf )
    {
       return _executeOnGroups( pMsg, cb, groupLst, MSG_ROUTE_SHARD_SERVCIE,
@@ -393,7 +397,7 @@ namespace engine
                                                 pmdEDUCB *cb,
                                                 BOOLEAN onPrimary,
                                                 SET_RC *pIgnoreRC,
-                                                rtnContextCoord **ppContext,
+                                                rtnContextCoord::sharePtr *ppContext,
                                                 rtnContextBuf *buf )
    {
       CoordGroupList grpList ;
@@ -416,7 +420,7 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_CMDBASE_EXEONCATA ) ;
 
       rtnContextBuf buffObj ;
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       rc = executeOnCataGroup( pMsg, cb, onPrimary, pIgnoreRC,
                                &pContext, buf ) ;
@@ -469,7 +473,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       PD_TRACE_EXITRC ( COORD_CMDBASE_EXEONCATA, rc ) ;
       return rc ;
@@ -483,7 +487,7 @@ namespace engine
                                              const CHAR *pCLName,
                                              BOOLEAN onPrimary,
                                              SET_RC *pIgnoreRC,
-                                             rtnContextCoord **ppContext,
+                                             rtnContextCoord::sharePtr *ppContext,
                                              rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -527,7 +531,7 @@ namespace engine
                                          const CoordGroupList *pSpecGrpLst,
                                          SET_RC *pIgnoreRC,
                                          CoordGroupList *pSucGrpLst,
-                                         rtnContextCoord **ppContext,
+                                         rtnContextCoord::sharePtr *ppContext,
                                          rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
@@ -585,7 +589,7 @@ namespace engine
    INT32 _coordCommandBase::queryOnCL( MsgHeader *pMsg,
                                        pmdEDUCB *cb,
                                        const CHAR *pCLName,
-                                       rtnContextCoord **ppContext,
+                                       rtnContextCoord::sharePtr *ppContext,
                                        BOOLEAN onPrimary,
                                        const CoordGroupList *pSpecGrpLst,
                                        rtnContextBuf *buf )
@@ -637,7 +641,7 @@ namespace engine
    {
       INT32 rc                         = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CMDBASE_QUERYONCATA ) ;
-      rtnContextCoord *pContext        = NULL ;
+      rtnContextCoord::sharePtr pContext ;
 
       // fill default-reply(list success)
       contextID = -1 ;
@@ -667,7 +671,7 @@ namespace engine
       {
          INT64 contextID = pContext->contextID() ;
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }
@@ -843,7 +847,7 @@ namespace engine
                                             coordCtrlParam &ctrlParam,
                                             UINT32 mask,
                                             ROUTE_RC_MAP &faileds,
-                                            rtnContextCoord **ppContext,
+                                            rtnContextCoord::sharePtr *ppContext,
                                             coordCmdPushdownCtrl *pCtrl,
                                             SET_RC *pIgnoreRC,
                                             SET_ROUTEID *pSucNodes )
@@ -1005,21 +1009,25 @@ namespace engine
       ///6. open context
       if ( ppContext )
       {
-         if ( NULL == *ppContext )
+         if ( NULL == ppContext->get() )
          {
+            rtnContextCoord::sharePtr newContext ;
+
             // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                                     (rtnContext **)ppContext,
+                                     newContext,
                                      contextID, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                          rc ) ;
+
+            *ppContext = newContext ;
          }
          else
          {
             contextID = (*ppContext)->contextID() ;
             // the context is create in out side, do nothing
          }
-         pTmpContext = *ppContext ;
+         pTmpContext = ppContext->get() ;
       }
       if ( pTmpContext && !pTmpContext->isOpened() )
       {
@@ -1140,7 +1148,7 @@ namespace engine
       if ( -1 != contextID )
       {
          pRtncb->contextDelete( contextID, cb ) ;
-         *ppContext = NULL ;
+         ppContext->release() ;
       }
       goto done ;
    }

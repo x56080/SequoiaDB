@@ -42,7 +42,7 @@ namespace engine
 {
    class _rtnContextListLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextListLob )
    public:
       _rtnContextListLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextListLob() ;

@@ -109,7 +109,7 @@ namespace engine
    */
    class _rtnContextCoord : public _rtnContextMain
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextCoord )
       public:
          _rtnContextCoord ( INT64 contextID, UINT64 eduID,
                             BOOLEAN preRead = TRUE ) ;
@@ -228,7 +228,7 @@ namespace engine
    class _rtnContextCoordExplain : public _rtnContextCoord,
                                    public _rtnExplainMainBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextCoordExplain )
 
       public :
          _rtnContextCoordExplain ( INT64 contextID, UINT64 eduID,
@@ -260,7 +260,7 @@ namespace engine
 
          INT32 _openSubContext ( rtnQueryOptions & options,
                                  pmdEDUCB * cb,
-                                 rtnContext ** ppContext ) ;
+                                 rtnContextPtr *ppContext ) ;
 
          INT32 _prepareExplainPath ( rtnContext * context,
                                      pmdEDUCB * cb ) ;

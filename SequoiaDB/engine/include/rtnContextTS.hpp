@@ -48,7 +48,7 @@ namespace engine
    // Context for text search data.
    class _rtnContextTS : public rtnContextMain
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
+      DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextTS )
 
       public:
          _rtnContextTS( INT64 contextID, UINT64 eduID ) ;

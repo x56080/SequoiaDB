@@ -1137,17 +1137,14 @@ namespace engine
       pmdEDUCB::SET_CONTEXT::iterator it = contextList.begin() ;
       while ( it != contextList.end() )
       {
-         SINT64 contextID = *it ;
+         INT64 contextID = *it ;
+         rtnContextPtr ctx ;
          ++it ;
 
          // get each context
-         rtnContext *ctx = rtnCB->contextFind ( contextID ) ;
-         // if context doesn't exist or has not dmsStorageUnit
-         if ( !ctx || NULL == ctx->getSU() )
-         {
-            continue ;
-         }
-         if ( ossStrcmp ( ctx->getSU()->CSName(), pCollectionSpace ) == 0 )
+         if ( SDB_OK == rtnCB->contextFind ( contextID, ctx ) &&
+              NULL != ctx->getSU() &&
+              0 == ossStrcmp ( ctx->getSU()->CSName(), pCollectionSpace ) )
          {
             // if the su is held by myself, i have to kill the context
             // from global
@@ -1433,7 +1430,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNKILLCONTEXTS );
       for ( INT32 i = 0; i< numContexts ; i++ )
       {
-         if ( rtnCB->contextFind ( pContextIDs[i] ) &&
+         if ( rtnCB->contextExist ( pContextIDs[i] ) &&
               !cb->contextFind ( pContextIDs[i] ) )
          {
             PD_LOG ( PDWARNING, "Context %lld is not owned by current session",
@@ -2307,14 +2304,13 @@ namespace engine
       {
          _pmdEDUCB::SET_CONTEXT setCtx ;
          _pmdEDUCB::SET_CONTEXT::iterator it ;
-         rtnContextBase *pContext = NULL ;
 
          cb->contextCopy( setCtx ) ;
 
          for ( it = setCtx.begin() ; it != setCtx.end() ; ++it )
          {
-            pContext = rtnCB->contextFind( *it, NULL ) ;
-            if ( pContext )
+            rtnContextPtr pContext ;
+            if ( SDB_OK == rtnCB->contextFind( *it, pContext, NULL ) )
             {
                pContext->setTransContext( FALSE ) ;
             }

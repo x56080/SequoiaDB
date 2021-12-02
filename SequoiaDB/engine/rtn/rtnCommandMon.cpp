@@ -161,7 +161,7 @@ namespace engine
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( pContextID, "context id can't be NULL" ) ;
 
-      rtnContextDump *context = NULL ;
+      rtnContextDump::sharePtr context ;
       rtnFetchBase *pFetch = NULL ;
       IRtnMonProcessorPtr monProcessor ;
 
@@ -187,7 +187,7 @@ namespace engine
       }
 
       // create cursors
-      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, context,
                                *pContextID, cb ) ;
       if ( rc )
       {
@@ -223,7 +223,7 @@ namespace engine
       /// when has orderby
       if ( !orderBy.isEmpty() )
       {
-         rc = rtnSort( (rtnContext**)&context, orderBy, cb,
+         rc = rtnSort( context, orderBy, cb,
                        _numToSkip, _numToReturn, *pContextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -235,7 +235,6 @@ namespace engine
       {
          rtnCB->contextDelete( *pContextID, cb ) ;
          *pContextID = -1 ;
-         context = NULL ;
       }
       if ( pFetch )
       {

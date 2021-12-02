@@ -4178,7 +4178,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SINT64 contextID = -1 ;
-      rtnContextBase *pContextBase = NULL ;
+      rtnContextPtr pContextBase ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj hint ;

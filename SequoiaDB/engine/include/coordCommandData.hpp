@@ -78,14 +78,14 @@ namespace engine
 
          virtual INT32 _doOnCataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         CoordGroupList *pGroupLst,
                                         vector<BSONObj> *pReplyObjs ) ;
 
          virtual INT32 _doOnDataGroup ( MsgHeader *pMsg,
                                         pmdEDUCB *cb,
-                                        rtnContextCoord **ppContext,
+                                        rtnContextCoord::sharePtr *ppContext,
                                         coordCMDArguments *pArgs,
                                         const CoordGroupList &groupLst,
                                         const vector<BSONObj> &cataObjs,
@@ -140,13 +140,13 @@ namespace engine
       protected :
          virtual INT32 _doOnCataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &pGroupLst ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader *pMsg,
                                           pmdEDUCB *cb,
-                                          rtnContextCoord **ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments *pArgs,
                                           const CoordGroupList &groupLst,
                                           const vector<BSONObj> &cataObjs ) ;
@@ -221,20 +221,20 @@ namespace engine
 
          virtual INT32 _doOnCataGroup ( MsgHeader * pMsg,
                                         pmdEDUCB * cb,
-                                        rtnContextCoord ** ppContext,
+                                        rtnContextCoord::sharePtr * ppContext,
                                         coordCMDArguments * pArgs,
                                         CoordGroupList * pGroupLst,
                                         vector<BSONObj> * pReplyObjs ) ;
 
          virtual INT32 _doOnCataGroupP2 ( MsgHeader * pMsg,
                                           pmdEDUCB * cb,
-                                          rtnContextCoord ** ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments * pArgs,
                                           const CoordGroupList & groupLst ) ;
 
          virtual INT32 _doOnDataGroupP2 ( MsgHeader * pMsg,
                                           pmdEDUCB * cb,
-                                          rtnContextCoord ** ppContext,
+                                          rtnContextCoord::sharePtr *ppContext,
                                           coordCMDArguments * pArgs,
                                           const CoordGroupList & groupLst,
                                           const vector<BSONObj> & cataObjs ) ;
@@ -246,7 +246,7 @@ namespace engine
 
          virtual INT32 _doCommit ( MsgHeader *pMsg,
                                    pmdEDUCB * cb,
-                                   rtnContextCoord **ppContext,
+                                   rtnContextCoord::sharePtr *ppContext,
                                    coordCMDArguments *pArgs ) ;
 
          virtual INT32 _parseMsg ( MsgHeader * pMsg,
@@ -663,7 +663,7 @@ namespace engine
 
          virtual INT32 _doRollback ( MsgHeader * pMsg,
                                      pmdEDUCB * cb,
-                                     rtnContextCoord ** ppCoordCtxForCata,
+                                     rtnContextCoord::sharePtr * ppCoordCtxForCata,
                                      coordCMDArguments * pArguments,
                                      CoordGroupList & sucGroupLst,
                                      INT32 failedRC ) ;

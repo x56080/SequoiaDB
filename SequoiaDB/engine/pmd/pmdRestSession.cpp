@@ -437,8 +437,9 @@ namespace engine
                                             rtnContextBuf &contextBuff )
    {
       INT32 rc = SDB_OK ;
-      rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
-      if ( NULL == pContext )
+      rtnContextPtr pContext ;
+      _pRTNCB->contextFind( contextID, pContext ) ;
+      if ( !pContext )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "can't fine context,contextID=%u", rc, contextID ) ;
@@ -641,9 +642,9 @@ namespace engine
 
       if ( -1 != contextID )
       {
-         rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
-
-         while ( NULL != pContext )
+         rtnContextPtr pContext ;
+         _pRTNCB->contextFind( contextID, pContext ) ;
+         while ( pContext )
          {
             rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
             if ( rc )

@@ -85,14 +85,14 @@ namespace engine
    }
 
    INT32 _rtnContextSort::open( const BSONObj &orderby,
-                                rtnContext *context,
+                                rtnContextPtr &context,
                                 pmdEDUCB *cb,
                                 SINT64 numToSkip,
                                 SINT64 numToReturn )
    {
       SDB_ASSERT( !orderby.isEmpty(), "impossible" ) ;
       SDB_ASSERT( NULL != cb, "possible" ) ;
-      SDB_ASSERT( NULL != context, "impossible" ) ;
+      SDB_ASSERT( context, "impossible" ) ;
       INT32 rc = SDB_OK ;
       UINT64 sortBufSz = sdbGetRTNCB()->getAPM()->getSortBufferSizeMB() ;
       SINT64 limit = numToReturn ;
@@ -211,9 +211,10 @@ namespace engine
 
       for ( ; ; )
       {
-         rc = _getSubContext()->getMore( -1, bufObj, _getSubContextCB() ) ;
+         rc = _getSubContext()->getMore( -1, bufObj, cb ) ;
          if ( SDB_DMS_EOC == rc )
          {
+            // sort data
             rc = _sorting.sort( cb ) ;
             if ( SDB_OK != rc )
             {

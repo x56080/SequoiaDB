@@ -79,8 +79,8 @@ namespace engine
       CoordGroupList groupLst ;
       CoordGroupList sucGroupLst ;
       vector<BSONObj> cataObjs ;
-      rtnContextCoord *pCoordCtxForCata = NULL ;
-      rtnContextCoord *pCoordCtxForData = NULL ;
+      rtnContextCoord::sharePtr pCoordCtxForCata ;
+      rtnContextCoord::sharePtr pCoordCtxForData ;
 
       CHAR *pCataMsgBuf = NULL ;
       INT32 cataMsgSize = 0 ;
@@ -186,7 +186,7 @@ namespace engine
          if ( pCoordCtxForData )
          {
             pRtncb->contextDelete ( pCoordCtxForData->contextID(), cb ) ;
-            pCoordCtxForData = NULL ;
+            pCoordCtxForData.release() ;
          }
          sucGroupLst.clear() ;
          PD_LOG( PDWARNING, "Do phase 1 on data failed[rc: %d] for "
@@ -215,15 +215,15 @@ namespace engine
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
            retryCount < COORD_CMD_RETRY_TIMES )
       {
-         if ( NULL != pCoordCtxForCata )
+         if ( pCoordCtxForCata )
          {
             pRtncb->contextDelete( pCoordCtxForCata->contextID(), cb ) ;
-            pCoordCtxForCata = NULL ;
+            pCoordCtxForCata.release() ;
          }
-         if ( NULL != pCoordCtxForData )
+         if ( pCoordCtxForData )
          {
             pRtncb->contextDelete( pCoordCtxForData->contextID(), cb ) ;
-            pCoordCtxForData = NULL ;
+            pCoordCtxForData.release() ;
          }
 
          if ( pCataMsgBuf )
@@ -303,13 +303,13 @@ namespace engine
       if ( pCoordCtxForCata )
       {
          pRtncb->contextDelete ( pCoordCtxForCata->contextID(), cb ) ;
-         pCoordCtxForCata = NULL ;
+         pCoordCtxForCata.release() ;
       }
 
       if ( pCoordCtxForData )
       {
          pRtncb->contextDelete ( pCoordCtxForData->contextID(), cb ) ;
-         pCoordCtxForData = NULL ;
+         pCoordCtxForData.release() ;
       }
 
       if ( pCataMsgBuf )
@@ -339,7 +339,7 @@ namespace engine
             PD_LOG( PDWARNING, "Do rollback phase failed for "
                     "command[%s, target:%s], rc: %d", getName(),
                     pArguments->_targetName.c_str(), tmpRC ) ;
-            if ( _flagCommitOnRollbackFailed() && NULL != pCoordCtxForCata )
+            if ( _flagCommitOnRollbackFailed() && pCoordCtxForCata )
             {
                goto commit ;
             }
@@ -396,7 +396,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE_DOONCATAGROUP, "_coordCMD2Phase::_doOnCataGroup" )
    INT32 _coordCMD2Phase::_doOnCataGroup ( MsgHeader *pMsg,
                                            pmdEDUCB *cb,
-                                           rtnContextCoord **ppContext,
+                                           rtnContextCoord::sharePtr *ppContext,
                                            coordCMDArguments *pArgs,
                                            CoordGroupList *pGroupLst,
                                            vector<BSONObj> *pReplyObjs )
@@ -405,7 +405,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( COORD_CMD2PHASE_DOONCATAGROUP ) ;
 
-      rtnContextCoord *pContext = NULL ;
+      rtnContextCoord::sharePtr pContext ;
       rtnContextBuf buffObj ;
 
       // Send request to catalog, and get the control of CoordContext
@@ -462,7 +462,7 @@ namespace engine
    done :
       if ( pContext )
       {
-         (*ppContext) = pContext ;
+         *ppContext = pContext ;
       }
       PD_TRACE_EXITRC ( COORD_CMD2PHASE_DOONCATAGROUP, rc ) ;
       return rc ;
@@ -471,14 +471,14 @@ namespace engine
       {
          SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
          pRtnCB->contextDelete( pContext->contextID(), cb ) ;
-         pContext = NULL ;
+         pContext.release() ;
       }
       goto done ;
    }
 
    INT32 _coordCMD2Phase::_doOnCataGroupP2 ( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **ppContext,
+                                             rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs,
                                              const CoordGroupList &pGroupLst )
    {
@@ -489,7 +489,7 @@ namespace engine
 
    INT32 _coordCMD2Phase::_doOnDataGroupP2 ( MsgHeader *pMsg,
                                              pmdEDUCB *cb,
-                                             rtnContextCoord **ppContext,
+                                             rtnContextCoord::sharePtr *ppContext,
                                              coordCMDArguments *pArgs,
                                              const CoordGroupList &groupLst,
                                              const vector<BSONObj> &cataObjs )
@@ -510,7 +510,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE_DOCOMMIT, "_coordCMD2Phase::_doCommit" )
    INT32 _coordCMD2Phase::_doCommit ( MsgHeader *pMsg,
                                       pmdEDUCB * cb,
-                                      rtnContextCoord **ppContext,
+                                      rtnContextCoord::sharePtr *ppContext,
                                       coordCMDArguments *pArgs )
    {
       INT32 rc = SDB_OK ;
@@ -534,7 +534,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE_DOROLLBACK, "_coordCMD2Phase::_doRollback" )
    INT32 _coordCMD2Phase::_doRollback ( MsgHeader * pMsg,
                                         pmdEDUCB * cb,
-                                        rtnContextCoord ** ppCoordCtxForCata,
+                                        rtnContextCoord::sharePtr * ppCoordCtxForCata,
                                         coordCMDArguments * pArguments,
                                         CoordGroupList & sucGroupLst,
                                         INT32 failedRC )
@@ -592,7 +592,7 @@ namespace engine
    done :
       if ( NULL == pCoordCtxForCata )
       {
-         *ppCoordCtxForCata = NULL ;
+         ppCoordCtxForCata->release() ;
       }
       if ( pRollbackMsgBuf )
       {
@@ -608,7 +608,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_CMD2PHASE_PROCESSCTX, "_coordCMD2Phase::_processContext" )
    INT32 _coordCMD2Phase::_processContext ( pmdEDUCB *cb,
-                                            rtnContextCoord **ppContext,
+                                            rtnContextCoord::sharePtr *ppContext,
                                             SINT32 maxNumSteps,
                                             rtnContextBuf & buffObj )
    {
@@ -647,7 +647,7 @@ namespace engine
       if ( ppContext && (*ppContext) )
       {
          pRtncb->contextDelete ( (*ppContext)->contextID(), cb ) ;
-         (*ppContext) = NULL ;
+         ppContext->release() ;
       }
       if ( SDB_DMS_EOC == rc )
       {

@@ -778,6 +778,9 @@ ixmgenTestFiles = [
 idxHashTestFiles = [
       "test/ixmgen/idxHashTest.cpp"
       ]
+rtnContextTestFiles = [
+      "test/rtn/rtnContextTest.cpp"
+      ]
 mthUpdateTestFiles = [
       "test/mth/mthUpdateTest.cpp"
       ]
@@ -904,6 +907,7 @@ env.StaticLibrary('omsvc', omsvcFiles)
 #cataloguetest = env.Object('cataloguetest', gtestMainFile)
 clstest = env.Object('clstest', gtestMainFile)
 ixmgentest = env.Object('ixmgentest', gtestMainFile)
+rtncontexttest = env.Object('rtncontexttest', gtestMainFile)
 mthtest = env.Object('mthtest', gtestMainFile)
 bsonbuildertest = env.Object('bsonbuildertest', gtestMainFile)
 sqltest2 = env.Object('sqltest2', gtestMainFile)
@@ -1009,6 +1013,9 @@ if hasTestcase:
    idxHashTest = env.Program("idxHashTest", [ idxHashTestFiles, ixmgentest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+   rtnContextTest = env.Program("rtnContextTest", [ rtnContextTestFiles, rtncontexttest ],
+          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
    mthUpdateTest = env.Program("mthUpdateTest", [ mthUpdateTestFiles, mthtest ],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -1075,6 +1082,7 @@ if hasTestcase:
    env.Install( '#/tests', clsTest )
    env.Install( '#/tests', ixmgenTest )
    env.Install( '#/tests', idxHashTest )
+   env.Install( '#/tests', rtnContextTest )
    env.Install( '#/tests', mthUpdateTest )
    env.Install( '#/tests', bsonBuilderTest )
    env.Install( '#/tests', construct )
