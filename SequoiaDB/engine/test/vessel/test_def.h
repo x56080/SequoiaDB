@@ -61,7 +61,10 @@ static const CHAR *LSM_PATH = "/opt/unit_test/lsm";
 class test_executor : public IExecutor
 {
    public:
-      test_executor(){}
+      test_executor()
+      {
+         _id = ossRand();
+      }
       virtual ~test_executor(){}
 
    public:

@@ -549,7 +549,7 @@ TEST_F(insert_test, test5)
    rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
    ASSERT_EQ(SDB_OK, rc);
 
-   clOptions.freeSizeReserved = 0;
+   clOptions.minFreePercent = 0;
    clOptions.minStriping = 0;
    clOptions.maxStriping = 65534;
    
@@ -592,7 +592,7 @@ TEST_F(insert_test, test6)
    dataScanRow recordRow;
 
    createCLOptions clOptions;
-   clOptions.freeSizeReserved = 0;
+   clOptions.minFreePercent = 0;
    clOptions.minStriping = 0;
    clOptions.maxStriping = 65534;
 

@@ -3291,5 +3291,21 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_ROW_BATCH_LIMITS</name>
+         <description>
+            <en>hit the limits of row batch</en>
+            <cn>达到批量资源上限</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_RECORD_NOT_FOUND</name>
+         <description>
+            <en>the target record not found</en>
+            <cn>没有发现目标记录</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
