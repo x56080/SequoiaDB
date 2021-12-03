@@ -873,6 +873,7 @@ namespace SequoiaDB
             {
                 newFlags = newFlags | DBQuery.FLG_QUERY_WITH_RETURNDATA;
             }
+            newFlags = newFlags | DBQuery.FLG_QUERY_PREPARE_MORE;
             SDBMessage rtnSDBMessage = AdminCommand(collectionFullName, query, selector,
                                                     orderBy, hint, skipRows, returnRows, newFlags);
             int errorCode = rtnSDBMessage.Flags;
