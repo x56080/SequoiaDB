@@ -1,4 +1,4 @@
-package com.sequoiadb.index;
+package com.sequoiadb.index.serial;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;

@@ -3,7 +3,7 @@
 <!--sync testcase, which should be excute serially-->
 
 <suite name="driver" verbose="1">
-    
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"       value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -22,11 +22,11 @@
     <parameter name="USERNAME"     value="sdbadmin" />
     <!--用例远程机器用户密码-->
     <parameter name="PASSWORD"     value="sdbadmin" />
-    
+
     <listeners>
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
     </listeners>
-    
+
     <test name="story">
         <packages>
             <package name="com.sequoiadb.datasource.serial"/>
@@ -37,6 +37,7 @@
             <package name="com.sequoiadb.metadata.sync" />
             <package name="com.sequoiadb.sdb.serial" />
             <package name="com.sequoiadb.transaction.serial" />
+            <package name="com.sequoiadb.index.serial"/>
         </packages>
     </test>
 </suite>

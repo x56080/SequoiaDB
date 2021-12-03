@@ -21,10 +21,13 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
- * FileName: Pop12382.java test content:test pop interface for cappedCL
- * 
+ * @descreption seqDB-12382:pop记录
  * @author liuxiaoxuan
- * @Date 2017.8.14
+ * @date 2017.8.14
+ * @updateUser YiPan
+ * @updateDate 2021.12.3
+ * @updateRemark 游标使用后立即关闭，优化部分语法
+ * @version 1.0
  */
 public class Pop12382 extends SdbTestBase {
 
@@ -36,18 +39,14 @@ public class Pop12382 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        try {
-            boolean isCapped = true;
-            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            sdb.setSessionAttr(
-                    ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
-            cappedCL = CappedCLUtils.createCL( sdb, cappedCSName, cappedCLName,
-                    isCapped );
-            int recordNums = 10;
-            insertRecords( recordNums );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
-        }
+        boolean isCapped = true;
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb.setSessionAttr(
+                ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
+        cappedCL = CappedCLUtils.createCL( sdb, cappedCSName, cappedCLName,
+                isCapped );
+        int recordNums = 10;
+        insertRecords( recordNums );
     }
 
     public void insertRecords( int recordNums ) {
@@ -72,8 +71,6 @@ public class Pop12382 extends SdbTestBase {
             if ( cs != null && cs.isCollectionExist( cappedCLName ) ) {
                 sdb.dropCollectionSpace( cappedCSName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
             sdb.close();
         }
@@ -82,9 +79,9 @@ public class Pop12382 extends SdbTestBase {
     @Test
     public void testPop() {
         boolean isHasDirection = true;
-        Assert.assertEquals( popValidRecords( isHasDirection ), true,
+        Assert.assertTrue( popValidRecords( isHasDirection ),
                 "pop valid records failed" );
-        Assert.assertEquals( popValidRecords( !isHasDirection ), true,
+        Assert.assertTrue( popValidRecords( !isHasDirection ),
                 "pop valid records failed" );
         Assert.assertEquals( popInvalidLogicalID(), -6,
                 "pop invalid records success" );
@@ -103,58 +100,50 @@ public class Pop12382 extends SdbTestBase {
         long logicalId = 0;
 
         try {
-            while ( cursor.hasNext() ) {
-                logicalId = ( long ) cursor.getNext().get( "_id" );
-                break;
-            }
-
-            // pop the first record from CL
-            BSONObject popObj = new BasicBSONObject();
-            popObj.put( "LogicalID", logicalId );
-            if ( isHasDirection ) {
-                popObj.put( "Direction", direction );
-            }
-            cappedCL.pop( popObj );
-
-            // remove the first elem from expectList
-            for ( Iterator< BSONObject > it = insrtObjs.iterator(); it
-                    .hasNext(); ) {
-                it.next();
-                it.remove();
-                break;
-            }
-
-            long actBsonSize = cappedCL.getCount();
-            long eptBsonSize = insrtObjs.size();
-            System.out.println( "actBsonSize: " + actBsonSize + " "
-                    + "eptBsonSize: " + eptBsonSize );
-
-            // check the records size
-            if ( actBsonSize != eptBsonSize ) {
-                return false;
-            }
-
-            // check every records
-            cursor = cappedCL.query( null, null, orderBy, null );
-            int i = 0;
-            while ( cursor.hasNext() && i < insrtObjs.size() ) {
-                BSONObject act = cursor.getNext();
-                BSONObject exp = insrtObjs.get( i );
-                System.out.println( "act.toString(): " + act.toString() + " "
-                        + "exp.toString(): " + exp.toString() );
-                if ( !act.toString().equals( exp.toString() ) ) {
-                    return false;
-                }
-                i++;
-            }
-
-        } catch ( BaseException e ) {
-            System.out.println( "pop valid records error: " + e.getErrorCode()
-                    + " " + e.getMessage() );
-            return false;
+            logicalId = ( long ) cursor.getNext().get( "_id" );
         } finally {
             if ( cursor != null ) {
                 cursor.close();
+            }
+        }
+
+        // pop the first record from CL
+        BSONObject popObj = new BasicBSONObject();
+        popObj.put( "LogicalID", logicalId );
+        if ( isHasDirection ) {
+            popObj.put( "Direction", direction );
+        }
+        cappedCL.pop( popObj );
+
+        // remove the first elem from expectList
+        for ( Iterator< BSONObject > it = insrtObjs.iterator(); it
+                .hasNext(); ) {
+            it.next();
+            it.remove();
+            break;
+        }
+
+        // check the records size
+        long actBsonSize = cappedCL.getCount();
+        long eptBsonSize = insrtObjs.size();
+        Assert.assertEquals( actBsonSize, eptBsonSize, "actBsonSize: "
+                + actBsonSize + " " + "eptBsonSize: " + eptBsonSize );
+
+        // check every records
+        DBCursor result = cappedCL.query( null, null, orderBy, null );
+        int i = 0;
+        try {
+            while ( result.hasNext() && i < insrtObjs.size() ) {
+                BSONObject act = result.getNext();
+                BSONObject exp = insrtObjs.get( i );
+                Assert.assertEquals( act.toString(), exp.toString(),
+                        "act.toString(): " + act.toString() + " "
+                                + "exp.toString(): " + exp.toString() );
+                i++;
+            }
+        } finally {
+            if ( result != null ) {
+                result.close();
             }
         }
         return true;
