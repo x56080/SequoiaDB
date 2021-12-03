@@ -146,7 +146,6 @@ namespace sdbclient
    class _sdbCollection ;
    class sdb ;
    class _sdb ;
-   class _ossSocket ;
    class _sdbLob ;
    class sdbLob ;
 
