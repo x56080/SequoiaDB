@@ -108,6 +108,10 @@ class ossSharedLatchMode : public SDBObject
          _m = OSS_SHARED_LATCH_MODE_ENUM_NONE;
       }
 
+      OSS_INLINE BOOLEAN isExclusiveOrUpgrade()const
+      {
+         return isExclusive() || isUpgrade();
+      }
    private:
       OSS_SHARED_LATCH_MODE_ENUM _m = OSS_SHARED_LATCH_MODE_ENUM_NONE;
 };//class ossSharedLatchMode

@@ -660,7 +660,8 @@ namespace vessel
       SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
       SDB_ASSERT(NULL != lpids, "can not be null");
 
-      for (UINT32 i = 0; i < count; ++i)
+      /// pool is first in last out
+      for (INT32 i = (INT32)count - 1; 0 <= i; --i)
       {
          SDB_ASSERT(INVALID_PAGE_ID != lpids[i], "can not be invalid");
          INT32 rc = _newPagePool.pushForward(freeSpaceTuple(firstSeq + i,

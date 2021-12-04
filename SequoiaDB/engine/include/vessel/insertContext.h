@@ -78,15 +78,6 @@ namespace vessel
             return _originalRecord;
          }
 
-         OSS_INLINE void setStriping(STRIPING_ID s)
-         {
-            _striping = s;
-         }
-         OSS_INLINE STRIPING_ID getStriping()const
-         {
-            return _striping;
-         }
-
          OSS_INLINE FLOAT32 getMinFreePercent()const
          {
             return _minFreePercent;
@@ -112,7 +103,6 @@ namespace vessel
 
       private:
          insertOptions _options;
-         STRIPING_ID _striping = INVALID_STRIPING_ID;
          slice _originalRecord;
          fsmCandidate _candidate;
          BOOLEAN _keepRidLocked = FALSE;

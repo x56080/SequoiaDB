@@ -38,6 +38,8 @@
 
 #include "vessel/unstableIndexContext.h"
 #include "vessel/indexMergingRecord.h"
+#include "vessel/dmlContext.h"
+#include "vessel/dmlIndexRequest.h"
 
 namespace engine
 {
@@ -50,30 +52,8 @@ namespace vessel
          virtual ~buildingIndexContext();
 
       public:
-         INT32 insert(BOOLEAN enforce,
-                      const scanEntry &entry,
-                      PAGE_ID lpid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID,
-                      const ossPoolList<bson::BSONObj> &keys,
-                      BOOLEAN &refused);
-
-         INT32 update(BOOLEAN enforce,
-                      const scanEntry &entry,
-                      PAGE_ID lpid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID,
-                      const ossPoolList<bson::BSONObj> &oldKeys,
-                      const ossPoolList<bson::BSONObj> &newKeys,
-                      BOOLEAN &refused);
-
-         INT32 remove(BOOLEAN enforce,
-                      const scanEntry &entry,
-                      PAGE_ID lpid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID,
-                      const ossPoolList<bson::BSONObj> &keys,
-                      BOOLEAN &refused);
+         INT32 merge(dmlContext *context,
+                     dmlIndexRequest *ir);
 
          void fini();
          
@@ -97,16 +77,6 @@ namespace vessel
          {
             return _terminated;
          }
-
-      private:
-         INT32 merge(BOOLEAN enforce,
-                      const scanEntry &entry,
-                      PAGE_ID lpid,
-                      DPS_LSN_OFFSET lsn,
-                      const DPS_TRANS_ID &transID,
-                      const ossPoolList<bson::BSONObj> *inserting,
-                      const ossPoolList<bson::BSONObj> *discarded,
-                      BOOLEAN &refused);
 
       private:
          ossSpinXLatch _latch;

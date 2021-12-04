@@ -119,13 +119,10 @@ namespace vessel
                            const insertOptions &options,
                            utilInsertResult *res);
 
-      public:
-         INT32 deleteRecords(IExecutor *executor,
-                             UINT32 count,
-                             const recordID *rids,
-                             utilDeleteResult *res);
+         INT32 deleteRecord(IExecutor *executor,
+                            const recordID &rid,
+                            utilDeleteResult *res);
 
-      public:
          INT32 updateRecord(IExecutor *executor,
                             const recordID &rid,
                             IRecordUpdater *updater,

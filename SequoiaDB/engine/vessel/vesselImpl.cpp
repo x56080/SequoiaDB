@@ -684,11 +684,6 @@ namespace vessel
       }
 
       handler.init(&_env, executor, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init handler:%d", rc);
-         goto error;
-      }
 
       rc = handler.insert(gcid, record, striping, options, res);
       if (SDB_OK != rc)
@@ -747,6 +742,8 @@ namespace vessel
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
+      dmlHandler handler;
+
       if (OSS_UNLIKELY(NULL == executor ||
                        !gcid.isValid() ||
                        !rid.isValid() ||
@@ -758,6 +755,46 @@ namespace vessel
       else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handler.init(&_env, executor, &_outerResource);
+      rc = handler.update(gcid, rid, updater, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::remove(IExecutor *executor,
+                            const globalCollectionId &gcid,
+                            const recordID &rid,
+                            utilDeleteResult *res)
+   {
+      INT32 rc = SDB_OK;
+      dmlHandler handler;
+
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !gcid.isValid() ||
+                       !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      handler.init(&_env, executor, &_outerResource);
+      rc = handler.remove(gcid, rid, res);
+      if (SDB_OK != rc)
+      {
          goto error;
       }
    done:

@@ -40,6 +40,7 @@
 #include "vessel/recordDataPage.h"
 #include "vessel/recordID.h"
 #include "vessel/slice.h"
+#include "vessel/strictBuffer.h"
 
 namespace engine
 {
@@ -47,7 +48,7 @@ namespace vessel
 {
    class requestContext;
    class insertContext;
-   class updateContext;
+   class modifyRecordContext;
    class logicalPageBuffer;
    class logRecordContext;
 
@@ -67,7 +68,11 @@ namespace vessel
          INT32 insertNormalRecord(insertContext *context);
 
 
-         INT32 updateNormalRecord(updateContext *context);
+         INT32 updateNormalRecord(modifyRecordContext *context,
+                                  const slice &newRowData,
+                                  BOOLEAN &outOfSpace);
+
+         INT32 deleteRecord(modifyRecordContext *context);
 
       public:
          UINT32 getTotalSlotCount()const;
@@ -92,7 +97,7 @@ namespace vessel
 
          void updateStripingInfo(recordDataPageHead *head,
                                  STRIPING_ID striping);
-         void updateMasTransSN(recordDataPageHead *head,
+         void updateMaxTransSN(recordDataPageHead *head,
                                UINT64 transSN);
 
          INT32 getPosToInsert(const recordDataPageHead *head,
@@ -108,10 +113,19 @@ namespace vessel
                                       UINT16 &offset)const;
 
       private:
+         INT32 inplaceUpdate(modifyRecordContext *context,
+                             const slice &row);
+
+      private:
+         INT32 createTombstone(modifyRecordContext *context);
+
+      private:
          const recordSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
          
          UINT32 getFrontOffset(const recordDataPageHead *head)const;
 
+         recordSlot *getWritableSlot(strictBuffer &buffer,
+                                     RECORD_SLOT_ID pos);
       private:
          INT32 validatePage(requestContext *context,
                             logicalPageBuffer *lpb)const;
@@ -129,6 +143,13 @@ namespace vessel
                                const recordDataPageHead *newHead,
                                const runtimePageBuffer *rpb,
                                logRecordContext *lrc);
+
+         INT32 prepareInplaceUpdateLog(modifyRecordContext *context,
+                                       const runtimePageBuffer *rpb,
+                                       logRecordContext *lrc);
+         INT32 prepareDeleteLog(modifyRecordContext *context,
+                                const runtimePageBuffer *rpb,
+                                logRecordContext *lrc);
 
       private:
          logicalPageBuffer *_lpb = NULL;

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.cpp
+   Source File Name = builtinRecordUpdater.h
 
    Descriptive Name =
 
@@ -33,32 +33,47 @@
 
 ******************************************************************************/
 
-#include "vessel/insertContext.h"
+#ifndef VESSEL_BUILTIN_RECORD_UPDATER_H_
+#define VESSEL_BUILTIN_RECORD_UPDATER_H_
+
+#include "interface/IRecordUpdater.h"
+#include "mthModifier.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void insertContext::close()
+   class bsonRecordUpdater : public IRecordUpdater
    {
-      fini();
-      dmlContext::close();
-   }
+      public:
+         bsonRecordUpdater(){}
+         virtual ~bsonRecordUpdater(){}   
 
-   void insertContext::fini()
-   {
-      _options = insertOptions();
-      _originalRecord.reset();
-      _candidate.reset();
-      _keepRidLocked = FALSE;
-      _minFreePercent = 0.0;
-   }
+      public:
+         virtual INT32 update(UINT32 size,
+                              const CHAR *data);
 
-   void insertContext::insertDone()
-   {
-      dmlContext::clearDmlHistroy();
-      fini();
-   }
+         virtual BOOLEAN done()const {return !_result.isEmpty();}
 
-}//namespace vessel
-}//namespace engine
+         virtual void clearResult();
+
+         virtual BOOLEAN nothingUpdated()const;
+         virtual const CHAR *getResultRecord()const;
+         virtual UINT32 getResultRecordSize()const;
+         virtual BOOLEAN isWholeRecordReset()const;
+         virtual void dumpUpdatedFields(ossPoolVector<const CHAR *> &fields)const;
+
+      public:
+         INT32 init(const bson::BSONObj &pattern);
+
+      private:
+         mthModifier _modifier;
+         bson::BSONObj _result;
+         bson::BSONObj _changed;
+   };//class bsonRecordUpdater
+} // namespace vessel
+
+} // namespace engine
+
+
+#endif//VESSEL_BUILTIN_RECORD_UPDATER_H_

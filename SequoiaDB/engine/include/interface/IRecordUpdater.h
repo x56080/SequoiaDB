@@ -40,8 +40,6 @@
 
 namespace engine
 {
-namespace vessel
-{
    class IRecordUpdater : public SDBObject
    {
       public:
@@ -55,17 +53,15 @@ namespace vessel
                               const CHAR *data) = 0;
 
          virtual BOOLEAN done()const = 0;
+         virtual void clearResult() = 0;
 
-      public:/// result
-         virtual const CHAR *getResultData()const = 0;
-         virtual UINT32 getResultDataSize()const = 0;
-
+      public:/// must be done
          virtual BOOLEAN nothingUpdated()const = 0;
+         virtual const CHAR *getResultRecord()const = 0;
+         virtual UINT32 getResultRecordSize()const = 0;
          virtual BOOLEAN isWholeRecordReset()const = 0;
-         virtual UINT32 getChangedFieldCount()const = 0;
-         virtual void dumpChangedFileds(ossPoolVector<const CHAR *> &fieldNames)const = 0;
+         virtual void dumpUpdatedFields(ossPoolVector<const CHAR *> &fields)const = 0;
    };//class IRecordUpdater
-} // namespace vessel
 
 } // namespace engine
 

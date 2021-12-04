@@ -61,6 +61,7 @@
 #include "vessel/buildingIndexContext.h"
 #include "vessel/indexScanContext.h"
 #include "vessel/indexScanCursor.h"
+#include "interface/IRecordUpdater.h"
 
 namespace engine
 {
@@ -389,7 +390,7 @@ namespace vessel
          goto error;
       }
       else if (_record.isStripingMode() &&
-               INVALID_STRIPING_ID == context->getStriping())
+               INVALID_STRIPING_ID == context->getRecordStripingId())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -444,7 +445,7 @@ namespace vessel
 
       if (ra.hasBuildingIndex())
       {
-         rc = insertNewKeysToBuildingContext(context, ra);
+         rc = mergeIntoBuildingContext(context, ra);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert keys into building context:%d", rc);
@@ -464,11 +465,8 @@ namespace vessel
       if (NULL != res)
       {
          res->incInsertedNum();
-         if (res->isEnableReturnIDInfo())
-         {
-            res->setInsertLoc(context->getRid().getPageID(),
-                              context->getRid().getSlotID());
-         }
+         res->setInsertLoc(context->getRid().getPageID(),
+                           context->getRid().getSlotID());
       }
    done:
       if (NULL != context)
@@ -480,7 +478,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::update(updateContext *context,
+   INT32 collection::update(modifyRecordContext *context,
+                            IRecordUpdater *updater,
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
@@ -488,7 +487,9 @@ namespace vessel
       ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
 
       recordID rid;
-      IRecordUpdater *updater = NULL;
+      indexConsole console;
+      slice targetRecord;
+      slice newRecord;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -497,13 +498,12 @@ namespace vessel
       }
       else if (NULL == context ||
                !context->getRid().isValid() ||
-               NULL == context->getUpdater())
+               NULL == updater)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      updater = context->getUpdater();
       rid = context->getRid();
       guard.autoLock();
       
@@ -514,8 +514,11 @@ namespace vessel
          goto error;
       }
 
-      rc = updater->update(context->getOriginalRecordBuffer().getSize(),
-                           context->getOriginalRecordBuffer().getBuffer());
+      targetRecord = context->getTargetRecord();
+      SDB_ASSERT(targetRecord.isValid(), "impossible");
+
+      rc = updater->update(targetRecord.getSize(),
+                           targetRecord.getData());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update record:%d", rc);
@@ -527,7 +530,7 @@ namespace vessel
          goto done;
       }
 
-      rc = buildUpdateIndexRequests(context, ra);
+      rc = buildUpdateIndexRequests(context, updater, ra);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build index update request:%d", rc);
@@ -551,14 +554,137 @@ namespace vessel
          }
       }
 
+      newRecord.reset(updater->getResultRecordSize(), updater->getResultRecord());
+
+      rc = updateRecordData(context, newRecord);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update record on disk:%d", rc);
+         goto error;
+      }
+
+      if (ra.hasBuildingIndex())
+      {
+         rc = mergeIntoBuildingContext(context, ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to merge into index building context:%d", rc);
+            goto error;
+         }
+      }
+
+      console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+      rc = console.handleDmlRequest(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to handle index requests:%d", rc);
+         goto error;
+      }
+
+      if (NULL != res)
+      {
+         res->incModifiedNum();
+      }
+
    done:
       if (NULL != context)
       {
-         context->clearDmlHistroy();
+         context->modifyDone();
       }
       return rc;
    error:
-      goto error;
+      goto done;
+   }
+
+   INT32 collection::remove(modifyRecordContext *context,
+                            utilDeleteResult *res)
+   {
+      INT32 rc = SDB_OK;
+      dmlIndexRequestArray ra;
+      ossRWMutexGuard guard(&_ddlLatch, SHARED, FALSE);
+
+      recordID rid;
+      indexConsole console;
+
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context ||
+               !context->getRid().isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rid = context->getRid();
+      guard.autoLock();
+
+      rc = lockAndFetchRecordToModify(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fetch record to update:%d", rc);
+         goto error;
+      }
+
+      rc = buildRemoveIndexRequest(context, ra);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build remove index requests:%d", rc);
+         goto error;
+      }
+
+      if (ra.withConstraint())
+      {
+         rc = context->lockUniqueIndexKeys(ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock unique index keys:%d", rc);
+            goto error;
+         }
+      }
+
+      rc = removeRecordData(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to remove record data:%d", rc);
+         goto error;
+      }
+
+      if (ra.isEmpty())
+      {
+         if (ra.hasBuildingIndex())
+         {
+            rc = mergeIntoBuildingContext(context, ra);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to merge into index building context:%d", rc);
+               goto error;
+            }
+         }
+
+         console.init(_record.mbID, &(_collectionSpace->getSU()->getIndexSpace()));
+         rc = console.handleDmlRequest(context, ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to handle index requests:%d", rc);
+            goto error;
+         }
+      }
+
+      if (NULL != res)
+      {
+         res->incDeletedNum();
+      }
+   done:
+      if (NULL != context)
+      {
+         context->modifyDone();
+      }
+      return rc;
+   error:
+      goto done;
    }
 
    INT32 collection::getTotalCountInRdpHead(requestContext *context,
@@ -961,7 +1087,7 @@ namespace vessel
          fsmCandidate &candidate = context->getCandidate();
          rc = findCandidate(context,
                             targetLvl,
-                            context->getStriping(),
+                            context->getRecordStripingId(),
                             candidate);
          if (SDB_OK != rc)
          {
@@ -3153,28 +3279,27 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::buildUpdateIndexRequests(updateContext *context,
+   INT32 collection::buildUpdateIndexRequests(modifyRecordContext *context,
+                                              IRecordUpdater *updater,
                                               dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      IRecordUpdater *updater = context->getUpdater();
-      SDB_ASSERT(NULL != updater && updater->done(),"can not be invalid");
+      SDB_ASSERT(NULL != updater && updater->done(), "can not be invalid");
 
-      slice original(context->getOriginalRecordBuffer().getSize(),
-                     context->getOriginalRecordBuffer().getBuffer());
+      slice original = context->getTargetRecord();
       SDB_ASSERT(original.isValid(), "can not be invalid");
-      slice updated(updater->getResultDataSize(), updater->getResultData());
-      SDB_ASSERT(updated.isValid(), "can not be invalid");
-
+      slice newRecord(updater->getResultRecordSize(),
+                      updater->getResultRecord());
+      SDB_ASSERT(newRecord.isValid(), "can not be invalid");
       SDB_ASSERT(!updater->isWholeRecordReset(), "TODO");
       ossPoolVector<const CHAR *> fields;
+      updater->dumpUpdatedFields(fields);
 
       INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
       bson::BSONObjSet keySetToInsert;
       bson::BSONObjSet keySetToRemove;
 
-      updater->dumpChangedFileds(fields);
       indexContextMap::CONST_ITERATOR itr = _indexes.begin();
       for (; itr != _indexes.end(); ++itr)
       {
@@ -3213,7 +3338,7 @@ namespace vessel
 
          rc = keyGen(ic->getObj().getPattern().getPattern(),
                      ic->getObj().getParams().notArray,
-                     updated, keySetToInsert);
+                     newRecord, keySetToInsert);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to generate index keys:%d", rc);
@@ -3228,6 +3353,52 @@ namespace vessel
          }
          keySetToRemove.clear();
          keySetToInsert.clear();
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::buildRemoveIndexRequest(modifyRecordContext *context,
+                                             dmlIndexRequestArray &ra)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+
+      slice original = context->getTargetRecord();
+      SDB_ASSERT(original.isValid(), "can not be invalid");
+
+      INDEX_KEY_GENERATOR keyGen = context->getOuterResource()->indexKeyGen;
+      bson::BSONObjSet keySetToRemove;
+
+      indexContextMap::CONST_ITERATOR itr = _indexes.begin();
+      for (; itr != _indexes.end(); ++itr)
+      {
+         indexContext *ic = itr->second;
+         SDB_ASSERT(NULL != ic && ic->isValid(), "can not be invalid");
+         if (!ic->isNormal() && !ic->isBuilding())
+         {
+            continue;
+         }
+
+         rc = keyGen(ic->getObj().getPattern().getPattern(),
+                        ic->getObj().getParams().notArray,
+                        original, keySetToRemove);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to generate index keys:%d", rc);
+            goto error;
+         }
+
+         rc = ra.append(ic, NULL, &keySetToRemove);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to make removing index request:%d", rc);
+            goto error;
+         }
+         keySetToRemove.clear();
       }
       
    done:
@@ -3332,8 +3503,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::insertNewKeysToBuildingContext(dmlContext *context,
-                                                    dmlIndexRequestArray &ra)
+   INT32 collection::mergeIntoBuildingContext(dmlContext *context,
+                                              dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -3346,8 +3517,6 @@ namespace vessel
             continue;
          }
 
-         scanEntry entry;
-         BOOLEAN refused = FALSE;
          unstableIndexContext *uic = ir->getContext()->getUnstatbleContext();
          buildingIndexContext *buildingContext = dynamic_cast<buildingIndexContext*>(uic);
          if (OSS_UNLIKELY(NULL == buildingContext))
@@ -3357,23 +3526,12 @@ namespace vessel
             goto error;
          }
 
-         rc = buildingContext->insert(ir->getContext()->getObj().getParams().isUnique,
-                                      context->getScanEntry(),
-                                      context->getRid().getPageID(),
-                                      context->getDmlLSN(),
-                                      context->getTransIDWithoutTag(),
-                                      ir->getKeysToInsert(),
-                                      refused);
+         rc = buildingContext->merge(context, ir);
 
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert merging keys into context:%d", rc);
             goto error;
-         }
-
-         if (!refused)
-         {
-            ir->setExecuted();
          }
       }
    done:
@@ -3687,7 +3845,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::lockAndFetchRecordToModify(updateContext *context)
+   INT32 collection::lockAndFetchRecordToModify(modifyRecordContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && context->getRid().isValid(), "can not be invalid");
@@ -3695,7 +3853,7 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       rdpRecordScanner scanner;
       BOOLEAN locked = FALSE;
-      memoryBlock &mb = context->getOriginalRecordBuffer();
+      memoryBlock mb;
       mb.resize(0);
 
       rc = context->lockRid(rid, mode);
@@ -3729,6 +3887,7 @@ namespace vessel
          goto error;
       }
 
+      context->adoptRecordBuffer(mb);
       context->setPageSeq(scanner.getCurrentPageSeq());
       if (scanner.isOverflow())
       {
@@ -3746,13 +3905,150 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::launchUpdate(updateContext *context)
+   INT32 collection::updateRecordData(modifyRecordContext *context,
+                                      const slice &newRecord)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(NULL != context, "can not be invalid");
-      IRecordUpdater *updater = context->getUpdater();
-      SDB_ASSERT(updater->done(), "must be done");
+      SDB_ASSERT(newRecord.isValid(), "can not be invalid");
+
+      if (context->isOverflow())
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+      else if (isBigRecord(getDataPageSize(), newRecord.getSize()))
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+      else
+      {
+         rc = updateNormalRecord(context, newRecord);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update record:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::updateNormalRecord(modifyRecordContext *context,
+                                         const slice &newRecord)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(newRecord.isValid(), "can not be invalid");
+      recordID rid = context->getRid();
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+
+      logicalPageBuffer lpb;
+      rdpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+      BOOLEAN outOfSpace = FALSE;
+
+      rc = mds.getLogicalPageBuffer(context, rid.getPageID(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPageID(), rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.updateNormalRecord(context, newRecord, outOfSpace);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to update record by accessor:%d", rc);
+         goto error;
+      }
+
+      if (outOfSpace)
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+      lpb.fini();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeRecordData(modifyRecordContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(NULL != context, "can not be invalid");
+      slice target = context->getTargetRecord();
+      SDB_ASSERT(target.isValid(), "can not be invalid");
+
+      if (context->isOverflow())
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+      else if (isBigRecord(getDataPageSize(), target.getSize()))
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+      else
+      {
+         rc = removeNormalRecord(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to remove record:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::removeNormalRecord(modifyRecordContext *context)
+   {
+      INT32 rc = SDB_OK;
+      recordID rid = context->getRid();
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+
+      logicalPageBuffer lpb;
+      rdpAccessor accessor;
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
+
+      rc = mds.getLogicalPageBuffer(context, rid.getPageID(), mode, lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpb[%d], rc:%d", rid.getPageID(), rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, &lpb);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.deleteRecord(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to delete record by accessor:%d", rc);
+         goto error;
+      }
+
+      lpb.fini();
 
    done:
       return rc;

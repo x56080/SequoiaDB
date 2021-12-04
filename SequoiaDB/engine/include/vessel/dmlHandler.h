@@ -72,6 +72,10 @@ namespace vessel
                       IRecordUpdater *updater,
                       utilUpdateResult *res);
 
+         INT32 remove(const globalCollectionId &gcid,
+                      const recordID &rid,
+                      utilDeleteResult *res);
+
    };//class dmlHandler
 }//namespace vessel
 }//namespace engine

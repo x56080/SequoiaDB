@@ -147,6 +147,11 @@ namespace vessel
                       IRecordUpdater *updater,
                       utilUpdateResult *res);
 
+         INT32 remove(IExecutor *executor,
+                      const globalCollectionId &gcid,
+                      const recordID &rid,
+                      utilDeleteResult *res);
+
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,
                                              const globalCollectionId &gcid,
                                              UINT64 &count);

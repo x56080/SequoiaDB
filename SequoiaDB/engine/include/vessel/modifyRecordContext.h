@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = updateContext.h
+   Source File Name = modifyRecordContext.h
 
    Descriptive Name =
 
@@ -33,71 +33,64 @@
 
 ******************************************************************************/
 
-#ifndef VESSE_UPDATE_CONTEXT_H_
-#define VESSE_UPDATE_CONTEXT_H_
+#ifndef VESSE_MODIFY_RECORD_CONTEXT_H_
+#define VESSE_MODIFY_RECORD_CONTEXT_H_
 
 #include "vessel/dmlContext.h"
-#include "interface/IRecordUpdater.h"
+#include "vessel/memoryBlock.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class updateContext : public dmlContext
+   class modifyRecordContext : public dmlContext
    {
       public:
-         updateContext(){}
-         virtual ~updateContext(){}
+         modifyRecordContext(){}
+         virtual ~modifyRecordContext(){}
+
+      private:
+         struct _targetInfo
+         {
+            memoryBlock _recordBuffer;
+            DPS_TRANS_ID _transID;
+            BOOLEAN _overflow = FALSE;
+            BOOLEAN _bigRecord = FALSE;
+            recordID _overflowAddr;
+         };//struct _target
 
       public:
-         OSS_INLINE IRecordUpdater *getUpdater()
-         {
-            return _updater;
-         }
-         OSS_INLINE void reset(IRecordUpdater *updater)
-         {
-            _updater = updater;
-            _originalRecord.release();
-            _overflow = FALSE;
-            _bigRecord = FALSE;
-            _overflowAddr = recordID();
-         }
-         OSS_INLINE memoryBlock &getOriginalRecordBuffer()
-         {
-            return _originalRecord;
-         }
-         void setOverflowInfo(BOOLEAN isBigRecord,
-                              const recordID &addr)
-         {
-            _overflow = TRUE;
-            _bigRecord = isBigRecord;
-            _overflowAddr = addr;
-         }
-
          OSS_INLINE BOOLEAN isOverflow()const
          {
-            return _overflow;
+            return _target._overflow;
          }
          OSS_INLINE BOOLEAN isBigRecord()const
          {
-            return _bigRecord;
+            return _target._bigRecord;
          }
 
          OSS_INLINE const recordID &getOverflowAddr()const
          {
-            return _overflowAddr;
+            return _target._overflowAddr;
          }
+
+         void modifyDone();
+
+         slice getTargetRecord()const;
+
+         /// mb will no longer be valid
+         void adoptRecordBuffer(memoryBlock &mb);
+
+         void setOverflowInfo(BOOLEAN isBigRecord,
+                              const recordID &addr);
+
       private:
-         IRecordUpdater *_updater = NULL;
-         memoryBlock _originalRecord;
-         BOOLEAN _overflow = FALSE;
-         BOOLEAN _bigRecord = FALSE;
-         recordID _overflowAddr;
+         _targetInfo _target;
          
-   };//class updateContext
+   };//class modifyRecordContext
 } // namespace vessel
 
 } // namespace engine
 
 
-#endif//VESSE_UPDATE_CONTEXT_H_
+#endif//VESSE_MODIFY_RECORD_CONTEXT_H_

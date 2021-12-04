@@ -237,6 +237,7 @@ namespace vessel
       _seq = INVALID_CL_PAGE_SEQ;
       _rid = recordID();
       _dmlLSN = DPS_INVALID_LSN_OFFSET;
+      _stripingId = INVALID_STRIPING_ID;
       return;
    }
 

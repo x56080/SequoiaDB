@@ -183,7 +183,7 @@ namespace vessel
       {
          SDB_ASSERT(DPS_INVALID_LSN_OFFSET != _head._opListLSN, "impossible");
       }
-      _head._length = ossAlign4(_originalLen);
+      _head._length = ossAlign4((UINT32)sizeof(dpsLogRecordHeader) + _originalLen);
       return;
    }
 

@@ -55,78 +55,52 @@ namespace vessel
       return;
    }
 
-   INT32 buildingIndexContext::insert(BOOLEAN enforce,
-                                      const scanEntry &entry,
-                                      PAGE_ID lpid,
-                                      DPS_LSN_OFFSET lsn,
-                                      const DPS_TRANS_ID &transID,
-                                      const ossPoolList<bson::BSONObj> &keys,
-                                      BOOLEAN &refused)
-   {
-      return merge(enforce, entry, lpid, lsn, transID, &keys, NULL, refused);
-   }
-
-   INT32 buildingIndexContext::update(BOOLEAN enforce,
-                                       const scanEntry &entry,
-                                       PAGE_ID lpid,
-                                       DPS_LSN_OFFSET lsn,
-                                       const DPS_TRANS_ID &transID,
-                                       const ossPoolList<bson::BSONObj> &oldKeys,
-                                       const ossPoolList<bson::BSONObj> &newKeys,
-                                       BOOLEAN &refused)
-   {
-      return merge(enforce, entry, lpid, lsn, transID, &oldKeys, &newKeys, refused);
-   }
-
-   INT32 buildingIndexContext::remove(BOOLEAN enforce,
-                                       const scanEntry &entry,
-                                       PAGE_ID lpid,
-                                       DPS_LSN_OFFSET lsn,
-                                       const DPS_TRANS_ID &transID,
-                                       const ossPoolList<bson::BSONObj> &keys,
-                                       BOOLEAN &refused)
-   {
-      return merge(enforce, entry, lpid, lsn, transID, NULL, &keys, refused);
-   }
-
-   INT32 buildingIndexContext::merge(BOOLEAN enforce,
-                                     const scanEntry &entry,
-                                     PAGE_ID lpid,
-                                     DPS_LSN_OFFSET lsn,
-                                     const DPS_TRANS_ID &transID,
-                                     const ossPoolList<bson::BSONObj> *inserting,
-                                     const ossPoolList<bson::BSONObj> *discarded,
-                                     BOOLEAN &refused)
+   INT32 buildingIndexContext::merge(dmlContext *context,
+                                     dmlIndexRequest *ir)
    {
       INT32 rc = SDB_OK;
       INT32 buildingRes = 0;
       indexMergingRecord *mr = NULL;
       ossXLatchGuard guard(&_latch, FALSE);
 
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
-                       DPS_INVALID_LSN_OFFSET == lsn ||
-                       (NULL == inserting && NULL == discarded)))
+      scanEntry entry;
+      recordID rid;
+      DPS_TRANS_ID transID;
+      BOOLEAN isUniqueIndex = FALSE;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       NULL == ir ||
+                       !ir->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      SDB_ASSERT(!ir->isExecuted(), "already been executed");
+      rid = context->getRid();
+      entry = context->getScanEntry();
+      if (!rid.isValid())
+      {
+         PD_LOG(PDERROR, "dml rid not set");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      isUniqueIndex = ir->getContext()->getObj().getParams().isUnique;
+
       guard.lock();
 
       buildingRes = getEntryBuildingStatus(entry);
-      if (buildingRes < 0)
+      if (0 < buildingRes)
       {
-         if (!enforce)
-         {
-            refused = TRUE;
-            goto done;
-         }
-      }
-      else if (0 < buildingRes)
-      {
-         /// /// not builded yet, pretend to be pushed.
+         /// not builded yet, pretend to be pushed.
+         ir->setExecuted();
          goto done;
       }
+      else if (buildingRes < 0 && !isUniqueIndex)
+      {
+         goto done;
+      }
+       
 
       /// building or (enforce && builded)
       mr = SDB_OSS_NEW indexMergingRecord();
@@ -138,28 +112,25 @@ namespace vessel
       }
 
       mr->entry = entry;
-      mr->lpid = lpid;
-      mr->lsn = lsn;
+      mr->lpid = rid.getPageID();
+      mr->lsn = context->getDmlLSN();
       mr->transID = transID;
-      if (NULL != inserting)
+      
+      
+      for (ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToInsert().begin();
+           itr != ir->getKeysToInsert().end(); ++itr)
       {
-         ossPoolList<bson::BSONObj>::const_iterator itr = inserting->begin();
-         for (; itr != inserting->end(); ++itr)
-         {
-            /// Can not use getOwned to save keys here.
-            /// We do not know when key obj released by user thread.
-            mr->inserting.push_back(itr->copy());
-         }
+         /// Can not use getOwned to save keys here.
+         /// We do not know when key obj released by user thread.
+         mr->inserting.push_back(itr->copy());
       }
-      if (NULL != discarded)
+      
+      for (ossPoolList<bson::BSONObj>::const_iterator itr = ir->getKeysToRemove().begin();
+           itr != ir->getKeysToRemove().end(); ++itr)
       {
-         ossPoolList<bson::BSONObj>::const_iterator itr = discarded->begin();
-         for (; itr != discarded->end(); ++itr)
-         {
-            /// Can not use getOwned to save keys here.
-            /// We do not know when key obj released by user thread.
-            mr->discarded.push_back(itr->copy());
-         }
+         /// Can not use getOwned to save keys here.
+         /// We do not know when key obj released by user thread.
+         mr->discarded.push_back(itr->copy());
       }
 
       _mrl.rl.push_back(mr);
@@ -173,14 +144,17 @@ namespace vessel
    {
       if (entry < _low)
       {
+         ///already scanned
          return -1;
       }
       else if(entry < _high)
       {
+         /// scanning
          return 0;
       }
       else
       {
+         /// not scanned yet
          return 1;
       }
    }

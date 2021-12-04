@@ -83,7 +83,7 @@ namespace vessel
       UINT16 minStriping = INVALID_STRIPING_ID;
       UINT16 maxStriping = INVALID_STRIPING_ID;
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
-      CHAR pad[32] = {};
+      CHAR pad[16] = {};
    };//struct recordDataPageHead
    constexpr UINT32 RECORD_PAGE_HEAD_SIZE = sizeof(recordDataPageHead);
 
@@ -91,7 +91,7 @@ namespace vessel
    constexpr UINT16 RDP_SLOT_FLAG_INVISIBLE = 0x02;
    constexpr UINT16 RDP_SLOT_FLAG_OVERFLOW = 0x04;
    constexpr UINT16 RDP_SLOT_FLAG_TOMBSTONE = 0x08;
-   constexpr UINT16 RDP_SLOT_FLAG_BIG_RECORD = 0x10;
+   constexpr UINT16 RDP_SLOT_FLAG_BIG_RECORD = 0x10; /// overflow in the mean time
 
    constexpr UINT8 RDP_RECORD_HEAD_TYPE_INVALID = 0;
    constexpr UINT8 RDP_RECORD_HEAD_TYPE_NORMAL = 1;
@@ -179,6 +179,15 @@ namespace vessel
       {
          return 0 != OSS_BIT_TEST(flags, RDP_SLOT_FLAG_BIG_RECORD);
       }
+      OSS_INLINE BOOLEAN isNormalRecordHead()const
+      {
+         return RDP_RECORD_HEAD_TYPE_NORMAL == type;
+      }
+
+      static UINT32 trimReservedSize(UINT32 size)
+      {
+         return 0xFF < size ? 0xFF : size;
+      }
    
       public:
          UINT16 flags = 0;
@@ -221,6 +230,7 @@ namespace vessel
             format.v.v1 = 0;
             return;
          }
+
       public:
          union FORMAT
          {

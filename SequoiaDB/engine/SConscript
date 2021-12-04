@@ -962,6 +962,7 @@ vesselFiles = [
       "vessel/csgpAccessor.cpp",
       "vessel/requestContext.cpp",
       "vessel/insertContext.cpp",
+      "vessel/modifyRecordContext.cpp",
       "vessel/indexScanContext.cpp",
       "vessel/dmlContext.cpp",
       "vessel/collection.cpp",
@@ -1016,6 +1017,7 @@ vesselFiles = [
       "vessel/indexScanCursor.cpp",
       "vessel/btreeNodePageIniter.cpp",
       "vessel/outerResource.cpp",
+      "vessel/builtinRecordUpdater.cpp",
       "vessel/lsm/lsmDB.cpp",
       "vessel/lsm/lsmIdxKey.cpp",
       "vessel/lsm/lsmIndex.cpp",
@@ -1041,7 +1043,9 @@ vesselTestFiles = [
       "test/vessel/index_keygen_test.cpp",
       "test/vessel/index_scan_test.cpp",
       "test/vessel/index_write_test.cpp",
-      "test/vessel/lc_freelist_test.cpp"
+      "test/vessel/lc_freelist_test.cpp",
+      "test/vessel/update_test.cpp",
+      "test/vessel/dml_delete_test.cpp"
 ]
 
 # insert performance test

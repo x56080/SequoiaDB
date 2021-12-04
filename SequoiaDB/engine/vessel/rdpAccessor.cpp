@@ -40,8 +40,8 @@
 #include "dpsLogRecordDef.hpp"
 #include "vessel/fsmCandidate.h"
 #include "vessel/redoLogUtil.h"
-#include "vessel/updateContext.h"
 #include "vessel/requestContext.h"
+#include "vessel/modifyRecordContext.h"
 
 namespace engine
 {
@@ -54,8 +54,7 @@ namespace vessel
 
       _lpb = NULL;
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbInfoCached() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -83,7 +82,6 @@ namespace vessel
       const recordDataPageHead *head = NULL;
       RECORD_SLOT_ID pos = INVALID_RECORD_SLOT_ID;
       UINT16 offset = 0;
-      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
       recordID rid;
       BOOLEAN ridLocked = FALSE;
 
@@ -287,7 +285,7 @@ namespace vessel
          ossMemset((void *)(recordPtr + RDP_RECORD_HEAD_SIZE + record.getSize()),
                    0, rs.reserved);
       }
-      updatePageHeadWhenInsert(pos, rs, rh, context->getStriping());
+      updatePageHeadWhenInsert(pos, rs, rh, context->getRecordStripingId());
 
       rid.setPageID(_lpb->getLogicalPid());
       rid.setSlotID(pos);
@@ -342,6 +340,7 @@ namespace vessel
       SDB_ASSERT(ossIsAligned4(backOffset), "impossible");
       INT32 freeSize = backOffset - frontOffset;
       INT32 reservedSize = 0;
+      INT32 totalSize = 0;
       
       FLOAT32 totalFreePercent = 0.0;
 
@@ -357,15 +356,18 @@ namespace vessel
          goto done;
       }
 
-      reservedSize = (INT32)ossAlign4(size + ((UINT32)(recordSize * minFreePercent) & 0xFF));
-      if (freeSize < reservedSize)
+      reservedSize = recordSize * minFreePercent;
+      reservedSize = recordSlot::trimReservedSize(reservedSize);
+      totalSize = (INT32)ossAlign4(size + (UINT32)reservedSize);
+      if (freeSize < totalSize)
       {
-         reservedSize = freeSize;
+         totalSize = freeSize;
       }
 
       pos = (INVALID_RECORD_SLOT_ID == head->firstFreeSlot) ?
             head->totalSlotCount : head->firstFreeSlot;
-      offset = (UINT16)(backOffset - reservedSize);
+      SDB_ASSERT(totalSize < backOffset, "impossible");
+      offset = (UINT16)(backOffset - totalSize);
       SDB_ASSERT(0 == (offset & 0x03), "must be aligned");
       r = TRUE;
 
@@ -425,10 +427,10 @@ namespace vessel
 
       updateStripingInfo(head, striping);
 
-      updateMasTransSN(head, rh.format.normal.transSN);
+      updateMaxTransSN(head, rh.format.normal.transSN);
    }
 
-   void rdpAccessor::updateMasTransSN(recordDataPageHead *head,
+   void rdpAccessor::updateMaxTransSN(recordDataPageHead *head,
                                       UINT64 transSN)
    {
       SDB_ASSERT(NULL != head, "can not be null");
@@ -501,9 +503,75 @@ namespace vessel
       lrc->prepush(RECORD_PAGE_HEAD_SIZE);
       lrc->prepush(RDP_RSLOT_SIZE);
       lrc->prepush(recordHeadAndBodySize);
-      if (INVALID_STRIPING_ID != context->getStriping())
+      if (INVALID_STRIPING_ID != context->getRecordStripingId())
       { 
          lrc->prepush(sizeof(UINT16));
+      }
+
+      rc = pageAccessor::prepareLogDone(context, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::prepareInplaceUpdateLog(modifyRecordContext *context,
+                                              const runtimePageBuffer *rpb,
+                                              logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 fullNameSize = 0;
+      rc = pageAccessor::prepareLog(context, rpb,
+                                    LOG_TYPE_DATA_UPDATE,
+                                    FALSE, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         goto error;
+      }
+
+      SDB_ASSERT(!context->getCSName().empty(), "can not be empty");
+      SDB_ASSERT(!context->getCLName().empty(), "can not be empty");
+      fullNameSize = context->getCSName().strLen() +
+                     context->getCLName().strLen() + 2;
+
+      lrc->prepush(fullNameSize);
+      if (0 < context->getUniqueKeyHashSize())
+      {
+         lrc->prepush(context->getUniqueKeyHashSize() << 2);
+      }
+
+
+      rc = pageAccessor::prepareLogDone(context, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log done:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::prepareDeleteLog(modifyRecordContext *context,
+                                       const runtimePageBuffer *rpb,
+                                       logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 fullNameSize = 0;
+      rc = pageAccessor::prepareLog(context, rpb,
+                                    LOG_TYPE_DATA_DELETE,
+                                    FALSE, lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare dps log:%d", rc);
+         goto error;
       }
 
       rc = pageAccessor::prepareLogDone(context, lrc);
@@ -626,9 +694,9 @@ namespace vessel
          goto error;
       }
 
-      if (INVALID_STRIPING_ID != context->getStriping())
+      if (INVALID_STRIPING_ID != context->getRecordStripingId())
       {
-         UINT16 striping = context->getStriping();
+         UINT16 striping = context->getRecordStripingId();
          rc = pageAccessor::pushElement(context,
                                         DPS_LOG_VESESL_RDP_INSERT_STRIPING,
                                         sizeof(UINT16),
@@ -651,12 +719,206 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::updateNormalRecord(updateContext *context)
+   INT32 rdpAccessor::updateNormalRecord(modifyRecordContext *context,
+                                         const slice &newRowData,
+                                         BOOLEAN &outOfSpace)
    {
       INT32 rc = SDB_OK;
+      const recordDataPageHead *head = NULL;
+      const recordSlot *rs = NULL;
+      recordID rid;
+
+      outOfSpace = FALSE;
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isMbInfoCached() ||
+                       !newRowData.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == _lpb))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_lpb->getLockingMode().isExclusiveOrUpgrade())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rid = context->getRid();
+      if (!rid.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isBigRecord(_lpb->getPageSize(), newRowData.getSize()))
+      {
+         PD_LOG(PDERROR, "new row size ouf of size:%d", newRowData.getSize());
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      SDB_ASSERT(rid.getPageID() == _lpb->getLogicalPid(), "must be same");
+
+      head = getReadablePageHead();
+      if (head->totalSlotCount <= rid.getSlotID())
+      {
+         PD_LOG(PDERROR, "pos[%d] out of total slot count[%d]",
+                rid.getSlotID(), head->totalSlotCount);
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rs = getReadableSlot(rid.getSlotID());
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         PD_LOG(PDERROR, "failed to get slot ptr[%d]", rid.getSlotID());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!rs->isValid() || rs->isTombstone())
+      {
+         PD_LOG(PDERROR, "pos[%d] not valid to be updated", rid.getSlotID());
+         rc = SDB_VESSEL_RECORD_NOT_FOUND;
+         goto error;
+      }
+      else if (rs->isOverflow() || !rs->isNormalRecordHead())
+      {
+         PD_LOG(PDERROR, "record at[%d] can not be update inplace", rid.getSlotID());
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      if ((newRowData.getSize() + RDP_RECORD_HEAD_SIZE) <= (rs->size + rs->reserved))
+      {
+         rc = inplaceUpdate(context, newRowData);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to inplace update record[%d], rc:%d", rid.getSlotID(), rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::inplaceUpdate(modifyRecordContext *context,
+                                    const slice &row)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(row.isValid(), "can not be invalid");
+
+      recordID rid = context->getRid();
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      RECORD_SLOT_ID pos = rid.getSlotID();
+
+      strictBuffer buffer;
+      recordSlot *rs = NULL;
+      recordHead *rh = NULL;
+      strictBuffer recordBuffer;
+      recordDataPageHead *head = NULL;
+      logRecordContext lrc;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      UINT32 totalSize = row.getSize() + RDP_RECORD_HEAD_SIZE;
+
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      head = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (head->totalSlotCount <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rs = getWritableSlot(buffer, pos);
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      SDB_ASSERT(rs->isValid() && rs->isNormalRecordHead(), "impossible");
+      SDB_ASSERT(!rs->isOverflow() && !rs->isTombstone(), "impossible");
+
+      if ((rs->size + rs->reserved) < totalSize)
+      {
+         PD_LOG(PDERROR, "record size[%d] out of valid range[%d]",
+                row.getSize(), rs->size + rs->reserved);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+
+      recordBuffer = buffer.getWritableBuffer(rs->size + rs->reserved, rs->offset);
+      rh = recordBuffer.getWritableObjPtr<recordHead>(0);
+      if (OSS_UNLIKELY(NULL == rh))
+      {
+         PD_LOG(PDERROR, "failed to get writable record header");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rh->format.normal.transSN = transID.getSN();
+      rh->format.normal.transNode = transID.getNodeID();
+      recordBuffer.write(RDP_RECORD_HEAD_SIZE, row.getSize(), row.getData());
+      if (totalSize < (UINT32)(rs->size))
+      {
+         UINT32 delta = (UINT32)(rs->size) - totalSize;
+         UINT32 reservedSize = rs->reserved;
+         reservedSize += delta;
+         rs->size -= delta;
+         rs->reserved = recordSlot::trimReservedSize(reservedSize);
+         head->totalFreeSpace += delta;
+      }
+      else if (totalSize > (UINT32)(rs->size))
+      {
+         UINT32 delta =  totalSize - (UINT32)(rs->size);
+         rs->size += delta;
+         rs->reserved -= delta;
+         head->totalFreeSpace -= delta;
+      }
+
+      updateStripingInfo(head, context->getRecordStripingId());
+      updateMaxTransSN(head, transID.getSN());
+
+      ///dummy log
+      rc = prepareInplaceUpdateLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      _lpb->commit(lrc.getLsn());
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
       goto done;
    }
 
@@ -818,6 +1080,173 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   recordSlot *rdpAccessor::getWritableSlot(strictBuffer &buffer,
+                                            RECORD_SLOT_ID pos)
+   {
+      SDB_ASSERT(buffer.isWritable(), "must be writable");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      return buffer.getWritableObjPtr<recordSlot>(RECORD_PAGE_HEAD_SIZE +
+                                                  (pos * RDP_RSLOT_SIZE));
+
+   }
+
+   INT32 rdpAccessor::deleteRecord(modifyRecordContext *context)
+   {
+      INT32 rc = SDB_OK;
+      recordID rid;
+      const recordSlot *rs = NULL;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isMbInfoCached() ||
+                       !context->getRid().isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == _lpb))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (!_lpb->getLockingMode().isExclusiveOrUpgrade())
+      {
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+         goto error;
+      }
+
+      rid = context->getRid();
+      SDB_ASSERT(rid.getPageID() == _lpb->getLogicalPid(), "must be same");
+
+      if (getTotalSlotCount() <= rid.getSlotID())
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rs = getReadableSlot(rid.getSlotID());
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         PD_LOG(PDERROR, "failed to get slot ptr[%d]", rid.getSlotID());
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (!rs->isValid() || rs->isTombstone() || !rs->isNormalRecordHead())
+      {
+         PD_LOG(PDERROR, "pos[%d] not valid to be delete", rid.getSlotID());
+         rc = SDB_VESSEL_RECORD_NOT_FOUND;
+         goto error;
+      }
+
+      rc = createTombstone(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to delete record[%d], rc:%d", rid.getSlotID());
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::createTombstone(modifyRecordContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _lpb, "can not be null");
+
+      recordID rid = context->getRid();
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      RECORD_SLOT_ID pos = rid.getSlotID();
+
+      strictBuffer buffer, recordBuffer;
+      recordSlot *rs = NULL;
+      recordDataPageHead *head = NULL;
+      recordHead *rh = NULL;
+      logRecordContext lrc;
+      DPS_TRANS_ID transID = context->getTransIDWithoutTag();
+      UINT32 size = 0;
+      
+      rc = _lpb->autoGetWritableBodyBuffer(buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      head = buffer.getWritableObjPtr<recordDataPageHead>(0);
+      if (head->totalSlotCount <= pos)
+      {
+         rc = SDB_OUT_OF_BOUND;
+         goto error;
+      }
+
+      rs = getWritableSlot(buffer, pos);
+      if (OSS_UNLIKELY(NULL == rs))
+      {
+         PD_LOG(PDERROR, "failed to get writable slot[%d]", pos);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      SDB_ASSERT(rs->isValid() && rs->isNormalRecordHead(), "impossible");
+      SDB_ASSERT(!rs->isTombstone(), "impossible");
+
+      size = rs->size - RECORD_PAGE_HEAD_SIZE;
+
+      recordBuffer = buffer.getWritableBuffer(rs->size, rs->offset);
+      if (!recordBuffer.isWritable())
+      {
+         PD_LOG(PDERROR, "failed to get writable buffer[%d,%d]",
+                rs->size, rs->offset);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rh = recordBuffer.getWritableObjPtr<recordHead>(0);
+      if (OSS_UNLIKELY(NULL == rh))
+      {
+         PD_LOG(PDERROR, "failed to get writable record header");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rh->format.normal.transNode = transID.getNodeID();
+      rh->format.normal.transSN = transID.getSN();
+      rs->size = RDP_RECORD_HEAD_SIZE;
+      rs->reserved = 0;
+      rs->setTombstone();
+
+      --head->recordCount;
+      head->totalFreeSpace += size;
+      updateMaxTransSN(head, transID.getSN());
+
+      rc = prepareDeleteLog(context, &(_lpb->getRuntimeBuffer()), &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      rc = pageAccessor::commitLog(context, &lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      _lpb->commit(lrc.getLsn());
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         pageAccessor::abortLog(context, &lrc);
+      }
       goto done;
    }
 }//namespace vessel

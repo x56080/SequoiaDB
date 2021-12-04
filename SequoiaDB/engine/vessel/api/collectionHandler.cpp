@@ -263,5 +263,63 @@ namespace vessel
       SAFE_OSS_DELETE(kernal);
       goto done;
    }
+
+   INT32 collectionHandler::updateRecord(IExecutor *executor,
+                                         const recordID &rid,
+                                         IRecordUpdater *updater,
+                                         utilUpdateResult *res)
+   {
+      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == executor ||
+               !rid.isValid() ||
+               NULL == updater)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->update(executor, _gcid, rid, updater, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionHandler::deleteRecord(IExecutor *executor,
+                                         const recordID &rid,
+                                         utilDeleteResult *res)
+   {
+      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == executor ||
+               !rid.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _db->remove(executor, _gcid, rid, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

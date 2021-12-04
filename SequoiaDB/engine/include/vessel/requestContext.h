@@ -155,6 +155,11 @@ namespace vessel
                           utilCLInnerID innerId,
                           const CHAR *name);
 
+         OSS_INLINE BOOLEAN isMbInfoCached()const
+         {
+            return DMS_INVALID_LOGICCLID != _clContext.lid;
+         }
+
          OSS_INLINE UINT32 getLogicalCLID()const
          {
             return _clContext.lid;

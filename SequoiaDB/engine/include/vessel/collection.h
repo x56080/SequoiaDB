@@ -51,12 +51,13 @@
 #include "vessel/indexContextMap.h"
 #include "vessel/dmlIndexRequest.h"
 #include "vessel/btreeRebuildingSortElement.h"
-#include "vessel/updateContext.h"
+#include "vessel/modifyRecordContext.h"
 #include "vessel/shallowPointer.hpp"
 
 namespace engine
 {
    class _dpsLogRecord;
+   class IRecordUpdater;
 
 namespace vessel
 {
@@ -148,8 +149,12 @@ namespace vessel
          INT32 insert(insertContext *context,
                       utilInsertResult *res);
 
-         INT32 update(updateContext *context,
+         INT32 update(modifyRecordContext *context,
+                      IRecordUpdater *updater,
                       utilUpdateResult *res);
+
+         INT32 remove(modifyRecordContext *context,
+                      utilDeleteResult *res);
 
       private:
          INT32 testIndex(requestContext *context,
@@ -168,8 +173,12 @@ namespace vessel
                                      const slice &record,
                                      dmlIndexRequestArray &requests)const;
 
-         INT32 buildUpdateIndexRequests(updateContext *context,
+         INT32 buildUpdateIndexRequests(modifyRecordContext *context,
+                                        IRecordUpdater *updater,
                                         dmlIndexRequestArray &ra);
+
+         INT32 buildRemoveIndexRequest(modifyRecordContext *context,
+                                       dmlIndexRequestArray &ra);
 
          INT32 constraintCheck(dmlContext *context,
                                const dmlIndexRequestArray &ra,
@@ -179,10 +188,10 @@ namespace vessel
          INT32 insertIndexRequests(dmlContext *context,
                                    const dmlIndexRequestArray &ra);
 
-         INT32 insertNewKeysToBuildingContext(dmlContext *context,
-                                              dmlIndexRequestArray &ra);
+         INT32 mergeIntoBuildingContext(dmlContext *context,
+                                        dmlIndexRequestArray &ra);
 
-         INT32 lockAndFetchRecordToModify(updateContext *context);
+         INT32 lockAndFetchRecordToModify(modifyRecordContext *context);
 
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
@@ -216,9 +225,16 @@ namespace vessel
 
          INT32 insertNonBigRecordToPage(insertContext *context,
                                         PAGE_ID lpid);
-                                 
-      private:
-         INT32 launchUpdate(updateContext *context);
+
+         INT32 updateRecordData(modifyRecordContext *context,
+                                const slice &newRecord);
+
+         INT32 updateNormalRecord(modifyRecordContext *context,
+                                  const slice &newRecord);
+
+         INT32 removeRecordData(modifyRecordContext *context);
+
+         INT32 removeNormalRecord(modifyRecordContext *context);
 
       private:
          INT32 findCandidate(requestContext *context,

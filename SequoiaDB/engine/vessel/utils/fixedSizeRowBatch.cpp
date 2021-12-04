@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.cpp
+   Source File Name = fixedSizeBatch.cpp
 
    Descriptive Name =
 
@@ -32,33 +32,3 @@
    Last Changed =
 
 ******************************************************************************/
-
-#include "vessel/insertContext.h"
-
-namespace engine
-{
-namespace vessel
-{
-   void insertContext::close()
-   {
-      fini();
-      dmlContext::close();
-   }
-
-   void insertContext::fini()
-   {
-      _options = insertOptions();
-      _originalRecord.reset();
-      _candidate.reset();
-      _keepRidLocked = FALSE;
-      _minFreePercent = 0.0;
-   }
-
-   void insertContext::insertDone()
-   {
-      dmlContext::clearDmlHistroy();
-      fini();
-   }
-
-}//namespace vessel
-}//namespace engine

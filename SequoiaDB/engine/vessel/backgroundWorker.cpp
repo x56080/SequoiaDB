@@ -81,7 +81,7 @@ namespace vessel
          SDB_ASSERT(backgroundEvent::EVENT_TYPE_INVALID != event.getType(), "impossible");
          if (event.isQuitEvent())
          {
-            PD_LOG(PDINFO, "get quit event, exit");
+            PD_LOG(PDDEBUG, "get quit event, exit");
             goto done;
          }
 

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.cpp
+   Source File Name = updateContext.cpp
 
    Descriptive Name =
 
@@ -33,32 +33,44 @@
 
 ******************************************************************************/
 
-#include "vessel/insertContext.h"
+#include "vessel/modifyRecordContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void insertContext::close()
-   {
-      fini();
-      dmlContext::close();
-   }
-
-   void insertContext::fini()
-   {
-      _options = insertOptions();
-      _originalRecord.reset();
-      _candidate.reset();
-      _keepRidLocked = FALSE;
-      _minFreePercent = 0.0;
-   }
-
-   void insertContext::insertDone()
+   void modifyRecordContext::modifyDone()
    {
       dmlContext::clearDmlHistroy();
-      fini();
+      _target._recordBuffer.release();
+      _target._transID = DPS_TRANS_ID();
+      _target._overflow = FALSE;
+      _target._bigRecord = FALSE;
+      _target._overflowAddr = recordID();
    }
 
-}//namespace vessel
-}//namespace engine
+   slice modifyRecordContext::getTargetRecord()const
+   {
+      SDB_ASSERT(!_target._recordBuffer.isEmpty(), "can not be empty");
+      return slice(_target._recordBuffer.getSize(),
+                   _target._recordBuffer.getBuffer());
+   }
+
+   void modifyRecordContext::setOverflowInfo(BOOLEAN isBigRecord,
+                                             const recordID &addr)
+   {
+      SDB_ASSERT(addr.isValid(), "can not be invalid");
+      _target._overflow = TRUE;
+      _target._bigRecord = isBigRecord;
+      _target._overflowAddr = addr;
+      return;
+   }
+
+   void modifyRecordContext::adoptRecordBuffer(memoryBlock &mb)
+   {
+      SDB_ASSERT(!mb.isEmpty(), "can not be invalid");
+      _target._recordBuffer = std::move(mb);
+   }
+} // namespace vessel
+
+} // namespace engine

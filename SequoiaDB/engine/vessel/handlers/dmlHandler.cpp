@@ -40,7 +40,7 @@
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/insertOptions.h"
 #include "vessel/insertContext.h"
-#include "vessel/updateContext.h"
+#include "vessel/modifyRecordContext.h"
 
 namespace engine
 {
@@ -97,7 +97,7 @@ namespace vessel
       }
 
       context.setOptions(options);
-      context.setStriping(striping);
+      context.setRecordStripingId(striping);
       context.setOriginalRecord(record);
 
       rc = cl->insert(&context, res);
@@ -206,7 +206,7 @@ namespace vessel
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
-      updateContext context;
+      modifyRecordContext context;
       COLLECTION_PTR cl;
 
       if (NULL != res)
@@ -235,9 +235,54 @@ namespace vessel
       }
 
       context.setRid(rid);
-      context.reset(updater);
 
-      rc = cl->update(&context, res);
+      rc = cl->update(&context, updater, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      context.close();
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 dmlHandler::remove(const globalCollectionId &gcid,
+                            const recordID &rid,
+                            utilDeleteResult *res)
+   {
+      INT32 rc = SDB_OK;
+      modifyRecordContext context;
+      COLLECTION_PTR cl;
+
+      if (NULL != res)
+      {
+         res->reset();
+      }
+
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!gcid.isValid() ||
+                            !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      context.open(getExecutor(), getEnv(), getOuterResource());
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      context.setRid(rid);
+
+      rc = cl->remove(&context, res);
       if (SDB_OK != rc)
       {
          goto error;

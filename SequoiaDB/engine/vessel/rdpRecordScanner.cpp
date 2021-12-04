@@ -256,6 +256,7 @@ namespace vessel
                   slot.isTombstone())
          {
             ++pos;
+            slot.reset();
             continue;
          }
          else if (DPS_INVALID_LSN_OFFSET != minFileLsn &&
