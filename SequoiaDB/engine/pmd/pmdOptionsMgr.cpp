@@ -1977,6 +1977,9 @@ done:
 
       _transReplSize = -1 ;
       _transRCCount = DPS_TRANS_RCCOUNT_DFT ;
+      _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
+      _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
+      _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2460,6 +2463,23 @@ done:
       rdxBooleanS( pEX, PMD_OPTION_TRANS_RCCOUNT, _transRCCount, FALSE,
                    PMD_CFG_CHANGE_RUN, DPS_TRANS_RCCOUNT_DFT, FALSE ) ;
 
+      // --transallowlockescalation
+      rdxBooleanS( pEX, PMD_OPTION_TRANSALLOWLOCKESCALATION,
+                   _transAllowLockEscalation, FALSE, PMD_CFG_CHANGE_RUN,
+                   DPS_TRANS_ALLOWLOCKESCALATION_DFT, FALSE ) ;
+
+      // --transmaxlocknum
+      rdxInt( pEX, PMD_OPTION_TRANSMAXLOCKNUM, _transMaxLockNum, FALSE,
+              PMD_CFG_CHANGE_RUN, DPS_TRANS_MAXLOCKNUM_DFT, FALSE ) ;
+      rdvMinMax( pEX, _transMaxLockNum, DPS_TRANS_MAXLOCKNUM_MIN,
+                 DPS_TRANS_MAXLOCKNUM_MAX ) ;
+
+      // --transmaxlogspaceratio
+      rdxInt( pEX, PMD_OPTION_TRANSMAXLOGSPACERATIO, _transMaxLogSpaceRatio,
+              FALSE, PMD_CFG_CHANGE_RUN, DPS_TRANS_MAXLOGSPACERATIO_DFT, FALSE ) ;
+      rdvMinMax( pEX, _transMaxLogSpaceRatio, DPS_TRANS_MAXLOGSPACERATIO_MIN,
+                 DPS_TRANS_MAXLOGSPACERATIO_MAX ) ;
+
       // --monslowquerythreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWQUERY_THRESHOLD, _slowQueryThreshold, FALSE,
                PMD_CFG_CHANGE_RUN, 300, TRUE ) ;
@@ -2889,6 +2909,9 @@ done:
       if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
       {
          _transactionOn = TRUE ;
+         _transAllowLockEscalation = TRUE ;
+         _transMaxLockNum = -1 ;
+         _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_MAX ;
       }
 
       if ( _transactionOn )

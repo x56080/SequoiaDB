@@ -782,6 +782,17 @@ namespace engine
       PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE );
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED, "dmsTransLockCallback::afterLockEscalated" )
+   void dmsTransLockCallback::afterLockEscalated( const dpsTransLockId &lockId,
+                                                  DPS_TRANSLOCK_OP_MODE_TYPE opMode )
+   {
+      PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED ) ;
+
+      _recordInfo._transLockEscalated = TRUE ;
+
+      PD_TRACE_EXIT( SDB_DMSTRANSLOCKCALLBACK_AFTERLOCKESCALATED ) ;
+   }
+
    // Description
    // Dependency: Caller must hold the mbLcok
    INT32 dmsTransLockCallback::saveOldVersionRecord( const _dmsRecordRW *pRecordRW,

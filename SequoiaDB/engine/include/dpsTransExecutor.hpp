@@ -84,7 +84,10 @@ namespace engine
          BOOLEAN              useRollbackSegment() const ;
          BOOLEAN              isTransAutoCommit() const ;
          BOOLEAN              isTransAutoRollback() const ;
-         BOOLEAN              isTransRCCount () const ;
+         BOOLEAN              isTransRCCount() const ;
+         BOOLEAN              isTransAllowLockEscalation() const ;
+         INT32                getTransMaxLockNum() const ;
+         INT32                getTransMaxLogSpaceRatio() const ;
 
          UINT32               getTransConfMask() const ;
          UINT32               getTransConfVer() const ;
@@ -103,6 +106,12 @@ namespace engine
                                                     BOOLEAN enableMask = TRUE ) ;
          void                 setTransRCCount ( BOOLEAN rcCount,
                                                 BOOLEAN enableMask = TRUE ) ;
+         void                 setTransAllowLockEscalation( BOOLEAN allow,
+                                                           BOOLEAN enableMask = TRUE ) ;
+         void                 setTransMaxLockNum( INT32 maxNum,
+                                                  BOOLEAN enableMask = TRUE ) ;
+         void                 setTransMaxLogSpaceRatio( INT32 maxRatio,
+                                                        BOOLEAN enableMask = TRUE ) ;
 
          void                 reset() ;
          void                 resetConfMask() ;
@@ -127,6 +136,16 @@ namespace engine
          BOOLEAN                 _transAutoRollback ;
 
          BOOLEAN                 _transRCCount ;
+
+         // whether allow lock escalation when exceeds limit of max record
+         // locks
+         BOOLEAN                 _transAllowLockEscalation ;
+
+         // Maximum number of record locks can be hold by a transaction
+         INT32                   _transMaxLockNum ;
+
+         // Maximum ratio of log space can be used by a transaction
+         INT32                   _transMaxLogSpaceRatio ;
 
          UINT32                  _transConfMask ;
          UINT32                  _transConfVer ;
@@ -316,10 +335,13 @@ namespace engine
                                           LOCKMGR_TYPE managerType ) ;
          void                 clearLock( LOCKMGR_TYPE managerType ) ;
 
-         void                 incLockCount( LOCKMGR_TYPE managerType ) ;
-         void                 decLockCount( LOCKMGR_TYPE managerType ) ;
+         void                 incLockCount( LOCKMGR_TYPE managerType,
+                                            BOOLEAN isLeafLevel ) ;
+         void                 decLockCount( LOCKMGR_TYPE managerType,
+                                            BOOLEAN isLeafLevel ) ;
          void                 clearLockCount( LOCKMGR_TYPE managerType ) ;
          UINT32               getLockCount( LOCKMGR_TYPE managerType ) const ;
+         UINT32               getLeafLockCount( LOCKMGR_TYPE managerType ) const ;
 
          BOOLEAN              hasLockWait() const { return _lockWaitStarted ; }
          void                 finishLockWait() ;
@@ -367,6 +389,28 @@ namespace engine
                                      UINT64 & totalRecords ) const ;
 
          UINT64   getReservedSpace() const ;
+         UINT64   getUsedSpace() const ;
+         UINT64   getLogSpace() const ;
+
+         INT32                checkLockEscalation( LOCKMGR_TYPE managerType,
+                                                   const dpsTransLockId &lockID,
+                                                   BOOLEAN &needEscalation ) ;
+
+         OSS_INLINE void      setLockEscalated( LOCKMGR_TYPE managerType,
+                                                BOOLEAN isEscalated )
+         {
+            _isLockEscalated[ managerType ] = isEscalated ;
+         }
+
+         OSS_INLINE BOOLEAN   isLockEscalated( LOCKMGR_TYPE managerType ) const
+         {
+            return _isLockEscalated[ managerType ] ;
+         }
+
+         OSS_INLINE void      resetLockEscalated( LOCKMGR_TYPE managerType )
+         {
+            _isLockEscalated[ managerType ] = FALSE ;
+         }
 
          // interface to get transaction ID
          OSS_INLINE DPS_TRANS_ID getTransID()
@@ -386,7 +430,11 @@ namespace engine
                                              BOOLEAN autoCommit,
                                              BOOLEAN autoRollback,
                                              BOOLEAN useRBS,
-                                             BOOLEAN rcCount ) ;
+                                             BOOLEAN rcCount,
+                                             BOOLEAN allowLockEscalation,
+                                             INT32 maxLockNum,
+                                             INT32 maxLogSpaceRatio,
+                                             UINT64 totalLogSpace ) ;
 
          BOOLEAN              updateTransConf( INT32 isolation,
                                                UINT32 timeout,
@@ -394,11 +442,25 @@ namespace engine
                                                BOOLEAN autoCommit,
                                                BOOLEAN autoRollback,
                                                BOOLEAN useRBS,
-                                               BOOLEAN rcCount ) ;
+                                               BOOLEAN rcCount,
+                                               BOOLEAN allowLockEscalation,
+                                               INT32 maxLockNum,
+                                               INT32 maxLogSpaceRatio,
+                                               UINT64 totalLogSpace ) ;
+
+         void                 copyTransConf( const dpsTransConfItem &conf,
+                                             UINT64 totalLogSpace ) ;
+         void                 updateTransConfByMask( const dpsTransConfItem &conf,
+                                                     UINT64 totalLogSpace ) ;
 
          void     addReservedSpace( const UINT64 len ) ;
+         void     decReservedSpace( const UINT64 len ) ;
+         void     addUsedSpace( const UINT64 len ) ;
 
          void     resetLogSpace() ;
+
+         INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const ;
+         void     updateMaxLogSpace( UINT64 totalLogSpace ) ;
 
          void _initMBStat ( utilCLUniqueID clUniqueID,
                             ossAtomic64 * totalRecords,
@@ -424,6 +486,8 @@ namespace engine
          ossSpinXLatch           _mapMutex ;
          DPS_LOCKID_MAP          _mapCSCLLockID[ LOCKMGR_TYPE_MAX ] ;
          UINT32                  _lockCount[ LOCKMGR_TYPE_MAX ] ;
+         UINT32                  _leafLockCount[ LOCKMGR_TYPE_MAX ] ;
+         BOOLEAN                 _isLockEscalated[ LOCKMGR_TYPE_MAX ] ;
 
          ossSpinSLatch           _accessingLRBMutex ;
          // LOCKMGR_TRANS_LOCK
@@ -441,6 +505,8 @@ namespace engine
          BOOLEAN                 _useTransLock ;
          // undo LR space reserved by this transaction
          UINT64                  _reservedLogSpace ;
+         UINT64                  _usedLogSpace ;
+         UINT64                  _maxLogSpace ;
 
          monMonitorManager      *_monMgr ;
          monClassLock           *_monLock ;

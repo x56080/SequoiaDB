@@ -3002,5 +3002,21 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_DPS_TRANS_LOCK_UP_TO_LIMIT</name>
+         <description>
+            <en>Transaction has acquired too many record locks</en>
+            <cn>事务持记录锁达到上限</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_DPS_TRANS_LOG_SPACE_UP_TO_LIMIT</name>
+         <description>
+            <en>Transaction has occupied too much log space</en>
+            <cn>事务使用的日志空间达到上限</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

@@ -246,7 +246,7 @@ namespace engine
 
    void _coordSessionPropSite::_updateTransConf( const _dpsTransConfItem *pTransConf )
    {
-      _pEDUCB->getTransExecutor()->updateByMask( *pTransConf ) ;
+      _pEDUCB->updateTransConfByMask( *pTransConf ) ;
    }
 
    void _coordSessionPropSite::_updateSource( const CHAR *pSource )

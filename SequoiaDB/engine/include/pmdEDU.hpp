@@ -483,6 +483,9 @@ namespace engine
 
       ossEvent & getEvent () { return _event ; }
 
+      void        updateTransConfByMask( const dpsTransConfItem &conf ) ;
+      void        copyTransConf( const dpsTransConfItem &conf ) ;
+
       UINT64 getCurRequestID() const { return _curRequestID ; }
       // WANRING: no lock protect, only called by eduCB thread itself
       UINT64 incCurRequestID() { return ++_curRequestID ; }
@@ -528,6 +531,16 @@ namespace engine
          _transExecutor.addReservedSpace( len ) ;
       }
 
+      void     decReservedSpace( const UINT64 len )
+      {
+         _transExecutor.decReservedSpace( len ) ;
+      }
+
+      void     addUsedSpace( const UINT64 len )
+      {
+         _transExecutor.addUsedSpace( len ) ;
+      }
+
       UINT64   getReservedSpace() const
       {
          return _transExecutor.getReservedSpace();
@@ -540,6 +553,11 @@ namespace engine
 
       void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
       INT16    getOrgReplSize() const { return _orgReplSize ; }
+
+      INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const
+      {
+         return _transExecutor.checkLogSpace( usedLen, reservedLen ) ;
+      }
    #endif // SDB_ENGINE
 
    protected:

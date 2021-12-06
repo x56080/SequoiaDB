@@ -291,8 +291,7 @@ namespace engine
       sdbGetPMDController()->registerNet( pNetFrame,
                                           MSG_ROUTE_REPL_SERVICE ) ;
 
-      _totalLogSize = (UINT64)pmdGetOptionCB()->getReplLogFileSz()*
-                      (UINT64)pmdGetOptionCB()->getReplLogFileNum() ;
+      _totalLogSize = pmdGetOptionCB()->getTotalLogSpace() ;
       // init sync control param
       {
          UINT32 rate = 2 ;

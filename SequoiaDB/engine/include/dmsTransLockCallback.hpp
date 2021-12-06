@@ -109,6 +109,9 @@ namespace engine
                                       const dpsTransLRBHeader *pLRBHeader,
                                       dpsLRBExtData *pExtData ) ;
 
+      virtual void afterLockEscalated( const dpsTransLockId &lockId,
+                                       DPS_TRANSLOCK_OP_MODE_TYPE opMode ) ;
+
    public:
       virtual void  onCSClosed( INT32 csID ) ;
       virtual void  onCLTruncated( INT32 csID, UINT16 clID ) ;

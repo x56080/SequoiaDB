@@ -73,31 +73,37 @@ namespace engine
    #define   DPS_TRANSLOCK_IS  ((UINT8)0)
    #define   DPS_TRANSLOCK_IX  ((UINT8)1)
    #define   DPS_TRANSLOCK_S   ((UINT8)2)
-   #define   DPS_TRANSLOCK_U   ((UINT8)3)
-   #define   DPS_TRANSLOCK_X   ((UINT8)4)
-   #define   DPS_TRANSLOCK_MAX ((UINT8)( DPS_TRANSLOCK_X + 1 ))
+   #define   DPS_TRANSLOCK_SIX ((UINT8)3)
+   #define   DPS_TRANSLOCK_U   ((UINT8)4)
+   #define   DPS_TRANSLOCK_X   ((UINT8)5)
+   #define   DPS_TRANSLOCK_Z   ((UINT8)6)
+   #define   DPS_TRANSLOCK_MAX ((UINT8)( DPS_TRANSLOCK_Z + 1 ))
 
    //
    // Lock compatibilities
    //
-   //                   State of Held
-   // -------------------------------------------
-   // State          IS    IX    S     U     X
+   //                            State of Held
+   // -------------------------------------------------------
+   // State          IS    IX    S     SIX   U     X     Z
    // Being
    // requested
-   // -------------------------------------------
-   // IS             Y     Y     Y     Y     N
-   // IX             Y     Y     N     N     N
-   // S              Y     N     Y     Y     N
-   // U              Y     N     Y     N     N
-   // X              N     N     N     N     N
+   // -------------------------------------------------------
+   // IS             Y     Y     Y     Y     Y     N     N
+   // IX             Y     Y     N     N     N     N     N
+   // S              Y     N     Y     N     Y     N     N
+   // SIX            Y     N     N     N     N     N     N
+   // U              Y     N     Y     N     N     N     N
+   // X              N     N     N     N     N     N     N
+   // Z              N     N     N     N     N     N     N
    static const UINT8 _LockCompatibilityMatrix[DPS_TRANSLOCK_MAX]
                                               [DPS_TRANSLOCK_MAX] =
-     {{ 1,  1,  1,  1,  0 },
-      { 1,  1,  0,  0,  0 },
-      { 1,  0,  1,  1,  0 },
-      { 1,  0,  1,  0,  0 },
-      { 0,  0,  0,  0,  0 }} ;
+     {{ 1,  1,  1,  1,  1,  0,  0 },
+      { 1,  1,  0,  0,  0,  0,  0 },
+      { 1,  0,  1,  0,  1,  0,  0 },
+      { 1,  0,  0,  0,  0,  0,  0 },
+      { 1,  0,  1,  0,  0,  0,  0 },
+      { 0,  0,  0,  0,  0,  0,  0 },
+      { 0,  0,  0,  0,  0,  0,  0 } } ;
    OSS_INLINE BOOLEAN dpsIsLockCompatible
    (
       const DPS_TRANSLOCK_TYPE current,
@@ -113,40 +119,60 @@ namespace engine
    //
    //  lock upgrade check
    //
+   // x: upgrade is not allowed or needed
+   // v: upgrade is needed
+   //
    // request     current mode
-   // mode      IS   IX   S    U    X
-   // --------------------------------
-   // IS        x    x    x    x    x     x: upgrade is not allowed or needed
-   // IX        v    x    x    x    x     v: upgrade is needed
-   // S         v    x    x    x    x
-   // U         x    x    v    x    x
-   // X         x    x    v    v    x
+   // mode      IS   IX   S    SIX  U    X    Z
+   // ------------------------------------------
+   // IS        x    x    x    x    x    x    x
+   // IX        v    x    x    x    x    x    x
+   // S         v    x    x    x    x    x    x
+   // SIX       v    v    v    x    x    x    x
+   // U         v    x    v    x    x    x    x
+   // X         v    v    v    v    v    x    x
+   // Z         x    x    x    x    x    x    x
    //
    // Valid upgrade :
    //     IS --> IX
    //     IS --> S
+   //     IS --> SIX
+   //     IS --> U
+   //     IX --> X
+   //     IX --> SIX
    //      S --> X
    //      S --> U
+   //    SIX --> X
    //      U --> X
-   // Why IS or IX can't upgrade to X ?
-   //   when IUD, IX lock is applied on collection; if later drop collection is
-   //   allowed( X lock on collection ), then no way to rollback.
+   // WARNING: could not upgrade to Z
+   //   when IUD, IX lock or X lock after lock escalation is applied on
+   //   collection; if later drop collection is allowed( Z lock on collection ),
+   //   then no way to rollback.
    static const UINT8 _LockUpgradeCheckMatrix[DPS_TRANSLOCK_MAX]
                                              [DPS_TRANSLOCK_MAX]=
-     {{ 0, 0, 0, 0, 0 },
-      { 1, 0, 0, 0, 0 },
-      { 1, 0, 0, 0, 0 },
-      { 0, 0, 1, 0, 0 },
-      { 0, 0, 1, 1, 0 }} ;
+     {{ 0, 0, 0, 0, 0, 0, 0 },
+      { 1, 0, 0, 0, 0, 0, 0 },
+      { 1, 0, 0, 0, 0, 0, 0 },
+      { 1, 1, 1, 0, 0, 0, 0 },
+      { 1, 0, 1, 0, 0, 0, 0 },
+      { 1, 1, 1, 1, 1, 0, 0 },
+      { 0, 0, 0, 0, 0, 0, 0 }} ;
    OSS_INLINE INT32 dpsUpgradeCheck
    (
       const DPS_TRANSLOCK_TYPE current,
-      const DPS_TRANSLOCK_TYPE request
+      DPS_TRANSLOCK_TYPE &request
    )
    {
       SDB_ASSERT( ( ( current < DPS_TRANSLOCK_MAX ) &&
                     ( request < DPS_TRANSLOCK_MAX ) ),
                   "Invalid arguments" ) ;
+      if ( ( DPS_TRANSLOCK_IX == current &&
+             DPS_TRANSLOCK_S == request ) ||
+           ( DPS_TRANSLOCK_S == current &&
+             DPS_TRANSLOCK_IX == request ) )
+      {
+         request = DPS_TRANSLOCK_SIX ;
+      }
       if ( _LockUpgradeCheckMatrix[request][current] )
       {
          return SDB_OK ;
@@ -157,23 +183,27 @@ namespace engine
 
    // Lock coverage
    //                   State of Held
-   // -------------------------------------------
-   // State          IS    IX    S     U     X
+   // -------------------------------------------------------
+   // State          IS    IX    S     SIX   U     X     Z
    // Being
    // requested
-   // -------------------------------------------
-   // IS             Y     Y     Y     Y     Y
-   // IX             N     Y     N     N     Y
-   // S              N     N     Y     Y     Y
-   // U              N     N     N     Y     Y
-   // X              N     N     N     N     Y
+   // -------------------------------------------------------
+   // IS             Y     Y     Y     Y     Y     Y     Y
+   // IX             N     Y     N     Y     N     Y     Y
+   // S              N     N     Y     Y     Y     Y     Y
+   // SIX            N     N     N     Y     N     Y     Y
+   // U              N     N     N     N     Y     Y     Y
+   // X              N     N     N     N     N     Y     Y
+   // Z              N     N     N     N     N     N     Y
    static const UINT8 _LockCoverageMatrix[DPS_TRANSLOCK_MAX]
                                          [DPS_TRANSLOCK_MAX]=
-     {{ 1, 1, 1, 1, 1 },
-      { 0, 1, 0, 0, 1 },
-      { 0, 0, 1, 1, 1 },
-      { 0, 0, 0, 1, 1 },
-      { 0, 0, 0, 0, 1 }} ;
+     {{ 1, 1, 1, 1, 1, 1, 1 },
+      { 0, 1, 0, 1, 0, 1, 1 },
+      { 0, 0, 1, 1, 1, 1, 1 },
+      { 0, 0, 0, 1, 0, 1, 1 },
+      { 0, 0, 0, 0, 1, 1, 1 },
+      { 0, 0, 0, 0, 0, 1, 1 },
+      { 0, 0, 0, 0, 0, 0, 1 }} ;
    OSS_INLINE BOOLEAN dpsLockCoverage
    (
       const DPS_TRANSLOCK_TYPE current,
@@ -193,27 +223,89 @@ namespace engine
       DPS_TRANSLOCK_IS,  // <-- DPS_TRANSLOCK_IS
       DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_IX
       DPS_TRANSLOCK_IS,  // <-- DPS_TRANSLOCK_S
-      DPS_TRANSLOCK_IS,  // <-- DPS_TRANSLOCK_U
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_SIX
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_U
       DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_X
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_Z
       DPS_TRANSLOCK_MAX
    };
+   // get intent lock mode after lock escalation
+   // only escalate for intent locks of S, U, X
+   static DPS_TRANSLOCK_TYPE _escalateLockMatrix[ DPS_TRANSLOCK_MAX+1] =
+   {
+      DPS_TRANSLOCK_IS,  // <-- DPS_TRANSLOCK_IS
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_IX
+      DPS_TRANSLOCK_S,   // <-- DPS_TRANSLOCK_S, intent lock is IS
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_SIX
+      DPS_TRANSLOCK_X,   // <-- DPS_TRANSLOCK_U, intent lock is IX
+      DPS_TRANSLOCK_X,   // <-- DPS_TRANSLOCK_X, intent lock is IX
+      DPS_TRANSLOCK_IX,  // <-- DPS_TRANSLOCK_Z
+      DPS_TRANSLOCK_MAX
+   } ;
    OSS_INLINE DPS_TRANSLOCK_TYPE dpsIntentLockMode
    (
-      const DPS_TRANSLOCK_TYPE request
+      const DPS_TRANSLOCK_TYPE request,
+      BOOLEAN lockEscalated = FALSE
    )
    {
       SDB_ASSERT( ( request < (DPS_TRANSLOCK_MAX + 1) ), "Invalid argument" ) ;
+      if ( lockEscalated )
+      {
+         return ( _escalateLockMatrix[ request ] ) ;
+      }
       return ( _intentLockMatrix[request] ) ;
    }
 
+   // check if owned intent lock is cover request lock in lower level
+   // if covered, no need to acquire locks of lower level
+   //
+   // Lock cover lower
+   //                   State of Held in upper level
+   // -------------------------------------------------------
+   // State          IS    IX    S     SIX   U     X     Z
+   // Being
+   // requested in
+   // lower level
+   // -------------------------------------------------------
+   // IS             N     N     Y     Y     Y     Y     Y
+   // IX             N     N     N     N     N     Y     Y
+   // S              N     N     Y     Y     Y     Y     Y
+   // SIX            N     N     N     N     N     Y     Y
+   // U              N     N     N     N     N     Y     Y
+   // X              N     N     N     N     N     Y     Y
+   // Z              N     N     N     N     N     N     Y
+   // NOTE: intent lock for U lock is IX lock, so only X lock or Z lock in
+   //       upper level can cover U lock in lower level
+   static const UINT8 _LockCoverLowerMatrix[DPS_TRANSLOCK_MAX]
+                                           [DPS_TRANSLOCK_MAX]=
+     {{ 0, 0, 1, 1, 1, 1, 1 },
+      { 0, 0, 0, 0, 0, 1, 1 },
+      { 0, 0, 1, 1, 1, 1, 1 },
+      { 0, 0, 0, 0, 0, 1, 1 },
+      { 0, 0, 0, 0, 0, 1, 1 },
+      { 0, 0, 0, 0, 0, 1, 1 },
+      { 0, 0, 0, 0, 0, 0, 1 }} ;
+   OSS_INLINE BOOLEAN dpsIsCoverLowerLock( DPS_TRANSLOCK_TYPE ownedModeInUpper,
+                                           DPS_TRANSLOCK_TYPE requestModeInLower )
+   {
+      SDB_ASSERT( ( ( ownedModeInUpper <= DPS_TRANSLOCK_MAX ) &&
+                    ( requestModeInLower < DPS_TRANSLOCK_MAX ) ),
+                  "Invalid arguments" ) ;
+      return ( ( ( DPS_TRANSLOCK_MAX != ownedModeInUpper ) &&
+                 ( _LockCoverLowerMatrix[ requestModeInLower ]
+                                        [ ownedModeInUpper ] ) ) ?
+                                                             TRUE : FALSE ) ;
+   }
 
    // Convert lock mode to string
    static const CHAR* _lockModeString[DPS_TRANSLOCK_MAX] =
    { "IS",
      "IX",
      "S",
+     "SIX",
      "U",
-     "X"
+     "X",
+     "Z"
    } ;
    OSS_INLINE const CHAR* lockModeToString ( const DPS_TRANSLOCK_TYPE lockMode )
    {
@@ -291,6 +383,7 @@ namespace engine
          OSS_INLINE UINT32          lockIdHash() const ;
          OSS_INLINE BOOLEAN         isLeafLevel() const ;
          OSS_INLINE BOOLEAN         isRootLevel() const ;
+         OSS_INLINE BOOLEAN         isSupportEscalation() const ;
          OSS_INLINE _dpsTransLockId upOneLevel() const ;
 
          /*
@@ -456,6 +549,18 @@ namespace engine
    {
       if (    isValid()
            && ( DMS_INVALID_MBID   == _collectionID )
+           && ( DMS_INVALID_EXTENT == _recordExtentID )
+           && ( DMS_INVALID_OFFSET == _recordOffset ) )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   OSS_INLINE BOOLEAN _dpsTransLockId::isSupportEscalation() const
+   {
+      if (    isValid()
+           && ( DMS_INVALID_MBID   != _collectionID )
            && ( DMS_INVALID_EXTENT == _recordExtentID )
            && ( DMS_INVALID_OFFSET == _recordOffset ) )
       {

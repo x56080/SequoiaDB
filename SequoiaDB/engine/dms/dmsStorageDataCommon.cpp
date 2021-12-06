@@ -2423,7 +2423,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -2625,7 +2625,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -2946,8 +2946,8 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryS( cb, _logicalCSID, mbID,
-                                       NULL, &lockConflict ) ;
+         rc = pTransCB->transLockTrySAgainstWrite( cb, _logicalCSID, mbID,
+                                                   NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
                       "Conflict( representative ):"OSS_NEWLINE
@@ -3621,12 +3621,20 @@ namespace engine
             inTrans = TRUE ;
          }
 
-         // don't delete the record, someone are waitting for the record lock,
-         // mark the record's attr to DMS_RECORD_FLAG_DELETING and write the log
-         // the last one who get the record-X-Lock will delete the record while
-         // those who gets record-S-Lock will skip the record.
-         if ( pTransCB->hasWait( _logicalCSID, context->mbID(), &recordID ) )
+         if ( NULL != pInfo && pInfo->_transLockEscalated )
          {
+            // holds X on collection, so no other transactions are waiting
+            // for record locks
+            markDeleting = FALSE ;
+         }
+         else if ( pTransCB->hasWait( _logicalCSID, context->mbID(),
+                                      &recordID ) )
+         {
+            // don't delete the record, someone are waitting for the record
+            // lock, mark the record's attr to DMS_RECORD_FLAG_DELETING and
+            // write the log the last one who get the record-X-Lock will
+            // delete the record while those who gets record-S-Lock will skip
+            // the record.
             markDeleting = TRUE ;
             hasWaitLock = TRUE ;
          }

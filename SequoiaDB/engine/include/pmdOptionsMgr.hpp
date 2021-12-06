@@ -576,6 +576,12 @@ namespace engine
             return (UINT64)_logFileSz * DPS_LOG_FILE_SIZE_UNIT ;
          }
          OSS_INLINE UINT32 getReplLogFileNum () const { return _logFileNum ; }
+
+         OSS_INLINE UINT64 getTotalLogSpace() const
+         {
+            return (UINT64)getReplLogFileSz() * (UINT64)getReplLogFileNum() ;
+         }
+
          OSS_INLINE UINT32 numPreLoaders () const { return _numPreLoaders ; }
          OSS_INLINE UINT32 maxPrefPool () const { return _maxPrefPool ; }
          OSS_INLINE UINT32 maxSubQuery () const { return _maxSubQuery ; }
@@ -667,6 +673,9 @@ namespace engine
          OSS_INLINE UINT32 memPoolThreshold() const { return _memPoolThreshold ; }
          OSS_INLINE INT32  transReplSize() const { return _transReplSize ; }
          OSS_INLINE BOOLEAN transRCCount() const { return _transRCCount ; }
+         OSS_INLINE BOOLEAN transAllowLockEscalation() const { return _transAllowLockEscalation ; }
+         OSS_INLINE INT32 transMaxLockNum() const { return _transMaxLockNum ; }
+         OSS_INLINE INT32 transMaxLogSpaceRatio() const { return _transMaxLogSpaceRatio ; }
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
@@ -802,6 +811,9 @@ namespace engine
          UINT32      _memPoolThreshold ;
          INT32       _transReplSize ;
          BOOLEAN     _transRCCount ;
+         BOOLEAN     _transAllowLockEscalation ;
+         INT32       _transMaxLockNum ;
+         INT32       _transMaxLogSpaceRatio ;
          UINT32      _slowQueryThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;

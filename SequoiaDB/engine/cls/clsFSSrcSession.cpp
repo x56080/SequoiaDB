@@ -2972,6 +2972,7 @@ namespace engine
 
       // get white list of transactions, who had already acquired write
       // locks on the same collection, they must be finished before split
+      // NOTE: use S lock to exclusive X, IX, Z locks
       rc = transCB->getIncompTrans( eduCB(),
                                     lockID,
                                     DPS_TRANSLOCK_S,
@@ -3038,6 +3039,7 @@ namespace engine
 
          // get white list of transactions, who had already acquired write
          // locks on the same collection, they must be finished before split
+         // NOTE: use S lock to exclusive X, IX, Z locks
          rc = transCB->getIncompTrans( eduCB(),
                                        lockID,
                                        DPS_TRANSLOCK_S,

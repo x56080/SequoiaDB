@@ -513,7 +513,6 @@ namespace engine
       }
 
       _cb   = cb ;
-      _next = _extent->_firstRecordOffset ;
 
       // As a performance improvement, we are going to acquire the CS and
       // CL lock right in the beginning to avoid extra performance overhead
@@ -524,6 +523,12 @@ namespace engine
       {
          goto error ;
       }
+
+      // WARNING: once the collection has been locked eXclusively by
+      //          other transaction, the first record offset may be changed
+      //          by that transaction, so we should not get the first record
+      //          offset before we acquired CS and CL locks
+      _next = _extent->_firstRecordOffset ;
 
       // unset first run
       _firstRun = FALSE ;
@@ -632,7 +637,9 @@ namespace engine
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
-                                                 &lockConflict ) ;
+                                                 &lockConflict,
+                                                 &_callback,
+                                                 cb->isTransRS() ) ;
                   if ( SDB_OK == rc )
                   {
                      ignoredLock = FALSE ;
@@ -1944,11 +1951,13 @@ namespace engine
                // test S lock failed and the record is not in old version
                // container nor in RBS. most likely the one hold / wait X
                // hasn't finish updating the record.
+               // NOTE: only RS requires lock escalation
                rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                               _context->mbID(), &_curRID,
                                               &ixTxContext,
                                               &lockConflict,
-                                              &_callback ) ;
+                                              &_callback,
+                                              cb->isTransRS() ) ;
                if ( SDB_OK == rc )
                {
                   ignoredLock = FALSE ;

@@ -194,6 +194,9 @@ typedef UINT32 OBJIDX ;
 // return the maximum of two values
 #define OSS_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#define OSS_ROUND(v) (((v) < (0) ) ? ( static_cast<FLOAT64>(ceil((v)-0.5f)) ) :\
+                     ( static_cast<FLOAT64>(floor((v)-0.5f))))
+
 #define ossRoundDownToMultipleX(x,y) (((x)/(y))*(y))
 #define ossRoundUpToMultipleX(x,y) (((x)+((y)-1))-(((x)+((y)-1))%(y)))
 // check if an address is aligned on a 4 or 8 bytes boundary on its

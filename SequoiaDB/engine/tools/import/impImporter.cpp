@@ -187,7 +187,8 @@ namespace import
                                options->useSSL(),
                                options->enableTransaction(),
                                options->allowKeyDuplication(),
-                               options->replaceKeyDuplication() ) ;
+                               options->replaceKeyDuplication(),
+                               options->batchSize() ) ;
 
       SDB_ASSERT( NULL != freeQueue, "freeQueue can't be NULL" ) ;
       SDB_ASSERT( NULL != importQueue, "importQueue can't be NULL" ) ;

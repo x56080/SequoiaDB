@@ -262,6 +262,10 @@ namespace engine
          monTransLockCur      _waitLock ;
          VEC_TRANSLOCKCUR     _lockList ;
 
+         UINT64               _usedLogSpace ;
+         UINT64               _reservedLogSpace ;
+         BOOLEAN              _lockEscalated ;
+
       public:
          _monTransInfo()
          {
@@ -278,6 +282,9 @@ namespace engine
             _locksNum = 0 ;
             _lockList.clear() ;
             _waitLock.clear() ;
+            _usedLogSpace = 0 ;
+            _reservedLogSpace = 0 ;
+            _lockEscalated = FALSE ;
          }
    } ;
    typedef _monTransInfo monTransInfo ;

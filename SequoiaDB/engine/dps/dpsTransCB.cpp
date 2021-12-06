@@ -299,20 +299,6 @@ namespace engine
       return DPS_TRANS_GET_ID( rollbackID ) ;
    }
 
-   //TODO:  implement
-   // In order to find the system lowTran, we just need to use the smaller
-   // head of _TransMap and _hisTransStatus
-   DPS_TRANS_ID dpsTransCB::getLowTran( )
-   {
-      return DPS_INVALID_TRANS_ID ;
-   }
-
-   // FIXME: Guomin to implement the proper one
-   BOOLEAN dpsTransCB::transIDLessThan( DPS_TRANS_ID tidL, DPS_TRANS_ID tidR )
-   {
-      return ( DPS_TRANS_GET_SN(tidL) < DPS_TRANS_GET_SN(tidR) ) ;
-   }
-
    BOOLEAN dpsTransCB::isRollback( DPS_TRANS_ID transID )
    {
       if ( transID & DPS_TRANSID_ROLLBACKTAG_BIT )
@@ -1163,7 +1149,8 @@ namespace engine
                                     const dmsRecordID *recordID,
                                     _IContext *pContext,
                                     dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    _dpsITransLockCallback * callback,
+                                    BOOLEAN useEscalation )
    {
       INT32 rc = SDB_OK ;
       if ( !_isOn )
@@ -1174,7 +1161,7 @@ namespace engine
       rc = _transLockMgr->acquire( eduCB->getTransExecutor(),
                                    lockId, DPS_TRANSLOCK_S,
                                    pContext, pdpsTxResInfo,
-                                   callback );
+                                   callback, NULL, useEscalation );
 
       if ( eduCB->getTransExecutor()->hasLockWait() )
       {
@@ -1379,6 +1366,25 @@ namespace engine
                                         callback ) ;
    }
 
+   INT32 dpsTransCB::transLockTestZ( _pmdEDUCB *eduCB,
+                                     UINT32 logicCSID,
+                                     UINT16 collectionID,
+                                     const dmsRecordID *recordID,
+                                     dpsTransRetInfo *pdpsTxResInfo,
+                                     _dpsITransLockCallback *callback )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
+      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
+                                         lockId,
+                                         DPS_TRANSLOCK_Z,
+                                         FALSE,
+                                         pdpsTxResInfo,
+                                         callback ) ;
+   }
 
    INT32 dpsTransCB::transLockTestIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
@@ -1411,6 +1417,22 @@ namespace engine
       return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
                                        lockId, DPS_TRANSLOCK_X,
                                        pdpsTxResInfo, callback );
+   }
+
+   INT32 dpsTransCB::transLockTryZ( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                    UINT16 collectionID,
+                                    const dmsRecordID *recordID,
+                                    dpsTransRetInfo * pdpsTxResInfo,
+                                    _dpsITransLockCallback * callback )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
+      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
+                                        lockId, DPS_TRANSLOCK_Z,
+                                        pdpsTxResInfo, callback ) ;
    }
 
    INT32 dpsTransCB::transLockTryU( _pmdEDUCB *eduCB, UINT32 logicCSID,
@@ -1448,28 +1470,68 @@ namespace engine
                                        callback ) ;
    }
 
+   INT32 dpsTransCB::transLockTrySAgainstWrite( _pmdEDUCB *eduCB,
+                                                UINT32 logicCSID,
+                                                UINT16 collectionID,
+                                                const dmsRecordID *recordID,
+                                                dpsTransRetInfo *pdpsTxResInfo,
+                                                _dpsITransLockCallback *callback )
+   {
+      INT32 rc = SDB_OK ;
+
+      dpsTransRetInfo localTxResInfo ;
+      dpsTransRetInfo *tmpTxResInfo =
+            NULL != pdpsTxResInfo ? pdpsTxResInfo : &localTxResInfo ;
+
+      // test Z lock first, if no write locks are being hold, ( especially
+      // for self transaction with SIX lock ), then try acquire S lock
+      rc = transLockTestZ( eduCB, logicCSID, collectionID, recordID,
+                           tmpTxResInfo, callback ) ;
+      if ( SDB_OK != rc &&
+           DPS_TRANSLOCK_IS != tmpTxResInfo->_lockType &&
+           DPS_TRANSLOCK_S != tmpTxResInfo->_lockType &&
+           DPS_TRANSLOCK_U != tmpTxResInfo->_lockType )
+      {
+         return rc ;
+      }
+
+      return transLockTryS( eduCB, logicCSID, collectionID, recordID,
+                            pdpsTxResInfo, callback ) ;
+   }
+
    BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                         UINT16 collectionID,
                                         const dmsRecordID *recordID )
    {
-      BOOLEAN result = FALSE ;
-      INT8 holdingMode = DPS_TRANSLOCK_MAX ;
-      UINT32 refCount = 0 ;
       if ( !_isOn )
       {
          return FALSE ;
       }
 
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      dpsTransLockId lockId( logicCSID, collectionID, recordID ) ;
 
-      result = _transLockMgr->isHolding( eduCB->getTransExecutor(), lockId,
-                                         holdingMode, refCount ) ;
-      if ( result )
+      while ( lockId.isValid() )
       {
-         if ( holdingMode == DPS_TRANSLOCK_X || holdingMode == DPS_TRANSLOCK_S )
+         INT8 holdingMode = DPS_TRANSLOCK_MAX ;
+         UINT32 refCount = 0 ;
+
+         if ( _transLockMgr->isHolding( eduCB->getTransExecutor(),
+                                        lockId,
+                                        holdingMode,
+                                        refCount ) )
          {
+
             return TRUE ;
          }
+
+         // lock is not holding in this level, check upper
+         if ( !lockId.isRootLevel() )
+         {
+            lockId = lockId.upOneLevel() ;
+            continue ;
+         }
+
+         break ;
       }
 
       return FALSE ;
@@ -1581,6 +1643,25 @@ namespace engine
          _reservedSpace.sub( length ) ;
          goto error ;
       }
+
+      if ( NULL != cb && cb->isTransaction() )
+      {
+         rc = cb->checkLogSpace( length, rblength ) ;
+         if ( SDB_OK != rc )
+         {
+            _reservedRBSpace.sub( rblength ) ;
+            _reservedSpace.sub( length ) ;
+
+            PD_LOG( PDERROR, "Failed to check log space for "
+                    "transaction [%s], rc: %d",
+                    dpsTransIDToString( cb->getTransID() ).c_str(), rc ) ;
+
+            goto error ;
+         }
+
+         cb->addUsedSpace( length ) ;
+      }
+
       cb->addReservedSpace( rblength ) ;
    done:
       return rc;
@@ -1590,8 +1671,34 @@ namespace engine
 
    void dpsTransCB::releaseLogSpace( UINT32 length, _pmdEDUCB *cb )
    {
-      if ( !_isOn || ( cb && cb->isInTransRollback() ) )
+      if ( !_isOn )
       {
+         return ;
+      }
+      else if ( NULL != cb && cb->isInTransRollback() )
+      {
+         // check transaction rollback, return DPS log space reserved for
+         // rollback
+         if ( !cb->isTakeOverTransRB() )
+         {
+            // NOTE: transaction RB pending may create larger DPS log records
+            if ( _reservedRBSpace.fetch() < (UINT64)length ||
+                 cb->getReservedSpace() < (UINT64)length )
+            {
+               PD_LOG( PDWARNING, "Reserved log space is not enough "
+                       "for rollback transaction [%s], total reserved [%llu], "
+                       "cb reserved [%llu], need [%u]",
+                       dpsTransIDToString(
+                             DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str(),
+                       _reservedRBSpace.fetch(), cb->getReservedSpace(),
+                       length ) ;
+            }
+            else
+            {
+               _reservedRBSpace.sub( length ) ;
+               cb->decReservedSpace( length ) ;
+            }
+         }
          return ;
       }
 
@@ -1606,6 +1713,10 @@ namespace engine
 
    void dpsTransCB::releaseRBLogSpace( _pmdEDUCB *cb )
    {
+#ifdef _DEBUG
+      SDB_ASSERT( _reservedRBSpace.fetch() >= cb->getReservedSpace(),
+                  "should have enough reserved log space" ) ;
+#endif
       _reservedRBSpace.sub( cb->getReservedSpace() ) ;
       cb->resetLogSpace() ;
    }
