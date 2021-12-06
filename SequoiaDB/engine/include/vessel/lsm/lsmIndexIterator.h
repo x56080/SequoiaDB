@@ -105,9 +105,13 @@ namespace vessel
 
          INT32 moveIterator(BOOLEAN forward);
 
-         INT32 moveIfEntryRemoved(BOOLEAN forward);
-
          INT32 moveToNextDiffKeyOrRid(BOOLEAN forward);
+
+         INT32 moveToNextEntry(BOOLEAN forward);
+
+         INT32 moveToLatestVersionIfBackward();
+
+         INT32 moveIfEntryRemoved(BOOLEAN forward);
 
       private:
          rocksdb::Slice packFullKey(const ixmKey &key,

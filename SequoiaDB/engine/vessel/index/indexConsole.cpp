@@ -798,10 +798,28 @@ namespace vessel
          {
             ixmKeyOwned key(*itr);
             lsmKeyEntry ke;
-
+            lsmIndexValue vl;
             ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
                            context->getExecutor()->getTransID());
-            rc = lsmBatch.put(meta, ke, NULL);
+            vl.reset(LSM_ENTRY_FLAG_NORMAL);
+            rc = lsmBatch.put(meta, ke, &vl);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
+               goto error;
+            }
+         }
+
+         itr = ir->getKeysToRemove().begin();
+         for (; itr != ir->getKeysToRemove().end(); ++itr)
+         {
+            ixmKeyOwned key(*itr);
+            lsmKeyEntry ke;
+            lsmIndexValue vl;
+            ke.shallowCopy(key, context->getRid(), context->getDmlLSN(),
+                           context->getExecutor()->getTransID());
+            vl.reset(LSM_ENTRY_FLAG_DELETED);
+            rc = lsmBatch.put(meta, ke, &vl);
             if (SDB_OK != rc)
             {
                PD_LOG(PDERROR, "failed to push data into batch:%d", rc);
