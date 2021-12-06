@@ -1238,7 +1238,7 @@ namespace vessel
          PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
          goto error;
       }
-
+      context->setDmlLSN(lrc.getLsn());
       _lpb->commit(lrc.getLsn());
    done:
       return rc;

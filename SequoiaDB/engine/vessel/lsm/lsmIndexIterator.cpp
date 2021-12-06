@@ -309,6 +309,15 @@ namespace vessel
          goto error;
       }
 
+      if (!o.isForward() && isReadyToRead())
+      {
+         rc = moveToLatestVersionIfBackward();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
       rc = moveIfEntryRemoved(o.isForward());
       if (SDB_OK != rc)
       {
@@ -367,6 +376,15 @@ namespace vessel
          goto error;
       }
 
+      if (!forward && isReadyToRead())
+      {
+         rc = moveToLatestVersionIfBackward();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
       rc = moveIfEntryRemoved(forward);
       if (SDB_OK != rc)
       {
@@ -377,6 +395,74 @@ namespace vessel
       return rc;
    error:
       close();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::moveToNextEntry(BOOLEAN forward)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+      rc = moveToNextDiffKeyOrRid(forward);
+      if (!forward)
+      {
+         rc = moveToLatestVersionIfBackward();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+      
+   }
+
+   INT32 lsmIndexIterator::moveToLatestVersionIfBackward()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
+
+      rocksdb::Slice fullKeySlice;
+      bson::StackBufBuilder builder;
+      builder.appendBuf(_currentEntry.getKey().data(),
+                        _currentEntry.getKey().dataSize());
+      ixmKey tmpKey(builder.buf());
+      recordID tmpRid = _currentEntry.getRid();
+
+      rc = moveToNextDiffKeyOrRid(FALSE);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      if (isReadyToRead())
+      {
+         _currentEntry.reset();
+         _itr->Next();
+         if (_itr->Valid())
+         {
+            rc = cacheCurrentEntry();
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+         }
+      }
+      else
+      {
+         fullKeySlice = packFullKey(tmpKey, tmpRid, 
+                                    DPS_INVALID_LSN_OFFSET, DPS_TRANS_ID(), builder);
+         rc = seekFullKey(fullKeySlice, FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to seek full key:%d", rc);
+            goto error;
+         }
+      }
+
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -424,8 +510,7 @@ namespace vessel
 
          fullKeySlice = packFullKey(_currentEntry.getKey(),
                                     _currentEntry.getRid(),
-                                    forward ? 0 : DPS_INVALID_LSN_OFFSET,
-                                    DPS_TRANS_ID(), builder);
+                                    forward ? 0 : DPS_INVALID_LSN_OFFSET, DPS_TRANS_ID(), builder);
 
          rc = seekFullKey(fullKeySlice, !forward);
          if (SDB_OK != rc)
@@ -433,12 +518,11 @@ namespace vessel
             PD_LOG(PDERROR, "failed to seek full key:%d", rc);
             goto error;
          }
-         
+
       } while(_isReadyToRead());
    done:
       return rc;
    error:
-      close();
       goto done;
    }
 
@@ -705,7 +789,7 @@ namespace vessel
          goto error;
       }
 
-      rc = moveToNextDiffKeyOrRid(forward);
+      rc = moveToNextEntry(forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to move iterator:%d", rc);

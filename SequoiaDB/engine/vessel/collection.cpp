@@ -652,7 +652,7 @@ namespace vessel
          goto error;
       }
 
-      if (ra.isEmpty())
+      if (!ra.isEmpty())
       {
          if (ra.hasBuildingIndex())
          {
