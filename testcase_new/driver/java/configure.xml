@@ -21,7 +21,7 @@
     <!--用例远程机器用户名-->
     <parameter name="USERNAME"     value="sdbadmin" />
     <!--用例远程机器用户密码-->
-    <parameter name="PASSWORD"     value="sdbadmin" />
+    <parameter name="PASSWORD"     value="Admin@1024" />
     <!--sdbTestBaseConf用来修改配置的工具位置-->
     <parameter name="CONFTOOL"      value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     

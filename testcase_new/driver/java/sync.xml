@@ -21,7 +21,7 @@
     <!--用例远程机器用户名-->
     <parameter name="USERNAME"     value="sdbadmin" />
     <!--用例远程机器用户密码-->
-    <parameter name="PASSWORD"     value="sdbadmin" />
+    <parameter name="PASSWORD"     value="Admin@1024" />
     
     <listeners>
         <listener class-name="com.sequoiadb.testcommon.TimePrinterListener" />
