@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -36,6 +37,9 @@ public class Transaction17117 extends SdbTestBase {
     private List< BSONObject > posInsertR1s = new ArrayList< BSONObject >();
     private List< BSONObject > invInsertR1s = new ArrayList< BSONObject >();
 
+    // no limit for the number of transaction locks
+    private BSONObject sessionAttr = new BasicBSONObject( "transmaxlocknum", -1 );
+
     @BeforeClass
     public void setUp() {
         sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
@@ -44,6 +48,9 @@ public class Transaction17117 extends SdbTestBase {
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
         cl.createIndex( "ab", "{a:-1, b:1}", false, false );
+
+        sdb.setSessionAttr( sessionAttr );
+        db2.setSessionAttr( sessionAttr );
     }
 
     @Test
@@ -129,6 +136,7 @@ public class Transaction17117 extends SdbTestBase {
         public void exec() throws Exception {
             try {
                 db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+                db1.setSessionAttr( sessionAttr );
                 cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
                 TransUtils.beginTransaction( db1 );
 
