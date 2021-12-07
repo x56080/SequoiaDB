@@ -81,6 +81,8 @@ if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
 //数据源端端口号，CI默认传入11810
 if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
 
+if ( typeof( SDBADMINPWD ) == "undefined" ) { SDBADMINPWD = "Admin@1024"; }
+
 // CHANGEDPREFIX = local_test
 
 var cmd = new Cmd();
