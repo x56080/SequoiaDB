@@ -23,8 +23,9 @@ except:
 import bson
 from bson.py3compat import (str_type)
 from pysequoiadb.collection import collection
+from pysequoiadb.cursor import cursor
 from pysequoiadb.errcode import SDB_OOM
-from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, raise_if_error)
+from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, SDBEndOfCursor, raise_if_error)
 
 
 class collectionspace(object):
@@ -226,6 +227,38 @@ class collectionspace(object):
         rc = sdb.cs_rename_collection(self._cs, old_name, new_name, bson_options)
         raise_if_error(rc, "Failed to rename collection")
 
+    def get_collection_names(self):
+        """Get the names of all collections in the current collection space.
+
+        Return values:
+           A list of collection names
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        result = []
+        tmp = cursor()
+
+        try:
+            rc = sdb.cs_get_collection_names(self._cs, tmp._cursor)
+            raise_if_error(rc, "Failed to all collection in the current collection space")
+        except SDBBaseError:
+            del tmp
+            raise
+
+        try:
+            while True:
+                try:
+                    record = tmp.next()
+                    name_list = record['Name'].split('.')
+                    result.append(name_list[1])
+                except SDBEndOfCursor:
+                    break
+        finally:
+            tmp.close()
+            del tmp
+
+        return result
+
     def get_collection_space_name(self):
         """Get the current collection space name.
 
@@ -276,6 +309,20 @@ class collectionspace(object):
         """
         rc = sdb.cs_remove_domain(self._cs)
         raise_if_error(rc, "Failed to alter collection space to remove domain")
+
+    def get_domain_name(self):
+        """Get the Domain name of the current collection space. Returns an empty string
+           if the current collection space
+
+        Return values:
+           The domain name of the current collection space.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        rc, domain_name = sdb.cs_get_domain_name(self._cs)
+        raise_if_error(rc, "Failed to get domain name of the current collection space")
+
+        return domain_name
 
     def enable_capped(self):
         """Alter the current collection space to enable capped.
