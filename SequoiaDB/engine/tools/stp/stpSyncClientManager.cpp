@@ -1179,7 +1179,7 @@ namespace engine
             PD_LOG( PDWARNING, "Synchronize offset [%lld] is beyond time "
                     "error [%u] with scale [%.3f]", record.getOffset(),
                     record.getRspTimeError(), STP_OFFSET_CHECK_SCALE ) ;
-   
+
             if ( 0 == _syncTimeSteps )
             {
                // no space to adjust steps, report failed

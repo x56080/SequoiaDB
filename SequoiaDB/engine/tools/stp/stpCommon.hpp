@@ -91,8 +91,10 @@ namespace engine
    #define STP_SYNC_INTERVAL_STEP      ( STP_MIN_SYNC_INTERVAL )
    // calculate steps from synchronize interval
    #define STP_SYNC_INT_TO_STEP( syncIntSec ) \
-                           ( ( ( syncIntSec ) + STP_SYNC_INTERVAL_STEP - 1 ) / \
-                             STP_SYNC_INTERVAL_STEP - 1 )
+                           ( ( syncIntSec ) >= 1 ? \
+                             ( ( ( syncIntSec ) + STP_SYNC_INTERVAL_STEP - 1 ) / \
+                               STP_SYNC_INTERVAL_STEP - 1 ) : \
+                             ( 0 ) )
    // calculate synchronize interval from steps
    #define STP_SYNC_STEP_TO_INT( syncIntSteps ) \
                            ( STP_MIN_SYNC_INTERVAL + \
