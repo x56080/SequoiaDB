@@ -1418,8 +1418,9 @@ public class SequoiadbDatasource {
     }
 
     private void _createConnections() {
-        int count = _dsOpt.getDeltaIncCount();
-        while (count > 0) {
+        int createNum = _dsOpt.getDeltaIncCount() ;
+
+        while (createNum > 0 && _idleConnPool.count() < _dsOpt.getMinIdleCount()) {
             // never let "sdb" defined out of current scope
             Sequoiadb sdb = null;
             String addr = null;
@@ -1481,7 +1482,7 @@ public class SequoiadbDatasource {
             // update info to strategy
             _strategy.addConnItemAfterCreating(connItem);
             // let's continue
-            count--;
+            createNum--;
         }
     }
 
