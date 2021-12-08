@@ -184,49 +184,63 @@ namespace engine
                _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ) ;
 
             // analyze the unique index number
-            for ( UINT32 j = 0 ; j < DMS_COLLECTION_MAX_INDEX ; ++j )
+            UINT32 j = 0 ;
+            while ( j < DMS_COLLECTION_MAX_INDEX )
             {
-               if ( DMS_INVALID_EXTENT ==
-                    _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ] )
+               dmsExtentID exID = _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ] ;
+               if ( DMS_INVALID_EXTENT == exID )
                {
                   break ;
                }
-               ixmIndexCB indexCB( _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ],
-                                   this, NULL ) ;
-               if ( indexCB.isInitialized() )
+               ixmIndexCB indexCB( exID, this, NULL ) ;
+               if ( !indexCB.isInitialized() )
                {
-                  if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                            indexCB.getIndexType() ) )
+                  PD_LOG( PDWARNING,
+                          "Failed to initialize index[%u] for collection[%s]",
+                          j, _pDataSu->_dmsMME->_mbList[i]._collectionName ) ;
+                  // release index control block extent
+                  _releaseMetaExtent( exID ) ;
+                  // copy back
+                  ossMemmove( &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j],
+                              &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j+1],
+                              sizeof(dmsExtentID)*(DMS_COLLECTION_MAX_INDEX-j-1) ) ;
+                  _pDataSu->_dmsMME->_mbList[i]._indexExtent[
+                              DMS_COLLECTION_MAX_INDEX-1] = DMS_INVALID_EXTENT ;
+                  _pDataSu->_dmsMME->_mbList[i]._numIndexes -- ;
+                  continue ;
+               }
+               if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
+                                         indexCB.getIndexType() ) )
+               {
+                  _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
+                  // If there is any text indices, register the external
+                  // data handler, and invoke the onOpenTextIdx method.
+                  if ( !extHandler )
                   {
-                     _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
-                     // If there is any text indices, register the external
-                     // data handler, and invoke the onOpenTextIdx method.
-                     if ( !extHandler )
-                     {
-                        SDB_ASSERT( _pStorageInfo->_extDataHandler,
-                                    "External data handler in storage info is "
-                                    "NULL" ) ;
-                        _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
-                        extHandler = _pDataSu->getExtDataHandler() ;
-                     }
-                     if ( extHandler )
-                     {
-                        rc = extHandler->onOpenTextIdx( getSuName(),
-                                                        _pDataSu->_dmsMME->_mbList[i]._collectionName,
-                                                        indexCB ) ;
-                        PD_RC_CHECK( rc, PDERROR, "External on text index open "
-                                     "failed[ %d ]", rc ) ;
-                     }
+                     SDB_ASSERT( _pStorageInfo->_extDataHandler,
+                                 "External data handler in storage info is "
+                                 "NULL" ) ;
+                     _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
+                     extHandler = _pDataSu->getExtDataHandler() ;
                   }
-                  if ( indexCB.unique() )
+                  if ( extHandler )
                   {
-                     _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
-                  }
-                  if ( indexCB.isGlobal() )
-                  {
-                     _pDataSu->_mbStatInfo[ i ]._globIdxNum ++ ;
+                     rc = extHandler->onOpenTextIdx( getSuName(),
+                                                     _pDataSu->_dmsMME->_mbList[i]._collectionName,
+                                                     indexCB ) ;
+                     PD_RC_CHECK( rc, PDERROR, "External on text index open "
+                                  "failed[ %d ]", rc ) ;
                   }
                }
+               if ( indexCB.unique() )
+               {
+                  _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
+               }
+               if ( indexCB.isGlobal() )
+               {
+                  _pDataSu->_mbStatInfo[ i ]._globIdxNum ++ ;
+               }
+               j++ ;
             }
          }
       }
@@ -453,41 +467,40 @@ namespace engine
          }
          ixmIndexCB curIdxCB( context->mb()->_indexExtent[indexID], this,
                               context ) ;
-         BOOLEAN sameName = ( 0 == ossStrncmp( indexName,
-                                               curIdxCB.getName(),
-                                               IXM_INDEX_NAME_SIZE ) ) ;
-         if ( sameName )
+         if ( curIdxCB.isInitialized() )
          {
-            if ( curIdxCB.isSameDef( index, TRUE ) )
+            BOOLEAN sameName = ( 0 == ossStrncmp( indexName,
+                                                  curIdxCB.getName(),
+                                                  IXM_INDEX_NAME_SIZE ) ) ;
+            if ( sameName )
             {
-               PD_LOG_MSG ( PDERROR, 
-                            "The same index '%s' has been defined already",
-                            curIdxCB.getName() ) ;
-               rc = SDB_IXM_REDEF ;
+               if ( curIdxCB.isSameDef( index, TRUE ) )
+               {
+                  PD_LOG_MSG ( PDERROR,
+                               "The same index '%s' has been defined already",
+                               curIdxCB.getName() ) ;
+                  rc = SDB_IXM_REDEF ;
+               }
+               else
+               {
+                  PD_LOG_MSG ( PDERROR,
+                               "The existing index '%s' has the same name "
+                               "but with a different definition",
+                               curIdxCB.getName() ) ;
+                  rc = SDB_IXM_EXIST;
+               }
+               goto error ;
             }
-            else
+            else if ( curIdxCB.isSameDef( index ) )
             {
-               PD_LOG_MSG ( PDERROR, 
-                            "The existing index '%s' has the same name "\
-                            "but with a different definition", 
-                            curIdxCB.getName() ) ;
-               rc = SDB_IXM_EXIST;
+               PD_LOG_MSG ( PDERROR,
+                            "The scene of index '%s' is covered by "
+                            "the existing index '%s'",
+                            index.getStringField( IXM_FIELD_NAME_NAME ),
+                            curIdxCB.getName() );
+               rc = SDB_IXM_EXIST_COVERD_ONE ;
+               goto error ;
             }
-            goto error ;
-         }
-         else if ( curIdxCB.isSameDef( index ) )
-         {
-            PD_LOG_MSG ( PDERROR, 
-                         "The scene of index '%s' is covered by "\
-                         "the existing index '%s'",
-                         index.getStringField( IXM_FIELD_NAME_NAME ),
-                         curIdxCB.getName() );
-            rc = SDB_IXM_EXIST_COVERD_ONE ;
-            goto error ;
-         }
-         else
-         {
-            continue ;
          }
       }
       if ( DMS_COLLECTION_MAX_INDEX == indexID )
@@ -655,6 +668,57 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsStorageIndex::_releaseMetaExtent( dmsExtentID extentID )
+   {
+      INT32 rc                 = SDB_OK ;
+      const dmsExtent *extAddr = NULL ;
+      dmsExtent *writeExtent   = NULL ;
+      dmsExtRW extRW ;
+
+      extRW = extent2RW( extentID ) ;
+      extRW.setNothrow( TRUE ) ;
+      extAddr = extRW.readPtr<dmsExtent>() ;
+      if ( !extAddr )
+      {
+         PD_LOG ( PDERROR, "Failed to read extent[%d]", extentID ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( DMS_EXTENT_FLAG_FREED == extAddr->_flag )
+      {
+         // May be releady released, DON'T release again
+         goto done ;
+      }
+      if ( IXM_EXTENT_EYECATCHER0 == extAddr->_eyeCatcher[0] &&
+           IXM_EXTENT_EYECATCHER1 == extAddr->_eyeCatcher[1] )
+      {
+         // It is not my extent, DON'T release it
+         goto done ;
+      }
+
+      writeExtent = extRW.writePtr<dmsExtent>() ;
+      writeExtent->_flag = DMS_EXTENT_FLAG_FREED ;
+
+      _pDataSu->_mbStatInfo[extAddr->_mbID]._totalIndexPages -= 1 ;
+      rc = _releaseSpace( extentID, 1 ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to release extent[%d], rc: %d",
+                  extentID, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDINFO, "Release index control block extent[%d]", extentID ) ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
    INT32 _dmsStorageIndex::createIndex( dmsMBContext *context,
                                         const BSONObj &index,
                                         pmdEDUCB * cb,
@@ -762,6 +826,8 @@ namespace engine
       while ( DMS_INVALID_EXTENT != context->mb()->_indexExtent[0] )
       {
          ixmIndexCB indexCB( context->mb()->_indexExtent[0], this, context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          rc = dropIndex( context, 0, indexCB.getLogicalID(), cb,
                          dpscb, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Drop index[%d] failed, rc: %d", 0,
@@ -808,6 +874,8 @@ namespace engine
          }
          ixmIndexCB indexCB( context->mb()->_indexExtent[indexID],
                              this, context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          rc = indexCB.getIndexID ( oid ) ;
          if ( rc )
          {
@@ -888,6 +956,9 @@ namespace engine
 
          ixmIndexCB indexCB( context->mb()->_indexExtent[indexID], this,
                              context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
+
          if ( 0 == ossStrncmp ( indexName, indexCB.getName(),
                                 IXM_INDEX_NAME_SIZE ) )
          {
@@ -2369,9 +2440,9 @@ namespace engine
                                          pResult ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, 
+            PD_LOG( PDERROR,
                     "Failed on index update callback, origobj(%s), newobj(%s)",
-                    originalObj.toString().c_str(), 
+                    originalObj.toString().c_str(),
                     newObj.toString().c_str() ) ;
             goto error ;
          }
@@ -3295,6 +3366,9 @@ namespace engine
          }
          ixmIndexCB indexCB( context->mb()->_indexExtent[indexID], this,
                              context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
+
          if ( 0 == ossStrncmp ( indexName, indexCB.getName(),
                                 IXM_INDEX_NAME_SIZE ) )
          {
@@ -3344,6 +3418,8 @@ namespace engine
          }
          ixmIndexCB indexCB( context->mb()->_indexExtent[indexID], this,
                              context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          OID id ;
          indexCB.getIndexID( id ) ;
          if ( indexOID == id )

@@ -233,6 +233,8 @@ namespace engine
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
 
       private:
+         INT32    _releaseMetaExtent( dmsExtentID extentID ) ;
+
          INT32    _createIndex( _dmsMBContext *context,
                                 const BSONObj &index,
                                 dmsExtentID metaExtentID,
@@ -245,8 +247,8 @@ namespace engine
                                 utilWriteResult *pResult,
                                 BOOLEAN forceTransCallback ) ;
 
-         INT32 _checkForCrtTextIdx( _dmsMBContext *context,
-                                    const BSONObj &index ) ;
+         INT32    _checkForCrtTextIdx( _dmsMBContext *context,
+                                       const BSONObj &index ) ;
 
          // newIndex - 'ExtDataName' will be added into index.
          INT32    _createTextIdx( _dmsMBContext *context,

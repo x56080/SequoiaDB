@@ -1094,6 +1094,9 @@ namespace engine
 
       {
          ixmIndexCB indexCB( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
+
          rc = monDumpIndexblocks( idxBlocks, idxRIDs, indexCB.getName(),
                                   indexCB.getLogicalID(),
                                   planRuntime->getDirection(),
@@ -2391,6 +2394,8 @@ namespace engine
       if ( pIndexDef && pIsSame )
       {
          ixmIndexCB indexCB( extentID, su->index(), NULL ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          if ( indexCB.isSameDef( *pIndexDef ) )
          {
             *pIsSame = TRUE ;
