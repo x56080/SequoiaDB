@@ -132,6 +132,7 @@ public class DataSource23405 extends SdbTestBase {
                         obj.put( "num", i );
                         insertRecords.set( i, obj );
                     }
+                    cur.close();
                 }
             }
         }
