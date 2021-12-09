@@ -49,8 +49,9 @@ namespace CSharp.Cluster
             sdb.Connect();
         }
 
-
-        [TestMethod]
+        // SEQUOIADBMAINSTREAM-7765
+        // [TestMethod]
+        [Ignore]
         public void Test14573()
         {
             if (Common.IsStandalone(sdb))
