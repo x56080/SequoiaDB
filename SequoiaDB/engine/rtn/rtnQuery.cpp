@@ -117,6 +117,11 @@ namespace engine
          goto error ;
       }
 
+      if ( pContext->isWrite() )
+      {
+         cb->setOrgReplSize( pContext->getW() ) ;
+      }
+
       rc = pContext->getMore( maxNumToReturn, buffObj, cb ) ;
       if ( rc )
       {
