@@ -77,7 +77,6 @@ namespace vessel
       OSS_BIT_SET(_flags, CURSOR_FLAG_IS_OPEN);
       if (NULL != o)
       {
-         SDB_ASSERT(0 < o->rowBatchSize, "can not be zero");
          _options = *o;
       }
       _db = db;
@@ -170,7 +169,9 @@ namespace vessel
 
    BOOLEAN cursorKernal::isWaitingMorePushing()const
    {
-      return !hitTheEnd() && (_pushedThisLoop < _options.rowBatchSize);
+      return !hitTheEnd() &&
+             (!_options.hasRowCountLimit() ||
+             ((INT32)_pushedThisLoop < _options.rowCountLimit));
              
    }
 

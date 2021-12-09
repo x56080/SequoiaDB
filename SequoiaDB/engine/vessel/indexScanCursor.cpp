@@ -115,6 +115,16 @@ namespace vessel
    error:
       goto done;
    }
+
+   BOOLEAN indexScanCursor::markRidScanned(const recordID &rid)
+   {
+      return _scanned.insert(rid).second;
+   }
+
+   BOOLEAN indexScanCursor::testRidScanned(const recordID &rid)const
+   {
+      return 0 < _scanned.count(rid);
+   }
 } // namespace vessel
 
 } // namespace engine

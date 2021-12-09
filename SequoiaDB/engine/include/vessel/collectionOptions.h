@@ -114,37 +114,29 @@ namespace vessel
          collectionScanOptions(){}
          ~collectionScanOptions(){}
          collectionScanOptions(const collectionScanOptions &o):
-         base(o.base),
-         cursor(o.cursor){}
+         base(o.base){}
          collectionScanOptions &operator=(const collectionScanOptions &o)
          {
             base = o.base;
-            cursor = o.cursor;
             return *this;
          }
 
       public:
           baseScanOptions base;
-          cursorOptions cursor;
    };//class collectionScanOptions
 
    class indexScanOptions : public SDBObject
    {
       public:
-         indexScanOptions()
-         {
-            cursor.rowBatchSize = 16;
-         }
+         indexScanOptions(){}
          ~indexScanOptions(){}
          indexScanOptions(const indexScanOptions &o):
          base(o.base),
-         cursor(o.cursor),
          indexCoverd(o.indexCoverd),
          forward(o.forward){}
          indexScanOptions &operator=(const indexScanOptions &o)
          {
             base = o.base;
-            cursor = o.cursor;
             indexCoverd = o.indexCoverd;
             forward = o.forward;
             return *this;
@@ -152,7 +144,6 @@ namespace vessel
 
       public:
          baseScanOptions base;
-         cursorOptions cursor;
          BOOLEAN indexCoverd = FALSE;
          BOOLEAN forward = TRUE;
    };//class indexScanOptions

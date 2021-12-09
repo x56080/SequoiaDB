@@ -59,7 +59,7 @@ namespace vessel
 
    static const UINT32 MAX_INDEX_KEY_COLUMNS = 32;
 
-   static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 4;
+   static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 0;
    //static const UINT32 DIRECT_MAPPING_INDEX_COUNT_PER_CL = 0;
 
    static const UINT32 MAX_INDEX_KEY_SIZE = 1024;

@@ -53,6 +53,8 @@
 #include "vessel/btreeRebuildingSortElement.h"
 #include "vessel/modifyRecordContext.h"
 #include "vessel/shallowPointer.hpp"
+#include "vessel/dmlRequest.h"
+#include "vessel/objectIdentifier.h"
 
 namespace engine
 {
@@ -109,6 +111,9 @@ namespace vessel
             return (UTIL_COMPRESSOR_TYPE)(_record.compressionType);
          }
 
+         globalCollectionId getGlobalId()const;
+         collectionId getCollectionId()const;
+
          INT32 create(requestContext *context,
                       const strSlice &clName,
                       utilCLInnerID innerID,
@@ -146,14 +151,17 @@ namespace vessel
          INT32 getMoreWhenIndexScan(indexScanContext *context);
 
       public:
-         INT32 insert(insertContext *context,
+         INT32 insert(dmlContext *context,
+                      const dmlInsertRequest &request,
                       utilInsertResult *res);
 
-         INT32 update(modifyRecordContext *context,
+         INT32 update(dmlContext *context,
+                      const dmlUpdateRequest &request,
                       IRecordUpdater *updater,
                       utilUpdateResult *res);
 
-         INT32 remove(modifyRecordContext *context,
+         INT32 remove(dmlContext *context,
+                      const dmlRemoveRequest &request,
                       utilDeleteResult *res);
 
       private:
@@ -173,11 +181,13 @@ namespace vessel
                                      const slice &record,
                                      dmlIndexRequestArray &requests)const;
 
-         INT32 buildUpdateIndexRequests(modifyRecordContext *context,
+         INT32 buildUpdateIndexRequests(requestContext *context,
+                                        const slice &oldRecord,
                                         IRecordUpdater *updater,
                                         dmlIndexRequestArray &ra);
 
-         INT32 buildRemoveIndexRequest(modifyRecordContext *context,
+         INT32 buildRemoveIndexRequest(requestContext *context,
+                                       const slice &oldRecord,
                                        dmlIndexRequestArray &ra);
 
          INT32 constraintCheck(dmlContext *context,
@@ -191,7 +201,8 @@ namespace vessel
          INT32 mergeIntoBuildingContext(dmlContext *context,
                                         dmlIndexRequestArray &ra);
 
-         INT32 lockAndFetchRecordToModify(modifyRecordContext *context);
+         INT32 lockAndFetchRecordToModify(dmlContext *context,
+                                          modifyRecordContext *mrc);
 
       private:/// Used only when openning/creating.
          INT32 initPageSequenceWhenOpen(requestContext *context);
@@ -221,20 +232,29 @@ namespace vessel
                                         UINT32 &count);
 
       private:
-         INT32 insertNonBigRecord(insertContext *context);
+         INT32 insertNonBigRecord(dmlContext *context,
+                                  const dmlInsertRequest &request);
 
-         INT32 insertNonBigRecordToPage(insertContext *context,
-                                        PAGE_ID lpid);
+         INT32 insertAndUpdateCandidate(dmlContext *context,
+                                        const dmlInsertRequest &request,
+                                        fsmCandidate &candidate,
+                                        BOOLEAN &outOfSpace);
 
-         INT32 updateRecordData(modifyRecordContext *context,
+         INT32 updateRecordData(dmlContext *context,
+                                const modifyRecordContext *mrc,
+                                STRIPING_ID stripingId,
                                 const slice &newRecord);
 
-         INT32 updateNormalRecord(modifyRecordContext *context,
+         INT32 updateNormalRecord(dmlContext *context,
+                                  const recordID &rid,
+                                  STRIPING_ID stripingId,
                                   const slice &newRecord);
 
-         INT32 removeRecordData(modifyRecordContext *context);
+         INT32 removeRecordData(dmlContext *context,
+                                const modifyRecordContext *mrc);
 
-         INT32 removeNormalRecord(modifyRecordContext *context);
+         INT32 removeNormalRecord(dmlContext *context,
+                                  const recordID &rid);
 
       private:
          INT32 findCandidate(requestContext *context,
@@ -364,10 +384,6 @@ namespace vessel
          INT32 initIndexesWhenOpen(requestContext *context);
 
          INT32 fixUnstatbleIndexesWhenOpen(requestContext *context);
-
-
-      private:
-         typedef ossPoolMap<INT32, unstableIndexContext*> _UNSTABLE_INDEXES;
          
       private:
          //ossSpinSLatch _recordLatch;

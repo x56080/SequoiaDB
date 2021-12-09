@@ -130,26 +130,23 @@ namespace vessel
 
          INT32 insert(IExecutor *executor,
                       const globalCollectionId &gcid,
-                      const slice &record,
-                      STRIPING_ID striping,
-                      const insertOptions &options,
+                      const dmlInsertRequest &request,
                       utilInsertResult *res);
 
          INT32 insertBatch(IExecutor *executor,
                            const globalCollectionId &gcid,
-                           const ossPoolVector<slice> &batch,
-                           const insertOptions &options,
+                           const dmlBatchInsertRequest &request,
                            utilInsertResult *res);
 
          INT32 update(IExecutor *executor,
                       const globalCollectionId &gcid,
-                      const recordID &rid,
+                      const dmlUpdateRequest &request,
                       IRecordUpdater *updater,
                       utilUpdateResult *res);
 
          INT32 remove(IExecutor *executor,
                       const globalCollectionId &gcid,
-                      const recordID &rid,
+                      const dmlRemoveRequest &request,
                       utilDeleteResult *res);
 
          INT32 getTotalRecordCountInPageHead(IExecutor *executor,

@@ -58,8 +58,7 @@ namespace vessel
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isSpaceIdLocked() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        INVALID_PAGE_ID == lpid ||
                        INVALID_RECORD_SLOT_ID == begin))
       {
@@ -270,17 +269,17 @@ namespace vessel
          }
          else
          {
-            recordIdLatchKey key(_context->getLogicalCSID(),
-                                 _context->getLogicalCLID(), rid);
+            recordIdLatchKey key(_context->getSpaceID(),
+                                 _context->getMBID(), rid);
             latchObj = globalRidLatchMap.get(key);
             if (!latchObj.isValid())
             {
                /// no one holding rid latch now
                break;
             }
-            else if (latchObj.getValue().tryLockShared())
+            else if (latchObj.getValue().try_get_shared())
             {
-               latchObj.getValue().unlockShared();
+               latchObj.getValue().release_shared();
                globalRidLatchMap.release(latchObj);
                break;
             }
@@ -290,7 +289,7 @@ namespace vessel
                _accessor.fini();
                _lpb.fini();
                slot.reset();
-               latchObj.getValue().lockShared();
+               latchObj.getValue().get_shared();
                rc = initAccessor();
                if (SDB_OK != rc)
                {
@@ -298,9 +297,13 @@ namespace vessel
                   goto error;
                }
 
+               latchObj.getValue().release_shared();
+               globalRidLatchMap.release(latchObj);
+
                if (_accessor.getTotalSlotCount() <= pos)
                {
                   /// out of bound, records may be removed.
+                  /// end to scan current page.
                   goto done;
                }
 
@@ -310,9 +313,6 @@ namespace vessel
                   PD_LOG(PDERROR, "failed to get slot data[%d], rc:%d", pos, rc);
                   goto error;
                }
-
-               latchObj.getValue().unlockShared();
-               globalRidLatchMap.release(latchObj);
 
                if (slot.isValid() && !slot.isInvisible() &&
                    !slot.isTombstone())
@@ -336,7 +336,7 @@ namespace vessel
    done:
       if (latchObj.isValid())
       {
-         latchObj.getValue().unlockShared();
+         latchObj.getValue().release_shared();
          globalRidLatchMap.release(latchObj);
       }
       return rc;

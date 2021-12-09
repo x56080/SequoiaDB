@@ -48,9 +48,9 @@ namespace vessel
    {
       public:
          stackAllocatorRowBatch(){}
-         virtual ~stackAllocatorRowBatch(){}
+         virtual ~stackAllocatorRowBatch();
       public:
-         virtual UINT32 getRowCount()const;
+         virtual UINT32 getRowCount()const {return _tags.size();}
          virtual BOOLEAN isFreeToPush(UINT32 rowSize)const;
          virtual INT32 pushRow(const slice &row);
          virtual INT32 pushRowFragments(std::initializer_list<slice> il);

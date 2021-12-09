@@ -66,6 +66,7 @@ namespace vessel
    class instanceEnv;
    class outerResource;
    class atomicOperationList;
+   class runtimeMbContext;
 
    class requestContext : public SDBObject
    {
@@ -121,24 +122,9 @@ namespace vessel
 
          BOOLEAN isSpaceIdLocked(OSS_LATCH_MODE *mode=NULL)const;
 
-
-         void cacheSpaceInfo(UINT32 logicalId,
-                             utilCSUniqueID uniqueId,
-                             const CHAR *name);
-
          OSS_INLINE SPACE_ID getSpaceID()const
          {
-            return _spaceContext.sid;
-         }
-
-         OSS_INLINE UINT32 getLogicalCSID()const
-         {
-            return _spaceContext.lid;
-         }
-
-         OSS_INLINE const strSlice &getCSName()const
-         {
-            return _spaceContext.name;
+            return _sid;
          }
       public:
          /// space must be locked first
@@ -150,35 +136,28 @@ namespace vessel
                            ossRWMutex *mutex,
                            OSS_LATCH_MODE mode);
 
-         /// must lock space first
-         void cacheMbInfo(UINT32 logicalId,
-                          utilCLInnerID innerId,
-                          const CHAR *name);
-
-         OSS_INLINE BOOLEAN isMbInfoCached()const
-         {
-            return DMS_INVALID_LOGICCLID != _clContext.lid;
-         }
-
-         OSS_INLINE UINT32 getLogicalCLID()const
-         {
-            return _clContext.lid;
-         }
-         OSS_INLINE const strSlice &getCLName()const
-         {
-            return _clContext.name;
-         }
-
          void unlockMB();
 
          BOOLEAN isMbLocked(OSS_LATCH_MODE *mode=NULL)const;
 
          OSS_INLINE CL_MB_ID getMBID()const
          {
-            return _clContext.mbID;
+            return _mbID; 
          }
 
-         globalCollectionId getGlobalCollectionId()const;
+         /// do not release rmc outside until detaching.
+         void attachMbContext(runtimeMbContext *rmc);
+
+         void detachMbContext();
+
+         OSS_INLINE BOOLEAN isMbContextAttached()const
+         {
+            return NULL != _rmc;
+         }
+         const runtimeMbContext *getMbContext()const
+         {
+            return _rmc;
+         }
 
       public:
          /// no timeout. no recursive locking.
@@ -193,17 +172,25 @@ namespace vessel
 
          void unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
 
-         /// test locking in current context
+         /// test locking in local context
          BOOLEAN testLpidLocked(SPACE_TYPE type,
                                 PAGE_ID lpid,
-                                ossSharedLatchMode *mode);
+                                ossSharedLatchMode *mode=NULL);
 
-         LPID_LATCH_CONTEXT &getLpidLatchContext()
-         {
-            return _lpidLatchContext;
-         }
+         INT32 lockFromUpgradeToExclusive(SPACE_TYPE type,
+                                          PAGE_ID lpid);
 
-      public:
+         /// will not release upgrade latch if failed to try
+         INT32 tryLockFromUpgradeToExclusive(SPACE_TYPE type,
+                                             PAGE_ID lpid,
+                                             BOOLEAN &locked);
+
+         /// will not release shared latch if failed to try
+         INT32 tryLockFromSharedToExclusive(SPACE_TYPE type,
+                                            PAGE_ID lpid,
+                                            BOOLEAN &locked);
+
+      public:/// attach mb first
 
          INT32 lockRid(const recordID &rid,
                        const ossSharedLatchMode &mode);
@@ -213,13 +200,9 @@ namespace vessel
          void unlockRid(const recordID &rid);
          void unlockRids();
 
-         const RID_LATCH_CONTEXT &getRidLatchContext()const
-         {
-            return _ridLatchContext;
-         }
-
          BOOLEAN testRidLocked(const recordID &rid,
                                ossSharedLatchMode *mode=NULL);
+
       public:
          INT32 blockCheckpoint(SPACE_TYPE type,
                                ossRWMutex *mutex);
@@ -260,71 +243,22 @@ namespace vessel
       private:
          void _close();
 
-         enum _UNLOCK_LVL
-         {
-            _UNLOCK_LVL_RID = 1,
-            _UNLOCK_LVL_MB = 2,
-            _UNLOCK_LVL_SPACE = 3,
-         };//enum _UNLOCK_LVL
-
-         void _unlockAndClear(_UNLOCK_LVL lvl);
-
-      private:
-         struct _collectionSpaceContext : public SDBObject
-         {
-            SPACE_ID sid = INVALID_SPACE_ID;
-            OSS_LATCH_MODE mode = SHARED;
-            UINT32 lid = DMS_INVALID_LOGICCSID;
-            utilCSUniqueID uniqueId = UTIL_UNIQUEID_NULL;
-            strSlice name; 
-
-            OSS_INLINE BOOLEAN isLocking()const
-            {
-               return INVALID_SPACE_ID != sid;
-            }
-            OSS_INLINE void reset()
-            {
-               sid = INVALID_SPACE_ID;
-               mode = SHARED;
-               lid = DMS_INVALID_LOGICCSID;
-               uniqueId = UTIL_UNIQUEID_NULL;
-               name.reset();
-            }
-         };//struct _collectionSpaceContext
-
-         struct _collectionContext : public SDBObject
-         {
-            OSS_INLINE void reset()
-            {
-               mbID = INVALID_CL_MB_ID;
-               mode = SHARED;
-               mutex = NULL;
-               lid = DMS_INVALID_LOGICCLID;
-               innerId = UTIL_UNIQUEID_NULL;
-               name.reset();
-            }
-            OSS_INLINE BOOLEAN isLocking()const
-            {
-               return NULL != mutex;
-            }
-
-            CL_MB_ID mbID = INVALID_CL_MB_ID;
-            OSS_LATCH_MODE mode = SHARED;
-            ossRWMutex *mutex = NULL;
-            UINT32 lid = DMS_INVALID_LOGICCLID;
-            utilCLInnerID innerId = UTIL_UNIQUEID_NULL;
-            strSlice name;
-         };//struct _collectionContext
+         void _unlockAll();
 
       private:
          IExecutor *_executor = NULL;
          instanceEnv *_env = NULL;
          outerResource *_outerResource = NULL;
 
-         _collectionSpaceContext _spaceContext;
-         _collectionContext _clContext;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         OSS_LATCH_MODE _sidMode = SHARED;
+         
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
+         ossRWMutex *_mbMutex = NULL;
+         OSS_LATCH_MODE _mbMode = SHARED;
+         runtimeMbContext *_rmc = NULL;
+
          LPID_LATCH_CONTEXT _lpidLatchContext;
-         RID_LATCH_CONTEXT _ridLatchContext;
          lpsCheckpointBlocker _blocker;
 
          UINT32 _bufAllocated = 0;

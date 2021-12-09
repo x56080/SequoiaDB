@@ -63,6 +63,14 @@ namespace vessel
       fini();
    }
 
+   collectionSpaceId collectionSpace::getIdentifier()const
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      return collectionSpaceId(_recordInMem.logicalID,
+                               _recordInMem.uniqueID,
+                               getSpaceId());
+   }
+
    INT32 collectionSpace::create(requestContext *context,
                                  const strSlice &name,
                                  utilCSUniqueID uniqueId,
@@ -163,10 +171,6 @@ namespace vessel
          PD_LOG(PDERROR, "failed to read meta data when open:%d", rc);
          goto error;
       }
-
-      context->cacheSpaceInfo(_recordInMem.logicalID,
-                              _recordInMem.uniqueID,
-                              _recordInMem.name);
 
       rc = initInMemStructures();
       if (SDB_OK != rc)
@@ -504,10 +508,6 @@ namespace vessel
 
          SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
          *obj = holder->getObj();
-
-         context->cacheMbInfo(holder->getObj()->getLogicalID(),
-                              holder->getObj()->getInnerID(),
-                              holder->getObj()->getName());
          break;
       } while (TRUE);
    done:
@@ -566,9 +566,6 @@ namespace vessel
       }
 
       SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
-      context->cacheMbInfo(holder->getObj()->getLogicalID(),
-                              holder->getObj()->getInnerID(),
-                              holder->getObj()->getName());
 
       *obj = holder->getObj();
    done:
@@ -627,8 +624,6 @@ namespace vessel
       }
 
       SDB_ASSERT(holder->getObj()->isOpen(), "impossible");
-      context->cacheMbInfo(id.getLid(), id.getInnerId(),
-                           holder->getObj()->getName());
 
       *obj = holder->getObj();
    done:
@@ -804,7 +799,6 @@ namespace vessel
       }
 
       context->lockMB(record->mbID, &holder->getLatch(), EXCLUSIVE);
-      context->cacheMbInfo(record->logicalCLID, record->innerID, record->name);
       rc = cl->initWhenOpen(context, *record, this);
       if (SDB_OK != rc)
       {
@@ -897,9 +891,9 @@ namespace vessel
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
       atomicOperationList *oplist = NULL;
       crpIniter initer;
-      lpidLockHelper lh;
-      mainDataSpace *mds = &(_su->getMainDataSpace());
-      UINT32 pageSize = mds->getStorageCoreArgs().pageSize;
+      BOOLEAN locked = FALSE;
+      mainDataSpace &mds = _su->getMainDataSpace();
+      UINT32 pageSize = mds.getStorageCoreArgs().pageSize;
       PAGE_ID lpid = getCrpLpidOfCollection(pageSize, mbID);
       if (INVALID_PAGE_ID == lpid)
       {
@@ -908,20 +902,20 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, mds->getSpaceType(),
-                   lpid, mode);
+      rc = context->lockLpid(mds.getSpaceType(), lpid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get exlusive latch of lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
+      locked = TRUE;
 
       if (context->isInProcessingOplist())
       {
          context->swtichOplist(NULL, &oplist);
       }
 
-      rc = mds->ensureReservedPageMapped(context, lpid, &initer);
+      rc = mds.ensureReservedPageMapped(context, lpid, &initer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to ensure lpid[%d] mapped:%d", lpid, rc);
@@ -931,6 +925,10 @@ namespace vessel
       if (NULL != oplist)
       {
          context->attachOplist(oplist);
+      }
+      if (locked)
+      {
+         context->unlockLpid(mds.getSpaceType(), lpid);
       }
       return rc;
    error:

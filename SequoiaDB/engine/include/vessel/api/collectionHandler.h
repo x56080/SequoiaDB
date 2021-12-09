@@ -50,6 +50,7 @@
 #include "sdbInterface.hpp"
 #include "vessel/recordID.h"
 #include "interface/IRecordUpdater.h"
+#include "vessel/dmlRequest.h"
 
 namespace engine
 {
@@ -114,17 +115,20 @@ namespace vessel
                       const insertOptions &options,
                       utilInsertResult *res);
 
+         INT32 insert(IExecutor *executor,
+                      const dmlInsertRequest &request,
+                      utilInsertResult *res);
+
          INT32 insertBatch(IExecutor *executor,
-                           const ossPoolVector<slice> &batch,
-                           const insertOptions &options,
+                           const dmlBatchInsertRequest &request,
                            utilInsertResult *res);
 
          INT32 deleteRecord(IExecutor *executor,
-                            const recordID &rid,
+                            const dmlRemoveRequest &request,
                             utilDeleteResult *res);
 
          INT32 updateRecord(IExecutor *executor,
-                            const recordID &rid,
+                            const dmlUpdateRequest &request,
                             IRecordUpdater *updater,
                             utilUpdateResult *res);
 
@@ -138,13 +142,15 @@ namespace vessel
          INT32 openScanCursor(IExecutor *executor,
                               IQueryFilter *filter,
                               const collectionScanOptions &o,
-                              cursorHandler &cursor);
+                              cursorHandler &cursor,
+                              const cursorOptions *co=NULL);
 
          INT32 openIndexScanCursor(IExecutor *executor,
                                    const strSlice &indexName,
                                    const rtnPredicateList &predicate,
                                    const indexScanOptions &o,
-                                   cursorHandler &cursor);
+                                   cursorHandler &cursor,
+                                   const cursorOptions *co=NULL);
           
       private:
          globalCollectionId _gcid;

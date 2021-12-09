@@ -52,59 +52,102 @@ namespace vessel
 
       public:
          void releaseAll(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                         objectSharedLatchContext<KEY> &context)
+                         objectSharedLatchContext<KEY, ossSharedLatch> &context)
          {
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-            ossSharedLatchMode mode;
-            while (context.popBack(obj, mode))
+            typename objectSharedLatchContext<KEY, ossSharedLatch>::item i;
+            while (context.popBack(i))
             {
-               obj.getValue().unlockWith(mode);
-               latchMap.release(obj);
+               SDB_ASSERT(i.isValid(), "can not be invalid");
+               i.obj.getValue().unlockWith(i.mode);
+               latchMap.release(i.obj);
             }
             return;
          }
 
-         void releaseAll(sharedObjectMap<KEY, ossSpinXLatch> &latchMap,
-                         ossPoolVector<typename sharedObjectMap<KEY, ossSpinXLatch>::object> &context)
+         void releaseAll(sharedObjectMap<KEY, ossSpinSLatchPOSIX> &latchMap,
+                         objectSharedLatchContext<KEY, ossSpinSLatchPOSIX> &context)
          {
-            typename ossPoolVector<typename sharedObjectMap<KEY, ossSpinXLatch>::object>::iterator itr =
-                                                                               context.begin();
-            for (; itr != context.end(); ++itr)
+            typename objectSharedLatchContext<KEY, ossSpinSLatchPOSIX>::item i;
+            while (context.popBack(i))
             {
-               itr->getValue().release();
-               latchMap.release(*itr);
+               SDB_ASSERT(i.isValid(), "can not be invalid");
+               if (i.mode.isShared())
+               {
+                  i.obj.getValue().release_shared();
+               }
+               else if (i.mode.isExclusive())
+               {
+                  i.obj.getValue().release();
+               }
+               else
+               {
+                  SDB_ASSERT(FALSE, "invalid mode");
+               }
+               latchMap.release(i.obj);
             }
-            context.clear();
+            return;
          }
 
          void autoUnlock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                         objectSharedLatchContext<KEY> &context,
+                         objectSharedLatchContext<KEY, ossSharedLatch> &context,
                          const KEY &key)
          {
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-            ossSharedLatchMode mode;
-            if (!context.findAndPop(key, obj, mode))
+            typename objectSharedLatchContext<KEY, ossSharedLatch>::item i;
+            if (!context.findAndPop(key, i))
             {
                PD_LOG(PDERROR, "object latch key not found");
                SDB_ASSERT(FALSE, "object latch key not found");
             }
             else
             {
-               obj.getValue().unlockWith(mode);
-               latchMap.release(obj);
+               SDB_ASSERT(i.isValid(), "can not be invalid");
+               i.obj.getValue().unlockWith(i.mode);
+               latchMap.release(i.obj);
+            }
+            return;
+         }
+
+         void autoUnlock(sharedObjectMap<KEY, ossSpinSLatchPOSIX> &latchMap,
+                         objectSharedLatchContext<KEY, ossSpinSLatchPOSIX> &context,
+                         const KEY &key)
+         {
+            typename objectSharedLatchContext<KEY, ossSpinSLatchPOSIX>::item i;
+            if (!context.findAndPop(key, i))
+            {
+               PD_LOG(PDERROR, "object latch key not found");
+               SDB_ASSERT(FALSE, "object latch key not found");
+            }
+            else
+            {
+               SDB_ASSERT(i.isValid(), "can not be invalid");
+               if (i.mode.isShared())
+               {
+                  i.obj.getValue().release_shared();
+               }
+               else if (i.mode.isExclusive())
+               {
+                  i.obj.getValue().release();
+               }
+               else
+               {
+                  SDB_ASSERT(FALSE, "invalid mode");
+               }
+               latchMap.release(i.obj);
             }
             return;
          }
 
          INT32 lock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                    objectSharedLatchContext<KEY> &context,
+                    objectSharedLatchContext<KEY, ossSharedLatch> &context,
                     const KEY &k,
                     const ossSharedLatchMode &mode)
          {
             INT32 rc = SDB_OK;
+            SDB_ASSERT(k.isValid(), "can not be invalid");
             SDB_ASSERT(!mode.isNone(), "can not be none");
             typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
 
+#if defined (_DEBUG)
             if (context.test(k, NULL))
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
@@ -112,6 +155,7 @@ namespace vessel
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
                goto error;
             }
+#endif//_DEBUG
 
             rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
@@ -120,26 +164,116 @@ namespace vessel
                goto error;
             }
 
-            context.pushBack(obj, mode);
-
             obj.getValue().lockWith(mode);
+            context.pushBack(obj, mode);
          done:
             return rc;
          error:
             goto done;
          }
 
-         INT32 tryLock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                       objectSharedLatchContext<KEY> &context,
-                       const KEY &k,
-                       const ossSharedLatchMode &mode,
-                       BOOLEAN &locked)
+         INT32 lockFromUpgradeToExclusive(objectSharedLatchContext<KEY, ossSharedLatch> &context,
+                                          const KEY &k)
          {
             INT32 rc = SDB_OK;
-            SDB_ASSERT(!mode.isNone(), "can not be none");
-            locked = FALSE;
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            typename objectSharedLatchContext<KEY, ossSharedLatch>::item item;
+            ossSharedLatchMode *mode = NULL;
+            item = context.findToUpdate(k, &mode);
+            if (!item.isValid())
+            {
+               rc = SDB_VESSEL_KEY_NOT_FOUND;
+               goto error;
+            }
+            else if (!item.mode.isUpgrade())
+            {
+               rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+               goto error;
+            }
 
+            item.obj.getValue().unlockUpgradeAndLock();
+            mode->setExclusive();
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
+         INT32 tryLockFromUpgradeToExclusive(objectSharedLatchContext<KEY, ossSharedLatch> &context,
+                                             const KEY &key,
+                                             BOOLEAN &locked)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(key.isValid(), "can not be invalid");
+            locked = FALSE;
+            typename objectSharedLatchContext<KEY, ossSharedLatch>::item item;
+            ossSharedLatchMode *mode = NULL;
+            item = context.findToUpdate(key, &mode);
+            if (!item.isValid())
+            {
+               rc = SDB_VESSEL_KEY_NOT_FOUND;
+               goto error;
+            }
+            else if (!item.mode.isUpgrade())
+            {
+               rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+               goto error;
+            }
+
+            locked = item.obj.getValue().tryUnlockUpgradeAndLock();
+            if (locked)
+            {
+               mode->setExclusive();
+            }
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
+         INT32 tryLockFromSharedToExclusive(objectSharedLatchContext<KEY, ossSharedLatch> &context,
+                                            const KEY &key,
+                                            BOOLEAN &locked)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(key.isValid(), "can not be invalid");
+            locked = FALSE;
+            typename objectSharedLatchContext<KEY, ossSharedLatch>::item item;
+            ossSharedLatchMode *mode = NULL;
+            item = context.findToUpdate(key, &mode);
+            if (!item.isValid())
+            {
+               rc = SDB_VESSEL_KEY_NOT_FOUND;
+               goto error;
+            }
+            else if (!item.mode.isShared())
+            {
+               rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
+               goto error;
+            }
+
+            locked = item.obj.getValue().tryUnlockSharedAndLock();
+            if (locked)
+            {
+               mode->setExclusive();
+            }
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
+         INT32 lock(sharedObjectMap<KEY, ossSpinSLatchPOSIX> &latchMap,
+                    objectSharedLatchContext<KEY, ossSpinSLatchPOSIX> &context,
+                    const KEY &k,
+                    const ossSharedLatchMode &mode)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            SDB_ASSERT(mode.isShared() || mode.isExclusive(), "must be shared/exclusive");
+            typename sharedObjectMap<KEY, ossSpinSLatchPOSIX>::object obj;
+
+#if defined (_DEBUG)
             if (context.test(k, NULL))
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
@@ -147,6 +281,52 @@ namespace vessel
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
                goto error;
             }
+#endif//_DEBUG
+
+            rc = latchMap.ensure(k, obj);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
+               goto error;
+            }
+
+            if (mode.isShared())
+            {
+               obj.getValue().get_shared();
+            }
+            else
+            {
+               obj.getValue().get();
+            }
+            context.pushBack(obj, mode);
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+         
+
+         INT32 tryLock(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
+                       objectSharedLatchContext<KEY, ossSharedLatch> &context,
+                       const KEY &k,
+                       const ossSharedLatchMode &mode,
+                       BOOLEAN &locked)
+         {
+            INT32 rc = SDB_OK;
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            SDB_ASSERT(!mode.isNone(), "can not be none");
+            locked = FALSE;
+            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
+
+#if defined (_DEBUG)
+            if (context.test(k, NULL))
+            {
+               PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
+               SDB_ASSERT(FALSE, "do not relock");
+               rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+               goto error;
+            }
+#endif//_DEBUG
 
             rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
@@ -170,87 +350,19 @@ namespace vessel
             goto done;
          }
 
-         /// return false when timeout
-         BOOLEAN testNotExistsOrWait(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                                     const KEY &k,
-                                     const ossSharedLatchMode &mode,
-                                     INT32 millis=-1)
-         {
-            BOOLEAN r = FALSE;
-            SDB_ASSERT(k.isValid(), "can not be invalid");
-            SDB_ASSERT(!mode.isNone(), "can not be none");
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj = latchMap.get(k);
-
-            if (obj.isValid())
-            {
-               if (millis < 0)
-               {
-                  obj.getValue().lockWith(mode);
-                  obj.getValue().unlockWith(mode);
-                  r = TRUE;
-               }
-               else
-               {
-                  r = obj.getValue().tryLockWith(mode, millis);
-                  if (r)
-                  {
-                     obj.getValue().unlockWith(mode);
-                  }
-               }
-
-               latchMap.release(obj);
-            }
-
-            return r;
-         }
-
-         INT32 waitFor(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
+         INT32 tryLock(sharedObjectMap<KEY, ossSpinSLatchPOSIX> &latchMap,
+                       objectSharedLatchContext<KEY, ossSpinSLatchPOSIX> &context,
                        const KEY &k,
                        const ossSharedLatchMode &mode,
-                       UINT32 millis,
-                       BOOLEAN &timeout)
+                       BOOLEAN &locked)
          {
             INT32 rc = SDB_OK;
-            SDB_ASSERT(!mode.isNone(), "can not be none");
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-            
-            rc = latchMap.ensure(k, obj);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
-               goto error;
-            }
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            SDB_ASSERT(mode.isShared() || mode.isExclusive(), "must be shared/exclusive");
+            locked = FALSE;
+            typename sharedObjectMap<KEY, ossSpinSLatchPOSIX>::object obj;
 
-            if (!obj.getValue().tryLockWith(mode, millis))
-            {
-               timeout = TRUE;
-            }
-            else
-            {
-               obj.getValue().unlockWith(mode);
-               timeout = FALSE;
-            }
-         done:
-            if (obj.isValid())
-            {
-               latchMap.release(obj);
-            }
-            return rc;
-         error:
-            goto done;
-         }
-
-         INT32 tryLockWhenExists(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                                 objectSharedLatchContext<KEY> &context,
-                                 const KEY &k,
-                                 const ossSharedLatchMode &mode,
-                                 BOOLEAN &notExists,
-                                 BOOLEAN &locked)
-         {
-            INT32 rc = SDB_OK;
-            SDB_ASSERT(!mode.isNone(), "can not be none");
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-
+#if defined (_DEBUG)
             if (context.test(k, NULL))
             {
                PD_LOG(PDERROR, "key[%s] already locked", k.toString().c_str());
@@ -258,56 +370,65 @@ namespace vessel
                rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
                goto error;
             }
+#endif//_DEBUG
 
-            rc = latchMap.get(k, obj);
+            rc = latchMap.ensure(k, obj);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to get latch obj[%s], rc:%d",
-                      k.toString().c_str(), rc);
+               PD_LOG(PDERROR, "failed to ensure latch obj:%d", rc);
                goto error;
             }
-            else if (!obj.isValid())
+
+            if (mode.isShared())
             {
-               notExists = TRUE;
-               locked = FALSE;
+               locked = obj.getValue().try_get_shared();
             }
-            else if (obj.getValue().tryLockWith(mode))
+            else
             {
-               rc = context.push(obj, mode);
-               if (SDB_OK != rc)
-               {
-                  obj.getValue().unlockWith(mode);
-                  latchMap.release(obj);
-                  PD_LOG(PDERROR, "failed to push obj to context:%d", rc);
-                  goto error;
-               }
-               notExists = FALSE;
-               locked = TRUE;
+               locked = obj.getValue().try_get();
+            }
+
+            if (locked)
+            {
+               context.pushBack(obj, mode);
             }
             else
             {
                latchMap.release(obj);
-               notExists = FALSE;
-               locked = FALSE;
             }
          done:
             return rc;
          error:
-            goto error;
+            goto done;
          }
 
-         void unlockLast(sharedObjectMap<KEY, ossSharedLatch> &latchMap,
-                         objectSharedLatchContext<KEY> &context)
+         void testNotExistsOrWait(sharedObjectMap<KEY, ossSpinSLatchPOSIX> &latchMap,
+                                  const KEY &k,
+                                  const ossSharedLatchMode &mode)
          {
-            typename sharedObjectMap<KEY, ossSharedLatch>::object obj;
-            ossSharedLatchMode mode;
-            if (context.pop(obj, mode))
+            SDB_ASSERT(k.isValid(), "can not be invalid");
+            SDB_ASSERT(mode.isShared() || mode.isExclusive(), "must be shared/exclusive");
+            typename sharedObjectMap<KEY, ossSpinSLatchPOSIX>::object obj = latchMap.get(k);
+
+            if (obj.isValid())
             {
-               obj.getValue().unlockWith(mode);
+               if (mode.isShared())
+               {
+                  obj.getValue().get_shared();
+                  obj.getValue().release_shared();
+               }
+               else
+               {
+                  obj.getValue().get();
+                  obj.getValue().release();
+               }
+
                latchMap.release(obj);
             }
+
             return;
          }
+
    };//class objectLatchHelper
 } // namespace vessel
 

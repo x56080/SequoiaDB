@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertOptions.h
+   Source File Name = runtimeMbContext.cpp
 
    Descriptive Name =
 
@@ -33,33 +33,40 @@
 
 ******************************************************************************/
 
-#ifndef SDB_VESSEL_INSERT_OPTIONS_H_
-#define SDB_VESSEL_INSERT_OPTIONS_H_
-
-#include "core.hpp"
-#include "oss.hpp"
+#include "vessel/runtimeMbContext.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions : public SDBObject
+   runtimeMbContext::~runtimeMbContext()
    {
-      public:
-         OSS_INLINE insertOptions(){}
+      SDB_ASSERT(_rlc.isEmpty(), "unlocking missed");
+   }
 
-         OSS_INLINE ~insertOptions(){}
+   void runtimeMbContext::init(const collectionRecord &cmr,
+                               const collectionSpaceId &csIdentifer)
+   {
+      SDB_ASSERT(cmr.isValid(), "can not be invalid");
+      SDB_ASSERT(csIdentifer.isValid(), "can not be invalid");
+      SDB_ASSERT(_rlc.isEmpty(), "do not reinit");
+      _gcid.reset(csIdentifer,
+                  collectionId(cmr.logicalCLID, cmr.innerID, cmr.mbID));
+      _name.reset(cmr.name);
+      SDB_ASSERT(cmr.minFreePercent <= 100, "out of range");
+      _minFreePercent = cmr.minFreePercent;
+      _compressionType = (UTIL_COMPRESSOR_TYPE)(cmr.compressionType);
+   }
 
-         insertOptions(const insertOptions &o) = delete;
+   void runtimeMbContext::fini()
+   {
+      _gcid.reset();
+      _name.reset();
+      _minFreePercent = 0.0f;
+      _compressionType = UTIL_COMPRESSOR_INVALID;
+      _rlc.fini();
+   }
+} // namespace vessel
 
-         insertOptions &operator=(const insertOptions &o)
-         {
-            return *this;
-         }
-      public:
-   }; /// end of class insertOptions
-
-}//namespace vessel
-}//namespace engine
-
-#endif//SDB_VESSEL_INSERT_OPTIONS_H_
+} // namespace engine

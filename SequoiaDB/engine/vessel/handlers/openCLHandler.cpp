@@ -81,7 +81,7 @@ namespace vessel
          goto error;
       }
 
-      clHandler = collectionHandler(context.getGlobalCollectionId(), db);
+      clHandler = collectionHandler(cl->getGlobalId(), db);
    done:
       context.close();
       return rc;

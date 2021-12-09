@@ -47,6 +47,7 @@
 #include "vessel/indexScanCursor.h"
 #include "vessel/indexUtils.h"
 #include "rtnPredicate.hpp"
+#include "vessel/runtimeMbContext.h"
 
 namespace engine
 {
@@ -57,18 +58,17 @@ namespace vessel
       close();
    }
 
-   INT32 indexScanner::open(requestContext *context,
-                            indexContext *ic,
-                            const indexScanOptions &o,
-                            const ossSharedLatchMode &mode)
+   INT32 indexScanner::open(indexScanContext *context,
+                            indexContext *ic)
    {
       INT32 rc = SDB_OK;
       close();
 
       if (OSS_UNLIKELY(NULL == context ||
+                       !context->isMbContextAttached() ||
+                       !context->isCursorAttached() ||
                        NULL == ic ||
-                       !ic->isValid() ||
-                       mode.isNone()))
+                       !ic->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -91,8 +91,7 @@ namespace vessel
       }
 
       _ic = ic;
-      _forward = o.forward;
-      _mode = mode;
+      _o = context->getCursor()->getOptions();
 
    done:
       return rc;
@@ -110,20 +109,20 @@ namespace vessel
          _iterator = NULL;
       }
       _ic = NULL;
-      _forward = TRUE;
-      _mode.setNone();
+      _o = indexScanOptions();
       _keyBuilder.reset();
       return;
    }
 
    INT32 indexScanner::batchNext(indexScanContext *context,
-                                 UINT32 rowLimited)
+                                 rowBatch &entryBatch)
    {
       INT32 rc = SDB_OK;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen() ||
-                       !context->isCursorAttached()))
+                       !context->isMbContextAttached() ||
+                       !context->isCursorAttached() ||
+                       !entryBatch.isEmpty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -147,16 +146,13 @@ namespace vessel
          goto error;
       }
 
-      rc = fillBatch(context, rowLimited);
+      rc = fillBatch(context, entryBatch);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to fill batch:%d", rc);
-         goto error;
-      }
-
-      if (context->getBatch().isEmpty())
-      {
-         rc = SDB_IXM_EOC;
+         if (SDB_IXM_EOC != rc)
+         {
+            PD_LOG(PDERROR, "failed to fill batch:%d", rc);
+         }
          goto error;
       }
 
@@ -168,23 +164,33 @@ namespace vessel
    }
 
    INT32 indexScanner::fillBatch(indexScanContext *context,
-                                 UINT32 rowLimited)
+                                 rowBatch &entryBatch)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(0 == context->getBatch().getEntryCount(), "must be empty");
-      SDB_ASSERT(context->getRidLatchContext().isEmpty(), "must be empty");
-      SDB_ASSERT(!_mode.isNone(), "can not be none");
-      SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
-      SDB_ASSERT(0 < rowLimited, "can not be zero");
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(entryBatch.isEmpty(), "must be empty");
+      SDB_ASSERT(context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
+      SDB_ASSERT(entryBatch.isFreeToPush(0), "should be free to push");
 
-      UNORDERED_RID_SET *ridSet = context->getRidSet();
-      SDB_ASSERT(NULL != ridSet, "can not be null");
       rtnPredicateListIterator *predicate = context->getCursor()->getPredicate();
       SDB_ASSERT(NULL != predicate, "can not be null");
+      indexScanCursor *cursor = context->getCursor();
+      SDB_ASSERT(NULL != cursor, "can not be null");
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      static constexpr UINT32 _MAX_ROW_COUNT = 1024;
+      UINT32 pushed = 0;
 
       do
       {
+         SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
+         UINT32 entrySize = _iterator->getCurrentEntrySize();
+         if (!entryBatch.isFreeToPush(entrySize))
+         {
+            SDB_ASSERT(!entryBatch.isEmpty(), "row buffer size may be to small");
+            break;
+         }
+
          _keyBuilder.reset();
          bson::BSONObj keyObj = _iterator->getKeyObj(&_keyBuilder);
          INT32 res = predicate->advance(keyObj);
@@ -194,7 +200,7 @@ namespace vessel
          }
          else if (0 <= res)
          {
-            indexIterator::options o(predicate->after(), _forward);
+            indexIterator::options o(predicate->after(), _o.forward);
             rc = _iterator->fastNext(keyObj, rc, predicate->cmp(),
                                      predicate->inc(), o);
             if (SDB_OK != rc)
@@ -202,15 +208,17 @@ namespace vessel
                PD_LOG(PDERROR, "failed to reseek key:%d", rc);
                goto error;
             }
+
+            continue;
          }
          else
          {
             recordID rid = _iterator->getRid();
 
-            if (0 == ridSet->count(rid))
+            if (!cursor->testRidScanned(rid))
             {
                BOOLEAN locked = FALSE;
-               rc = context->tryLockRid(rid, _mode, locked);
+               rc = context->tryLockRid(rid, mode, locked);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to try lock rid:%d", rc);
@@ -218,16 +226,19 @@ namespace vessel
                }
                else if (locked)
                {
-                  rc = _iterator->pushCurrentEntryToBatch(context->getBatch());
+                  rc = _iterator->pushCurrentEntryToBatch(entryBatch);
                   if (SDB_OK != rc)
                   {
                      PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
                      goto error;
                   }
-                  ridSet->insert(rid);
+                  
+                  ++pushed;
+                  cursor->markRidScanned(rid);
                }
-               else if (0 < context->getBatch().getEntryCount())
+               else if (!entryBatch.isEmpty())
                {
+                  /// return without waiting for rid latch.
                   break;
                }
                else
@@ -242,6 +253,12 @@ namespace vessel
                }
             }
 
+            if (!entryBatch.isFreeToPush(0) ||
+                _MAX_ROW_COUNT == pushed)
+            {
+               break;
+            }
+
             /// rid duplicated or pushed into batch
             rc = moveIterator();
             if (SDB_OK != rc)
@@ -250,13 +267,22 @@ namespace vessel
                goto error;
             }
          }
-      } while( _iterator->isReadyToRead() &&
-               context->getBatch().getEntryCount() < rowLimited);
+      } while( _iterator->isReadyToRead());
+
+      if (entryBatch.isEmpty())
+      {
+         rc = SDB_IXM_EOC;
+         goto error;
+      }
 
    done:
       return rc;
    error:
-      context->clearBatchAndRidLatch();
+      if (!entryBatch.isEmpty())
+      {
+         entryBatch.clearRows();
+         context->unlockRids();
+      }
       goto done;
    }
 
@@ -270,8 +296,10 @@ namespace vessel
       BOOLEAN timeout = FALSE;
       recordID rid = _iterator->getRid();
       _iterator->pause();
+
+      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       
-      rc = waitRid(context, rid, _mode, timeout);
+      rc = waitRid(context, rid, mode, timeout);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to wait rid latch:%d", rc);
@@ -306,37 +334,18 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
-      SDB_ASSERT(!mode.isNone(), "can not be invalid");
+      SDB_ASSERT(mode.isShared() || mode.isExclusive(), "can not be invalid");
 
       objectLatchHelper<recordIdLatchKey> lh;
       RECORD_ID_LATCH_MAP &lm = context->getEnv()->ridLatchMap;
 
-      INT32 millis = 1000;
-      INT32 totalMillis = 30000;
-      recordIdLatchKey key(context->getLogicalCSID(),
-                           context->getLogicalCLID(),
+      recordIdLatchKey key(context->getSpaceID(),
+                           context->getMBID(),
                            rid);
+
       timeout = FALSE;
 
-      for (INT32 i = 0; i < totalMillis; i += millis)
-      {
-         if (lh.testNotExistsOrWait(lm, key, mode, millis))
-         {
-            goto done;
-         }
-         else if (context->getExecutor()->isInterrupted())
-         {
-            PD_LOG(PDERROR, "excutor[%lld] interrupted", context->getExecutor()->getID());
-            rc = SDB_APP_INTERRUPT;
-            goto error;
-         }
-         else
-         {
-            continue;
-         }
-      }
-
-      timeout = TRUE;
+      lh.testNotExistsOrWait(lm, key, mode);
    done:
       return rc;
    error:
@@ -348,10 +357,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(context->isCursorAttached(), "must be attached");
+      
 
       if (context->getCursor()->hasEntry())
       {
-         rc = _iterator->moveToTheNextOfEntry(context->getCursor()->getEntryData(), _forward);
+         slice entry = context->getCursor()->getEntryData();
+         rc = _iterator->moveToTheNextOfEntry(entry, _o.forward);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek entry:%d", rc);
@@ -361,7 +372,7 @@ namespace vessel
       else
       {
          const rtnPredicateListIterator *predicate = context->getCursor()->getPredicate();
-         indexIterator::options o(TRUE, _forward);
+         indexIterator::options o(TRUE, _o.forward);
 
          rc = _iterator->seek(bson::BSONObj(),
                               0, predicate->cmp(),
@@ -383,7 +394,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
-      rc = _iterator->next(_forward);
+      rc = _iterator->next(_o.forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get next:%d", rc);

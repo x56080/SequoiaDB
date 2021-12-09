@@ -48,8 +48,8 @@ namespace vessel
 {
    static constexpr PAGE_ID COLLECTION_RECORD_PAGE_MIN_LPID = 1;
 
-   const static UINT16 COLLECTION_RECORD_VERSION = 1;
-   const static UINT16 COLLECTION_RECORD_INVALID_VERSION = 0;
+   const static UINT32 COLLECTION_RECORD_VERSION = 1;
+   const static UINT32 COLLECTION_RECORD_INVALID_VERSION = 0;
    const static UINT32 COLLECTION_ROUTE_PAGE_SLOT_COUNT = 4;
    const static UINT32 COLLECTION_ROOT_LVL0 = 0;
    const static UINT32 COLLECTION_FIRST_ROOT_LVL1 = 1;
@@ -62,8 +62,9 @@ namespace vessel
 
    enum COLLECTION_TYPE
    {
-      COLLECTION_TYPE_NORMAL = 0,
-      COLLECTION_TYPE_INVALID = 65535,
+      COLLECTION_TYPE_INVALID = 0,
+      COLLECTION_TYPE_NORMAL = 1,
+      COLLECTION_TYPE_MAX = 65535,
    };//enum COLLECTION_TYPE
    
 #pragma pack(4)
@@ -96,36 +97,32 @@ namespace vessel
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
          type = COLLECTION_TYPE_INVALID;
+         mbID = INVALID_CL_MB_ID;
          innerID = UTIL_UNIQUEID_NULL;
          logicalCLID = DMS_INVALID_LOGICCLID;
-         mbID = INVALID_CL_MB_ID;
          flags = 0;
-         minFreePercent = 0;
          minStriping = INVALID_STRIPING_ID;
          maxStriping = INVALID_STRIPING_ID;
-         compressionType = UTIL_COMPRESSOR_INVALID;
-         compressionDic = INVALID_PAGE_ID;
          ossMemset(name, 0, sizeof(name));
          ossMemset(routePages, 0xFF, sizeof(routePages));
+         compressionType = UTIL_COMPRESSOR_INVALID;
+         minFreePercent = 0;
       }
 
-      UINT16 version = 0;
+      UINT32 version = 0;
       UINT16 type = COLLECTION_TYPE_INVALID;
+      UINT16 mbID = INVALID_CL_MB_ID;
       UINT32 innerID = UTIL_UNIQUEID_NULL;
       UINT32 logicalCLID = DMS_INVALID_LOGICCLID;
-      UINT16 mbID = INVALID_CL_MB_ID;
-      UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
-      UINT8 minFreePercent = 0;
       UINT32 flags = 0;
-      UINT16 minStriping = INVALID_STRIPING_ID;
-      UINT16 maxStriping = INVALID_STRIPING_ID;
-
-      CHAR name[DMS_COLLECTION_NAME_SZ + 1] = {};
-
       UINT32 routePages[COLLECTION_ROUTE_PAGE_SLOT_COUNT] =
       {INVALID_PAGE_ID,INVALID_PAGE_ID, INVALID_PAGE_ID,INVALID_PAGE_ID};
-
-      UINT32 compressionDic = INVALID_PAGE_ID;
+      UINT16 minStriping = INVALID_STRIPING_ID;
+      UINT16 maxStriping = INVALID_STRIPING_ID;
+      CHAR name[DMS_COLLECTION_NAME_SZ + 1] = {};
+      UINT8 compressionType = UTIL_COMPRESSOR_INVALID;
+      UINT8 minFreePercent = 0;
+      UINT16 pad = 0;
    };//class collectionRecord
    const UINT32 COLLECTION_RECORD_LEN = sizeof(collectionRecord);
 

@@ -40,6 +40,7 @@
 #include "vessel/indexUtils.h"
 #include "vessel/lsm/lsmIndexValue.hpp"
 #include "vessel/lsm/lsmScanEntryParser.h"
+#include "vessel/runtimeMbContext.h"
 
 namespace engine
 {
@@ -101,12 +102,12 @@ namespace vessel
       globalIndexID indexId;
       globalIndexID upperIndexId;
       StackBufBuilder minKeyBuilder;
+      globalCollectionId gcid;
                         
       _close();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        NULL == ic ||
                        !ic->isValid() ||
                        INDEX_TYPE_LSM != ic->getIndexType()))
@@ -118,11 +119,13 @@ namespace vessel
       _context = context;
       _ic = ic;
 
-      indexId = globalIndexID(context->getLogicalCSID(),
-                              context->getLogicalCLID(),
+      gcid = context->getMbContext()->getGlobalId();
+
+      indexId = globalIndexID(gcid.getCSLid(),
+                              gcid.getCLLid(),
                               ic->getIndexID());
-      upperIndexId = globalIndexID(context->getLogicalCSID(),
-                                   context->getLogicalCLID(),
+      upperIndexId = globalIndexID(gcid.getCSLid(),
+                                   gcid.getCLLid(),
                                    ic->getIndexID() + 1);
 
       ixmKeyUtils::buildMinKey(ic->getObj().getPattern().getKeyCount(),
@@ -157,9 +160,7 @@ namespace vessel
          goto error;
       }
 
-      _globalId.reset(context->getLogicalCSID(),
-                      context->getLogicalCLID(),
-                      ic->getIndexID());
+      _globalId = indexId;
       _lsmDB = context->getEnv()->lsm;
       _lowKey = rocksdb::Slice(_lowBoundKey, LSM_MIN_FULL_KEY_SIZE - 1 + minKeyBuilder.len());
       _upKey = rocksdb::Slice(_upperBoundKey, LSM_MIN_FULL_KEY_SIZE);
@@ -746,7 +747,13 @@ namespace vessel
       return entry;
    }*/
 
-   INT32 lsmIndexIterator::pushCurrentEntryToBatch(indexScanEntryBatch &batch)const
+   UINT32 lsmIndexIterator::getCurrentEntrySize()const
+   {
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+      return _itr->key().size();
+   }
+
+   INT32 lsmIndexIterator::pushCurrentEntryToBatch(rowBatch &batch)const
    {
       INT32 rc = SDB_OK;
       slice entry;
@@ -758,7 +765,7 @@ namespace vessel
       }
 
       entry = slice(_itr->key().size(), _itr->key().data());
-      rc = batch.addEntry(entry);
+      rc = batch.pushRow(entry);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);

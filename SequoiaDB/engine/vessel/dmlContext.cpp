@@ -47,12 +47,13 @@ namespace vessel
 {
    dmlContext::~dmlContext()
    {
-      unlockUniqueKeys();
+      SDB_ASSERT(_uniqueKeyContext.empty(), "must be empty");
+      SDB_ASSERT(!isMbContextAttached(), "must be detached");
    }
 
    void dmlContext::close()
    {
-      clearDmlHistroy();
+      clearHistroyAndDetachMb();
       requestContext::close();
       return;
    }
@@ -60,7 +61,8 @@ namespace vessel
    INT32 dmlContext::lockUniqueIndexKeys(const dmlIndexRequestArray &ra)
    {
       INT32 rc = SDB_OK;
-      if (!requestContext::isOpen())
+      if (!requestContext::isOpen() ||
+          !requestContext::isMbContextAttached())
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
@@ -114,6 +116,8 @@ namespace vessel
    done:
       return rc;
    error:
+      SDB_ASSERT(_uniqueKeyContext.empty(), "must be empty");
+      _uniqueKeyHash.clear();
       goto done;
    }
 
@@ -138,8 +142,8 @@ namespace vessel
       for (UINT32 i = 0; i < _uniqueKeyHash.size(); ++i)
       {
          UNIQUE_INDEX_LATCH_MAP::object obj;
-         uniqueIndexLatchKey key(requestContext::getLogicalCSID(),
-                                 requestContext::getLogicalCLID(),
+         uniqueIndexLatchKey key(requestContext::getSpaceID(),
+                                 requestContext::getMBID(),
                                  _uniqueKeyHash.at(i));
 
          rc = latchMap.ensure(key, obj);
@@ -208,39 +212,55 @@ namespace vessel
 
    void dmlContext::unlockUniqueKeys()
    {
-      if (_uniqueKeyContext.empty())
-      {
-         goto done;
-      }
-
-      {
-      objectLatchHelper<uniqueIndexLatchKey> lh;
-      SDB_ASSERT(requestContext::isOpen(), "can not be closed");
+      SDB_ASSERT(isOpen(), "can not be invalid");
       UNIQUE_INDEX_LATCH_MAP &latchMap = requestContext::getEnv()->uniqueIndexLathMap;
-      lh.releaseAll(latchMap, _uniqueKeyContext);
-      _uniqueKeyHash.clear();
-      }
-   done:
-      return;
-   }
-
-   void dmlContext::clearDmlHistroy()
-   {
-      if (requestContext::isOpen())
+      for (_UNIQUE_KEY_CONTEXT::iterator itr = _uniqueKeyContext.begin();
+           itr != _uniqueKeyContext.end(); ++itr)
       {
-         unlockRids();
-         unlockUniqueKeys();
+         itr->getValue().release();
+         latchMap.release(*itr);
       }
-
+      
       _uniqueKeyHash.clear();
       _uniqueKeyContext.clear();
-      _seq = INVALID_CL_PAGE_SEQ;
-      _rid = recordID();
-      _dmlLSN = DPS_INVALID_LSN_OFFSET;
-      _stripingId = INVALID_STRIPING_ID;
+   }
+
+   void dmlContext::clearHistroyAndDetachMb()
+   {
+      if (isOpen())
+      {
+         if (isMbContextAttached())
+         {
+            requestContext::unlockRids();
+            requestContext::detachMbContext();
+         }
+         unlockUniqueKeys();
+         _seq = INVALID_CL_PAGE_SEQ;
+         _rid = recordID();
+         _lsn = DPS_INVALID_LSN_OFFSET;
+         _indexReqCount = 0;
+      }
       return;
    }
 
+   void dmlContext::setDmlRecordInfo(UINT32 seq,
+                                     const recordID &rid)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
+      _seq = seq;
+      _rid = rid;
+      return;
+   }
+
+   void dmlContext::setDmlLSN(const DPS_LSN_OFFSET &lsn)
+   {
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "can not be invalid");
+      _lsn = lsn;
+      return;
+   }
 
 }//namespace vessel
 }//namespace engine

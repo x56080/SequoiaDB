@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.cpp
+   Source File Name = dmlOptions.h
 
    Descriptive Name =
 
@@ -33,32 +33,65 @@
 
 ******************************************************************************/
 
-#include "vessel/insertContext.h"
+#ifndef SDB_VESSEL_DML_OPTIONS_H_
+#define SDB_VESSEL_DML_OPTIONS_H_
+
+#include "core.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void insertContext::close()
+   class insertOptions : public SDBObject
    {
-      fini();
-      dmlContext::close();
-   }
+      public:
+         OSS_INLINE insertOptions(){}
 
-   void insertContext::fini()
-   {
-      _options = insertOptions();
-      _originalRecord.reset();
-      _candidate.reset();
-      _keepRidLocked = FALSE;
-      _minFreePercent = 0.0;
-   }
+         OSS_INLINE ~insertOptions(){}
 
-   void insertContext::insertDone()
+         insertOptions(const insertOptions &o) = delete;
+
+         insertOptions &operator=(const insertOptions &o)
+         {
+            return *this;
+         }
+      public:
+   }; /// end of class insertOptions
+
+   class updateOptions : public SDBObject
    {
-      dmlContext::clearDmlHistroy();
-      fini();
-   }
+      public:
+         OSS_INLINE updateOptions(){}
+
+         OSS_INLINE ~updateOptions(){}
+
+         updateOptions(const updateOptions &o) = delete;
+
+         updateOptions &operator=(const updateOptions &o)
+         {
+            return *this;
+         }
+      public:
+   }; /// end of class updateOptions
+
+   class removeOptions
+   {
+      public:
+         OSS_INLINE removeOptions(){}
+
+         OSS_INLINE ~removeOptions(){}
+
+         removeOptions(const removeOptions &o) = delete;
+
+         removeOptions &operator=(const removeOptions &o)
+         {
+            return *this;
+         }
+      public:
+   };//class removeOptions
 
 }//namespace vessel
 }//namespace engine
+
+#endif//SDB_VESSEL_DML_OPTIONS_H_

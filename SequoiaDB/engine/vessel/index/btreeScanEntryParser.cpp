@@ -106,6 +106,11 @@ namespace vessel
       _keySlice = keySlice;
       return;
    }
+
+   UINT32 btreeScanEntryParser::estimiateEntrySize(UINT32 keySize)
+   {
+      return sizeof(_fixedSizeFields) + keySize;
+   }
 } // namespace vessel
 
 } // namespace engine

@@ -40,6 +40,11 @@ namespace engine
 {
 namespace vessel
 {
+   stackAllocatorRowBatch::~stackAllocatorRowBatch()
+   {
+      fini();
+   }
+
    void stackAllocatorRowBatch::fini()
    {
       _tags.clear();
@@ -132,7 +137,7 @@ namespace vessel
    {
       BOOLEAN r = TRUE;
       if (0 <= _bufferSizeLimit &&
-         (INT32)(_builder.len() + rowSize) > _bufferSizeLimit)
+         (INT64)(_builder.len() + rowSize) > _bufferSizeLimit)
       {
          r = FALSE;
          goto done;

@@ -45,7 +45,6 @@ namespace vessel
    void indexScanContext::close()
    {
       _cursor = NULL;
-      _batch.reset();
       requestContext::close();
       return;
    }
@@ -67,12 +66,7 @@ namespace vessel
       SDB_ASSERT(isCursorAttached(), "must be attached");
       return _cursor->getPredicate();
    }
-   
-   UNORDERED_RID_SET *indexScanContext::getRidSet()const
-   {
-      SDB_ASSERT(isCursorAttached(), "must be attached");
-      return _cursor->getScannedSet();
-   }
+
 
    const indexScanOptions &indexScanContext::getOptions()const
    {
@@ -80,12 +74,7 @@ namespace vessel
       return _cursor->getOptions();
    }
 
-   void indexScanContext::clearBatchAndRidLatch()
-   {
-      requestContext::unlockRids();
-      _batch.reset();
-   }
-   
+
 } // namespace vessel
 
 } // namespace engine

@@ -38,28 +38,19 @@
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/spaceIDLockHelper.h"
-#include "vessel/insertOptions.h"
-#include "vessel/insertContext.h"
-#include "vessel/modifyRecordContext.h"
+#include "vessel/dmlContext.h"
 
 namespace engine
 {
 namespace vessel
 {
    INT32 dmlHandler::insert(const globalCollectionId &gcid,
-                              const slice &record,
-                              STRIPING_ID striping,
-                              const insertOptions &options,
-                              utilInsertResult *res)
+                            const dmlInsertRequest &request,
+                            utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
-      insertContext context;
-      if (NULL != res)
-      {
-         res->reset();
-      }
+      COLLECTION_PTR cl;
+      dmlContext context;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -67,7 +58,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !record.isValid()))
+                            !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -75,32 +66,13 @@ namespace vessel
 
       context.open(getExecutor(), getEnv(), getOuterResource());
 
-      rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        gcid.getSpaceId(),
-                                        gcid.getCSLid(),
-                                        SHARED, &cs);
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get collection space[%d, %d], rc:%d",
-                gcid.getSpaceId(), gcid.getCSLid(), rc);
          goto error;
       }
 
-
-      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
-                                   gcid.getCLLid(), SHARED, &cl);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get collection[%d,%d], rc:%d",
-                gcid.getMbId(), gcid.getCLLid(), rc);
-         goto error;
-      }
-
-      context.setOptions(options);
-      context.setRecordStripingId(striping);
-      context.setOriginalRecord(record);
-
-      rc = cl->insert(&context, res);
+      rc = cl->insert(&context, request, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;
@@ -118,34 +90,28 @@ namespace vessel
    }
 
    INT32 dmlHandler::insertBatch(const globalCollectionId &gcid,
-                             const ossPoolVector<slice> &batch,
-                             const insertOptions &options,
-                             utilInsertResult *res)
+                                 const dmlBatchInsertRequest &request,
+                                 utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      collection *cl = NULL;
-      insertContext context;
-      
-      if (NULL != res)
-      {
-         res->reset();
-      }
+      COLLECTION_PTR cl;
+      dmlContext context;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!gcid.isValid()))
+      else if (OSS_UNLIKELY(!gcid.isValid() ||
+                            !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      for (UINT32 i = 0; i < batch.size(); ++i)
+      for (UINT32 i = 0; i < request.batch.size(); ++i)
       {
-         if (!batch[i].isValid())
+         if (!request.batch[i].isValid())
          {
             rc = SDB_INVALIDARG;
             goto error;
@@ -153,36 +119,20 @@ namespace vessel
       }
 
       context.open(getExecutor(), getEnv(), getOuterResource());
-      rc = getEnv()->dms.getCSBySpaceID(&context,
-                                        gcid.getSpaceId(),
-                                        gcid.getCSLid(),
-                                        SHARED, &cs);
+      rc = getCollectionObject(&context, gcid, SHARED, cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get collection space[%d, %d], rc:%d",
-                gcid.getSpaceId(), gcid.getCSLid(), rc);
          goto error;
       }
 
-
-      rc = cs->getCollectionByMBID(&context, gcid.getMbId(),
-                                   gcid.getCLLid(), SHARED, &cl);
-      if (SDB_OK != rc)
+      for (UINT32 i = 0; i < request.batch.size(); ++i)
       {
-         PD_LOG(PDERROR, "failed to get collection[%d,%d], rc:%d",
-                gcid.getMbId(), gcid.getCLLid(), rc);
-         goto error;
-      }
+         dmlInsertRequest req;
+         req.o = request.o;
+         req.record = request.batch[i];
+         req.stripingId = request.stripingId;
 
-      context.setOptions(options);
-
-      for (UINT32 i = 0; i < batch.size(); ++i)
-      {
-         SDB_ASSERT(batch[i].isValid(), "can not be invalid");
-         context.setOriginalRecord(batch[i]);
-         context.getCandidate().reset();
-
-         rc = cl->insert(&context, res);
+         rc = cl->insert(&context, req, res);
          if (SDB_OK != rc)
          {
             if (SDB_IXM_DUP_KEY != rc)
@@ -201,26 +151,20 @@ namespace vessel
    }
 
    INT32 dmlHandler::update(const globalCollectionId &gcid,
-                            const recordID &rid,
+                            const dmlUpdateRequest &request,
                             IRecordUpdater *updater,
                             utilUpdateResult *res)
    {
       INT32 rc = SDB_OK;
-      modifyRecordContext context;
+      dmlContext context;
       COLLECTION_PTR cl;
-
-      if (NULL != res)
-      {
-         res->reset();
-      }
-
       if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
       else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !rid.isValid() ||
+                            !request.isValid() ||
                             NULL == updater))
       {
          rc = SDB_INVALIDARG;
@@ -234,9 +178,7 @@ namespace vessel
          goto error;
       }
 
-      context.setRid(rid);
-
-      rc = cl->update(&context, updater, res);
+      rc = cl->update(&context, request, updater, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -249,17 +191,12 @@ namespace vessel
    }
 
    INT32 dmlHandler::remove(const globalCollectionId &gcid,
-                            const recordID &rid,
+                            const dmlRemoveRequest &request,
                             utilDeleteResult *res)
    {
       INT32 rc = SDB_OK;
-      modifyRecordContext context;
+      dmlContext context;
       COLLECTION_PTR cl;
-
-      if (NULL != res)
-      {
-         res->reset();
-      }
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
@@ -267,7 +204,7 @@ namespace vessel
          goto error;
       }
       else if (OSS_UNLIKELY(!gcid.isValid() ||
-                            !rid.isValid()))
+                            !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -280,9 +217,7 @@ namespace vessel
          goto error;
       }
 
-      context.setRid(rid);
-
-      rc = cl->remove(&context, res);
+      rc = cl->remove(&context, request, res);
       if (SDB_OK != rc)
       {
          goto error;

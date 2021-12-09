@@ -65,16 +65,12 @@ namespace vessel
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       collectionRecordOnDisk *recordPtr = NULL;
       UINT32 capacity;
-      CHAR *fullNameBuffer = NULL;
-      UINT32 bufferSize = 0;
-      strSlice clNameSlice;
       bson::BSONObj obj;
       strictBuffer buffer;
       
       if (OSS_UNLIKELY(NULL == context ||
                        !record.isValid() ||
                        !options.isValid() ||
-                       context->getCSName().empty() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -98,25 +94,6 @@ namespace vessel
       }
 
       slot = record.mbID % capacity;
-      clNameSlice.reset(record.name);
-      SDB_ASSERT(!clNameSlice.empty(), "can not be empty");
-      bufferSize = context->getCSName().strLen() + clNameSlice.strLen() + 2;
-      fullNameBuffer = context->allocateBuffer(bufferSize);
-      if (NULL == fullNameBuffer)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-      
-      if (!buildFullName(bufferSize, fullNameBuffer,
-                         context->getCSName(),
-                         clNameSlice))
-      {
-         PD_LOG(PDERROR, "failed to build full name");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       rc = lpb->prepareToWrite();
       if (SDB_OK != rc)
@@ -128,7 +105,7 @@ namespace vessel
       buffer = lpb->getWritableBodyBuffer();
       obj = options.toBson();
 
-      rc = prepareCreateCLLog(context, bufferSize, obj.objsize(),
+      rc = prepareCreateCLLog(context, obj.objsize(),
                               &(lpb->getRuntimeBuffer()), &lrc);
       if (SDB_OK != rc)
       {
@@ -148,8 +125,7 @@ namespace vessel
       ossMemset(recordPtr, 0, COLLECTION_DISK_RECORD_LEN);
       recordPtr->record = record;
 
-      rc = commitCreateCLLog(context, bufferSize, fullNameBuffer,
-                             lpb->getRuntimeBuffer().getGlobalPid(),
+      rc = commitCreateCLLog(context, lpb->getRuntimeBuffer().getGlobalPid(),
                              record, slice(obj.objsize(), obj.objdata()), &lrc);
       if (SDB_OK != rc)
       {
@@ -162,10 +138,6 @@ namespace vessel
       lpb->commit(lsn);
 
    done:
-      if (NULL != fullNameBuffer)
-      {
-         context->releaseBuffer(fullNameBuffer, bufferSize);
-      }
       return rc;
    error:
       if (lrc.prepared())
@@ -407,14 +379,12 @@ namespace vessel
    }
 
    INT32 crpAccessor::prepareCreateCLLog(requestContext *context,
-                                         UINT32 fullNameSize,
                                          UINT32 adjunctSize,
                                          const runtimePageBuffer *rpb,
                                          logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(0 != fullNameSize, "can not be zero");
       SDB_ASSERT(0 != adjunctSize, "can not be zero");
       SDB_ASSERT(NULL != rpb, "can not be null");
       SDB_ASSERT(NULL != lrc, "can not be null");
@@ -431,7 +401,6 @@ namespace vessel
 
       lrc->setDDL();
 
-      lrc->prepush(fullNameSize);
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
       lrc->prepush(sizeof(CL_MB_ID));
       lrc->prepush(sizeof(UINT32));
@@ -451,20 +420,12 @@ namespace vessel
    }
 
    INT32 crpAccessor::commitCreateCLLog(requestContext *context,
-                                        UINT32 fullNameSize,
-                                        const CHAR *fullName,
                                         const GLOBAL_PAGE_ID &gpid,
                                         const collectionRecord &record,
                                         const slice &adjunct,
                                         logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
-      rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_FULLNAME,
-                                     fullNameSize, fullName, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
       rc = pageAccessor::pushElement(context, DPS_LOG_PUBLIC_VESSEL_GPID,
                                      sizeof(GLOBAL_PAGE_ID), &gpid, lrc);
       if (SDB_OK != rc)

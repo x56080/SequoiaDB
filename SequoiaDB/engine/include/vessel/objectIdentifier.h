@@ -173,6 +173,16 @@ namespace vessel
             return;
          }
 
+         OSS_INLINE void reset()
+         {
+            _csLid = DMS_INVALID_LOGICCSID;
+            _clLid = DMS_INVALID_LOGICCLID;
+            _uniqueId = UTIL_UNIQUEID_NULL;
+            _sid = INVALID_SPACE_ID;
+            _mbId = INVALID_CL_MB_ID;
+            return;
+         }
+
          OSS_INLINE collectionSpaceId getCSIdentifier()const
          {
             return collectionSpaceId(_csLid, utilGetCSUniqueID(_uniqueId), _sid);

@@ -34,43 +34,38 @@
 ******************************************************************************/
 
 #include "vessel/modifyRecordContext.h"
+#include "pdTrace.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   void modifyRecordContext::modifyDone()
-   {
-      dmlContext::clearDmlHistroy();
-      _target._recordBuffer.release();
-      _target._transID = DPS_TRANS_ID();
-      _target._overflow = FALSE;
-      _target._bigRecord = FALSE;
-      _target._overflowAddr = recordID();
-   }
-
    slice modifyRecordContext::getTargetRecord()const
    {
-      SDB_ASSERT(!_target._recordBuffer.isEmpty(), "can not be empty");
-      return slice(_target._recordBuffer.getSize(),
-                   _target._recordBuffer.getBuffer());
+      SDB_ASSERT(!_recordBuffer.isEmpty(), "can not be empty");
+      return slice(_recordBuffer.getSize(),
+                   _recordBuffer.getBuffer());
    }
 
    void modifyRecordContext::setOverflowInfo(BOOLEAN isBigRecord,
                                              const recordID &addr)
    {
       SDB_ASSERT(addr.isValid(), "can not be invalid");
-      _target._overflow = TRUE;
-      _target._bigRecord = isBigRecord;
-      _target._overflowAddr = addr;
+      _overflow = TRUE;
+      _bigRecord = isBigRecord;
+      _overflowAddr = addr;
       return;
    }
 
-   void modifyRecordContext::adoptRecordBuffer(memoryBlock &mb)
+   void modifyRecordContext::clearData()
    {
-      SDB_ASSERT(!mb.isEmpty(), "can not be invalid");
-      _target._recordBuffer = std::move(mb);
+      _recordBuffer.resize(0);
+      _transID = DPS_TRANS_ID();
+      _overflow = FALSE;
+      _bigRecord = FALSE;
+      _overflowAddr = recordID();
    }
+
 } // namespace vessel
 
 } // namespace engine

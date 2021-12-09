@@ -51,20 +51,25 @@ namespace vessel
           ~cursorOptions(){}
          cursorOptions(const cursorOptions &o):
          initBufSize(o.initBufSize),
-         rowBatchSize(o.rowBatchSize){}
+         rowCountLimit(o.rowCountLimit){}
          cursorOptions &operator=(const cursorOptions &o)
          {
             initBufSize = o.initBufSize;
-            rowBatchSize = o.rowBatchSize;
+            rowCountLimit = o.rowCountLimit;
             return *this;
+         }
+
+         OSS_INLINE BOOLEAN hasRowCountLimit()const
+         {
+            return 0 <= rowCountLimit;
          }
 
          ///cursor will try to extend buf only when the buf can not hold at
          /// least one row.
-         UINT32 initBufSize = 32768;   /// 32KB
+         UINT64 initBufSize = 65536;   /// 64KB
 
          /// max row count for each loop
-         UINT32 rowBatchSize = 1024;
+         INT32 rowCountLimit = -1;
    };
 }//namespace vessel
 }//namespace engine

@@ -705,9 +705,6 @@ namespace vessel
          goto error;
       }
 
-      context->cacheSpaceInfo(tmp->getLogicalID(),
-                              tmp->getUniqueID(),
-                              tmp->getCSName());
       *out = tmp;
    done:
       return rc;
@@ -767,9 +764,6 @@ namespace vessel
          goto error;
       }
 
-      context->cacheSpaceInfo(tmp->getLogicalID(),
-                              tmp->getUniqueID(),
-                              tmp->getCSName());
       *out = tmp;
    done:
       return rc;
@@ -824,9 +818,6 @@ namespace vessel
          goto error;
       }
 
-      context->cacheSpaceInfo(tmp->getLogicalID(),
-                              tmp->getUniqueID(),
-                              tmp->getCSName());
       *obj = tmp;
    done:
       return rc;
@@ -910,9 +901,6 @@ namespace vessel
 
          if (sidLocked)
          {
-            context->cacheSpaceInfo(obj->getLogicalID(),
-                                    obj->getUniqueID(),
-                                    obj->getCSName());
             *out = obj;
             break;
          }

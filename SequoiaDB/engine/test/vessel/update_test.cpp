@@ -149,8 +149,9 @@ TEST_F(update_test, base_update_test1)
    {
       /// update a to odd number.
       utilUpdateResult updateRes;
-      const recordID &rid = rids[i];
-      rc = handler.updateRecord(&executor, rid, &updater, &updateRes);
+      dmlUpdateRequest request;
+      request.rid = rids[i];
+      rc = handler.updateRecord(&executor, request, &updater, &updateRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 

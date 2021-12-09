@@ -38,7 +38,6 @@
 
 #include "vessel/storageFileDef.h"
 #include "utilCompression.hpp"
-#include "vessel/insertOptions.h"
 #include "vessel/collectionSpaceOptions.h"
 #include "vessel/collectionOptions.h"
 
@@ -258,11 +257,6 @@ namespace vessel
 
       public:
    };
-
-   class updateOptions
-   {
-
-   }; /// end of class updateOptions
 
 
    

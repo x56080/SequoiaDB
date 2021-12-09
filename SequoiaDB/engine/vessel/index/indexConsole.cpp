@@ -52,6 +52,7 @@
 #include "ixmKey.hpp"
 #include "ossSharedLatch.hpp"
 #include "vessel/indexIterator.h"
+#include "vessel/runtimeMbContext.h"
 
 #include "vessel/lsm/lsmIndexMeta.hpp"
 #include "vessel/lsm/lsmIndex.hpp"
@@ -193,6 +194,7 @@ namespace vessel
          goto error;
       }
       else if (NULL == context ||
+               !context->isMbContextAttached() ||
                !isValidIndexSlot(indexSlot))
       {
          rc = SDB_INVALIDARG;
@@ -279,14 +281,16 @@ namespace vessel
                                  const DPS_TRANS_ID &transID)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
       SDB_ASSERT(NULL != ic, "can not be null");
       SDB_ASSERT(key.isValid(), "can not be invalid");
       SDB_ASSERT(rid.valid(), "can not be invalid");
       DPS_LSN_OFFSET lsn = context->getExecutor()->getEndLsn();
+      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
-      globalIndexID gid(context->getLogicalCSID(),
-                        context->getLogicalCLID(),
+      globalIndexID gid(gcid.getCSLid(),
+                        gcid.getCLLid(),
                         ic->getIndexID());
       lsmIndexMeta lsmMeta(gid, ic->getObj().getPattern().getOrdering());
       lsmIndex lsm;
@@ -331,8 +335,8 @@ namespace vessel
       logicalPageBuffer lpb;
       indexEntryPageAccessor accessor;
       indexMappingPageAccessor mappingAccessor;
-      lpidLockHelper lh;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      BOOLEAN mappingPageLocked = FALSE;
 
       UINT32 pos = 0;
       PAGE_ID mappingPage = _is->getMappingPageLpid(_mbID, indexSlot, pos);
@@ -343,12 +347,13 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_IDX, mappingPage, mode);
+      rc = context->lockLpid(SPACE_TYPE_IDX, mappingPage, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", mappingPage, rc);
          goto error;
       }
+      mappingPageLocked = TRUE;
 
       rc = _is->ensureReservedPageMapped(context, mappingPage, &mappingIniter);
       if (SDB_OK != rc)
@@ -357,7 +362,8 @@ namespace vessel
          goto error;
       }
 
-      lh.unlock();
+      context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
+      mappingPageLocked = FALSE;
 
       rc = _is->blockCheckpoint(context);
       if (SDB_OK != rc)
@@ -367,7 +373,7 @@ namespace vessel
       }
       checkpointBlocked = TRUE;
 
-      rc = _is->allocatePages(context, &defIniter, 1, &lpid);
+      rc = _is->allocatePage(context, &defIniter, lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate index def page:%d", rc);
@@ -406,7 +412,11 @@ namespace vessel
       out = lpid;
       
    done:
-      lh.unlock();
+      if (mappingPageLocked)
+      {
+         context->unlockLpid(SPACE_TYPE_IDX, mappingPage);
+      }
+      lpb.fini();
       if (checkpointBlocked)
       {
          context->unblockCheckpoint();
@@ -415,7 +425,7 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != lpid)
       {
-         _is->releasePages(context, 1, &lpid);
+         _is->releasePage(context, lpid);
       }
       out = INVALID_PAGE_ID;
       goto done;
@@ -436,8 +446,8 @@ namespace vessel
       logicalPageBuffer lpb;
       indexEntryPageAccessor accessor;
       PAGE_ID lpid = INVALID_PAGE_ID;
-      lpidLockHelper lh;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE);
+      BOOLEAN locked = FALSE;
 
       lpid = _is->getDirectMappedIndexLpid(_mbID, indexSlot);
       if (INVALID_PAGE_ID == lpid)
@@ -447,12 +457,13 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_IDX, lpid, mode);
+      rc = context->lockLpid(SPACE_TYPE_IDX, lpid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
+      locked = TRUE;
 
       rc = _is->ensureReservedPageMapped(context, lpid, &initer);
       if (SDB_OK != rc)
@@ -461,7 +472,8 @@ namespace vessel
          goto error;
       }
 
-      lh.unlock();
+      context->unlockLpid(SPACE_TYPE_IDX, lpid);
+      locked = FALSE;
 
       rc = _is->getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
@@ -480,6 +492,10 @@ namespace vessel
 
       out = lpid;
    done:
+      if (locked)
+      {
+         context->unlockLpid(SPACE_TYPE_IDX, lpid);
+      }
       lpb.fini();
       return rc;
    error:
@@ -528,9 +544,12 @@ namespace vessel
                                    const indexObject &obj)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
       SDB_ASSERT(obj.isValid(), "must be valid");
-      globalIndexID gid(context->getLogicalCSID(),
-                        context->getLogicalCLID(),
+      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      SDB_ASSERT(gcid.isValid(), "can not be invalid");
+      globalIndexID gid(gcid.getCSLid(),
+                        gcid.getCLLid(),
                         obj.getIndexID());
       lsmIndexMeta meta(gid, obj.getPattern().getOrdering());
       lsmIndex lsm;
@@ -772,8 +791,10 @@ namespace vessel
                                       lsmInsertBatch &lsmBatch)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be null");
       SDB_ASSERT(context->isDmlPositionSet(), "must be set");
+      const globalCollectionId &gcid = context->getMbContext()->getGlobalId();
+      SDB_ASSERT(gcid.isValid(), "can not be invalid");
 
       lsmBatch.clear();
       UINT32 size = ra.getSize();
@@ -787,8 +808,8 @@ namespace vessel
             continue;
          }
 
-         globalIndexID gid(context->getLogicalCSID(),
-                           context->getLogicalCLID(),
+         globalIndexID gid(gcid.getCSLid(),
+                           gcid.getCLLid(),
                            ir->getContext()->getIndexID());
          lsmIndexMeta meta(gid, ir->getContext()->getObj().getPattern().getOrdering());
 
@@ -844,8 +865,7 @@ namespace vessel
       rid = recordID();
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        NULL == ic ||
                        !ic->isValid() ||
                        !ic->getObj().getParams().isUnique))

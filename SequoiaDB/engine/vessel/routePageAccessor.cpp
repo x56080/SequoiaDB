@@ -41,6 +41,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/logicalPageBuffer.h"
 #include "vessel/requestContext.h"
+#include "vessel/runtimeMbContext.h"
 
 namespace engine
 {
@@ -61,7 +62,7 @@ namespace vessel
       strictBuffer buffer;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        0 == count ||
                        NULL == lpids ||
                        NULL == lpb ||
@@ -80,7 +81,7 @@ namespace vessel
          }
       }
 
-      lid = context->getLogicalCLID();
+      lid = context->getMbContext()->getGlobalId().getCLLid();
 
       rc = lpb->validatePage(PAGE_TYPE_ROUTE);
       if (SDB_OK != rc)
@@ -207,10 +208,11 @@ namespace vessel
       size = 0;
       last = INVALID_PAGE_ID;
       strictBuffer buffer;
+      UINT32 clid = DMS_INVALID_LOGICCLID;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !isValidRoutePageLvl(targetLvl) ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -236,10 +238,11 @@ namespace vessel
          goto error;
       }
 
-      if (context->getLogicalCLID() != readableHead->logicalId)
+      clid = context->getMbContext()->getGlobalId().getCLLid();
+      if (clid != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
-                context->getLogicalCLID(), readableHead->logicalId);
+                clid, readableHead->logicalId);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }
@@ -284,7 +287,7 @@ namespace vessel
       strictBuffer buffer;
 
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        NULL == lpb ||
                        !lpb->isValid()))
       {
@@ -309,10 +312,11 @@ namespace vessel
          goto error;
       }
 
-      if (context->getLogicalCLID() != readableHead->logicalId)
+      if (context->getMbContext()->getGlobalId().getCLLid() != readableHead->logicalId)
       {
          PD_LOG(PDERROR, "logicalId[%d] does not match the one on disk[%d]",
-                context->getLogicalCLID(), readableHead->logicalId);
+                context->getMbContext()->getGlobalId().getCLLid(),
+                readableHead->logicalId);
          rc = SDB_VESSEL_PAGE_HEAD_NOT_MATCH;
          goto error;
       }

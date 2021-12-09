@@ -49,20 +49,15 @@ namespace vessel
    void logicalPageBuffer::fini()
    {
       _rpb.fini();
-      _lh.unlock();
-      _cowTrigger = copyOnWriteTrigger();
+      if (NULL != _lps && INVALID_PAGE_ID != _lpid && !_mode.isNone())
+      {
+         _context->unlockLpid(_lps->getSpaceType(), _lpid);
+      }
+      _lpid = INVALID_PAGE_ID;
+      _mode.setNone();
+      _context = NULL;
       _lps = NULL;
-      return;
-   }
-
-   void logicalPageBuffer::init(logicalPageSpace *lps,
-                                PAGE_SNAPSHOT_VERION psv,
-                                BOOLEAN isMutable)
-   {
-      SDB_ASSERT(NULL != lps, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_SNAPSHOT_VERSION != psv, "can not be invalid");
-      _lps = lps;
-      _cowTrigger.reset(psv, isMutable);
+      _cowTrigger = copyOnWriteTrigger();
       return;
    }
 
@@ -118,15 +113,53 @@ namespace vessel
    BOOLEAN logicalPageBuffer::tryLockExclusiveFromShared()
    {
       SDB_ASSERT(isValid(), "must be valid");
-      SDB_ASSERT(_lh.getLockMode().isShared(), "must be shared");
-      return _lh.tryLockExclusiveFromShared();
+      SDB_ASSERT(_mode.isShared(), "must be upgrade");
+      BOOLEAN locked = FALSE;
+      INT32 rc = _context->tryLockFromSharedToExclusive(_lps->getSpaceType(), _lpid, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d] from shared to exclusive:%d", rc);
+         ossPanic();
+      }
+      if (locked)
+      {
+         _mode.setExclusive();
+      }
+
+      return locked;
    }
 
    BOOLEAN logicalPageBuffer::tryLockExclusiveFromUpgrade()
    {
       SDB_ASSERT(isValid(), "must be valid");
-      SDB_ASSERT(_lh.getLockMode().isUpgrade(), "must be upgrade");
-      return _lh.tryLockExclusiveFromUpgrade();
+      SDB_ASSERT(_mode.isUpgrade(), "must be upgrade");
+      BOOLEAN locked = FALSE;
+      INT32 rc = _context->tryLockFromUpgradeToExclusive(_lps->getSpaceType(), _lpid, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d] from upgrade to exclusive:%d", rc);
+         ossPanic();
+      }
+
+      if (locked)
+      {
+         _mode.setExclusive();
+      }
+      return locked;
+   }
+
+   void logicalPageBuffer::lockExclusiveFromUpgrade()
+   {
+      SDB_ASSERT(isValid(), "must be valid");
+      SDB_ASSERT(_mode.isUpgrade(), "must be upgrade");
+      INT32 rc = _context->lockFromUpgradeToExclusive(_lps->getSpaceType(), _lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d] from upgrade to exclusive:%d", rc);
+         ossPanic();
+      }
+      _mode.setExclusive();
+      return;
    }
 
    strictBuffer logicalPageBuffer::getReadableBodyBuffer()const
@@ -175,18 +208,17 @@ namespace vessel
    void logicalPageBuffer::destroy()
    {
       INT32 rc = SDB_OK;
-      requestContext *context = NULL;
+      SDB_ASSERT(isValid(), "can not be invalid");
       if (!isValid())
       {
          goto done;
       }
 
       _rpb.fini();
-      context = _lh.getContext();
-      rc = _lps->releasePage(context, _lh.getLpid());
+      rc = _lps->releasePage(_context, _lpid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", _lh.getLpid(), rc);
+         PD_LOG(PDERROR, "failed to release lpid[%d], rc:%d", _lpid, rc);
       }
 
       fini();

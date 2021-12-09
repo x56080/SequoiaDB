@@ -36,7 +36,6 @@
 #ifndef VESSEL_LOGICAL_PAGE_BUFFER_H_
 #define VESSEL_LOGICAL_PAGE_BUFFER_H_
 
-#include "vessel/lpidLockHelper.h"
 #include "vessel/runtimePageBuffer.h"
 #include "vessel/copyOnWriteTrigger.h"
 #include "utilPooledObject.hpp"
@@ -46,6 +45,7 @@ namespace engine
 namespace vessel
 {
    class logicalPageSpace;
+   class requestContext;
 
    class logicalPageBuffer : public _utilPooledObject
    {
@@ -59,12 +59,13 @@ namespace vessel
       public:
          OSS_INLINE PAGE_ID getLogicalPid()const
          {
-            return _lh.getLpid();
+            return _lpid;
          }
          OSS_INLINE BOOLEAN isValid()const
          {
-            return NULL != _lps &&
-                   _lh.isLocked() &&
+            return INVALID_PAGE_ID != _lpid &&
+                   NULL != _context &&
+                   NULL != _lps &&
                    _rpb.isValid();
          }
          OSS_INLINE const copyOnWriteTrigger &getCowTrigger()const
@@ -73,7 +74,7 @@ namespace vessel
          }
          OSS_INLINE const ossSharedLatchMode &getLockingMode()const
          {
-            return _lh.getLockMode();
+            return _mode;
          }
          OSS_INLINE logicalPageSpace *getLogicalPageSpace()
          {
@@ -81,7 +82,7 @@ namespace vessel
          }
          OSS_INLINE requestContext* getContext()
          {
-            return _lh.getContext();
+            return _context;
          }
 
          OSS_INLINE UINT32 getPageSize()const
@@ -109,26 +110,28 @@ namespace vessel
 
          INT32 validatePage(PAGE_TYPE type)const;
 
-         /// must hold shared lock first
-         BOOLEAN tryLockExclusiveFromShared();
-
-         /// must hold upgrade lock first
-         BOOLEAN tryLockExclusiveFromUpgrade();
-
          strictBuffer getReadableBodyBuffer()const;
          strictBuffer getWritableBodyBuffer();
 
          /// release lpid and pid
          void destroy();
 
-      private:
-         void init(logicalPageSpace *lps,
-                   PAGE_SNAPSHOT_VERION psv,
-                   BOOLEAN isMutable);
+      public:
+         /// must hold shared lock first
+         BOOLEAN tryLockExclusiveFromShared();
+
+         /// must hold upgrade lock first
+         BOOLEAN tryLockExclusiveFromUpgrade();
+
+         /// must hold upgrade lock first
+         void lockExclusiveFromUpgrade();
+
       
       private:
+         PAGE_ID _lpid = INVALID_PAGE_ID;
+         ossSharedLatchMode _mode;
+         requestContext *_context = NULL;
          logicalPageSpace *_lps = NULL;
-         lpidLockHelper _lh;
          runtimePageBuffer _rpb;
          copyOnWriteTrigger _cowTrigger;
    };//class logicalPageBuffer

@@ -38,6 +38,7 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/atomicOperationList.h"
 #include "vessel/objectLatchHelper.hpp"
+#include "vessel/runtimeMbContext.h"
 
 namespace engine
 {
@@ -77,10 +78,9 @@ namespace vessel
       SDB_ASSERT(0 == _bufAllocated, "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
 
-      _unlockAndClear(_UNLOCK_LVL_SPACE);
+      _unlockAll();
 
       _executor = NULL;
       _env = NULL;
@@ -141,7 +141,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID != _spaceContext.sid))
+      else if (OSS_UNLIKELY(isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "do not relock sid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -155,8 +155,8 @@ namespace vessel
          goto error;
       }
 
-      _spaceContext.sid = sid;
-      _spaceContext.mode = mode;
+      _sid = sid;
+      _sidMode = mode;
    done:
       return rc;
    error:
@@ -180,7 +180,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_ID != _spaceContext.sid))
+      else if (OSS_UNLIKELY(isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "do not relock sid");
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
@@ -195,8 +195,8 @@ namespace vessel
 
       if (locked)
       {
-         _spaceContext.sid = sid;
-         _spaceContext.mode = mode;
+         _sid = sid;
+         _sidMode = mode;
       }
    done:
       return rc;
@@ -209,44 +209,28 @@ namespace vessel
    {
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
-      SDB_ASSERT(!_clContext.isLocking(), "unlocking missed");
-      SDB_ASSERT(NULL == _clContext.mutex, "mb unlocking missed");
-      _unlockAndClear(_UNLOCK_LVL_SPACE);
+      SDB_ASSERT(!isMbLocked(), "unlocking missing");
+      _unlockAll();
       return;
    }
 
    BOOLEAN requestContext::isSpaceIdLocked(OSS_LATCH_MODE *mode)const
    {
-      BOOLEAN r = _spaceContext.isLocking();
+      BOOLEAN r = INVALID_SPACE_ID != _sid;
       if (r && NULL != mode)
       {
-         *mode = _spaceContext.mode;
+         *mode = _sidMode;
       }
       return r;
    }
 
-   void requestContext::cacheSpaceInfo(UINT32 logicalId,
-                                       utilCSUniqueID uniqueId,
-                                       const CHAR *name)
-   {
-      SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(_spaceContext.isLocking(), "must be locked");
-      SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalId, "can not be invalid");
-      SDB_ASSERT(NULL != name, "can not be null");
-      _spaceContext.lid =logicalId;
-      _spaceContext.uniqueId = uniqueId;
-      _spaceContext.name.reset(name);
-      return;
-   }
-
    void requestContext::lockMB(CL_MB_ID mbID,
-                                ossRWMutex *mutex,
-                                OSS_LATCH_MODE mode)
+                               ossRWMutex *mutex,
+                               OSS_LATCH_MODE mode)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_spaceContext.isLocking(), "lock sid first");
-      SDB_ASSERT(!_clContext.isLocking(), "do not relock");
+      SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
+      SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
       SDB_ASSERT(NULL != mutex, "can not be null");
       if (SHARED == mode)
@@ -257,9 +241,9 @@ namespace vessel
       {
          mutex->lock_w();
       }
-      _clContext.mbID = mbID;
-      _clContext.mutex = mutex;
-      _clContext.mode = mode;
+      _mbID = mbID;
+      _mbMutex = mutex;
+      _mbMode = mode;
       return;
    }
 
@@ -268,8 +252,8 @@ namespace vessel
                                      OSS_LATCH_MODE mode)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_spaceContext.isLocking(), "lock sid first");
-      SDB_ASSERT(!_clContext.isLocking(), "do not relock");
+      SDB_ASSERT(isSpaceIdLocked(), "lock sid first");
+      SDB_ASSERT(!isMbLocked(), "do not relock");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
       SDB_ASSERT(NULL != mutex, "can not be null");
 
@@ -285,50 +269,61 @@ namespace vessel
 
       if (r)
       {
-         _clContext.mbID = mbID;
-         _clContext.mutex = mutex;
-         _clContext.mode = mode;
+         _mbID = mbID;
+         _mbMutex = mutex;
+         _mbMode = mode;
       }
       return r;
    }
 
-   void requestContext::cacheMbInfo(UINT32 logicalId,
-                                    utilCLInnerID innerId,
-                                    const CHAR *name)
-   {
-      SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_spaceContext.isLocking(), "must lock sid first");
-      SDB_ASSERT(_clContext.isLocking(), "must lock mb first");
-      SDB_ASSERT(DMS_INVALID_LOGICCLID != logicalId, "can not be invalid");
-      SDB_ASSERT(NULL != name, "can not be null");
-      _clContext.lid = logicalId;
-      _clContext.innerId = innerId;
-      _clContext.name.reset(name);
-      return;
-   }
-
    BOOLEAN requestContext::isMbLocked(OSS_LATCH_MODE *mode)const
    {
-      return _clContext.isLocking();
+      return NULL != _mbMutex;
    }
 
    void requestContext::unlockMB()
    {
-      SDB_ASSERT(_ridLatchContext.isEmpty(), "unlocking missed");
-      _unlockAndClear(_UNLOCK_LVL_MB);
+      SDB_ASSERT(isOpen(), "can not be closed");
+      if (isMbLocked())
+      {
+         if (SHARED == _mbMode)
+         {
+            _mbMutex->release_r();
+         }
+         else
+         {
+            _mbMutex->release_w();
+         }
+
+         _mbID = INVALID_CL_MB_ID;
+         _mbMutex = NULL;
+         _mbMode = SHARED;
+      }
       return;
    }
 
-   globalCollectionId requestContext::getGlobalCollectionId()const
+   void requestContext::attachMbContext(runtimeMbContext *rmc)
    {
-      globalCollectionId gcid;
-      utilCLUniqueID uid = utilBuildCLUniqueID(_spaceContext.uniqueId,
-                                               _clContext.innerId);
-      gcid.reset(_spaceContext.lid, _clContext.lid,
-                 uid, _spaceContext.sid, _clContext.mbID);
-      return gcid;
+      SDB_ASSERT(NULL != rmc && rmc->isValid(), "can not be invalid");
+      SDB_ASSERT(isMbLocked(), "lock mb first");
+      SDB_ASSERT(rmc->getGlobalId().getMbId() == _mbID, "must be same mb");
+      SDB_ASSERT(NULL == _rmc, "do not reattach");
+      _rmc = rmc;
    }
 
+   void requestContext::detachMbContext()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      if (NULL != _rmc)
+      {
+         if (!_rmc->getRidLatchContext().isEmpty())
+         {
+            unlockRids();
+         }
+
+         _rmc = NULL;
+      }
+   }
 
    INT32 requestContext::lockLpid(SPACE_TYPE type,
                                   PAGE_ID lpid,
@@ -356,7 +351,7 @@ namespace vessel
          goto error;
       }
 
-      key = logicalPidLatchKey(_spaceContext.sid, type, lpid);
+      key = logicalPidLatchKey(_sid, type, lpid);
 
       rc = lh.lock(_env->lpidLatchMap, _lpidLatchContext, key, mode);
       if (SDB_OK != rc)
@@ -399,7 +394,7 @@ namespace vessel
          goto error;
       }
 
-      key = logicalPidLatchKey(_spaceContext.sid, type, lpid);
+      key = logicalPidLatchKey(_sid, type, lpid);
 
       rc = lh.tryLock(_env->lpidLatchMap, _lpidLatchContext,
                       key, mode, locked);
@@ -437,7 +432,7 @@ namespace vessel
          goto done;
       }
 
-      key = logicalPidLatchKey(_spaceContext.sid, type, lpid);
+      key = logicalPidLatchKey(_sid, type, lpid);
       lh.autoUnlock(_env->lpidLatchMap, _lpidLatchContext, key);
    done:
       return;
@@ -448,9 +443,114 @@ namespace vessel
                                           ossSharedLatchMode *mode)
    {
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(_spaceContext.isLocking(), "must be locking");
-      logicalPidLatchKey key(_spaceContext.sid, type, lpid);
+      SDB_ASSERT(isSpaceIdLocked(), "must be locking");
+      SDB_ASSERT(INVALID_SPACE_TYPE != type, "can not be invalid");
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      logicalPidLatchKey key(_sid, type, lpid);
       return _lpidLatchContext.test(key, mode);
+   }
+
+   INT32 requestContext::lockFromUpgradeToExclusive(SPACE_TYPE type,
+                                                    PAGE_ID lpid)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                            INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      {
+         objectLatchHelper<logicalPidLatchKey> lh;
+         logicalPidLatchKey key(_sid, type, lpid);
+         rc = lh.lockFromUpgradeToExclusive(_lpidLatchContext, key);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update lpid[%s] from upgrade to exclusive:%d",
+                   key.toString().c_str(), rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 requestContext::tryLockFromUpgradeToExclusive(SPACE_TYPE type,
+                                                       PAGE_ID lpid,
+                                                       BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      locked = FALSE;
+      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                            INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      {
+         objectLatchHelper<logicalPidLatchKey> lh;
+         logicalPidLatchKey key(_sid, type, lpid);
+         rc = lh.tryLockFromUpgradeToExclusive(_lpidLatchContext, key, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update lpid[%s] from upgrade to exclusive:%d",
+                   key.toString().c_str(), rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 requestContext::tryLockFromSharedToExclusive(SPACE_TYPE type,
+                                                      PAGE_ID lpid,
+                                                      BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      locked = FALSE;
+      if (OSS_UNLIKELY(!isOpen() || !isSpaceIdLocked()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+                            INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      {
+         objectLatchHelper<logicalPidLatchKey> lh;
+         logicalPidLatchKey key(_sid, type, lpid);
+         rc = lh.tryLockFromSharedToExclusive(_lpidLatchContext, key, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update lpid[%s] from upgrade to exclusive:%d",
+                   key.toString().c_str(), rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
    }
 
    BOOLEAN requestContext::isInProcessingOplist()const
@@ -470,14 +570,14 @@ namespace vessel
                                          ossRWMutex *mutex)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!_spaceContext.isLocking()))
+      if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "lock space first");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = _blocker.block(_spaceContext.sid, type, mutex);
+      rc = _blocker.block(_sid, type, mutex);
       if (SDB_OK != rc)
       {
          goto error;
@@ -493,14 +593,14 @@ namespace vessel
                                               BOOLEAN &blocked)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!_spaceContext.isLocking()))
+      if (OSS_UNLIKELY(!isSpaceIdLocked()))
       {
          SDB_ASSERT(FALSE, "lock space first");
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = _blocker.tryToBlock(_spaceContext.sid, type, mutex, blocked);
+      rc = _blocker.tryToBlock(_sid, type, mutex, blocked);
       if (SDB_OK != rc)
       {
          goto error;
@@ -523,27 +623,20 @@ namespace vessel
       recordIdLatchKey key;
       objectLatchHelper<recordIdLatchKey> lh;
 
-      if (OSS_UNLIKELY(!rid.isValid()))
+      if (OSS_UNLIKELY(!rid.isValid() ||
+                       mode.isNone()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!isMbContextAttached()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!isSpaceIdLocked() ||
-               !isMbLocked())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
 
-      key = recordIdLatchKey(getLogicalCSID(),
-                             getLogicalCLID(),
-                             rid);
-      rc = lh.lock(_env->ridLatchMap, _ridLatchContext, key, mode);
+      key = recordIdLatchKey(_sid, _mbID, rid);
+      rc = lh.lock(_env->ridLatchMap, _rmc->getRidLatchContext(), key, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock rid[%s], rc:%d", key.toString().c_str(), rc);
@@ -569,22 +662,15 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!isMbContextAttached()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!isSpaceIdLocked() ||
-               !isMbLocked())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
 
-      key = recordIdLatchKey(getLogicalCSID(),
-                             getLogicalCLID(),
-                             rid);
-      rc = lh.tryLock(_env->ridLatchMap, _ridLatchContext,
+      key = recordIdLatchKey(_sid, _mbID, rid);
+      rc = lh.tryLock(_env->ridLatchMap,
+                      _rmc->getRidLatchContext(),
                       key, mode, locked);
       if (SDB_OK != rc)
       {
@@ -600,77 +686,63 @@ namespace vessel
    void requestContext::unlockRid(const recordID &rid)
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
+      SDB_ASSERT(isMbContextAttached(), "must be attached");
       objectLatchHelper<recordIdLatchKey> lh;
-      recordIdLatchKey key(getLogicalCSID(),
-                           getLogicalCLID(),
-                           rid);
-      lh.autoUnlock(_env->ridLatchMap, _ridLatchContext, key);
+      recordIdLatchKey key(_sid, _mbID, rid);
+      lh.autoUnlock(_env->ridLatchMap, _rmc->getRidLatchContext(), key);
    }
 
    void requestContext::unlockRids()
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
-      _unlockAndClear(_UNLOCK_LVL_RID);
+      SDB_ASSERT(isMbContextAttached(), "must be attached");
+      objectLatchHelper<recordIdLatchKey> lh;
+      lh.releaseAll(_env->ridLatchMap, _rmc->getRidLatchContext());
    }
 
    BOOLEAN requestContext::testRidLocked(const recordID &rid,
                                          ossSharedLatchMode *mode)
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isSpaceIdLocked() && isMbLocked(), "must be locked");
-      recordIdLatchKey key(getLogicalCSID(),
-                           getLogicalCLID(),
-                           rid);
-      return _ridLatchContext.test(key, mode);
+      SDB_ASSERT(isMbContextAttached(), "must be attached");
+      recordIdLatchKey key(_sid, _mbID, rid);
+      return _rmc->getRidLatchContext().test(key, mode);
    }
 
-   void requestContext::_unlockAndClear(_UNLOCK_LVL lvl)
+   void requestContext::_unlockAll()
    {
-      SDB_ASSERT(isOpen(), "must be open");
-      if (_UNLOCK_LVL_RID <= lvl && !_ridLatchContext.isEmpty())
+      SDB_ASSERT(isOpen(), "can not be closed");
+
+      if (isMbContextAttached())
       {
-         objectLatchHelper<recordIdLatchKey>().releaseAll(_env->ridLatchMap,
-                                                          _ridLatchContext);
-         SDB_ASSERT(_ridLatchContext.isEmpty(), "must be empty");
+         detachMbContext();
       }
 
-      if (_UNLOCK_LVL_MB <= lvl && _clContext.isLocking())
+      if (isMbLocked())
       {
-         if (SHARED == _clContext.mode)
-         {
-            _clContext.mutex->release_r();
-         }
-         else
-         {
-            _clContext.mutex->release_w();
-         }
-         _clContext.reset();
+         unlockMB();
       }
 
-      if (_UNLOCK_LVL_SPACE <= lvl)
+      if (!_lpidLatchContext.isEmpty())
       {
-         if (!_lpidLatchContext.isEmpty())
-         {
-            objectLatchHelper<logicalPidLatchKey>().releaseAll(_env->lpidLatchMap,
-                                                               _lpidLatchContext);
-            SDB_ASSERT(_lpidLatchContext.isEmpty(),"must be empty");
-         }
-         while (_blocker.isBlocking())
-         {
-            _blocker.unblock();
-         }
-         _blocker.fini();
-
-         if (_spaceContext.isLocking())
-         {
-            _env->spaceLocker.unlock(_spaceContext.sid,
-                                      _spaceContext.mode);
-            _spaceContext.reset();
-         }
+         objectLatchHelper<logicalPidLatchKey>().releaseAll(_env->lpidLatchMap,
+                                                            _lpidLatchContext);
+         SDB_ASSERT(_lpidLatchContext.isEmpty(), "must be empty");
       }
+
+      if (_blocker.isBlocking())
+      {
+         _blocker.terminate();
+      }
+
+      if (isSpaceIdLocked())
+      {
+         _env->spaceLocker.unlock(_sid, _sidMode);
+         _sid = INVALID_SPACE_ID;
+         _sidMode = SHARED;
+      }
+      return;
    }
 }//namespace vessel
 }//namespace engine

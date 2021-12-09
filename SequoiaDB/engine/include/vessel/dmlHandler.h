@@ -42,6 +42,7 @@
 #include "dpsTransID.hpp"
 #include "vessel/objectIdentifier.h"
 #include "interface/IRecordUpdater.h"
+#include "vessel/dmlRequest.h"
 
 
 namespace engine
@@ -57,23 +58,20 @@ namespace vessel
 
       public:
          INT32 insert(const globalCollectionId &gcid,
-                    const slice &record,
-                    STRIPING_ID striping,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+                      const dmlInsertRequest &request,
+                      utilInsertResult *res);
 
          INT32 insertBatch(const globalCollectionId &gcid,
-                    const ossPoolVector<slice> &batch,
-                    const insertOptions &options,
-                    utilInsertResult *res);
+                           const dmlBatchInsertRequest &request,
+                           utilInsertResult *res);
 
          INT32 update(const globalCollectionId &gcid,
-                      const recordID &rid,
+                      const dmlUpdateRequest &request,
                       IRecordUpdater *updater,
                       utilUpdateResult *res);
 
          INT32 remove(const globalCollectionId &gcid,
-                      const recordID &rid,
+                      const dmlRemoveRequest &request,
                       utilDeleteResult *res);
 
    };//class dmlHandler

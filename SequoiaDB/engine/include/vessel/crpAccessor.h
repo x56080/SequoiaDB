@@ -78,14 +78,11 @@ namespace vessel
 
       private:
          INT32 prepareCreateCLLog(requestContext *context,
-                                  UINT32 fullNameSize,
                                   UINT32 adjunctSize,
                                   const runtimePageBuffer *rpb,
                                   logRecordContext *lrc);
 
          INT32 commitCreateCLLog(requestContext *context,
-                                 UINT32 fullNameSize,
-                                 const CHAR *fullName,
                                  const GLOBAL_PAGE_ID &gpid,
                                  const collectionRecord &record,
                                  const slice &adjunct,

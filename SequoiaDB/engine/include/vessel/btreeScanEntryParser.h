@@ -103,6 +103,8 @@ namespace vessel
             return slice(sizeof(_fixedSizeFields), &_fields);
          }
 
+         static UINT32 estimiateEntrySize(UINT32 keySize);
+
 #pragma pack(2)
       private:
          struct _fixedSizeFields

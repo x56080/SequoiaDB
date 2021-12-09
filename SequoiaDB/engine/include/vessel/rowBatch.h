@@ -66,10 +66,14 @@ namespace vessel
             return 0 == getRowCount();
          }
          slice operator[](UINT32 pos)const {return getRow(pos);}
-         void setLimits(INT32 bufferSizeLimit, INT32 rowLimit)
+         void setLimits(INT64 bufferSizeLimit, INT32 rowLimit)
          {
             _bufferSizeLimit = bufferSizeLimit;
             _rowLimit = rowLimit;
+         }
+         OSS_INLINE BOOLEAN hasRowLimit()const
+         {
+            return 0 <= _rowLimit;
          }
 
       protected:
@@ -80,7 +84,7 @@ namespace vessel
          }
 
       protected:
-         INT32 _bufferSizeLimit = -1;
+         INT64 _bufferSizeLimit = -1;
          INT32 _rowLimit = -1;
    };//class rowBatch
 } // namespace vessel

@@ -107,17 +107,19 @@ namespace vessel
                object(){}
                ~object(){}
                object(const object &o):
-               _i(o._i){}
+               _i(o._i),
+               _bucket(o._bucket){}
                object &operator=(const object &o)
                {
                   _i = o._i;
+                  _bucket = o._bucket;
                   return *this;
                }
 
             public:
                BOOLEAN isValid()const
                {
-                  return NULL != _i;
+                  return NULL != _i && 0 <= _bucket;
                }
                const KEY &getKey()const
                {
@@ -130,6 +132,7 @@ namespace vessel
 
             private:
                _item *_i = NULL;
+               INT32 _bucket = -1;
          };//class object
 
       public:
@@ -204,7 +207,7 @@ namespace vessel
             _item *itemFound = NULL;
             _item *itemCreated = NULL;
             UINT32 bucketNo = 0;
-            o._i = NULL;
+            o = object();
 
             if (OSS_UNLIKELY(!isOpen()))
             {
@@ -221,6 +224,7 @@ namespace vessel
             {
                ++(itemFound->_shared);
                o._i = itemFound;
+               o._bucket = (INT32)bucketNo;
             }
             else
             {
@@ -234,6 +238,7 @@ namespace vessel
                insert(bucket, itemCreated);
                ++itemCreated->_shared;
                o._i = itemCreated;
+               o._bucket = (INT32)bucketNo;
             }     
          done:
             if (NULL != latch)
@@ -263,6 +268,7 @@ namespace vessel
             {
                ++(itemFound->_shared);
                o._i = itemFound;
+               o._bucket = (INT32)bucketNo;
             }   
          
             return o;
@@ -275,11 +281,10 @@ namespace vessel
             if (isOpen() && o.isValid())
             {
                SDB_ASSERT(0 < o._i->_shared, "impossible");
-               UINT32 hash = o._i->getKey().hash();
-               _bucket *bucket = NULL;
+               SDB_ASSERT(o._bucket < (INT32)_bucketCount, "out of bound");
                ossSpinXLatch *latch = NULL;
-               UINT32 bucketNo = 0;
-               bucket = getBucket(hash, bucketNo);
+               UINT32 bucketNo = (UINT32)o._bucket;
+               _bucket *bucket = _buckets + bucketNo;
                latch = getBucketLatch(bucketNo);
 
                ossXLatchGuard guard(latch);
@@ -289,13 +294,9 @@ namespace vessel
                   remove(bucket, o._i);
                   guard.unlock();
                   SDB_OSS_DEL o._i;
-                  o._i = NULL;
                }
-               else
-               {
-                  guard.unlock();
-                  o._i = NULL;
-               }
+
+               o = object();
             }
             return;
          }

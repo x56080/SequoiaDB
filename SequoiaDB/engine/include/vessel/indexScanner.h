@@ -40,14 +40,12 @@
 #include "vessel/indexObject.h"
 #include "vessel/recordID.h"
 #include "vessel/indexIterator.h"
-#include "vessel/indexScanEntryBatch.h"
 #include "vessel/collectionOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
    class indexScanContext;
    class indexContext;
 
@@ -65,21 +63,21 @@ namespace vessel
             return NULL != _iterator;
          }
       public:
-         INT32 open(requestContext *context,
-                    indexContext *ic,
-                    const indexScanOptions &o,
-                    const ossSharedLatchMode &mode);
+         INT32 open(indexScanContext *context,
+                    indexContext *ic);
 
          void close();
 
+         /// hold rid latch or record lock and put entry into batch.
          /// return SDB_IXM_EOC when hit the end.
          /// always clear batch outside first
+         /// init row limit outside first
          INT32 batchNext(indexScanContext *context,
-                         UINT32 rowLimited);
+                         rowBatch &entryBatch);
 
       private:
          INT32 fillBatch(indexScanContext *context,
-                         UINT32 rowLimited);
+                         rowBatch &entryBatch);
 
          INT32 pauseAndRescan(indexScanContext *context);
 
@@ -94,8 +92,7 @@ namespace vessel
       private:
          indexIterator *_iterator = NULL;
          const indexContext *_ic = NULL;
-         BOOLEAN _forward = TRUE;
-         ossSharedLatchMode _mode;
+         indexScanOptions _o;
          bson::BufBuilder _keyBuilder;
    };//class indexScanner
 

@@ -83,7 +83,7 @@ namespace vessel
          }
          lpid = (globalPos / capacity) + _BEGIN_LPID;
          pos = globalPos % capacity;
-         SDB_ASSERT(lpid < getReservedImpCount() * ID_MAP_PAGE_CAPACITY, "impossible");
+         SDB_ASSERT(lpid < (getReservedImpCount() * ID_MAP_PAGE_CAPACITY), "impossible");
       }
 
    done:

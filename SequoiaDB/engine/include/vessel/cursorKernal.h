@@ -90,6 +90,15 @@ namespace vessel
          }
 
          BOOLEAN isWaitingMorePushing()const;
+
+         OSS_INLINE BOOLEAN hasRowLimit()const
+         {
+            return _options.hasRowCountLimit();
+         }
+         OSS_INLINE INT32 getRowLimit()const
+         {
+            return _options.rowCountLimit;
+         }
       
       private:
          INT32 allocateSpaceForPushing(UINT32 dataLen);

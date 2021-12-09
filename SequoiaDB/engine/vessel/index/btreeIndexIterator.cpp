@@ -68,8 +68,7 @@ namespace vessel
       logicalPageSpace *lps = NULL;
       close();
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCSID == context->getLogicalCSID() ||
-                       DMS_INVALID_LOGICCLID == context->getLogicalCLID() ||
+                       !context->isMbContextAttached() ||
                        NULL == ic ||
                        !ic->isValid() ||
                        INDEX_TYPE_BTREE != ic->getIndexType()))
@@ -769,7 +768,13 @@ namespace vessel
       return _item.getRid();
    }
 
-   INT32 btreeIndexIterator::pushCurrentEntryToBatch(indexScanEntryBatch &batch)const
+   UINT32 btreeIndexIterator::getCurrentEntrySize()const
+   {
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
+      return btreeScanEntryParser::estimiateEntrySize(_item.getOriginalKeySize());
+   }
+
+   INT32 btreeIndexIterator::pushCurrentEntryToBatch(rowBatch &batch)const
    {
       INT32 rc = SDB_OK;
       btreeScanEntryParser parser;
@@ -802,9 +807,8 @@ namespace vessel
       }
 
       parser.init(getCurrentIndexRid(), _item.getRid(), transID, ks);
-
-      rc = batch.addFragmentsOfOneEntry({parser.getFixSizedFields(),
-                                         parser.getKeySlice()});
+      rc = batch.pushRowFragments({parser.getFixSizedFields(),
+                                   parser.getKeySlice()});
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to add entry into batch:%d", rc);

@@ -97,7 +97,8 @@ namespace vessel
          virtual DPS_TRANS_ID getTransID()const;
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
-         virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const;
+         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const;
+         virtual UINT32 getCurrentEntrySize()const;
          //virtual indexScanEntry getCurrentEntry()const;
 
       private:

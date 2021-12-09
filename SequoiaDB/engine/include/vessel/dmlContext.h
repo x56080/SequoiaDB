@@ -75,45 +75,37 @@ namespace vessel
          {
             return _rid;
          }
-         OSS_INLINE void setRid(const recordID &rid)
-         {
-            _rid = rid;
-         }
          OSS_INLINE BOOLEAN isDmlPositionSet()const
          {
             return _rid.valid() && INVALID_CL_PAGE_SEQ != _seq;
-         }
-         OSS_INLINE void setPageSeq(UINT32 s)
-         {
-            _seq = s;
          }
          OSS_INLINE scanEntry getScanEntry()const
          {
             return scanEntry(_seq, _rid.getSlotID());
          }
          
-         OSS_INLINE void setDmlLSN(const DPS_LSN_OFFSET &lsn)
-         {
-            _dmlLSN = lsn;
-         }
          OSS_INLINE const DPS_LSN_OFFSET &getDmlLSN()const
          {
-            return _dmlLSN;
+            return _lsn;
+         }
+         void setDmlRecordInfo(UINT32 seq,
+                               const recordID &rid);
+
+         void setDmlLSN(const DPS_LSN_OFFSET &lsn);
+
+         OSS_INLINE void setIndexReqCount(UINT32 n)
+         {
+            _indexReqCount = n;
          }
 
-         OSS_INLINE void setRecordStripingId(STRIPING_ID striping)
+         OSS_INLINE UINT32 getIndexReqCount()const
          {
-            _stripingId = striping;
+            return _indexReqCount;
          }
-         OSS_INLINE STRIPING_ID getRecordStripingId()const
-         {
-            return _stripingId;
-         }
-
       public:
          INT32 lockUniqueIndexKeys(const dmlIndexRequestArray &ra);
          void unlockUniqueKeys();
-         void clearDmlHistroy();
+         void clearHistroyAndDetachMb();
 
       private:
 
@@ -126,10 +118,11 @@ namespace vessel
       private:
          ossPoolVector<UINT32> _uniqueKeyHash;
          _UNIQUE_KEY_CONTEXT _uniqueKeyContext;
+
          UINT32 _seq = INVALID_CL_PAGE_SEQ;
-         DPS_LSN_OFFSET _dmlLSN = DPS_INVALID_LSN_OFFSET;
+         DPS_LSN_OFFSET _lsn = DPS_INVALID_LSN_OFFSET;
          recordID _rid;
-         STRIPING_ID _stripingId = INVALID_STRIPING_ID;
+         UINT16 _indexReqCount = 0;
    };//class dmlContext
 }//namespace vessel
 }//namespace engine

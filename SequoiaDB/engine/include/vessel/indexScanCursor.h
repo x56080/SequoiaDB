@@ -97,10 +97,6 @@ namespace vessel
          {
             return _gcid;
          }
-         OSS_INLINE UNORDERED_RID_SET *getScannedSet()
-         {
-            return &_scanned;
-         }
 
          OSS_INLINE rtnPredicateListIterator *getPredicate()
          {
@@ -124,6 +120,9 @@ namespace vessel
          {
             return _entryData.getReadableSlice();
          }
+
+         BOOLEAN markRidScanned(const recordID &rid);
+         BOOLEAN testRidScanned(const recordID &rid)const;
 
       private:
          indexScanOptions _o;

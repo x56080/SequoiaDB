@@ -694,6 +694,7 @@ namespace vessel
       SDB_ASSERT(!lpb.isValid(), "impossible");
       BOOLEAN isMutablePage = FALSE;
       idMapSlot slot;
+      BOOLEAN locked = FALSE;
 
       lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
@@ -716,13 +717,13 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb._lh.lock(context, getSpaceType(),
-                        lpid, mode);
+      rc = context->lockLpid(getSpaceType(), lpid, mode);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
+      locked = TRUE;
 
       rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
       if (SDB_OK != rc)
@@ -739,11 +740,23 @@ namespace vessel
          goto error;
       }
 
-      lpb.init(this, slot.psv, isMutablePage);
+      lpb._lpid = lpid;
+      lpb._mode = mode;
+      lpb._context = context;
+      lpb._lps = this;
+      lpb._cowTrigger.reset(slot.psv, isMutablePage);
+
    done:
       return rc;
    error:
-      lpb.fini();
+      if (lpb._rpb.isValid())
+      {
+         lpb._rpb.fini();
+      }
+      if (locked)
+      {
+         context->unlockLpid(getSpaceType(), lpid);
+      }
       goto done;
    }
 
@@ -756,6 +769,7 @@ namespace vessel
       SDB_ASSERT(!lpb.isValid(), "impossible");
       BOOLEAN isMutablePage = FALSE;
       idMapSlot slot;
+      BOOLEAN locked = FALSE;
 
       lpb.fini();
       if (OSS_UNLIKELY(!isOpen()))
@@ -778,15 +792,13 @@ namespace vessel
          goto error;
       }
 
-      rc = lpb._lh.tryLock(context, getSpaceType(),
-                           lpid, mode);
+      rc = context->tryLockLpid(getSpaceType(), lpid, mode, locked);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
-
-      if (!lpb._lh.isLocked())
+      else if (!locked)
       {
          goto done;
       }
@@ -806,11 +818,22 @@ namespace vessel
          goto error;
       }
 
-      lpb.init(this, slot.psv, isMutablePage);
+      lpb._lpid = lpid;
+      lpb._mode = mode;
+      lpb._context = context;
+      lpb._lps = this;
+      lpb._cowTrigger.reset(slot.psv, isMutablePage);
    done:
       return rc;
    error:
-      lpb.fini();
+      if (lpb._rpb.isValid())
+      {
+         lpb._rpb.fini();
+      }
+      if (locked)
+      {
+         context->unlockLpid(getSpaceType(), lpid);
+      }
       goto done;
    }
 
@@ -819,9 +842,9 @@ namespace vessel
                                                 BOOLEAN &mapped)
    {
       INT32 rc = SDB_OK;
-      lpidLockHelper lh;
       BOOLEAN isMutablePage = FALSE;
       idMapSlot slot;
+      BOOLEAN locked = FALSE;
       mapped = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -840,24 +863,24 @@ namespace vessel
       if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
       {
          rc = SDB_OK;
-         mapped = FALSE;
          goto done;
       }
       else if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "can not get lpid[%d], rc:%d", lpid, rc);
+         PD_LOG(PDERROR, "can not validate lpid[%d] before get, rc:%d", lpid, rc);
          goto error;
       }
 
       if (!context->testLpidLocked(getSpaceType(), lpid, NULL))
       {
-         rc = lh.lock(context, getSpaceType(), lpid,
-                      ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_EXCLUSIVE));
+         ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+         rc = context->lockLpid(getSpaceType(), lpid, mode);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", rc);
             goto error;
          }
+         locked = TRUE;
       }
 
       rc = getIdMapSlotFromCache(lpid, slot, isMutablePage);
@@ -876,7 +899,10 @@ namespace vessel
          mapped = TRUE;
       }
    done:
-      /// auto unlock by lock helper.
+      if (locked)
+      {
+         context->unlockLpid(getSpaceType(), lpid);
+      }
       return rc;
    error:
       goto done;
@@ -888,7 +914,7 @@ namespace vessel
       BOOLEAN snapshotEffective = FALSE;
       idMapSlot slot;
       runtimePageBuffer &rpb = lpb._rpb;
-      requestContext *context = lpb._lh.getContext();
+      requestContext *context = lpb._context;
       BOOLEAN copyOnWrite = FALSE;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -907,8 +933,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(lpb._lh.getLockMode().isNone() ||
-                            lpb._lh.getLockMode().isShared()))
+      else if (OSS_UNLIKELY(!lpb._mode.isExclusiveOrUpgrade()))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -918,9 +943,9 @@ namespace vessel
          goto done;
       }
 
-      if (lpb._lh.getLockMode().isUpgrade())
+      if (lpb._mode.isUpgrade())
       {
-         lpb._lh.lockExclusiveFromUpgrade();
+         lpb.lockExclusiveFromUpgrade();
       }
 
       rc = context->getEnv()->dms.isSnapshotEffective(getSpaceID(),
@@ -1112,11 +1137,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(lpb.isValid(), "can not be invalid");
-      SDB_ASSERT(lpb._lh.getLockMode().isExclusive(), "must be exclusive");
+      SDB_ASSERT(lpb._mode.isExclusive(), "must be exclusive");
 
       runtimePageBuffer &rpb = lpb._rpb;
       PAGE_SNAPSHOT_VERION psv = context->getEnv()->dms.getOnlinePageSnapshotVersion();
-      PAGE_ID lpid = lpb._lh.getLpid();
+      PAGE_ID lpid = lpb._lpid;
       PAGE_ID pid = INVALID_PAGE_ID;
       PAGE_ID oldPid = rpb.getGlobalPid().page();
       mappedLogicalPageId mpid;

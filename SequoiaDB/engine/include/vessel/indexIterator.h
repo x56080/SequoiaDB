@@ -45,8 +45,8 @@
 #include "inclusiveVec.h"
 #include "vessel/slice.h"
 #include "rtnPredicate.hpp"
-#include "vessel/indexScanEntryBatch.h"
 #include "vessel/indexScanContext.h"
+#include "vessel/rowBatch.h"
 
 namespace engine
 {
@@ -147,8 +147,8 @@ namespace vessel
          virtual DPS_TRANS_ID getTransID()const = 0;
          virtual recordID getRid()const = 0;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const = 0;
-         //virtual indexScanEntry getCurrentEntry()const = 0;
-         virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const = 0;
+         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const = 0;
+         virtual UINT32 getCurrentEntrySize()const = 0;
    };//class indexIterator
 
    extern indexIterator *createIndexIterator(INDEX_TYPE type);

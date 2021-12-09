@@ -43,7 +43,7 @@ namespace vessel
 {
    lpsCheckpointBlocker::~lpsCheckpointBlocker()
    {
-      SDB_ASSERT(0 == _count, "unblocking missed");
+      fini();
    }
 
    void lpsCheckpointBlocker::fini()
@@ -161,6 +161,17 @@ namespace vessel
       return sid == _sid &&
              type == _type &&
              mutex == _mutex;
+   }
+
+   void lpsCheckpointBlocker::terminate()
+   {
+      if (isBlocking())
+      {
+         _mutex->release_r();
+         _count = 0;
+         fini();
+      }
+      return;
    }
 }//namesapce vessel
 }//namesapce engine

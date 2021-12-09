@@ -34,7 +34,6 @@
 ******************************************************************************/
 
 #include "vessel/api/collectionHandler.h"
-#include "vessel/insertOptions.h"
 #include "vessel/vesselImpl.h"
 #include "vessel/api/IQueryFilter.h"
 #include "vessel/scanCLCursor.h"
@@ -96,6 +95,17 @@ namespace vessel
                                    const insertOptions &options,
                                    utilInsertResult *res)
    {
+      dmlInsertRequest request;
+      request.record = record;
+      request.stripingId = striping;
+      request.o = options;
+      return insert(executor, request, res);
+   }
+
+   INT32 collectionHandler::insert(IExecutor *executor,
+                                   const dmlInsertRequest &request,
+                                   utilInsertResult *res)
+   {
       INT32 rc = SDB_OK;
       if (!isOpen())
       {
@@ -103,14 +113,13 @@ namespace vessel
          goto error;
       }
       else if (NULL == executor ||
-               !record.isValid())
+               !request.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insert(executor, _gcid, record,
-                       striping, options, res);
+      rc = _db->insert(executor, _gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -122,8 +131,7 @@ namespace vessel
    }
 
    INT32 collectionHandler::insertBatch(IExecutor *executor,
-                                        const ossPoolVector<slice> &batch,
-                                        const insertOptions &options,
+                                        const dmlBatchInsertRequest &request,
                                         utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
@@ -133,13 +141,13 @@ namespace vessel
          goto error;
       }
       else if (NULL == executor ||
-               batch.empty())
+               !request.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->insertBatch(executor, _gcid, batch, options, res);
+      rc = _db->insertBatch(executor, _gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -153,10 +161,13 @@ namespace vessel
    INT32 collectionHandler::openScanCursor(IExecutor *executor,
                                            IQueryFilter *filter,
                                            const collectionScanOptions &o,
-                                           cursorHandler &cursor)
+                                           cursorHandler &cursor,
+                                           const cursorOptions *co)
    {
       INT32 rc = SDB_OK;
       scanCLCursor *kernal = NULL;
+      cursorOptions realOptions;
+      static constexpr INT32 _ROW_LIMIT = 1024;
 
       if (OSS_UNLIKELY(NULL == executor))
       {
@@ -177,7 +188,18 @@ namespace vessel
          goto error;
       }
 
-      rc = kernal->open(_db, filter, &(o.cursor));
+      if (NULL != co)
+      {
+         realOptions.initBufSize = co->initBufSize;
+         realOptions.rowCountLimit = co->hasRowCountLimit() ?
+                                     co->rowCountLimit : _ROW_LIMIT;
+      }
+      else
+      {
+         realOptions.rowCountLimit = _ROW_LIMIT;
+      }
+
+      rc = kernal->open(_db, filter, &realOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open cursor:%d", rc);
@@ -225,10 +247,14 @@ namespace vessel
                                                 const strSlice &indexName,
                                                 const rtnPredicateList &predicate,
                                                 const indexScanOptions &o,
-                                                cursorHandler &cursor)
+                                                cursorHandler &cursor,
+                                                const cursorOptions *co)
    {
       INT32 rc = SDB_OK;
       indexScanCursor *kernal = NULL;
+      cursorOptions realOptions;
+      static constexpr INT32 _ROW_LIMIT = 16;
+
       if (OSS_UNLIKELY(NULL == executor ||
                        indexName.empty()))
       {
@@ -249,7 +275,18 @@ namespace vessel
          goto error;
       }
 
-      rc = kernal->open(_db, NULL, &(o.cursor));
+      if (NULL != co)
+      {
+         realOptions.initBufSize = co->initBufSize;
+         realOptions.rowCountLimit = co->hasRowCountLimit() ?
+                                     co->rowCountLimit : _ROW_LIMIT;
+      }
+      else
+      {
+         realOptions.rowCountLimit = _ROW_LIMIT;
+      }
+
+      rc = kernal->open(_db, NULL, &realOptions);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open cursor kernal:%d", rc);
@@ -265,7 +302,7 @@ namespace vessel
    }
 
    INT32 collectionHandler::updateRecord(IExecutor *executor,
-                                         const recordID &rid,
+                                         const dmlUpdateRequest &request,
                                          IRecordUpdater *updater,
                                          utilUpdateResult *res)
    {
@@ -276,14 +313,14 @@ namespace vessel
          goto error;
       }
       else if (NULL == executor ||
-               !rid.isValid() ||
+               !request.isValid() ||
                NULL == updater)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->update(executor, _gcid, rid, updater, res);
+      rc = _db->update(executor, _gcid, request, updater, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -295,7 +332,7 @@ namespace vessel
    }
 
    INT32 collectionHandler::deleteRecord(IExecutor *executor,
-                                         const recordID &rid,
+                                         const dmlRemoveRequest &request,
                                          utilDeleteResult *res)
    {
       INT32 rc = SDB_OK;
@@ -305,13 +342,13 @@ namespace vessel
          goto error;
       }
       else if (NULL == executor ||
-               !rid.isValid())
+               !request.isValid())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = _db->remove(executor, _gcid, rid, res);
+      rc = _db->remove(executor, _gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;

@@ -144,7 +144,9 @@ TEST_F(dml_delete_test, base_delete_test1)
 
       utilDeleteResult deleteRes;
       const recordID &rid = rids[i];
-      rc = handler.deleteRecord(&executor, rid, &deleteRes);
+      dmlRemoveRequest request;
+      request.rid = rid;
+      rc = handler.deleteRecord(&executor, request, &deleteRes);
       ASSERT_EQ(SDB_OK, rc);
    }
 

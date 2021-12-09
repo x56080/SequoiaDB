@@ -36,56 +36,68 @@
 #ifndef VESSE_MODIFY_RECORD_CONTEXT_H_
 #define VESSE_MODIFY_RECORD_CONTEXT_H_
 
-#include "vessel/dmlContext.h"
 #include "vessel/memoryBlock.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class modifyRecordContext : public dmlContext
+   class modifyRecordContext : public SDBObject
    {
       public:
          modifyRecordContext(){}
-         virtual ~modifyRecordContext(){}
-
-      private:
-         struct _targetInfo
-         {
-            memoryBlock _recordBuffer;
-            DPS_TRANS_ID _transID;
-            BOOLEAN _overflow = FALSE;
-            BOOLEAN _bigRecord = FALSE;
-            recordID _overflowAddr;
-         };//struct _target
+         ~modifyRecordContext(){}
+         modifyRecordContext(const modifyRecordContext &) = delete;
+         modifyRecordContext &operator=(const modifyRecordContext &) = delete;
 
       public:
+         OSS_INLINE const recordID &getRid()const
+         {
+            return _rid;
+         }
+         
          OSS_INLINE BOOLEAN isOverflow()const
          {
-            return _target._overflow;
+            return _overflow;
          }
          OSS_INLINE BOOLEAN isBigRecord()const
          {
-            return _target._bigRecord;
+            return _bigRecord;
          }
 
          OSS_INLINE const recordID &getOverflowAddr()const
          {
-            return _target._overflowAddr;
+            return _overflowAddr;
+         }
+         OSS_INLINE void setRid(const recordID &rid)
+         {
+            _rid = rid;
+         }
+         OSS_INLINE memoryBlock &getRecordBuffer()
+         {
+            return _recordBuffer;
          }
 
-         void modifyDone();
-
          slice getTargetRecord()const;
-
-         /// mb will no longer be valid
-         void adoptRecordBuffer(memoryBlock &mb);
 
          void setOverflowInfo(BOOLEAN isBigRecord,
                               const recordID &addr);
 
+         void clearData();
+
+         void setTransID(const DPS_TRANS_ID &transID)
+         {
+            _transID = transID;
+         }
+
       private:
-         _targetInfo _target;
+         recordID _rid;
+         memoryBlock _recordBuffer;
+         DPS_TRANS_ID _transID;
+         BOOLEAN _overflow = FALSE;
+         BOOLEAN _bigRecord = FALSE;
+         recordID _overflowAddr;
          
    };//class modifyRecordContext
 } // namespace vessel

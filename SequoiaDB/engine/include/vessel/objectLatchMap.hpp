@@ -81,7 +81,6 @@ namespace vessel
          {
             return _sid == o._sid &&
                    _type == o._type &&
-                   _pad == o._pad &&
                    _lpid == o._lpid;
          }
          OSS_INLINE UINT32 hash()const
@@ -113,7 +112,7 @@ namespace vessel
             ossItoa(_lpid, buf, _BUF_SIZE);
             str.append(buf);
             str.append("}");
-            return str;
+            return std::move(str);
          }
       public:
          UINT16 _sid = INVALID_SPACE_ID;
@@ -129,40 +128,43 @@ namespace vessel
       public:
          recordIdLatchKey(){}
          ~recordIdLatchKey(){}
-         explicit recordIdLatchKey(UINT32 lcs,
-                                   UINT32 lcl,
+         explicit recordIdLatchKey(SPACE_ID sid,
+                                   CL_MB_ID mbID,
                                    const recordID &rid):
-                  _lcs(lcs), _lcl(lcl), _rid(rid){}
+                  _sid(sid), _mbID(mbID),
+                  _rid(rid), _pad(0){}
 
          recordIdLatchKey(const recordIdLatchKey &o):
-         _lcs(o._lcs),
-         _lcl(o._lcl),
-         _rid(o._rid){}
+         _sid(o._sid),
+         _mbID(o._mbID),
+         _rid(o._rid),
+         _pad(o._pad){}
 
          recordIdLatchKey &operator=(const recordIdLatchKey &o)
          {
-            _lcs = o._lcs;
-            _lcl = o._lcl;
+            _sid = o._sid;
+            _mbID = o._mbID;
             _rid = o._rid;
+            _pad = o._pad;
             return *this;
          }
          OSS_INLINE BOOLEAN operator==(const recordIdLatchKey &o)const
          {
-            return _lcs == o._lcs &&
-                   _lcl == o._lcl &&
+            return _sid == o._sid &&
+                   _mbID == o._mbID &&
                    _rid == o._rid;
          }
          OSS_INLINE UINT32 hash()const
          {
-            //return _sid + _mbID + _rid.getPageID() + _rid.getSlotID();
-            return _lcs + _lcl + _rid.hash();
+            return XXH3_64bits(this, sizeof(recordIdLatchKey));
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return DMS_INVALID_LOGICCSID != _lcs &&
-                   DMS_INVALID_LOGICCLID != _lcl &&
-                   _rid.isValid();
+            return INVALID_SPACE_ID != _sid &&
+                   INVALID_CL_MB_ID != _mbID &&
+                   _rid.isValid() &&
+                   0 == _pad;
          }
 
          ossPoolString toString()const
@@ -171,11 +173,11 @@ namespace vessel
             CHAR buf[_BUF_SIZE] = {};
             ossPoolString str;
             str.reserve(64);
-            str.append("{lcs:");
-            ossItoa(_lcs, buf, _BUF_SIZE);
+            str.append("{sid:");
+            ossItoa(_sid, buf, _BUF_SIZE);
             str.append(buf);
-            str.append(", lcl:");
-            ossItoa(_lcl, buf, _BUF_SIZE);
+            str.append(", mbid:");
+            ossItoa(_mbID, buf, _BUF_SIZE);
             str.append(buf);
             str.append(", lpid:");
             ossItoa(_rid.getPageID(), buf, _BUF_SIZE);
@@ -184,38 +186,39 @@ namespace vessel
             ossItoa(_rid.getSlotID(), buf, _BUF_SIZE);
             str.append(buf);
             str.append("}");
-            return str;
+            return std::move(str);
          }
 
       public:
-         UINT32 _lcs = DMS_INVALID_LOGICCSID;
-         UINT32 _lcl = DMS_INVALID_LOGICCLID;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
          recordID _rid;
+         UINT16 _pad = 0;
    };//class recordIdLatchKey
 
-   typedef class sharedObjectMap<recordIdLatchKey, ossSharedLatch> RECORD_ID_LATCH_MAP;
+   typedef class sharedObjectMap<recordIdLatchKey, ossSpinSLatchPOSIX> RECORD_ID_LATCH_MAP;
 
    class uniqueIndexLatchKey : public SDBObject
    {
       public:
          uniqueIndexLatchKey(){}
          ~uniqueIndexLatchKey(){}
-         explicit uniqueIndexLatchKey(UINT32 lcs,
-                                      UINT32 lcl,
+         explicit uniqueIndexLatchKey(SPACE_ID sid,
+                                      CL_MB_ID mbID,
                                       UINT32 hash):
-                  _lcs(lcs),
-                  _lcl(lcl),
+                  _sid(sid),
+                  _mbID(mbID),
                   _hash(hash){}
 
          uniqueIndexLatchKey(const uniqueIndexLatchKey &o):
-         _lcs(o._lcs),
-         _lcl(o._lcl),
+         _sid(o._sid),
+         _mbID(o._mbID),
          _hash(o._hash)
          {}
          uniqueIndexLatchKey &operator=(const uniqueIndexLatchKey &o)
          {
-            _lcs = o._lcs;
-            _lcl = o._lcl;
+            _sid = o._sid;
+            _mbID = o._mbID;
             _hash = o._hash;
             return *this;
          }
@@ -223,19 +226,19 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN operator==(const uniqueIndexLatchKey &o)const
          {
-            return _lcs == o._lcs &&
-                   _lcl == o._lcl &&
+            return _sid == o._sid &&
+                   _mbID == o._mbID &&
                    _hash == o._hash;
          }
          OSS_INLINE UINT32 hash()const
          {
-            return _lcs + _lcl + _hash;
+            return _sid + _mbID + _hash;
          }
 
          OSS_INLINE BOOLEAN isValid()const
          {
-            return DMS_INVALID_LOGICCSID != _lcs &&
-                   DMS_INVALID_LOGICCLID != _lcl;
+            return INVALID_SPACE_ID != _sid &&
+                   INVALID_CL_MB_ID != _mbID;
          }
 
          ossPoolString toString()const
@@ -244,29 +247,29 @@ namespace vessel
             CHAR buf[_BUF_SIZE] = {};
             ossPoolString str;
             str.reserve(64);
-            str.append("{lcs:");
-            ossItoa(_lcs, buf, _BUF_SIZE);
+            str.append("{sid:");
+            ossItoa(_sid, buf, _BUF_SIZE);
             str.append(buf);
-            str.append(", lcl:");
-            ossItoa(_lcl, buf, _BUF_SIZE);
+            str.append(", mbid:");
+            ossItoa(_mbID, buf, _BUF_SIZE);
             str.append(buf);
             str.append(", hash:");
             ossItoa(_hash, buf, _BUF_SIZE);
             str.append(buf);
             str.append("}");
-            return str;
+            return std::move(str);
          }
 
       private:
-         UINT32 _lcs = DMS_INVALID_LOGICCSID;
-         UINT32 _lcl = DMS_INVALID_LOGICCLID;
+         SPACE_ID _sid = INVALID_SPACE_ID;
+         CL_MB_ID _mbID = INVALID_CL_MB_ID;
          UINT32 _hash = 0;
    };//class uniqueIndexLatchKey
 
    ///WARNING: UNIQUE_INDEX_LATCH_MAP's object is x latch, do not use objectSharedLatchContext.
    typedef class sharedObjectMap<uniqueIndexLatchKey, ossSpinXLatch> UNIQUE_INDEX_LATCH_MAP;
 
-   template <typename KEY>
+   template <class KEY, class LATCH=ossSharedLatch>
    class objectSharedLatchContext : public SDBObject
    {
       public:
@@ -276,41 +279,54 @@ namespace vessel
          objectSharedLatchContext &operator=(const objectSharedLatchContext &) = delete;
 
       private:
-         typedef class sharedObjectMap<KEY, ossSharedLatch>::object LATCH_OBJECT;
+         typedef class sharedObjectMap<KEY, LATCH>::object LATCH_OBJECT;
 
-      private:
-         struct _latchSlot : public SDBObject
+      public:
+         class item : public SDBObject
          {
-            _latchSlot(){}
-            ~_latchSlot(){}
-            _latchSlot(const _latchSlot &o):
+            public:
+            
+            item(){}
+            ~item(){}
+            explicit item(const LATCH_OBJECT &o,
+                          const ossSharedLatchMode &m):
+                     obj(o), mode(m){}
+            item(const item &o):
             obj(o.obj),
             mode(o.mode){}
 
-            _latchSlot &operator=(const _latchSlot &o)
+            item &operator=(const item &o)
             {
                obj = o.obj;
                mode = o.mode;
                return *this;
             }
 
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return obj.isValid();
+            }
+
             LATCH_OBJECT obj;
             ossSharedLatchMode mode;
          };//struct _latchSlot
 
+      private:
+         typedef ossPoolList<item> _ITEM_CONTAINER;
+
       public:
          OSS_INLINE UINT32 getSize()const
          {
-            return _data.size();
+            return _items.size();
          }
          OSS_INLINE BOOLEAN isEmpty()const
          {
-            return _data.empty();
+            return _items.empty();
          }
 
          void fini()
          {
-            _data.clear();
+            _items.clear();
             return;
          }
 
@@ -319,154 +335,93 @@ namespace vessel
          {
             SDB_ASSERT(obj.isValid(), "can not be invalid");
             SDB_ASSERT(!mode.isNone(), "can not be none");
-            _latchSlot slot;
-            slot.obj = obj;
-            slot.mode = mode;
-            _data.push_back(slot);
+         
+            _items.push_back(item(obj, mode));
          }
 
          BOOLEAN findAndPop(const KEY &key,
-                            LATCH_OBJECT &obj,
-                            ossSharedLatchMode &mode)
+                            item &out)
          {
-            _latchSlot *slot = NULL;
-            UINT32 pos = 0;
-            obj = LATCH_OBJECT();
-            mode.setNone();
-
-            slot = find(key, pos);
-            if (NULL != slot)
+            SDB_ASSERT(key.isValid(), "can not be invalid");
+            out = item();
+            for (typename _ITEM_CONTAINER::iterator itr = _items.begin();
+                 itr != _items.end(); ++itr)
             {
-               obj = slot->obj;
-               mode = slot->mode;
-               remove(pos);
-            }
-
-            return NULL != slot;
-         }
-
-         BOOLEAN popBack(LATCH_OBJECT &obj, ossSharedLatchMode &mode)
-         {
-            BOOLEAN r = FALSE;
-            if (!isEmpty())
-            {
-               const _latchSlot &slot = _data.back();
-               obj = slot.obj;
-               mode = slot.mode;
-               _data.pop_back();
-               r = TRUE;
-            }
-            return r;
-         }
-
-         BOOLEAN findToUpdate(const KEY &key,
-                              LATCH_OBJECT &obj,
-                              ossSharedLatchMode **mode)
-         {
-            _latchSlot *slot = NULL;
-            UINT32 pos = 0;
-            obj = LATCH_OBJECT();
-            if (NULL != mode)
-            {
-               *mode = NULL;
-            }
-
-            slot = find(key, pos);
-            if (NULL != slot)
-            {
-               obj = slot->obj;
-               if (NULL != mode)
+               SDB_ASSERT(itr->isValid(), "impossible");
+               if (itr->isValid() && itr->obj.getKey() == key)
                {
-                  *mode = &(slot->mode);
+                  out = *itr;
+                  _items.erase(itr);
+                  break;
                }
             }
 
-            return NULL != slot;
+            return out.isValid();
+         }
+
+         BOOLEAN popBack(item &out)
+         {
+            out = item();
+            if (!isEmpty())
+            {
+               out = _items.back();
+               SDB_ASSERT(out.isValid(), "impossible");
+               _items.pop_back();
+            }
+            return out.isValid();
          }
 
          BOOLEAN test(const KEY &key,
                       ossSharedLatchMode *mode)const
          {
-            if (NULL != mode)
-            {
-               mode->setNone();
-            }
-            const _latchSlot *slot = NULL;
-            UINT32 pos = 0;
-            slot = find(key, pos);
-            if (NULL != slot)
-            {
-               if (NULL != mode)
-               {
-                  *mode = slot->mode;
-               }
-            }
-            return NULL != slot;
-         }
-
-      private:
-         _latchSlot *find(const KEY &key,
-                          UINT32 &pos)
-         {
-            _latchSlot *out = NULL;
             SDB_ASSERT(key.isValid(), "can not be invalid");
-            for (INT32 i = ((INT32)(_data.size()) - 1); i >= 0; --i)
+            BOOLEAN r = FALSE;
+            for (typename _ITEM_CONTAINER::const_reverse_iterator itr = _items.crbegin();
+                 itr != _items.crend(); ++itr)
             {
-               if (_data[i].obj.getKey() == key)
+               SDB_ASSERT(itr->isValid(), "impossible");
+               if (itr->isValid() && itr->obj.getKey() == key)
                {
-                  out = _data.data() + i;
-                  pos = i;
+                  r = TRUE;
+                  if (NULL != mode)
+                  {
+                     *mode = itr->mode;
+                  }
                   break;
                }
             }
-         
-            return out;
+
+            return r;
          }
 
-         const _latchSlot *find(const KEY &key,
-                          UINT32 &pos)const
+         item findToUpdate(const KEY &key, ossSharedLatchMode **mode)
          {
-            const _latchSlot *out = NULL;
             SDB_ASSERT(key.isValid(), "can not be invalid");
-            for (INT32 i = ((INT32)(_data.size()) - 1); i >= 0; --i)
+            SDB_ASSERT(NULL != mode, "can not be null");
+            item out;
+            for (typename _ITEM_CONTAINER::iterator itr = _items.begin();
+                 itr != _items.end(); ++itr)
             {
-               if (_data[i].obj.getKey() == key)
+               SDB_ASSERT(itr->isValid(), "impossible");
+               if (itr->isValid() && itr->obj.getKey() == key)
                {
-                  out = _data.data() + i;
-                  pos = i;
+                  out = *itr;
+                  *mode = &(itr->mode);
                   break;
                }
             }
-         
+
             return out;
          }
 
-         void remove(UINT32 pos)
-         {
-            if (OSS_LIKELY(pos < _data.size()))
-            {
-               for (UINT32 i = pos; (i + 1) < _data.size(); ++i)
-               {
-                  _data[i] = _data[i + 1];
-               }
-               _data.pop_back();
-            }
-            else
-            {
-               SDB_ASSERT(FALSE, "out of bound");
-            }
-      
-            return;
-         }
-
       private:
-         ossPoolVector<_latchSlot> _data;
+         _ITEM_CONTAINER _items;
 
    };//class objectSharedLatchContext
 
    #pragma pack()
 
-   typedef objectSharedLatchContext<recordIdLatchKey> RID_LATCH_CONTEXT;
+   typedef objectSharedLatchContext<recordIdLatchKey, ossSpinSLatchPOSIX> RID_LATCH_CONTEXT;
    typedef objectSharedLatchContext<logicalPidLatchKey> LPID_LATCH_CONTEXT;
 }//namespace vessel
 }//namespace engine

@@ -665,14 +665,14 @@ namespace vessel
 
    INT32 vesselImpl::insert(IExecutor *executor,
                             const globalCollectionId &gcid,
-                            const slice &record,
-                            STRIPING_ID striping,
-                            const insertOptions &options,
+                            const dmlInsertRequest &request,
                             utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       dmlHandler handler;
-      if (OSS_UNLIKELY(NULL == executor))
+      if (OSS_UNLIKELY(NULL == executor ||
+                       !gcid.isValid() ||
+                       !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -685,7 +685,7 @@ namespace vessel
 
       handler.init(&_env, executor, &_outerResource);
 
-      rc = handler.insert(gcid, record, striping, options, res);
+      rc = handler.insert(gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -698,14 +698,13 @@ namespace vessel
 
    INT32 vesselImpl::insertBatch(IExecutor *executor,
                                  const globalCollectionId &gcid,
-                                 const ossPoolVector<slice> &batch,
-                                 const insertOptions &options,
+                                 const dmlBatchInsertRequest &request,
                                  utilInsertResult *res)
    {
       INT32 rc = SDB_OK;
       dmlHandler handler;
       if (OSS_UNLIKELY(NULL == executor ||
-                       batch.empty() ||
+                       !request.isValid() ||
                        !gcid.isValid()))
       {
          rc = SDB_INVALIDARG;
@@ -724,7 +723,7 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.insertBatch(gcid, batch, options, res);
+      rc = handler.insertBatch(gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -737,7 +736,7 @@ namespace vessel
 
    INT32 vesselImpl::update(IExecutor *executor,
                             const globalCollectionId &gcid,
-                            const recordID &rid,
+                            const dmlUpdateRequest &request,
                             IRecordUpdater *updater,
                             utilUpdateResult *res)
    {
@@ -746,7 +745,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == executor ||
                        !gcid.isValid() ||
-                       !rid.isValid() ||
+                       !request.isValid() ||
                        NULL == updater))
       {
          rc = SDB_INVALIDARG;
@@ -759,7 +758,7 @@ namespace vessel
       }
 
       handler.init(&_env, executor, &_outerResource);
-      rc = handler.update(gcid, rid, updater, res);
+      rc = handler.update(gcid, request, updater, res);
       if (SDB_OK != rc)
       {
          goto error;
@@ -772,7 +771,7 @@ namespace vessel
 
    INT32 vesselImpl::remove(IExecutor *executor,
                             const globalCollectionId &gcid,
-                            const recordID &rid,
+                            const dmlRemoveRequest &request,
                             utilDeleteResult *res)
    {
       INT32 rc = SDB_OK;
@@ -780,7 +779,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == executor ||
                        !gcid.isValid() ||
-                       !rid.isValid()))
+                       !request.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -792,7 +791,7 @@ namespace vessel
       }
 
       handler.init(&_env, executor, &_outerResource);
-      rc = handler.remove(gcid, rid, res);
+      rc = handler.remove(gcid, request, res);
       if (SDB_OK != rc)
       {
          goto error;

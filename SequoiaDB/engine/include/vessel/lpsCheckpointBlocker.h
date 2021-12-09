@@ -75,6 +75,9 @@ namespace vessel
                                SPACE_TYPE type,
                                ossRWMutex *mutex)const;
 
+         /// unblock and clear shared count
+         void terminate();
+
       private:
          ossRWMutex *_mutex = NULL;
          SPACE_ID _sid = INVALID_SPACE_ID;

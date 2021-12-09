@@ -41,16 +41,16 @@
 #include "vessel/recordID.h"
 #include "vessel/slice.h"
 #include "vessel/strictBuffer.h"
+#include "vessel/dmlRequest.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class requestContext;
-   class insertContext;
-   class modifyRecordContext;
+   class dmlContext;
    class logicalPageBuffer;
    class logRecordContext;
+   class requestContext;
 
    class rdpAccessor : public pageAccessor
    {
@@ -64,17 +64,24 @@ namespace vessel
 
          OSS_INLINE void fini() {_lpb = NULL;}
 
+         BOOLEAN isFreeToInsert(UINT32 recordSize,
+                                UINT32 minFreePercent=0)const;
          /// non-big-record
-         INT32 insertNormalRecord(insertContext *context);
+         INT32 insertNormalRecord(dmlContext *context,
+                                  const dmlInsertRequest &request);
 
 
-         INT32 updateNormalRecord(modifyRecordContext *context,
+         INT32 updateNormalRecord(dmlContext *context,
+                                  RECORD_SLOT_ID pos,
+                                  STRIPING_ID striping,
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
 
-         INT32 deleteRecord(modifyRecordContext *context);
+         INT32 deleteRecord(dmlContext *context,
+                            RECORD_SLOT_ID pos);
 
       public:
+         UINT32 getFreeSpaceAfterLastSlot()const;
          UINT32 getTotalSlotCount()const;
          INT32 getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const;
 
@@ -85,7 +92,8 @@ namespace vessel
          const recordDataPageHead *getReadablePageHead()const;
 
       private:
-         INT32 insertNormalRecordToPos(insertContext *context,
+         INT32 insertNormalRecordToPos(dmlContext *context,
+                                       const dmlInsertRequest &request,
                                        RECORD_SLOT_ID pos,
                                        UINT16 offset);
 
@@ -108,16 +116,19 @@ namespace vessel
                               UINT32 &totalSize)const;
 
          BOOLEAN findPositionToInsert(UINT32 recordSize,
-                                      FLOAT32 minFreePercent,
+                                      UINT32 minFreePercent,
                                       RECORD_SLOT_ID &pos,
                                       UINT16 &offset)const;
 
       private:
-         INT32 inplaceUpdate(modifyRecordContext *context,
+         INT32 inplaceUpdate(dmlContext *context,
+                             RECORD_SLOT_ID pos,
+                             STRIPING_ID striping,
                              const slice &row);
 
       private:
-         INT32 createTombstone(modifyRecordContext *context);
+         INT32 createTombstone(dmlContext *context,
+                               RECORD_SLOT_ID pos);
 
       private:
          const recordSlot *getReadableSlot(RECORD_SLOT_ID pos)const;
@@ -130,12 +141,12 @@ namespace vessel
          INT32 validatePage(requestContext *context,
                             logicalPageBuffer *lpb)const;
 
-         INT32 prepareInsertLog(insertContext *context,
+         INT32 prepareInsertLog(dmlContext *context,
                                 UINT32 recordHeadAndBodySize,
                                 const runtimePageBuffer *rpb,
                                 logRecordContext *lrc);
 
-         INT32 commitInsertLog(insertContext *context,
+         INT32 commitInsertLog(dmlContext *context,
                                const recordID &rid,
                                const recordSlot &slot,
                                const void *record,
@@ -144,10 +155,10 @@ namespace vessel
                                const runtimePageBuffer *rpb,
                                logRecordContext *lrc);
 
-         INT32 prepareInplaceUpdateLog(modifyRecordContext *context,
+         INT32 prepareInplaceUpdateLog(dmlContext *context,
                                        const runtimePageBuffer *rpb,
                                        logRecordContext *lrc);
-         INT32 prepareDeleteLog(modifyRecordContext *context,
+         INT32 prepareDeleteLog(dmlContext *context,
                                 const runtimePageBuffer *rpb,
                                 logRecordContext *lrc);
 

@@ -42,7 +42,6 @@
 #include "vessel/unorderedRidSet.h"
 #include "vessel/collectionOptions.h"
 #include "vessel/slice.h"
-#include "vessel/indexScanEntryBatch.h"
 #include "vessel/indexContext.h"
 
 namespace engine
@@ -61,7 +60,7 @@ namespace vessel
       public:
          const indexHandle &getHandle()const;
          rtnPredicateListIterator *getPredicate()const;
-         UNORDERED_RID_SET *getRidSet()const;
+
          const indexScanOptions &getOptions()const;
          const indexScanCursor *getCursor()const
          {
@@ -78,19 +77,9 @@ namespace vessel
       public:
          void attachIndexScanCursor(indexScanCursor *cursor);
          virtual void close();
-         void clearBatchAndRidLatch();
 
-         OSS_INLINE indexScanEntryBatch &getBatch()
-         {
-            return _batch;
-         }
-         OSS_INLINE const indexScanEntryBatch &getBatch()const
-         {
-            return _batch;
-         }
       private:
          indexScanCursor *_cursor = NULL;
-         indexScanEntryBatch _batch;
    };//class indexScanContext
 } // namespace vessel
 

@@ -111,6 +111,7 @@ namespace vessel
          {
             return _su;
          }
+         collectionSpaceId getIdentifier()const;
       public:
          INT32 create(requestContext *context,
                       const strSlice &name,

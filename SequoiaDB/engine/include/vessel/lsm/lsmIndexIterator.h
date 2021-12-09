@@ -99,7 +99,8 @@ namespace vessel
          virtual recordID getRid()const;
          virtual BOOLEAN equalToCurrentKey(const ixmKey &key)const;
          //virtual indexScanEntry getCurrentEntry()const;
-         virtual INT32 pushCurrentEntryToBatch(indexScanEntryBatch &batch)const;
+         virtual INT32 pushCurrentEntryToBatch(rowBatch &batch)const;
+         virtual UINT32 getCurrentEntrySize()const;
       private:
          INT32 seekFullKey(const rocksdb::Slice &fullKey, BOOLEAN forPrev);
 
