@@ -64,6 +64,7 @@ namespace engine
    {
       _dmsCB            = NULL ;
       _su               = NULL ;
+      _suLogicalID      = DMS_INVALID_LOGICCSID ;
       _mbContext        = NULL ;
       _scanType         = UNKNOWNSCAN ;
       _numToReturn      = -1 ;
@@ -581,7 +582,6 @@ namespace engine
          isStictType = TRUE ;
       }
 
-      _isOpened = TRUE ;
       _hitEnd = FALSE ;
 
       if ( TBSCAN == _planRuntime.getScanType() )
@@ -640,6 +640,7 @@ namespace engine
 
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _su = su ;
+      _suLogicalID = su->LogicalCSID() ;
       _mbContext = mbContext ;
       _scanType = _planRuntime.getScanType() ;
 
@@ -650,6 +651,7 @@ namespace engine
       _numToReturn = returnOptions.getLimit() ;
       _numToSkip = returnOptions.getSkip() ;
 
+      _isOpened = TRUE ;
       if ( 0 == _numToReturn )
       {
          _hitEnd = TRUE ;
@@ -735,6 +737,7 @@ namespace engine
 
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _su = su ;
+      _suLogicalID = su->LogicalCSID() ;
       _mbContext = mbContext ;
       _scanType = _planRuntime.getScanType() ;
       _numToReturn = numToReturn ;

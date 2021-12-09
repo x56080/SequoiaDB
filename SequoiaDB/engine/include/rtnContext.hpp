@@ -370,6 +370,11 @@ namespace engine
          virtual BOOLEAN          isWrite() const { return FALSE ; }
          virtual BOOLEAN          needRollback() const { return FALSE ; }
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return DMS_INVALID_LOGICCSID ;
+         }
+
          virtual _optAccessPlanRuntime * getPlanRuntime ()
          {
             return NULL ;
@@ -660,8 +665,6 @@ namespace engine
          ~_rtnSubContextHolder () ;
 
       protected :
-         void _deleteSubContext () ;
-
          void _setSubContext ( rtnContextPtr &subContext, _pmdEDUCB *subCB ) ;
 
          OSS_INLINE rtnContext * _getSubContext ()
@@ -674,7 +677,11 @@ namespace engine
             return _subContext.get() ;
          }
 
+      private :
+         void _deleteSubContext () ;
+
       protected :
+         UINT32         _subSULogicalID ;
          _pmdEDUCB *    _subCB ;
          rtnContextPtr  _subContext ;
    } ;

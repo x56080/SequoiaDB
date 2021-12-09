@@ -59,6 +59,11 @@ namespace engine
       virtual RTN_CONTEXT_TYPE   getType() const { return RTN_CONTEXT_LOB ; }
       virtual _dmsStorageUnit*   getSU () ;
 
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
+
    public:
       /*
          Note: The pStream will be takeover in cases both failed and succed
@@ -104,6 +109,7 @@ namespace engine
 
    private:
       _rtnLobStream     *_stream ;
+      UINT32            _suLogicalID ;
       SINT64            _offset ;
       UINT32            _readLen ;
    } ;
@@ -137,12 +143,18 @@ namespace engine
          virtual RTN_CONTEXT_TYPE getType () const ;
          virtual _dmsStorageUnit* getSU () ;
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return _suLogicalID ;
+         }
+
       protected:
          virtual INT32     _prepareData( _pmdEDUCB *cb ) { return SDB_OK ; }
          virtual void      _toString( stringstream &ss ) ;
 
       private:
          _rtnLobFetcher    *_pFetcher ;
+         UINT32            _suLogicalID ;
 
    } ;
    typedef _rtnContextLobFetcher rtnContextLobFetcher ;

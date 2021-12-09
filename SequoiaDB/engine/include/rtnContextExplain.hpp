@@ -189,6 +189,11 @@ namespace engine
          return NULL ;
       }
 
+      OSS_INLINE virtual UINT32 getSULogicalID() const
+      {
+         return _rtnSubContextHolder::_subSULogicalID ;
+      }
+
       INT32 open ( const rtnQueryOptions &options,
                    pmdEDUCB *cb ) ;
 

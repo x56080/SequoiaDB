@@ -1924,6 +1924,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDROPCSP1 ) ;
 
+      UINT32 retryTime = 0 ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       // make sure the collectionspace length is not out of range
@@ -1936,18 +1940,49 @@ namespace engine
          goto error ;
       }
 
+      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", pCollectionSpace,
+                   suLogicalID ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
-         rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
+         rtnDelContextForCollectionSpace( pCollectionSpace, suLogicalID, cb ) ;
       }
 
-      dmsCB->aquireCSMutex( pCollectionSpace ) ;
-      rc = dmsCB->dropCollectionSpaceP1( pCollectionSpace, cb, dpsCB ) ;
-      dmsCB->releaseCSMutex( pCollectionSpace ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to drop collectionspace %s, "
-                   "rc: %d", pCollectionSpace, rc ) ;
+      while ( retryTime < 100 )
+      {
+         if ( cb->isInterrupted() )
+         {
+            PD_LOG( PDWARNING, "Failed to drop collection space [%s], "
+                    "it is interrupted", pCollectionSpace ) ;
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         // tell others to close contexts on the same collection space
+         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         {
+            ossSleep( 200 ) ;
+         }
+
+         dmsCB->aquireCSMutex( pCollectionSpace ) ;
+         rc = dmsCB->dropCollectionSpaceP1( pCollectionSpace, cb, dpsCB ) ;
+         dmsCB->releaseCSMutex( pCollectionSpace ) ;
+         if ( SDB_LOCK_FAILED == rc )
+         {
+            ++ retryTime ;
+            rc = SDB_OK ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to drop collectionspace %s, "
+                      "rc: %d", pCollectionSpace, rc ) ;
+         break ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNDROPCSP1, rc ) ;

@@ -68,6 +68,7 @@ namespace engine
    {
    private :
       typedef utilConcurrentMap<INT64, rtnContextPtr> RTN_CTX_MAP ;
+      typedef ossPoolMultiMap< EDUID, INT64 > _RTN_EDU_CTX_MAP ;
 
       ossAtomicSigned64    _contextIdGenerator ;
       RTN_CTX_MAP          _contextMap ;
@@ -130,6 +131,9 @@ namespace engine
       BOOLEAN contextExist( INT64 contextID ) ;
 
       INT32 prepareRemoteMessenger() ;
+
+      // try notify context owners to kill contexts of given collection space
+      UINT32 preDelContext( const CHAR *csName, UINT32 suLogicalID ) ;
 
       OSS_INLINE INT32 contextNum ()
       {
@@ -252,6 +256,9 @@ namespace engine
       INT32   addUnloadCS( const CHAR* csName ) ;
       void    delUnloadCS( const CHAR* csName ) ;
       BOOLEAN hasUnloadCS( const CHAR* csName ) ;
+
+   private:
+      void _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

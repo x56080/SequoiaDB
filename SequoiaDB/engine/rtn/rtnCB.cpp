@@ -46,6 +46,7 @@
 using namespace std;
 namespace engine
 {
+
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
         _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
@@ -330,6 +331,83 @@ namespace engine
 
       PD_TRACE_EXIT ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
       return ;
+   }
+
+   UINT32 _SDB_RTNCB::preDelContext( const CHAR *csName,
+                                     UINT32 suLogicalID )
+   {
+      _RTN_EDU_CTX_MAP contexts ;
+
+      SDB_ASSERT ( NULL != csName,
+                   "collection space name should be valid" ) ;
+      SDB_ASSERT ( DMS_INVALID_LOGICCSID != suLogicalID,
+                   "logical ID should be valid" ) ;
+
+      if ( 0 == _contextMap.size( TRUE ) ||
+           DMS_INVALID_LOGICCSID == suLogicalID )
+      {
+         goto done ;
+      }
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->isOpened() &&
+              suLogicalID == pContext->getSULogicalID() )
+         {
+            try
+            {
+               EDUID eduID = pContext->eduID() ;
+               INT64 contextID = pContext->contextID () ;
+               contexts.insert( make_pair( eduID, contextID ) ) ;
+
+               PD_LOG( PDDEBUG, "Pre-deleting context [%lld] of EDU [%llu] on "
+                       "collection space [%s]", contextID, eduID, csName ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save delete context, "
+                       "occur exception  %s", e.what() ) ;
+               // can continue
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+      _notifyKillContexts( contexts ) ;
+
+   done:
+      return contexts.size() ;
+   }
+
+   void _SDB_RTNCB::_notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts )
+   {
+      pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
+
+      for ( _RTN_EDU_CTX_MAP::const_iterator iter = contexts.begin() ;
+            iter != contexts.end() ;
+            ++ iter )
+      {
+         try
+         {
+            pEDUMgr->postEDUPost( iter->first,
+                                  PMD_EDU_EVENT_KILLCONTEXT,
+                                  PMD_EDU_MEM_NONE,
+                                  NULL,
+                                  (UINT64)( iter->second ) ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to post event to EDU [%llu], "
+                    "occur exception %s", iter->first, e.what() ) ;
+            // can continue
+         }
+
+         PD_LOG( PDDEBUG, "post kill context [%lld] to EDU [%llu]",
+                 iter->second, iter->first ) ;
+      }
    }
 
    INT32 _SDB_RTNCB::contextNew( RTN_CONTEXT_TYPE type,

@@ -1690,7 +1690,8 @@ namespace engine
       _rtnSubContextHolder implement
     */
    _rtnSubContextHolder::_rtnSubContextHolder ()
-   : _subCB( NULL )
+   : _subSULogicalID( DMS_INVALID_LOGICCSID ),
+     _subCB( NULL )
    {
    }
 
@@ -1705,17 +1706,20 @@ namespace engine
       {
          sdbGetRTNCB()->contextDelete( _subContext->contextID(), _subCB ) ;
          _subContext.release() ;
+         _subSULogicalID = DMS_INVALID_LOGICCSID ;
       }
    }
 
    void _rtnSubContextHolder::_setSubContext ( rtnContextPtr &subContext,
                                                pmdEDUCB *subCB )
    {
-      _deleteSubContext() ;
+      SDB_ASSERT( NULL == _subContext.get(),
+                  "should not have sub context" ) ;
       if ( subContext )
       {
          _subContext = subContext ;
          _subCB = subCB ;
+         _subSULogicalID = subContext->getSULogicalID() ;
       }
    }
 
