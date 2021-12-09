@@ -52,6 +52,11 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_LIST_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
 
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
+
    public:
       INT32 open( const BSONObj &query, const BSONObj &selector,
                   const BSONObj &hint, INT64 skip,
@@ -67,6 +72,7 @@ namespace engine
       INT32 _reallocate( UINT32 len ) ;
    private:
       _rtnLobFetcher _fetcher ;
+      UINT32 _suLogicalID ;
       CHAR *_buf ;
       UINT32 _bufLen ;
       std::string _fullName ;

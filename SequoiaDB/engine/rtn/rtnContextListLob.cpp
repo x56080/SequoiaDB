@@ -45,6 +45,7 @@ namespace engine
 
    _rtnContextListLob::_rtnContextListLob( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
+    _suLogicalID( DMS_INVALID_LOGICCSID ),
     _buf( NULL ),
     _bufLen( 0 ),
     _fetchLobHead( TRUE ),
@@ -111,6 +112,10 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to init lob fetcher:%d", rc ) ;
          goto error ;
+      }
+      if ( NULL != _fetcher.getSu() )
+      {
+         _suLogicalID = _fetcher.getSu()->LogicalCSID() ;
       }
 
       _fullName.assign( fullName.valuestr() ) ;

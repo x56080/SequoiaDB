@@ -107,6 +107,11 @@ namespace engine
          virtual BOOLEAN          isWrite() const ;
          virtual BOOLEAN          needRollback() const ;
 
+         virtual UINT32 getSULogicalID() const
+         {
+            return _suLogicalID ;
+         }
+
          virtual void setResultSetFilter( rtnResultSetFilter *rsFilter,
                                           BOOLEAN appendMode = TRUE ) ;
 
@@ -182,6 +187,7 @@ namespace engine
       protected:
          _SDB_DMSCB                 *_dmsCB ;
          _dmsStorageUnit            *_su ;
+         UINT32                     _suLogicalID ;
          _dmsMBContext              *_mbContext ;
          optAccessPlanRuntime       _planRuntime ;
          optScanType                _scanType ;

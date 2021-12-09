@@ -2505,7 +2505,7 @@ done:
 
       // --maxsessioncontextnum
       rdxInt( pEX, PMD_OPTION_MAXSESSIONCONTEXTNUM, _maxSessionContextNum,
-              FALSE, PMD_CFG_CHANGE_RUN, RTN_MAX_CTX_NUM_DFT, FALSE ) ;
+              FALSE, PMD_CFG_CHANGE_RUN, RTN_MAX_SESS_CTX_NUM_DFT, FALSE ) ;
       rdvMinMax( pEX, _maxSessionContextNum, 0, RTN_MAX_SESS_CTX_NUM_MAX,
                  TRUE ) ;
 

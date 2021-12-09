@@ -59,6 +59,11 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_SHARD_OF_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
 
+      virtual UINT32 getSULogicalID() const
+      {
+         return _suLogicalID ;
+      }
+
    public:
       INT32 open( const bson::BSONObj &lob,
                   SINT32 flag,
@@ -173,6 +178,7 @@ namespace engine
       _rtnLobSections      _lockSections ;
 
       _dmsStorageUnit*     _su ;
+      UINT32               _suLogicalID ;
       _dmsMBContext*       _mbContext ;
       _SDB_DMSCB*          _dmsCB ;
       BOOLEAN              _hasLobPrivilege ;

@@ -87,7 +87,8 @@ namespace engine
    _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type )
    :_dumpTransCount( 0 )
 #if defined ( SDB_ENGINE )
-   , _transExecutor( this, pmdGetKRCB()->getMonMgr() )
+   , _transExecutor( this, pmdGetKRCB()->getMonMgr() ),
+     _urgentEventCount( 0 )
 #endif // SDB_ENGINE
 
    {
@@ -183,6 +184,7 @@ namespace engine
          pmdEduEventRelease( data, this ) ;
       }
       _processEventCount = 0 ;
+      _clearUrgentEvents() ;
       ossMemset( _name, 0, sizeof( _name ) ) ;
       ossMemset( _source, 0, sizeof( _source ) ) ;
       _userName = "" ;
@@ -628,6 +630,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISINT );
       BOOLEAN ret = FALSE ;
 
+      /// check urgent events
+      checkUrgentEvents() ;
+
       // mask interrupt while doing rollback
       if ( !onlyFlag && _isDoTransRollback )
       {
@@ -1030,6 +1035,42 @@ namespace engine
       SDB_ASSERT( lockType >= SDB_LOCK_DMS && lockType < SDB_LOCK_MAX,
                   "lockType error" ) ;
       return &_lockInfo[ (INT32)lockType ] ;
+   }
+
+   void _pmdEDUCB::_clearUrgentEvents()
+   {
+#if defined ( SDB_ENGINE )
+      pmdEDUEvent data ;
+      while ( _urgentQueue.try_pop( data ) )
+      {
+         _urgentEventCount.dec() ;
+         pmdEduEventRelease( data, this ) ;
+      }
+#endif
+   }
+
+   void _pmdEDUCB::checkUrgentEvents()
+   {
+#if defined ( SDB_ENGINE )
+      if ( _urgentEventCount.peek() > 0 )
+      {
+         pmdEDUEvent event ;
+         IContextMgr *ctxMgr = pmdGetKRCB()->getContextMgr() ;
+         SDB_ASSERT( NULL != ctxMgr, "context manager should be valid" ) ;
+         while ( _urgentQueue.try_pop( event ) )
+         {
+            _urgentEventCount.dec() ;
+            ++ _processEventCount ;
+            if ( PMD_EDU_EVENT_KILLCONTEXT == event._eventType &&
+                 NULL != ctxMgr )
+            {
+               INT64 contextID = (INT64)( event._userData ) ;
+               ctxMgr->contextDelete( contextID, this ) ;
+            }
+            pmdEduEventRelease( event, this ) ;
+         }
+      }
+#endif // SDB_ENGINE
    }
 
    void _pmdEDUCB::assertLocks()

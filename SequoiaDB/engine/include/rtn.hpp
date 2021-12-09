@@ -335,6 +335,7 @@ namespace engine
                                    SDB_DMSCB *dmsCB ) ;
 
    void rtnDelContextForCollectionSpace ( const CHAR *pCollectionSpace,
+                                          UINT32 suLogicalID,
                                           _pmdEDUCB *cb ) ;
 
    INT32 rtnDelCollectionSpaceCommand ( const CHAR *pCollectionSpace,

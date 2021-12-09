@@ -1543,6 +1543,31 @@ namespace engine
      goto done ;
    }
 
+   INT32 _SDB_DMSCB::nameToSULID( const CHAR *pName,
+                                  UINT32 &suLogicalID )
+   {
+      INT32 rc = SDB_OK ;
+
+      suLogicalID = DMS_INVALID_LOGICCSID ;
+
+      if ( NULL == pName )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      else
+      {
+         ossScopedLock _lock( &_mutex, SHARED ) ;
+         SDB_DMS_CSCB *cscb = NULL ;
+         rc = _CSCBNameLookup( pName, &cscb, NULL, TRUE ) ;
+         if ( SDB_OK == rc )
+         {
+            suLogicalID = cscb->_su->LogicalCSID() ;
+         }
+      }
+
+      return rc ;
+   }
+
    _dmsStorageUnit *_SDB_DMSCB::suLock ( dmsStorageUnitID suID )
    {
       ossScopedLock _lock(&_mutex, SHARED) ;

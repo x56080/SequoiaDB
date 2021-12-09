@@ -250,7 +250,6 @@ namespace engine
 
       if ( _explained )
       {
-         _deleteSubContext() ;
          explainContext->_hitEnd = TRUE ;
       }
 
@@ -259,7 +258,6 @@ namespace engine
       return rc ;
 
    error :
-      _deleteSubContext() ;
       goto done ;
    }
 

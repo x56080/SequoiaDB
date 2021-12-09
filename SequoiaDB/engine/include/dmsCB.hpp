@@ -338,6 +338,9 @@ namespace engine
                               OSS_LATCH_MODE lockType = SHARED,
                               INT32 millisec = -1 ) ;
 
+      INT32 nameToSULID( const CHAR *pName,
+                         UINT32 &suLogicalID ) ;
+
       _dmsStorageUnit *suLock ( dmsStorageUnitID suID ) ;
       void suUnlock ( dmsStorageUnitID suID,
                       OSS_LATCH_MODE lockType = SHARED ) ;

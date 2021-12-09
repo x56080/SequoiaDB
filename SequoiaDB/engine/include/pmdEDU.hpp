@@ -78,6 +78,8 @@ namespace engine
    #define EDU_ERROR_BUFF_SIZE         ( 1024 )
    #define EDU_DOING_BUFF_SIZE         MON_EDU_DOING_SZ
 
+   #define PMD_EDU_URGENT_QUEUE_CAPACITY ( 20 )
+
    /*
       TOOL FUNCTIONS
    */
@@ -273,8 +275,27 @@ namespace engine
       {
          try
          {
-            // no need latch since _queue is already latched
-            _queue.push ( data ) ;
+            // no need latch since queue has latch itself
+#if defined ( SDB_ENGINE )
+            if ( PMD_EDU_EVENT_KILLCONTEXT == data._eventType )
+            {
+               // avoid pushing too many events in to urgent queue,
+               // while the EDU may hang and urgent queue is full
+               if ( _urgentEventCount.inc() <=
+                                    PMD_EDU_URGENT_QUEUE_CAPACITY )
+               {
+                  _urgentQueue.push( data ) ;
+               }
+               else
+               {
+                  _urgentEventCount.dec() ;
+               }
+            }
+            else
+#endif // SDB_ENGINE
+            {
+               _queue.push ( data ) ;
+            }
          }
          catch ( std::exception &e )
          {
@@ -282,6 +303,12 @@ namespace engine
                     "Thread[EDUID:%llu, TID:%u], occur exception %s",
                     _eduID, _tid, e.what() ) ;
             // can not handle, throw to caller
+#if defined ( SDB_ENGINE )
+            if ( PMD_EDU_EVENT_KILLCONTEXT == data._eventType )
+            {
+               _urgentEventCount.dec() ;
+            }
+#endif
             throw e ;
          }
       }
@@ -299,6 +326,9 @@ namespace engine
          {
             _status = PMD_EDU_WAITING ;
          }
+
+         /// check urgent events
+         checkUrgentEvents() ;
 
          if ( 0 > millsec )
          {
@@ -456,6 +486,8 @@ namespace engine
          return waitEvent( filter, data, millsec, resetStat ) ;
       }
 
+      void checkUrgentEvents() ;
+
       void contextCopy( SET_CONTEXT &contextList ) ;
 
       void           resetMon() { _monApplCB.reset () ; }
@@ -598,6 +630,8 @@ namespace engine
       // WARNING: internal copy contexts, no lock protect
       void _contextCopy( SET_CONTEXT &contextList ) ;
 
+      void     _clearUrgentEvents() ;
+
    private :
       _pmdEDUMgr     *_eduMgr ;
       ossSpinSLatch  _mutex ;
@@ -642,6 +676,7 @@ namespace engine
 
    #if defined ( SDB_ENGINE )
       ossEvent                _event ;   // for cls replSet notify
+
       UINT64                  _curRequestID ;
 
       // transaction related variables
@@ -655,6 +690,8 @@ namespace engine
 
       INT16                   _orgReplSize ;
 
+      pmdEDUEventQueue        _urgentQueue ;
+      ossAtomic32             _urgentEventCount ;
    #endif // SDB_ENGINE
 
       /*

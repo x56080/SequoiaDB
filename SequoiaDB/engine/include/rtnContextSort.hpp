@@ -62,6 +62,11 @@ namespace engine
       virtual RTN_CONTEXT_TYPE getType() const ;
       virtual _dmsStorageUnit*  getSU () { return NULL ; }
 
+      virtual UINT32 getSULogicalID() const
+      {
+         return _rtnSubContextHolder::_subSULogicalID ;
+      }
+
       OSS_INLINE virtual optAccessPlanRuntime * getPlanRuntime ()
       {
          /// WARNING: do not use this plan runtime to do anything

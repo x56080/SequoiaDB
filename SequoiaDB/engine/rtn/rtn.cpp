@@ -1121,34 +1121,45 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDELCSCTX, "rtnDelContextForCollectionSpace" )
    void rtnDelContextForCollectionSpace ( const CHAR *pCollectionSpace,
+                                          UINT32 suLogicalID,
                                           _pmdEDUCB *cb )
    {
       PD_TRACE_ENTRY ( SDB_RTNDELCSCTX ) ;
 
+      SDB_ASSERT ( NULL != pCollectionSpace,
+                   "collection space name should be valid" ) ;
+      SDB_ASSERT ( DMS_INVALID_LOGICCSID != suLogicalID,
+                   "logical ID should be valid" ) ;
       SDB_ASSERT ( cb, "EDU control block can't be NULL" ) ;
 
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
-      pmdEDUCB::SET_CONTEXT contextList ;
-      cb->contextCopy( contextList ) ;
-
-      pmdEDUCB::SET_CONTEXT::iterator it = contextList.begin() ;
-      while ( it != contextList.end() )
+      if ( DMS_INVALID_LOGICCSID != suLogicalID )
       {
-         INT64 contextID = *it ;
-         rtnContextPtr ctx ;
-         ++it ;
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-         // get each context
-         if ( SDB_OK == rtnCB->contextFind ( contextID, ctx ) &&
-              NULL != ctx->getSU() &&
-              0 == ossStrcmp ( ctx->getSU()->CSName(), pCollectionSpace ) )
+         // let's find out whether the collection space is held by this
+         // EDU. If so we have to get rid of those contexts
+         pmdEDUCB::SET_CONTEXT contextList ;
+         cb->contextCopy( contextList ) ;
+
+         pmdEDUCB::SET_CONTEXT::iterator it = contextList.begin() ;
+         while ( it != contextList.end() )
          {
-            // if the su is held by myself, i have to kill the context
-            // from global
-            rtnCB->contextDelete( contextID, cb ) ;
+            INT64 contextID = *it ;
+            rtnContextPtr ctx ;
+            ++it ;
+
+            // get each context
+            if ( SDB_OK == rtnCB->contextFind ( contextID, ctx ) &&
+                 ctx->isOpened() &&
+                 suLogicalID == ctx->getSULogicalID() )
+            {
+               // if the su is held by myself, i have to kill the context
+               // from global
+               rtnCB->contextDelete( contextID, cb ) ;
+
+               PD_LOG( PDDEBUG, "Deleted context [%lld] on "
+                       "collection space [%s]", contextID, pCollectionSpace ) ;
+            }
          }
       }
 
@@ -1166,6 +1177,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNDELCSCOMMAND ) ;
       BOOLEAN writable = FALSE ;
+      UINT32 retryTime = 0 ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
@@ -1182,24 +1196,56 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
+      rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", pCollectionSpace,
+                   suLogicalID ) ;
+      SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
+                  "logical ID should be valid" ) ;
+
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
-         rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
+         rtnDelContextForCollectionSpace( pCollectionSpace, suLogicalID, cb ) ;
       }
 
-      if ( dropFile )
+      while ( retryTime < 100 )
       {
-         rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB ) ;
+         if ( cb->isInterrupted() )
+         {
+            PD_LOG( PDWARNING, "Failed to drop collection space [%s], "
+                    "it is interrupted", pCollectionSpace ) ;
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         // tell others to close contexts on the same collection space
+         if ( rtnCB->preDelContext( pCollectionSpace, suLogicalID ) > 0 )
+         {
+            ossSleep( 200 ) ;
+         }
+
+         if ( dropFile )
+         {
+            rc = dmsCB->dropCollectionSpace ( pCollectionSpace, cb, dpsCB ) ;
+         }
+         else
+         {
+            rc = dmsCB->unloadCollectonSpace( pCollectionSpace, cb ) ;
+         }
+
+         if ( SDB_LOCK_FAILED == rc )
+         {
+            ++ retryTime ;
+            rc = SDB_OK ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to %s collectionspace %s, "
+                      "rc: %d", dropFile ? "drop" : "unload",
+                      pCollectionSpace, rc ) ;
+         break ;
       }
-      else
-      {
-         rc = dmsCB->unloadCollectonSpace( pCollectionSpace, cb ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to %s collectionspace %s, "
-                   "rc: %d", dropFile ? "drop" : "unload",
-                   pCollectionSpace, rc ) ;
 
    done :
       if ( writable )

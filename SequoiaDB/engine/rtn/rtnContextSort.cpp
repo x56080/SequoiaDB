@@ -110,9 +110,6 @@ namespace engine
          goto error ;
       }
 
-      _isOpened = TRUE ;
-      _hitEnd = FALSE ;
-
       _returnOptions.setSkip( numToSkip ) ;
       _returnOptions.setLimit( numToReturn ) ;
       _numToSkip = numToSkip ;
@@ -137,6 +134,9 @@ namespace engine
 
       // reusable key builder
       _keyGen.setKeyBuilder( &_keyBuilder ) ;
+
+      _isOpened = TRUE ;
+      _hitEnd = FALSE ;
 
    done:
       return rc ;
