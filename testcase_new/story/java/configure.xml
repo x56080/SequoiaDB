@@ -134,6 +134,17 @@
             <package name="com.sequoiadb.transaction.metadataserial" />
         </packages>
     </test>
-    
+
+    <test name="lockEscalation" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="lockEscalation" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.lockEscalation" />
+        </packages>
+    </test>
+
 </suite>
     

@@ -66,7 +66,10 @@ public class SdbTestBase {
     public static final String RS = "rs";
     public static final String RCAUTO = "rcauto";
     public static final String RCUSERBS = "rcuserbs";
+    public static final String LOCKESCALATION = "lockEscalation";
     public static final String TRANSREPLSIZE = "transreplsize";
+    public static final String TRANSALLOWLOCKESCALATION = "transallowlockescalation";
+    public static final String TRANSMAXLOCKNUM = "transmaxlocknum";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -140,6 +143,18 @@ public class SdbTestBase {
         group2Conf.get( RCUSERBS ).put( TRANSAUTOROLLBACK, true );
         group2Conf.get( RCUSERBS ).put( TRANSUSERBS, false );
         group2Conf.get( RCUSERBS ).put( TRANSREPLSIZE, transReplsize );
+
+        group2Conf.put( LOCKESCALATION, new BasicBSONObject() );
+        group2Conf.get( LOCKESCALATION ).put( TRANSISOLATION, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( LOCKESCALATION ).put( INDEXSCANSTEP, newIndexScanStep );
+        group2Conf.get( LOCKESCALATION ).put( TRANSTIMEOUT, 2 );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( LOCKESCALATION ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSUSERBS, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSREPLSIZE, transReplsize );
+        group2Conf.get( LOCKESCALATION ).put( TRANSALLOWLOCKESCALATION, true );
+        group2Conf.get( LOCKESCALATION ).put( TRANSMAXLOCKNUM, 10 );
 
         for ( String key : group2Conf.keySet() ) {
             group2Count.put( key, new AtomicInteger( 0 ) );
@@ -316,7 +331,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS })
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, LOCKESCALATION })
     public static synchronized void initTestGroups() {
         if ( testGroup == null )
             return;
@@ -325,7 +340,7 @@ public class SdbTestBase {
     }
 
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO,
-            RCUSERBS }, alwaysRun = true)
+            RCUSERBS, LOCKESCALATION }, alwaysRun = true)
     public static synchronized void finiTestGroups() {
         if ( testGroup == null )
             return;
