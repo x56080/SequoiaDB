@@ -65,11 +65,38 @@ namespace vessel
       return;
    }
 
-   INT32 fsmBitmapPageObject::init(UINT32 pageNo,
-                                   PAGE_ID pid,
-                                   UINT32 dataPageCount,
-                                   fsmBitmapPage *page,
-                                   UINT32 &abnormalCount)
+   INT32 fsmBitmapPageObject::initWhenCreate(UINT32 pageNo,
+                                             PAGE_ID pid,
+                                             fsmBitmapPage *page)
+   {
+      INT32 rc = SDB_OK;
+
+      reset();
+
+      if (OSS_UNLIKELY(NULL == page ||
+                       INVALID_PAGE_ID == pid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _pageNo = pageNo;
+      _pid = pid;
+      _page = page;
+      _size = 0;
+
+   done:
+      return rc;
+   error:
+      reset();
+      goto done;
+   }
+
+   INT32 fsmBitmapPageObject::initWhenOpen(UINT32 pageNo,
+                                           PAGE_ID pid,
+                                           UINT32 dataPageCount,
+                                           fsmBitmapPage *page,
+                                           UINT32 &abnormalCount)
    {
       INT32 rc = SDB_OK;
       UINT32 bitsCount = 0;

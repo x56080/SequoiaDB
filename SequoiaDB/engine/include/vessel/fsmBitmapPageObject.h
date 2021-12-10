@@ -69,11 +69,15 @@ namespace vessel
 
          void reset();
 
-         INT32 init(UINT32 pageNo,
-                    PAGE_ID pid,
-                    UINT32 dataPageCount,
-                    fsmBitmapPage *page,
-                    UINT32 &abnormalCount);
+         INT32 initWhenCreate(UINT32 pageNo,
+                              PAGE_ID pid,
+                              fsmBitmapPage *page);
+
+         INT32 initWhenOpen(UINT32 pageNo,
+                            PAGE_ID pid,
+                            UINT32 dataPageCount,
+                            fsmBitmapPage *page,
+                            UINT32 &abnormalCount);
 
          /// The size never shrink
          /// Not thread safe

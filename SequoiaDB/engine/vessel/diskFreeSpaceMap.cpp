@@ -458,7 +458,7 @@ namespace vessel
          }
 
          ((fsmBitmapOwnerPage *)head)->pages[pos] = obj->getPid();
-         _fsmFile->fsyncPage(ownerPid, TRUE);
+         _fsmFile->fsyncPage(ownerPid, FALSE);
       }
 
 
@@ -557,7 +557,6 @@ namespace vessel
       PAGE_ID bitmapPid = INVALID_PAGE_ID;
       fsmBitmapPageObject *obj = NULL;
       fsmPageHead *head = NULL;
-      UINT32 abnormal = 0;
 
       if (0 < _bitmaps.count(pageNo))
       {
@@ -587,13 +586,6 @@ namespace vessel
          goto error;
       }
 
-      rc = _fsmFile->fsyncPage(bitmapPid, TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", bitmapPid, rc);
-         goto error;
-      }
-
       rc = getFsmPageHead(bitmapPid, FSM_FILE_PAGE_TYPE_BITMAP, &head);
       if (SDB_OK != rc)
       {
@@ -601,10 +593,17 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->init(pageNo, bitmapPid, 0, (fsmBitmapPage *)head, abnormal);
+      rc = obj->initWhenCreate(pageNo, bitmapPid, (fsmBitmapPage *)head);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init bitmap obj:%d", rc);
+         goto error;
+      }
+
+      rc = _fsmFile->fsyncPage(bitmapPid, FALSE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", bitmapPid, rc);
          goto error;
       }
 
@@ -662,8 +661,8 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->init(pageNo, pid, dataPageCount,
-                     page, abnormalCount);
+      rc = obj->initWhenOpen(pageNo, pid, dataPageCount,
+                             page, abnormalCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to rebuild page obj[%d,%d], rc:%d",
@@ -1123,6 +1122,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      CHAR *buffer = NULL;
       fsmPageHead *head = NULL;
       ossValuePtr ptr = 0;
       rc = _fsmFile->getPagePtr(pid, ptr);
@@ -1132,8 +1132,16 @@ namespace vessel
          goto error;
       }
 
-      ossMemset((CHAR*)ptr, 0, FSM_BITMAP_PAGE_SIZE);
-      head = (fsmPageHead *)ptr;
+      buffer = (CHAR *)SDB_THREAD_ALLOC(FSM_BITMAP_PAGE_SIZE);
+      if (NULL == buffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      ossMemset(buffer, 0, FSM_BITMAP_PAGE_SIZE);
+      head = (fsmPageHead *)buffer;
       
       head->version = FSM_FILE_PAGE_VERSION;
       head->type = FSM_FILE_PAGE_TYPE_BITMAP;
@@ -1142,7 +1150,13 @@ namespace vessel
       head->pre = INVALID_PAGE_ID;
       head->next = INVALID_PAGE_ID;
       head->pad = 0;
+
+      ossMemcpy((CHAR *)ptr, buffer, FSM_BITMAP_PAGE_SIZE);
    done:
+      if (NULL != buffer)
+      {
+         SDB_THREAD_FREE(buffer);
+      }
       return rc;
    error:
       goto done;
@@ -1155,6 +1169,7 @@ namespace vessel
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != pre, "can not be invalid");
 
+      CHAR *buffer = NULL;
       fsmBitmapOwnerPage *page = NULL;
       ossValuePtr ptr = 0;
 
@@ -1165,7 +1180,15 @@ namespace vessel
          goto error;
       }
 
-      page = (fsmBitmapOwnerPage *)ptr;
+      buffer = (CHAR *)SDB_THREAD_ALLOC(FSM_FILE_PAGE_SIZE);
+      if (NULL == buffer)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem.");
+         rc = SDB_OOM;
+         goto error;
+      }
+      
+      page = (fsmBitmapOwnerPage *)buffer;
       page->head.version = FSM_FILE_PAGE_VERSION;
       page->head.type = FSM_FILE_PAGE_TYPE_BITMAP_OWNER;
       page->head.clLogicalId = _logicalId;
@@ -1177,7 +1200,12 @@ namespace vessel
       page->flags = 0;
       ossMemset(page->pad, 0, sizeof(page->pad));
       ossMemset(page->pages, 0xFF, sizeof(page->pages));
+      ossMemcpy((void *)ptr, buffer, FSM_FILE_PAGE_SIZE);
    done:
+      if (NULL != buffer)
+      {
+         SDB_THREAD_FREE(buffer);
+      }
       return rc;
    error:
       goto done;
