@@ -215,40 +215,13 @@ namespace engine
       switch ( _type )
       {
          case RTN_JOB_CREATE_INDEX :
+         {
+            _jobName = "CreateIndex-" ;
+            // need to get the index name
+            _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
+
+            if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
             {
-               _jobName = "CreateIndex-" ;
-               // need to get the index name
-               _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
-
-               if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
-               {
-                  rc = su->data()->getMBContext( &mbContext, pCLShortName,
-                                                 EXCLUSIVE ) ;
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
-                              _clFullName, rc ) ;
-                     goto error ;
-                  }
-
-                  mbContext->mbStat()->_uniqueIdxNum++ ;
-                  _hasAddUnique = TRUE ;
-                  _csLID = su->LogicalCSID() ;
-                  _clLID = mbContext->clLID() ;
-               }
-            }
-            break ;
-         case RTN_JOB_DROP_INDEX :
-            {
-               dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
-               _jobName = "DropIndex-" ;
-               // need to get the index name
-               _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
-               if ( _indexEle.eoo() )
-               {
-                  _indexEle = _indexObj.firstElement () ;
-               }
-
                rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                               EXCLUSIVE ) ;
                if ( SDB_OK != rc )
@@ -258,65 +231,110 @@ namespace engine
                   goto error ;
                }
 
-               if ( jstOID == _indexEle.type() )
+               mbContext->mbStat()->_uniqueIdxNum++ ;
+               _hasAddUnique = TRUE ;
+               _csLID = su->LogicalCSID() ;
+               _clLID = mbContext->clLID() ;
+            }
+            break ;
+         }
+         case RTN_JOB_DROP_INDEX :
+         {
+            dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
+            _jobName = "DropIndex-" ;
+            // need to get the index name
+            _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
+            if ( _indexEle.eoo() )
+            {
+               _indexEle = _indexObj.firstElement () ;
+            }
+
+            rc = su->data()->getMBContext( &mbContext, pCLShortName,
+                                           EXCLUSIVE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
+                        _clFullName, rc ) ;
+               goto error ;
+            }
+
+            if ( jstOID == _indexEle.type() )
+            {
+               OID oid ;
+               _indexEle.Val( oid ) ;
+               // get index extent
+               rc = su->index()->getIndexCBExtent( mbContext, oid,
+                                                   idxExtent ) ;
+               if ( rc )
                {
-                  OID oid ;
-                  _indexEle.Val( oid ) ;
-                  // get index extent
-                  rc = su->index()->getIndexCBExtent( mbContext, oid,
-                                                      idxExtent ) ;
-                  if ( rc )
+                  PD_LOG ( PDWARNING, "Get collection[%s] indexCB[%s] extent "
+                           "failed, rc: %d", _clFullName,
+                           oid.str().c_str(), rc ) ;
+                  /// ignore the error
+                  rc = SDB_OK ;
+               }
+               else
+               {
+                  ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
+                  if ( indexCB.isInitialized() )
                   {
-                     PD_LOG ( PDWARNING, "Get collection[%s] indexCB[%s] extent "
-                              "failed, rc: %d", _clFullName,
-                              oid.str().c_str(), rc ) ;
-                     /// ignore the error
-                     rc = SDB_OK ;
-                  }
-                  else
-                  {
-                     ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
                      _indexName = indexCB.getName() ;
                      /// first set index flag to IXM_INDEX_FLAG_INVALID
                      indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                   }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Failed to initialize collection[%s]'s "
+                             "index[%s]", _clFullName, oid.str().c_str() ) ;
+                  }
+               }
+            }
+            else
+            {
+               _indexName = _indexEle.str () ;
+               // get index extent
+               rc = su->index()->getIndexCBExtent( mbContext,
+                                                   _indexName.c_str(),
+                                                   idxExtent ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Get collection[%s] indexCB[%s] extent "
+                          "failed, rc: %d", _clFullName,
+                          _indexName.c_str(), rc ) ;
+                  /// ignore the error
+                  rc = SDB_OK ;
                }
                else
                {
-                  _indexName = _indexEle.str () ;
-                  // get index extent
-                  rc = su->index()->getIndexCBExtent( mbContext,
-                                                      _indexName.c_str(),
-                                                      idxExtent ) ;
-                  if ( rc )
+                  ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
+                  if ( indexCB.isInitialized() )
                   {
-                     PD_LOG( PDWARNING, "Get collection[%s] indexCB[%s] extent "
-                             "failed, rc: %d", _clFullName,
-                             _indexName.c_str(), rc ) ;
-                     /// ignore the error
-                     rc = SDB_OK ;
-                  }
-                  else
-                  {
-                     ixmIndexCB indexCB ( idxExtent, su->index(), mbContext ) ;
                      /// first set index flag to IXM_INDEX_FLAG_INVALID
                      indexCB.setFlag( IXM_INDEX_FLAG_INVALID ) ;
                   }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Failed to initialize collection[%s]'s "
+                             "index[%s]", _clFullName, _indexName.c_str() ) ;
+                  }
                }
-
-               // register drop index job to prevent other operators to be
-               // executed before drop index is finished ( e.g. truncate )
-               rc = rtnGetIndexJobHolder()->regCLJob( _clFullName ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
-                            "for collection [%s], rc: %d", _clFullName, rc ) ;
-               _regCLJob = TRUE ;
             }
-            break ;
+
+            // register drop index job to prevent other operators to be
+            // executed before drop index is finished ( e.g. truncate )
+            rc = rtnGetIndexJobHolder()->regCLJob( _clFullName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
+                         "for collection [%s], rc: %d", _clFullName, rc ) ;
+            _regCLJob = TRUE ;
+             break ;
+         }
          default :
+         {
             _jobName = "UnknowIndexJob" ;
             PD_LOG ( PDERROR, "Index job not support this type[%d]", _type ) ;
             rc = SDB_INVALIDARG ;
             break ;
+         }
       }
 
       if ( SDB_OK == rc )

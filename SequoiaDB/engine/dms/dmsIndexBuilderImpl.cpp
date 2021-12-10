@@ -481,6 +481,8 @@ namespace engine
          }
          ixmIndexCB indexCBTmp( _mbContext->mb()->_indexExtent[idxID], _suIndex,
                                 _mbContext ) ;
+         PD_CHECK( indexCBTmp.isInitialized(), SDB_DMS_INIT_INDEX,
+                   error, PDERROR, "Failed to initialize index" ) ;
          // Check if this is the original index by comparing the logical id.
          if ( _indexLID == indexCBTmp.getLogicalID() )
          {

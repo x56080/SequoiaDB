@@ -3397,9 +3397,16 @@ namespace engine
 
          try
          {
-            monIndex indexItem ;
             ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
+            if ( !indexCB.isInitialized() )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to initialize index[%u] of collection[%s], skip "
+                       "dump it", indexID, mb->_collectionName ) ;
+               continue ;
+            }
 
+            monIndex indexItem ;
             indexItem._indexFlag = indexCB.getFlag () ;
             indexItem._scanExtLID = indexCB.scanExtLID () ;
             indexItem._indexLID = indexCB.getLogicalID () ;
@@ -3421,9 +3428,9 @@ namespace engine
          }
          catch( std::exception &e )
          {
+            rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Build index information occur exception: %s",
                     e.what() ) ;
-            rc = SDB_OOM ;
             goto error ;
          }
       }
@@ -3456,7 +3463,8 @@ namespace engine
          }
 
          ixmIndexCB indexCB ( mb->_indexExtent[indexID], _pIndexSu, NULL ) ;
-         if ( 0 == ossStrcmp( indexCB.getName(), pIndexName ) )
+         if ( indexCB.isInitialized() &&
+              0 == ossStrcmp( indexCB.getName(), pIndexName ) )
          {
             resultIndex._indexFlag = indexCB.getFlag () ;
             resultIndex._scanExtLID = indexCB.scanExtLID () ;
