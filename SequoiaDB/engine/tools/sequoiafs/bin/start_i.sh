@@ -38,6 +38,8 @@ function Usage()
     echo  "  -c [ --confpath ] arg     mount the specified mountpoint with config file in specified conf path"
     echo  "  -m [ --mountpoint ] arg   mount the specified mountpoint"
     echo  "  --alias arg               mount the specified mountpoint with alias "
+    echo  "  --curuser                 use current user to start sequoiafs"
+    echo  "                            current user must have all permission on mountpoint directory and sequoiafs directory"
 }
 
 function StartOne()
@@ -289,6 +291,8 @@ do
     --diagpath)
       logpath=$2
       shift
+      ;;
+    --curuser)
       ;;      
     *)
       otherargs[$count]=$1

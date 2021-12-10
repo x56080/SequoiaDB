@@ -7,6 +7,12 @@ USER=sdbadmin
 cur_user=`whoami`
 confrootpath="$BashPath/../conf/local"
 logrootpath="$BashPath/../log"
+startfs="$BashPath/start_i.sh"
+
+function Usage()
+{
+    $startfs "--help"
+}
   
 function check_user()
 {
@@ -29,13 +35,30 @@ function check_user()
   fi
 }
 
+useCurUser=""
+for arg in "$@"
+do
+   case $arg in
+   --curuser)
+      useCurUser="true"
+      ;;
+   -h|--help)
+      Usage
+      exit 0
+      ;;
+   *)	
+      ;;   
+   esac
+done 
 
-check_user
+if [ -z "$useCurUser" ]; then
+   check_user
 
-startfs="$BashPath/start_i.sh"
-
-if [ "$cur_user" == "root" ]; then
-  su - $USER -c "$startfs $*"
+   if [ "$cur_user" == "root" ]; then
+     su - $USER -c "$startfs $*"
+   else
+     $startfs $*
+   fi
 else
-  $startfs $*
-fi  
+   $startfs $*
+fi 
