@@ -36,19 +36,50 @@
 #ifndef SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
 #define SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
 
-#include "core.hpp"
-#include "oss.hpp"
+#include "dpsTransLockDef.hpp"
+#include "sdbInterface.hpp"
+#include "dpsTransLockCallback.hpp"
 
 namespace engine
 {
-namespace vessel
-{
    class ITransLockConsole : public SDBObject
    {
+      public:
+         ITransLockConsole(){}
+         virtual ~ITransLockConsole(){}
 
+      public:
+         virtual INT32 acquire(IExecutor *executor,
+                               const dpsTransLockId &lockId,
+                               const DPS_TRANSLOCK_TYPE &mode,
+                               _IContext * pContext,
+                               dpsTransRetInfo *pdpsTxResInfo,
+                               _dpsITransLockCallback *callback) = 0;
+
+         virtual void release(IExecutor *executor,
+                              const dpsTransLockId &lockId,
+                              BOOLEAN bForceRelease,
+                              _dpsITransLockCallback * callback) = 0;
+
+         virtual void releaseAll(IExecutor *executor,
+                                 _dpsITransLockCallback *callback) = 0;
+
+         virtual INT32 tryAcquire(IExecutor *executor,
+                                  const dpsTransLockId &lockId,
+                                  const DPS_TRANSLOCK_TYPE &mode,
+                                  dpsTransRetInfo *pdpsTxResInfo,
+                                  _dpsITransLockCallback *callback,
+                                  BOOLEAN &locked) = 0;
+
+         virtual INT32 testAcquire(IExecutor *executor,
+                                   const dpsTransLockId &lockId,
+                                   const DPS_TRANSLOCK_TYPE &mode,
+                                   BOOLEAN preemptMode,
+                                   dpsTransRetInfo *pdpsTxResInfo,
+                                   _dpsITransLockCallback *callback,
+                                   BOOLEAN intentLock,
+                                   BOOLEAN &compatible) = 0;
    };//class class ITransLockConsole
-} // namespace vessel
-
 } // namespace engine
 
 

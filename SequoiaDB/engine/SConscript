@@ -1044,7 +1044,8 @@ vesselTestFiles = [
       "test/vessel/index_write_test.cpp",
       "test/vessel/lc_freelist_test.cpp",
       "test/vessel/update_test.cpp",
-      "test/vessel/dml_delete_test.cpp"
+      "test/vessel/dml_delete_test.cpp",
+      "test/vessel/dummyTransLockConsole.cpp"
 ]
 
 # insert performance test

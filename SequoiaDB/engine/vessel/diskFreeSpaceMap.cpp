@@ -1198,7 +1198,6 @@ namespace vessel
       page->head.pad = 0;
 
       page->flags = 0;
-      ossMemset(page->pad, 0, sizeof(page->pad));
       ossMemset(page->pages, 0xFF, sizeof(page->pages));
       ossMemcpy((void *)ptr, buffer, FSM_FILE_PAGE_SIZE);
    done:

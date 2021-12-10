@@ -46,6 +46,8 @@
 #include "sdbInterface.hpp"
 #include "vessel/objectIdentifier.h"
 
+#include "dpsTransLockDef.hpp"
+
 /*
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
    do\
@@ -240,6 +242,14 @@ namespace vessel
             return _executor->getTransID().getOrigTransID();
          }
 
+      public:
+         INT32 acquireTransLock(const recordID &rid,
+                                const DPS_TRANSLOCK_TYPE &mode);
+         INT32 tryAcquirdTransLock(const recordID &rid,
+                                   const DPS_TRANSLOCK_TYPE &mode,
+                                   BOOLEAN &locked);
+
+         void releaseAllTransLock();
       private:
          void _close();
 

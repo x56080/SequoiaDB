@@ -53,7 +53,6 @@ namespace vessel
       SDB_ASSERT(FSM_FILE_PAGE_SIZE == head.pageSize, "must be same");
       ossValuePtr ptr = 0;
       UINT32 totalBitsCount = FSM_FILE_PAGE_SIZE >> 3; /// divided by 8
-      UINT32 reserved = 1 + FSM_ENTRY_PAGE_COUNT; /// 1 for smp
 
       rc = ensureSegmentCount(1);
       if (SDB_OK != rc)
@@ -62,7 +61,7 @@ namespace vessel
          goto error;
       }
 
-      for (UINT32 i = 0; i < reserved; ++i)
+      for (UINT32 i = 0; i < FSM_FILE_RESERVED_PAGE_CNT; ++i)
       {
          rc = getPagePtr(i, ptr);
          if (SDB_OK != rc)
@@ -81,7 +80,7 @@ namespace vessel
       }
 
       /// smp and entry pages can not be allocated.
-      for (UINT32 i = 0; i < reserved; ++i)
+      for (UINT32 i = 0; i < FSM_FILE_RESERVED_PAGE_CNT; ++i)
       {
          if (!clearBitIfNonzero(totalBitsCount, (UINT64 *)ptr, i))
          {

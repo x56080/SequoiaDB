@@ -40,6 +40,7 @@
 #include "oss.hpp"
 #include "vessel/indexKeyGenerator.h"
 #include "sdbInterface.hpp"
+#include "interface/ITransLockConsole.h"
 
 namespace engine
 {
@@ -57,12 +58,14 @@ namespace vessel
          outerResource(const outerResource &o):
          logger(o.logger),
          executorPool(o.executorPool),
-         indexKeyGen(o.indexKeyGen){}
+         indexKeyGen(o.indexKeyGen),
+         transLockConsole(o.transLockConsole){}
          outerResource &operator=(const outerResource &o)
          {
             logger = o.logger;
             executorPool = o.executorPool;
             indexKeyGen = o.indexKeyGen;
+            transLockConsole = o.transLockConsole;
             return *this;
          }
 
@@ -71,7 +74,7 @@ namespace vessel
          {
             return NULL != logger &&
                    NULL != executorPool &&
-                   !(!indexKeyGen);
+                   !(!indexKeyGen) ;
          }
 
          UINT64 getMinUncompletedLSN();
@@ -80,6 +83,7 @@ namespace vessel
          IRedoLogger *logger = NULL;
          IExecutorMgr *executorPool = NULL;
          INDEX_KEY_GENERATOR indexKeyGen = indexKeyGenForBsonRecord;
+         ITransLockConsole *transLockConsole = NULL;
    };//class outerResource
 }//namespace vessel
 }//namespace engine

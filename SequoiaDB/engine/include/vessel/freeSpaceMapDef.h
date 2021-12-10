@@ -46,28 +46,6 @@ namespace engine
 {
 namespace vessel
 {
-   /// free space map file
-   static const UINT32 FSM_FILE_PAGE_SIZE = 32768;
-   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 256;
-   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 1024;
-
-   static const UINT32 FSM_FILE_PAGE_VERSION = 1;
-
-   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP = 1;
-   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP_OWNER = 2;
-
-   static const UINT32 FSM_FILE_SMP_PID = 0;
-
-
-   
-   static const UINT32 FSM_BITMAP_BITS_COUNT = 1022;
-
-   /// The count of data page can be managed by one bitmap page. 
-   static const UINT32 FSM_BITMAP_PAGE_CAPACITY = FSM_BITMAP_BITS_COUNT * 64;
-
-   /// total slot count in pm page
-   static const UINT32 FSM_BITMAP_OWNER_PAGE_CAPAITY = 8181;
-
    /// free space map
    /// size range of lvl0:  (0, x]
    /// size range of lvl1: (x, 2x]
@@ -105,24 +83,46 @@ namespace vessel
    };//struct fsmPageHead
    const static UINT32 FSM_PAGE_HEAD_SIZE = sizeof(fsmPageHead);
 
+   /// free space map file
+   constexpr UINT32 FSM_FILE_PAGE_SIZE = 65536;
+   static const UINT32 FSM_FILE_PAGE_COUNT_PER_SEG = 256;
+   static const UINT32 FSM_FILE_MAX_SEG_COUNT = 1024;
+
+   static const UINT32 FSM_FILE_PAGE_VERSION = 1;
+
+   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP = 1;
+   static const UINT32 FSM_FILE_PAGE_TYPE_BITMAP_OWNER = 2;
+
+   static const UINT32 FSM_FILE_SMP_PID = 0;
+
+
+   
+   static const UINT32 FSM_BITMAP_BITS_COUNT = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE) /
+                                               sizeof(UINT64) / FSM_SPACE_LVL_COUNT;
+
+   /// The count of data page can be managed by one bitmap page. 
+   static const UINT32 FSM_BITMAP_PAGE_CAPACITY = FSM_BITMAP_BITS_COUNT * 64;
+
+   /// total slot count in pm page
+   static const UINT32 FSM_BITMAP_OWNER_PAGE_CAPAITY = (FSM_FILE_PAGE_SIZE - FSM_PAGE_HEAD_SIZE - sizeof(UINT32)) / 
+                                                        sizeof(UINT32);
+
    struct fsmBitmapOwnerPage
    {
       fsmPageHead head;
       UINT32 flags = 0;
-      CHAR pad[12] = {};
       UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY];
    };//struct fsmPMapPage
-   const static UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
+   constexpr UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
 
 
    struct fsmBitmapPage
    {
       fsmPageHead head;
-      CHAR pad[36] = {};
+      UINT32 flags = 0;
       UINT64 lvlBitmaps[FSM_SPACE_LVL_COUNT][FSM_BITMAP_BITS_COUNT];
    };//struct fsmBitMapPage
-   const static UINT32 FSM_BITMAP_PAGE_SIZE = sizeof(fsmBitmapPage);
-
+   constexpr UINT32 FSM_BITMAP_PAGE_SIZE = sizeof(fsmBitmapPage);
 
    struct fsmCLEntry
    {

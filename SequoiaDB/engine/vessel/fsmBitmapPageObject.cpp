@@ -101,6 +101,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 bitsCount = 0;
       SDB_ASSERT(dataPageCount <= FSM_BITMAP_PAGE_CAPACITY, "impossible");
+      SDB_ASSERT(ossIsAligned64(FSM_BITMAP_PAGE_CAPACITY), "must be aligned");
       abnormalCount = 0;
 
       reset();
@@ -118,7 +119,7 @@ namespace vessel
       _page = page;
       _size = dataPageCount;
 
-      bitsCount = ossAlign64(FSM_BITMAP_PAGE_CAPACITY) >> 6;
+      bitsCount = FSM_BITMAP_PAGE_CAPACITY / 64;
 
       if (dataPageCount < FSM_BITMAP_PAGE_CAPACITY)
       {

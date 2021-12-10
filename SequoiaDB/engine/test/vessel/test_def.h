@@ -50,6 +50,7 @@
 #include "vessel/liteCacheWatcher.h"
 #include "vessel/backgroundWorker.h"
 #include "vessel/dummyJournal.h"
+#include "dummyTransLockConsole.h"
 
 using namespace engine::vessel;
 using namespace engine;
@@ -163,6 +164,9 @@ class test_executor : public IExecutor
    public:
       EDUID _id = 0;
       DPS_TRANS_ID transID;
+
+   public:
+      ossPoolMap<_dpsTransLockId, ossSharedLatchMode> _locked;
 };//
 
 static void cache_watcher_entry(test_executor *executor, void *obj)

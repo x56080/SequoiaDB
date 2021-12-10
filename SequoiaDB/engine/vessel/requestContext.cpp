@@ -39,6 +39,7 @@
 #include "vessel/atomicOperationList.h"
 #include "vessel/objectLatchHelper.hpp"
 #include "vessel/runtimeMbContext.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -743,6 +744,86 @@ namespace vessel
          _sidMode = SHARED;
       }
       return;
+   }
+
+   INT32 requestContext::acquireTransLock(const recordID &rid,
+                                          const DPS_TRANSLOCK_TYPE &mode)
+   {
+      INT32 rc = SDB_OK;
+      ITransLockConsole *console = NULL;
+      dpsTransLockId lockId;
+      dmsRecordID dmsRid;
+
+      if (OSS_UNLIKELY(!rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen() ||
+                            !isMbContextAttached()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      console = getOuterResource()->transLockConsole;
+      dmsRid = rid.toDMSRid();
+      lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
+      rc = console->acquire(getExecutor(), lockId, mode, NULL, NULL, NULL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 requestContext::tryAcquirdTransLock(const recordID &rid,
+                                             const DPS_TRANSLOCK_TYPE &mode,
+                                             BOOLEAN &locked)
+   {
+      INT32 rc = SDB_OK;
+      ITransLockConsole *console = NULL;
+      dpsTransLockId lockId;
+      dmsRecordID dmsRid;
+      locked = FALSE;
+
+      if (OSS_UNLIKELY(!rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen() ||
+                            !isMbContextAttached()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      console = getOuterResource()->transLockConsole;
+      dmsRid = rid.toDMSRid();
+      lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
+      rc = console->tryAcquire(getExecutor(), lockId, mode, NULL, NULL, locked);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void requestContext::releaseAllTransLock()
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      getOuterResource()->transLockConsole->releaseAll(getExecutor(), NULL);
    }
 }//namespace vessel
 }//namespace engine
