@@ -135,29 +135,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 fsmBitmapPageObject::ensureSize(UINT32 size)
+   void fsmBitmapPageObject::resetSizeIfHigher(UINT32 size)
    {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isValid()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(FSM_BITMAP_PAGE_CAPACITY < size))
-      {
-         PD_LOG(PDERROR, "data page count out of range");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (_size < size)
+      SDB_ASSERT(isValid(), "can not be invalid");
+      SDB_ASSERT(size <= FSM_BITMAP_PAGE_CAPACITY, "out of bound");
+      if (_size < size)
       {
          _size = size;
       }
 
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 fsmBitmapPageObject::findAndClear(INT32 targetLvl,

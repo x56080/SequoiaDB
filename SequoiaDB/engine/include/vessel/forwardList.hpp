@@ -148,9 +148,9 @@ namespace vessel
             return;
          }
 
-         UINT32 getSizeWithNoLock()const
+         UINT32 peekSize()const
          {
-            return _size;
+            return *((const volatile UINT32 *)(&_size));
          }
 
          UINT32 getSize()

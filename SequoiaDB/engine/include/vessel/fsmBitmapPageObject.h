@@ -77,7 +77,7 @@ namespace vessel
 
          /// The size never shrink
          /// Not thread safe
-         INT32 ensureSize(UINT32 size);
+         void resetSizeIfHigher(UINT32 size);
 
          INT32 findAndClear(INT32 targetLvl,
                             BOOLEAN &found,

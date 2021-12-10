@@ -286,13 +286,7 @@ namespace vessel
             goto error;
          }
 
-         rc = obj->ensureSize(FSM_BITMAP_PAGE_CAPACITY);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to increase data page count of obj[%d], rc:%d",
-                  i, rc);
-            goto error;
-         }
+         obj->resetSizeIfHigher(FSM_BITMAP_PAGE_CAPACITY);
       }
 
       rc = ensureBitmapObj(maxBitmapNo, &obj);
@@ -302,13 +296,8 @@ namespace vessel
          goto error;
       }
 
-      rc = obj->ensureSize((_totalDataPageCount - maxBitmapNo * FSM_BITMAP_PAGE_CAPACITY));
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to increase data page count of obj[%d], rc:%d",
-                maxBitmapNo, rc);
-         goto error;
-      }
+      obj->resetSizeIfHigher((_totalDataPageCount - maxBitmapNo * FSM_BITMAP_PAGE_CAPACITY));
+
       
    done:
       return rc;
@@ -956,12 +945,8 @@ namespace vessel
                owner->pages[i] = newObj->getPid();
                _fsmFile->fsyncPage(ownerPid, TRUE);
 
-               rc = newObj->ensureSize(pageCountInBitmap);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to inc data page count:%d", rc);
-                  goto error;
-               }
+               newObj->resetSizeIfHigher(pageCountInBitmap);
+
                totalCount -= pageCountInBitmap;
                continue;
             }
