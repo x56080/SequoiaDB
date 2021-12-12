@@ -79,8 +79,6 @@ namespace engine
    #define EDU_ERROR_BUFF_SIZE         ( 1024 )
    #define EDU_DOING_BUFF_SIZE         MON_EDU_DOING_SZ
 
-   #define PMD_EDU_URGENT_QUEUE_CAPACITY ( 20 )
-
    /*
       TOOL FUNCTIONS
    */
@@ -293,8 +291,7 @@ namespace engine
             {
                // avoid pushing too many events in to urgent queue,
                // while the EDU may hang and urgent queue is full
-               if ( _urgentEventCount.inc() <=
-                                    PMD_EDU_URGENT_QUEUE_CAPACITY )
+               if ( _urgentEventCount.inc() <= contextNum() )
                {
                   _urgentQueue.push( data ) ;
                }

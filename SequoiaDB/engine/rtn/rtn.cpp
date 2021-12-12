@@ -1297,9 +1297,10 @@ namespace engine
          rtnDelContextForCollectionSpace( pCollectionSpace, suLogicalID, cb ) ;
       }
 
-      while ( retryTime < 100 )
+      while ( TRUE )
       {
-         if ( cb->isInterrupted() )
+         if ( ( PMD_IS_DB_DOWN() ) ||
+              ( NULL != cb && cb->isInterrupted() ) )
          {
             PD_LOG( PDWARNING, "Failed to drop collection space [%s], "
                     "it is interrupted", pCollectionSpace ) ;
@@ -1330,7 +1331,7 @@ namespace engine
             rc = dmsCB->unloadCollectonSpace( pCollectionSpace, cb ) ;
          }
 
-         if ( SDB_LOCK_FAILED == rc )
+         if ( SDB_LOCK_FAILED == rc && retryTime < 100 )
          {
             ++ retryTime ;
             rc = SDB_OK ;
