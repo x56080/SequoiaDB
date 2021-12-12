@@ -333,7 +333,7 @@ namespace engine
             pOvfRecord->setGlobTransID( transID ) ;
          }
       }
-      else
+      else if ( cb->isInTransRollback() && !cb->isTakeOverTransRB() )
       {
          // restore record transID when rollback
          pTransCB = pmdGetKRCB()->getTransCB() ;
@@ -351,6 +351,22 @@ namespace engine
                pOvfRecord->setGlobTransID( transID ) ;
             }
          }
+         else if ( pTransCB->transIsHolding( cb,
+                                             _logicalCSID,
+                                             context->mbID(),
+                                             NULL ) )
+         {
+            // if no old version is found, and the transaction is holding the
+            // collection lock, reset transaction ID, no MVCC old version
+            // will be available for other transactions
+            pRecord->resetGlobTransID() ;
+            if ( bSetOvfRecord && pOvfRecord )
+            {
+               pOvfRecord->resetGlobTransID() ;
+            }
+         }
+         // otherwise, the record is inserted by transaction itself
+         // do nothing
       }
       return rc ;
    }
@@ -1068,7 +1084,8 @@ namespace engine
                                                const dmsRecordData &recordData,
                                                UINT32 needRecordSize,
                                                _pmdEDUCB *cb,
-                                               BOOLEAN isInsert )
+                                               BOOLEAN isInsert,
+                                               const dmsTransRecordInfo *recordInfo )
    {
       INT32 rc                         = SDB_OK ;
       monAppCB * pMonAppCB             = cb ? cb->getMonAppCB() : NULL ;
@@ -1143,8 +1160,8 @@ namespace engine
          dmsOffset   offset      = extent->_lastRecordOffset ;
          // finally add the record into list
          extent->_recCount++ ;
-         _increaseMBStat( context->mb()->_clUniqueID,
-                          &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+         _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                          recordInfo, cb ) ;
          // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
@@ -1184,7 +1201,8 @@ namespace engine
                                                dmsExtRW &extRW,
                                                dmsRecordRW &recordRW,
                                                _pmdEDUCB *cb,
-                                               BOOLEAN decCount )
+                                               BOOLEAN decCount,
+                                               const dmsTransRecordInfo *recordInfo )
    {
       INT32 rc              = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTREMOVERECORD ) ;
@@ -1239,8 +1257,8 @@ namespace engine
          if ( decCount )
          {
             --(pExtent->_recCount) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                             recordInfo, cb ) ;
          }
       }
       //increase data write counter

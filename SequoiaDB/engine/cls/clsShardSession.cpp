@@ -3692,7 +3692,7 @@ namespace engine
       /// update trans conf
       if ( 0 != _transConf.getTransConfMask() )
       {
-         eduCB()->getTransExecutor()->copyFrom( _transConf ) ;
+         eduCB()->copyTransConf( _transConf ) ;
       }
 
       eduCB()->setSource( _source.c_str() ) ;
@@ -3784,7 +3784,7 @@ namespace engine
                /// update trans conf
                if ( 0 != _transConf.getTransConfMask() )
                {
-                  eduCB()->getTransExecutor()->copyFrom( _transConf ) ;
+                  eduCB()->copyTransConf( _transConf ) ;
                }
             }
          }

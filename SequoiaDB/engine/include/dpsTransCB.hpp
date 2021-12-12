@@ -630,6 +630,9 @@ namespace engine
          _maxReadTran.swapGreaterThan( readTime ) ;
       }
 
+      // register read transaction
+      void regReadTran( _pmdEDUCB *eduCB ) ;
+
       // get restore window for point-in-time restore
       // output :
       // - minTime: minimum global logical time ( in microseconds ) to restore
@@ -666,6 +669,12 @@ namespace engine
       OSS_INLINE void setMaxTransCommitTime( UINT64 maxTransCommitTime )
       {
          ossAtomicExchangePtr( &_maxTransCommitTime, maxTransCommitTime ) ;
+      }
+
+      // get maximum transaction commit time
+      OSS_INLINE UINT64 getMaxTransCommitTime()
+      {
+         return ossAtomicFetch64( &_maxTransCommitTime ) ;
       }
 
       // set restore point time (either backup time or restorePrepare time)
@@ -898,7 +907,8 @@ namespace engine
                            const dmsRecordID *recordID = NULL,
                            _IContext *pContext = NULL,
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
-                           _dpsITransLockCallback *callback = NULL ) ;
+                           _dpsITransLockCallback *callback = NULL,
+                           BOOLEAN useEscalation = TRUE ) ;
 
       // also get the space-IS-lock
       INT32 transLockGetIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
@@ -966,15 +976,22 @@ namespace engine
                              dpsTransRetInfo * pdpsTxResInfo = NULL ) ;
 
       // test if the lock can be got.
-      // test record-U-lock: also test the space-IS-lock and collection-IS-lock
+      // test record-U-lock: also test the space-IX-lock and collection-IX-lock
       INT32 transLockTestU( _pmdEDUCB *eduCB, UINT32 logicCSID,
                             UINT16 collectionID ,
                             const dmsRecordID *recordID,
                             dpsTransRetInfo * pdpsTxResInfo = NULL,
                             _dpsITransLockCallback *callback = NULL ) ;
 
+      // test if the Z lock can be got.
+      INT32 transLockTestZ( _pmdEDUCB *eduCB,
+                            UINT32 logicCSID,
+                            UINT16 collectionID ,
+                            const dmsRecordID *recordID,
+                            dpsTransRetInfo *pdpsTxResInfo = NULL,
+                            _dpsITransLockCallback *callback = NULL ) ;
 
-      // try to get record-X-lock: also try to get the space-IS-lock and
+      // try to get record-X-lock: also try to get the space-IX-lock and
       // collection-IX-lock
       // try to get collection-X-lock: also try to get the space-IX-lock
       INT32 transLockTryX( _pmdEDUCB *eduCB, UINT32 logicCSID,
@@ -983,9 +1000,17 @@ namespace engine
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
 
+      // try to get record-Z-lock: also try to get the space-IX-lock and
+      // collection-IX-lock
+      // try to get collection-Z-lock: also try to get the space-IX-lock
+      INT32 transLockTryZ( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                           UINT16 collectionID = DMS_INVALID_MBID,
+                           const dmsRecordID *recordID = NULL,
+                           dpsTransRetInfo * pdpsTxResInfo = NULL,
+                           _dpsITransLockCallback * callback = NULL ) ;
 
-      // try to get record-U-lock: also try to get the space-IS-lock and
-      // collection-IS-lock
+      // try to get record-U-lock: also try to get the space-IX-lock and
+      // collection-IX-lock
       INT32 transLockTryU( _pmdEDUCB *eduCB, UINT32 logicCSID,
                            UINT16 collectionID ,
                            const dmsRecordID *recordID,
@@ -1000,6 +1025,15 @@ namespace engine
                            const dmsRecordID *recordID = NULL,
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
+
+      // check if any writing transactions on the object, and then try acquire
+      // S lock
+      INT32 transLockTrySAgainstWrite( _pmdEDUCB *eduCB,
+                                       UINT32 logicCSID,
+                                       UINT16 collectionID = DMS_INVALID_MBID,
+                                       const dmsRecordID *recordID = NULL,
+                                       dpsTransRetInfo *pdpsTxResInfo = NULL,
+                                       _dpsITransLockCallback *callback = NULL ) ;
 
       BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
                               UINT16 collectionID,
@@ -1259,7 +1293,6 @@ namespace engine
       TRANS_LSN_ID_MAP  _histRBLSNMap[ DPS_TRANS_BUCKET_SIZE ] ;
 
       BOOLEAN           _isNeedSyncTrans ;
-      monSpinXLatch     _maxFileSizeMutex ;
       UINT64            _logFileTotalSize ;
 
       // Largest two record size within the system, and the most recent LR LSN

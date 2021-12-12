@@ -285,7 +285,7 @@ namespace engine
          suID = DMS_INVALID_CS ;
          su = NULL ;
 
-         rc = _pTransCB->transLockTryX( cb, logicCSID, DMS_INVALID_MBID,
+         rc = _pTransCB->transLockTryZ( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of CS(%s) failed(rc=%d)"OSS_NEWLINE
@@ -413,7 +413,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                       "rc: %d", pCollectionName, rc ) ;
 
-         rc = _pTransCB->transLockTryX( cb, _su->LogicalCSID(),
+         rc = _pTransCB->transLockTryZ( cb, _su->LogicalCSID(),
                                         _mbContext->mbID(),
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -1197,11 +1197,12 @@ namespace engine
          // get white list of transactions, who had already acquired write
          // locks on the same collection space, they must be finished before
          // rename
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
          dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
          DPS_TRANS_ID_SET incompList ;
          rc = transCB->getIncompTrans( cb,
                                        lockID,
-                                       DPS_TRANSLOCK_S,
+                                       DPS_TRANSLOCK_U,
                                        FALSE,
                                        incompList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
@@ -1272,11 +1273,12 @@ namespace engine
          // get white list of transactions, who had already acquired write
          // locks on the same collection space, they must be finished before
          // rename
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
          dpsTransLockId lockID( logicCSID, DMS_INVALID_MBID, NULL ) ;
          DPS_TRANS_ID_SET incompList ;
          rc = transCB->getIncompTrans( cb,
                                        lockID,
-                                       DPS_TRANSLOCK_S,
+                                       DPS_TRANSLOCK_U,
                                        FALSE,
                                        incompList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
@@ -1331,7 +1333,9 @@ namespace engine
       if ( getDPSCB() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = _pTransCB->transLockTryS( cb, logicCSID, DMS_INVALID_MBID,
+
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
+         rc = _pTransCB->transLockTryU( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of CS[%s] failed, rc: %d"OSS_NEWLINE
@@ -1716,11 +1720,12 @@ namespace engine
       {
          // get white list of transactions, who had already acquired write
          // locks on the same collection, they must be finished before rename
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
          dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
          DPS_TRANS_ID_SET incompList ;
          rc = transCB->getIncompTrans( cb,
                                        lockID,
-                                       DPS_TRANSLOCK_S,
+                                       DPS_TRANSLOCK_U,
                                        FALSE,
                                        incompList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
@@ -1789,11 +1794,12 @@ namespace engine
          ++ i ;
          // get white list of transactions, who had already acquired write
          // locks on the same collection, they must be finished before rename
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
          dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
          DPS_TRANS_ID_SET incompList ;
          rc = transCB->getIncompTrans( cb,
                                        lockID,
-                                       DPS_TRANSLOCK_S,
+                                       DPS_TRANSLOCK_U,
                                        FALSE,
                                        incompList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get incompatible transactions "
@@ -1848,7 +1854,8 @@ namespace engine
       {
          dpsTransRetInfo lockConflict ;
 
-         rc = _pTransCB->transLockTryS( cb, _su->LogicalCSID(), mbID,
+         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
+         rc = _pTransCB->transLockTryU( cb, _su->LogicalCSID(), mbID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of collection[%s] failed, rc: %d"

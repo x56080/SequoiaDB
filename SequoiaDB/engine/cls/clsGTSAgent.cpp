@@ -640,7 +640,7 @@ namespace engine
 
       // make sure to commit meta-block statistics
       // NOTE: actually it is empty
-      cb->getTransExecutor()->commitMBStats() ;
+      cb->getTransExecutor()->commitMBStats( commitTime ) ;
 
       cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;

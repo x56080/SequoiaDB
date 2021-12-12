@@ -1686,7 +1686,8 @@ namespace engine
             rc = _pDataSu->updateRecord( context, recordID, recordDataPtr, cb,
                                          dpscb, modifier, NULL,
                                          tbScanner.callbackHandler(),
-                                         pResult ) ;
+                                         pResult,
+                                         tbScanner.recordInfo() ) ;
             PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          }
 

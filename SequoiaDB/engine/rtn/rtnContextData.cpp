@@ -658,7 +658,7 @@ namespace engine
       }
 
       // register read transaction
-      cb->regReadTran() ;
+      sdbGetTransCB()->regReadTran( cb ) ;
 
    done:
       mbContext->mbUnlock() ;
@@ -814,7 +814,7 @@ namespace engine
          rc = _su->data()->updateRecord( _mbContext, recordID,
                                          recordDataPtr, eduCB, getDPSCB(),
                                          _queryModifier->getModifier(),
-                                         newObjPtr, pHandler ) ;
+                                         newObjPtr, pHandler, NULL, pInfo ) ;
          PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          _queryModifier->getDollarList()->clear() ;
       }

@@ -2575,7 +2575,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -2777,7 +2777,7 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID(),
+         rc = pTransCB->transLockTryZ( cb, _logicalCSID, context->mbID(),
                                        NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
@@ -3098,8 +3098,8 @@ namespace engine
       if ( cb && cb->getTransExecutor()->useTransLock() )
       {
          dpsTransRetInfo lockConflict ;
-         rc = pTransCB->transLockTryS( cb, _logicalCSID, mbID,
-                                       NULL, &lockConflict ) ;
+         rc = pTransCB->transLockTrySAgainstWrite( cb, _logicalCSID, mbID,
+                                                   NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to lock the collection, rc: %d"OSS_NEWLINE
                       "Conflict( representative ):"OSS_NEWLINE
@@ -3546,8 +3546,8 @@ namespace engine
             }
 
             ++( pWRExtent->_recCount ) ;
-            _increaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                             NULL, cb ) ;
 
 #if defined (_DEBUG)
             PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
@@ -3637,7 +3637,8 @@ namespace engine
 
             // insert to extent
             rc = _extentInsertRecord( context, extRW, recordRW, recordData,
-                                      dmsRecordSize, cb, TRUE ) ;
+                                      dmsRecordSize, cb, TRUE,
+                                      callback.getTransRecordInfo() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
          }
 
@@ -3862,12 +3863,20 @@ namespace engine
             inTrans = TRUE ;
          }
 
-         // don't delete the record, someone are waitting for the record lock,
-         // mark the record's attr to DMS_RECORD_FLAG_DELETING and write the log
-         // the last one who get the record-X-Lock will delete the record while
-         // those who gets record-S-Lock will skip the record.
-         if ( pTransCB->hasWait( _logicalCSID, context->mbID(), &recordID ) )
+         if ( NULL != pInfo && pInfo->_transLockEscalated )
          {
+            // holds X on collection, so no other transactions are waiting
+            // for record locks
+            markDeleting = FALSE ;
+         }
+         else if ( pTransCB->hasWait( _logicalCSID, context->mbID(),
+                                      &recordID ) )
+         {
+            // don't delete the record, someone are waitting for the record
+            // lock, mark the record's attr to DMS_RECORD_FLAG_DELETING and
+            // write the log the last one who get the record-X-Lock will
+            // delete the record while those who gets record-S-Lock will skip
+            // the record.
             markDeleting = TRUE ;
             hasWaitLock = TRUE ;
          }
@@ -4040,7 +4049,7 @@ namespace engine
                         needSetTransRC = TRUE ;
                         goto error ;
                      }
-   
+
                      if ( !context->isMBLock( EXCLUSIVE ) )
                      {
                         // context may be paused in _pIdxSU->indexesDelete
@@ -4049,7 +4058,7 @@ namespace engine
                         goto error ;
                      }
                      // in undo flow, let's continue remove the record.
-   
+
                      // if local index delete fail, let's continue remove the record
                   }
                   context->mbStat()->_totalDataLen -= recordData.orgLen() ;
@@ -4090,7 +4099,7 @@ namespace engine
                     pTransCB ) ;
 #endif
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
-                                      !isDeleting ) ;
+                                      !isDeleting, pInfo ) ;
 
             PD_RC_CHECK( rc, PDERROR, "Extent remove record failed, "
                          "rc: %d", rc ) ;
@@ -4166,8 +4175,8 @@ namespace engine
 
             // need to dec count
             --( pExtent->_recCount ) ;
-            _decreaseMBStat( context->mb()->_clUniqueID,
-                             &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
+                             NULL, cb ) ;
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
@@ -4256,7 +4265,8 @@ namespace engine
                                               mthModifier &modifier,
                                               BSONObj* newRecord,
                                               IDmsOprHandler *pHandler,
-                                              utilUpdateResult *pResult )
+                                              utilUpdateResult *pResult,
+                                              const dmsTransRecordInfo *pInfo )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
       INT32            rc          = SDB_OK ;
@@ -4541,6 +4551,9 @@ namespace engine
             rc = SDB_CORRUPTED_RECORD ;
             goto error ;
          }
+
+         _updateMBStat( context->mb()->_clUniqueID, context->mbStat(), pInfo,
+                        cb ) ;
 
          // increase update counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
@@ -4979,6 +4992,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__INCMBSTAT, "_dmsStorageDataCommon::_increaseMBStat" )
    void _dmsStorageDataCommon::_increaseMBStat ( utilCLUniqueID clUniqueID,
                                                  dmsMBStatInfo * mbStat,
+                                                 const dmsTransRecordInfo *recordInfo,
                                                  _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
@@ -5007,8 +5021,13 @@ namespace engine
       {
          // in transaction, update the RC counter in transaction executor
          // first
-         if ( !cb->getTransExecutor()->incMBTotalRecords(
-                           clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+         // NOTE: insert records won't touch MVCC old version, so needn't to
+         //       update global transaction available time of collection
+         ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
+         if ( !cb->getTransExecutor()->incMBTotalRecords( clUniqueID,
+                                                          NULL,
+                                                          totalRecords,
+                                                          1 ) )
          {
             // failed to update the RC counter in transaction executor, which
             // means the collection unique ID may be invalid, update the
@@ -5028,6 +5047,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT, "_dmsStorageDataCommon::_decreaseMBStat" )
    void _dmsStorageDataCommon::_decreaseMBStat ( utilCLUniqueID clUniqueID,
                                                  dmsMBStatInfo * mbStat,
+                                                 const dmsTransRecordInfo *recordInfo,
                                                  _pmdEDUCB * cb )
    {
       SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
@@ -5039,7 +5059,7 @@ namespace engine
       -- ( mbStat->_totalRecords ) ;
 
       // update meta-block statistics for transaction RC counter
-      if ( cb->isDoReplay() || sdbGetTransCB()->isDoRollback() )
+      if ( cb->isDoReplay() || cb->isTakeOverTransRB() )
       {
          // two special cases need update RC counter with record counter
          // - replay thread in secondary node
@@ -5054,10 +5074,17 @@ namespace engine
       }
       else if ( cb->isTransaction() )
       {
+         BOOLEAN isLockEscalated = ( NULL != recordInfo ) &&
+                                   ( recordInfo->_transLockEscalated ) ;
+         ossAtomic64 *globTransAvalTime =
+               isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         ossAtomic64 *totalRecords = &( mbStat->_rcTotalRecords ) ;
          // in transaction, update the RC counter in transaction executor
          // first
-         if ( !cb->getTransExecutor()->decMBTotalRecords(
-                        clUniqueID, &( mbStat->_rcTotalRecords ), 1 ) )
+         if ( !cb->getTransExecutor()->decMBTotalRecords( clUniqueID,
+                                                          globTransAvalTime,
+                                                          totalRecords,
+                                                          1 ) )
          {
             // failed to update the RC counter in transaction executor, which
             // means the collection unique ID may be invalid, update the
@@ -5072,6 +5099,37 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT, "_dmsStorageDataCommon::_updateMBStat" )
+   void _dmsStorageDataCommon::_updateMBStat ( utilCLUniqueID clUniqueID,
+                                               dmsMBStatInfo * mbStat,
+                                               const dmsTransRecordInfo *recordInfo,
+                                               _pmdEDUCB * cb )
+   {
+      SDB_ASSERT( NULL != mbStat, "mb stat should not be NULL" ) ;
+      SDB_ASSERT( NULL != cb, "EDUCB should not be NULL" ) ;
+
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT ) ;
+
+      if ( cb->isDoReplay() ||
+           cb->isTakeOverTransRB() ||
+           cb->isInTransRollback() )
+      {
+         // in transaction rollback or replay, do nothing
+      }
+      else if ( cb->isTransaction() )
+      {
+         BOOLEAN isLockEscalated = ( NULL != recordInfo ) &&
+                                   ( recordInfo->_transLockEscalated ) ;
+         ossAtomic64 *globTransAvalTime =
+               isLockEscalated ? &( mbStat->_globTransAvailTime ) : NULL ;
+         cb->getTransExecutor()->updateMBStat( clUniqueID,
+                                               globTransAvalTime,
+                                               NULL ) ;
+      }
+
+      PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__UPDATEMBSTAT ) ;
    }
 
    /*

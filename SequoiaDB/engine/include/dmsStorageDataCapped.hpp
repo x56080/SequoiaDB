@@ -286,7 +286,8 @@ namespace engine
                                          const dmsRecordData &recordData,
                                          UINT32 recordSize,
                                          _pmdEDUCB *cb,
-                                         BOOLEAN isInsert = TRUE ) ;
+                                         BOOLEAN isInsert = TRUE,
+                                         const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
                                           dmsExtRW &extRW,
@@ -304,7 +305,8 @@ namespace engine
                                          dmsExtRW &extRW,
                                          dmsRecordRW &recordRW,
                                          _pmdEDUCB *cb,
-                                         BOOLEAN decCount = TRUE ) ;
+                                         BOOLEAN decCount = TRUE,
+                                         const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       virtual INT32 _onInsertFail( dmsMBContext *context,
                                    BOOLEAN hasInsert,

@@ -147,6 +147,8 @@ namespace engine
       protected:
          void _saveAdvancedRecrodID( const dmsRecordID &recordID, INT32 rc ) ;
 
+         INT32 _checkGlobTransAvailable( _pmdEDUCB *cb ) ;
+
       protected:
          _dmsStorageDataCommon  *_pSu ;
          _dmsMBContext          *_context ;

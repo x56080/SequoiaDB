@@ -131,6 +131,31 @@ namespace engine
       }
    }
 
+   INT32 _dmsScanner::_checkGlobTransAvailable( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
+      UINT64 globTransAvailTime =
+                        _context->mbStat()->_globTransAvailTime.peek() ;
+      PD_CHECK( 0 == globTransAvailTime ||
+                globTransAvailTime + STP_MAX_TIME_ERROR_US <=
+                                                       txBeginTm.getTime(),
+                SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                "Failed to check global transaction, available "
+                "timestamp on collection [%s] is [%llu], "
+                "current transaction is [%llu]",
+                _context->mb()->_collectionName,
+                globTransAvailTime,
+                txBeginTm.getTime() ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _dmsExtScannerBase implement
    */
@@ -308,6 +333,16 @@ namespace engine
    INT32 _dmsExtScannerBase::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
+
+      // check global transaction before lock, so we needn't to wait for
+      // collection locks if global transaction is not available
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dmsTBTransContext tbTxContext( _context, _accessType ) ;
@@ -352,6 +387,16 @@ namespace engine
          {
             _CSCLLockHeld = TRUE ;
          }
+      }
+
+      // check global transaction after lock, double check if other transaction
+      // has changed the global transaction available timestamp for this
+      // scanning collection
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
       }
 
    done:
@@ -528,7 +573,6 @@ namespace engine
       }
 
       _cb   = cb ;
-      _next = _extent->_firstRecordOffset ;
 
       // As a performance improvement, we are going to acquire the CS and
       // CL lock right in the beginning to avoid extra performance overhead
@@ -539,6 +583,12 @@ namespace engine
       {
          goto error ;
       }
+
+      // WARNING: once the collection has been locked eXclusively by
+      //          other transaction, the first record offset may be changed
+      //          by that transaction, so we should not get the first record
+      //          offset before we acquired CS and CL locks
+      _next = _extent->_firstRecordOffset ;
 
       // unset first run
       _firstRun = FALSE ;
@@ -652,7 +702,9 @@ namespace engine
                   rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                                  _context->mbID(), &_curRID,
                                                  & tbTxContext,
-                                                 &lockConflict ) ;
+                                                 &lockConflict,
+                                                 &_callback,
+                                                 cb->isTransRS() ) ;
                   if ( SDB_OK == rc )
                   {
                      ignoredLock = FALSE ;
@@ -1675,6 +1727,16 @@ namespace engine
    INT32 _dmsIXSecScanner::acquireCSCLLock( )
    {
       INT32 rc = SDB_OK ;
+
+      // check global transaction before lock, so we needn't to wait for
+      // collection locks if global transaction is not available
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
          dpsTransRetInfo   lockConflict ;
@@ -1721,6 +1783,17 @@ namespace engine
             _CSCLLockHeld = TRUE ;
          }
       }
+
+      // check global transaction after lock, double check if other transaction
+      // has changed the global transaction available timestamp for this
+      // scanning collection
+      if ( DPS_TRANSLOCK_S == _recordLock && _cb->isTransRR() )
+      {
+         rc = _checkGlobTransAvailable( _cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check available of global "
+                      "transaction, rc: %d", rc ) ;
+      }
+
    done:
       return rc ;
    error:
@@ -2031,11 +2104,13 @@ namespace engine
                // test S lock failed and the record is not in old version
                // container nor in RBS. most likely the one hold / wait X
                // hasn't finish updating the record.
+               // NOTE: only RS requires lock escalation
                rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
                                               _context->mbID(), &_curRID,
                                               &ixTxContext,
                                               &lockConflict,
-                                              &_callback ) ;
+                                              &_callback,
+                                              cb->isTransRS() ) ;
                if ( SDB_OK == rc )
                {
                   ignoredLock = FALSE ;

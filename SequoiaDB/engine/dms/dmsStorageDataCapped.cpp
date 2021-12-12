@@ -1174,7 +1174,8 @@ namespace engine
                                                      const dmsRecordData &recordData,
                                                      UINT32 recordSize,
                                                      pmdEDUCB *cb,
-                                                     BOOLEAN isInsert )
+                                                     BOOLEAN isInsert,
+                                                     const dmsTransRecordInfo *recordInfo )
    {
       INT32            rc          = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTINSERTRECORD ) ;
@@ -1282,7 +1283,8 @@ namespace engine
                                                      dmsExtRW &extRW,
                                                      dmsRecordRW &recordRW,
                                                      pmdEDUCB *cb,
-                                                     BOOLEAN decCount )
+                                                     BOOLEAN decCount,
+                                                     const dmsTransRecordInfo *recordInfo )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__EXTENTREMOVERECORD ) ;

@@ -3178,9 +3178,10 @@ namespace engine
                                                            SHARED ) )
                   {
                      UINT64 tm = finishTime.getTime() ;
-                     // update mbStat._splitFinishTime
+                     // update global transaction available timestamp
+                     // split won't fetch old versions from source
                      pContext->mbStat()
-                             ->_splitFinishTime.swapGreaterThan( tm ) ;
+                             ->_globTransAvailTime.swapGreaterThan( tm ) ;
                      // release context
                      su->data()->releaseMBContext( pContext ) ;
                      jobDone   = TRUE ;

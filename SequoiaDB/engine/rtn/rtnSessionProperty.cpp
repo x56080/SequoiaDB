@@ -839,6 +839,59 @@ namespace engine
                                        TRUE ) ;
 
          }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) )
+         {
+            PD_CHECK( field.isBoolean(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_ALLOWLOCKESCALATION ) ;
+            transConf.setTransAllowLockEscalation(
+                  field.boolean() ? TRUE : FALSE, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_MAXLOCKNUM ) )
+         {
+            INT64 temp = 0 ;
+
+            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_MAXLOCKNUM ) ;
+            temp = field.numberLong() ;
+
+            // auto adjust
+            if ( temp < DPS_TRANS_MAXLOCKNUM_MIN )
+            {
+               temp = DPS_TRANS_MAXLOCKNUM_MIN ;
+            }
+            else if ( temp > DPS_TRANS_MAXLOCKNUM_MAX )
+            {
+               temp = DPS_TRANS_MAXLOCKNUM_MAX ;
+            }
+
+            transConf.setTransMaxLockNum( (INT32)temp, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( field.fieldName(),
+                                       FIELD_NAME_TRANS_MAXLOGSPACERATIO ) )
+         {
+            INT64 temp = 0 ;
+
+            PD_CHECK( field.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] is not boolean",
+                      FIELD_NAME_TRANS_MAXLOGSPACERATIO ) ;
+            temp = field.numberLong() ;
+
+            // auto adjust
+            if ( temp < DPS_TRANS_MAXLOGSPACERATIO_MIN )
+            {
+               temp = DPS_TRANS_MAXLOGSPACERATIO_MIN ;
+            }
+            else if ( temp > DPS_TRANS_MAXLOGSPACERATIO_MAX )
+            {
+               temp = DPS_TRANS_MAXLOGSPACERATIO_MAX ;
+            }
+
+            transConf.setTransMaxLogSpaceRatio( (INT32)temp, TRUE ) ;
+         }
          else if ( 0 == ossStrcasecmp( field.fieldName(), FIELD_NAME_SOURCE ) )
          {
             PD_CHECK( String == field.type(), SDB_INVALIDARG, error,

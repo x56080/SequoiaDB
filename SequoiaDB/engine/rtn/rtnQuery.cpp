@@ -778,14 +778,19 @@ namespace engine
            cb->isGlobTrans() &&
            ( TRANS_ISOLATION_RR == cb->getTransIsolation() ) )
       {
-         UINT64 splitFinTm = mbContext->mbStat()->_splitFinishTime.fetch() ;
+         UINT64 globTransAvailTime =
+               mbContext->mbStat()->_globTransAvailTime.peek() ;
          stpLogicalTimeUS txBeginTm = cb->getTransBeginTime() ;
-         if ( splitFinTm &&
-              ( splitFinTm + STP_MAX_TIME_ERROR_US > txBeginTm.getTime() ) )
-         {
-            rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
-            goto error ;
-         }
+         PD_CHECK( 0 == globTransAvailTime ||
+                   globTransAvailTime + STP_MAX_TIME_ERROR_US <=
+                                                          txBeginTm.getTime(),
+                   SDB_GLOB_TRANS_NOT_AVAILABLE, error, PDERROR,
+                   "Failed to check global transaction, available "
+                   "timestamp on collection [%s] is [%llu], "
+                   "current transaction is [%llu]",
+                   options.getCLFullName(),
+                   globTransAvailTime,
+                   txBeginTm.getTime() ) ;
       }
 
       try

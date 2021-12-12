@@ -403,8 +403,11 @@ namespace engine
       ixmIdxHashBitmap _clIdxHashBitmap ;
       ixmIdxHashArray  _idxHashFields[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
 
-      // spit finish timestamp
-      ossAtomic64 _splitFinishTime ;
+      // global timestamp to support global transaction to
+      // fetch MVCC old versions
+      // - updated after destination of split
+      // - updated after commit of transaction with lock escalated
+      ossAtomic64 _globTransAvailTime ;
 
       void reset()
       {
@@ -444,7 +447,7 @@ namespace engine
          {
             _idxHashFields[ i ].reset() ;
          }
-         _splitFinishTime.init( 0 ) ;
+         _globTransAvailTime.init( 0 ) ;
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -610,7 +613,7 @@ namespace engine
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 ),
-        _splitFinishTime( 0 )
+        _globTransAvailTime( 0 )
       {
          reset() ;
       }
@@ -1068,7 +1071,8 @@ namespace engine
                               _mthModifier &modifier,
                               BSONObj* newRecord = NULL,
                               IDmsOprHandler *pHandler = NULL,
-                              utilUpdateResult *pResult = NULL ) ;
+                              utilUpdateResult *pResult = NULL,
+                              const dmsTransRecordInfo *pInfo = NULL ) ;
 
          virtual INT32 popRecord( dmsMBContext *context,
                                   INT64 targetID,
@@ -1177,7 +1181,8 @@ namespace engine
                                             const dmsRecordData &recordData,
                                             UINT32 recordSize,
                                             _pmdEDUCB *cb,
-                                            BOOLEAN isInsert = TRUE ) = 0 ;
+                                            BOOLEAN isInsert = TRUE,
+                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
@@ -1197,7 +1202,8 @@ namespace engine
                                             dmsExtRW &extRW,
                                             dmsRecordRW &recordRW,
                                             _pmdEDUCB *cb,
-                                            BOOLEAN decCount = TRUE ) = 0 ;
+                                            BOOLEAN decCount = TRUE,
+                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
 
          // Calculate the final size needed by the record. Records of different
          // type may have different strategy, such as reservation for update,
@@ -1284,10 +1290,16 @@ namespace engine
 
          void _increaseMBStat ( utilCLUniqueID clUniqueID,
                                 dmsMBStatInfo * mbStat,
+                                const dmsTransRecordInfo *recordInfo,
                                 _pmdEDUCB * cb ) ;
          void _decreaseMBStat ( utilCLUniqueID clUniqueID,
                                 dmsMBStatInfo * mbStat,
+                                const dmsTransRecordInfo *recordInfo,
                                 _pmdEDUCB * cb ) ;
+         void _updateMBStat( utilCLUniqueID clUniqueID,
+                             dmsMBStatInfo *mbStat,
+                             const dmsTransRecordInfo *recordInfo,
+                             _pmdEDUCB *cb ) ;
 
       private:
          void               _initializeMME () ;

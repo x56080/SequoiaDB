@@ -173,14 +173,16 @@ namespace engine
                                   const dmsRecordData &recordData,
                                   UINT32 needRecordSize,
                                   _pmdEDUCB *cb,
-                                  BOOLEAN isInsert = TRUE ) ;
+                                  BOOLEAN isInsert = TRUE,
+                                  const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       // must hold mb exclusive lock
       INT32 _extentRemoveRecord ( dmsMBContext *context,
                                   dmsExtRW &extRW,
                                   dmsRecordRW &recordRW,
                                   _pmdEDUCB *cb,
-                                  BOOLEAN decCount = TRUE ) ;
+                                  BOOLEAN decCount = TRUE,
+                                  const dmsTransRecordInfo *recordInfo = NULL ) ;
 
       // must hold mb exclusive lock
       INT32 _extentUpdatedRecord ( dmsMBContext *context,

@@ -2812,6 +2812,12 @@ namespace engine
 
          builder.append( FIELD_NAME_TRANS_LOCKS_NUM,
                          (INT32)_curTransInfo._locksNum ) ;
+         builder.appendBool( FIELD_NAME_TRANS_IS_LOCK_ESCALATED,
+                             _curTransInfo._lockEscalated ) ;
+         builder.append( FIELD_NAME_USED_LOG_SPACE,
+                         (INT64)( _curTransInfo._usedLogSpace ) ) ;
+         builder.append( FIELD_NAME_RESERVED_LOG_SPACE,
+                         (INT64)( _curTransInfo._reservedLogSpace ) ) ;
          monAppendSessionIdentify( builder, _curTransInfo._relatedNID,
                                    _curTransInfo._relatedTID ) ;
 

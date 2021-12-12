@@ -154,6 +154,10 @@ namespace engine
                                       DPS_TRANSLOCK_TYPE lockMode,
                                       UINT32 refCounter,
                                       dpsLRBExtData *pExtData ) ;
+
+      virtual void afterLockEscalated( const dpsTransLockId &lockId,
+                                       DPS_TRANSLOCK_OP_MODE_TYPE opMode ) ;
+
       virtual INT32 getResult() { return _result ; }
       virtual BOOLEAN hasError()
       {

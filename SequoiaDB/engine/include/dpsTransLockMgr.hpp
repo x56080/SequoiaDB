@@ -103,7 +103,9 @@ namespace engine
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          _IContext                * pContext      = NULL,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL
+         _dpsITransLockCallback   * callback = NULL,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL,
+         BOOLEAN                    useEscalation = TRUE
       ) ;
 
       // release a lock. The higher level intent lock will be also released
@@ -149,7 +151,9 @@ namespace engine
          const dpsTransLockId     & lockId,
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL
+         _dpsITransLockCallback   * callback = NULL,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL,
+         BOOLEAN                    useEscalation = TRUE
       ) ;
 
       // test if a lock with give lock mode can be acquired, higher level intent
@@ -165,7 +169,8 @@ namespace engine
          const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
          _dpsITransLockCallback   * callback = NULL,
-         BOOLEAN                    needIntentLock = TRUE
+         BOOLEAN                    needIntentLock = TRUE,
+         DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL
       ) ;
 
       // dump specific lock info to a file for debugging purpose
@@ -436,7 +441,15 @@ namespace engine
          UINT32                             bktIdx,
          const BOOLEAN                      bktLatched,
          dpsTransRetInfo                  * pdpsTxResInfo,
-         _dpsITransLockCallback           * callback = NULL
+         _dpsITransLockCallback           * callback = NULL,
+         DPS_TRANSLOCK_TYPE               * ownedLockMode = NULL
+      ) ;
+
+      // add reference if we own this lock
+      BOOLEAN _addRefIfOwned
+      (
+         _dpsTransExecutor *              dpsTxExectr,
+         const dpsTransLockId &           lockID
       ) ;
 
       // core logic of release a lock

@@ -1001,7 +1001,10 @@ namespace engine
                                        optCB->transAutoRollback(),
                                        optCB->transUseRBS(),
                                        optCB->transRCCount(),
-                                       optCB->globTransOn() ) ;
+                                       optCB->transAllowLockEscalation(),
+                                       optCB->transMaxLockNum(),
+                                       optCB->transMaxLogSpaceRatio(),
+                                       optCB->getTotalLogSpace() ) ;
       }
       else
       {
@@ -1045,7 +1048,10 @@ namespace engine
                                           optCB->transAutoRollback(),
                                           optCB->transUseRBS(),
                                           optCB->transRCCount(),
-                                          optCB->globTransOn() ) )
+                                          optCB->transAllowLockEscalation(),
+                                          optCB->transMaxLockNum(),
+                                          optCB->transMaxLogSpaceRatio(),
+                                          optCB->getTotalLogSpace() ) )
             {
                // failed to update, wait for next round
                needUpdateChangeID = FALSE ;
@@ -1232,6 +1238,18 @@ namespace engine
    }
 
 #if defined ( SDB_ENGINE )
+   void _pmdEDUCB::updateTransConfByMask( const dpsTransConfItem &conf )
+   {
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _transExecutor.updateTransConfByMask( conf, optCB->getTotalLogSpace() ) ;
+   }
+
+   void _pmdEDUCB::copyTransConf( const dpsTransConfItem &conf )
+   {
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      _transExecutor.copyTransConf( conf, optCB->getTotalLogSpace() ) ;
+   }
+
    void _pmdEDUCB::clearTransInfo()
    {
       _curTransID.reset() ;
@@ -1314,6 +1332,10 @@ namespace engine
       transInfo._transPreCommitTime = _transExecutor.getPreCommitTime() ;
       transInfo._transCommitTime = _transExecutor.getCommitTime() ;
       transInfo._curTransLsn  = _curTransLSN ;
+      transInfo._lockEscalated =
+            _transExecutor.isLockEscalated( LOCKMGR_TRANS_LOCK ) ;
+      transInfo._usedLogSpace = _transExecutor.getUsedSpace() ;
+      transInfo._reservedLogSpace = _transExecutor.getReservedSpace() ;
 
       {
          ossScopedLock lock( &_mutex, SHARED ) ;

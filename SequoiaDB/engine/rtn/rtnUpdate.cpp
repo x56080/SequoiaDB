@@ -271,7 +271,8 @@ namespace engine
                                               recordDataPtr, cb, dpsCB,
                                               modifier, NULL,
                                               pScanner->callbackHandler(),
-                                              pResult ) ;
+                                              pResult,
+                                              pScanner->recordInfo() ) ;
                PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
 
                ++numUpdatedRecords ;

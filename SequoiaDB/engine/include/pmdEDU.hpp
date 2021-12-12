@@ -536,6 +536,9 @@ namespace engine
       INT16    getOrgReplSize() const { return _orgReplSize ; }
    #endif
    #if defined ( SDB_ENGINE )
+      void        updateTransConfByMask( const dpsTransConfItem &conf ) ;
+      void        copyTransConf( const dpsTransConfItem &conf ) ;
+
       UINT64 getCurRequestID() const { return _curRequestID ; }
       // WANRING: no lock protect, only called by eduCB thread itself
       UINT64 incCurRequestID() { return ++_curRequestID ; }
@@ -591,6 +594,16 @@ namespace engine
          _transExecutor.addReservedSpace( len ) ;
       }
 
+      void     decReservedSpace( const UINT64 len )
+      {
+         _transExecutor.decReservedSpace( len ) ;
+      }
+
+      void     addUsedSpace( const UINT64 len )
+      {
+         _transExecutor.addUsedSpace( len ) ;
+      }
+
       UINT64   getReservedSpace() const
       {
          return _transExecutor.getReservedSpace();
@@ -599,6 +612,11 @@ namespace engine
       void     resetLogSpace()
       {
          _transExecutor.resetLogSpace();
+      }
+
+      INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const
+      {
+         return _transExecutor.checkLogSpace( usedLen, reservedLen ) ;
       }
 
       // remote operator
@@ -681,16 +699,6 @@ namespace engine
       {
          _transExecutor.setPassedDoingArbit( passed ) ;
       }
-
-      // register read transaction
-      OSS_INLINE void regReadTran()
-      {
-         if ( isTransRR() )
-         {
-            _transExecutor.regReadTranTime() ;
-         }
-      }
-
    #endif // SDB_ENGINE
 
    protected:
