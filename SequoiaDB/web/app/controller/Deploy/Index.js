@@ -1,4 +1,4 @@
-﻿//@ sourceURL=Deploy.Index.Ctrl.js
+//@ sourceURL=Deploy.Index.Ctrl.js
 //"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
@@ -854,7 +854,7 @@
                      "type": "string",
                      "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
-                     "value": 'sdbadmin',
+                     "value": 'Admin@1024',
                      "valid": {
                         'min': 1,
                         'max': 1024
@@ -1095,7 +1095,7 @@
                      "type": "string",
                      "desc": $scope.autoLanguage( '用户名和密码需要与安装 SequoiaDB 的用户名和密码一致' ),
                      "required": true,
-                     "value": 'sdbadmin',
+                     "value": 'Admin@1024',
                      "valid": {
                         'min': 1,
                         'max': 1024
