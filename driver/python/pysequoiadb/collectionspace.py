@@ -249,8 +249,7 @@ class collectionspace(object):
             while True:
                 try:
                     record = tmp.next()
-                    name_list = record['Name'].split('.')
-                    result.append(name_list[1])
+                    result.append(record['Name'])
                 except SDBEndOfCursor:
                     break
         finally:
