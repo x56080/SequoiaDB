@@ -3595,7 +3595,9 @@ namespace engine
             // NOTE: we still need transaction locks during rollback
             // the insert record to rollback delete operation may insert
             // to a new place
-            if ( dpscb && isTransSupport() )
+            if ( isTransSupport() &&
+                 NULL != cb &&
+                 cb->getTransExecutor()->useTransLock() )
             {
                dpsTransRetInfo lockConflict ;
                callback.setIDInfo( CSID(), context->mbID(), _logicalCSID,

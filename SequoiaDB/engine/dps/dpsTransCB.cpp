@@ -3503,7 +3503,7 @@ namespace engine
                                             const dmsRecordID *recordID,
                                             dpsTransRetInfo * pdpsTxResInfo,
                                             _dpsITransLockCallback * callback,
-                                            BOOLEAN needIntentLock )
+                                            BOOLEAN needUpperLock )
    {
       if ( !_isOn )
       {
@@ -3515,7 +3515,7 @@ namespace engine
                                         TRUE, // preemptively test
                                         pdpsTxResInfo,
                                         callback,
-                                        needIntentLock );
+                                        needUpperLock );
    }
 
 
@@ -3539,7 +3539,8 @@ namespace engine
                                      UINT16 collectionID,
                                      const dmsRecordID *recordID,
                                      dpsTransRetInfo * pdpsTxResInfo,
-                                     _dpsITransLockCallback * callback )
+                                     _dpsITransLockCallback * callback,
+                                     BOOLEAN needUpperLock )
    {
       if ( !_isOn )
       {
@@ -3550,7 +3551,8 @@ namespace engine
                                         lockId, DPS_TRANSLOCK_X,
                                         FALSE,  // not preemptively test
                                         pdpsTxResInfo,
-                                        callback ) ;
+                                        callback,
+                                        needUpperLock ) ;
    }
 
 
