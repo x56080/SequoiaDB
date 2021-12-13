@@ -2629,6 +2629,32 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_CONTEXTTIMEOUT</name>
+      <long>contexttimeout</long>
+      <description>
+        <en>Timeout of idle context, default: 1440 in minutes, range: [ 0, 2^31-1 ]</en>
+        <cn>上下文空闲超时时间，单位是分钟，默认：1440，取值范围：[ 0, 2^31-1 ]。</cn>
+      </description>
+      <reloadable>
+        <en>Take effect immediately</en>
+        <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Timeout of idle context.<fig></fig>
+            2. Default is 1440 in minutes, range is [ 0, 2^31-1 ].<fig></fig>
+            3. If context is idle without get-more message after timeout, context will be killed.<fig></fig>
+            4. 0 means no limit on idle timeout of contexts.</en>
+        <cn>1. 上下文空闲超时时间，单位是分钟。<fig></fig>
+            2. 默认是1440（即1天），取值范围是 [ 0, 2^31-1 ]。<fig></fig>
+            3. 如果上下文超过空闲时间没有接受到新的消息，上下文将会被自动清理。<fig></fig>
+            4. 取值为0，表示对上下文的空闲超时没有限制。</cn>
+      </detail>
+      <type>int</type>
+      <default>1440</default>
+      <typeofweb>int</typeofweb>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_TRANSALLOWLOCKESCALATION</name>
       <long>transallowlockescalation</long>
       <description>
