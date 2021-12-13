@@ -494,6 +494,8 @@ namespace engine
       _monCtxCB.setContextID( contextID ) ;
 
       _isAffectGIndex      = FALSE ;
+
+      _lastProcessTick     = pmdGetDBTick() ;
    }
 
    _rtnContextBase::~_rtnContextBase()
@@ -1006,6 +1008,10 @@ namespace engine
       {
          setQueryActivity( TRUE ) ;
       }
+
+      // update last process time
+      _lastProcessTick = pmdGetDBTick() ;
+
       PD_TRACE_EXITRC ( SDB_RTNCTXBASE_GETMORE, rc ) ;
       return rc ;
    error:

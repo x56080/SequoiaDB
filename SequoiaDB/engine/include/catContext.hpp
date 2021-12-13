@@ -89,6 +89,9 @@ namespace engine
                            rtnContextBuf &buffObj,
                            _pmdEDUCB *cb ) ;
 
+      // can not timeout
+      virtual BOOLEAN needTimeout() const { return FALSE ; }
+
    protected:
       INT32 _open ( rtnContextBuf &buffObj,
                     _pmdEDUCB *cb ) ;

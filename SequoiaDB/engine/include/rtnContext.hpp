@@ -375,6 +375,16 @@ namespace engine
             return DMS_INVALID_LOGICCSID ;
          }
 
+         virtual BOOLEAN needTimeout() const
+         {
+            return TRUE ;
+         }
+
+         UINT64 getLastProcessTick() const
+         {
+            return _lastProcessTick ;
+         }
+
          virtual _optAccessPlanRuntime * getPlanRuntime ()
          {
             return NULL ;
@@ -556,6 +566,8 @@ namespace engine
          BOOLEAN                 _isTransCtx ;
 
          BOOLEAN                 _isAffectGIndex ;
+
+         UINT64                  _lastProcessTick ;
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;

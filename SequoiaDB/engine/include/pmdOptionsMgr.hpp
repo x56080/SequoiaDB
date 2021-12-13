@@ -686,6 +686,7 @@ namespace engine
          OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
          OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
          OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
+         OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
          std::string getOmAddr() const ;
 
 #ifdef SDB_ENTERPRISE
@@ -829,6 +830,7 @@ namespace engine
 
          INT32       _maxContextNum ;
          INT32       _maxSessionContextNum ;
+         INT32       _contextTimeout ;
 
 #ifdef SDB_ENTERPRISE
 

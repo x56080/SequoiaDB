@@ -74,6 +74,7 @@ namespace engine
       RTN_CTX_MAP          _contextMap ;
       INT32                _maxContextNum ;
       INT32                _maxSessionContextNum ;
+      INT32                _contextTimeout ;
 
       optAccessPlanManager _accessPlanManager ;
 
@@ -134,6 +135,8 @@ namespace engine
 
       // try notify context owners to kill contexts of given collection space
       UINT32 preDelContext( const CHAR *csName, UINT32 suLogicalID ) ;
+      // try notify context owners to kill expired contexts
+      UINT32 preDelExpiredContext() ;
 
       OSS_INLINE INT32 contextNum ()
       {

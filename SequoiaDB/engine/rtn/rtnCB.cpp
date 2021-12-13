@@ -41,16 +41,63 @@
 #include "dmsCB.hpp"
 #include "rtnIxmKeySorter.hpp"
 #include "rtnBackgroundJob.hpp"
+#include "pmdLightJobMgr.hpp"
 #include "pmdController.hpp"
 
 using namespace std;
 namespace engine
 {
 
+   /*
+      _rtnClearExpireContextJob define
+    */
+   class _rtnClearExpireContextJob : public utilLightJob
+   {
+   public:
+      _rtnClearExpireContextJob( SDB_RTNCB *rtnCB )
+      : _rtnCB( rtnCB )
+      {
+         SDB_ASSERT( NULL != rtnCB, "rtnCB is invalid" ) ;
+      }
+
+      virtual ~_rtnClearExpireContextJob()
+      {
+      }
+
+      virtual const CHAR *name() const
+      {
+         return "ClearContextJob" ;
+      }
+
+      virtual INT32 doit( IExecutor *pExe,
+                          UTIL_LJOB_DO_RESULT &result,
+                          UINT64 &sleepTime )
+      {
+         sleepTime = RTN_CTX_CHECK_INTERVAL ;
+
+         if ( PMD_IS_DB_DOWN() )
+         {
+            result = UTIL_LJOB_DO_FINISH ;
+         }
+         else
+         {
+            _rtnCB->preDelExpiredContext() ;
+            result = UTIL_LJOB_DO_CONT ;
+         }
+
+         return SDB_OK ;
+      }
+
+   protected:
+      SDB_RTNCB * _rtnCB ;
+   } ;
+   typedef class _rtnClearExpireContextJob rtnClearExpireContextJob ;
+
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
         _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
         _maxSessionContextNum( RTN_MAX_SESS_CTX_NUM_DFT ),
+        _contextTimeout( RTN_CTX_TIMEOUT_DFT ),
         _remoteMessenger( NULL ),
         _textIdxVersion((INT64)RTN_INIT_TEXT_INDEX_VERSION)
    {
@@ -125,6 +172,7 @@ namespace engine
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
+      _contextTimeout = optionCB->contextTimeout() ;
 
    done:
       return rc ;
@@ -135,6 +183,18 @@ namespace engine
    INT32 _SDB_RTNCB::active ()
    {
       INT32 rc = SDB_OK ;
+
+      UINT64 jobID = 0 ;
+      rtnClearExpireContextJob *job =
+            SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+      PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
+                "Failed to allocate clear context job" ) ;
+
+      rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST,
+                        &jobID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to submit clear context job, rc: %d",
+                   rc ) ;
+      PD_LOG( PDDEBUG, "submit clear context job [%llu]", jobID ) ;
 
       if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
@@ -211,6 +271,7 @@ namespace engine
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
+      _contextTimeout = optionCB->contextTimeout() ;
    }
 
    INT32 _SDB_RTNCB::contextFind( INT64 contextID,
@@ -365,6 +426,53 @@ namespace engine
 
                PD_LOG( PDDEBUG, "Pre-deleting context [%lld] of EDU [%llu] on "
                        "collection space [%s]", contextID, eduID, csName ) ;
+            }
+            catch ( exception &e )
+            {
+               PD_LOG( PDERROR, "Failed to save delete context, "
+                       "occur exception  %s", e.what() ) ;
+               // can continue
+            }
+         }
+      }
+      FOR_EACH_CMAP_ELEMENT_END
+
+      _notifyKillContexts( contexts ) ;
+
+   done:
+      return contexts.size() ;
+   }
+
+   UINT32 _SDB_RTNCB::preDelExpiredContext()
+   {
+      _RTN_EDU_CTX_MAP contexts ;
+
+      // config is in minutes, convert to milliseconds
+      UINT64 contextTimeoutMS = _contextTimeout * 60 * OSS_ONE_SEC ;
+
+      if ( 0 >= contextTimeoutMS ||
+           0 == _contextMap.size( TRUE ) )
+      {
+         goto done ;
+      }
+
+      FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+      {
+         rtnContext *pContext = it->second.get() ;
+
+         if ( pContext &&
+              pContext->needTimeout() &&
+              pContext->isOpened() &&
+              pmdGetTickSpanTime( pContext->getLastProcessTick() ) >
+                                                         contextTimeoutMS )
+         {
+            try
+            {
+               contexts.insert( make_pair( pContext->eduID(),
+                                           pContext->contextID() ) ) ;
+               PD_LOG( PDEVENT, "Pre-deleting idle timeout context [%lld] "
+                       "of EDU [%llu]", pContext->contextID(),
+                       pContext->eduID() ) ;
             }
             catch ( exception &e )
             {

@@ -1937,6 +1937,7 @@ done:
       _serviceMask         = PMD_SVC_MASK_NONE ;
       _maxContextNum       = RTN_MAX_CTX_NUM_DFT ;
       _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_DFT ;
+      _contextTimeout      = RTN_CTX_TIMEOUT_DFT ;
 
       // archive related
       _archiveOn = FALSE ;
@@ -2535,6 +2536,12 @@ done:
               FALSE, PMD_CFG_CHANGE_RUN, RTN_MAX_SESS_CTX_NUM_DFT, FALSE ) ;
       rdvMinMax( pEX, _maxSessionContextNum, 0, RTN_MAX_SESS_CTX_NUM_MAX,
                  TRUE ) ;
+
+      // --contexttimeout
+      rdxInt( pEX, PMD_OPTION_CONTEXTTIMEOUT, _contextTimeout, FALSE,
+              PMD_CFG_CHANGE_RUN, RTN_CTX_TIMEOUT_DFT, FALSE ) ;
+      rdvMinMax( pEX, _contextTimeout, RTN_CTX_TIMEOUT_MIN,
+                 RTN_CTX_TIMEOUT_MAX, TRUE ) ;
 
       // end map
 
