@@ -3395,7 +3395,7 @@ nextLock:
    //    lockId          -- lock Id
    //    requestLockMode -- lock mode being requested
    //    isPreemptMode   -- if do test with preemptive mode
-   //    needIntentLock  -- whether to acquire intent lock in upper level
+   //    needUpperLock   -- whether to acquire intent lock in upper level
    //                       WARNING: no need to acquire intent lock only when
    //                       we have acquired earlier
    // Output:
@@ -3417,7 +3417,7 @@ nextLock:
       const BOOLEAN              isPreemptMode,
       dpsTransRetInfo          * pdpsTxResInfo,
       _dpsITransLockCallback   * callback,
-      BOOLEAN                    needIntentLock,
+      BOOLEAN                    needUpperLock,
       DPS_TRANSLOCK_TYPE       * ownedLockMode
    )
    {
@@ -3452,7 +3452,7 @@ nextLock:
 
       // get intent lock at first
       // it is not need to get intent lock while lock space
-      if ( needIntentLock && _autoUpperLockOp && ( ! lockId.isRootLevel()) )
+      if ( needUpperLock && _autoUpperLockOp && ( ! lockId.isRootLevel()) )
       {
          DPS_TRANSLOCK_TYPE iOwnedLockMode = DPS_TRANSLOCK_MAX ;
          iLockId = lockId.upOneLevel() ;

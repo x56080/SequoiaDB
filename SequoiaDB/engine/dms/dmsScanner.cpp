@@ -253,7 +253,9 @@ namespace engine
                                          &_callback ) ;
             _hasLockedRecord = FALSE ;
          }
-         else if ( _callback.getTransRecordInfo()->_transInsertDeleted )
+         else if ( NULL != cb &&
+                   cb->getTransExecutor()->useTransLock() &&
+                   _callback.getTransRecordInfo()->_transInsertDeleted )
          {
             SDB_ASSERT( !cb->isInTransRollback(), "should not be deleted by "
                         "table scan during trans rollback" ) ;
@@ -2233,7 +2235,9 @@ namespace engine
                                          &_callback ) ;
             _hasLockedRecord = FALSE ;
          }
-         else if ( _callback.getTransRecordInfo()->_transInsertDeleted )
+         else if ( NULL != cb &&
+                   cb->getTransExecutor()->useTransLock() &&
+                   _callback.getTransRecordInfo()->_transInsertDeleted )
          {
             // if the record is deleted in the same transaction, we can
             // release the lock

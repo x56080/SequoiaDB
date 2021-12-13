@@ -170,7 +170,7 @@ namespace engine
          const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
          _dpsITransLockCallback   * callback = NULL,
-         BOOLEAN                    needIntentLock = TRUE,
+         BOOLEAN                    needUpperLock = TRUE,
          DPS_TRANSLOCK_TYPE       * ownedLockMode = NULL
       ) ;
 

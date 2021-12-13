@@ -630,7 +630,9 @@ namespace engine
                        SDB_OK == pTransCB->transLockTestX( cb, _logicalCSID,
                                                            context->mbID(),
                                                            &foundDeletedID,
-                                                           &retInfo ) )
+                                                           &retInfo,
+                                                           NULL,
+                                                           FALSE ) )
                   {
                      if ( preRW.isEmpty() )
                      {
@@ -655,23 +657,6 @@ namespace engine
                      resultID = foundDeletedID ;
                      rc = SDB_OK ;
                      goto done ;
-                  }
-                  else if ( ( dpsTransLockId( _logicalCSID,
-                                              context->mbID(),
-                                              NULL ) == retInfo._lockID ) ||
-                            ( dpsTransLockId( _logicalCSID,
-                                              DMS_INVALID_MBID,
-                                              NULL ) == retInfo._lockID ) )
-                  {
-                     // either CS or CL conflict, pause for a while
-                     context->pause() ;
-                     ossSleep( 10 ) ;
-                     rc = context->resume() ;
-                     if ( rc )
-                     {
-                        goto error ;
-                     }
-                     goto retry ;
                   }
                   else
                   {
@@ -1130,7 +1115,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ONINSERTFAIL ) ;
-
       if ( hasInsert )
       {
          // we won't touch old verion if it's insert failure. 
