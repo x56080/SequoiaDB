@@ -415,20 +415,19 @@ namespace vessel
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
       SDB_ASSERT(!candidate.isValid(), "can not be valid");
       INT32 rc = SDB_OK;
-      BOOLEAN upserted = FALSE;
+      
       ossXLatchGuard guard(getBucketLatch(bucketNo));
       fsmCandidateBucket &bucket = _buckets[bucketNo];
 
       if (!bucket.isFull() && 0 < _newPagePool.peekSize())
       {
+         BOOLEAN upserted = FALSE;
          rc = upsertIntoBucketFromNewPagePool(bucket, upserted);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to upsert bucket:%d", rc);
             goto error;
          }
-
-         upserted = FALSE;
          /// Do not care about result.
       }
    
@@ -445,23 +444,26 @@ namespace vessel
          goto done;
       }
 
-      rc = findFromNewPagePool(candidate);
-      if (SDB_OK != rc)
+      if (0 < _newPagePool.peekSize())
       {
-         PD_LOG(PDERROR, "failed to find candidate from new page pool:%d", rc);
-         goto error;
-      }
-
-      if (candidate.isValid())
-      {
-         rc = bucket.upsert(candidate.getSeq(), candidate.getInfoPtr());
+         rc = findFromNewPagePool(candidate);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to upsert into bucket:%d", rc);
+            PD_LOG(PDERROR, "failed to find candidate from new page pool:%d", rc);
             goto error;
          }
 
-         goto done;
+         if (candidate.isValid())
+         {
+            rc = bucket.upsert(candidate.getSeq(), candidate.getInfoPtr());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to upsert into bucket:%d", rc);
+               goto error;
+            }
+
+            goto done;
+         }
       }
          
       rc = findFromDiskMap(lvl, candidate);

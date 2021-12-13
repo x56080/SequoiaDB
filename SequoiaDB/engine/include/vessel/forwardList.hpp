@@ -150,7 +150,7 @@ namespace vessel
 
          UINT32 peekSize()const
          {
-            return *((const volatile UINT32 *)(&_size));
+            return _size;
          }
 
          UINT32 getSize()
