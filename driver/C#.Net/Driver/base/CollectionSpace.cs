@@ -190,6 +190,39 @@ namespace SequoiaDB
             sdb.RemoveCache(fullName);
         }
 
+        /** \fn List<String> GetCollectionNames()
+         *  \brief Get the names of all collections in the current collection space.
+         *  \return A List of collection names
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public List<String> GetCollectionNames()
+        {
+            List<String> result = new List<String>();
+            BsonDocument subObj = new BsonDocument();
+            subObj.Add("$gt", this.name + ".");
+            subObj.Add("$lt", this.name + "/");
+            BsonDocument matcher = new BsonDocument();
+            matcher.Add("Name", subObj);
+            DBCursor cursor = sdb.GetList(SDBConst.SDB_LIST_COLLECTIONS, matcher, null, null);
+            try
+            {
+                while (cursor.Next() != null)
+                {
+                    BsonValue clFullName = cursor.Current().GetValue("Name");
+                    if (clFullName.IsString)
+                        result.Add(clFullName.AsString);
+                    else
+                        throw new BaseException("SDB_DMS_RECORD_INVALID");
+                }
+            }
+            finally
+            {
+                cursor.Close();
+            }
+            return result;
+        }
+
         private SDBMessage AdminCommand(string cmdType, string contextType, string contextName)
         {
             IConnection connection = sdb.Connection;
@@ -385,6 +418,41 @@ namespace SequoiaDB
        public void RemoveDomain()
        {
            _AlterInternal(SequoiadbConstants.SDB_ALTER_REMOVE_DOMAIN, null, true);
+       }
+
+       /** \fn string GetDomainName()
+        *  \brief Get the domain name of the current collection space. Returns an empty string
+        *         if the current collection space has no owning domain.
+        *  \return The domain name.
+        *  \exception SequoiaDB.BaseException
+        *  \exception System.Exception
+        */
+       public string GetDomainName()
+       {
+           string result = "";
+           string cmd = "select Domain from $LIST_CS where Name = '" + this.name + "'";
+           DBCursor cursor = sdb.Exec(cmd);
+           try
+           {
+               BsonDocument record = cursor.Next();
+               if (record != null)
+               {
+                   BsonValue tmp = record.GetValue("Domain");
+                   if (tmp.IsString)
+                   {
+                       result = tmp.AsString;
+                   }
+                   else
+                   {
+                       result = "";
+                   }
+               }
+           }
+           finally
+           {
+               cursor.Close();
+           }
+           return result;
        }
 
        /** \fn void EnableCapped()
