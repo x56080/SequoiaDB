@@ -939,7 +939,7 @@ TEST_F(insert_test, test8_2_2)
    insert_test_unique_index(INDEX_TYPE_BTREE);
 }
 
-TEST_F(insert_test, death_test_1)
+TEST_F(insert_test, DISABLED_death_test_1)
 {
    INT32 rc = SDB_OK;
    vesselImpl db;

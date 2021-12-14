@@ -1051,8 +1051,7 @@ vesselTestFiles = [
 
 # insert performance test
 benchmarkTestFiles = [
-      "test/vessel/benchmark_test.cpp",
-      "test/vessel/dummyTransLockConsole.cpp"
+      "test/vessel/benchmark_test.cpp"
 ]
 
 #BSON
@@ -1275,9 +1274,10 @@ if hasTestcase:
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
-   benchmark_test = env.Program("benchmark_test", benchmarkTestFiles,
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+
+#   benchmark_test = env.Program("benchmark_test", benchmarkTestFiles,
+#          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
 if hasTool:
@@ -1332,7 +1332,7 @@ if hasTestcase:
 #   env.Install( '#/tests', performance )
    env.Install( '#/tests', selectorTest )
    env.Install( '#/tests', vesselTest )
-   env.Install( '#/tests', benchmark_test )
+#   env.Install( '#/tests', benchmark_test )
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )
