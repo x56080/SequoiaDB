@@ -54,6 +54,9 @@ v2.8 及以上版本
   "TransAutoCommit": false,
   "TransAutoRollback": true,
   "TransRCCount": true,
+  "TransAllowLockEscalation": true,
+  "TransMaxLockNum": 10000,
+  "TransMaxLogSpaceRatio": 50,
   "Source": ""
 }
 ```

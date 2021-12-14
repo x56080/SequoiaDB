@@ -35,7 +35,7 @@ options（ *object，必填* ）
     该参数取值如下：
     - "random"：从候选的实例取值中随机选择
     - "ordered"：从候选的实例取值中按照 PerferedInstance 的顺序进行选择
-    
+
     PreferedInstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 PreferedInstanceMode 取值无关。
 
     格式：`PreferedInstaceMode : "random"`
@@ -89,6 +89,17 @@ options（ *object，必填* ）
 
     格式：`TransRCCount : true`
 
+- TransMaxLockNum（ *number* ）：会话事务在一个数据节点上可以持有最大的记录锁个数
+
+    格式：`TransMaxLockNum : 10000`
+
+- TransAllowLockEscalation（ *boolean* ）：会话事务持有记录锁个数超过参数 TransMaxLockNum 设置的值后，是否允许锁升级
+
+    格式：`TransAllowLockEscalation : true`
+
+- TransMaxLogSpaceRatio（ *number* ）：会话事务在一个数据节点上可以使用的最大日志空间比例(%)
+
+    格式：`TransMaxLogSpaceRatio : 50`
 
 > **Note:**
 >

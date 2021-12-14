@@ -18,7 +18,7 @@
 | :----- | :--- | :--- | :----- |
 | [transactionon][cluster_config]  | 表示 SequoiaDB 是否开启事务功能。 | true/false | true |
 
-默认情况下，SequoiaDB 所有节点的事务功能都是开启的。若用户不需要使用事务功能，可参考示例 3 全局关闭事务 的方法，关闭事务功能。
+默认情况下，SequoiaDB 所有节点的事务功能都是开启的。若用户不需要使用事务功能，可参考示例 3 全局关闭事务的方法，关闭事务功能。
 
 >**Note：**
 >
@@ -48,7 +48,7 @@
 
 | 配置项 | 描述 | 取值 | 默认值 |
 | :----- | :--- | :--- | :----- |
-| [transautorollback][cluster_config] | 表示*写事务操作*失败时，是否自动回滚。 | true/false | true |
+| [transautorollback][cluster_config] | 表示写事务操作失败时，是否自动回滚。 | true/false | true |
 
 用户可以通过 [Sdb.setSessionAttr()][set_session_attr] 的 TransAutoRollback 修改单个会话的事务自动回滚设置。
 
@@ -87,6 +87,9 @@
 | transuserbs | 事务操作是否使用回滚段。 | true/false | true |
 | transrccount | 事务是否使用读已提交来处理 count() 查询。 | true/false | true |
 | transreplsize | 事务提交日志的写副本数。 | -1 表示所有活跃节点，0 表示所有节点，1~7 表示相应的节点数目。 | 2 |
+| transmaxlocknum | 事务在一个数据节点上最多可以持有的记录锁个数。 | [ -1, 2^31-1 ]，-1 表示事务对记录锁的个数没有限制。 | 10000 |
+| transallowlockescalation | 事务持有的记录锁个数超过参数 transmaxlocknum 的值后，是否允许锁升级。 | true/false | true |
+| transmaxlogspaceratio | 事务在一个数据节点上可以使用的最大日志空间比例(%)。 | [ 1, 50 ]，取值为50，表示一半的日志空间都可以被事务使用，另外一半用于事务回滚。 | 50 |
 
 >**Note：**
 >
@@ -114,6 +117,9 @@
 | TransAutoCommit | 会话事务是否支持自动事务提交。 | TransAutoCommit : true |
 | TransAutoRollback | 会话事务在操作失败时是否自动回滚。 | TransAutoRollback : true |
 | TransRCCount | 会话事务是否使用读已提交来处理 count() 查询。 | TransRCCount : true |
+| TransMaxLockNum | 事务在一个数据节点上最多可以持有的记录锁个数。 | TransMaxLockNum : 10000 |
+| TransAllowLockEscalation | 事务持有的记录锁个数超过参数 transmaxlocknum 的值后，是否允许锁升级。 | TransAllowLockEscalation : true |
+| TransMaxLogSpaceRatio | 事务在一个数据节点上可以使用的最大日志空间比例(%)。 | TransMaxLogSpaceRatio : 50 |
 
 >**Note：**
 >

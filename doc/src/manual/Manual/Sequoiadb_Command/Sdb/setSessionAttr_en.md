@@ -89,6 +89,19 @@ The attributes of the session can be set through the options parameter:
 
     Format: `TransRCCount: true`
 
+- TransMaxLockNum ( *number* ): Maximum number of record locks can be hold by a transaction on a data node.
+
+    Format: `TransMaxLockNum : 10000`
+
+- TransAllowLockEscalation ( *boolean* ): Whether allow lock escalation when number of record locks hold by a transaction exceeds the value set by parameter "TransMaxLockNum".
+
+    Format: `TransAllowLockEscalation: true`
+
+- TransMaxLogSpaceRatio ( *number* ): Maximum ratio of log space can be used by a transaction on a data node.
+
+    Format: `TransMaxLogSpaceRatio : 50`
+
+
 > **Note:**
 >
 > * The default values of "PreferedInstance" and "PreferedInstaceMode" are the values of "preferedinstance" and "preferedinstancemode" in the coordination node configuration.

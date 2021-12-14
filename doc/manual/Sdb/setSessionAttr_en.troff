@@ -137,6 +137,28 @@ committed to process count() queries.
 .PP
 Format: \f[C]TransRCCount: true\f[]
 .RE
+.IP \[bu] 2
+TransMaxLockNum ( \f[I]number\f[] ): Maximum number of record locks can be
+hold by a transaction on a data node.
+.RS 2
+.PP
+Format: \f[C]TransMaxLockNum: 10000\f[]
+.RE
+.IP \[bu] 2
+TransAllowLockEscalation ( \f[I]boolean\f[] ): Whether allow lock escalation
+when number of record locks hold by a transaction exceeds the value set by
+parameter "TransMaxLockNum".
+.RS 2
+.PP
+Format: \f[C]TransAllowLockEscalation: true\f[]
+.RE
+.IP \[bu] 2
+TransMaxLogSpaceRatio ( \f[I]number\f[] ): Maximum ratio of log space can be
+used by a transaction on a data node.
+.RS 2
+.PP
+Format: \f[C]TransMaxLogSpaceRatio: 50\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]
