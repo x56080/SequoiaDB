@@ -96,7 +96,7 @@ class globalParameter
    }
 
    // compare two array:if $arr contains all the elements of $targe
-   public static function contain( $arr, $targe )
+   public static function compareArray( $arr, $targe )
    {
       foreach( $targe as $key => $value )
       {
