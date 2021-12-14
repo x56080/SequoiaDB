@@ -40,6 +40,7 @@
 #include "vessel/memoryBlock.h"
 #include "vessel/recordID.h"
 #include "vessel/logicalPageBuffer.h"
+#include "vessel/collectionOptions.h"
 
 namespace engine
 {
@@ -52,6 +53,32 @@ namespace vessel
          virtual ~rdpRecordScanner();
 
       public:
+         class options : public SDBObject
+         {
+            public:
+               options(){}
+               ~options(){}
+               options(const options &o):
+               endBound(o.endBound),
+               scanOptions(o.scanOptions),
+               nolockWhenScanForNone(o.nolockWhenScanForNone){}
+               options &operator=(const options &o)
+               {
+                  endBound = o.endBound;
+                  scanOptions = o.scanOptions;
+                  nolockWhenScanForNone = o.nolockWhenScanForNone;
+                  return *this;
+               }
+
+            public:
+               /// exclusive end
+               RECORD_SLOT_ID endBound = INVALID_RECORD_SLOT_ID;
+               baseScanOptions scanOptions;
+
+               /// do not hold rid latch when scan for none
+               BOOLEAN nolockWhenScanForNone = FALSE;
+         };//class options
+      public:
          OSS_INLINE BOOLEAN isOpen()const
          {
             return NULL != _context;
@@ -59,23 +86,27 @@ namespace vessel
 
          /// lock lpid and locate the first visible slot
          /// from begin to end.
-         /// end is exlusive
          INT32 open(requestContext *context,
                     PAGE_ID lpid,
-                    memoryBlock *buffer=NULL,
                     RECORD_SLOT_ID begin = 0,
-                    RECORD_SLOT_ID end = INVALID_RECORD_SLOT_ID);
+                    const options *o = NULL);
 
          void close();
 
          /// auto move the next valid slot fromm current pos.
          INT32 next();
 
-         /// if it is not ready to fetch after locate/next,
+         /// if it is not ready to fetch after open/next,
          /// which means hit the end.
-         BOOLEAN isReadyToFetch()const;
+         BOOLEAN isReadyToRead()const;
 
          UINT32 getCurrentPageSeq()const;
+
+      public:
+         /// 1. user should lock rid/record outside first
+         /// 2. always be ready to read if return ok.
+         INT32 openToRead(requestContext *context,
+                          const recordID &rid);
 
       public:/// ensure ready to fetch first
          recordID getCurrentRid()const;
@@ -83,48 +114,59 @@ namespace vessel
          BOOLEAN isOverflow()const;
 
          BOOLEAN isBigRecord()const;
-
-         INT32 fetchRecord(BOOLEAN forceCopy=FALSE);
-
-      public:/// fetch record to reader first
          
-         const DPS_TRANS_ID &getCurrentTransID()const
+         OSS_INLINE const DPS_TRANS_ID &getCurrentTransID()const
          {
             return _transID;
          }
-         const slice &getCurrentRecord()const
+         OSS_INLINE const slice &getCurrentRecord()const
          {
             return _recordData;
          }
 
-         recordID getOverflowAddr()const;
+         OSS_INLINE const recordID &getOverflowAddr()const
+         {
+            return _overflowAddr;
+         }
 
       private:
          /// it will automaticlly search visible slot from pos to the end.
          /// The end pos will be end bound(if set) or the last slot in the page.
-         INT32 relocateFromPos(RECORD_SLOT_ID pos);
+         INT32 scanFrom(RECORD_SLOT_ID pos);
+
+         INT32 scanWithRU(RECORD_SLOT_ID pos);
+
+         INT32 scanWithLockingRecord(RECORD_SLOT_ID pos);
 
          void clearDataCached();
 
-         INT32 fetchNormalRecord();
-
          INT32 initAccessor();
+
+         INT32 fetchRecord(RECORD_SLOT_ID pos,
+                           UINT8 type);
+
+         INT32 fetchNormalRecord(RECORD_SLOT_ID pos);
+
+      private:
+         static constexpr UINT8 _FLAG_BIG_RECORD = 0x01;
 
       private:
          requestContext *_context = NULL;
+         options _o;
          PAGE_ID _lpid = INVALID_PAGE_ID;
-         RECORD_SLOT_ID _endBound = INVALID_RECORD_SLOT_ID;
          logicalPageBuffer _lpb;
          rdpAccessor _accessor;
 
+         /// data fetched
          RECORD_SLOT_ID _pos = INVALID_RECORD_SLOT_ID;
-         recordSlot _rs;
-         recordHead _rh;
+         recordID _overflowAddr;
+         UINT8 _recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+         UINT8 _flags = 0;
          DPS_TRANS_ID _transID;
          slice _recordData;
-
-         memoryBlock *_buffer = NULL;
-         memoryBlock _mb;
+         /// used to save uncompressed/overflowed record 
+         CHAR *_recordBuffer = NULL;
+         UINT32 _recordBufferSize = 0;
    };//class rdpRecordScanner
 } // namespace vessel
 

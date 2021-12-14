@@ -1246,7 +1246,7 @@ namespace vessel
    done:
       if (NULL != buffer)
       {
-         context->releaseBuffer(buffer, bufferSize);
+         context->releaseBuffer(buffer);
       }
       return rc;
    error:
@@ -1675,11 +1675,11 @@ namespace vessel
    done:
       if (NULL != lpidBuffer)
       {
-         context->releaseBuffer(lpidBuffer, bufferSize);
+         context->releaseBuffer(lpidBuffer);
       }
       if (NULL != pidBuffer)
       {
-         context->releaseBuffer(pidBuffer, bufferSize);
+         context->releaseBuffer(pidBuffer);
       }
       return rc;
    error:
@@ -1694,7 +1694,6 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != mpids, "can not be null");
-      UINT32 bufferSize = 0;
       CHAR *buffer = NULL;
 
       if (1 == count)
@@ -1729,7 +1728,7 @@ namespace vessel
    done:
       if (NULL != buffer)
       {
-         context->releaseBuffer(buffer, bufferSize);
+         context->releaseBuffer(buffer);
       }
       return;
    }

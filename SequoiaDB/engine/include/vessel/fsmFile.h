@@ -48,7 +48,7 @@ namespace vessel
    class fsmFile : public storageFile
    {
       public:
-         fsmFile(){}
+         fsmFile();
          virtual ~fsmFile(){}
 
       public:

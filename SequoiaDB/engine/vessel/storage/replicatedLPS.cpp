@@ -357,7 +357,7 @@ namespace vessel
       }
       if (NULL != buffer)
       {
-         context->releaseBuffer(buffer, bufferSize);
+         context->releaseBuffer(buffer);
       }
       return rc;
    error:
@@ -629,7 +629,7 @@ namespace vessel
       tuple.release();
       if (NULL != buffer)
       {
-         context->releaseBuffer(buffer, pageSize);
+         context->releaseBuffer(buffer);
       }
       return rc;
    error:

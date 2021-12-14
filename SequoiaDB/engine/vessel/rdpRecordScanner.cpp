@@ -50,9 +50,8 @@ namespace vessel
 
    INT32 rdpRecordScanner::open(requestContext *context,
                                 PAGE_ID lpid,
-                                memoryBlock *buffer,
                                 RECORD_SLOT_ID begin,
-                                RECORD_SLOT_ID end)
+                                const options *o)
    {
       INT32 rc = SDB_OK;
       close();
@@ -68,9 +67,10 @@ namespace vessel
 
       _context = context;
       _lpid = lpid;
-      _endBound = end;
-      _buffer = (NULL == buffer) ? &_mb : buffer;
-      _buffer->resize(0);
+      if (NULL != o)
+      {
+         _o = *o;
+      }
 
       rc = initAccessor();
       if (SDB_OK != rc)
@@ -79,7 +79,7 @@ namespace vessel
          goto error;
       }
 
-      rc = relocateFromPos(begin);
+      rc = scanFrom(begin);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to locate slot:%d", rc);
@@ -92,22 +92,53 @@ namespace vessel
       goto done;
    }
 
+   INT32 rdpRecordScanner::openToRead(requestContext *context,
+                                      const recordID &rid)
+   {
+      INT32 rc = SDB_OK;
+      options o;
+      close();
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isMbContextAttached() ||
+                       !rid.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      o.endBound = rid.getSlotID() + 1;
+      o.nolockWhenScanForNone = TRUE;
+      rc = open(context, rid.getPageID(), rid.getSlotID(), &o);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open scanner:%d", rc);
+         goto error;
+      }
+
+      if (!isReadyToRead())
+      {
+         PD_LOG(PDERROR, "rid:%s not found", rid.toString().c_str());
+         rc = SDB_VESSEL_RECORD_NOT_FOUND;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    void rdpRecordScanner::close()
    {
       if (isOpen())
       {
-         _context = NULL;
-         _lpid = INVALID_PAGE_ID;
-         _endBound = INVALID_RECORD_SLOT_ID;
          _lpb.fini();
+         _o = options();
+         _lpid = INVALID_PAGE_ID;
          _accessor.fini();
-         _pos = INVALID_RECORD_SLOT_ID;
-         _rs.reset();
-         _rh.reset();
-         _transID = DPS_TRANS_ID();
-         _recordData.reset();
-         _buffer = NULL;
-         _mb.release();
+         clearDataCached();
+
+         _context = NULL;
       }
 
       return;
@@ -116,18 +147,13 @@ namespace vessel
    INT32 rdpRecordScanner::next()
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID == _pos))
+      if (OSS_UNLIKELY(!isReadyToRead()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = relocateFromPos(_pos + 1);
+      rc = scanFrom(_pos + 1);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to search visible record slot:%d", rc);
@@ -137,159 +163,271 @@ namespace vessel
    done:
       return rc;
    error:
+      close();
       goto done;
    }
 
-   BOOLEAN rdpRecordScanner::isReadyToFetch()const
+   BOOLEAN rdpRecordScanner::isReadyToRead()const
    {
       return isOpen() && 
              INVALID_RECORD_SLOT_ID != _pos;
    }
 
-   INT32 rdpRecordScanner::fetchRecord(BOOLEAN forceCopy)
+   INT32 rdpRecordScanner::fetchRecord(RECORD_SLOT_ID pos,
+                                       UINT8 type)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen() || !isReadyToFetch()))
-      {
-         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
-         goto error;
-      }
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(RDP_RECORD_HEAD_TYPE_INVALID != type, "can not be invalid");
 
-      SDB_ASSERT(_rs.isValid(), "can not be invalid");
-      SDB_ASSERT(!_rs.isTombstone(), "impossible");
-      SDB_ASSERT(!_rs.isOverflow(), "TODO");
-      SDB_ASSERT(RDP_RECORD_HEAD_TYPE_NORMAL == _rs.type, "TODO");
-
-      if (_recordData.isValid())
+      if (RDP_RECORD_HEAD_TYPE_NORMAL == type)
       {
-         /// do not refetch
-         goto done;
-      }
-      
-      rc = fetchNormalRecord();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fetch record data:%d", rc);
-         goto error;
-      }
-
-      if (forceCopy)
-      {
-         rc = _buffer->copy(_recordData.getSize(), _recordData.data());
+         rc = fetchNormalRecord(pos);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to copy record data to buffer:%d", rc);
+            PD_LOG(PDERROR, "failed to fetch normal record:%d", rc);
             goto error;
          }
-
-         _recordData.reset(_buffer->getSize(), _buffer->getBuffer());
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+         rc = SDB_VESSEL_INTERNAL_ERR;
       }
    done:
       return rc;
    error:
-      close();
       goto done;
    }
 
    void rdpRecordScanner::clearDataCached()
    {
       SDB_ASSERT(isOpen(), "can not be closed");
+
       _pos = INVALID_RECORD_SLOT_ID;
-      _rs.reset();
-      _rh.reset();
+      _overflowAddr = recordID();
+      _recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+      _flags = 0;
       _transID = DPS_TRANS_ID();
       _recordData.reset();
-      _buffer->resize(0);
+      if (NULL != _recordBuffer)
+      {
+         _context->releaseBuffer(_recordBuffer);
+         _recordBuffer = NULL;
+         _recordBufferSize = 0;
+      }
+      
       return;
    }
 
-   INT32 rdpRecordScanner::fetchNormalRecord()
+   INT32 rdpRecordScanner::fetchNormalRecord(RECORD_SLOT_ID pos)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isReadyToFetch(), "can not be invisible");
-      SDB_ASSERT(RDP_RECORD_HEAD_TYPE_NORMAL == _rs.type, "must be normal header");
-      SDB_ASSERT(!_rs.isTombstone() && !_rs.isOverflow(), "can not be invalid");
-      rc = _accessor.getRecord(_pos, _rh, _recordData);
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      normalRecordHead rh;
+      slice recordData;
+      rc = _accessor.getNormalRecord(pos, rh, recordData);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to fetch record data:%d", rc);
+         PD_LOG(PDERROR, "failed to get normal record at[%d], rc:%d", pos, rc);
          goto error;
       }
 
-      SDB_ASSERT(!_rh.format.normal.isCompressed(), "TODO");
-      _transID = _rh.format.normal.getTransID();
+      SDB_ASSERT(!rh.isCompressed(), "TODO");
+      _pos = pos;
+      _recordType = RDP_RECORD_HEAD_TYPE_NORMAL;
+      _transID.setNodeID(rh.transNode);
+      _transID.setSN(rh.transSN);
+      _recordData = recordData;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 rdpRecordScanner::relocateFromPos(RECORD_SLOT_ID pos)
+   INT32 rdpRecordScanner::scanFrom(RECORD_SLOT_ID pos)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be invalid");
       SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      if (_o.scanOptions.isScanForNone())
+      {
+         rc = scanWithRU(pos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to scan with ru:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = scanWithLockingRecord(pos);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to scan with locking record:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->logger->getMinFileLSN();
-      DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lsn, "impossible");
-      RECORD_ID_LATCH_MAP::object latchObj;
-      RECORD_ID_LATCH_MAP &globalRidLatchMap = _context->getEnv()->ridLatchMap;
-      recordSlot slot;
+   INT32 rdpRecordScanner::scanWithLockingRecord(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      SDB_ASSERT(!_o.scanOptions.isScanForNone(), "can not be none");
+      DPS_TRANSLOCK_TYPE mode = _o.scanOptions.isScanForShare() ?
+                                DPS_TRANSLOCK_S : DPS_TRANSLOCK_U;
+      UINT8 recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+      recordID rid;
+      BOOLEAN locked = FALSE;
 
-      clearDataCached();
-
-      while (pos < _endBound &&
+      while (pos < _o.endBound &&
              pos < _accessor.getTotalSlotCount())
       {
-         recordID rid(_lpid, pos);
-         slot.reset();
-         rc = _accessor.getSlot(pos, slot);
+         recordSlot rs;
+         recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+
+         rc = _accessor.getSlot(pos, rs);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get slot data[%d], rc:%d", pos, rc);
             goto error;
          }
-         else if (!slot.isValid() ||
-                  slot.isInvisible() ||
-                  slot.isTombstone())
+         else if (!rs.isValidAndVisible() ||
+                  rs.isTombstoneRecord())
          {
             ++pos;
-            slot.reset();
             continue;
          }
-         else if (DPS_INVALID_LSN_OFFSET != minFileLsn &&
-                  lsn < minFileLsn)
+
+         SDB_ASSERT(!locked, "impossible");
+         rid.setPageID(_lpb.getLogicalPid());
+         rid.setSlotID(pos);
+         rc = _context->tryAcquireTransLock(rid, mode, locked);
+         if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to lock rid:%s, rc:%d", rid.toString().c_str(), rc);
+            goto error;
+         }
+         else if (locked)
+         {
+            recordType = rs.type;
             break;
          }
-         else if (_context->testRidLocked(rid))
+
+         _accessor.fini();
+         _lpb.fini();
+         rc = _context->acquireTransLock(rid, mode);
+         if (SDB_OK != rc)
          {
+            PD_LOG(PDERROR, "failed to lock record:%s, rc:%d", rid.toString().c_str(), rc);
+            goto error;
+         }
+
+         _context->releaseTransLock(rid);
+         rc = initAccessor();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to reinit accessor:%d", rc);
+            goto error;
+         }
+
+         continue;
+      }
+
+      if (RDP_RECORD_HEAD_TYPE_INVALID != recordType)
+      {
+         rc = fetchRecord(pos, recordType);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch record:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         _context->releaseTransLock(rid);
+      }
+      goto done;
+   }
+
+   INT32 rdpRecordScanner::scanWithRU(RECORD_SLOT_ID pos)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(isOpen(), "can not be invalid");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != pos, "can not be invalid");
+      
+      DPS_LSN_OFFSET minFileLsn = _context->getOuterResource()->logger->getMinFileLSN();
+      DPS_LSN_OFFSET lsn = _lpb.getRuntimeBuffer().getPageHead()->lsn;
+      BOOLEAN nolock = _o.nolockWhenScanForNone ||
+                       (DPS_INVALID_LSN_OFFSET != minFileLsn &&
+                        DPS_INVALID_LSN_OFFSET != lsn &&
+                        lsn < minFileLsn);
+      RECORD_ID_LATCH_MAP &globalRidLatchMap = _context->getEnv()->ridLatchMap;
+      UINT8 recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+
+      clearDataCached();
+
+      while (pos < _o.endBound &&
+             pos < _accessor.getTotalSlotCount())
+      {
+         recordSlot rs;
+         recordType = RDP_RECORD_HEAD_TYPE_INVALID;
+         
+         rc = _accessor.getSlot(pos, rs);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get slot data[%d], rc:%d", pos, rc);
+            goto error;
+         }
+         else if (!rs.isValidAndVisible() ||
+                  rs.isTombstoneRecord())
+         {
+            ++pos;
+            continue;
+         }
+         else if (nolock)
+         {
+            recordType = rs.type;
             break;
          }
          else
          {
+            recordID rid(_lpb.getLogicalPid(), pos);
             recordIdLatchKey key(_context->getSpaceID(),
                                  _context->getMBID(), rid);
-            latchObj = globalRidLatchMap.get(key);
+            RECORD_ID_LATCH_MAP::object latchObj = globalRidLatchMap.get(key);
             if (!latchObj.isValid())
             {
                /// no one holding rid latch now
+               recordType = rs.type;
                break;
             }
             else if (latchObj.getValue().try_get_shared())
             {
                latchObj.getValue().release_shared();
                globalRidLatchMap.release(latchObj);
+               recordType = rs.type;
                break;
             }
             else
             {
-               /// some one holding x latch, we release page latch and wait for it.
+               /// some one holding x latch, we release page latch and rescan.
                _accessor.fini();
                _lpb.fini();
-               slot.reset();
                latchObj.getValue().get_shared();
+               latchObj.getValue().release_shared();
+               globalRidLatchMap.release(latchObj);
                rc = initAccessor();
                if (SDB_OK != rc)
                {
@@ -297,48 +435,21 @@ namespace vessel
                   goto error;
                }
 
-               latchObj.getValue().release_shared();
-               globalRidLatchMap.release(latchObj);
-
-               if (_accessor.getTotalSlotCount() <= pos)
-               {
-                  /// out of bound, records may be removed.
-                  /// end to scan current page.
-                  goto done;
-               }
-
-               rc = _accessor.getSlot(pos, slot);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "failed to get slot data[%d], rc:%d", pos, rc);
-                  goto error;
-               }
-
-               if (slot.isValid() && !slot.isInvisible() &&
-                   !slot.isTombstone())
-               {
-                  break;
-               }
-               else
-               {
-                  ++pos;
-                  continue;
-               }
+               continue;
             }
          }
       }
 
-      if (slot.isValid())
+      if (RDP_RECORD_HEAD_TYPE_INVALID != recordType)
       {
-         _pos = pos;
-         _rs = slot;
+         rc = fetchRecord(pos, recordType);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to fetch record:%d, rc:%d", pos, rc);
+            goto error;
+         }
       }
    done:
-      if (latchObj.isValid())
-      {
-         latchObj.getValue().release_shared();
-         globalRidLatchMap.release(latchObj);
-      }
       return rc;
    error:
       clearDataCached();
@@ -348,36 +459,28 @@ namespace vessel
    recordID rdpRecordScanner::getCurrentRid()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isReadyToFetch(), "can not be invalid");
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
       return recordID(_lpid, _pos);
    }
 
    BOOLEAN rdpRecordScanner::isOverflow()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isReadyToFetch(), "can not be invalid");
-      return _rs.isOverflow();
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
+      return _overflowAddr.isValid();
    }
 
    BOOLEAN rdpRecordScanner::isBigRecord()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(isReadyToFetch(), "can not be invalid");
-      return _rs.isBigRecord();
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");
+      return 0 != OSS_BIT_TEST(_flags, _FLAG_BIG_RECORD);
    }
 
    UINT32 rdpRecordScanner::getCurrentPageSeq()const
    {
       SDB_ASSERT(isOpen(), "can not be closed");
       return _accessor.getReadablePageHead()->pageSeq;
-   }
-
-   recordID rdpRecordScanner::getOverflowAddr()const
-   {
-      SDB_ASSERT(isOpen(), "can not be invalid");
-      SDB_ASSERT(isReadyToFetch(), "can not be invalid");
-      SDB_ASSERT(_recordData.isValid(), "must be fetched");
-      return _rh.format.overflow.getRid();
    }
 
    INT32 rdpRecordScanner::initAccessor()

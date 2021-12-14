@@ -74,7 +74,8 @@ namespace vessel
          {
             return NULL != logger &&
                    NULL != executorPool &&
-                   !(!indexKeyGen) ;
+                   !(!indexKeyGen) &&
+                   NULL != transLockConsole;
          }
 
          UINT64 getMinUncompletedLSN();

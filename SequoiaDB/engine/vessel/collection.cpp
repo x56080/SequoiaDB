@@ -495,12 +495,15 @@ namespace vessel
          }
       }
 
-      rc = insertIndexRequests(context, ra);
-      if (SDB_OK != rc)
+      if (!ra.isEmpty())
       {
-         PD_LOG(PDERROR, "failed to insert data into index:%d", rc);
-         SDB_ASSERT(FALSE, "TODO");/// rollback record
-         goto error;
+         rc = insertIndexRequests(context, ra);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert data into index:%d", rc);
+            SDB_ASSERT(FALSE, "TODO");/// rollback record
+            goto error;
+         }
       }
 
       if (NULL != res)
@@ -748,8 +751,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getTotalCountInRdpHead(requestContext *context,
-                                            UINT64 &count)
+   INT32 collection::getTotalRecordCount(requestContext *context,
+                                         UINT64 &count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -787,7 +790,7 @@ namespace vessel
             goto error;
          }
 
-         rc = getRecordCountInPageHead(context, lpid, countInRdp);
+         rc = getRecordCountInPage(context, lpid, countInRdp);
          if (SDB_OK != rc)
          {
             goto error;
@@ -892,7 +895,6 @@ namespace vessel
       SDB_ASSERT(cursor->getCollectionId().getCLLid() == _record.logicalCLID,
                  "must be same");
 
-      memoryBlock mb;
       runtimeMbContext mbContext;
 
       if (OSS_UNLIKELY(!isOpen()))
@@ -937,7 +939,7 @@ namespace vessel
             cursor->setLpid(lpid);
          }
 
-         rc = getMoreFromPageInCursor(context, cursor, &mb);
+         rc = getMoreFromPageInCursor(context, cursor);
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
             rc = SDB_OK;
@@ -959,9 +961,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::getRecordCountInPageHead(requestContext *context,
-                                              PAGE_ID lpid,
-                                              UINT32 &count)
+   INT32 collection::getRecordCountInPage(requestContext *context,
+                                          PAGE_ID lpid,
+                                          UINT32 &count)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
@@ -970,6 +972,7 @@ namespace vessel
       logicalPageBuffer lpb;
       mainDataSpace &mds = _collectionSpace->getSU()->getMainDataSpace();
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+      count = 0;
 
       rc = mds.getLogicalPageBuffer(context, lpid, mode, lpb);
       if (SDB_OK != rc)
@@ -986,7 +989,12 @@ namespace vessel
          goto error;
       }
 
-      count = accessor.getReadablePageHead()->recordCount;
+      rc = accessor.getRecordCount(count);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get record count of page[%d], rc:%d", lpid, rc);
+         goto error;
+      }
    done:
       lpb.fini();
       return rc;
@@ -995,8 +1003,7 @@ namespace vessel
    }
 
    INT32 collection::getMoreFromPageInCursor(requestContext *context,
-                                             scanCLCursor *cursor,
-                                             memoryBlock *buffer)
+                                             scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
@@ -1006,27 +1013,23 @@ namespace vessel
                  "can not be invalid");
 
       rdpRecordScanner scanner;
+      rdpRecordScanner::options o;
+      o.scanOptions = cursor->getOptions().base;
 
-      rc = scanner.open(context, cursor->getLpid(), buffer,
-                        cursor->getToScanEntry().getSlot());
+      rc = scanner.open(context, cursor->getLpid(),
+                        cursor->getToScanEntry().getSlot(),
+                        &o);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open scanner:%d", rc);
          goto error;
       }
 
-      while (scanner.isReadyToFetch())
+      while (scanner.isReadyToRead())
       {
          slice record;
          recordID rid;
          DPS_TRANS_ID transId;
-
-         rc = scanner.fetchRecord();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fetch record by scanner:%d", rc);
-            goto error;
-         }
 
          rid = scanner.getCurrentRid();
          transId = scanner.getCurrentTransID();
@@ -1038,10 +1041,16 @@ namespace vessel
                                          record});
          if (SDB_OK != rc)
          {
+            if (!o.scanOptions.isScanForNone())
+            {
+               context->releaseTransLock(rid);
+            }
+
             if (SDB_VESSEL_CURSOR_NO_SPACE != rc)
             {
                PD_LOG(PDERROR, "failed to push record to cursor:%d", rc);
             }
+
             goto error;
          }
          cursor->setToScanSlot(rid.getSlotID() + 1);
@@ -2590,24 +2599,17 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, &mb, entry.getSlot());
+         rc = scanner.open(context, lpid, entry.getSlot());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init scanner on lpid[%d]:%d", lpid, rc);
             goto error;
          }
          
-         while (scanner.isReadyToFetch())
+         while (scanner.isReadyToRead())
          {
             keySet.clear();
             slice record;
-
-            rc = scanner.fetchRecord();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to fetch the next record:%d", rc);
-               goto error;
-            }
 
             record = scanner.getCurrentRecord();
 
@@ -2709,28 +2711,18 @@ namespace vessel
             goto error;
          }
 
-         rc = scanner.open(context, lpid, &mb, entry.getSlot());
+         rc = scanner.open(context, lpid, entry.getSlot());
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to open scanner:%d", rc);
             goto error;
          }
 
-         while (scanner.isReadyToFetch())
+         while (scanner.isReadyToRead())
          {
             keySet.clear();
             batch.reset();
-            recordID rid;
-
-            rid = scanner.getCurrentRid();
-
-            rc = scanner.fetchRecord();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to fetch record to scanner:%d", rc);
-               goto error;
-            }
-
+            recordID rid = scanner.getCurrentRid();
             rc = keyGen(ic->getObj().getPattern().getPattern(), 
                         ic->getObj().getParams().notArray,
                         scanner.getCurrentRecord(),
@@ -3742,7 +3734,6 @@ namespace vessel
       SDB_ASSERT(NULL != ic && ic->isNormal(), "must be normal");
       SDB_ASSERT(context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
 
-      memoryBlock mb;
       const indexScanOptions &o = context->getOptions();
       indexScanCursor *cursor = context->getCursor();
       indexScanner scanner;
@@ -3750,6 +3741,7 @@ namespace vessel
       UINT32 pushed = 0;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       stackAllocatorRowBatch batch;
+      BOOLEAN scanForNone = cursor->getOptions().base.isScanForNone();
       if (cursor->hasRowLimit())
       {
          batch.setLimits(-1, cursor->getRowLimit());
@@ -3762,7 +3754,7 @@ namespace vessel
          goto error;
       }
 
-      rc = scanner.batchNext(context, batch);
+      rc = scanner.batchNext(batch);
       if (SDB_IXM_EOC == rc)
       {
          rc = SDB_OK;
@@ -3812,36 +3804,22 @@ namespace vessel
          }
          else
          {
-            rc = recordScanner.open(context, rid.getPageID(), &mb,
-                                    rid.getSlotID(), rid.getSlotID() + 1);
+            rc = recordScanner.openToRead(context, rid);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to read record[%d,%d], rc:%d",
-                     rid.getPageID(), rid.getSlotID(), rc);
+               PD_LOG(PDERROR, "failed to read record[%s], rc:%d",
+                     rid.toString().c_str(), rc);
                goto error;
             }
 
-            if (!recordScanner.isReadyToFetch())
-            {
-               PD_LOG(PDERROR, "failed to get record[%d,%d]", rid.getPageID(), rid.getSlotID());
-               rc = SDB_VESSEL_INTERNAL_ERR;
-               goto error;
-            }
-
-            rc = recordScanner.fetchRecord();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to fetch record:%d", rc);
-               goto error;
-            }
-
+            SDB_ASSERT(recordScanner.isReadyToRead(), "must be ready to read");
             transID = recordScanner.getCurrentTransID();
             recordBody = recordScanner.getCurrentRecord();
          }
 
          rc = cursor->pushDataFragments({slice(sizeof(recordID), &rid),
-                                          slice(sizeof(DPS_TRANS_ID), &transID),
-                                          recordBody});
+                                         slice(sizeof(DPS_TRANS_ID), &transID),
+                                         recordBody});
          if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
             rc = SDB_OK;
@@ -3856,7 +3834,6 @@ namespace vessel
          recordScanner.close();
 
          ++pushed;
-         context->unlockRid(rid);
       }
 
       if (OSS_UNLIKELY(0 == pushed))
@@ -3875,6 +3852,18 @@ namespace vessel
    done:
       scanner.close();
       context->unlockRids();
+      for (UINT32 i = pushed; i < batch.getRowCount(); ++i)
+      {
+         indexScanEntry entry;
+         rc = entry.init(ic->getObj().getParams().type, batch[i]);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to parse index scan entry:%d", rc);
+            continue;
+         }
+
+         context->releaseTransLock(entry.getRid());
+      }
       return rc;
    error:
       goto done;
@@ -3901,26 +3890,10 @@ namespace vessel
       }
       locked = TRUE;
 
-      rc = scanner.open(context, rid.getPageID(), &(mrc->getRecordBuffer()),
-                        rid.getSlotID(), rid.getSlotID() + 1);
+      rc = scanner.openToRead(context, rid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open scanner:%d", rc);
-         goto error;
-      }
-
-      if (!scanner.isReadyToFetch())
-      {
-         PD_LOG(PDERROR, "rid:%s not found", rid.toString().c_str());
-         rc = SDB_VESSEL_RECORD_NOT_FOUND;
-         goto error;
-      }
-
-      rc = scanner.fetchRecord(TRUE);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fetch record:%s, :%d",
-                rid.toString().c_str(), rc);
          goto error;
       }
 
@@ -4079,7 +4052,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.deleteRecord(context, rid.getSlotID());
+      rc = accessor.deleteNormalRecord(context, rid.getSlotID());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to delete record by accessor:%d", rc);

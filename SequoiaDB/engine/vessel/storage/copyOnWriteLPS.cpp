@@ -490,7 +490,7 @@ namespace vessel
       }
       if (NULL != buffer)
       {
-         context->releaseBuffer(buffer, bufferSize);
+         context->releaseBuffer(buffer);
       }
       return rc;
    error:

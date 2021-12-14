@@ -77,19 +77,21 @@ namespace vessel
                                   const slice &newRowData,
                                   BOOLEAN &outOfSpace);
 
-         INT32 deleteRecord(dmlContext *context,
-                            RECORD_SLOT_ID pos);
+         INT32 deleteNormalRecord(dmlContext *context,
+                                  RECORD_SLOT_ID pos);
 
       public:
          UINT32 getFreeSpaceAfterLastSlot()const;
          UINT32 getTotalSlotCount()const;
          INT32 getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const;
 
-         INT32 getRecord(RECORD_SLOT_ID pos,
-                         recordHead &rh,
-                         slice &data)const;
+         INT32 getNormalRecord(RECORD_SLOT_ID pos,
+                               normalRecordHead &rh,
+                               slice &data)const;
 
          const recordDataPageHead *getReadablePageHead()const;
+
+         INT32 getRecordCount(UINT32 &count)const;
 
       private:
          INT32 insertNormalRecordToPos(dmlContext *context,
@@ -100,7 +102,7 @@ namespace vessel
       private:
          void updatePageHeadWhenInsert(RECORD_SLOT_ID pos,
                                        const recordSlot &slot,
-                                       const recordHead &rh,
+                                       const normalRecordHead &rh,
                                        STRIPING_ID striping);
 
          void updateStripingInfo(recordDataPageHead *head,

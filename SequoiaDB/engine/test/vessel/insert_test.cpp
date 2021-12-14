@@ -938,3 +938,48 @@ TEST_F(insert_test, test8_2_2)
 {
    insert_test_unique_index(INDEX_TYPE_BTREE);
 }
+
+TEST_F(insert_test, death_test_1)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   options.cacheOptions.freelist.maxChunkCount = 64;
+   collectionHandler handler;
+   UINT32 count = 60000000;
+   static const UINT32 threadCount = 6;
+   std::thread threads[threadCount];
+   UINT32 countPerThread = count / threadCount;
+
+   createCSOptions csOptions;
+
+   closeDBOptions co;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, csOptions);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(thread_insert, &db,
+                                         "foo", "bar1", countPerThread));
+   }
+
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
+
+   rc = db.close(&session, co);
+   ASSERT_EQ(SDB_OK, rc);
+}

@@ -74,6 +74,7 @@ namespace vessel
          goto error;
       }
       
+      _context = context;
       _iterator = createIndexIterator(ic->getObj().getIndexType());
       if (NULL == _iterator)
       {
@@ -91,7 +92,6 @@ namespace vessel
       }
 
       _ic = ic;
-      _o = context->getCursor()->getOptions();
 
    done:
       return rc;
@@ -102,6 +102,7 @@ namespace vessel
 
    void indexScanner::close()
    {
+      _context = NULL;
       if (NULL != _iterator)
       {
          _iterator->close();
@@ -109,31 +110,21 @@ namespace vessel
          _iterator = NULL;
       }
       _ic = NULL;
-      _o = indexScanOptions();
       _keyBuilder.reset();
       return;
    }
 
-   INT32 indexScanner::batchNext(indexScanContext *context,
-                                 rowBatch &entryBatch)
+   INT32 indexScanner::batchNext(rowBatch &entryBatch)
    {
       INT32 rc = SDB_OK;
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isMbContextAttached() ||
-                       !context->isCursorAttached() ||
-                       !entryBatch.isEmpty()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
       if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      rc = beginToScan(context);
+      rc = beginToScan();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to begin to scan:%d", rc);
@@ -146,7 +137,7 @@ namespace vessel
          goto error;
       }
 
-      rc = fillBatch(context, entryBatch);
+      rc = fillBatch(entryBatch);
       if (SDB_OK != rc)
       {
          if (SDB_IXM_EOC != rc)
@@ -163,19 +154,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexScanner::fillBatch(indexScanContext *context,
-                                 rowBatch &entryBatch)
+   INT32 indexScanner::fillBatch(rowBatch &entryBatch)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
-      SDB_ASSERT(NULL != context && context->isMbContextAttached(), "can not be invalid");
+      SDB_ASSERT(NULL != _context, "can not be invalid");
       SDB_ASSERT(entryBatch.isEmpty(), "must be empty");
-      SDB_ASSERT(context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
+      SDB_ASSERT(_context->getMbContext()->getRidLatchContext().isEmpty(), "must be empty");
       SDB_ASSERT(entryBatch.isFreeToPush(0), "should be free to push");
 
-      rtnPredicateListIterator *predicate = context->getCursor()->getPredicate();
+      rtnPredicateListIterator *predicate = _context->getCursor()->getPredicate();
       SDB_ASSERT(NULL != predicate, "can not be null");
-      indexScanCursor *cursor = context->getCursor();
+      indexScanCursor *cursor = _context->getCursor();
       SDB_ASSERT(NULL != cursor, "can not be null");
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
       static constexpr UINT32 _MAX_ROW_COUNT = 1024;
@@ -200,7 +190,8 @@ namespace vessel
          }
          else if (0 <= res)
          {
-            indexIterator::options o(predicate->after(), _o.forward);
+            indexIterator::options o(predicate->after(),
+                                     cursor->getOptions().forward);
             rc = _iterator->fastNext(keyObj, rc, predicate->cmp(),
                                      predicate->inc(), o);
             if (SDB_OK != rc)
@@ -218,7 +209,7 @@ namespace vessel
             if (!cursor->testRidScanned(rid))
             {
                BOOLEAN locked = FALSE;
-               rc = context->tryLockRid(rid, mode, locked);
+               rc = tryLockRecord(rid, locked);
                if (SDB_OK != rc)
                {
                   PD_LOG(PDERROR, "failed to try lock rid:%d", rc);
@@ -243,11 +234,16 @@ namespace vessel
                }
                else
                {
-                  rc = pauseAndRescan(context);
+                  rc = pauseAndRescan();
                   if (SDB_OK != rc)
                   {
                      PD_LOG(PDERROR, "failed to pause and rescan:%d", rc);
                      goto error;
+                  }
+
+                  if (!_iterator->isReadyToRead())
+                  {
+                     break;
                   }
                   continue;
                }
@@ -281,40 +277,29 @@ namespace vessel
       if (!entryBatch.isEmpty())
       {
          entryBatch.clearRows();
-         context->unlockRids();
+         _context->unlockRids();
       }
       goto done;
    }
 
-   INT32 indexScanner::pauseAndRescan(indexScanContext *context)
+   INT32 indexScanner::pauseAndRescan()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _context, "can not be null");
       SDB_ASSERT(_iterator->isReadyToRead(), "can not be invalid");
 
-      BOOLEAN timeout = FALSE;
       recordID rid = _iterator->getRid();
-      _iterator->pause();
 
-      ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
-      
-      rc = waitRid(context, rid, mode, timeout);
+      _iterator->pause();
+      rc = waitRecord(rid);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to wait rid latch:%d", rc);
+         PD_LOG(PDERROR, "failed to wait record:%d", rc);
          goto error;
       }
-      else if (timeout)
-      {
-         PD_LOG(PDERROR, "timeout to wait latch obj[%d,%d], mb[%d,%d]",
-                  rid.getPageID(), rid.getSlotID(),
-                  context->getSpaceID(), context->getMBID());
-         rc = SDB_VESSEL_LATCH_OBJ_BUSY;
-         goto error;
-      }
-
-      rc = beginToScan(context);
+   
+      rc = beginToScan();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to begin to scan:%d", rc);
@@ -326,43 +311,101 @@ namespace vessel
       goto done;
    }
 
-   INT32 indexScanner::waitRid(indexScanContext *context,
-                               const recordID &rid,
-                               const ossSharedLatchMode &mode,
-                               BOOLEAN &timeout)const
+   INT32 indexScanner::tryLockRecord(const recordID &rid, BOOLEAN &locked)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(rid.isValid(), "can not be invalid");
-      SDB_ASSERT(mode.isShared() || mode.isExclusive(), "can not be invalid");
+      const indexScanOptions &o = _context->getCursor()->getOptions();
+      locked = FALSE;
 
-      objectLatchHelper<recordIdLatchKey> lh;
-      RECORD_ID_LATCH_MAP &lm = context->getEnv()->ridLatchMap;
+      if (o.base.isScanForNone())
+      {
+         ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_SHARED);
+         rc = _context->tryLockRid(rid, mode, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to lock rid:%d", rc);
+            goto error;
+         }
+      }
+      else if (o.base.isScanForUpdate())
+      {
+         rc = _context->tryAcquireTransLock(rid, DPS_TRANSLOCK_U, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to try get trans lock:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = _context->tryAcquireTransLock(rid, DPS_TRANSLOCK_S, locked);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to try get trans lock:%d", rc);
+            goto error;
+         }
+      }
 
-      recordIdLatchKey key(context->getSpaceID(),
-                           context->getMBID(),
-                           rid);
-
-      timeout = FALSE;
-
-      lh.testNotExistsOrWait(lm, key, mode);
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 indexScanner::beginToScan(indexScanContext *context)
+   INT32 indexScanner::waitRecord(const recordID &rid)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(context->isCursorAttached(), "must be attached");
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(rid.isValid(), "can not be invalid");
       
+      const indexScanOptions &o = _context->getCursor()->getOptions();
 
-      if (context->getCursor()->hasEntry())
+      if (o.base.isScanForNone())
       {
-         slice entry = context->getCursor()->getEntryData();
-         rc = _iterator->moveToTheNextOfEntry(entry, _o.forward);
+         _context->waitRid(rid, ossSharedLatchMode(OSS_SHARED_LATCH_MODE_ENUM_SHARED));
+      }
+      else if (o.base.isScanForUpdate())
+      {
+         rc = _context->acquireTransLock(rid, DPS_TRANSLOCK_U);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to acquire trans lock:%d", rc);
+            goto error;
+         }
+
+         _context->releaseTransLock(rid);
+      }
+      else
+      {
+         rc = _context->acquireTransLock(rid, DPS_TRANSLOCK_S);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to acquire trans lock:%d", rc);
+            goto error;
+         }
+
+         _context->releaseTransLock(rid);
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+   
+
+   INT32 indexScanner::beginToScan()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _context, "can not be null");
+
+      if (_context->getCursor()->hasEntry())
+      {
+         slice entry = _context->getCursor()->getEntryData();
+         rc = _iterator->moveToTheNextOfEntry(entry,
+                                 _context->getCursor()->getOptions().forward);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to seek entry:%d", rc);
@@ -371,8 +414,8 @@ namespace vessel
       }
       else
       {
-         const rtnPredicateListIterator *predicate = context->getCursor()->getPredicate();
-         indexIterator::options o(TRUE, _o.forward);
+         const rtnPredicateListIterator *predicate = _context->getCursor()->getPredicate();
+         indexIterator::options o(TRUE, _context->getCursor()->getOptions().forward);
 
          rc = _iterator->seek(bson::BSONObj(),
                               0, predicate->cmp(),
@@ -394,7 +437,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       SDB_ASSERT(_iterator->isReadyToRead(), "must be ready to read");
-      rc = _iterator->next(_o.forward);
+      rc = _iterator->next(_context->getCursor()->getOptions().forward);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get next:%d", rc);

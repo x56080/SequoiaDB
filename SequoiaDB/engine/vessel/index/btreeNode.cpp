@@ -2810,13 +2810,21 @@ namespace vessel
 
       btreeNodePageHead *head = NULL;
       btreeItemSlot *slot = NULL;
-      SDB_ASSERT(NULL != slot, "can not b e null");
       UINT32 size = BTREE_NODE_SLOT_SIZE;
+      strictBuffer buffer;
 
-      rc = prepareToWrite();
+      rc = _buffer->autoGetWritableBodyBuffer(buffer);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get buffer ready to write:%d", rc);
+         goto error;
+      }
+
+      head = buffer.getWritableObjPtr<btreeNodePageHead>(0);
+      if (OSS_UNLIKELY(NULL == head))
+      {
+         PD_LOG(PDERROR, "failed to get page head");
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
 

@@ -271,6 +271,7 @@ class test_outer_resource
          r.indexKeyGen = ::engine::vessel::indexKeyGenForBsonRecord;
          r.logger = ::engine::vessel::dummyJournal::instance();
          r.executorPool = test_session_mgr::instance();
+         r.transLockConsole = dummyTransLockConsole::instance();
          test_session_mgr::instance()->clear();
          return r;
       }

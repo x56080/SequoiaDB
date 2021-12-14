@@ -83,7 +83,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->getTotalCountInRdpHead(&context, count);
+      rc = cl->getTotalRecordCount(&context, count);
       if (SDB_OK != rc)
       {
          goto error;

@@ -975,6 +975,7 @@ vesselFiles = [
       "vessel/utils/bitmapScanner.cpp",
       "vessel/utils/strictBuffer.cpp",
       "vessel/utils/stackAllocatorRowBatch.cpp",
+      "vessel/utils/simpleBufferAllocator.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",

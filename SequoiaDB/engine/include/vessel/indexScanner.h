@@ -72,27 +72,23 @@ namespace vessel
          /// return SDB_IXM_EOC when hit the end.
          /// always clear batch outside first
          /// init row limit outside first
-         INT32 batchNext(indexScanContext *context,
-                         rowBatch &entryBatch);
+         INT32 batchNext(rowBatch &entryBatch);
 
       private:
-         INT32 fillBatch(indexScanContext *context,
-                         rowBatch &entryBatch);
+         INT32 fillBatch(rowBatch &entryBatch);
 
-         INT32 pauseAndRescan(indexScanContext *context);
+         INT32 pauseAndRescan();
 
-         INT32 waitRid(indexScanContext *context,
-                       const recordID &rid,
-                       const ossSharedLatchMode &mode,
-                       BOOLEAN &timeout)const;
-
-      private:
-         INT32 beginToScan(indexScanContext *context);
+         INT32 beginToScan();
          INT32 moveIterator();
+
+         INT32 tryLockRecord(const recordID &rid, BOOLEAN &locked);
+      
+         INT32 waitRecord(const recordID &rid);        
       private:
+         indexScanContext *_context = NULL;
          indexIterator *_iterator = NULL;
          const indexContext *_ic = NULL;
-         indexScanOptions _o;
          bson::BufBuilder _keyBuilder;
    };//class indexScanner
 

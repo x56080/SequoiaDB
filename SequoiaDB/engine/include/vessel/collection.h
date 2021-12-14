@@ -145,8 +145,8 @@ namespace vessel
          INT32 getMoreWhenScan(requestContext *context,
                                scanCLCursor *cursor);
 
-         INT32 getTotalCountInRdpHead(requestContext *context,
-                                      UINT64 &count);
+         INT32 getTotalRecordCount(requestContext *context,
+                                   UINT64 &count);
 
          INT32 getMoreWhenIndexScan(indexScanContext *context);
 
@@ -224,12 +224,11 @@ namespace vessel
 
       private:
          INT32 getMoreFromPageInCursor(requestContext *context,
-                                       scanCLCursor *cursor,
-                                       memoryBlock *buffer);
+                                       scanCLCursor *cursor);
 
-         INT32 getRecordCountInPageHead(requestContext *context,
-                                        PAGE_ID lpid,
-                                        UINT32 &count);
+         INT32 getRecordCountInPage(requestContext *context,
+                                    PAGE_ID lpid,
+                                    UINT32 &count);
 
       private:
          INT32 insertNonBigRecord(dmlContext *context,

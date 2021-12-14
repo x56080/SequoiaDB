@@ -46,6 +46,11 @@ namespace engine
 namespace vessel
 {
 /////////////////////////requestContext
+   requestContext::requestContext():
+   _sba(_staticBuf, CONTEXT_DEFAULT_BUFFER_POOL_SIZE)
+   {
+
+   }
 
    void requestContext::open(IExecutor *executor,
                               instanceEnv *env,
@@ -76,7 +81,7 @@ namespace vessel
       }
 
       {
-      SDB_ASSERT(0 == _bufAllocated, "memory leak");
+      SDB_ASSERT(_sba.isTotallyFree(), "memory leak");
       SDB_ASSERT(!_blocker.isBlocking(), "unblocking missed");
       SDB_ASSERT(_lpidLatchContext.isEmpty(), "unlocking missed");
       SDB_ASSERT(NULL == _oplist, "detaching missed");
@@ -87,7 +92,7 @@ namespace vessel
       _env = NULL;
       _outerResource = NULL;
       
-      _bufAllocated = 0;
+      _sba.clearBufferAllocated();
       _oplist = NULL;
       }
       
@@ -97,11 +102,12 @@ namespace vessel
 
    CHAR *requestContext::allocateBuffer(UINT32 size)
    {
-      CHAR *buf = NULL;
-      if (size <= CONTEXT_DEFAULT_BUFFER_POOL_SIZE - _bufAllocated)
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(0 < size, "can not be zero");
+      CHAR *buf = _sba.allocate(size);
+      if (NULL != buf)
       {
-         buf = _staticBuf + _bufAllocated;
-         _bufAllocated += size;
+         goto done;
       }
       else
       {
@@ -112,18 +118,22 @@ namespace vessel
       return buf;
    }
    
-   void requestContext::releaseBuffer(CHAR *buffer, UINT32 size)
+   void requestContext::releaseBuffer(CHAR *buffer)
    {
       if (OSS_LIKELY(NULL != buffer))
       {
-         if (buffer < _staticBuf || (_staticBuf + CONTEXT_DEFAULT_BUFFER_POOL_SIZE) <= buffer)
+         if (_sba.contains(buffer))
+         {
+            _sba.release(buffer);
+         }
+         else
          {
             SDB_THREAD_FREE(buffer);
          }
-         else if (buffer + size == _staticBuf + _bufAllocated)
-         {
-            _bufAllocated -= size;
-         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "buffer can not be null");
       }
       return;
    }
@@ -711,6 +721,20 @@ namespace vessel
       return _rmc->getRidLatchContext().test(key, mode);
    }
 
+   void requestContext::waitRid(const recordID &rid,
+                                const ossSharedLatchMode &mode)
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(isMbContextAttached(), "must be attached");
+      SDB_ASSERT(!mode.isNone(), "can not be none");
+      recordIdLatchKey key(_sid, _mbID, rid);
+      objectLatchHelper<recordIdLatchKey> lh;
+#if defined (_DEBUG)
+      SDB_ASSERT(!_rmc->getRidLatchContext().test(key, NULL), "invalid waiting");
+#endif//_DEBUT
+      lh.testNotExistsOrWait(_env->ridLatchMap, key, mode);
+   }
+
    void requestContext::_unlockAll()
    {
       SDB_ASSERT(isOpen(), "can not be closed");
@@ -782,7 +806,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 requestContext::tryAcquirdTransLock(const recordID &rid,
+   INT32 requestContext::tryAcquireTransLock(const recordID &rid,
                                              const DPS_TRANSLOCK_TYPE &mode,
                                              BOOLEAN &locked)
    {
@@ -818,6 +842,16 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   void requestContext::releaseTransLock(const recordID &rid)
+   {
+      SDB_ASSERT(isOpen(), "can not be closed");
+      SDB_ASSERT(rid.isValid(), "can not be closed");
+      dpsTransLockId lockId;
+      dmsRecordID dmsRid = rid.toDMSRid();
+      lockId = dpsTransLockId(_sid, _mbID, &dmsRid);
+      getOuterResource()->transLockConsole->release(getExecutor(), lockId, FALSE, NULL);
    }
 
    void requestContext::releaseAllTransLock()

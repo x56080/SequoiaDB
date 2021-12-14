@@ -32,3 +32,15 @@
    Last Changed =
 
 ******************************************************************************/
+
+#include "vessel/fixedSizeRowBatch.h"
+
+namespace engine
+{
+namespace vessel
+{
+   
+} // namespace vessel
+
+} // namespace engine
+

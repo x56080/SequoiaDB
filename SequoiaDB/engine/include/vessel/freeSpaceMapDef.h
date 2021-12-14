@@ -114,6 +114,7 @@ namespace vessel
       UINT32 pages[FSM_BITMAP_OWNER_PAGE_CAPAITY];
    };//struct fsmPMapPage
    constexpr UINT32 FSM_BITMAP_OWNER_PAGE_SIZE = sizeof(fsmBitmapOwnerPage);
+   static_assert(FSM_BITMAP_OWNER_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "invalid page size");
 
 
    struct fsmBitmapPage
@@ -123,6 +124,7 @@ namespace vessel
       UINT64 lvlBitmaps[FSM_SPACE_LVL_COUNT][FSM_BITMAP_BITS_COUNT];
    };//struct fsmBitMapPage
    constexpr UINT32 FSM_BITMAP_PAGE_SIZE = sizeof(fsmBitmapPage);
+   static_assert(FSM_BITMAP_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "invalid page size");
 
    struct fsmCLEntry
    {

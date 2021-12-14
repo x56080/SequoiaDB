@@ -302,6 +302,8 @@ namespace vessel
          {
             goto done;
          }
+
+         ++i;
       }
       
       res = ('\0' == longer[i] || '.' == longer[i]);

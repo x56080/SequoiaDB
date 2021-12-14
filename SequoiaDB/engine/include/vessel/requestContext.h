@@ -45,6 +45,7 @@
 #include "dms.hpp"
 #include "sdbInterface.hpp"
 #include "vessel/objectIdentifier.h"
+#include "vessel/simpleBufferAllocator.h"
 
 #include "dpsTransLockDef.hpp"
 
@@ -73,7 +74,7 @@ namespace vessel
    class requestContext : public SDBObject
    {
       public:
-         OSS_INLINE requestContext(){}
+         requestContext();
          requestContext(const requestContext &) = delete;
          requestContext &operator=(const requestContext &) = delete;
          virtual ~requestContext();
@@ -109,7 +110,7 @@ namespace vessel
 
       public:
          CHAR *allocateBuffer(UINT32 size);
-         void releaseBuffer(CHAR *buffer, UINT32 size);
+         void releaseBuffer(CHAR *buffer);
 
       public:
 
@@ -205,6 +206,9 @@ namespace vessel
          BOOLEAN testRidLocked(const recordID &rid,
                                ossSharedLatchMode *mode=NULL);
 
+         void waitRid(const recordID &rid,
+                      const ossSharedLatchMode &mode);
+
       public:
          INT32 blockCheckpoint(SPACE_TYPE type,
                                ossRWMutex *mutex);
@@ -245,9 +249,11 @@ namespace vessel
       public:
          INT32 acquireTransLock(const recordID &rid,
                                 const DPS_TRANSLOCK_TYPE &mode);
-         INT32 tryAcquirdTransLock(const recordID &rid,
+         INT32 tryAcquireTransLock(const recordID &rid,
                                    const DPS_TRANSLOCK_TYPE &mode,
                                    BOOLEAN &locked);
+
+         void releaseTransLock(const recordID &rid);
 
          void releaseAllTransLock();
       private:
@@ -271,8 +277,8 @@ namespace vessel
          LPID_LATCH_CONTEXT _lpidLatchContext;
          lpsCheckpointBlocker _blocker;
 
-         UINT32 _bufAllocated = 0;
          CHAR _staticBuf[CONTEXT_DEFAULT_BUFFER_POOL_SIZE];
+         simpleBufferAllocator _sba;
 
          atomicOperationList *_oplist = NULL;
    };//class requestContext

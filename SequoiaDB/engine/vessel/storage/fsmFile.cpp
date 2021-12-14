@@ -45,6 +45,12 @@ namespace engine
 {
 namespace vessel
 {
+   fsmFile::fsmFile()
+   {
+      SDB_ASSERT(FSM_BITMAP_OWNER_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "must be same");
+      SDB_ASSERT(FSM_BITMAP_PAGE_SIZE == FSM_FILE_PAGE_SIZE, "must be same");
+   }
+
    INT32 fsmFile::initAfterCreation()
    {
       INT32 rc = SDB_OK;

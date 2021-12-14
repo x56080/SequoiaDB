@@ -49,8 +49,6 @@ namespace vessel
 
    diskFreeSpaceMap::diskFreeSpaceMap()
    {
-      SDB_ASSERT(FSM_FILE_PAGE_SIZE == FSM_BITMAP_OWNER_PAGE_SIZE, "must be same");
-      SDB_ASSERT(FSM_FILE_PAGE_SIZE == FSM_BITMAP_PAGE_SIZE, "must be same");
       SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "must be power of 2");
    }
 

@@ -45,6 +45,8 @@
 #include "vessel/collectionOptions.h"
 #include "vessel/builtinRecordUpdater.h"
 
+#include "mthMatchTree.hpp"
+
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
@@ -123,6 +125,110 @@ TEST_F(update_test, base_update_test1)
    ASSERT_EQ(SDB_OK, rc);
 
    rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult insertRes;
+      /// insert a as even number.
+      builder.append("a", i * 2);
+      builder.append("b", i);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      insertRes.enableReturnIDInfo();
+      rc = handler.insert(&executor, record,
+                          INVALID_STRIPING_ID, insertOptions(), &insertRes);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      insertRes.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      /// update a to odd number.
+      utilUpdateResult updateRes;
+      dmlUpdateRequest request;
+      request.rid = rids[i];
+      rc = handler.updateRecord(&executor, request, &updater, &updateRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      dataScanRow recordRow;
+      rc = cursor.getNextRow(&executor, recordRow);
+      ASSERT_EQ(SDB_OK, rc);
+      bson::BSONObj obj(recordRow.getRecord().data());
+      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+   }
+
+   db.close(&executor, closeDBOptions());
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.openScanCursor(&executor, NULL, collectionScanOptions(), cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      dataScanRow recordRow;
+      rc = cursor.getNextRow(&executor, recordRow);
+      ASSERT_EQ(SDB_OK, rc);
+      bson::BSONObj obj(recordRow.getRecord().data());
+      ASSERT_EQ(obj.getIntField("a"), obj.getIntField("b") * 2 + 1);
+   }
+
+   db.close(&executor, closeDBOptions());
+}
+
+/// update with index
+TEST_F(update_test, base_update_test2)
+{
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor executor;
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+   collectionHandler handler;
+   INT32 rc = SDB_OK;
+   bson::BSONObjBuilder builder;
+   UINT32 count = 10000;
+   ossPoolVector<recordID> rids;
+   bson::BSONObj pattern = BSON("$inc" << BSON("a" << 1));
+   bsonRecordUpdater updater;
+   cursorHandler cursor;
+   indexParameters params;
+   params.type = INDEX_TYPE_BTREE;
+
+   rc = updater.init(pattern);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&executor, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&executor, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&executor, "foo", "bar", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&executor, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&executor, strSlice("index"),
+                            BSON("a" << 1), params, createIndexOptions());
    ASSERT_EQ(SDB_OK, rc);
 
    for (UINT32 i = 0; i < count; ++i)

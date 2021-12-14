@@ -88,24 +88,24 @@ namespace vessel
             return *this;
          }
 
-      private:
-         enum _SCAN_FOR
+      public:
+         enum SCAN_FOR
          {
-            _SCAN_FOR_NONE = 0,
-            _SCAN_FOR_SHARE = 1,
-            _SCAN_FOR_UPDATE = 2,
+            SCAN_FOR_NONE = 0,
+            SCAN_FOR_SHARE = 1,
+            SCAN_FOR_UPDATE = 2,
          };//enum _SCAN_FOR
 
       public:
-         OSS_INLINE void setScanForShare() {_sf = _SCAN_FOR_SHARE;}
-         OSS_INLINE void setScanForUpdate() {_sf = _SCAN_FOR_UPDATE;}
-         OSS_INLINE void setScanForNone() {_sf = _SCAN_FOR_NONE;}
-         OSS_INLINE BOOLEAN isScanForNone()const {return _SCAN_FOR_NONE == _sf;}
-         OSS_INLINE BOOLEAN isScanForUpdate()const {return _SCAN_FOR_UPDATE == _sf;}
-         OSS_INLINE BOOLEAN isScanForShare()const {return _SCAN_FOR_SHARE == _sf;}
+         OSS_INLINE void setScanForShare() {_sf = SCAN_FOR_SHARE;}
+         OSS_INLINE void setScanForUpdate() {_sf = SCAN_FOR_UPDATE;}
+         OSS_INLINE void setScanForNone() {_sf = SCAN_FOR_NONE;}
+         OSS_INLINE BOOLEAN isScanForNone()const {return SCAN_FOR_NONE == _sf;}
+         OSS_INLINE BOOLEAN isScanForUpdate()const {return SCAN_FOR_UPDATE == _sf;}
+         OSS_INLINE BOOLEAN isScanForShare()const {return SCAN_FOR_SHARE == _sf;}
 
       public:
-         _SCAN_FOR _sf = _SCAN_FOR_NONE;
+         SCAN_FOR _sf = SCAN_FOR_NONE;
    };//class baseScanOptions
 
    class collectionScanOptions : public SDBObject
