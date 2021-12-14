@@ -3897,6 +3897,14 @@ namespace vessel
          goto error;
       }
 
+      rc = mrc->getRecordBuffer().copy(scanner.getCurrentRecord().getSize(),
+                                       scanner.getCurrentRecord().getData());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy record data:%d", rc);
+         goto error;
+      }
+      
       mrc->setTransID(scanner.getCurrentTransID());
       if (scanner.isOverflow())
       {
@@ -3911,6 +3919,7 @@ namespace vessel
       {
          context->unlockRid(rid);
       }
+      mrc->clearData();
       goto done;
    }
 
