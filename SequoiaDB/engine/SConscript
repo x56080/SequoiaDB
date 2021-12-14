@@ -1051,7 +1051,8 @@ vesselTestFiles = [
 
 # insert performance test
 benchmarkTestFiles = [
-      "test/vessel/benchmark_test.cpp"
+      "test/vessel/benchmark_test.cpp",
+      "test/vessel/dummyTransLockConsole.cpp"
 ]
 
 #BSON
