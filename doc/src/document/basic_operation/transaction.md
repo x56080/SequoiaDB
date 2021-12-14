@@ -88,6 +88,9 @@ SequoiaDB 的其它操作（如：创建表、创建索引、创建并读写LOB�
 | [transactiontimeout](database_management/database_configuration/configuration_parameters.md#transactiontimeout) | 事务锁等待超时时间（单位：秒） | [0, 3600] | 60 |
 | [translockwait](database_management/database_configuration/configuration_parameters.md#translockwait) | 事务在RC隔离级别下是否需要等锁。 | true/false | false |
 | [transuserbs](database_management/database_configuration/configuration_parameters.md#transuserbs) | 事务操作是否使用回滚段。 | true/false | true |
+| [transmaxlocknum](database_management/database_configuration/configuration_parameters.md#transmaxlocknum) | 事务在一个数据节点上最多可以持有的记录锁个数。 | [ -1, 2^31-1 ]，-1 表示事务对记录锁的个数没有限制。 | 10000 |
+| [transallowlockescalation](database_management/database_configuration/configuration_parameters.md#transallowlockescalation) | 事务持有的记录锁个数超过参数 transmaxlocknum 的值后，是否允许锁升级。 | true/false | true |
+| [transmaxlogspaceratio](database_management/database_configuration/configuration_parameters.md#transmaxlogspaceratio) | 事务在一个数据节点上可以使用的最大日志空间比例(%)。 | [ 1, 50 ]，取值为50，表示一半的日志空间都可以被事务使用，另外一半用于事务回滚。 | 50 |
 
 ## 调整设置 ##
 

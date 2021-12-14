@@ -89,6 +89,18 @@ options（ *object，必填* ）
 
     格式：`TransRCCount : true`
 
+- TransMaxLockNum（ *number* ）：会话事务在一个数据节点上可以持有最大的记录锁个数
+
+    格式：`TransMaxLockNum : 10000`
+
+- TransAllowLockEscalation（ *boolean* ）：会话事务持有记录锁个数超过参数 TransMaxLockNum 设置的值后，是否允许锁升级
+
+    格式：`TransAllowLockEscalation : true`
+
+- TransMaxLogSpaceRatio（ *number* ）：会话事务在一个数据节点上可以使用的最大日志空间比例(%)
+
+    格式：`TransMaxLogSpaceRatio : 50`
+
 >   **Note:**
 >
 >   *   PreferedInstance 和 PreferedInstaceMode 的缺省值是协调节点配置中 preferedinstance 和 preferedinstancemode 的取值。

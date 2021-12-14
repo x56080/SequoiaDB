@@ -127,6 +127,28 @@ Set session attributes.
               during transaction.
 .br
               "TransRCCount" : true
+.br
+       \fBTransMaxLockNum\fR
+.br
+              Maximum number of record locks can be hold by a
+              transaction on a data node.
+.br
+              "TransMaxLockNum" : 10000
+.br
+       \fBTransAllowLockEscalation\fR
+.br
+              Whether allow lock escalation when number of
+              record locks hold by a transaction exceeds the
+              value set by parameter "TransMaxLockNum".
+.br
+              "TransAllowLockEscalation" : true
+.br
+       \fBTransMaxLogSpaceRatio\fR
+.br
+              Maximum ratio of log space can be used by a
+              transaction on a data node.
+.br
+              "TransMaxLogSpaceRatio" : 50
 .SH "Examples"
 
 .sp 2

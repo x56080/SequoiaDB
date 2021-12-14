@@ -40,6 +40,9 @@
    "TransAutoCommit": false,
    "TransAutoRollback": true,
    "TransRCCount": true,
+   "TransAllowLockEscalation": true,
+   "TransMaxLockNum": 10000,
+   "TransMaxLogSpaceRatio": 50,
    "Source": ""
  }
  ```
