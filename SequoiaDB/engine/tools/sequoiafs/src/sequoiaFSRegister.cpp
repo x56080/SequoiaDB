@@ -148,10 +148,17 @@ namespace sequoiafs
       INT32 rc = SDB_OK;
       string hostname;
       string port;
+      INT32 count = 0;
 
       while(_running)
       {
-         ossSleepsecs(FS_REGISTER_MCS_SECOND);  //TODO: 如果收到mcs的断开链接，立刻尝试一次重新注册
+         ossSleepsecs(1);  //TODO: mcs disconnect，retry immediately
+         ++count;
+         if(count < FS_REGISTER_MCS_SECOND)
+         {
+            continue;
+         }
+         count = 0;
          
          if(!_isRegistered)
          {

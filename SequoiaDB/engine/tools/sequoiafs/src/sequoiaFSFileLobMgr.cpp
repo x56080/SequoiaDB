@@ -344,7 +344,7 @@ void sequoiaFSFileLobMgr::_recycleCache()
    while(_running)
    {
       utilGetGlobalMemPool()->shrink() ;
-      ossSleep(60000);
+      ossSleepsecs(1);
    }
 }
 

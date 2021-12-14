@@ -3854,11 +3854,14 @@ void sequoiaFS::getSysInfo()
 void sequoiaFS::_cleanCounts()
 {
    INT32 count = 0;
+   INT32 oneDay = 60 * 60 * 24; //60sec * 60min * 24 = one day
+
+   //clean counts every day
    while(_running)
    {
-      ossSleepsecs(60);
-      count++;
-      if(count >= 1440)
+      ossSleepsecs(1);
+      ++count;
+      if(count >= oneDay)
       {
          getSysInfo();
          count = 0;
