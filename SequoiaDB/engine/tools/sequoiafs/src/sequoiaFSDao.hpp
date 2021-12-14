@@ -62,6 +62,12 @@ namespace sequoiafs
                         INT64 offset,
                         INT32 len,
                         INT64 *lobSizeNew);
+         INT32 writeNewLob(const CHAR *buf,
+                           const CHAR *clFullName,
+                           OID &lobId, 
+                           INT64 offset,
+                           INT32 len,
+                           INT64 &lobSizeNew);               
          INT32 readLob(const CHAR *clFullName, 
                        const OID &lobId, 
                        INT64 offset, 
@@ -72,6 +78,8 @@ namespace sequoiafs
          INT32 truncateLob(const CHAR *clFullName,
                            const OID &lobId, 
                            INT64 offset);
+         INT32 removeLob(const CHAR *clFullName,
+                         const OID &lobId);
          INT32 getLobSize(const CHAR *clFullName, 
                           const OID &lobId, 
                           SINT64 *len);
@@ -113,6 +121,9 @@ namespace sequoiafs
          INT32 findOne(const CHAR* clName, 
                       INT64 parentid, 
                       BSONObj &record);
+
+         INT32 insertMeta(const CHAR *pCLFullName,
+                          BSONObj &obj);
 
          INT32 updateMeta(const CHAR *pCLFullName,
                           BSONObj &condition, 

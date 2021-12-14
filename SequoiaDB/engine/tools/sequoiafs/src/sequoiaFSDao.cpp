@@ -144,6 +144,79 @@ error:
    goto done;   
 }
 
+//create and write a lob
+INT32 fsConnectionDao::writeNewLob(const CHAR *buf,
+                                   const CHAR *clFullName,
+                                   OID &lobId, 
+                                   INT64 offset,
+                                   INT32 len,
+                                   INT64 &lobSizeNew)
+{
+   INT32 rc = SDB_OK;
+   sdbCollection cl;
+   sdbLob lob;
+   sdb *db = NULL;
+
+   PD_LOG(PDDEBUG, "writeNewLob(), offset:%d, len:%d", offset, len);
+
+   rc = getFSConn(&db);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get a connection. rc=%d", rc);
+      goto error;
+   }
+
+   rc = db->getCollection(clFullName, cl);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+                       clFullName, rc);
+      goto error;
+   }
+
+   rc = cl.createLob(lob);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to create lob for file, rc=%d", rc);
+      goto error;
+   }
+
+   if(len > 0)
+   {
+      rc = lob.write(buf, len);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to write lob, oid:%s, offset:%d, len:%d, rc=%d", 
+                          lobId.toString().c_str(), offset, len, rc);
+         goto error;
+      }
+   }
+
+   lobSizeNew = lob.getSize(); 
+   
+   rc = lob.getOid(lobId);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get lob oid, rc=%d", rc);
+      goto error;
+   }
+
+   rc = lob.close();
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to close lob, rc=%d", rc);
+      goto error;
+   }
+
+done:
+   return rc;
+   
+error:
+   lob.close();
+   goto done;   
+}
+
+
 INT32 fsConnectionDao::readLob(const CHAR *clFullName, 
                                const OID &lobId, 
                                INT64 offset, 
@@ -255,6 +328,46 @@ done:
 error:
    goto done;   
 }
+
+INT32 fsConnectionDao::removeLob(const CHAR *clFullName,
+                                 const OID &lobId)
+{
+   INT32 rc = SDB_OK;
+   sdbCollection cl;
+   sdb *db = NULL;
+
+   PD_LOG(PDDEBUG, "removeLob(), oid:%s", lobId.toString().c_str());
+
+   rc = getFSConn(&db);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get a connection. rc=%d", rc);
+      goto error;
+   }
+      
+   rc = db->getCollection(clFullName, cl);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+             clFullName, rc);
+      goto error;
+   }
+
+   rc = cl.removeLob(lobId);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Remvoe lob failed, name=%s, rc=%d",
+             lobId.toString().c_str(), rc);
+      goto error;
+   }
+
+done:
+   return rc;
+   
+error:
+   goto done; 
+}
+
 
 INT32 fsConnectionDao::getLobSize(const CHAR *clFullName, 
                                   const OID &lobId, 
@@ -558,6 +671,41 @@ done:
 error:
    goto done;        
 }
+
+INT32 fsConnectionDao::insertMeta(const CHAR *pCLFullName,
+                                  BSONObj &obj)
+{
+   INT32 rc = SDB_OK;
+   sdb *db = NULL;
+   sdbCollection cl;
+   
+   rc = getFSConn(&db);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Failed to get a connection. rc=%d", rc);
+      goto error;
+   }
+   
+   rc = db->getCollection(pCLFullName, cl);
+   if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "Failed to query and lock mcs service. rc=%d", rc);
+      goto error;
+   }
+
+   rc = cl.insert(obj);
+   if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "Failed to insert meta. cl:%s rc=%d", pCLFullName, rc);
+      goto error;
+   }
+
+done:
+   return rc;
+error:
+   goto done;
+}
+
 
 INT32 fsConnectionDao::updateMeta(const CHAR *pCLFullName,
                                   BSONObj &condition, 

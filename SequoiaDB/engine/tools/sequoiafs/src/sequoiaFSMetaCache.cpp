@@ -252,9 +252,9 @@ void metaFromMeta(const metaNode& oldMeta, metaNode *newMeta)
 }
 
 fsMetaCache::fsMetaCache() 
-   :_dirCache(this),
-    _fsReg(this),
-    _msgHandler(this)
+:_dirCache(this),
+ _fsReg(this),
+ _msgHandler(this)
 {
 }
 
@@ -633,7 +633,7 @@ INT32 fsMetaCache::getAttr(const CHAR* path, metaNode *meta)
    }
    else if(SDB_DMS_EOC == rc)
    {
-      try   
+      try
       {
          condition = BSON(SEQUOIAFS_NAME<<basePath.c_str()<<SEQUOIAFS_PID<<parentId);
       }

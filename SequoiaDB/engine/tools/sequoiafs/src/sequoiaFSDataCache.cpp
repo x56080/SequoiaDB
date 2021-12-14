@@ -149,7 +149,7 @@ INT32 dataCache::cacheDownLoad(fsConnectionDao *db,
    _downloadCount++;
    if(_downloadCount > 1)
    {
-      PD_LOG(PDERROR, "downloadCount=%d, oid=%s, _offset=%d",
+      PD_LOG(PDDEBUG, "downloadCount=%d, oid=%s, _offset=%d",
              _downloadCount, oid.toString().c_str(), _offset);
    }
    
@@ -157,7 +157,6 @@ INT32 dataCache::cacheDownLoad(fsConnectionDao *db,
    if(SDB_OK != rc)
    {
       PD_LOG(PDERROR, "Failed to readLob, rc=%d", rc);
-      rc = -EIO;
       goto error;
    }
    addPiece(readLen, _offset);
@@ -221,7 +220,7 @@ INT32 dataCache::addPiece(INT64 size, INT64 offset)
       if(SCOPE_SIZE == _scopeLen)
       {
          PD_LOG(PDERROR, "Too many piece in the file.");
-         rc = -ENOSPC;
+         rc = SDB_NOSPC;
          goto error;
       }
       if(index == _scopeLen)

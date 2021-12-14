@@ -73,12 +73,6 @@ BOOLEAN fsCacheQueue::addTask(queueTask task)
    {
       _cacheQueue.push(task);
    }
-   catch(std::bad_alloc e1)
-   {
-      PD_LOG(PDERROR, "bad_alloc, error=%s", e1.what());
-      isAdd = FALSE;
-      goto error;
-   }
    catch(std::exception e2)
    {
       PD_LOG(PDERROR, "bad_alloc, error=%s", e2.what());

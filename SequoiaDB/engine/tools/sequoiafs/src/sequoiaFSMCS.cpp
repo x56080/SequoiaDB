@@ -52,9 +52,9 @@ using namespace sdbclient;
 using namespace sequoiafs;
 
 sequoiaFSMCS::sequoiaFSMCS()
-   :_mcsSesMgr(),
-    _msgHandler(&_mcsSesMgr, this),
-    _regService(this)
+:_mcsSesMgr(),
+ _msgHandler(&_mcsSesMgr, this),
+ _regService(this)
 {
    _agent = NULL;
    ossMemset(_hostName, 0, OSS_MAX_HOSTNAME+1);

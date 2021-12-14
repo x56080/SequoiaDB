@@ -427,6 +427,88 @@ error:
    goto done;
 }
 
+INT32 createAndLockPidFile(OSSFILE &pidFile)
+{
+   INT32 rc = SDB_OK;
+   CHAR pidName[OSS_MAX_PATHSIZE + 1];
+
+   rc = engine::utilBuildFullPath(sfs.getOptionMgr()->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
+                                   OSS_MAX_PATHSIZE, pidName);
+   if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc);
+      ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
+      goto error;
+   }
+
+   //check if pid file is exist 
+   rc = ossAccess( pidName, OSS_MODE_READ);
+   if(SDB_OK == rc)
+   {
+      rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile);
+      if(SDB_OK != rc)
+      {
+         PD_LOG( PDERROR, "Open pidfile(%s) failed, rc=%d", pidName, rc);
+         ossPrintf("Open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+         rc = SDB_OPERATION_CONFLICT;
+         goto error;
+      }
+      //check if the pid file has been locked
+      rc = ossLockFile ( &pidFile, OSS_LOCK_EX);
+      if(SDB_OK != rc)
+      {
+         CHAR oldPid[10] = {0};
+         INT64 readSize = 0;
+         ossRead( &pidFile, oldPid, (INT64)(sizeof(oldPid) - 1), &readSize);
+         ossClose( pidFile );
+         PD_LOG( PDERROR, "Lock pidfile(%s) failed, maybe the pidfile"
+                          "has been locked by other process(%s), rc=%d", 
+                           pidName, oldPid, rc);
+         ossPrintf("Lock pidfile(%s) failed, maybe the pidfile has "
+                   "been locked by other process(%s), exit."OSS_NEWLINE, 
+                    pidName, oldPid);
+         rc = SDB_OPERATION_CONFLICT;
+         goto error;
+      }
+      ossLockFile(&pidFile, OSS_LOCK_UN);
+      ossClose(pidFile );
+      engine::removePIDFile(pidName);
+   }
+   
+   rc = engine::createPIDFile(pidName);
+   if(SDB_OK != rc)
+   {
+      PD_LOG( PDERROR, "Failed to create pid file(%s), rc=%d", pidName, rc) ;
+      ossPrintf("Failed to create pid file(%s), exit."OSS_NEWLINE, pidName);
+      goto error;
+   }
+
+   rc = ossOpen(pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile);
+   if(SDB_OK != rc)
+   {
+      engine::removePIDFile( pidName ) ;
+      PD_LOG( PDERROR, "open pidfile(%s) failed, rc=%d.", pidName, rc);
+      ossPrintf("open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+      rc = SDB_OPERATION_CONFLICT;
+      goto error;
+   }
+   rc = ossLockFile(&pidFile, OSS_LOCK_EX);
+   if(SDB_OK != rc)
+   {
+      ossClose( pidFile );
+      engine::removePIDFile(pidName);
+      PD_LOG( PDERROR, "Lock pidfile(%s) failed, rc=%d.", pidName, rc);
+      ossPrintf("Lock pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
+      rc = SDB_OPERATION_CONFLICT;
+      goto error;
+   }
+      
+done:
+   return rc;
+error:
+   goto done;      
+}
+
 INT32 main(INT32 argc, CHAR *argv[])
 {
    INT32 rc = SDB_OK ;
@@ -444,32 +526,63 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = sfsOptInitArgs(&fuseArgs);
    if(SDB_OK != rc)
    {
-      ossPrintf("Failed to init args(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to init args(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
    ossMemset(optionTemp, 0, OSS_MAX_PATHSIZE);
    sprintf(optionTemp, "%s", argv[0]);
    fuse_opt_add_arg(&fuseArgs, optionTemp);
 
-   rc = sfs.init(argc, argv, &options4fuse);
-   if(SDB_OK != rc)
+   rc = sfs.getOptionMgr()->init(argc, argv, &options4fuse);
+   if(SDB_OK == rc)
    {
-      if(-ENOENT == rc)
+      //build dialogpath and start pd dialog
+      sfs.buildDialogPathStartPD();
+      if(SDB_OK != rc)
       {
-         ossPrintf("The cl:%s does not exist, exit."OSS_NEWLINE,
-                   sfs._collection.c_str());
+         ossPrintf("Failed to build dialog and start PD. rc=%d, exit."OSS_NEWLINE, rc);
+         goto error;
+      }
+      //create pid file
+      if (ossStrlen((sfs.getOptionMgr())->getDiaglogPath()))
+      {  
+         rc = createAndLockPidFile(pidFile);
+         if(SDB_OK != rc)
+         {
+            PD_LOG( PDERROR, "create and lock pid file failed, rc: %d", rc);
+            goto error;
+         }
+
+         isCreatePidFile = TRUE;
+      }
+      //init sfs
+      rc = sfs.init();
+      if(SDB_OK != rc)
+      {
+         if(-ENOENT == rc)
+         {
+            ossPrintf("The cl:%s does not exist, exit."OSS_NEWLINE,
+                      sfs._collection.c_str());
+         }
+
+         ossPrintf("Failed to init, exit."OSS_NEWLINE);
+         goto error;
       }
 
-      sfs.closeDataSource();
-      ossPrintf("Failed to init, exit."OSS_NEWLINE);
-      goto error;
+      rc = fsEnableSignalEvent();
+      if(SDB_OK != rc)
+      {
+         ossPrintf("Failed to EnableSignalEvent, exit."OSS_NEWLINE);
+         goto error;
+      }
    }
-
-   rc = fsEnableSignalEvent();
-   if(SDB_OK != rc)
+   else if(SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc)
    {
-      sfs.closeDataSource();
-      ossPrintf("Failed to EnableSignalEvent, exit."OSS_NEWLINE);
+      rc = SDB_OK;
+   }
+   else if(SDB_OK != rc)
+   {
+      ossPrintf("Failed to resolving arguments(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
   
@@ -482,7 +595,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    rc = fuse_opt_parse(&fuseArgs, &lobFuseOption, lobOptions, sfsProcessArg);
    if(-1 == rc)
    {
-      ossPrintf("Failed to parse fuse option(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to parse fuse option(rc=%d), exit."OSS_NEWLINE, rc);
       goto error;
    }
 
@@ -496,7 +609,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       rc = fuse_opt_add_arg(&fuseArgs, "--help");
       if(0 != rc) 
       {
-         ossPrintf("Failed to add arg:\"%s\" (error=%d), exit."OSS_NEWLINE, "--help", rc);
+         ossPrintf("Failed to add arg:\"%s\" (rc=%d), exit."OSS_NEWLINE, "--help", rc);
          goto error;
       }
    }
@@ -508,7 +621,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(0 != rc)
       {
          PD_LOG( PDERROR, "Failed to add arg:%s, rc:%d", lobFuseOption.mountpoint, rc ) ;
-         ossPrintf("Failed to add arg:%s (error=%d), exit."OSS_NEWLINE,
+         ossPrintf("Failed to add arg:%s (rc=%d), exit."OSS_NEWLINE,
                    lobFuseOption.mountpoint, rc);
          goto error;
       }
@@ -517,7 +630,7 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(SDB_OK != rc)
       {
          PD_LOG( PDERROR, "Failed to write map history collection, rc:%d", rc ) ;
-         ossPrintf("Failed to write map history collection(error=%d), "
+         ossPrintf("Failed to write map history collection(rc=%d), "
                    "exit."OSS_NEWLINE, rc);
          goto error;
       }
@@ -546,82 +659,6 @@ INT32 main(INT32 argc, CHAR *argv[])
             goto error;
          }
       }
-
-      //Create a pidfile in diagpath and lock it.
-      //When the process is exit, the pidfile will be unlocked and deleted.
-      if (ossStrlen((sfs.getOptionMgr())->getDiaglogPath()))
-      {  
-         rc = engine::utilBuildFullPath((sfs.getOptionMgr())->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
-                                     OSS_MAX_PATHSIZE, pidName);
-         if(SDB_OK != rc)
-         {
-            PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc ) ;
-            ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
-            goto error;
-         }
-         else 
-         {
-            rc = ossAccess( pidName, OSS_MODE_READ );
-            if(SDB_OK == rc)
-            {
-               rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "Open pidfile(%s) failed, rc: %d", pidName, rc ) ;
-                  ossPrintf("Open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-                  rc = SDB_OPERATION_CONFLICT;
-                  goto error;
-               }
-               rc = ossLockFile ( &pidFile, OSS_LOCK_EX ) ;
-               if ( SDB_OK != rc )
-               {
-                  CHAR oldPid[10] = {0};
-                  INT64 readSize = 0;
-                  ossRead( &pidFile, oldPid, (INT64)(sizeof(oldPid) - 1), &readSize);
-                  ossClose( pidFile );
-                  PD_LOG( PDERROR, "Lock pidfile(%s) failed, maybe the mountpoint(%s)"
-                          "has been mounted by other process(%s), rc: %d", 
-                          pidName, lobFuseOption.mountpoint, oldPid, rc ) ;
-                  ossPrintf("Lock pidfile(%s) failed, maybe the mountpoint(%s) has "
-                            "been mounted by other process(%s), exit."OSS_NEWLINE, 
-                            pidName, lobFuseOption.mountpoint, oldPid);
-                  rc = SDB_OPERATION_CONFLICT;
-                  goto error;
-               }
-               ossLockFile ( &pidFile, OSS_LOCK_UN ) ;
-               ossClose( pidFile );
-               engine::removePIDFile( pidName ) ;
-            }
-            
-            rc = engine::createPIDFile( pidName ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to create pid file(%s), rc: %d", pidName, rc ) ;
-               ossPrintf("Failed to create pid file(%s), exit."OSS_NEWLINE, pidName);
-               goto error;
-            }
-            isCreatePidFile = TRUE;
-            rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile ) ;
-            if ( SDB_OK != rc )
-            {
-               engine::removePIDFile( pidName ) ;
-               PD_LOG( PDERROR, "open pidfile(%s) failed, rc:%d.", pidName, rc ) ;
-               ossPrintf("open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-               rc = SDB_OPERATION_CONFLICT;
-               goto error;
-            }
-            rc = ossLockFile ( &pidFile, OSS_LOCK_EX ) ;
-            if ( SDB_OK != rc )
-            {
-               ossClose( pidFile );
-               engine::removePIDFile( pidName ) ;
-               PD_LOG( PDERROR, "Lock pidfile(%s) failed, rc:%d.", pidName, rc ) ;
-               ossPrintf("Lock pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-               rc = SDB_OPERATION_CONFLICT;
-               goto error;
-            }
-         }
-      }
    }
    else if(!lobFuseOption.is_help && !lobFuseOption.is_version)
    {
@@ -634,7 +671,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    if(SDB_OK != rc && !lobFuseOption.is_help && !lobFuseOption.is_version)
    {
       PD_LOG( PDERROR, "Failed to start fuse main, rc:%d.", rc ) ;
-      ossPrintf("Failed to start fuse main(error=%d), exit."OSS_NEWLINE, rc);
+      ossPrintf("Failed to start fuse main(rc=%d), exit."OSS_NEWLINE, rc);
    }
    else
    {
@@ -642,12 +679,12 @@ INT32 main(INT32 argc, CHAR *argv[])
       if(SDB_OK != rc2)
       {
          PD_LOG( PDWARNING, "Failed to start close conn pool, rc:%d.", rc2 ) ;
-         ossPrintf("Failed to save config (error=%d), exit."OSS_NEWLINE, rc2);
+         ossPrintf("Failed to save config (rc=%d), exit."OSS_NEWLINE, rc2);
       }
    }
-   
-   sfs.closeDataSource();
 
+done:
+   sfs.fini();
    if(isCreatePidFile)
    {
       rc2 = ossLockFile ( &pidFile, OSS_LOCK_UN ) ;
@@ -666,9 +703,6 @@ INT32 main(INT32 argc, CHAR *argv[])
          PD_LOG( PDWARNING, "Failed to remove pid file, rc:%d.", rc2 ) ;
       }
    } 
-   
-done:
-   sfs.fini();
    return rc;
 
 error:

@@ -9,6 +9,11 @@
 #include "pd.hpp"
 #include "msg.h"
 
+#include "sdbConnectionPool.hpp"
+
+using namespace bson;
+
+
 #define LISTEN_PORT  "11742"
 #define ROOT_ID 1
 
@@ -20,7 +25,7 @@
 #define SEQUOIADB_SERVICE_FULLCL SEQUOIADB_SERVICE_CS"."SEQUOIADB_SERVICE_CL 
 #define SEQUOIADB_SERVICE_INDEX "serviceIdx"
 
-//serviceinfo 表字段名
+//serviceinfo table
 #define SERVICE_NAME       "ServiceName"
 #define SERVICE_HOSTNAME   "HostName"
 #define SERVICE_PORT       "Port"
@@ -29,12 +34,12 @@
 
 #define SERVICE_NAME_MCS "MCS"
 
-//mountcollection 表字段名
+//mountcollection table
 #define FS_MOUNT_CL      "MountCL"
 #define FS_MOUNT_PATH    "MountPath"
 #define FS_MOUNT_ID      "MountId"
 
-//元数据表字段名
+//file and dir meta table
 #define SEQUOIAFS_NAME          "Name"
 #define SEQUOIAFS_MODE          "Mode"
 #define SEQUOIAFS_UID           "Uid"
@@ -50,21 +55,21 @@
 #define SEQUOIAFS_SYMLINK          "SymLink"
 
 
-//消息类型
-#define FS_REGISTER_REQ     10001                //SequoiaFS 发出的请求
-#define FS_REGISTER_RSP     MAKE_REPLY_TYPE(FS_REGISTER_REQ)    // MCS 发出的响应
-#define FS_RELEASELOCK      10007                //SequoiaFS 发出的放锁通知
-#define MS_RELEASELOCK      10009                //MCS 发出的放锁通知
+//MSG type
+#define FS_REGISTER_REQ     10001                //SequoiaFS send req
+#define FS_REGISTER_RSP     MAKE_REPLY_TYPE(FS_REGISTER_REQ)    // MCS send rsp
+#define FS_RELEASELOCK      10007                //SequoiaFS send notify to MCS
+#define MS_RELEASELOCK      10009                //MCS send notify to SquoiaFS
 
 namespace sequoiafs
 { 
    struct _mcsRegReq
    {
       MsgHeader header;
-      INT32 mountId;        // 挂载集合对应的ID
+      INT32 mountId;        // mountpoint id
       CHAR  mountIp[OSS_MAX_IP_ADDR + 1];
-      INT32 pathLen;        //mountpoint长度
-      CHAR mountPath[0];    //mountpoint内容
+      INT32 pathLen;        //mountpoint len
+      CHAR mountPath[0];    //mountpoint
    };
 
    struct _mcsRegRsp
@@ -75,10 +80,21 @@ namespace sequoiafs
    struct _mcsNotifyReq
    {
       MsgHeader header;
-      INT32 mountId;        // 挂在集合ID
+      INT32 mountId;        // mountpoint ID
       INT64 parentId;
-      INT32 nameLen;        //dirName长度
+      INT32 nameLen;        //dirName len
       CHAR dirName[0]; 
+   };
+
+   struct lobHandle
+   {
+      OID oid;
+      BOOLEAN isDirty;
+      BOOLEAN isCreate;
+      INT32 status;
+      INT32 flId;
+      INT64 parentId;
+      CHAR fileName[OSS_MAX_NAMESIZE + 1];
    };
 
    class _metaNode : public SDBObject
@@ -164,7 +180,7 @@ namespace sequoiafs
             _symLink[len] = '\0';
          }
 
-      private:
+      public:
          CHAR _name[OSS_MAX_NAMESIZE + 1];
          UINT32 _mode; //umode_t(u_shourt)
          UINT32 _uid;
@@ -179,7 +195,7 @@ namespace sequoiafs
    };
    typedef class _metaNode metaNode;
 
-   class _fileMeta : public virtual metaNode
+   class _fileMeta : public metaNode
    {
       public:
          _fileMeta()
@@ -205,12 +221,28 @@ namespace sequoiafs
                   ossStrlen(oid) : (sizeof(_lobOid) - 1);
             _lobOid[len] = '\0';
          }
-      private:
+
+         void operator=(const _fileMeta &m)
+         {
+            setName(m.name());
+            setMode(m.mode());
+            setUid(m.uid());
+            setGid(m.gid());
+            setNLink(m.nLink());
+            setPid(m.pid());
+            setLobOid(m.lobOid());
+            setSize(m.size());
+            setCtime(m.ctime());
+            setMtime(m.mtime());
+            setAtime(m.atime());
+            setSymLink(m.symLink());
+         }
+      public:
          CHAR _lobOid[30];
    };
    typedef class _fileMeta fileMeta;
 
-   class _dirMeta : public virtual metaNode
+   class _dirMeta : public metaNode
    {
       public:
          _dirMeta()
@@ -240,7 +272,7 @@ namespace sequoiafs
             setAtime(m.atime());
             setSymLink(m.symLink());
          }
-      private:
+      public:
          INT64 _id;
    };
    typedef class _dirMeta dirMeta;

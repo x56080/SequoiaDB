@@ -43,7 +43,7 @@ namespace sequoiafs
 {
    mcsMsghandler::mcsMsghandler(_pmdAsycSessionMgr *pSessionMgr,
                                 sequoiaFSMCS *mcs)
-                :_pmdAsyncMsgHandler(pSessionMgr)
+   :_pmdAsyncMsgHandler(pSessionMgr)
    {
       _mcs = mcs;
    }

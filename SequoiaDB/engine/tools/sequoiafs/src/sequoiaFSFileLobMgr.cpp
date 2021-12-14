@@ -47,10 +47,10 @@ using namespace sdbclient;
 using namespace engine;
 
 sequoiaFSFileLobMgr::sequoiaFSFileLobMgr()
-   :_fromPos(0),
-    _fsCacheQueue(this),
-    _hashBucket(this),
-    _cacheLoader(this)
+:_fromPos(0),
+ _fsCacheQueue(this),
+ _hashBucket(this),
+ _cacheLoader(this)
 {
    ossMemset(&(_fileLobs), 0, 4*FS_FILELOBS_NUMBER);
    ossMemset(&(_queueThreads), 0, 4*FS_QUEUE_THREAD_NUMBER);

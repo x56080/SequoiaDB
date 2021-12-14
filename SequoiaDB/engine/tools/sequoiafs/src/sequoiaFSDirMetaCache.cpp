@@ -147,8 +147,8 @@ error:
 }
 
 dirMetaCache::dirMetaCache(fsMetaCache* mCache)
-   :_dirList(),
-    _dirHashBucket(this)
+:_dirList(),
+ _dirHashBucket(this)
 {
    _mCache = mCache;
    _standalone = TRUE;

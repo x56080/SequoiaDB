@@ -48,10 +48,10 @@ using namespace sdbclient;
 namespace sequoiafs
 {
    fsRegister::fsRegister(fsMetaCache* metaCache)
-      :_metaCache(metaCache),
-       _agent(metaCache->getMsgHandler()),
-       _isRegistered(FALSE),
-       _running(FALSE)
+   :_metaCache(metaCache),
+    _agent(metaCache->getMsgHandler()),
+    _isRegistered(FALSE),
+    _running(FALSE)
    {
    }
    

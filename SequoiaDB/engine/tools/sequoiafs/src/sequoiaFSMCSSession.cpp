@@ -48,9 +48,9 @@ namespace sequoiafs
    END_OBJ_MSG_MAP()
    
    _mcsMsgSession::_mcsMsgSession(UINT64 sessionID)
-      :_pmdAsyncSession (sessionID),
-       _quit( FALSE ),
-       _timeout( 0 )
+   :_pmdAsyncSession (sessionID),
+    _quit(FALSE),
+    _timeout(0)
    {
    }
 

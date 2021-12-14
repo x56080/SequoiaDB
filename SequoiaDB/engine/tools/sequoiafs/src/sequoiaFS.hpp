@@ -40,7 +40,9 @@
 
 #define FUSE_USE_VERSION 26
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500
+#endif
 
 #include<iostream>
 #include<fstream>
@@ -59,28 +61,26 @@
 #include "utilParam.hpp"
 #include "ossIO.hpp"
 #include "pd.hpp"
-#include "pmdDef.hpp"
-
-#include "sequoiaFSOptionMgr.hpp"
-#include "sdbConnectionPoolComm.hpp"
-#include "sdbConnectionPool.hpp"
-#include "sequoiaFSFileLobMgr.hpp"
-#include "sequoiaFSFileLob.hpp"
-#include "sequoiaFSCommon.hpp"
-#include "sequoiaFSMetaCache.hpp"
-#include "sequoiaFSDao.hpp"
-
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include<netdb.h>
 #include<ifaddrs.h>
 #include<net/if.h>
 
+#include "sdbConnectionPool.hpp"
+
+#include "sequoiaFSOptionMgr.hpp"
+#include "sequoiaFSCommon.hpp"
+#include "sequoiaFSDao.hpp"
+
+#include "sequoiaFSFileCreatingMgr.hpp"
+#include "sequoiaFSFileLobMgr.hpp"
+#include "sequoiaFSFileLob.hpp"
+#include "sequoiaFSMetaCache.hpp"
+
 using std::string;
 using namespace sdbclient;
 using namespace bson;
-
-#define MAX_NODE_NAME_LEN 20
 
 namespace sequoiafs
 {
@@ -89,8 +89,9 @@ namespace sequoiafs
    public:
       sequoiaFS();
       ~sequoiaFS();
-      INT32 init(INT32 argc, CHAR **argv, vector<string> *options4fuse);
+      INT32 init();
       void fini();
+      INT32 buildDialogPathStartPD();
       
       void destroy(void *userdata);
       INT32 getattr(const CHAR *path, struct stat *statbuf);
@@ -198,12 +199,13 @@ namespace sequoiafs
         return _replsize;
       }
       void getSysInfo();
+      INT32 buildFileLobForFile(lobHandle* lh);
       
    private:
       INT32 _doSetDirNodeAttr(sdbCollection &cl,
-                             _dirMeta &dirNode);
+                              dirMeta &dirNode);
       INT32 _doSetFileNodeAttr(sdbCollection &cl,
-                             _fileMeta &fileNode);
+                              fileMeta &fileNode);
       INT32 _getAndUpdateID(sdbCollection *cl, CHAR* name, INT64 *sequenceId);
       INT32 _initMetaID(sdb *db);
       INT32 _initMountID(sdb *db);
@@ -228,9 +230,9 @@ namespace sequoiafs
       INT32 _replsize;
       vector<string> _coordHostPort;
       sequoiafsOptionMgr _optionMgr;
-      sequoiafsOptionMgr *optionMgr;
       sequoiaFSFileLobMgr _fileLobMgr;
       fsMetaCache        _metaCache;
+      fileCreatingMgr    _fileCreatingMgr;
 
       boost::thread *_thClean;
 

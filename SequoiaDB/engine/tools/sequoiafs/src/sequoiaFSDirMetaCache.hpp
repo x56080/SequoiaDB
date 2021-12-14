@@ -63,7 +63,6 @@ namespace sequoiafs
          
          void releaseAllLocalCache(BOOLEAN isReleseLock);
          INT32 releaseLocalDirCache(INT64 parentId, const CHAR* dirName);
-
          sequoiaFSMetaHashBucket* getMetaHashBucket(){return &_dirHashBucket;} 
          LRUList* getLRUList(){return &_dirList;}
 

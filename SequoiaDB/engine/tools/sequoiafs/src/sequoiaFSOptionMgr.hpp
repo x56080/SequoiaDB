@@ -71,6 +71,9 @@
 #define SDB_SEQUOIAFS_FORCE_MOUNT     "forcemount"
 #define SDB_SEQUOIAFS_PRE_READ        "prereadblock"
 #define SDB_SEQUOIAFS_STANDALONE      "standalone"
+#define SDB_SEQUOIAFS_CREATECACHE     "filecreatecache"
+#define SDB_SEQUOIAFS_CREATECACHESIZE "filecreatecachesize"
+#define SDB_SEQUOIAFS_CREATEPATH      "filecreatecachepath"
 #define SDB_SEQUOIAFS_ALLOWOTHER      "fuse_allow_other"
 #define SDB_SEQUOIAFS_BIGWRITES       "fuse_big_writes"
 #define SDB_SEQUOIAFS_MAXWRITE        "fuse_max_write"
@@ -85,6 +88,7 @@
 //#define SDB_SEQUOIAFS_CACHE_DEFAULT_SIZE 2
 #define SDB_SEQUOIAFS_DIR_CACHE_DEFAULT_SIZE  10000
 #define SDB_SEQUOIAFS_DATA_CACHE_DEFAULT_SIZE 2048
+#define SDB_SEQUOIAFS_CREAT_FILE_DEFAULT_SIZE 1024
 #define SDB_SEQUOIAFS_HOSTS_DEFAULT_VALUE "localhost:11810"
 #define SDB_SEQUOIAFS_USER_DEFAULT_NAME "sdbadmin"
 #define SDB_SEQUOIAFS_USER_DEFAULT_PASSWD "sdbadmin"
@@ -129,7 +133,10 @@ namespace sequoiafs
          const BOOLEAN getForceMount()const{return _forcemount;}
          const INT32 getPreReadBlock()const{return _prereadblock;}
          const BOOLEAN getStandAlone()const{return _standalone;}
-         CHAR *getDiaglogPath(){return _diagPath ;}
+         CHAR *getDiaglogPath(){return _diagPath;}
+         const BOOLEAN isfileCreateCache(){return _filecreatecache;}
+         const INT32 getfileCreateCacheSize(){return _filecreatecachesize;}
+         const CHAR *getCreateFilePath(){return _createfilePath;}
          INT32 parseCollection( const string collection, string *cs, string *cl ) ;
          INT32 parseAliasName();
 
@@ -160,6 +167,9 @@ namespace sequoiafs
          BOOLEAN _forcemount ;
          INT32 _prereadblock ;
          BOOLEAN _standalone;
+         BOOLEAN _filecreatecache;
+         INT32 _filecreatecachesize;
+         CHAR _createfilePath[OSS_MAX_PATHSIZE + 1] ;
          BOOLEAN _fuse_allow_other;
          BOOLEAN _fuse_big_writes;
          INT32 _fuse_max_write;

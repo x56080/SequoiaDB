@@ -704,6 +704,8 @@ sequoiaFSFiles = [
       "tools/sequoiafs/src/sequoiaFSRegister.cpp",
       "tools/sequoiafs/src/sequoiaFSSessionMgr.cpp",
       "tools/sequoiafs/src/sequoiaFSCacheLoader.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileCreateHashBucket.cpp",
+      "tools/sequoiafs/src/sequoiaFSFileCreatingMgr.cpp",
       "tools/sequoiafs/src/sequoiaFSSession.cpp"
     ]
 sequoiaMCSFiles = [

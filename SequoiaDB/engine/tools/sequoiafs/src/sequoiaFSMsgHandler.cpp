@@ -46,7 +46,7 @@ using namespace bson;
 namespace sequoiafs
 {
    fsMsghandler::fsMsghandler(fsMetaCache* metaCache)
-      :_metaCache(metaCache)
+   :_metaCache(metaCache)
    {
    }
 

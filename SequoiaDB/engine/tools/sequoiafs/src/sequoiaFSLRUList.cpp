@@ -40,12 +40,12 @@
 using namespace sequoiafs;
 
 LRUList::LRUList()
-   :_hotSize(0),
-    _coldSize(0),
-    _hotHead(NULL),
-    _hotTail(NULL),
-    _coldHead(NULL),
-    _coldTail(NULL)
+:_hotSize(0),
+ _coldSize(0),
+ _hotHead(NULL),
+ _hotTail(NULL),
+ _coldHead(NULL),
+ _coldTail(NULL)
 {
 }
 

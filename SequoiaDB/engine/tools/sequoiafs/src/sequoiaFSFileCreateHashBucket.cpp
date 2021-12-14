@@ -35,74 +35,54 @@
 
 *******************************************************************************/
 
-#include "sequoiaFSMetaHashBucket.hpp"
+#include "sequoiaFSFileCreateHashBucket.hpp"
+#include "sequoiaFSFileCreatingMgr.hpp"
 
 using namespace sequoiafs; 
 
-INT32 sequoiaFSMetaHashBucket::hashDirPid(INT64 parentId, const CHAR* dirName)
+INT32 fileCreateHashBucket::hash(INT64 parentId, const CHAR* fileName)
 {
    UINT32 hashKey = 0;
-   //struct dirNameId name(dirName, parentId);
-   CHAR _hashStr[OSS_MAX_NAMESIZE + 1];
-   ossMemset(_hashStr, 0, OSS_MAX_NAMESIZE + 1);
-   ossStrncpy(_hashStr, dirName, OSS_MAX_NAMESIZE);
+   CHAR hashStr[OSS_MAX_NAMESIZE + 1];
+   //ossMemset(hashStr, 0, OSS_MAX_NAMESIZE + 1);
+   ossStrncpy(hashStr, fileName, OSS_MAX_NAMESIZE);
+   hashStr[OSS_MAX_NAMESIZE] = '\0';
 
-   //hashKey = ossHash((CHAR *)&name, sizeof(dirNameId), 5); //ossHash(char ,size ,)
-
-   hashKey = ossHash( ( const BYTE * )_hashStr, OSS_MAX_NAMESIZE,
-                      ( const BYTE * )( &parentId ),
-                      sizeof( parentId ) ) ;
+   hashKey = ossHash((const BYTE *)hashStr, ossStrlen(hashStr),
+                     (const BYTE *)(&parentId), sizeof(parentId));
    
    return hashKey/_size;
 }
 
-void sequoiaFSMetaHashBucket::lockBucketR(UINT32 key)
+void fileCreateHashBucket::lockBucketR(UINT32 key)
 {
    _buckets[ key % _size ]._hashMutex.get_shared();
 }
 
-void sequoiaFSMetaHashBucket::unLockBucketR(UINT32 key)
+void fileCreateHashBucket::unLockBucketR(UINT32 key)
 {
-   _buckets[ key % _size ]._hashMutex.release_shared();
+   _buckets[ key % _size ]._hashMutex.release_shared(); 
 }
 
-void sequoiaFSMetaHashBucket::lockBucketW(UINT32 key)
+void fileCreateHashBucket::lockBucketW(UINT32 key)
 {
    _buckets[ key % _size ]._hashMutex.get();
 }
 
-void sequoiaFSMetaHashBucket::unLockBucketW(UINT32 key)
+void fileCreateHashBucket::unLockBucketW(UINT32 key)
 {
    _buckets[ key % _size ]._hashMutex.release(); 
 }
 
-BOOLEAN sequoiaFSMetaHashBucket::check(UINT32 key, dirMetaNode* node)
+createFileNode* fileCreateHashBucket::get(UINT32 key, INT64 parentId, const CHAR* name)
 {
-   BOOLEAN find = FALSE;
-   
-   dirMetaNode* cur = _buckets[ key % _size ].hashHead;
-   while ( cur )
-   {
-      if(cur == node)
-      {
-         find = TRUE;
-         break;
-      }
-      cur = cur->bucketNext;
-   }
-
-   return find;
-}
-
-dirMetaNode* sequoiaFSMetaHashBucket::get(UINT32 key, const CHAR* name, INT64 pid)
-{
-   dirMetaNode* cur = _buckets[ key % _size ].hashHead;
+   createFileNode* cur = _buckets[ key % _size ].hashHead;
    INT32 visit = 0;
 
    while ( cur )
    {
       visit++;
-      if(cur->meta.pid() == pid 
+      if(cur->meta.pid() == parentId
             && !ossStrncmp(cur->meta.name(), name, OSS_MAX_NAMESIZE))
       {
          break;
@@ -111,20 +91,18 @@ dirMetaNode* sequoiaFSMetaHashBucket::get(UINT32 key, const CHAR* name, INT64 pi
       cur = cur->bucketNext;
    }
 
-  // timesMutex.get();
    _getCount++;
    if(visit > 1)
    {
       _getConflictCount++;
    }
-  // timesMutex.release();
 
    return cur;
 }
 
-void sequoiaFSMetaHashBucket::add(UINT32 key, dirMetaNode* node )
+void fileCreateHashBucket::add(UINT32 key, createFileNode* node )
 {
-   dirMetaNode* cur = NULL;
+   createFileNode* cur = NULL;
    UINT32 hashKey = key % _size;
 
    PD_LOG(PDDEBUG, "hashbucket add(), key:%d, node:%d", key, node);
@@ -145,7 +123,7 @@ void sequoiaFSMetaHashBucket::add(UINT32 key, dirMetaNode* node )
          if(cur->meta.pid() == node->meta.pid()
                && !ossStrncmp(cur->meta.name(), node->meta.name(), OSS_MAX_NAMESIZE))
          {
-            SDB_ASSERT( FALSE, "dup node" ) ;
+            SDB_ASSERT(FALSE, "dup node");
          }
 
          cur = cur->bucketNext;  
@@ -163,17 +141,19 @@ done:
    return;
 }
 
-dirMetaNode* sequoiaFSMetaHashBucket::del(UINT32 key, dirMetaNode* node )
+createFileNode* fileCreateHashBucket::del(UINT32 key, INT64 parentId, const CHAR* name)
 {
-   PD_LOG(PDDEBUG, "hashbucket del(), key:%d, node:%d", key, node);
-   dirMetaNode* cur = _buckets[ key % _size ].hashHead;
+   UINT32 hashKey = key % _size;
+   createFileNode* cur = _buckets[ hashKey ].hashHead;
    INT32 visit = 0;
+
+   PD_LOG(PDDEBUG, "hashbucket del(), key:%d, parentId:%d, name:%s", key, parentId, name);
 
    while ( cur)
    {
       visit++;
-      if(cur->meta.pid() == node->meta.pid() 
-            && !ossStrncmp(cur->meta.name(), node->meta.name(), OSS_MAX_NAMESIZE))
+      if(cur->meta.pid() == parentId 
+            && !ossStrncmp(cur->meta.name(), name, OSS_MAX_NAMESIZE))
       {
          break;
       }
@@ -183,21 +163,21 @@ dirMetaNode* sequoiaFSMetaHashBucket::del(UINT32 key, dirMetaNode* node )
 
    if(NULL == cur)
    {
-      PD_LOG(PDERROR, "bucket del null, key:%d, node:%d", key, node);
+      PD_LOG(PDDEBUG, "bucket del null, key:%d, parentId:%d, name:%s", 
+                       key, parentId, name);
       goto done;
-      //SDB_ASSERT( FALSE, "node is null" ) ;
    }
       
-   if(cur == _buckets[ key % _size ].hashHead)
+   if(cur == _buckets[ hashKey ].hashHead)
    {
       if(cur->bucketNext)
       {
          cur->bucketNext->bucketPre = NULL;
-         _buckets[ key % _size ].hashHead = cur->bucketNext;
+         _buckets[ hashKey ].hashHead = cur->bucketNext;
       }
       else
       {
-         _buckets[ key % _size ].hashHead = NULL;
+         _buckets[ hashKey ].hashHead = NULL;
       }
    }
    else
@@ -215,16 +195,54 @@ dirMetaNode* sequoiaFSMetaHashBucket::del(UINT32 key, dirMetaNode* node )
    cur->bucketPre = NULL;
    cur->bucketNext = NULL;
 
-  // timesMutex.get();
    _delCount++;
    if(visit > 1)
    {
       _delConflictCount++;
    }
-  // timesMutex.release();
   
 done:
    return cur;
+}
+
+void fileCreateHashBucket::waitBucketClean()
+{
+   BOOLEAN isFind = TRUE;
+   
+   //add all node to upload queue
+   while(isFind)
+   {
+      isFind = FALSE;
+      for(UINT32 hashKey = 0; hashKey < _size; hashKey++)
+      {
+         lockBucketW(hashKey);
+
+         createFileNode *cur = _buckets[hashKey].hashHead;
+         while(cur != NULL)
+         {
+            isFind = TRUE;
+            if(cur->handle != NULL)
+            {
+               CHAR fileName[OSS_MAX_NAMESIZE+1] = {0};
+               ossStrncpy(fileName, cur->meta.name(), OSS_MAX_NAMESIZE);
+               if(cur->handle->status != CREATE_STATUS_INDISK)
+               {
+                  if(SDB_OK == _createMgr->writeTmpFile(cur))
+                  {
+                     cur->handle->status = CREATE_STATUS_INDISK;
+                  }
+               }
+               if(SDB_OK == _createMgr->addTask(cur->meta.pid(), fileName))
+               {
+                  cur->handle = NULL;
+               }
+            }
+            cur = cur->bucketNext;
+         }
+         
+         unLockBucketW(hashKey); 
+      }
+   }
 }
 
 
