@@ -172,7 +172,7 @@ public class Fulltext15797 extends FullTestBase {
                 "yyyy-MM-dd HH:mm:ss.S" );
 
         @ExecuteOrder(step = 1, desc = "全文检索全部记录")
-        public void deleteRecord() {
+        public void queryRecord() {
             DBCursor cursor = null;
             try {
                 System.out.println( this.getClass().getName().toString()
@@ -191,9 +191,10 @@ public class Fulltext15797 extends FullTestBase {
                 // 集合被删除报-23
                 // 集合正在被删除报-248
                 // 全文索引在ES端还没创建时报-6、-52
+                // 查询时集合空间被删除报-36
                 if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
                         && e.getErrorCode() != -6 && e.getErrorCode() != -52
-                        && e.getErrorCode() != -10 ) {
+                        && e.getErrorCode() != -10 && e.getErrorCode() != -36) {
                     e.printStackTrace();
                     Assert.fail( e.getMessage() );
                 }
