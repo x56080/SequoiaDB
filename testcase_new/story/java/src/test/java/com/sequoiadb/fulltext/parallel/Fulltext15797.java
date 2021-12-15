@@ -24,9 +24,13 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @FileName: seqDB-15797:集合中存在全文索引，增删改记录与删除集合空间并发
- * @Author zhaoyu
- * @Date 2019-05-10
+ * @description seqDB-15797:集合中存在全文索引，增删改记录与删除集合空间并发
+ * @author zhaoyu
+ * @createDate 2019.05.10
+ * @updateUser ZhangYanan
+ * @updateDate 2021.12.14
+ * @updateRemark
+ * @version v1.0
  */
 public class Fulltext15797 extends FullTestBase {
     private String csName = "cs15797";
@@ -99,9 +103,9 @@ public class Fulltext15797 extends FullTestBase {
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:" + df.format( new Date() ) );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             } finally {
                 db.close();
@@ -126,9 +130,9 @@ public class Fulltext15797 extends FullTestBase {
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:" + df.format( new Date() ) );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             } finally {
                 db.close();
@@ -156,9 +160,9 @@ public class Fulltext15797 extends FullTestBase {
                 System.out.println( this.getClass().getName().toString()
                         + " stop at:" + df.format( new Date() ) );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             } finally {
                 db.close();
@@ -194,9 +198,9 @@ public class Fulltext15797 extends FullTestBase {
                 // 查询时集合空间被删除报-36
                 if ( e.getErrorCode() != -23 && e.getErrorCode() != -248
                         && e.getErrorCode() != -6 && e.getErrorCode() != -52
-                        && e.getErrorCode() != -10 && e.getErrorCode() != -36) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                        && e.getErrorCode() != -10 && e.getErrorCode() != -36
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             } finally {
                 db.closeAllCursors();
@@ -231,8 +235,7 @@ public class Fulltext15797 extends FullTestBase {
                         + " stop at:" + df.format( new Date() ) );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                    throw e;
                 }
                 saveResult( e.getErrorCode(), e );
             } finally {
@@ -241,7 +244,7 @@ public class Fulltext15797 extends FullTestBase {
         }
 
         @ExecuteOrder(step = 2, desc = "结果校验")
-        public void checkResult() {
+        public void checkResult() throws Exception {
             Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             try {
                 // 如果集合未删除成功，那么校验集合中主备节点一致性,否则固定集合空间删除成功，ES端索引删除成功
@@ -258,8 +261,7 @@ public class Fulltext15797 extends FullTestBase {
                 }
 
             } catch ( Exception e ) {
-                e.printStackTrace();
-                Assert.fail( e.getMessage() );
+                throw e;
             } finally {
                 db.close();
             }
