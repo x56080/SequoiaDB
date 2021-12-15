@@ -207,7 +207,8 @@ utilFiles = [
       "util/utilSectionMgr.cpp",
       "util/utilCipher.c",
       "util/utilBSON.cpp",
-      "util/utilAuthSCRAMSHA.cpp"
+      "util/utilAuthSCRAMSHA.cpp",
+      "util/utilCRC.cpp"
       ]
 
 rtnFiles = [

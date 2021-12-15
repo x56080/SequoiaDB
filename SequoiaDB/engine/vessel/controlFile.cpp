@@ -36,7 +36,7 @@
 #include "vessel/controlFile.h"
 #include "pdTrace.hpp"
 #include "utilStr.hpp"
-#include "xxHashInc.h"
+#include "utilCRC.hpp"
 
 namespace engine
 {
@@ -56,7 +56,7 @@ namespace vessel
       SDB_ASSERT(NULL != head, "can not be null");
       const CHAR *begin = (const CHAR *)head + 8;
       UINT32 size = sizeof(controlFile::head) - 8 + head->contentLen;
-      return XXH3_64bits(begin, size);
+      return utilCRC32(begin, size);
    }
 
    INT32 validateBuf(const void *buf)
@@ -80,7 +80,6 @@ namespace vessel
          rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
-      
       if (h->checksum != createChecksum(h))
       {
          rc = SDB_VESSEL_PAGE_CRASHED;
