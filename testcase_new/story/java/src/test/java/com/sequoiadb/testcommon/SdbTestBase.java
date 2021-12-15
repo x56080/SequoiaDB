@@ -73,6 +73,7 @@ public class SdbTestBase {
     public static final String MVCCON = "mvccon";
     public static final String GLOBTRANSON = "globtranson";
     public static final String TRANSREPLSIZE = "transreplsize";
+    public static final String TRANSMAXLOCKMUN = "transmaxlocknum";
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -158,6 +159,7 @@ public class SdbTestBase {
         group2Conf.get( RR ).put( MVCCON, true );
         group2Conf.get( RR ).put( GLOBTRANSON, true );
         group2Conf.get( RR ).put( TRANSREPLSIZE, transReplsize );
+        group2Conf.get( RR ).put( TRANSMAXLOCKMUN, -1 );
 
         group2Conf.put( RRAUTO, new BasicBSONObject() );
         group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );

@@ -39,7 +39,7 @@ public class Transaction20464 extends SdbTestBase {
         TransUtils.commitTransaction( sdb );
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() {
         Sequoiadb db1 = null;
         Sequoiadb db2 = null;
