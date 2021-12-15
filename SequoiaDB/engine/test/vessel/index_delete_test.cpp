@@ -195,7 +195,7 @@ TEST_F(index_delete_test, base_delete_test1)
    delete_test1(INDEX_TYPE_LSM);
 }
 
-TEST_F(index_delete_test, DISABLED_base_delete_test2)
+TEST_F(index_delete_test, base_delete_test2)
 {
    delete_test1(INDEX_TYPE_BTREE);
 }
@@ -386,7 +386,7 @@ TEST_F(index_delete_test, base_delete_test3)
    delete_test2(INDEX_TYPE_LSM);
 }
 
-TEST_F(index_delete_test, DISABLED_base_delete_test4)
+TEST_F(index_delete_test, base_delete_test4)
 {
    delete_test2(INDEX_TYPE_BTREE);
 }
@@ -525,7 +525,7 @@ TEST_F(index_delete_test, base_delete_test5)
    partial_delete(INDEX_TYPE_LSM);
 }
 
-TEST_F(index_delete_test, DISABLED_base_delete_test6)
+TEST_F(index_delete_test, base_delete_test6)
 {
    partial_delete(INDEX_TYPE_BTREE);
 }
@@ -676,7 +676,7 @@ TEST_F(index_delete_test, base_backward_delete_test1)
    backward_delete(INDEX_TYPE_LSM);
 }
 
-TEST_F(index_delete_test, DISABLED_base_backward_delete_test2)
+TEST_F(index_delete_test, base_backward_delete_test2)
 {
    backward_delete(INDEX_TYPE_BTREE);
 }

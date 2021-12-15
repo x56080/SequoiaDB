@@ -2987,14 +2987,15 @@ namespace vessel
          rc = SDB_OUT_OF_BOUND;
          goto error;
       }
-      else if (getReadableSlot(pos)->isKeyInExtPage())
-      {
-         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
-         goto error;
-      }
       else if (INVALID_PAGE_ID != getChild(pos))
       {
          PD_LOG(PDERROR, "child at [%d] is valid", pos);
+         rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
+         goto error;
+      }
+      else if (pos < getItemCount() &&
+               (getReadableSlot(pos)->isKeyInExtPage()))
+      {
          rc = SDB_VESSEL_OPERATOION_NOT_PERMITTED;
          goto error;
       }
