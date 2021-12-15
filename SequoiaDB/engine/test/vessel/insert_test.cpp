@@ -939,6 +939,40 @@ TEST_F(insert_test, test8_2_2)
    insert_test_unique_index(INDEX_TYPE_BTREE);
 }
 
+void death_thread_insert(vesselImpl *db,
+                         const CHAR *csName,
+                         const CHAR *clName,
+                         UINT32 count,
+                         UINT32 i,
+                         atomic_int *counter)
+{
+   test_executor session;
+   session._id = i;
+   CHAR pad[1024] = {0};
+   bson::BSONObjBuilder builder;
+   builder.append("a", 1);
+   builder.append("b", 2);
+   builder.append("c", pad, 1024);
+   bson::BSONObj obj = builder.obj();
+   slice record;
+   record.reset(obj.objsize(), obj.objdata());
+
+   collectionHandler handler;
+   INT32 rc = db->openCollection(&session, csName, clName, openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      rc = handler.insert(&session, record, 
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+      counter->fetch_add(1, std::memory_order_relaxed);
+   }
+   handler.close();
+}
+
 TEST_F(insert_test, DISABLED_death_test_1)
 {
    INT32 rc = SDB_OK;
@@ -949,12 +983,13 @@ TEST_F(insert_test, DISABLED_death_test_1)
 
    options.path.dataPath = DATA_PATH;
    options.path.lsmPath = LSM_PATH;
-   options.cacheOptions.freelist.maxChunkCount = 64;
    collectionHandler handler;
-   UINT32 count = 60000000;
-   static const UINT32 threadCount = 6;
+
+   constexpr UINT32 threadCount = 8;
    std::thread threads[threadCount];
-   UINT32 countPerThread = count / threadCount;
+   atomic_int counters[threadCount] = {};
+   UINT32 countPerThread = 10000000;
+   UINT32 count = 0;
 
    createCSOptions csOptions;
 
@@ -971,9 +1006,24 @@ TEST_F(insert_test, DISABLED_death_test_1)
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
-      threads[i] = std::move(std::thread(thread_insert, &db,
-                                         "foo", "bar1", countPerThread));
+      threads[i] = std::move(std::thread(death_thread_insert, &db,
+                                         "foo", "bar1", countPerThread,
+                                         i, counters+i));
    }
+
+   do
+   {
+      ossSleep(1000);
+      UINT32 countPerSecond = 0;
+      for (UINT32 i = 0; i < threadCount; ++i)
+      {
+         countPerSecond += counters[i].exchange(0, std::memory_order_relaxed);
+      }
+
+      cout << "total count per second:" << countPerSecond << endl;
+      count += countPerSecond;
+   } while (count < (countPerThread * threadCount));
+   
 
    for (UINT32 i = 0; i < threadCount; ++i)
    {
