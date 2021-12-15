@@ -438,9 +438,9 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
       rc = ossOpen ( pidName, OSS_READONLY, OSS_RU|OSS_RG, pidFile);
       if(SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "Open pidfile(%s) failed, rc=%d", pidName, rc);
-         ossPrintf("Open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-         rc = SDB_OPERATION_CONFLICT;
+         PD_LOG( PDERROR, "Open pid file(%s) failed, rc=%d", pidName, rc);
+         ossPrintf("Open pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+                    pidName, rc);
          goto error;
       }
       //check if the pid file has been locked
@@ -451,13 +451,12 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
          INT64 readSize = 0;
          ossRead( &pidFile, oldPid, (INT64)(sizeof(oldPid) - 1), &readSize);
          ossClose( pidFile );
-         PD_LOG( PDERROR, "Lock pidfile(%s) failed, maybe the pidfile"
+         PD_LOG( PDERROR, "Lock pid file(%s) failed, maybe the pid file "
                           "has been locked by other process(%s), rc=%d", 
                            pidName, oldPid, rc);
-         ossPrintf("Lock pidfile(%s) failed, maybe the pidfile has "
+         ossPrintf("Lock pid file(%s) failed, maybe the pid file has "
                    "been locked by other process(%s), exit."OSS_NEWLINE, 
                     pidName, oldPid);
-         rc = SDB_OPERATION_CONFLICT;
          goto error;
       }
       ossLockFile(&pidFile, OSS_LOCK_UN);
@@ -469,7 +468,8 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
    if(SDB_OK != rc)
    {
       PD_LOG( PDERROR, "Failed to create pid file(%s), rc=%d", pidName, rc) ;
-      ossPrintf("Failed to create pid file(%s), exit."OSS_NEWLINE, pidName);
+      ossPrintf("Failed to create pid file(%s), rc=%d. exit."OSS_NEWLINE, 
+                 pidName, rc);
       goto error;
    }
 
@@ -477,9 +477,9 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
    if(SDB_OK != rc)
    {
       engine::removePIDFile( pidName ) ;
-      PD_LOG( PDERROR, "open pidfile(%s) failed, rc=%d.", pidName, rc);
-      ossPrintf("open pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-      rc = SDB_OPERATION_CONFLICT;
+      PD_LOG( PDERROR, "Open pid file(%s) failed, rc=%d.", pidName, rc);
+      ossPrintf("Open pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+                 pidName, rc);
       goto error;
    }
    rc = ossLockFile(&pidFile, OSS_LOCK_EX);
@@ -487,9 +487,9 @@ INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
    {
       ossClose( pidFile );
       engine::removePIDFile(pidName);
-      PD_LOG( PDERROR, "Lock pidfile(%s) failed, rc=%d.", pidName, rc);
-      ossPrintf("Lock pidfile(%s) failed, exit."OSS_NEWLINE, pidName);
-      rc = SDB_OPERATION_CONFLICT;
+      PD_LOG( PDERROR, "Lock pid file(%s) failed, rc=%d.", pidName, rc);
+      ossPrintf("Lock pid file(%s) failed, rc=%d. exit."OSS_NEWLINE, 
+                 pidName, rc);
       goto error;
    }
       
