@@ -427,19 +427,9 @@ error:
    goto done;
 }
 
-INT32 createAndLockPidFile(OSSFILE &pidFile)
+INT32 createAndLockPidFile(CHAR* pidName, OSSFILE &pidFile)
 {
    INT32 rc = SDB_OK;
-   CHAR pidName[OSS_MAX_PATHSIZE + 1];
-
-   rc = engine::utilBuildFullPath(sfs.getOptionMgr()->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
-                                   OSS_MAX_PATHSIZE, pidName);
-   if(SDB_OK != rc)
-   {
-      PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc);
-      ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
-      goto error;
-   }
 
    //check if pid file is exist 
    rc = ossAccess( pidName, OSS_MODE_READ);
@@ -518,7 +508,7 @@ INT32 main(INT32 argc, CHAR *argv[])
    vector<string> options4fuse;
    string option;
    struct sfsOptionInfo lobFuseOption = {0};
-   CHAR pidName[OSS_MAX_PATHSIZE + 1];
+   CHAR pidName[OSS_MAX_PATHSIZE + 1] = {0};
    OSSFILE pidFile ;
    BOOLEAN isCreatePidFile = FALSE;
    _ossCmdRunner runner ;
@@ -546,7 +536,16 @@ INT32 main(INT32 argc, CHAR *argv[])
       //create pid file
       if (ossStrlen((sfs.getOptionMgr())->getDiaglogPath()))
       {  
-         rc = createAndLockPidFile(pidFile);
+         rc = engine::utilBuildFullPath(sfs.getOptionMgr()->getDiaglogPath(), SDB_SEQUOIAFS_PID_FILE_NAME,
+                                   OSS_MAX_PATHSIZE, pidName);
+         if(SDB_OK != rc)
+         {
+            PD_LOG( PDERROR, "get pidName failed, rc: %d",  rc);
+            ossPrintf("get pidName failed, rc: %d."OSS_NEWLINE, rc);
+            goto error;
+         }
+   
+         rc = createAndLockPidFile(pidName, pidFile);
          if(SDB_OK != rc)
          {
             PD_LOG( PDERROR, "create and lock pid file failed, rc: %d", rc);
