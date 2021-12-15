@@ -1045,7 +1045,8 @@ vesselTestFiles = [
       "test/vessel/index_write_test.cpp",
       "test/vessel/lc_freelist_test.cpp",
       "test/vessel/update_test.cpp",
-      "test/vessel/dml_delete_test.cpp"
+      "test/vessel/dml_delete_test.cpp",
+      "test/vessel/index_delete_test.cpp"
 ]
 
 vesselUnitTestCommonFiles = [
@@ -1273,14 +1274,6 @@ if hasTestcase:
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
-   vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2", "vessel_unit_test_common"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-
-
-   benchmark_test = env.Program("benchmark_test", benchmarkTestFiles,
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2", "vessel_unit_test_common"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
 if hasTool:
@@ -1293,9 +1286,14 @@ if hasTool:
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Vessel
-if hasVessel and not hasTestcase:
+if hasVessel or hasTestcase:
    vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel","zstd","bzip2", "vessel_unit_test_common"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+
+
+   benchmark_test = env.Program("benchmark_test", benchmarkTestFiles,
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "rocksdb", "vessel", "zstd","bzip2", "vessel_unit_test_common"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Install testcases
@@ -1334,13 +1332,13 @@ if hasTestcase:
 #   env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
    env.Install( '#/tests', selectorTest )
-   env.Install( '#/tests', vesselTest )
-   env.Install( '#/tests', benchmark_test )
+
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )
    env.Install( '#/bin', sdbdmsdump )
 
 # Install vessel
-if hasVessel and not hasTestcase:
+if hasVessel or hasTestcase:
    env.Install( '#/tests', vesselTest )
+   env.Install( '#/tests', benchmark_test )

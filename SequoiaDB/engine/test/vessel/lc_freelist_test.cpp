@@ -61,7 +61,7 @@ void allocate_release_test2(lcFreeList *fl, UINT32 count)
 {
    freeListPage *pages = SDB_OSS_NEW freeListPage[count];
    UINT64 start = ossGetCurrentMilliseconds();
-   for (INT32 i = 0; i < count; i++)
+   for (UINT32 i = 0; i < count; i++)
    {
       ASSERT_EQ(fl->allocate(pages[i]), 0);
    }
@@ -188,19 +188,19 @@ TEST(freeListTest, performanceTest1)
 
    fl.init(DMS_PAGE_SIZE64K, options);
    UINT64 start = ossGetCurrentMilliseconds();
-   for (INT32 i = 0; i < pageNum; i++)
+   for (UINT32 i = 0; i < pageNum; i++)
    {
       ASSERT_EQ(fl.allocate(page[i]), 0);
    }
-   for (INT32 i = 0; i < pageNum; i++)
+   for (UINT32 i = 0; i < pageNum; i++)
    {
       fl.releasePage(page[i]);
    }
-   for (INT32 i = 0; i < pageNum; i++)
+   for (UINT32 i = 0; i < pageNum; i++)
    {
       ASSERT_EQ(fl.allocate(page[i]), 0);
    }
-   for (INT32 i = 0; i < pageNum; i++)
+   for (UINT32 i = 0; i < pageNum; i++)
    {
       fl.releasePage(page[i]);
    }

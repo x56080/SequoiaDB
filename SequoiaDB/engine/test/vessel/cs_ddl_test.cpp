@@ -185,7 +185,7 @@ Output: 无
 Expected Result: 
    单个CS成功创建 且重启db后可通过校验
 */
-TEST_F(cs_ddl_test, _base_createCS_2)
+TEST_F(cs_ddl_test, base_createCS_2)
 {
    INT32 rc = SDB_OK;
    outerResource resource = test_outer_resource::getResource();
@@ -904,63 +904,63 @@ TEST_F(cs_ddl_test, death_createCS_1)
    db.close(&session, closeDBOptions());
 }
 
-// /*
-// Name: death_createCS_2
-// Description: 
-//    多线程创建最大数量CS
-// Input: 无
-// Output: 无
-// Expected Result: 
-// */
-// TEST_F(cs_ddl_test, death_createCS_2)
-// {
-//    INT32 rc = SDB_OK;
-//    vesselImpl db;
-//    outerResource resource = test_outer_resource::getResource();
-//    test_executor session;
-//    openDBOptions options;
-//    createCSOptions csOptions;
-//    options.path.dataPath = DATA_PATH;
-//    options.path.indexPath = DATA_PATH;
-//    options.path.lobMetaPath = DATA_PATH;
-//    options.path.lobPath = DATA_PATH;
-//    options.path.lsmPath = LSM_PATH;
+/*
+Name: death_createCS_2
+Description: 
+   多线程创建最大数量CS
+Input: 无
+Output: 无
+Expected Result: 
+*/
+TEST_F(cs_ddl_test, DISABLED_death_createCS_2)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+   createCSOptions csOptions;
+   options.path.dataPath = DATA_PATH;
+   options.path.indexPath = DATA_PATH;
+   options.path.lobMetaPath = DATA_PATH;
+   options.path.lobPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
 
-//    UINT32 createNum = MAX_SU_COUNT;
-//    UINT32 count = 0;
-//    atomic<UINT32> createdCount(0);
+   UINT32 createNum = MAX_SU_COUNT;
+   UINT32 count = 0;
+   atomic<UINT32> createdCount(0);
 
-//    UINT32 threadCount = 4;
-//    thread threads[threadCount];
+   UINT32 threadCount = 4;
+   thread threads[threadCount];
    
-//    rc = db.open(&session, &resource, options);
-//    ASSERT_EQ(SDB_OK, rc);
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
    
-//    for (UINT32 i = 0; i < threadCount; ++i)
-//    {
-//       threads[i] = std::move(std::thread(thread_create, 
-//                                          &db, ref(createdCount), createNum));
-//    }
-//    for (UINT32 i = 0; i < threadCount; ++i)
-//    {
-//       threads[i].join();
-//    }
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i] = std::move(std::thread(thread_create, 
+                                         &db, ref(createdCount), createNum));
+   }
+   for (UINT32 i = 0; i < threadCount; ++i)
+   {
+      threads[i].join();
+   }
 
-//    if (MAX_SU_COUNT == createdCount)
-//    {
-//       CHAR buf[6] = {0};
-//       ossSnprintf(buf, 6, "%d", MAX_SU_COUNT);
-//       rc = db.createCollectionSpace(&session, buf, MAX_SU_COUNT, csOptions);
-//       ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
-//    }
-//    db.close(&session, closeDBOptions());
+   if (MAX_SU_COUNT == createdCount)
+   {
+      CHAR buf[6] = {0};
+      ossSnprintf(buf, 6, "%d", MAX_SU_COUNT);
+      rc = db.createCollectionSpace(&session, buf, MAX_SU_COUNT, csOptions);
+      ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
+   }
+   db.close(&session, closeDBOptions());
 
-//    rc = db.open(&session, &resource, options);
-//    ASSERT_EQ(SDB_OK, rc);
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
 
-//    rc = db.getCollectionSpaceCount(&session, count);
-//    ASSERT_EQ(SDB_OK, rc);
-//    ASSERT_EQ(count, createdCount);
+   rc = db.getCollectionSpaceCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, createdCount);
 
-//    db.close(&session, closeDBOptions());
-// }
+   db.close(&session, closeDBOptions());
+}
