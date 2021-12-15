@@ -151,7 +151,7 @@ namespace vessel
          INT32 extendFileAndMMap(UINT32 len, ossValuePtr *ptr);
 
          INT32 validateHead(const void *head, const vesselFileName &fn)const;
-         INT32 createChecksum(ossValuePtr headPtr, UINT32 &checksum)const;
+         UINT32 createChecksum(ossValuePtr headPtr)const;
 
       private:
          OSS_INLINE UINT32 getMMapSegmentID(UINT32 dataSegmentID)const

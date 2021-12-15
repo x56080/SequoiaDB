@@ -327,7 +327,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(fn.isValid(), "must be valid");
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
-      UINT32 checksum = 0;
       ossValuePtr headPtr = 0;
       UINT32 createFlags = OSS_READWRITE|OSS_EXCLUSIVE;
       const CHAR *fileName = NULL;
@@ -404,13 +403,7 @@ namespace vessel
       }
 
       /// create checksum
-      rc = createChecksum(headPtr, checksum);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create checksum");
-         goto error;
-      }
-      ((storageFileHead *)headPtr)->headChecksum = checksum;
+      ((storageFileHead *)headPtr)->headChecksum =  createChecksum(headPtr);
 
       /// do not flush head if create as tmp one.
       if (!options.createAsTmpFile)
@@ -848,13 +841,7 @@ namespace vessel
          goto error;
       }
 
-      rc = createChecksum((ossValuePtr)head, checksum);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create checksum of head:%d", rc);
-         goto error;
-      }
-
+      checksum = createChecksum((ossValuePtr)head);
       if (suHead->headChecksum != checksum)
       {
          PD_LOG(PDERROR, "invalid checksum, in file:%d, current:%d",
@@ -923,11 +910,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageFile::createChecksum(ossValuePtr headPtr, UINT32 &checksum)const
+   UINT32 storageFile::createChecksum(ossValuePtr headPtr)const
    {
       SDB_ASSERT(0 != headPtr, "can not be null");
       const void *buf = (const void *)((ossValuePtr)headPtr + 8); /// skip some fields in head.
-      return utilCRC32(buf, SOTRAGE_FILE_TOTAL_HEAD_SIZE - 8, checksum);
+      return utilCRC32(buf, SOTRAGE_FILE_TOTAL_HEAD_SIZE - 8);
    }
 
    INT32 storageFile::removeShadowSuffix()
@@ -1011,7 +998,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       ossValuePtr ptr = 0;
       ossValuePtr commonPtr = 0;
-      UINT32 checksum = 0;
 
       if (OSS_UNLIKELY(!isOpen()))
       {
@@ -1042,8 +1028,7 @@ namespace vessel
       ossMemset((void *)ptr, 0x00, STORAGE_FILE_USER_DEFINED_HEAD_SIZE);
       ossMemcpy((void *)ptr, h.getData(), h.getSize());
 
-      createChecksum(commonPtr, checksum);
-      ((storageFileHead *)commonPtr)->headChecksum = checksum;
+      ((storageFileHead *)commonPtr)->headChecksum = createChecksum(commonPtr);
    done:
       return rc;
    error:

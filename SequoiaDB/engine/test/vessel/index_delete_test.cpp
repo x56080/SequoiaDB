@@ -120,7 +120,7 @@ void delete_test1(INDEX_TYPE type)
    ossPoolVector<recordID> rids;
 
    collectionHandler handler;
-   UINT32 count = 10000;
+   INT32 count = 10000;
 
    indexParameters params;
    params.type = type;
@@ -146,7 +146,7 @@ void delete_test1(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
@@ -172,7 +172,7 @@ void delete_test1(INDEX_TYPE type)
    ASSERT_EQ((UINT64)count, currentCount);
 
    // delete records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       utilDeleteResult deleteRes;
       dmlRemoveRequest request;
@@ -184,7 +184,7 @@ void delete_test1(INDEX_TYPE type)
 
    rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, currentCount);
+   ASSERT_EQ((UINT64)0, currentCount);
 
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
@@ -281,7 +281,7 @@ void delete_test2(INDEX_TYPE type)
    // index scan
    mthMatchTree mt;
    indexScanOptions o;
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       builder.reset();
       builder.append("a", i);
@@ -310,7 +310,7 @@ void delete_test2(INDEX_TYPE type)
    }
 
    // delete records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       dmlRemoveRequest request;
       utilDeleteResult deleteRes;
@@ -321,10 +321,10 @@ void delete_test2(INDEX_TYPE type)
    }
    rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(0, currentCount);
+   ASSERT_EQ((UINT64)0, currentCount);
 
    //re-insert records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
@@ -366,7 +366,7 @@ void delete_test2(INDEX_TYPE type)
                                     predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       dataScanRow row;
       rc = cursor.getNextRow(&session, row);
@@ -418,7 +418,7 @@ void partial_delete(INDEX_TYPE type)
    ossPoolVector<recordID> rids;
 
    collectionHandler handler;
-   UINT32 count = 10000;
+   INT32 count = 10000;
    indexParameters params;
    params.type = type;
    bson::BSONObj pattern = BSON("a" << 1);
@@ -442,7 +442,7 @@ void partial_delete(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
-   for (UINT32 i = 0; i < count; ++i)
+   for (INT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
@@ -467,7 +467,7 @@ void partial_delete(INDEX_TYPE type)
    ASSERT_EQ(count, currentCount);
 
    //delete records
-   for (UINT32 i = 0; i < count; i += 2)
+   for (INT32 i = 0; i < count; i += 2)
    {
       utilDeleteResult deleteRes;
       dmlRemoveRequest request;
@@ -505,7 +505,7 @@ void partial_delete(INDEX_TYPE type)
                                     predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 1; i < count; i+=2)
+   for (INT32 i = 1; i < count; i+=2)
    {
       dataScanRow row;
       rc = cursor.getNextRow(&session, row);
