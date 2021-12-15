@@ -25,9 +25,13 @@ import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
 /**
- * @FileName FullText15860.java 集合中存在全文索引，并发增删改/全文检索/查询/truncate记录/lob操作
- * @Author luweikang
- * @Date 2019年5月10日
+ * @description seqDB-15860:集合中存在全文索引，并发增删改/全文检索/查询/truncate记录/lob操作
+ * @author luweikang
+ * @createDate 2019.05.10
+ * @updateUser ZhangYanan
+ * @updateDate 2021.12.14
+ * @updateRemark
+ * @version v1.0
  */
 public class Fulltext15860 extends FullTestBase {
 
@@ -127,7 +131,9 @@ public class Fulltext15860 extends FullTestBase {
                     insertObjs.clear();
                 }
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -321, e.getMessage() );
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190 ) {
+                    throw e;
+                }
             }
         }
     }
@@ -144,7 +150,10 @@ public class Fulltext15860 extends FullTestBase {
                         "{recordId: {$gte: 0, $lt: " + ( insertNum / 2 ) + "}}",
                         "{$set: {b: 'text'}}", null );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -321, e.getMessage() );
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
+                    throw e;
+                }
             }
         }
     }
@@ -160,7 +169,10 @@ public class Fulltext15860 extends FullTestBase {
                 cl.delete( "{recordId: {$gte: " + ( insertNum / 2 ) + ", $lt: "
                         + insertNum + "}}" );
             } catch ( BaseException e ) {
-                Assert.assertEquals( e.getErrorCode(), -321, e.getMessage() );
+                if ( e.getErrorCode() != -321 && e.getErrorCode() != -190
+                        && e.getErrorCode() != -147 ) {
+                    throw e;
+                }
             }
         }
     }
@@ -176,8 +188,7 @@ public class Fulltext15860 extends FullTestBase {
                 cl.truncate();
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != -147 && e.getErrorCode() != -190 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                    throw e;
                 }
             }
         }
@@ -203,9 +214,10 @@ public class Fulltext15860 extends FullTestBase {
                     cur.close();
                 } catch ( BaseException e ) {
                     if ( e.getErrorCode() != -6 && e.getErrorCode() != -52
-                            && e.getErrorCode() != -321 && e.getErrorCode() != -10 ) {
-                        e.printStackTrace();
-                        Assert.fail( e.getMessage() );
+                            && e.getErrorCode() != -321
+                            && e.getErrorCode() != -10
+                            && e.getErrorCode() != -190 ) {
+                        throw e;
                     }
                 }
             }
@@ -225,9 +237,9 @@ public class Fulltext15860 extends FullTestBase {
                     cl.truncateLob( lobId, lobSize );
                 }
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             }
         }
@@ -260,9 +272,9 @@ public class Fulltext15860 extends FullTestBase {
                     cl.removeLob( lobId );
                 }
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             }
         }
@@ -283,9 +295,9 @@ public class Fulltext15860 extends FullTestBase {
                     lob.read( data );
                 }
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321 ) {
-                    e.printStackTrace();
-                    Assert.fail( e.getMessage() );
+                if ( e.getErrorCode() != -4 && e.getErrorCode() != -321
+                        && e.getErrorCode() != -190 ) {
+                    throw e;
                 }
             }
         }
@@ -305,7 +317,7 @@ public class Fulltext15860 extends FullTestBase {
                 lobIdList.add( lob.getID() );
             }
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -321 ) {
+            if ( e.getErrorCode() != -321 && e.getErrorCode() != -190 ) {
                 throw e;
             }
         }
