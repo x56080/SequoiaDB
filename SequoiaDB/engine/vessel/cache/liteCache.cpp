@@ -239,7 +239,7 @@ namespace vessel
       if (options.flush.flushDirtyListThreshold < 0.1 ||
           2.0 < options.flush.flushDirtyListThreshold)
       {
-         options.flush.flushDirtyListThreshold = 0.9;
+         options.flush.flushDirtyListThreshold = 1.2;
       }
 
       if (options.flush.flushDirtyListTimeout < 10 ||
@@ -251,7 +251,7 @@ namespace vessel
       if (0.1 < options.flush.flushLruListThreshold ||
           0.99 < options.flush.flushLruListThreshold)
       {
-         options.flush.flushLruListThreshold = 0.75;
+         options.flush.flushLruListThreshold = 0.80;
       }
    }
 

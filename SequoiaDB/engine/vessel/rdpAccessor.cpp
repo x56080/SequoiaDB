@@ -99,8 +99,7 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
-      else if (!_lpb->getLockingMode().isExclusive() &&
-               !_lpb->getLockingMode().isUpgrade())
+      else if (!_lpb->getLockingMode().isExclusiveOrUpgrade())
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -125,7 +124,7 @@ namespace vessel
                  "must be same");
 
       if (!findPositionToInsert(request.record.getSize(),
-                                mbContext->getMinFreePercent(),
+                                mbContext->getFloatMinFreePercent(),
                                 pos, offset))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
@@ -210,8 +209,9 @@ namespace vessel
       buffer = _lpb->getWritableBodyBuffer();
       head = buffer.getWritableObjPtr<recordDataPageHead>(0);
       SDB_ASSERT((size + offset) <= head->backOffset, "invalid offset");
-      SDB_ASSERT((head->backOffset - offset - size) <= 0xFF, "invalid reserved size");
       reserved = head->backOffset - offset - size;
+      SDB_ASSERT(reserved <= recordSlot::getMaxReservedSize(),
+                 "invalid reserved size");
       rs.init(RDP_RECORD_HEAD_TYPE_NORMAL, reserved, offset, size);
       rh.setTransID(transID);
 
@@ -280,88 +280,61 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN rdpAccessor::isFreeToInsert(UINT32 recordSize,
-                                       UINT32 minFreePercent)const
-   {
-      BOOLEAN r = FALSE;
-      SDB_ASSERT(NULL != _lpb && _lpb->isValid(), "can not be invalid");
-      SDB_ASSERT(minFreePercent <= 100, "out of range");
-      const recordDataPageHead *head = getReadablePageHead();
-      INT32 size = (INT32)ossAlign4(estimateNormalRecordSavingSize(recordSize));
-      INT32 frontOffset = (INT32)(getFrontOffset(head));
-      INT32 backOffset = (INT32)(head->backOffset);
-      INT32 freeSize = backOffset - frontOffset;
-      
-      if (freeSize >= size)
-      {
-         INT32 totalFreeSize = (INT32)(head->totalFreeSpace);
-         SDB_ASSERT(size <= totalFreeSize, "impossible");
-         INT32 minFreeSize = (FLOAT32)minFreePercent / 100.0f * _lpb->getPageSize();
-         if (minFreeSize <= (totalFreeSize - size))
-         {
-            r = TRUE;
-         }
-      }
-
-      return r;
-   }
-
    BOOLEAN rdpAccessor::findPositionToInsert(UINT32 recordSize,
-                                             UINT32 minFreePercent,
+                                             FLOAT32 minFreePercent,
                                              RECORD_SLOT_ID &pos,
                                              UINT16 &offset)const
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != _lpb && _lpb->isValid(), "can not be invalid");
-      SDB_ASSERT(minFreePercent <= 100, "out of range");
+      SDB_ASSERT(0.0f <= minFreePercent && minFreePercent <= 50.0f, "out of range");
+      SDB_ASSERT(0 < recordSize, "can not be zero");
 
-      constexpr INT32 _MIN_RESERVED_SIZE = 4;
+      constexpr UINT32 _MIN_RESERVED_SIZE = 8;
+      constexpr FLOAT32 _OVERSIZE_TOLERANCE = 0.9f;
       const recordDataPageHead *head = getReadablePageHead();
 
       pos = INVALID_RECORD_SLOT_ID;
       offset = 0;
 
-      UINT32 size = recordSize + NORMAL_RECORD_HEAD_SIZE;
-      INT32 frontOffset = (INT32)getFrontOffset(head);
-      if (INVALID_RECORD_SLOT_ID == head->firstFreeSlot)
+      UINT32 realDataSize = recordSize + NORMAL_RECORD_HEAD_SIZE;
+      UINT32 reservedSize = ossAlign4(recordSize + (UINT32)(recordSize * minFreePercent)) -
+                            recordSize;
+      if (reservedSize < _MIN_RESERVED_SIZE)
       {
-         frontOffset += RDP_RSLOT_SIZE;
+         /// may be not aligned any more
+         reservedSize = _MIN_RESERVED_SIZE;
       }
-      INT32 backOffset = (INT32)(head->backOffset);
-      SDB_ASSERT(ossIsAligned4(backOffset), "impossible");
-      INT32 freeSize = backOffset - frontOffset;
-      INT32 reservedSize = 0;
-      INT32 totalSize = 0;
-   
+      else if (reservedSize > recordSlot::getMaxReservedSize())
+      {
+         /// may be not aligned any more
+         reservedSize = recordSlot::getMaxReservedSize();
+      }
 
-      if (!isFreeToInsert(recordSize, minFreePercent))
+      UINT32 realSlotSize = (INVALID_RECORD_SLOT_ID == head->firstFreeSlot) ?
+                             RDP_RSLOT_SIZE : 0;
+
+      UINT32 frontOffset = getFrontOffset(head);
+      UINT32 backOffset = head->backOffset;
+      UINT32 sizeNeed = realDataSize + reservedSize + realSlotSize;
+      UINT32 realSizeAllocating = realDataSize + realSlotSize;
+      if (backOffset < (frontOffset + sizeNeed))
       {
          goto done;
       }
-
-      SDB_ASSERT((INT32)size <= freeSize, "impossible");
-
-      if (0 < minFreePercent)
+      else
       {
-         reservedSize = recordSize * ((FLOAT32)minFreePercent / 100.0f);
-         reservedSize = recordSlot::trimReservedSize(reservedSize);
-         if (reservedSize < _MIN_RESERVED_SIZE)
+         UINT32 remainedSize = head->totalFreeSpace - realSizeAllocating;
+         UINT32 minFreeSize = _lpb->getPageSize() * minFreePercent * _OVERSIZE_TOLERANCE;
+         if (remainedSize < minFreeSize)
          {
-            reservedSize = _MIN_RESERVED_SIZE;
+            goto done;
          }
-      }
-
-      totalSize = (INT32)ossAlign4(size + (UINT32)reservedSize);
-      if (freeSize < totalSize)
-      {
-         totalSize = freeSize;
       }
 
       pos = (INVALID_RECORD_SLOT_ID == head->firstFreeSlot) ?
             head->totalSlotCount : head->firstFreeSlot;
-      SDB_ASSERT(totalSize < backOffset, "impossible");
-      offset = (UINT16)(backOffset - totalSize);
-      SDB_ASSERT(ossIsAligned4((UINT32)offset), "impossible");
+      offset = (UINT16)(backOffset - realDataSize - reservedSize);
       r = TRUE;
 
    done:
@@ -801,9 +774,10 @@ namespace vessel
       if (totalSize < (UINT32)(rs->size))
       {
          UINT32 deltaSize = (UINT32)(rs->size) - totalSize;
-         UINT32 reservedSize = rs->reserved + deltaSize;
+         UINT32 reservedSize = (UINT32)(rs->reserved) + deltaSize;
          rs->size -= deltaSize;
-         rs->reserved = recordSlot::trimReservedSize(reservedSize);
+         rs->reserved = (recordSlot::getMaxReservedSize() < reservedSize ) ?
+                         recordSlot::getMaxReservedSize() : reservedSize;
          head->totalFreeSpace += deltaSize;
       }
       else if (totalSize > (UINT32)(rs->size))
@@ -955,6 +929,13 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+
+   FLOAT32 rdpAccessor::getFreeSpacePercent()const
+   {
+      const recordDataPageHead *head = getReadablePageHead();
+      return (FLOAT32)(head->totalFreeSpace) / _lpb->getPageSize();
    }
 
    INT32 rdpAccessor::getSlot(RECORD_SLOT_ID pos, recordSlot &rs)const

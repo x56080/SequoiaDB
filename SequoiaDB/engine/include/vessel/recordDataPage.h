@@ -175,9 +175,9 @@ namespace vessel
          return (UINT32)size + (UINT32)reserved;
       }
    
-      static UINT32 trimReservedSize(UINT32 size)
+      static constexpr UINT32 getMaxReservedSize()
       {
-         return 0xFF < size ? 0xFF : size;
+         return 128;
       }
    
       public:
@@ -188,6 +188,7 @@ namespace vessel
          UINT16 size = 0;
    };//struct recordSlot
    constexpr UINT32 RDP_RSLOT_SIZE = sizeof(recordSlot);
+   static_assert(ossIsAligned4(RDP_RSLOT_SIZE), "invalid size");
 
    struct normalRecordHead
    {
@@ -224,6 +225,7 @@ namespace vessel
       UINT64 transSN = DPS_INVALID_TRANSID_SN;
    };//struct normalRecordHead
    constexpr UINT32 NORMAL_RECORD_HEAD_SIZE = sizeof(normalRecordHead);
+   static_assert(ossIsAligned4(NORMAL_RECORD_HEAD_SIZE), "invalid size");
 
    struct overflowedRecord
    {
@@ -326,7 +328,8 @@ namespace vessel
 
    OSS_INLINE UINT32 estimateNormalRecordSavingSize(UINT32 recordSize)
    {
-      return recordSize + NORMAL_RECORD_HEAD_SIZE + RDP_RSLOT_SIZE;
+      UINT32 size = recordSize + NORMAL_RECORD_HEAD_SIZE + RDP_RSLOT_SIZE;
+      return ossAlign4(size);
    }
 
    OSS_INLINE BOOLEAN isBigRecord(UINT32 pageSize, UINT32 originalRecordSize)

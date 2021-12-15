@@ -71,9 +71,13 @@ namespace vessel
          {
             return _name;
          }
-         OSS_INLINE UINT32 getMinFreePercent()const
+         OSS_INLINE UINT32 getUintMinFreePercent()const
          {
             return _minFreePercent;
+         }
+         OSS_INLINE FLOAT32 getFloatMinFreePercent()const
+         {
+            return (FLOAT32)_minFreePercent / 100.0f;
          }
          OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
          {

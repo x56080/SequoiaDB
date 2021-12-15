@@ -40,11 +40,6 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 SHARED_CL_BUCKET_COUNT = 16;
-   static const UINT32 SHARED_CL_BUCKET_CAPACITY  = 2;
-   static const UINT32 NONSHARED_CL_BUCKET_COUNT = 1;
-   static const UINT32 NONSHARED_CL_BUCKET_CAPACITY = 8;
-
    constexpr UINT32 CANDIDATE_BUCKET_COUNT = 16;
    constexpr UINT32 CANDIDATE_BUCKET_CAPACITY = 2;
 
@@ -444,7 +439,7 @@ namespace vessel
          goto done;
       }
 
-      if (0 < _newPagePool.peekSize())
+      //if (0 < _newPagePool.peekSize())
       {
          rc = findFromNewPagePool(candidate);
          if (SDB_OK != rc)

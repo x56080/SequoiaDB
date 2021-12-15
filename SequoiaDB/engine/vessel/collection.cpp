@@ -1209,12 +1209,9 @@ namespace vessel
             PD_LOG(PDERROR, "failed to insert record to page:%d", rc);
             goto error;
          }
-         else if (outOfSpace)
-         {
-            candidate.reset();
-            continue;
-         }
-         else
+
+         candidate.reset();
+         if (!outOfSpace)
          {
             break;
          }
@@ -1243,7 +1240,6 @@ namespace vessel
       rdpAccessor accessor;
       ossSharedLatchMode mode(OSS_SHARED_LATCH_MODE_ENUM_UPGRADE);
       const runtimeMbContext *mbContext = context->getMbContext();
-      INT32 newLvl = FSM_INVALID_SPACE_LVL;
 
       outOfSpace = FALSE;
 
@@ -1255,6 +1251,13 @@ namespace vessel
          goto error;
       }
 
+      /// candidate may be reset by prewriter.
+      if (candidate.getSpaceLvl() == FSM_INVALID_SPACE_LVL)
+      {
+         outOfSpace = TRUE;
+         goto done;
+      }
+
       rc = accessor.init(context, &lpb);
       if (SDB_OK != rc)
       {
@@ -1262,27 +1265,36 @@ namespace vessel
          goto error;
       }
 
-      if (!accessor.isFreeToInsert(request.record.getSize(),
-                                   mbContext->getMinFreePercent()))
+      SDB_ASSERT(candidate.getSeq() == accessor.getReadablePageHead()->pageSeq,
+                 "must be same");
+
+      rc = accessor.insertNormalRecord(context, request);
+      if (SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE == rc)
       {
          candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
          outOfSpace = TRUE;
+         rc = SDB_OK;
          goto done;
       }
-
-      rc = accessor.insertNormalRecord(context, request);
-      if (SDB_OK != rc)
+      else if (SDB_OK != rc)
       {
-         SDB_ASSERT(SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE != rc, "impossible");
          PD_LOG(PDERROR, "failed to insert normal record into page:%d", rc);
          goto error;
       }
 
-      newLvl = getFsmSpaceLvl(lpb.getPageSize(), accessor.getFreeSpaceAfterLastSlot());
-      if (candidate.getSpaceLvl() != newLvl)
+      if (accessor.getFreeSpacePercent() < mbContext->getFloatMinFreePercent())
       {
-         candidate.getInfoPtr()->_lvl = newLvl;
+         candidate.getInfoPtr()->_lvl = FSM_INVALID_SPACE_LVL;
       }
+      else
+      {
+         INT32 newLvl = getFsmSpaceLvl(lpb.getPageSize(), accessor.getFreeSpaceAfterLastSlot());
+         if (candidate.getSpaceLvl() != newLvl)
+         {
+            candidate.getInfoPtr()->_lvl = newLvl;
+         }
+      }
+
    done:
       lpb.fini();
       return rc;
@@ -1298,13 +1310,13 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(isValidFsmLvL(lvl), "can not be invalid");
-      UINT32 totalRdpCount = _totalRdpCount;
       PAGE_ID lpids[PAGE_COUNT_IN_EXTENT];
       UINT32 firstSeq = INVALID_CL_PAGE_SEQ;
       candidate.reset();
 
       do
       {
+         UINT32 totalRdpCount = _totalRdpCount;
          /// do not get latch here.
          ossXLatchGuard guard(&_extendingLatch, FALSE);
 
@@ -1323,7 +1335,6 @@ namespace vessel
          guard.lock();
          if (totalRdpCount < _totalRdpCount)
          {
-            totalRdpCount = _totalRdpCount;
             continue;
          }
 
@@ -1334,8 +1345,6 @@ namespace vessel
             PD_LOG(PDERROR,  "failed to allocate new rdps:%d", rc);
             goto error;
          }
-
-         totalRdpCount = _totalRdpCount;
 
          rc = _fsm.insertNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
          if (SDB_OK != rc)
@@ -3832,7 +3841,10 @@ namespace vessel
          }
 
          recordScanner.close();
-
+         if (scanForNone)
+         {
+            context->unlockRid(rid);
+         }
          ++pushed;
       }
 

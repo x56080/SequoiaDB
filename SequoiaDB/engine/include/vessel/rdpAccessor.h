@@ -64,8 +64,6 @@ namespace vessel
 
          OSS_INLINE void fini() {_lpb = NULL;}
 
-         BOOLEAN isFreeToInsert(UINT32 recordSize,
-                                UINT32 minFreePercent=0)const;
          /// non-big-record
          INT32 insertNormalRecord(dmlContext *context,
                                   const dmlInsertRequest &request);
@@ -93,6 +91,8 @@ namespace vessel
 
          INT32 getRecordCount(UINT32 &count)const;
 
+         FLOAT32 getFreeSpacePercent()const;
+
       private:
          INT32 insertNormalRecordToPos(dmlContext *context,
                                        const dmlInsertRequest &request,
@@ -118,7 +118,7 @@ namespace vessel
                               UINT32 &totalSize)const;
 
          BOOLEAN findPositionToInsert(UINT32 recordSize,
-                                      UINT32 minFreePercent,
+                                      FLOAT32 minFreePercent,
                                       RECORD_SLOT_ID &pos,
                                       UINT16 &offset)const;
 

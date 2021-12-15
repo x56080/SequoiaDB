@@ -120,13 +120,14 @@ namespace vessel
                flushDirtyListThreshold = o.flushDirtyListThreshold;
                flushDirtyListTimeout = o.flushDirtyListTimeout;
                flushLruListThreshold = o.flushLruListThreshold;
+               minTrimLRUDepth = o.minTrimLRUDepth;
                return *this;
             }
 
          public:
-            FLOAT32 flushDirtyListThreshold = 1.0;
+            FLOAT32 flushDirtyListThreshold = 1.2;
             UINT32 flushDirtyListTimeout = 300; /// seconds
-            FLOAT32 flushLruListThreshold = 0.75;
+            FLOAT32 flushLruListThreshold = 0.8;
             UINT32 minTrimLRUDepth = 128;
          
       };//class flushOptions
