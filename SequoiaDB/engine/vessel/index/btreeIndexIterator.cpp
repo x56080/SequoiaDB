@@ -770,8 +770,9 @@ namespace vessel
 
    UINT32 btreeIndexIterator::getCurrentEntrySize()const
    {
-      SDB_ASSERT(isReadyToRead(), "can not be invalid");
-      return btreeScanEntryParser::estimiateEntrySize(_item.getOriginalKeySize());
+      SDB_ASSERT(isReadyToRead(), "can not be invalid");  
+      return btreeScanEntryParser::estimiateEntrySize(
+                                   _item.getOriginalKeySize());
    }
 
    INT32 btreeIndexIterator::pushCurrentEntryToBatch(rowBatch &batch)const

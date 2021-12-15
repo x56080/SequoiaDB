@@ -106,13 +106,13 @@ namespace vessel
 
          INT32 moveIterator(BOOLEAN forward);
 
-         INT32 moveToNextDiffKeyOrRid(BOOLEAN forward);
+         INT32 forwardToNextVisiblePostion();
 
-         INT32 moveToNextEntry(BOOLEAN forward);
+         INT32 ensureBackwardToVisiblePosition();
 
-         INT32 moveToLatestVersionIfBackward();
+         INT32 moveToNextVisiblePosition(BOOLEAN forward);
 
-         INT32 moveIfEntryRemoved(BOOLEAN forward);
+         INT32 ensureVisiblePosition(BOOLEAN forward);
 
       private:
          rocksdb::Slice packFullKey(const ixmKey &key,
@@ -121,13 +121,11 @@ namespace vessel
                                     const DPS_TRANS_ID &transID,
                                     bson::StackBufBuilder &builder);
 
-         INT32 cacheCurrentEntry();
-
          void _close();
 
          BOOLEAN _isReadyToRead()const;
 
-         BOOLEAN _isMarkedRemoved()const;
+         BOOLEAN _isMarkedRemoved(rocksdb::Iterator *itr)const;
 
       private:
          requestContext *_context = NULL;
@@ -141,6 +139,7 @@ namespace vessel
          rocksdb::Slice _upKey;
          lsmKeyEntry _currentEntry;
          bson::BufBuilder _builder;
+         memoryBlock _backwardCurrentEntryCache;
    };//class lsmIndexIterator
 }//namespace vessel
 }//namespace engine

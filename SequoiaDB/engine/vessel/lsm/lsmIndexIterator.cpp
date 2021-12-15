@@ -85,7 +85,7 @@ namespace vessel
 
    BOOLEAN lsmIndexIterator::_isReadyToRead()const
    {
-      return NULL != _itr && _itr->Valid() && _currentEntry.isValid();
+      return _currentEntry.isValid();
    }
 
    BOOLEAN lsmIndexIterator::isOpen()const
@@ -310,20 +310,15 @@ namespace vessel
          goto error;
       }
 
-      if (!o.isForward() && isReadyToRead())
-      {
-         rc = moveToLatestVersionIfBackward();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
-      rc = moveIfEntryRemoved(o.isForward());
+      rc = ensureVisiblePosition(o.isForward());
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to ensure visible position:%d", rc);
          goto error;
       }
+      
+
+
    done:
       return rc;
    error:
@@ -345,6 +340,8 @@ namespace vessel
          rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
+
+      _currentEntry.reset();
 
       rc = parser.parse(entry);
       if (SDB_OK != rc)
@@ -377,156 +374,19 @@ namespace vessel
          goto error;
       }
 
-      if (!forward && isReadyToRead())
-      {
-         rc = moveToLatestVersionIfBackward();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-
-      rc = moveIfEntryRemoved(forward);
+      rc = ensureVisiblePosition(forward);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed move iterator:%d", rc);
+         PD_LOG(PDERROR, "failed to ensure visible position:%d", rc);
          goto error;
       }
+
    done:
       return rc;
    error:
       close();
       goto done;
    }
-
-   INT32 lsmIndexIterator::moveToNextEntry(BOOLEAN forward)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
-      rc = moveToNextDiffKeyOrRid(forward);
-      if (!forward)
-      {
-         rc = moveToLatestVersionIfBackward();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-      
-   }
-
-   INT32 lsmIndexIterator::moveToLatestVersionIfBackward()
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(isReadyToRead(), "can not be invalid");
-
-      rocksdb::Slice fullKeySlice;
-      bson::StackBufBuilder builder;
-      builder.appendBuf(_currentEntry.getKey().data(),
-                        _currentEntry.getKey().dataSize());
-      ixmKey tmpKey(builder.buf());
-      recordID tmpRid = _currentEntry.getRid();
-
-      rc = moveToNextDiffKeyOrRid(FALSE);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      if (isReadyToRead())
-      {
-         _currentEntry.reset();
-         _itr->Next();
-         if (_itr->Valid())
-         {
-            rc = cacheCurrentEntry();
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-         }
-      }
-      else
-      {
-         fullKeySlice = packFullKey(tmpKey, tmpRid, 
-                                    DPS_INVALID_LSN_OFFSET, DPS_TRANS_ID(), builder);
-         rc = seekFullKey(fullKeySlice, FALSE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to seek full key:%d", rc);
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lsmIndexIterator::moveToNextDiffKeyOrRid(BOOLEAN forward)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
-      static const UINT32 _NEXT_COUNT = 8;
-      bson::StackBufBuilder builder;
-
-      do
-      {
-         rocksdb::Slice fullKeySlice;
-         builder.reset();
-         builder.appendBuf(_currentEntry.getKey().data(),
-                           _currentEntry.getKey().dataSize());
-         ixmKey lastKey(builder.buf());
-         recordID lastRid = _currentEntry.getRid();
-
-         for (UINT32 i = 0; i < _NEXT_COUNT; ++i)
-         {
-            rc = moveIterator(forward);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to move iterator:%d", rc);
-               goto error;
-            }
-
-            /// hit the end
-            if (!_isReadyToRead())
-            {
-               goto done;
-            }
-
-            if (_currentEntry.getRid() != lastRid)
-            {
-               goto done;
-            }
-            
-            if (!_currentEntry.getKey().woEqual(lastKey))
-            {
-               goto done;
-            }
-         }
-
-         fullKeySlice = packFullKey(_currentEntry.getKey(),
-                                    _currentEntry.getRid(),
-                                    forward ? 0 : DPS_INVALID_LSN_OFFSET, DPS_TRANS_ID(), builder);
-
-         rc = seekFullKey(fullKeySlice, !forward);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to seek full key:%d", rc);
-            goto error;
-         }
-
-      } while(_isReadyToRead());
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
 
    INT32 lsmIndexIterator::seekFullKey(const rocksdb::Slice &fullKey,
                                        BOOLEAN forPrev)
@@ -544,12 +404,14 @@ namespace vessel
       {
          _itr->Seek(fullKey);
       }
-
+      
       if (_itr->Valid())
       {
-         rc = cacheCurrentEntry();
-         if (SDB_OK != rc)
+         if (LSM_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
+             sizeof(lsmIndexValue) != _itr->value().size())
          {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "invalid key or value:%d", rc);
             goto error;
          }
       }
@@ -590,119 +452,14 @@ namespace vessel
       return fullKey;
    }
 
-   INT32 lsmIndexIterator::moveIterator(BOOLEAN forward)
+   BOOLEAN lsmIndexIterator::_isMarkedRemoved(rocksdb::Iterator *itr)const
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(_isReadyToRead(), "must be ready");
-      _currentEntry.reset();
-      if (forward)
-      {
-         _itr->Next();
-      }
-      else
-      {
-         _itr->Prev();
-      }
-      
-      if (_itr->Valid())
-      {
-         rc = cacheCurrentEntry();
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lsmIndexIterator::moveIfEntryRemoved(BOOLEAN forward)
-   {
-      INT32 rc = SDB_OK;
-      while (_isReadyToRead() && _isMarkedRemoved())
-      {
-         rc = moveToNextDiffKeyOrRid(forward);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to move iterator:%d", rc);
-            goto error;
-         }
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 lsmIndexIterator::cacheCurrentEntry()
-   {
-      SDB_ASSERT(NULL != _itr && _itr->Valid(), "must be valid");
-      INT32 rc = SDB_OK;
-      rocksdb::Slice value = _itr->value();
-   
-      rc = _currentEntry.shallowCopy(_itr->key());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to update current entry, entry size[%d], rc:%d",
-                _itr->key().size(), rc);
-         goto error;
-      }
-
-      if (!_currentEntry.getRid().valid() ||
-          DPS_INVALID_LSN_OFFSET == _currentEntry.getDataLsn())
-      {
-         PD_LOG(PDERROR, "invalid entry data found in entry[%s]",
-                _itr->key().ToString(TRUE).c_str());
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      if (!value.empty())
-      {
-         const lsmIndexValue * lsmValue = NULL;
-         if (value.size() != sizeof(lsmIndexValue))
-         {
-            PD_LOG(PDERROR, "invalid value size[%d] of entry[%s]",
-                   _itr->key().ToString(TRUE).c_str());
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-         
-         lsmValue = (const lsmIndexValue *)(value.data());
-         if (!lsmValue->isValid())
-         {
-            PD_LOG(PDERROR, "invalid value content of entry[%s]",
-                   _itr->key().ToString(TRUE).c_str());
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      _currentEntry.reset();
-      goto done;
-   }
-
-   BOOLEAN lsmIndexIterator::_isMarkedRemoved()const
-   {
-      SDB_ASSERT(_isReadyToRead(), "must be valid");
       const lsmIndexValue * lsmValue = NULL;
       BOOLEAN r = FALSE;
-      rocksdb::Slice value = _itr->value();
-      if (value.empty())
-      {
-         goto done;
-      }
-      
+      rocksdb::Slice value = itr->value();
       SDB_ASSERT(sizeof(lsmIndexValue) == value.size(), "impossible");
       lsmValue = (const lsmIndexValue *)(value.data());
       r = lsmValue->isDeleted();
-   done:
       return r;
    }
 
@@ -749,8 +506,15 @@ namespace vessel
 
    UINT32 lsmIndexIterator::getCurrentEntrySize()const
    {
-      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
-      return _itr->key().size();
+      if (_backwardCurrentEntryCache.isEmpty())
+      {
+         return _itr->key().size();
+      }
+      else
+      {
+         return _backwardCurrentEntryCache.getSize();
+      }
+
    }
 
    INT32 lsmIndexIterator::pushCurrentEntryToBatch(rowBatch &batch)const
@@ -764,13 +528,29 @@ namespace vessel
          goto error;
       }
 
-      entry = slice(_itr->key().size(), _itr->key().data());
-      rc = batch.pushRow(entry);
-      if (SDB_OK != rc)
+      if (_backwardCurrentEntryCache.isEmpty())
       {
-         PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
-         goto error;
+         entry = slice(_itr->key().size(), _itr->key().data());
+         rc = batch.pushRow(entry);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
+            goto error;
+         }
       }
+      else
+      {
+         entry = slice(_backwardCurrentEntryCache.getSize(),
+                       _backwardCurrentEntryCache.getBuffer());
+         rc = batch.pushRow(entry);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to add entry to batch:%d", rc);
+            goto error;
+         }
+      }
+
+
    done:
       return rc;
    error:
@@ -796,23 +576,286 @@ namespace vessel
          goto error;
       }
 
-      rc = moveToNextEntry(forward);
+      rc = moveToNextVisiblePosition(forward);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to move iterator:%d", rc);
-         goto error;
-      }
-
-      rc = moveIfEntryRemoved(forward);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed move iterator:%d", rc);
+         PD_LOG(PDERROR, "failed to move to next visible:%d", rc);
          goto error;
       }
    done:
       return rc;
    error:
       goto done;
+   }
+
+   INT32 lsmIndexIterator::moveIterator(BOOLEAN forward)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _itr && _itr->Valid(), "must be valid");
+      if (forward)
+      {
+         _itr->Next();
+      }
+      else
+      {
+         _itr->Prev();
+      }
+
+      if (_itr->Valid())
+      {
+         if (LSM_MIN_FULL_KEY_SIZE > _itr->key().size()|| 
+             sizeof(lsmIndexValue) != _itr->value().size())
+         {
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            PD_LOG(PDERROR, "invalid key or value:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::forwardToNextVisiblePostion()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_itr->Valid(), "can not be invalid");
+      SDB_ASSERT(_isReadyToRead(), "can not be invalid");
+      bson::StackBufBuilder builder;
+      builder.appendBuf(_currentEntry.getKey().data(),
+                        _currentEntry.getKey().dataSize());
+      recordID lastRid = _currentEntry.getRid();
+      
+      _currentEntry.reset();
+      do
+      {
+         lsmKeyEntry currentEntry;
+         ixmKey lastKey(builder.buf());
+
+         rc = moveIterator(TRUE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to move iterator:%d", rc);
+            goto error;
+         }
+
+         if (!_itr->Valid())
+         {
+            break;
+         }
+
+         rc = currentEntry.shallowCopy(_itr->key());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to cache entry %d", rc);
+            goto error;
+         }
+
+         if (currentEntry.getRid() == lastRid &&
+             currentEntry.getKey().woEqual(lastKey))
+         {
+            continue;
+         }
+
+         if (!_isMarkedRemoved(_itr))
+         {
+            rc = _currentEntry.shallowCopy(_itr->key());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to update current entry:%d", rc);
+               goto error;
+            }
+            break;
+         }
+         else
+         {
+            builder.reset();
+            builder.appendBuf(currentEntry.getKey().data(),
+                              currentEntry.getKey().dataSize());
+            lastRid = currentEntry.getRid();
+         }
+
+      } while(_itr->Valid());
+   done:
+      return rc;
+   error:
+      _close();
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::ensureBackwardToVisiblePosition()
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(_itr->Valid(), "can not be invalid");
+
+      _currentEntry.reset();
+      _backwardCurrentEntryCache.resize(0);
+      while (_itr->Valid())
+      {
+         lsmKeyEntry entryInItr;
+         lsmKeyEntry entryInCache;
+         BOOLEAN removedFlag = _isMarkedRemoved(_itr);
+
+         rc = _backwardCurrentEntryCache.copy(_itr->key().size(),
+                                              _itr->key().data());
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to cache entry:%d", rc);
+            goto error;
+         }
+         
+         rc = moveIterator(FALSE);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to move iterator:%d", rc);
+            goto error;
+         }
+
+         if (!_itr->Valid())
+         {
+            if (removedFlag)
+            {
+               _backwardCurrentEntryCache.resize(0);
+            }
+            break;
+         }
+         else if (removedFlag)
+         {
+            _backwardCurrentEntryCache.resize(0);
+         }
+         else
+         {
+            rc = entryInCache.shallowCopy(
+                     rocksdb::Slice(_backwardCurrentEntryCache.getBuffer(),
+                                    _backwardCurrentEntryCache.getSize()));
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to cache entry%d", rc);
+               goto error;
+            }
+
+            rc = entryInItr.shallowCopy(_itr->key());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to cache entry%d", rc);
+               goto error;
+            }
+
+            if (entryInItr.getRid() == entryInCache.getRid() &&
+                entryInItr.getKey().woEqual(entryInCache.getKey()))
+            {
+               continue;
+            }
+            else
+            {
+               break;
+            }
+         }
+      } 
+
+      if (!_backwardCurrentEntryCache.isEmpty())
+      {
+         rc = _currentEntry.shallowCopy(
+                  rocksdb::Slice(_backwardCurrentEntryCache.getBuffer(),
+                                 _backwardCurrentEntryCache.getSize()));
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to update current entry:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      _close();
+      goto done;
+
+   }
+
+   INT32 lsmIndexIterator::moveToNextVisiblePosition(BOOLEAN forward)
+   {
+      INT32 rc = SDB_OK;
+
+      if (_itr->Valid())
+      {
+         if (forward)
+         {
+            rc = forwardToNextVisiblePostion();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to next visible position:%d", rc);
+               goto error;
+            }
+         }
+         else
+         {
+            rc = ensureBackwardToVisiblePosition();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to next visible position:%d", rc);
+               goto error;
+            }
+         }
+      }
+      else
+      {
+         _currentEntry.reset();
+         _backwardCurrentEntryCache.resize(0);
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 lsmIndexIterator::ensureVisiblePosition(BOOLEAN forward)
+   {
+      INT32 rc = SDB_OK;
+
+      if (_itr->Valid())
+      {
+         if (forward)
+         {
+            _currentEntry.shallowCopy(_itr->key());
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to update current entry:%d", rc);
+               goto error;
+            }
+
+            if (_isMarkedRemoved(_itr))
+            {
+               rc = forwardToNextVisiblePostion();
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to move to visible position%d", rc);
+                  goto error;
+               }
+            }
+         }
+         else
+         {
+            rc = ensureBackwardToVisiblePosition();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure the visible position:%d", rc);
+               goto error;
+            }
+         }
+      }
+      else
+      {
+         _currentEntry.reset();
+         _backwardCurrentEntryCache.resize(0);
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+
    }
 
 }//namespace vessel

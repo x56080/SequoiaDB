@@ -933,6 +933,17 @@ INT32 lsmIndex::keyInsert(const lsmKeyEntry &key)
    SDB_ASSERT( ( _initalized ), "LSM Index is not initialized !" );
    INT32 rc   = SDB_OK;
    rocksdb::Slice ks, vs;
+   lsmIndexValue vl;
+   CHAR * buf = (CHAR*)SDB_THREAD_ALLOC(sizeof(lsmIndexValue));
+   if ( NULL == buf )
+   {
+      return ( rc = SDB_OOM );
+   }
+   ossMemset(buf, 0, sizeof(lsmIndexValue)) ;
+
+   vl.reset(LSM_ENTRY_FLAG_NORMAL);
+   ossMemcpy(buf, &vl, sizeof(lsmIndexValue));
+   vs = rocksdb::Slice(buf, sizeof(lsmIndexValue));
 
    if (!key.isValid())
    {
@@ -958,6 +969,10 @@ done:
    if (!ks.empty())
    {
       _freeAndClear(ks);
+   }
+   if (!vs.empty())
+   {
+      _freeAndClear(vs);
    }
    return rc ;
 error:

@@ -1,0 +1,682 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = index_delete_test.cpp
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          12/06/2021  LYC  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#include "test_def.h"
+#include "vessel/vesselImpl.h"
+#include "vessel/requestContext.h"
+#include <gtest/gtest.h>
+#include "ossUtil.hpp"
+#include "vessel/IRedoLogger.h"
+#include "../bson/bson.hpp"
+#include "pd.hpp"
+#include "vessel/dataScanRow.h"
+#include "vessel/collectionOptions.h"
+#include "vessel/builtinRecordUpdater.h"
+#include "mthMatchTree.hpp"
+
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+
+class index_delete_test : public testing::Test
+{
+   public:
+   static void SetUpTestCase()
+   {
+      {
+      fs::path testPath(DATA_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
+   }
+
+   static void TearDownTestCase()
+   {
+      {
+      fs::path testPath(DATA_PATH);
+      fs::remove_all(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      }
+   }
+
+   virtual void SetUp()
+   {
+      {
+      fs::path testPath(DATA_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
+      {
+      fs::path testPath(LSM_PATH);
+      fs::remove_all(testPath);
+      fs::create_directory(testPath);
+      }
+   }
+};
+
+/*
+Name: base_delete_test1
+      base_delete_test2
+Description: 
+   记录删除测试
+   1. 创建集合和LSM索引，并插入记录
+   2. 验证记录数量
+   3. 删除插入记录
+   4. 验证记录数量
+Expected Result: 
+   插入并删除记录成功且数量正确
+*/
+void delete_test1(INDEX_TYPE type)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   ossPoolVector<recordID> rids;
+
+   collectionHandler handler;
+   UINT32 count = 10000;
+
+   indexParameters params;
+   params.type = type;
+
+   bson::BSONObj pattern = BSON("a" << 1);
+   strSlice indexName("idx");
+   bson::BSONObjBuilder builder;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&session, indexName,
+                            pattern, params, createIndexOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   // insert records
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i + 1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      res.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   UINT64 currentCount = 0;
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ((UINT64)count, currentCount);
+
+   // delete records
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilDeleteResult deleteRes;
+      dmlRemoveRequest request;
+      const recordID &rid = rids[i];
+      request.rid = rid;
+      rc = handler.deleteRecord(&session, request, &deleteRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, currentCount);
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(index_delete_test, base_delete_test1)
+{
+   delete_test1(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_delete_test, DISABLED_base_delete_test2)
+{
+   delete_test1(INDEX_TYPE_BTREE);
+}
+
+/*
+Name: base_delete_test3
+      base_delete_test4
+Description: 
+   记录删除和索引扫描
+   1. 创建集合和索引，并插入记录
+   2. 扫描验证记录正确性
+   3. 删除插入记录
+   4. 验证记录数量
+   5. 重新插入记录
+   6. 扫描验证记录正确性
+Expected Result: 
+   插入并删除记录成功且数量正确
+*/
+void delete_test2(INDEX_TYPE type)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   ossPoolVector<recordID> rids;
+
+   collectionHandler handler;
+   INT32 count = 10000;
+
+   indexParameters params;
+   params.type = type;
+
+   bson::BSONObj pattern = BSON("a" << 1);
+   strSlice indexName("idx");
+   bson::BSONObjBuilder builder;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&session, indexName,
+                            pattern, params, createIndexOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   // insert records
+   for (INT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i + 1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      res.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+   UINT64 currentCount = 0;
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, currentCount);
+
+   // index scan
+   mthMatchTree mt;
+   indexScanOptions o;
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      builder.reset();
+      builder.append("a", i);
+      rc = mt.loadPattern(builder.done(), FALSE);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateSet ps;
+      rc = mt.calcPredicate(ps, NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateList predicates;
+      UINT32 lvl = 0;
+      rc = predicates.initialize(ps, pattern, 1, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+      cursorHandler cursor;
+      rc = handler.openIndexScanCursor(&session, indexName,
+                                       predicates, o, cursor);
+      ASSERT_EQ(SDB_OK, rc);
+
+      dataScanRow row;
+      rc = cursor.getNextRow(&session, row);
+      ASSERT_EQ(SDB_OK, rc);
+      bson::BSONObj recordObj(row.getRecord().data());
+      ASSERT_EQ(i, recordObj.getIntField("a"));
+
+      mt.clear();
+      cursor.close();
+   }
+
+   // delete records
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      dmlRemoveRequest request;
+      utilDeleteResult deleteRes;
+      const recordID &rid = rids[i];
+      request.rid = rid;
+      rc = handler.deleteRecord(&session, request, &deleteRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(0, currentCount);
+
+   //re-insert records
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i + 1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      res.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   // re-scan 
+   builder.reset();
+   bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
+   subBuilder.append("$gte", 0);
+   subBuilder.done();
+   bson::BSONObj query = builder.done();
+
+   rc = mt.loadPattern(query, FALSE);
+   ASSERT_EQ(SDB_OK, rc);
+   rtnPredicateSet ps;
+   rc = mt.calcPredicate(ps, NULL);
+   ASSERT_EQ(SDB_OK, rc);
+   rtnPredicateList predicates;
+   UINT32 lvl = 0;
+   rc = predicates.initialize(ps, pattern, 1, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   cursorHandler cursor;
+   rc = handler.openIndexScanCursor(&session, indexName,
+                                    predicates, o, cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      dataScanRow row;
+      rc = cursor.getNextRow(&session, row);
+      ASSERT_EQ(SDB_OK, rc);
+      bson::BSONObj recordObj(row.getRecord().data());
+      ASSERT_EQ(i, recordObj.getIntField("a"));
+   }
+   cursor.close();
+   mt.clear();
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(index_delete_test, base_delete_test3)
+{
+   delete_test2(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_delete_test, DISABLED_base_delete_test4)
+{
+   delete_test2(INDEX_TYPE_BTREE);
+}
+
+/*
+Name: base_delete_test5
+      base_delete_test6
+Description: 
+   记录删除和索引扫描
+   1. 创建集合和索引，并插入记录
+   2. 扫描验证记录正确性
+   3. 删除部分插入记录
+   4. 验证记录数量
+   5. 扫描验证正确性
+Expected Result: 
+   插入并删除记录成功且数量正确
+*/
+void partial_delete(INDEX_TYPE type)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   ossPoolVector<recordID> rids;
+
+   collectionHandler handler;
+   UINT32 count = 10000;
+   indexParameters params;
+   params.type = type;
+   bson::BSONObj pattern = BSON("a" << 1);
+   strSlice indexName("idx");
+   bson::BSONObjBuilder builder;
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&session, indexName,
+                            pattern, params, createIndexOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   // insert records
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i + 1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      res.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+   UINT64 currentCount = 0;
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, currentCount);
+
+   //delete records
+   for (UINT32 i = 0; i < count; i += 2)
+   {
+      utilDeleteResult deleteRes;
+      dmlRemoveRequest request;
+      const recordID &rid = rids[i];
+      request.rid = rid;
+      rc = handler.deleteRecord(&session, request, &deleteRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ((UINT64)count / 2, currentCount);
+
+   // index scan
+   mthMatchTree mt;
+   indexScanOptions o;
+
+   builder.reset();
+   bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
+   subBuilder.append("$gt", 0);
+   subBuilder.done();
+   bson::BSONObj query = builder.done();
+
+   rc = mt.loadPattern(query, FALSE);
+   ASSERT_EQ(SDB_OK, rc);
+   rtnPredicateSet ps;
+   rc = mt.calcPredicate(ps, NULL);
+   ASSERT_EQ(SDB_OK, rc);
+   rtnPredicateList predicates;
+   UINT32 lvl = 0;
+   rc = predicates.initialize(ps, pattern, 1, lvl);
+   ASSERT_EQ(SDB_OK, rc);
+
+   cursorHandler cursor;
+   rc = handler.openIndexScanCursor(&session, indexName,
+                                    predicates, o, cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 1; i < count; i+=2)
+   {
+      dataScanRow row;
+      rc = cursor.getNextRow(&session, row);
+      ASSERT_EQ(SDB_OK, rc);
+      bson::BSONObj recordObj(row.getRecord().data());
+      ASSERT_EQ(i, recordObj.getIntField("a"));
+   }
+   cursor.close();
+   mt.clear();
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(index_delete_test, base_delete_test5)
+{
+   partial_delete(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_delete_test, DISABLED_base_delete_test6)
+{
+   partial_delete(INDEX_TYPE_BTREE);
+}
+
+
+/*
+Name: base_backward_delete_test1
+      base_backward_delete_test2
+Description: 
+   记录删除和索引的逆序扫描
+   1. 创建集合和索引，并插入记录
+   2. 逆序扫描验证记录正确性
+   3. 删除部分插入记录
+   4. 验证记录数量
+   5. 逆序扫描验证正确性
+Expected Result: 
+   插入并删除记录成功且数量正确
+*/
+void backward_delete(INDEX_TYPE type)
+{
+   INT32 rc = SDB_OK;
+   vesselImpl db;
+   outerResource resource = test_outer_resource::getResource();
+   test_executor session;
+   openDBOptions options;
+
+   options.path.dataPath = DATA_PATH;
+   options.path.lsmPath = LSM_PATH;
+
+   collectionHandler handler;
+   INT32 count = 10000;
+
+   ossPoolVector<recordID> rids;
+
+   indexParameters params;
+   params.type = type;
+
+   bson::BSONObjBuilder builder;
+
+   bson::BSONObj pattern = BSON("a" << 1);
+   strSlice indexName("idx");
+
+   rc = db.open(&session, &resource, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = handler.createIndex(&session, indexName,
+                              pattern, params, createIndexOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   // insert records
+   for (INT32 i = 0; i < count; ++i)
+   {
+      utilInsertResult res;
+      builder.reset();
+      builder.append("a", i);
+      builder.append("b", i + 1);
+      bson::BSONObj obj = builder.done();
+      slice record(obj.objsize(), obj.objdata());
+      rc = handler.insert(&session, record,
+                          INVALID_STRIPING_ID,
+                          insertOptions(), &res);
+      ASSERT_EQ(SDB_OK, rc);
+
+      INT32 page, slot;
+      res.getInsertLoc(page, slot);
+      recordID rid(page, slot);
+      rids.push_back(rid);
+      builder.reset();
+   }
+
+   UINT64 currentCount = 0;
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, currentCount);
+
+   //delete records
+   for (INT32 i = count - 1; i >= count / 2; --i)
+   {
+      utilDeleteResult deleteRes;
+      dmlRemoveRequest request;
+      const recordID &rid = rids[i];
+      request.rid = rid;
+      rc = handler.deleteRecord(&session, request, &deleteRes);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   rc = handler.getTotalRecordCountInPageHead(&session, currentCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ((UINT64)count / 2, currentCount);
+
+   mthMatchTree mt;
+   indexScanOptions o;
+   o.forward = FALSE;
+   // scan
+   {
+      builder.reset();
+      bson::BSONObjBuilder subBuilder(builder.subobjStart("a"));
+      subBuilder.append("$lt", count);
+      subBuilder.done();
+      bson::BSONObj query = builder.done();
+
+      rc = mt.loadPattern(query, FALSE);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateSet ps;
+      rc = mt.calcPredicate(ps, NULL);
+      ASSERT_EQ(SDB_OK, rc);
+      rtnPredicateList predicates;
+      UINT32 lvl = 0;
+      rc = predicates.initialize(ps, pattern, -1, lvl);
+      ASSERT_EQ(SDB_OK, rc);
+
+      cursorHandler cursor;
+      rc = handler.openIndexScanCursor(&session, indexName,
+                                       predicates, o, cursor);
+      ASSERT_EQ(SDB_OK, rc);
+
+      for (INT32 i = count / 2 - 1; i >= 0; --i)
+      {
+         dataScanRow row;
+         rc = cursor.getNextRow(&session, row);
+         ASSERT_EQ(SDB_OK, rc);
+         bson::BSONObj recordObj(row.getRecord().data());
+         ASSERT_EQ(i, recordObj.getIntField("a"));
+      }
+      for (INT32 i = count - 1; i >= count / 2; --i)
+      {
+         dataScanRow row;
+         rc = cursor.getNextRow(&session, row);
+         ASSERT_EQ(SDB_VESSEL_EOC, rc);
+      }
+      mt.clear();
+   }
+
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}
+
+TEST_F(index_delete_test, base_backward_delete_test1)
+{
+   backward_delete(INDEX_TYPE_LSM);
+}
+
+TEST_F(index_delete_test, DISABLED_base_backward_delete_test2)
+{
+   backward_delete(INDEX_TYPE_BTREE);
+}
