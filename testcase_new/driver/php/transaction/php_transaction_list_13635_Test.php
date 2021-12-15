@@ -53,9 +53,22 @@ class listTransactionTest13635 extends PHPUnit_Framework_TestCase
       self::$db -> transactionBegin();
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );
       
-      // insert
-      self::$clDB -> insert( '{a:1}' );
-      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
+      // insert 节点间的全局逻辑时间不同步，导致报错-355，如果遇到错误则sleep一秒，等待同步重试
+      $tempErrCode;
+      for ( $i=0; $i < 10; $i++ )
+      {
+         self::$clDB -> insert( '{a:1}' );
+         $tempErrCode = self::$db -> getError()['errno'];
+         if ( $tempErrCode == -355 )
+         {
+            sleep(1);
+         }
+         else
+         {
+            break;
+         }
+      }
+      $this -> assertEquals( 0, $tempErrCode );
       
       // list
       $cursor = self::$db -> list( SDB_LIST_TRANSACTIONS );
