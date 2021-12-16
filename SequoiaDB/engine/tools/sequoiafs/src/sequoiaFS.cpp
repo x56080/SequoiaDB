@@ -1662,7 +1662,7 @@ INT32 sequoiaFS::readlink(const CHAR *path, CHAR * link, size_t size)
          goto error;
       }
       
-      _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
+      rc = _metaCache.getFileInfo(parentId, (CHAR*)basePath.c_str(), fMeta);
       if(SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Fail to query file, name=%s, rc=%d", 
