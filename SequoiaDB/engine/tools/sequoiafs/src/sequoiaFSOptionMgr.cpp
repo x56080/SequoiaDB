@@ -66,7 +66,6 @@ using namespace sequoiafs;
      ( SDB_SEQUOIAFS_FLUSH_FLAG, po::value<INT32>() , "The flush flag, value range:[0:sync, 1:async, 2:direct], default:0:sync" ) \
      ( SDB_SEQUOIAFS_FORCE_MOUNT, po::value<std::string>() , "The froce mount flag, default: different mountpath can not mount to the same collection. value range:[false, true], default:false" ) \
      ( SDB_SEQUOIAFS_PRE_READ, po::value<INT32>() , "The preread block number, default: 4. value range:[1, 20]" ) \
-     ( SDB_SEQUOIAFS_STANDALONE, po::value<std::string>(), "The standalone mode, if the mode is true, FS will cache directory not rely on MCS. default: false. " ) \
      ( SDB_SEQUOIAFS_CREATECACHE, po::value<std::string>(), "Create file cache, if the mode is true, FS will cache creating tiny file. default: false. " ) \
      ( SDB_SEQUOIAFS_CREATECACHESIZE, po::value<INT32>() , "The cache size of creating file cache, default:1024 (MB), value range: [200-20480]" ) \
      ( SDB_SEQUOIAFS_CREATEPATH, po::value<std::string>(), "Creating file cache path, if filecreatecache is true, the path must be specified." ) \
@@ -75,6 +74,10 @@ using namespace sequoiafs;
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXWRITE, "" ), po::value<INT32>() , "Set maximum size of write requests, default: 131072" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXREAD, "" ), po::value<INT32>() ,  "Set maximum size of read requests, default: 131072" ) \
      ( PMD_COMMANDS_STRING( SDB_SEQUOIAFS_MAXREAD, "" ), po::value<INT32>() ,  "Set maximum size of read requests, default: 131072" ) \
+
+#define FS_COMMANDS_HIDE_OPTIONS \
+     ( SDB_SEQUOIAFS_STANDALONE, po::value<std::string>(), "The standalone mode, if the mode is true, FS will cache directory not rely on MCS. default: true. " ) \
+//TODO: hide standalone parameter, if work with MCS. standalone should be false.
 
 INT32 _sequoiafsOptionMgr::parseCollection( const string collection,
                                      string *cs,
@@ -445,7 +448,7 @@ INT32 _sequoiafsOptionMgr::doDataExchange(pmdCfgExchange *pEX)
    rdvMinMax(pEX, _prereadblock, 1, 20, TRUE);
    //--standalone
    rdxBooleanS(pEX, SDB_SEQUOIAFS_STANDALONE, _standalone, FALSE, 
-          PMD_CFG_CHANGE_RUN, FALSE);
+          PMD_CFG_CHANGE_RUN, TRUE);
    //--filecreatecache
    rdxBooleanS(pEX, SDB_SEQUOIAFS_CREATECACHE, _filecreatecache, FALSE, 
           PMD_CFG_CHANGE_RUN, FALSE);
