@@ -34,11 +34,11 @@ function Usage()
     echo  "Command options:"
     echo  "  -h [ --help ]             help information"
     echo  "  -v [ --version ]          show SequoiaFS version"
-    echo  "  -a [ --all ]              mount all sequoiafs with config in conf dir"
+    echo  "  -a [ --all ]              mount all sequoiafs with config in conf directory"
     echo  "  -c [ --confpath ] arg     mount the specified mountpoint with config file in specified conf path"
     echo  "  -m [ --mountpoint ] arg   mount the specified mountpoint"
     echo  "  --alias arg               mount the specified mountpoint with alias "
-    echo  "  --curuser                 use current user to start sequoiafs"
+    echo  "  --currentuser             use current user to start sequoiafs"
     echo  "                            current user must have all permission on mountpoint directory and sequoiafs directory"
 }
 
@@ -292,7 +292,7 @@ do
       logpath=$2
       shift
       ;;
-    --curuser)
+    --currentuser)
       ;;      
     *)
       otherargs[$count]=$1
