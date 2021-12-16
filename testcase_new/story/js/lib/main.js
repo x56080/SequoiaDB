@@ -13,13 +13,13 @@ testConf.useSrcGroup = true;                    存储创建的 cl 所在组
 testConf.useDstGroup = true;                    存储创建的 cl 不在的组
 testConf.csName  = COMMCSNAME + "_xxx";         指定框架创建的 cs 名
 testConf.csOpt = {};                            指定创建的 cs 配置项
-testConf.clName = COMMCLNAME = "_xxx";          指定框架创建的 cl 名
+testConf.clName = COMMCLNAME + "_xxx";          指定框架创建的 cl 名
 testConf.clOpt = {};                            指定创建的 cl 配置项
 
 出参：
 function test(testPara) {}
 testPara.groups           获取数据组的信息，没有前置要求，可直接获取
-testPara.testCS           获取创建的 cs，需要指定 testConf.csName
+testPara.testCS           获取创建的 cs，不指定 testConf.csName 则获取公共cs
 testPara.testCL           获取创建的 cl，需要指定 testConf.clName
 testPara.srcGroupName     获取创建的 cl 所在组，需要指定 testConf.clName,testConf.useSrcGroup = true
 testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testConf.clName,testConf.useDstGroup = true
@@ -128,6 +128,21 @@ function createTestCS ( db, testConf )
    else
    {
       testConf.csName = COMMCSNAME;
+      try
+      {
+         return db.getCS( testConf.csName );
+      }
+      catch( e )
+      {
+         if( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) )
+         {
+            println( "cs not exist" );
+         }
+         else
+         {
+            throw e;
+         }
+      }
    }
 }
 

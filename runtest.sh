@@ -40,7 +40,7 @@ showNameWidth=60
 testType="basic"
 runAllTest=0
 specificDirorFile=0
-passwordOfSdbadmin=sdbadmin
+passwordOfSdbadmin=Admin@1024
 
 # define stat parameter
 sucNum=0
@@ -75,7 +75,7 @@ function showHelpInfo()
    echo " -s stopFlag    : 发生用例错误是否停止，0表示继续，1表示停止，默认为1"
    echo " -n svcname     : 指定测试的COORD节点服务名，默认为50000"
    echo " -h hostname    : 指定测试的COORD节点HostName或IP"
-   echo " --password sdbadmin's password, 默认为Sdbadmin@1024"
+   echo " --password sdbadmin's password, 默认为Admin@1024"
    echo " -c cataport    : 指定测试的CATALOG节点服务名，默认为30000"
    echo " -eh eshost     : 指定es环境主机名或ip，默认是localhost"
    echo " -en essvcname  : 指定es环境节点服务名，默认为9200"
