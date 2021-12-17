@@ -96,7 +96,7 @@ INT32 fileLob::flwrite(INT64 offset,
    INT64 cacheNo = 0;
    INT64 cacheNo2 = 0;
 
-   PD_LOG(PDDEBUG, "flwrite(), offset:%d, size:%d, flId:%d", offset, size, _flId);
+   PD_LOG(PDDEBUG, "flwrite(), offset:%ld, size:%ld, flId:%d", offset, size, _flId);
    
    if(_errCode != SDB_OK)
    {
@@ -589,7 +589,7 @@ INT32 fileLob::_lwrite(INT64 offset, INT64 size, const CHAR *buf)
    cacheLoader* loader = _mgr->getCacheLoader();
    INT64 newLobSize = 0;  //TODO：lob的总大小
    
-   PD_LOG(PDDEBUG, "lwrite(), offset:%d, size:%d", offset, size);
+   PD_LOG(PDDEBUG, "lwrite(), offset:%ld, size:%ld", offset, size);
 
    rc = _writeToCache(hashKey, offset, size, buf);
    if(SDB_OK == rc)
@@ -611,7 +611,7 @@ INT32 fileLob::_lwrite(INT64 offset, INT64 size, const CHAR *buf)
    rc = writeLobDirect(buf, size, offset, &newLobSize);
    if(rc != SDB_OK)
    {
-      PD_LOG(PDERROR, "Failed to writeLobDirect, offset:%d, size:%d, rc=%d", offset, size, rc);
+      PD_LOG(PDERROR, "Failed to writeLobDirect, offset:%ld, size:%d, rc=%d", offset, size, rc);
       goto error;
    }
    
@@ -632,7 +632,7 @@ INT32 fileLob::_lread(INT64 offset, INT64 size, CHAR *buf, INT32 *len)
    UINT32 hashKey  = _mgr->getHashBucket()->hash(_flId, newOffset);
    BOOLEAN download = false;
 
-   PD_LOG(PDDEBUG, "lread(), offset:%d, size:%d", offset, size);
+   PD_LOG(PDDEBUG, "lread(), offset:%ld, size:%ld", offset, size);
 
    rc = _readInCache(hashKey, offset, size, buf, len);
    if(SDB_OK == rc)
@@ -655,7 +655,7 @@ INT32 fileLob::_lread(INT64 offset, INT64 size, CHAR *buf, INT32 *len)
    rc = readLobDirect(buf, size, offset, &readLen);
    if(rc != SDB_OK)
    {
-      PD_LOG(PDERROR, "Failed to readLobDirect, offset:%d, size:%d, rc=%d", offset, size, rc);
+      PD_LOG(PDERROR, "Failed to readLobDirect, offset:%ld, size:%ld, rc=%d", offset, size, rc);
       _errCode = rc;
       goto error;
    }
@@ -689,7 +689,7 @@ INT32 fileLob::_readInCache(UINT32 hashKey, INT64 offset, INT64 size, CHAR *buf,
          rc = node->cacheRead(buf, size, offset, len);
          if(SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "Failed to read cache, offset:%d, size:%d. rc=%d", 
+            PD_LOG(PDERROR, "Failed to read cache, offset:%ld, size:%ld. rc=%d", 
                             offset, size, rc);
             node->unLockR();
             goto error;
@@ -733,7 +733,7 @@ INT32 fileLob::_writeToCache(UINT32 hashKey, INT64 offset, INT64 size, const CHA
       rc = node->cacheWrite(buf, size, offset); 
       if(SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to write cache, hashKey:%d, offset:%d, size:%d. rc=%d", 
+         PD_LOG(PDERROR, "Failed to write cache, hashKey:%d, offset:%ld, size:%ld. rc=%d", 
                          hashKey, offset, size, rc);
          node->unLockW();
          goto error;
@@ -761,7 +761,7 @@ error:
 
 void fileLob::addQueue(INT32 key, dataCache* node)
 {
-   PD_LOG(PDDEBUG, "addQueue(), key:%d, offset:%d", key, node->_offset);
+   PD_LOG(PDDEBUG, "addQueue(), key:%d, offset:%ld", key, node->_offset);
    node->_refCount++;
    //_rwlock.lock_r();
    _fileCacheUserIncrease(); 
@@ -776,7 +776,7 @@ void fileLob::addQueue(INT32 key, dataCache* node)
 
 void fileLob::_addQuickQueue(INT32 key, dataCache* node)
 {
-   PD_LOG(PDDEBUG, "addQuickQueue(), key:%d, offset:%d", key, node->_offset);
+   PD_LOG(PDDEBUG, "addQuickQueue(), key:%d, offset:%ld", key, node->_offset);
    node->lockW();
    node->_refCount++;
    _fileCacheUserIncrease();
@@ -801,7 +801,7 @@ INT32 fileLob::writeLobDirect(const CHAR *buf,
 {
    INT32 rc = SDB_OK;
 
-   PD_LOG(PDDEBUG, "writeLobDirect(), offset:%d, size:%d", offset, size);
+   PD_LOG(PDDEBUG, "writeLobDirect(), offset:%ld, size:%ld", offset, size);
 
    fsConnectionDao db(_dataSource);
    rc = db.writeLob(buf, _fullCL, _oid, offset, size, lobSizeNew);
@@ -827,13 +827,13 @@ INT32 fileLob::readLobDirect(CHAR *buf,
    INT32 rc = SDB_OK;
    INT32 readlen = 0;
 
-   PD_LOG(PDDEBUG, "readLobDirect(), size:%d, offset:%d", size, offset);
+   PD_LOG(PDDEBUG, "readLobDirect(), size:%ld, offset:%ld", size, offset);
 
    fsConnectionDao db(_dataSource);
    rc = db.readLob(_fullCL, _oid, offset, size, buf, &readlen);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to read file, cl=%s, offset:%d, size:%d, rc=%d",
+      PD_LOG(PDERROR, "Failed to read file, cl=%s, offset:%ld, size:%ld, rc=%d",
              _fullCL, offset, size, rc);
       goto error;
    }
@@ -841,7 +841,7 @@ INT32 fileLob::readLobDirect(CHAR *buf,
    *len = readlen;
 
 done:
-   PD_LOG(PDDEBUG, "readLobDirect() end, size:%d, offset:%d", size, offset);
+   PD_LOG(PDDEBUG, "readLobDirect() end, size:%ld, offset:%ld", size, offset);
    return rc;
    
 error:
@@ -883,7 +883,7 @@ void fileLob::_preRead(INT32 size, INT64 offset)
    INT16 maxreadBlock = _preReadBlock;
    cacheLoader* loader = _mgr->getCacheLoader();
 
-   PD_LOG(PDDEBUG, "preRead(), offset:%d, size:%d", offset, size);
+   PD_LOG(PDDEBUG, "preRead(), offset:%ld, size:%ld", offset, size);
 
    while(newOffset <= _fileSize && maxreadBlock > 0)
    {
@@ -945,7 +945,7 @@ INT32 fileLobDirect::flwrite(INT64 offset,
    INT32 rc = SDB_OK;
    INT64 newLobSize = 0;
 
-   PD_LOG(PDDEBUG, "flwrite(), size:%d, offset:%d", size, offset);
+   PD_LOG(PDDEBUG, "flwrite(), size:%ld, offset:%ld", size, offset);
 
    rc = writeLobDirect(buf, size, offset, &newLobSize);
    if(rc != SDB_OK)

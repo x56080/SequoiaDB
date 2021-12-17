@@ -87,7 +87,7 @@ namespace sequoiafs
          BOOLEAN tryLockBucketW(UINT32 key);
          void unLockBucketW(UINT32 key);
          BOOLEAN check(UINT32 key, dataCache* node);
-         dataCache* get(UINT32 key, UINT32 flId, INT64 offset);
+         dataCache* get(UINT32 key, INT32 flId, INT64 offset);
          void add(UINT32 key, dataCache* node );
          void del(UINT32 key, dataCache* node );
          

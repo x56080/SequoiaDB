@@ -2861,7 +2861,7 @@ INT32 sequoiaFS::write(const CHAR *path,
    fileLob *fl = NULL;
    BOOLEAN isProcessed = FALSE;
 
-   PD_LOG(PDDEBUG, "Called: write(), path:%s, offset:%d, size:%d",
+   PD_LOG(PDDEBUG, "Called: write(), path:%s, offset:%ld, size:%ld",
           path, offset, size);
 
    lh = (lobHandle *)fi->fh;

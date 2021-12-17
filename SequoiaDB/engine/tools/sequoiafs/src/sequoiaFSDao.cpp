@@ -91,7 +91,7 @@ INT32 fsConnectionDao::writeLob(const CHAR *buf,
    sdbLob lob;
    sdb *db = NULL;
 
-   PD_LOG(PDDEBUG, "writeLob(), oid:%s, offset:%d, len:%d", 
+   PD_LOG(PDDEBUG, "writeLob(), oid:%s, offset:%ld, len:%d", 
                     lobId.toString().c_str(), offset, len);
 
    rc = getFSConn(&db);
@@ -120,7 +120,7 @@ INT32 fsConnectionDao::writeLob(const CHAR *buf,
    rc = lob.lockAndSeek(offset, len);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to lockAndseek lob, oid=%s, offset:%d, len:%d, rc=%d", 
+      PD_LOG(PDERROR, "Failed to lockAndseek lob, oid=%s, offset:%ld, len:%d, rc=%d", 
                        lobId.toString().c_str(), offset, len, rc);
       goto error;
    }
@@ -128,7 +128,7 @@ INT32 fsConnectionDao::writeLob(const CHAR *buf,
    rc = lob.write(buf, len);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to write lob, oid:%s, offset:%d, len:%d, rc=%d", 
+      PD_LOG(PDERROR, "Failed to write lob, oid:%s, offset:%ld, len:%d, rc=%d", 
                        lobId.toString().c_str(), offset, len, rc);
       goto error;
    }
@@ -157,7 +157,7 @@ INT32 fsConnectionDao::writeNewLob(const CHAR *buf,
    sdbLob lob;
    sdb *db = NULL;
 
-   PD_LOG(PDDEBUG, "writeNewLob(), offset:%d, len:%d", offset, len);
+   PD_LOG(PDDEBUG, "writeNewLob(), offset:%ld, len:%d", offset, len);
 
    rc = getFSConn(&db);
    if(SDB_OK != rc)
@@ -186,7 +186,7 @@ INT32 fsConnectionDao::writeNewLob(const CHAR *buf,
       rc = lob.write(buf, len);
       if(SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to write lob, oid:%s, offset:%d, len:%d, rc=%d", 
+         PD_LOG(PDERROR, "Failed to write lob, oid:%s, offset:%ld, len:%d, rc=%d", 
                           lobId.toString().c_str(), offset, len, rc);
          goto error;
       }
@@ -230,7 +230,7 @@ INT32 fsConnectionDao::readLob(const CHAR *clFullName,
    UINT32 readlen = 0;
    sdb *db = NULL;
 
-   PD_LOG(PDDEBUG, "readLob(), oid:%s, size:%d, offset:%d", 
+   PD_LOG(PDDEBUG, "readLob(), oid:%s, size:%d, offset:%ld", 
                     lobId.toString().c_str(), size, offset);
 
    rc = getFSConn(&db);
@@ -297,7 +297,7 @@ INT32 fsConnectionDao::truncateLob(const CHAR *clFullName,
    sdbCollection cl;
    sdb *db = NULL;
 
-   PD_LOG(PDDEBUG, "truncateLob(), oid:%s, offset:%d", 
+   PD_LOG(PDDEBUG, "truncateLob(), oid:%s, offset:%ld", 
                     lobId.toString().c_str(), offset);
 
    rc = getFSConn(&db);

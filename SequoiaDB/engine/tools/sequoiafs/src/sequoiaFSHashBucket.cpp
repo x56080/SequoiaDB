@@ -113,7 +113,7 @@ BOOLEAN sequoiaFSHashBucket::check(UINT32 key, dataCache* node)
    return find;
 }
 
-dataCache* sequoiaFSHashBucket::get(UINT32 key, UINT32 flId, INT64 offset)
+dataCache* sequoiaFSHashBucket::get(UINT32 key, INT32 flId, INT64 offset)
 {
    dataCache* cur = _buckets[ key % _size ].hashHead;
    INT32 visit = 0;

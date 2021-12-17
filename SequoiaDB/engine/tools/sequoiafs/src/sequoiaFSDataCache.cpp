@@ -41,7 +41,7 @@
 using namespace engine;
 using namespace sequoiafs;
 
-void dataCache::init(UINT32 flId, UINT64 offset)
+void dataCache::init(INT32 flId, INT64 offset)
 {
    _flId = flId;
    _offset = offset;
@@ -74,7 +74,7 @@ INT32 dataCache::cacheWrite(const CHAR *buf, INT64 size, INT64 offset)
    rc = addPiece(size, offset);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to addPiece, rc=%d", rc);
+      PD_LOG(PDERROR, "Failed to addPiece, size:%ld, offset:%ld. rc=%d", size, offset, rc);
       goto error;
    }
 
@@ -312,7 +312,7 @@ BOOLEAN dataCache::canFlush()
 
    if(0 == _refCount)
    {
-      if (_scopeLen > 50) 
+      if (_scopeLen > SCOPE_SIZE / 8) 
       {
          canFlush = true;
       }

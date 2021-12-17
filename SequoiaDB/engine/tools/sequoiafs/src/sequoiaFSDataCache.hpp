@@ -68,7 +68,7 @@ namespace sequoiafs
       INT64 first ;
       INT64 last ;
 
-      cachePiece( UINT32 start, UINT32 end )
+      cachePiece( INT64 start, INT64 end )
          : first( start ),
            last( end )
       {
@@ -85,7 +85,7 @@ namespace sequoiafs
          return ( offset >= first && offset <= last ) ;
       }
 
-      OSS_INLINE bool contains( INT32 size, INT64 offset ) const
+      OSS_INLINE bool contains( INT64 size, INT64 offset ) const
       {
          return ( offset >= first && offset + size - 1 <= last ) ;
       }
@@ -113,7 +113,7 @@ namespace sequoiafs
 
    struct dataCache
    {
-      UINT32 _flId;
+      INT32 _flId;
       INT64 _offset;
       UINT64 _time;
       BOOLEAN _dirty;
@@ -131,7 +131,7 @@ namespace sequoiafs
       INT32     _scopeLen;
       CHAR       data[0]; 
 
-      void init(UINT32 flId, UINT64 offset);
+      void init(INT32 flId, INT64 offset);
       INT32 cacheWrite(const CHAR *buf, INT64 size, INT64 offset);
       INT32 cacheRead(CHAR *buf, INT64 size, INT64 offset, INT32 *len);
       INT32 cacheDownLoad(fsConnectionDao *db, const CHAR *clFullName, const OID &oid);

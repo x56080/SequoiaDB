@@ -66,7 +66,7 @@ namespace sequoiafs
          UINT32 _taskType;  // 1: upload, 2:download
          dataCache* _node;
          INT32  _flId;
-         INT32  _offset;
+         INT64  _offset;
 
       private:
          INT32 _priority ;
@@ -76,7 +76,7 @@ namespace sequoiafs
                     INT8 taskType, 
                     dataCache* node,
                     INT32 flId,
-                    INT32 offset,
+                    INT64 offset,
                     INT32 priority = 0 )
          {
             _hashKey = hashKey ;

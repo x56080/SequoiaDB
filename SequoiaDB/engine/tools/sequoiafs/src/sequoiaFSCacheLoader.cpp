@@ -44,7 +44,7 @@
 using namespace engine;
 using namespace sequoiafs;
 
-INT32 cacheLoader::load(UINT32 hashKey, INT64 flId, INT64 offset)
+INT32 cacheLoader::load(UINT32 hashKey, INT32 flId, INT64 offset)
 {
    INT32 rc = SDB_OK;
    INT32 tryTime = 2;
@@ -187,7 +187,7 @@ error:
    goto done;
 }
 
-INT32 cacheLoader::loadEmpty(INT64 flId, INT64 offset)
+INT32 cacheLoader::loadEmpty(INT32 flId, INT64 offset)
 {
    INT32 rc = SDB_OK;
    ossEvent* tmpPtr = NULL;
@@ -294,7 +294,7 @@ error:
    goto done;
 }
 
-void cacheLoader::preLoad(INT64 flId, INT64 offset)
+void cacheLoader::preLoad(INT32 flId, INT64 offset)
 {
    UINT32 mapKey = hash(flId, offset);
    sequoiaFSHashBucket* hashBucket = _mgr->getHashBucket();
@@ -325,7 +325,7 @@ error:
    return;
 }
 
-BOOLEAN cacheLoader::preLoadCheck(INT64 flId, INT64 offset)
+BOOLEAN cacheLoader::preLoadCheck(INT32 flId, INT64 offset)
 {
    UINT32 mapKey = hash(flId, offset);
    BOOLEAN isFind = FALSE;
@@ -340,7 +340,7 @@ BOOLEAN cacheLoader::preLoadCheck(INT64 flId, INT64 offset)
    return isFind;   
 }
 
-void cacheLoader::unPreLoad(INT64 flId, INT64 offset)
+void cacheLoader::unPreLoad(INT32 flId, INT64 offset)
 {
    UINT32 mapKey = hash(flId, offset);
    PD_LOG(PDDEBUG, "unPreLoad(), flId:%d, offset:%d", flId, offset);
@@ -350,7 +350,7 @@ void cacheLoader::unPreLoad(INT64 flId, INT64 offset)
    _preSetMutex.release();
 }
 
-UINT32 cacheLoader::hash(INT64 flId, INT64 offset)
+UINT32 cacheLoader::hash(INT32 flId, INT64 offset)
 {
    return ossHash( ( const BYTE * )(&flId), sizeof(flId),  
                    ( const BYTE * )(&offset), sizeof(offset) );

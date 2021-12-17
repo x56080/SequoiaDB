@@ -68,12 +68,12 @@ namespace sequoiafs
             _capacity = capacity;
             _capaCount = capacity/4;
          };
-         INT32 load(UINT32 hashKey, INT64 flId, INT64 offset);
-         INT32 loadEmpty(INT64 flId, INT64 offset);
-         void preLoad(INT64 flId, INT64 offset);
-         BOOLEAN preLoadCheck(INT64 flId, INT64 offset);
-         void unPreLoad(INT64 flId, INT64 offset);
-         UINT32 hash(INT64 flId, INT64 offset);
+         INT32 load(UINT32 hashKey, INT32 flId, INT64 offset);
+         INT32 loadEmpty(INT32 flId, INT64 offset);
+         void preLoad(INT32 flId, INT64 offset);
+         BOOLEAN preLoadCheck(INT32 flId, INT64 offset);
+         void unPreLoad(INT32 flId, INT64 offset);
+         UINT32 hash(INT32 flId, INT64 offset);
          void releaseCache(dataCache* node);
          UINT32 getUsedCount(){return _usedCount;}
          
