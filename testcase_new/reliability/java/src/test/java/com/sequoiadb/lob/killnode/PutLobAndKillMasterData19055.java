@@ -175,9 +175,9 @@ public class PutLobAndKillMasterData19055 extends SdbTestBase {
                         wlob.write( lobBuff );
                         wlob.close();
                     } catch ( BaseException e1 ) {
-                        if ( e1.getErrorCode() != -297 ) {
-                            throw e1;
-                        }
+                        System.out.println(
+                                "write lob fail! loboid is " + lobId );
+                        throw e1;
                     }
                 } else {
                     Assert.fail( "write lob fail! loboid is " + lobId );
