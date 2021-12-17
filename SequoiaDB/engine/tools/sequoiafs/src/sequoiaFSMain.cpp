@@ -672,15 +672,6 @@ INT32 main(INT32 argc, CHAR *argv[])
       PD_LOG( PDERROR, "Failed to start fuse main, rc:%d.", rc ) ;
       ossPrintf("Failed to start fuse main(rc=%d), exit."OSS_NEWLINE, rc);
    }
-   else
-   {
-      rc2 = (sfs.getOptionMgr())->save(); 
-      if(SDB_OK != rc2)
-      {
-         PD_LOG( PDWARNING, "Failed to start close conn pool, rc:%d.", rc2 ) ;
-         ossPrintf("Failed to save config (rc=%d), exit."OSS_NEWLINE, rc2);
-      }
-   }
 
 done:
    sfs.fini();
