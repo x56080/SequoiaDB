@@ -1042,8 +1042,8 @@ INT32 sequoiaFS::buildDialogPathStartPD()
            "Start sequoiafs[%s]...", verText);
 
    //print configuration in log file
-   _optionMgr.toString(configs);
-   PD_LOG(PDEVENT, "ALL configs:\n%s", configs.c_str());
+   //_optionMgr.toString(configs);
+   //PD_LOG(PDEVENT, "ALL configs:\n%s", configs.c_str());
 
 done:
    return rc;
