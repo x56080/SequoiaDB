@@ -309,6 +309,7 @@ INT32 fileLob::flFlush(INT64 *fileSize)
    INT32 rc = SDB_OK;
    INT32 hashKey = -1;
    fsConnectionDao db(_dataSource);
+   SINT64 lobSize = 0;
 
    PD_LOG(PDDEBUG, "flFlush()");
 
@@ -349,6 +350,19 @@ INT32 fileLob::flFlush(INT64 *fileSize)
       goto error;
    }
 
+   if(FS_SYNC == _fflag && _writeFlag)
+   {
+      rc = db.getLobSize(_fullCL, _oid, &lobSize);
+      if(SDB_OK != rc)
+      {
+          PD_LOG(PDERROR, "Failed to getLobSize, error=%d", rc);
+          rc = -EIO;
+          goto error;
+      }
+      _fileSize = lobSize;
+      _writeFlag = FALSE;
+   }
+
    *fileSize = _fileSize;
    
 done:
@@ -363,6 +377,7 @@ INT32 fileLob::flClose(INT64 *fileSize)
    INT32 rc = SDB_OK;
    UINT32 hashKey = 0;
    fsConnectionDao db(_dataSource);
+   SINT64 lobSize = 0;
 
    PD_LOG(PDDEBUG, "flClose()");
 
@@ -404,6 +419,19 @@ INT32 fileLob::flClose(INT64 *fileSize)
    {
       rc = _errCode;
       goto error;
+   }
+
+   if(FS_SYNC == _fflag && _writeFlag)
+   {
+      rc = db.getLobSize(_fullCL, _oid, &lobSize);
+      if(SDB_OK != rc)
+      {
+          PD_LOG(PDERROR, "Failed to getLobSize, error=%d", rc);
+          rc = -EIO;
+          goto error;
+      }
+      _fileSize = lobSize;
+      _writeFlag = FALSE;
    }
 
    *fileSize = _fileSize;

@@ -2616,16 +2616,30 @@ INT32 sequoiaFS::truncate(const CHAR *path, off_t newsize)
    if(NULL == fl)
    {
       rc = SDB_TOO_MANY_OPEN_FD;
-      PD_LOG(PDERROR, "Failed to get flId");
+      PD_LOG(PDERROR, "Failed to get a free filelob");
       goto error;
    }
-   fl->flOpen(_collection.c_str(), oid, _optionMgr.getFflag(), fMeta.size());
+   rc = fl->flOpen(_collection.c_str(), oid, _optionMgr.getFflag(), fMeta.size());
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "open the filelob failed, path=%s, rc=%d", path, rc);
+      goto error;
+   }
    
    //lh->hSysFileMetaCL = &sysFileMetaCL;
    lh->flId = fl->flGetFlId();
+   ossStrncpy(lh->fileName, fileName, OSS_MAX_NAMESIZE);
+   lh->parentId = parentId;
+   lh->oid = oid;
    fi->fh = (intptr_t)(uint64_t)((void *)lh);
 
-   ftruncate(path, newsize, fi);
+   rc = ftruncate(path, newsize, fi);
+   if(SDB_OK != rc)
+   {
+      fl->flClose(&lobSize);
+      PD_LOG(PDERROR, "ftruncate failed, path=%s, rc=%d", path, rc);
+      goto error;
+   } 
 
    rc = fl->flClose(&lobSize);
    if(SDB_OK != rc)
@@ -2635,6 +2649,7 @@ INT32 sequoiaFS::truncate(const CHAR *path, off_t newsize)
    } 
 
 done:
+   SAFE_OSS_DELETE(lh);
    SAFE_OSS_DELETE(fi);
    return rc;
 
