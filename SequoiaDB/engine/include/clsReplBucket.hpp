@@ -230,7 +230,7 @@ namespace engine
          INT32       waitForNIDLSNComp( DPS_LSN_OFFSET idRecLSN ) ;
 
          void        initUnqIdxLSN() ;
-         void        resetUnqIdxLSN() ;
+         void        resetUnqIdxLSN( BOOLEAN isEnforced ) ;
          DPS_LSN_OFFSET checkUnqIdxWaitLSN(
                                        dpsUnqIdxHashArray &newUnqIdxHashArray,
                                        dpsUnqIdxHashArray &oldUnqIdxHashArray,

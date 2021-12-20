@@ -284,6 +284,14 @@ namespace engine
             break ;
       }
 
+      // check wait LSN
+      if ( DPS_INVALID_LSN_OFFSET != waitLSN &&
+           recordHeader->_lsn <= waitLSN )
+      {
+         SDB_ASSERT( FALSE, "should not have large wait LSN" ) ;
+         waitLSN = DPS_INVALID_LSN_OFFSET ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__CLSREP__CALCBUCKETID, rc ) ;
       return rc ;
