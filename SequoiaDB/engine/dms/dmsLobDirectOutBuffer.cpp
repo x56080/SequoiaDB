@@ -137,7 +137,7 @@ namespace engine
          {
             if ( OSS_BIT_TEST( _newestMask, UTIL_WRITE_NEWEST_TAIL ) )
             {
-               ossMemset( _t.buf + offset2 - _t.offset,
+               ossMemset( _t.buf + _usrOffset + _usrSize - _t.offset,
                           0,
                           _t.size - ( _usrSize + _usrOffset - _t.offset ) ) ;
             }
