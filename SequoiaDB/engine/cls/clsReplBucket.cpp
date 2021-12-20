@@ -499,9 +499,6 @@ namespace engine
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
 
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-
       initUnqIdxLSN() ;
 
    done:
@@ -553,10 +550,7 @@ namespace engine
 
       _pendingCLUniqueID = UTIL_UNIQUEID_NULL ;
 
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-
-      resetUnqIdxLSN() ;
+      resetUnqIdxLSN( FALSE ) ;
    }
 
    void _clsBucket::close ()
@@ -963,7 +957,9 @@ namespace engine
       }
 
       // parallel replay stopped
-      resetUnqIdxLSN() ;
+      // we are rolling back, LSN will move backwards
+      // so we need to enforce reset index LSNs
+      resetUnqIdxLSN( TRUE ) ;
 
       PD_TRACE_EXITRC( SDB__CLSBUCKET_WAITANDROLLBACK, rc ) ;
       return rc ;
@@ -1617,10 +1613,8 @@ namespace engine
 
    void _clsBucket::clearParallaInfo()
    {
-      resetUnqIdxLSN() ;
+      resetUnqIdxLSN( FALSE ) ;
       _mapParallaInfo.clear() ;
-      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    INT32 _clsBucket::waitForLSN( DPS_LSN_OFFSET lsn )
@@ -1701,12 +1695,16 @@ namespace engine
          _lastOldUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
          _lastOldUnqIdxBkt[ i ] = -1 ;
       }
+      _lastIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastNIDRecParaLSN = DPS_INVALID_LSN_OFFSET ;
       _lastExpectLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
-   void _clsBucket::resetUnqIdxLSN()
+   void _clsBucket::resetUnqIdxLSN( BOOLEAN isEnforced )
    {
-      if ( _lastUnqIdxSize > 0 && DPS_INVALID_LSN_OFFSET != _lastExpectLSN )
+      if ( _lastUnqIdxSize > 0 &&
+           ( isEnforced ||
+             DPS_INVALID_LSN_OFFSET != _lastExpectLSN ) )
       {
          initUnqIdxLSN() ;
       }
