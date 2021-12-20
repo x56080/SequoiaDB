@@ -289,7 +289,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _mthSColumn::_needBuildSubArray()
+   BOOLEAN _mthSColumn::_needBuildSubArray()
    {
       SDB_ASSERT( !_subColumns.empty(), "_subColumns can't be empty" ) ;
 
