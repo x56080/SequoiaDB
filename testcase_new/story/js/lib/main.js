@@ -8,6 +8,7 @@
 入参配置项：
 testConf.skipStandAlone = true;                 跳过独立模式
 testConf.skipOneGroup = true;                   跳过只有一个组的环境
+testConf.skipGroupLessThanThree = true;         跳过数据组小于三个的环境，指定为true时skipOneGroup将被忽略不生效
 testConf.skipOneDuplicatePerGroup = true;       跳过每组一个节点的环境
 testConf.useSrcGroup = true;                    存储创建的 cl 所在组
 testConf.useDstGroup = true;                    存储创建的 cl 不在的组
@@ -27,7 +28,7 @@ testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testCon
 
 var testConf = {
    skipStandAlone: false, skipOneDuplicatePerGroup: false,
-   skipOneGroup: false, useSrcGroup: false, useDstGroup: false
+   skipOneGroup: false, useSrcGroup: false, useDstGroup: false, skipGroupLessThanThree: false
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
 // e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} } ;
@@ -39,6 +40,7 @@ var testPara = {};
 
 var oneGroup = 1;
 var nodeNum = 1;
+var threeGroup = 3;
 function checkEnv ( db, testConf )
 {
    if( testConf.skipStandAlone && commIsStandalone( db ) )
@@ -47,7 +49,14 @@ function checkEnv ( db, testConf )
    }
 
    testPara.groups = commGetGroups( db );
-   if( testConf.skipOneGroup )
+   if( testConf.skipGroupLessThanThree )
+   {
+      if( testPara.groups.length < threeGroup )
+      {
+         throw new Error( "group less than three" );
+      }
+   }
+   else if( testConf.skipOneGroup )
    {
       if( testPara.groups.length === oneGroup )
       {
@@ -246,7 +255,8 @@ function main ()
       {
          if( e.message === "standalone" ||
             e.message === "one data group" ||
-            e.message === "one duplicate per group" )
+            e.message === "one duplicate per group" ||
+            e.message === "group less than three" )
          {
             return;
          }
