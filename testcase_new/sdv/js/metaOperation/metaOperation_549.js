@@ -31,6 +31,6 @@ function test()
       }
    }
 
-   commDropCS( db, csName, false, false );
+   commDropCS( db, csName, false );
    commDropDomain( db, domainName, false );
 }

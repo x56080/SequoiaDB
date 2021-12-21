@@ -578,6 +578,7 @@ beginTimeSec=`date +%s`
 
 for(( i=0; i<${#testRoots[@]}; i++ ))
 do
+   libRoot="${testRoots[i]}/lib"
    case ${testRoots[i]} in
       $storyTestRoot )  reportDir="${reportDirRoot}/story"
                         tmpType="story"
