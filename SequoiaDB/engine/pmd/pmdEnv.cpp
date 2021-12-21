@@ -555,6 +555,14 @@ namespace engine
       sigSet.sigDel ( OSS_FREEZE_SIGNAL ) ;
       sigSet.sigDel ( OSS_FREEZE_SIGNAL_INTERNAL ) ;
 
+      if ( tcgetpgrp( STDOUT_FILENO ) != getpgrp() )
+      {
+         // It means that the program is started in the backgroup.
+         // We need to ignore the SIGHUP signal.
+         signal( SIGHUP, SIG_IGN ) ;
+         sigSet.sigDel ( SIGHUP ) ;
+      }
+
       if ( pDelSig )
       {
          UINT32 i = 0 ;
