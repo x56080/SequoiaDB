@@ -48,6 +48,10 @@ namespace CSharp.Meta
             {
                 return;
             }
+            if (sdb.IsDomainExist(domainName))
+            {
+                sdb.DropDomain(domainName);
+            }
 
             BsonDocument option = new BsonDocument();
             sdb.CreateDomain(domainName, option);
