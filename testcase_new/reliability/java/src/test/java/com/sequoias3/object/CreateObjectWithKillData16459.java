@@ -1,10 +1,12 @@
 package com.sequoias3.object;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.amazonaws.services.s3.model.*;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -13,10 +15,6 @@ import org.testng.annotations.Test;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.VersionListing;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
@@ -158,18 +156,31 @@ public class CreateObjectWithKillData16459 extends S3TestBase {
         VersionListing versions = s3Client.listVersions(
                 new ListVersionsRequest().withBucketName( bucketName ) );
         List< S3VersionSummary > objects = versions.getVersionSummaries();
-        Assert.assertEquals( objects.size(), keyNames.size(),
-                "putObjectList : " + putObjectList.toString() + "  ,objects="
-                        + printVersionKeys( objects ) );
 
+        List< String > multiVersionKeys = new ArrayList<>();
         String expMd5 = TestTools.getMD5( currContent.getBytes() );
         for ( S3VersionSummary obj : objects ) {
             String key = obj.getKey();
             String actEtag = obj.getETag();
-            Assert.assertEquals( obj.getVersionId(), "0",
-                    "objectName is : " + key );
-            Assert.assertEquals( actEtag, expMd5, "objectName is : " + key );
+            String versionId = obj.getVersionId();
+            //可能写元数据过程中异常返回失败实际创建成功，导致获取对象时不存在再次创建后存在多个版本对象
+            if( versionId == "1"){
+                multiVersionKeys.add(key);
+            }else{
+                Assert.assertEquals( versionId, "0",
+                        "objectName is : " + key );
+            }
+            Assert.assertEquals( actEtag, expMd5, "objectName is : " + key + ", versionid="+versionId );
         }
+        //删除历史版本对象后比较所有对象个数
+        HashSet newObjets = new HashSet(objects);
+        int historyVersionObjectNum = objects.size() - newObjets.size();
+        objects.clear();
+        objects.addAll(newObjets);
+        Assert.assertEquals(historyVersionObjectNum, multiVersionKeys.size(),"multiVersionKeys=" + multiVersionKeys);
+        Assert.assertEquals( objects.size(), keyNames.size(),
+                "putObjectList : " + putObjectList.toString() + "  ,objects="
+                        + printVersionKeys( objects )+" ,multiVersionKeys=" + multiVersionKeys );
     }
 
     private String printVersionKeys( List< S3VersionSummary > objects ) {
