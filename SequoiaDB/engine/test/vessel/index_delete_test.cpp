@@ -119,13 +119,8 @@ void delete_test1(INDEX_TYPE type)
 
    ossPoolVector<dmsRecordID> rids;
 
-<<<<<<< HEAD
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
-=======
-   collectionHandler handler;
-   INT32 count = 10000;
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
 
    indexParameters params;
    params.type = type;
@@ -278,11 +273,7 @@ void delete_test2(INDEX_TYPE type)
 
    // index scan
    mthMatchTree mt;
-<<<<<<< HEAD
    dmsIndexScanOptions o;
-=======
-   indexScanOptions o;
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
    for (INT32 i = 0; i < count; ++i)
    {
       dmsBsonCursorReader reader;
@@ -323,10 +314,7 @@ void delete_test2(INDEX_TYPE type)
    ASSERT_EQ((UINT64)0, currentCount);
 
    //re-insert records
-<<<<<<< HEAD
    rids.clear();
-=======
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
    for (INT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
@@ -364,12 +352,8 @@ void delete_test2(INDEX_TYPE type)
    DATA_CURSOR_PTR cursor;
    rc = handler->scanIndex(&session, "index", predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-<<<<<<< HEAD
    dmsBsonCursorReader reader;
    reader.init(cursor, FALSE);
-=======
-
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
    for (INT32 i = 0; i < count; ++i)
    {
       rc = reader.fetchNext(&session);
@@ -419,13 +403,8 @@ void partial_delete(INDEX_TYPE type)
 
    ossPoolVector<dmsRecordID> rids;
 
-<<<<<<< HEAD
    DATA_COLLECTION_PTR handler;
    UINT32 count = 10000;
-=======
-   collectionHandler handler;
-   INT32 count = 10000;
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
    indexParameters params;
    params.type = type;
    bson::BSONObj pattern = BSON("a" << 1);
@@ -508,14 +487,9 @@ void partial_delete(INDEX_TYPE type)
    DATA_CURSOR_PTR cursor;
    rc = handler->scanIndex(&session, indexName, predicates, o, cursor);
    ASSERT_EQ(SDB_OK, rc);
-<<<<<<< HEAD
    dmsBsonCursorReader reader;
    reader.init(cursor, FALSE);
    for (UINT32 i = 1; i < count; i+=2)
-=======
-
-   for (INT32 i = 1; i < count; i+=2)
->>>>>>> c295a6a25bb189b9b1eb8ba613ba8421ce5056d5
    {
       rc = reader.fetchNext(&session);
       ASSERT_EQ(SDB_OK, rc);
