@@ -3799,7 +3799,7 @@ namespace engine
       {
          DPS_TRANS_ID selfTransID = cb->getTransID().getOrigTransID() ;
          PD_CHECK( 0 == incompTrans.count( cb->getTransID().getOrigTransID() ),
-                   SDB_DPS_TRANS_LOCK_INCOMPATIBLE, error, PDERROR,
+                   SDB_DPS_INVALID_LOCK_UPGRADE_REQUEST, error, PDERROR,
                    "Failed to get incompatible transactions, "
                    "self [%s] is incompatible with lock mode [%s]",
                    dpsTransIDToString( selfTransID ).c_str(),

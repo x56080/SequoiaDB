@@ -1334,8 +1334,8 @@ namespace engine
       {
          dpsTransRetInfo lockConflict ;
 
-         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
-         rc = _pTransCB->transLockTryU( cb, logicCSID, DMS_INVALID_MBID,
+         // NOTE: use S lock to exclusive X, IX, SIX, Z locks
+         rc = _pTransCB->transLockTryS( cb, logicCSID, DMS_INVALID_MBID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of CS[%s] failed, rc: %d"OSS_NEWLINE
@@ -1854,8 +1854,8 @@ namespace engine
       {
          dpsTransRetInfo lockConflict ;
 
-         // NOTE: use U lock to exclusive X, IX, SIX, U, Z locks
-         rc = _pTransCB->transLockTryU( cb, _su->LogicalCSID(), mbID,
+         // NOTE: use S lock to exclusive X, IX, SIX, Z locks
+         rc = _pTransCB->transLockTryS( cb, _su->LogicalCSID(), mbID,
                                         NULL, &lockConflict ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get transaction-lock of collection[%s] failed, rc: %d"
