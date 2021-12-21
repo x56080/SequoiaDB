@@ -146,7 +146,7 @@ void delete_test1(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
-   for (INT32 i = 0; i < count; ++i)
+   for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
@@ -170,7 +170,7 @@ void delete_test1(INDEX_TYPE type)
    ASSERT_EQ((UINT64)count, currentCount);
 
    // delete records
-   for (INT32 i = 0; i < count; ++i)
+   for (UINT32 i = 0; i < count; ++i)
    {
       utilDeleteResult deleteRes;
       const dmsRecordID &rid = rids[i];
@@ -430,7 +430,7 @@ void partial_delete(INDEX_TYPE type)
    ASSERT_EQ(SDB_OK, rc);
 
    // insert records
-   for (INT32 i = 0; i < count; ++i)
+   for (UINT32 i = 0; i < count; ++i)
    {
       utilInsertResult res;
       builder.reset();
@@ -452,7 +452,7 @@ void partial_delete(INDEX_TYPE type)
    ASSERT_EQ(count, currentCount);
 
    //delete records
-   for (INT32 i = 0; i < count; i += 2)
+   for (UINT32 i = 0; i < count; i += 2)
    {
       utilDeleteResult deleteRes;
 
