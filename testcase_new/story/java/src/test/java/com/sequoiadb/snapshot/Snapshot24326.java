@@ -1,5 +1,6 @@
 package com.sequoiadb.snapshot;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
@@ -15,7 +16,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,20 +27,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Snapshot24326 extends SdbTestBase {
     private Sequoiadb db;
     private Sequoiadb dataNode = null;
+    private CollectionSpace cs;
     private final String clName1 = "cl_24326_A";
     private final String clName2 = "cl_24326_B";
     private final String clName3 = "cl_24326_C";
     private final static AtomicInteger count = new AtomicInteger( 3 );
+    private final static Object syncObj = new Object();
+    private final static int TIMEOUT = 60 * 1000; // 1 min, the default value of transactiontimeout is 1 min
+    private final static int INTERVAL_TIME = 200;  // 200 ms
 
     @BeforeClass
     public void setUp(){
         db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = db.getCollectionSpace( csName );
         BSONObject option1 = new BasicBSONObject();
         BSONObject option2 = new BasicBSONObject();
         if ( !CommLib.isStandAlone( db ) ){
             ArrayList< String > groupList =  CommLib.getDataGroupNames( db );
-            if ( groupList == null || groupList.size() < 1 ){
-                throw new BaseException( SDBError.SDB_SYS, "The sequoiadb cluster is missing data groups" );
+            if ( groupList.size() < 1 ){
+                Assert.fail( "At least two data groups are required" );
             }
             int num = 0;
             option1.put("Group", groupList.get( num ) );
@@ -49,59 +55,54 @@ public class Snapshot24326 extends SdbTestBase {
             String nodeName = db.getReplicaGroup( groupList.get( num ) ).getMaster().getNodeName();
             dataNode = new Sequoiadb( nodeName, "", "" );
         }
-        DBCollection cl1 = db.getCollectionSpace( csName ).createCollection( clName1, option1 );
-        DBCollection cl2 = db.getCollectionSpace( csName ).createCollection( clName2, option2 );
-        DBCollection cl3 = db.getCollectionSpace( csName ).createCollection( clName3, option2 );
+        DBCollection cl1 = cs.createCollection( clName1, option1 );
+        DBCollection cl2 = cs.createCollection( clName2, option2 );
+        DBCollection cl3 = cs.createCollection( clName3, option2 );
 
-        BSONObject doc = new BasicBSONObject( "a", 1 );
-        cl1.insert( doc );
-        cl2.insert( doc );
-        cl3.insert( doc );
+        SnapshotUtil.insertData( cl1 );
+        SnapshotUtil.insertData( cl2 );
+        SnapshotUtil.insertData( cl3 );
     }
 
     @AfterClass
     public void tearDown(){
-        db.getCollectionSpace( csName ).dropCollection( clName1 );
-        db.getCollectionSpace( csName ).dropCollection( clName2 );
-        db.getCollectionSpace( csName ).dropCollection( clName3 );
-        db.close();
-        if ( dataNode != null ){
-            dataNode.close();
+        try {
+            cs.dropCollection( clName1 );
+            cs.dropCollection( clName2 );
+            cs.dropCollection( clName3 );
+        }finally {
+            db.close();
+            if ( dataNode != null ){
+                dataNode.close();
+            }
         }
     }
 
-    //@Test
+    @Test
     public void test(){
-        UpdateTrans t1 = new UpdateTrans(  "t1", clName1, clName2 );
-        UpdateTrans t2 = new UpdateTrans(  "t2", clName2, clName3 );
-        UpdateTrans t3 = new UpdateTrans(  "t3", clName3, clName2 );
-        GetAndCheckSnap snap = new GetAndCheckSnap( t1, t2, t3 );
+        UpdateTrans trans1 = new UpdateTrans( clName1, clName2 );
+        UpdateTrans trans2 = new UpdateTrans( clName2, clName3 );
+        UpdateTrans trans3 = new UpdateTrans( clName3, clName2 );
+        GetAndCheckSnap snap = new GetAndCheckSnap( trans1, trans2, trans3 );
 
-        t1.start();
-        t2.start();
-        t3.start();
+        trans1.start();
+        trans2.start();
+        trans3.start();
         snap.start();
 
-        t1.join();
-        t2.join();
-        t3.join();
-        snap.join();
-
-        for ( Throwable e : snap.getExceptions() ) {
-            e.printStackTrace();
-        }
-        Assert.assertEquals( snap.getExceptions().size(), 0 );
+        Assert.assertTrue( trans1.isSuccess(),  trans1.getErrorMsg() );
+        Assert.assertTrue( trans2.isSuccess(),  trans2.getErrorMsg() );
+        Assert.assertTrue( trans3.isSuccess(),  trans3.getErrorMsg() );
+        Assert.assertTrue( snap.isSuccess(),  snap.getErrorMsg() );
     }
 
     class UpdateTrans extends SdbThreadBase{
-        private String name;
         private String clName1;
         private String clName2;
         private Sequoiadb db;
         private String modifier = "{$set: {a: 2}}";
 
-        UpdateTrans( String name, String clName1, String clName2 ) {
-            this.name = name;
+        UpdateTrans( String clName1, String clName2 ) {
             this.clName1 = clName1;
             this.clName2 = clName2;
             this.db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
@@ -119,19 +120,29 @@ public class Snapshot24326 extends SdbTestBase {
 
                 db.beginTransaction();
                 setTransactionID( db );
+
                 // phase 1: get lock
-                System.out.println( "thread " + name + " in phase 1: get lock" );
                 cl1.update( "", modifier, "" );
+
+                // sync all transaction
                 count.decrementAndGet();
-                while ( count.get() > 0 ) {
-                    Thread.sleep( 100 );
+                synchronized ( syncObj ){
+                    if ( count.get() > 0 ){
+                        syncObj.wait();
+                    }else {
+                        syncObj.notifyAll();
+                    }
                 }
+
                 // phase 2: trigger lock wait
-                System.out.println( "thread " + name + " in phase 2: trigger lock wait" );
                 cl2.update( "", modifier, "" );
+
                 db.commit();
             }catch (BaseException e){
-                System.out.println( e.getMessage() );
+                // use db.close() to unlock deadLock, so the SDB_NETWORK errors should be ignored
+                if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ){
+                    throw e;
+                }
             }finally {
                 db.close();
             }
@@ -151,72 +162,85 @@ public class Snapshot24326 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            if ( count.get() != 0 ){
-                Thread.sleep( 100 );
+            // wait for all UpdateTrans
+            synchronized ( syncObj ){
+                if ( count.get() > 0 ){
+                    syncObj.wait();
+                }
             }
-            // make sure all transaction in phase 2
-            Thread.sleep( 1000 );
+
             try{
-                System.out.println( "get SDB_SNAP_TRANSWAITS info" );
-                // 1. coord
-                checkResult( db, 3, trans1, trans2, trans3 );
-                // 2. data
+                checkSnapshot( db, 3, trans1, trans2, trans3 );
+
+                // dataNode is null means standalone mode
                 if ( dataNode != null ){
-                    checkResult(dataNode, 3, trans1, trans2, trans3);
+                    // if cluster mode, we should check data node
+                    checkSnapshot(dataNode, 3, trans1, trans2, trans3);
                 }
             }finally {
                 // kill a transaction to unlock deadlocks
-                System.out.println("kill " + trans2.name + " transaction to unlock deadlocks");
                 trans2.interruptTrans();
             }
         }
 
-        private void checkResult( Sequoiadb db, int expectSize, UpdateTrans trans1, UpdateTrans trans2,
+        private void checkSnapshot( Sequoiadb db, int expectSize, UpdateTrans trans1, UpdateTrans trans2,
                                   UpdateTrans trans3 ) throws Exception{
-            DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSWAITS, "","","" );
-
             BSONObject result = null;
-            int size = 0;
-            try{
-                while (cursor.hasNext()){
-                    result = cursor.getNext();
-                    String waiterTransID = (String)result.get("WaiterTransID");
-                    String holderTransID = (String)result.get("HolderTransID");
-                    // check value
-                    if ( waiterTransID.equals( trans1.getTransactionID() )){
-                        Assert.assertEquals(holderTransID, trans2.getTransactionID());
+            int totalTime = 0;
+
+            // DeadLock generation takes times, so we need to query snapshots several times
+            while ( totalTime <= TIMEOUT ){
+                Thread.sleep( INTERVAL_TIME );
+                totalTime += INTERVAL_TIME;
+
+                try( DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSWAITS, "","","" ) ){
+                    if ( !cursor.hasNext() ){
+                        continue;
                     }
-                    if ( waiterTransID.equals( trans2.getTransactionID() )){
-                        Assert.assertEquals(holderTransID, trans3.getTransactionID());
+
+                    int size = 0;
+                    while (cursor.hasNext()){
+                        result = cursor.getNext();
+                        String waiterTransID = (String)result.get("WaiterTransID");
+                        String holderTransID = (String)result.get("HolderTransID");
+                        // check value
+                        if ( waiterTransID.equals( trans1.getTransactionID() )){
+                            Assert.assertEquals(holderTransID, trans2.getTransactionID());
+                        }
+                        if ( waiterTransID.equals( trans2.getTransactionID() )){
+                            Assert.assertEquals(holderTransID, trans3.getTransactionID());
+                        }
+                        if ( waiterTransID.equals( trans3.getTransactionID() )){
+                            Assert.assertEquals(holderTransID, trans2.getTransactionID());
+                        }
+                        size++;
                     }
-                    if ( waiterTransID.equals( trans3.getTransactionID() )){
-                        Assert.assertEquals(holderTransID, trans2.getTransactionID());
-                    }
-                    size++;
+                    // check size
+                    Assert.assertEquals(size, expectSize);
+                    // check fields of SDB_SNAP_TRANSWAITS
+                    Assert.assertNotNull(result.get("NodeName"));
+                    Assert.assertNotNull(result.get("GroupID"));
+                    Assert.assertNotNull(result.get("NodeID"));
+                    Assert.assertNotNull(result.get("WaitTime"));
+                    Assert.assertNotNull(result.get("WaiterTransID"));
+                    Assert.assertNotNull(result.get("HolderTransID"));
+                    Assert.assertNotNull(result.get("WaiterTransCost"));
+                    Assert.assertNotNull(result.get("HolderTransCost"));
+                    Assert.assertNotNull(result.get("WaiterSessionID"));
+                    Assert.assertNotNull(result.get("HolderSessionID"));
+                    Assert.assertNotNull(result.get("WaiterRelatedID"));
+                    Assert.assertNotNull(result.get("HolderRelatedID"));
+                    Assert.assertNotNull(result.get("WaiterRelatedSessionID"));
+                    Assert.assertNotNull(result.get("HolderRelatedSessionID"));
+                    Assert.assertNotNull(result.get("WaiterRelatedGroupID"));
+                    Assert.assertNotNull(result.get("HolderRelatedGroupID"));
+                    Assert.assertNotNull(result.get("WaiterRelatedNodeID"));
+                    Assert.assertNotNull(result.get("HolderRelatedNodeID"));
+                    break;
                 }
-                // check size
-                Assert.assertEquals(size, expectSize);
-                // check fields of snap
-                Assert.assertNotNull(result.get("NodeName"));
-                Assert.assertNotNull(result.get("GroupID"));
-                Assert.assertNotNull(result.get("NodeID"));
-                Assert.assertNotNull(result.get("WaitTime"));
-                Assert.assertNotNull(result.get("WaiterTransID"));
-                Assert.assertNotNull(result.get("HolderTransID"));
-                Assert.assertNotNull(result.get("WaiterTransCost"));
-                Assert.assertNotNull(result.get("HolderTransCost"));
-                Assert.assertNotNull(result.get("WaiterSessionID"));
-                Assert.assertNotNull(result.get("HolderSessionID"));
-                Assert.assertNotNull(result.get("WaiterRelatedID"));
-                Assert.assertNotNull(result.get("HolderRelatedID"));
-                Assert.assertNotNull(result.get("WaiterRelatedSessionID"));
-                Assert.assertNotNull(result.get("HolderRelatedSessionID"));
-                Assert.assertNotNull(result.get("WaiterRelatedGroupID"));
-                Assert.assertNotNull(result.get("HolderRelatedGroupID"));
-                Assert.assertNotNull(result.get("WaiterRelatedNodeID"));
-                Assert.assertNotNull(result.get("HolderRelatedNodeID"));
-            }finally {
-                cursor.close();
+            }
+            if ( totalTime > TIMEOUT ){
+                Assert.fail( "check SDB_SNAP_TRANSWAITS timeout!" );
             }
         }
     }

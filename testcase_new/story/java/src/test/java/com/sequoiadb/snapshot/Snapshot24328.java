@@ -30,43 +30,40 @@ public class Snapshot24328 extends SdbTestBase {
     public void setUp(){
         db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         DBCollection cl = db.getCollectionSpace( csName ).createCollection( clName );
-        cl.insert( new BasicBSONObject( "a", 1 ) );
+        SnapshotUtil.insertData( cl );
 
         if ( !CommLib.isStandAlone( db ) ){
             List< String > groupNameList =  CommLib.getCLGroups( cl );
-            if ( groupNameList.size() < 1 ){
-                throw new BaseException( SDBError.SDB_SYS, "The sequoiadb cluster is missing data groups" );
-            }
             String nodeName = db.getReplicaGroup( groupNameList.get(0) ).getMaster().getNodeName();
             dataNode = new Sequoiadb( nodeName, "", "" );
         }
     }
     @AfterClass
     public void tearDown(){
-        db.getCollectionSpace( csName ).dropCollection( clName );
-        db.close();
-        if ( dataNode != null ){
-            dataNode.close();
-        }
-    }
-
-    //@Test
-    public void test(){
-        // coord
-        checkResult( db );
-
-        // data
-        if ( dataNode != null ){
-            checkResult( dataNode );
-        }
-    }
-
-    private void checkResult( Sequoiadb db ){
-        DBCursor cursor = db.getSnapshot(Sequoiadb.SDB_SNAP_TRANSDEADLOCK, "","","");
-        try{
-            Assert.assertFalse( cursor.hasNext() );
+        try {
+            db.getCollectionSpace( csName ).dropCollection( clName );
         }finally {
-            cursor.close();
+            db.close();
+            if ( dataNode != null ){
+                dataNode.close();
+            }
+        }
+    }
+
+    @Test
+    public void test(){
+        checkSnapshot( db );
+
+        // dataNode is null means standalone mode
+        if ( dataNode != null ){
+            // if cluster mode, we should check data node
+            checkSnapshot( dataNode );
+        }
+    }
+
+    private void checkSnapshot( Sequoiadb db ){
+        try( DBCursor cursor = db.getSnapshot(Sequoiadb.SDB_SNAP_TRANSDEADLOCK, "","","") ){
+            Assert.assertFalse( cursor.hasNext() );
         }
     }
 }
