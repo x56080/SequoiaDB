@@ -114,6 +114,15 @@ namespace engine
       return rc ;
    }
 
+   void pmdCMDEnableSignalEvent()
+   {
+#if defined( _LINUX )
+      // sdbcmd is started in the backgroup.
+      // We need to ignore the SIGHUP signal.
+      signal( SIGHUP, SIG_IGN ) ;
+#endif //_LINUX
+   }
+
    INT32 mainEntry( INT32 argc, CHAR** argv )
    {
       INT32 rc = SDB_OK ;
@@ -165,6 +174,8 @@ namespace engine
       // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
+
+      pmdCMDEnableSignalEvent() ;
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start cmd[%s]...", verText ) ;
