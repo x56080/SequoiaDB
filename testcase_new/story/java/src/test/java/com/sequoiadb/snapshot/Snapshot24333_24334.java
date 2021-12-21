@@ -20,11 +20,11 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @Description: seqDB-24333/seqDB-24334:在 data、coord 节点上检测复杂死锁，并使用 forceSession() 解除复杂死锁
+ * @Description: seqDB-24333 : 在 data、coord 节点上检测复杂死锁 seqDB-24334 使用 forceSession() 解除复杂死锁
  * @Author Yang Qincheng
  * @Date 2021.09.03
  */
-public class Snapshot24334 extends SdbTestBase {
+public class Snapshot24333_24334 extends SdbTestBase {
     private Sequoiadb db;
     private Sequoiadb dataNode1;
     private Sequoiadb dataNode2;
@@ -36,6 +36,9 @@ public class Snapshot24334 extends SdbTestBase {
     private String groupName2;
     private String groupName3;
     private final static AtomicInteger count = new AtomicInteger( 6 );
+    private final static Object syncObj = new Object();
+    private final static int TIMEOUT = 60 * 1000; // 1 min, the default value of transactiontimeout is 1 min
+    private final static int INTERVAL_TIME = 200;  // 200 ms
 
     @BeforeClass
     public void setUp(){
@@ -44,9 +47,10 @@ public class Snapshot24334 extends SdbTestBase {
             throw new SkipException( "skip StandAlone" );
         }
         ArrayList< String > groupList =  CommLib.getDataGroupNames( db );
-        if ( groupList == null || groupList.size() < 3 ){
-            throw new BaseException( SDBError.SDB_SYS, "This use case requires three data groups" );
+        if ( groupList.size() < 3 ){
+            Assert.fail( "At least three data groups are required" );
         }
+
         int num = 0;
         groupName1 = groupList.get( num++ );
         groupName2 = groupList.get( num++ );
@@ -67,14 +71,17 @@ public class Snapshot24334 extends SdbTestBase {
 
     @AfterClass
     public void tearDown(){
-        db.getCollectionSpace( csName ).dropCollection( clName );
-        db.close();
-        dataNode1.close();
-        dataNode2.close();
-        dataNode3.close();
+        try {
+            db.getCollectionSpace( csName ).dropCollection( clName );
+        }finally {
+            db.close();
+            dataNode1.close();
+            dataNode2.close();
+            dataNode3.close();
+        }
     }
 
-    //@Test
+    @Test(enabled = false)
     public void test(){
         // prepare data
         for ( int i = 1; i < 7; i++ ){
@@ -96,53 +103,46 @@ public class Snapshot24334 extends SdbTestBase {
         int[] matcherB5 = { 4, 5 }; // t5 wait for t4,t6
         int[] matcherB6 = { 2 };    // t6 wait for t2
 
-        UpdateTrans t1 = new UpdateTrans( "t1", 1, matcherB1, modifier );
+        UpdateTrans trans1 = new UpdateTrans( 1, matcherB1, modifier );
         // the amount of data for t2 updates needs to be larger than other transactions
-        UpdateTrans t2 = new UpdateTrans( "t2", 2, matcherB2, modifierLarger );
-        UpdateTrans t3 = new UpdateTrans( "t3", 3, matcherB3, modifier );
-        UpdateTrans t4 = new UpdateTrans( "t4", 5, matcherB4, modifier );
-        UpdateTrans t5 = new UpdateTrans( "t5", 6, matcherB5, modifier );
-        UpdateTrans t6 = new UpdateTrans( "t6", 4, matcherB6, modifier );
+        UpdateTrans trans2 = new UpdateTrans( 2, matcherB2, modifierLarger );
+        UpdateTrans trans3 = new UpdateTrans( 3, matcherB3, modifier );
+        UpdateTrans trans4 = new UpdateTrans( 5, matcherB4, modifier );
+        UpdateTrans trans5 = new UpdateTrans( 6, matcherB5, modifier );
+        UpdateTrans trans6 = new UpdateTrans( 4, matcherB6, modifier );
         List<UpdateTrans> transList = new ArrayList<>();
-        transList.add( t1 );
-        transList.add( t2 );
-        transList.add( t3 );
-        transList.add( t4 );
-        transList.add( t5 );
-        transList.add( t6 );
+        transList.add( trans1 );
+        transList.add( trans2 );
+        transList.add( trans3 );
+        transList.add( trans4 );
+        transList.add( trans5 );
+        transList.add( trans6 );
         GetAndCheckSnap snap = new GetAndCheckSnap( transList );
 
-        t1.start();
-        t2.start();
-        t3.start();
-        t4.start();
-        t5.start();
-        t6.start();
+        trans1.start();
+        trans2.start();
+        trans3.start();
+        trans4.start();
+        trans5.start();
+        trans6.start();
         snap.start();
 
-        t1.join();
-        t2.join();
-        t3.join();
-        t4.join();
-        t5.join();
-        t6.join();
-        snap.join();
-
-        for ( Throwable e: snap.getExceptions() ){
-            e.printStackTrace();
-        }
-        Assert.assertEquals( snap.getExceptions().size(), 0 );
+        Assert.assertTrue( trans1.isSuccess(),  trans1.getErrorMsg() );
+        Assert.assertTrue( trans2.isSuccess(),  trans2.getErrorMsg() );
+        Assert.assertTrue( trans3.isSuccess(),  trans3.getErrorMsg() );
+        Assert.assertTrue( trans4.isSuccess(),  trans1.getErrorMsg() );
+        Assert.assertTrue( trans5.isSuccess(),  trans2.getErrorMsg() );
+        Assert.assertTrue( trans6.isSuccess(),  trans3.getErrorMsg() );
+        Assert.assertTrue( snap.isSuccess(),  snap.getErrorMsg() );
     }
 
     class UpdateTrans extends SdbThreadBase {
-        private String name;
         private BSONObject matcherA;
         private BSONObject matcherB;
         private BSONObject modifier;
         private Sequoiadb db;
 
-        UpdateTrans( String name, int matcherA, int[] matcherB, BSONObject modifier ) {
-            this.name = name;
+        UpdateTrans( int matcherA, int[] matcherB, BSONObject modifier ) {
             this.matcherA = new BasicBSONObject( shardingKey, new BasicBSONObject( "$et", matcherA ) );
             this.matcherB = new BasicBSONObject( shardingKey, new BasicBSONObject( "$in", matcherB ) );
             this.modifier = modifier;
@@ -150,11 +150,7 @@ public class Snapshot24334 extends SdbTestBase {
         }
 
         void interruptTrans(){
-            try {
-                db.close();
-            }catch (BaseException e){
-                // do nothing
-            }
+            db.close();
         }
 
         @Override
@@ -163,19 +159,33 @@ public class Snapshot24334 extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( csName ).getCollection( clName );
                 db.beginTransaction();
                 setTransactionID( db );
+
                 // phase 1: get lock
-                System.out.println( "thread " + name + " in phase 1: get lock" );
                 cl.update( matcherA, modifier, null );
+
+                // sync all transaction
                 count.decrementAndGet();
-                while ( count.get() > 0 ) {
-                    Thread.sleep(100);
+                synchronized ( syncObj ){
+                    if ( count.get() > 0 ){
+                        syncObj.wait();
+                    }else {
+                        syncObj.notifyAll();
+                    }
                 }
+
                 // phase 2: trigger lock wait
-                System.out.println( "thread " + name + " in phase 2: trigger lock wait" );
                 cl.update( matcherB, modifier, null );
+
                 db.commit();
             }catch ( BaseException e ){
-                System.out.println( e.getMessage() );
+                // use db.close() / forceSession() to unlock deadLock, so the following errors need to be ignored:
+                // SDB_NETWORK
+                // SDB_NETWORK_CLOSE
+                if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_NETWORK_CLOSE.getErrorCode() &&
+                        e.getErrorCode() != SDBError.SDB_APP_FORCED.getErrorCode() ){
+                    throw e;
+                }
             }finally {
                 db.close();
             }
@@ -191,17 +201,19 @@ public class Snapshot24334 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
-            if ( count.get() != 0 ){
-                Thread.sleep( 100 );
+            // wait for all UpdateTrans
+            synchronized ( syncObj ){
+                if ( count.get() > 0 ){
+                    syncObj.wait();
+                }
             }
-            // make sure all transaction in phase 2
-            Thread.sleep( 1000 );
+
             try {
                 List<String> transIDList = new ArrayList<>();
                 for ( UpdateTrans t: transList ){
                     transIDList.add( t.getTransactionID() );
                 }
-                System.out.println( "get SDB_SNAP_TRANSDEADLOCK info" );
+
                 // 1. get and check SDB_SNAP_TRANSDEADLOCK
                 long sessionID1 = checkAndGetSessionID( db, transIDList,true, 5 );
                 checkAndGetSessionID( dataNode1, transIDList, false, 0 );
@@ -230,15 +242,31 @@ public class Snapshot24334 extends SdbTestBase {
             }
         }
 
-        private long checkAndGetSessionID( Sequoiadb db, List<String> transIDList, boolean hadDeadlocks, int transNum ){
-            List<DeadlocksBean> deadlockList = new ArrayList<>();
-            int deadlockID = -1;
+        private long checkAndGetSessionID( Sequoiadb db, List<String> transIDList, boolean hadDeadlocks,
+                                           int transNum ) throws Exception {
+            int totalTime = 0;
+            long sessionID = -1;
             BSONObject matcher = new BasicBSONObject( "TransactionID", new BasicBSONObject( "$in", transIDList ) );
-            DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSDEADLOCK, matcher,null,null );
-            try {
-                if ( hadDeadlocks ){
+
+            // DeadLock generation takes times, so we need to query snapshots several times
+            while ( totalTime <= TIMEOUT ){
+                Thread.sleep( INTERVAL_TIME );
+                totalTime += INTERVAL_TIME;
+
+                try ( DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSDEADLOCK, matcher,null,null ) ){
+                    if ( !hadDeadlocks ){
+                        Assert.assertFalse( cursor.hasNext() );
+                        return sessionID;
+                    }
+
+                    if ( !cursor.hasNext() ){
+                        continue;
+                    }
+
                     DeadlocksBean lastDeadLock = null;
-                    while (cursor.hasNext()){
+                    List<DeadlocksBean> deadlockList = new ArrayList<>();
+                    int deadlockID = -1;
+                    while ( cursor.hasNext() ){
                         DeadlocksBean deadlock = new DeadlocksBean( cursor.getNext() );
                         Assert.assertTrue( deadlock.check() );
                         if ( deadlockID == -1 ){
@@ -256,15 +284,14 @@ public class Snapshot24334 extends SdbTestBase {
                         deadlockList.add( deadlock );
                     }
                     Assert.assertEquals( deadlockList.size(), transNum );
-                    return deadlockList.get( 0 ).getSession();
-                }else {
-                    Assert.assertFalse( cursor.hasNext() );
-                    return -1;
+                    sessionID = deadlockList.get( 0 ).getSession();
+                    break;
                 }
-            }finally {
-                cursor.close();
             }
+            if ( totalTime > TIMEOUT ){
+                Assert.fail( "check SDB_SNAP_TRANSDEADLOCK timeout!" );
+            }
+            return sessionID;
         }
     }
-
 }
